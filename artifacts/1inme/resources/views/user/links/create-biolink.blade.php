@@ -72,7 +72,6 @@
                             <i x-show="isError" class="fas fa-circle-xmark text-red-400 text-sm"></i>
                         </span>
                     </div>
-                    @include('user.links.partials.platform-hosts-hint', ['primary' => $defaultHost])
                     <p aria-live="polite" x-show="message && state && state !== 'empty'" x-cloak
                        class="text-sm mt-1.5"
                        :class="state === 'available' ? 'text-emerald-400' : (isError ? 'text-red-400' : 'text-white/40')"

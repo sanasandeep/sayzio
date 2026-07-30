@@ -93,9 +93,15 @@
     cFmt() { const r = this.cRatio(); return r === null ? '' : (Math.round(r * 10) / 10) + ':1'; }
 }">
     <button type="button" @click="showStyle = !showStyle"
-            class="w-full flex items-center justify-between text-sm font-medium py-1" style="color: var(--text-muted);">
-        <span><i class="fas fa-wand-magic-sparkles mr-2 text-pink-400"></i>Block Styling</span>
-        <i :class="showStyle ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-xs"></i>
+            class="w-full flex items-center justify-between text-sm font-medium py-1.5 group" style="color: var(--text-muted);">
+        <span class="flex items-center gap-2">
+            <span class="inline-flex w-7 h-7 rounded-lg items-center justify-center" style="background: linear-gradient(135deg, rgba(236,72,153,0.18), rgba(92,131,255,0.12)); border: 1px solid rgba(236,72,153,0.25);">
+                <i class="fas fa-wand-magic-sparkles text-pink-400 text-xs"></i>
+            </span>
+            <span>Block Styling</span>
+            <span class="edit-section-pill edit-section-pill--pink">Themes · Fonts · Colors</span>
+        </span>
+        <i :class="showStyle ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-[10px] edit-section-chevron"></i>
     </button>
 
     <div x-show="showStyle" x-cloak x-transition class="mt-3">

@@ -136,11 +136,35 @@
             $tornActive = true;
             $tornPaper = is_string($bs['torn_paper_color'] ?? null) && $bs['torn_paper_color'] !== '' ? $bs['torn_paper_color'] : $tornPaper;
             $tornBackdropImage = is_string($bs['torn_image'] ?? null) ? $bs['torn_image'] : '';
+            // Backdrop colors (Task #6204): validated hex pair -> gradient,
+            // only when no backdrop photo was uploaded (photo wins).
+            $tornBdC1 = is_string($bs['torn_backdrop_color'] ?? null) ? $bs['torn_backdrop_color'] : '';
+            $tornBdC2 = is_string($bs['torn_backdrop_color2'] ?? null) ? $bs['torn_backdrop_color2'] : '';
+            if ($tornBackdropImage === '' && $tornBdC1 !== '') {
+                $tornBackdropCss = 'background: linear-gradient(150deg, '.$tornBdC1.' 0%, '.($tornBdC2 !== '' ? $tornBdC2 : $tornBdC1).' 100%)';
+            }
+        } elseif ($bgType === 'mesh' && !empty($bs['mesh_preset'])) {
+            // Mesh / Pattern (Task #6204) reuse the preset render path:
+            // CSS is resolved server-side from the catalogs by key.
+            $bgPresetCss = \App\Modules\User\Support\MeshGradientCatalog::css((string) $bs['mesh_preset']);
+        } elseif ($bgType === 'pattern' && !empty($bs['pattern_preset'])) {
+            $bgPresetCss = \App\Modules\User\Support\PatternCatalog::css((string) $bs['pattern_preset']);
         }
-        // Jagged torn edge: paper occupies most of the page; the backdrop
-        // peeks out beyond a diagonal tear running from ~72% (top) to ~62%
-        // (bottom) of the viewport width, with irregular jags.
-        $tornClipPath = 'polygon(0% 0%, 72% 0%, 70.4% 4%, 72.8% 8%, 70% 13%, 71.6% 18%, 68.8% 23%, 71% 28%, 68.2% 33%, 70.2% 38%, 67.6% 43%, 69.4% 48%, 66.8% 53%, 68.6% 58%, 66% 63%, 67.8% 68%, 65.2% 73%, 66.8% 78%, 64.4% 83%, 65.8% 88%, 63.6% 93%, 64.8% 97%, 62% 100%, 0% 100%)';
+        // Tiles background (Task #6204): a dedicated grid layer of catalog
+        // gradients. Resolved fully server-side; the optional pulse
+        // animation is gated behind prefers-reduced-motion below.
+        $bgTiles = [];
+        $tilesAnimate = false;
+        if ($bgType === 'tiles' && !empty($bs['tiles_palette'])) {
+            $bgTiles = \App\Modules\User\Support\TilesBgCatalog::tiles(
+                (string) $bs['tiles_palette'],
+                (string) ($bs['tiles_layout'] ?? 'uniform')
+            );
+            $tilesAnimate = !empty($bs['tiles_animate']) && $bs['tiles_animate'] !== '0';
+        }
+        $tilesActive = $bgTiles !== [];
+        // Jagged torn clip paths now live in TornStyleCatalog (Task #6204);
+        // the legacy diagonal tear is its 'diagonal' default style.
 
         // Contrast safeguard: when no explicit background_type has been saved the
         // page falls back to the dark default gradient (#0a0612 / $bgFallbackColor).
@@ -195,7 +219,7 @@
         // Torn composites always render on their own dedicated layers
         // (backdrop + clipped paper), so they never use the generic
         // .bg-page-fixed layer nor an inline body background.
-        $hasPageBgLayer = !$tornActive && ($bgFixed || $presetTranslucent) && in_array($bgType, ['color', 'gradient', 'preset', 'image'], true);
+        $hasPageBgLayer = !$tornActive && ($bgFixed || $presetTranslucent) && in_array($bgType, ['color', 'gradient', 'preset', 'image', 'mesh', 'pattern'], true);
         $bgBlur = (int)($bs['bg_blur'] ?? 0);
         $bgOverlayColor = $bs['bg_overlay_color'] ?? '#000000';
         $bgOverlayOpacity = (int)($bs['bg_overlay_opacity'] ?? 0);
@@ -394,6 +418,12 @@
                     background-attachment: scroll !important;
                 @elseif($bgType === 'preset')
                     background-color: {{ $bgFallbackColor }};
+                @elseif(($bgType === 'mesh' || $bgType === 'pattern') && $bgPresetCss)
+                    {{-- Mesh/Pattern (Task #6204): catalog CSS resolved by key. --}}
+                    {!! rtrim($bgPresetCss, "; \t\n\r") !!};
+                    background-attachment: scroll !important;
+                @elseif($bgType === 'mesh' || $bgType === 'pattern' || $bgType === 'tiles')
+                    background-color: {{ $bgFallbackColor }};
                 @elseif($bgType === 'image' && $bgImage)
                     background: {{ $bgFallbackColor }} url('{{ $bgImage }}') center/cover no-repeat scroll;
                 @elseif($bgType === 'slideshow' || $bgType === 'video' || $bgType === 'template')
@@ -430,12 +460,52 @@
                 {!! rtrim($bgPresetCss, "; \t\n\r") !!};
             @elseif($bgType === 'preset')
                 background-color: {{ $bgFallbackColor }};
+            @elseif(($bgType === 'mesh' || $bgType === 'pattern') && $bgPresetCss)
+                {!! rtrim($bgPresetCss, "; \t\n\r") !!};
+            @elseif($bgType === 'mesh' || $bgType === 'pattern')
+                background-color: {{ $bgFallbackColor }};
             @elseif($bgType === 'image' && $bgImage)
                 background: {{ $bgFallbackColor }} url('{{ $bgImage }}') center/cover no-repeat;
             @elseif($bgType === 'image')
                 background-color: {{ $bgFallbackColor }};
             @endif
         }
+        @endif
+        @if($tilesActive)
+        {{-- Tiles background (Task #6204): a full-viewport grid of catalog
+             gradient tiles on its own dedicated layer. "Fixed" pins it to
+             the viewport (mobile-Safari-safe); "Scroll" absolutely positions
+             it over the body. The optional pulse animation only runs when
+             the visitor allows motion. --}}
+        .bg-tiles {
+            position: {{ $bgFixed ? 'fixed' : 'absolute' }};
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-auto-rows: minmax(14vh, 1fr);
+            grid-auto-flow: dense;
+            gap: 6px;
+            padding: 6px;
+            background-color: {{ $bgFallbackColor }};
+        }
+        .bg-tiles span {
+            border-radius: 10px;
+            display: block;
+        }
+        @if($tilesAnimate)
+        @media (prefers-reduced-motion: no-preference) {
+            @keyframes bgTilePulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.55; }
+            }
+            .bg-tiles span {
+                animation: bgTilePulse 6s ease-in-out infinite;
+            }
+        }
+        @endif
         @endif
         @if($bgBlur > 0 || $bgOverlayOpacity > 0)
         body::after {
@@ -458,7 +528,7 @@
             @endif
         }
         @endif
-        @if($bgBlur > 0 || $bgOverlayOpacity > 0 || $hasPageBgLayer || $tornActive)
+        @if($bgBlur > 0 || $bgOverlayOpacity > 0 || $hasPageBgLayer || $tornActive || $tilesActive)
         body > *:not(.bg-layer):not(script):not(style) {
             position: relative;
             z-index: 1;
@@ -493,14 +563,19 @@
                  of the inner sheet (box-shadow would hug the clipped box). --}}
             filter: drop-shadow(4px 0 10px rgba(0,0,0,0.28));
         }
-        .bg-torn-paper::before {
-            content: '';
+        {{-- Tear variant sheets (Task #6204): each style resolves to one or
+             more clipped paper sheets from TornStyleCatalog (legacy pages
+             without a torn_style render the classic diagonal default).
+             Clip paths and shade factors come only from the catalog. --}}
+        @foreach(\App\Modules\User\Support\TornStyleCatalog::sheets($bs['torn_style'] ?? null) as $__i => $__sheet)
+        .bg-torn-paper .torn-sheet-{{ $__i }} {
             position: absolute;
             inset: 0;
-            background-color: {{ $tornPaper }};
-            clip-path: {{ $tornClipPath }};
-            -webkit-clip-path: {{ $tornClipPath }};
+            background-color: {{ \App\Modules\User\Support\TornStyleCatalog::shadeHex($tornPaper, $__sheet['shade']) }};
+            clip-path: {{ $__sheet['clip'] }};
+            -webkit-clip-path: {{ $__sheet['clip'] }};
         }
+        @endforeach
         @endif
         @if(count($pageStickers))
         {{-- Page stickers: purely decorative fixed-viewport layers. Both carry
@@ -1171,9 +1246,21 @@
     <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
     @endif
 
+    @if($tilesActive)
+    <div class="bg-tiles bg-layer" aria-hidden="true">
+        @foreach($bgTiles as $__tile)
+            <span style="background: {{ $__tile['css'] }}; grid-column: span {{ $__tile['col'] }}; grid-row: span {{ $__tile['row'] }};"></span>
+        @endforeach
+    </div>
+    @endif
+
     @if($tornActive)
     <div class="bg-torn-backdrop bg-layer" aria-hidden="true"></div>
-    <div class="bg-torn-paper bg-layer" aria-hidden="true"></div>
+    <div class="bg-torn-paper bg-layer" aria-hidden="true">
+        @foreach(\App\Modules\User\Support\TornStyleCatalog::sheets($bs['torn_style'] ?? null) as $__i => $__sheet)
+            <span class="torn-sheet-{{ $__i }}"></span>
+        @endforeach
+    </div>
     @endif
 
     @if($bgType === 'slideshow' && count($slideshowImages) > 0)
@@ -1302,28 +1389,6 @@
             </div>
         @endif
 
-        @php
-            // Bio-link header CTA: surface a small "View resume" chip when
-            // the page owner has published their /{handle}/resume page.
-            // Lives just above the block stream so it sits in the
-            // page-header area without competing with custom blocks.
-            $__resumeOwner = $link->user ?? null;
-            $__resumePublished = $__resumeOwner
-                ? optional($__resumeOwner->resume)->is_public
-                : false;
-        @endphp
-        @if ($__resumePublished)
-            <div class="biolink-block-wrap" style="grid-column: span 12">
-                <div class="mb-3 text-center">
-                    <a href="{{ url('/' . $__resumeOwner->publicHandle() . '/resume') }}"
-                       class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all hover:scale-105"
-                       style="background: {{ $fontColor }}12; color: {{ $fontColor }}; border: 1px solid {{ $fontColor }}30;">
-                        <i class="fas fa-file-lines"></i>
-                        <span>View résumé</span>
-                    </a>
-                </div>
-            </div>
-        @endif
 
         @forelse($blocks as $block)
             @php
@@ -2118,6 +2183,42 @@
         // either param.
         if (editBlockId || params.get('_preview')) {
 
+            // ── Editor focus scroll-and-highlight (Task #6232) ──────────────
+            // The editor posts focus/unfocus as the creator hovers a block
+            // card or opens its edit drawer; we scroll the matching block
+            // into view and outline it (same style as the _editBlock deep
+            // link above). Only active in editor preview mode.
+            (function () {
+                var focusedEl = null;
+                var fadeTimer = null;
+                function clearFocus() {
+                    if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
+                    if (!focusedEl) return;
+                    focusedEl.style.outline = '';
+                    focusedEl.style.outlineOffset = '';
+                    focusedEl = null;
+                }
+                window.addEventListener('message', function (e) {
+                    if (e.origin !== window.location.origin) return;
+                    var d = e.data;
+                    if (!d || (d.type !== '1inme-block-focus' && d.type !== '1inme-block-unfocus')) return;
+                    if (d.type === '1inme-block-unfocus') { clearFocus(); return; }
+                    var el = document.querySelector('[data-block-id="' + d.blockId + '"]');
+                    if (!el) return;
+                    if (focusedEl && focusedEl !== el) clearFocus();
+                    try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (err) {}
+                    el.style.transition = 'outline 0.3s ease, outline-offset 0.3s ease';
+                    el.style.outline = '2px solid rgba(92,131,255,0.6)';
+                    el.style.outlineOffset = '4px';
+                    el.style.borderRadius = '12px';
+                    focusedEl = el;
+                    if (fadeTimer) clearTimeout(fadeTimer);
+                    fadeTimer = setTimeout(function () {
+                        if (focusedEl === el) el.style.outline = '2px solid rgba(92,131,255,0.25)';
+                    }, 1500);
+                });
+            })();
+
             // ── Instant block live preview (Task #4022 / #4034) ─────────────
             // The editor posts the full drawer form state plus the list of
             // fields changed since the drawer opened. We patch the DOM in
@@ -2894,6 +2995,13 @@
         // block-store AJAX needs, flaking the editor drag-and-drop suite. No
         // effect in production, where __E2E__ is never set.
         if (window.__E2E__) return;
+        // Editor device-preview iframes load with ?_preview=1 (signed owner
+        // preview). Those are the owner looking at their own draft — skip
+        // session/heartbeat/dwell beacons entirely so previews stay light
+        // and never pollute engagement analytics.
+        try {
+            if (new URLSearchParams(location.search).get('_preview')) return;
+        } catch (e) {}
         var CONSENT_REQUIRED = {!! !empty(($link->settings['biolink']['privacy']['consent_banner_enabled'] ?? false)) ? 'true' : 'false' !!};
         var CONSENT_COOKIE   = @json('1inme_link_consent_' . (int) $link->id);
         function readCookie(name){

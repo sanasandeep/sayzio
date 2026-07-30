@@ -4,7 +4,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
+import {
+  BiolinkEffectBackground,
+  type EffectSpec,
+} from "@/components/BiolinkEffectBackground";
 import { useColors } from "@/hooks/useColors";
+import {
+  resolveMesh,
+  resolvePattern,
+  resolveTiles,
+} from "@/lib/bgEffectCatalog";
 import { getBaseUrl } from "@/lib/api";
 import { getBgPresets } from "@/lib/api/bgPresets";
 import { getBgTemplates } from "@/lib/api/bgTemplates";
@@ -85,6 +94,42 @@ export function BiolinkBackgroundPreview({ linkId }: { linkId: number }) {
     (tornActive ? str(biolink.torn_paper_color) : "") || "#cfe0e6";
   const tornFallback = str(biolink.bg_fallback_color) || "#3d3654";
 
+  // New effect background types (Task #6204): tiles / mesh / pattern.
+  // RN can't render the web CSS, so the preview approximates them with a
+  // LinearGradient built from the server-stamped `bg_effect_colors`
+  // (representative colors resolved from the catalogs on save).
+  const effectType =
+    biolink.background_type === "tiles" ||
+    biolink.background_type === "mesh" ||
+    biolink.background_type === "pattern"
+      ? (biolink.background_type as string)
+      : "";
+  const effectColors = Array.isArray(biolink.bg_effect_colors)
+    ? (biolink.bg_effect_colors as unknown[]).filter(
+        (c): c is string => typeof c === "string" && c.trim() !== "",
+      )
+    : [];
+
+  // Rich native rendering (Task #6212): resolve the stored catalog keys
+  // through the mirrored mobile catalogs so the preview draws the real
+  // texture (tile grid / mesh blobs / repeating motif). Unknown or
+  // missing keys leave `effectSpec` null and the gradient built from
+  // `bg_effect_colors` remains the graceful fallback.
+  let effectSpec: EffectSpec | null = null;
+  if (effectType === "tiles") {
+    const tiles = resolveTiles(
+      str(biolink.tiles_palette),
+      str(biolink.tiles_layout) || "uniform",
+    );
+    if (tiles) effectSpec = { type: "tiles", tiles };
+  } else if (effectType === "mesh") {
+    const mesh = resolveMesh(str(biolink.mesh_preset));
+    if (mesh) effectSpec = { type: "mesh", mesh };
+  } else if (effectType === "pattern") {
+    const pattern = resolvePattern(str(biolink.pattern_preset));
+    if (pattern) effectSpec = { type: "pattern", pattern };
+  }
+
   const presetActive = biolink.background_type === "preset";
   const presetKey = presetActive ? str(biolink.bg_preset_key) : "";
   // Page-level preset transparency (Task #5970): 0–100, default 100. The
@@ -156,7 +201,13 @@ export function BiolinkBackgroundPreview({ linkId }: { linkId: number }) {
     </View>
   );
 
-  const caption = tornActive
+  const caption = effectType
+    ? effectType === "tiles"
+      ? "Tiles background"
+      : effectType === "mesh"
+        ? "Mesh gradient background"
+        : "Pattern background"
+    : tornActive
     ? "Torn paper background"
     : template
     ? `Template · ${template.name}`
@@ -183,7 +234,38 @@ export function BiolinkBackgroundPreview({ linkId }: { linkId: number }) {
           { borderColor: colors.border, borderRadius: colors.radius + 6 },
         ]}
       >
-        {tornActive ? (
+        {effectType && effectSpec ? (
+          // Tiles / mesh / pattern: real native texture from the mirrored
+          // catalog (tile grid / mesh blobs / repeating motif), with the
+          // stamped-color gradient painting first underneath.
+          <LinearGradient
+            colors={gradientStops(
+              effectColors.length ? effectColors : ["#3d3654"],
+            )}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.canvas}
+          >
+            <BiolinkEffectBackground
+              spec={effectSpec}
+              baseColor={effectColors[0] ?? "#3d3654"}
+            />
+            {mockContent}
+          </LinearGradient>
+        ) : effectType ? (
+          // Unknown catalog key (e.g. added on web after this app build):
+          // gradient approximation from the server-stamped colors.
+          <LinearGradient
+            colors={gradientStops(
+              effectColors.length ? effectColors : ["#3d3654"],
+            )}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.canvas}
+          >
+            {mockContent}
+          </LinearGradient>
+        ) : tornActive ? (
           // Torn paper: backdrop photo (or fallback color) with the solid
           // paper sheet + jagged torn right edge drawn over it.
           <View style={[styles.canvas, { backgroundColor: tornFallback }]}>

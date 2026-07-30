@@ -275,9 +275,8 @@ class CardScanController extends Controller
         // CheckPlanLimit middleware so a biolink-only save still works
         // when the contacts quota is full).
         if ($wantContact) {
-            $plan = $owner->plan;
-            $features = $plan?->features ?? [];
-            $maxContacts = $features['contacts_max'] ?? -1;
+            // getPlanFeature honors the user.plan_limits.bypass permission and addons.
+            $maxContacts = (int) $owner->getPlanFeature('contacts_max', -1);
             if ($maxContacts !== -1 && $owner->contacts()->count() >= $maxContacts) {
                 return back()->with('error',
                     "You've reached your plan's contact limit ({$maxContacts}). Upgrade your plan, or save just the Link in Bio draft instead.");
@@ -423,9 +422,8 @@ class CardScanController extends Controller
         }
 
         // ── Create-new mode ────────────────────────────────────────────────
-        $plan = $owner->plan;
-        $features = $plan?->features ?? [];
-        $maxContacts = $features['contacts_max'] ?? -1;
+        // getPlanFeature honors the user.plan_limits.bypass permission and addons.
+        $maxContacts = (int) $owner->getPlanFeature('contacts_max', -1);
         if ($maxContacts !== -1 && $owner->contacts()->count() >= $maxContacts) {
             return back()->with('error',
                 "You've reached your plan's contact limit ({$maxContacts}). Upgrade your plan to save more contacts.");

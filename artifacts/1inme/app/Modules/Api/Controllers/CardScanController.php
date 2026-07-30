@@ -271,8 +271,8 @@ class CardScanController extends Controller
         // Enforce the contacts plan limit inline (a biolink-only save still
         // succeeds when the contacts quota is full).
         if ($wantContact) {
-            $features    = $user->plan?->features ?? [];
-            $maxContacts = $features['contacts_max'] ?? -1;
+            // getPlanFeature honors the user.plan_limits.bypass permission and addons.
+            $maxContacts = (int) $user->getPlanFeature('contacts_max', -1);
             if ($maxContacts !== -1) {
                 $usedContacts = $user->contacts()->count();
                 if ($usedContacts >= $maxContacts) {

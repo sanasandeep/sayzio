@@ -248,13 +248,14 @@ protected $fillable = [
     public static function resolveByAlias(string $alias, ?string $host = null, bool $withoutWorkspaceScope = false): ?self
     {
         // Host-aware resolution. Three cases:
-        //   1. Platform host (any canonical brand domain — sayzio.app / 1in.me
-        //      — plus APP_URL, the Replit dev domain, deployed Replit URLs and
-        //      localhost) → resolve the shared platform namespace: links with
-        //      domain_id IS NULL *or* bound to any admin-global domain. This is
-        //      what lets a link created on sayzio.app also resolve on 1in.me
-        //      (and on the dev preview host) while pre-existing NULL-domain
-        //      links keep working everywhere.
+        //   1. Platform host → resolve ONLY that host's own domain namespace.
+        //      Each admin-global brand domain (sayzio.app, 1in.me, …) is its
+        //      own alias namespace: an alias bound to sayzio.app does NOT
+        //      resolve on 1in.me unless separately bound there. The DEFAULT
+        //      platform domain's namespace also includes legacy
+        //      domain_id IS NULL rows, and every non-brand platform host
+        //      (APP_URL, Replit dev/preview domains, localhost) maps to that
+        //      default namespace so dev previews mirror sayzio.app.
         //   2. Verified+active row in the `domains` table → scope alias
         //      lookup to that domain_id so the same alias can live
         //      independently on different custom domains.
@@ -263,13 +264,15 @@ protected $fillable = [
         //      the caller can serve "Domain not connected".
         $domainId = null;
         $isPlatformHost = false;
+        $platformDomainId = null;
         $normalizedHost = \App\Modules\Common\Support\PlatformHosts::normalize($host);
         if ($normalizedHost !== null) {
             if (in_array($normalizedHost, \App\Modules\Common\Support\PlatformHosts::platformDomains(), true)) {
-                // Canonical platform host (incl. the platform's own global
-                // domains, which also have a `domains` row). Resolve against
-                // the shared platform namespace, never a single domain_id.
+                // Canonical platform host. Resolve against the namespace of
+                // the specific global domain this host serves (null = the
+                // default platform domain's namespace).
                 $isPlatformHost = true;
+                $platformDomainId = Domain::platformDomainIdForHost($normalizedHost);
             } else {
                 $domain = Domain::where('domain', $normalizedHost)->first();
                 if ($domain) {
@@ -287,13 +290,12 @@ protected $fillable = [
             }
         }
 
-        $scope = function ($q) use ($domainId, $isPlatformHost) {
+        $scope = function ($q) use ($domainId, $isPlatformHost, $platformDomainId) {
             if ($isPlatformHost) {
-                $q->whereNull('domain_id');
-                $platformIds = Domain::platformDomainIds();
-                if (!empty($platformIds)) {
-                    $q->orWhereIn('domain_id', $platformIds);
-                }
+                // Per-domain namespace: this host's own global domain only.
+                // The default namespace (null) also matches legacy
+                // domain_id IS NULL rows via AliasNamespace::scope.
+                \App\Modules\User\Support\AliasNamespace::scope($q, $platformDomainId);
                 return;
             }
             $domainId === null ? $q->whereNull('domain_id') : $q->where('domain_id', $domainId);
@@ -333,13 +335,9 @@ protected $fillable = [
         // platform host when its own domain_id is null) — independent of
         // the parent link's domain_id. Scope directly against the
         // link_aliases row rather than the parent link.
-        $extraScope = function ($q) use ($domainId, $isPlatformHost) {
+        $extraScope = function ($q) use ($domainId, $isPlatformHost, $platformDomainId) {
             if ($isPlatformHost) {
-                $q->whereNull('domain_id');
-                $platformIds = Domain::platformDomainIds();
-                if (!empty($platformIds)) {
-                    $q->orWhereIn('domain_id', $platformIds);
-                }
+                \App\Modules\User\Support\AliasNamespace::scope($q, $platformDomainId);
                 return;
             }
             $domainId === null ? $q->whereNull('domain_id') : $q->where('domain_id', $domainId);

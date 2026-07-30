@@ -12,9 +12,9 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * End-to-end coverage that the MOBILE-facing public resolve API keeps a link
- * reachable across both canonical brand hosts (sayzio.app / 1in.me), the same
- * way the web redirect layer does (see CrossDomainAliasResolutionTest, which
+ * End-to-end coverage that the MOBILE-facing public resolve API scopes a link
+ * to the brand host it is bound to (sayzio.app / 1in.me are separate alias
+ * namespaces), the same way the web redirect layer does (see CrossDomainAliasResolutionTest, which
  * pins RedirectController + the domain picker).
  *
  * The Expo app resolves a public link by alias through host-scoped REST
@@ -25,8 +25,9 @@ use Tests\TestCase;
  * directly:
  *
  *   - A link bound to one admin-global brand domain resolves through the
- *     mobile API regardless of which brand host the request appears on.
- *   - A NULL-domain (legacy) link resolves on both brand hosts.
+ *     mobile API ONLY on that brand host.
+ *   - A NULL-domain (legacy) link belongs to the DEFAULT platform domain
+ *     (sayzio.app) namespace and does not resolve on the other brand host.
  *   - A user-owned custom-domain link stays scoped to its own host and is
  *     NOT reachable through the mobile API on either brand host.
  *
@@ -104,7 +105,7 @@ class MobileCrossDomainResolutionApiTest extends TestCase
         }
     }
 
-    public function test_global_domain_bound_link_resolves_on_both_brand_hosts_via_mobile_api(): void
+    public function test_global_domain_bound_link_resolves_only_on_its_own_brand_host_via_mobile_api(): void
     {
         $user    = $this->makeUser();
         $sayzio  = $this->globalBrandDomain(self::BRAND_PRIMARY, primary: true);
@@ -119,36 +120,43 @@ class MobileCrossDomainResolutionApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.page.alias', $alias);
 
-        // … and, crucially, on the OTHER brand host too — the shared platform
-        // namespace spans every admin-global domain.
+        // … and, crucially, NOT on the OTHER brand host — each global domain
+        // is its own alias namespace now.
         $this->getJsonOnHost(self::BRAND_SECONDARY, '/api/v1/paid-page/' . $alias)
-            ->assertOk()
-            ->assertJsonPath('data.page.alias', $alias);
+            ->assertNotFound();
 
-        // Symmetry: a link bound to the 1in.me global row resolves on sayzio.app.
+        // Symmetry: a link bound to the 1in.me global row resolves there but
+        // not on sayzio.app.
         $alias2 = 'pp2-' . Str::random(6);
         $this->makePaidPage($user, $oneInMe->id, $alias2);
-        $this->getJsonOnHost(self::BRAND_PRIMARY, '/api/v1/paid-page/' . $alias2)
+        $this->getJsonOnHost(self::BRAND_SECONDARY, '/api/v1/paid-page/' . $alias2)
             ->assertOk()
             ->assertJsonPath('data.page.alias', $alias2);
+        $this->getJsonOnHost(self::BRAND_PRIMARY, '/api/v1/paid-page/' . $alias2)
+            ->assertNotFound();
     }
 
-    public function test_null_domain_link_resolves_on_both_brand_hosts_via_mobile_api(): void
+    public function test_null_domain_link_resolves_only_in_the_default_namespace_via_mobile_api(): void
     {
         $user = $this->makeUser();
         $this->globalBrandDomain(self::BRAND_PRIMARY, primary: true);
         $this->globalBrandDomain(self::BRAND_SECONDARY);
 
-        // A pre-existing/legacy link with no domain binding at all.
+        // A pre-existing/legacy link with no domain binding at all — it lives
+        // in the DEFAULT platform domain (sayzio.app) namespace.
         $alias = 'ppnull-' . Str::random(6);
         $this->makePaidPage($user, null, $alias);
 
         $this->getJsonOnHost(self::BRAND_PRIMARY, '/api/v1/paid-page/' . $alias)
             ->assertOk()
             ->assertJsonPath('data.page.alias', $alias);
-        $this->getJsonOnHost(self::BRAND_SECONDARY, '/api/v1/paid-page/' . $alias)
+        // Dev/preview hosts map to the default namespace too.
+        $this->getJsonOnHost('localhost', '/api/v1/paid-page/' . $alias)
             ->assertOk()
             ->assertJsonPath('data.page.alias', $alias);
+        // But the secondary brand host is a different namespace.
+        $this->getJsonOnHost(self::BRAND_SECONDARY, '/api/v1/paid-page/' . $alias)
+            ->assertNotFound();
     }
 
     public function test_user_owned_custom_domain_link_stays_scoped_in_mobile_api(): void
@@ -174,8 +182,8 @@ class MobileCrossDomainResolutionApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.page.alias', $alias);
 
-        // … but NOT from either brand host — the shared platform namespace
-        // only spans admin-global rows, never user-owned domains.
+        // … but NOT from either brand host — platform namespaces never
+        // include user-owned domains.
         $this->getJsonOnHost(self::BRAND_PRIMARY, '/api/v1/paid-page/' . $alias)
             ->assertNotFound();
         $this->getJsonOnHost(self::BRAND_SECONDARY, '/api/v1/paid-page/' . $alias)

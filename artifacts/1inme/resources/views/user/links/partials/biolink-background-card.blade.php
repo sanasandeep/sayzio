@@ -31,8 +31,21 @@
     $bgOverlayOpacity  = $bs['bg_overlay_opacity']  ?? 0;
     $bgPresetKey       = $bs['bg_preset_key']       ?? '';
     $tornPaperColor    = $bs['torn_paper_color']    ?? '#cfe0e6';
-    $bgPresets         = BgPresetCatalog::all();
-    $bgPresetGroups    = BgPresetCatalog::GROUPS;
+    // Task #6204: the Presets tab only shows picker-visible groups —
+    // gradients moved to the Gradient tab ("Classic"), torn to the
+    // standalone Torn Paper type. Legacy saved keys still render publicly.
+    $bgPresets         = BgPresetCatalog::pickerPresets();
+    $bgPresetGroups    = BgPresetCatalog::pickerGroups();
+    $tornStyleVal      = $bs['torn_style']          ?? \App\Modules\User\Support\TornStyleCatalog::DEFAULT;
+    // Color inputs always submit a value, so seed pleasant defaults
+    // (the legacy dusty-blue backdrop) instead of browser-default black.
+    $tornBdColor       = ($bs['torn_backdrop_color']  ?? '') ?: '#8aa6b4';
+    $tornBdColor2      = ($bs['torn_backdrop_color2'] ?? '') ?: '#46626f';
+    $tilesPaletteVal   = $bs['tiles_palette']       ?? '';
+    $tilesLayoutVal    = $bs['tiles_layout']        ?? 'uniform';
+    $tilesAnimateVal   = (string) ($bs['tiles_animate'] ?? '0');
+    $meshPresetVal     = $bs['mesh_preset']         ?? '';
+    $patternPresetVal  = $bs['pattern_preset']      ?? '';
 
     // Lazy-load bg templates if the parent didn't pass them in.
     $bgTemplates = $bgTemplates ?? \App\Modules\Admin\Models\BgTemplate::active()->get();
@@ -288,19 +301,144 @@
                 'hint'        => 'Peeks out beyond the torn edge of the paper',
                 'compact'     => true,
             ])
-            <div>
-                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Paper Color</label>
-                <div class="flex items-center gap-2">
-                    <input type="color" name="torn_paper_color" value="{{ $tornPaperColor }}" class="w-10 h-10 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-subtle);">
-                    <span class="text-xs font-mono" style="color: var(--text-faint);">{{ $tornPaperColor }}</span>
+            {{-- Tear style (Task #6204): 6 catalog variants; only the key is
+                 stored, clip paths always resolve server-side. --}}
+            <div x-data="{ tornStyle: @js($tornStyleVal) }" @torn-style-combo.window="tornStyle = $event.detail">
+                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Tear Style</label>
+                <input type="hidden" name="torn_style" :value="tornStyle">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    @foreach(\App\Modules\User\Support\TornStyleCatalog::styles() as $styleKey => $styleLabel)
+                    <button type="button"
+                            @click="tornStyle = '{{ $styleKey }}'; $nextTick(() => $dispatch('change'))"
+                            class="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap transition-all"
+                            :style="tornStyle === '{{ $styleKey }}' ? 'background: rgba(61,107,255,0.25); color:#bccfff; border:1px solid rgba(61,107,255,0.5)' : 'background: var(--bg-glass-input); color: var(--text-muted); border:1px solid var(--border-glass)'">
+                        {{ $styleLabel }}
+                    </button>
+                    @endforeach
                 </div>
-                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">A solid paper sheet with a jagged torn right edge sits over the backdrop photo. If no photo is uploaded, the fallback color shows beyond the tear.</p>
             </div>
+            <div x-data="{ tornPaper: @js($tornPaperColor), tornBd: @js($tornBdColor), tornBd2: @js($tornBdColor2) }" class="space-y-3">
+                {{-- Quick combos: the first three mirror the retired torn
+                     presets so those looks stay one click away. --}}
+                <div>
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Quick Combos</label>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        @foreach(\App\Modules\User\Support\TornStyleCatalog::PRESETS as $comboKey => $combo)
+                        <button type="button"
+                                @click="tornPaper = '{{ $combo['paper'] }}'; tornBd = '{{ $combo['backdrop'][0] }}'; tornBd2 = '{{ $combo['backdrop'][1] }}'; window.dispatchEvent(new CustomEvent('torn-style-combo', { detail: '{{ $combo['style'] }}' })); $nextTick(() => $dispatch('change'))"
+                                class="flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-full transition-all"
+                                style="background: var(--bg-glass-input); color: var(--text-muted); border:1px solid var(--border-glass);"
+                                title="{{ $combo['label'] }}">
+                            <span class="w-4 h-4 rounded-full flex-shrink-0" style="background: linear-gradient(115deg, {{ $combo['paper'] }} 0%, {{ $combo['paper'] }} 55%, {{ $combo['backdrop'][0] }} 55%, {{ $combo['backdrop'][1] }} 100%); border:1px solid var(--border-subtle);"></span>
+                            {{ $combo['label'] }}
+                        </button>
+                        @endforeach
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Paper Color</label>
+                        <input type="color" name="torn_paper_color" x-model="tornPaper" class="w-10 h-10 rounded-lg cursor-pointer" style="border: 1px solid var(--border-subtle);">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Backdrop Color 1</label>
+                        <input type="color" name="torn_backdrop_color" x-model="tornBd" class="w-10 h-10 rounded-lg cursor-pointer" style="border: 1px solid var(--border-subtle);">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Backdrop Color 2</label>
+                        <input type="color" name="torn_backdrop_color2" x-model="tornBd2" class="w-10 h-10 rounded-lg cursor-pointer" style="border: 1px solid var(--border-subtle);">
+                    </div>
+                </div>
+                <p class="text-[10px]" style="color: var(--text-dimmed);">The paper sheet tears away to reveal the backdrop. An uploaded photo wins over the backdrop colors; with neither, the fallback color shows beyond the tear.</p>
+            </div>
+        </div>
+
+        {{-- TILES (Task #6204) --}}
+        <div x-show="bgType === 'tiles'" x-transition class="space-y-3"
+             x-data="{ tilesPalette: @js($tilesPaletteVal), tilesLayout: @js($tilesLayoutVal), tilesAnimate: @js($tilesAnimateVal) }">
+            <input type="hidden" name="tiles_palette" :value="tilesPalette">
+            <div>
+                <label class="block text-xs font-medium mb-2" style="color: var(--text-muted);">Palette</label>
+                <div class="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                    @foreach(\App\Modules\User\Support\TilesBgCatalog::palettes() as $palKey => $pal)
+                    <button type="button"
+                            @click="tilesPalette = '{{ $palKey }}'; $nextTick(() => $dispatch('change'))"
+                            :class="tilesPalette === '{{ $palKey }}' ? 'ring-2 ring-blue-400' : ''"
+                            class="rounded-md overflow-hidden transition-all hover:scale-[1.05]"
+                            style="aspect-ratio: 9/14; border: 1px solid var(--border-glass);"
+                            title="{{ $pal['label'] }}">
+                        <span class="grid grid-cols-2 w-full h-full" style="gap:2px; padding:2px; display:grid;">
+                            @foreach(array_slice($pal['tiles'], 0, 4) as $tileCss)
+                            <span style="background: {{ $tileCss }}; border-radius: 2px; display:block;"></span>
+                            @endforeach
+                        </span>
+                    </button>
+                    @endforeach
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Layout</label>
+                    {{-- No @change re-dispatch here: a native change event on a select already
+     bubbles to the form's draft-preview listener, and re-dispatching a
+     bubbling 'change' from inside a @change handler fires the same handler
+     on the target again (.stop only blocks propagation), looping forever. --}}
+                    <select name="tiles_layout" x-model="tilesLayout" class="theme-input w-full">
+                        @foreach(\App\Modules\User\Support\TilesBgCatalog::LAYOUTS as $layoutKey => $layoutLabel)
+                        <option value="{{ $layoutKey }}">{{ $layoutLabel }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Animation</label>
+                    <select name="tiles_animate" x-model="tilesAnimate" class="theme-input w-full">
+                        <option value="0">Off</option>
+                        <option value="1">Gentle pulse</option>
+                    </select>
+                </div>
+            </div>
+            <p class="text-[10px]" style="color: var(--text-dimmed);">A full-page grid of gradient tiles. The pulse animation is automatically disabled for visitors who prefer reduced motion.</p>
+        </div>
+
+        {{-- MESH (Task #6204) --}}
+        <div x-show="bgType === 'mesh'" x-transition class="space-y-3"
+             x-data="{ meshPreset: @js($meshPresetVal) }">
+            <input type="hidden" name="mesh_preset" :value="meshPreset">
+            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Mesh Gradient</label>
+            <div class="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
+                @foreach(\App\Modules\User\Support\MeshGradientCatalog::all() as $meshKey => $mesh)
+                <button type="button"
+                        @click="meshPreset = meshPreset === '{{ $meshKey }}' ? '' : '{{ $meshKey }}'; $nextTick(() => $dispatch('change'))"
+                        :class="meshPreset === '{{ $meshKey }}' ? 'ring-2 ring-blue-400' : ''"
+                        class="rounded-md overflow-hidden transition-all hover:scale-[1.05]"
+                        style="{{ \App\Modules\User\Support\MeshGradientCatalog::css($meshKey) }}; aspect-ratio: 9/14; border: 1px solid var(--border-glass);"
+                        title="{{ $mesh['label'] }}"></button>
+                @endforeach
+            </div>
+            <p class="text-[10px]" style="color: var(--text-dimmed);">Soft multi-point color blends. Click a swatch to select, click again to deselect.</p>
+        </div>
+
+        {{-- PATTERN (Task #6204) --}}
+        <div x-show="bgType === 'pattern'" x-transition class="space-y-3"
+             x-data="{ patternPreset: @js($patternPresetVal) }">
+            <input type="hidden" name="pattern_preset" :value="patternPreset">
+            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Pattern</label>
+            <div class="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+                @foreach(\App\Modules\User\Support\PatternCatalog::all() as $patKey => $pat)
+                <button type="button"
+                        @click="patternPreset = patternPreset === '{{ $patKey }}' ? '' : '{{ $patKey }}'; $nextTick(() => $dispatch('change'))"
+                        :class="patternPreset === '{{ $patKey }}' ? 'ring-2 ring-blue-400' : ''"
+                        class="rounded-md overflow-hidden transition-all hover:scale-[1.05]"
+                        style="{{ $pat['css'] }}; aspect-ratio: 9/14; border: 1px solid var(--border-glass);"
+                        title="{{ $pat['label'] }}"></button>
+                @endforeach
+            </div>
+            <p class="text-[10px]" style="color: var(--text-dimmed);">Subtle geometric textures. Click a swatch to select, click again to deselect.</p>
         </div>
 
         {{-- PRESET --}}
         <div x-show="bgType === 'preset'" x-transition class="space-y-3"
-             x-data="{ presetGroup: 'gradients', presetSearch: '', selectedKey: @js($bgPresetKey) }">
+             x-data="{ presetGroup: @js(array_key_first($bgPresetGroups) ?? 'abstract'), presetSearch: '', selectedKey: @js($bgPresetKey) }">
             <div class="flex items-center justify-between gap-2 flex-wrap">
                 <label class="block text-xs font-medium" style="color: var(--text-muted);">Choose a Preset <span class="opacity-60">({{ count($bgPresets) }})</span></label>
                 <input type="text" x-model="presetSearch" placeholder="Search…"
@@ -493,7 +631,10 @@ function bgSettings() {
             { key: 'slideshow', label: 'Slideshow',   icon: 'fa-images',  preview: 'rgba(236,72,153,0.15)' },
             { key: 'video',     label: 'Video',       icon: 'fa-film',    preview: 'rgba(61,107,255,0.15)' },
             { key: 'template',  label: 'Template',    icon: 'fa-magic',   preview: 'linear-gradient(135deg, #0f0c29, #302b63)' },
-            { key: 'torn',      label: 'Torn Paper',  icon: 'fa-scroll',  preview: 'linear-gradient(115deg, #cfe0e6 0%, #cfe0e6 60%, #5d7d8e 60%)' }
+            { key: 'torn',      label: 'Torn Paper',  icon: 'fa-scroll',  preview: 'linear-gradient(115deg, #cfe0e6 0%, #cfe0e6 60%, #5d7d8e 60%)' },
+            { key: 'tiles',     label: 'Tiles',       icon: 'fa-border-all', preview: 'conic-gradient(from 45deg, #1d4ed8 25%, #0ea5e9 25% 50%, #312e81 50% 75%, #334155 75%)' },
+            { key: 'mesh',      label: 'Mesh',        icon: 'fa-braille', preview: 'radial-gradient(circle at 30% 30%, #22d3ee, transparent 60%), radial-gradient(circle at 75% 70%, #a78bfa, transparent 60%), #0b1026' },
+            { key: 'pattern',   label: 'Pattern',     icon: 'fa-th',      preview: 'repeating-linear-gradient(45deg, #4338ca 0 4px, #1e1b4b 4px 10px)' }
         ],
         init() {
             if (!this.gradientStops || this.gradientStops.length < 2) {

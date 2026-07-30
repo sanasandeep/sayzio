@@ -80,11 +80,17 @@
         "test:db-guard": [
             "@php scripts/check-database-guard.php"
         ],
+        "check:blade-inline-scripts": [
+            "node scripts/check-blade-inline-scripts.mjs"
+        ],
         "check:factory-columns": [
             "@php scripts/check-factory-columns.php"
         ],
         "check:query-columns": [
             "@php scripts/check-query-columns.php"
+        ],
+        "check:plan-features-reads": [
+            "@php scripts/check-plan-features-reads.php"
         ],
         "check:migration-ordering": [
             "@php artisan db:check-migration-ordering"

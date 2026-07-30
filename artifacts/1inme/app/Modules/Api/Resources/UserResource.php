@@ -100,8 +100,10 @@ class UserResource
                     // mobile calendar surface can gate creation + show the
                     // right upgrade prompt without a second round-trip.
                     'module_calendar'         => (bool) $u->planFeatureEnabled('module_calendar'),
-                    'max_calendars'           => (int) $u->getPlanFeature('max_calendars', -1),
-                    'max_calendar_events'     => (int) $u->getPlanFeature('max_calendar_events', -1),
+                    // normalize() folds the bypass PHP_INT_MAX sentinel into
+                    // the documented -1 = unlimited convention.
+                    'max_calendars'           => \App\Support\PlanLimit::normalize((int) $u->getPlanFeature('max_calendars', -1)),
+                    'max_calendar_events'     => \App\Support\PlanLimit::normalize((int) $u->getPlanFeature('max_calendar_events', -1)),
                     'calendar_sync'           => (bool) $u->getPlanFeature('calendar_sync', false),
                     // AI Marketing Strategist (Task #3060): whether the engine
                     // is on AND the plan allows the feature, plus the per-plan
@@ -110,7 +112,7 @@ class UserResource
                     // second round-trip, mirroring the web gate.
                     'marketing_strategist'     => \App\Services\AI\AiEngineSettings::isEnabled()
                         && \App\Services\AI\AiPlanAccess::featureAllowed($u, 'marketing_strategist'),
-                    'max_marketing_strategies' => \App\Services\AI\AiPlanAccess::quantityCap($u, 'marketing_strategies'),
+                    'max_marketing_strategies' => \App\Support\PlanLimit::normalize(\App\Services\AI\AiPlanAccess::quantityCap($u, 'marketing_strategies')),
                 ],
             ]);
         }

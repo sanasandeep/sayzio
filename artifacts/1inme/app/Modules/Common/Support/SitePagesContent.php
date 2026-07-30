@@ -243,13 +243,32 @@ class SitePagesContent
      */
     public static function isStillPlaceholder(string $slug, $currentSections): bool
     {
+        $current = is_array($currentSections) ? array_values($currentSections) : [];
+
+        // The generic "Coming soon" fallback (see fallbackForMissing) is a
+        // placeholder regardless of slug — a row still holding it has never
+        // been touched by an admin, so re-seeds may safely replace it.
+        if (self::sectionsEqual($current, self::comingSoonFallbackSections())) {
+            return true;
+        }
+
         $placeholders = self::originalPlaceholders();
         if (!array_key_exists($slug, $placeholders)) {
             return false;
         }
-        $current = is_array($currentSections) ? array_values($currentSections) : [];
-        $expected = $placeholders[$slug];
-        return self::sectionsEqual($current, $expected);
+        return self::sectionsEqual($current, $placeholders[$slug]);
+    }
+
+    /**
+     * The generic auto-created placeholder body used when a footer-linked
+     * slug has no rich copy (see fallbackForMissing). Kept as its own
+     * accessor so placeholder detection and the fallback stay in lockstep.
+     */
+    public static function comingSoonFallbackSections(): array
+    {
+        return [
+            ['heading' => 'Coming soon', 'body' => 'This page is being prepared. Please check back shortly.'],
+        ];
     }
 
     private static function sectionsEqual(array $a, array $b): bool
@@ -277,9 +296,7 @@ class SitePagesContent
         return [
             'title' => ucwords(str_replace('-', ' ', $slug)),
             'meta_description' => null,
-            'sections' => [
-                ['heading' => 'Coming soon', 'body' => 'This page is being prepared. Please check back shortly.'],
-            ],
+            'sections' => self::comingSoonFallbackSections(),
         ];
     }
 

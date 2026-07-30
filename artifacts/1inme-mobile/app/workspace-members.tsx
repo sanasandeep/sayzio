@@ -150,7 +150,7 @@ export default function WorkspaceMembersScreen() {
           <View style={{ gap: 4 }}>
             <Text style={[styles.sub, { color: colors.mutedForeground }]}>
               {data.used_seats} of{" "}
-              {data.max_seats === -1 ? "unlimited" : data.max_seats} seats used
+              {data.max_seats === -1 ? "Unlimited" : data.max_seats} seats used
             </Text>
           </View>
 

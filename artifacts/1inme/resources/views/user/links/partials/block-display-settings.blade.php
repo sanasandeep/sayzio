@@ -43,9 +43,9 @@
                 <i class="fas fa-sliders-h text-blue-400 text-xs"></i>
             </span>
             <span>Display Settings</span>
-            <span class="text-[10px] px-1.5 py-0.5 rounded-md" style="background: rgba(92,131,255,0.10); color: rgba(188,207,255,0.85);">Schedule · Audience · Device</span>
+            <span class="edit-section-pill">Schedule · Audience · Device</span>
         </span>
-        <i :class="showDisplay ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-[10px] text-white/40 group-hover:text-white/70 transition"></i>
+        <i :class="showDisplay ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-[10px] edit-section-chevron"></i>
     </button>
 
     <div x-show="showDisplay" x-cloak x-transition class="mt-3 space-y-2.5">
@@ -72,16 +72,16 @@
         @php $tsId = 'ts_' . substr(md5($block->id . uniqid()), 0, 8); @endphp
         <div class="rounded-xl overflow-hidden" style="background: linear-gradient(180deg, rgba(92,131,255,0.06), rgba(255,255,255,0.01)); border: 1px solid rgba(92,131,255,0.18);"
              x-data="timeSlotsField_{{ $tsId }}()">
-            <button type="button" @click="$root.openCard = $root.openCard === 'schedule' ? '' : 'schedule'"
+            <button type="button" @click="openCard = openCard === 'schedule' ? '' : 'schedule'"
                     class="w-full flex items-center justify-between px-3 py-2.5">
                 <span class="flex items-center gap-2 text-xs font-medium" style="color: var(--text-secondary, #d4d4d8);">
                     <i class="fas fa-calendar-alt text-blue-400 text-[11px]"></i>
                     Schedule
-                    <span class="text-[10px] px-1.5 py-0.5 rounded-md ml-1" style="background: rgba(92,131,255,0.14); color: rgba(188,207,255,0.85);" x-text="summary"></span>
+                    <span class="edit-section-pill ml-1" x-text="summary"></span>
                 </span>
-                <i :class="$root.openCard === 'schedule' ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-[10px] text-white/40"></i>
+                <i :class="openCard === 'schedule' ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-[10px] edit-section-chevron"></i>
             </button>
-            <div x-show="$root.openCard === 'schedule'" x-cloak x-transition class="px-3 pb-3 space-y-3">
+            <div x-show="openCard === 'schedule'" x-cloak x-transition class="px-3 pb-3 space-y-3">
                 <div class="grid grid-cols-2 gap-2.5">
                     <div>
                         <label class="{{ $labelClass }} flex items-center gap-1.5"><i class="far fa-play-circle text-emerald-400/70 text-[10px]"></i>Goes Live</label>
@@ -182,16 +182,16 @@
         <div class="rounded-xl overflow-hidden"
              style="background: linear-gradient(180deg, rgba(244,63,94,0.06), rgba(255,255,255,0.01)); border: 1px solid rgba(244,63,94,0.18);"
              x-data="limitsField_{{ $block->id }}()">
-            <button type="button" @click="$root.openCard = $root.openCard === 'limits' ? '' : 'limits'"
+            <button type="button" @click="openCard = openCard === 'limits' ? '' : 'limits'"
                     class="w-full flex items-center justify-between px-3 py-2.5">
                 <span class="flex items-center gap-2 text-xs font-medium" style="color: var(--text-secondary, #d4d4d8);">
                     <i class="fas fa-hourglass-half text-rose-400 text-[11px]"></i>
                     Limits &amp; Scarcity
-                    <span class="text-[10px] px-1.5 py-0.5 rounded-md ml-1" style="background: rgba(244,63,94,0.14); color: rgba(254,205,211,0.85);">{{ $limSummary }}</span>
+                    <span class="edit-section-pill edit-section-pill--rose ml-1">{{ $limSummary }}</span>
                 </span>
-                <i :class="$root.openCard === 'limits' ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-[10px] text-white/40"></i>
+                <i :class="openCard === 'limits' ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-[10px] edit-section-chevron"></i>
             </button>
-            <div x-show="$root.openCard === 'limits'" x-cloak x-transition class="px-3 pb-3 space-y-3">
+            <div x-show="openCard === 'limits'" x-cloak x-transition class="px-3 pb-3 space-y-3">
 
                 {{-- Cap --}}
                 <div>
@@ -301,11 +301,11 @@
                 <span class="flex items-center gap-2 text-xs font-medium" style="color: var(--text-secondary, #d4d4d8);">
                     <i class="fas fa-globe-americas text-cyan-400 text-[11px]"></i>
                     Audience &amp; Location
-                    <span class="text-[10px] px-1.5 py-0.5 rounded-md ml-1" style="background: rgba(34,211,238,0.14); color: rgba(165,243,252,0.85);">
+                    <span class="edit-section-pill edit-section-pill--cyan ml-1">
                         {{ $audCount > 0 ? $audCount . ' rule' . ($audCount === 1 ? '' : 's') : 'Everyone' }}
                     </span>
                 </span>
-                <i :class="openCard === 'audience' ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-[10px] text-white/40"></i>
+                <i :class="openCard === 'audience' ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-[10px] edit-section-chevron"></i>
             </button>
             <div x-show="openCard === 'audience'" x-cloak x-transition class="px-3 pb-3 space-y-3">
 
@@ -413,11 +413,11 @@
                 <span class="flex items-center gap-2 text-xs font-medium" style="color: var(--text-secondary, #d4d4d8);">
                     <i class="fas fa-desktop text-pink-400 text-[11px]"></i>
                     Device &amp; Browser
-                    <span class="text-[10px] px-1.5 py-0.5 rounded-md ml-1" style="background: rgba(244,114,182,0.14); color: rgba(251,207,232,0.85);">
+                    <span class="edit-section-pill edit-section-pill--pink ml-1">
                         {{ $devCount > 0 ? $devCount . ' rule' . ($devCount === 1 ? '' : 's') : 'All devices' }}
                     </span>
                 </span>
-                <i :class="openCard === 'device' ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-[10px] text-white/40"></i>
+                <i :class="openCard === 'device' ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-[10px] edit-section-chevron"></i>
             </button>
             <div x-show="openCard === 'device'" x-cloak x-transition class="px-3 pb-3 space-y-3">
 

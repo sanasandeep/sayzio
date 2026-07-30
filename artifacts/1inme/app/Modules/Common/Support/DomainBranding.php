@@ -106,7 +106,11 @@ class DomainBranding
      */
     private static function lookupAttributes(string $host): array|false
     {
+        // withoutGlobalScopes: the BelongsToWorkspace scope would silently
+        // filter this platform-global row to nothing inside an authenticated
+        // request and poison the per-host cache with the "no match" sentinel.
         $m = Domain::query()
+            ->withoutGlobalScopes()
             ->whereNull('user_id')
             ->where('is_primary', false)
             ->where('domain', $host)

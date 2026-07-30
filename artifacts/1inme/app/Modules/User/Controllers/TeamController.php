@@ -60,7 +60,9 @@ class TeamController extends Controller
 
         // Seat limits follow the owner's plan (an Admin may be on a smaller plan).
         $owner = $ws->owner ?: $request->user();
-        $maxSeats = (int) $owner->getPlanFeature('max_seats_per_workspace', 1);
+        // -1 = unlimited; normalize the bypass PHP_INT_MAX sentinel so the
+        // raw 9-quintillion number never reaches the rendered page.
+        $maxSeats = \App\Support\PlanLimit::normalize((int) $owner->getPlanFeature('max_seats_per_workspace', 1));
         $usedSeats = $ws->seatCount();
         $pendingCount = $pendingInvites->count();
         $planLabel = $owner->plan->name ?? ($owner->plan->slug ?? 'Free');
@@ -183,7 +185,7 @@ class TeamController extends Controller
             'role'  => 'required|in:admin,editor,replier,analyst,viewer',
         ]);
 
-        $maxSeats = (int) $owner->getPlanFeature('max_seats_per_workspace', 1);
+        $maxSeats = \App\Support\PlanLimit::normalize((int) $owner->getPlanFeature('max_seats_per_workspace', 1));
         if ($maxSeats !== -1 && $ws->seatCount() + $ws->pendingInvites()->count() >= $maxSeats) {
             return back()->with('error', "Seat limit reached ({$maxSeats}). Upgrade your plan or remove a member.");
         }

@@ -14,7 +14,10 @@
     $isFixed = !empty($s['_fixed']);
     $isLockedFixed = $isFixed && !$isTplDraft && $link->isDesignLocked();
 @endphp
-<div class="block-card-wrapper" data-block-id="{{ $block->id }}" style="grid-column: span {{ $curSpan }}">
+{{-- Editor cards always render full-width (one per row) so the tools never
+     get cramped; the configured span lives on data-grid-span / the width
+     selector and only affects the public page + preview. --}}
+<div class="block-card-wrapper" data-block-id="{{ $block->id }}">
     {{-- Fixed template blocks form a contiguous prefix on a locked page, so
          no insert affordance mid-prefix (the server clamps such inserts to
          after the prefix anyway). --}}
@@ -154,7 +157,11 @@
              openEditDrawer()/closeEditDrawerGlobal() in biolink-editor. --}}
         <div class="inline-block-editor" data-inline-editor="{{ $block->id }}" hidden>
             <div class="inline-editor-head">
-                <span class="text-[11px] font-bold gradient-text"><i class="fas fa-pen mr-1.5"></i>Edit Block</span>
+                <span class="inline-editor-icon"><i class="fas fa-pen"></i></span>
+                <span class="min-w-0">
+                    <span class="inline-editor-title truncate">Edit Block</span>
+                    <span class="inline-editor-sub truncate">{{ $typeInfo['label'] }}</span>
+                </span>
                 <span class="inline-autosave-status text-[10px] font-medium hidden" style="color: var(--text-faint);"></span>
                 <button type="button" class="block-action-btn ml-auto" style="color: var(--text-faint);" title="Close" onclick="closeEditDrawerGlobal()"><i class="fas fa-times"></i></button>
             </div>

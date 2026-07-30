@@ -295,14 +295,14 @@ class BiolinkWizardController extends Controller
 
         // Plan caps — mirror the web wizard's finish() guard, surfaced as JSON
         // (the web CheckPlanLimit middleware redirects, which is no use here).
-        $features = $owner->plan?->features ?? [];
-        $maxLinks = $features['max_links'] ?? 5;
-        if ($maxLinks !== -1 && ($usedLinks = $owner->links()->count()) >= $maxLinks) {
+        // Account-wide counts: bypass the workspace global scope.
+        $maxLinks = (int) $owner->getPlanFeature('max_links', 5);
+        if ($maxLinks !== -1 && ($usedLinks = $owner->links()->withoutGlobalScope('workspace')->count()) >= $maxLinks) {
             return $this->planGate("You've reached your plan's link limit ({$maxLinks}). Upgrade your plan for more links.", 'max_links', $owner, 403, 'link_limit', $usedLinks);
         }
-        $maxBiolinks = $features['max_biolinks'] ?? 1;
+        $maxBiolinks = (int) $owner->getPlanFeature('max_biolinks', 1);
         if ($maxBiolinks !== -1) {
-            $usedBiolinks = $owner->links()->whereIn('type', Link::BIOLINK_FAMILY)->count();
+            $usedBiolinks = $owner->links()->withoutGlobalScope('workspace')->whereIn('type', Link::BIOLINK_FAMILY)->count();
             if ($usedBiolinks >= $maxBiolinks) {
                 return $this->planGate("You've reached your plan's Link in Bio limit ({$maxBiolinks}). Upgrade your plan for more.", 'max_biolinks', $owner, 403, 'biolink_limit', $usedBiolinks);
             }
@@ -388,14 +388,13 @@ class BiolinkWizardController extends Controller
 
         $owner = $request->user();
 
-        $features = $owner->plan?->features ?? [];
-        $maxLinks = $features['max_links'] ?? 5;
-        if ($maxLinks !== -1 && ($usedLinks = $owner->links()->count()) >= $maxLinks) {
+        $maxLinks = (int) $owner->getPlanFeature('max_links', 5);
+        if ($maxLinks !== -1 && ($usedLinks = $owner->links()->withoutGlobalScope('workspace')->count()) >= $maxLinks) {
             return $this->planGate("You've reached your plan's link limit ({$maxLinks}). Upgrade your plan for more links.", 'max_links', $owner, 403, 'link_limit', $usedLinks);
         }
-        $maxBiolinks = $features['max_biolinks'] ?? 1;
+        $maxBiolinks = (int) $owner->getPlanFeature('max_biolinks', 1);
         if ($maxBiolinks !== -1) {
-            $usedBiolinks = $owner->links()->whereIn('type', Link::BIOLINK_FAMILY)->count();
+            $usedBiolinks = $owner->links()->withoutGlobalScope('workspace')->whereIn('type', Link::BIOLINK_FAMILY)->count();
             if ($usedBiolinks >= $maxBiolinks) {
                 return $this->planGate("You've reached your plan's Link in Bio limit ({$maxBiolinks}). Upgrade your plan for more.", 'max_biolinks', $owner, 403, 'biolink_limit', $usedBiolinks);
             }

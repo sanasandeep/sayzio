@@ -83,11 +83,48 @@ class BgPresetCatalogTest extends TestCase
         }
     }
 
-    public function test_for_api_groups_match_catalog_groups(): void
+    public function test_for_api_groups_match_picker_groups(): void
     {
+        // Task #6204: forApi() only advertises picker-visible groups —
+        // gradients moved to the Gradient tab, torn to the standalone
+        // Torn Paper type. Their presets stay resolvable, flagged hidden.
         $api = BgPresetCatalog::forApi();
         $apiGroupKeys = array_column($api['groups'], 'key');
-        $this->assertSame(array_keys(BgPresetCatalog::GROUPS), $apiGroupKeys);
+        $this->assertSame(array_keys(BgPresetCatalog::pickerGroups()), $apiGroupKeys);
+
+        foreach (BgPresetCatalog::HIDDEN_PICKER_GROUPS as $hidden) {
+            $this->assertNotContains($hidden, $apiGroupKeys);
+        }
+    }
+
+    public function test_for_api_hidden_flag_matches_hidden_groups(): void
+    {
+        foreach (BgPresetCatalog::forApi()['presets'] as $preset) {
+            $expected = in_array($preset['group'], BgPresetCatalog::HIDDEN_PICKER_GROUPS, true);
+            $this->assertSame(
+                $expected,
+                $preset['hidden'],
+                "Preset [{$preset['key']}] hidden flag mismatch for group [{$preset['group']}]"
+            );
+        }
+    }
+
+    public function test_picker_presets_exclude_hidden_groups_but_keys_still_resolve(): void
+    {
+        $picker = BgPresetCatalog::pickerPresets();
+        $this->assertNotEmpty($picker);
+
+        foreach ($picker as $preset) {
+            $this->assertNotContains($preset['group'], BgPresetCatalog::HIDDEN_PICKER_GROUPS);
+        }
+
+        // Legacy keys (hidden groups) must still resolve for saved pages.
+        foreach (BgPresetCatalog::all() as $key => $preset) {
+            if (in_array($preset['group'], BgPresetCatalog::HIDDEN_PICKER_GROUPS, true)) {
+                $this->assertArrayNotHasKey($key, $picker);
+                $this->assertNotNull(BgPresetCatalog::css($key), "Legacy preset [{$key}] must keep resolving");
+            }
+        }
     }
 
     private function normalizeCss(string $css): string

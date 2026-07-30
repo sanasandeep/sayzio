@@ -52,7 +52,7 @@ $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
                 <div>
                     <i class="fas fa-cloud-upload-alt text-2xl text-blue-400/60 mb-2"></i>
                     <p class="text-xs text-white/40">Drag & drop or click to choose</p>
-                    <p class="text-[10px] text-white/20 mt-1">Max: <span x-text="maxFileSizeMb"></span>MB</p>
+                    <p class="text-[10px] text-white/20 mt-1" x-text="maxFileSizeMb < 0 ? 'No file-size cap' : 'Max: ' + maxFileSizeMb + 'MB'"></p>
                 </div>
             </template>
 

@@ -49,7 +49,7 @@
             <div class="flex-1 w-full sm:w-auto">
                 <div class="flex items-center gap-2 text-xs mb-2" style="color: var(--text-faint);">
                     <i class="fas fa-database"></i>
-                    <span>Storage: <strong x-text="quota.used_mb + ' MB'" style="color: var(--text-secondary);"></strong> of <strong x-text="quota.limit_mb + ' MB'" style="color: var(--text-secondary);"></strong></span>
+                    <span>Storage: <strong x-text="quota.used_mb + ' MB'" style="color: var(--text-secondary);"></strong> of <strong x-text="quota.limit_mb < 0 ? 'Unlimited' : quota.limit_mb + ' MB'" style="color: var(--text-secondary);"></strong></span>
                     <span>(<span x-text="quota.file_count"></span> files)</span>
                 </div>
                 <div class="w-full rounded-full h-2 overflow-hidden" style="background: var(--bg-glass-input);">

@@ -16,7 +16,64 @@ class SitePagesSeeder extends Seeder
         // Pages whose content is not centralised in SitePagesContent — the
         // marketing-focused pages that already shipped with deep copy and
         // the error pages.
-        $extra = [
+        $extra = self::extraPages();
+
+        $policyDefaults = SitePagesContent::policyDefaults();
+        $policySlugs = SitePagesContent::policySlugs();
+        $pages = $extra;
+        foreach (SitePagesContent::aiProductsDefault() as $slug => $data) {
+            $pages[] = [
+                'slug' => $slug,
+                'title' => $data['title'],
+                'meta_description' => $data['meta_description'] ?? null,
+                'sections' => $data['sections'],
+                'cta_label' => $data['cta_label'] ?? null,
+                'cta_url' => $data['cta_url'] ?? null,
+            ];
+        }
+        foreach ($rich as $slug => $data) {
+            // Policy slugs are seeded from policyDefaults below with the
+            // richer schema (intro, last_updated, stable section ids).
+            if (in_array($slug, $policySlugs, true) && isset($policyDefaults[$slug])) {
+                continue;
+            }
+            // The /features page uses a category-structured sections shape
+            // (id/icon/heading/intro/features) instead of the plain
+            // heading/body shape used by every other rich page.
+            $sections = $slug === 'features'
+                ? SitePagesContent::featuresCategoriesDefault()
+                : $data['sections'];
+            $pages[] = [
+                'slug' => $slug,
+                'title' => $data['title'],
+                'meta_description' => $data['meta_description'] ?? null,
+                'sections' => $sections,
+                'cta_label' => $data['cta_label'] ?? null,
+                'cta_url' => $data['cta_url'] ?? null,
+            ];
+        }
+
+        foreach ($pages as $p) {
+            SitePage::updateOrCreate(['slug' => $p['slug']], [
+                'title' => $p['title'],
+                'meta_description' => $p['meta_description'],
+                'sections' => $p['sections'],
+                'cta_label' => $p['cta_label'] ?? null,
+                'cta_url' => $p['cta_url'] ?? null,
+            ]);
+        }
+        $this->seedNonPageContent();
+    }
+
+    /**
+     * Canonical copy for the marketing pages whose content is not
+     * centralised in SitePagesContent (workspace-team, buzz, newsroom,
+     * services, home, error pages). Exposed statically so data migrations
+     * can heal placeholder rows on installs where seeders never run.
+     */
+    public static function extraPages(): array
+    {
+        return [
             [
                 'slug' => 'home',
                 'title' => 'Your link, your page, your audience. All in one.',
@@ -146,52 +203,16 @@ class SitePagesSeeder extends Seeder
                 'cta_url' => '/',
             ],
         ];
+    }
 
+    /**
+     * Non-page seed content (home link-types showcase, use-case pages,
+     * policy pages and the FAQ knowledge base).
+     */
+    private function seedNonPageContent(): void
+    {
         $policyDefaults = SitePagesContent::policyDefaults();
         $policySlugs = SitePagesContent::policySlugs();
-
-        $pages = $extra;
-        foreach (SitePagesContent::aiProductsDefault() as $slug => $data) {
-            $pages[] = [
-                'slug' => $slug,
-                'title' => $data['title'],
-                'meta_description' => $data['meta_description'] ?? null,
-                'sections' => $data['sections'],
-                'cta_label' => $data['cta_label'] ?? null,
-                'cta_url' => $data['cta_url'] ?? null,
-            ];
-        }
-        foreach ($rich as $slug => $data) {
-            // Policy slugs are seeded from policyDefaults below with the
-            // richer schema (intro, last_updated, stable section ids).
-            if (in_array($slug, $policySlugs, true) && isset($policyDefaults[$slug])) {
-                continue;
-            }
-            // The /features page uses a category-structured sections shape
-            // (id/icon/heading/intro/features) instead of the plain
-            // heading/body shape used by every other rich page.
-            $sections = $slug === 'features'
-                ? SitePagesContent::featuresCategoriesDefault()
-                : $data['sections'];
-            $pages[] = [
-                'slug' => $slug,
-                'title' => $data['title'],
-                'meta_description' => $data['meta_description'] ?? null,
-                'sections' => $sections,
-                'cta_label' => $data['cta_label'] ?? null,
-                'cta_url' => $data['cta_url'] ?? null,
-            ];
-        }
-
-        foreach ($pages as $p) {
-            SitePage::updateOrCreate(['slug' => $p['slug']], [
-                'title' => $p['title'],
-                'meta_description' => $p['meta_description'],
-                'sections' => $p['sections'],
-                'cta_label' => $p['cta_label'] ?? null,
-                'cta_url' => $p['cta_url'] ?? null,
-            ]);
-        }
 
         // Home "What you can create" link-types showcase lives on the home
         // SitePage row under extra.link_types so admins can reword, reorder

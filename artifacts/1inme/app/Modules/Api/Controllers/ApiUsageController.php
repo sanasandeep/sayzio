@@ -46,14 +46,15 @@ class ApiUsageController extends Controller
         return $this->ok([
             'api_access'     => $apiAccess,
             'period'         => $period,
-            'allowance'      => $allowance,
+            // -1 = unlimited; never emit the raw PHP_INT_MAX bypass sentinel.
+            'allowance'      => $unlimited ? -1 : $allowance,
             'unlimited'      => $unlimited,
             'calls_used'     => $callsUsed,
             'overage_calls'  => $overageCalls,
             'coins_spent'    => $coinsSpent,
             'percent_used'   => $percentUsed,
             'remaining'      => $unlimited ? null : max(0, $allowance - $callsUsed),
-            'rate_per_min'   => (int) $user->getPlanFeature('api_rate_per_min', 0),
+            'rate_per_min'   => \App\Support\PlanLimit::normalize((int) $user->getPlanFeature('api_rate_per_min', 0)),
             'calls_per_coin' => WalletService::apiOverageCallsPerCoin(),
             'wallet_enabled' => WalletService::isEnabled(),
             'coin_balance'   => $wallet->getBalance($user),

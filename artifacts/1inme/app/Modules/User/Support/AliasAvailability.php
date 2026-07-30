@@ -24,9 +24,13 @@ class AliasAvailability
      *         screen, pass the link being edited so its own current alias is
      *         excluded from the uniqueness check — re-saving a link without
      *         changing its alias should read as available, not "taken".
+     * @param  int|string|null  $domainId  Domain the alias would be bound to
+     *         (raw request value ok). Null/'' = the default platform domain.
+     *         Uniqueness is per-domain, so the same alias can be available on
+     *         one domain while taken on another.
      * @return array{status:string, available:bool|null, message:string}
      */
-    public static function check(User $owner, string $alias, ?int $ignoreLinkId = null): array
+    public static function check(User $owner, string $alias, ?int $ignoreLinkId = null, int|string|null $domainId = null): array
     {
         $alias  = trim($alias);
         $limits = $owner->getAliasLengthLimits();
@@ -79,18 +83,12 @@ class AliasAvailability
             ];
         }
 
-        // unique:links,alias — query the raw table so the check matches the
-        // validator (which ignores model scopes/soft-deletes) exactly. On the
-        // edit screen the link's own row is excluded so an unchanged alias
-        // doesn't report as taken.
-        // Case-insensitive so the live verdict matches UniqueAliasCi at submit:
-        // an alias differing only by letter case from an existing one is taken.
-        $takenQuery = DB::table('links')->whereRaw('LOWER(alias) = ?', [mb_strtolower($alias)]);
-        if ($ignoreLinkId !== null) {
-            $takenQuery->where('id', '!=', $ignoreLinkId);
-        }
-        $taken = $takenQuery->exists();
-        if ($taken) {
+        // Per-domain uniqueness — mirrors UniqueAliasCi at submit time (raw
+        // tables, no model scopes/soft-deletes, case-insensitive, and both
+        // links.alias + link_aliases.alias within the target domain's
+        // namespace). On the edit screen the link's own rows are excluded so
+        // an unchanged alias doesn't report as taken.
+        if (\App\Modules\User\Support\AliasNamespace::isTaken($alias, $domainId, $ignoreLinkId)) {
             return [
                 'status'    => 'taken',
                 'available' => false,

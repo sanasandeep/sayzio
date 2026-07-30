@@ -81,6 +81,11 @@ class GoogleContactsSyncService
     protected function contactsCapFor(GoogleContactsAccount $account): int
     {
         $user = $account->user;
+        // Bypass holders are effectively unlimited (same contract as
+        // User::getPlanFeature / CheckPlanLimit).
+        if ($user && $user->hasPermission('user.plan_limits.bypass')) {
+            return -1;
+        }
         $features = ($user && $user->plan && $user->plan->features) ? $user->plan->features : [];
         return (int) ($features['contacts_max'] ?? 5000);
     }

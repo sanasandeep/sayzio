@@ -34,6 +34,12 @@ class CheckPlanLimit
             return $next($request);
         }
 
+        // Holders of `user.plan_limits.bypass` bypass ALL plan gating
+        // (same contract as User::getPlanFeature / canCreate*).
+        if ($user->hasPermission('user.plan_limits.bypass')) {
+            return $next($request);
+        }
+
         $plan = $user->plan;
         if (!$plan || !$plan->features) {
             return $next($request);

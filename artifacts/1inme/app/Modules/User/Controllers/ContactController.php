@@ -1374,6 +1374,11 @@ class ContactController extends Controller
     /** Resolve the plan-based contacts_max cap. Returns -1 for unlimited. */
     public static function planContactsCap($user): int
     {
+        // Bypass holders are effectively unlimited (same contract as
+        // User::getPlanFeature / CheckPlanLimit).
+        if ($user && method_exists($user, 'hasPermission') && $user->hasPermission('user.plan_limits.bypass')) {
+            return -1;
+        }
         $features = ($user && $user->plan && $user->plan->features) ? $user->plan->features : [];
         return (int) ($features['contacts_max'] ?? 5000);
     }

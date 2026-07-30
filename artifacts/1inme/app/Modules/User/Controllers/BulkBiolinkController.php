@@ -191,10 +191,10 @@ class BulkBiolinkController extends Controller
         }
 
         // Quota gate for the whole batch: both total links and biolinks.
-        $planFeatures = $owner->plan?->features ?? [];
+        // getPlanFeature honors the user.plan_limits.bypass permission and addons.
         $count = count($validRows);
 
-        $maxLinks = $planFeatures['max_links'] ?? 5;
+        $maxLinks = (int) $owner->getPlanFeature('max_links', 5);
         if ($maxLinks !== -1) {
             $current = $owner->links()->count();
             if (($current + $count) > $maxLinks) {
@@ -203,7 +203,7 @@ class BulkBiolinkController extends Controller
             }
         }
 
-        $maxBiolinks = $planFeatures['max_biolinks'] ?? 1;
+        $maxBiolinks = (int) $owner->getPlanFeature('max_biolinks', 1);
         if ($maxBiolinks !== -1) {
             $currentBio = $owner->links()->whereIn('type', Link::BIOLINK_FAMILY)->count();
             if (($currentBio + $count) > $maxBiolinks) {
@@ -548,9 +548,9 @@ class BulkBiolinkController extends Controller
         if ($validCount <= 0) {
             return;
         }
-        $planFeatures = $owner->plan?->features ?? [];
+        // getPlanFeature honors the user.plan_limits.bypass permission and addons.
 
-        $maxLinks = $planFeatures['max_links'] ?? 5;
+        $maxLinks = (int) $owner->getPlanFeature('max_links', 5);
         if ($maxLinks !== -1) {
             $current = $owner->links()->count();
             if (($current + $validCount) > $maxLinks) {
@@ -560,7 +560,7 @@ class BulkBiolinkController extends Controller
             }
         }
 
-        $maxBiolinks = $planFeatures['max_biolinks'] ?? 1;
+        $maxBiolinks = (int) $owner->getPlanFeature('max_biolinks', 1);
         if ($maxBiolinks !== -1) {
             $currentBio = $owner->links()->whereIn('type', Link::BIOLINK_FAMILY)->count();
             if (($currentBio + $validCount) > $maxBiolinks) {

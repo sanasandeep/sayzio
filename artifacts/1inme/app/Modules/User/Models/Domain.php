@@ -22,6 +22,9 @@ class Domain extends Model
     /** Cache key for the set of admin-global (platform) domain ids. */
     public const PLATFORM_IDS_CACHE_KEY = 'domains.platform_ids';
 
+    /** Cache key for the host → global-domain-id map used by alias resolution. */
+    public const PLATFORM_HOST_MAP_CACHE_KEY = 'domains.platform_host_map';
+
     /** Static branded fallback shown when no global domains are configured. */
     public const SHOWCASE_FALLBACK = ['1in.me', 'bizs.club', 'getbio.one', 'Sayzio.app', 'sayzio.link'];
 
@@ -50,6 +53,7 @@ protected $fillable = [
         try {
             Cache::forget(self::SHOWCASE_CACHE_KEY);
             Cache::forget(self::PLATFORM_IDS_CACHE_KEY);
+            Cache::forget(self::PLATFORM_HOST_MAP_CACHE_KEY);
         } catch (\Throwable $e) {
             // Cache flushing must never break the write path.
         }
@@ -69,7 +73,10 @@ protected $fillable = [
      */
     public static function platformDomainIds(): array
     {
-        $query = fn () => static::query()->whereNull('user_id')->pluck('id')->all();
+        // withoutGlobalScopes: the BelongsToWorkspace scope would silently
+        // filter these platform-global rows to nothing inside an authenticated
+        // request (and poison the cache with an empty set).
+        $query = fn () => static::query()->withoutGlobalScopes()->whereNull('user_id')->pluck('id')->all();
         try {
             return Cache::remember(self::PLATFORM_IDS_CACHE_KEY, 600, $query);
         } catch (QueryException $e) {
@@ -94,6 +101,83 @@ protected $fillable = [
                 throw $e2;
             }
         }
+    }
+
+    /**
+     * Lower-cased host → global domain id map for every admin-global
+     * (platform-owned) domain row. Used by alias resolution to translate the
+     * request host into the domain namespace it serves. Cached briefly and
+     * flushed on any domain write; degrades to an empty map on a broken DB
+     * so error pages can still render.
+     *
+     * @return array<string,int>
+     */
+    public static function platformHostMap(): array
+    {
+        $query = fn () => static::query()
+            ->withoutGlobalScopes()
+            ->whereNull('user_id')
+            ->pluck('id', 'domain')
+            ->mapWithKeys(fn ($id, $host) => [mb_strtolower((string) $host) => (int) $id])
+            ->all();
+        try {
+            return Cache::remember(self::PLATFORM_HOST_MAP_CACHE_KEY, 600, $query);
+        } catch (QueryException $e) {
+            if (DatabaseErrors::isMissingTable($e)) {
+                return [];
+            }
+            throw $e;
+        } catch (\Throwable $e) {
+            try {
+                return $query();
+            } catch (QueryException $e2) {
+                if (DatabaseErrors::isMissingTable($e2)) {
+                    return [];
+                }
+                throw $e2;
+            }
+        }
+    }
+
+    /**
+     * Id of the DEFAULT platform domain — the namespace that legacy
+     * `domain_id IS NULL` aliases and dev/preview hosts belong to. This is
+     * the global row matching the primary brand domain (sayzio.app),
+     * falling back to the admin-flagged primary global domain. Null when
+     * neither exists (fresh install), in which case NULL domain_id is the
+     * whole default namespace.
+     */
+    public static function defaultPlatformDomainId(): ?int
+    {
+        $map = static::platformHostMap();
+        $brand = mb_strtolower(\App\Modules\Common\Support\PlatformHosts::primaryBrandDomain());
+        if (isset($map[$brand])) {
+            return $map[$brand];
+        }
+        try {
+            return static::primary()?->id;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * The platform domain namespace a given (already lower-cased) platform
+     * host serves. A brand host with its own global domain row maps to that
+     * row's id; every other platform host (Replit dev/preview domains,
+     * localhost, the APP_URL host when it has no row) maps to the default
+     * platform domain namespace (returned as null — see AliasNamespace).
+     */
+    public static function platformDomainIdForHost(?string $host): ?int
+    {
+        if ($host === null || $host === '') {
+            return null;
+        }
+        $id = static::platformHostMap()[mb_strtolower($host)] ?? null;
+        if ($id === null || $id === static::defaultPlatformDomainId()) {
+            return null;
+        }
+        return $id;
     }
 
     /**
@@ -124,7 +208,11 @@ protected $fillable = [
     {
         try {
             $domains = Cache::remember(self::SHOWCASE_CACHE_KEY, 600, function () {
+                // withoutGlobalScopes: the BelongsToWorkspace scope would
+                // silently filter these platform-global rows to nothing inside
+                // an authenticated request and poison the shared cache.
                 return static::query()
+                    ->withoutGlobalScopes()
                     ->whereNull('user_id')
                     ->where('is_active', true)
                     ->where('is_verified', true)

@@ -120,6 +120,12 @@
     .block-card-wrapper {
         position: relative;
     }
+    /* Editor list cards always occupy a full row regardless of the block's
+       configured width — narrow spans cramped the drag handle / tools. The
+       span value stays purely data (width selector + public page/preview). */
+    #blockList > .block-card-wrapper {
+        grid-column: 1 / -1;
+    }
     .insert-block-btn {
         position: absolute;
         right: -14px;
@@ -258,8 +264,24 @@
     /* Inline block editor — the settings form expands directly below the
        block's card (replaces the old full-screen edit modal). */
     .inline-block-editor {
-        border-top: 1px solid var(--border-subtle);
-        background: rgba(0,0,0,0.12);
+        position: relative;
+        border-top: 1px solid rgba(92,131,255,0.22);
+        background:
+            radial-gradient(120% 90px at 50% 0%, rgba(92,131,255,0.10), transparent 70%),
+            rgba(0,0,0,0.16);
+    }
+    html.light-mode .inline-block-editor {
+        border-top-color: rgba(61,107,255,0.25);
+        background:
+            radial-gradient(120% 90px at 50% 0%, rgba(61,107,255,0.07), transparent 70%),
+            rgba(61,107,255,0.03);
+    }
+    /* Gradient hairline that visually "opens" the editor out of the card. */
+    .inline-block-editor::before {
+        content: '';
+        position: absolute; top: -1px; left: 0; right: 0; height: 2px;
+        background: linear-gradient(90deg, transparent 4%, rgba(92,131,255,0.65), rgba(236,72,153,0.45), transparent 96%);
+        pointer-events: none;
     }
     .inline-block-editor.open { animation: inlineEditorIn 0.25s ease; }
     @media (prefers-reduced-motion: reduce) {
@@ -271,14 +293,52 @@
     }
     .inline-editor-head {
         display: flex; align-items: center; gap: 10px;
-        padding: 10px 14px;
+        padding: 11px 14px;
         border-bottom: 1px solid var(--border-subtle);
+        background: linear-gradient(180deg, rgba(92,131,255,0.07), transparent);
+    }
+    html.light-mode .inline-editor-head { background: linear-gradient(180deg, rgba(61,107,255,0.06), transparent); }
+    .inline-editor-icon {
+        width: 28px; height: 28px; border-radius: 9px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #5c83ff, #3d6bff);
+        color: #fff; font-size: 11px;
+        box-shadow: 0 3px 10px rgba(61,107,255,0.35);
+    }
+    .inline-editor-title {
+        display: block; font-size: 11.5px; font-weight: 800;
+        letter-spacing: 0.02em; line-height: 1.15;
+        color: var(--text-primary);
+    }
+    .inline-editor-sub {
+        display: block; font-size: 8.5px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.09em;
+        color: var(--text-dimmed); line-height: 1.2; margin-top: 1px;
     }
     .inline-editor-body {
         padding: 16px 14px;
         max-height: 70vh;
         overflow-y: auto;
     }
+    /* Shared pill used by the Edit Block section headers (Block Styling /
+       Display Settings and its sub-cards). Colors are paired for light mode
+       so the tinted text never washes out on a light backdrop. */
+    .edit-section-pill {
+        font-size: 10px; line-height: 1; padding: 4px 7px; border-radius: 6px;
+        background: rgba(92,131,255,0.12); color: rgba(188,207,255,0.9);
+        border: 1px solid rgba(92,131,255,0.16);
+    }
+    .edit-section-pill--pink { background: rgba(236,72,153,0.10); color: rgba(251,207,232,0.9); border-color: rgba(236,72,153,0.18); }
+    .edit-section-pill--rose { background: rgba(244,63,94,0.12); color: rgba(254,205,211,0.9); border-color: rgba(244,63,94,0.18); }
+    .edit-section-pill--cyan { background: rgba(34,211,238,0.12); color: rgba(165,243,252,0.9); border-color: rgba(34,211,238,0.18); }
+    html.light-mode .edit-section-pill { background: rgba(61,107,255,0.10); color: #3355cc; border-color: rgba(61,107,255,0.22); }
+    html.light-mode .edit-section-pill--pink { background: rgba(236,72,153,0.10); color: #be1866; border-color: rgba(236,72,153,0.25); }
+    html.light-mode .edit-section-pill--rose { background: rgba(244,63,94,0.10); color: #be123c; border-color: rgba(244,63,94,0.25); }
+    html.light-mode .edit-section-pill--cyan { background: rgba(34,211,238,0.12); color: #0e7490; border-color: rgba(34,211,238,0.30); }
+    /* Chevron used on the Edit Block accordion headers — theme-var based so
+       it stays visible in both dark and light modes. */
+    .edit-section-chevron { color: var(--text-faint); transition: color 0.15s ease; }
+    button:hover > .edit-section-chevron { color: var(--text-muted); }
 
     .gallery-tabs {
         display: flex;
@@ -1066,38 +1126,13 @@ $catColors = [
     <div class="reorder-toast" id="reorderToast"><i class="fas fa-check-circle mr-2"></i>Order saved</div>
 </div>
 
-{{-- Hidden edit forms for each block (including children) --}}
-@php
-    $allEditBlocks = collect();
-    foreach($blocks as $block) {
-        $allEditBlocks->push($block);
-        if ($block->isContainer() && $block->children) {
-            foreach($block->children as $child) {
-                $allEditBlocks->push($child);
-            }
-        }
-    }
-@endphp
-@foreach($allEditBlocks as $block)
-<template id="editForm_{{ $block->id }}">
-    <form method="POST" action="{{ route('user.links.blocks.update', [$link, $block]) }}" onsubmit="return ajaxSaveBlock(event, this)">
-        @csrf @method('PUT')
-        <div class="mb-4">
-            <div class="flex items-center gap-2 mb-4">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
-                    <i class="fas {{ $blockTypes[$block->type]['icon'] ?? 'fa-cube' }} text-blue-400 text-sm"></i>
-                </div>
-                <span class="text-sm font-semibold" style="color: var(--text-primary);">{{ $blockTypes[$block->type]['label'] ?? ucfirst($block->type) }}</span>
-            </div>
-        </div>
-        @include('user.links.partials.block-settings-form', ['block' => $block])
-        <div class="flex items-center gap-2 mt-6 pt-4" style="border-top: 1px solid var(--border-subtle);">
-            <button type="submit" class="btn-primary text-sm py-2.5 px-6 flex-1 justify-center" id="saveBtn_{{ $block->id }}">Save Changes</button>
-            <button type="button" onclick="closeEditDrawerGlobal()" class="btn-ghost text-sm py-2.5 px-4">Cancel</button>
-        </div>
-    </form>
-</template>
-@endforeach
+{{-- Block edit forms are AJAX-loaded on demand (user.links.blocks.editForm)
+     when the creator opens a block's inline editor. We intentionally do NOT
+     server-render a hidden settings form per block here: with many blocks
+     that meant dozens of extra DB round-trips and a huge HTML payload for
+     markup that was thrown away the moment the drawer fetched a fresh form.
+     openEditDrawer() shows a loading skeleton while fetching and offers a
+     Retry action if the request fails. --}}
 
 <script>
 function biolinkEditor() {
@@ -1343,6 +1378,7 @@ function _hideEditPreview() {
         if (status) status.classList.add('hidden');
     }
     _editingBlockId = null;
+    if (typeof _postBlockUnfocus === 'function') _postBlockUnfocus();
 }
 
 // Edit-button entry point: clicking Edit on the open block collapses its
@@ -1381,21 +1417,29 @@ function openEditDrawer(blockId) {
     wrap.classList.add('open');
     container.innerHTML = '<div class="flex items-center justify-center py-16"><i class="fas fa-spinner fa-spin text-2xl" style="color: var(--text-faint);"></i></div>';
     _scrollInlineEditorIntoView(wrap);
+    if (typeof _postBlockFocus === 'function') _postBlockFocus(blockId);
 
     var editFormUrl = '{{ route("user.links.blocks.editForm", [$link, "__ID__"]) }}'.replace('__ID__', blockId);
     fetch(editFormUrl, {
         headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': _csrfToken() }
     }).then(function(r) { return r.json(); }).then(function(data) {
-        if (!data.html) { container.innerHTML = '<p class="text-center py-8" style="color:var(--text-muted);">Failed to load</p>'; return; }
+        if (!data.html) { _showEditFormError(container, blockId); return; }
         _injectEditFormHtml(container, data.html, blockId);
     }).catch(function() {
-        var tmpl = document.getElementById('editForm_' + blockId);
-        if (tmpl) {
-            _injectEditFormHtml(container, tmpl.innerHTML, blockId);
-        } else {
-            container.innerHTML = '<p class="text-center py-8" style="color:var(--text-muted);">Failed to load</p>';
-        }
+        _showEditFormError(container, blockId);
     });
+}
+
+// Graceful fallback when the AJAX edit-form fetch fails (network blip,
+// expired session, server hiccup): show a message with a Retry action
+// instead of a dead loading spinner.
+function _showEditFormError(container, blockId) {
+    container.innerHTML =
+        '<div class="text-center py-8">' +
+        '<p class="text-sm mb-3" style="color:var(--text-muted);">Couldn\'t load the block editor.</p>' +
+        '<button type="button" class="btn-ghost text-xs py-2 px-4" onclick="openEditDrawer(' + Number(blockId) + ')">' +
+        '<i class="fas fa-rotate-right mr-1"></i>Retry</button>' +
+        '</div>';
 }
 
 function _injectEditFormHtml(container, html, blockId) {
@@ -1662,6 +1706,59 @@ function pcLivePreviewBadges(badgesJson) {
     _postPcLive({ badges: badges.slice(0, 12) });
 }
 
+// ── Preview scroll-and-highlight (Task #6232) ───────────────────────────────
+// Hovering a block card (or opening its edit drawer) tells the phone-preview
+// iframe to scroll the matching public block into view and highlight it, so
+// the creator always knows which block on the page they're editing. The
+// public page only honours these messages in editor preview mode
+// (?_preview=1 / ?_editBlock), so real visitors never see highlights.
+var _focusHoverTimer = null;
+
+function _postPreviewFocusMsg(payload) {
+    document.querySelectorAll('.preview-iframe').forEach(function(pFrame) {
+        if (!pFrame.contentWindow || !pFrame.src || pFrame.src === 'about:blank') return;
+        try { pFrame.contentWindow.postMessage(payload, window.location.origin); } catch (e) {}
+    });
+}
+
+function _postBlockFocus(blockId) {
+    if (!blockId) return;
+    _postPreviewFocusMsg({ type: '1inme-block-focus', blockId: blockId });
+}
+
+function _postBlockUnfocus() {
+    _postPreviewFocusMsg({ type: '1inme-block-unfocus' });
+}
+
+// Debounced hover triggers, delegated so dynamically inserted cards work too.
+// On hover-leave we fall back to the block whose edit drawer is open (if any)
+// instead of clearing, so the drawer's highlight survives stray mouse moves.
+document.addEventListener('DOMContentLoaded', function() {
+    var list = document.getElementById('blockList');
+    if (!list) return;
+    list.addEventListener('mouseover', function(e) {
+        var wrapper = e.target.closest('.block-card-wrapper');
+        if (!wrapper || !list.contains(wrapper)) return;
+        var related = e.relatedTarget;
+        if (related && wrapper.contains(related)) return; // moving within the same card
+        var id = wrapper.getAttribute('data-block-id');
+        if (!id) return;
+        clearTimeout(_focusHoverTimer);
+        _focusHoverTimer = setTimeout(function() { _postBlockFocus(id); }, 150);
+    });
+    list.addEventListener('mouseout', function(e) {
+        var wrapper = e.target.closest('.block-card-wrapper');
+        if (!wrapper || !list.contains(wrapper)) return;
+        var related = e.relatedTarget;
+        if (related && wrapper.contains(related)) return; // still inside the card
+        clearTimeout(_focusHoverTimer);
+        _focusHoverTimer = setTimeout(function() {
+            if (_editingBlockId) _postBlockFocus(_editingBlockId);
+            else _postBlockUnfocus();
+        }, 150);
+    });
+});
+
 var _csrfToken = function() { return document.querySelector('meta[name="csrf-token"]').content; };
 
 function showToast(msg, type) {
@@ -1678,12 +1775,10 @@ function showToast(msg, type) {
 
 function setGridSpan(blockId, span, btn) {
     var card = btn.closest('.block-card');
-    var wrapper = card.closest('.block-card-wrapper') || card;
     var row = card.querySelector('.grid-span-row');
     row.querySelectorAll('.span-btn').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
     card.dataset.gridSpan = span;
-    wrapper.style.gridColumn = 'span ' + span;
     var badge = document.querySelector('[data-span-badge="' + blockId + '"]');
     if (badge) {
         badge.textContent = span + '/12';
@@ -1816,8 +1911,6 @@ function ajaxDeleteBlock(btn, url, blockId) {
                     var card = document.querySelector('.block-card[data-block-id="' + blockId + '"]');
                     var wrapper = card ? (card.closest('.block-card-wrapper') || card) : null;
                     if (wrapper) { wrapper.style.transition = 'all 0.3s'; wrapper.style.opacity = '0'; wrapper.style.transform = 'translateX(-20px)'; setTimeout(function() { wrapper.remove(); }, 300); }
-                    var tmpl = document.getElementById('editForm_' + blockId);
-                    if (tmpl) tmpl.remove();
                     showToast('Block deleted', 'success');
                     refreshPreview();
                 } else {

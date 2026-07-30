@@ -260,8 +260,8 @@ class OnboardingController extends Controller
 
             if ($existing->isEmpty()) {
                 // First-time creation — enforce the same plan caps used elsewhere.
-                $features = $user->plan?->features ?? [];
-                $maxBiolinks = $features['max_biolinks'] ?? 1;
+                // getPlanFeature honors the user.plan_limits.bypass permission and addons.
+                $maxBiolinks = (int) $user->getPlanFeature('max_biolinks', 1);
                 if ($maxBiolinks !== -1 && 0 >= $maxBiolinks) {
                     return redirect()->route('user.dashboard')
                         ->with('error', "Your plan doesn't include a Link in Bio yet — upgrade to enable it.");

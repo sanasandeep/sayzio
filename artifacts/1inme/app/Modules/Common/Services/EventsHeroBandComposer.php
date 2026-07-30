@@ -76,7 +76,11 @@ class EventsHeroBandComposer
 
     protected function queryFeaturedEvents()
     {
-        return Link::where('type', 'ics')
+        // withoutGlobalScope: the events hero band is platform-global; the
+        // BelongsToWorkspace scope would silently filter it to the requesting
+        // user's active workspace and poison the shared cache.
+        return Link::withoutGlobalScope('workspace')
+            ->where('type', 'ics')
             ->where('is_active', true)
             ->where('visibility', 'public')
             ->where(fn ($w) => $w->whereRaw("(settings->>'hide_from_directory') IS DISTINCT FROM 'true'"))

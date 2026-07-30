@@ -277,7 +277,7 @@ class LinkController extends Controller
                 'nullable', 'string', new \App\Modules\User\Rules\AliasFormat(),
                 'min:' . $limits['min'],
                 'max:' . $limits['max'],
-                new \App\Modules\User\Rules\UniqueAliasCi(),
+                new \App\Modules\User\Rules\UniqueAliasCi(null, $request->input('domain_id')),
                 new \App\Modules\Admin\Rules\NotBannedName(),
             ],
             'domain_id' => ['nullable', $this->availableDomainRule($request->user())],
@@ -331,8 +331,12 @@ class LinkController extends Controller
     {
         $alias = (string) $request->query('alias', (string) $request->input('alias', ''));
 
+        // Optional target domain — uniqueness is per-domain, so the verdict
+        // depends on which domain the alias would be bound to.
+        $domainId = $request->query('domain_id', $request->input('domain_id'));
+
         return response()->json(
-            \App\Modules\User\Support\AliasAvailability::check(workspace_owner(), $alias)
+            \App\Modules\User\Support\AliasAvailability::check(workspace_owner(), $alias, null, $domainId)
         );
     }
 
@@ -548,7 +552,7 @@ class LinkController extends Controller
             'long_url' => 'required_if:type,url|nullable|url|max:2048',
             'redirect_type' => 'nullable|in:301,302',
             'alias' => array_merge(
-                ['nullable', 'string', new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\User\Rules\UniqueAliasCi()],
+                ['nullable', 'string', new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\User\Rules\UniqueAliasCi(null, $request->input('domain_id'))],
                 ['min:' . workspace_owner()->getAliasLengthLimits()['min']],
                 ['max:' . workspace_owner()->getAliasLengthLimits()['max']],
                 [new \App\Modules\Admin\Rules\NotBannedName()],
@@ -3376,23 +3380,22 @@ class LinkController extends Controller
                 'min:' . $aliasLimits['min'],
                 'max:' . $aliasLimits['max'],
                 new \App\Modules\User\Rules\AliasFormat(),
-                new \App\Modules\User\Rules\UniqueAliasCi($link->id),
-                // Aliases must be globally unique across BOTH tables — also
-                // reject if the value is already used as an extra alias on
-                // any other link (an extra owned by THIS link is fine; we'll
-                // demote it implicitly below). Matched case-insensitively so a
-                // case-variant of an existing extra alias is rejected too.
-                function ($attr, $value, $fail) use ($link) {
+                // Per-domain uniqueness across BOTH tables (links.alias +
+                // link_aliases.alias), scoped to the domain the alias is
+                // being bound to (the submitted domain_id, falling back to
+                // the link's current domain). Rows owned by THIS link are
+                // ignored — an unchanged alias, or an extra being absorbed
+                // into the primary, isn't "taken".
+                new \App\Modules\User\Rules\UniqueAliasCi(
+                    $link->id,
+                    $request->has('domain_id') ? $request->input('domain_id') : $link->domain_id,
+                ),
+                function ($attr, $value, $fail) {
                     // Reserved top-level paths must never be claimed (mirror LinkAliasController).
                     $reserved = \App\Modules\User\Controllers\LinkAliasController::reservedAliases();
                     if (in_array(strtolower($value), $reserved, true)) {
                         $fail("'{$value}' is a reserved name and cannot be used.");
-                        return;
                     }
-                    $exists = \App\Modules\User\Models\LinkAlias::whereRaw('LOWER(alias) = ?', [mb_strtolower((string) $value)])
-                        ->where('link_id', '!=', $link->id)
-                        ->exists();
-                    if ($exists) $fail('This alias is already taken. Please choose another.');
                 },
                 new \App\Modules\Admin\Rules\NotBannedName(),
             ],
@@ -3502,8 +3505,7 @@ class LinkController extends Controller
         // Surface plan limits at the preview step so the user sees
         // "this batch is too large for your plan" before clicking
         // Create. Same checks run again on submit as a safety net.
-        $planFeatures = $owner->plan?->features ?? [];
-        $maxLinks = $planFeatures['max_links'] ?? 5;
+        $maxLinks = (int) $owner->getPlanFeature('max_links', 5);
         if ($maxLinks !== -1 && $validCount > 0) {
             $current = $owner->links()->count();
             if (($current + $validCount) > $maxLinks) {
@@ -3605,8 +3607,7 @@ class LinkController extends Controller
         }
 
         // Plan link-quota gate for the whole batch.
-        $planFeatures = $owner->plan?->features ?? [];
-        $maxLinks = $planFeatures['max_links'] ?? 5;
+        $maxLinks = (int) $owner->getPlanFeature('max_links', 5);
         if ($maxLinks !== -1) {
             $current = $owner->links()->count();
             if (($current + count($validRows)) > $maxLinks) {

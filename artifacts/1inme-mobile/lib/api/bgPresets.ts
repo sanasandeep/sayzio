@@ -28,6 +28,12 @@ export type BgPreset = {
    * approximated from `colors`. Null for regular presets.
    */
   paper?: string | null;
+  /**
+   * True for legacy-group presets (gradients / torn) removed from the
+   * picker (Task #6204): still resolvable so already-saved pages render,
+   * but the picker must not offer them.
+   */
+  hidden?: boolean;
 };
 
 export type BgPresetCatalog = {

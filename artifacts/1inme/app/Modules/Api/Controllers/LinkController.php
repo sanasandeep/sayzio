@@ -59,8 +59,12 @@ class LinkController extends Controller
         $ignoreId = $request->query('ignore_id', $request->input('ignore_id'));
         $ignoreId = ($ignoreId === null || $ignoreId === '') ? null : (int) $ignoreId;
 
+        // Optional target domain — uniqueness is per-domain, so the verdict
+        // depends on which domain the alias would be bound to.
+        $domainId = $request->query('domain_id', $request->input('domain_id'));
+
         return response()->json(
-            \App\Modules\User\Support\AliasAvailability::check($request->user(), $alias, $ignoreId)
+            \App\Modules\User\Support\AliasAvailability::check($request->user(), $alias, $ignoreId, $domainId)
         );
     }
 
@@ -205,7 +209,7 @@ class LinkController extends Controller
             // skip it), mirroring the web chooseType() rule and the live
             // check-alias indicator so a reserved handle can't slip in via the
             // REST create path.
-            'alias'      => ['nullable', 'string', 'min:' . $aliasLimits['min'], 'max:' . $aliasLimits['max'], new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\Admin\Rules\NotBannedName(), new \App\Modules\User\Rules\UniqueAliasCi()],
+            'alias'      => ['nullable', 'string', 'min:' . $aliasLimits['min'], 'max:' . $aliasLimits['max'], new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\Admin\Rules\NotBannedName(), new \App\Modules\User\Rules\UniqueAliasCi(null, $request->input('domain_id'))],
             'title'      => ['nullable', 'string', 'max:200'],
             'long_url'   => ['nullable', 'url', 'max:2048'],
             'visibility' => ['nullable', Rule::in(['public', 'registered', 'followers', 'subscribers'])],
@@ -415,7 +419,7 @@ class LinkController extends Controller
             // edit submit too (privileged `user.banned_names.bypass` holders
             // skip it), mirroring the create path so a reserved handle can't
             // slip in by renaming an existing link via the REST update path.
-            'alias'      => ['sometimes', 'string', 'min:' . $aliasLimits['min'], 'max:' . $aliasLimits['max'], new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\Admin\Rules\NotBannedName(), new \App\Modules\User\Rules\UniqueAliasCi($link->id)],
+            'alias'      => ['sometimes', 'string', 'min:' . $aliasLimits['min'], 'max:' . $aliasLimits['max'], new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\Admin\Rules\NotBannedName(), new \App\Modules\User\Rules\UniqueAliasCi($link->id, $request->has('domain_id') ? $request->input('domain_id') : $link->domain_id)],
             'visibility' => ['sometimes', Rule::in(['public', 'registered', 'followers', 'subscribers'])],
             'is_active'  => ['sometimes', 'boolean'],
             'seo_title'  => ['sometimes', 'nullable', 'string', 'max:200'],
@@ -1469,6 +1473,11 @@ class LinkController extends Controller
 
     protected function planAllowsAbTests($user): bool
     {
+        // Bypass holders skip ALL plan gating (same contract as
+        // User::getPlanFeature / CheckPlanLimit).
+        if ($user->hasPermission('user.plan_limits.bypass')) {
+            return true;
+        }
         $features = $user->plan?->features ?? [];
         // Default: paid plans get it. Free plan keeps it off via explicit
         // `ab_tests => false`. Older installs without the flag fall back
