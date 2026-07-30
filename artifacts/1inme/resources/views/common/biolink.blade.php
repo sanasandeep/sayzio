@@ -2729,6 +2729,27 @@
                         return applyLiveSideBorders(bEl, fields);
                     }
                     if (isSideBorderKey) return false;
+                    // Per-device block width (Task #6119): patch the grid wrap
+                    // itself. The base span drives the inline grid-column; the
+                    // desktop override toggles the .md-span class + --md-span
+                    // var (only visible at/above the 768px breakpoint, so the
+                    // phone-width editor preview correctly keeps the base span).
+                    if (key === 'style.grid_span') {
+                        var gs = parseInt(value, 10) || 12;
+                        root.style.gridColumn = 'span ' + Math.max(1, Math.min(12, gs));
+                        return true;
+                    }
+                    if (key === 'style.grid_span_md') {
+                        var gsm = parseInt(value, 10) || 0;
+                        if (gsm >= 1 && gsm <= 12) {
+                            root.classList.add('md-span');
+                            root.style.setProperty('--md-span', String(gsm));
+                        } else {
+                            root.classList.remove('md-span');
+                            root.style.removeProperty('--md-span');
+                        }
+                        return true;
+                    }
                     var fn = LIVE_STYLE_KEYS[key];
                     if (!fn) return false;
                     var el = styleTarget(root);

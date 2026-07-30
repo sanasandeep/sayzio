@@ -976,10 +976,26 @@
 
         {{-- LAYOUT TAB (Spacing + Grid) --}}
         <div x-show="activeStyleTab === 'spacing'" class="space-y-4">
-            {{-- Grid Width --}}
-            <div>
-                <label class="{{ $labelClass }}">Block Width</label>
-                <div class="grid grid-cols-6 gap-1 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);" x-data="{ gridSpan: '{{ $st['grid_span'] ?? 12 }}' }">
+            {{-- Grid Width — per-device (Task #6119). Mobile drives the base
+                 `grid_span`; Desktop drives the `grid_span_md` override that
+                 only applies at/above the 768px breakpoint on the public page.
+                 "Same as mobile" submits an empty value, which the controller
+                 treats as "clear this key" (Task #4025 semantics). --}}
+            <div x-data="{ widthDevice: 'mobile', gridSpan: '{{ $st['grid_span'] ?? 12 }}', gridSpanMd: '{{ $st['grid_span_md'] ?? '' }}' }">
+                <div class="flex items-center justify-between">
+                    <label class="{{ $labelClass }}">Block Width</label>
+                    <div class="inline-flex rounded-lg p-0.5" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);" data-width-device-toggle>
+                        <button type="button" class="px-2 py-0.5 rounded-md text-[9px] font-bold transition-all" @click="widthDevice = 'mobile'"
+                                :style="widthDevice === 'mobile' ? 'background: rgba(61,107,255,0.2); color: #90acff;' : 'background: transparent; color: var(--text-faint);'">
+                            <i class="fas fa-mobile-alt mr-1"></i>Mobile
+                        </button>
+                        <button type="button" class="px-2 py-0.5 rounded-md text-[9px] font-bold transition-all" @click="widthDevice = 'desktop'"
+                                :style="widthDevice === 'desktop' ? 'background: rgba(61,107,255,0.2); color: #90acff;' : 'background: transparent; color: var(--text-faint);'">
+                            <i class="fas fa-desktop mr-1"></i>Desktop
+                        </button>
+                    </div>
+                </div>
+                <div x-show="widthDevice === 'mobile'" class="grid grid-cols-6 gap-1 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
                     @foreach([3 => '¼', 4 => '⅓', 6 => '½', 8 => '⅔', 9 => '¾', 12 => 'Full'] as $gv => $gl)
                     <label class="flex flex-col items-center cursor-pointer" @click="gridSpan = '{{ $gv }}'">
                         <input type="radio" name="style[grid_span]" value="{{ $gv }}" {{ ($st['grid_span'] ?? 12) == $gv ? 'checked' : '' }} class="hidden">
@@ -988,7 +1004,16 @@
                     </label>
                     @endforeach
                 </div>
-                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Place blocks side-by-side in a row</p>
+                <div x-show="widthDevice === 'desktop'" x-cloak class="grid grid-cols-7 gap-1 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                    @foreach(['' => 'Same', 3 => '¼', 4 => '⅓', 6 => '½', 8 => '⅔', 9 => '¾', 12 => 'Full'] as $gv => $gl)
+                    <label class="flex flex-col items-center cursor-pointer" @click="gridSpanMd = '{{ $gv }}'">
+                        <input type="radio" name="style[grid_span_md]" value="{{ $gv }}" {{ (string) ($st['grid_span_md'] ?? '') === (string) $gv ? 'checked' : '' }} class="hidden">
+                        <span class="w-full text-center text-[10px] font-bold py-1.5 rounded-lg border transition-all" @if($gv === '') title="Same as mobile" @endif
+                              :style="gridSpanMd == '{{ $gv }}' ? 'background: rgba(61,107,255,0.15); border-color: rgba(61,107,255,0.3); color: #90acff;' : 'background: transparent; border-color: transparent; color: var(--text-faint);'">{{ $gl }}</span>
+                    </label>
+                    @endforeach
+                </div>
+                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);" x-text="widthDevice === 'mobile' ? 'Width on phones (and everywhere unless Desktop overrides it)' : 'Width on large screens — \'Same\' keeps the mobile width'"></p>
             </div>
 
             {{-- Padding --}}

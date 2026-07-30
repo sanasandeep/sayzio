@@ -858,11 +858,18 @@
                                 // auto-fit grids give every child a single cell.
                                 $childSpanRaw = intval($childStyle['grid_span'] ?? 12) ?: 12;
                                 $childSpan = $cols > 0 ? min(max(1, (int)round($childSpanRaw / 12 * $cols)), $cols) : 1;
+                                // Desktop width override (Task #6119): map the
+                                // child's grid_span_md onto this container's
+                                // column count and re-place it at/above 768px
+                                // via the shared .md-span rule (grid-column:
+                                // span var(--md-span)), same as top-level wraps.
+                                $childSpanMdRaw = intval($childStyle['grid_span_md'] ?? 0);
+                                $childSpanMd = ($childSpanMdRaw && $cols > 0) ? min(max(1, (int)round($childSpanMdRaw / 12 * $cols)), $cols) : 0;
                                 // Preset background layer for card/grid children
                                 // (Task #5970) — mirrors the top-level block wrap.
                                 $childPreset = \App\Modules\User\Models\BiolinkBlock::presetLayer($childStyle);
                             @endphp
-                            <div style="grid-column: span {{ $childSpan }};">
+                            <div class="{{ $childSpanMd ? 'biolink-block-wrap md-span' : '' }}" style="grid-column: span {{ $childSpan }};{{ $childSpanMd ? ' --md-span: ' . $childSpanMd . ';' : '' }}">
                             @if($childHasStyle && !$childSkipWrap)
                                 <div class="block-styled" style="{{ $childInline }}{{ $childPreset ? ';position:relative;isolation:isolate;overflow:hidden;' : '' }}">
                                 @if($childPreset)

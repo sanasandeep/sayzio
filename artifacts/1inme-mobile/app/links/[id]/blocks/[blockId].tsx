@@ -1118,6 +1118,12 @@ export function BlockSettingsEditor({
   const [gradStops, setGradStops] = useState<string[]>(["#7c3aed", "#22d3ee"]);
   const [bgImageVal, setBgImageVal] = useState<string>("");
   const [bgImgUploading, setBgImgUploading] = useState(false);
+  // Per-device block width (Task #6119 web parity): base `_style.grid_span`
+  // (mobile, 12-column grid) plus the optional desktop-only override
+  // `_style.grid_span_md` ("" = same as mobile, cleared on save).
+  const [widthDevice, setWidthDevice] = useState<"mobile" | "desktop">("mobile");
+  const [gridSpan, setGridSpan] = useState<string>("12");
+  const [gridSpanMd, setGridSpanMd] = useState<string>("");
   // Borders (Task #6038 web parity): shorthand style/width/color/radius
   // plus advanced per-corner radii and per-side style/width/color behind
   // an expander. Blank advanced fields fall back to the shorthand
@@ -1493,6 +1499,16 @@ export function BlockSettingsEditor({
       // Hydrate borders (Task #6038): shorthand + per-corner + per-side.
       const bstr = (v: unknown): string =>
         typeof v === "string" ? v.trim() : typeof v === "number" ? String(v) : "";
+      // Hydrate per-device block width (Task #6119). Spans may round-trip
+      // as numbers (sanitizer casts) — normalize to the chip value strings.
+      const spanNum = (v: unknown): number => {
+        const n = parseInt(bstr(v), 10);
+        return Number.isFinite(n) && n >= 1 && n <= 12 ? n : 0;
+      };
+      setGridSpan(String(spanNum(st.grid_span) || 12));
+      const mdSpan = spanNum(st.grid_span_md);
+      setGridSpanMd(mdSpan ? String(mdSpan) : "");
+      setWidthDevice("mobile");
       setBdStyle(bstr(st.border_style) || "none");
       setBdWidth(bstr(st.border_width));
       setBdColor(bstr(st.border_color));
@@ -1938,6 +1954,11 @@ export function BlockSettingsEditor({
           if (val.trim() !== "") styleOut[key] = val.trim();
           else delete styleOut[key];
         };
+        // Per-device block width (Task #6119): the base span always
+        // persists (12 = full width); the desktop override only when set —
+        // deleting it means "same as mobile" on the public page.
+        putStyle("grid_span", gridSpan);
+        putStyle("grid_span_md", gridSpanMd);
         putStyle("border_style", bdStyle === "none" ? "" : bdStyle);
         putStyle("border_width", bdWidth);
         putStyle("border_color", bdColor);
@@ -2753,6 +2774,72 @@ export function BlockSettingsEditor({
           ) : null}
         </View>
         ) : null}
+
+        {/* Block Width (Task #6119) — per-device span chips mirroring the
+            web Style tab: Mobile edits the base `grid_span`; Desktop edits
+            the `grid_span_md` override, where "Same" clears it so large
+            screens follow the mobile width. */}
+        <View style={{ gap: 8 }} testID="block-width-section">
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>Block Width</Text>
+            <View style={{ flexDirection: "row", borderRadius: 999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, padding: 2 }}>
+              {(["mobile", "desktop"] as const).map((dev) => {
+                const sel = widthDevice === dev;
+                return (
+                  <Pressable {...WEB_FOCUS_RING_PROPS}
+                    key={dev}
+                    testID={`block-width-device-${dev}`}
+                    onPress={() => setWidthDevice(dev)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: 999,
+                      backgroundColor: sel ? colors.primary : "transparent",
+                    }}
+                  >
+                    <Text style={{ color: sel ? "#fff" : colors.mutedForeground, fontWeight: "600", fontSize: 11 }}>
+                      {dev === "mobile" ? "Mobile" : "Desktop"}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            {(widthDevice === "desktop"
+              ? ([["", "Same"], ["3", "¼"], ["4", "⅓"], ["6", "½"], ["8", "⅔"], ["9", "¾"], ["12", "Full"]] as const)
+              : ([["3", "¼"], ["4", "⅓"], ["6", "½"], ["8", "⅔"], ["9", "¾"], ["12", "Full"]] as const)
+            ).map(([val, label]) => {
+              const sel = widthDevice === "desktop" ? gridSpanMd === val : gridSpan === val;
+              return (
+                <Pressable {...WEB_FOCUS_RING_PROPS}
+                  key={`${widthDevice}-${val || "same"}`}
+                  testID={`block-width-${widthDevice}-${val || "same"}`}
+                  onPress={() =>
+                    widthDevice === "desktop" ? setGridSpanMd(val) : setGridSpan(val)
+                  }
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 7,
+                    borderRadius: 999,
+                    backgroundColor: sel ? colors.primary : colors.card,
+                    borderWidth: 1,
+                    borderColor: sel ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ color: sel ? "#fff" : colors.foreground, fontWeight: "600", fontSize: 12 }}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+            {widthDevice === "mobile"
+              ? "Width on phones — smaller widths place blocks side-by-side"
+              : "Width on large screens — \u201cSame\u201d keeps the mobile width"}
+          </Text>
+        </View>
 
         {/* Borders (Task #6038) — shorthand border + corner radius with an
             Advanced expander exposing per-corner radii and per-side
