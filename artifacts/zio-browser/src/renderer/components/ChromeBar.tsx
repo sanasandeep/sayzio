@@ -20,11 +20,11 @@ import { resolveFavicon } from '../../shared/favicon';
 import { FaviconImg } from './FaviconImg';
 import type { SyncQueueProfileCount } from '../../main/db';
 import { ApiClient } from '../../shared/api-client';
-import type { SiteResolveResult } from '../../shared/api-client';
 import { profileToAutofillCard } from '../../shared/form-autofill';
 import { MAX_PINNED_TOOLS } from '../../shared/toolbar-pins';
 import type { PinnableTool } from '../../shared/toolbar-pins';
 import { usePinnedTools } from '../hooks/use-pinned-tools';
+import { useSiteResolve } from '../hooks/use-site-resolve';
 import { checkSayzioExists, isSayzioSuggestEligible } from '../../shared/sayzio-suggest';
 import type { SayzioExistsResult } from '../../shared/sayzio-suggest';
 
@@ -58,23 +58,6 @@ interface Props {
 }
 
 const BASE_URL = 'https://sayzio.app';
-
-// Per-host cache for the "On Sayzio" site resolver (session-lifetime).
-const siteResolveCache = new Map<string, SiteResolveResult>();
-
-/** Extract a lookup-worthy hostname from a tab URL, or null to skip. */
-function hostForSiteResolve(url: string | undefined | null): string | null {
-  if (!url || !/^https?:\/\//i.test(url)) return null;
-  try {
-    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, '');
-    if (!host.includes('.')) return null;
-    // Sayzio's own hosts don't need a lookup.
-    if (host === 'sayzio.app' || host.endsWith('.sayzio.app')) return null;
-    return host;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Context-menu "Fill form with my Sayzio card": fetch the signed-in profile
@@ -796,28 +779,13 @@ export function ChromeBar({
   const canShorten = !!(activeTab?.url && activeTab.url !== 'about:newtab' && activeTab.url !== '');
 
   // "On Sayzio" site detection — debounced, per-host cached public lookup.
-  const [siteResolve, setSiteResolve] = useState<SiteResolveResult | null>(null);
-  useEffect(() => {
-    // Privacy: never in private windows, and only for signed-in users
-    // (who already have a first-party relationship with Sayzio).
-    if (isPrivate || !token) { setSiteResolve(null); return; }
-    const host = hostForSiteResolve(activeTab?.url);
-    if (!host) { setSiteResolve(null); return; }
-    const cached = siteResolveCache.get(host);
-    if (cached) { setSiteResolve(cached); return; }
-    setSiteResolve(null);
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      const client = new ApiClient({ baseUrl: BASE_URL });
-      client.resolveSite(host)
-        .then((res) => {
-          siteResolveCache.set(host, res);
-          if (!cancelled) setSiteResolve(res);
-        })
-        .catch(() => { /* Silent — indicator only. */ });
-    }, 800);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [activeTab?.url]);
+  // The hook clears the badge the moment the window flips private or the
+  // user signs out, and cancels any pending debounced lookup.
+  const siteResolve = useSiteResolve({
+    url: activeTab?.url,
+    isPrivate: !!isPrivate,
+    token,
+  });
 
   // Listen for custom events dispatched by the command palette
   useEffect(() => {
