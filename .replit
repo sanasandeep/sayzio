@@ -120,6 +120,10 @@ args = "e2e-border-recents"
 task = "workflow.run"
 args = "e2e-editor-badge-light-mode"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-width-device-toggle"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -391,6 +395,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "VALIDATION_PORT=5094 bash artifacts/1inme/tests/Browser/run-validation.sh editor-badge-light-mode.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-width-device-toggle"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-block-width-device-toggle.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
