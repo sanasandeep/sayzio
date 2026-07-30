@@ -1362,24 +1362,78 @@ function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: Biolink
           : cardGradientColors.length >= 2 || cardBgImgUri
             ? { backgroundColor: "transparent" }
             : null;
+    // Unified `_style` parity for card containers (Task #6173): the web
+    // editor's Block Styling picker now styles cards too. `_style` values
+    // override the legacy bg_type mapping property-by-property (borders /
+    // corners already flow in via blockCardStyle → variantOverlay; this
+    // block adds backgrounds, glass and per-side padding/margins).
+    const _cs = isCard ? (((s as Record<string, unknown>)._style ?? null) as Record<string, unknown> | null) : null;
+    const csStr = (k: string): string => {
+      const v = _cs?.[k];
+      return typeof v === "string" ? v.trim() : typeof v === "number" ? String(v) : "";
+    };
+    const csNum = (k: string): number | null => {
+      const v = csStr(k);
+      const n = Number(v);
+      return v !== "" && Number.isFinite(n) ? n : null;
+    };
+    const uBgRaw = csStr("bg_color");
+    const uIsGrad = /^(linear|radial|conic)-gradient\(/i.test(uBgRaw);
+    const uGradColors = uIsGrad ? (uBgRaw.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)/g) ?? []) : [];
+    const uSolidBg = !uIsGrad ? uBgRaw : "";
+    const uImgRaw = csStr("bg_image");
+    const uImgUri = uImgRaw
+      ? /^https?:\/\//i.test(uImgRaw)
+        ? uImgRaw
+        : uImgRaw.startsWith("/f/")
+          ? `${getBaseUrl()}${uImgRaw}`
+          : ""
+      : "";
+    const uGlass = csStr("effect") === "glass" && uBgRaw === "" && uImgRaw === "";
+    // Any unified background pick supersedes the legacy bg layers entirely
+    // (web CSS last-wins equivalent).
+    const unifiedBgSet = uBgRaw !== "" || uImgRaw !== "" || uGlass;
+    const gradColors = unifiedBgSet ? uGradColors : cardGradientColors;
+    const bgImgUri = unifiedBgSet ? uImgUri : cardBgImgUri;
+    const uPad = csNum("padding");
+    const unifiedOverride = _cs
+      ? {
+          ...(uSolidBg !== "" && uSolidBg !== "transparent"
+            ? { backgroundColor: uSolidBg }
+            : uGlass
+              ? { backgroundColor: "rgba(255,255,255,0.08)" }
+              : unifiedBgSet || uSolidBg === "transparent"
+                ? { backgroundColor: "transparent" }
+                : {}),
+          ...(uPad != null ? { padding: uPad } : {}),
+          ...(csNum("padding_top") != null ? { paddingTop: csNum("padding_top")! } : {}),
+          ...(csNum("padding_right") != null ? { paddingRight: csNum("padding_right")! } : {}),
+          ...(csNum("padding_bottom") != null ? { paddingBottom: csNum("padding_bottom")! } : {}),
+          ...(csNum("padding_left") != null ? { paddingLeft: csNum("padding_left")! } : {}),
+          ...(csNum("margin_top") != null ? { marginTop: csNum("margin_top")! } : {}),
+          ...(csNum("margin_bottom") != null ? { marginBottom: csNum("margin_bottom")! } : {}),
+          ...(csNum("margin_left") != null ? { marginLeft: csNum("margin_left")! } : {}),
+          ...(csNum("margin_right") != null ? { marginRight: csNum("margin_right")! } : {}),
+        }
+      : null;
     const containerStyle = isCard
-      ? [styles.cardContainer, blockCardStyle(block, colors), cardBgOverride, { overflow: "hidden" as const }]
+      ? [styles.cardContainer, blockCardStyle(block, colors), cardBgOverride, unifiedOverride, { overflow: "hidden" as const }]
       : [styles.gridContainer, pad != null ? { padding: pad } : null];
     return (
       <View style={containerStyle}>
-        {isCard && cardGradientColors.length >= 2 ? (
+        {isCard && gradColors.length >= 2 ? (
           <LinearGradient
-            colors={cardGradientColors as [string, string, ...string[]]}
+            colors={gradColors as [string, string, ...string[]]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
         ) : null}
-        {isCard && cardBgImgUri ? (
+        {isCard && bgImgUri ? (
           <View style={StyleSheet.absoluteFill} pointerEvents="none">
             <ImageBackground
-              source={{ uri: cardBgImgUri }}
+              source={{ uri: bgImgUri }}
               style={StyleSheet.absoluteFill}
               resizeMode="cover"
             />

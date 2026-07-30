@@ -1344,7 +1344,11 @@
                 // identity-design renderer applies $blockInline itself and
                 // needs overflow-hidden to clip cover images — so the generic
                 // .block-styled wrapper must not double-wrap them.
-                $skipWrap = in_array($block->type, ['avatar', 'divider', 'spacer', 'social_icons'])
+                // Card containers (Task #6173) apply their unified `_style`
+                // directly on their own .card-container-render div inside
+                // the render partial — wrapping them here would double-apply
+                // the background/border/shadow chrome.
+                $skipWrap = in_array($block->type, ['avatar', 'divider', 'spacer', 'social_icons', 'card'])
                     || str_starts_with($block->type, 'profile_card')
                     || $isBtnLike;
                 $btnInline = ($isBtnLike && $hasCustomStyle) ? $blockInline : '';
@@ -2654,6 +2658,12 @@
                     return true;
                 }
                 function styleTarget(root) {
+                    // Card containers carry their unified style on their own
+                    // render div (Task #6173) — check it FIRST, because a
+                    // .block-styled child inside the card would otherwise be
+                    // picked up and patched instead of the container itself.
+                    var _bt = root.getAttribute('data-block-type') || '';
+                    if (_bt === 'card') return root.querySelector('.card-container-render');
                     // Styled blocks render a .block-styled wrapper; button-like
                     // blocks carry the inline style on the anchor itself. If
                     // neither exists the block has no custom style yet and a
