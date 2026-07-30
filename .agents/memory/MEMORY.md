@@ -157,3 +157,4 @@
 - [Blade inline-script JS parse guard](blade-inline-js-guard.md) — extract+vm-compile inline <script> from Blade; echo placeholder must be an identifier, two compile passes for conditionals, blank @php file-wide first.
 - [Cached platform lookups vs workspace scope](cached-platform-lookup-scope-poisoning.md) — Cache::remember over a workspace-scoped model caches EMPTY platform rows inside authed requests; withoutGlobalScopes().
 - [Biolink effect bg types](biolink-effect-bg-types.md) — tiles/mesh/pattern/torn are lockstep across catalog+controller+editor+renderer+mobile; server stamps bg_effect_colors, mobile renders gradient fallback.
+- [Mobile bg-effect catalog mirror](mobile-bg-effect-catalog-mirror.md) — tiles/mesh/pattern preview textures come from a TS mirror of the PHP catalogs; web-only catalog edits silently fall back to gradient on mobile.

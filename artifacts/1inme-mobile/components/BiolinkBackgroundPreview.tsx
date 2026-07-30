@@ -4,7 +4,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
+import {
+  BiolinkEffectBackground,
+  type EffectSpec,
+} from "@/components/BiolinkEffectBackground";
 import { useColors } from "@/hooks/useColors";
+import {
+  resolveMesh,
+  resolvePattern,
+  resolveTiles,
+} from "@/lib/bgEffectCatalog";
 import { getBaseUrl } from "@/lib/api";
 import { getBgPresets } from "@/lib/api/bgPresets";
 import { getBgTemplates } from "@/lib/api/bgTemplates";
@@ -100,6 +109,26 @@ export function BiolinkBackgroundPreview({ linkId }: { linkId: number }) {
         (c): c is string => typeof c === "string" && c.trim() !== "",
       )
     : [];
+
+  // Rich native rendering (Task #6212): resolve the stored catalog keys
+  // through the mirrored mobile catalogs so the preview draws the real
+  // texture (tile grid / mesh blobs / repeating motif). Unknown or
+  // missing keys leave `effectSpec` null and the gradient built from
+  // `bg_effect_colors` remains the graceful fallback.
+  let effectSpec: EffectSpec | null = null;
+  if (effectType === "tiles") {
+    const tiles = resolveTiles(
+      str(biolink.tiles_palette),
+      str(biolink.tiles_layout) || "uniform",
+    );
+    if (tiles) effectSpec = { type: "tiles", tiles };
+  } else if (effectType === "mesh") {
+    const mesh = resolveMesh(str(biolink.mesh_preset));
+    if (mesh) effectSpec = { type: "mesh", mesh };
+  } else if (effectType === "pattern") {
+    const pattern = resolvePattern(str(biolink.pattern_preset));
+    if (pattern) effectSpec = { type: "pattern", pattern };
+  }
 
   const presetActive = biolink.background_type === "preset";
   const presetKey = presetActive ? str(biolink.bg_preset_key) : "";
@@ -205,10 +234,27 @@ export function BiolinkBackgroundPreview({ linkId }: { linkId: number }) {
           { borderColor: colors.border, borderRadius: colors.radius + 6 },
         ]}
       >
-        {effectType ? (
-          // Tiles / mesh / pattern: gradient approximation from the
-          // server-stamped representative colors (graceful fallback —
-          // the real texture only renders on the web page).
+        {effectType && effectSpec ? (
+          // Tiles / mesh / pattern: real native texture from the mirrored
+          // catalog (tile grid / mesh blobs / repeating motif), with the
+          // stamped-color gradient painting first underneath.
+          <LinearGradient
+            colors={gradientStops(
+              effectColors.length ? effectColors : ["#3d3654"],
+            )}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.canvas}
+          >
+            <BiolinkEffectBackground
+              spec={effectSpec}
+              baseColor={effectColors[0] ?? "#3d3654"}
+            />
+            {mockContent}
+          </LinearGradient>
+        ) : effectType ? (
+          // Unknown catalog key (e.g. added on web after this app build):
+          // gradient approximation from the server-stamped colors.
           <LinearGradient
             colors={gradientStops(
               effectColors.length ? effectColors : ["#3d3654"],
