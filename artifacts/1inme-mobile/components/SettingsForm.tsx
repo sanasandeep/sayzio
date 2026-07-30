@@ -17,11 +17,15 @@ import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import { WEB_FOCUS_RING_PROPS } from "@/hooks/useWebFocusRing";
 import { getLink, updateLink } from "@/lib/api/links";
+import {
+  rememberRecentColorFromTyping,
+  rememberRecentColors,
+} from "@/lib/recentColors";
 
 type FieldDef = {
   key: string;
   label: string;
-  kind?: "text" | "url" | "multiline" | "switch" | "choice";
+  kind?: "text" | "url" | "multiline" | "switch" | "choice" | "color";
   options?: string[];
   hint?: string;
 };
@@ -77,6 +81,13 @@ export function SettingsForm({
         settings: { [group]: values } as any,
       }),
     onSuccess: () => {
+      // Remember applied custom colors so they surface as extra swatches
+      // in every ColorSwatchRow (block editor + appearance/block-theme).
+      rememberRecentColors(
+        fields
+          .filter((f) => f.kind === "color" || f.hint === "#hex")
+          .map((f) => (typeof values[f.key] === "string" ? values[f.key] : "")),
+      );
       setBaseline(values);
       setApplied(true);
       if (appliedTimer.current) clearTimeout(appliedTimer.current);
@@ -196,7 +207,7 @@ export function SettingsForm({
               </View>
             );
           }
-          const isColorField = f.hint === "#hex";
+          const isColorField = f.kind === "color" || f.hint === "#hex";
           return (
             <View key={f.key} style={{ gap: 8 }}>
               {isColorField ? (
@@ -210,7 +221,14 @@ export function SettingsForm({
                 label={f.label}
                 hint={f.hint}
                 value={typeof v === "string" ? v : v != null ? String(v) : ""}
-                onChangeText={(t) => setValue(f.key, t)}
+                onChangeText={(t) => {
+                  setValue(f.key, t);
+                  if (isColorField) {
+                    // Valid custom colors typed here join the recent set
+                    // (debounced per field, invalid values ignored).
+                    rememberRecentColorFromTyping(`settings-${group}-${f.key}`, t);
+                  }
+                }}
                 keyboardType={f.kind === "url" ? "url" : "default"}
                 autoCapitalize={f.kind === "url" || isColorField ? "none" : "sentences"}
                 multiline={f.kind === "multiline"}

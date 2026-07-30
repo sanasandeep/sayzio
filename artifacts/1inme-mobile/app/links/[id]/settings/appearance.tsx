@@ -24,9 +24,9 @@ export default function AppearanceSettings() {
             kind: "choice",
             options: ["light", "dark", "auto"],
           },
-          { key: "background_color", label: "Background color", hint: "#hex" },
-          { key: "text_color", label: "Text color", hint: "#hex" },
-          { key: "accent_color", label: "Accent color", hint: "#hex" },
+          { key: "background_color", label: "Background color", hint: "#hex", kind: "color" },
+          { key: "text_color", label: "Text color", hint: "#hex", kind: "color" },
+          { key: "accent_color", label: "Accent color", hint: "#hex", kind: "color" },
           { key: "background_image", label: "Background image URL", kind: "url" },
         ]}
         extra={

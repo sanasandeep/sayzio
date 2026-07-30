@@ -100,8 +100,17 @@ function borderSwatchSelected(value: string, swatch: string): boolean {
 
 // Quick-pick swatches for border color fields; tapping one writes the hex
 // into the paired free-text input (which stays authoritative).
-// (The single canonical BORDER_COLOR_SWATCHES list is declared below,
-// alongside the recent-colors storage key.)
+const BORDER_ROW_SWATCHES = [
+  "#ffffff",
+  "#000000",
+  "#7c3aed",
+  "#3b82f6",
+  "#22c55e",
+  "#f59e0b",
+  "#ef4444",
+  "#ec4899",
+];
+
 function BorderColorSwatchRow({
   value,
   onSelect,
@@ -113,9 +122,14 @@ function BorderColorSwatchRow({
   testIDPrefix: string;
   chipBorderColor: string;
 }) {
+  // Recently used custom colors surface here too, deduped against presets,
+  // so a brand hex typed anywhere is one tap away in the border rows.
+  const recents = useRecentColors().filter(
+    (c) => !BORDER_ROW_SWATCHES.some((p) => p.toLowerCase() === c.toLowerCase()),
+  );
   return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-      {BORDER_COLOR_SWATCHES.map((c) => {
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+      {BORDER_ROW_SWATCHES.map((c) => {
         const sel = borderSwatchSelected(value, c);
         return (
           <Pressable
@@ -123,6 +137,29 @@ function BorderColorSwatchRow({
             key={c}
             testID={`${testIDPrefix}-${c.slice(1)}`}
             accessibilityLabel={`Border color ${c}`}
+            onPress={() => onSelect(c)}
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 999,
+              backgroundColor: c,
+              borderWidth: sel ? 2 : 1,
+              borderColor: sel ? "#7c3aed" : chipBorderColor,
+            }}
+          />
+        );
+      })}
+      {recents.length > 0 ? (
+        <View style={{ width: 1, height: 16, backgroundColor: chipBorderColor }} />
+      ) : null}
+      {recents.map((c) => {
+        const sel = borderSwatchSelected(value, c);
+        return (
+          <Pressable
+            {...WEB_FOCUS_RING_PROPS}
+            key={`recent-${c}`}
+            testID={`${testIDPrefix}-recent-${c.replace(/[^a-z0-9]/gi, "")}`}
+            accessibilityLabel={`Recent color ${c}`}
             onPress={() => onSelect(c)}
             style={{
               width: 22,
@@ -345,6 +382,11 @@ import {
 } from "@/lib/blockVariants";
 import { getBlockCatalog } from "@/lib/api/blocks";
 import { canonicalBlockType } from "@/lib/blockTypeRegistry";
+import {
+  rememberRecentColorFromTyping,
+  rememberRecentColors,
+  useRecentColors,
+} from "@/lib/recentColors";
 import { showAlert } from "@/lib/webAlert";
 import { handlePlanLockedError } from "@/lib/upgradePrompt";
 
@@ -1937,6 +1979,18 @@ export function BlockSettingsEditor({
       const endDateIso = endDate ? endDate : null;
       const mcParsed = parseInt((maxClicks || "").trim(), 10);
       const maxClicksOut = Number.isFinite(mcParsed) && mcParsed > 0 ? mcParsed : null;
+      // Remember any applied custom colors as extra swatches for every
+      // ColorSwatchRow (persists across restarts via AsyncStorage).
+      rememberRecentColors([
+        bgMode === "color" ? bgColorVal : "",
+        ...(bgMode === "gradient" ? gradStops : []),
+        bdColor,
+        bdSides.top.color,
+        bdSides.right.color,
+        bdSides.bottom.color,
+        bdSides.left.color,
+        avatarFrameColor,
+      ]);
       return updateBlock(id, blockId, {
         is_active: active,
         settings: nextSettings,
@@ -2292,7 +2346,11 @@ export function BlockSettingsEditor({
               <TextInput
                 testID="block-bg-color-input"
                 value={bgColorVal}
-                onChangeText={setBgColorVal}
+                onChangeText={(v) => {
+                  setBgColorVal(v);
+                  // Valid typed colors join the shared recent set (debounced).
+                  rememberRecentColorFromTyping("block-bg-color", v);
+                }}
                 placeholder="#7c3aed or rgba(...)"
                 placeholderTextColor={colors.mutedForeground}
                 autoCapitalize="none"
@@ -2352,15 +2410,17 @@ export function BlockSettingsEditor({
                   onPick={(v) =>
                     setGradStops((prev) => prev.map((p, j) => (j === i ? v : p)))
                   }
+                  size={22}
                 />
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <View style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: c || colors.muted, borderWidth: 1, borderColor: colors.border }} />
                   <TextInput
                     testID={`block-bg-grad-stop-${i}`}
                     value={c}
-                    onChangeText={(v) =>
-                      setGradStops((prev) => prev.map((p, j) => (j === i ? v : p)))
-                    }
+                    onChangeText={(v) => {
+                      setGradStops((prev) => prev.map((p, j) => (j === i ? v : p)));
+                      rememberRecentColorFromTyping(`block-bg-grad-stop-${i}`, v);
+                    }}
                     placeholder="#7c3aed"
                     placeholderTextColor={colors.mutedForeground}
                     autoCapitalize="none"
@@ -2747,7 +2807,10 @@ export function BlockSettingsEditor({
               <TextInput
                 testID="block-border-color-input"
                 value={bdColor}
-                onChangeText={setBdColor}
+                onChangeText={(v) => {
+                  setBdColor(v);
+                  rememberRecentColorFromTyping("block-border-color", v);
+                }}
                 onBlur={() => rememberBorderColor(bdColor)}
                 placeholder="#ffffff"
                 placeholderTextColor={colors.mutedForeground}
@@ -2783,6 +2846,12 @@ export function BlockSettingsEditor({
               />
             </View>
           </View>
+          <ColorSwatchRow
+            prefix="block-border-color"
+            value={bdColor}
+            onPick={setBdColor}
+            size={24}
+          />
 
           {/* Border color quick-pick swatches: fixed presets plus the
               creator's recently used custom colors (Task #6094). Tapping a
@@ -2960,12 +3029,13 @@ export function BlockSettingsEditor({
                     <TextInput
                       testID={`block-border-${sd.key}-color`}
                       value={bdSides[sd.key].color}
-                      onChangeText={(v) =>
+                      onChangeText={(v) => {
                         setBdSides((prev) => ({
                           ...prev,
                           [sd.key]: { ...prev[sd.key], color: v },
-                        }))
-                      }
+                        }));
+                        rememberRecentColorFromTyping(`block-border-${sd.key}-color`, v);
+                      }}
                       onBlur={() => rememberBorderColor(bdSides[sd.key].color)}
                       placeholder="#ffffff"
                       placeholderTextColor={colors.mutedForeground}
@@ -4419,24 +4489,13 @@ export function BlockSettingsEditor({
                     >
                       <Text style={{ color: colors.foreground, fontSize: 11 }}>Auto</Text>
                     </Pressable>
-                    {AVATAR_FRAME_COLOR_PRESETS.map((c) => {
-                      const sel = avatarFrameColor.toLowerCase() === c.toLowerCase();
-                      return (
-                        <Pressable
-                          key={c}
-                          {...WEB_FOCUS_RING_PROPS}
-                          onPress={() => setAvatarFrameColor(c)}
-                          style={{
-                            width: 30,
-                            height: 30,
-                            borderRadius: 15,
-                            backgroundColor: c,
-                            borderWidth: sel ? 3 : 1,
-                            borderColor: sel ? colors.primary : colors.border,
-                          }}
-                        />
-                      );
-                    })}
+                    <ColorSwatchRow
+                      prefix="avatar-frame-color"
+                      value={avatarFrameColor}
+                      onPick={setAvatarFrameColor}
+                      palette={AVATAR_FRAME_COLOR_PRESETS}
+                      size={30}
+                    />
                   </View>
                 </View>
               ) : null}

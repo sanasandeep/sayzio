@@ -26,8 +26,8 @@ export default function BlockThemeSettings() {
             kind: "choice",
             options: ["solid", "outline", "ghost"],
           },
-          { key: "block_color", label: "Block color", hint: "#hex" },
-          { key: "block_text_color", label: "Block text color", hint: "#hex" },
+          { key: "block_color", label: "Block color", hint: "#hex", kind: "color" },
+          { key: "block_text_color", label: "Block text color", hint: "#hex", kind: "color" },
           { key: "border_width", label: "Border width (px)" },
           { key: "shadow", label: "Drop shadow", kind: "switch" },
         ]}

@@ -111,7 +111,8 @@
     "generate:bg-preset-swatches": "node scripts/generate-bg-preset-swatches.mjs",
     "generate:bg-template-swatches": "node scripts/generate-bg-template-swatches.mjs",
     "test:block-bg-opacity-live-preview-e2e": "node scripts/test-block-bg-opacity-live-preview-e2e.mjs",
-    "test:color-swatch-rows-e2e": "node scripts/test-color-swatch-rows-e2e.mjs"
+    "test:color-swatch-rows-e2e": "node scripts/test-color-swatch-rows-e2e.mjs",
+    "test:recent-colors": "node scripts/test-recent-colors.mjs"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
