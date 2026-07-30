@@ -7,6 +7,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useTabStore } from '../store/tab-store';
 import { useAuthStore } from '../store/auth-store';
 import { ShortenPopover } from './ShortenPopover';
+import { SiteSettingsPopover } from './SiteSettingsPopover';
 import { CreateLinkPopover } from './CreateLinkPopover';
 import { TabModeSwitcher } from './TabModeSwitcher';
 import { normalizeTabMode } from '../../shared/window-mode';
@@ -424,8 +425,10 @@ export function ChromeBar({
   // native WebContentsViews sit ABOVE the renderer DOM and would occlude them.
   // Hold the chrome overlay (detaches native views) while either is open.
   const [overflowOpen, setOverflowOpen] = useState(false);
+  // Safari-style "Settings for this website" popover (per-site settings).
+  const [sitePopoverOpen, setSitePopoverOpen] = useState(false);
   const overflowBtnRef = useRef<HTMLButtonElement>(null);
-  useChromeOverlay(shortenOpen || createOpen || overflowOpen);
+  useChromeOverlay(shortenOpen || createOpen || overflowOpen || sitePopoverOpen);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [pendingSyncByProfile, setPendingSyncByProfile] = useState<SyncQueueProfileCount[]>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -1345,6 +1348,44 @@ export function ChromeBar({
             Sync pending
           </div>
         )}
+
+        {/* "Settings for this website" popover button (per-site settings). */}
+        {!isPrivate && (() => {
+          let siteOrigin: string | null = null;
+          try {
+            const u = new URL(activeTab?.url ?? '');
+            if (u.origin.startsWith('http')) siteOrigin = u.origin;
+          } catch { /* not a web page */ }
+          if (!siteOrigin) return null;
+          return (
+            <>
+              <button
+                onClick={() => setSitePopoverOpen(o => !o)}
+                title="Settings for this website"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  background: sitePopoverOpen ? 'var(--color-primary-transparent, rgba(70,110,255,0.15))' : 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-border)',
+                  fontSize: 14,
+                  flexShrink: 0,
+                }}
+              >
+                ⚙️
+              </button>
+              {sitePopoverOpen && (
+                <SiteSettingsPopover
+                  origin={siteOrigin}
+                  onClose={() => setSitePopoverOpen(false)}
+                />
+              )}
+            </>
+          );
+        })()}
 
         {/* Shield / site settings button with tracker badge */}
         <button

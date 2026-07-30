@@ -788,6 +788,72 @@ export function clearAllSitePermissions(): void {
   db.prepare('DELETE FROM site_permissions').run();
 }
 
+// ── Per-site settings (Safari-style "Settings for this website") ────────────
+
+export interface SiteSettingsRow {
+  origin: string;
+  zoom: number | null;
+  autoplay: string | null;
+  popups: string | null;
+  content_blockers: number | null;
+  updated_at: string;
+}
+
+export interface SiteSettingsPatch {
+  zoom?: number | null;
+  autoplay?: string | null;
+  popups?: string | null;
+  contentBlockers?: boolean | null;
+}
+
+export function getSiteSettings(origin: string): SiteSettingsRow | null {
+  const db = getDb();
+  const row = db.prepare('SELECT * FROM site_settings WHERE origin = ?').get(origin) as SiteSettingsRow | undefined;
+  return row ?? null;
+}
+
+/**
+ * Merge-upsert per-site settings. Only keys present in the patch are changed;
+ * passing null for a key clears that setting (reverts to the default).
+ */
+export function setSiteSettings(origin: string, patch: SiteSettingsPatch): SiteSettingsRow {
+  const db = getDb();
+  const existing = getSiteSettings(origin);
+  const zoom = patch.zoom !== undefined ? patch.zoom : existing?.zoom ?? null;
+  const autoplay = patch.autoplay !== undefined ? patch.autoplay : existing?.autoplay ?? null;
+  const popups = patch.popups !== undefined ? patch.popups : existing?.popups ?? null;
+  const contentBlockers = patch.contentBlockers !== undefined
+    ? (patch.contentBlockers === null ? null : (patch.contentBlockers ? 1 : 0))
+    : existing?.content_blockers ?? null;
+  const updatedAt = new Date().toISOString();
+  if (zoom === null && autoplay === null && popups === null && contentBlockers === null) {
+    // Everything reverted to defaults — drop the row entirely.
+    db.prepare('DELETE FROM site_settings WHERE origin = ?').run(origin);
+    return { origin, zoom, autoplay, popups, content_blockers: contentBlockers, updated_at: updatedAt };
+  }
+  db.prepare(`
+    INSERT INTO site_settings(origin, zoom, autoplay, popups, content_blockers, updated_at)
+    VALUES(?, ?, ?, ?, ?, ?)
+    ON CONFLICT(origin) DO UPDATE SET
+      zoom = excluded.zoom,
+      autoplay = excluded.autoplay,
+      popups = excluded.popups,
+      content_blockers = excluded.content_blockers,
+      updated_at = excluded.updated_at
+  `).run(origin, zoom, autoplay, popups, contentBlockers, updatedAt);
+  return { origin, zoom, autoplay, popups, content_blockers: contentBlockers, updated_at: updatedAt };
+}
+
+export function getAllSiteSettings(): SiteSettingsRow[] {
+  const db = getDb();
+  return db.prepare('SELECT * FROM site_settings ORDER BY origin ASC').all() as SiteSettingsRow[];
+}
+
+export function deleteSiteSettings(origin: string): void {
+  const db = getDb();
+  db.prepare('DELETE FROM site_settings WHERE origin = ?').run(origin);
+}
+
 // ── Named sessions ───────────────────────────────────────────────────────────
 
 export interface NamedSessionRow {

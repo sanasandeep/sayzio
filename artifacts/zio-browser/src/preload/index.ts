@@ -327,6 +327,27 @@ const api = {
       ipcRenderer.invoke('permissions:respond', requestId, decision, remember, origin, permission),
   },
 
+  // ── Per-site settings ("Settings for this website" popover) ──────────────
+  siteSettings: {
+    /** Stored settings row for an origin, or null (always null in private windows). */
+    get: (origin: string) =>
+      ipcRenderer.invoke('site-settings:get', origin) as Promise<{
+        origin: string;
+        zoom: number | null;
+        autoplay: string | null;
+        popups: string | null;
+        content_blockers: number | null;
+        updated_at: string;
+      } | null>,
+    /** Merge-patch settings for an origin; null values revert to the default. */
+    set: (origin: string, patch: {
+      zoom?: number | null;
+      autoplay?: string | null;
+      popups?: string | null;
+      contentBlockers?: boolean | null;
+    }) => ipcRenderer.invoke('site-settings:set', origin, patch) as Promise<boolean>,
+  },
+
   // ── Named sessions (save / restore sets of tabs) ─────────────────────────
   sessions: {
     /** List saved named sessions (id, name, tabCount, updated_at). */

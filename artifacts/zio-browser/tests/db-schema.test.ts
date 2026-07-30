@@ -8,7 +8,7 @@ import { SCHEMA_VERSION, CREATE_TABLES_SQL, MIGRATION_SQL } from '../src/shared/
 
 describe('db-schema: sayzio_links cache', () => {
   it('schema version is current', () => {
-    expect(SCHEMA_VERSION).toBe(9);
+    expect(SCHEMA_VERSION).toBe(10);
   });
 
   it('fresh installs create the sayzio_links table', () => {
@@ -18,6 +18,22 @@ describe('db-schema: sayzio_links cache', () => {
   it('existing installs migrate to add the sayzio_links table', () => {
     expect(MIGRATION_SQL[7]).toBeDefined();
     expect(MIGRATION_SQL[7]).toContain('CREATE TABLE IF NOT EXISTS sayzio_links');
+  });
+
+  it('fresh installs create the site_settings table', () => {
+    expect(CREATE_TABLES_SQL).toContain('CREATE TABLE IF NOT EXISTS site_settings');
+  });
+
+  it('existing installs migrate to add the site_settings table', () => {
+    expect(MIGRATION_SQL[10]).toBeDefined();
+    expect(MIGRATION_SQL[10]).toContain('CREATE TABLE IF NOT EXISTS site_settings');
+  });
+
+  it('site_settings holds the per-site popover fields', () => {
+    for (const col of ['zoom', 'autoplay', 'popups', 'content_blockers']) {
+      expect(CREATE_TABLES_SQL).toContain(col);
+      expect(MIGRATION_SQL[10]).toContain(col);
+    }
   });
 
   it('every version up to SCHEMA_VERSION beyond 1 has a migration or is a no-op gap', () => {

@@ -9,6 +9,7 @@
  * Permissions covered: camera, microphone, notifications, geolocation, midi,
  * pointerLock, fullscreen, openExternal, clipboard-read, clipboard-sanitized-write.
  */
+import { desktopCapturer } from 'electron';
 import type { Session, BrowserWindow, WebContents } from 'electron';
 import { getSitePermission, setSitePermission } from './db';
 
@@ -26,6 +27,7 @@ const GATED_PERMISSIONS = new Set([
   'camera', 'microphone', 'notifications', 'geolocation',
   'midi', 'midiSysex', 'pointerLock', 'fullscreen',
   'clipboard-read', 'clipboard-sanitized-write', 'media',
+  'display-capture',
 ]);
 
 /** Permissions that are safe to auto-allow without a prompt. */
@@ -123,6 +125,25 @@ export function setupPermissionHandlers(
       permission: perm,
       requestingUrl: (details as { requestingUrl?: string }).requestingUrl ?? origin,
     });
+  });
+
+  // ── Screen sharing (getDisplayMedia) ────────────────────────────────────────
+  // Electron requires an explicit display-media handler; without one every
+  // getDisplayMedia call fails. Honor the stored per-site 'display-capture'
+  // decision: allow → share the primary screen; anything else → deny (the
+  // permission request handler above still drives the ask/remember prompt).
+  sess.setDisplayMediaRequestHandler((request, callback) => {
+    const origin = (() => {
+      try { return new URL(request.securityOrigin ?? '').origin; } catch { return 'unknown'; }
+    })();
+    if (getSitePermission(origin, 'display-capture') !== 'allow') {
+      callback({});
+      return;
+    }
+    desktopCapturer.getSources({ types: ['screen'] }).then(sources => {
+      if (sources.length > 0) callback({ video: sources[0] });
+      else callback({});
+    }).catch(() => callback({}));
   });
 }
 

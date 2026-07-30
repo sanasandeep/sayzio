@@ -178,6 +178,16 @@ export class TabManager {
   private resolveSpellcheckEnabled?: () => boolean;
   /** Returns the target language code for "Translate this page" (e.g. 'en'). */
   private resolveTranslateLang?: () => string;
+  /**
+   * Returns the stored per-site settings for a URL's origin (zoom factor,
+   * auto-play policy, pop-up policy) or null when none are stored. Never
+   * consulted for private windows.
+   */
+  private resolveSiteSettings?: (url: string) => { zoom: number | null; autoplay: string | null; popups: string | null } | null;
+  /** Persist a user-driven zoom change for the site owning `url`. */
+  private onZoomPersist?: (url: string, factor: number) => void;
+  /** A pop-up was blocked by the per-site pop-up policy ('block-notify'). */
+  private onPopupBlocked?: (pageUrl: string, popupUrl: string) => void;
 
   constructor(win: BrowserWindow, options: TabManagerOptions = {}) {
     this.win = win;
@@ -205,6 +215,9 @@ export class TabManager {
     resolveZioPanelReserve?: () => number;
     resolveSpellcheckEnabled?: () => boolean;
     resolveTranslateLang?: () => string;
+    resolveSiteSettings?: (url: string) => { zoom: number | null; autoplay: string | null; popups: string | null } | null;
+    onZoomPersist?: (url: string, factor: number) => void;
+    onPopupBlocked?: (pageUrl: string, popupUrl: string) => void;
   }): void {
     this.onTabStateChange = cbs.onTabStateChange;
     this.onTabCreated = cbs.onTabCreated;
@@ -225,6 +238,61 @@ export class TabManager {
     this.resolveZioPanelReserve = cbs.resolveZioPanelReserve;
     this.resolveSpellcheckEnabled = cbs.resolveSpellcheckEnabled;
     this.resolveTranslateLang = cbs.resolveTranslateLang;
+    this.resolveSiteSettings = cbs.resolveSiteSettings;
+    this.onZoomPersist = cbs.onZoomPersist;
+    this.onPopupBlocked = cbs.onPopupBlocked;
+  }
+
+  /** Stored per-site settings for a URL, or null (always null in private windows). */
+  private siteSettingsFor(url: string): { zoom: number | null; autoplay: string | null; popups: string | null } | null {
+    if (this.isPrivate || !url) return null;
+    try {
+      return this.resolveSiteSettings?.(url) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Enforce the stored auto-play policy on a page by pausing media the policy
+   * disallows. 'never' pauses everything; 'stop-with-sound' pauses only media
+   * that is playing audibly.
+   */
+  private enforceAutoplayPolicy(wc: Electron.WebContents): void {
+    if (!isAlive(wc)) return;
+    const policy = this.siteSettingsFor(wc.getURL())?.autoplay ?? 'allow';
+    if (policy !== 'never' && policy !== 'stop-with-sound') return;
+    const js = policy === 'never'
+      ? `(() => { document.querySelectorAll('video,audio').forEach(m => { try { m.autoplay = false; m.removeAttribute('autoplay'); if (!m.paused) m.pause(); } catch (e) {} }); })();`
+      : `(() => { document.querySelectorAll('video,audio').forEach(m => { try { if (!m.paused && !m.muted && m.volume > 0) m.pause(); } catch (e) {} }); })();`;
+    wc.executeJavaScript(js, true).catch(() => { });
+  }
+
+  /**
+   * Re-apply stored per-site settings (zoom + auto-play) to every open tab on
+   * the given origin. Called after the user edits settings in the popover so
+   * changes take effect immediately.
+   */
+  applySiteSettingsToOrigin(origin: string): void {
+    if (this.isPrivate) return;
+    for (const [tabId, tab] of this.tabs) {
+      const wc = tab.view.webContents;
+      if (!isAlive(wc)) continue;
+      let tabOrigin: string;
+      try {
+        tabOrigin = new URL(wc.getURL()).origin;
+      } catch {
+        continue;
+      }
+      if (tabOrigin !== origin) continue;
+      const s = this.siteSettingsFor(wc.getURL());
+      const zoom = s?.zoom ?? 1.0;
+      try {
+        wc.setZoomFactor(Math.max(0.25, Math.min(5.0, zoom)));
+        this.onTabStateChange?.(tabId, { zoomFactor: wc.getZoomFactor() });
+      } catch { }
+      this.enforceAutoplayPolicy(wc);
+    }
   }
 
   setSearchEngine(engine: SearchEngineConfig): void {
@@ -331,6 +399,26 @@ export class TabManager {
         wc.setAudioMuted(true);
         this.onTabStateChange?.(id, { isMuted: true });
       }
+      // Re-apply the stored per-site zoom for this origin (normal windows only).
+      const storedZoom = this.siteSettingsFor(navUrl)?.zoom;
+      if (isAlive(wc)) {
+        const target = storedZoom && storedZoom > 0 ? storedZoom : 1.0;
+        if (Math.abs(wc.getZoomFactor() - target) > 0.001) {
+          try {
+            wc.setZoomFactor(Math.max(0.25, Math.min(5.0, target)));
+            this.onTabStateChange?.(id, { zoomFactor: wc.getZoomFactor() });
+          } catch { }
+        }
+      }
+    });
+
+    // Enforce the per-site auto-play policy once the page is ready and again
+    // whenever media actually starts playing (covers late-started players).
+    wc.on('did-finish-load', () => {
+      this.enforceAutoplayPolicy(wc);
+    });
+    wc.on('media-started-playing', () => {
+      this.enforceAutoplayPolicy(wc);
     });
 
     wc.on('did-navigate-in-page', (_, navUrl) => {
@@ -367,6 +455,9 @@ export class TabManager {
       const zf = wc.getZoomFactor() + (direction === 'in' ? 0.1 : -0.1);
       wc.setZoomFactor(Math.max(0.25, Math.min(5.0, zf)));
       this.onTabStateChange?.(id, { zoomFactor: wc.getZoomFactor() });
+      if (!this.isPrivate && isAlive(wc)) {
+        this.onZoomPersist?.(wc.getURL(), wc.getZoomFactor());
+      }
     });
 
     wc.on('audio-state-changed', ({ audible }) => {
@@ -543,6 +634,13 @@ export class TabManager {
     });
 
     wc.setWindowOpenHandler(({ url: openUrl }) => {
+      const pageUrl = isAlive(wc) ? wc.getURL() : '';
+      const policy = this.siteSettingsFor(pageUrl)?.popups ?? 'allow';
+      if (policy === 'block') return { action: 'deny' };
+      if (policy === 'block-notify') {
+        this.onPopupBlocked?.(pageUrl, openUrl);
+        return { action: 'deny' };
+      }
       this.createTab(openUrl);
       return { action: 'deny' };
     });
@@ -1046,6 +1144,13 @@ export class TabManager {
       }
     });
     wc.setWindowOpenHandler(({ url: openUrl }) => {
+      const pageUrl = isAlive(wc) ? wc.getURL() : '';
+      const policy = this.siteSettingsFor(pageUrl)?.popups ?? 'allow';
+      if (policy === 'block') return { action: 'deny' };
+      if (policy === 'block-notify') {
+        this.onPopupBlocked?.(pageUrl, openUrl);
+        return { action: 'deny' };
+      }
       this.createTab(openUrl);
       return { action: 'deny' };
     });
@@ -1322,6 +1427,9 @@ export class TabManager {
     const wc = this.tabs.get(id)?.view.webContents;
     if (wc) {
       wc.setZoomFactor(Math.max(0.25, Math.min(5.0, factor)));
+      if (!this.isPrivate && isAlive(wc)) {
+        this.onZoomPersist?.(wc.getURL(), wc.getZoomFactor());
+      }
     }
   }
 

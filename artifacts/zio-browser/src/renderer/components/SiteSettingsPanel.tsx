@@ -30,6 +30,7 @@ const PERMISSION_ICONS: Record<string, string> = {
   pointerLock: '🖱️',
   'clipboard-read': '📋',
   'clipboard-sanitized-write': '📋',
+  'display-capture': '🖥️',
 };
 
 function permLabel(p: string) {
@@ -37,6 +38,7 @@ function permLabel(p: string) {
     camera: 'Camera', microphone: 'Microphone', notifications: 'Notifications',
     geolocation: 'Location', midi: 'MIDI', pointerLock: 'Pointer Lock',
     'clipboard-read': 'Clipboard Read', 'clipboard-sanitized-write': 'Clipboard Write',
+    'display-capture': 'Screen Sharing',
   };
   return map[p] ?? p;
 }
