@@ -1241,7 +1241,11 @@ if (typeof window.resetPollVotes !== 'function') {
 </div>
 
 @elseif($block->type === 'form')
-@php $userForms = auth()->user()->forms()->orderBy('title')->get(['id','title','is_active']); @endphp
+@php
+    // Cached per-owner list shared with the editor page (see
+    // EditorPaletteLists) — at most one query per request, never per block.
+    $userForms = collect($userForms ?? \App\Modules\User\Support\EditorPaletteLists::forms())->sortBy('title')->values();
+@endphp
 <div class="space-y-3">
     <div>
         <label class="{{ $labelClass }}">Form</label>
@@ -1253,7 +1257,7 @@ if (typeof window.resetPollVotes !== 'function') {
             <select name="settings[form_id]" class="{{ $inputClass }}">
                 <option value="">Choose a form</option>
                 @foreach($userForms as $f)
-                    <option value="{{ $f->id }}" @selected(($s['form_id'] ?? null) == $f->id)>{{ $f->title }} {{ $f->is_active ? '' : '(disabled)' }}</option>
+                    <option value="{{ $f['id'] }}" @selected(($s['form_id'] ?? null) == $f['id'])>{{ $f['title'] }} {{ $f['is_active'] ? '' : '(disabled)' }}</option>
                 @endforeach
             </select>
             <p class="text-[10px] mt-1" style="color: var(--text-faint);">The form auto-resizes, height below is the initial frame height.</p>
@@ -1577,10 +1581,9 @@ if (typeof window.resetPollVotes !== 'function') {
 
 @elseif($block->type === 'ai_companion')
     @php
-        $userCmps = \App\Modules\User\Models\AiCompanion::where('user_id', auth()->id())
-            ->where('placement', 'biolink')
-            ->orderByDesc('id')
-            ->get(['id', 'name', 'is_disabled']);
+        // Cached per-owner list shared with the editor page (see
+        // EditorPaletteLists) — at most one query per request, never per block.
+        $userCmps = collect($userCompanions ?? \App\Modules\User\Support\EditorPaletteLists::companions());
     @endphp
     <label class="{{ $labelClass }}">Pick an AI Companion</label>
     @if($userCmps->isEmpty())
@@ -1590,8 +1593,8 @@ if (typeof window.resetPollVotes !== 'function') {
         <select name="settings[companion_id]" class="{{ $inputClass }}">
             <option value="">Choose a Companion</option>
             @foreach($userCmps as $c)
-                <option value="{{ $c->id }}" {{ (string)($s['companion_id'] ?? '') === (string)$c->id ? 'selected' : '' }}>
-                    {{ $c->name }}{{ $c->is_disabled ? ', disabled' : '' }}
+                <option value="{{ $c['id'] }}" {{ (string)($s['companion_id'] ?? '') === (string)$c['id'] ? 'selected' : '' }}>
+                    {{ $c['name'] }}{{ $c['is_disabled'] ? ', disabled' : '' }}
                 </option>
             @endforeach
         </select>
@@ -1599,7 +1602,11 @@ if (typeof window.resetPollVotes !== 'function') {
     @endif
 
 @elseif($block->type === 'social_proof')
-    @php $userSps = \App\Modules\User\Models\SocialProof::where('user_id', auth()->id())->orderByDesc('id')->get(); @endphp
+    @php
+        // Cached per-owner list shared with the editor page (see
+        // EditorPaletteLists) — at most one query per request, never per block.
+        $userSps = collect($userBuzz ?? \App\Modules\User\Support\EditorPaletteLists::buzz());
+    @endphp
     <label class="{{ $labelClass }}">Pick a Buzz campaign</label>
     @if($userSps->isEmpty())
         <p class="text-xs text-white/40 mb-2">You haven't created any campaigns yet.</p>
@@ -1608,8 +1615,8 @@ if (typeof window.resetPollVotes !== 'function') {
         <select name="settings[social_proof_id]" class="{{ $inputClass }}">
             <option value="">Choose a campaign</option>
             @foreach($userSps as $sp)
-                <option value="{{ $sp->id }}" {{ (string)($s['social_proof_id'] ?? '') === (string)$sp->id ? 'selected' : '' }}>
-                    {{ $sp->name }} ({{ $sp->typeLabel() }}){{ $sp->is_active ? '' : ', paused' }}
+                <option value="{{ $sp['id'] }}" {{ (string)($s['social_proof_id'] ?? '') === (string)$sp['id'] ? 'selected' : '' }}>
+                    {{ $sp['name'] }} ({{ $sp['type_label'] ?? ucwords(str_replace('_', ' ', $sp['type'] ?? '')) }}){{ $sp['is_active'] ? '' : ', paused' }}
                 </option>
             @endforeach
         </select>

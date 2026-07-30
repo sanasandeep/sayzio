@@ -2959,6 +2959,13 @@
         // block-store AJAX needs, flaking the editor drag-and-drop suite. No
         // effect in production, where __E2E__ is never set.
         if (window.__E2E__) return;
+        // Editor device-preview iframes load with ?_preview=1 (signed owner
+        // preview). Those are the owner looking at their own draft — skip
+        // session/heartbeat/dwell beacons entirely so previews stay light
+        // and never pollute engagement analytics.
+        try {
+            if (new URLSearchParams(location.search).get('_preview')) return;
+        } catch (e) {}
         var CONSENT_REQUIRED = {!! !empty(($link->settings['biolink']['privacy']['consent_banner_enabled'] ?? false)) ? 'true' : 'false' !!};
         var CONSENT_COOKIE   = @json('1inme_link_consent_' . (int) $link->id);
         function readCookie(name){

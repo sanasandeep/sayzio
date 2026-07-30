@@ -280,8 +280,13 @@ class RedirectController extends Controller
         // Track once per visitor click. The app-opener interstitial sends
         // users back here with `?_web=1` for the in-browser fallback — we
         // must NOT re-track that bounce or it inflates click counts.
+        // Signed owner previews (the editor's device-preview iframe) are
+        // also skipped: they are not real visits, would pollute analytics,
+        // and the tracking insert/geo work slows the preview's first paint.
+        $isOwnerPreview = $request->boolean('_preview')
+            && $request->hasValidSignatureWhileIgnoring(['_draft', '_t', '_sim_country', '_sim_device'], false);
         $trackedClick = null;
-        if (!$previewEnabled && !$request->boolean('_web')) {
+        if (!$previewEnabled && !$request->boolean('_web') && !$isOwnerPreview) {
             $trackedClick = $this->trackingService->track($link, $request, $alias, 'web');
         }
 

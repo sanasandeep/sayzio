@@ -1066,38 +1066,13 @@ $catColors = [
     <div class="reorder-toast" id="reorderToast"><i class="fas fa-check-circle mr-2"></i>Order saved</div>
 </div>
 
-{{-- Hidden edit forms for each block (including children) --}}
-@php
-    $allEditBlocks = collect();
-    foreach($blocks as $block) {
-        $allEditBlocks->push($block);
-        if ($block->isContainer() && $block->children) {
-            foreach($block->children as $child) {
-                $allEditBlocks->push($child);
-            }
-        }
-    }
-@endphp
-@foreach($allEditBlocks as $block)
-<template id="editForm_{{ $block->id }}">
-    <form method="POST" action="{{ route('user.links.blocks.update', [$link, $block]) }}" onsubmit="return ajaxSaveBlock(event, this)">
-        @csrf @method('PUT')
-        <div class="mb-4">
-            <div class="flex items-center gap-2 mb-4">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
-                    <i class="fas {{ $blockTypes[$block->type]['icon'] ?? 'fa-cube' }} text-blue-400 text-sm"></i>
-                </div>
-                <span class="text-sm font-semibold" style="color: var(--text-primary);">{{ $blockTypes[$block->type]['label'] ?? ucfirst($block->type) }}</span>
-            </div>
-        </div>
-        @include('user.links.partials.block-settings-form', ['block' => $block])
-        <div class="flex items-center gap-2 mt-6 pt-4" style="border-top: 1px solid var(--border-subtle);">
-            <button type="submit" class="btn-primary text-sm py-2.5 px-6 flex-1 justify-center" id="saveBtn_{{ $block->id }}">Save Changes</button>
-            <button type="button" onclick="closeEditDrawerGlobal()" class="btn-ghost text-sm py-2.5 px-4">Cancel</button>
-        </div>
-    </form>
-</template>
-@endforeach
+{{-- Block edit forms are AJAX-loaded on demand (user.links.blocks.editForm)
+     when the creator opens a block's inline editor. We intentionally do NOT
+     server-render a hidden settings form per block here: with many blocks
+     that meant dozens of extra DB round-trips and a huge HTML payload for
+     markup that was thrown away the moment the drawer fetched a fresh form.
+     openEditDrawer() shows a loading skeleton while fetching and offers a
+     Retry action if the request fails. --}}
 
 <script>
 function biolinkEditor() {
@@ -1386,16 +1361,23 @@ function openEditDrawer(blockId) {
     fetch(editFormUrl, {
         headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': _csrfToken() }
     }).then(function(r) { return r.json(); }).then(function(data) {
-        if (!data.html) { container.innerHTML = '<p class="text-center py-8" style="color:var(--text-muted);">Failed to load</p>'; return; }
+        if (!data.html) { _showEditFormError(container, blockId); return; }
         _injectEditFormHtml(container, data.html, blockId);
     }).catch(function() {
-        var tmpl = document.getElementById('editForm_' + blockId);
-        if (tmpl) {
-            _injectEditFormHtml(container, tmpl.innerHTML, blockId);
-        } else {
-            container.innerHTML = '<p class="text-center py-8" style="color:var(--text-muted);">Failed to load</p>';
-        }
+        _showEditFormError(container, blockId);
     });
+}
+
+// Graceful fallback when the AJAX edit-form fetch fails (network blip,
+// expired session, server hiccup): show a message with a Retry action
+// instead of a dead loading spinner.
+function _showEditFormError(container, blockId) {
+    container.innerHTML =
+        '<div class="text-center py-8">' +
+        '<p class="text-sm mb-3" style="color:var(--text-muted);">Couldn\'t load the block editor.</p>' +
+        '<button type="button" class="btn-ghost text-xs py-2 px-4" onclick="openEditDrawer(' + Number(blockId) + ')">' +
+        '<i class="fas fa-rotate-right mr-1"></i>Retry</button>' +
+        '</div>';
 }
 
 function _injectEditFormHtml(container, html, blockId) {
@@ -1816,8 +1798,6 @@ function ajaxDeleteBlock(btn, url, blockId) {
                     var card = document.querySelector('.block-card[data-block-id="' + blockId + '"]');
                     var wrapper = card ? (card.closest('.block-card-wrapper') || card) : null;
                     if (wrapper) { wrapper.style.transition = 'all 0.3s'; wrapper.style.opacity = '0'; wrapper.style.transform = 'translateX(-20px)'; setTimeout(function() { wrapper.remove(); }, 300); }
-                    var tmpl = document.getElementById('editForm_' + blockId);
-                    if (tmpl) tmpl.remove();
                     showToast('Block deleted', 'success');
                     refreshPreview();
                 } else {

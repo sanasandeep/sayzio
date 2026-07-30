@@ -28,6 +28,10 @@ args = "e2e-social-proof-editor"
 task = "workflow.run"
 args = "blade-inline-js"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-biolink-editor-inline-edit"
+
 [[workflows.workflow]]
 name = "e2e-block-defaults"
 author = "agent"
@@ -57,6 +61,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && node scripts/check-blade-inline-scripts.mjs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-biolink-editor-inline-edit"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-editor-inline-edit.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
