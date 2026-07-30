@@ -586,10 +586,21 @@ export function ChromeBar({
     setSuggestions([]);
     setSuggestionIndex(-1);
     setOmniboxEdited(false);
+    discardedTypedTextRef.current = null;
     omniboxRef.current?.blur();
   }, [activeTabId, navigate]);
 
   const handleOmniboxKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Ctrl/Cmd+Z restores typed text that an automatic navigation discarded,
+    // but only when there are no fresh uncommitted edits (native undo applies then).
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'z'
+        && !omniboxEdited && discardedTypedTextRef.current !== null) {
+      e.preventDefault();
+      setOmniboxValue(discardedTypedTextRef.current);
+      setOmniboxEdited(true);
+      discardedTypedTextRef.current = null;
+      return;
+    }
     if (!suggestionsOpen) {
       if (e.key === 'Escape') {
         setOmniboxEdited(false);
@@ -614,7 +625,7 @@ export function ChromeBar({
       setSuggestions([]);
       setSuggestionIndex(-1);
     }
-  }, [suggestionsOpen, suggestions, suggestionIndex, acceptSuggestion, activeTab?.url]);
+  }, [suggestionsOpen, suggestions, suggestionIndex, acceptSuggestion, activeTab?.url, omniboxEdited]);
 
   // Track reading list state for the active page
   useEffect(() => {
@@ -727,12 +738,16 @@ export function ChromeBar({
 
   // Sync omnibox with active tab URL (unless the user has uncommitted edits);
   // discard-on-navigation + tab-switch reset live in the shared hook so the
-  // behavior is unit-testable (tests/omnibox-url-sync.test.tsx).
-  useOmniboxUrlSync({
+  // behavior is unit-testable (tests/omnibox-url-sync.test.tsx). The hook also
+  // stashes text discarded by an automatic navigation so the user can recover
+  // it with Ctrl/Cmd+Z in the omnibox (like Chrome); the buffer clears on tab
+  // switch and whenever the user commits a navigation themselves.
+  const { discardedTypedTextRef } = useOmniboxUrlSync({
     activeTabId,
     activeTabUrl: activeTab?.url ?? '',
     omniboxFocused,
     omniboxEdited,
+    omniboxValue,
     setOmniboxValue,
     setOmniboxEdited,
   });
@@ -811,6 +826,7 @@ export function ChromeBar({
     if (!activeTabId || !omniboxValue.trim()) return;
     void navigate(activeTabId, omniboxValue.trim());
     setOmniboxEdited(false);
+    discardedTypedTextRef.current = null;
     omniboxRef.current?.blur();
   }, [activeTabId, navigate, omniboxValue]);
 
