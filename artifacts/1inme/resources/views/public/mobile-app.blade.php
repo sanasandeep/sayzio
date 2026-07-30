@@ -44,6 +44,9 @@
     }
     .map-faq-card { background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09); }
     html.light-mode .map-faq-card { background:#ffffff; border-color: rgba(15,23,42,.1); }
+    /* Real-photo treatment (light-mode paired) */
+    .map-photo { width:100%; height:auto; border-radius:20px; border:1px solid rgba(255,255,255,.1); box-shadow: 0 30px 70px -30px rgba(61,107,255,.4); }
+    html.light-mode .map-photo { border-color: rgba(15,23,42,.12); box-shadow: 0 30px 70px -30px rgba(61,107,255,.28); }
 </style>
 
 {{-- ============ Hero ============ --}}
@@ -115,6 +118,42 @@
     </div>
 </section>
 
+{{-- ============ In real life (photo band) ============ --}}
+<section class="py-16 sm:py-20 relative">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+        <div data-anim="fade-right">
+            <img src="{{ asset('images/marketing/app/hero-creator.webp') }}"
+                 alt="A creator in a cafe checking her Sayzio analytics on her phone"
+                 loading="lazy" decoding="async" class="map-photo">
+        </div>
+        <div data-anim="fade-left">
+            <span class="text-xs font-bold uppercase tracking-wider text-blue-300">Your links, off the laptop</span>
+            <h2 class="mt-3 text-3xl sm:text-4xl font-bold text-white">Run your whole page from a coffee break</h2>
+            <p class="mt-4 text-gray-400 leading-relaxed">
+                Your audience doesn't wait for you to get back to a desk — and with the Sayzio app you
+                don't have to. Edit any block on your biolink, swap a headline, publish a new link or
+                pause an old one, and watch the change go live before your coffee cools.
+            </p>
+            <p class="mt-4 text-gray-400 leading-relaxed">
+                The same account, the same pages, the same analytics as the web dashboard — the app talks
+                to your account through the Sayzio API, so everything you do on your phone is instantly
+                reflected everywhere else.
+            </p>
+            <ul class="mt-6 space-y-3">
+                @foreach([
+                    'Full biolink editor with drag-to-reorder blocks and inline editing',
+                    'Live click, scan and visitor analytics the moment they happen',
+                    'Push notifications for new followers, orders, form entries and reviews',
+                ] as $point)
+                    <li class="flex items-start gap-3 text-sm text-gray-300">
+                        <i class="fas fa-circle-check text-blue-400 mt-0.5"></i> {{ $point }}
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+</section>
+
 {{-- ============ Feature grid ============ --}}
 <section class="py-16 sm:py-20 relative">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -137,6 +176,34 @@
                     </span>
                     <h3 class="mt-4 text-base font-bold text-white">{{ $title }}</h3>
                     <p class="mt-1.5 text-sm text-gray-400 leading-relaxed">{{ $desc }}</p>
+                </div>
+            @endforeach
+        </div>
+    </div>
+</section>
+
+{{-- ============ Photo gallery: a day with the app ============ --}}
+<section class="py-16 sm:py-20 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center max-w-2xl mx-auto" data-anim="fade-up">
+            <h2 class="text-3xl sm:text-4xl font-bold text-white">A day with Sayzio in your pocket</h2>
+            <p class="mt-3 text-gray-400">Wherever the day takes you, your links, pages and people come along.</p>
+        </div>
+        <div class="mt-12 grid md:grid-cols-3 gap-6">
+            @foreach([
+                ['images/marketing/app/analytics-hand.webp', 'A hand holding a phone showing live click and scan analytics',
+                 'Morning: check the numbers', 'Open the app to live clicks, QR scans and visitor trends from the last 24 hours — the same analytics engine as the web dashboard, down to referrers and locations.'],
+                ['images/marketing/app/restaurant.webp', 'A cafe owner at the counter with a QR table tent and the Sayzio app',
+                 'Midday: run the business', 'Restaurant and store owners watch orders arrive in real time, move them through preparing and served, and pause ordering with one tap when the rush hits.'],
+                ['images/marketing/app/inbox-couch.webp', 'A man on a couch in the evening replying to his audience from his phone',
+                 'Evening: answer your people', 'New followers, messages, form entries and reviews land in the app with push notifications — reply from the couch instead of catching up at midnight.'],
+            ] as [$img, $alt, $title, $desc])
+                <div class="glass rounded-2xl overflow-hidden" data-anim="fade-up">
+                    <img src="{{ asset($img) }}" alt="{{ $alt }}" loading="lazy" decoding="async" class="w-full aspect-[4/3] object-cover">
+                    <div class="p-6">
+                        <h3 class="text-base font-bold text-white">{{ $title }}</h3>
+                        <p class="mt-1.5 text-sm text-gray-400 leading-relaxed">{{ $desc }}</p>
+                    </div>
                 </div>
             @endforeach
         </div>

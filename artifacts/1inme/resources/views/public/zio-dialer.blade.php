@@ -71,6 +71,9 @@
        the few explicit surfaces on this page. */
     .zdp-faq-card { background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09); }
     html.light-mode .zdp-faq-card { background:#ffffff; border-color: rgba(15,23,42,.1); }
+    /* Real-photo treatment (light-mode paired) */
+    .zdp-photo { width:100%; height:auto; border-radius:20px; border:1px solid rgba(255,255,255,.1); box-shadow: 0 30px 70px -30px rgba(61,107,255,.4); }
+    html.light-mode .zdp-photo { border-color: rgba(15,23,42,.12); box-shadow: 0 30px 70px -30px rgba(61,107,255,.28); }
 </style>
 
 {{-- ============ Hero ============ --}}
@@ -151,6 +154,43 @@
     </div>
 </section>
 
+{{-- ============ In real life (photo band) ============ --}}
+<section class="py-16 sm:py-20 relative">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+        <div data-anim="fade-right">
+            <img src="{{ asset('images/marketing/dialer/hero-call.webp') }}"
+                 alt="A small-business owner taking a call in her shop with Zio Dialer"
+                 loading="lazy" decoding="async" class="zdp-photo">
+        </div>
+        <div data-anim="fade-left">
+            <span class="text-xs font-bold uppercase tracking-wider text-blue-300">Every call, in context</span>
+            <h2 class="mt-3 text-3xl sm:text-4xl font-bold text-white">Know who's calling before you say hello</h2>
+            <p class="mt-4 text-gray-400 leading-relaxed">
+                When a customer calls, the difference between "Hello?" and "Hi Priya, how did the order
+                work out?" is everything. Zio Dialer looks up the number against your Sayzio contacts and
+                the wider Sayzio network the moment your phone rings, so the name, photo and context are
+                on screen before you pick up.
+            </p>
+            <p class="mt-4 text-gray-400 leading-relaxed">
+                It's a real replacement for your Android phone app — dial pad, call log, favourites — with
+                your Sayzio address book behind it. Numbers that belong to Sayzio members resolve to their
+                biolink automatically, so a phone number becomes a whole profile.
+            </p>
+            <ul class="mt-6 space-y-3">
+                @foreach([
+                    'Caller ID overlay works natively at ring time, even before the app opens',
+                    'T9 smart dialing searches names, businesses and handles as you type digits',
+                    'Calls stay on your carrier — Sayzio never routes or records your calls',
+                ] as $point)
+                    <li class="flex items-start gap-3 text-sm text-gray-300">
+                        <i class="fas fa-circle-check text-blue-400 mt-0.5"></i> {{ $point }}
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+</section>
+
 {{-- ============ Feature grid ============ --}}
 <section class="py-16 sm:py-20 relative">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -198,6 +238,38 @@
                 </div>
             @endforeach
         </div>
+    </div>
+</section>
+
+{{-- ============ Photo gallery: a dialer that works like you do ============ --}}
+<section class="py-16 sm:py-20 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center max-w-2xl mx-auto" data-anim="fade-up">
+            <h2 class="text-3xl sm:text-4xl font-bold text-white">A phone app that works like you do</h2>
+            <p class="mt-3 text-gray-400">From the first digit to the follow-up message, everything stays connected to your Sayzio account.</p>
+        </div>
+        <div class="mt-12 grid md:grid-cols-3 gap-6">
+            @foreach([
+                ['images/marketing/dialer/keypad-hand.webp', 'A thumb dialing on the Zio Dialer keypad',
+                 'Find anyone with a few taps', 'The universal finder searches your contacts, followed creators, your own links and Sayzio profiles at once — grouped results, T9 digits or full keyboard, your choice.'],
+                ['images/marketing/dialer/caller-id.webp', 'A shop owner answering a call with a rich caller card on screen',
+                 'Rich caller cards at ring time', 'Incoming numbers resolve against your address book and the Sayzio network, so a bare number turns into a name, a photo and a biolink you can open right after the call.'],
+                ['images/marketing/dialer/sync-desk.webp', 'A phone and laptop side by side with matching synced contact lists',
+                 'Two-way Google Contacts sync', 'Link Google Contacts once and Zio Dialer keeps both address books in step automatically — edits on either side flow across in the background, roughly every half hour.'],
+            ] as [$img, $alt, $title, $desc])
+                <div class="glass rounded-2xl overflow-hidden" data-anim="fade-up">
+                    <img src="{{ asset($img) }}" alt="{{ $alt }}" loading="lazy" decoding="async" class="w-full aspect-[4/3] object-cover">
+                    <div class="p-6">
+                        <h3 class="text-base font-bold text-white">{{ $title }}</h3>
+                        <p class="mt-1.5 text-sm text-gray-400 leading-relaxed">{{ $desc }}</p>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+        <p class="mt-8 text-center text-sm text-gray-400 max-w-2xl mx-auto" data-anim="fade-up">
+            Privacy first: Zio Dialer only ever launches standard <span class="text-gray-300 font-semibold">tel:</span> and
+            <span class="text-gray-300 font-semibold">mailto:</span> actions — your call log and messages never leave your device.
+        </p>
     </div>
 </section>
 

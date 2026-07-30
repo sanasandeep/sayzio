@@ -71,6 +71,10 @@
     html.light-mode .zxp-store { background:#111827; border-color: rgba(17,24,39,.9); }
     .zxp-faq-card { background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09); }
     html.light-mode .zxp-faq-card { background:#ffffff; border-color: rgba(15,23,42,.1); }
+    /* Real-photo treatment (light-mode paired) */
+    .zxp-photo { width:100%; height:auto; border-radius:20px; border:1px solid rgba(255,255,255,.1); box-shadow: 0 30px 70px -30px rgba(61,107,255,.4); }
+    html.light-mode .zxp-photo { border-color: rgba(15,23,42,.12); box-shadow: 0 30px 70px -30px rgba(61,107,255,.28); }
+    .zxp-step-num { display:inline-flex; height:40px; width:40px; align-items:center; justify-content:center; border-radius:999px; font-size:14px; font-weight:800; color:#fff; background: linear-gradient(135deg, #3d6bff, #1bd4d9); }
 </style>
 
 @php
@@ -152,6 +156,43 @@
     </div>
 </section>
 
+{{-- ============ In real life (photo band) ============ --}}
+<section class="py-16 sm:py-20 relative">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+        <div data-anim="fade-right">
+            <img src="{{ asset('images/marketing/extension/hero-desk.webp') }}"
+                 alt="A marketer at a desk shortening the page they're reading with the Zio Extension"
+                 loading="lazy" decoding="async" class="zxp-photo">
+        </div>
+        <div data-anim="fade-left">
+            <span class="text-xs font-bold uppercase tracking-wider text-blue-300">Built for the middle of your day</span>
+            <h2 class="mt-3 text-3xl sm:text-4xl font-bold text-white">Share the moment you find it</h2>
+            <p class="mt-4 text-gray-400 leading-relaxed">
+                The best link to share is the page you're already reading — a product you love, an article
+                worth passing on, your own landing page fresh off a deploy. Zio Extension lives in your
+                toolbar so that moment never gets lost to a tab-switch: one click and the page becomes a
+                clean, branded short link with your default domain, already copied to your clipboard.
+            </p>
+            <p class="mt-4 text-gray-400 leading-relaxed">
+                Because every link is created inside your Sayzio account, it arrives with click analytics,
+                smart-routing options and A/B testing already attached — the extension even has a
+                "Shorten as A/B test" mode for trying two destinations from a single short link.
+            </p>
+            <ul class="mt-6 space-y-3">
+                @foreach([
+                    'Links land in your dashboard instantly, tracked from the very first click',
+                    'Works with every verified custom domain on your account',
+                    'Feeds Backlinks Radar, so you can see where your links get re-shared',
+                ] as $point)
+                    <li class="flex items-start gap-3 text-sm text-gray-300">
+                        <i class="fas fa-circle-check text-blue-400 mt-0.5"></i> {{ $point }}
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+</section>
+
 {{-- ============ Feature grid ============ --}}
 <section class="py-16 sm:py-20 relative">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -167,6 +208,60 @@
                 ['fa-tags', 'UTM builder', 'Add campaign, source and medium tags before shortening so your analytics stay clean without spreadsheets.'],
                 ['fa-globe', 'Branded domains', 'Shorten onto any of your verified custom domains, or the shared Sayzio domains — pick per link.'],
                 ['fa-chart-line', 'Stats at a glance', 'See clicks for links you\'ve already made on the site you\'re browsing, straight from the popup.'],
+            ] as [$icon, $title, $desc])
+                <div class="glass rounded-2xl p-6" data-anim="fade-up">
+                    <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-300">
+                        <i class="fas {{ $icon }}"></i>
+                    </span>
+                    <h3 class="mt-4 text-base font-bold text-white">{{ $title }}</h3>
+                    <p class="mt-1.5 text-sm text-gray-400 leading-relaxed">{{ $desc }}</p>
+                </div>
+            @endforeach
+        </div>
+    </div>
+</section>
+
+{{-- ============ How it works (photo steps) ============ --}}
+<section class="py-16 sm:py-20 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center max-w-2xl mx-auto" data-anim="fade-up">
+            <h2 class="text-3xl sm:text-4xl font-bold text-white">From page to campaign in three clicks</h2>
+            <p class="mt-3 text-gray-400">A complete link workflow that never opens a new tab.</p>
+        </div>
+        <div class="mt-12 grid md:grid-cols-3 gap-6">
+            @foreach([
+                ['images/marketing/extension/workflow.webp', 'Hands at a laptop with the extension popup open on the current page',
+                 '1', 'Click the icon', 'Open the popup on any page and it\'s already shortened onto your default domain. Copy it, or keep going for more.'],
+                ['images/marketing/extension/campaign.webp', 'A campaign-planning desk with notes, laptop and phone laid out',
+                 '2', 'Tag the campaign', 'Add UTM source, medium and campaign right in the popup — no spreadsheets, no URL-builder tools, no typos in your analytics.'],
+                ['images/marketing/extension/qr-share.webp', 'Two colleagues sharing a QR code from a laptop screen',
+                 '3', 'Share it anywhere', 'Copy the short link, or generate a scannable QR code on the spot — then open it in QR Studio for full branding when you need print quality.'],
+            ] as [$img, $alt, $step, $title, $desc])
+                <div class="glass rounded-2xl overflow-hidden" data-anim="fade-up">
+                    <img src="{{ asset($img) }}" alt="{{ $alt }}" loading="lazy" decoding="async" class="w-full aspect-[4/3] object-cover">
+                    <div class="p-6">
+                        <span class="zxp-step-num">{{ $step }}</span>
+                        <h3 class="mt-4 text-base font-bold text-white">{{ $title }}</h3>
+                        <p class="mt-1.5 text-sm text-gray-400 leading-relaxed">{{ $desc }}</p>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+</section>
+
+{{-- ============ Use cases ============ --}}
+<section class="py-16 sm:py-20 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center max-w-2xl mx-auto" data-anim="fade-up">
+            <h2 class="text-3xl sm:text-4xl font-bold text-white">Who reaches for it every day</h2>
+        </div>
+        <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            @foreach([
+                ['fa-bullhorn', 'Marketers', 'Tag every share with UTM parameters as you browse, and run quick A/B tests on landing pages without leaving the article you found them in.'],
+                ['fa-pen-nib', 'Creators', 'Turn anything you recommend into a branded link on your own domain, so every share builds your name — and every click shows up in your stats.'],
+                ['fa-briefcase', 'Sales & founders', 'Save prospect pages and case studies to your account as you research, then send trackable links and see exactly when they get opened.'],
+                ['fa-users', 'Teams', 'Everyone shortens onto the same verified company domains, so links stay on-brand no matter who shares them.'],
             ] as [$icon, $title, $desc])
                 <div class="glass rounded-2xl p-6" data-anim="fade-up">
                     <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-300">

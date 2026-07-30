@@ -63,6 +63,9 @@
     }
     .zbp-faq-card { background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09); }
     html.light-mode .zbp-faq-card { background:#ffffff; border-color: rgba(15,23,42,.1); }
+    /* Real-photo treatment (light-mode paired) */
+    .zbp-photo { width:100%; height:auto; border-radius:20px; border:1px solid rgba(255,255,255,.1); box-shadow: 0 30px 70px -30px rgba(61,107,255,.4); }
+    html.light-mode .zbp-photo { border-color: rgba(15,23,42,.12); box-shadow: 0 30px 70px -30px rgba(61,107,255,.28); }
 </style>
 
 {{-- ============ Hero ============ --}}
@@ -152,6 +155,43 @@
     </div>
 </section>
 
+{{-- ============ In real life (photo band) ============ --}}
+<section class="py-16 sm:py-20 relative">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+        <div data-anim="fade-right">
+            <img src="{{ asset('images/marketing/browser/hero-desktop.webp') }}"
+                 alt="A maker working in Zio Browser on a large desktop monitor"
+                 loading="lazy" decoding="async" class="zbp-photo">
+        </div>
+        <div data-anim="fade-left">
+            <span class="text-xs font-bold uppercase tracking-wider text-blue-300">A desktop browser with a job</span>
+            <h2 class="mt-3 text-3xl sm:text-4xl font-bold text-white">Built for the people who build pages</h2>
+            <p class="mt-4 text-gray-400 leading-relaxed">
+                Zio Browser is a full desktop browser — tabs, bookmarks, history, downloads — designed
+                around one workflow: making, checking and sharing your Sayzio pages. Your account rides
+                along, so opening your dashboard, your biolinks or a follower's page never starts with a
+                login screen.
+            </p>
+            <p class="mt-4 text-gray-400 leading-relaxed">
+                Type a handle and it resolves straight to the Sayzio profile. Open the device lab and see
+                the same page as a phone, a tablet and a desktop side by side. When you're done, close the
+                window knowing private sessions left nothing behind.
+            </p>
+            <ul class="mt-6 space-y-3">
+                @foreach([
+                    'Signed-in session bridges to your Sayzio account across windows',
+                    'Per-profile isolation keeps clients, brands and personal browsing apart',
+                    'Private windows carry a hard wall — no history, no leftover storage',
+                ] as $point)
+                    <li class="flex items-start gap-3 text-sm text-gray-300">
+                        <i class="fas fa-circle-check text-blue-400 mt-0.5"></i> {{ $point }}
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+</section>
+
 {{-- ============ Feature grid ============ --}}
 <section class="py-16 sm:py-20 relative">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -174,6 +214,34 @@
                     </span>
                     <h3 class="mt-4 text-base font-bold text-white">{{ $title }}</h3>
                     <p class="mt-1.5 text-sm text-gray-400 leading-relaxed">{{ $desc }}</p>
+                </div>
+            @endforeach
+        </div>
+    </div>
+</section>
+
+{{-- ============ Photo gallery: made for makers ============ --}}
+<section class="py-16 sm:py-20 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center max-w-2xl mx-auto" data-anim="fade-up">
+            <h2 class="text-3xl sm:text-4xl font-bold text-white">Three ways makers use it every day</h2>
+            <p class="mt-3 text-gray-400">The browser earns its place by removing the little frictions between "edit" and "looks right everywhere."</p>
+        </div>
+        <div class="mt-12 grid md:grid-cols-3 gap-6">
+            @foreach([
+                ['images/marketing/browser/device-lab.webp', 'A designer comparing the same page on laptop, tablet and phone',
+                 'Check every screen at once', 'The built-in device lab renders your page at real phone, tablet and desktop sizes side by side — no resizing windows, no guessing how a block wraps on mobile.'],
+                ['images/marketing/browser/profiles.webp', 'A freelancer switching between browser profiles at a cafe table',
+                 'One window per client', 'Profiles keep logins, cookies and history fully separated. Manage a client\'s workspace in one profile and your own brand in another without ever logging out.'],
+                ['images/marketing/browser/focus.webp', 'A minimalist night-time workspace with a single clean page open',
+                 'Stay in the flow', 'A quiet, chrome-light interface and handle-aware address bar keep the path from "idea" to "published page" short — type the handle, see the page, make the change.'],
+            ] as [$img, $alt, $title, $desc])
+                <div class="glass rounded-2xl overflow-hidden" data-anim="fade-up">
+                    <img src="{{ asset($img) }}" alt="{{ $alt }}" loading="lazy" decoding="async" class="w-full aspect-[4/3] object-cover">
+                    <div class="p-6">
+                        <h3 class="text-base font-bold text-white">{{ $title }}</h3>
+                        <p class="mt-1.5 text-sm text-gray-400 leading-relaxed">{{ $desc }}</p>
+                    </div>
                 </div>
             @endforeach
         </div>
