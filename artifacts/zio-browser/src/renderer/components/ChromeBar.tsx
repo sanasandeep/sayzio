@@ -25,6 +25,8 @@ import { profileToAutofillCard } from '../../shared/form-autofill';
 import { MAX_PINNED_TOOLS } from '../../shared/toolbar-pins';
 import type { PinnableTool } from '../../shared/toolbar-pins';
 import { usePinnedTools } from '../hooks/use-pinned-tools';
+import { checkSayzioExists, isSayzioSuggestEligible } from '../../shared/sayzio-suggest';
+import type { SayzioExistsResult } from '../../shared/sayzio-suggest';
 
 interface Props {
   zioPanelOpen: boolean;
@@ -101,35 +103,20 @@ interface OmniSuggestion {
   subtitle?: string;
 }
 
-// Handle-like queries eligible for the Sayzio existence lookups: letters,
-// digits, dash, underscore only (no spaces, no dots — those parse as URLs or
-// multi-word searches). 2–63 chars.
-const SAYZIO_HANDLE_PATTERN = /^[a-z0-9][a-z0-9_-]{1,62}$/i;
-
 // Session cache of Sayzio existence lookups (keyed by lowercased query) so
 // backspacing/retyping the same handle doesn't re-hit the API.
-const sayzioExistsCache = new Map<string, { link: boolean; profile: boolean }>();
+const sayzioExistsCache = new Map<string, SayzioExistsResult>();
 
 /**
  * Live-check Sayzio for an exact link alias and creator handle match.
- * Fails silently (both false) on any network/API error. Requires a signed-in
- * token because the alias check is an authed endpoint (and the privacy gate
- * only allows remote lookups for signed-in users anyway).
+ * Pure logic lives in shared/sayzio-suggest (tested); this wrapper binds the
+ * session cache and a token-authed ApiClient. Requires a signed-in token
+ * because the alias check is an authed endpoint (and the privacy gate only
+ * allows remote lookups for signed-in users anyway).
  */
-async function checkSayzioExists(q: string, token: string): Promise<{ link: boolean; profile: boolean }> {
-  const key = q.toLowerCase();
-  const cached = sayzioExistsCache.get(key);
-  if (cached) return cached;
+function checkSayzioExistsWithToken(q: string, token: string): Promise<SayzioExistsResult> {
   const client = new ApiClient({ baseUrl: BASE_URL, token });
-  const [link, profile] = await Promise.all([
-    // Inverted alias-availability check: status 'taken' means the alias
-    // exists (invalid/reserved/banned do NOT count as existing links).
-    client.checkAlias(q).then(r => r.status === 'taken').catch(() => false),
-    client.creatorProfileMini(q).then(r => !!r.profile_published).catch(() => false),
-  ]);
-  const result = { link, profile };
-  sayzioExistsCache.set(key, result);
-  return result;
+  return checkSayzioExists(q, client, sayzioExistsCache);
 }
 
 interface HistoryRow { url: string; title: string | null }
@@ -555,13 +542,13 @@ export function ChromeBar({
     }
     // Sayzio jump rows: handle-like query only, and mirror the site-resolve
     // privacy gate — never in private windows, only when signed in.
-    const sayzioEligible = !isPrivate && !!token && SAYZIO_HANDLE_PATTERN.test(q);
+    const sayzioEligible = isSayzioSuggestEligible(q, { isPrivate: !!isPrivate, token });
     const timer = setTimeout(() => {
       void Promise.all([
         window.zio.history.search(q).catch(() => []),
         window.zio.bookmarks.search(q).catch(() => []),
         sayzioEligible && token
-          ? checkSayzioExists(q, token).catch(() => ({ link: false, profile: false }))
+          ? checkSayzioExistsWithToken(q, token).catch(() => ({ link: false, profile: false }))
           : Promise.resolve({ link: false, profile: false }),
       ]).then(([hist, bms, sayzio]) => {
         // Ignore stale responses
