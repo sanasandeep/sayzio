@@ -15,6 +15,25 @@
     $homeUrl = url('/');
 @endphp
 
+@push('head')
+<style>
+    /* Light-mode legibility: the page is designed against the dark base, so
+       pair each dark-only color with a light-mode rule (per-element, no
+       blanket overrides). Dark mode is untouched. */
+    html.light-mode .slnf-body { color:#4b5563 !important; }        /* was text-gray-400 */
+    html.light-mode .slnf-chip { background:rgba(17,24,39,.05) !important; border-color:rgba(17,24,39,.12) !important; color:#374151 !important; }
+    html.light-mode .slnf-chip-label { color:#6b7280 !important; }  /* was text-gray-500 */
+    html.light-mode .slnf-chip-alias { color:#111827 !important; }  /* was text-white */
+    /* Doubled class beats the global "[class*=bg-gradient] .text-white stays
+       white" exemption (the card here is a translucent tint, not a saturated
+       fill, so its text must darken in light mode). */
+    html.light-mode .slnf-card-heading.slnf-card-heading { color:#111827 !important; }/* was text-white */
+    html.light-mode .slnf-card-body.slnf-card-body { color:#374151 !important; }      /* was text-gray-300 */
+    html.light-mode .slnf-btn-secondary.slnf-btn-secondary { background:rgba(17,24,39,.06) !important; border-color:rgba(17,24,39,.15) !important; color:#111827 !important; }
+    html.light-mode .slnf-btn-secondary.slnf-btn-secondary:hover { background:rgba(17,24,39,.10) !important; }
+</style>
+@endpush
+
 @section('content')
 <section class="relative pt-16 pb-12 lg:pt-24 lg:pb-16 overflow-hidden">
     <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full"
@@ -29,15 +48,15 @@
 
         <div class="text-xs uppercase tracking-[0.3em] text-blue-400 mb-3">Error 404</div>
         <h1 class="text-4xl sm:text-5xl font-bold tracking-tight">This link doesn't exist</h1>
-        <p class="mt-4 text-lg text-gray-400 max-w-2xl mx-auto">
+        <p class="mt-4 text-lg text-gray-400 slnf-body max-w-2xl mx-auto">
             The short link you followed isn't connected to a 1IN.ME page.
             It may have been removed, mistyped, or never created.
         </p>
 
         @if($attempted !== '')
-            <div class="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-white/[0.04] border border-white/10 rounded-full text-sm text-gray-300">
-                <span class="text-gray-500">You tried:</span>
-                <span class="font-mono text-white">/{{ $attempted }}</span>
+            <div class="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-white/[0.04] border border-white/10 rounded-full text-sm text-gray-300 slnf-chip">
+                <span class="text-gray-500 slnf-chip-label">You tried:</span>
+                <span class="font-mono text-white slnf-chip-alias">/{{ $attempted }}</span>
             </div>
         @endif
     </div>
@@ -46,10 +65,10 @@
 <section class="pb-20">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="bg-gradient-to-br from-blue-500/[0.10] to-blue-500/[0.06] border border-blue-400/20 rounded-2xl p-6 sm:p-10 text-center">
-            <h2 class="text-2xl sm:text-3xl font-bold text-white">
+            <h2 class="text-2xl sm:text-3xl font-bold text-white slnf-card-heading">
                 Want a short link like this, but for you?
             </h2>
-            <p class="mt-3 text-gray-300 max-w-xl mx-auto">
+            <p class="mt-3 text-gray-300 slnf-card-body max-w-xl mx-auto">
                 Build your own 1IN.ME link in under a minute. Share one tidy URL for
                 every page, profile, and product you care about.
             </p>
@@ -60,7 +79,7 @@
                     Create your own 1IN.ME link
                 </a>
                 <a href="{{ $homeUrl }}"
-                   class="inline-flex items-center justify-center px-6 py-3 bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-white rounded-full text-sm font-semibold transition">
+                   class="inline-flex items-center justify-center px-6 py-3 bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 text-white slnf-btn-secondary rounded-full text-sm font-semibold transition">
                     Back to homepage
                 </a>
             </div>
