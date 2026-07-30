@@ -108,6 +108,9 @@
                             <a href="{{ route('admin.block-designs.variants.edit', $v['key']) }}"
                                class="w-7 h-7 inline-flex items-center justify-center rounded-lg text-white/50 hover:bg-white/10" title="Edit"><i class="fas fa-pen text-xs"></i></a>
                         @endif
+                        <form method="POST" action="{{ route('admin.block-designs.variants.duplicate', $v['key']) }}">@csrf
+                            <button class="w-7 h-7 rounded-lg text-white/50 hover:bg-white/10" title="Duplicate as a custom variant"><i class="fas fa-clone text-xs"></i></button>
+                        </form>
                         <form method="POST" action="{{ route('admin.block-designs.variants.toggle', $v['key']) }}">@csrf
                             <input type="hidden" name="hidden" value="{{ $isHidden ? 0 : 1 }}">
                             <button class="w-7 h-7 rounded-lg text-white/50 hover:bg-white/10" title="{{ $isHidden ? 'Show in gallery' : 'Hide from gallery' }}">
@@ -176,6 +179,9 @@
                             <a href="{{ route('admin.block-designs.templates.edit', $key) }}"
                                class="w-7 h-7 inline-flex items-center justify-center rounded-lg text-white/50 hover:bg-white/10" title="Edit"><i class="fas fa-pen text-xs"></i></a>
                         @endif
+                        <form method="POST" action="{{ route('admin.block-designs.templates.duplicate', $key) }}">@csrf
+                            <button class="w-7 h-7 rounded-lg text-white/50 hover:bg-white/10" title="Duplicate as a custom preset"><i class="fas fa-clone text-xs"></i></button>
+                        </form>
                         <form method="POST" action="{{ route('admin.block-designs.templates.toggle', $key) }}">@csrf
                             <input type="hidden" name="hidden" value="{{ $isHidden ? 0 : 1 }}">
                             <button class="w-7 h-7 rounded-lg text-white/50 hover:bg-white/10" title="{{ $isHidden ? 'Show in picker' : 'Hide from picker' }}">

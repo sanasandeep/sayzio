@@ -129,6 +129,56 @@ class BlockDesignsController extends Controller
             ->with('success', 'Design variant "' . $saved['name'] . '" saved.');
     }
 
+    /**
+     * Duplicate any built-in or custom variant into a fresh editable
+     * custom (adm_*) entry so admins never hand-write style JSON from
+     * scratch. Lands on the new copy's edit form.
+     */
+    public function duplicateVariant(string $key)
+    {
+        $source = AdminBlockDesigns::findCustomVariant($key);
+        $types = [];
+        if ($source !== null) {
+            $types = array_values(array_filter((array) ($source['types'] ?? [])));
+        } else {
+            // Built-in: resolve via the merged catalog and derive which
+            // block types it applies to. Common variants resolve for
+            // every type -> empty list (= all types), bundle/one-off
+            // variants only for their own types.
+            $foundFor = [];
+            foreach (self::typeOptions() as $t) {
+                $v = BlockVariantCatalog::find($t, $key);
+                if ($v !== null) {
+                    $foundFor[] = $t;
+                    $source ??= $v;
+                }
+            }
+            abort_if($source === null, 404);
+            if (count($foundFor) < count(self::typeOptions())) {
+                $types = $foundFor;
+            }
+        }
+
+        $style = BlockStyleSanitizer::sanitize(is_array($source['style'] ?? null) ? $source['style'] : []);
+        unset($style['_variant'], $style['_variant_version'], $style['_template'],
+              $style['_style_custom_snapshot'], $style['apply_to_all']);
+
+        $saved = AdminBlockDesigns::saveVariant([
+            'key'     => '',
+            'name'    => mb_substr('Copy of ' . (string) ($source['name'] ?? $key), 0, 60),
+            'tags'    => (array) ($source['tags'] ?? []),
+            'shape'   => (string) ($source['shape'] ?? ''),
+            'types'   => $types,
+            'style'   => $style,
+            'enabled' => $source['key'] === $key && isset($source['enabled'])
+                ? !empty($source['enabled'])
+                : true,
+        ]);
+
+        return redirect()->route('admin.block-designs.variants.edit', $saved['key'])
+            ->with('success', 'Duplicated as "' . $saved['name'] . '" — tweak and save.');
+    }
+
     public function deleteVariant(string $key)
     {
         abort_unless(AdminBlockDesigns::deleteVariant($key), 404);
@@ -205,6 +255,33 @@ class BlockDesignsController extends Controller
 
         return redirect()->route('admin.block-designs.index')
             ->with('success', 'Theme preset "' . $data['label'] . '" saved.');
+    }
+
+    /**
+     * Duplicate any built-in or custom Block Theme preset into a fresh
+     * editable custom (adm_*) entry. Lands on the copy's edit form.
+     */
+    public function duplicateTemplate(string $key)
+    {
+        $source = BiolinkBlock::blockTemplates(false)[$key] ?? null;
+        abort_if($source === null, 404);
+
+        $style = BlockStyleSanitizer::sanitize(is_array($source['style'] ?? null) ? $source['style'] : []);
+        unset($style['_variant'], $style['_variant_version'], $style['_template'],
+              $style['_style_custom_snapshot'], $style['apply_to_all']);
+
+        $custom = AdminBlockDesigns::customTemplates()[$key] ?? null;
+        $label = mb_substr('Copy of ' . (string) ($source['label'] ?? $key), 0, 40);
+
+        $newKey = AdminBlockDesigns::saveTemplate(null, [
+            'label'   => $label,
+            'icon'    => (string) ($source['icon'] ?? ''),
+            'style'   => $style,
+            'enabled' => $custom !== null ? !empty($custom['enabled']) : true,
+        ]);
+
+        return redirect()->route('admin.block-designs.templates.edit', $newKey)
+            ->with('success', 'Duplicated as "' . $label . '" — tweak and save.');
     }
 
     public function deleteTemplate(string $key)

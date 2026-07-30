@@ -223,12 +223,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('variants/create', [BlockDesignsController::class, 'createVariant'])->name('variants.create');
             Route::post('variants', [BlockDesignsController::class, 'saveVariant'])->name('variants.save');
             Route::get('variants/{key}/edit', [BlockDesignsController::class, 'editVariant'])->name('variants.edit');
+            Route::post('variants/{key}/duplicate', [BlockDesignsController::class, 'duplicateVariant'])->name('variants.duplicate');
             Route::post('variants/{key}/move', [BlockDesignsController::class, 'moveVariant'])->name('variants.move');
             Route::post('variants/{key}/toggle', [BlockDesignsController::class, 'toggleVariant'])->name('variants.toggle');
             Route::delete('variants/{key}', [BlockDesignsController::class, 'deleteVariant'])->name('variants.delete');
             Route::get('templates/create', [BlockDesignsController::class, 'createTemplate'])->name('templates.create');
             Route::post('templates', [BlockDesignsController::class, 'saveTemplate'])->name('templates.save');
             Route::get('templates/{key}/edit', [BlockDesignsController::class, 'editTemplate'])->name('templates.edit');
+            Route::post('templates/{key}/duplicate', [BlockDesignsController::class, 'duplicateTemplate'])->name('templates.duplicate');
             Route::post('templates/{key}/toggle', [BlockDesignsController::class, 'toggleTemplate'])->name('templates.toggle');
             Route::delete('templates/{key}', [BlockDesignsController::class, 'deleteTemplate'])->name('templates.delete');
         });

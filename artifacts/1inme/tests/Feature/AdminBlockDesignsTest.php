@@ -151,6 +151,59 @@ class AdminBlockDesignsTest extends TestCase
         $this->assertNull(AdminBlockDesigns::findCustomVariant($saved['key']));
     }
 
+    public function test_admin_can_duplicate_built_in_variant_into_editable_custom_copy(): void
+    {
+        $source = BlockVariantCatalog::find('link', 'classic');
+        $this->assertNotNull($source);
+
+        $this->actingAs($this->admin(), 'admin')
+            ->post(route('admin.block-designs.variants.duplicate', 'classic'))
+            ->assertRedirect();
+
+        $customs = AdminBlockDesigns::customVariants();
+        $this->assertCount(1, $customs);
+        $copy = $customs[0];
+        $this->assertStringStartsWith(AdminBlockDesigns::KEY_PREFIX, $copy['key']);
+        $this->assertNotSame('classic', $copy['key']);
+        $this->assertSame('Copy of ' . $source['name'], $copy['name']);
+        $this->assertTrue($copy['enabled']);
+        $this->assertNotEmpty($copy['style']);
+
+        // The copy is editable (unlike the built-in it came from).
+        $this->actingAs($this->admin(), 'admin')
+            ->get(route('admin.block-designs.variants.edit', $copy['key']))
+            ->assertOk();
+    }
+
+    public function test_admin_can_duplicate_custom_variant(): void
+    {
+        $saved = AdminBlockDesigns::saveVariant([
+            'key' => '', 'name' => 'Origin', 'tags' => ['dark'], 'shape' => '',
+            'types' => ['link'], 'style' => ['bg_color' => '#0000ff'], 'enabled' => true,
+        ]);
+
+        $this->actingAs($this->admin(), 'admin')
+            ->post(route('admin.block-designs.variants.duplicate', $saved['key']))
+            ->assertRedirect();
+
+        $customs = AdminBlockDesigns::customVariants();
+        $this->assertCount(2, $customs);
+        $copy = collect($customs)->firstWhere('name', 'Copy of Origin');
+        $this->assertNotNull($copy);
+        $this->assertNotSame($saved['key'], $copy['key']);
+        $this->assertSame('#0000ff', $copy['style']['bg_color']);
+        $this->assertSame(['link'], $copy['types']);
+        $this->assertSame(['dark'], $copy['tags']);
+    }
+
+    public function test_duplicating_unknown_variant_is_404(): void
+    {
+        $this->actingAs($this->admin(), 'admin')
+            ->post(route('admin.block-designs.variants.duplicate', 'no_such_variant'))
+            ->assertNotFound();
+        $this->assertCount(0, AdminBlockDesigns::customVariants());
+    }
+
     public function test_editing_unknown_or_built_in_key_is_404(): void
     {
         $this->actingAs($this->admin(), 'admin')
@@ -238,6 +291,35 @@ class AdminBlockDesignsTest extends TestCase
         $this->actingAs($this->admin(), 'admin')
             ->delete(route('admin.block-designs.templates.delete', $builtIn))
             ->assertNotFound();
+    }
+
+    public function test_admin_can_duplicate_built_in_template_into_editable_custom_copy(): void
+    {
+        $builtIn = array_key_first(BiolinkBlock::BLOCK_TEMPLATES);
+        $source = BiolinkBlock::BLOCK_TEMPLATES[$builtIn];
+
+        $this->actingAs($this->admin(), 'admin')
+            ->post(route('admin.block-designs.templates.duplicate', $builtIn))
+            ->assertRedirect();
+
+        $customs = AdminBlockDesigns::customTemplates();
+        $this->assertCount(1, $customs);
+        $key = array_key_first($customs);
+        $this->assertStringStartsWith(AdminBlockDesigns::KEY_PREFIX, $key);
+        $this->assertSame('Copy of ' . $source['label'], $customs[$key]['label']);
+        $this->assertTrue($customs[$key]['enabled']);
+
+        $this->actingAs($this->admin(), 'admin')
+            ->get(route('admin.block-designs.templates.edit', $key))
+            ->assertOk();
+    }
+
+    public function test_duplicating_unknown_template_is_404(): void
+    {
+        $this->actingAs($this->admin(), 'admin')
+            ->post(route('admin.block-designs.templates.duplicate', 'no_such_tpl'))
+            ->assertNotFound();
+        $this->assertCount(0, AdminBlockDesigns::customTemplates());
     }
 
     // ── Access control ──────────────────────────────────────────────
