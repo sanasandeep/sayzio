@@ -155,4 +155,5 @@
 - [Dropzone browseType & Alpine x-for locators](dropzone-browsetype-accept.md) — extension-style accepts + plan overrides can hide Stock tab (pass explicit browseType); getByRole misses x-for buttons, use :text-is CSS.
 - [SortableJS filter zones block input focus](sortable-preventonfilter-input-focus.md) — `filter` + default preventOnFilter calls preventDefault on pointerdown, silently unfocusable inputs; set preventOnFilter:false; ports 5060/5061 are Chrome-unsafe.
 - [Scaled live-iframe card grids](scaled-iframe-card-grid.md) — fixed-width iframe + transform scale per card; use ResizeObserver not x-init (filter-hidden cards mount at clientWidth 0); e2e must poll page.frames() for lazy iframes.
+- [Seeder text ownership: no HTML markers](seeder-notes-ownership-no-html-marker.md) — SafeHtml renders HTML comments as visible text; detect seeder-owned notes by content match against curated+legacy snapshots.
 - [Unified block background picker](block-bg-unified-picker.md) — bg_color holds color OR gradient string; card bg sanitized in sanitizeSettings not _style; preset e2e must click the Preset mode chip first.
