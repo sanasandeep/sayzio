@@ -24,6 +24,10 @@ args = "e2e-block-defaults"
 task = "workflow.run"
 args = "e2e-social-proof-editor"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "blade-inline-js"
+
 [[workflows.workflow]]
 name = "e2e-block-defaults"
 author = "agent"
@@ -42,6 +46,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && VALIDATION_PORT=5163 bash tests/Browser/run-validation.sh social-proof-editor.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "blade-inline-js"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && node scripts/check-blade-inline-scripts.mjs"
 
 [workflows.workflow.metadata]
 isValidation = true
