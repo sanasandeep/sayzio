@@ -305,6 +305,7 @@ import {
 } from "@/components/AvatarFrame";
 import { BlockView, StoreCartProvider } from "@/app/biolink/[handle]";
 import { Button } from "@/components/Button";
+import { ColorSwatchRow } from "@/components/ColorSwatchRow";
 
 // Live block-background preview (Task #5984). The bg-preset section renders
 // the block through the same native renderer the design preview uses
@@ -2265,22 +2266,12 @@ export function BlockSettingsEditor({
 
           {bgMode === "color" ? (
             <View style={{ gap: 6 }}>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-                {["#7c3aed", "#2563eb", "#059669", "#dc2626", "#f59e0b", "#0f172a", "#ffffff", "rgba(255,255,255,0.12)"].map((c) => (
-                  <Pressable {...WEB_FOCUS_RING_PROPS}
-                    key={c}
-                    onPress={() => setBgColorVal(c)}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 8,
-                      backgroundColor: c,
-                      borderWidth: bgColorVal === c ? 2 : 1,
-                      borderColor: bgColorVal === c ? colors.primary : colors.border,
-                    }}
-                  />
-                ))}
-              </View>
+              <ColorSwatchRow
+                prefix="block-bg-color-swatch"
+                value={bgColorVal}
+                onPick={setBgColorVal}
+                palette={["#7c3aed", "#2563eb", "#059669", "#dc2626", "#f59e0b", "#0f172a", "#ffffff", "rgba(255,255,255,0.12)"]}
+              />
               <TextInput
                 testID="block-bg-color-input"
                 value={bgColorVal}
@@ -2337,7 +2328,15 @@ export function BlockSettingsEditor({
                 </View>
               ) : null}
               {gradStops.map((c, i) => (
-                <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <View key={i} style={{ gap: 6 }}>
+                <ColorSwatchRow
+                  prefix={`block-bg-grad-stop-${i}-swatch`}
+                  value={c}
+                  onPick={(v) =>
+                    setGradStops((prev) => prev.map((p, j) => (j === i ? v : p)))
+                  }
+                />
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <View style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: c || colors.muted, borderWidth: 1, borderColor: colors.border }} />
                   <TextInput
                     testID={`block-bg-grad-stop-${i}`}
@@ -2359,6 +2358,7 @@ export function BlockSettingsEditor({
                       <Text style={{ color: colors.destructive, fontWeight: "700", fontSize: 12 }}>✕</Text>
                     </Pressable>
                   ) : null}
+                </View>
                 </View>
               ))}
               {gradStops.length < 4 ? (
@@ -2722,6 +2722,11 @@ export function BlockSettingsEditor({
             </View>
             <View style={{ flex: 1.4, gap: 4 }}>
               <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Color</Text>
+              <ColorSwatchRow
+                prefix="block-border-color-swatch"
+                value={bdColor}
+                onPick={setBdColor}
+              />
               <TextInput
                 testID="block-border-color-input"
                 value={bdColor}
@@ -2909,6 +2914,16 @@ export function BlockSettingsEditor({
                       );
                     })}
                   </View>
+                  <ColorSwatchRow
+                    prefix={`block-border-${sd.key}-color-swatch`}
+                    value={bdSides[sd.key].color}
+                    onPick={(v) =>
+                      setBdSides((prev) => ({
+                        ...prev,
+                        [sd.key]: { ...prev[sd.key], color: v },
+                      }))
+                    }
+                  />
                   <View style={{ flexDirection: "row", gap: 8 }}>
                     <TextInput
                       testID={`block-border-${sd.key}-width`}

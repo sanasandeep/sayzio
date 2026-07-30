@@ -12,6 +12,7 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { ColorSwatchRow } from "@/components/ColorSwatchRow";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import { WEB_FOCUS_RING_PROPS } from "@/hooks/useWebFocusRing";
@@ -195,23 +196,32 @@ export function SettingsForm({
               </View>
             );
           }
+          const isColorField = f.hint === "#hex";
           return (
-            <TextField
-              key={f.key}
-              label={f.label}
-              hint={f.hint}
-              value={typeof v === "string" ? v : v != null ? String(v) : ""}
-              onChangeText={(t) => setValue(f.key, t)}
-              keyboardType={f.kind === "url" ? "url" : "default"}
-              autoCapitalize={f.kind === "url" ? "none" : "sentences"}
-              multiline={f.kind === "multiline"}
-              numberOfLines={f.kind === "multiline" ? 4 : 1}
-              style={
-                f.kind === "multiline"
-                  ? { height: 120, textAlignVertical: "top", paddingTop: 12 }
-                  : undefined
-              }
-            />
+            <View key={f.key} style={{ gap: 8 }}>
+              {isColorField ? (
+                <ColorSwatchRow
+                  prefix={`settings-${f.key}-swatch`}
+                  value={typeof v === "string" ? v : ""}
+                  onPick={(c) => setValue(f.key, c)}
+                />
+              ) : null}
+              <TextField
+                label={f.label}
+                hint={f.hint}
+                value={typeof v === "string" ? v : v != null ? String(v) : ""}
+                onChangeText={(t) => setValue(f.key, t)}
+                keyboardType={f.kind === "url" ? "url" : "default"}
+                autoCapitalize={f.kind === "url" || isColorField ? "none" : "sentences"}
+                multiline={f.kind === "multiline"}
+                numberOfLines={f.kind === "multiline" ? 4 : 1}
+                style={
+                  f.kind === "multiline"
+                    ? { height: 120, textAlignVertical: "top", paddingTop: 12 }
+                    : undefined
+                }
+              />
+            </View>
           );
         })}
         {extra}
