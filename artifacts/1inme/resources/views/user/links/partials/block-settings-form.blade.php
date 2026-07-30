@@ -527,12 +527,40 @@ function linkBlockEditor(cfg) {
 </div>
 
 @elseif($block->type === 'badge')
-<div class="space-y-3">
+{{-- Accent/label contrast warning (Task #6051): mirrors the Default Colors tab
+     accent pair helper. Non-blocking — warns only, never prevents saving. --}}
+<div class="space-y-3" x-data="{
+    acBg: @js((string) ($s['color'] ?? '#3d6bff')),
+    acText: @js((string) ($s['text_color'] ?? '#ffffff')),
+    acLum(hex) {
+        const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+        if (!m) return null;
+        const n = parseInt(m[1], 16);
+        const chan = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+        return 0.2126 * chan((n >> 16) & 255) + 0.7152 * chan((n >> 8) & 255) + 0.0722 * chan(n & 255);
+    },
+    acRatio() {
+        const a = this.acLum(this.acText), b = this.acLum(this.acBg);
+        if (a === null || b === null) return null;
+        const hi = Math.max(a, b), lo = Math.min(a, b);
+        return (hi + 0.05) / (lo + 0.05);
+    },
+    acLow() { const r = this.acRatio(); return r !== null && r < 4.5; },
+    acFmt() { const r = this.acRatio(); return r === null ? '' : (Math.round(r * 10) / 10) + ':1'; }
+}">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#3d6bff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
-        <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+        <div><label class="{{ $labelClass }}">Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#3d6bff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" @input="acBg = $event.target.value"></div>
+        <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" @input="acText = $event.target.value"></div>
     </div>
+    <template x-if="acLow()">
+        <div class="flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium"
+             style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
+             data-testid="block-contrast-warning-accent">
+            <i class="fas fa-triangle-exclamation"></i>
+            <span>Low contrast (<span x-text="acFmt()"></span>) — badge text may be hard to read on this color. Aim for at least 4.5:1.</span>
+        </div>
+    </template>
 </div>
 
 @elseif($block->type === 'image')
@@ -1153,13 +1181,41 @@ if (typeof window.resetPollVotes !== 'function') {
 </div>
 
 @elseif($block->type === 'cta_button')
-<div class="space-y-3">
+{{-- Accent/label contrast warning (Task #6051): mirrors the Default Colors tab
+     accent pair helper. Non-blocking — warns only, never prevents saving. --}}
+<div class="space-y-3" x-data="{
+    acBg: @js((string) ($s['color'] ?? '#3d6bff')),
+    acText: @js((string) ($s['text_color'] ?? '#ffffff')),
+    acLum(hex) {
+        const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+        if (!m) return null;
+        const n = parseInt(m[1], 16);
+        const chan = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+        return 0.2126 * chan((n >> 16) & 255) + 0.7152 * chan((n >> 8) & 255) + 0.0722 * chan(n & 255);
+    },
+    acRatio() {
+        const a = this.acLum(this.acText), b = this.acLum(this.acBg);
+        if (a === null || b === null) return null;
+        const hi = Math.max(a, b), lo = Math.min(a, b);
+        return (hi + 0.05) / (lo + 0.05);
+    },
+    acLow() { const r = this.acRatio(); return r !== null && r < 4.5; },
+    acFmt() { const r = this.acRatio(); return r === null ? '' : (Math.round(r * 10) / 10) + ':1'; }
+}">
     <div><label class="{{ $labelClass }}">Button Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Button Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#3d6bff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
-        <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+        <div><label class="{{ $labelClass }}">Button Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#3d6bff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" @input="acBg = $event.target.value"></div>
+        <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" @input="acText = $event.target.value"></div>
     </div>
+    <template x-if="acLow()">
+        <div class="flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium"
+             style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
+             data-testid="block-contrast-warning-accent">
+            <i class="fas fa-triangle-exclamation"></i>
+            <span>Low contrast (<span x-text="acFmt()"></span>) — button text may be hard to read on this color. Aim for at least 4.5:1.</span>
+        </div>
+    </template>
     <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="sm" {{ ($s['size'] ?? '') === 'sm' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Small</option><option value="md" {{ ($s['size'] ?? '') === 'md' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Medium</option><option value="lg" {{ ($s['size'] ?? '') === 'lg' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Large</option></select></div>
 </div>
 

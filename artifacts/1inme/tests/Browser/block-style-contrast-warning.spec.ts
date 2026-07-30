@@ -92,8 +92,15 @@ $h = BiolinkBlock::create([
     '_style' => ['text_color' => '#cccccc', 'bg_color' => '#ffffff'],
   ],
 ]);
+$cta = BiolinkBlock::create([
+  'link_id' => $bio->id, 'type' => 'cta_button', 'sort_order' => 1, 'is_active' => true,
+  'settings' => [
+    'text' => 'Accent Contrast Fixture', 'url' => 'https://example.com',
+    'color' => '#ffffff', 'text_color' => '#cccccc',
+  ],
+]);
 
-echo 'IDS=' . json_encode(['linkId' => $bio->id, 'headingId' => $h->id]);
+echo 'IDS=' . json_encode(['linkId' => $bio->id, 'headingId' => $h->id, 'ctaId' => $cta->id]);
 `.trim();
 
   const out = runTinkerSeed(php);
@@ -102,7 +109,7 @@ echo 'IDS=' . json_encode(['linkId' => $bio->id, 'headingId' => $h->id]);
   return JSON.parse(m[1]);
 }
 
-let ids: { linkId: number; headingId: number };
+let ids: { linkId: number; headingId: number; ctaId: number };
 
 test.beforeAll(async ({ browser }) => {
   test.setTimeout(240_000);
@@ -186,6 +193,59 @@ test("style drawer shows a non-blocking contrast warning that clears when colors
   // The low-contrast value saved fine (non-blocking).
   const saved = runTinkerSeed(
     `echo 'TC=' . (App\\Modules\\User\\Models\\BiolinkBlock::find(${ids.headingId})->settings['_style']['text_color'] ?? 'missing');`,
+  );
+  expect(saved).toContain("TC=#dddddd");
+});
+
+test("cta button drawer warns on low-contrast accent pair without blocking saves", async ({
+  page,
+}) => {
+  await page.goto(`/user/links/${ids.linkId}/blocks`, {
+    waitUntil: "domcontentloaded",
+    timeout: 90_000,
+  });
+  await page.waitForSelector(".block-card", { timeout: 45_000 });
+
+  const form = page.locator(`[data-inline-editor-body="${ids.ctaId}"] form`);
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await page.click(`[data-block-id="${ids.ctaId}"] .edit-btn`);
+    try {
+      await expect(form).toBeVisible({ timeout: 20_000 });
+      break;
+    } catch (err) {
+      if (attempt === 3) throw err;
+    }
+  }
+  await page.waitForTimeout(400);
+
+  // Seeded #cccccc button text on #ffffff button color is ~1.6:1 → the
+  // accent-pair warning is visible with the computed ratio.
+  const accentWarning = form.locator(
+    '[data-testid="block-contrast-warning-accent"]',
+  );
+  await expect(accentWarning).toBeVisible({ timeout: 15_000 });
+  await expect(accentWarning).toContainText("Low contrast (1.6:1)");
+
+  // Fixing the button text color to a dark value clears the warning live.
+  const textColor = form.locator('input[name="settings[text_color]"]');
+  await textColor.fill("#111111");
+  await expect(accentWarning).toBeHidden({ timeout: 10_000 });
+
+  // Warning re-appears with a low-contrast pick — and never blocks the
+  // debounced autosave POST.
+  const autosave = page.waitForResponse(
+    (r) =>
+      r.url().includes(`/blocks/${ids.ctaId}`) &&
+      r.request().method() === "POST" &&
+      r.ok(),
+    { timeout: 60_000 },
+  );
+  await textColor.fill("#dddddd");
+  await expect(accentWarning).toBeVisible({ timeout: 10_000 });
+  await autosave;
+
+  const saved = runTinkerSeed(
+    `echo 'TC=' . (App\\Modules\\User\\Models\\BiolinkBlock::find(${ids.ctaId})->settings['text_color'] ?? 'missing');`,
   );
   expect(saved).toContain("TC=#dddddd");
 });
