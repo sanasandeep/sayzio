@@ -18,6 +18,25 @@ use App\Modules\User\Models\BiolinkBlock;
  */
 class BlockStyleSanitizer
 {
+    /**
+     * Allowed `link_layout` values (Task #6054: shared with the admin
+     * Block Designs visual style editor so its dropdown can never
+     * drift from what sanitize() accepts). Empty string = default
+     * button render and is never persisted.
+     */
+    public const LINK_LAYOUTS = [
+        'plain_text', 'image_cover', 'action_row', 'text_divider',
+        'icon_left', 'icon_right', 'icon_both', 'icon_only',
+        'icon_circle_left', 'icon_circle_right', 'icon_box',
+        'image_left', 'image_right', 'image_top',
+        'image_overhang_top', 'image_overhang_left',
+        'image_icon_rounded', 'image_icon_square', 'image_icon_circle',
+        'title_desc_row', 'image_cover_square',
+        'taped_note',
+        'arrow_hex', 'numbered_list', 'side_accent_tab',
+        'icon_top', 'offset_frame', 'torn_tape',
+    ];
+
     public static function sanitize(array $input): array
     {
         $enums = [
@@ -39,18 +58,7 @@ class BlockStyleSanitizer
             // foreach skips empty values, only non-default picks
             // ('plain_text' / 'image_cover') will ever be persisted —
             // which is exactly what we want.
-            'link_layout' => [
-                'plain_text', 'image_cover', 'action_row', 'text_divider',
-                'icon_left', 'icon_right', 'icon_both', 'icon_only',
-                'icon_circle_left', 'icon_circle_right', 'icon_box',
-                'image_left', 'image_right', 'image_top',
-                'image_overhang_top', 'image_overhang_left',
-                'image_icon_rounded', 'image_icon_square', 'image_icon_circle',
-                'title_desc_row', 'image_cover_square',
-                'taped_note',
-                'arrow_hex', 'numbered_list', 'side_accent_tab',
-                'icon_top', 'offset_frame', 'torn_tape',
-            ],
+            'link_layout' => self::LINK_LAYOUTS,
         ];
         $numericBounds = [
             'font_size' => [8, 72],

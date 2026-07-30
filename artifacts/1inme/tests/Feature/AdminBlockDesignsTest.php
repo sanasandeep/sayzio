@@ -48,11 +48,16 @@ class AdminBlockDesignsTest extends TestCase
         $this->actingAs($admin, 'admin')
             ->get(route('admin.block-designs.variants.create'))
             ->assertOk()
-            ->assertSee('Style payload (JSON)');
+            // Task #6054: visual style editor (controls + advanced JSON)
+            ->assertSee('Live preview')
+            ->assertSee('edit raw style JSON')
+            ->assertSee('style_json');
         $this->actingAs($admin, 'admin')
             ->get(route('admin.block-designs.templates.create'))
             ->assertOk()
-            ->assertSee('Style payload (JSON)');
+            ->assertSee('Live preview')
+            ->assertSee('edit raw style JSON')
+            ->assertSee('style_json');
     }
 
     // ── Variant CRUD ─────────────────────────────────────────────────

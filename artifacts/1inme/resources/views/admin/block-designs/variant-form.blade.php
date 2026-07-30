@@ -72,26 +72,15 @@
         </div>
 
         <div>
-            <label class="block text-xs font-bold uppercase tracking-widest mb-1.5" style="color: var(--text-faint);">Style payload (JSON)</label>
+            <label class="block text-xs font-bold uppercase tracking-widest mb-1.5" style="color: var(--text-faint);">Style</label>
             <p class="text-[11px] text-white/35 mb-2 ak-muted">
-                Same properties as the editor's Style tab: <code>bg_color</code>, <code>bg_opacity</code>, <code>text_color</code>,
-                <code>font_family</code>, <code>border_style/width/color/radius</code>, <code>shadow_type/x/y/blur/color</code>,
-                <code>link_layout</code> (existing layouts only)&hellip; Unknown or invalid properties are dropped on save.
+                Same properties as the editor's Style tab. Unknown or invalid values are dropped on save.
             </p>
-            <textarea name="style_json" rows="12" required spellcheck="false"
-                      class="w-full text-xs font-mono rounded-xl px-3 py-2 border border-white/10 bg-black/30 text-white/90"
-                      oninput="window.__bdPreview && window.__bdPreview()">{{ $styleJson }}</textarea>
-        </div>
-
-        {{-- Live sample preview --}}
-        <div>
-            <label class="block text-xs font-bold uppercase tracking-widest mb-1.5" style="color: var(--text-faint);">Live preview</label>
-            <div class="rounded-xl border border-white/10 p-6 flex items-center justify-center" style="background: #101223;">
-                <div id="bd-preview" class="px-6 py-3 text-sm font-semibold"
-                     style="background:#1a1a2e;color:#fff;border-radius:14px;min-width:200px;text-align:center;">
-                    Sample button
-                </div>
-            </div>
+            @include('admin.block-designs._style-editor', [
+                'styleJson'      => $styleJson,
+                'sampleLabel'    => 'Sample button',
+                'showLinkLayout' => true,
+            ])
         </div>
 
         <label class="inline-flex items-center gap-2 text-sm text-white/80">
