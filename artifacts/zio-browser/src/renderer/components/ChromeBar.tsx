@@ -95,7 +95,40 @@ async function runContextAutofill(tabId: string, token: string | null): Promise<
 interface OmniSuggestion {
   url: string;
   title: string;
-  kind: 'history' | 'bookmark' | 'search';
+  kind: 'history' | 'bookmark' | 'search' | 'sayzio-link' | 'sayzio-profile';
+  /** Secondary description text (used by Sayzio jump rows). */
+  subtitle?: string;
+}
+
+// Handle-like queries eligible for the Sayzio existence lookups: letters,
+// digits, dash, underscore only (no spaces, no dots — those parse as URLs or
+// multi-word searches). 2–63 chars.
+const SAYZIO_HANDLE_PATTERN = /^[a-z0-9][a-z0-9_-]{1,62}$/i;
+
+// Session cache of Sayzio existence lookups (keyed by lowercased query) so
+// backspacing/retyping the same handle doesn't re-hit the API.
+const sayzioExistsCache = new Map<string, { link: boolean; profile: boolean }>();
+
+/**
+ * Live-check Sayzio for an exact link alias and creator handle match.
+ * Fails silently (both false) on any network/API error. Requires a signed-in
+ * token because the alias check is an authed endpoint (and the privacy gate
+ * only allows remote lookups for signed-in users anyway).
+ */
+async function checkSayzioExists(q: string, token: string): Promise<{ link: boolean; profile: boolean }> {
+  const key = q.toLowerCase();
+  const cached = sayzioExistsCache.get(key);
+  if (cached) return cached;
+  const client = new ApiClient({ baseUrl: BASE_URL, token });
+  const [link, profile] = await Promise.all([
+    // Inverted alias-availability check: status 'taken' means the alias
+    // exists (invalid/reserved/banned do NOT count as existing links).
+    client.checkAlias(q).then(r => r.status === 'taken').catch(() => false),
+    client.creatorProfileMini(q).then(r => !!r.profile_published).catch(() => false),
+  ]);
+  const result = { link, profile };
+  sayzioExistsCache.set(key, result);
+  return result;
 }
 
 interface HistoryRow { url: string; title: string | null }
@@ -519,15 +552,37 @@ export function ChromeBar({
       setSuggestions([]); setSuggestionIndex(-1);
       return;
     }
+    // Sayzio jump rows: handle-like query only, and mirror the site-resolve
+    // privacy gate — never in private windows, only when signed in.
+    const sayzioEligible = !isPrivate && !!token && SAYZIO_HANDLE_PATTERN.test(q);
     const timer = setTimeout(() => {
       void Promise.all([
         window.zio.history.search(q).catch(() => []),
         window.zio.bookmarks.search(q).catch(() => []),
-      ]).then(([hist, bms]) => {
+        sayzioEligible && token
+          ? checkSayzioExists(q, token).catch(() => ({ link: false, profile: false }))
+          : Promise.resolve({ link: false, profile: false }),
+      ]).then(([hist, bms, sayzio]) => {
         // Ignore stale responses
         if (suggestQueryRef.current !== q) return;
         const seen = new Set<string>();
         const merged: OmniSuggestion[] = [];
+        if (sayzio.link) {
+          merged.push({
+            url: `https://sayzio.app/${q}`,
+            title: `sayzio.app/${q}`,
+            subtitle: 'Open link on Sayzio',
+            kind: 'sayzio-link',
+          });
+        }
+        if (sayzio.profile) {
+          merged.push({
+            url: `https://sayzio.app/@${q}`,
+            title: `sayzio.app/@${q}`,
+            subtitle: 'Creator profile',
+            kind: 'sayzio-profile',
+          });
+        }
         for (const b of (bms as BookmarkRow[])) {
           if (!b?.url || seen.has(b.url)) continue;
           seen.add(b.url);
@@ -547,7 +602,7 @@ export function ChromeBar({
       });
     }, 120);
     return () => clearTimeout(timer);
-  }, [omniboxValue, omniboxFocused, activeTab?.url]);
+  }, [omniboxValue, omniboxFocused, activeTab?.url, isPrivate, token]);
 
   const acceptSuggestion = useCallback((s: OmniSuggestion) => {
     if (!activeTabId) return;
@@ -1211,9 +1266,26 @@ export function ChromeBar({
                     transition: 'background 0.08s',
                   }}
                 >
-                  <span style={{ fontSize: 12, flexShrink: 0, opacity: 0.8 }}>
-                    {s.kind === 'bookmark' ? '★' : s.kind === 'history' ? '🕘' : '🔍'}
-                  </span>
+                  {(s.kind === 'sayzio-link' || s.kind === 'sayzio-profile') ? (
+                    <span style={{
+                      fontSize: 9,
+                      fontWeight: 800,
+                      flexShrink: 0,
+                      width: 16,
+                      height: 16,
+                      borderRadius: 5,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'var(--gradient-primary, var(--color-primary))',
+                      color: '#fff',
+                      lineHeight: 1,
+                    }}>S</span>
+                  ) : (
+                    <span style={{ fontSize: 12, flexShrink: 0, opacity: 0.8 }}>
+                      {s.kind === 'bookmark' ? '★' : s.kind === 'history' ? '🕘' : '🔍'}
+                    </span>
+                  )}
                   <span style={{
                     fontSize: 12,
                     color: 'var(--color-text)',
@@ -1223,7 +1295,15 @@ export function ChromeBar({
                     flexShrink: 0,
                     maxWidth: '45%',
                   }}>{s.title}</span>
-                  {s.kind !== 'search' && (
+                  {s.subtitle ? (
+                    <span style={{
+                      fontSize: 11,
+                      color: 'var(--color-text-muted)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>{s.subtitle}</span>
+                  ) : s.kind !== 'search' && (
                     <span style={{
                       fontSize: 11,
                       color: 'var(--color-text-muted)',
