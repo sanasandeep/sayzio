@@ -1174,12 +1174,14 @@ html.light-mode .why2-chip { color: #475569; background: rgba(15,23,42,.04); bor
     .cmp-vs-bar-fill { transition: none !important; }
 }
 
-/* ============ Highlight CTA (electric blue → cyan) ============
+/* ============ Highlight CTA (blue → purple → cyan) ============
    Reserved for the handful of high-intent actions (Register, Claim your
-   link, plan upgrade CTAs). Regular blue buttons keep their flat/brand
-   styling — do NOT apply this broadly. White text works on both themes. */
+   link, plan upgrade CTAs). Tri-color gradient mirrors the Sayzio logo
+   (blue #3d6bff → brand indigo #6e61ff → cyan #22d3ee). Regular blue
+   buttons keep their flat/brand styling — do NOT apply this broadly.
+   White text works on both themes. */
 .btn-cta {
-    background: linear-gradient(115deg, #2342c7 0%, #3d6bff 42%, #22d3ee 100%);
+    background: linear-gradient(115deg, #2342c7 0%, #3d6bff 28%, #6e61ff 58%, #22d3ee 100%);
     color: #fff !important;
     transition: filter .25s, box-shadow .25s, transform .22s;
     box-shadow: 0 8px 24px -10px rgba(34, 211, 238, .45);
