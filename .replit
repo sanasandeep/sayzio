@@ -116,6 +116,10 @@ args = "em-dash"
 task = "workflow.run"
 args = "e2e-border-recents"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-editor-badge-light-mode"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -376,6 +380,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && VALIDATION_PORT=5093 bash tests/Browser/run-validation.sh border-color-recents.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-editor-badge-light-mode"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "VALIDATION_PORT=5094 bash artifacts/1inme/tests/Browser/run-validation.sh editor-badge-light-mode.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
