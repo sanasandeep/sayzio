@@ -960,6 +960,29 @@ export function BlockSettingsEditor({
   const [gradStops, setGradStops] = useState<string[]>(["#7c3aed", "#22d3ee"]);
   const [bgImageVal, setBgImageVal] = useState<string>("");
   const [bgImgUploading, setBgImgUploading] = useState(false);
+  // Borders (Task #6038 web parity): shorthand style/width/color/radius
+  // plus advanced per-corner radii and per-side style/width/color behind
+  // an expander. Blank advanced fields fall back to the shorthand
+  // field-by-field at render time (server + renderers own the semantics).
+  const [bdStyle, setBdStyle] = useState<string>("none");
+  const [bdWidth, setBdWidth] = useState<string>("");
+  const [bdColor, setBdColor] = useState<string>("");
+  const [bdRadius, setBdRadius] = useState<string>("");
+  const [bdAdvOpen, setBdAdvOpen] = useState(false);
+  const [bdCorners, setBdCorners] = useState<Record<"tl" | "tr" | "bl" | "br", string>>({
+    tl: "",
+    tr: "",
+    bl: "",
+    br: "",
+  });
+  const [bdSides, setBdSides] = useState<
+    Record<"top" | "right" | "bottom" | "left", { style: string; width: string; color: string }>
+  >({
+    top: { style: "", width: "", color: "" },
+    right: { style: "", width: "", color: "" },
+    bottom: { style: "", width: "", color: "" },
+    left: { style: "", width: "", color: "" },
+  });
   // Task #5987 — when a preset swatch is tapped in the grid, the live
   // preview (which sits above the grid) may be scrolled off-screen.
   // These refs let us bring it back into view: on web via the DOM's
@@ -1208,6 +1231,33 @@ export function BlockSettingsEditor({
       } else {
         setBgColorVal(bgc === "transparent" ? "" : bgc);
       }
+      // Hydrate borders (Task #6038): shorthand + per-corner + per-side.
+      const bstr = (v: unknown): string =>
+        typeof v === "string" ? v.trim() : typeof v === "number" ? String(v) : "";
+      setBdStyle(bstr(st.border_style) || "none");
+      setBdWidth(bstr(st.border_width));
+      setBdColor(bstr(st.border_color));
+      setBdRadius(bstr(st.border_radius));
+      const corners = {
+        tl: bstr(st.border_radius_tl),
+        tr: bstr(st.border_radius_tr),
+        bl: bstr(st.border_radius_bl),
+        br: bstr(st.border_radius_br),
+      };
+      setBdCorners(corners);
+      const sidesNext = {
+        top: { style: bstr(st.border_top_style), width: bstr(st.border_top_width), color: bstr(st.border_top_color) },
+        right: { style: bstr(st.border_right_style), width: bstr(st.border_right_width), color: bstr(st.border_right_color) },
+        bottom: { style: bstr(st.border_bottom_style), width: bstr(st.border_bottom_width), color: bstr(st.border_bottom_color) },
+        left: { style: bstr(st.border_left_style), width: bstr(st.border_left_width), color: bstr(st.border_left_color) },
+      };
+      setBdSides(sidesNext);
+      // Auto-expand the advanced panel when any advanced value is set,
+      // mirroring the web expander's initial state.
+      setBdAdvOpen(
+        Object.values(corners).some((v) => v !== "") ||
+          Object.values(sidesNext).some((s) => s.style !== "" || s.width !== "" || s.color !== ""),
+      );
     }
   }, [block]);
 
@@ -1622,6 +1672,26 @@ export function BlockSettingsEditor({
         } else {
           delete styleOut.bg_image;
         }
+        // Borders (Task #6038): persist shorthand + per-corner + per-side
+        // values; blank fields are deleted so clearing round-trips and the
+        // renderers fall back to the shorthand field-by-field.
+        const putStyle = (key: string, val: string) => {
+          if (val.trim() !== "") styleOut[key] = val.trim();
+          else delete styleOut[key];
+        };
+        putStyle("border_style", bdStyle === "none" ? "" : bdStyle);
+        putStyle("border_width", bdWidth);
+        putStyle("border_color", bdColor);
+        putStyle("border_radius", bdRadius);
+        putStyle("border_radius_tl", bdCorners.tl);
+        putStyle("border_radius_tr", bdCorners.tr);
+        putStyle("border_radius_bl", bdCorners.bl);
+        putStyle("border_radius_br", bdCorners.br);
+        (["top", "right", "bottom", "left"] as const).forEach((side) => {
+          putStyle(`border_${side}_style`, bdSides[side].style);
+          putStyle(`border_${side}_width`, bdSides[side].width);
+          putStyle(`border_${side}_color`, bdSides[side].color);
+        });
         if (Object.keys(styleOut).length > 0) nextSettings._style = styleOut;
         else delete nextSettings._style;
       }
@@ -2407,6 +2477,222 @@ export function BlockSettingsEditor({
           ) : null}
         </View>
         ) : null}
+
+        {/* Borders (Task #6038) — shorthand border + corner radius with an
+            Advanced expander exposing per-corner radii and per-side
+            style/width/color, mirroring the web Style tab. Blank advanced
+            fields fall back to the shorthand field-by-field. */}
+        <View style={{ gap: 8 }} testID="block-borders-section">
+          <Text style={[styles.rowLabel, { color: colors.foreground }]}>Borders</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            {(["none", "solid", "dashed", "dotted", "double"] as const).map((bs) => {
+              const sel = bdStyle === bs;
+              return (
+                <Pressable {...WEB_FOCUS_RING_PROPS}
+                  key={bs}
+                  testID={`block-border-style-${bs}`}
+                  onPress={() => setBdStyle(bs)}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                    backgroundColor: sel ? colors.primary : colors.card,
+                    borderWidth: 1,
+                    borderColor: sel ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ color: sel ? "#fff" : colors.foreground, fontWeight: "600", fontSize: 11 }}>
+                    {bs.charAt(0).toUpperCase() + bs.slice(1)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Width (px)</Text>
+              <TextInput
+                testID="block-border-width-input"
+                value={bdWidth}
+                onChangeText={setBdWidth}
+                placeholder="1"
+                placeholderTextColor={colors.mutedForeground}
+                keyboardType="numeric"
+                style={[{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+              />
+            </View>
+            <View style={{ flex: 1.4, gap: 4 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Color</Text>
+              <TextInput
+                testID="block-border-color-input"
+                value={bdColor}
+                onChangeText={setBdColor}
+                placeholder="#ffffff"
+                placeholderTextColor={colors.mutedForeground}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={[{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+              />
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Radius (px)</Text>
+              <TextInput
+                testID="block-border-radius-input"
+                value={bdRadius}
+                onChangeText={setBdRadius}
+                placeholder="12"
+                placeholderTextColor={colors.mutedForeground}
+                keyboardType="numeric"
+                style={[{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+              />
+            </View>
+          </View>
+
+          <Pressable {...WEB_FOCUS_RING_PROPS}
+            testID="block-borders-advanced-toggle"
+            onPress={() => setBdAdvOpen((v) => !v)}
+            style={{
+              alignSelf: "flex-start",
+              paddingHorizontal: 12,
+              paddingVertical: 7,
+              borderRadius: 999,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.card,
+            }}
+          >
+            <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 11 }}>
+              {bdAdvOpen ? "Hide advanced" : "Advanced settings"}
+            </Text>
+          </Pressable>
+
+          {bdAdvOpen ? (
+            <View
+              testID="block-borders-advanced-panel"
+              style={{
+                gap: 10,
+                padding: 10,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderStyle: "dashed",
+                borderColor: colors.border,
+              }}
+            >
+              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
+                Corner radius
+              </Text>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {(
+                  [
+                    { key: "tl", label: "T-L" },
+                    { key: "tr", label: "T-R" },
+                    { key: "bl", label: "B-L" },
+                    { key: "br", label: "B-R" },
+                  ] as const
+                ).map((c) => (
+                  <View key={c.key} style={{ flex: 1, gap: 4 }}>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700" }}>
+                      {c.label}
+                    </Text>
+                    <TextInput
+                      testID={`block-border-radius-${c.key}`}
+                      value={bdCorners[c.key]}
+                      onChangeText={(v) => setBdCorners((prev) => ({ ...prev, [c.key]: v }))}
+                      placeholder="-"
+                      placeholderTextColor={colors.mutedForeground}
+                      keyboardType="numeric"
+                      style={[{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+                    />
+                  </View>
+                ))}
+              </View>
+              <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>
+                Blank corners use the radius above.
+              </Text>
+
+              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
+                Per-side borders
+              </Text>
+              {(
+                [
+                  { key: "top", label: "Top" },
+                  { key: "right", label: "Right" },
+                  { key: "bottom", label: "Bottom" },
+                  { key: "left", label: "Left" },
+                ] as const
+              ).map((sd) => (
+                <View key={sd.key} style={{ gap: 6 }}>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700" }}>
+                    {sd.label}
+                  </Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
+                    {(["", "none", "solid", "dashed", "dotted", "double"] as const).map((bs) => {
+                      const sel = bdSides[sd.key].style === bs;
+                      return (
+                        <Pressable {...WEB_FOCUS_RING_PROPS}
+                          key={bs || "default"}
+                          testID={`block-border-${sd.key}-style-${bs || "default"}`}
+                          onPress={() =>
+                            setBdSides((prev) => ({
+                              ...prev,
+                              [sd.key]: { ...prev[sd.key], style: bs },
+                            }))
+                          }
+                          style={{
+                            paddingHorizontal: 9,
+                            paddingVertical: 4,
+                            borderRadius: 999,
+                            backgroundColor: sel ? colors.primary : colors.card,
+                            borderWidth: 1,
+                            borderColor: sel ? colors.primary : colors.border,
+                          }}
+                        >
+                          <Text style={{ color: sel ? "#fff" : colors.foreground, fontWeight: "600", fontSize: 10 }}>
+                            {bs === "" ? "Default" : bs.charAt(0).toUpperCase() + bs.slice(1)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <TextInput
+                      testID={`block-border-${sd.key}-width`}
+                      value={bdSides[sd.key].width}
+                      onChangeText={(v) =>
+                        setBdSides((prev) => ({
+                          ...prev,
+                          [sd.key]: { ...prev[sd.key], width: v },
+                        }))
+                      }
+                      placeholder="Width"
+                      placeholderTextColor={colors.mutedForeground}
+                      keyboardType="numeric"
+                      style={[{ flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+                    />
+                    <TextInput
+                      testID={`block-border-${sd.key}-color`}
+                      value={bdSides[sd.key].color}
+                      onChangeText={(v) =>
+                        setBdSides((prev) => ({
+                          ...prev,
+                          [sd.key]: { ...prev[sd.key], color: v },
+                        }))
+                      }
+                      placeholder="#ffffff"
+                      placeholderTextColor={colors.mutedForeground}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      style={[{ flex: 1.4, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+                    />
+                  </View>
+                </View>
+              ))}
+              <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>
+                Blank fields use the border settings above. Pick "None" to remove one side.
+              </Text>
+            </View>
+          ) : null}
+        </View>
 
         {isAnyList ? (
           <View style={{ gap: 12 }}>

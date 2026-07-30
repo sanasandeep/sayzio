@@ -493,6 +493,21 @@ export function variantOverlay(
   borderRadius?: number;
   borderStyle?: "solid" | "dashed" | "dotted";
   textColor?: string;
+  // Advanced borders (Task #6038 web parity): per-corner radius and
+  // per-side width/color. Blank keys fall back to the shorthand values
+  // field-by-field, mirroring BiolinkBlock::buildInlineStyle.
+  borderTopLeftRadius?: number;
+  borderTopRightRadius?: number;
+  borderBottomLeftRadius?: number;
+  borderBottomRightRadius?: number;
+  borderTopWidth?: number;
+  borderRightWidth?: number;
+  borderBottomWidth?: number;
+  borderLeftWidth?: number;
+  borderTopColor?: string;
+  borderRightColor?: string;
+  borderBottomColor?: string;
+  borderLeftColor?: string;
 } | null {
   if (!settings) return null;
   const style = (settings._style as Record<string, unknown> | undefined) ?? {};
@@ -527,6 +542,86 @@ export function variantOverlay(
     if (Number.isFinite(n)) out!.borderRadius = Math.min(n, 999);
   }
   if (textColor) out!.textColor = textColor;
+
+  // ---- Advanced borders (Task #6038): per-corner radius ----
+  // Any explicitly-set corner activates per-corner mode; blank corners
+  // fall back to the shorthand radius. RN resolves an unset corner prop
+  // from the generic `borderRadius`, so we only emit resolved values.
+  const str = (v: unknown): string =>
+    typeof v === "string" ? v.trim() : typeof v === "number" ? String(v) : "";
+  const cornerProps = {
+    tl: "borderTopLeftRadius",
+    tr: "borderTopRightRadius",
+    bl: "borderBottomLeftRadius",
+    br: "borderBottomRightRadius",
+  } as const;
+  const cornerVals = {
+    tl: str(style.border_radius_tl),
+    tr: str(style.border_radius_tr),
+    bl: str(style.border_radius_bl),
+    br: str(style.border_radius_br),
+  };
+  if (Object.values(cornerVals).some((v) => v !== "")) {
+    const shorthand = str(style.border_radius);
+    (Object.keys(cornerProps) as Array<keyof typeof cornerProps>).forEach((k) => {
+      const v = cornerVals[k] !== "" ? cornerVals[k] : shorthand;
+      if (v === "") return;
+      const n = Number(v);
+      if (Number.isFinite(n)) out![cornerProps[k]] = Math.max(0, Math.min(n, 999));
+    });
+  }
+
+  // ---- Advanced borders (Task #6038): per-side style/width/color ----
+  // Any explicitly-set side field activates per-side mode. Each side
+  // resolves style/width/color field-by-field against the shorthand;
+  // sides with no visible resolved border get width 0 (mirrors the web
+  // `border-<side>:none`). RN supports only one `borderStyle` per box,
+  // so the first visible side's style wins when they differ.
+  const sides = ["top", "right", "bottom", "left"] as const;
+  const hasSide = sides.some(
+    (s) =>
+      str(style[`border_${s}_style`]) !== "" ||
+      str(style[`border_${s}_width`]) !== "" ||
+      str(style[`border_${s}_color`]) !== "",
+  );
+  if (hasSide) {
+    const shStyle = str(style.border_style) || "none";
+    const shWidth = str(style.border_width);
+    const shColor = str(style.border_color) || out!.borderColor || "";
+    const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+    let pickedStyle: string | undefined;
+    sides.forEach((side) => {
+      const s = str(style[`border_${side}_style`]) || shStyle;
+      const wRaw = str(style[`border_${side}_width`]) || shWidth;
+      const c = str(style[`border_${side}_color`]) || shColor;
+      const w = Number(wRaw);
+      const visible = s !== "none" && s !== "" && wRaw !== "" && Number.isFinite(w) && w > 0;
+      const widthKey = `border${cap(side)}Width` as
+        | "borderTopWidth"
+        | "borderRightWidth"
+        | "borderBottomWidth"
+        | "borderLeftWidth";
+      const colorKey = `border${cap(side)}Color` as
+        | "borderTopColor"
+        | "borderRightColor"
+        | "borderBottomColor"
+        | "borderLeftColor";
+      if (visible) {
+        out![widthKey] = Math.max(0, Math.min(w, 10));
+        if (c) out![colorKey] = c;
+        if (!pickedStyle) pickedStyle = s;
+      } else {
+        out![widthKey] = 0;
+      }
+    });
+    if (pickedStyle === "solid" || pickedStyle === "dashed" || pickedStyle === "dotted") {
+      out!.borderStyle = pickedStyle;
+    } else if (pickedStyle) {
+      // RN only supports solid/dashed/dotted; map the remaining CSS
+      // styles (double/groove/ridge) to a deterministic solid fallback.
+      out!.borderStyle = "solid";
+    }
+  }
 
   return Object.keys(out!).length === 0 ? null : out;
 }

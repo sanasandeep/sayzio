@@ -107,6 +107,18 @@ function blockCardStyle(
   borderWidth?: number;
   borderRadius?: number;
   borderStyle?: "solid" | "dashed" | "dotted";
+  borderTopLeftRadius?: number;
+  borderTopRightRadius?: number;
+  borderBottomLeftRadius?: number;
+  borderBottomRightRadius?: number;
+  borderTopWidth?: number;
+  borderRightWidth?: number;
+  borderBottomWidth?: number;
+  borderLeftWidth?: number;
+  borderTopColor?: string;
+  borderRightColor?: string;
+  borderBottomColor?: string;
+  borderLeftColor?: string;
 } {
   const o = variantOverlay(block.type, block.settings ?? null);
   return {
@@ -115,6 +127,22 @@ function blockCardStyle(
     ...(o?.borderWidth != null ? { borderWidth: o.borderWidth } : {}),
     ...(o?.borderRadius != null ? { borderRadius: o.borderRadius } : {}),
     ...(o?.borderStyle != null ? { borderStyle: o.borderStyle } : {}),
+    // Advanced borders (Task #6038): per-corner radius + per-side
+    // width/color computed by variantOverlay with field-by-field
+    // fallback to the shorthand. Spread after the generic props so a
+    // set corner/side always wins.
+    ...(o?.borderTopLeftRadius != null ? { borderTopLeftRadius: o.borderTopLeftRadius } : {}),
+    ...(o?.borderTopRightRadius != null ? { borderTopRightRadius: o.borderTopRightRadius } : {}),
+    ...(o?.borderBottomLeftRadius != null ? { borderBottomLeftRadius: o.borderBottomLeftRadius } : {}),
+    ...(o?.borderBottomRightRadius != null ? { borderBottomRightRadius: o.borderBottomRightRadius } : {}),
+    ...(o?.borderTopWidth != null ? { borderTopWidth: o.borderTopWidth } : {}),
+    ...(o?.borderRightWidth != null ? { borderRightWidth: o.borderRightWidth } : {}),
+    ...(o?.borderBottomWidth != null ? { borderBottomWidth: o.borderBottomWidth } : {}),
+    ...(o?.borderLeftWidth != null ? { borderLeftWidth: o.borderLeftWidth } : {}),
+    ...(o?.borderTopColor != null ? { borderTopColor: o.borderTopColor } : {}),
+    ...(o?.borderRightColor != null ? { borderRightColor: o.borderRightColor } : {}),
+    ...(o?.borderBottomColor != null ? { borderBottomColor: o.borderBottomColor } : {}),
+    ...(o?.borderLeftColor != null ? { borderLeftColor: o.borderLeftColor } : {}),
   };
 }
 
@@ -1151,6 +1179,21 @@ function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: Biolink
         ...(overlay.borderWidth != null ? { borderWidth: overlay.borderWidth } : {}),
         ...(overlay.borderRadius != null ? { borderRadius: overlay.borderRadius } : {}),
         ...(overlay.borderStyle != null ? { borderStyle: overlay.borderStyle } : {}),
+        // Advanced borders (Task #6038): per-corner radius + per-side
+        // width/color, spread after the generic props so a set
+        // corner/side always wins (mirrors blockCardStyle()).
+        ...(overlay.borderTopLeftRadius != null ? { borderTopLeftRadius: overlay.borderTopLeftRadius } : {}),
+        ...(overlay.borderTopRightRadius != null ? { borderTopRightRadius: overlay.borderTopRightRadius } : {}),
+        ...(overlay.borderBottomLeftRadius != null ? { borderBottomLeftRadius: overlay.borderBottomLeftRadius } : {}),
+        ...(overlay.borderBottomRightRadius != null ? { borderBottomRightRadius: overlay.borderBottomRightRadius } : {}),
+        ...(overlay.borderTopWidth != null ? { borderTopWidth: overlay.borderTopWidth } : {}),
+        ...(overlay.borderRightWidth != null ? { borderRightWidth: overlay.borderRightWidth } : {}),
+        ...(overlay.borderBottomWidth != null ? { borderBottomWidth: overlay.borderBottomWidth } : {}),
+        ...(overlay.borderLeftWidth != null ? { borderLeftWidth: overlay.borderLeftWidth } : {}),
+        ...(overlay.borderTopColor != null ? { borderTopColor: overlay.borderTopColor } : {}),
+        ...(overlay.borderRightColor != null ? { borderRightColor: overlay.borderRightColor } : {}),
+        ...(overlay.borderBottomColor != null ? { borderBottomColor: overlay.borderBottomColor } : {}),
+        ...(overlay.borderLeftColor != null ? { borderLeftColor: overlay.borderLeftColor } : {}),
       }
     : null;
 
