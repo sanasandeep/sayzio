@@ -2530,6 +2530,56 @@
                         return true;
                     }
                 };
+                // Per-side borders (Task #6041): style/width/color for each
+                // side depend on the sibling fields plus the shorthand
+                // fallbacks, so recompute ALL border props from the full
+                // form payload — mirroring BiolinkBlock::buildInlineStyle.
+                function borderFieldVal(fields, name) {
+                    var v = fields['style[' + name + ']'];
+                    return v === undefined || v === null ? '' : String(v);
+                }
+                var BORDER_SIDES = ['top', 'right', 'bottom', 'left'];
+                var BORDER_SIDE_PROPS = { top: 'borderTop', right: 'borderRight', bottom: 'borderBottom', left: 'borderLeft' };
+                function borderHasSideOverride(fields) {
+                    return BORDER_SIDES.some(function (side) {
+                        return borderFieldVal(fields, 'border_' + side + '_style') !== ''
+                            || borderFieldVal(fields, 'border_' + side + '_width') !== ''
+                            || borderFieldVal(fields, 'border_' + side + '_color') !== '';
+                    });
+                }
+                function applyLiveSideBorders(el, fields) {
+                    var shStyle = borderFieldVal(fields, 'border_style');
+                    var shWidth = borderFieldVal(fields, 'border_width');
+                    var shColor = borderFieldVal(fields, 'border_color');
+                    if (borderHasSideOverride(fields)) {
+                        // Clear any shorthand first, then set each side
+                        // explicitly (matches the per-side server branch).
+                        el.style.border = '';
+                        BORDER_SIDES.forEach(function (side) {
+                            var s = borderFieldVal(fields, 'border_' + side + '_style');
+                            if (s === '') s = shStyle !== '' ? shStyle : 'none';
+                            var w = borderFieldVal(fields, 'border_' + side + '_width');
+                            if (w === '') w = shWidth;
+                            var c = borderFieldVal(fields, 'border_' + side + '_color');
+                            if (c === '') c = shColor;
+                            if (s !== 'none' && s !== '' && w !== '' && parseFloat(w) > 0) {
+                                el.style[BORDER_SIDE_PROPS[side]] = parseFloat(w) + 'px ' + s + (c !== '' ? ' ' + c : '');
+                            } else {
+                                el.style[BORDER_SIDE_PROPS[side]] = 'none';
+                            }
+                        });
+                    } else {
+                        // No per-side overrides left — revert to the plain
+                        // shorthand semantics (server elseif branch).
+                        BORDER_SIDES.forEach(function (side) { el.style[BORDER_SIDE_PROPS[side]] = ''; });
+                        if (shStyle !== '' && shStyle !== 'none' && shWidth !== '' && parseFloat(shWidth) > 0) {
+                            el.style.border = parseFloat(shWidth) + 'px ' + shStyle + (shColor !== '' ? ' ' + shColor : '');
+                        } else {
+                            el.style.border = '';
+                        }
+                    }
+                    return true;
+                }
                 function styleTarget(root) {
                     // Styled blocks render a .block-styled wrapper; button-like
                     // blocks carry the inline style on the anchor itself. If
@@ -2632,6 +2682,20 @@
                         var hero = root.querySelector('[data-photo-hero]');
                         return hero ? pfn(hero, value) !== false : false;
                     }
+                    // Per-side border fields (Task #6041): each side's final
+                    // CSS depends on its style+width+color plus the shorthand
+                    // fallbacks, so recompute from the full form payload.
+                    // Shorthand border edits also reroute here whenever any
+                    // per-side override exists, otherwise the naive single-
+                    // property patch would clobber the per-side values.
+                    var isSideBorderKey = /^style\.border_(top|right|bottom|left)_(style|width|color)$/.test(key);
+                    var isShorthandBorderKey = key === 'style.border_style' || key === 'style.border_width' || key === 'style.border_color';
+                    if (fields && (isSideBorderKey || (isShorthandBorderKey && borderHasSideOverride(fields)))) {
+                        var bEl = styleTarget(root);
+                        if (!bEl) return false;
+                        return applyLiveSideBorders(bEl, fields);
+                    }
+                    if (isSideBorderKey) return false;
                     var fn = LIVE_STYLE_KEYS[key];
                     if (!fn) return false;
                     var el = styleTarget(root);
