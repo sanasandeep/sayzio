@@ -430,6 +430,7 @@ export function ChromeBar({
   const activeTab = activeTabId ? tabs[activeTabId] : null;
   const [omniboxValue, setOmniboxValue] = useState('');
   const [omniboxFocused, setOmniboxFocused] = useState(false);
+  const [omniboxEdited, setOmniboxEdited] = useState(false);
   const [shortenOpen, setShortenOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   // Context-menu link tools: override target URL/title and preselected type.
@@ -597,12 +598,17 @@ export function ChromeBar({
     void navigate(activeTabId, s.url);
     setSuggestions([]);
     setSuggestionIndex(-1);
+    setOmniboxEdited(false);
     omniboxRef.current?.blur();
   }, [activeTabId, navigate]);
 
   const handleOmniboxKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!suggestionsOpen) {
-      if (e.key === 'Escape') omniboxRef.current?.blur();
+      if (e.key === 'Escape') {
+        setOmniboxEdited(false);
+        setOmniboxValue(activeTab?.url ?? '');
+        omniboxRef.current?.blur();
+      }
       return;
     }
     if (e.key === 'ArrowDown') {
@@ -621,7 +627,7 @@ export function ChromeBar({
       setSuggestions([]);
       setSuggestionIndex(-1);
     }
-  }, [suggestionsOpen, suggestions, suggestionIndex, acceptSuggestion]);
+  }, [suggestionsOpen, suggestions, suggestionIndex, acceptSuggestion, activeTab?.url]);
 
   // Track reading list state for the active page
   useEffect(() => {
@@ -732,12 +738,19 @@ export function ChromeBar({
     void window.zio.tracker.getCount(activeTabId).then((n: number) => setBlockedCount(n)).catch(() => setBlockedCount(0));
   }, [activeTabId]);
 
-  // Sync omnibox with active tab URL
+  // Sync omnibox with active tab URL (unless the user has uncommitted edits)
   useEffect(() => {
-    if (!omniboxFocused) {
+    if (!omniboxFocused && !omniboxEdited) {
       setOmniboxValue(activeTab?.url ?? '');
     }
-  }, [activeTab?.url, omniboxFocused]);
+  }, [activeTab?.url, omniboxFocused, omniboxEdited]);
+
+  // Switching tabs always resets the omnibox to that tab's URL
+  useEffect(() => {
+    setOmniboxEdited(false);
+    setOmniboxValue(activeTab?.url ?? '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTabId]);
 
   // Close popovers when the active tab changes
   useEffect(() => {
@@ -827,6 +840,7 @@ export function ChromeBar({
     e.preventDefault();
     if (!activeTabId || !omniboxValue.trim()) return;
     void navigate(activeTabId, omniboxValue.trim());
+    setOmniboxEdited(false);
     omniboxRef.current?.blur();
   }, [activeTabId, navigate, omniboxValue]);
 
@@ -1203,8 +1217,8 @@ export function ChromeBar({
         <form onSubmit={handleOmniboxSubmit} style={{ flex: 1, position: 'relative' }}>
           <input
             ref={omniboxRef}
-            value={omniboxFocused ? omniboxValue : (activeTab?.url ?? '')}
-            onChange={e => setOmniboxValue(e.target.value)}
+            value={omniboxFocused || omniboxEdited ? omniboxValue : (activeTab?.url ?? '')}
+            onChange={e => { setOmniboxValue(e.target.value); setOmniboxEdited(true); }}
             onFocus={(e) => { setOmniboxFocused(true); setOmniboxValue(e.target.value); e.target.select(); }}
             onBlur={() => setOmniboxFocused(false)}
             onKeyDown={handleOmniboxKeyDown}
