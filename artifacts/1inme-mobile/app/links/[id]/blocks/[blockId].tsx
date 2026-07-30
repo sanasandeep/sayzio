@@ -368,6 +368,32 @@ const AVATAR_FRAME_COLOR_PRESETS = [
   "#0f172a",
 ];
 
+// Quick-pick swatches for the Borders section color fields (Task #6089
+// presets + Task #6094 recents). Custom hex colors typed into any border
+// color field are remembered on-device (AsyncStorage, most recent first,
+// capped) and rendered alongside these presets; preset duplicates are
+// never re-added to the recents list.
+const BORDER_COLOR_SWATCHES = [
+  "#ffffff",
+  "#0f172a",
+  "#7d9bff",
+  "#f59e0b",
+  "#ef4444",
+  "#10b981",
+  "#ec4899",
+  "#8b5cf6",
+];
+const RECENT_BORDER_COLORS_KEY = "biolink.editor.recentBorderColors";
+const MAX_RECENT_BORDER_COLORS = 5;
+
+// Normalizes a user-typed color to a lowercase #rgb/#rrggbb/#rrggbbaa hex
+// string, or null when it isn't a plain hex color (keywords, gradients and
+// partial input are not remembered as swatches).
+function normalizeHexColor(raw: string): string | null {
+  const v = raw.trim().toLowerCase();
+  return /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/.test(v) ? v : null;
+}
+
 // Mirrors the catalog-version constant on the PHP side. Bumped whenever a
 // variant payload changes in a way clients should re-apply. Stored
 // alongside the variant key on each block as `_variant_version`.
@@ -1080,6 +1106,38 @@ export function BlockSettingsEditor({
     bottom: { style: "", width: "", color: "" },
     left: { style: "", width: "", color: "" },
   });
+  // Recently used custom border colors (Task #6094): hydrated once from
+  // AsyncStorage, appended to the preset swatch row, updated whenever a
+  // valid custom hex is committed (blur) in any border color field.
+  const [recentBorderColors, setRecentBorderColors] = useState<string[]>([]);
+  useEffect(() => {
+    AsyncStorage.getItem(RECENT_BORDER_COLORS_KEY)
+      .then((raw) => {
+        if (!raw) return;
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            setRecentBorderColors(
+              parsed
+                .filter((c): c is string => typeof c === "string" && normalizeHexColor(c) !== null)
+                .filter((c) => !BORDER_COLOR_SWATCHES.includes(c.toLowerCase()))
+                .slice(0, MAX_RECENT_BORDER_COLORS),
+            );
+          }
+        } catch {}
+      })
+      .catch(() => {});
+  }, []);
+  const rememberBorderColor = useCallback((raw: string) => {
+    const hex = normalizeHexColor(raw);
+    if (!hex || BORDER_COLOR_SWATCHES.includes(hex)) return;
+    setRecentBorderColors((prev) => {
+      const next = [hex, ...prev.filter((c) => c !== hex)].slice(0, MAX_RECENT_BORDER_COLORS);
+      if (next.length === prev.length && next.every((c, i) => c === prev[i])) return prev;
+      AsyncStorage.setItem(RECENT_BORDER_COLORS_KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
   // Instant borders live preview (Task #6074): true when any border field
   // is set, so the preview only appears once borders are in play.
   const borderFieldsDirty = useMemo(
@@ -2668,6 +2726,7 @@ export function BlockSettingsEditor({
                 testID="block-border-color-input"
                 value={bdColor}
                 onChangeText={setBdColor}
+                onBlur={() => rememberBorderColor(bdColor)}
                 placeholder="#ffffff"
                 placeholderTextColor={colors.mutedForeground}
                 autoCapitalize="none"
@@ -2702,6 +2761,47 @@ export function BlockSettingsEditor({
               />
             </View>
           </View>
+
+          {/* Border color quick-pick swatches: fixed presets plus the
+              creator's recently used custom colors (Task #6094). Tapping a
+              swatch fills the shorthand Color field above. */}
+          <View
+            testID="block-border-color-swatches"
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" }}
+          >
+            {[
+              ...BORDER_COLOR_SWATCHES.map((c) => ({ color: c, recent: false })),
+              ...recentBorderColors
+                .filter((c) => !BORDER_COLOR_SWATCHES.includes(c))
+                .map((c) => ({ color: c, recent: true })),
+            ].map(({ color: sw, recent }) => {
+              const sel = bdColor.trim().toLowerCase() === sw;
+              return (
+                <Pressable {...WEB_FOCUS_RING_PROPS}
+                  key={`${recent ? "recent" : "preset"}-${sw}`}
+                  testID={`block-border-color-swatch-${sw.replace("#", "")}`}
+                  accessibilityLabel={`${recent ? "Recent" : "Preset"} border color ${sw}`}
+                  onPress={() => {
+                    setBdColor(sw);
+                    if (recent) rememberBorderColor(sw);
+                  }}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    backgroundColor: sw,
+                    borderWidth: sel ? 2 : 1,
+                    borderColor: sel ? colors.primary : colors.border,
+                  }}
+                />
+              );
+            })}
+          </View>
+          {recentBorderColors.length > 0 ? (
+            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>
+              Your recent custom colors appear at the end of the row.
+            </Text>
+          ) : null}
 
           <Pressable {...WEB_FOCUS_RING_PROPS}
             testID="block-borders-advanced-toggle"
@@ -2833,6 +2933,7 @@ export function BlockSettingsEditor({
                           [sd.key]: { ...prev[sd.key], color: v },
                         }))
                       }
+                      onBlur={() => rememberBorderColor(bdSides[sd.key].color)}
                       placeholder="#ffffff"
                       placeholderTextColor={colors.mutedForeground}
                       autoCapitalize="none"
