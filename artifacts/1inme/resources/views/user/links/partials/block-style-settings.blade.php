@@ -36,6 +36,23 @@
     // Design-locked pages: per-block styling (Designs/Text/Look/Layout) is
     // owned by the template — hide the whole section and show a lock note.
     $designLocked = method_exists($link, 'isDesignLocked') && $link->isDesignLocked();
+
+    // Effective page backdrop for the contrast warning (Task #6052): when the
+    // block background is empty (transparent/inherit), text sits directly on
+    // the page background. Resolve it to a solid hex when possible so the
+    // warning still fires; gradients / images / presets / videos stay null so
+    // the warning is silent (no false positives).
+    $pageBs = $link->settings['biolink'] ?? [];
+    $effPageBg = null;
+    $__hex6 = fn($v) => is_string($v) && preg_match('/^#[0-9a-fA-F]{6}$/', $v) ? $v : null;
+    if (!array_key_exists('background_type', $pageBs)) {
+        // No theme ever saved: the page renders the default dark gradient over
+        // bg_fallback_color (#0a0612). Mirror the public-page contrast
+        // safeguard and treat the fallback as the effective backdrop.
+        $effPageBg = $__hex6($pageBs['bg_fallback_color'] ?? null) ?? '#0a0612';
+    } elseif (($pageBs['background_type'] ?? null) === 'color') {
+        $effPageBg = $__hex6($pageBs['background_color'] ?? null);
+    }
 @endphp
 
 @if($designLocked && $showStyle)
@@ -54,6 +71,11 @@
          Non-blocking — warns only, never prevents saving. --}}
     cText: @js((string) ($st['text_color'] ?? '')),
     cBg: @js((string) ($st['bg_color'] ?? '')),
+    {{-- Resolved page backdrop used when the block bg is empty (Task #6052).
+         null when the page background is a gradient/image/preset (silent). --}}
+    cPageBg: @js($effPageBg),
+    cEffBg() { return String(this.cBg || '').trim() !== '' ? this.cBg : this.cPageBg; },
+    cUsingPage() { return String(this.cBg || '').trim() === '' && this.cPageBg !== null; },
     cLum(hex) {
         const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
         if (!m) return null;
@@ -62,7 +84,7 @@
         return 0.2126 * chan((n >> 16) & 255) + 0.7152 * chan((n >> 8) & 255) + 0.0722 * chan(n & 255);
     },
     cRatio() {
-        const a = this.cLum(this.cText), b = this.cLum(this.cBg);
+        const a = this.cLum(this.cText), b = this.cLum(this.cEffBg());
         if (a === null || b === null) return null;
         const hi = Math.max(a, b), lo = Math.min(a, b);
         return (hi + 0.05) / (lo + 0.05);
@@ -501,7 +523,7 @@
                          style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
                          data-testid="block-contrast-warning-text">
                         <i class="fas fa-triangle-exclamation"></i>
-                        <span>Low contrast (<span x-text="cFmt()"></span>) against the background color: text may be hard to read. Aim for at least 4.5:1.</span>
+                        <span>Low contrast (<span x-text="cFmt()"></span>) against the <span x-text="cUsingPage() ? 'page background' : 'background color'"></span>: text may be hard to read. Aim for at least 4.5:1.</span>
                     </div>
                 </template>
             </div>

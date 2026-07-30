@@ -100,7 +100,33 @@ $cta = BiolinkBlock::create([
   ],
 ]);
 
-echo 'IDS=' . json_encode(['linkId' => $bio->id, 'headingId' => $h->id, 'ctaId' => $cta->id]);
+// Block with NO background: inherits the page backdrop. The page has no
+// saved background_type, so the effective backdrop is the default dark
+// #0a0612 — dark text on it must warn (Task #6052).
+$h2 = BiolinkBlock::create([
+  'link_id' => $bio->id, 'type' => 'heading', 'sort_order' => 1, 'is_active' => true,
+  'settings' => [
+    'text' => 'Inherited Backdrop Fixture',
+    '_style' => ['text_color' => '#333333'],
+  ],
+]);
+
+// Second biolink with a GRADIENT page background: unresolvable backdrop,
+// so an inherit-bg block must stay silent (no false positives).
+$bio2 = Link::create([
+  'user_id' => $u->id, 'workspace_id' => $ws?->id, 'type' => 'biolink',
+  'alias' => '${ALIAS}-g', 'title' => 'E2E Gradient Backdrop', 'is_active' => true,
+  'settings' => ['biolink' => ['background_type' => 'gradient']],
+]);
+$h3 = BiolinkBlock::create([
+  'link_id' => $bio2->id, 'type' => 'heading', 'sort_order' => 0, 'is_active' => true,
+  'settings' => [
+    'text' => 'Gradient Backdrop Fixture',
+    '_style' => ['text_color' => '#333333'],
+  ],
+]);
+
+echo 'IDS=' . json_encode(['linkId' => $bio->id, 'headingId' => $h->id, 'ctaId' => $cta->id, 'inheritId' => $h2->id, 'gradientLinkId' => $bio2->id, 'gradientHeadingId' => $h3->id]);
 `.trim();
 
   const out = runTinkerSeed(php);
@@ -109,7 +135,41 @@ echo 'IDS=' . json_encode(['linkId' => $bio->id, 'headingId' => $h->id, 'ctaId' 
   return JSON.parse(m[1]);
 }
 
-let ids: { linkId: number; headingId: number; ctaId: number };
+let ids: {
+  linkId: number;
+  headingId: number;
+  ctaId: number;
+  inheritId: number;
+  gradientLinkId: number;
+  gradientHeadingId: number;
+};
+
+/** Open a block's edit drawer and expand the Block Styling panel. */
+async function openStylePanel(
+  page: import("@playwright/test").Page,
+  linkId: number,
+  blockId: number,
+) {
+  await page.goto(`/user/links/${linkId}/blocks`, {
+    waitUntil: "domcontentloaded",
+    timeout: 90_000,
+  });
+  await page.waitForSelector(".block-card", { timeout: 45_000 });
+  const form = page.locator(`[data-inline-editor-body="${blockId}"] form`);
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await page.click(`[data-block-id="${blockId}"] .edit-btn`);
+    try {
+      await expect(form).toBeVisible({ timeout: 20_000 });
+      break;
+    } catch (err) {
+      if (attempt === 3) throw err;
+    }
+  }
+  await page.waitForTimeout(400);
+  const styleRoot = form.locator("[data-style-root]");
+  await styleRoot.locator('button:has-text("Block Styling")').click();
+  return { form, styleRoot };
+}
 
 test.beforeAll(async ({ browser }) => {
   test.setTimeout(240_000);
@@ -248,4 +308,59 @@ test("cta button drawer warns on low-contrast accent pair without blocking saves
     `echo 'TC=' . (App\\Modules\\User\\Models\\BiolinkBlock::find(${ids.ctaId})->settings['text_color'] ?? 'missing');`,
   );
   expect(saved).toContain("TC=#dddddd");
+});
+
+test("empty block bg falls back to the resolved page backdrop (default dark page warns on dark text)", async ({
+  page,
+}) => {
+  const { form, styleRoot } = await openStylePanel(
+    page,
+    ids.linkId,
+    ids.inheritId,
+  );
+  await styleRoot.locator('button:has-text("Text")').first().click();
+
+  // Seeded #333333 text, NO block bg → compared against the page's effective
+  // dark backdrop (#0a0612) → low contrast, and the copy names the page bg.
+  const textWarning = styleRoot.locator(
+    '[data-testid="block-contrast-warning-text"]',
+  );
+  await expect(textWarning).toBeVisible({ timeout: 15_000 });
+  await expect(textWarning).toContainText("against the page background");
+
+  // The Look tab mirrors the warning; an explicit light block background
+  // clears it (the explicit value wins over the page fallback), and
+  // clearing it re-inherits the dark page backdrop.
+  await styleRoot.locator('button:has-text("Look")').click();
+  // The block has no bg → the Background mode starts on "None"; the color
+  // input (and its warning) lives in Color mode, so switch modes first.
+  await styleRoot.locator('button:text-is("Color")').click();
+  const bgWarning = styleRoot.locator(
+    '[data-testid="block-contrast-warning-bg"]',
+  );
+  await expect(bgWarning).toBeVisible({ timeout: 15_000 });
+  const bgInput = form.locator('input[name="style[bg_color]"]');
+  await bgInput.fill("#ffffff");
+  await expect(bgWarning).toBeHidden({ timeout: 10_000 });
+  await bgInput.fill("");
+  await expect(bgWarning).toBeVisible({ timeout: 10_000 });
+});
+
+test("gradient page background stays silent for inherit-bg blocks (no false positives)", async ({
+  page,
+}) => {
+  const { styleRoot } = await openStylePanel(
+    page,
+    ids.gradientLinkId,
+    ids.gradientHeadingId,
+  );
+  await styleRoot.locator('button:has-text("Text")').first().click();
+
+  // Same dark #333333 text, but the page background is a gradient — the
+  // backdrop is unresolvable so the warning must NOT appear.
+  const textWarning = styleRoot.locator(
+    '[data-testid="block-contrast-warning-text"]',
+  );
+  await page.waitForTimeout(1_500);
+  await expect(textWarning).toBeHidden();
 });
