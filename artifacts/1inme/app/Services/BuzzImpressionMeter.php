@@ -42,15 +42,38 @@ class BuzzImpressionMeter
     }
 
     /**
+     * Any allowance at or above this is treated as unlimited. Holders of
+     * the `user.plan_limits.bypass` permission get PHP_INT_MAX from
+     * {@see User::getPlanFeature()}, which must display as "∞" — never as
+     * a raw 9-quintillion number.
+     */
+    public const UNLIMITED_THRESHOLD = PHP_INT_MAX;
+
+    /**
+     * Single source of truth for "is this allowance unlimited?" so the
+     * pause gate and the usage summary can't drift: negative values
+     * (the canonical -1) and absurdly large ones (plan-limit bypass)
+     * both count as unlimited.
+     */
+    public static function isUnlimited(int $allowance): bool
+    {
+        return $allowance < 0 || $allowance >= self::UNLIMITED_THRESHOLD;
+    }
+
+    /**
      * Resolve the creator's monthly Buzz impression allowance.
      * -1 means unlimited. Null user => unlimited (defensive).
+     * Unlimited allowances (including the PHP_INT_MAX plan-limit bypass
+     * sentinel) are normalised to -1 so every consumer — including the
+     * API capability payload — sees the canonical unlimited value.
      */
     public static function allowanceFor(?User $user): int
     {
         if (!$user) {
             return -1;
         }
-        return (int) $user->getPlanFeature(self::FEATURE_KEY, self::DEFAULT_ALLOWANCE);
+        $allowance = (int) $user->getPlanFeature(self::FEATURE_KEY, self::DEFAULT_ALLOWANCE);
+        return self::isUnlimited($allowance) ? -1 : $allowance;
     }
 
     /** Impressions used by a creator in the given (or current) period. */
@@ -107,7 +130,7 @@ class BuzzImpressionMeter
             return false;
         }
         $allowance = self::allowanceFor($user);
-        if ($allowance < 0) {
+        if (self::isUnlimited($allowance)) {
             return false; // unlimited
         }
         if ($allowance === 0) {
@@ -126,7 +149,7 @@ class BuzzImpressionMeter
     {
         $allowance = self::allowanceFor($user);
         $used = $user ? self::used((int) $user->id) : 0;
-        $unlimited = $allowance < 0;
+        $unlimited = self::isUnlimited($allowance);
         $remaining = $unlimited ? null : max(0, $allowance - $used);
         $percent = ($unlimited || $allowance === 0)
             ? ($unlimited ? 0 : 100)
