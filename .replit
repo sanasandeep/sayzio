@@ -44,6 +44,10 @@ args = "e2e-bg-preset-live-single"
 task = "workflow.run"
 args = "e2e-biolink-editor-preview-focus"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "eas-apk-build"
+
 [[workflows.workflow]]
 name = "e2e-block-defaults"
 author = "agent"
@@ -117,6 +121,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "VALIDATION_PORT=5065 bash artifacts/1inme/tests/Browser/run-validation.sh biolink-editor-preview-focus.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "eas-apk-build"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme-mobile && EAS_NO_VCS=1 npx -y eas-cli build --platform android --profile preview --non-interactive --no-wait 2>&1 | tee /tmp/eas-build-kick.log"
 
 [workflows.workflow.metadata]
 isValidation = true
