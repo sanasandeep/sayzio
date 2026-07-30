@@ -35,6 +35,26 @@ class BgPresetCatalog
         return self::$presets[$key] ?? null;
     }
 
+    /**
+     * Groups hidden from the Presets picker (Task #6204): gradients moved
+     * to the Gradient tab's "Classic" category, torn moved to the
+     * standalone Torn Paper type. Their keys STILL resolve via
+     * findByKey()/css() so already-saved pages render unchanged.
+     */
+    public const HIDDEN_PICKER_GROUPS = ['gradients', 'torn'];
+
+    /** @return array<string, string> group key => label, picker-visible only */
+    public static function pickerGroups(): array
+    {
+        return array_diff_key(self::GROUPS, array_flip(self::HIDDEN_PICKER_GROUPS));
+    }
+
+    /** @return array<string, array{group: string, label: string, css: string}> picker-visible presets */
+    public static function pickerPresets(): array
+    {
+        return array_filter(self::$presets, fn ($p) => !in_array($p['group'], self::HIDDEN_PICKER_GROUPS, true));
+    }
+
     /** Return the raw CSS string for a preset key, or null if not found. */
     public static function css(string $key): ?string
     {
@@ -87,8 +107,12 @@ class BgPresetCatalog
      */
     public static function forApi(): array
     {
+        // Only picker-visible groups are advertised (Task #6204): the
+        // mobile picker builds its tabs from this list, so gradients/torn
+        // disappear from the picker while their presets stay resolvable
+        // below (flagged `hidden`) for already-saved pages.
         $groups = [];
-        foreach (self::GROUPS as $key => $label) {
+        foreach (self::pickerGroups() as $key => $label) {
             $groups[] = ['key' => $key, 'label' => $label];
         }
 
@@ -108,6 +132,9 @@ class BgPresetCatalog
                 // Torn presets: solid paper color the mobile client overlays
                 // (with a zig-zag torn edge) on top of the gradient backdrop.
                 'paper'  => $p['paper'] ?? null,
+                // Hidden from the picker (legacy group) but still rendered
+                // for pages that saved this key before Task #6204.
+                'hidden' => in_array($p['group'], self::HIDDEN_PICKER_GROUPS, true),
             ];
         }
 

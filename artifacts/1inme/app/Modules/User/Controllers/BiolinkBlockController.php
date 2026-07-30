@@ -1233,7 +1233,9 @@ class BiolinkBlockController extends Controller
         'slideshow_interval', 'video_url', 'bg_template_id', 'bg_attachment',
         'bg_fallback_color', 'bg_blur', 'bg_overlay_color', 'bg_overlay_opacity',
         'bg_preset_opacity',
-        'torn_paper_color',
+        'torn_paper_color', 'torn_style', 'torn_backdrop_color', 'torn_backdrop_color2',
+        'tiles_palette', 'tiles_layout', 'tiles_animate',
+        'mesh_preset', 'pattern_preset',
         'font_family', 'font_color', 'button_style', 'button_color', 'button_text_color',
         'custom_branding_text', 'custom_branding_url', 'custom_branding_logo',
         'custom_css', 'custom_js_head', 'custom_js_body',
@@ -1247,7 +1249,7 @@ class BiolinkBlockController extends Controller
         $validated = $request->validate([
             'biolink_title' => 'nullable|string|max:100',
             'biolink_description' => 'nullable|string|max:500',
-            'background_type' => 'nullable|string|in:color,gradient,image,slideshow,video,template,preset,torn',
+            'background_type' => 'nullable|string|in:color,gradient,image,slideshow,video,template,preset,torn,tiles,mesh,pattern',
             // CSS background preset key from BgPresetCatalog. Only stored when
             // background_type === 'preset'; the public renderer resolves CSS from the
             // catalog server-side, so raw CSS is never accepted from the client.
@@ -1276,6 +1278,44 @@ class BiolinkBlockController extends Controller
             // torn edge of a solid paper sheet.
             'torn_image' => \App\Services\UploadPolicy::rule('link.background_image', $request->user()),
             'torn_paper_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            // Tear variant key (Task #6204): clip paths are resolved
+            // server-side from TornStyleCatalog, never from client input.
+            'torn_style' => ['nullable', 'string', 'max:30',
+                function ($attribute, $value, $fail) {
+                    if ($value && !\App\Modules\User\Support\TornStyleCatalog::isValidStyle($value)) {
+                        $fail('The selected tear style is not valid.');
+                    }
+                }
+            ],
+            // Backdrop colors beyond the tear (hex only — the renderer
+            // builds the gradient itself; a backdrop photo wins over these).
+            'torn_backdrop_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'torn_backdrop_color2' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            // Tiles / Mesh / Pattern background types (Task #6204): only
+            // catalog KEYS are accepted; all CSS resolves server-side.
+            'tiles_palette' => ['nullable', 'string', 'max:40',
+                function ($attribute, $value, $fail) {
+                    if ($value && !\App\Modules\User\Support\TilesBgCatalog::isValidPalette($value)) {
+                        $fail('The selected tile palette is not valid.');
+                    }
+                }
+            ],
+            'tiles_layout' => 'nullable|string|in:uniform,metro,brick',
+            'tiles_animate' => 'nullable|string|in:0,1',
+            'mesh_preset' => ['nullable', 'string', 'max:40',
+                function ($attribute, $value, $fail) {
+                    if ($value && !\App\Modules\User\Support\MeshGradientCatalog::isValidKey($value)) {
+                        $fail('The selected mesh gradient is not valid.');
+                    }
+                }
+            ],
+            'pattern_preset' => ['nullable', 'string', 'max:40',
+                function ($attribute, $value, $fail) {
+                    if ($value && !\App\Modules\User\Support\PatternCatalog::isValidKey($value)) {
+                        $fail('The selected pattern is not valid.');
+                    }
+                }
+            ],
             'gradient_colors' => 'nullable|string|max:2000',
             'gradient_angle' => 'nullable|integer|min:0|max:360',
             'gradient_type' => 'nullable|string|in:linear,radial,conic',
@@ -1551,6 +1591,28 @@ class BiolinkBlockController extends Controller
         }
 
         $settings['biolink'] = array_merge($settings['biolink'] ?? [], $validated);
+
+        // Tiles / Mesh / Pattern (Task #6204): stamp a server-derived
+        // `bg_effect_colors` list (representative catalog colors) so the
+        // mobile client can render a LinearGradient approximation without
+        // duplicating the CSS catalogs. Derived data only — recomputed on
+        // every background save, cleared when the type moves away. Design-
+        // locked saves never reach here with a background_type (stripped
+        // above), so the stamp respects the lock automatically.
+        if (array_key_exists('background_type', $validated)) {
+            $bt = $validated['background_type'];
+            $effectColors = match ($bt) {
+                'tiles'   => \App\Modules\User\Support\TilesBgCatalog::colors((string) ($settings['biolink']['tiles_palette'] ?? '')),
+                'mesh'    => \App\Modules\User\Support\MeshGradientCatalog::colors((string) ($settings['biolink']['mesh_preset'] ?? '')),
+                'pattern' => \App\Modules\User\Support\PatternCatalog::colors((string) ($settings['biolink']['pattern_preset'] ?? '')),
+                default   => [],
+            };
+            if ($effectColors !== []) {
+                $settings['biolink']['bg_effect_colors'] = $effectColors;
+            } else {
+                unset($settings['biolink']['bg_effect_colors']);
+            }
+        }
 
         // video_url is echoed into the public page as a <video><source src>
         // (common/biolink.blade.php), so it must pass the same sanitizer as

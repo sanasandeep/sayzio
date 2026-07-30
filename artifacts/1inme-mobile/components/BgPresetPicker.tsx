@@ -43,7 +43,9 @@ export function BgPresetPicker({ linkId }: { linkId: number }) {
   const colors = useColors();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [group, setGroup] = useState("gradients");
+  // Default to the first advertised group; "gradients" moved to the
+  // Gradient controls and is no longer served (Task #6204).
+  const [group, setGroup] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   // Live value while the transparency slider is being dragged; null when
@@ -141,15 +143,18 @@ export function BgPresetPicker({ linkId }: { linkId: number }) {
   });
 
   const query = search.trim().toLowerCase();
+  const activeGroup = group ?? catalogQ.data?.groups[0]?.key ?? "";
   const visible = useMemo(() => {
-    const all = catalogQ.data?.presets ?? [];
+    // Hidden legacy presets (gradients / torn) stay resolvable for saved
+    // pages but are never offered in the picker (Task #6204).
+    const all = (catalogQ.data?.presets ?? []).filter((p) => !p.hidden);
     // A name search spans every group (like typing in the web gallery
     // filters the visible grid); otherwise browse the active group tab.
     if (query) {
       return all.filter((p) => p.label.toLowerCase().includes(query));
     }
-    return all.filter((p) => p.group === group);
-  }, [catalogQ.data, group, query]);
+    return all.filter((p) => p.group === activeGroup);
+  }, [catalogQ.data, activeGroup, query]);
 
   return (
     <View style={{ gap: 8 }}>
@@ -209,7 +214,7 @@ export function BgPresetPicker({ linkId }: { linkId: number }) {
           {!query && catalogQ.data ? (
             <View style={styles.chipRow}>
               {catalogQ.data.groups.map((g) => {
-                const on = group === g.key;
+                const on = activeGroup === g.key;
                 return (
                   <Pressable
                     {...WEB_FOCUS_RING_PROPS}

@@ -85,6 +85,22 @@ export function BiolinkBackgroundPreview({ linkId }: { linkId: number }) {
     (tornActive ? str(biolink.torn_paper_color) : "") || "#cfe0e6";
   const tornFallback = str(biolink.bg_fallback_color) || "#3d3654";
 
+  // New effect background types (Task #6204): tiles / mesh / pattern.
+  // RN can't render the web CSS, so the preview approximates them with a
+  // LinearGradient built from the server-stamped `bg_effect_colors`
+  // (representative colors resolved from the catalogs on save).
+  const effectType =
+    biolink.background_type === "tiles" ||
+    biolink.background_type === "mesh" ||
+    biolink.background_type === "pattern"
+      ? (biolink.background_type as string)
+      : "";
+  const effectColors = Array.isArray(biolink.bg_effect_colors)
+    ? (biolink.bg_effect_colors as unknown[]).filter(
+        (c): c is string => typeof c === "string" && c.trim() !== "",
+      )
+    : [];
+
   const presetActive = biolink.background_type === "preset";
   const presetKey = presetActive ? str(biolink.bg_preset_key) : "";
   // Page-level preset transparency (Task #5970): 0–100, default 100. The
@@ -156,7 +172,13 @@ export function BiolinkBackgroundPreview({ linkId }: { linkId: number }) {
     </View>
   );
 
-  const caption = tornActive
+  const caption = effectType
+    ? effectType === "tiles"
+      ? "Tiles background"
+      : effectType === "mesh"
+        ? "Mesh gradient background"
+        : "Pattern background"
+    : tornActive
     ? "Torn paper background"
     : template
     ? `Template · ${template.name}`
@@ -183,7 +205,21 @@ export function BiolinkBackgroundPreview({ linkId }: { linkId: number }) {
           { borderColor: colors.border, borderRadius: colors.radius + 6 },
         ]}
       >
-        {tornActive ? (
+        {effectType ? (
+          // Tiles / mesh / pattern: gradient approximation from the
+          // server-stamped representative colors (graceful fallback —
+          // the real texture only renders on the web page).
+          <LinearGradient
+            colors={gradientStops(
+              effectColors.length ? effectColors : ["#3d3654"],
+            )}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.canvas}
+          >
+            {mockContent}
+          </LinearGradient>
+        ) : tornActive ? (
           // Torn paper: backdrop photo (or fallback color) with the solid
           // paper sheet + jagged torn right edge drawn over it.
           <View style={[styles.canvas, { backgroundColor: tornFallback }]}>
