@@ -1389,28 +1389,6 @@
             </div>
         @endif
 
-        @php
-            // Bio-link header CTA: surface a small "View resume" chip when
-            // the page owner has published their /{handle}/resume page.
-            // Lives just above the block stream so it sits in the
-            // page-header area without competing with custom blocks.
-            $__resumeOwner = $link->user ?? null;
-            $__resumePublished = $__resumeOwner
-                ? optional($__resumeOwner->resume)->is_public
-                : false;
-        @endphp
-        @if ($__resumePublished)
-            <div class="biolink-block-wrap" style="grid-column: span 12">
-                <div class="mb-3 text-center">
-                    <a href="{{ url('/' . $__resumeOwner->publicHandle() . '/resume') }}"
-                       class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all hover:scale-105"
-                       style="background: {{ $fontColor }}12; color: {{ $fontColor }}; border: 1px solid {{ $fontColor }}30;">
-                        <i class="fas fa-file-lines"></i>
-                        <span>View résumé</span>
-                    </a>
-                </div>
-            </div>
-        @endif
 
         @forelse($blocks as $block)
             @php
