@@ -25,6 +25,7 @@ import { MAX_PINNED_TOOLS } from '../../shared/toolbar-pins';
 import type { PinnableTool } from '../../shared/toolbar-pins';
 import { usePinnedTools } from '../hooks/use-pinned-tools';
 import { useSiteResolve } from '../hooks/use-site-resolve';
+import { useOmniboxUrlSync } from '../hooks/use-omnibox-url-sync';
 import { checkSayzioExists, isSayzioSuggestEligible } from '../../shared/sayzio-suggest';
 import type { SayzioExistsResult } from '../../shared/sayzio-suggest';
 
@@ -721,30 +722,17 @@ export function ChromeBar({
     void window.zio.tracker.getCount(activeTabId).then((n: number) => setBlockedCount(n)).catch(() => setBlockedCount(0));
   }, [activeTabId]);
 
-  // Sync omnibox with active tab URL (unless the user has uncommitted edits).
-  // When the tab navigates on its own (link click, redirect) while the bar is
-  // unfocused, discard any uncommitted typed text — like Chrome/Firefox do —
-  // so the bar stays truthful about where the tab actually is.
-  const lastSyncedUrlRef = useRef<string>(activeTab?.url ?? '');
-  useEffect(() => {
-    const url = activeTab?.url ?? '';
-    const urlChanged = url !== lastSyncedUrlRef.current;
-    lastSyncedUrlRef.current = url;
-    if (omniboxFocused) return;
-    if (!omniboxEdited) {
-      setOmniboxValue(url);
-    } else if (urlChanged) {
-      setOmniboxEdited(false);
-      setOmniboxValue(url);
-    }
-  }, [activeTab?.url, omniboxFocused, omniboxEdited]);
-
-  // Switching tabs always resets the omnibox to that tab's URL
-  useEffect(() => {
-    setOmniboxEdited(false);
-    setOmniboxValue(activeTab?.url ?? '');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTabId]);
+  // Sync omnibox with active tab URL (unless the user has uncommitted edits);
+  // discard-on-navigation + tab-switch reset live in the shared hook so the
+  // behavior is unit-testable (tests/omnibox-url-sync.test.tsx).
+  useOmniboxUrlSync({
+    activeTabId,
+    activeTabUrl: activeTab?.url ?? '',
+    omniboxFocused,
+    omniboxEdited,
+    setOmniboxValue,
+    setOmniboxEdited,
+  });
 
   // Close popovers when the active tab changes
   useEffect(() => {
