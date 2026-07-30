@@ -269,3 +269,88 @@ describe('useOmniboxUrlSync — Enter commits the typed text (navigate path)', (
     expect(navigate).not.toHaveBeenCalled();
   });
 });
+
+describe('useOmniboxUrlSync — shortcut navigations (back/forward/home/reload) vs uncommitted text', () => {
+  // Alt+Left/Right, Alt+Home, toolbar back/forward/home all surface to the
+  // renderer the same way: the active tab's URL changes without the user
+  // committing anything through the bar. These must obey the same
+  // discard/preserve invariants as redirects.
+
+  it('UNFOCUSED + uncommitted text: a back/forward-style URL change discards the stale text', async () => {
+    const m = await mount('tab-1', 'https://current.example/page-b');
+
+    await focus(m.el);
+    await typeInto(m.el, 'unfinished search terms');
+    await blur(m.el);
+    expect(input(m.el).value).toBe('unfinished search terms');
+    expect(text(m.el, 'edited')).toBe('edited');
+
+    // User hits Alt+Left — the tab goes back to the previous history entry.
+    await m.render('tab-1', 'https://current.example/page-a');
+
+    expect(input(m.el).value).toBe('https://current.example/page-a');
+    expect(text(m.el, 'value')).toBe('https://current.example/page-a');
+    expect(text(m.el, 'edited')).toBe('clean');
+
+    // Alt+Right forward again — bar keeps mirroring, no stale text returns.
+    await m.render('tab-1', 'https://current.example/page-b');
+    expect(input(m.el).value).toBe('https://current.example/page-b');
+    expect(text(m.el, 'edited')).toBe('clean');
+  });
+
+  it('FOCUSED + uncommitted text: a back/forward-style URL change never touches the typed text', async () => {
+    const m = await mount('tab-1', 'https://current.example/page-b');
+
+    await focus(m.el);
+    await typeInto(m.el, 'still typing this out');
+
+    // Alt+Home style jump while the bar stays focused (shortcut handled
+    // globally, focus never left the input).
+    await m.render('tab-1', 'https://home.example/');
+    expect(input(m.el).value).toBe('still typing this out');
+    expect(text(m.el, 'edited')).toBe('edited');
+    expect(text(m.el, 'focused')).toBe('focused');
+
+    // Back again — still untouched.
+    await m.render('tab-1', 'https://current.example/page-b');
+    expect(input(m.el).value).toBe('still typing this out');
+    expect(text(m.el, 'edited')).toBe('edited');
+
+    // Only once the user blurs AND another navigation lands does the bar
+    // discard the stale text.
+    await blur(m.el);
+    expect(input(m.el).value).toBe('still typing this out');
+    await m.render('tab-1', 'https://current.example/page-c');
+    expect(input(m.el).value).toBe('https://current.example/page-c');
+    expect(text(m.el, 'edited')).toBe('clean');
+  });
+
+  it('reload (same URL, no change) preserves unfocused uncommitted text', async () => {
+    const m = await mount('tab-1', 'https://current.example/page');
+
+    await focus(m.el);
+    await typeInto(m.el, 'draft not yet committed');
+    await blur(m.el);
+
+    // Ctrl+R / toolbar reload: the tab re-navigates to the SAME URL, so the
+    // renderer sees a re-render with an unchanged activeTabUrl. The draft
+    // must survive — nothing actually moved.
+    await m.render('tab-1', 'https://current.example/page');
+    expect(input(m.el).value).toBe('draft not yet committed');
+    expect(text(m.el, 'edited')).toBe('edited');
+  });
+
+  it('back/forward with no edits: the bar simply follows history, staying clean', async () => {
+    const m = await mount('tab-1', 'https://h.example/three');
+    expect(input(m.el).value).toBe('https://h.example/three');
+
+    await m.render('tab-1', 'https://h.example/two');
+    expect(input(m.el).value).toBe('https://h.example/two');
+    await m.render('tab-1', 'https://h.example/one');
+    expect(input(m.el).value).toBe('https://h.example/one');
+    await m.render('tab-1', 'https://h.example/two');
+    expect(input(m.el).value).toBe('https://h.example/two');
+    expect(text(m.el, 'edited')).toBe('clean');
+    expect(text(m.el, 'focused')).toBe('blurred');
+  });
+});
