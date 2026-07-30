@@ -147,6 +147,69 @@
     @endif
 </div>
 
+{{-- ── Section 2b: month-by-month trend ───────────────────────── --}}
+<div class="glass rounded-2xl border border-white/10 p-6 mb-6">
+    <h3 class="font-semibold text-white mb-1 ak-strong"><i class="fas fa-chart-line text-sky-400 mr-1"></i> Monthly trend</h3>
+    <p class="text-xs text-white/40 mb-4 ak-note">
+        Last {{ count($trend['months']) }} months (oldest first, current month included). Coin figures are coins; revenue is per currency, never mixed. Subscription revenue counts paid invoices by paid date.
+    </p>
+
+    @php
+        $trendMax = max(1, collect($trend['months'])->max(fn ($m) => max($m['ai_coins_spent'], $m['coins_purchased'])));
+        $hasTrendData = collect($trend['months'])->contains(fn ($m) =>
+            $m['ai_coins_spent'] > 0 || $m['coins_purchased'] > 0 || !empty($m['topup_revenue']) || !empty($m['subscription_revenue']));
+    @endphp
+
+    @if(!$hasTrendData)
+        <p class="text-sm text-white/40 py-2 ak-note">No monetization activity in the last {{ count($trend['months']) }} months.</p>
+    @else
+        {{-- Mini bar chart: AI burn vs coins purchased per month --}}
+        <div class="flex items-end gap-2 h-28 mb-2 overflow-x-auto pb-1" aria-hidden="true">
+            @foreach($trend['months'] as $m)
+                <div class="flex-1 min-w-[34px] flex items-end justify-center gap-1 h-full">
+                    <div class="w-2.5 rounded-t bg-red-400/70" style="height: {{ max(2, round($m['ai_coins_spent'] / $trendMax * 100)) }}%" title="{{ $m['label'] }} — AI coins spent: {{ number_format($m['ai_coins_spent']) }}"></div>
+                    <div class="w-2.5 rounded-t bg-emerald-400/70" style="height: {{ max(2, round($m['coins_purchased'] / $trendMax * 100)) }}%" title="{{ $m['label'] }} — coins purchased: {{ number_format($m['coins_purchased']) }}"></div>
+                </div>
+            @endforeach
+        </div>
+        <div class="flex items-center gap-4 text-[10px] text-white/40 mb-5 ak-note">
+            <span><span class="inline-block w-2.5 h-2.5 rounded-sm bg-red-400/70 mr-1 align-middle"></span>AI coins spent</span>
+            <span><span class="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-400/70 mr-1 align-middle"></span>Coins purchased</span>
+        </div>
+
+        <div class="overflow-x-auto">
+        <table class="w-full text-sm whitespace-nowrap">
+            <thead><tr class="text-white/40 text-xs uppercase tracking-wider ak-note">
+                <th class="text-left py-2">Month</th>
+                <th class="text-right">AI coins spent</th>
+                <th class="text-right">Coins purchased</th>
+                @foreach($trend['currencies'] as $cur)
+                    <th class="text-right">Top-up rev ({{ $cur }})</th>
+                @endforeach
+                @foreach($trend['currencies'] as $cur)
+                    <th class="text-right">Subscription rev ({{ $cur }})</th>
+                @endforeach
+            </tr></thead>
+            <tbody>
+            @foreach($trend['months'] as $m)
+                <tr class="border-t border-white/5 {{ $loop->last ? 'bg-white/[0.03]' : '' }}">
+                    <td class="py-2 text-white ak-strong">{{ $m['label'] }}@if($loop->last)<span class="text-[9px] uppercase text-sky-300 ml-1">current</span>@endif</td>
+                    <td class="text-right text-red-300 ak-red">{{ number_format($m['ai_coins_spent']) }}</td>
+                    <td class="text-right text-emerald-300 ak-green">{{ number_format($m['coins_purchased']) }}</td>
+                    @foreach($trend['currencies'] as $cur)
+                        <td class="text-right text-white/70 ak-strong">{{ isset($m['topup_revenue'][$cur]) ? PricingResolver::money($m['topup_revenue'][$cur], $cur) : '—' }}</td>
+                    @endforeach
+                    @foreach($trend['currencies'] as $cur)
+                        <td class="text-right text-white/70 ak-strong">{{ isset($m['subscription_revenue'][$cur]) ? PricingResolver::money($m['subscription_revenue'][$cur], $cur) : '—' }}</td>
+                    @endforeach
+                </tr>
+            @endforeach
+            </tbody>
+        </table>
+        </div>
+    @endif
+</div>
+
 {{-- ── Section 3: plan-wise profit ─────────────────────────────── --}}
 <div class="glass rounded-2xl border border-white/10 p-6">
     <h3 class="font-semibold text-white mb-1 ak-strong"><i class="fas fa-scale-balanced text-emerald-400 mr-1"></i> Plan-wise profit</h3>

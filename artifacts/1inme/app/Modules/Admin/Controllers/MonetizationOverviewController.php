@@ -29,6 +29,7 @@ class MonetizationOverviewController extends Controller
             'packages' => $report['packages'],
             'aiRates'  => $report['aiRates'],
             'aiSpend'  => $report['aiSpend'],
+            'trend'    => $report['trend'],
             'plans'    => $report['plans'],
         ]);
     }

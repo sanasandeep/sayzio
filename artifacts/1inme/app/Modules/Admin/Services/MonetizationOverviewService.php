@@ -53,7 +53,7 @@ class MonetizationOverviewService
     /**
      * Full report payload for the page.
      *
-     * @return array{packages:array,aiRates:array,aiSpend:array,plans:array}
+     * @return array{packages:array,aiRates:array,aiSpend:array,trend:array,plans:array}
      */
     public function report(?Carbon $since): array
     {
@@ -61,7 +61,125 @@ class MonetizationOverviewService
             'packages' => $this->packages(),
             'aiRates'  => $this->aiRates(),
             'aiSpend'  => $this->aiSpend(),
+            'trend'    => $this->monthlyTrend(),
             'plans'    => $this->plans($since),
+        ];
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Month-by-month trend (last N calendar months incl. current)
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Per-calendar-month breakdown over the last $months months (oldest
+     * first, current month included) so admins can spot growth or margin
+     * erosion at a glance:
+     *
+     *   month              — 'YYYY-MM'
+     *   label              — e.g. 'Jan 2026'
+     *   ai_coins_spent     — AI coin burn (wallet spend where meta.ai)
+     *   coins_purchased    — coins added via wallet purchases
+     *   topup_revenue      — [currency => amount_minor] from coin_purchase_allocations
+     *   subscription_revenue — [currency => amount_minor] from paid invoices
+     *                          tied to a subscription (by paid_at)
+     *
+     * Currencies are never mixed. Every query tolerates a missing table.
+     *
+     * @return array{months:array<int,array<string,mixed>>,currencies:array<int,string>}
+     */
+    public function monthlyTrend(int $months = 12): array
+    {
+        $months = max(1, min(24, $months));
+        $start = now()->startOfMonth()->subMonthsNoOverflow($months - 1);
+
+        // Seed every month so gaps render as zeros, oldest first.
+        $rows = [];
+        for ($i = 0; $i < $months; $i++) {
+            $m = $start->copy()->addMonthsNoOverflow($i);
+            $rows[$m->format('Y-m')] = [
+                'month'                => $m->format('Y-m'),
+                'label'                => $m->format('M Y'),
+                'ai_coins_spent'       => 0,
+                'coins_purchased'      => 0,
+                'topup_revenue'        => [],
+                'subscription_revenue' => [],
+            ];
+        }
+        $currencies = [];
+
+        if ($this->has('wallet_transactions')) {
+            $wallet = DB::table('wallet_transactions')
+                ->where('created_at', '>=', $start)
+                ->where(function ($q) {
+                    $q->where(function ($q) {
+                        $q->where('type', 'spend')->whereRaw("(meta->>'ai') = 'true'");
+                    })->orWhere('type', 'purchase');
+                })
+                ->select(
+                    DB::raw("to_char(created_at, 'YYYY-MM') AS ym"),
+                    DB::raw("SUM(CASE WHEN type = 'spend' THEN -delta_coins ELSE 0 END) AS ai_spent"),
+                    DB::raw("SUM(CASE WHEN type = 'purchase' THEN delta_coins ELSE 0 END) AS purchased"),
+                )
+                ->groupBy(DB::raw('1'))
+                ->get();
+            foreach ($wallet as $r) {
+                if (isset($rows[$r->ym])) {
+                    $rows[$r->ym]['ai_coins_spent']  = (int) $r->ai_spent;
+                    $rows[$r->ym]['coins_purchased'] = (int) $r->purchased;
+                }
+            }
+        }
+
+        if ($this->has('coin_purchase_allocations')) {
+            $money = DB::table('coin_purchase_allocations')
+                ->where('created_at', '>=', $start)
+                ->select(
+                    DB::raw("to_char(created_at, 'YYYY-MM') AS ym"),
+                    'currency',
+                    DB::raw('SUM(amount_minor) AS amount_minor'),
+                )
+                ->groupBy(DB::raw('1'), 'currency')
+                ->get();
+            foreach ($money as $r) {
+                if (isset($rows[$r->ym])) {
+                    $rows[$r->ym]['topup_revenue'][$r->currency] = (int) $r->amount_minor;
+                    $currencies[$r->currency] = true;
+                }
+            }
+        }
+
+        if ($this->has('invoices') && $this->has('subscriptions')) {
+            $subs = DB::table('invoices')
+                ->whereNotNull('subscription_id')
+                ->where('status', 'paid')
+                ->whereNotNull('paid_at')
+                ->where('paid_at', '>=', $start)
+                ->select(
+                    DB::raw("to_char(paid_at, 'YYYY-MM') AS ym"),
+                    'currency',
+                    DB::raw('SUM(grand_total_minor) AS amount_minor'),
+                )
+                ->groupBy(DB::raw('1'), 'currency')
+                ->get();
+            foreach ($subs as $r) {
+                if (isset($rows[$r->ym])) {
+                    $rows[$r->ym]['subscription_revenue'][$r->currency] = (int) $r->amount_minor;
+                    $currencies[$r->currency] = true;
+                }
+            }
+        }
+
+        foreach ($rows as &$row) {
+            ksort($row['topup_revenue']);
+            ksort($row['subscription_revenue']);
+        }
+        unset($row);
+        $currencies = array_keys($currencies);
+        sort($currencies);
+
+        return [
+            'months'     => array_values($rows),
+            'currencies' => $currencies,
         ];
     }
 

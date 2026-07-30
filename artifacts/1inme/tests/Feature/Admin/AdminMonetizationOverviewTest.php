@@ -305,6 +305,93 @@ class AdminMonetizationOverviewTest extends TestCase
         $this->assertSame(4400, $usd['margin_minor']);
     }
 
+    public function test_monthly_trend_buckets_by_calendar_month(): void
+    {
+        $plan = $this->makePlan();
+        $user = $this->makeUser($plan->id);
+
+        // AI burn: 40 this month, 25 last month.
+        $this->aiSpendTx($user, 40, 'mind', now()->startOfMonth()->addDay());
+        $this->aiSpendTx($user, 25, 'mind', now()->subMonthNoOverflow()->startOfMonth()->addDay());
+
+        // Coin purchase (wallet) this month.
+        $wallet = Wallet::firstOrCreate(['user_id' => $user->id], ['balance' => 100000]);
+        WalletTransaction::create([
+            'wallet_id'       => $wallet->id,
+            'user_id'         => $user->id,
+            'type'            => 'purchase',
+            'delta_coins'     => 500,
+            'balance_after'   => 500,
+            'idempotency_key' => 'test-' . uniqid(),
+            'reason'          => 'top-up',
+            'meta'            => [],
+            'created_at'      => now()->startOfMonth()->addDay(),
+        ]);
+
+        // Top-up revenue this month (USD 20.00) via allocation snapshot.
+        $pkg = $this->makePackage(['coin_amount' => 500], ['USD' => 2000]);
+        $this->paidCoinInvoice($user, 'USD', 2000, 500, $pkg);
+
+        // Paid subscription invoice last month (USD 30.00).
+        $sub = Subscription::create([
+            'user_id'       => $user->id,
+            'plan_id'       => $plan->id,
+            'status'        => 'active',
+            'billing_cycle' => 'monthly',
+            'currency'      => 'USD',
+        ]);
+        Invoice::create([
+            'number'            => 'INV-' . uniqid(),
+            'financial_year'    => '2026-27',
+            'seq'               => random_int(1, 900000),
+            'user_id'           => $user->id,
+            'subscription_id'   => $sub->id,
+            'currency'          => 'USD',
+            'subtotal_minor'    => 3000,
+            'tax_total_minor'   => 0,
+            'grand_total_minor' => 3000,
+            'line_items'        => [], 'billing_address_snapshot' => [], 'merchant_snapshot' => [], 'tax_breakdown' => [],
+            'status'            => 'paid',
+            'paid_at'           => now()->subMonthNoOverflow()->startOfMonth()->addDays(2),
+        ]);
+
+        $trend = app(MonetizationOverviewService::class)->monthlyTrend(6);
+
+        $this->assertCount(6, $trend['months']);
+        $this->assertContains('USD', $trend['currencies']);
+
+        $byMonth = collect($trend['months'])->keyBy('month');
+        $thisYm = now()->format('Y-m');
+        $lastYm = now()->subMonthNoOverflow()->format('Y-m');
+
+        // Oldest first, current month last.
+        $this->assertSame($thisYm, end($trend['months'])['month']);
+
+        $this->assertSame(40, $byMonth[$thisYm]['ai_coins_spent']);
+        $this->assertSame(500, $byMonth[$thisYm]['coins_purchased']);
+        $this->assertSame(2000, $byMonth[$thisYm]['topup_revenue']['USD']);
+
+        $this->assertSame(25, $byMonth[$lastYm]['ai_coins_spent']);
+        $this->assertSame(0, $byMonth[$lastYm]['coins_purchased']);
+        $this->assertSame(3000, $byMonth[$lastYm]['subscription_revenue']['USD']);
+        // Coin-invoice money never leaks into subscription revenue.
+        $this->assertArrayNotHasKey('USD', $byMonth[$thisYm]['subscription_revenue']);
+
+        // Empty months render as zeros, not missing rows.
+        $oldest = $trend['months'][0];
+        $this->assertSame(0, $oldest['ai_coins_spent']);
+        $this->assertSame([], $oldest['topup_revenue']);
+    }
+
+    public function test_monthly_trend_renders_on_the_page(): void
+    {
+        $admin = $this->makeAdmin();
+        $this->actingAs($admin, 'admin')
+            ->get('/admin/monetization')
+            ->assertOk()
+            ->assertSee('Monthly trend');
+    }
+
     public function test_est_ai_cost_is_capped_at_the_purchased_api_budget(): void
     {
         $plan = $this->makePlan();
