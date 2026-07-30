@@ -509,6 +509,12 @@ PROMPT;
     public static function defaultModels(): array
     {
         return [
+            ['name' => 'gpt-5',                   'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 6.0,  'out_coins_per_1k' => 20.0],
+            ['name' => 'gpt-5-mini',              'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 1.2,  'out_coins_per_1k' => 4.0],
+            ['name' => 'gpt-5-nano',              'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.25, 'out_coins_per_1k' => 0.8],
+            ['name' => 'gpt-4.1',                 'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 5.5,  'out_coins_per_1k' => 16.0],
+            ['name' => 'gpt-4.1-mini',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 1.0,  'out_coins_per_1k' => 3.2],
+            ['name' => 'gpt-4.1-nano',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.2,  'out_coins_per_1k' => 0.8],
             ['name' => 'gpt-4o',                  'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 5.0,  'out_coins_per_1k' => 15.0],
             ['name' => 'gpt-4o-mini',             'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.5,  'out_coins_per_1k' => 1.5],
             ['name' => 'text-embedding-3-small',  'kind' => 'embedding', 'enabled' => true,  'in_coins_per_1k' => 0.1,  'out_coins_per_1k' => 0.0],
