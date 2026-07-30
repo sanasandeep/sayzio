@@ -549,6 +549,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('{message}', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 
+        // Read-only monetization report: coin packages vs AI costs, AI coin
+        // burn vs top-up, and plan-wise profitability.
+        Route::get('monetization', [\App\Modules\Admin\Controllers\MonetizationOverviewController::class, 'index'])
+            ->middleware(CheckPermission::class . ':settings.manage')
+            ->name('monetization.index');
+
         Route::prefix('coin-packages')->name('coin-packages.')->group(function () {
             Route::get('/',           [CoinPackageController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::get('create',      [CoinPackageController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
