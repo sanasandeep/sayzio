@@ -4,7 +4,8 @@ $inputClass = 'theme-input w-full';
 $selectClass = $inputClass;
 $labelClass = 'block text-xs mb-1';
 @endphp
-<style>.block-settings-form label { color: var(--text-faint); } .block-settings-form .glass { background: var(--bg-glass); border: 1px solid var(--border-glass); }
+<style>.block-settings-form label { color: var(--text-faint); font-weight: 600; letter-spacing: 0.015em; } .block-settings-form .glass { background: var(--bg-glass); border: 1px solid var(--border-glass); }
+.block-settings-form .theme-input:focus, .block-settings-form select.theme-input:focus, .block-settings-form textarea.theme-input:focus { border-color: rgba(92,131,255,0.55); box-shadow: 0 0 0 3px rgba(92,131,255,0.14); outline: none; }
 .block-settings-form .placeholder-banner { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; margin-bottom:14px; border-radius:12px; background: linear-gradient(135deg, rgba(61,107,255,0.18), rgba(236,72,153,0.18)); border: 1px solid rgba(144,172,255,0.35); color: #f3e8ff; font-size: 12.5px; line-height:1.4; }
 .block-settings-form .placeholder-banner i { color:#fbbf24; font-size:14px; margin-top:2px; }
 

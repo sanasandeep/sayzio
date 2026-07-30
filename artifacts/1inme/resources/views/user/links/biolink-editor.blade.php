@@ -258,8 +258,24 @@
     /* Inline block editor — the settings form expands directly below the
        block's card (replaces the old full-screen edit modal). */
     .inline-block-editor {
-        border-top: 1px solid var(--border-subtle);
-        background: rgba(0,0,0,0.12);
+        position: relative;
+        border-top: 1px solid rgba(92,131,255,0.22);
+        background:
+            radial-gradient(120% 90px at 50% 0%, rgba(92,131,255,0.10), transparent 70%),
+            rgba(0,0,0,0.16);
+    }
+    html.light-mode .inline-block-editor {
+        border-top-color: rgba(61,107,255,0.25);
+        background:
+            radial-gradient(120% 90px at 50% 0%, rgba(61,107,255,0.07), transparent 70%),
+            rgba(61,107,255,0.03);
+    }
+    /* Gradient hairline that visually "opens" the editor out of the card. */
+    .inline-block-editor::before {
+        content: '';
+        position: absolute; top: -1px; left: 0; right: 0; height: 2px;
+        background: linear-gradient(90deg, transparent 4%, rgba(92,131,255,0.65), rgba(236,72,153,0.45), transparent 96%);
+        pointer-events: none;
     }
     .inline-block-editor.open { animation: inlineEditorIn 0.25s ease; }
     @media (prefers-reduced-motion: reduce) {
@@ -271,14 +287,52 @@
     }
     .inline-editor-head {
         display: flex; align-items: center; gap: 10px;
-        padding: 10px 14px;
+        padding: 11px 14px;
         border-bottom: 1px solid var(--border-subtle);
+        background: linear-gradient(180deg, rgba(92,131,255,0.07), transparent);
+    }
+    html.light-mode .inline-editor-head { background: linear-gradient(180deg, rgba(61,107,255,0.06), transparent); }
+    .inline-editor-icon {
+        width: 28px; height: 28px; border-radius: 9px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #5c83ff, #3d6bff);
+        color: #fff; font-size: 11px;
+        box-shadow: 0 3px 10px rgba(61,107,255,0.35);
+    }
+    .inline-editor-title {
+        display: block; font-size: 11.5px; font-weight: 800;
+        letter-spacing: 0.02em; line-height: 1.15;
+        color: var(--text-primary);
+    }
+    .inline-editor-sub {
+        display: block; font-size: 8.5px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.09em;
+        color: var(--text-dimmed); line-height: 1.2; margin-top: 1px;
     }
     .inline-editor-body {
         padding: 16px 14px;
         max-height: 70vh;
         overflow-y: auto;
     }
+    /* Shared pill used by the Edit Block section headers (Block Styling /
+       Display Settings and its sub-cards). Colors are paired for light mode
+       so the tinted text never washes out on a light backdrop. */
+    .edit-section-pill {
+        font-size: 10px; line-height: 1; padding: 4px 7px; border-radius: 6px;
+        background: rgba(92,131,255,0.12); color: rgba(188,207,255,0.9);
+        border: 1px solid rgba(92,131,255,0.16);
+    }
+    .edit-section-pill--pink { background: rgba(236,72,153,0.10); color: rgba(251,207,232,0.9); border-color: rgba(236,72,153,0.18); }
+    .edit-section-pill--rose { background: rgba(244,63,94,0.12); color: rgba(254,205,211,0.9); border-color: rgba(244,63,94,0.18); }
+    .edit-section-pill--cyan { background: rgba(34,211,238,0.12); color: rgba(165,243,252,0.9); border-color: rgba(34,211,238,0.18); }
+    html.light-mode .edit-section-pill { background: rgba(61,107,255,0.10); color: #3355cc; border-color: rgba(61,107,255,0.22); }
+    html.light-mode .edit-section-pill--pink { background: rgba(236,72,153,0.10); color: #be1866; border-color: rgba(236,72,153,0.25); }
+    html.light-mode .edit-section-pill--rose { background: rgba(244,63,94,0.10); color: #be123c; border-color: rgba(244,63,94,0.25); }
+    html.light-mode .edit-section-pill--cyan { background: rgba(34,211,238,0.12); color: #0e7490; border-color: rgba(34,211,238,0.30); }
+    /* Chevron used on the Edit Block accordion headers — theme-var based so
+       it stays visible in both dark and light modes. */
+    .edit-section-chevron { color: var(--text-faint); transition: color 0.15s ease; }
+    button:hover > .edit-section-chevron { color: var(--text-muted); }
 
     .gallery-tabs {
         display: flex;
