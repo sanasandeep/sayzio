@@ -43,6 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       onein: ${{ steps.filter.outputs.onein }}
+      emdash: ${{ steps.filter.outputs.emdash }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -53,6 +54,13 @@ jobs:
           filters: |
             onein:
               - 'artifacts/1inme/**'
+              - '.github/workflows/laravel-tests.yml'
+            # The em-dash copy guard also scans the mobile app, so it has its
+            # own (wider) filter and its own passthrough job below.
+            emdash:
+              - 'artifacts/1inme/**'
+              - 'artifacts/1inme-mobile/**'
+              - 'scripts/src/check-em-dash.ts'
               - '.github/workflows/laravel-tests.yml'
 
   phpunit-postgres:
@@ -361,6 +369,55 @@ jobs:
 
       - name: Check mobile/docs parity against web block & link types
         run: composer check:mobile-docs-parity
+
+  em-dash-guard:
+    name: Em-dash copy guard (no database)
+    needs: changes
+    if: needs.changes.outputs.emdash == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    # Fail when a U+2014 em dash sneaks back into user-visible copy (marketing
+    # Blade views, seeders that feed public pages, and the Expo mobile app).
+    # All ~87 pre-existing em dashes were rewritten; this keeps the surface
+    # clean. Pure Node/tsx static scan — no PHP, no database. Also registered
+    # as a Replit pre-merge validation step, so CI and pre-merge stay in sync.
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install scripts workspace dependencies
+        run: pnpm install --frozen-lockfile --filter ./scripts
+
+      - name: Ensure ripgrep is available (guard lists files via rg)
+        run: command -v rg || (sudo apt-get update && sudo apt-get install -y ripgrep)
+
+      - name: Scan user-visible copy for em dashes
+        run: pnpm --filter @workspace/scripts run check:em-dash
+
+  # Passthrough companion for the em-dash guard: its change filter is wider
+  # than `onein` (it also watches the mobile app and the guard script), so it
+  # gets its own passthrough keyed on the `emdash` output rather than sharing
+  # the matrix below. Same required-check-never-deadlocks logic.
+  em-dash-passthrough:
+    name: Em-dash copy guard (no database)
+    needs: changes
+    if: needs.changes.outputs.emdash != 'true' && github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: No scanned copy changes — guard not required for this PR
+        run: |
+          echo "No changes under the em-dash guard's scanned paths for this PR."
+          echo "The 'Em-dash copy guard (no database)' check is not required; reporting success."
 
   # Passthrough companion: reports the SAME check names as the five real jobs
   # above as green when the PR touches nothing under artifacts/1inme/**. This is

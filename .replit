@@ -108,6 +108,10 @@ args = "e2e-block-live-side-borders"
 task = "workflow.run"
 args = "e2e-admin-variant-gallery"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "em-dash"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -346,6 +350,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "VALIDATION_PORT=5071 bash artifacts/1inme/tests/Browser/run-validation.sh admin-variant-designs-gallery.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "em-dash"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:em-dash"
 
 [workflows.workflow.metadata]
 isValidation = true
