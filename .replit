@@ -48,6 +48,10 @@ args = "e2e-biolink-editor-preview-focus"
 task = "workflow.run"
 args = "eas-apk-build"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "zio-browser-test"
+
 [[workflows.workflow]]
 name = "e2e-block-defaults"
 author = "agent"
@@ -132,6 +136,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme-mobile && EAS_NO_VCS=1 npx -y eas-cli build --platform android --profile preview --non-interactive --no-wait 2>&1 | tee /tmp/eas-build-kick.log"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "zio-browser-test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/zio-browser run test"
 
 [workflows.workflow.metadata]
 isValidation = true
