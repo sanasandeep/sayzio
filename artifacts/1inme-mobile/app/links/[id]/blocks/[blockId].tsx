@@ -219,6 +219,7 @@ const BLOCK_PREVIEW_ALIAS = "__block_preview__";
 const NOOP_BLOCK_PREVIEW_EMBED = () => {};
 
 import { DictationMic } from "@/components/DictationMic";
+import { DraggableRepeaterRows } from "@/components/DraggableRepeaterRows";
 import {
   IconPickerButton,
   IconPickerModal,
@@ -2528,10 +2529,16 @@ export function BlockSettingsEditor({
             <View style={{ gap: 8 }}>
               <Text style={[styles.rowLabel, { color: colors.foreground }]}>Items</Text>
 
-              {(isList || isListNumbered) &&
-                listItems.map((it, idx) => (
+              {(isList || isListNumbered) && (
+                <DraggableRepeaterRows
+                  items={listItems}
+                  gap={8}
+                  handleColor={colors.mutedForeground}
+                  onReorder={(perm) =>
+                    setListItems((prev) => perm.map((i) => prev[i]))
+                  }
+                  renderRow={(it, idx, dragHandle) => (
                   <View
-                    key={idx}
                     style={{
                       padding: 10,
                       borderRadius: 12,
@@ -2542,6 +2549,7 @@ export function BlockSettingsEditor({
                     }}
                   >
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      {dragHandle}
                       <Text style={{ color: colors.mutedForeground, fontSize: 12, width: 22 }}>
                         {isListNumbered ? `${idx + 1}.` : "•"}
                       </Text>
@@ -2646,12 +2654,20 @@ export function BlockSettingsEditor({
                       />
                     ) : null}
                   </View>
-                ))}
+                  )}
+                />
+              )}
 
-              {isPricing &&
-                pricingItems.map((it, idx) => (
+              {isPricing && (
+                <DraggableRepeaterRows
+                  items={pricingItems}
+                  gap={8}
+                  handleColor={colors.mutedForeground}
+                  onReorder={(perm) =>
+                    setPricingItems((prev) => perm.map((i) => prev[i]))
+                  }
+                  renderRow={(it, idx, dragHandle) => (
                   <View
-                    key={idx}
                     style={{
                       padding: 10,
                       borderRadius: 12,
@@ -2834,6 +2850,8 @@ export function BlockSettingsEditor({
                         gap: 4,
                       }}
                     >
+                      {dragHandle}
+                      <View style={{ flex: 1 }} />
                       <Pressable
                         {...WEB_FOCUS_RING_PROPS}
                         disabled={idx === 0}
@@ -2905,7 +2923,9 @@ export function BlockSettingsEditor({
                       </Pressable>
                     </View>
                   </View>
-                ))}
+                  )}
+                />
+              )}
 
               <Pressable {...WEB_FOCUS_RING_PROPS}
                 onPress={() => {
@@ -3385,9 +3405,15 @@ export function BlockSettingsEditor({
               Add image URLs or pick from the curated stock gallery below.
               Rows without a URL are dropped on save.
             </Text>
-            {galleryImages.map((img, idx) => (
+            <DraggableRepeaterRows
+              items={galleryImages}
+              gap={12}
+              handleColor={colors.mutedForeground}
+              onReorder={(perm) =>
+                setGalleryImages((prev) => perm.map((i) => prev[i]))
+              }
+              renderRow={(img, idx, dragHandle) => (
               <View
-                key={`gallery-img-${idx}`}
                 style={{
                   gap: 8,
                   padding: 10,
@@ -3399,6 +3425,7 @@ export function BlockSettingsEditor({
                 <View
                   style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                 >
+                  {dragHandle}
                   {img.url.trim() ? (
                     <Image
                       source={{ uri: img.url.trim() }}
@@ -3524,7 +3551,8 @@ export function BlockSettingsEditor({
                   }
                 />
               </View>
-            ))}
+              )}
+            />
             <Button
               label="Add image"
               variant="ghost"
@@ -3839,9 +3867,15 @@ export function BlockSettingsEditor({
               <Text style={[styles.rowLabel, { color: colors.foreground }]}>
                 Social links
               </Text>
-              {profileSocials.map((soc, idx) => (
+              <DraggableRepeaterRows
+                items={profileSocials}
+                gap={8}
+                handleColor={colors.mutedForeground}
+                onReorder={(perm) =>
+                  setProfileSocials((prev) => perm.map((i) => prev[i]))
+                }
+                renderRow={(soc, idx, dragHandle) => (
                 <View
-                  key={idx}
                   style={{
                     gap: 8,
                     padding: 10,
@@ -3852,6 +3886,7 @@ export function BlockSettingsEditor({
                   }}
                 >
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <View style={{ marginTop: 18 }}>{dragHandle}</View>
                     <View style={{ flex: 1 }}>
                       <TextField
                         label="Platform"
@@ -3945,7 +3980,8 @@ export function BlockSettingsEditor({
                     autoCapitalize="none"
                   />
                 </View>
-              ))}
+                )}
+              />
               <Pressable {...WEB_FOCUS_RING_PROPS}
                 onPress={() =>
                   setProfileSocials((p) => [...p, { name: "", url: "" }])
