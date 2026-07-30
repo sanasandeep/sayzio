@@ -86,6 +86,10 @@ html.light-mode .bz-tpl-desc{color:#64748b}
     $design    = array_merge(\App\Modules\User\Models\SocialProof::defaultDesign(),    (array)($proof->design ?? []));
     $targeting = array_merge(\App\Modules\User\Models\SocialProof::defaultTargeting(), (array)($proof->targeting ?? []));
     $notifications = is_array($proof->notifications) ? $proof->notifications : [];
+    // Transparently alias legacy types (visitor_count/conversion_count →
+    // counter, email_signup/exit_offer → capture_prompt) so the editor always
+    // works with the consolidated catalog and the right mode preselected.
+    $notifications = array_map([\App\Modules\User\Models\SocialProof::class, 'normalizeNotification'], $notifications);
 @endphp
 
 <div id="bz-header" class="bz-scope mb-5 flex items-center justify-between">
@@ -537,12 +541,9 @@ function buzzEditor() {
                 recent_activity:
                     '<div class="tpl-card"><div class="tpl-avatar">SR</div>'+
                     '<div class="tpl-body"><div class="tpl-t1">Sarah from NYC</div><div class="tpl-t2">just signed up · 2m ago</div></div></div>',
-                visitor_count:
+                counter:
                     '<div class="tpl-card"><span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;animation:pulse 2s infinite"></span>'+
-                    '<div class="tpl-body"><div class="tpl-t1">23 people viewing</div><div class="tpl-t2">right now</div></div></div>',
-                conversion_count:
-                    '<div class="tpl-card"><div class="tpl-avatar" style="background:linear-gradient(135deg,#34d399,#059669)">✓</div>'+
-                    '<div class="tpl-body"><div class="tpl-t1">142 purchases</div><div class="tpl-t2">in the last 24 hours</div></div></div>',
+                    '<div class="tpl-body"><div class="tpl-t1">23 people viewing</div><div class="tpl-t2">live visitors or conversions</div></div></div>',
                 social_followers:
                     '<div class="tpl-card"><div class="tpl-avatar" style="background:#1da1f2">𝕏</div>'+
                     '<div class="tpl-body"><div class="tpl-t1">12.4k followers</div><div class="tpl-t2">join us on social</div></div></div>',
@@ -556,13 +557,10 @@ function buzzEditor() {
                     '<div style="font-size:14px;color:#3d6bff;line-height:1">"</div>'+
                     '<div class="tpl-t2" style="font-style:italic;color:#0f172a">A total game-changer for our team.</div>'+
                     '<div class="tpl-t2" style="margin-top:3px"> - Alex K.</div></div></div>',
-                email_signup:
+                capture_prompt:
                     '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px"><div class="tpl-t1">Get 10% off</div>'+
-                    '<div style="display:flex;gap:4px"><div style="flex:1;height:18px;background:#f1f5f9;border-radius:4px"></div><div style="height:18px;padding:0 8px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center">Join</div></div></div>',
-                exit_offer:
-                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px;border:2px solid #3d6bff">'+
-                    '<div class="tpl-t1" style="color:#3d6bff">Wait! Don\'t leave</div>'+
-                    '<div class="tpl-t2">Take 15% off your order</div></div>',
+                    '<div style="display:flex;gap:4px"><div style="flex:1;height:18px;background:#f1f5f9;border-radius:4px"></div><div style="height:18px;padding:0 8px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center">Join</div></div>'+
+                    '<div class="tpl-t2">always-on or exit-intent</div></div>',
                 feedback_thumbs:
                     '<div class="tpl-card" style="gap:6px"><div class="tpl-body" style="flex-direction:row;align-items:center;gap:5px">'+
                     '<div class="tpl-t1">Helpful?</div><span style="font-size:14px">👍</span><span style="font-size:14px">👎</span></div></div>',
@@ -703,15 +701,18 @@ function buzzEditor() {
             switch (n.type) {
                 case 'recent_activity':
                     return this.fieldsRecent(n);
-                case 'visitor_count':
+                case 'counter':
+                    if (s.mode === 'conversions') {
+                        return this.tpl([
+                            this.select(n,'settings.mode','Counter mode',{live_visitors:'Live visitors',conversions:'Conversions'}),
+                            this.text(n,'settings.text','Text','{count} purchased recently'),
+                            this.num(n,'settings.count','Count'),
+                        ]);
+                    }
                     return this.tpl([
+                        this.select(n,'settings.mode','Counter mode',{live_visitors:'Live visitors',conversions:'Conversions'}),
                         this.text(n,'settings.text','Text','{count} people are viewing this page'),
                         this.row([this.num(n,'settings.min','Min count'), this.num(n,'settings.max','Max count')]),
-                    ]);
-                case 'conversion_count':
-                    return this.tpl([
-                        this.text(n,'settings.text','Text','{count} purchased recently'),
-                        this.num(n,'settings.count','Count'),
                     ]);
                 case 'social_followers':
                     return this.tpl([
@@ -733,17 +734,20 @@ function buzzEditor() {
                         this.textarea(n,'settings.quote','Quote'),
                         this.row([this.text(n,'settings.author','Author','Jane Doe'), this.text(n,'settings.role','Role','CEO at Acme')]),
                     ]);
-                case 'email_signup':
+                case 'capture_prompt':
+                    if (s.trigger === 'exit_intent') {
+                        return this.tpl([
+                            this.select(n,'settings.trigger','Show',{always:'Always',exit_intent:'On exit intent'}),
+                            this.text(n,'settings.title','Title'),
+                            this.textarea(n,'settings.body','Body'),
+                            this.row([this.text(n,'settings.cta','Button label'), this.text(n,'settings.cta_url','Button URL','https://...')]),
+                        ]);
+                    }
                     return this.tpl([
+                        this.select(n,'settings.trigger','Show',{always:'Always',exit_intent:'On exit intent'}),
                         this.text(n,'settings.title','Title','Join our newsletter'),
                         this.textarea(n,'settings.body','Body'),
                         this.text(n,'settings.cta','Button label','Subscribe'),
-                    ]);
-                case 'exit_offer':
-                    return this.tpl([
-                        this.text(n,'settings.title','Title'),
-                        this.textarea(n,'settings.body','Body'),
-                        this.row([this.text(n,'settings.cta','Button label'), this.text(n,'settings.cta_url','Button URL','https://...')]),
                     ]);
                 case 'feedback_thumbs':
                     return this.tpl([this.text(n,'settings.question','Question','Was this helpful?')]);

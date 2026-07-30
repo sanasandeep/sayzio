@@ -87,7 +87,10 @@ class SocialProofPublicController extends Controller
         if ($hideLive) {
             // Mirror the directory-side gating: strip every notification
             // type that surfaces a live visitor / click / conversion count.
-            $liveCounterTypes = ['visitor_count', 'conversion_count'];
+            // Notifications are normalized above, so legacy visitor_count /
+            // conversion_count entries already surface as 'counter'; the
+            // legacy keys are kept defensively.
+            $liveCounterTypes = ['counter', 'visitor_count', 'conversion_count'];
             $notifications = array_values(array_filter(
                 $notifications,
                 fn($n) => !in_array($n['type'] ?? '', $liveCounterTypes, true)
@@ -206,7 +209,9 @@ class SocialProofPublicController extends Controller
             if (is_array($n) && ($n['id'] ?? null) === $notificationId) { $notification = $n; break; }
         }
         $notificationType = $notification['type'] ?? null;
-        $captureTypes = ['email_signup', 'exit_offer'];
+        // Raw stored notifications may still carry legacy type keys; the
+        // consolidated 'capture_prompt' covers both looks going forward.
+        $captureTypes = ['capture_prompt', 'email_signup', 'exit_offer'];
         // Require the notification to resolve to an active capture-type entry.
         // A missing/unknown notification_id or a non-capture type is rejected so
         // this endpoint can't be used to stuff arbitrary emails through other
@@ -310,15 +315,19 @@ class SocialProofPublicController extends Controller
     }
 
     /**
-     * For visitor_count notifications: deterministic per-30s plausible number.
-     * If the campaign has any visitor_count notifications, derive the number
-     * from the first one's min/max settings.
+     * For live-visitor counter notifications: deterministic per-30s plausible
+     * number. If the campaign has any counter notifications in live_visitors
+     * mode (or legacy visitor_count entries), derive the number from the
+     * first one's min/max settings.
      */
     private function liveVisitorCountFor(array $notifications): int
     {
         $vc = null;
         foreach ($notifications as $n) {
-            if (($n['type'] ?? '') === 'visitor_count') { $vc = $n; break; }
+            $type = $n['type'] ?? '';
+            $isLive = $type === 'visitor_count'
+                || ($type === 'counter' && (($n['settings']['mode'] ?? 'live_visitors') !== 'conversions'));
+            if ($isLive) { $vc = $n; break; }
         }
         if (!$vc) return 0;
         $s = $vc['settings'] ?? [];

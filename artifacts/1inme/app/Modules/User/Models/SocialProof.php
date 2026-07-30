@@ -23,7 +23,30 @@ protected $fillable = [
      * Kept in the model so both the editor UI and the directory query agree.
      */
     public const DIRECTORY_BADGE_TYPES = [
-        'recent_activity', 'visitor_count', 'conversion_count', 'social_followers', 'trust_badge',
+        'recent_activity', 'counter', 'visitor_count', 'conversion_count', 'social_followers', 'trust_badge',
+    ];
+
+    /**
+     * Legacy notification types transparently mapped onto their consolidated
+     * replacement on read/save. Stored JSON is never bulk-rewritten; the
+     * mapping happens in normalizeNotification() so old widgets keep working.
+     *
+     * visitor_count / conversion_count  → counter        (settings.mode)
+     * email_signup  / exit_offer        → capture_prompt (settings.trigger)
+     */
+    public const LEGACY_TYPE_ALIASES = [
+        'visitor_count'    => ['type' => 'counter',        'key' => 'mode',    'value' => 'live_visitors'],
+        'conversion_count' => ['type' => 'counter',        'key' => 'mode',    'value' => 'conversions'],
+        'email_signup'     => ['type' => 'capture_prompt', 'key' => 'trigger', 'value' => 'always'],
+        'exit_offer'       => ['type' => 'capture_prompt', 'key' => 'trigger', 'value' => 'exit_intent'],
+    ];
+
+    /** Display labels for legacy type keys still present in stored rows. */
+    public const LEGACY_TYPE_LABELS = [
+        'visitor_count'    => 'Live Visitor Counter',
+        'conversion_count' => 'Conversion Counter',
+        'email_signup'     => 'Email Signup Prompt',
+        'exit_offer'       => 'Exit-Intent Offer',
     ];
 
     protected $casts = [
@@ -44,15 +67,13 @@ protected $fillable = [
     public const TYPES = [
         // Social proof
         'recent_activity'    => 'Recent Activity',
-        'visitor_count'      => 'Live Visitor Counter',
-        'conversion_count'   => 'Conversion Counter',
+        'counter'            => 'Counter',
         'social_followers'   => 'Social Followers',
         'trust_badge'        => 'Trust Badge / Rating',
         'review'             => 'Customer Review',
         'testimonial_quote'  => 'Big Testimonial Quote',
         // Capture / conversion
-        'email_signup'       => 'Email Signup Prompt',
-        'exit_offer'         => 'Exit-Intent Offer',
+        'capture_prompt'     => 'Capture Prompt',
         'feedback_thumbs'    => 'Feedback Thumbs Up/Down',
         // Urgency
         'countdown'          => 'Countdown Timer',
@@ -75,14 +96,12 @@ protected $fillable = [
 
     public const TYPE_DESCRIPTIONS = [
         'recent_activity'   => 'Show real-time signups, purchases or downloads',
-        'visitor_count'     => 'Live viewer count to build social proof',
-        'conversion_count'  => 'Total conversions in the last X days',
+        'counter'           => 'Live visitor or conversion counter',
         'social_followers'  => 'Followers / subscribers count badge',
         'trust_badge'       => 'Star rating + review count badge',
         'review'            => 'Rotating customer review with stars',
         'testimonial_quote' => 'Big quote from a happy customer',
-        'email_signup'      => 'Inline email capture popup',
-        'exit_offer'        => 'Stop visitors from leaving with an offer',
+        'capture_prompt'    => 'Email capture — always-on or exit-intent offer',
         'feedback_thumbs'   => 'Quick thumbs up / down feedback',
         'countdown'         => 'Ticking countdown to a date',
         'flash_sale'        => 'Bold sale banner with discount %',
@@ -99,8 +118,8 @@ protected $fillable = [
     ];
 
     public const TYPE_GROUPS = [
-        'Social proof' => ['recent_activity', 'visitor_count', 'conversion_count', 'social_followers', 'trust_badge', 'review', 'testimonial_quote'],
-        'Capture'      => ['email_signup', 'exit_offer', 'feedback_thumbs'],
+        'Social proof' => ['recent_activity', 'counter', 'social_followers', 'trust_badge', 'review', 'testimonial_quote'],
+        'Capture'      => ['capture_prompt', 'feedback_thumbs'],
         'Urgency'      => ['countdown', 'flash_sale', 'low_stock', 'price_drop'],
         'Bars'         => ['announcement_bar', 'sticky_cta', 'cookie_consent'],
         'Contact'      => ['whatsapp_chat', 'click_to_call'],
@@ -136,7 +155,9 @@ protected $fillable = [
 
     public function typeLabel(): string
     {
-        return self::TYPES[$this->type] ?? ucfirst(str_replace('_', ' ', $this->type ?? ''));
+        return self::TYPES[$this->type]
+            ?? self::LEGACY_TYPE_LABELS[$this->type]
+            ?? ucfirst(str_replace('_', ' ', $this->type ?? ''));
     }
 
     public function ctr(): float
@@ -187,14 +208,17 @@ protected $fillable = [
     {
         return match ($type) {
             'recent_activity'   => ['title_template' => '{name} from {location}', 'body_template' => '{action}', 'pool' => []],
-            'visitor_count'     => ['text' => '{count} people are viewing this page', 'min' => 12, 'max' => 48],
-            'conversion_count'  => ['text' => '{count} people purchased in the last 24 hours', 'count' => 47],
+            'counter'           => ['mode' => 'live_visitors', 'text' => '{count} people are viewing this page', 'min' => 12, 'max' => 48, 'count' => 47],
+            // Legacy keys kept so stored notifications normalize with the same defaults they were built with.
+            'visitor_count'     => ['mode' => 'live_visitors', 'text' => '{count} people are viewing this page', 'min' => 12, 'max' => 48],
+            'conversion_count'  => ['mode' => 'conversions', 'text' => '{count} people purchased in the last 24 hours', 'count' => 47],
             'social_followers'  => ['network' => 'instagram', 'handle' => '@yourbrand', 'count' => 1234, 'url' => ''],
             'trust_badge'       => ['rating' => 4.9, 'reviews' => 2345, 'label' => 'on Trustpilot'],
             'review'            => ['rotate' => true, 'items' => [['author' => 'Sarah K.', 'text' => 'Absolutely love this product!', 'rating' => 5]]],
             'testimonial_quote' => ['quote' => 'This is the best tool I have ever used. Highly recommended!', 'author' => 'Jane Doe', 'role' => 'CEO at Acme'],
-            'email_signup'      => ['title' => 'Join our newsletter', 'body' => 'Weekly tips delivered to your inbox.', 'cta' => 'Subscribe'],
-            'exit_offer'        => ['title' => 'Wait! Don\'t leave yet', 'body' => 'Get 10% off your first order.', 'cta' => 'Claim 10% off', 'cta_url' => '#'],
+            'capture_prompt'    => ['trigger' => 'always', 'title' => 'Join our newsletter', 'body' => 'Weekly tips delivered to your inbox.', 'cta' => 'Subscribe', 'cta_url' => ''],
+            'email_signup'      => ['trigger' => 'always', 'title' => 'Join our newsletter', 'body' => 'Weekly tips delivered to your inbox.', 'cta' => 'Subscribe'],
+            'exit_offer'        => ['trigger' => 'exit_intent', 'title' => 'Wait! Don\'t leave yet', 'body' => 'Get 10% off your first order.', 'cta' => 'Claim 10% off', 'cta_url' => '#'],
             'feedback_thumbs'   => ['question' => 'Was this page helpful?'],
             'countdown'         => ['title' => 'Limited offer ends in', 'ends_at' => now()->addDays(3)->toIso8601String(), 'expired_text' => 'Offer expired'],
             'flash_sale'        => ['title' => 'Flash sale!', 'discount' => '20% OFF', 'ends_at' => now()->addHours(6)->toIso8601String(), 'cta' => 'Shop now', 'cta_url' => '#'],
@@ -236,8 +260,25 @@ protected $fillable = [
     public static function normalizeNotification(array $n): array
     {
         $type = $n['type'] ?? 'recent_activity';
-        if (!isset(self::TYPES[$type])) $type = 'recent_activity';
         $settings = is_array($n['settings'] ?? null) ? $n['settings'] : [];
+
+        // Transparent legacy aliasing: map retired types onto their
+        // consolidated replacement, preserving the original settings and
+        // pre-selecting the matching mode/trigger.
+        if (isset(self::LEGACY_TYPE_ALIASES[$type])) {
+            $alias = self::LEGACY_TYPE_ALIASES[$type];
+            // Seed the legacy type's own defaults first so the rendered
+            // output stays identical to what the legacy renderer produced.
+            $settings = array_merge(self::defaultSettingsFor($type), $settings);
+            $settings[$alias['key']] = $settings[$alias['key']] ?? $alias['value'];
+            // Guard against a stored-but-empty mode/trigger value.
+            if (!is_string($settings[$alias['key']]) || $settings[$alias['key']] === '') {
+                $settings[$alias['key']] = $alias['value'];
+            }
+            $type = $alias['type'];
+        }
+
+        if (!isset(self::TYPES[$type])) $type = 'recent_activity';
         $settings = array_merge(self::defaultSettingsFor($type), $settings);
 
         $triggers = $n['triggers'] ?? self::defaultTriggers();
@@ -261,7 +302,7 @@ protected $fillable = [
             'settings'        => $settings,
             'design_override' => $designOverride,
             'triggers'        => $triggers,
-            'triggers_logic'  => in_array($n['triggers_logic'] ?? 'or', ['or', 'and'], true) ? $n['triggers_logic'] : 'or',
+            'triggers_logic'  => in_array($n['triggers_logic'] ?? 'or', ['or', 'and'], true) ? ($n['triggers_logic'] ?? 'or') : 'or',
             'is_active'       => (bool)($n['is_active'] ?? true),
             'sort_order'      => (int)($n['sort_order'] ?? 0),
         ];

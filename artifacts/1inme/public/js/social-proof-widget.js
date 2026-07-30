@@ -468,6 +468,13 @@
     basicCard(cfg, n, design, html, { duration: dur });
   };
 
+  // Consolidated "Counter" type: settings.mode picks between the legacy
+  // visitor_count (live_visitors) and conversion_count (conversions) looks.
+  RENDERERS.counter = function (cfg, config, n, design, s, dur, inst) {
+    var target = (s.mode === 'conversions') ? RENDERERS.conversion_count : RENDERERS.visitor_count;
+    target(cfg, config, n, design, s, dur, inst);
+  };
+
   RENDERERS.social_followers = function (cfg, config, n, design, s, dur) {
     var icons = {instagram:'\uD83D\uDCF7', twitter:'\uD83D\uDC26', facebook:'f', linkedin:'in', tiktok:'\u266B', youtube:'\u25B6'};
     var html = '<div class="__sp_img" style="background:var(--sp-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">'
@@ -569,6 +576,13 @@
       btn.textContent = hasEmail ? '✓ Claimed' : 'Opened'; btn.disabled = true; input.disabled = true;
       setTimeout(closer, 1500);
     });
+  };
+
+  // Consolidated "Capture Prompt" type: settings.trigger picks between the
+  // legacy email_signup (always) and exit_offer (exit_intent) looks.
+  RENDERERS.capture_prompt = function (cfg, config, n, design, s, dur, inst) {
+    var target = (s.trigger === 'exit_intent') ? RENDERERS.exit_offer : RENDERERS.email_signup;
+    target(cfg, config, n, design, s, dur, inst);
   };
 
   RENDERERS.feedback_thumbs = function (cfg, config, n, design, s, dur) {
