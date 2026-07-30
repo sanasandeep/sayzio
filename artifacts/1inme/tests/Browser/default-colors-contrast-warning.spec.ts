@@ -205,3 +205,42 @@ test("low-contrast warning appears for a bad pair and clears when fixed", async 
   await expect(textWarning).toHaveCount(0);
   await expect(accentWarning).toHaveCount(0);
 });
+
+test("accent warning appears with inherited accent text and clears when fixed", async ({
+  page,
+}) => {
+  test.setTimeout(300_000);
+
+  await page.goto(`/user/links/${fixture.linkId}/settings/default-colors`, {
+    waitUntil: "domcontentloaded",
+    timeout: 120_000,
+  });
+
+  const textWarning = page.getByTestId("contrast-warning-text");
+  const accentWarning = page.getByTestId("contrast-warning-accent");
+
+  await expect(page.getByText("Button text on accent")).toBeVisible({
+    timeout: 60_000,
+  });
+
+  // Fresh page load starts from the saved (all-inherit) state, so both
+  // warnings are hidden — the previous test never submitted the form.
+  await expect(accentWarning).toHaveCount(0);
+  await expect(textWarning).toHaveCount(0);
+
+  // Asymmetric defaults: with only accent_color set to #ffffff, the accent
+  // text falls back to #ffffff (white on white, 1:1) → warning must appear.
+  await setColor(page, "accent_color", "#ffffff");
+
+  await expect(accentWarning).toBeVisible();
+  await expect(accentWarning).toContainText("Low contrast");
+  await expect(accentWarning).toContainText(/\d+(\.\d+)?:1/);
+
+  // The text warning is unaffected by accent fields.
+  await expect(textWarning).toHaveCount(0);
+
+  // Setting accent_text_color to #000000 (~21:1 on white) clears it.
+  await setColor(page, "accent_text_color", "#000000");
+  await expect(accentWarning).toHaveCount(0);
+  await expect(textWarning).toHaveCount(0);
+});
