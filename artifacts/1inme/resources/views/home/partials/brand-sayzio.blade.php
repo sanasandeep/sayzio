@@ -168,7 +168,7 @@
     }
     .bs-is-pill::before {
         content: ""; position: absolute; inset: -5px; border-radius: inherit; z-index: -1;
-        background: conic-gradient(from 0deg, #3d6bff, #6e61ff, #1bd4d9, #3d6bff);
+        background: conic-gradient(from 0deg, #3d6bff, #6e61ff, #22d3ee, #3d6bff);
         filter: blur(11px); opacity: .32; animation: spinSlow 7s linear infinite;
     }
 

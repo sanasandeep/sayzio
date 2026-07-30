@@ -38,7 +38,7 @@
     .zbp-card .t { font-size: 10px; font-weight:800; color:#8f9bb8; text-transform:uppercase; letter-spacing:.08em; }
     .zbp-card .v { margin-top:4px; font-size: 17px; font-weight:800; color:#fff; }
     .zbp-bar { height: 5px; border-radius: 999px; background: rgba(255,255,255,.08); margin-top: 8px; overflow:hidden; }
-    .zbp-bar > span { display:block; height:100%; border-radius:999px; background: linear-gradient(90deg, #3d6bff, #1bd4d9); }
+    .zbp-bar > span { display:block; height:100%; border-radius:999px; background: linear-gradient(90deg, #3d6bff, #6e61ff, #22d3ee); }
     /* Floating profile chip */
     .zbp-profile {
         position:absolute; left:-18px; bottom:14%; z-index:6;
@@ -48,7 +48,7 @@
         color:#fff;
     }
     @media (max-width: 640px) { .zbp-profile { left: 4px; } }
-    .zbp-profile .ava { width:30px; height:30px; border-radius:10px; background: linear-gradient(135deg, #3d6bff, #1bd4d9); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; color:#fff; }
+    .zbp-profile .ava { width:30px; height:30px; border-radius:10px; background: linear-gradient(135deg, #3d6bff, #6e61ff, #22d3ee); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; color:#fff; }
     .zbp-profile .n { font-size:11.5px; font-weight:800; color:#fff; }
     .zbp-profile .s { font-size:9.5px; color:#a8b3cf; font-weight:600; }
     @media (prefers-reduced-motion: no-preference) {
@@ -77,7 +77,7 @@
                 <i class="fas fa-window-maximize text-[10px]"></i> Zio Browser, for desktop
             </span>
             <h1 class="mt-4 text-4xl sm:text-5xl font-bold leading-[1.08] text-white">
-                A browser built for <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#3d6bff] to-[#1bd4d9]">people who ship</span>
+                A browser built for <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#3d6bff] via-[#6e61ff] to-[#22d3ee]">people who ship</span>
             </h1>
             <p class="mt-5 text-lg text-gray-400 leading-relaxed max-w-xl">
                 Zio Browser is the SayZio desktop browser for Mac and Windows: private,

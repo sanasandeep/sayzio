@@ -18,7 +18,7 @@
         color:#fff;
     }
     .zxp-pophead { display:flex; align-items:center; gap:9px; padding: 13px 16px; border-bottom:1px solid rgba(255,255,255,.07); }
-    .zxp-logo { width:26px; height:26px; border-radius:8px; background: linear-gradient(135deg, #3d6bff, #1bd4d9); display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; }
+    .zxp-logo { width:26px; height:26px; border-radius:8px; background: linear-gradient(135deg, #3d6bff, #6e61ff, #22d3ee); display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; }
     .zxp-pophead .t { font-size:12px; font-weight:800; color:#fff; }
     .zxp-pophead .s { font-size:9.5px; color:#8f9bb8; font-weight:600; }
     .zxp-row { padding: 13px 16px; }
@@ -36,7 +36,7 @@
         padding: 9px 0; border-radius: 10px; font-size: 11px; font-weight:700; color:#fff;
         background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
     }
-    .zxp-act.primary { background: linear-gradient(135deg, #3d6bff, #1bd4d9); border:none; }
+    .zxp-act.primary { background: linear-gradient(135deg, #3d6bff, #6e61ff, #22d3ee); border:none; }
     .zxp-qr {
         position:absolute; right:-26px; bottom:-20px; z-index:6;
         width: 92px; height: 92px; border-radius: 16px; padding: 10px;
@@ -74,7 +74,7 @@
     /* Real-photo treatment (light-mode paired) */
     .zxp-photo { width:100%; height:auto; border-radius:20px; border:1px solid rgba(255,255,255,.1); box-shadow: 0 30px 70px -30px rgba(61,107,255,.4); }
     html.light-mode .zxp-photo { border-color: rgba(15,23,42,.12); box-shadow: 0 30px 70px -30px rgba(61,107,255,.28); }
-    .zxp-step-num { display:inline-flex; height:40px; width:40px; align-items:center; justify-content:center; border-radius:999px; font-size:14px; font-weight:800; color:#fff; background: linear-gradient(135deg, #3d6bff, #1bd4d9); }
+    .zxp-step-num { display:inline-flex; height:40px; width:40px; align-items:center; justify-content:center; border-radius:999px; font-size:14px; font-weight:800; color:#fff; background: linear-gradient(135deg, #3d6bff, #6e61ff, #22d3ee); }
 </style>
 
 @php
@@ -107,7 +107,7 @@
                 <i class="fas fa-puzzle-piece text-[10px]"></i> Zio Extension
             </span>
             <h1 class="mt-4 text-4xl sm:text-5xl font-bold leading-[1.08] text-white">
-                Shorten any page <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#3d6bff] to-[#1bd4d9]">without leaving it</span>
+                Shorten any page <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#3d6bff] via-[#6e61ff] to-[#22d3ee]">without leaving it</span>
             </h1>
             <p class="mt-5 text-lg text-gray-400 leading-relaxed max-w-xl">
                 One click in your toolbar turns the page you're on into a branded short link,

@@ -39,7 +39,7 @@
     }
     .rb-paper-head {
         padding: 22px 22px 16px; color: #fff;
-        background: linear-gradient(135deg, #3d6bff 0%, #6e61ff 100%);
+        background: linear-gradient(135deg, #3d6bff 0%, #6e61ff 60%, #22d3ee 130%);
         position: relative; overflow: hidden;
     }
     .rb-paper-head::before {
@@ -48,7 +48,7 @@
     }
     .rb-avatar {
         width: 52px; height: 52px; border-radius: 50%;
-        background: linear-gradient(135deg, #6e61ff, #3d6bff);
+        background: linear-gradient(135deg, #3d6bff, #6e61ff, #22d3ee);
         display:flex; align-items:center; justify-content:center;
         color:#fff; font-weight:800; font-size: 20px;
         box-shadow: 0 6px 18px -4px rgba(0,0,0,.45);
@@ -56,7 +56,7 @@
     .rb-bar { height: 8px; border-radius: 999px; background: #e5e7eb; overflow: hidden; position: relative; }
     .rb-bar > span {
         position:absolute; left:0; top:0; bottom:0; border-radius: inherit;
-        background: linear-gradient(90deg, #3d6bff, #6e61ff);
+        background: linear-gradient(90deg, #3d6bff, #6e61ff, #22d3ee);
         transform-origin: left center;
         width: var(--rb-w, 70%);
         transform: scaleX(1);
@@ -170,7 +170,7 @@
     .rb-thumb .rb-thumb-lines span:nth-child(3){ width: 60%; }
     .rb-thumb .rb-thumb-lines span:nth-child(4){ width: 80%; }
     .rb-thumb-1 { top: -28px; left: -36px; transform: rotate(-12deg); animation-delay: .0s; }
-    .rb-thumb-1::before { background: linear-gradient(135deg,#1bd4d9,#3d6bff); }
+    .rb-thumb-1::before { background: linear-gradient(135deg,#3d6bff,#6e61ff,#22d3ee); }
     .rb-thumb-2 { bottom: -22px; right: -28px; transform: rotate(8deg); animation-delay: 1.2s; }
     .rb-thumb-2::before { background: linear-gradient(135deg,#e94e8c,#ff8a3c); }
     .rb-thumb-3 { top: 40%; right: -52px; transform: rotate(14deg); animation-delay: 2.4s; }
@@ -319,7 +319,7 @@
                         <div class="rb-build rb-b-port" style="--ty:32px;--rot:3deg;">
                             <div class="text-[11px] font-bold uppercase tracking-wider text-blue-700 mb-1.5">Portfolio</div>
                             <div class="grid grid-cols-3 gap-1.5">
-                                <div class="aspect-square rounded-md" style="background:linear-gradient(135deg,#3d6bff,#1bd4d9);"></div>
+                                <div class="aspect-square rounded-md" style="background:linear-gradient(135deg,#3d6bff,#6e61ff,#22d3ee);"></div>
                                 <div class="aspect-square rounded-md" style="background:linear-gradient(135deg,#e94e8c,#ff8a3c);"></div>
                                 <div class="aspect-square rounded-md" style="background:linear-gradient(135deg,#22d3ee,#16a34a);"></div>
                             </div>

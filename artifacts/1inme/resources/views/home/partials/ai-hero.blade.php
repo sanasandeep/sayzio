@@ -51,7 +51,7 @@
                         <span class="grad-text">the whole page.</span>
                         <svg class="absolute -bottom-3 left-0 w-full" height="14" viewBox="0 0 220 14" preserveAspectRatio="none" aria-hidden="true">
                             <path class="draw-line" d="M2 9 Q 60 2, 110 8 T 218 6" stroke="url(#ai-hero-underline)" stroke-width="5" fill="none" stroke-linecap="round"/>
-                            <defs><linearGradient id="ai-hero-underline"><stop offset="0%" stop-color="#3d6bff"/><stop offset="100%" stop-color="#1bd4d9"/></linearGradient></defs>
+                            <defs><linearGradient id="ai-hero-underline"><stop offset="0%" stop-color="#3d6bff"/><stop offset="55%" stop-color="#6e61ff"/><stop offset="100%" stop-color="#22d3ee"/></linearGradient></defs>
                         </svg>
                     </span>
                 </h2>

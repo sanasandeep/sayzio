@@ -51,7 +51,7 @@
     .zdp-cid-sub { font-size:10px; color:#a8b3cf; font-weight:600; margin-top:2px; }
     .zdp-cid-ava {
         width:38px; height:38px; border-radius:13px; flex-shrink:0;
-        background: linear-gradient(135deg, #3d6bff, #1bd4d9);
+        background: linear-gradient(135deg, #3d6bff, #6e61ff, #22d3ee);
         display:flex; align-items:center; justify-content:center;
         color:#fff; font-weight:800; font-size:14px;
     }
@@ -85,7 +85,7 @@
                 <i class="fas fa-phone text-[10px]"></i> Zio Dialer, for Android
             </span>
             <h1 class="mt-4 text-4xl sm:text-5xl font-bold leading-[1.08] text-white">
-                The dialer that knows <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#3d6bff] to-[#1bd4d9]">who's calling</span>
+                The dialer that knows <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#3d6bff] via-[#6e61ff] to-[#22d3ee]">who's calling</span>
             </h1>
             <p class="mt-5 text-lg text-gray-400 leading-relaxed max-w-xl">
                 Zio Dialer replaces your stock phone app with T9 smart search, a caller-ID overlay
@@ -232,7 +232,7 @@
                 ['3', 'Dial smarter', 'T9 search, caller ID and quick channels start working immediately — no configuration needed.'],
             ] as [$step, $title, $desc])
                 <div class="glass rounded-2xl p-6 text-center" data-anim="fade-up">
-                    <span class="inline-flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white" style="background: linear-gradient(135deg, #3d6bff, #1bd4d9);">{{ $step }}</span>
+                    <span class="inline-flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white" style="background: linear-gradient(135deg, #3d6bff, #6e61ff, #22d3ee);">{{ $step }}</span>
                     <h3 class="mt-4 text-base font-bold text-white">{{ $title }}</h3>
                     <p class="mt-1.5 text-sm text-gray-400 leading-relaxed">{{ $desc }}</p>
                 </div>

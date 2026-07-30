@@ -58,7 +58,7 @@
                 <i class="fas fa-mobile-screen-button text-[10px]"></i> Sayzio mobile app
             </span>
             <h1 class="mt-4 text-4xl sm:text-5xl font-bold leading-[1.08] text-white">
-                Your whole link business, <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#3d6bff] to-[#1bd4d9]">in your pocket</span>
+                Your whole link business, <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#3d6bff] via-[#6e61ff] to-[#22d3ee]">in your pocket</span>
             </h1>
             <p class="mt-5 text-lg text-gray-400 leading-relaxed max-w-xl">
                 Edit your Link in Bio, spin up short links and QR codes, answer your audience,
@@ -90,7 +90,7 @@
                     </div>
                     <div class="map-links" aria-hidden="true">
                         <div class="map-link">
-                            <span class="ic" style="background: linear-gradient(135deg, #3d6bff, #1bd4d9);"><i class="fas fa-id-badge"></i></span>
+                            <span class="ic" style="background: linear-gradient(135deg, #3d6bff, #6e61ff, #22d3ee);"><i class="fas fa-id-badge"></i></span>
                             <span><span class="n block">Link in Bio</span><span class="m block">@alexmakes</span></span>
                             <span class="c">+312</span>
                         </div>

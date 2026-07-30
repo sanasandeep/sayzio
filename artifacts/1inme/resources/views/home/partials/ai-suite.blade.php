@@ -326,7 +326,7 @@
     }
     html.light-mode .aisx .aisx-badge { background: #fff; border-color: rgba(15,23,42,.1); }
     @keyframes aisxBadge { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
-    .aisx .aisx-badge-ico { width: 34px; height: 34px; border-radius: 11px; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; color: #fff; background: linear-gradient(135deg, #3d6bff, #1bd4d9); }
+    .aisx .aisx-badge-ico { width: 34px; height: 34px; border-radius: 11px; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; color: #fff; background: linear-gradient(135deg, #3d6bff, #6e61ff, #22d3ee); }
     .aisx .aisx-badge-t { font-size: .8rem; font-weight: 700; color: #fff; line-height: 1.15; }
     html.light-mode .aisx .aisx-badge-t { color: #0f172a; }
     .aisx .aisx-badge-s { font-size: .68rem; color: #9ca3af; }

@@ -121,7 +121,7 @@
     .dcp-avatar-lg {
         position: relative; width: 84px; height: 84px; border-radius: 28px;
         margin-top: 18px; flex-shrink: 0;
-        background: linear-gradient(135deg, #3d6bff, #1bd4d9);
+        background: linear-gradient(135deg, #3d6bff, #6e61ff, #22d3ee);
         display:flex; align-items:center; justify-content:center;
         color:#fff; font-weight: 800; font-size: 26px;
         box-shadow: 0 16px 36px -12px rgba(61,107,255,.75);
