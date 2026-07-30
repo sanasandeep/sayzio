@@ -16,6 +16,7 @@ import {
   useState,
 } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Animated,
   Dimensions,
@@ -199,18 +200,113 @@ function publicBiolinkUrl(alias: string): string {
   return `${base}/${alias}`;
 }
 
+// Reduced-motion preference — sticker highlight animations must stay still
+// when the visitor asked the OS to reduce motion (web parity with the
+// prefers-reduced-motion CSS gate).
+function useReduceMotion(): boolean {
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((v) => {
+      if (mounted) setReduce(!!v);
+    });
+    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", (v) =>
+      setReduce(!!v),
+    );
+    return () => {
+      mounted = false;
+      sub.remove();
+    };
+  }, []);
+  return reduce;
+}
+
+// Looping highlight animation wrapper for a single sticker. Mirrors the web
+// CSS keyframes (pulse/bounce/wiggle/spin/float/glow) with the chosen loop
+// count ('infinite' loops forever). No-op when the effect is 'none' or the
+// visitor prefers reduced motion.
+function AnimatedStickerInner({
+  animation,
+  loop,
+  reduceMotion,
+  children,
+}: {
+  animation?: string;
+  loop?: string;
+  reduceMotion: boolean;
+  children: React.ReactNode;
+}) {
+  const v = useRef(new Animated.Value(0)).current;
+  const effect = animation && animation !== "none" ? animation : null;
+
+  useEffect(() => {
+    if (!effect || reduceMotion) return;
+    const durations: Record<string, number> = {
+      pulse: 1400, bounce: 1100, wiggle: 900, spin: 2200, float: 2600, glow: 1600,
+    };
+    const dur = durations[effect] ?? 1400;
+    const seq =
+      effect === "spin"
+        ? Animated.timing(v, { toValue: 1, duration: dur, useNativeDriver: true })
+        : Animated.sequence([
+            Animated.timing(v, { toValue: 1, duration: dur / 2, useNativeDriver: true }),
+            Animated.timing(v, { toValue: 0, duration: dur / 2, useNativeDriver: true }),
+          ]);
+    const iterations = loop === "infinite" || !loop ? -1 : Math.max(1, parseInt(loop, 10) || 1);
+    const anim = Animated.loop(
+      effect === "spin"
+        ? Animated.sequence([
+            seq,
+            Animated.timing(v, { toValue: 0, duration: 0, useNativeDriver: true }),
+          ])
+        : seq,
+      { iterations },
+    );
+    anim.start();
+    return () => {
+      anim.stop();
+      v.setValue(0);
+    };
+  }, [effect, loop, reduceMotion, v]);
+
+  if (!effect || reduceMotion) return <>{children}</>;
+
+  const style =
+    effect === "pulse"
+      ? { transform: [{ scale: v.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] }) }] }
+      : effect === "bounce"
+        ? { transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [0, -12] }) }] }
+        : effect === "wiggle"
+          ? { transform: [{ rotate: v.interpolate({ inputRange: [0, 1], outputRange: ["-9deg", "9deg"] }) }] }
+          : effect === "spin"
+            ? { transform: [{ rotate: v.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] }) }] }
+            : effect === "float"
+              ? { transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [0, -8] }) }] }
+              : /* glow — approximated as a soft opacity shimmer */
+                { opacity: v.interpolate({ inputRange: [0, 1], outputRange: [1, 0.55] }) };
+
+  return <Animated.View style={style}>{children}</Animated.View>;
+}
+
 // Decorative page stickers (emoji/image overlays) — mirrors the web
 // renderer: percent positioning on a full-screen pointer-events-none layer,
 // "back" behind the content, "front" above it. Base sizes match web
-// (36px emoji / 64px image, multiplied by scale).
+// (36px emoji / 64px image, multiplied by scale). `mode` splits stickers by
+// position_mode: "fixed" layers overlay the viewport, "scroll" layers are
+// rendered inside the ScrollView so they move with the page content.
 function StickerOverlay({
   stickers,
   layer,
+  mode = "fixed",
 }: {
   stickers?: import("@/lib/api/biolinks").PageSticker[];
   layer: "front" | "back";
+  mode?: "fixed" | "scroll";
 }) {
-  const list = (stickers ?? []).filter((s) => s.layer === layer);
+  const reduceMotion = useReduceMotion();
+  const list = (stickers ?? []).filter(
+    (s) => s.layer === layer && (s.position_mode ?? "fixed") === mode,
+  );
   if (!list.length) return null;
   const host = getBaseUrl().replace(/\/?api\/?$/, "").replace(/\/+$/, "");
   return (
@@ -227,32 +323,36 @@ function StickerOverlay({
           const uri = s.value.startsWith("/") ? `${host}${s.value}` : s.value;
           return (
             <View key={i} style={wrap}>
-              <Image
-                source={{ uri }}
-                style={{
-                  width: size,
-                  height: size,
-                  marginLeft: -size / 2,
-                  marginTop: -size / 2,
-                }}
-                resizeMode="contain"
-              />
+              <AnimatedStickerInner animation={s.animation} loop={s.loop} reduceMotion={reduceMotion}>
+                <Image
+                  source={{ uri }}
+                  style={{
+                    width: size,
+                    height: size,
+                    marginLeft: -size / 2,
+                    marginTop: -size / 2,
+                  }}
+                  resizeMode="contain"
+                />
+              </AnimatedStickerInner>
             </View>
           );
         }
         const fontSize = Math.round(36 * s.scale);
         return (
           <View key={i} style={wrap}>
-            <Text
-              style={{
-                fontSize,
-                lineHeight: fontSize * 1.2,
-                marginLeft: -fontSize / 2,
-                marginTop: -fontSize / 2,
-              }}
-            >
-              {s.value}
-            </Text>
+            <AnimatedStickerInner animation={s.animation} loop={s.loop} reduceMotion={reduceMotion}>
+              <Text
+                style={{
+                  fontSize,
+                  lineHeight: fontSize * 1.2,
+                  marginLeft: -fontSize / 2,
+                  marginTop: -fontSize / 2,
+                }}
+              >
+                {s.value}
+              </Text>
+            </AnimatedStickerInner>
           </View>
         );
       })}
@@ -5421,11 +5521,14 @@ export default function BiolinkViewer() {
       ) : null}
 
       {q.data && (q.data.biolink.mode !== "slides" || !q.data.slides) && (
-        <StickerOverlay stickers={q.data.biolink.stickers} layer="back" />
+        <StickerOverlay stickers={q.data.biolink.stickers} layer="back" mode="fixed" />
       )}
 
       {q.data && (q.data.biolink.mode !== "slides" || !q.data.slides) && (
         <ScrollView contentContainerStyle={styles.content}>
+          {/* Scroll-mode stickers live inside the ScrollView so they move
+              with the page content (web parity: .page-stickers--scroll). */}
+          <StickerOverlay stickers={q.data.biolink.stickers} layer="back" mode="scroll" />
           {q.data.owner.avatar ? (
             <Image
               source={{ uri: q.data.owner.avatar }}
@@ -5528,11 +5631,12 @@ export default function BiolinkViewer() {
             theme="biolink"
             fontColor={colors.foreground}
           />
+          <StickerOverlay stickers={q.data.biolink.stickers} layer="front" mode="scroll" />
         </ScrollView>
       )}
 
       {q.data && (q.data.biolink.mode !== "slides" || !q.data.slides) && (
-        <StickerOverlay stickers={q.data.biolink.stickers} layer="front" />
+        <StickerOverlay stickers={q.data.biolink.stickers} layer="front" mode="fixed" />
       )}
 
       <EmbedModal

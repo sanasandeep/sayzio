@@ -68,11 +68,29 @@ class PageStickersTest extends TestCase
         ]);
 
         $this->assertCount(3, $out);
-        $this->assertSame(['kind' => 'emoji', 'value' => '🔥', 'x' => 100.0, 'y' => 0.0, 'rotation' => 180, 'scale' => 3.0, 'layer' => 'front'], $out[0]);
+        $this->assertSame(['kind' => 'emoji', 'value' => '🔥', 'x' => 100.0, 'y' => 0.0, 'rotation' => 180, 'scale' => 3.0, 'layer' => 'front', 'position_mode' => 'fixed', 'animation' => 'none', 'loop' => 'infinite'], $out[0]);
         $this->assertSame('image', $out[1]['kind']);
         $this->assertSame(0.4, $out[1]['scale']);
         $this->assertSame('back', $out[1]['layer']);
         $this->assertSame('x😀', $out[2]['value']); // tags stripped
+    }
+
+    public function test_sanitizer_position_mode_animation_and_loop_allowlists(): void
+    {
+        $out = BiolinkStickers::sanitize([
+            // Valid new fields pass through.
+            ['kind' => 'emoji', 'value' => '🔥', 'position_mode' => 'scroll', 'animation' => 'pulse', 'loop' => '3'],
+            // Bogus values fall back to safe defaults.
+            ['kind' => 'emoji', 'value' => '⭐', 'position_mode' => 'weird', 'animation' => 'explode', 'loop' => '99'],
+            // Legacy sticker without the new keys gets defaults (untouched behavior).
+            ['kind' => 'emoji', 'value' => '💎'],
+            ['kind' => 'emoji', 'value' => '🚀', 'animation' => 'spin', 'loop' => 'infinite'],
+        ]);
+
+        $this->assertSame(['scroll', 'pulse', '3'], [$out[0]['position_mode'], $out[0]['animation'], $out[0]['loop']]);
+        $this->assertSame(['fixed', 'none', 'infinite'], [$out[1]['position_mode'], $out[1]['animation'], $out[1]['loop']]);
+        $this->assertSame(['fixed', 'none', 'infinite'], [$out[2]['position_mode'], $out[2]['animation'], $out[2]['loop']]);
+        $this->assertSame(['spin', 'infinite'], [$out[3]['animation'], $out[3]['loop']]);
     }
 
     public function test_sanitizer_caps_at_ten_and_accepts_json_string(): void
@@ -227,6 +245,37 @@ class PageStickersTest extends TestCase
         $this->assertStringContainsString('https://example.com/a.png', $html);
         $this->assertStringContainsString('left:12.5%', $html);
         $this->assertStringContainsString('--st-rot:-15deg', $html);
+    }
+
+    public function test_public_page_renders_scroll_layers_and_animation_classes(): void
+    {
+        $user = $this->makeUser();
+        $link = $this->makeLink($user);
+        $link->update(['settings' => ['biolink' => ['stickers' => [
+            // Fixed, no animation — stays on the pinned layer with no anim class.
+            ['kind' => 'emoji', 'value' => '🔥', 'layer' => 'front', 'position_mode' => 'fixed'],
+            // Scroll + finite-loop animation.
+            ['kind' => 'emoji', 'value' => '⭐', 'layer' => 'front', 'position_mode' => 'scroll', 'animation' => 'bounce', 'loop' => '3'],
+            // Back layer, infinite spin.
+            ['kind' => 'emoji', 'value' => '💫', 'layer' => 'back', 'position_mode' => 'scroll', 'animation' => 'spin', 'loop' => 'infinite'],
+        ]]]]);
+
+        app()->forgetInstance('current_workspace');
+        app()->forgetInstance('workspace_owner');
+
+        $html = $this->get('/' . $link->alias)->assertOk()->getContent();
+
+        // Both a fixed and a scroll front layer exist.
+        $this->assertStringContainsString('page-stickers-front  bg-layer', $html);
+        $this->assertStringContainsString('page-stickers-front page-stickers--scroll bg-layer', $html);
+        $this->assertStringContainsString('page-stickers-back page-stickers--scroll bg-layer', $html);
+        // Animation classes + loop counts.
+        $this->assertStringContainsString('st-anim-bounce', $html);
+        $this->assertStringContainsString('--st-loops:3;', $html);
+        $this->assertStringContainsString('st-anim-spin', $html);
+        $this->assertStringContainsString('--st-loops:infinite;', $html);
+        // Keyframes are gated behind the reduced-motion media query.
+        $this->assertStringContainsString('prefers-reduced-motion: no-preference', $html);
     }
 
     public function test_public_page_without_stickers_renders_no_layer(): void

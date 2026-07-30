@@ -251,6 +251,15 @@
         );
         $backStickers  = array_values(array_filter($pageStickers, fn ($s) => $s['layer'] === 'back'));
         $frontStickers = array_values(array_filter($pageStickers, fn ($s) => $s['layer'] === 'front'));
+        // Split each layer by position mode: 'fixed' stickers pin to the
+        // viewport, 'scroll' stickers ride a page-height absolute layer.
+        $stickerLayers = [];
+        foreach (['back' => $backStickers, 'front' => $frontStickers] as $stlKey => $stlList) {
+            foreach (['fixed', 'scroll'] as $stlMode) {
+                $stlItems = array_values(array_filter($stlList, fn ($s) => ($s['position_mode'] ?? 'fixed') === $stlMode));
+                if ($stlItems) $stickerLayers[] = ['layer' => $stlKey, 'mode' => $stlMode, 'items' => $stlItems];
+            }
+        }
     @endphp
     @php
         // Collect every font referenced by this biolink: page font, block-
@@ -505,6 +514,10 @@
             pointer-events: none;
             overflow: hidden;
         }
+        {{-- Scroll-mode stickers live on an absolutely-positioned page-height
+             layer (body is the containing block) so they move away with the
+             content while fixed stickers stay pinned to the viewport. --}}
+        .page-stickers--scroll { position: absolute; }
         .page-stickers-back { z-index: 0; }
         .page-stickers-front { z-index: 2; }
         .page-sticker {
@@ -519,12 +532,31 @@
                  shadow keeps outline-style emoji visible on any background. --}}
             filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
         }
+        .page-sticker-inner { display: inline-block; }
         .page-sticker-image img {
             width: var(--st-size, 64px);
             height: auto;
             display: block;
             filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
         }
+        {{-- Looping highlight animations. The positioning transform lives on
+             the OUTER .page-sticker, so effects animate an inner wrapper and
+             never fight it. --st-loops carries the chosen repeat count
+             (a number or `infinite`). Fully disabled under reduced motion. --}}
+        @media (prefers-reduced-motion: no-preference) {
+            .st-anim-pulse  { animation: st-pulse 1.4s ease-in-out var(--st-loops, infinite); }
+            .st-anim-bounce { animation: st-bounce 1.1s ease-in-out var(--st-loops, infinite); }
+            .st-anim-wiggle { animation: st-wiggle 0.9s ease-in-out var(--st-loops, infinite); }
+            .st-anim-spin   { animation: st-spin 2.2s linear var(--st-loops, infinite); }
+            .st-anim-float  { animation: st-float 2.6s ease-in-out var(--st-loops, infinite); }
+            .st-anim-glow   { animation: st-glow 1.6s ease-in-out var(--st-loops, infinite); }
+        }
+        @keyframes st-pulse  { 0%,100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+        @keyframes st-bounce { 0%,100% { transform: translateY(0); } 40% { transform: translateY(-12px); } 60% { transform: translateY(-6px); } }
+        @keyframes st-wiggle { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(-9deg); } 75% { transform: rotate(9deg); } }
+        @keyframes st-spin   { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes st-float  { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        @keyframes st-glow   { 0%,100% { filter: drop-shadow(0 0 0 rgba(255,255,255,0)); } 50% { filter: drop-shadow(0 0 10px rgba(255,255,255,0.85)) brightness(1.15); } }
         @endif
         @if($bgType === 'slideshow' && count($slideshowImages) > 0)
         {{-- "Fixed": the slideshow layer pins to the viewport. "Scroll": it becomes an
@@ -1149,25 +1181,26 @@
          Rendered as two fixed pointer-events-none layers: "back" with the
          background (z 0), "front" above content (z 2). Percent positioning
          keeps placement proportional across phone/desktop widths. --}}
-    @if(count($backStickers) || count($frontStickers))
-        @foreach(['back' => $backStickers, 'front' => $frontStickers] as $stLayer => $stList)
-            @if(count($stList))
-            <div class="page-stickers page-stickers-{{ $stLayer }} bg-layer" aria-hidden="true">
-                @foreach($stList as $st)
-                    @if($st['kind'] === 'image')
-                        <div class="page-sticker page-sticker-image"
-                             style="left:{{ $st['x'] }}%;top:{{ $st['y'] }}%;--st-rot:{{ $st['rotation'] }}deg;--st-size:{{ round(64 * $st['scale']) }}px;">
-                            <img src="{{ $st['value'] }}" alt="" loading="lazy" draggable="false">
-                        </div>
-                    @else
-                        <div class="page-sticker page-sticker-emoji"
-                             style="left:{{ $st['x'] }}%;top:{{ $st['y'] }}%;--st-rot:{{ $st['rotation'] }}deg;--st-size:{{ round(36 * $st['scale']) }}px;">{{ $st['value'] }}</div>
-                    @endif
-                @endforeach
-            </div>
-            @endif
-        @endforeach
-    @endif
+    @foreach($stickerLayers as $stl)
+        <div class="page-stickers page-stickers-{{ $stl['layer'] }} {{ $stl['mode'] === 'scroll' ? 'page-stickers--scroll' : '' }} bg-layer" aria-hidden="true">
+            @foreach($stl['items'] as $st)
+                @php
+                    $stAnim = ($st['animation'] ?? 'none') !== 'none' ? $st['animation'] : null;
+                    $stLoops = $stAnim ? (($st['loop'] ?? 'infinite') === 'infinite' ? 'infinite' : (int) $st['loop']) : null;
+                    $stAnimStyle = $stAnim ? '--st-loops:' . $stLoops . ';' : '';
+                @endphp
+                @if($st['kind'] === 'image')
+                    <div class="page-sticker page-sticker-image"
+                         style="left:{{ $st['x'] }}%;top:{{ $st['y'] }}%;--st-rot:{{ $st['rotation'] }}deg;--st-size:{{ round(64 * $st['scale']) }}px;{{ $stAnimStyle }}">
+                        <span class="page-sticker-inner {{ $stAnim ? 'st-anim-' . $stAnim : '' }}"><img src="{{ $st['value'] }}" alt="" loading="lazy" draggable="false"></span>
+                    </div>
+                @else
+                    <div class="page-sticker page-sticker-emoji"
+                         style="left:{{ $st['x'] }}%;top:{{ $st['y'] }}%;--st-rot:{{ $st['rotation'] }}deg;--st-size:{{ round(36 * $st['scale']) }}px;{{ $stAnimStyle }}"><span class="page-sticker-inner {{ $stAnim ? 'st-anim-' . $stAnim : '' }}">{{ $st['value'] }}</span></div>
+                @endif
+            @endforeach
+        </div>
+    @endforeach
 
     <div class="biolink-container">
         @if(!empty($pageTextOverlays))
