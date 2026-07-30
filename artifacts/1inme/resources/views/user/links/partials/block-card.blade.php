@@ -14,7 +14,10 @@
     $isFixed = !empty($s['_fixed']);
     $isLockedFixed = $isFixed && !$isTplDraft && $link->isDesignLocked();
 @endphp
-<div class="block-card-wrapper" data-block-id="{{ $block->id }}" style="grid-column: span {{ $curSpan }}">
+{{-- Editor cards always render full-width (one per row) so the tools never
+     get cramped; the configured span lives on data-grid-span / the width
+     selector and only affects the public page + preview. --}}
+<div class="block-card-wrapper" data-block-id="{{ $block->id }}">
     {{-- Fixed template blocks form a contiguous prefix on a locked page, so
          no insert affordance mid-prefix (the server clamps such inserts to
          after the prefix anyway). --}}

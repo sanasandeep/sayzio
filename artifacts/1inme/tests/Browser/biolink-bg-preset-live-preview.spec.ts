@@ -25,11 +25,11 @@ const test = base.extend({
 
 const ALIAS = "e2e-bg-preset-live-preview";
 
-// First catalog entry (BgPresetCatalog 'gradient_zero'): a 43deg linear
-// gradient. The computed body background-image on the public page must
-// contain this angle once the draft preview applies the preset.
-const PRESET_LABEL = "Gradient 1";
-const PRESET_CSS_MARKER = "linear-gradient(43deg";
+// Task #6204 hid the "gradients" group from the Presets picker (moved to the
+// Gradient tab), so target a picker-visible preset from the abstract group.
+// getComputedStyle normalizes hex colors to rgb(), so match the rgb form.
+const PRESET_LABEL = "Abstract 1";
+const PRESET_CSS_MARKER = "rgb(255, 0, 199)";
 
 const ARTIFACT_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

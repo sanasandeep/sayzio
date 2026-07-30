@@ -120,6 +120,12 @@
     .block-card-wrapper {
         position: relative;
     }
+    /* Editor list cards always occupy a full row regardless of the block's
+       configured width — narrow spans cramped the drag handle / tools. The
+       span value stays purely data (width selector + public page/preview). */
+    #blockList > .block-card-wrapper {
+        grid-column: 1 / -1;
+    }
     .insert-block-btn {
         position: absolute;
         right: -14px;
@@ -1372,6 +1378,7 @@ function _hideEditPreview() {
         if (status) status.classList.add('hidden');
     }
     _editingBlockId = null;
+    if (typeof _postBlockUnfocus === 'function') _postBlockUnfocus();
 }
 
 // Edit-button entry point: clicking Edit on the open block collapses its
@@ -1410,6 +1417,7 @@ function openEditDrawer(blockId) {
     wrap.classList.add('open');
     container.innerHTML = '<div class="flex items-center justify-center py-16"><i class="fas fa-spinner fa-spin text-2xl" style="color: var(--text-faint);"></i></div>';
     _scrollInlineEditorIntoView(wrap);
+    if (typeof _postBlockFocus === 'function') _postBlockFocus(blockId);
 
     var editFormUrl = '{{ route("user.links.blocks.editForm", [$link, "__ID__"]) }}'.replace('__ID__', blockId);
     fetch(editFormUrl, {
@@ -1698,6 +1706,59 @@ function pcLivePreviewBadges(badgesJson) {
     _postPcLive({ badges: badges.slice(0, 12) });
 }
 
+// ── Preview scroll-and-highlight (Task #6232) ───────────────────────────────
+// Hovering a block card (or opening its edit drawer) tells the phone-preview
+// iframe to scroll the matching public block into view and highlight it, so
+// the creator always knows which block on the page they're editing. The
+// public page only honours these messages in editor preview mode
+// (?_preview=1 / ?_editBlock), so real visitors never see highlights.
+var _focusHoverTimer = null;
+
+function _postPreviewFocusMsg(payload) {
+    document.querySelectorAll('.preview-iframe').forEach(function(pFrame) {
+        if (!pFrame.contentWindow || !pFrame.src || pFrame.src === 'about:blank') return;
+        try { pFrame.contentWindow.postMessage(payload, window.location.origin); } catch (e) {}
+    });
+}
+
+function _postBlockFocus(blockId) {
+    if (!blockId) return;
+    _postPreviewFocusMsg({ type: '1inme-block-focus', blockId: blockId });
+}
+
+function _postBlockUnfocus() {
+    _postPreviewFocusMsg({ type: '1inme-block-unfocus' });
+}
+
+// Debounced hover triggers, delegated so dynamically inserted cards work too.
+// On hover-leave we fall back to the block whose edit drawer is open (if any)
+// instead of clearing, so the drawer's highlight survives stray mouse moves.
+document.addEventListener('DOMContentLoaded', function() {
+    var list = document.getElementById('blockList');
+    if (!list) return;
+    list.addEventListener('mouseover', function(e) {
+        var wrapper = e.target.closest('.block-card-wrapper');
+        if (!wrapper || !list.contains(wrapper)) return;
+        var related = e.relatedTarget;
+        if (related && wrapper.contains(related)) return; // moving within the same card
+        var id = wrapper.getAttribute('data-block-id');
+        if (!id) return;
+        clearTimeout(_focusHoverTimer);
+        _focusHoverTimer = setTimeout(function() { _postBlockFocus(id); }, 150);
+    });
+    list.addEventListener('mouseout', function(e) {
+        var wrapper = e.target.closest('.block-card-wrapper');
+        if (!wrapper || !list.contains(wrapper)) return;
+        var related = e.relatedTarget;
+        if (related && wrapper.contains(related)) return; // still inside the card
+        clearTimeout(_focusHoverTimer);
+        _focusHoverTimer = setTimeout(function() {
+            if (_editingBlockId) _postBlockFocus(_editingBlockId);
+            else _postBlockUnfocus();
+        }, 150);
+    });
+});
+
 var _csrfToken = function() { return document.querySelector('meta[name="csrf-token"]').content; };
 
 function showToast(msg, type) {
@@ -1714,12 +1775,10 @@ function showToast(msg, type) {
 
 function setGridSpan(blockId, span, btn) {
     var card = btn.closest('.block-card');
-    var wrapper = card.closest('.block-card-wrapper') || card;
     var row = card.querySelector('.grid-span-row');
     row.querySelectorAll('.span-btn').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
     card.dataset.gridSpan = span;
-    wrapper.style.gridColumn = 'span ' + span;
     var badge = document.querySelector('[data-span-badge="' + blockId + '"]');
     if (badge) {
         badge.textContent = span + '/12';
