@@ -168,7 +168,9 @@ beforeAll(async () => {
 
   const mainWindow = makeFakeWindow();
   ipcMod.registerIpcHandlers(mainWindow as never);
-});
+  // Cold vitest runs transform/import the whole main-process graph here, which
+  // can exceed the default 10s hook timeout on a fresh environment.
+}, 60_000);
 
 afterAll(() => {
   vi.useRealTimers();
