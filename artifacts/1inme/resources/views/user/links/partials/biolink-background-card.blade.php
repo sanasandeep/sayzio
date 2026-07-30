@@ -379,7 +379,11 @@
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Layout</label>
-                    <select name="tiles_layout" x-model="tilesLayout" @change.stop="$nextTick(() => $dispatch('change'))" class="theme-input w-full">
+                    {{-- No @change re-dispatch here: a native change event on a select already
+     bubbles to the form's draft-preview listener, and re-dispatching a
+     bubbling 'change' from inside a @change handler fires the same handler
+     on the target again (.stop only blocks propagation), looping forever. --}}
+                    <select name="tiles_layout" x-model="tilesLayout" class="theme-input w-full">
                         @foreach(\App\Modules\User\Support\TilesBgCatalog::LAYOUTS as $layoutKey => $layoutLabel)
                         <option value="{{ $layoutKey }}">{{ $layoutLabel }}</option>
                         @endforeach
@@ -387,7 +391,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Animation</label>
-                    <select name="tiles_animate" x-model="tilesAnimate" @change.stop="$nextTick(() => $dispatch('change'))" class="theme-input w-full">
+                    <select name="tiles_animate" x-model="tilesAnimate" class="theme-input w-full">
                         <option value="0">Off</option>
                         <option value="1">Gentle pulse</option>
                     </select>
