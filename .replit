@@ -112,6 +112,10 @@ args = "e2e-admin-variant-gallery"
 task = "workflow.run"
 args = "em-dash"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-border-recents"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -361,6 +365,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:em-dash"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-border-recents"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5093 bash tests/Browser/run-validation.sh border-color-recents.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true

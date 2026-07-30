@@ -855,32 +855,44 @@
             </button>
 
             <div x-show="showAdvanced" x-cloak x-transition class="space-y-3 pt-1">
-                {{-- Border --}}
-                <div class="grid grid-cols-3 gap-2">
-                    <div>
-                        <label class="{{ $labelClass }}">Border</label>
-                        <select name="style[border_style]" class="{{ $inputClass }}">
-                            @foreach($borderStyles as $bsVal => $bsLabel)
-                            <option value="{{ $bsVal }}" {{ ($st['border_style'] ?? 'none') === $bsVal ? 'selected' : '' }}>{{ $bsLabel }}</option>
-                            @endforeach
-                        </select>
+                {{-- Border. The color cell is wrapped in a borderColorField()
+                     component so committed custom colors are remembered as
+                     quick-pick swatches (localStorage, mirrors the mobile
+                     editor's recent-border-colors behavior, Task #6094). --}}
+                <div x-data="borderColorField()" @recent-border-colors-changed.document="recents = $event.detail">
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="{{ $labelClass }}">Border</label>
+                            <select name="style[border_style]" class="{{ $inputClass }}">
+                                @foreach($borderStyles as $bsVal => $bsLabel)
+                                <option value="{{ $bsVal }}" {{ ($st['border_style'] ?? 'none') === $bsVal ? 'selected' : '' }}>{{ $bsLabel }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="{{ $labelClass }}">Width (px)</label>
+                            <input type="number" name="style[border_width]" value="{{ $st['border_width'] ?? '' }}" placeholder="1" min="0" max="10" class="{{ $inputClass }}">
+                        </div>
+                        <div>
+                            <label class="{{ $labelClass }}">Color</label>
+                            @php
+                                $bcVal = $st['border_color'] ?? '';
+                                $bcPicker = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $bcVal) ? $bcVal : '#ffffff';
+                            @endphp
+                            {{-- Hidden input carries the submitted value; the picker is
+                                 unnamed so its browser-normalized default never gets
+                                 stamped into _style on unrelated saves (Task #4025). --}}
+                            <input type="hidden" name="style[border_color]" value="{{ $bcVal }}" x-ref="val">
+                            <input type="color" value="{{ $bcPicker }}" x-ref="picker" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.previousElementSibling.value = this.value" @change="commit($event.target.value)">
+                        </div>
                     </div>
-                    <div>
-                        <label class="{{ $labelClass }}">Width (px)</label>
-                        <input type="number" name="style[border_width]" value="{{ $st['border_width'] ?? '' }}" placeholder="1" min="0" max="10" class="{{ $inputClass }}">
+                    {{-- Quick-pick swatches: fixed presets + recent custom colors. --}}
+                    <div class="flex flex-wrap items-center gap-1.5 mt-1.5" data-border-color-swatches>
+                        <template x-for="sw in presets.concat(recents)" :key="sw">
+                            <button type="button" class="w-5 h-5 rounded-full cursor-pointer transition-transform hover:scale-110" :style="'background: ' + sw + '; border: 1px solid var(--border-glass);'" :title="'Use ' + sw" :aria-label="'Use border color ' + sw" @click="pick(sw)"></button>
+                        </template>
                     </div>
-                    <div>
-                        <label class="{{ $labelClass }}">Color</label>
-                        @php
-                            $bcVal = $st['border_color'] ?? '';
-                            $bcPicker = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $bcVal) ? $bcVal : '#ffffff';
-                        @endphp
-                        {{-- Hidden input carries the submitted value; the picker is
-                             unnamed so its browser-normalized default never gets
-                             stamped into _style on unrelated saves (Task #4025). --}}
-                        <input type="hidden" name="style[border_color]" value="{{ $bcVal }}">
-                        <input type="color" value="{{ $bcPicker }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.previousElementSibling.value = this.value">
-                    </div>
+                    <p x-show="recents.length > 0" x-cloak class="text-[9px] mt-1" style="color: var(--text-dimmed);">Your recent custom colors appear at the end of the row.</p>
                 </div>
                 {{-- Per-side borders (Task #6038): each side's style/width/color
                      overrides the shorthand above field-by-field; blank = use
@@ -907,18 +919,26 @@
                             $scv   = $st["border_{$side}_color"] ?? '';
                             $scp   = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $scv) ? $scv : '#ffffff';
                         @endphp
-                        <div class="grid grid-cols-[36px_1fr_56px_36px] gap-1 items-center">
-                            <span class="text-[9px] font-bold" style="color: var(--text-dimmed);">{{ $sideLabel }}</span>
-                            <select name="style[border_{{ $side }}_style]" class="{{ $inputClass }} text-[11px]">
-                                <option value="" {{ $ssVal === '' ? 'selected' : '' }}>Default</option>
-                                @foreach($borderStyles as $bsVal => $bsLabel)
-                                <option value="{{ $bsVal }}" {{ $ssVal === $bsVal ? 'selected' : '' }}>{{ $bsLabel }}</option>
-                                @endforeach
-                            </select>
-                            <input type="number" name="style[border_{{ $side }}_width]" value="{{ $swVal }}" placeholder="-" min="0" max="10" class="{{ $inputClass }} text-[11px]">
-                            <div>
-                                <input type="hidden" name="style[border_{{ $side }}_color]" value="{{ $scv }}">
-                                <input type="color" value="{{ $scp }}" class="w-full h-8 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.previousElementSibling.value = this.value">
+                        <div x-data="borderColorField()" @recent-border-colors-changed.document="recents = $event.detail">
+                            <div class="grid grid-cols-[36px_1fr_56px_36px] gap-1 items-center">
+                                <span class="text-[9px] font-bold" style="color: var(--text-dimmed);">{{ $sideLabel }}</span>
+                                <select name="style[border_{{ $side }}_style]" class="{{ $inputClass }} text-[11px]">
+                                    <option value="" {{ $ssVal === '' ? 'selected' : '' }}>Default</option>
+                                    @foreach($borderStyles as $bsVal => $bsLabel)
+                                    <option value="{{ $bsVal }}" {{ $ssVal === $bsVal ? 'selected' : '' }}>{{ $bsLabel }}</option>
+                                    @endforeach
+                                </select>
+                                <input type="number" name="style[border_{{ $side }}_width]" value="{{ $swVal }}" placeholder="-" min="0" max="10" class="{{ $inputClass }} text-[11px]">
+                                <div>
+                                    <input type="hidden" name="style[border_{{ $side }}_color]" value="{{ $scv }}" x-ref="val">
+                                    <input type="color" value="{{ $scp }}" x-ref="picker" class="w-full h-8 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.previousElementSibling.value = this.value" @change="commit($event.target.value)">
+                                </div>
+                            </div>
+                            {{-- Quick-pick swatches for this side (presets + recents). --}}
+                            <div class="flex flex-wrap items-center gap-1 mt-1 pl-9" data-border-color-swatches>
+                                <template x-for="sw in presets.concat(recents)" :key="sw">
+                                    <button type="button" class="w-3.5 h-3.5 rounded-full cursor-pointer transition-transform hover:scale-110" :style="'background: ' + sw + '; border: 1px solid var(--border-glass);'" :title="'Use ' + sw" :aria-label="'Use {{ strtolower($sideLabel) }} border color ' + sw" @click="pick(sw)"></button>
+                                </template>
                             </div>
                         </div>
                         @endforeach
@@ -1015,6 +1035,72 @@
 @endif
 
 <script>
+// Recent border colors store (Task #6102). Mirrors the mobile editor's
+// behavior (Task #6094): custom hex colors committed in any border color
+// field are remembered on-device (localStorage, most recent first, capped
+// at 5) and rendered as quick-pick swatches after the fixed presets.
+// Preset duplicates are never re-added to the recents list. Uses the same
+// storage key name as mobile for conceptual parity.
+window.__recentBorderColors = window.__recentBorderColors || {
+    KEY: 'biolink.editor.recentBorderColors',
+    PRESETS: ['#ffffff', '#0f172a', '#7d9bff', '#f59e0b', '#ef4444', '#10b981', '#ec4899', '#8b5cf6'],
+    MAX: 5,
+    // Normalizes a color to a lowercase #rgb/#rrggbb/#rrggbbaa hex string,
+    // or null when it isn't a plain hex color.
+    normalize: function (raw) {
+        var v = String(raw == null ? '' : raw).trim().toLowerCase();
+        return /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/.test(v) ? v : null;
+    },
+    load: function () {
+        var out = [];
+        try {
+            var arr = JSON.parse(localStorage.getItem(this.KEY) || '[]');
+            if (!Array.isArray(arr)) return out;
+            for (var i = 0; i < arr.length && out.length < this.MAX; i++) {
+                var hex = this.normalize(arr[i]);
+                if (hex && this.PRESETS.indexOf(hex) === -1 && out.indexOf(hex) === -1) out.push(hex);
+            }
+        } catch (e) { /* corrupted storage → start fresh */ }
+        return out;
+    },
+    remember: function (raw) {
+        var hex = this.normalize(raw);
+        if (!hex || this.PRESETS.indexOf(hex) !== -1) return this.load();
+        var next = [hex].concat(this.load().filter(function (c) { return c !== hex; })).slice(0, this.MAX);
+        try { localStorage.setItem(this.KEY, JSON.stringify(next)); } catch (e) { /* storage full/blocked */ }
+        // Keep every open border color field's swatch row in sync.
+        document.dispatchEvent(new CustomEvent('recent-border-colors-changed', { detail: next }));
+        return next;
+    }
+};
+
+// Alpine component for one border color field (hidden value input +
+// unnamed color picker + swatch row). x-refs: `val` (hidden submitted
+// input) and `picker` (the <input type="color">).
+window.borderColorField = window.borderColorField || function () {
+    var store = window.__recentBorderColors;
+    return {
+        presets: store.PRESETS,
+        recents: store.load(),
+        // Remember a committed color (picker close or swatch tap).
+        commit: function (v) {
+            this.recents = store.remember(v);
+        },
+        // Fill this field from a tapped swatch and notify autosave/live
+        // preview listeners via bubbled input/change events.
+        pick: function (sw) {
+            var hidden = this.$refs.val;
+            var picker = this.$refs.picker;
+            if (!hidden) return;
+            hidden.value = sw;
+            if (picker && /^#[0-9a-f]{6}$/.test(sw)) picker.value = sw;
+            hidden.dispatchEvent(new Event('input', { bubbles: true }));
+            hidden.dispatchEvent(new Event('change', { bubbles: true }));
+            this.commit(sw);
+        }
+    };
+};
+
 // Per-type variant catalog snapshot for the currently-edited block. Stored
 // on window so multiple open editor panes share a single deserialized copy
 // (cheaper than re-decoding for every Alpine init).
