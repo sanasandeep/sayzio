@@ -72,12 +72,13 @@ class WalletController extends Controller
         ]);
     }
 
-    public function transactions(Request $request)
+    /**
+     * Apply the shared type / from / to filters to a wallet-transactions
+     * query. Used by the ledger page, its CSV export, and the summary
+     * aggregates so all three always agree on what "the filtered set" is.
+     */
+    protected function applyLedgerFilters($query, Request $request)
     {
-        if (!WalletService::isEnabled()) abort(404);
-        $user = $request->user();
-        $wallet = $this->wallets->walletFor($user);
-        $query = $wallet->transactions();
         if ($t = $request->query('type')) {
             if (in_array($t, \App\Modules\User\Models\WalletTransaction::TYPES, true)) {
                 $query->where('type', $t);
@@ -89,12 +90,91 @@ class WalletController extends Controller
         if ($to = $request->query('to')) {
             $query->where('created_at', '<=', $to . ' 23:59:59');
         }
-        $page = $query->paginate(25)->withQueryString();
+        return $query;
+    }
+
+    public function transactions(Request $request)
+    {
+        if (!WalletService::isEnabled()) abort(404);
+        $user = $request->user();
+        $wallet = $this->wallets->walletFor($user);
+        $query = $this->applyLedgerFilters($wallet->transactions(), $request);
+
+        // Period summary tiles over the WHOLE filtered range (not just
+        // the current page): coins purchased (all positive deltas) vs
+        // coins spent (all negative deltas) and the resulting net.
+        $summary = (clone $query)->reorder()
+            ->selectRaw('COALESCE(SUM(CASE WHEN delta_coins > 0 THEN delta_coins ELSE 0 END),0) AS coins_in,'
+                . 'COALESCE(SUM(CASE WHEN delta_coins < 0 THEN -delta_coins ELSE 0 END),0) AS coins_out,'
+                . 'COALESCE(SUM(delta_coins),0) AS net, COUNT(*) AS entries')
+            ->first();
+
+        $page = $query->orderByDesc('created_at')->orderByDesc('id')->paginate(25)->withQueryString();
+
+        // Day-group the current page for the statement view. Subtotals are
+        // computed over the full day (a filtered aggregate query), so a day
+        // split across two pages still shows correct daily totals.
+        $days = self::groupByDay(collect($page->items()));
+        $dayKeys = array_keys($days);
+        if ($dayKeys) {
+            $dayTotals = $this->applyLedgerFilters($wallet->transactions(), $request)->reorder()
+                ->selectRaw("to_char(created_at, 'YYYY-MM-DD') AS day,"
+                    . 'COALESCE(SUM(CASE WHEN delta_coins > 0 THEN delta_coins ELSE 0 END),0) AS coins_in,'
+                    . 'COALESCE(SUM(CASE WHEN delta_coins < 0 THEN -delta_coins ELSE 0 END),0) AS coins_out,'
+                    . 'COALESCE(SUM(delta_coins),0) AS net')
+                ->whereRaw("to_char(created_at, 'YYYY-MM-DD') IN ('" . implode("','", $dayKeys) . "')")
+                ->groupBy('day')->get()->keyBy('day');
+        } else {
+            $dayTotals = collect();
+        }
+
         return view('user.wallet.transactions', [
-            'wallet'   => $wallet,
-            'page'     => $page,
-            'filters'  => $request->only(['type', 'from', 'to']),
+            'wallet'    => $wallet,
+            'page'      => $page,
+            'days'      => $days,
+            'dayTotals' => $dayTotals,
+            'summary'   => $summary,
+            'filters'   => $request->only(['type', 'from', 'to']),
         ]);
+    }
+
+    /** Group a collection of transactions under their YYYY-MM-DD day key. */
+    public static function groupByDay($transactions): array
+    {
+        $out = [];
+        foreach ($transactions as $tx) {
+            $key = $tx->created_at ? $tx->created_at->format('Y-m-d') : 'unknown';
+            $out[$key][] = $tx;
+        }
+        return $out;
+    }
+
+    /** CSV export of the user's filtered ledger (no pagination cap abuse: streamed). */
+    public function transactionsExport(Request $request)
+    {
+        if (!WalletService::isEnabled()) abort(404);
+        $wallet = $this->wallets->walletFor($request->user());
+        $query = $this->applyLedgerFilters($wallet->transactions(), $request)
+            ->orderByDesc('created_at')->orderByDesc('id');
+
+        $filename = 'coin-ledger-' . now()->format('Ymd-His') . '.csv';
+        return response()->streamDownload(function () use ($query) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Date', 'Time', 'Type', 'Description', 'Coins', 'Balance after']);
+            $query->chunk(500, function ($rows) use ($out) {
+                foreach ($rows as $tx) {
+                    fputcsv($out, [
+                        optional($tx->created_at)->format('Y-m-d'),
+                        optional($tx->created_at)->format('H:i:s'),
+                        $tx->type,
+                        $tx->reason ?? '',
+                        (int) $tx->delta_coins,
+                        (int) $tx->balance_after,
+                    ]);
+                }
+            });
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     public function buy(Request $request, GatewayManager $gm)

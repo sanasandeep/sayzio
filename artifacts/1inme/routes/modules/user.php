@@ -1173,6 +1173,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get ('wallet',                [\App\Modules\User\Controllers\WalletController::class, 'show'])->name('wallet.show');
         Route::get ('wallet/balance',        [\App\Modules\User\Controllers\WalletController::class, 'balance'])->name('wallet.balance');
         Route::get ('wallet/transactions',   [\App\Modules\User\Controllers\WalletController::class, 'transactions'])->name('wallet.transactions');
+        Route::get ('wallet/transactions/export', [\App\Modules\User\Controllers\WalletController::class, 'transactionsExport'])->name('wallet.transactions.export');
         Route::get ('wallet/buy',            [\App\Modules\User\Controllers\WalletController::class, 'buy'])->name('wallet.buy');
         Route::post('wallet/buy',            [\App\Modules\User\Controllers\WalletController::class, 'buyHandoff'])->name('wallet.buy.handoff');
         Route::post('addons/{addon}/activate-with-coins', [\App\Modules\User\Controllers\WalletController::class, 'activateAddon'])->name('addons.activate-with-coins');

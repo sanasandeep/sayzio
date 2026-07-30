@@ -170,6 +170,19 @@ export type WalletTransaction = {
   reason: string | null;
   created_at: string | null;
 };
+export type WalletLedgerDay = {
+  date: string;
+  coins_in: number;
+  coins_out: number;
+  net: number;
+  items: WalletTransaction[];
+};
+export type WalletLedgerSummary = {
+  coins_in: number;
+  coins_out: number;
+  net: number;
+  entries: number;
+};
 export type CoinPackage = {
   id: number;
   slug: string;
@@ -196,14 +209,18 @@ export type WalletPurchaseResponse = {
 
 export const wallet = {
   balance: () => apiFetch<WalletBalance>("/wallet"),
-  transactions: (params: { type?: string; limit?: number } = {}) => {
+  transactions: (params: { type?: string; limit?: number; from?: string; to?: string } = {}) => {
     const q = new URLSearchParams();
     if (params.type) q.set("type", params.type);
     if (params.limit) q.set("limit", String(params.limit));
+    if (params.from) q.set("from", params.from);
+    if (params.to) q.set("to", params.to);
     const qs = q.toString();
-    return apiFetch<{ items: WalletTransaction[] }>(
-      `/wallet/transactions${qs ? `?${qs}` : ""}`,
-    );
+    return apiFetch<{
+      items: WalletTransaction[];
+      days?: WalletLedgerDay[];
+      summary?: WalletLedgerSummary;
+    }>(`/wallet/transactions${qs ? `?${qs}` : ""}`);
   },
   packages: () => apiFetch<{ items: CoinPackage[]; currency: string }>("/wallet/packages"),
   purchase: (coin_package_id: number, gateway: string) =>

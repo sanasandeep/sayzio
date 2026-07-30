@@ -561,6 +561,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('{coinPackage}',    [CoinPackageController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 
+        // Platform-wide coin ledger (read-only audit of wallet_transactions).
+        Route::prefix('coin-ledger')->name('coin-ledger.')->group(function () {
+            Route::get('/',       [\App\Modules\Admin\Controllers\CoinLedgerController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('export',  [\App\Modules\Admin\Controllers\CoinLedgerController::class, 'export'])->middleware(CheckPermission::class . ':settings.manage')->name('export');
+        });
+
         Route::prefix('onboarding-slides')->name('onboarding-slides.')->group(function () {
             Route::get('/',                       [OnboardingSlideController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::get('create',                  [OnboardingSlideController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
