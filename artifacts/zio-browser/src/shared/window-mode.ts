@@ -58,10 +58,10 @@ export type TabMode =
   | 'browser'
   | 'dashboard'
   | 'sayzio'
-  | 'zio'
   | 'dashboard+browser'
   | 'sayzio+browser'
   | 'dashboard+sayzio'
+  | 'browser+browser'
   | 'browser+zio'
   | 'dashboard+zio'
   | 'sayzio+zio';
@@ -70,10 +70,10 @@ export const TAB_MODES: TabMode[] = [
   'browser',
   'dashboard',
   'sayzio',
-  'zio',
   'dashboard+browser',
   'sayzio+browser',
   'dashboard+sayzio',
+  'browser+browser',
   'browser+zio',
   'dashboard+zio',
   'sayzio+zio',
@@ -83,10 +83,10 @@ export const TAB_MODE_LABELS: Record<TabMode, string> = {
   browser: 'Website',
   dashboard: 'Dashboard',
   sayzio: 'Sayzio',
-  zio: 'Ask Zio',
   'dashboard+browser': 'Dashboard + Website',
   'sayzio+browser': 'Sayzio + Website',
   'dashboard+sayzio': 'Dashboard + Sayzio',
+  'browser+browser': 'Website + Website',
   'browser+zio': 'Website + Ask Zio',
   'dashboard+zio': 'Dashboard + Ask Zio',
   'sayzio+zio': 'Sayzio + Ask Zio',
@@ -96,10 +96,10 @@ export const TAB_MODE_DESCRIPTIONS: Record<TabMode, string> = {
   browser: 'Just the website in this tab',
   dashboard: 'Your Sayzio dashboard fills this tab',
   sayzio: 'The Sayzio website fills this tab',
-  zio: 'The Ask Zio assistant fills this tab',
   'dashboard+browser': 'Dashboard on the left, website on the right',
   'sayzio+browser': 'Sayzio on the left, website on the right',
   'dashboard+sayzio': 'Dashboard on the left, Sayzio on the right',
+  'browser+browser': 'Two independent websites side by side',
   'browser+zio': 'Website on the left, Ask Zio on the right',
   'dashboard+zio': 'Dashboard on the left, Ask Zio on the right',
   'sayzio+zio': 'Sayzio on the left, Ask Zio on the right',
@@ -109,10 +109,10 @@ export const TAB_MODE_ICONS: Record<TabMode, string> = {
   browser: '🌐',
   dashboard: '⊡',
   sayzio: '⬛',
-  zio: '⚡',
   'dashboard+browser': '⊡🌐',
   'sayzio+browser': '⬛🌐',
   'dashboard+sayzio': '⊡⬛',
+  'browser+browser': '🌐🌐',
   'browser+zio': '🌐⚡',
   'dashboard+zio': '⊡⚡',
   'sayzio+zio': '⬛⚡',
@@ -148,6 +148,9 @@ export function normalizeTabMode(raw: string | null | undefined): TabMode | null
     web: 'browser',
     'sayzio-split': 'dashboard+browser',
     'zio-split': 'browser+zio',
+    // The standalone full-view Ask Zio tab mode was removed — persisted
+    // 'zio' tabs restore as plain websites (the docked panel remains).
+    zio: 'browser',
   };
   if (raw in legacy) return legacy[raw] as TabMode;
   // Non-canonical pane pair (e.g. 'browser+dashboard') → canonical order
@@ -165,15 +168,21 @@ export function normalizeTabMode(raw: string | null | undefined): TabMode | null
 
 /** The mode left after removing one pane from a split (or 'browser' fallback). */
 export function tabModeWithout(mode: TabMode, pane: TabPane): TabMode {
+  // A lone pane is only a valid TabMode if it exists as a standalone mode
+  // (e.g. 'zio' is split-only now) — otherwise fall back to 'browser'.
+  const asMode = (p: TabPane): TabMode =>
+    (TAB_MODES as readonly string[]).includes(p) ? (p as TabMode) : 'browser';
   const { left, right } = parseTabMode(mode);
-  if (left === pane && right) return right;
-  if (right === pane) return left;
+  if (left === pane && right) return asMode(right);
+  if (right === pane) return asMode(left);
   if (left === pane && !right) return 'browser';
   return mode;
 }
 
-/** Ratio of the tab area given to the Sayzio app view in sayzio-split mode. */
+/** Default ratio of the tab area given to the LEFT pane in a two-pane split. */
 export const TAB_SPLIT_RATIO = 0.5;
+export const MIN_TAB_SPLIT_RATIO = 0.2;
+export const MAX_TAB_SPLIT_RATIO = 0.8;
 export const TAB_SPLIT_DIVIDER_WIDTH = 4;
 
 export const DEFAULT_SPLIT_RATIO = 0.35;

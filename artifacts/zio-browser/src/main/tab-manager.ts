@@ -19,6 +19,8 @@ import {
   SAYZIO_HOME_URL,
   SAYZIO_BASE_HOST,
   TAB_SPLIT_RATIO,
+  MIN_TAB_SPLIT_RATIO,
+  MAX_TAB_SPLIT_RATIO,
   TAB_SPLIT_DIVIDER_WIDTH,
 } from '../shared/window-mode';
 
@@ -39,6 +41,8 @@ export interface TabState {
   zoomFactor: number;
   pinned: boolean;
   mode: TabMode;
+  /** Left-pane share of the tab area when the mode is a two-native-pane split. */
+  splitRatio: number;
 }
 
 export interface RecentlyClosedEntry {
@@ -90,6 +94,15 @@ interface ManagedTab {
   sayzioView: WebContentsView | null;
   /** Lazily created Sayzio dashboard view (pane: 'dashboard'). */
   dashboardView: WebContentsView | null;
+  /** Lazily created second independent browser view ('browser+browser' mode). */
+  secondView: WebContentsView | null;
+  /** Left-pane share of the tab area in a two-native-pane split (0.2–0.8). */
+  splitRatio: number;
+  /**
+   * Which browser pane the toolbar (address bar / nav buttons) controls when
+   * the mode is 'browser+browser'. Follows the last-focused pane.
+   */
+  focusedPane: 'primary' | 'second';
   /**
    * True while the tab shows the renderer-drawn New Tab page (about:newtab).
    * The native WebContentsView must stay DETACHED in that state — an attached
@@ -546,10 +559,18 @@ export class TabManager {
       }
     });
 
+    // In a Website+Website split the toolbar follows the last-focused pane.
+    wc.on('focus', () => {
+      const t = this.tabs.get(id);
+      if (t && t.mode === 'browser+browser' && t.focusedPane !== 'primary') {
+        this.setFocusedPane(t, 'primary');
+      }
+    });
+
     if (pinned) this.pinnedTabs.add(id);
     const isInternal = isInternalPageUrl(url);
     const isNewTabPage = !url || url === 'about:newtab' || isInternal;
-    const tab: ManagedTab = { id, view, pinned, favicon: null, muteOverride: null, mode: 'browser', sayzioView: null, dashboardView: null, isNewTabPage, internalUrl: isInternal && url ? url : null };
+    const tab: ManagedTab = { id, view, pinned, favicon: null, muteOverride: null, mode: 'browser', sayzioView: null, dashboardView: null, secondView: null, splitRatio: TAB_SPLIT_RATIO, focusedPane: 'primary', isNewTabPage, internalUrl: isInternal && url ? url : null };
     this.tabs.set(id, tab);
     this.insertInOrder(id, pinned);
 
@@ -624,7 +645,7 @@ export class TabManager {
       // May already be removed
     }
 
-    for (const extra of [tab.sayzioView, tab.dashboardView]) {
+    for (const extra of [tab.sayzioView, tab.dashboardView, tab.secondView]) {
       if (!extra) continue;
       try { this.win.contentView.removeChildView(extra); } catch { }
       if (!extra.webContents.isDestroyed()) {
@@ -633,6 +654,7 @@ export class TabManager {
     }
     tab.sayzioView = null;
     tab.dashboardView = null;
+    tab.secondView = null;
 
     this.pinnedTabs.delete(id);
     this.tabs.delete(id);
@@ -838,7 +860,7 @@ export class TabManager {
     if (prevId && prevId !== id) {
       const prev = this.tabs.get(prevId);
       if (prev) {
-        for (const v of [prev.view, prev.sayzioView, prev.dashboardView]) {
+        for (const v of [prev.view, prev.sayzioView, prev.dashboardView, prev.secondView]) {
           if (!v) continue;
           try { this.win.contentView.removeChildView(v); } catch { }
         }
@@ -876,6 +898,14 @@ export class TabManager {
     if (tabModeIncludes(mode, 'dashboard') && !tab.dashboardView) {
       tab.dashboardView = this.createSayzioView(SAYZIO_DASHBOARD_URL, shouldHideAssistant);
     }
+    if (mode === 'browser+browser' && !tab.secondView) {
+      tab.secondView = this.createSecondBrowserView(tab);
+    }
+    // Leaving the Website+Website split: the toolbar controls the primary
+    // pane again.
+    if (mode !== 'browser+browser' && tab.focusedPane !== 'primary') {
+      this.setFocusedPane(tab, 'primary');
+    }
 
     // Hide the embedded site chatbot inside Sayzio panes whenever this tab
     // also shows the Ask Zio pane (two assistants at once is confusing).
@@ -891,6 +921,9 @@ export class TabManager {
       if (tab.dashboardView && !tabModeIncludes(mode, 'dashboard')) {
         try { this.win.contentView.removeChildView(tab.dashboardView); } catch { }
       }
+      if (tab.secondView && mode !== 'browser+browser') {
+        try { this.win.contentView.removeChildView(tab.secondView); } catch { }
+      }
     }
 
     this.onTabStateChange?.(id, { mode });
@@ -898,6 +931,133 @@ export class TabManager {
 
   getTabMode(id: TabId): TabMode | null {
     return this.tabs.get(id)?.mode ?? null;
+  }
+
+  /**
+   * Set the left-pane ratio of a two-native-pane split tab and re-layout.
+   */
+  setTabSplitRatio(id: TabId, ratio: number): void {
+    const tab = this.tabs.get(id);
+    if (!tab || !Number.isFinite(ratio)) return;
+    const clamped = Math.min(MAX_TAB_SPLIT_RATIO, Math.max(MIN_TAB_SPLIT_RATIO, ratio));
+    if (tab.splitRatio === clamped) return;
+    tab.splitRatio = clamped;
+    if (id === this.activeTabId) this.layoutActiveTab();
+    this.onTabStateChange?.(id, { splitRatio: clamped });
+  }
+
+  /**
+   * Switch which browser pane the toolbar controls in 'browser+browser' mode
+   * and publish the newly-focused pane's navigation state.
+   */
+  private setFocusedPane(tab: ManagedTab, pane: 'primary' | 'second'): void {
+    if (tab.focusedPane === pane) return;
+    tab.focusedPane = pane;
+    const wc = this.focusedWebContents(tab);
+    if (!isAlive(wc)) return;
+    const url = pane === 'primary' ? (tab.internalUrl ?? wc.getURL()) : wc.getURL();
+    this.onTabStateChange?.(tab.id, {
+      url,
+      displayUrl: url,
+      title: pane === 'primary' && tab.internalUrl ? internalPageTitle(tab.internalUrl) : wc.getTitle(),
+      isLoading: wc.isLoading(),
+      canGoBack: wc.canGoBack(),
+      canGoForward: wc.canGoForward(),
+    });
+  }
+
+  /**
+   * The webContents the toolbar (address bar / nav buttons) currently controls.
+   */
+  private focusedWebContents(tab: ManagedTab): WebContents {
+    if (tab.mode === 'browser+browser' && tab.focusedPane === 'second' && tab.secondView && isAlive(tab.secondView.webContents)) {
+      return tab.secondView.webContents;
+    }
+    return tab.view.webContents;
+  }
+
+  /**
+   * Create the second, fully independent browser view for the
+   * Website + Website split. Its navigation state feeds the shared toolbar
+   * only while it is the tab's focused pane.
+   */
+  private createSecondBrowserView(tab: ManagedTab): WebContentsView {
+    const view = new WebContentsView({
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: true,
+        webSecurity: true,
+        allowRunningInsecureContent: false,
+        session: this.isPrivate ? this.tabSession : session.fromPartition(this.activePartition),
+      },
+    });
+    view.setBackgroundColor(VIEW_BG_COLOR);
+    const wc = view.webContents;
+    const id = tab.id;
+    const emitIfFocused = (state: Partial<TabState>) => {
+      const t = this.tabs.get(id);
+      if (t && t.mode === 'browser+browser' && t.focusedPane === 'second') {
+        this.onTabStateChange?.(id, state);
+      }
+    };
+
+    wc.on('did-navigate', (_, navUrl) => {
+      emitIfFocused({
+        url: navUrl,
+        displayUrl: navUrl,
+        canGoBack: wc.canGoBack(),
+        canGoForward: wc.canGoForward(),
+        isLoading: false,
+      });
+    });
+    wc.on('did-navigate-in-page', (_, navUrl) => {
+      emitIfFocused({ url: navUrl, displayUrl: navUrl });
+    });
+    wc.on('page-title-updated', (_, title) => {
+      emitIfFocused({ title });
+    });
+    wc.on('did-start-loading', () => {
+      emitIfFocused({ isLoading: true });
+    });
+    wc.on('did-stop-loading', () => {
+      emitIfFocused({
+        isLoading: false,
+        canGoBack: wc.canGoBack(),
+        canGoForward: wc.canGoForward(),
+      });
+    });
+    wc.on('focus', () => {
+      const t = this.tabs.get(id);
+      if (t && t.mode === 'browser+browser' && t.focusedPane !== 'second') {
+        this.setFocusedPane(t, 'second');
+      }
+    });
+
+    wc.on('will-navigate', (event, navUrl) => {
+      const allowed = ['http:', 'https:', 'file:', 'about:'];
+      try {
+        const proto = new URL(navUrl).protocol;
+        if (!allowed.includes(proto)) {
+          event.preventDefault();
+        }
+      } catch {
+        event.preventDefault();
+      }
+    });
+    wc.setWindowOpenHandler(({ url: openUrl }) => {
+      this.createTab(openUrl);
+      return { action: 'deny' };
+    });
+
+    // Start on the search engine's home page — an independent surface the
+    // user immediately navigates from.
+    let startUrl = 'https://www.google.com';
+    try {
+      startUrl = new URL(this.searchEngine.searchTemplate).origin;
+    } catch { /* keep fallback */ }
+    void wc.loadURL(startUrl);
+    return view;
   }
 
   /**
@@ -937,7 +1097,11 @@ export class TabManager {
 
     const { left, right } = parseTabMode(tab.mode);
     const leftView = viewFor(left);
-    const rightView = right ? viewFor(right) : null;
+    // 'browser+browser' shows the tab's own view left and the independent
+    // second browser view right (viewFor would return the same view twice).
+    const rightView = right
+      ? (tab.mode === 'browser+browser' ? tab.secondView : viewFor(right))
+      : null;
 
     // Compute bounds for the native views this mode shows.
     const placements: Array<{ view: WebContentsView; bounds: Electron.Rectangle }> = [];
@@ -951,8 +1115,9 @@ export class TabManager {
         });
       }
     } else if (right) {
-      // Two native panes → 50/50 split with a divider.
-      const leftWidth = Math.max(0, Math.floor(area.width * TAB_SPLIT_RATIO) - Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2));
+      // Two native panes → split at the tab's persisted ratio with a divider.
+      const ratio = Math.min(MAX_TAB_SPLIT_RATIO, Math.max(MIN_TAB_SPLIT_RATIO, tab.splitRatio || TAB_SPLIT_RATIO));
+      const leftWidth = Math.max(0, Math.floor(area.width * ratio) - Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2));
       const rightX = area.x + leftWidth + TAB_SPLIT_DIVIDER_WIDTH;
       const rightWidth = Math.max(0, area.x + area.width - rightX);
       if (leftView) {
@@ -974,7 +1139,7 @@ export class TabManager {
       view.setBounds(bounds);
       attach(view);
     }
-    for (const v of [tab.view, tab.sayzioView, tab.dashboardView]) {
+    for (const v of [tab.view, tab.sayzioView, tab.dashboardView, tab.secondView]) {
       if (v && !shown.has(v)) detach(v);
     }
   }
@@ -1092,6 +1257,15 @@ export class TabManager {
   navigate(id: TabId, input: string): void {
     const tab = this.tabs.get(id);
     if (!tab) return;
+    // In a Website+Website split the address bar drives the focused pane.
+    if (tab.mode === 'browser+browser' && tab.focusedPane === 'second' && tab.secondView) {
+      const secondWc = tab.secondView.webContents;
+      if (isAlive(secondWc)) {
+        const result = parseOmniboxInput(input, this.searchEngine);
+        void secondWc.loadURL(result.navigateUrl);
+      }
+      return;
+    }
     // Renderer-drawn internal pages (about:sayzio / about:zio): never load in
     // the native view — detach it and publish the url so the renderer draws it.
     // Checked on the RAW input: the omnibox parser would otherwise treat a
@@ -1122,22 +1296,26 @@ export class TabManager {
   }
 
   goBack(id: TabId): void {
-    this.tabs.get(id)?.view.webContents.goBack();
+    const tab = this.tabs.get(id);
+    if (tab) this.focusedWebContents(tab).goBack();
   }
 
   goForward(id: TabId): void {
-    this.tabs.get(id)?.view.webContents.goForward();
+    const tab = this.tabs.get(id);
+    if (tab) this.focusedWebContents(tab).goForward();
   }
 
   reload(id: TabId, ignoreCache = false): void {
-    const wc = this.tabs.get(id)?.view.webContents;
-    if (!wc) return;
+    const tab = this.tabs.get(id);
+    if (!tab) return;
+    const wc = this.focusedWebContents(tab);
     if (ignoreCache) wc.reloadIgnoringCache();
     else wc.reload();
   }
 
   stop(id: TabId): void {
-    this.tabs.get(id)?.view.webContents.stop();
+    const tab = this.tabs.get(id);
+    if (tab) this.focusedWebContents(tab).stop();
   }
 
   setZoom(id: TabId, factor: number): void {
@@ -1183,23 +1361,27 @@ export class TabManager {
   getTabState(id: TabId): TabState | null {
     const tab = this.tabs.get(id);
     if (!tab) return null;
-    const wc = tab.view.webContents;
+    const primaryWc = tab.view.webContents;
+    // The toolbar reflects the focused pane in a Website+Website split.
+    const wc = this.focusedWebContents(tab);
+    const onSecond = wc !== primaryWc;
     // A renderer-drawn internal page is the canonical state, not wc.getURL().
-    const url = tab.internalUrl ?? wc.getURL();
+    const url = onSecond ? wc.getURL() : (tab.internalUrl ?? wc.getURL());
     return {
       id,
       url,
       displayUrl: url,
-      title: tab.internalUrl ? internalPageTitle(tab.internalUrl) : wc.getTitle(),
+      title: !onSecond && tab.internalUrl ? internalPageTitle(tab.internalUrl) : wc.getTitle(),
       favicon: tab.favicon,
-      isLoading: tab.internalUrl ? false : wc.isLoading(),
+      isLoading: !onSecond && tab.internalUrl ? false : wc.isLoading(),
       canGoBack: wc.canGoBack(),
       canGoForward: wc.canGoForward(),
-      isAudible: wc.isCurrentlyAudible(),
-      isMuted: wc.isAudioMuted(),
+      isAudible: primaryWc.isCurrentlyAudible(),
+      isMuted: primaryWc.isAudioMuted(),
       zoomFactor: wc.getZoomFactor(),
       pinned: tab.pinned,
       mode: tab.mode,
+      splitRatio: tab.splitRatio,
     };
   }
 
@@ -1220,7 +1402,7 @@ export class TabManager {
     for (const [id, tab] of this.tabs) {
       tab.view.setBounds(bounds);
       if (id !== this.activeTabId) {
-        for (const v of [tab.view, tab.sayzioView, tab.dashboardView]) {
+        for (const v of [tab.view, tab.sayzioView, tab.dashboardView, tab.secondView]) {
           if (!v) continue;
           try { this.win.contentView.removeChildView(v); } catch { }
         }
@@ -1249,21 +1431,44 @@ export class TabManager {
    * Used while a renderer chrome overlay (menu/dropdown) detaches native views
    * so the page doesn't visually vanish behind the open menu.
    */
-  async captureActiveBackdrop(): Promise<{ dataUrl: string; bounds: { x: number; y: number; width: number; height: number } } | null> {
+  async captureActiveBackdrop(): Promise<Array<{ dataUrl: string; bounds: { x: number; y: number; width: number; height: number } }> | null> {
     if (!this.activeTabId) return null;
     const tab = this.tabs.get(this.activeTabId);
     if (!tab) return null;
-    const wc = tab.view.webContents;
-    if (wc.isDestroyed()) return null;
-    const bounds = tab.view.getBounds();
-    if (bounds.width <= 0 || bounds.height <= 0 || bounds.x <= -10000) return null;
-    try {
-      const image = await wc.capturePage();
-      if (image.isEmpty()) return null;
-      return { dataUrl: image.toDataURL(), bounds };
-    } catch {
-      return null;
+
+    // Snapshot every native view the tab's mode currently shows (a split tab
+    // has up to two) so the backdrop covers the full content area.
+    const { left, right } = parseTabMode(tab.mode);
+    const viewFor = (pane: TabPane): WebContentsView | null => {
+      switch (pane) {
+        case 'browser': return tab.isNewTabPage ? null : tab.view;
+        case 'sayzio': return tab.sayzioView;
+        case 'dashboard': return tab.dashboardView;
+        case 'zio': return null;
+      }
+    };
+    const views: WebContentsView[] = [];
+    const leftView = viewFor(left);
+    if (leftView) views.push(leftView);
+    if (right) {
+      const rightView = tab.mode === 'browser+browser' ? tab.secondView : viewFor(right);
+      if (rightView) views.push(rightView);
     }
+
+    const results: Array<{ dataUrl: string; bounds: { x: number; y: number; width: number; height: number } }> = [];
+    for (const view of views) {
+      const wc = view.webContents;
+      if (wc.isDestroyed()) continue;
+      const bounds = view.getBounds();
+      if (bounds.width <= 0 || bounds.height <= 0 || bounds.x <= -10000) continue;
+      try {
+        const image = await wc.capturePage();
+        if (!image.isEmpty()) results.push({ dataUrl: image.toDataURL(), bounds });
+      } catch {
+        // best-effort per pane
+      }
+    }
+    return results.length > 0 ? results : null;
   }
 
   /**
@@ -1271,7 +1476,7 @@ export class TabManager {
    */
   hideAllTabs(): void {
     for (const [, tab] of this.tabs) {
-      for (const v of [tab.view, tab.sayzioView, tab.dashboardView]) {
+      for (const v of [tab.view, tab.sayzioView, tab.dashboardView, tab.secondView]) {
         if (!v) continue;
         try { this.win.contentView.removeChildView(v); } catch { }
       }

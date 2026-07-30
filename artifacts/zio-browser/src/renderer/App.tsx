@@ -35,8 +35,13 @@ import {
   MAX_ZIO_PANEL_WIDTH,
   ZIO_PANEL_DIVIDER_WIDTH,
   normalizeTabMode,
+  parseTabMode,
   tabModeIncludes,
   tabModeWithout,
+  TAB_SPLIT_RATIO,
+  MIN_TAB_SPLIT_RATIO,
+  MAX_TAB_SPLIT_RATIO,
+  TAB_SPLIT_DIVIDER_WIDTH,
 } from '../shared/window-mode';
 
 const FIRST_LAUNCH_KEY = 'zio_mode_picker_shown';
@@ -54,6 +59,9 @@ export default function App() {
   const [tabSearchOpen, setTabSearchOpen] = useState(false);
   const [clearDataShortcut, setClearDataShortcut] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  // Live ratio while dragging the tab-split divider (null when not dragging).
+  const [tabDragRatio, setTabDragRatio] = useState<number | null>(null);
+  const tabDragRatioRef = useRef<number | null>(null);
 
   // ── Screenshot state ──────────────────────────────────────────────────────
   const [screenshotCapturing, setScreenshotCapturing] = useState(false);
@@ -300,10 +308,18 @@ export default function App() {
   // ── Zio panel presentation flags (browser mode) ───────────────────────────
   // A tab in "Ask Zio + Website" split mode forces the docked Zio panel open.
   const activeTabZioSplit = !isPrivate && tabModeIncludes(activeTabMode, 'zio');
-  // A tab whose ONLY pane is Ask Zio: the panel fills the whole content area.
-  const activeTabZioFull = !isPrivate && activeTabMode === 'zio';
-  const showDockedPanel = (zioPanelOpen && zioPanelDocked && !isPrivate) || activeTabZioSplit;
-  const showOverlayPanel = zioPanelOpen && !zioPanelDocked && !isPrivate && !activeTabZioSplit;
+  // While the Settings panel is open it owns the content area — hiding the
+  // docked Zio panel prevents the two DOM surfaces from fighting over it
+  // (the old behavior left Settings squeezed/hidden in split-view tabs).
+  const showDockedPanel = ((zioPanelOpen && zioPanelDocked && !isPrivate) || activeTabZioSplit) && !settingsOpen;
+  const showOverlayPanel = zioPanelOpen && !zioPanelDocked && !isPrivate && !activeTabZioSplit && !settingsOpen;
+
+  // ── Tab split (two native panes) divider ──────────────────────────────────
+  const activeTabPanes = parseTabMode(activeTabMode);
+  const activeTabTwoNativePanes = !!activeTab && activeTabPanes.right !== null && activeTabPanes.right !== 'zio';
+  const activeTabSplitRatio =
+    tabDragRatio ??
+    (typeof activeTab?.splitRatio === 'number' ? activeTab.splitRatio : TAB_SPLIT_RATIO);
 
   // DOM panels rendered in the content area (settings, reading list, site
   // settings, the floating Zio card) sit BELOW the native WebContentsViews,
@@ -395,6 +411,43 @@ export default function App() {
     document.addEventListener('mouseup', onUp);
   }, [setZioPanelWidth]);
 
+  // ── Tab split divider drag (two native panes) ─────────────────────────────
+  // Native views swallow mouse events, so during a drag we hold the chrome
+  // overlay (views detach, snapshots show) and commit the ratio on mouseup.
+  const handleTabSplitDividerMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!activeTabId) return;
+    e.preventDefault();
+    void window.zio.window.setChromeOverlay(true);
+    const tabId = activeTabId;
+
+    const onMove = (ev: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const ratio = Math.min(
+        MAX_TAB_SPLIT_RATIO,
+        Math.max(MIN_TAB_SPLIT_RATIO, (ev.clientX - rect.left) / rect.width),
+      );
+      tabDragRatioRef.current = ratio;
+      setTabDragRatio(ratio);
+    };
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      const ratio = tabDragRatioRef.current;
+      tabDragRatioRef.current = null;
+      setTabDragRatio(null);
+      if (ratio !== null) {
+        void window.zio.tabs.setSplitRatio(tabId, ratio);
+      }
+      void window.zio.window.setChromeOverlay(false);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [activeTabId]);
+
   const handleOpenDeviceLab = useCallback(() => {
     if (!user) {
       setAuthModalOpen(true);
@@ -421,20 +474,21 @@ export default function App() {
     return () => window.zio.off('device-lab:preview-url', onPreviewUrl);
   }, []);
 
-  // Static page snapshot shown while a chrome menu holds native views detached,
-  // so the page doesn't visually vanish behind an open dropdown.
-  const [overlayBackdrop, setOverlayBackdrop] = useState<{
+  // Static page snapshots shown while a chrome menu holds native views
+  // detached, so the page doesn't visually vanish behind an open dropdown.
+  // Split-view tabs produce one snapshot PER pane.
+  const [overlayBackdrop, setOverlayBackdrop] = useState<Array<{
     dataUrl: string;
     bounds: { x: number; y: number; width: number; height: number };
-  } | null>(null);
+  }> | null>(null);
   useEffect(() => {
     const onBackdrop = (payload: unknown) => {
-      if (
-        payload &&
-        typeof payload === 'object' &&
-        typeof (payload as { dataUrl?: unknown }).dataUrl === 'string'
-      ) {
-        setOverlayBackdrop(payload as { dataUrl: string; bounds: { x: number; y: number; width: number; height: number } });
+      if (Array.isArray(payload)) {
+        const items = payload.filter(
+          (p): p is { dataUrl: string; bounds: { x: number; y: number; width: number; height: number } } =>
+            !!p && typeof p === 'object' && typeof (p as { dataUrl?: unknown }).dataUrl === 'string',
+        );
+        setOverlayBackdrop(items.length > 0 ? items : null);
       } else {
         setOverlayBackdrop(null);
       }
@@ -470,21 +524,26 @@ export default function App() {
   // Static snapshot of the page shown while a chrome menu detaches native
   // views — rendered in ALL window modes (browser, split, dashboard).
   const overlayBackdropImg = overlayBackdrop ? (
-    <img
-      src={overlayBackdrop.dataUrl}
-      alt=""
-      aria-hidden="true"
-      style={{
-        position: 'fixed',
-        left: overlayBackdrop.bounds.x,
-        top: overlayBackdrop.bounds.y,
-        width: overlayBackdrop.bounds.width,
-        height: overlayBackdrop.bounds.height,
-        objectFit: 'cover',
-        zIndex: 0,
-        pointerEvents: 'none',
-      }}
-    />
+    <>
+      {overlayBackdrop.map((snap, i) => (
+        <img
+          key={i}
+          src={snap.dataUrl}
+          alt=""
+          aria-hidden="true"
+          style={{
+            position: 'fixed',
+            left: snap.bounds.x,
+            top: snap.bounds.y,
+            width: snap.bounds.width,
+            height: snap.bounds.height,
+            objectFit: 'cover',
+            zIndex: 0,
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
+    </>
   ) : null;
 
   // ── Dashboard mode ────────────────────────────────────────────────────────
@@ -600,10 +659,9 @@ export default function App() {
 
       <div ref={containerRef} style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
 
-        {/* Web content / new tab page (left side when docked, full-width when overlay).
-            When the tab shows ONLY Ask Zio, collapse this area so the panel fills. */}
+        {/* Web content / new tab page (left side when docked, full-width when overlay). */}
         <div style={{
-          flex: activeTabZioFull ? '0 0 0px' : 1,
+          flex: 1,
           display: 'flex',
           overflow: 'hidden',
           position: 'relative',
@@ -634,6 +692,26 @@ export default function App() {
           )}
         </div>
 
+        {/* ── Tab split divider (two native panes, e.g. Website+Website) ──
+            Sits over the gap the main process leaves between the two native
+            views; dragging it resizes the split (ratio persisted per tab). */}
+        {activeTabTwoNativePanes && !settingsOpen && (
+          <div
+            onMouseDown={handleTabSplitDividerMouseDown}
+            style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: `calc(${activeTabSplitRatio * 100}% - ${Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2)}px)`,
+              width: TAB_SPLIT_DIVIDER_WIDTH,
+              cursor: 'col-resize',
+              background: 'var(--color-border)',
+              zIndex: 10,
+            }}
+            title="Drag to resize split"
+          />
+        )}
+
         {/* ── Docked Zio panel (push layout) ─────────────────────────────── */}
         {showDockedPanel && (
           <>
@@ -662,7 +740,7 @@ export default function App() {
                 }
               }}
               presentation="docked"
-              panelWidth={activeTabZioFull ? undefined : zioPanelWidth}
+              panelWidth={zioPanelWidth}
               onSetDocked={(d) => void setZioPanelDocked(d)}
             />
           </>

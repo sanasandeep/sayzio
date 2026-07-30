@@ -51,6 +51,7 @@ const api = {
     findStop: (id: string) => ipcRenderer.invoke('tabs:find-stop', id),
     mute: (id: string, muted: boolean) => ipcRenderer.invoke('tabs:mute', id, muted),
     setMode: (id: string, mode: string) => ipcRenderer.invoke('tabs:set-mode', id, mode),
+    setSplitRatio: (id: string, ratio: number) => ipcRenderer.invoke('tabs:set-split-ratio', id, ratio),
     getState: (id: string) => ipcRenderer.invoke('tabs:get-state', id),
     getOrder: () => ipcRenderer.invoke('tabs:get-order'),
     getActive: () => ipcRenderer.invoke('tabs:get-active'),

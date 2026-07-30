@@ -371,6 +371,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     resolveTabManager(event)?.setTabMode(id, mode);
     return true;
   });
+  ipcMain.handle('tabs:set-split-ratio', (event, id: string, ratio: number) => {
+    resolveTabManager(event)?.setTabSplitRatio(id, ratio);
+    return true;
+  });
   ipcMain.handle('tabs:get-state', (event, id: string) => resolveTabManager(event)?.getTabState(id) ?? null);
   ipcMain.handle('tabs:get-order', (event) => resolveTabManager(event)?.getTabOrder() ?? []);
   ipcMain.handle('tabs:get-active', (event) => resolveTabManager(event)?.getActiveTabId() ?? null);

@@ -14,6 +14,7 @@ import { ProfileSwitcher } from './ProfileSwitcher';
 import { useChromeOverlay } from '../hooks/use-chrome-overlay';
 import { AccountButton } from './AccountButton';
 import zioIcon from '../assets/zio-icon.png';
+import zioMascot from '../assets/zio-mascot.png';
 import type { RecentlyClosedEntry } from '../../main/tab-manager';
 import { resolveFavicon } from '../../shared/favicon';
 import { FaviconImg } from './FaviconImg';
@@ -1496,7 +1497,7 @@ export function ChromeBar({
               transition: 'all 0.15s',
             }}
             title="Open Zio AI Panel"
-          >⚡ Zio</button>
+          ><img src={zioMascot} alt="" aria-hidden="true" style={{ width: 16, height: 16, objectFit: 'contain', verticalAlign: 'text-bottom', marginRight: 4 }} />Zio</button>
         ) : (
           <div
             title="Zio AI is not available in private windows"
@@ -1512,7 +1513,7 @@ export function ChromeBar({
               cursor: 'default',
               userSelect: 'none',
             }}
-          >⚡ Zio</div>
+          ><img src={zioMascot} alt="" aria-hidden="true" style={{ width: 16, height: 16, objectFit: 'contain', verticalAlign: 'text-bottom', marginRight: 4, opacity: 0.5 }} />Zio</div>
         )}
 
         {/* Per-tab view mode switcher — not available in private windows */}

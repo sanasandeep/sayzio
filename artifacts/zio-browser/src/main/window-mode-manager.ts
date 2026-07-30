@@ -333,14 +333,14 @@ export class WindowModeManager {
    */
   private async captureOverlayBackdrop(generation: number): Promise<void> {
     try {
-      let payload: { dataUrl: string; bounds: { x: number; y: number; width: number; height: number } } | null = null;
+      let payload: Array<{ dataUrl: string; bounds: { x: number; y: number; width: number; height: number } }> | null = null;
       if (this.mode === 'dashboard' && this.dashboardView) {
         const wc = this.dashboardView.webContents;
         if (!wc.isDestroyed()) {
           const bounds = this.dashboardView.getBounds();
           if (bounds.width > 0 && bounds.height > 0) {
             const image = await wc.capturePage();
-            if (!image.isEmpty()) payload = { dataUrl: image.toDataURL(), bounds };
+            if (!image.isEmpty()) payload = [{ dataUrl: image.toDataURL(), bounds }];
           }
         }
       } else {
@@ -356,7 +356,7 @@ export class WindowModeManager {
     }
   }
 
-  private sendOverlayBackdrop(payload: { dataUrl: string; bounds: { x: number; y: number; width: number; height: number } } | null): void {
+  private sendOverlayBackdrop(payload: Array<{ dataUrl: string; bounds: { x: number; y: number; width: number; height: number } }> | null): void {
     try {
       if (!this.win.isDestroyed() && !this.win.webContents.isDestroyed()) {
         this.win.webContents.send('chrome-overlay:backdrop', payload);
