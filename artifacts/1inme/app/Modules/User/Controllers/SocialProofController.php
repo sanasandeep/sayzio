@@ -177,6 +177,56 @@ class SocialProofController extends Controller
         return redirect()->route('user.social-proofs.edit', $socialProof)->with('success', 'Saved.');
     }
 
+    /**
+     * Owner list of visitor submissions collected by this campaign's
+     * collector/feedback notifications (task #6179).
+     */
+    public function submissions(Request $request, SocialProof $socialProof)
+    {
+        abort_if($socialProof->user_id !== workspace_owner_id(), 403);
+
+        $submissions = \App\Modules\User\Models\SocialProofSubmission::where('social_proof_id', $socialProof->id)
+            ->orderByDesc('id')
+            ->paginate(50);
+
+        return view('user.social-proofs.submissions', [
+            'proof'       => $socialProof,
+            'submissions' => $submissions,
+        ]);
+    }
+
+    /** CSV export of the campaign's submissions. */
+    public function submissionsCsv(Request $request, SocialProof $socialProof)
+    {
+        abort_if($socialProof->user_id !== workspace_owner_id(), 403);
+
+        $filename = 'buzz-submissions-' . $socialProof->id . '-' . now()->format('Ymd-His') . '.csv';
+
+        return response()->streamDownload(function () use ($socialProof) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Date', 'Template', 'Name', 'Email', 'Phone', 'Rating', 'Answer', 'Message', 'Page URL', 'Spam']);
+            \App\Modules\User\Models\SocialProofSubmission::where('social_proof_id', $socialProof->id)
+                ->orderBy('id')
+                ->chunk(500, function ($rows) use ($out) {
+                    foreach ($rows as $s) {
+                        fputcsv($out, [
+                            (string) $s->created_at,
+                            SocialProof::TYPES[$s->type] ?? $s->type,
+                            (string) $s->name,
+                            (string) $s->email,
+                            (string) $s->phone,
+                            $s->rating === null ? '' : (string) $s->rating,
+                            (string) $s->answer,
+                            (string) $s->message,
+                            (string) $s->page_url,
+                            $s->is_spam ? 'yes' : 'no',
+                        ]);
+                    }
+                });
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=utf-8']);
+    }
+
     public function toggleActive(Request $request, SocialProof $socialProof)
     {
         abort_if($socialProof->user_id !== workspace_owner_id(), 403);

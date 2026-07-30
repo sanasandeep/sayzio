@@ -1654,6 +1654,8 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::put('{socialProof}',                [\App\Modules\User\Controllers\SocialProofController::class, 'update'])->middleware('workspace.can:links.edit')->name('update');
             Route::post('{socialProof}/toggle',        [\App\Modules\User\Controllers\SocialProofController::class, 'toggleActive'])->middleware('workspace.can:links.edit')->name('toggle');
             Route::delete('{socialProof}',             [\App\Modules\User\Controllers\SocialProofController::class, 'destroy'])->middleware('workspace.can:links.delete')->name('destroy');
+            Route::get('{socialProof}/submissions',    [\App\Modules\User\Controllers\SocialProofController::class, 'submissions'])->middleware('workspace.can:links.view')->name('submissions');
+            Route::get('{socialProof}/submissions.csv',[\App\Modules\User\Controllers\SocialProofController::class, 'submissionsCsv'])->middleware('workspace.can:links.view')->name('submissions.csv');
             Route::post('{socialProof}/items',         [\App\Modules\User\Controllers\SocialProofController::class, 'storeItem'])->middleware('workspace.can:links.edit')->name('items.store');
             Route::delete('{socialProof}/items/{item}',[\App\Modules\User\Controllers\SocialProofController::class, 'destroyItem'])->middleware('workspace.can:links.edit')->name('items.destroy');
         });
