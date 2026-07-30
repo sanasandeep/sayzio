@@ -25,7 +25,14 @@
 
 {{-- ── Section 1: coin packages vs AI credits ─────────────────── --}}
 <div class="glass rounded-2xl border border-white/10 p-6 mb-6">
-    <h3 class="font-semibold text-white mb-1 ak-strong"><i class="fas fa-coins text-yellow-400 mr-1"></i> Coin packages vs AI credits</h3>
+    <div class="flex items-start justify-between gap-3">
+        <h3 class="font-semibold text-white mb-1 ak-strong"><i class="fas fa-coins text-yellow-400 mr-1"></i> Coin packages vs AI credits</h3>
+        @if(!empty($packages))
+            <button type="button" onclick="monetizationCsvExport('packages')" class="shrink-0 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ak-strong">
+                <i class="fas fa-download mr-1 text-white/50"></i> Export CSV
+            </button>
+        @endif
+    </div>
     <p class="text-xs text-white/40 mb-4 ak-note">
         Purchasing power at today's live AI rates —
         chat on <span class="text-white/60 ak-muted">{{ $aiRates['chat_model'] ?? 'n/a' }}</span>
@@ -88,7 +95,12 @@
 
 {{-- ── Section 2: AI credit spend, burn vs top-up ─────────────── --}}
 <div class="glass rounded-2xl border border-white/10 p-6 mb-6">
-    <h3 class="font-semibold text-white mb-1 ak-strong"><i class="fas fa-fire text-red-400 mr-1"></i> AI coin burn vs top-up</h3>
+    <div class="flex items-start justify-between gap-3">
+        <h3 class="font-semibold text-white mb-1 ak-strong"><i class="fas fa-fire text-red-400 mr-1"></i> AI coin burn vs top-up</h3>
+        <button type="button" onclick="monetizationCsvExport('aiSpend')" class="shrink-0 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ak-strong">
+            <i class="fas fa-download mr-1 text-white/50"></i> Export CSV
+        </button>
+    </div>
     <p class="text-xs text-white/40 mb-4 ak-note">This month vs last month.</p>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
@@ -212,7 +224,14 @@
 
 {{-- ── Section 3: plan-wise profit ─────────────────────────────── --}}
 <div class="glass rounded-2xl border border-white/10 p-6">
-    <h3 class="font-semibold text-white mb-1 ak-strong"><i class="fas fa-scale-balanced text-emerald-400 mr-1"></i> Plan-wise profit</h3>
+    <div class="flex items-start justify-between gap-3">
+        <h3 class="font-semibold text-white mb-1 ak-strong"><i class="fas fa-scale-balanced text-emerald-400 mr-1"></i> Plan-wise profit</h3>
+        @if(!empty($plans))
+            <button type="button" onclick="monetizationCsvExport('plans')" class="shrink-0 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ak-strong">
+                <i class="fas fa-download mr-1 text-white/50"></i> Export CSV
+            </button>
+        @endif
+    </div>
     <p class="text-xs text-white/40 mb-4 ak-note">
         {{ $periods[$period] }}{{ $since ? ' (since ' . $since->toFormattedDateString() . ')' : '' }}.
         Estimated AI cost = the plan holders' AI coin spend priced at the observed API-budget-per-coin from their own coin purchases (capped at the purchased API budget). Margin = subscription revenue + coin revenue − estimated AI cost, per currency.
@@ -275,4 +294,29 @@
         </div>
     @endif
 </div>
+
+<script>
+window.__monetizationCsv = @js($csvExports);
+function monetizationCsvExport(section) {
+    const payload = window.__monetizationCsv[section];
+    if (!payload) return;
+    const escape = (v) => {
+        const s = (v ?? '').toString();
+        return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const lines = [payload.header.map(escape).join(',')];
+    for (const row of payload.rows) {
+        lines.push(row.map(escape).join(','));
+    }
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = payload.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+</script>
 @endsection

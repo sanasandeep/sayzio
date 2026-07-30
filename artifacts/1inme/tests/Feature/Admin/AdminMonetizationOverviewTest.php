@@ -411,4 +411,52 @@ class AdminMonetizationOverviewTest extends TestCase
         $this->assertSame(500, $usd['est_ai_cost_minor']); // capped at budget
         $this->assertSame(1000 - 500, $usd['margin_minor']); // 0 revenue + 1000 coin − 500 cost
     }
+
+    public function test_csv_export_payloads_keep_currencies_separate(): void
+    {
+        $plan = $this->makePlan(['name' => 'Growth Plan']);
+        $user = $this->makeUser($plan->id);
+
+        // Package priced in two currencies → one CSV row per currency.
+        $pkg = $this->makePackage(
+            ['name' => 'Starter Coins', 'coin_amount' => 1000, 'bonus_coins' => 100, 'api_budget_pct' => 60],
+            ['USD' => 2000, 'INR' => 90000]
+        );
+        $this->paidCoinInvoice($user, 'USD', 2000, 1000, $pkg);
+        $this->aiSpendTx($user, 500, 'mind', now());
+
+        $res = $this->actingAs($this->makeAdmin(), 'admin')
+            ->get('/admin/monetization?period=month')
+            ->assertOk()
+            ->assertSee('Export CSV')
+            ->assertSee('monetizationCsvExport', false);
+
+        $csv = $res->viewData('csvExports');
+        $this->assertSame(['packages', 'aiSpend', 'plans'], array_keys($csv));
+
+        // Packages: one row per package × currency, plain decimal amounts.
+        $pkgRows = collect($csv['packages']['rows'])->filter(fn ($r) => $r[0] === 'Starter Coins')->values();
+        $this->assertCount(2, $pkgRows);
+        $currencyIdx = array_search('currency', $csv['packages']['header'], true);
+        $priceIdx = array_search('price', $csv['packages']['header'], true);
+        $byCur = $pkgRows->keyBy(fn ($r) => $r[$currencyIdx]);
+        $this->assertSame('20.00', $byCur['USD'][$priceIdx]);
+        $this->assertSame('900.00', $byCur['INR'][$priceIdx]);
+
+        // AI spend: top-up revenue rows carry an explicit currency column.
+        $topup = collect($csv['aiSpend']['rows'])->firstWhere(fn ($r) => $r[0] === 'topup_revenue' && $r[2] === 'USD');
+        $this->assertNotNull($topup);
+        $this->assertSame('20.00', $topup[3]); // this month, major units
+        $feature = collect($csv['aiSpend']['rows'])->firstWhere(fn ($r) => $r[0] === 'feature_coins' && $r[1] === 'mind');
+        $this->assertNotNull($feature);
+        $this->assertSame(500, $feature[3]);
+
+        // Plans: one row per plan × currency; period baked into the filename.
+        $this->assertStringContainsString('plan-profit-month-', $csv['plans']['filename']);
+        $planRow = collect($csv['plans']['rows'])->firstWhere(fn ($r) => $r[0] === 'Growth Plan' && $r[5] === 'USD');
+        $this->assertNotNull($planRow);
+        $this->assertSame('20.00', $planRow[7]);  // coin revenue
+        $this->assertSame('12.00', $planRow[8]);  // API budget (60%)
+        $this->assertSame('6.00', $planRow[9]);   // est AI cost
+    }
 }
