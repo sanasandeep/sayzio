@@ -45,10 +45,17 @@ class PathSuggester
         // domain_id is null), so suggesting a slug from a different
         // domain would just produce another 404.
         $host = $host ?? request()->getHost();
-        $platformHost = parse_url(config('app.url'), PHP_URL_HOST);
         $domainId = null;
+        $isPlatformHost = false;
+        $platformDomainId = null;
         $hostUnknown = false;
-        if ($host && $platformHost && strcasecmp($host, (string) $platformHost) !== 0) {
+        $normalizedHost = \App\Modules\Common\Support\PlatformHosts::normalize($host);
+        if ($normalizedHost !== null && in_array($normalizedHost, \App\Modules\Common\Support\PlatformHosts::platformDomains(), true)) {
+            // Platform host: suggest only aliases in this host's own domain
+            // namespace (per-domain aliasing — matching Link::resolveByAlias).
+            $isPlatformHost = true;
+            $platformDomainId = Domain::platformDomainIdForHost($normalizedHost);
+        } elseif ($host) {
             $domain = Domain::where('domain', strtolower($host))
                 ->where('is_active', true)
                 ->where('is_verified', true)
@@ -60,6 +67,13 @@ class PathSuggester
                 $hostUnknown = true;
             }
         }
+        $domainScope = function ($q) use ($isPlatformHost, $platformDomainId, $domainId) {
+            if ($isPlatformHost) {
+                \App\Modules\User\Support\AliasNamespace::scope($q, $platformDomainId);
+                return;
+            }
+            $domainId === null ? $q->whereNull('domain_id') : $q->where('domain_id', $domainId);
+        };
 
         $candidates = [];
 
@@ -93,7 +107,7 @@ class PathSuggester
                 ->where(function ($q) {
                     $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
                 });
-            $domainId === null ? $linkQ->whereNull('domain_id') : $linkQ->where('domain_id', $domainId);
+            $linkQ->where($domainScope);
             $linkRows = $linkQ->limit(500)->get();
         }
         foreach ($linkRows as $row) {
@@ -115,7 +129,11 @@ class PathSuggester
         } else {
             $extraRows = LinkAlias::query()
                 ->whereRaw('char_length(alias) between ? and ?', [$lenMin, $lenMax])
-                ->whereHas('link', function ($q) use ($domainId) {
+                // Extra aliases carry their OWN domain binding — scope on the
+                // link_aliases row, not the parent link's domain_id (matching
+                // Link::resolveByAlias).
+                ->where($domainScope)
+                ->whereHas('link', function ($q) {
                     $q->where('is_active', true)
                       ->where(function ($w) {
                           $w->whereNull('expires_at')->orWhere('expires_at', '>', now());
@@ -125,7 +143,6 @@ class PathSuggester
                             ->orWhereNull('visibility')
                             ->orWhere('visibility', 'public');
                       });
-                    $domainId === null ? $q->whereNull('domain_id') : $q->where('domain_id', $domainId);
                 })
                 ->limit(500)
                 ->get(['alias']);

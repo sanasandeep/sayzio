@@ -153,3 +153,4 @@
 - [Seeder text ownership: no HTML markers](seeder-notes-ownership-no-html-marker.md) — SafeHtml renders HTML comments as visible text; detect seeder-owned notes by content match against curated+legacy snapshots.
 - [Biolink full-width block margins](biolink-full-width-block-margins.md) — no container H-padding; side spacing = wrap margin, '0' is real (test !== ''), skipHorizontalMargins at top level.
 - [Unified block background picker](block-bg-unified-picker.md) — bg_color holds color OR gradient; card bg sanitized in sanitizeSettings not _style; bg_attachment=fixed renders on a .bg-page-fixed layer ([fixed](biolink-bg-fixed-layer.md)); mobile preset swatches are pre-rendered PNGs, regenerate on CSS change ([swatches](bg-preset-swatch-thumbnails.md)).
+- [Cached platform lookups vs workspace scope](cached-platform-lookup-scope-poisoning.md) — Cache::remember over a workspace-scoped model caches EMPTY platform rows inside authed requests; withoutGlobalScopes().

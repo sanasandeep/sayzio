@@ -17,10 +17,12 @@ use Tests\TestCase;
  *
  * Two concerns are covered:
  *
- *   1. Shared-namespace alias resolution (RedirectController + Link::resolveByAlias):
- *      a link bound to one global domain resolves on the OTHER brand host,
- *      a NULL-domain (legacy) link resolves on both, and a user-owned
- *      custom-domain link never leaks across the brand hosts.
+ *   1. PER-DOMAIN alias resolution (RedirectController + Link::resolveByAlias):
+ *      a link bound to one global domain resolves ONLY on that brand host,
+ *      a NULL-domain (legacy) link belongs to the DEFAULT platform domain
+ *      (sayzio.app) namespace — it resolves there and on dev/preview hosts
+ *      but NOT on other brand hosts — and a user-owned custom-domain link
+ *      never leaks onto the brand hosts.
  *
  *   2. The mobile domain picker (`GET /api/v1/domains/available`) reports
  *      sayzio.app as primary_domain_id and lists both global brand domains
@@ -102,10 +104,10 @@ class CrossDomainAliasResolutionTest extends TestCase
     }
 
     // ---------------------------------------------------------------------
-    // 1. Shared-namespace alias resolution across both brand hosts
+    // 1. Per-domain alias resolution on the brand hosts
     // ---------------------------------------------------------------------
 
-    public function test_link_bound_to_one_global_domain_resolves_on_the_other_brand_host(): void
+    public function test_link_bound_to_one_global_domain_resolves_only_on_its_own_brand_host(): void
     {
         $user      = $this->makeUser();
         $sayzio    = $this->globalBrandDomain(self::BRAND_PRIMARY, primary: true);
@@ -119,32 +121,58 @@ class CrossDomainAliasResolutionTest extends TestCase
         $this->getOnHost(self::BRAND_PRIMARY, '/' . $alias)
             ->assertRedirect('https://dest.example.com/sayzio');
 
-        // And, crucially, also on the OTHER brand host (1in.me) — the shared
-        // platform namespace spans every admin-global domain.
+        // And, crucially, NOT on the OTHER brand host (1in.me) — each global
+        // domain is its own alias namespace now.
         $this->getOnHost(self::BRAND_SECONDARY, '/' . $alias)
-            ->assertRedirect('https://dest.example.com/sayzio');
+            ->assertViewIs('common.short-link-not-found');
 
-        // Symmetry: a link bound to the 1in.me global row resolves on sayzio.app.
-        $legacyAlias = 'y-' . Str::random(6);
-        $this->makeUrlLink($user, $oneInMe->id, $legacyAlias, 'https://dest.example.com/oneinme');
-        $this->getOnHost(self::BRAND_PRIMARY, '/' . $legacyAlias)
+        // Symmetry: a link bound to the 1in.me global row does not resolve
+        // on sayzio.app.
+        $otherAlias = 'y-' . Str::random(6);
+        $this->makeUrlLink($user, $oneInMe->id, $otherAlias, 'https://dest.example.com/oneinme');
+        $this->getOnHost(self::BRAND_SECONDARY, '/' . $otherAlias)
             ->assertRedirect('https://dest.example.com/oneinme');
+        $this->getOnHost(self::BRAND_PRIMARY, '/' . $otherAlias)
+            ->assertViewIs('common.short-link-not-found');
     }
 
-    public function test_null_domain_link_resolves_on_both_brand_hosts(): void
+    public function test_null_domain_link_belongs_to_the_default_domain_namespace(): void
     {
         $user = $this->makeUser();
         $this->globalBrandDomain(self::BRAND_PRIMARY, primary: true);
         $this->globalBrandDomain(self::BRAND_SECONDARY);
 
-        // A pre-existing/legacy link with no domain binding at all.
+        // A pre-existing/legacy link with no domain binding at all — it lives
+        // in the DEFAULT platform domain (sayzio.app) namespace.
         $alias = 'null-' . Str::random(6);
         $this->makeUrlLink($user, null, $alias, 'https://dest.example.com/legacy');
 
+        // Resolves on the default brand host …
         $this->getOnHost(self::BRAND_PRIMARY, '/' . $alias)
             ->assertRedirect('https://dest.example.com/legacy');
-        $this->getOnHost(self::BRAND_SECONDARY, '/' . $alias)
+        // … and on dev/preview hosts (which map to the default namespace) …
+        $this->getOnHost('localhost', '/' . $alias)
             ->assertRedirect('https://dest.example.com/legacy');
+        // … but NOT on the secondary brand host.
+        $this->getOnHost(self::BRAND_SECONDARY, '/' . $alias)
+            ->assertViewIs('common.short-link-not-found');
+    }
+
+    public function test_same_alias_can_live_independently_on_each_brand_domain(): void
+    {
+        $user    = $this->makeUser();
+        $sayzio  = $this->globalBrandDomain(self::BRAND_PRIMARY, primary: true);
+        $oneInMe = $this->globalBrandDomain(self::BRAND_SECONDARY);
+
+        $alias = 'dup-' . Str::random(6);
+        $this->makeUrlLink($user, $sayzio->id, $alias, 'https://dest.example.com/on-sayzio');
+        $this->makeUrlLink($user, $oneInMe->id, $alias, 'https://dest.example.com/on-oneinme');
+
+        // Each host resolves ITS OWN link for the identical alias.
+        $this->getOnHost(self::BRAND_PRIMARY, '/' . $alias)
+            ->assertRedirect('https://dest.example.com/on-sayzio');
+        $this->getOnHost(self::BRAND_SECONDARY, '/' . $alias)
+            ->assertRedirect('https://dest.example.com/on-oneinme');
     }
 
     public function test_user_owned_custom_domain_link_never_leaks_across_brand_hosts(): void

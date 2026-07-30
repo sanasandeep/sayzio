@@ -30,8 +30,6 @@
         return $defaultHost;
     };
     $aliasHost = $hostFor($link->domain_id);
-    // Only show "also live on" hints for links still on a platform host.
-    $showHostsHint = !$link->domain_id;
 
     // Live per-plan alias length range, surfaced inline so users see the
     // constraint before validation rejects their input. Falls back to the
@@ -216,9 +214,5 @@
         <i class="fas fa-lock mr-1"></i> Additional aliases are not included in your plan.
         <a href="{{ route('user.dashboard') }}" class="underline hover:no-underline">Upgrade</a> to unlock.
     </p>
-    @endif
-
-    @if($showHostsHint)
-        @include('user.links.partials.platform-hosts-hint', ['primary' => $aliasHost, 'alias' => $link->alias])
     @endif
 </div>

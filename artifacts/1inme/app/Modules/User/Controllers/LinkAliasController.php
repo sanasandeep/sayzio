@@ -76,22 +76,25 @@ class LinkAliasController extends Controller
             return $this->respond($request, false, "This name is reserved and can't be used.", 422);
         }
 
-        // Globally unique across both `links.alias` and `link_aliases.alias`,
-        // matched case-insensitively so a case-variant of an existing alias is
-        // rejected as taken (mirrors UniqueAliasCi + case-insensitive resolution).
+        // Unique per domain namespace across both `links.alias` and
+        // `link_aliases.alias`, matched case-insensitively so a case-variant
+        // of an existing alias is rejected as taken (mirrors UniqueAliasCi +
+        // case-insensitive resolution). The same alias CAN be added again for
+        // a different domain — that's the point of per-domain aliasing.
         $lower = mb_strtolower($alias);
-        // Distinguish "already yours on this page" from "taken by someone
-        // else" — aliases serve on every platform domain at once, so users
-        // often re-type their own alias trying to 'add' it for another host.
-        $ownPrimary = mb_strtolower((string) $link->alias) === $lower;
-        $ownExtra   = LinkAlias::whereRaw('LOWER(alias) = ?', [$lower])->where('link_id', $link->id)->exists();
-        if ($ownPrimary || $ownExtra) {
-            return $this->respond($request, false, "'{$alias}' is already one of this page's aliases — it's live on every Sayzio domain automatically, so there's nothing to add.", 422);
+        $targetDomainId = \App\Modules\User\Support\AliasNamespace::normalizeDomainId($validated['domain_id'] ?? null);
+        // Distinguish "already yours on this domain" from "taken by someone
+        // else" — an alias only serves on the domain it's bound to, so
+        // re-adding it for ANOTHER domain is a legitimate action.
+        $ownPrimary = mb_strtolower((string) $link->alias) === $lower
+            && \App\Modules\User\Support\AliasNamespace::normalizeDomainId($link->domain_id) === $targetDomainId;
+        $ownExtraQ = LinkAlias::whereRaw('LOWER(alias) = ?', [$lower])->where('link_id', $link->id);
+        \App\Modules\User\Support\AliasNamespace::scope($ownExtraQ, $targetDomainId);
+        if ($ownPrimary || $ownExtraQ->exists()) {
+            return $this->respond($request, false, "'{$alias}' is already one of this page's aliases on that domain — there's nothing to add.", 422);
         }
-        $takenInPrimary = Link::whereRaw('LOWER(alias) = ?', [$lower])->exists();
-        $takenInExtras  = LinkAlias::whereRaw('LOWER(alias) = ?', [$lower])->exists();
-        if ($takenInPrimary || $takenInExtras) {
-            return $this->respond($request, false, "'{$alias}' is already taken. Please choose another.", 422);
+        if (\App\Modules\User\Support\AliasNamespace::isTaken($alias, $validated['domain_id'] ?? null, $link->id)) {
+            return $this->respond($request, false, "'{$alias}' is already taken on that domain. Please choose another.", 422);
         }
 
         $row = LinkAlias::create([
@@ -116,6 +119,18 @@ class LinkAliasController extends Controller
         $validated = $request->validate([
             'domain_id' => ['nullable', $this->availableDomainRule($request->user())],
         ]);
+
+        // Moving an alias to another domain must not collide with an alias
+        // already living in the target domain's namespace (aliases are
+        // unique per domain, case-insensitively, across both tables).
+        if (\App\Modules\User\Support\AliasNamespace::isTaken(
+            (string) $alias->alias,
+            $validated['domain_id'] ?? null,
+            null,
+            $alias->id,
+        )) {
+            return $this->respond($request, false, "'{$alias->alias}' is already taken on that domain.", 422);
+        }
 
         $alias->update(['domain_id' => $validated['domain_id'] ?? null]);
 
