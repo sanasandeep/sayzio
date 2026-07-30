@@ -51,7 +51,7 @@ class ResumeCoverLetterService
     /** Worst-case credit cost for the upfront confirmation step. */
     public function estimateCredits(Resume $resume, string $jd, string $tone, ?int $personaId = null, ?User $user = null): int
     {
-        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        $model    = AiEngineSettings::featureModel(self::FEATURE, $user);
         $messages = $this->buildMessages($resume, $jd, $tone, $personaId);
         return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS, $user);
     }
@@ -64,7 +64,7 @@ class ResumeCoverLetterService
         ?string $instruction = null,
         ?User $user = null,
     ): int {
-        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        $model    = AiEngineSettings::featureModel(self::FEATURE, $user);
         $messages = $this->buildSectionMessages($resume, $letter, $section, $instruction);
         return $this->openai->estimateChatCoins($model, $messages, 700, $user);
     }
@@ -86,7 +86,7 @@ class ResumeCoverLetterService
         $jd   = $this->normalizeJd($jobDescription);
         $personaId = $this->resolvePersonaId($user, $personaId);
         $messages = $this->buildMessages($resume, $jd, $tone, $personaId);
-        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        $model    = AiEngineSettings::featureModel(self::FEATURE, $user);
 
         $result = $this->openai->chat($user, $model, $messages, [
             'temperature'     => $tone === 'warm' ? 0.55 : 0.35,
@@ -143,7 +143,7 @@ class ResumeCoverLetterService
     ): array {
         $section = $this->normalizeSection($section);
         $messages = $this->buildSectionMessages($resume, $letter, $section, $instruction);
-        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        $model    = AiEngineSettings::featureModel(self::FEATURE, $user);
 
         $result = $this->openai->chat($user, $model, $messages, [
             'temperature'     => $letter->tone === 'warm' ? 0.55 : 0.35,

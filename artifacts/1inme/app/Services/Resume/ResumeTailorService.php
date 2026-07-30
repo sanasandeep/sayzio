@@ -96,7 +96,7 @@ class ResumeTailorService
      */
     public function estimateCredits(Resume $resume, string $jobDescription, ?User $user = null): int
     {
-        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        $model    = AiEngineSettings::featureModel(self::FEATURE, $user);
         $messages = $this->buildMessages($resume, $jobDescription);
         return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS, $user);
     }
@@ -109,7 +109,7 @@ class ResumeTailorService
     public function run(User $user, Resume $resume, string $jobDescription): array
     {
         $messages = $this->buildMessages($resume, $jobDescription);
-        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        $model    = AiEngineSettings::featureModel(self::FEATURE, $user);
 
         $result = $this->openai->chat($user, $model, $messages, [
             'temperature'     => 0.3,

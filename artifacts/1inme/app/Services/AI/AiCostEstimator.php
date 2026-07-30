@@ -55,7 +55,7 @@ class AiCostEstimator
         if (isset(self::CHAT[$feature])) {
             [$modelKey, $maxOut, $overhead] = self::CHAT[$feature];
             $coins = $this->openai->estimateChatCoinsForText(
-                AiEngineSettings::featureModel($modelKey),
+                AiEngineSettings::featureModel($modelKey, $user),
                 $text,
                 $overhead,
                 $maxOut,
@@ -71,7 +71,7 @@ class AiCostEstimator
                 // payload plus the structured-output ceiling.
                 return [
                     'coins' => $this->openai->estimateChatCoinsForText(
-                        AiEngineSettings::featureModel('card_scan'),
+                        AiEngineSettings::featureModel('card_scan', $user),
                         '',
                         1200,
                         1500,
@@ -121,7 +121,7 @@ class AiCostEstimator
         $avgPerTurn = $turns > 0
             ? $credits / $turns
             : (float) $this->openai->estimateChatCoinsForText(
-                AiEngineSettings::featureModel('companion'),
+                AiEngineSettings::featureModel('companion', $owner),
                 str_repeat('x', 400),
                 600,
                 max(1, $maxTokens ?: 700),
@@ -171,7 +171,7 @@ class AiCostEstimator
         // TTS: a ~600-char spoken reply.
         $stt    = (int) ceil(1.0 * AiEngineSettings::voiceSttCoinsPerMinute() * $openaiMult);
         $reason = $this->openai->estimateChatCoinsForText(
-            AiEngineSettings::featureModel('companion'),
+            AiEngineSettings::featureModel('companion', $user),
             str_repeat('x', 600),
             600,
             350,

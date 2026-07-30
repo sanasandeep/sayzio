@@ -59,7 +59,7 @@ class MindController extends Controller
         ];
 
         try {
-            $out = $this->ai->chat($request->user(), AiEngineSettings::featureModel('mind'), $messages, [
+            $out = $this->ai->chat($request->user(), AiEngineSettings::featureModel('mind', $request->user()), $messages, [
                 'feature'     => 'mind',
                 'temperature' => 0.4,
                 'max_tokens'  => 600,

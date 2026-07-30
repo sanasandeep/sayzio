@@ -276,7 +276,7 @@ class MarketingStrategistController extends Controller
         $messages = $this->strategist->buildRefineMessages($strategy, $this->recentTurns($strategy));
 
         try {
-            $out = $this->ai->chat($user, AiEngineSettings::featureModel(MarketingStrategistService::FEATURE), $messages, [
+            $out = $this->ai->chat($user, AiEngineSettings::featureModel(MarketingStrategistService::FEATURE, $user), $messages, [
                 'feature'     => MarketingStrategistService::CHAT_FEATURE,
                 'temperature' => 0.5,
                 'max_tokens'  => 700,
@@ -330,7 +330,7 @@ class MarketingStrategistController extends Controller
             try {
                 $out = $this->ai->chatStream(
                     $user,
-                    AiEngineSettings::featureModel(MarketingStrategistService::FEATURE),
+                    AiEngineSettings::featureModel(MarketingStrategistService::FEATURE, $user),
                     $messages,
                     [
                         'feature'     => MarketingStrategistService::CHAT_FEATURE,

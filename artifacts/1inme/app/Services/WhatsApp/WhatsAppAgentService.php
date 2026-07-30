@@ -126,7 +126,7 @@ class WhatsAppAgentService
             [['role' => 'user', 'content' => $text]],
         );
 
-        $model = AiEngineSettings::featureModel(self::FEATURE);
+        $model = AiEngineSettings::featureModel(self::FEATURE, $user);
         $toolDefs = $tools->functionDefinitions();
 
         $totalCredits = 0;

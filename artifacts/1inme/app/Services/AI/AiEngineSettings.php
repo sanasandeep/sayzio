@@ -657,11 +657,125 @@ PROMPT;
     /**
      * Resolve the chat model for a given feature, falling back to the
      * default if the feature is unknown or unset.
+     *
+     * When an acting $user is supplied, a paid user's own per-feature
+     * choice (stored in users.settings['ai_feature_models']) wins over
+     * the admin mapping — but ONLY while it stays valid: the user must
+     * be on a non-free plan and the chosen model must still exist,
+     * be enabled, and be a chat-kind model. Anything else (free plan,
+     * downgrade, admin disabled/removed the model) silently falls back
+     * to admin feature_models → DEFAULT_FEATURE_MODEL, so calls never
+     * error because of a stale personal preference.
      */
-    public static function featureModel(string $feature): string
+    public static function featureModel(string $feature, ?\App\Modules\User\Models\User $user = null): string
     {
+        if ($user) {
+            $override = self::userFeatureModelOverride($user, $feature);
+            if ($override !== null) {
+                return $override;
+            }
+        }
+
         $map = self::featureModels();
         return $map[$feature] ?? self::DEFAULT_FEATURE_MODEL;
+    }
+
+    /** Key inside users.settings that holds the per-feature model map. */
+    public const USER_FEATURE_MODELS_KEY = 'ai_feature_models';
+
+    /**
+     * Raw per-user feature → model choices, filtered to known features.
+     * No validity filtering — the UI uses this to show what's stored
+     * even when a choice has gone stale (it's just ignored at runtime).
+     *
+     * @return array<string,string>
+     */
+    public static function userFeatureModels(\App\Modules\User\Models\User $user): array
+    {
+        $stored = $user->settings[self::USER_FEATURE_MODELS_KEY] ?? null;
+        if (!is_array($stored)) return [];
+        $out = [];
+        foreach (self::FEATURES as $f) {
+            if (!empty($stored[$f]) && is_string($stored[$f])) {
+                $out[$f] = trim($stored[$f]);
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * The user's stored choice for $feature IF it is currently valid
+     * (paid plan + model exists + enabled + chat kind), else null.
+     */
+    public static function userFeatureModelOverride(\App\Modules\User\Models\User $user, string $feature): ?string
+    {
+        if ($user->isOnFreePlan()) return null;
+        $choices = self::userFeatureModels($user);
+        $name = $choices[$feature] ?? null;
+        if ($name === null || $name === '') return null;
+        $cfg = self::model($name);
+        if (!$cfg || !$cfg['enabled'] || ($cfg['kind'] ?? 'chat') !== 'chat') return null;
+        return $cfg['name'];
+    }
+
+    /**
+     * Enabled chat-kind models a paid user may pick from, with their
+     * per-1k coin rates for cost display.
+     *
+     * @return array<int,array{name:string,in_coins_per_1k:float,out_coins_per_1k:float}>
+     */
+    public static function selectableChatModels(): array
+    {
+        $out = [];
+        foreach (self::models() as $m) {
+            if ($m['enabled'] && ($m['kind'] ?? 'chat') === 'chat') {
+                $out[] = [
+                    'name'             => $m['name'],
+                    'in_coins_per_1k'  => $m['in_coins_per_1k'],
+                    'out_coins_per_1k' => $m['out_coins_per_1k'],
+                ];
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Persist a paid user's per-feature model choices. `$map` entries
+     * with null/'' clear a choice back to "Platform default"; unknown
+     * features are dropped. Every kept value must be an enabled
+     * chat-kind model — invalid names throw so the caller can 422.
+     * Passing an empty $map (or all-null) via $replace=true resets all.
+     *
+     * @param array<string,string|null> $map
+     * @throws \InvalidArgumentException on an invalid model name
+     */
+    public static function setUserFeatureModels(\App\Modules\User\Models\User $user, array $map, bool $replace = false): void
+    {
+        $current = $replace ? [] : self::userFeatureModels($user);
+
+        foreach ($map as $feature => $name) {
+            if (!in_array($feature, self::FEATURES, true)) continue;
+            if ($name === null || trim((string) $name) === '') {
+                unset($current[$feature]);
+                continue;
+            }
+            $cfg = self::model(trim((string) $name));
+            if (!$cfg || !$cfg['enabled'] || ($cfg['kind'] ?? 'chat') !== 'chat') {
+                throw new \InvalidArgumentException(
+                    "Model \"{$name}\" is not an available chat model for \"{$feature}\"."
+                );
+            }
+            $current[$feature] = $cfg['name'];
+        }
+
+        $settings = is_array($user->settings) ? $user->settings : [];
+        if ($current) {
+            $settings[self::USER_FEATURE_MODELS_KEY] = $current;
+        } else {
+            unset($settings[self::USER_FEATURE_MODELS_KEY]);
+        }
+        $user->settings = $settings;
+        $user->save();
     }
 
     /**

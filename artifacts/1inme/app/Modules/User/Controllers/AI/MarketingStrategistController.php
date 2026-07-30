@@ -711,7 +711,7 @@ class MarketingStrategistController extends Controller
             try {
                 $out = $this->ai->chatStream(
                     $user,
-                    AiEngineSettings::featureModel(MarketingStrategistService::FEATURE),
+                    AiEngineSettings::featureModel(MarketingStrategistService::FEATURE, $user),
                     $messages,
                     [
                         'feature'     => MarketingStrategistService::CHAT_FEATURE,

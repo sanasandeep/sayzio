@@ -197,7 +197,7 @@ class AiBrandKitService
     /** Worst-case credit cost shown before the user clicks Generate. */
     public function estimateCredits(User $user, string $prompt, ?string $websiteUrl = null, ?string $logoUrl = null, string $kbContext = '', array $components = []): int
     {
-        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        $model    = AiEngineSettings::featureModel(self::FEATURE, $user);
         $messages = $this->buildMessages($user, $prompt, $websiteUrl, $logoUrl, $kbContext, $components);
         return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS, $user);
     }
@@ -214,7 +214,7 @@ class AiBrandKitService
     {
         $components = $this->normalizeComponents($components);
         $messages   = $this->buildMessages($user, $prompt, $websiteUrl, $logoUrl, $kbContext, $components);
-        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        $model    = AiEngineSettings::featureModel(self::FEATURE, $user);
 
         $result = $this->openai->chat($user, $model, $messages, [
             'temperature'     => 0.5,

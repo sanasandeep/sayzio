@@ -204,7 +204,7 @@ class PersonaController extends Controller
         ];
 
         try {
-            $out = $this->ai->chat($request->user(), AiEngineSettings::featureModel('persona'), $messages, [
+            $out = $this->ai->chat($request->user(), AiEngineSettings::featureModel('persona', $request->user()), $messages, [
                 'feature'     => 'persona.profile',
                 'temperature' => 0.6,
                 'max_tokens'  => 500,

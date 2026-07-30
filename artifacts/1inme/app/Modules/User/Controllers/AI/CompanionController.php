@@ -427,7 +427,7 @@ class CompanionController extends Controller
         );
 
         try {
-            $out = $this->ai->chat($user, AiEngineSettings::featureModel('companion'), $messages, [
+            $out = $this->ai->chat($user, AiEngineSettings::featureModel('companion', $user), $messages, [
                 'feature'     => 'companion.chat',
                 'temperature' => 0.7,
                 'max_tokens'  => 600,

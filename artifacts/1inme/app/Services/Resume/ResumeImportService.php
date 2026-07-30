@@ -265,7 +265,7 @@ class ResumeImportService
                 "User prompt:\n{$prompt}"],
         ];
 
-        $model  = AiEngineSettings::featureModel('resume_import');
+        $model  = AiEngineSettings::featureModel('resume_import', $user);
         $result = $this->openai->chat($user, $model, $messages, [
             'temperature'     => 0.5,
             'max_tokens'      => 1200,
@@ -741,7 +741,7 @@ class ResumeImportService
                 "Output JSON only. Use empty strings for unknown values."],
             ['role' => 'user', 'content' => $text],
         ];
-        $model = AiEngineSettings::featureModel('coach');
+        $model = AiEngineSettings::featureModel('coach', $user);
         $result = $this->openai->chat($user, $model, $messages, [
             'temperature'     => 0.1,
             'max_tokens'      => 1800,

@@ -63,7 +63,7 @@ class MailboxAiReplyDrafter
         bool    $includeLinks = true,
         string  $instruction  = '',
     ): array {
-        $model = AiEngineSettings::featureModel(self::FEATURE);
+        $model = AiEngineSettings::featureModel(self::FEATURE, $user);
 
         [$groundingBlock, $citations] = $this->groundingContext($user, $mindIds, $thread);
         $linksBlock = $includeLinks ? $this->linksContextBlock($user->id) : '';

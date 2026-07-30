@@ -450,6 +450,14 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get('/', [\App\Modules\User\Controllers\ContactPrivacyController::class, 'show'])->name('show');
             Route::put('/', [\App\Modules\User\Controllers\ContactPrivacyController::class, 'update'])->name('update');
         });
+        // Task #6143: paid users pick their own chat model per AI feature.
+        // The page is visible to everyone who can reach settings, but the
+        // controller (and the runtime resolver) enforce the paid gate.
+        Route::prefix('settings/ai-models')->name('settings.ai-models.')->group(function () {
+            Route::get('/', [\App\Modules\User\Controllers\AiModelSettingsController::class, 'show'])->name('show');
+            Route::put('/', [\App\Modules\User\Controllers\AiModelSettingsController::class, 'update'])->name('update');
+            Route::delete('/', [\App\Modules\User\Controllers\AiModelSettingsController::class, 'reset'])->name('reset');
+        });
         // On-demand "Send sample now" preview for the weekly backlink
         // digest. Always emails the signed-in user, never an arbitrary
         // recipient, and is rate-limited inside the controller.

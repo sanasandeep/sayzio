@@ -147,7 +147,7 @@ class AskCoachController extends Controller
         );
 
         try {
-            $out = $this->ai->chat($user, AiEngineSettings::featureModel('ask_coach'), $messages, [
+            $out = $this->ai->chat($user, AiEngineSettings::featureModel('ask_coach', $user), $messages, [
                 'feature'     => 'ask_coach.chat',
                 'temperature' => 0.4,
                 'max_tokens'  => 600,
@@ -246,7 +246,7 @@ class AskCoachController extends Controller
             try {
                 $out = $this->ai->chatStream(
                     $user,
-                    AiEngineSettings::featureModel('ask_coach'),
+                    AiEngineSettings::featureModel('ask_coach', $user),
                     $messages,
                     [
                         'feature'     => 'ask_coach.chat',

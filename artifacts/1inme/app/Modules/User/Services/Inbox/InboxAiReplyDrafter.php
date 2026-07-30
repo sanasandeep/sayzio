@@ -36,7 +36,7 @@ class InboxAiReplyDrafter
     public function draft(InboxThread $thread, User $chargeUser, Workspace $ws): array
     {
         $cfg = InboxAgentSettings::for($ws);
-        $model = AiEngineSettings::featureModel(self::FEATURE);
+        $model = AiEngineSettings::featureModel(self::FEATURE, $chargeUser);
 
         $res = $this->openai->chat(
             $chargeUser,
