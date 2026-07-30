@@ -89,6 +89,9 @@
         "check:query-columns": [
             "@php scripts/check-query-columns.php"
         ],
+        "check:plan-features-reads": [
+            "@php scripts/check-plan-features-reads.php"
+        ],
         "check:migration-ordering": [
             "@php artisan db:check-migration-ordering"
         ],
