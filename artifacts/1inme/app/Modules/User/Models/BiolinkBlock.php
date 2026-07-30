@@ -916,8 +916,8 @@ class BiolinkBlock extends Model
             if ($shadow) $css[] = "box-shadow:{$shadow}";
         }
 
-        if (!empty($style['bg_image']) && preg_match('/^https?:\/\//', $style['bg_image'])) {
-            $css[] = "background-image:url('" . str_replace("'", '', $style['bg_image']) . "')";
+        if (!empty($style['bg_image']) && preg_match('#^(https?://|/f/)#', $style['bg_image'])) {
+            $css[] = "background-image:url('" . str_replace(["'", '"', '(', ')'], '', $style['bg_image']) . "')";
             $css[] = "background-size:cover";
             $css[] = "background-position:center";
         }

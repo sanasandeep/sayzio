@@ -1057,15 +1057,38 @@ export function BlockView(props: { block: BiolinkBlock; alias: string; allBlocks
     ? catalogQ.data?.presets.find((p) => p.key === presetKey && !p.paper)
     : undefined;
 
+  // Custom gradient / image backgrounds (Task #6044): a gradient string in
+  // `_style.bg_color` is approximated with its color stops on a
+  // LinearGradient layer (RN can't render CSS strings); `_style.bg_image`
+  // paints a cover image layer — root-relative /f/ vault paths resolve
+  // against the API base. Preset wins when both are somehow present
+  // (mirrors the web layer stacking order).
+  const bgColorStr = typeof st.bg_color === "string" ? st.bg_color.trim() : "";
+  const gradientColors = /^(linear|radial|conic)-gradient\(/i.test(bgColorStr)
+    ? (bgColorStr.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)/g) ?? [])
+    : [];
+  const bgImageRaw = typeof st.bg_image === "string" ? st.bg_image.trim() : "";
+  const bgImageUri = bgImageRaw
+    ? /^https?:\/\//i.test(bgImageRaw)
+      ? bgImageRaw
+      : bgImageRaw.startsWith("/f/")
+        ? `${getBaseUrl()}${bgImageRaw}`
+        : ""
+    : "";
+
   const inner = <BlockViewInner {...props} />;
-  if (!preset) return inner;
-  const stops =
-    preset.colors.length >= 2
-      ? (preset.colors as [string, string, ...string[]])
-      : ([preset.colors[0] ?? "#3d3654", preset.colors[0] ?? "#3d3654"] as [string, string]);
-  return (
-    <View style={{ borderRadius: 14, overflow: "hidden" }}>
-      <View style={[StyleSheet.absoluteFill, { opacity: presetOpacity / 100 }]} pointerEvents="none">
+  if (!preset && gradientColors.length < 2 && !bgImageUri) return inner;
+
+  let layer: React.ReactNode = null;
+  let layerOpacity = 1;
+  if (preset) {
+    const stops =
+      preset.colors.length >= 2
+        ? (preset.colors as [string, string, ...string[]])
+        : ([preset.colors[0] ?? "#3d3654", preset.colors[0] ?? "#3d3654"] as [string, string]);
+    layerOpacity = presetOpacity / 100;
+    layer = (
+      <>
         <LinearGradient
           colors={stops}
           start={{ x: 0, y: 0 }}
@@ -1079,8 +1102,33 @@ export function BlockView(props: { block: BiolinkBlock; alias: string; allBlocks
             resizeMode="cover"
           />
         ) : null}
+      </>
+    );
+  } else if (bgImageUri) {
+    layer = (
+      <ImageBackground
+        source={{ uri: bgImageUri }}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+      />
+    );
+  } else {
+    layer = (
+      <LinearGradient
+        colors={gradientColors as [string, string, ...string[]]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+    );
+  }
+
+  return (
+    <View style={{ borderRadius: 14, overflow: "hidden" }}>
+      <View style={[StyleSheet.absoluteFill, { opacity: layerOpacity }]} pointerEvents="none">
+        {layer}
       </View>
-      <View style={{ padding: presetOpacity > 0 ? 8 : 0 }}>{inner}</View>
+      <View style={{ padding: layerOpacity > 0 ? 8 : 0 }}>{inner}</View>
     </View>
   );
 }
@@ -1116,11 +1164,56 @@ function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: Biolink
     const title = pickStr(s, "title");
     const isCard = t === "card";
     const pad = pickNum(s, "padding");
+    // Card container's OWN background settings (Task #6044): honour the
+    // web card builder's bg_type/bg_color/bg_gradient/bg_image so the
+    // mobile grouping matches the public web page. Gradient strings are
+    // approximated with their color stops; /f/ vault paths resolve
+    // against the API base.
+    const cardBgType = isCard ? (pickStr(s, "bg_type") ?? "glass") : "glass";
+    const cardBgColor = isCard && cardBgType === "color" ? pickStr(s, "bg_color") : undefined;
+    const cardGradientStr = isCard && cardBgType === "gradient" ? (pickStr(s, "bg_gradient") ?? "") : "";
+    const cardGradientColors = cardGradientStr
+      ? (cardGradientStr.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)/g) ?? [])
+      : [];
+    const cardBgImgRaw = isCard && cardBgType === "image" ? (pickStr(s, "bg_image") ?? "") : "";
+    const cardBgImgUri = cardBgImgRaw
+      ? /^https?:\/\//i.test(cardBgImgRaw)
+        ? cardBgImgRaw
+        : cardBgImgRaw.startsWith("/f/")
+          ? `${getBaseUrl()}${cardBgImgRaw}`
+          : ""
+      : "";
+    const cardBgOverride =
+      cardBgType === "transparent"
+        ? { backgroundColor: "transparent" }
+        : cardBgColor
+          ? { backgroundColor: cardBgColor }
+          : cardGradientColors.length >= 2 || cardBgImgUri
+            ? { backgroundColor: "transparent" }
+            : null;
     const containerStyle = isCard
-      ? [styles.cardContainer, blockCardStyle(block, colors)]
+      ? [styles.cardContainer, blockCardStyle(block, colors), cardBgOverride, { overflow: "hidden" as const }]
       : [styles.gridContainer, pad != null ? { padding: pad } : null];
     return (
       <View style={containerStyle}>
+        {isCard && cardGradientColors.length >= 2 ? (
+          <LinearGradient
+            colors={cardGradientColors as [string, string, ...string[]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        ) : null}
+        {isCard && cardBgImgUri ? (
+          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            <ImageBackground
+              source={{ uri: cardBgImgUri }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+          </View>
+        ) : null}
         {title ? <Text style={[styles.heading, { color: colors.foreground, fontSize: 16, marginTop: 0 }]}>{title}</Text> : null}
         {children.map((c) => (
           <BlockView key={c.id} block={c} alias={alias} allBlocks={allBlocks} openEmbed={openEmbed} />

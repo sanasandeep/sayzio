@@ -1467,8 +1467,9 @@ if (typeof window.resetPollVotes !== 'function') {
     </div>
 
     <div x-show="bgType === 'image'" x-cloak>
-        <label class="{{ $labelClass }}">Image URL</label>
-        <input type="url" name="settings[bg_image]" value="{{ $s['bg_image'] ?? '' }}" class="{{ $inputClass }}" placeholder="https://...">
+        {{-- Task #6044: vault-aware picker (URL / upload / My Files) — vault
+             picks persist as root-relative /f/… paths. --}}
+        @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[bg_image]', 'currentValue' => $s['bg_image'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Background Image', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     </div>
 
     <div x-show="bgType === 'glass'" x-cloak class="space-y-3">

@@ -540,37 +540,18 @@
                 </div>
             </div>
 
-            {{-- Background Color --}}
-            <div>
-                <label class="{{ $labelClass }}">Background Color</label>
-                <div class="flex gap-2">
-                    @php
-                        $bgVal = $st['bg_color'] ?? '';
-                        $bgPicker = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $bgVal) ? $bgVal : '#ffffff';
-                    @endphp
-                    {{-- Picker is intentionally UNNAMED (see text_color note above). The
-                         old named picker seeded with '#ffffff0d' — an 8-digit hex that
-                         input[type=color] can't hold — got browser-normalized to a solid
-                         color and silently saved on every block edit (Task #4025). --}}
-                    <input type="color" value="{{ $bgPicker }}" class="w-10 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.nextElementSibling.value = this.value" @input="cBg = $event.target.value">
-                    <input type="text" name="style[bg_color]" value="{{ $bgVal }}" placeholder="Transparent" class="{{ $inputClass }} flex-1" oninput="if (/^#[0-9a-fA-F]{6}$/.test(this.value)) this.previousElementSibling.value = this.value" @input="cBg = $event.target.value">
-                </div>
-                {{-- Non-blocking WCAG contrast warning vs the block's text color (Text tab). --}}
-                <template x-if="cLow()">
-                    <div class="flex items-center gap-2 rounded-lg px-3 py-2 mt-2 text-[11px] font-medium"
-                         style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
-                         data-testid="block-contrast-warning-bg">
-                        <i class="fas fa-triangle-exclamation"></i>
-                        <span>Low contrast (<span x-text="cFmt()"></span>) against the text color — text may be hard to read. Aim for at least 4.5:1.</span>
-                    </div>
-                </template>
-            </div>
+            {{-- Background (Task #6044): unified mode picker — None /
+                 Color / Gradient builder / Preset / Image. All modes write
+                 into the SAME underlying _style keys (bg_color carries both
+                 solids and gradient strings, bg_preset_key the catalog pick,
+                 bg_image an http(s) or /f/ vault URL) so old saves render
+                 unchanged. Torn presets stay excluded at block level. --}}
             <input type="hidden" name="style[bg_opacity]" value="{{ $st['bg_opacity'] ?? 100 }}">
-
-            {{-- Preset Background (Task #5970): catalog preset painted on a
-                 layer behind the block content. Torn composites are excluded
-                 at block level — they need full-page layers. --}}
             @php
+                $bgVal = $st['bg_color'] ?? '';
+                $bgPicker = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $bgVal) ? $bgVal : '#ffffff';
+                $bgIsGradient = (bool) preg_match('/^(linear|radial|conic)-gradient\(/i', (string) $bgVal);
+                $bgImageVal = $st['bg_image'] ?? '';
                 $blkPresets = collect(\App\Modules\User\Support\BgPresetCatalog::all())
                     ->filter(fn($p) => ($p['group'] ?? '') !== 'torn');
                 $blkPresetGroups = array_filter(
@@ -578,8 +559,157 @@
                     fn($k) => $k !== 'torn',
                     ARRAY_FILTER_USE_KEY
                 );
+                $bgInitialMode = !empty($st['bg_preset_key']) ? 'preset'
+                    : ($bgImageVal !== '' ? 'image'
+                    : ($bgIsGradient ? 'gradient'
+                    : ($bgVal !== '' && $bgVal !== 'transparent' ? 'color' : 'none')));
             @endphp
-            <div x-data="{ bpGroup: 'gradients', bpSearch: '', bpKey: @js($st['bg_preset_key'] ?? ''), bpOpen: {{ !empty($st['bg_preset_key']) ? 'true' : 'false' }}, bpOpacity: {{ max(0, min(100, (int) (is_numeric($st['bg_preset_opacity'] ?? null) ? $st['bg_preset_opacity'] : 100))) }} }">
+            <div x-data="{
+                bgMode: @js($bgInitialMode),
+                bpGroup: 'gradients', bpSearch: '',
+                bpKey: @js($st['bg_preset_key'] ?? ''),
+                bpOpen: {{ !empty($st['bg_preset_key']) ? 'true' : 'false' }},
+                bpOpacity: {{ max(0, min(100, (int) (is_numeric($st['bg_preset_opacity'] ?? null) ? $st['bg_preset_opacity'] : 100))) }},
+                gradType: 'linear', gradAngle: 135,
+                gradStops: [{ color: '#3d6bff', pos: 0 }, { color: '#ec4899', pos: 100 }],
+                init() {
+                    /* Best-effort parse of an existing gradient back into the
+                       builder controls; unparseable strings keep the defaults
+                       (the raw value stays untouched until the user edits). */
+                    var v = @js($bgIsGradient ? $bgVal : '');
+                    if (v) {
+                        var m = v.match(/^(linear|radial|conic)-gradient\((.*)\)$/i);
+                        if (m) {
+                            this.gradType = m[1].toLowerCase();
+                            var body = m[2];
+                            var am = body.match(/(?:from\s+)?(-?\d+(?:\.\d+)?)deg/i);
+                            if (am) this.gradAngle = parseInt(am[1], 10) || 0;
+                            var stops = [];
+                            var re = /(#[0-9a-fA-F]{3,8}|rgba?\([^)]*\))\s*(\d{1,3})?%?/g, sm;
+                            while ((sm = re.exec(body)) !== null) {
+                                stops.push({ color: sm[1], pos: sm[2] !== undefined ? parseInt(sm[2], 10) : null });
+                            }
+                            if (stops.length >= 2) {
+                                stops.forEach(function(s, i) { if (s.pos === null || isNaN(s.pos)) s.pos = Math.round(i / (stops.length - 1) * 100); });
+                                this.gradStops = stops;
+                            }
+                        }
+                    }
+                },
+                writeInput(el, val) {
+                    if (!el || el.value === val) return;
+                    el.value = val;
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                },
+                writeBg(v) { this.writeInput(this.$refs.bgcInput, v); },
+                gradCss() {
+                    var stops = this.gradStops.slice().sort(function(a, b) { return a.pos - b.pos; });
+                    var s = stops.map(function(x) { return x.color + ' ' + x.pos + '%'; }).join(', ');
+                    if (this.gradType === 'radial') return 'radial-gradient(circle, ' + s + ')';
+                    if (this.gradType === 'conic') return 'conic-gradient(from ' + this.gradAngle + 'deg, ' + s + ')';
+                    return 'linear-gradient(' + this.gradAngle + 'deg, ' + s + ')';
+                },
+                applyGrad() { this.writeBg(this.gradCss()); },
+                addStop() {
+                    if (this.gradStops.length >= 8) return;
+                    var last = this.gradStops[this.gradStops.length - 1];
+                    this.gradStops.push({ color: '#5c83ff', pos: Math.min(100, (last ? last.pos : 50) + 10) });
+                    this.applyGrad();
+                },
+                removeStop(i) {
+                    if (this.gradStops.length <= 2) return;
+                    this.gradStops.splice(i, 1);
+                    this.applyGrad();
+                },
+                clearPreset() {
+                    if (!this.bpKey) return;
+                    this.bpKey = '';
+                    var self = this;
+                    this.$nextTick(function() { self.$refs.bpInput.dispatchEvent(new Event('change', { bubbles: true })); });
+                },
+                clearImage() {
+                    var wrap = this.$refs.bgImgWrap;
+                    var h = wrap ? wrap.querySelector('input[type=hidden]') : null;
+                    if (h && h.value !== '') this.writeInput(h, '');
+                },
+                setMode(m) {
+                    this.bgMode = m;
+                    if (m === 'none') { this.writeBg(''); this.clearPreset(); this.clearImage(); }
+                    if (m === 'color' || m === 'gradient') { this.clearPreset(); this.clearImage(); if (m === 'gradient') this.applyGrad(); else if (/gradient\(/.test(this.$refs.bgcInput.value)) this.writeBg(''); }
+                    if (m === 'preset') { this.writeBg(''); this.clearImage(); this.bpOpen = true; }
+                    if (m === 'image') { this.writeBg(''); this.clearPreset(); }
+                }
+            }" class="space-y-2">
+                <label class="{{ $labelClass }}">Background</label>
+                <div class="grid grid-cols-5 gap-1">
+                    @foreach(['none' => 'None', 'color' => 'Color', 'gradient' => 'Gradient', 'preset' => 'Preset', 'image' => 'Image'] as $bmVal => $bmLabel)
+                    <button type="button" @click="setMode('{{ $bmVal }}')"
+                            class="text-[10px] font-semibold px-1 py-1.5 rounded-lg transition-all"
+                            :style="bgMode === '{{ $bmVal }}' ? 'background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.3); color: #5c83ff;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);'">
+                        {{ $bmLabel }}
+                    </button>
+                    @endforeach
+                </div>
+
+                {{-- Color mode. Picker is intentionally UNNAMED (see text_color
+                     note above / Task #4025). The text input is the single
+                     source for style[bg_color] across the Color AND Gradient
+                     modes (a gradient is just a CSS string in the same key). --}}
+                <div x-show="bgMode === 'color'" x-cloak class="space-y-2">
+                    <div class="flex gap-2">
+                        <input type="color" value="{{ $bgPicker }}" class="w-10 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.nextElementSibling.value = this.value; this.nextElementSibling.dispatchEvent(new Event('input', { bubbles: true })); this.nextElementSibling.dispatchEvent(new Event('change', { bubbles: true }))">
+                        <input type="text" name="style[bg_color]" x-ref="bgcInput" value="{{ $bgVal }}" placeholder="Transparent" class="{{ $inputClass }} flex-1" oninput="if (/^#[0-9a-fA-F]{6}$/.test(this.value)) this.previousElementSibling.value = this.value" @input="cBg = $event.target.value">
+                    </div>
+                    {{-- Non-blocking WCAG contrast warning vs the block's text color (Text tab). --}}
+                    <template x-if="cLow()">
+                        <div class="flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium"
+                             style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
+                             data-testid="block-contrast-warning-bg">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            <span>Low contrast (<span x-text="cFmt()"></span>) against the text color — text may be hard to read. Aim for at least 4.5:1.</span>
+                        </div>
+                    </template>
+                </div>
+
+                {{-- Gradient builder mode (writes a gradient string into the
+                     same style[bg_color] input above). --}}
+                <div x-show="bgMode === 'gradient'" x-cloak class="space-y-2 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
+                    <div class="rounded-lg h-8" :style="'background:' + gradCss() + '; border: 1px solid var(--border-glass);'"></div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[9px] font-bold" style="color: var(--text-dimmed);">Type</label>
+                            <select x-model="gradType" @change="applyGrad()" class="{{ $inputClass }} text-[11px]">
+                                <option value="linear">Linear</option>
+                                <option value="radial">Radial</option>
+                                <option value="conic">Conic</option>
+                            </select>
+                        </div>
+                        <div x-show="gradType !== 'radial'">
+                            <label class="text-[9px] font-bold" style="color: var(--text-dimmed);">Angle <span x-text="gradAngle + '°'"></span></label>
+                            <input type="range" min="0" max="360" step="5" x-model.number="gradAngle" @input="applyGrad()" class="w-full accent-indigo-500 mt-2">
+                        </div>
+                    </div>
+                    <template x-for="(stop, idx) in gradStops" :key="idx">
+                        <div class="flex items-center gap-1.5">
+                            <input type="color" :value="/^#[0-9a-fA-F]{6}$/.test(stop.color) ? stop.color : '#5c83ff'" @input="stop.color = $event.target.value; applyGrad()" class="w-8 h-7 rounded-md cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
+                            <input type="range" min="0" max="100" :value="stop.pos" @input="stop.pos = parseInt($event.target.value, 10); applyGrad()" class="flex-1 accent-indigo-500">
+                            <span class="text-[9px] w-7 text-right font-mono" style="color: var(--text-faint);" x-text="stop.pos + '%'"></span>
+                            <button type="button" @click="removeStop(idx)" x-show="gradStops.length > 2" class="text-[10px] px-1" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
+                        </div>
+                    </template>
+                    <button type="button" @click="addStop()" x-show="gradStops.length < 8" class="text-[10px] font-semibold px-2 py-1 rounded-lg" style="color: var(--text-faint); background: var(--bg-glass); border: 1px solid var(--border-glass);"><i class="fas fa-plus mr-1" style="font-size:8px;"></i>Add color stop</button>
+                </div>
+
+                {{-- Image mode: http(s) URL, upload, or vault pick — vault
+                     picks persist as root-relative /f/… paths. --}}
+                <div x-show="bgMode === 'image'" x-cloak x-ref="bgImgWrap">
+                    @include('user.links.partials.file-upload-field', ['fieldName' => 'style[bg_image]', 'currentValue' => $bgImageVal, 'acceptTypes' => 'image', 'labelText' => 'Background Image', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
+                </div>
+
+                {{-- Preset mode (Task #5970): catalog preset painted on a
+                     layer behind the block content. --}}
+                <div x-show="bgMode === 'preset'" x-cloak>
                 <div class="flex items-center justify-between gap-2">
                     <label class="{{ $labelClass }}">Preset Background</label>
                     <button type="button" @click="bpOpen = !bpOpen" class="text-[10px] font-semibold px-2 py-1 rounded-lg transition-all" style="color: var(--text-faint); background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
@@ -627,6 +757,7 @@
                         <input type="range" name="style[bg_preset_opacity]" min="0" max="100" step="5" x-model="bpOpacity" class="w-full">
                     </div>
                     <p class="text-[9px]" style="color: var(--text-dimmed);">Click a swatch to select, click again to remove. The preset paints behind the block's content.</p>
+                </div>
                 </div>
             </div>
 
@@ -702,11 +833,6 @@
             </button>
 
             <div x-show="showAdvanced" x-cloak x-transition class="space-y-3 pt-1">
-                {{-- Background Image --}}
-                <div>
-                    <label class="{{ $labelClass }}">Background Image URL</label>
-                    <input type="url" name="style[bg_image]" value="{{ $st['bg_image'] ?? '' }}" placeholder="https://..." class="{{ $inputClass }}">
-                </div>
                 {{-- Border --}}
                 <div class="grid grid-cols-3 gap-2">
                     <div>

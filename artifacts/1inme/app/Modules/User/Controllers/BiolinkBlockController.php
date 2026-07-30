@@ -1963,6 +1963,41 @@ class BiolinkBlockController extends Controller
             }
         }
 
+        // Card container backgrounds (Task #6044): the render partial
+        // interpolates these straight into an inline style attribute, so
+        // they must be constrained here. Invalid values are dropped
+        // silently (the renderer falls back to its defaults).
+        if ($type === 'card') {
+            foreach (['bg_color', 'border_color', 'shadow_color'] as $ck) {
+                if (isset($settings[$ck]) && $settings[$ck] !== '') {
+                    $cv = trim((string) $settings[$ck]);
+                    if (!preg_match('/^(#[0-9a-fA-F]{3,8}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*[\d.]+\s*)?\)|transparent)$/', $cv)) {
+                        unset($settings[$ck]);
+                    } else {
+                        $settings[$ck] = $cv;
+                    }
+                }
+            }
+            if (isset($settings['bg_gradient']) && $settings['bg_gradient'] !== '') {
+                $gv = trim((string) $settings['bg_gradient']);
+                if (strlen($gv) > 500 || !preg_match('/^(linear|radial|conic)-gradient\([^;{}<>"\'`]+\)$/i', $gv)) {
+                    unset($settings['bg_gradient']);
+                } else {
+                    $settings['bg_gradient'] = $gv;
+                }
+            }
+            if (isset($settings['bg_image']) && $settings['bg_image'] !== '') {
+                $iv = trim((string) $settings['bg_image']);
+                $okAbs = filter_var($iv, FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//', $iv) && !preg_match('/[\'"()\s;{}<>`]/', $iv);
+                $okRel = (bool) preg_match('#^/f/[A-Za-z0-9._/\-]+$#', $iv);
+                if ($okAbs || $okRel) {
+                    $settings['bg_image'] = substr($iv, 0, 500);
+                } else {
+                    unset($settings['bg_image']);
+                }
+            }
+        }
+
         // Plain grid containers: normalize the optional mobile-stacking
         // flag to a real boolean (checkbox submits "1" or is absent).
         if ($type === 'grid') {

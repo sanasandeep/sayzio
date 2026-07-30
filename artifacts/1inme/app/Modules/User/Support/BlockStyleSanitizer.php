@@ -132,7 +132,7 @@ class BlockStyleSanitizer
             } elseif (in_array($key, $colorKeys, true)) {
                 if (preg_match('/^(#[0-9a-fA-F]{3,8}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*[\d.]+\s*)?\)|transparent)$/', $val)) {
                     $result[$key] = $val;
-                } elseif ($key === 'bg_color' && is_string($val) && strlen($val) <= 240
+                } elseif ($key === 'bg_color' && is_string($val) && strlen($val) <= 500
                     && preg_match('/^(linear|radial|conic)-gradient\([^;{}<>"\'`]+\)$/i', $val)
                 ) {
                     // Task #1041: allow CSS gradients on `bg_color` so curated
@@ -153,7 +153,12 @@ class BlockStyleSanitizer
                 $safe = preg_replace('/[^a-zA-Z0-9 :_\-]/', '', substr((string) $val, 0, 80));
                 if ($safe !== '') $result[$key] = trim($safe);
             } elseif (in_array($key, $urlKeys, true)) {
+                // Task #6044: accept absolute http(s) URLs OR relative /f/
+                // vault paths so vault-hosted images work as block
+                // backgrounds without an absolute host prefix.
                 if (filter_var($val, FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//', $val)) {
+                    $result[$key] = substr($val, 0, 500);
+                } elseif (is_string($val) && preg_match('#^/f/[A-Za-z0-9._/\-]+$#', $val)) {
                     $result[$key] = substr($val, 0, 500);
                 }
             } elseif ($key === 'bg_preset_key') {

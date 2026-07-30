@@ -501,7 +501,13 @@ export function variantOverlay(
 
   // Prefer explicit _style overrides (set by the web editor) over the
   // catalog preview hint — the latter is just a thumbnail approximation.
-  const bg = (style.bg_color as string) || variant?.preview.bg;
+  // Gradient strings (Task #6044) can't be RN backgroundColor values —
+  // BlockView paints them on a LinearGradient layer instead, so they are
+  // filtered out here (falling back to the variant hint when present).
+  const rawBg = style.bg_color as string;
+  const isGradientStr = (v: unknown): boolean =>
+    typeof v === "string" && /^(linear|radial|conic)-gradient\(/i.test(v.trim());
+  const bg = (isGradientStr(rawBg) ? "" : rawBg) || (isGradientStr(variant?.preview.bg) ? "" : variant?.preview.bg);
   const borderColor = (style.border_color as string) || variant?.preview.border;
   const borderStyleRaw = (style.border_style as string) || (variant?.preview.dashed ? "dashed" : undefined);
   const radiusRaw = style.border_radius ?? variant?.preview.radius;

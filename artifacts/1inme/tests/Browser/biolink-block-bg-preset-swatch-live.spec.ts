@@ -183,7 +183,9 @@ test("clicking a preset swatch paints the block layer live, clicking again remov
   const styleRoot = form.locator("[data-style-root]");
   await styleRoot.locator('button:has-text("Block Styling")').click();
   await styleRoot.locator('button:has-text("Look")').click();
-  await styleRoot.locator('button:has(span[x-text*="bpKey"])').click();
+  // Task #6044: the preset picker now lives behind the unified background
+  // mode chips — selecting "Preset" auto-opens the swatch browser.
+  await styleRoot.getByRole("button", { name: "Preset", exact: true }).click();
 
   const swatch = styleRoot.locator('button[title="Gradient 1"]');
   await expect(swatch).toBeVisible({ timeout: 15_000 });

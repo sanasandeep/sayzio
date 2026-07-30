@@ -88,6 +88,14 @@ args = "blk-contrast-e2e"
 task = "workflow.run"
 args = "e2e-default-colors-contrast"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "blk-bgop"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "blk-bgsw"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -265,12 +273,34 @@ args = "cd artifacts/1inme && VALIDATION_PORT=5063 bash tests/Browser/run-valida
 isValidation = true
 
 [[workflows.workflow]]
+name = "blk-bgop"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5053 bash tests/Browser/run-validation.sh biolink-block-bg-preset-opacity-live.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
 name = "e2e-default-colors-contrast"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "VALIDATION_PORT=5064 bash artifacts/1inme/tests/Browser/run-validation.sh default-colors-contrast-warning.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "blk-bgsw"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "VALIDATION_PORT=5054 bash artifacts/1inme/tests/Browser/run-validation.sh biolink-block-bg-preset-swatch-live.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true

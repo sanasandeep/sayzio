@@ -947,6 +947,18 @@ export function BlockSettingsEditor({
   const [bgPresetOpacity, setBgPresetOpacity] = useState<number>(100);
   const [bgPresetOpen, setBgPresetOpen] = useState(false);
   const [bgPresetGroup, setBgPresetGroup] = useState<string>("all");
+  // Unified block background (Task #6044): None / Color / Gradient /
+  // Preset / Image, mirroring the web editor's Style-tab picker. Color
+  // and Gradient both persist into `_style.bg_color` (gradient as a CSS
+  // gradient string); Image into `_style.bg_image` (http(s) or /f/ vault
+  // path); Preset keeps the existing `_style.bg_preset_key` fields.
+  const [bgMode, setBgMode] = useState<"none" | "color" | "gradient" | "preset" | "image">("none");
+  const [bgColorVal, setBgColorVal] = useState<string>("");
+  const [gradType, setGradType] = useState<"linear" | "radial" | "conic">("linear");
+  const [gradAngle, setGradAngle] = useState<number>(135);
+  const [gradStops, setGradStops] = useState<string[]>(["#7c3aed", "#22d3ee"]);
+  const [bgImageVal, setBgImageVal] = useState<string>("");
+  const [bgImgUploading, setBgImgUploading] = useState(false);
   // Task #5987 — when a preset swatch is tapped in the grid, the live
   // preview (which sits above the grid) may be scrolled off-screen.
   // These refs let us bring it back into view: on web via the DOM's
@@ -1167,6 +1179,34 @@ export function BlockSettingsEditor({
       setBgPresetOpacity(
         Number.isFinite(rawOp) ? Math.max(0, Math.min(100, Math.round(rawOp))) : 100,
       );
+      // Unified background mode hydrate (Task #6044): mode is derived
+      // from whichever field is populated — preset wins, then image,
+      // then gradient-vs-color (both live in bg_color).
+      const bgc = typeof st.bg_color === "string" ? st.bg_color.trim() : "";
+      const bgi = typeof st.bg_image === "string" ? st.bg_image.trim() : "";
+      const gradMatch = /^(linear|radial|conic)-gradient\(/i.exec(bgc);
+      if (typeof st.bg_preset_key === "string" && st.bg_preset_key !== "") {
+        setBgMode("preset");
+      } else if (bgi !== "") {
+        setBgMode("image");
+      } else if (gradMatch) {
+        setBgMode("gradient");
+      } else if (bgc !== "" && bgc !== "transparent") {
+        setBgMode("color");
+      } else {
+        setBgMode("none");
+      }
+      setBgImageVal(bgi);
+      if (gradMatch) {
+        setGradType(gradMatch[1].toLowerCase() as "linear" | "radial" | "conic");
+        const ang = /(?:\(|from\s)\s*(-?\d+(?:\.\d+)?)deg/i.exec(bgc);
+        if (ang) setGradAngle(Math.round(Number(ang[1])));
+        const cols = bgc.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)/g) ?? [];
+        if (cols.length >= 2) setGradStops(cols.slice(0, 4));
+        setBgColorVal("");
+      } else {
+        setBgColorVal(bgc === "transparent" ? "" : bgc);
+      }
     }
   }, [block]);
 
@@ -1544,12 +1584,42 @@ export function BlockSettingsEditor({
           (block?.settings?._style as Record<string, unknown> | undefined) ??
           {};
         const styleOut: Record<string, unknown> = { ...baseStyle };
-        if (bgPresetKey) {
+        if (bgMode === "preset" && bgPresetKey) {
           styleOut.bg_preset_key = bgPresetKey;
           styleOut.bg_preset_opacity = clampNum(Math.round(bgPresetOpacity), 0, 100);
         } else {
           delete styleOut.bg_preset_key;
           delete styleOut.bg_preset_opacity;
+        }
+        // Unified background modes (Task #6044): each mode owns its
+        // field(s); the others are dropped so switching modes round-trips
+        // cleanly (server merge semantics treat a missing key as removal
+        // only when an empty value is sent — we delete + rely on the
+        // full-_style replace the mobile save already performs).
+        if (bgMode === "color" && bgColorVal.trim() !== "") {
+          styleOut.bg_color = bgColorVal.trim();
+        } else if (bgMode === "gradient") {
+          const stops = gradStops.filter((c) => c.trim() !== "");
+          if (stops.length >= 2) {
+            const stopList = stops
+              .map((c, i) => `${c.trim()} ${Math.round((i / (stops.length - 1)) * 100)}%`)
+              .join(", ");
+            styleOut.bg_color =
+              gradType === "linear"
+                ? `linear-gradient(${gradAngle}deg, ${stopList})`
+                : gradType === "radial"
+                  ? `radial-gradient(circle at center, ${stopList})`
+                  : `conic-gradient(from ${gradAngle}deg at center, ${stopList})`;
+          } else {
+            delete styleOut.bg_color;
+          }
+        } else {
+          delete styleOut.bg_color;
+        }
+        if (bgMode === "image" && bgImageVal.trim() !== "") {
+          styleOut.bg_image = bgImageVal.trim();
+        } else {
+          delete styleOut.bg_image;
         }
         if (Object.keys(styleOut).length > 0) nextSettings._style = styleOut;
         else delete nextSettings._style;
@@ -1883,6 +1953,244 @@ export function BlockSettingsEditor({
             via `paper`) painted behind THIS block with a 0–100 transparency.
             Saved into `_style.bg_preset_key` / `_style.bg_preset_opacity`
             on the normal save path. */}
+        {/* Unified block background (Task #6044) — None / Color / Gradient /
+            Preset / Image mode picker mirroring the web Style tab. */}
+        <View style={{ gap: 8 }} testID="block-bg-section">
+          <Text style={[styles.rowLabel, { color: colors.foreground }]}>Background</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            {(
+              [
+                { key: "none", label: "None" },
+                { key: "color", label: "Color" },
+                { key: "gradient", label: "Gradient" },
+                { key: "preset", label: "Preset" },
+                { key: "image", label: "Image" },
+              ] as const
+            ).map((m) => {
+              const sel = bgMode === m.key;
+              return (
+                <Pressable {...WEB_FOCUS_RING_PROPS}
+                  key={m.key}
+                  testID={`block-bg-mode-${m.key}`}
+                  onPress={() => {
+                    setBgMode(m.key);
+                    if (m.key === "preset") setBgPresetOpen(true);
+                  }}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                    backgroundColor: sel ? colors.primary : colors.card,
+                    borderWidth: 1,
+                    borderColor: sel ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ color: sel ? "#fff" : colors.foreground, fontWeight: "600", fontSize: 11 }}>
+                    {m.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {bgMode === "color" ? (
+            <View style={{ gap: 6 }}>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                {["#7c3aed", "#2563eb", "#059669", "#dc2626", "#f59e0b", "#0f172a", "#ffffff", "rgba(255,255,255,0.12)"].map((c) => (
+                  <Pressable {...WEB_FOCUS_RING_PROPS}
+                    key={c}
+                    onPress={() => setBgColorVal(c)}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 8,
+                      backgroundColor: c,
+                      borderWidth: bgColorVal === c ? 2 : 1,
+                      borderColor: bgColorVal === c ? colors.primary : colors.border,
+                    }}
+                  />
+                ))}
+              </View>
+              <TextInput
+                testID="block-bg-color-input"
+                value={bgColorVal}
+                onChangeText={setBgColorVal}
+                placeholder="#7c3aed or rgba(...)"
+                placeholderTextColor={colors.mutedForeground}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={[{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+              />
+            </View>
+          ) : null}
+
+          {bgMode === "gradient" ? (
+            <View style={{ gap: 8 }}>
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                {(["linear", "radial", "conic"] as const).map((g) => {
+                  const sel = gradType === g;
+                  return (
+                    <Pressable {...WEB_FOCUS_RING_PROPS}
+                      key={g}
+                      testID={`block-bg-grad-${g}`}
+                      onPress={() => setGradType(g)}
+                      style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 5,
+                        borderRadius: 999,
+                        backgroundColor: sel ? colors.primary : colors.card,
+                        borderWidth: 1,
+                        borderColor: sel ? colors.primary : colors.border,
+                      }}
+                    >
+                      <Text style={{ color: sel ? "#fff" : colors.foreground, fontWeight: "600", fontSize: 11 }}>
+                        {g.charAt(0).toUpperCase() + g.slice(1)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {gradType !== "radial" ? (
+                <View style={{ gap: 4 }}>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Angle · {gradAngle}°</Text>
+                  <Slider
+                    style={{ width: "100%", height: 32 }}
+                    minimumValue={0}
+                    maximumValue={360}
+                    step={1}
+                    value={gradAngle}
+                    minimumTrackTintColor={colors.primary}
+                    maximumTrackTintColor={colors.border}
+                    thumbTintColor={colors.primary}
+                    onValueChange={(v) => setGradAngle(Math.round(v))}
+                  />
+                </View>
+              ) : null}
+              {gradStops.map((c, i) => (
+                <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <View style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: c || colors.muted, borderWidth: 1, borderColor: colors.border }} />
+                  <TextInput
+                    testID={`block-bg-grad-stop-${i}`}
+                    value={c}
+                    onChangeText={(v) =>
+                      setGradStops((prev) => prev.map((p, j) => (j === i ? v : p)))
+                    }
+                    placeholder="#7c3aed"
+                    placeholderTextColor={colors.mutedForeground}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    style={[{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, flex: 1, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+                  />
+                  {gradStops.length > 2 ? (
+                    <Pressable {...WEB_FOCUS_RING_PROPS}
+                      onPress={() => setGradStops((prev) => prev.filter((_, j) => j !== i))}
+                      style={{ paddingHorizontal: 8, paddingVertical: 6 }}
+                    >
+                      <Text style={{ color: colors.destructive, fontWeight: "700", fontSize: 12 }}>✕</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ))}
+              {gradStops.length < 4 ? (
+                <Pressable {...WEB_FOCUS_RING_PROPS}
+                  testID="block-bg-grad-add-stop"
+                  onPress={() => setGradStops((prev) => [...prev, "#f59e0b"])}
+                  style={{
+                    alignSelf: "flex-start",
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 11 }}>+ Add color</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
+
+          {bgMode === "image" ? (
+            <View style={{ gap: 8 }}>
+              <TextInput
+                testID="block-bg-image-input"
+                value={bgImageVal}
+                onChangeText={setBgImageVal}
+                placeholder="https://… or /f/… vault path"
+                placeholderTextColor={colors.mutedForeground}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={[{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+              />
+              <Pressable {...WEB_FOCUS_RING_PROPS}
+                testID="block-bg-image-upload"
+                disabled={bgImgUploading}
+                onPress={async () => {
+                  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                  if (!perm.granted) {
+                    showAlert(
+                      "Photos access needed",
+                      "Allow access to your photo library in Settings to pick an image.",
+                    );
+                    return;
+                  }
+                  const res = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                    quality: 0.9,
+                  });
+                  if (res.canceled || !res.assets?.[0]) return;
+                  const asset = res.assets[0];
+                  setBgImgUploading(true);
+                  try {
+                    const file = await uploadVaultFile({
+                      uri: asset.uri,
+                      name: asset.fileName ?? undefined,
+                      mime: asset.mimeType ?? undefined,
+                    });
+                    setBgImageVal(file.url_path || file.url);
+                  } catch (e) {
+                    if (!handlePlanLockedError(e, "Your storage is full on your current plan.")) {
+                      const msg =
+                        e && typeof e === "object" && "message" in e
+                          ? String((e as { message: unknown }).message)
+                          : "Upload failed.";
+                      showAlert("Upload failed", msg);
+                    }
+                  } finally {
+                    setBgImgUploading(false);
+                  }
+                }}
+                style={{
+                  alignSelf: "flex-start",
+                  paddingHorizontal: 12,
+                  paddingVertical: 7,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  backgroundColor: colors.card,
+                  opacity: bgImgUploading ? 0.6 : 1,
+                }}
+              >
+                <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 11 }}>
+                  {bgImgUploading ? "Uploading…" : "Upload from device"}
+                </Text>
+              </Pressable>
+              {bgImageVal ? (
+                <Image
+                  source={{
+                    uri: /^https?:\/\//i.test(bgImageVal)
+                      ? bgImageVal
+                      : `${getBaseUrl()}${bgImageVal}`,
+                  }}
+                  style={{ width: 96, height: 64, borderRadius: 8, borderWidth: 1, borderColor: colors.border }}
+                  resizeMode="cover"
+                />
+              ) : null}
+            </View>
+          ) : null}
+        </View>
+
+        {bgMode === "preset" ? (
         <View style={{ gap: 8 }} testID="block-bg-preset-section">
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             <Text style={[styles.rowLabel, { color: colors.foreground }]}>Background preset</Text>
@@ -2097,6 +2405,7 @@ export function BlockSettingsEditor({
             )
           ) : null}
         </View>
+        ) : null}
 
         {isAnyList ? (
           <View style={{ gap: 12 }}>
