@@ -2916,7 +2916,7 @@ export function BlockSettingsEditor({
                   testID="block-border-color-invalid"
                   style={{ color: "#f59e0b", fontSize: 10 }}
                 >
-                  This doesn't look like a valid color — check for typos (e.g. #ffffff).
+                  This doesn't look like a valid color; check for typos (e.g. #ffffff).
                 </Text>
               ) : null}
             </View>
@@ -3147,7 +3147,7 @@ export function BlockSettingsEditor({
                       testID={`block-border-${sd.key}-color-invalid`}
                       style={{ color: "#f59e0b", fontSize: 10 }}
                     >
-                      This doesn't look like a valid color — check for typos (e.g. #ffffff).
+                      This doesn't look like a valid color; check for typos (e.g. #ffffff).
                     </Text>
                   ) : null}
                 </View>

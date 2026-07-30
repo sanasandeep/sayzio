@@ -960,13 +960,27 @@
             width: 100%;
             max-width: {{ $maxPhone }}px;
             margin: 0 auto;
-            padding: {{ $pagePadTop }}px {{ $pagePadX }}px {{ $pagePadBottom }}px;
+            /* Task #6114: the page itself has NO horizontal padding — the
+               default side spacing lives on each direct child as a margin
+               instead, so an individual block can zero its own margins and
+               go truly edge-to-edge. */
+            padding: {{ $pagePadTop }}px 0 {{ $pagePadBottom }}px;
             display: grid;
             grid-template-columns: repeat(12, 1fr);
             gap: {{ $blockGap }}px;
             align-items: start;
             position: relative;
             z-index: 1;
+        }
+        /* Default per-child horizontal margin (matches the old page padding
+           so existing pages look unchanged). Absolutely-positioned children
+           (e.g. the text-overlay layer with inset:0) shrink by the same
+           margins, keeping their reference box identical to the old padding
+           box. Blocks override this inline via _style margin_left/right —
+           an explicit 0 means full width. */
+        .biolink-container > * {
+            margin-left: {{ $pagePadX }}px;
+            margin-right: {{ $pagePadX }}px;
         }
         /* Keep the fixed bg-template layer behind everything else. */
         .bg-template.bg-layer { z-index: 0 !important; }
@@ -1305,7 +1319,10 @@
             @php
                 $s = $block->settings ?? [];
                 $blockStyle = \App\Modules\User\Models\BiolinkBlock::getBlockStyle($s, $globalTheme);
-                $blockInline = \App\Modules\User\Models\BiolinkBlock::buildInlineStyle($blockStyle);
+                // Task #6114: horizontal margins render on the wrap (see
+                // $wrapExtraStyle below), so skip them here to avoid
+                // double-applying.
+                $blockInline = \App\Modules\User\Models\BiolinkBlock::buildInlineStyle($blockStyle, true);
                 $hasCustomStyle = !empty($s['_style']) || (!empty($globalTheme) && ($globalTheme['apply_to_all'] ?? false));
                 // Button-like blocks must apply the preset directly to the
                 // <a> element (the actual visible button), NOT to a wrapper
@@ -1337,6 +1354,13 @@
                 $mdRowSpan = intval($blockStyle['grid_row_span_md'] ?? 0);
                 $wrapExtraClass = ($mdSpan ? ' md-span' : '') . ($mdRowSpan ? ' md-row-span' : '');
                 $wrapExtraStyle = ($mdSpan ? ";--md-span:{$mdSpan}" : '') . ($mdRowSpan ? ";--md-row-span:{$mdRowSpan}" : '');
+                // Task #6114: side spacing lives on the wrap. An explicit
+                // _style margin_left/right — including 0 for a full-width
+                // block — overrides the container's default child margin.
+                $mxL = $blockStyle['margin_left'] ?? '';
+                $mxR = $blockStyle['margin_right'] ?? '';
+                $wrapExtraStyle .= ($mxL !== '' && $mxL !== null ? ';margin-left:' . (0 + $mxL) . 'px' : '')
+                    . ($mxR !== '' && $mxR !== null ? ';margin-right:' . (0 + $mxR) . 'px' : '');
                 // Task #1041: forward variant metadata hooks as data-attrs
                 // so CSS in <style> can drive heading animations, gallery
                 // layouts, and social icon style sets without per-block
@@ -2420,7 +2444,12 @@
                     'style.padding_top': function (el, v) { el.style.paddingTop = v === '' ? '' : parseInt(v, 10) + 'px'; },
                     'style.padding_bottom': function (el, v) { el.style.paddingBottom = v === '' ? '' : parseInt(v, 10) + 'px'; },
                     'style.padding_left': function (el, v) { el.style.paddingLeft = v === '' ? '' : parseInt(v, 10) + 'px'; },
-                    'style.padding_right': function (el, v) { el.style.paddingRight = v === '' ? '' : parseInt(v, 10) + 'px'; }
+                    'style.padding_right': function (el, v) { el.style.paddingRight = v === '' ? '' : parseInt(v, 10) + 'px'; },
+                    // Task #6114: vertical margins patch the styled element
+                    // (mirrors buildInlineStyle); horizontal margins are
+                    // special-cased in applyLiveStyle to hit the wrap.
+                    'style.margin_top': function (el, v) { el.style.marginTop = v === '' ? '' : parseInt(v, 10) + 'px'; },
+                    'style.margin_bottom': function (el, v) { el.style.marginBottom = v === '' ? '' : parseInt(v, 10) + 'px'; }
                 };
                 // Text tilt (Task #5954): heading/paragraph partials always
                 // emit a [data-tilt-wrap] element, so live rotation works
@@ -2633,6 +2662,14 @@
                 }
                 function applyLiveStyle(root, key, value, fields) {
                     if (key === 'style._tilt') return applyLiveTilt(root, value);
+                    // Task #6114: horizontal margins live on the block wrap
+                    // itself (the page has no side padding); clearing the
+                    // field reverts to the container's default child margin.
+                    if (key === 'style.margin_left' || key === 'style.margin_right') {
+                        var mProp = key === 'style.margin_left' ? 'marginLeft' : 'marginRight';
+                        root.style[mProp] = value === '' ? '' : parseInt(value, 10) + 'px';
+                        return true;
+                    }
                     // Preset background transparency (Task #5988): fade the
                     // block's preset layer live while dragging the slider.
                     // querySelector picks the block's OWN layer first (a

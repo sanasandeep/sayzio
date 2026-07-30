@@ -1165,6 +1165,34 @@ function NativeProductBlock({
 // swatch of the REAL texture when the server advertises one — the same
 // approximation the Appearance preset picker/preview already uses. The
 // layer honours `bg_preset_opacity` (0–100, default 100).
+// ── Per-block horizontal margins (Task #6114) ────────────────────────
+// The public page no longer has horizontal page padding; the default
+// side spacing lives on each top-level block instead so a creator can
+// set a block's Left/Right margin to 0 for a truly full-width block.
+// Mirrors the web renderer: an explicit 0 is a real value, not "unset".
+const BLOCK_DEFAULT_SIDE_MARGIN = 24;
+
+function styleMarginNum(st: Record<string, unknown>, key: string): number | null {
+  const v = st[key];
+  const n =
+    typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : null;
+}
+
+export function blockWrapMargins(block: BiolinkBlock): ViewStyle {
+  const st = (block.settings?._style as Record<string, unknown> | undefined) ?? {};
+  const ml = styleMarginNum(st, "margin_left");
+  const mr = styleMarginNum(st, "margin_right");
+  const mt = styleMarginNum(st, "margin_top");
+  const mb = styleMarginNum(st, "margin_bottom");
+  return {
+    marginLeft: ml ?? BLOCK_DEFAULT_SIDE_MARGIN,
+    marginRight: mr ?? BLOCK_DEFAULT_SIDE_MARGIN,
+    ...(mt != null ? { marginTop: mt } : {}),
+    ...(mb != null ? { marginBottom: mb } : {}),
+  };
+}
+
 export function BlockView(props: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
   const st = (props.block.settings?._style as Record<string, unknown> | undefined) ?? {};
   const presetKey = typeof st.bg_preset_key === "string" ? st.bg_preset_key.trim() : "";
@@ -5529,6 +5557,10 @@ export default function BiolinkViewer() {
           {/* Scroll-mode stickers live inside the ScrollView so they move
               with the page content (web parity: .page-stickers--scroll). */}
           <StickerOverlay stickers={q.data.biolink.stickers} layer="back" mode="scroll" />
+          {/* Task #6114: the scroll content has no horizontal padding any
+              more (blocks manage their own side margins), so the profile
+              header keeps its old 24px inset via this wrapper. */}
+          <View style={styles.headerPad}>
           {q.data.owner.avatar ? (
             <Image
               source={{ uri: q.data.owner.avatar }}
@@ -5586,11 +5618,17 @@ export default function BiolinkViewer() {
               </Text>
             </View>
           ) : null}
+          </View>
           <View style={styles.blocks}>
             {q.data.blocks
               .filter((b) => !b.parent_id)
               .map((b) => (
-                <BlockView key={b.id} block={b} alias={alias} allBlocks={q.data.blocks} openEmbed={openEmbed} />
+                // Task #6114: default side spacing lives on each top-level
+                // block (overridable via _style margins — 0 = full width);
+                // card children rendered inside BlockView are unaffected.
+                <View key={b.id} style={blockWrapMargins(b)}>
+                  <BlockView block={b} alias={alias} allBlocks={q.data.blocks} openEmbed={openEmbed} />
+                </View>
               ))}
             {/* Free-floating page text overlays (Task #5954). Percent x/y are
                 relative to the blocks column; pointerEvents none so they
@@ -5626,11 +5664,13 @@ export default function BiolinkViewer() {
               </View>
             ))}
           </View>
-          <LinkTypePairings
-            pairings={q.data.pairings}
-            theme="biolink"
-            fontColor={colors.foreground}
-          />
+          <View style={styles.headerPad}>
+            <LinkTypePairings
+              pairings={q.data.pairings}
+              theme="biolink"
+              fontColor={colors.foreground}
+            />
+          </View>
           <StickerOverlay stickers={q.data.biolink.stickers} layer="front" mode="scroll" />
         </ScrollView>
       )}
@@ -5666,7 +5706,9 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: "center",
-    paddingHorizontal: 24,
+    // Task #6114: no horizontal padding — each top-level block carries its
+    // own side margin (default 24, creator-overridable down to 0 for true
+    // full-width blocks). The profile header keeps its inset via headerPad.
     paddingBottom: 64,
     gap: 14,
   },
@@ -5699,6 +5741,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
   },
+  headerPad: { alignSelf: "stretch", alignItems: "center", paddingHorizontal: 24 },
   blocks: { width: "100%", maxWidth: 480, gap: 10, marginTop: 12 },
   btn: {
     width: "100%",

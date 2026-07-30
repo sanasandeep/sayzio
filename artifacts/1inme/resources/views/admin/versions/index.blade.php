@@ -88,7 +88,7 @@
     {{-- Release search --}}
     <div class="relative">
         <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 ak-note text-xs pointer-events-none"></i>
-        <input type="search" x-model="q" placeholder="Search releases — surface, version, or notes…"
+        <input type="search" x-model="q" placeholder="Search releases: surface, version, or notes…"
                class="w-full pl-9 pr-9 py-2.5 rounded-xl bg-black/25 border border-white/10 text-sm text-white placeholder-white/30 focus:border-blue-400/50 focus:outline-none">
         <button type="button" x-show="q !== ''" x-cloak @click="q = ''"
                 class="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-white/40 hover:text-white/80 ak-note"

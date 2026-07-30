@@ -794,7 +794,7 @@ class BiolinkBlock extends Model
         return ['css' => rtrim($css, "; \t\n\r"), 'opacity' => $op];
     }
 
-    public static function buildInlineStyle(array $style): string
+    public static function buildInlineStyle(array $style, bool $skipHorizontalMargins = false): string
     {
         $css = [];
         if (!empty($style['font_family'])) {
@@ -827,12 +827,17 @@ class BiolinkBlock extends Model
             $css[] = "padding:{$style['padding']}px";
         }
 
-        $hasMargin = !empty($style['margin_top']) || !empty($style['margin_bottom']) || !empty($style['margin_left']) || !empty($style['margin_right']);
-        if ($hasMargin) {
-            if (!empty($style['margin_top'])) $css[] = "margin-top:{$style['margin_top']}px";
-            if (!empty($style['margin_bottom'])) $css[] = "margin-bottom:{$style['margin_bottom']}px";
-            if (!empty($style['margin_left'])) $css[] = "margin-left:{$style['margin_left']}px";
-            if (!empty($style['margin_right'])) $css[] = "margin-right:{$style['margin_right']}px";
+        // Task #6114: an explicit 0 margin is a real value (e.g. full-width
+        // blocks), so test against '' instead of !empty. On the public page
+        // horizontal margins live on the .biolink-block-wrap element (the
+        // page has no horizontal padding anymore) — the top-level render
+        // path passes $skipHorizontalMargins so they aren't applied twice.
+        $mSet = fn($k) => ($style[$k] ?? '') !== '' && $style[$k] !== null;
+        if ($mSet('margin_top')) $css[] = 'margin-top:' . (0 + $style['margin_top']) . 'px';
+        if ($mSet('margin_bottom')) $css[] = 'margin-bottom:' . (0 + $style['margin_bottom']) . 'px';
+        if (!$skipHorizontalMargins) {
+            if ($mSet('margin_left')) $css[] = 'margin-left:' . (0 + $style['margin_left']) . 'px';
+            if ($mSet('margin_right')) $css[] = 'margin-right:' . (0 + $style['margin_right']) . 'px';
         }
 
         if (($style['display_mode'] ?? 'card') === 'card') {

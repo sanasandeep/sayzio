@@ -1036,7 +1036,7 @@
             </div>
 
             {{-- Margin --}}
-            <div x-data="{ showMargin: {{ ($st['margin_top'] ?? '') !== '' || ($st['margin_bottom'] ?? '') !== '' ? 'true' : 'false' }} }">
+            <div x-data="{ showMargin: {{ ($st['margin_top'] ?? '') !== '' || ($st['margin_bottom'] ?? '') !== '' || ($st['margin_left'] ?? '') !== '' || ($st['margin_right'] ?? '') !== '' ? 'true' : 'false' }} }">
                 <button type="button" @click="showMargin = !showMargin" class="flex items-center gap-2 text-[11px] font-semibold w-full py-1" style="color: var(--text-muted);">
                     <i class="fas fa-arrows-alt-v text-[8px]" style="color: #fb923c;"></i> Margin
                     <i class="fas text-[7px] ml-auto" :class="showMargin ? 'fa-chevron-up' : 'fa-chevron-down'" style="color: var(--text-faint);"></i>
@@ -1048,6 +1048,27 @@
                             <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Bot</label><input type="number" name="style[margin_bottom]" value="{{ $st['margin_bottom'] ?? '' }}" placeholder="-" min="-100" max="200" class="{{ $inputClass }} text-[11px]"></div>
                             <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Left</label><input type="number" name="style[margin_left]" value="{{ $st['margin_left'] ?? '' }}" placeholder="-" min="-100" max="200" class="{{ $inputClass }} text-[11px]"></div>
                             <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Right</label><input type="number" name="style[margin_right]" value="{{ $st['margin_right'] ?? '' }}" placeholder="-" min="-100" max="200" class="{{ $inputClass }} text-[11px]"></div>
+                        </div>
+                        {{-- Task #6114: the page has no side padding — a block's
+                             Left/Right margin of 0 makes it truly full width.
+                             Quick affordance sets both sides to 0 (or clears
+                             them back to the page default). --}}
+                        <div class="mt-1.5 flex items-center justify-between gap-2">
+                            <button type="button"
+                                    class="text-[9px] font-bold px-2 py-1 rounded-md transition-colors"
+                                    style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);"
+                                    @click="
+                                        const inputs = ['margin_left','margin_right'].map(k => $root.querySelector(`[name='style[${k}]']`)).filter(Boolean);
+                                        const isFull = inputs.length && inputs.every(i => i.value === '0');
+                                        inputs.forEach(i => {
+                                            i.value = isFull ? '' : '0';
+                                            i.dispatchEvent(new Event('input', { bubbles: true }));
+                                            i.dispatchEvent(new Event('change', { bubbles: true }));
+                                        });
+                                    ">
+                                <i class="fas fa-left-right text-[8px] mr-1" style="color: #fb923c;"></i>Full width
+                            </button>
+                            <span class="text-[8px]" style="color: var(--text-faint);">Left/Right 0 = edge-to-edge</span>
                         </div>
                     </div>
                 </div>
