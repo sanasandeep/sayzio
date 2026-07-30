@@ -66,7 +66,7 @@ export function DesignLockGate({
         <Text style={[styles.body, { color: colors.mutedForeground }]}>
           This page's styling follows its template design. Your content stays
           fully editable. Detach from the template to unlock all styling
-          controls — the page keeps its current look.
+          controls, the page keeps its current look.
         </Text>
         <Button
           label={detach.isPending ? "Detaching…" : "Detach from template"}

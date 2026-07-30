@@ -26,7 +26,7 @@
     <div class="block-card {{ $block->isContainer() ? 'card-container-block' : '' }}" data-block-id="{{ $block->id }}" data-grid-span="{{ $curSpan }}" style="{{ $block->is_active ? '' : 'opacity:0.5;' }}">
         <div class="flex items-center gap-2 p-3">
             @if($isLockedFixed)
-            <div class="flex-shrink-0 w-5 flex items-center justify-center" title="Fixed by the template — this block can't be moved or removed">
+            <div class="flex-shrink-0 w-5 flex items-center justify-center" title="Fixed by the template: this block can't be moved or removed">
                 <i class="fas fa-thumbtack text-[11px]" style="color: var(--text-faint);"></i>
             </div>
             @else

@@ -422,7 +422,7 @@ export default function AiBuilderScreen() {
             Images (optional)
           </Text>
           <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-            No uploads? We'll pull images from your links automatically — and
+            No uploads? We'll pull images from your links automatically, and
             if none are found, AI can generate a matching avatar and cover
             (extra coins, included in the estimate).
           </Text>
@@ -597,7 +597,7 @@ export default function AiBuilderScreen() {
                   color: colors.mutedForeground,
                 }}
               >
-                No uploads — preview the images we'd use so you can pick which
+                No uploads: preview the images we'd use so you can pick which
                 to keep.
               </Text>
               <Pressable onPress={runPreview} disabled={previewing} hitSlop={6}>
@@ -621,7 +621,7 @@ export default function AiBuilderScreen() {
             {preview && preview.extracted.length > 0 ? (
               <View style={{ gap: 8 }}>
                 <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                  Found on your links — tap to keep or remove (free):
+                  Found on your links: tap to keep or remove (free):
                 </Text>
                 <View style={styles.imageRow}>
                   {preview.extracted.map((url) => {
@@ -667,8 +667,8 @@ export default function AiBuilderScreen() {
               <View style={{ gap: 8 }}>
                 <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
                   {preview.extracted.length > 0
-                    ? "Nothing kept — "
-                    : "Nothing found on your links — "}
+                    ? "Nothing kept. "
+                    : "Nothing found on your links. "}
                   AI can generate these instead (
                   {preview.generation.cost_per_image} coins each). Untick any
                   you don't want:
@@ -717,7 +717,7 @@ export default function AiBuilderScreen() {
             preview.extracted.length === 0 &&
             !preview.generation.enabled ? (
               <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                No images found on your links — your page will be built without
+                No images found on your links: your page will be built without
                 images.
               </Text>
             ) : null}
@@ -732,7 +732,7 @@ export default function AiBuilderScreen() {
               }}
             >
               <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                Don't like these? Upload your own instead — uploads replace the
+                Don't like these? Upload your own instead: uploads replace the
                 extracted and generated images.
               </Text>
               <Button

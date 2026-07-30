@@ -348,7 +348,7 @@ function bdStyleEditor(initial, rawJson, invalid) {
     return {
         s: initial || {},
         jsonText: invalid ? rawJson : JSON.stringify(initial || {}, null, 2),
-        jsonError: invalid ? 'Not valid JSON — fix it here or use the controls above (they will overwrite it).' : '',
+        jsonError: invalid ? 'Not valid JSON: fix it here or use the controls above (they will overwrite it).' : '',
         get(key) {
             const v = this.s[key];
             return (v === undefined || v === null) ? '' : v;

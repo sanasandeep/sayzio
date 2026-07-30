@@ -501,7 +501,7 @@
                          style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
                          data-testid="block-contrast-warning-text">
                         <i class="fas fa-triangle-exclamation"></i>
-                        <span>Low contrast (<span x-text="cFmt()"></span>) against the background color — text may be hard to read. Aim for at least 4.5:1.</span>
+                        <span>Low contrast (<span x-text="cFmt()"></span>) against the background color: text may be hard to read. Aim for at least 4.5:1.</span>
                     </div>
                 </template>
             </div>
@@ -667,7 +667,7 @@
                              style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
                              data-testid="block-contrast-warning-bg">
                             <i class="fas fa-triangle-exclamation"></i>
-                            <span>Low contrast (<span x-text="cFmt()"></span>) against the text color — text may be hard to read. Aim for at least 4.5:1.</span>
+                            <span>Low contrast (<span x-text="cFmt()"></span>) against the text color: text may be hard to read. Aim for at least 4.5:1.</span>
                         </div>
                     </template>
                 </div>

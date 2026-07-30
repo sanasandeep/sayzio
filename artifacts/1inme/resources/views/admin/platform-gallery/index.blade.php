@@ -19,7 +19,7 @@
                     Platform-owned images shown in the user pickers (Link in Bio backgrounds, grid images,
                     hand-drawn stickers, avatars). Files live on the S3 bucket under
                     <code class="text-white/60 ak-muted">assets/&lt;folder&gt;/</code>; changes here refresh the
-                    pickers immediately — no waiting for the cache to expire.
+                    pickers immediately, no waiting for the cache to expire.
                 </p>
             </div>
         </div>

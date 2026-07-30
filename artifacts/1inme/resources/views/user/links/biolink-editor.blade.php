@@ -21,7 +21,7 @@
                     Editing template: {{ $tplDraft['template_name'] ?? 'Page template' }}
                 </div>
                 <div class="text-[11px]" style="color: var(--text-dim);">
-                    This is a draft page — changes only reach users after you save them to the template.
+                    This is a draft page: changes only reach users after you save them to the template.
                 </div>
             </div>
         </div>

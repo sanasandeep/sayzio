@@ -58,7 +58,7 @@
             {{-- Photos --}}
             <div>
                 <label class="block text-sm font-medium text-white/70 mb-1.5">Photos <span class="text-white/30 font-normal">(optional)</span></label>
-                <p class="text-xs text-white/30 mb-2">Upload images for your avatar, gallery, or featured links. No uploads? We'll pull images from your links automatically — and if none are found, AI can generate a matching avatar and cover (extra coins, included in the estimate).</p>
+                <p class="text-xs text-white/30 mb-2">Upload images for your avatar, gallery, or featured links. No uploads? We'll pull images from your links automatically, and if none are found, AI can generate a matching avatar and cover (extra coins, included in the estimate).</p>
 
                 <div class="relative rounded-xl overflow-hidden transition-all"
                      :class="{ 'ring-2 ring-blue-500/60 bg-blue-500/5': dragging, 'bg-white/5': !dragging }"
@@ -142,7 +142,7 @@
                     <div class="flex items-center justify-between gap-2">
                         <p class="text-xs text-white/50">
                             <i class="fas fa-images text-blue-300 mr-1"></i>
-                            No uploads — preview the images we'd use so you can pick which to keep.
+                            No uploads: preview the images we'd use so you can pick which to keep.
                         </p>
                         <button type="button" @click="runPreview" :disabled="previewing"
                                 class="text-xs text-blue-300 hover:text-blue-200 disabled:opacity-40 transition-colors whitespace-nowrap">
@@ -154,7 +154,7 @@
 
                     <template x-if="previewed && extractedImgs.length">
                         <div class="mt-3">
-                            <p class="text-xs text-white/40 mb-2">Found on your links — tap to keep or remove (free):</p>
+                            <p class="text-xs text-white/40 mb-2">Found on your links: tap to keep or remove (free):</p>
                             <div class="grid grid-cols-4 sm:grid-cols-5 gap-2">
                                 <template x-for="img in extractedImgs" :key="img.url">
                                     <button type="button" @click="img.keep = !img.keep"
@@ -174,7 +174,7 @@
                     <template x-if="previewed && !keptImages.length && genInfo && genInfo.enabled">
                         <div class="mt-3">
                             <p class="text-xs text-white/40 mb-2">
-                                <span x-show="extractedImgs.length">Nothing kept — </span><span x-show="!extractedImgs.length">Nothing found on your links — </span>AI can generate these instead (<span x-text="genInfo.cost_per_image"></span> coins each). Untick any you don't want:
+                                <span x-show="extractedImgs.length">Nothing kept.</span><span x-show="!extractedImgs.length">Nothing found on your links.</span> AI can generate these instead (<span x-text="genInfo.cost_per_image"></span> coins each). Untick any you don't want:
                             </p>
                             <div class="flex flex-wrap gap-2">
                                 <template x-for="slot in genInfo.slots" :key="slot">
@@ -190,12 +190,12 @@
                     </template>
 
                     <template x-if="previewed && !extractedImgs.length && (!genInfo || !genInfo.enabled)">
-                        <p class="text-xs text-white/40 mt-2">No images found on your links — your page will be built without images.</p>
+                        <p class="text-xs text-white/40 mt-2">No images found on your links: your page will be built without images.</p>
                     </template>
 
                     {{-- Inline upload (Task #5735): replace the auto-sourced flow right here --}}
                     <div class="mt-3 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
-                        <p class="text-xs text-white/40">Don't like these? Upload your own instead — uploads replace the extracted and generated images.</p>
+                        <p class="text-xs text-white/40">Don't like these? Upload your own instead: uploads replace the extracted and generated images.</p>
                         <button type="button" @click="$refs.fileInput.click()" :disabled="uploading"
                                 class="text-xs px-3 py-1.5 rounded-lg border border-blue-500/40 text-blue-300 hover:text-blue-200 hover:border-blue-400/60 disabled:opacity-40 transition-colors whitespace-nowrap">
                             <i class="fas mr-1" :class="uploading ? 'fa-spinner fa-spin' : 'fa-cloud-upload-alt'"></i>

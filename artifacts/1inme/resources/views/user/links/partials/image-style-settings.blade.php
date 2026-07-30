@@ -452,7 +452,7 @@
                             </div>
                         </template>
                     </div>
-                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);"><i class="fas fa-hand-pointer mr-1"></i>Drag a sticker to place it — position and offsets update automatically.</p>
+                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);"><i class="fas fa-hand-pointer mr-1"></i>Drag a sticker to place it: position and offsets update automatically.</p>
                 </div>
 
                 <template x-for="(stk, i) in stickers" :key="i">
@@ -501,7 +501,7 @@
 
                 <div x-show="pickerOpen" x-cloak class="mt-2 rounded-lg p-2 max-h-44 overflow-y-auto" style="border: 1px solid var(--border-subtle); background: var(--bg-glass-input);">
                     <p class="text-[10px] mb-1" style="color: var(--text-dimmed);" x-show="vaultLoading">Loading your images…</p>
-                    <p class="text-[10px] mb-1" style="color: var(--text-dimmed);" x-show="!vaultLoading && !vaultFiles.length">No images in your vault yet — upload one above.</p>
+                    <p class="text-[10px] mb-1" style="color: var(--text-dimmed);" x-show="!vaultLoading && !vaultFiles.length">No images in your vault yet: upload one above.</p>
                     <div class="grid grid-cols-4 gap-1.5">
                         <template x-for="vf in vaultFiles" :key="vf.id">
                             <button type="button" @click="addFile(vf)" class="rounded overflow-hidden aspect-square" style="border: 1px solid var(--border-subtle);" :title="vf.original_name || vf.filename">
@@ -624,7 +624,7 @@
                     removeText(i) { this.texts.splice(i, 1); this.error = ''; this.syncTexts(); },
                  }">
                 <p class="text-xs font-semibold mb-1" style="color: var(--text-muted);"><i class="fas fa-font mr-1 text-amber-400"></i>Text on Photo</p>
-                <p class="text-[10px] mb-2" style="color: var(--text-dimmed);">Layer up to {{ $phTextMax }} short captions over the photo — drag them anywhere, tilt them, pick a poster font.</p>
+                <p class="text-[10px] mb-2" style="color: var(--text-dimmed);">Layer up to {{ $phTextMax }} short captions over the photo: drag them anywhere, tilt them, pick a poster font.</p>
 
                 <input type="hidden" name="style[_photo_text_stickers]" x-ref="textsInput"
                        value="{{ $phTextsSaved ? json_encode($phTextsSaved) : '' }}">
@@ -646,7 +646,7 @@
                                   @pointerdown.prevent="startTextDrag(i, $event)"></span>
                         </template>
                     </div>
-                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);"><i class="fas fa-hand-pointer mr-1"></i>Drag a caption to place it — position and offsets update automatically.</p>
+                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);"><i class="fas fa-hand-pointer mr-1"></i>Drag a caption to place it: position and offsets update automatically.</p>
                 </div>
 
                 <template x-for="(t, i) in texts" :key="'t' + i">

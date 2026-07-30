@@ -183,7 +183,7 @@ export default function StickerSettings() {
               </>
             ) : (
               <Text style={[styles.blurb, { color: "#fbbf24" }]}>
-                Sticker limit reached — remove one to add another.
+                Sticker limit reached: remove one to add another.
               </Text>
             )}
 
@@ -266,7 +266,7 @@ export default function StickerSettings() {
             ) : null}
             {save.isError ? (
               <Text style={{ color: "#f87171", fontSize: 12, textAlign: "center" }}>
-                Could not save — please try again.
+                Could not save: please try again.
               </Text>
             ) : null}
           </ScrollView>

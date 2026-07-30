@@ -254,8 +254,8 @@ function linkBlockEditor(cfg) {
     $haSel = \App\Modules\User\Support\AccentShapeCatalog::parseTokens((string) ($haSt['_heading_accents'] ?? ''));
     $haOptions = \App\Modules\User\Support\AccentShapeCatalog::LABELS;
     $haPlacements = [
-        'behind_left'  => 'Behind — left',
-        'behind_right' => 'Behind — right',
+        'behind_left'  => 'Behind: left',
+        'behind_right' => 'Behind: right',
         'top_left'     => 'Top-left corner',
         'top_right'    => 'Top-right corner',
     ];
@@ -558,7 +558,7 @@ function linkBlockEditor(cfg) {
              style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
              data-testid="block-contrast-warning-accent">
             <i class="fas fa-triangle-exclamation"></i>
-            <span>Low contrast (<span x-text="acFmt()"></span>) — badge text may be hard to read on this color. Aim for at least 4.5:1.</span>
+            <span>Low contrast (<span x-text="acFmt()"></span>): badge text may be hard to read on this color. Aim for at least 4.5:1.</span>
         </div>
     </template>
 </div>
@@ -1213,7 +1213,7 @@ if (typeof window.resetPollVotes !== 'function') {
              style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
              data-testid="block-contrast-warning-accent">
             <i class="fas fa-triangle-exclamation"></i>
-            <span>Low contrast (<span x-text="acFmt()"></span>) — button text may be hard to read on this color. Aim for at least 4.5:1.</span>
+            <span>Low contrast (<span x-text="acFmt()"></span>): button text may be hard to read on this color. Aim for at least 4.5:1.</span>
         </div>
     </template>
     <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="sm" {{ ($s['size'] ?? '') === 'sm' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Small</option><option value="md" {{ ($s['size'] ?? '') === 'md' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Medium</option><option value="lg" {{ ($s['size'] ?? '') === 'lg' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Large</option></select></div>
@@ -1457,7 +1457,7 @@ if (typeof window.resetPollVotes !== 'function') {
             <input type="hidden" name="style[_avatar_frame_color]" :value="fc">
             <input type="color" :value="fc || '#3d6bff'" @input="fc = $event.target.value" class="h-8 w-10 rounded cursor-pointer border border-white/10 bg-transparent p-0.5">
             <button type="button" x-show="fc !== ''" @click="fc = ''" class="text-xs text-blue-400 hover:text-blue-300">Reset to accent</button>
-            <span x-show="fc === ''" class="text-xs text-white/30">Auto — uses the design accent</span>
+            <span x-show="fc === ''" class="text-xs text-white/30">Auto: uses the design accent</span>
         </div>
     </div>
 </div>

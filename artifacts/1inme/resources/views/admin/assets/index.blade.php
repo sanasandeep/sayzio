@@ -221,7 +221,7 @@
                                 </template>
                                 <template x-if="isCancelled(lastImport)">
                                     <p class="text-xs mt-1" style="color: var(--text-secondary);"
-                                       x-text="'This import was stopped by an admin — ' + ((lastImport.imported_count + lastImport.overwritten_count) === 1 ? '1 file' : (lastImport.imported_count + lastImport.overwritten_count) + ' files') + ' already imported ' + ((lastImport.imported_count + lastImport.overwritten_count) === 1 ? 'was' : 'were') + ' kept (' + lastImport.imported_count + ' new · ' + lastImport.overwritten_count + ' overwritten · ' + lastImport.skipped_count + ' skipped).'"></p>
+                                       x-text="'This import was stopped by an admin. ' + ((lastImport.imported_count + lastImport.overwritten_count) === 1 ? '1 file' : (lastImport.imported_count + lastImport.overwritten_count) + ' files') + ' already imported ' + ((lastImport.imported_count + lastImport.overwritten_count) === 1 ? 'was' : 'were') + ' kept (' + lastImport.imported_count + ' new · ' + lastImport.overwritten_count + ' overwritten · ' + lastImport.skipped_count + ' skipped).'"></p>
                                 </template>
                                 <template x-if="lastImport.error && !isCancelled(lastImport)">
                                     <p class="text-xs mt-1 text-red-400 ak-red" x-text="lastImport.error"></p>
@@ -237,7 +237,7 @@
                                     </div>
                                 </template>
                                 <template x-if="lastImport.status === 'failed' && lastImport.source_type === 'upload'">
-                                    <p class="text-[11px] mt-2" style="color: var(--text-faint);">The uploaded zip file was removed after the run, so this import can't be retried automatically — please re-upload the archive to run it again.</p>
+                                    <p class="text-[11px] mt-2" style="color: var(--text-faint);">The uploaded zip file was removed after the run, so this import can't be retried automatically: please re-upload the archive to run it again.</p>
                                 </template>
                                 <template x-if="(lastImport.skipped || []).length">
                                     <div class="mt-2">

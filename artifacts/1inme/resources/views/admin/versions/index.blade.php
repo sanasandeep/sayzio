@@ -217,7 +217,7 @@
             <div>
                 <h2 class="text-base font-semibold text-white ak-strong">Sync status</h2>
                 <p class="text-xs text-white/45 mt-1 ak-muted">
-                    Last recorded result of each parity guard. Guards run automatically at CI/post-merge time —
+                    Last recorded result of each parity guard. Guards run automatically at CI/post-merge time,
                     this panel is read-only and never triggers a run.
                 </p>
             </div>
@@ -237,9 +237,9 @@
                         <p class="text-[11px] text-white/40 ak-note">
                             @if($guard['status'] && $guard['ran_at'])
                                 {{ ucfirst($guard['status']) }}ed {{ \Illuminate\Support\Carbon::parse($guard['ran_at'])->diffForHumans() }}
-                                @if($guard['note']) — {{ $guard['note'] }} @endif
+                                @if($guard['note']) ({{ $guard['note'] }}) @endif
                             @else
-                                Not run recently — no result recorded yet.
+                                Not run recently, no result recorded yet.
                             @endif
                         </p>
                     </div>

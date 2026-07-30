@@ -3340,7 +3340,7 @@ export function BlockSettingsEditor({
             </Text>
             <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
               {photoStickers.length > 0
-                ? "Drag a sticker to reposition it — it snaps to the nearest corner or edge with a fine offset, exactly like the web editor."
+                ? "Drag a sticker to reposition it: it snaps to the nearest corner or edge with a fine offset, exactly like the web editor."
                 : "Layer up to 4 of your own sticker images (PNG or WebP with transparency work best) over the photo."}
             </Text>
             {photoStickers.length > 0 ? (
@@ -3615,7 +3615,7 @@ export function BlockSettingsEditor({
                       >
                         {stickerVaultQuery.trim()
                           ? "No images match that name."
-                          : "No images in your files yet — upload one from your device instead."}
+                          : "No images in your files yet: upload one from your device instead."}
                       </Text>
                     )}
                     {!stickerVaultLoading &&
@@ -3676,7 +3676,7 @@ export function BlockSettingsEditor({
               </View>
             ) : (
               <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
-                Sticker limit reached (4 max) — remove one to add another.
+                Sticker limit reached (4 max): remove one to add another.
               </Text>
             )}
           </View>
@@ -4060,7 +4060,7 @@ export function BlockSettingsEditor({
               {avatarFrame !== "" ? (
                 <View style={{ marginTop: 10 }}>
                   <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 6 }}>
-                    Frame color — Auto uses the layout accent.
+                    Frame color. Auto uses the layout accent.
                   </Text>
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                     <Pressable

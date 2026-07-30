@@ -119,7 +119,7 @@
                             <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(245,158,11,0.1);"><i class="fas fa-font text-amber-400 text-xs"></i></div>
                             <h3 class="text-sm font-bold" style="color: var(--text-primary);">Floating Text</h3>
                         </div>
-                        <p class="text-[11px] mb-4" style="color: var(--text-faint);">Layer up to {{ $pageOverlayMax }} short captions anywhere over your page — drag to place, tilt for a scrapbook feel.</p>
+                        <p class="text-[11px] mb-4" style="color: var(--text-faint);">Layer up to {{ $pageOverlayMax }} short captions anywhere over your page: drag to place, tilt for a scrapbook feel.</p>
 
                         @if($pageDesignLocked)
                             <p class="text-xs rounded-lg p-3" style="background: rgba(245,158,11,0.08); color: var(--text-muted); border: 1px solid rgba(245,158,11,0.25);">

@@ -56,7 +56,7 @@
                         <h3 class="text-sm font-bold" style="color: var(--text-primary);">Template Default Colors</h3>
                     </div>
                     <p class="text-xs mb-5" style="color: var(--text-muted);">
-                        Baseline colors for every <strong>new</strong> block added to this template — and to pages created from it.
+                        Baseline colors for every <strong>new</strong> block added to this template, and to pages created from it.
                         Each block stays individually recolorable afterward. Leave a field empty to inherit from the theme as today.
                         Existing blocks are never changed.
                     </p>
@@ -74,7 +74,7 @@
                                 <button type="button" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold"
                                         style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass); color: var(--text-faint);"
                                         @click="c['{{ $key }}'] = '{{ $key === 'text_color' || $key === 'accent_text_color' ? '#ffffff' : '#3d6bff' }}'">
-                                    Inherit — click to set
+                                    Inherit: click to set
                                 </button>
                             </template>
                             <template x-if="c['{{ $key }}'] !== ''">
@@ -106,7 +106,7 @@
                                      style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
                                      data-testid="contrast-warning-text">
                                     <i class="fas fa-triangle-exclamation"></i>
-                                    <span>Low contrast (<span x-text="fmt(textRatio())"></span>) — text may be hard to read. Aim for at least 4.5:1.</span>
+                                    <span>Low contrast (<span x-text="fmt(textRatio())"></span>): text may be hard to read. Aim for at least 4.5:1.</span>
                                 </div>
                             </template>
                             <div class="rounded-lg px-4 py-3 text-sm font-semibold text-center"
@@ -118,11 +118,11 @@
                                      style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
                                      data-testid="contrast-warning-accent">
                                     <i class="fas fa-triangle-exclamation"></i>
-                                    <span>Low contrast (<span x-text="fmt(accentRatio())"></span>) — button text may be hard to read. Aim for at least 4.5:1.</span>
+                                    <span>Low contrast (<span x-text="fmt(accentRatio())"></span>): button text may be hard to read. Aim for at least 4.5:1.</span>
                                 </div>
                             </template>
                         </div>
-                        <p class="text-[10px] mt-2" style="color: var(--text-faint);">Judge contrast here before saving — low-contrast pairs are hard to read on the public page.</p>
+                        <p class="text-[10px] mt-2" style="color: var(--text-faint);">Judge contrast here before saving: low-contrast pairs are hard to read on the public page.</p>
                     </div>
 
                     <div class="mt-6 flex justify-end">

@@ -1,15 +1,15 @@
 {{--
     Modern drag-and-drop file input with three modes:
-      • Upload — drag/drop or click (default)
-      • URL    — paste a remote URL (server-side imported into vault)
-      • Vault  — pick from "My Files"
+      • Upload: drag/drop or click (default)
+      • URL: paste a remote URL (server-side imported into vault)
+      • Vault: pick from "My Files"
 
     Wraps a real <input type="file"> so the parent form still submits as
-    multipart/form-data — no AJAX, no special endpoint required. URL and
+    multipart/form-data, no AJAX, no special endpoint required. URL and
     Vault picks are fetched as Blobs and injected into the underlying input
     via DataTransfer so existing controllers keep working unchanged.
 
-    Usage (preferred — pass a plan-driven policy array):
+    Usage (preferred: pass a plan-driven policy array):
         @php $policy = \App\Services\UploadPolicy::for('vcf.photo', auth()->user()); @endphp
         @include('user.partials.dropzone-input', [
             'name'        => 'photo',
@@ -18,7 +18,7 @@
             'label'       => 'Photo',
         ])
 
-    Usage (manual — back-compat with explicit accept/maxMb):
+    Usage (manual: back-compat with explicit accept/maxMb):
         @include('user.partials.dropzone-input', [
             'name'        => 'photo',
             'accept'      => 'image/*',

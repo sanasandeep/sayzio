@@ -36,7 +36,7 @@
             <div>
                 <label class="block text-xs font-bold uppercase tracking-widest mb-1.5" style="color: var(--text-faint);">Shape</label>
                 <select name="shape" class="w-full text-sm rounded-xl px-3 py-2 border border-white/10 bg-white/5 text-white/80">
-                    <option value="">— none —</option>
+                    <option value="">(none)</option>
                     @foreach($shapes as $sKey => $sLabel)
                         <option value="{{ $sKey }}" @selected($old('shape') === $sKey)>{{ $sLabel }}</option>
                     @endforeach

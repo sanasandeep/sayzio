@@ -39,7 +39,7 @@
             </div>
         </div>
     </div>
-    <p class="text-[11px] mb-3" style="color: #fbbf24;" x-show="stickers.length >= max" x-cloak>Sticker limit reached — remove one to add another.</p>
+    <p class="text-[11px] mb-3" style="color: #fbbf24;" x-show="stickers.length >= max" x-cloak>Sticker limit reached: remove one to add another.</p>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" x-show="stickers.length" x-cloak>
         {{-- Drag pad: proportional phone-shaped stage. Drag stickers to place
