@@ -114,7 +114,7 @@ export default function TeamScreen() {
             </Text>
             <Text style={[styles.sub, { color: colors.mutedForeground }]}>
               {data.used_seats} of{" "}
-              {data.max_seats === -1 ? "unlimited" : data.max_seats} seats used ·{" "}
+              {data.max_seats === -1 ? "Unlimited" : data.max_seats} seats used ·{" "}
               {data.workspace.is_personal ? "Personal workspace" : "Shared workspace"}
             </Text>
           </View>

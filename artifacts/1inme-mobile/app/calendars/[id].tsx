@@ -91,11 +91,13 @@ export default function CalendarDetailScreen() {
   // the calendar loads, `numericLimit` is null until plan data resolves, and
   // `isQuotaReached` returns false until then — so a fully-loaded finite cap is
   // the only thing that flips the UI to a locked state. Unlimited plans
-  // (cap -1) or plans without the key show nothing.
+  // (cap -1) positively say "Unlimited" (matching the web calendar editor);
+  // plans without the key show nothing.
   const isOwner = !!cal?.is_owner;
   const eventsUsed = cal?.events_count ?? 0;
   const eventCap = plan.numericLimit("max_calendar_events");
-  const showEventQuota = isOwner && eventCap != null && eventCap >= 0;
+  const eventCapUnlimited = eventCap != null && eventCap < 0;
+  const showEventQuota = isOwner && eventCap != null;
   const eventQuotaReached =
     isOwner && plan.isQuotaReached("max_calendar_events", eventsUsed);
   const eventLockMessage =
@@ -362,7 +364,9 @@ export default function CalendarDetailScreen() {
                         },
                       ]}
                     >
-                      {eventsUsed} / {eventCap} event{eventCap === 1 ? "" : "s"} used
+                      {eventsUsed} /{" "}
+                      {eventCapUnlimited ? "Unlimited" : eventCap} event
+                      {eventCap === 1 ? "" : "s"} used
                     </Text>
                     {eventQuotaReached ? <UpgradeLockBadge /> : null}
                   </View>
