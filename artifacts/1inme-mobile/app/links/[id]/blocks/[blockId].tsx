@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Image,
   PanResponder,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -99,17 +100,8 @@ function borderSwatchSelected(value: string, swatch: string): boolean {
 
 // Quick-pick swatches for border color fields; tapping one writes the hex
 // into the paired free-text input (which stays authoritative).
-const BORDER_COLOR_SWATCHES = [
-  "#ffffff",
-  "#000000",
-  "#7c3aed",
-  "#3b82f6",
-  "#22c55e",
-  "#f59e0b",
-  "#ef4444",
-  "#ec4899",
-];
-
+// (The single canonical BORDER_COLOR_SWATCHES list is declared below,
+// alongside the recent-colors storage key.)
 function BorderColorSwatchRow({
   value,
   onSelect,
@@ -1139,6 +1131,31 @@ export function BlockSettingsEditor({
       return next;
     });
   }, []);
+  // Long-press a RECENT swatch to remove it (Task #6103); presets are fixed.
+  const removeRecentBorderColor = useCallback((raw: string) => {
+    const hex = raw.trim().toLowerCase();
+    setRecentBorderColors((prev) => {
+      const next = prev.filter((c) => c !== hex);
+      if (next.length === prev.length) return prev;
+      AsyncStorage.setItem(RECENT_BORDER_COLORS_KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+  const confirmRemoveRecentBorderColor = useCallback(
+    (hex: string) => {
+      if (Platform.OS === "web") {
+        if (typeof window !== "undefined" && window.confirm(`Remove ${hex} from your recent border colors?`)) {
+          removeRecentBorderColor(hex);
+        }
+        return;
+      }
+      showAlert(`Remove recent color`, `Remove ${hex} from your recent border colors?`, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Remove", style: "destructive", onPress: () => removeRecentBorderColor(hex) },
+      ]);
+    },
+    [removeRecentBorderColor],
+  );
   // Instant borders live preview (Task #6074): true when any border field
   // is set, so the preview only appears once borders are in play.
   const borderFieldsDirty = useMemo(
@@ -2784,12 +2801,13 @@ export function BlockSettingsEditor({
               return (
                 <Pressable {...WEB_FOCUS_RING_PROPS}
                   key={`${recent ? "recent" : "preset"}-${sw}`}
-                  testID={`block-border-color-swatch-${sw.replace("#", "")}`}
+                  testID={`block-border-color-quick-${sw.replace("#", "")}`}
                   accessibilityLabel={`${recent ? "Recent" : "Preset"} border color ${sw}`}
                   onPress={() => {
                     setBdColor(sw);
                     if (recent) rememberBorderColor(sw);
                   }}
+                  onLongPress={recent ? () => confirmRemoveRecentBorderColor(sw) : undefined}
                   style={{
                     width: 26,
                     height: 26,

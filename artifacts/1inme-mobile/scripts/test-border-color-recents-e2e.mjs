@@ -149,8 +149,19 @@ async function seedSession(context) {
   );
 }
 
+// RN-web Pressable onLongPress fires after ~500ms of sustained press; hold
+// the mouse down over the element well past that before releasing.
+async function longPress(page, locator) {
+  const box = await locator.boundingBox();
+  if (!box) fail("long-press target has no bounding box");
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(800);
+  await page.mouse.up();
+}
+
 function swatchTestId(hex) {
-  return `block-border-color-swatch-${hex.replace("#", "")}`;
+  return `block-border-color-quick-${hex.replace("#", "")}`;
 }
 
 async function countSwatches(page, hex) {
@@ -241,6 +252,50 @@ async function run(appUrl) {
       fail("recent swatch did not re-hydrate after reload");
     }
     log("recent swatch re-hydrated after reload");
+
+    // 6. Long-pressing a RECENT swatch offers removal (Task #6103); on web
+    //    the confirmation is window.confirm. Dismiss first (keeps it), then
+    //    accept (removes it + updates localStorage immediately).
+    const recentSwatch = page.getByTestId(swatchTestId(CUSTOM_HEX));
+    await recentSwatch.scrollIntoViewIfNeeded();
+    let sawDialog = false;
+    page.once("dialog", async (d) => {
+      sawDialog = true;
+      await d.dismiss();
+    });
+    await longPress(page, recentSwatch);
+    await page.waitForTimeout(300);
+    if (!sawDialog) fail("long-pressing a recent swatch showed no removal confirm");
+    if ((await countSwatches(page, CUSTOM_HEX)) !== 1) {
+      fail("dismissing the removal confirm still removed the recent swatch");
+    }
+    log("long-press shows removal confirm; cancel keeps the swatch");
+
+    page.once("dialog", async (d) => {
+      await d.accept();
+    });
+    await longPress(page, recentSwatch);
+    await page
+      .getByTestId(swatchTestId(CUSTOM_HEX))
+      .waitFor({ state: "detached", timeout: STEP_TIMEOUT_MS });
+    const stored3 = await readRecents(page);
+    if (!Array.isArray(stored3) || stored3.includes(CUSTOM_HEX)) {
+      fail(`removal did not update localStorage: ${JSON.stringify(stored3)}`);
+    }
+    log("accepting removal deletes the recent swatch and persists immediately");
+
+    // Presets never offer removal: long-press a preset, no dialog appears.
+    let presetDialog = false;
+    const onPresetDialog = async (d) => {
+      presetDialog = true;
+      await d.dismiss();
+    };
+    page.on("dialog", onPresetDialog);
+    await longPress(page, page.getByTestId(swatchTestId(PRESET_HEX)));
+    await page.waitForTimeout(400);
+    page.off("dialog", onPresetDialog);
+    if (presetDialog) fail("long-pressing a PRESET swatch offered removal");
+    log("preset swatches are not removable");
 
     await context.close();
     log("PASS — border color recents remembered, deduped, tappable, persistent.");
