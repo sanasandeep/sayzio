@@ -1,10 +1,10 @@
 @php
     $st = $block->settings['_style'] ?? [];
-    $templates = \App\Modules\User\Models\BiolinkBlock::BLOCK_TEMPLATES;
+    $templates = \App\Modules\User\Models\BiolinkBlock::blockTemplates();
     $variants = \App\Modules\User\Support\BlockVariantCatalog::forType($block->type);
     $variantTags = \App\Modules\User\Support\BlockVariantCatalog::TAGS;
     $variantShapes = \App\Modules\User\Support\BlockVariantCatalog::SHAPES;
-    $variantVersion = \App\Modules\User\Support\BlockVariantCatalog::VERSION;
+    $variantVersion = \App\Modules\User\Support\BlockVariantCatalog::version();
     $currentVariant = $st['_variant'] ?? '';
     // Pre-variant style snapshot, captured server-side the first time a
     // creator picks a curated variant. When present we surface a "Custom
@@ -36,6 +36,23 @@
     // Design-locked pages: per-block styling (Designs/Text/Look/Layout) is
     // owned by the template — hide the whole section and show a lock note.
     $designLocked = method_exists($link, 'isDesignLocked') && $link->isDesignLocked();
+
+    // Effective page backdrop for the contrast warning (Task #6052): when the
+    // block background is empty (transparent/inherit), text sits directly on
+    // the page background. Resolve it to a solid hex when possible so the
+    // warning still fires; gradients / images / presets / videos stay null so
+    // the warning is silent (no false positives).
+    $pageBs = $link->settings['biolink'] ?? [];
+    $effPageBg = null;
+    $__hex6 = fn($v) => is_string($v) && preg_match('/^#[0-9a-fA-F]{6}$/', $v) ? $v : null;
+    if (!array_key_exists('background_type', $pageBs)) {
+        // No theme ever saved: the page renders the default dark gradient over
+        // bg_fallback_color (#0a0612). Mirror the public-page contrast
+        // safeguard and treat the fallback as the effective backdrop.
+        $effPageBg = $__hex6($pageBs['bg_fallback_color'] ?? null) ?? '#0a0612';
+    } elseif (($pageBs['background_type'] ?? null) === 'color') {
+        $effPageBg = $__hex6($pageBs['background_color'] ?? null);
+    }
 @endphp
 
 @if($designLocked && $showStyle)
@@ -48,7 +65,33 @@
 @endif
 
 @if($showStyle && !$designLocked)
-<div class="mt-4 pt-4" style="border-top: 1px solid var(--border-subtle);" data-style-root x-data="{ showStyle: false, activeStyleTab: 'designs' }">
+<div class="mt-4 pt-4" style="border-top: 1px solid var(--border-subtle);" data-style-root x-data="{
+    showStyle: false, activeStyleTab: 'designs',
+    {{-- WCAG contrast warning (Task #6046): mirrors the Default Colors tab helper.
+         Non-blocking — warns only, never prevents saving. --}}
+    cText: @js((string) ($st['text_color'] ?? '')),
+    cBg: @js((string) ($st['bg_color'] ?? '')),
+    {{-- Resolved page backdrop used when the block bg is empty (Task #6052).
+         null when the page background is a gradient/image/preset (silent). --}}
+    cPageBg: @js($effPageBg),
+    cEffBg() { return String(this.cBg || '').trim() !== '' ? this.cBg : this.cPageBg; },
+    cUsingPage() { return String(this.cBg || '').trim() === '' && this.cPageBg !== null; },
+    cLum(hex) {
+        const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+        if (!m) return null;
+        const n = parseInt(m[1], 16);
+        const chan = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+        return 0.2126 * chan((n >> 16) & 255) + 0.7152 * chan((n >> 8) & 255) + 0.0722 * chan(n & 255);
+    },
+    cRatio() {
+        const a = this.cLum(this.cText), b = this.cLum(this.cEffBg());
+        if (a === null || b === null) return null;
+        const hi = Math.max(a, b), lo = Math.min(a, b);
+        return (hi + 0.05) / (lo + 0.05);
+    },
+    cLow() { const r = this.cRatio(); return r !== null && r < 4.5; },
+    cFmt() { const r = this.cRatio(); return r === null ? '' : (Math.round(r * 10) / 10) + ':1'; }
+}">
     <button type="button" @click="showStyle = !showStyle"
             class="w-full flex items-center justify-between text-sm font-medium py-1" style="color: var(--text-muted);">
         <span><i class="fas fa-wand-magic-sparkles mr-2 text-pink-400"></i>Block Styling</span>
@@ -471,9 +514,18 @@
                          browser-normalized solid hex, so submitting it directly would stamp
                          a color on every save even when the user never picked one. The text
                          input is the source of truth (supports empty = inherit). --}}
-                    <input type="color" value="{{ $tcPicker }}" class="w-10 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.nextElementSibling.value = this.value">
-                    <input type="text" name="style[text_color]" value="{{ $tcVal }}" placeholder="Inherit" class="{{ $inputClass }} flex-1" oninput="if (/^#[0-9a-fA-F]{6}$/.test(this.value)) this.previousElementSibling.value = this.value">
+                    <input type="color" value="{{ $tcPicker }}" class="w-10 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.nextElementSibling.value = this.value" @input="cText = $event.target.value">
+                    <input type="text" name="style[text_color]" value="{{ $tcVal }}" placeholder="Inherit" class="{{ $inputClass }} flex-1" oninput="if (/^#[0-9a-fA-F]{6}$/.test(this.value)) this.previousElementSibling.value = this.value" @input="cText = $event.target.value">
                 </div>
+                {{-- Non-blocking WCAG contrast warning vs the block's background color (Look tab). --}}
+                <template x-if="cLow()">
+                    <div class="flex items-center gap-2 rounded-lg px-3 py-2 mt-2 text-[11px] font-medium"
+                         style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
+                         data-testid="block-contrast-warning-text">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        <span>Low contrast (<span x-text="cFmt()"></span>) against the <span x-text="cUsingPage() ? 'page background' : 'background color'"></span>: text may be hard to read. Aim for at least 4.5:1.</span>
+                    </div>
+                </template>
             </div>
             @if(in_array($block->type, ['heading', 'paragraph'], true))
             {{-- Tilt (Task #5954): rotate the whole text block up to ±30°
@@ -510,28 +562,18 @@
                 </div>
             </div>
 
-            {{-- Background Color --}}
-            <div>
-                <label class="{{ $labelClass }}">Background Color</label>
-                <div class="flex gap-2">
-                    @php
-                        $bgVal = $st['bg_color'] ?? '';
-                        $bgPicker = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $bgVal) ? $bgVal : '#ffffff';
-                    @endphp
-                    {{-- Picker is intentionally UNNAMED (see text_color note above). The
-                         old named picker seeded with '#ffffff0d' — an 8-digit hex that
-                         input[type=color] can't hold — got browser-normalized to a solid
-                         color and silently saved on every block edit (Task #4025). --}}
-                    <input type="color" value="{{ $bgPicker }}" class="w-10 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.nextElementSibling.value = this.value">
-                    <input type="text" name="style[bg_color]" value="{{ $bgVal }}" placeholder="Transparent" class="{{ $inputClass }} flex-1" oninput="if (/^#[0-9a-fA-F]{6}$/.test(this.value)) this.previousElementSibling.value = this.value">
-                </div>
-            </div>
+            {{-- Background (Task #6044): unified mode picker — None /
+                 Color / Gradient builder / Preset / Image. All modes write
+                 into the SAME underlying _style keys (bg_color carries both
+                 solids and gradient strings, bg_preset_key the catalog pick,
+                 bg_image an http(s) or /f/ vault URL) so old saves render
+                 unchanged. Torn presets stay excluded at block level. --}}
             <input type="hidden" name="style[bg_opacity]" value="{{ $st['bg_opacity'] ?? 100 }}">
-
-            {{-- Preset Background (Task #5970): catalog preset painted on a
-                 layer behind the block content. Torn composites are excluded
-                 at block level — they need full-page layers. --}}
             @php
+                $bgVal = $st['bg_color'] ?? '';
+                $bgPicker = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $bgVal) ? $bgVal : '#ffffff';
+                $bgIsGradient = (bool) preg_match('/^(linear|radial|conic)-gradient\(/i', (string) $bgVal);
+                $bgImageVal = $st['bg_image'] ?? '';
                 $blkPresets = collect(\App\Modules\User\Support\BgPresetCatalog::all())
                     ->filter(fn($p) => ($p['group'] ?? '') !== 'torn');
                 $blkPresetGroups = array_filter(
@@ -539,8 +581,157 @@
                     fn($k) => $k !== 'torn',
                     ARRAY_FILTER_USE_KEY
                 );
+                $bgInitialMode = !empty($st['bg_preset_key']) ? 'preset'
+                    : ($bgImageVal !== '' ? 'image'
+                    : ($bgIsGradient ? 'gradient'
+                    : ($bgVal !== '' && $bgVal !== 'transparent' ? 'color' : 'none')));
             @endphp
-            <div x-data="{ bpGroup: 'gradients', bpSearch: '', bpKey: @js($st['bg_preset_key'] ?? ''), bpOpen: {{ !empty($st['bg_preset_key']) ? 'true' : 'false' }}, bpOpacity: {{ max(0, min(100, (int) (is_numeric($st['bg_preset_opacity'] ?? null) ? $st['bg_preset_opacity'] : 100))) }} }">
+            <div x-data="{
+                bgMode: @js($bgInitialMode),
+                bpGroup: 'gradients', bpSearch: '',
+                bpKey: @js($st['bg_preset_key'] ?? ''),
+                bpOpen: {{ !empty($st['bg_preset_key']) ? 'true' : 'false' }},
+                bpOpacity: {{ max(0, min(100, (int) (is_numeric($st['bg_preset_opacity'] ?? null) ? $st['bg_preset_opacity'] : 100))) }},
+                gradType: 'linear', gradAngle: 135,
+                gradStops: [{ color: '#3d6bff', pos: 0 }, { color: '#ec4899', pos: 100 }],
+                init() {
+                    /* Best-effort parse of an existing gradient back into the
+                       builder controls; unparseable strings keep the defaults
+                       (the raw value stays untouched until the user edits). */
+                    var v = @js($bgIsGradient ? $bgVal : '');
+                    if (v) {
+                        var m = v.match(/^(linear|radial|conic)-gradient\((.*)\)$/i);
+                        if (m) {
+                            this.gradType = m[1].toLowerCase();
+                            var body = m[2];
+                            var am = body.match(/(?:from\s+)?(-?\d+(?:\.\d+)?)deg/i);
+                            if (am) this.gradAngle = parseInt(am[1], 10) || 0;
+                            var stops = [];
+                            var re = /(#[0-9a-fA-F]{3,8}|rgba?\([^)]*\))\s*(\d{1,3})?%?/g, sm;
+                            while ((sm = re.exec(body)) !== null) {
+                                stops.push({ color: sm[1], pos: sm[2] !== undefined ? parseInt(sm[2], 10) : null });
+                            }
+                            if (stops.length >= 2) {
+                                stops.forEach(function(s, i) { if (s.pos === null || isNaN(s.pos)) s.pos = Math.round(i / (stops.length - 1) * 100); });
+                                this.gradStops = stops;
+                            }
+                        }
+                    }
+                },
+                writeInput(el, val) {
+                    if (!el || el.value === val) return;
+                    el.value = val;
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                },
+                writeBg(v) { this.writeInput(this.$refs.bgcInput, v); },
+                gradCss() {
+                    var stops = this.gradStops.slice().sort(function(a, b) { return a.pos - b.pos; });
+                    var s = stops.map(function(x) { return x.color + ' ' + x.pos + '%'; }).join(', ');
+                    if (this.gradType === 'radial') return 'radial-gradient(circle, ' + s + ')';
+                    if (this.gradType === 'conic') return 'conic-gradient(from ' + this.gradAngle + 'deg, ' + s + ')';
+                    return 'linear-gradient(' + this.gradAngle + 'deg, ' + s + ')';
+                },
+                applyGrad() { this.writeBg(this.gradCss()); },
+                addStop() {
+                    if (this.gradStops.length >= 8) return;
+                    var last = this.gradStops[this.gradStops.length - 1];
+                    this.gradStops.push({ color: '#5c83ff', pos: Math.min(100, (last ? last.pos : 50) + 10) });
+                    this.applyGrad();
+                },
+                removeStop(i) {
+                    if (this.gradStops.length <= 2) return;
+                    this.gradStops.splice(i, 1);
+                    this.applyGrad();
+                },
+                clearPreset() {
+                    if (!this.bpKey) return;
+                    this.bpKey = '';
+                    var self = this;
+                    this.$nextTick(function() { self.$refs.bpInput.dispatchEvent(new Event('change', { bubbles: true })); });
+                },
+                clearImage() {
+                    var wrap = this.$refs.bgImgWrap;
+                    var h = wrap ? wrap.querySelector('input[type=hidden]') : null;
+                    if (h && h.value !== '') this.writeInput(h, '');
+                },
+                setMode(m) {
+                    this.bgMode = m;
+                    if (m === 'none') { this.writeBg(''); this.clearPreset(); this.clearImage(); }
+                    if (m === 'color' || m === 'gradient') { this.clearPreset(); this.clearImage(); if (m === 'gradient') this.applyGrad(); else if (/gradient\(/.test(this.$refs.bgcInput.value)) this.writeBg(''); }
+                    if (m === 'preset') { this.writeBg(''); this.clearImage(); this.bpOpen = true; }
+                    if (m === 'image') { this.writeBg(''); this.clearPreset(); }
+                }
+            }" class="space-y-2">
+                <label class="{{ $labelClass }}">Background</label>
+                <div class="grid grid-cols-5 gap-1">
+                    @foreach(['none' => 'None', 'color' => 'Color', 'gradient' => 'Gradient', 'preset' => 'Preset', 'image' => 'Image'] as $bmVal => $bmLabel)
+                    <button type="button" @click="setMode('{{ $bmVal }}')"
+                            class="text-[10px] font-semibold px-1 py-1.5 rounded-lg transition-all"
+                            :style="bgMode === '{{ $bmVal }}' ? 'background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.3); color: #5c83ff;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);'">
+                        {{ $bmLabel }}
+                    </button>
+                    @endforeach
+                </div>
+
+                {{-- Color mode. Picker is intentionally UNNAMED (see text_color
+                     note above / Task #4025). The text input is the single
+                     source for style[bg_color] across the Color AND Gradient
+                     modes (a gradient is just a CSS string in the same key). --}}
+                <div x-show="bgMode === 'color'" x-cloak class="space-y-2">
+                    <div class="flex gap-2">
+                        <input type="color" value="{{ $bgPicker }}" class="w-10 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.nextElementSibling.value = this.value; this.nextElementSibling.dispatchEvent(new Event('input', { bubbles: true })); this.nextElementSibling.dispatchEvent(new Event('change', { bubbles: true }))">
+                        <input type="text" name="style[bg_color]" x-ref="bgcInput" value="{{ $bgVal }}" placeholder="Transparent" class="{{ $inputClass }} flex-1" oninput="if (/^#[0-9a-fA-F]{6}$/.test(this.value)) this.previousElementSibling.value = this.value" @input="cBg = $event.target.value">
+                    </div>
+                    {{-- Non-blocking WCAG contrast warning vs the block's text color (Text tab). --}}
+                    <template x-if="cLow()">
+                        <div class="flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium"
+                             style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
+                             data-testid="block-contrast-warning-bg">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            <span>Low contrast (<span x-text="cFmt()"></span>) against the text color: text may be hard to read. Aim for at least 4.5:1.</span>
+                        </div>
+                    </template>
+                </div>
+
+                {{-- Gradient builder mode (writes a gradient string into the
+                     same style[bg_color] input above). --}}
+                <div x-show="bgMode === 'gradient'" x-cloak class="space-y-2 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
+                    <div class="rounded-lg h-8" :style="'background:' + gradCss() + '; border: 1px solid var(--border-glass);'"></div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[9px] font-bold" style="color: var(--text-dimmed);">Type</label>
+                            <select x-model="gradType" @change="applyGrad()" class="{{ $inputClass }} text-[11px]">
+                                <option value="linear">Linear</option>
+                                <option value="radial">Radial</option>
+                                <option value="conic">Conic</option>
+                            </select>
+                        </div>
+                        <div x-show="gradType !== 'radial'">
+                            <label class="text-[9px] font-bold" style="color: var(--text-dimmed);">Angle <span x-text="gradAngle + '°'"></span></label>
+                            <input type="range" min="0" max="360" step="5" x-model.number="gradAngle" @input="applyGrad()" class="w-full accent-indigo-500 mt-2">
+                        </div>
+                    </div>
+                    <template x-for="(stop, idx) in gradStops" :key="idx">
+                        <div class="flex items-center gap-1.5">
+                            <input type="color" :value="/^#[0-9a-fA-F]{6}$/.test(stop.color) ? stop.color : '#5c83ff'" @input="stop.color = $event.target.value; applyGrad()" class="w-8 h-7 rounded-md cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
+                            <input type="range" min="0" max="100" :value="stop.pos" @input="stop.pos = parseInt($event.target.value, 10); applyGrad()" class="flex-1 accent-indigo-500">
+                            <span class="text-[9px] w-7 text-right font-mono" style="color: var(--text-faint);" x-text="stop.pos + '%'"></span>
+                            <button type="button" @click="removeStop(idx)" x-show="gradStops.length > 2" class="text-[10px] px-1" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
+                        </div>
+                    </template>
+                    <button type="button" @click="addStop()" x-show="gradStops.length < 8" class="text-[10px] font-semibold px-2 py-1 rounded-lg" style="color: var(--text-faint); background: var(--bg-glass); border: 1px solid var(--border-glass);"><i class="fas fa-plus mr-1" style="font-size:8px;"></i>Add color stop</button>
+                </div>
+
+                {{-- Image mode: http(s) URL, upload, or vault pick — vault
+                     picks persist as root-relative /f/… paths. --}}
+                <div x-show="bgMode === 'image'" x-cloak x-ref="bgImgWrap">
+                    @include('user.links.partials.file-upload-field', ['fieldName' => 'style[bg_image]', 'currentValue' => $bgImageVal, 'acceptTypes' => 'image', 'labelText' => 'Background Image', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
+                </div>
+
+                {{-- Preset mode (Task #5970): catalog preset painted on a
+                     layer behind the block content. --}}
+                <div x-show="bgMode === 'preset'" x-cloak>
                 <div class="flex items-center justify-between gap-2">
                     <label class="{{ $labelClass }}">Preset Background</label>
                     <button type="button" @click="bpOpen = !bpOpen" class="text-[10px] font-semibold px-2 py-1 rounded-lg transition-all" style="color: var(--text-faint); background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
@@ -589,6 +780,7 @@
                     </div>
                     <p class="text-[9px]" style="color: var(--text-dimmed);">Click a swatch to select, click again to remove. The preset paints behind the block's content.</p>
                 </div>
+                </div>
             </div>
 
             {{-- Glass preset (simplified). Advanced glass blur/opacity sliders
@@ -631,9 +823,29 @@
             <input type="hidden" name="style[glass_opacity]" value="{{ $st['glass_opacity'] ?? 15 }}">
 
             {{-- Border Radius --}}
-            <div>
-                <label class="{{ $labelClass }}">Corner Radius (px)</label>
+            @php
+                $advCorners = ($st['border_radius_tl'] ?? '') !== '' || ($st['border_radius_tr'] ?? '') !== ''
+                    || ($st['border_radius_bl'] ?? '') !== '' || ($st['border_radius_br'] ?? '') !== '';
+            @endphp
+            <div x-data="{ showCorners: {{ $advCorners ? 'true' : 'false' }} }">
+                <div class="flex items-center justify-between gap-2">
+                    <label class="{{ $labelClass }}">Corner Radius (px)</label>
+                    <button type="button" @click="showCorners = !showCorners" class="text-[10px] font-semibold px-2 py-1 rounded-lg transition-all" style="color: var(--text-faint); background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                        <i class="fas text-[7px] mr-1" :class="showCorners ? 'fa-chevron-up' : 'fa-chevron-down'"></i>Advanced
+                    </button>
+                </div>
                 <input type="number" name="style[border_radius]" value="{{ $st['border_radius'] ?? '' }}" placeholder="12" min="0" max="999" class="{{ $inputClass }}">
+                <div x-show="showCorners" x-cloak x-transition class="mt-1 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
+                    <div class="grid grid-cols-4 gap-1">
+                        @foreach(['tl' => 'T-L', 'tr' => 'T-R', 'bl' => 'B-L', 'br' => 'B-R'] as $ck => $cl)
+                        <div>
+                            <label class="text-[8px] font-bold" style="color: var(--text-dimmed);">{{ $cl }}</label>
+                            <input type="number" name="style[border_radius_{{ $ck }}]" value="{{ $st['border_radius_' . $ck] ?? '' }}" placeholder="-" min="0" max="999" class="{{ $inputClass }} text-[11px]">
+                        </div>
+                        @endforeach
+                    </div>
+                    <p class="text-[9px] mt-1" style="color: var(--text-dimmed);">Blank corners use the radius above.</p>
+                </div>
             </div>
 
             {{-- Advanced toggle --}}
@@ -643,36 +855,94 @@
             </button>
 
             <div x-show="showAdvanced" x-cloak x-transition class="space-y-3 pt-1">
-                {{-- Background Image --}}
-                <div>
-                    <label class="{{ $labelClass }}">Background Image URL</label>
-                    <input type="url" name="style[bg_image]" value="{{ $st['bg_image'] ?? '' }}" placeholder="https://..." class="{{ $inputClass }}">
+                {{-- Border. The color cell is wrapped in a borderColorField()
+                     component so committed custom colors are remembered as
+                     quick-pick swatches (localStorage, mirrors the mobile
+                     editor's recent-border-colors behavior, Task #6094). --}}
+                <div x-data="borderColorField()" @recent-border-colors-changed.document="recents = $event.detail">
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="{{ $labelClass }}">Border</label>
+                            <select name="style[border_style]" class="{{ $inputClass }}">
+                                @foreach($borderStyles as $bsVal => $bsLabel)
+                                <option value="{{ $bsVal }}" {{ ($st['border_style'] ?? 'none') === $bsVal ? 'selected' : '' }}>{{ $bsLabel }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="{{ $labelClass }}">Width (px)</label>
+                            <input type="number" name="style[border_width]" value="{{ $st['border_width'] ?? '' }}" placeholder="1" min="0" max="10" class="{{ $inputClass }}">
+                        </div>
+                        <div>
+                            <label class="{{ $labelClass }}">Color</label>
+                            @php
+                                $bcVal = $st['border_color'] ?? '';
+                                $bcPicker = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $bcVal) ? $bcVal : '#ffffff';
+                            @endphp
+                            {{-- Hidden input carries the submitted value; the picker is
+                                 unnamed so its browser-normalized default never gets
+                                 stamped into _style on unrelated saves (Task #4025). --}}
+                            <input type="hidden" name="style[border_color]" value="{{ $bcVal }}" x-ref="val">
+                            <input type="color" value="{{ $bcPicker }}" x-ref="picker" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.previousElementSibling.value = this.value" @change="commit($event.target.value)">
+                        </div>
+                    </div>
+                    {{-- Quick-pick swatches: fixed presets + recent custom colors. --}}
+                    <div class="flex flex-wrap items-center gap-1.5 mt-1.5" data-border-color-swatches>
+                        <template x-for="sw in presets.concat(recents)" :key="sw">
+                            <button type="button" class="w-5 h-5 rounded-full cursor-pointer transition-transform hover:scale-110" :style="'background: ' + sw + '; border: 1px solid var(--border-glass);'" :title="'Use ' + sw" :aria-label="'Use border color ' + sw" @click="pick(sw)"></button>
+                        </template>
+                    </div>
+                    <p x-show="recents.length > 0" x-cloak class="text-[9px] mt-1" style="color: var(--text-dimmed);">Your recent custom colors appear at the end of the row.</p>
                 </div>
-                {{-- Border --}}
-                <div class="grid grid-cols-3 gap-2">
-                    <div>
-                        <label class="{{ $labelClass }}">Border</label>
-                        <select name="style[border_style]" class="{{ $inputClass }}">
-                            @foreach($borderStyles as $bsVal => $bsLabel)
-                            <option value="{{ $bsVal }}" {{ ($st['border_style'] ?? 'none') === $bsVal ? 'selected' : '' }}>{{ $bsLabel }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="{{ $labelClass }}">Width (px)</label>
-                        <input type="number" name="style[border_width]" value="{{ $st['border_width'] ?? '' }}" placeholder="1" min="0" max="10" class="{{ $inputClass }}">
-                    </div>
-                    <div>
-                        <label class="{{ $labelClass }}">Color</label>
+                {{-- Per-side borders (Task #6038): each side's style/width/color
+                     overrides the shorthand above field-by-field; blank = use
+                     the shorthand value. --}}
+                @php
+                    $advSides = false;
+                    foreach (['top', 'right', 'bottom', 'left'] as $side) {
+                        if (($st["border_{$side}_style"] ?? '') !== '' || ($st["border_{$side}_width"] ?? '') !== '' || ($st["border_{$side}_color"] ?? '') !== '') {
+                            $advSides = true;
+                            break;
+                        }
+                    }
+                @endphp
+                <div x-data="{ showSides: {{ $advSides ? 'true' : 'false' }} }">
+                    <button type="button" @click="showSides = !showSides" class="flex items-center gap-2 text-[11px] font-semibold w-full py-1" style="color: var(--text-muted);">
+                        <i class="fas fa-border-style text-[8px]" style="color: #90acff;"></i> Per-side borders
+                        <i class="fas text-[7px] ml-auto" :class="showSides ? 'fa-chevron-up' : 'fa-chevron-down'" style="color: var(--text-faint);"></i>
+                    </button>
+                    <div x-show="showSides" x-cloak x-transition class="mt-1 p-2 rounded-xl space-y-1.5" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
+                        @foreach(['top' => 'Top', 'right' => 'Right', 'bottom' => 'Bottom', 'left' => 'Left'] as $side => $sideLabel)
                         @php
-                            $bcVal = $st['border_color'] ?? '';
-                            $bcPicker = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $bcVal) ? $bcVal : '#ffffff';
+                            $ssVal = $st["border_{$side}_style"] ?? '';
+                            $swVal = $st["border_{$side}_width"] ?? '';
+                            $scv   = $st["border_{$side}_color"] ?? '';
+                            $scp   = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $scv) ? $scv : '#ffffff';
                         @endphp
-                        {{-- Hidden input carries the submitted value; the picker is
-                             unnamed so its browser-normalized default never gets
-                             stamped into _style on unrelated saves (Task #4025). --}}
-                        <input type="hidden" name="style[border_color]" value="{{ $bcVal }}">
-                        <input type="color" value="{{ $bcPicker }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.previousElementSibling.value = this.value">
+                        <div x-data="borderColorField()" @recent-border-colors-changed.document="recents = $event.detail">
+                            <div class="grid grid-cols-[36px_1fr_56px_36px] gap-1 items-center">
+                                <span class="text-[9px] font-bold" style="color: var(--text-dimmed);">{{ $sideLabel }}</span>
+                                <select name="style[border_{{ $side }}_style]" class="{{ $inputClass }} text-[11px]">
+                                    <option value="" {{ $ssVal === '' ? 'selected' : '' }}>Default</option>
+                                    @foreach($borderStyles as $bsVal => $bsLabel)
+                                    <option value="{{ $bsVal }}" {{ $ssVal === $bsVal ? 'selected' : '' }}>{{ $bsLabel }}</option>
+                                    @endforeach
+                                </select>
+                                <input type="number" name="style[border_{{ $side }}_width]" value="{{ $swVal }}" placeholder="-" min="0" max="10" class="{{ $inputClass }} text-[11px]">
+                                <div>
+                                    <input type="hidden" name="style[border_{{ $side }}_color]" value="{{ $scv }}" x-ref="val">
+                                    <input type="color" value="{{ $scp }}" x-ref="picker" class="w-full h-8 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.previousElementSibling.value = this.value" @change="commit($event.target.value)">
+                                </div>
+                            </div>
+                            {{-- Quick-pick swatches for this side (presets + recents). --}}
+                            <div class="flex flex-wrap items-center gap-1 mt-1 pl-9" data-border-color-swatches>
+                                <template x-for="sw in presets.concat(recents)" :key="sw">
+                                    <button type="button" class="w-3.5 h-3.5 rounded-full cursor-pointer transition-transform hover:scale-110" :style="'background: ' + sw + '; border: 1px solid var(--border-glass);'" :title="'Use ' + sw" :aria-label="'Use {{ strtolower($sideLabel) }} border color ' + sw" @click="pick(sw)"></button>
+                                </template>
+                            </div>
+                        </div>
+                        @endforeach
+                        <p class="text-[9px]" style="color: var(--text-dimmed);">Blank fields use the border settings above. Pick "None" to remove one side.</p>
                     </div>
                 </div>
                 {{-- Shadow fine-tuning --}}
@@ -706,10 +976,26 @@
 
         {{-- LAYOUT TAB (Spacing + Grid) --}}
         <div x-show="activeStyleTab === 'spacing'" class="space-y-4">
-            {{-- Grid Width --}}
-            <div>
-                <label class="{{ $labelClass }}">Block Width</label>
-                <div class="grid grid-cols-6 gap-1 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);" x-data="{ gridSpan: '{{ $st['grid_span'] ?? 12 }}' }">
+            {{-- Grid Width — per-device (Task #6119). Mobile drives the base
+                 `grid_span`; Desktop drives the `grid_span_md` override that
+                 only applies at/above the 768px breakpoint on the public page.
+                 "Same as mobile" submits an empty value, which the controller
+                 treats as "clear this key" (Task #4025 semantics). --}}
+            <div x-data="{ widthDevice: 'mobile', gridSpan: '{{ $st['grid_span'] ?? 12 }}', gridSpanMd: '{{ $st['grid_span_md'] ?? '' }}' }">
+                <div class="flex items-center justify-between">
+                    <label class="{{ $labelClass }}">Block Width</label>
+                    <div class="inline-flex rounded-lg p-0.5" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);" data-width-device-toggle>
+                        <button type="button" class="px-2 py-0.5 rounded-md text-[9px] font-bold transition-all" @click="widthDevice = 'mobile'"
+                                :style="widthDevice === 'mobile' ? 'background: rgba(61,107,255,0.2); color: #90acff;' : 'background: transparent; color: var(--text-faint);'">
+                            <i class="fas fa-mobile-alt mr-1"></i>Mobile
+                        </button>
+                        <button type="button" class="px-2 py-0.5 rounded-md text-[9px] font-bold transition-all" @click="widthDevice = 'desktop'"
+                                :style="widthDevice === 'desktop' ? 'background: rgba(61,107,255,0.2); color: #90acff;' : 'background: transparent; color: var(--text-faint);'">
+                            <i class="fas fa-desktop mr-1"></i>Desktop
+                        </button>
+                    </div>
+                </div>
+                <div x-show="widthDevice === 'mobile'" class="grid grid-cols-6 gap-1 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
                     @foreach([3 => '¼', 4 => '⅓', 6 => '½', 8 => '⅔', 9 => '¾', 12 => 'Full'] as $gv => $gl)
                     <label class="flex flex-col items-center cursor-pointer" @click="gridSpan = '{{ $gv }}'">
                         <input type="radio" name="style[grid_span]" value="{{ $gv }}" {{ ($st['grid_span'] ?? 12) == $gv ? 'checked' : '' }} class="hidden">
@@ -718,7 +1004,56 @@
                     </label>
                     @endforeach
                 </div>
-                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Place blocks side-by-side in a row</p>
+                <div x-show="widthDevice === 'desktop'" x-cloak class="grid grid-cols-7 gap-1 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                    @foreach(['' => 'Same', 3 => '¼', 4 => '⅓', 6 => '½', 8 => '⅔', 9 => '¾', 12 => 'Full'] as $gv => $gl)
+                    <label class="flex flex-col items-center cursor-pointer" @click="gridSpanMd = '{{ $gv }}'">
+                        <input type="radio" name="style[grid_span_md]" value="{{ $gv }}" {{ (string) ($st['grid_span_md'] ?? '') === (string) $gv ? 'checked' : '' }} class="hidden">
+                        <span class="w-full text-center text-[10px] font-bold py-1.5 rounded-lg border transition-all" @if($gv === '') title="Same as mobile" @endif
+                              :style="gridSpanMd == '{{ $gv }}' ? 'background: rgba(61,107,255,0.15); border-color: rgba(61,107,255,0.3); color: #90acff;' : 'background: transparent; border-color: transparent; color: var(--text-faint);'">{{ $gl }}</span>
+                    </label>
+                    @endforeach
+                </div>
+                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);" x-text="widthDevice === 'mobile' ? 'Width on phones (and everywhere unless Desktop overrides it)' : 'Width on large screens — \'Same\' keeps the mobile width'"></p>
+            </div>
+
+            {{-- Grid Height (row span) — per-device (Task #6123). Mirrors the
+                 Block Width control above: Mobile drives the base
+                 `grid_row_span` ("Auto" = empty, no stretching); Desktop
+                 drives the `grid_row_span_md` override applied at/above the
+                 768px breakpoint ("Same" = empty = follow mobile). --}}
+            <div x-data="{ heightDevice: 'mobile', rowSpan: '{{ $st['grid_row_span'] ?? '' }}', rowSpanMd: '{{ $st['grid_row_span_md'] ?? '' }}' }">
+                <div class="flex items-center justify-between">
+                    <label class="{{ $labelClass }}">Block Height (Rows)</label>
+                    <div class="inline-flex rounded-lg p-0.5" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);" data-height-device-toggle>
+                        <button type="button" class="px-2 py-0.5 rounded-md text-[9px] font-bold transition-all" @click="heightDevice = 'mobile'"
+                                :style="heightDevice === 'mobile' ? 'background: rgba(61,107,255,0.2); color: #90acff;' : 'background: transparent; color: var(--text-faint);'">
+                            <i class="fas fa-mobile-alt mr-1"></i>Mobile
+                        </button>
+                        <button type="button" class="px-2 py-0.5 rounded-md text-[9px] font-bold transition-all" @click="heightDevice = 'desktop'"
+                                :style="heightDevice === 'desktop' ? 'background: rgba(61,107,255,0.2); color: #90acff;' : 'background: transparent; color: var(--text-faint);'">
+                            <i class="fas fa-desktop mr-1"></i>Desktop
+                        </button>
+                    </div>
+                </div>
+                <div x-show="heightDevice === 'mobile'" class="grid grid-cols-7 gap-1 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                    @foreach(['' => 'Auto', 1 => '1', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '6'] as $rv => $rl)
+                    <label class="flex flex-col items-center cursor-pointer" @click="rowSpan = '{{ $rv }}'">
+                        <input type="radio" name="style[grid_row_span]" value="{{ $rv }}" {{ (string) ($st['grid_row_span'] ?? '') === (string) $rv ? 'checked' : '' }} class="hidden">
+                        <span class="w-full text-center text-[10px] font-bold py-1.5 rounded-lg border transition-all" @if($rv === '') title="Automatic height" @endif
+                              :style="rowSpan == '{{ $rv }}' ? 'background: rgba(61,107,255,0.15); border-color: rgba(61,107,255,0.3); color: #90acff;' : 'background: transparent; border-color: transparent; color: var(--text-faint);'">{{ $rl }}</span>
+                    </label>
+                    @endforeach
+                </div>
+                <div x-show="heightDevice === 'desktop'" x-cloak class="grid grid-cols-7 gap-1 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                    @foreach(['' => 'Same', 1 => '1', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '6'] as $rv => $rl)
+                    <label class="flex flex-col items-center cursor-pointer" @click="rowSpanMd = '{{ $rv }}'">
+                        <input type="radio" name="style[grid_row_span_md]" value="{{ $rv }}" {{ (string) ($st['grid_row_span_md'] ?? '') === (string) $rv ? 'checked' : '' }} class="hidden">
+                        <span class="w-full text-center text-[10px] font-bold py-1.5 rounded-lg border transition-all" @if($rv === '') title="Same as mobile" @endif
+                              :style="rowSpanMd == '{{ $rv }}' ? 'background: rgba(61,107,255,0.15); border-color: rgba(61,107,255,0.3); color: #90acff;' : 'background: transparent; border-color: transparent; color: var(--text-faint);'">{{ $rl }}</span>
+                    </label>
+                    @endforeach
+                </div>
+                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);" x-text="heightDevice === 'mobile' ? 'Rows the block stretches across next to side-by-side blocks — \'Auto\' keeps natural height' : 'Rows on large screens — \'Same\' keeps the mobile setting'"></p>
             </div>
 
             {{-- Padding --}}
@@ -741,7 +1076,7 @@
             </div>
 
             {{-- Margin --}}
-            <div x-data="{ showMargin: {{ ($st['margin_top'] ?? '') !== '' || ($st['margin_bottom'] ?? '') !== '' ? 'true' : 'false' }} }">
+            <div x-data="{ showMargin: {{ ($st['margin_top'] ?? '') !== '' || ($st['margin_bottom'] ?? '') !== '' || ($st['margin_left'] ?? '') !== '' || ($st['margin_right'] ?? '') !== '' ? 'true' : 'false' }} }">
                 <button type="button" @click="showMargin = !showMargin" class="flex items-center gap-2 text-[11px] font-semibold w-full py-1" style="color: var(--text-muted);">
                     <i class="fas fa-arrows-alt-v text-[8px]" style="color: #fb923c;"></i> Margin
                     <i class="fas text-[7px] ml-auto" :class="showMargin ? 'fa-chevron-up' : 'fa-chevron-down'" style="color: var(--text-faint);"></i>
@@ -754,6 +1089,27 @@
                             <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Left</label><input type="number" name="style[margin_left]" value="{{ $st['margin_left'] ?? '' }}" placeholder="-" min="-100" max="200" class="{{ $inputClass }} text-[11px]"></div>
                             <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Right</label><input type="number" name="style[margin_right]" value="{{ $st['margin_right'] ?? '' }}" placeholder="-" min="-100" max="200" class="{{ $inputClass }} text-[11px]"></div>
                         </div>
+                        {{-- Task #6114: the page has no side padding — a block's
+                             Left/Right margin of 0 makes it truly full width.
+                             Quick affordance sets both sides to 0 (or clears
+                             them back to the page default). --}}
+                        <div class="mt-1.5 flex items-center justify-between gap-2">
+                            <button type="button"
+                                    class="text-[9px] font-bold px-2 py-1 rounded-md transition-colors"
+                                    style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);"
+                                    @click="
+                                        const inputs = ['margin_left','margin_right'].map(k => $root.querySelector(`[name='style[${k}]']`)).filter(Boolean);
+                                        const isFull = inputs.length && inputs.every(i => i.value === '0');
+                                        inputs.forEach(i => {
+                                            i.value = isFull ? '' : '0';
+                                            i.dispatchEvent(new Event('input', { bubbles: true }));
+                                            i.dispatchEvent(new Event('change', { bubbles: true }));
+                                        });
+                                    ">
+                                <i class="fas fa-left-right text-[8px] mr-1" style="color: #fb923c;"></i>Full width
+                            </button>
+                            <span class="text-[8px]" style="color: var(--text-faint);">Left/Right 0 = edge-to-edge</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -765,6 +1121,72 @@
 @endif
 
 <script>
+// Recent border colors store (Task #6102). Mirrors the mobile editor's
+// behavior (Task #6094): custom hex colors committed in any border color
+// field are remembered on-device (localStorage, most recent first, capped
+// at 5) and rendered as quick-pick swatches after the fixed presets.
+// Preset duplicates are never re-added to the recents list. Uses the same
+// storage key name as mobile for conceptual parity.
+window.__recentBorderColors = window.__recentBorderColors || {
+    KEY: 'biolink.editor.recentBorderColors',
+    PRESETS: ['#ffffff', '#0f172a', '#7d9bff', '#f59e0b', '#ef4444', '#10b981', '#ec4899', '#8b5cf6'],
+    MAX: 5,
+    // Normalizes a color to a lowercase #rgb/#rrggbb/#rrggbbaa hex string,
+    // or null when it isn't a plain hex color.
+    normalize: function (raw) {
+        var v = String(raw == null ? '' : raw).trim().toLowerCase();
+        return /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/.test(v) ? v : null;
+    },
+    load: function () {
+        var out = [];
+        try {
+            var arr = JSON.parse(localStorage.getItem(this.KEY) || '[]');
+            if (!Array.isArray(arr)) return out;
+            for (var i = 0; i < arr.length && out.length < this.MAX; i++) {
+                var hex = this.normalize(arr[i]);
+                if (hex && this.PRESETS.indexOf(hex) === -1 && out.indexOf(hex) === -1) out.push(hex);
+            }
+        } catch (e) { /* corrupted storage → start fresh */ }
+        return out;
+    },
+    remember: function (raw) {
+        var hex = this.normalize(raw);
+        if (!hex || this.PRESETS.indexOf(hex) !== -1) return this.load();
+        var next = [hex].concat(this.load().filter(function (c) { return c !== hex; })).slice(0, this.MAX);
+        try { localStorage.setItem(this.KEY, JSON.stringify(next)); } catch (e) { /* storage full/blocked */ }
+        // Keep every open border color field's swatch row in sync.
+        document.dispatchEvent(new CustomEvent('recent-border-colors-changed', { detail: next }));
+        return next;
+    }
+};
+
+// Alpine component for one border color field (hidden value input +
+// unnamed color picker + swatch row). x-refs: `val` (hidden submitted
+// input) and `picker` (the <input type="color">).
+window.borderColorField = window.borderColorField || function () {
+    var store = window.__recentBorderColors;
+    return {
+        presets: store.PRESETS,
+        recents: store.load(),
+        // Remember a committed color (picker close or swatch tap).
+        commit: function (v) {
+            this.recents = store.remember(v);
+        },
+        // Fill this field from a tapped swatch and notify autosave/live
+        // preview listeners via bubbled input/change events.
+        pick: function (sw) {
+            var hidden = this.$refs.val;
+            var picker = this.$refs.picker;
+            if (!hidden) return;
+            hidden.value = sw;
+            if (picker && /^#[0-9a-f]{6}$/.test(sw)) picker.value = sw;
+            hidden.dispatchEvent(new Event('input', { bubbles: true }));
+            hidden.dispatchEvent(new Event('change', { bubbles: true }));
+            this.commit(sw);
+        }
+    };
+};
+
 // Per-type variant catalog snapshot for the currently-edited block. Stored
 // on window so multiple open editor panes share a single deserialized copy
 // (cheaper than re-decoding for every Alpine init).

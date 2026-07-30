@@ -27,13 +27,14 @@ final class ReservedAlias
         'user', 'admin', 'qr', 'storage', 'sanctum', 'api', 'f', 'webhooks',
         'login', 'register', 'features', 'how-it-works', 'about', 'contact',
         'faqs', 'terms', 'refunds', 'privacy', 'gdpr', 'cookies', 'discovery',
-        'creators-feed', 'workspace-team', 'buzz', 'ai-chatbot', 'ai-agent',
+        'creators-feed', 'workspace-team', 'buzz', 'newsroom', 'ai-chatbot', 'ai-agent',
         'ai-widget', 'ai-voice-assistant', 'whatsapp-agent', 'docs', 'newsletter', 'pricing',
         'coins', 'blogs', 'legal', 'watermark',
         'signed-media', 'stats', 'moderation', 'u', 'p', 'c', 'm',
         'checkout', 'analytics', 'audience', 'integrations',
         'compare', 'for', 'demos', 'dialer-contacts', 'events',
         'android', 'digest',
+        'dialer', 'browser', 'extension', 'app',
     ];
 
     /**

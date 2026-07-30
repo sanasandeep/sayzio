@@ -59,7 +59,7 @@ class InboxAiTriage
         }
 
         try {
-            $model = AiEngineSettings::featureModel(self::FEATURE);
+            $model = AiEngineSettings::featureModel(self::FEATURE, $chargeUser);
             $res = $this->openai->chat($chargeUser, $model, $this->messages($body, $context, $channel), [
                 'feature'         => self::FEATURE . '.triage',
                 'response_format' => ['type' => 'json_object'],

@@ -275,10 +275,10 @@ assert.ok(
   "editor detects the map_location block type",
 );
 assert.ok(
-  /const nextSettings: Record<string, unknown> = \{ \.\.\.values \};/.test(
+  /const nextSettings: Record<string, unknown> = \{\s*\.\.\.prevSettings,\s*\.\.\.values,?\s*\};/.test(
     editorSrc,
   ),
-  "save payload starts from the values spread (carries address/lat/lng/label/zoom)",
+  "save payload starts from the prevSettings+values spread (carries address/lat/lng/label/zoom)",
 );
 assert.ok(
   /if \(isMapLocation\) \{\s*nextSettings\.show_directions = mapShowDirections;/.test(

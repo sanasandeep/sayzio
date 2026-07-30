@@ -130,28 +130,28 @@
                             // Inner ring (4) — Zio's core AI brain.
                             ['cls' => 'r1', 'nodes' => [
                                 ['a' => 0,   'img' => 'ai.png',        'c' => 'var(--c2)', 't' => 'AI Page Builder', 'd' => 'Describe your idea in a sentence and Zio assembles a complete, on-brand page for you.', 'tag' => 'Live in ~30s'],
-                                ['a' => 90,  'img' => 'growth.png',    'c' => 'var(--c1)', 't' => 'AI Link Optimizer',     'd' => "Zio reads your stats, flags what's working and hands you the next move to grow.", 'tag' => 'Weekly tips'],
+                                ['a' => 90,  'img' => 'growth.png',    'c' => '#10b981',   't' => 'AI Link Optimizer',     'd' => "Zio reads your stats, flags what's working and hands you the next move to grow.", 'tag' => 'Weekly tips'],
                                 ['a' => 180, 'img' => 'calls.png',     'c' => 'var(--c4)', 't' => 'AI Phone',         'd' => 'Zio answers your calls and turns every caller into a captured lead while you focus.', 'tag' => '24/7 answer'],
-                                ['a' => 270, 'img' => 'analytics.png', 'c' => 'var(--c2)', 't' => 'Live Analytics',   'd' => 'Watch every click, scan and visit land in real time on a live world map.', 'tag' => 'Real-time'],
+                                ['a' => 270, 'img' => 'analytics.png', 'c' => 'var(--c3)', 't' => 'Live Analytics',   'd' => 'Watch every click, scan and visit land in real time on a live world map.', 'tag' => 'Real-time'],
                             ]],
                             // Middle ring (6) — everyday building & growth tools.
                             ['cls' => 'r2', 'nodes' => [
-                                ['a' => 30,  'img' => 'link.png',      'c' => 'var(--c2)', 't' => 'Smart Links',      'd' => 'Turn long URLs into branded short links you can track, tag and retarget.', 'tag' => 'Branded'],
+                                ['a' => 30,  'img' => 'link.png',      'c' => 'var(--c1)', 't' => 'Smart Links',      'd' => 'Turn long URLs into branded short links you can track, tag and retarget.', 'tag' => 'Branded'],
                                 ['a' => 90,  'img' => 'qr.png',        'c' => 'var(--c3)', 't' => 'QR Studio',        'd' => 'Design on-brand codes with custom eyes and frames that track every single scan.', 'tag' => '16 types'],
                                 ['a' => 150, 'img' => 'store.png',     'c' => '#10b981',   't' => 'Built-in Store',   'd' => 'Sell products and take payments straight from your link. Keep every cent.', 'tag' => '0% fees'],
-                                ['a' => 210, 'img' => 'forms.png',     'c' => 'var(--c2)', 't' => 'Forms',           'd' => 'Collect leads, bookings and payments with 21 customizable field types.', 'tag' => '21 fields'],
-                                ['a' => 270, 'img' => 'audience.png',  'c' => 'var(--c1)', 't' => 'Subscribers',     'd' => 'Grow an email and WhatsApp audience you actually own, then message them anytime.', 'tag' => 'You own it'],
-                                ['a' => 330, 'img' => 'social.png',    'c' => 'var(--c3)', 't' => 'Social Proof',     'd' => 'Live popups surface real activity that nudges new visitors to take action.', 'tag' => '7 widgets'],
+                                ['a' => 210, 'img' => 'forms.png',     'c' => 'var(--c4)', 't' => 'Forms',           'd' => 'Collect leads, bookings and payments with 21 customizable field types.', 'tag' => '21 fields'],
+                                ['a' => 270, 'img' => 'audience.png',  'c' => 'var(--c5)', 't' => 'Subscribers',     'd' => 'Grow an email and WhatsApp audience you actually own, then message them anytime.', 'tag' => 'You own it'],
+                                ['a' => 330, 'img' => 'social.png',    'c' => 'var(--c2)', 't' => 'Social Proof',     'd' => 'Live popups surface real activity that nudges new visitors to take action.', 'tag' => '7 widgets'],
                             ]],
                             // Outer ring (7) — the wider feature universe + a new add-on.
                             ['cls' => 'r3', 'nodes' => [
-                                ['a' => 0,   'img' => 'code.png',      'c' => 'var(--c2)', 't' => 'Developer API',    'd' => 'Build anything on Sayzio with a full, token-secured REST API.', 'tag' => 'REST API'],
-                                ['a' => 51,  'img' => 'reviews.png',   'c' => 'var(--c3)', 't' => 'Reviews',         'd' => 'Collect native reviews and pull in Google & Trustpilot ratings to build instant trust.', 'tag' => 'Google + more'],
-                                ['a' => 103, 'img' => 'menu.png',      'c' => '#10b981',   't' => 'Restaurant Menu', 'd' => 'QR menus with live ordering that sends tickets straight to your kitchen staff.', 'tag' => 'Live orders'],
-                                ['a' => 154, 'img' => 'resume.png',    'c' => 'var(--c2)', 't' => 'Resume',          'd' => 'Build a polished, shareable resume and portfolio with AI tailoring and PDF export.', 'tag' => 'AI-tailored'],
+                                ['a' => 0,   'img' => 'code.png',      'c' => '#10b981',   't' => 'Developer API',    'd' => 'Build anything on Sayzio with a full, token-secured REST API.', 'tag' => 'REST API'],
+                                ['a' => 51,  'img' => 'reviews.png',   'c' => 'var(--c5)', 't' => 'Reviews',         'd' => 'Collect native reviews and pull in Google & Trustpilot ratings to build instant trust.', 'tag' => 'Google + more'],
+                                ['a' => 103, 'img' => 'menu.png',      'c' => 'var(--c4)', 't' => 'Restaurant Menu', 'd' => 'QR menus with live ordering that sends tickets straight to your kitchen staff.', 'tag' => 'Live orders'],
+                                ['a' => 154, 'img' => 'resume.png',    'c' => 'var(--c3)', 't' => 'Resume',          'd' => 'Build a polished, shareable resume and portfolio with AI tailoring and PDF export.', 'tag' => 'AI-tailored'],
                                 ['a' => 206, 'img' => 'calendar.png',  'c' => 'var(--c1)', 't' => 'Calendar',        'd' => 'Share events visitors can follow and book, synced to Google Calendar.', 'tag' => 'Auto-sync'],
                                 ['a' => 257, 'img' => 'vcard.png',     'c' => 'var(--c2)', 't' => 'Digital Cards',    'd' => 'Share a tappable vCard that saves straight to any phone in one tap.', 'tag' => 'One tap'],
-                                ['a' => 309, 'img' => 'domain.png',    'c' => 'var(--c4)', 't' => 'Custom Domain',    'd' => 'Put your whole universe on your own domain for a fully branded presence.', 'tag' => 'Your brand'],
+                                ['a' => 309, 'img' => 'domain.png',    'c' => 'var(--c5)', 't' => 'Custom Domain',    'd' => 'Put your whole universe on your own domain for a fully branded presence.', 'tag' => 'Your brand'],
                             ]],
                         ];
                         // Flat list (in ring order) for the <noscript> fallback below.
@@ -525,8 +525,8 @@
             width: 100%; height: 100%;
             padding: 0; margin: 0;
             border-radius: 17px;
-            background: rgba(255,255,255,.06);
-            border: 1px solid rgba(255,255,255,.12);
+            background: color-mix(in srgb, var(--ac, var(--c2)) 10%, rgba(255,255,255,.06));
+            border: 1px solid color-mix(in srgb, var(--ac, var(--c2)) 32%, rgba(255,255,255,.12));
             backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             box-shadow: 0 10px 26px -14px rgba(10,12,30,.85);
             cursor: pointer; pointer-events: auto;
@@ -547,9 +547,9 @@
         /* Hover lift + active state (shadow/scale, not transform on the rotated node) */
         .zio-node-btn:hover .zio-node-thumb { transform: scale(1.14); }
         .zio-node-btn:hover {
-            border-color: rgba(255,255,255,.30);
+            border-color: color-mix(in srgb, var(--ac, var(--c2)) 55%, rgba(255,255,255,.30));
             background: rgba(255,255,255,.10);
-            box-shadow: 0 16px 38px -16px rgba(61,107,255,.6);
+            box-shadow: 0 16px 38px -16px color-mix(in srgb, var(--ac, var(--c2)) 60%, transparent);
         }
         .zio-node--on .zio-node-btn {
             border-color: color-mix(in srgb, var(--ac) 70%, white 10%);
@@ -741,12 +741,13 @@
         html.light-mode .zio-ring--r1 { border-color: rgba(37,66,199,.14); }
         html.light-mode .zio-ring--r2 { border-color: rgba(37,66,199,.20); }
         html.light-mode .zio-node-btn {
-            background: #ffffff; border-color: #e2e8f0;
-            box-shadow: 0 10px 24px -14px rgba(15,23,42,.35);
+            background: color-mix(in srgb, var(--ac, var(--c2)) 6%, #ffffff);
+            border-color: color-mix(in srgb, var(--ac, var(--c2)) 26%, #e2e8f0);
+            box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--ac, var(--c2)) 45%, rgba(15,23,42,.35));
         }
         html.light-mode .zio-node-btn:hover {
-            border-color: #c7d2fe; background: #ffffff;
-            box-shadow: 0 16px 34px -16px rgba(61,107,255,.45);
+            border-color: color-mix(in srgb, var(--ac, var(--c2)) 45%, #e2e8f0); background: #ffffff;
+            box-shadow: 0 16px 34px -16px color-mix(in srgb, var(--ac, var(--c2)) 45%, transparent);
         }
         html.light-mode .zio-node--on .zio-node-btn { background: #ffffff; }
         html.light-mode .zio-pop {

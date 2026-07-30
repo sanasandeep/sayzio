@@ -312,7 +312,7 @@ class AskCoachController extends Controller
             $recent->map(fn($m) => ['role' => $m->role, 'content' => $m->content])->all(),
         );
 
-        $model        = AiEngineSettings::featureModel('ask_coach');
+        $model        = AiEngineSettings::featureModel('ask_coach', $user);
         $temperature  = AiEngineSettings::askCoachTemperature();
         $maxTokens    = AiEngineSettings::askCoachMaxTokens();
 
@@ -563,7 +563,7 @@ class AskCoachController extends Controller
             try {
                 $out = $this->ai->chatStream(
                     $user,
-                    AiEngineSettings::featureModel('ask_coach'),
+                    AiEngineSettings::featureModel('ask_coach', $user),
                     $messages,
                     [
                         'feature'     => 'ask_coach.chat',

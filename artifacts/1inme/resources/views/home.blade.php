@@ -32,7 +32,7 @@
     <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=17">
+    <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=18">
     @vite(['resources/js/marketing-anim.js'])
     <script>
         // Fire-and-forget marketing-CTA tracking shared by every home-page
@@ -194,7 +194,7 @@
         .btn-glow { position: relative; }
         .btn-glow::after {
             content:""; position: absolute; inset: -4px; border-radius: inherit; z-index: -1;
-            background: conic-gradient(from 0deg, #3d6bff, #6e61ff, #3d6bff);
+            background: conic-gradient(from 0deg, #3d6bff, #6e61ff, #22d3ee, #3d6bff);
             opacity: 0; filter: blur(12px); transition: opacity .35s; animation: spinSlow 8s linear infinite;
         }
         .btn-glow:hover::after { opacity: .85; }
@@ -273,7 +273,7 @@
 
         /* ============ Logo gradient bar ============ */
         .grad-bar {
-            background: linear-gradient(95deg, #3d6bff, #6e61ff);
+            background: linear-gradient(95deg, #3d6bff, #6e61ff, #22d3ee);
         }
 
         /* ============ Confetti shapes (drifting) ============ */
@@ -524,7 +524,7 @@
             position: relative;
             width: 100%; height: 100%;
             border-radius: 36px; overflow: hidden;
-            background: var(--phone-bg, linear-gradient(140deg,#3d6bff,#6e61ff));
+            background: var(--phone-bg, linear-gradient(140deg,#3d6bff,#6e61ff,#22d3ee));
             transition: background 1.2s ease;
         }
         .hero-phone-screen::before {

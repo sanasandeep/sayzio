@@ -178,7 +178,7 @@
                         @if($brandKit)
                             <span class="opacity-60">(currently “{{ $brandKit->name }}”)</span>
                         @else
-                            <span class="opacity-60">(no Brand Kit yet — fields below are used)</span>
+                            <span class="opacity-60">(no Brand Kit yet: fields below are used)</span>
                         @endif
                     </span>
                 </label>

@@ -44,6 +44,7 @@ class MarketingSeoController extends Controller
                     'title'       => (string) ($ov['title'] ?? ''),
                     'description' => (string) ($ov['description'] ?? ''),
                     'keywords'    => (string) ($ov['keywords'] ?? ''),
+                    'share_image' => (string) ($ov['share_image'] ?? ''),
                 ],
             ];
         }
@@ -81,6 +82,7 @@ class MarketingSeoController extends Controller
             'seo.*.title'       => 'nullable|string|max:200',
             'seo.*.description' => 'nullable|string|max:500',
             'seo.*.keywords'    => 'nullable|string|max:500',
+            'seo.*.share_image' => ['nullable', 'string', 'max:1000', 'regex:#^(/|https?://)#i'],
         ]);
 
         $allowed = array_keys(MarketingSeo::codeDrivenDefaults());
@@ -92,7 +94,7 @@ class MarketingSeoController extends Controller
                 continue;
             }
             $entry = [];
-            foreach (['title', 'description', 'keywords'] as $field) {
+            foreach (['title', 'description', 'keywords', 'share_image'] as $field) {
                 $value = trim((string) ($fields[$field] ?? ''));
                 if ($value !== '') {
                     // Only persist a non-empty value as an override. Leaving a

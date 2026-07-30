@@ -176,7 +176,7 @@ class BiolinkBlockPlaceholderTest extends TestCase
         $this->assertNotEmpty($newStyle['border_color'] ?? '');
         $this->assertSame($variantKey, $newStyle['_variant'] ?? null);
         $this->assertSame(
-            BlockVariantCatalog::VERSION,
+            BlockVariantCatalog::version(),
             (int) ($newStyle['_variant_version'] ?? 0)
         );
 
@@ -287,7 +287,7 @@ class BiolinkBlockPlaceholderTest extends TestCase
             $this->assertSame($variantKey, $style['_variant'] ?? null,
                 'applyVariantToAll() must stamp the chosen variant key on each sibling');
             $this->assertSame(
-                BlockVariantCatalog::VERSION,
+                BlockVariantCatalog::version(),
                 (int) ($style['_variant_version'] ?? 0),
                 'applyVariantToAll() must stamp the catalog VERSION on each sibling'
             );

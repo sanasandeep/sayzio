@@ -133,6 +133,44 @@
             </div>
         </div>
 
+        {{-- Product page download links --}}
+        <div class="glass rounded-2xl p-6 space-y-5">
+            <div>
+                <h2 class="ak-strong text-lg font-semibold text-white">Product page download links</h2>
+                <p class="ak-muted text-xs text-white/50">Power the download buttons on the standalone <span class="font-mono">/dialer</span> and <span class="font-mono">/browser</span> marketing pages. Leave a field blank to fall back automatically: Zio Dialer falls back to the live APK from the Android APK manager, Zio Browser to the latest published desktop release (same source as <span class="font-mono">/download</span>). The <span class="font-mono">/app</span> page uses the Mobile app store links above; <span class="font-mono">/extension</span> uses the Browser extension store links.</p>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="ak-muted block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Zio Dialer — Google Play URL</label>
+                    <input type="url" name="dialer_play_url" value="{{ old('dialer_play_url', $dialer_play_url) }}"
+                           placeholder="https://play.google.com/store/apps/details?id=..."
+                           class="ak-strong ak-input w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('dialer_play_url')<p class="ak-red mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="ak-muted block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Zio Dialer — direct APK URL</label>
+                    <input type="url" name="dialer_apk_url" value="{{ old('dialer_apk_url', $dialer_apk_url) }}"
+                           placeholder="https://.../zio-dialer.apk"
+                           class="ak-strong ak-input w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('dialer_apk_url')<p class="ak-red mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="ak-muted block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Zio Browser — macOS installer URL</label>
+                    <input type="url" name="browser_mac_url" value="{{ old('browser_mac_url', $browser_mac_url) }}"
+                           placeholder="https://.../SayZio-Browser.dmg"
+                           class="ak-strong ak-input w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('browser_mac_url')<p class="ak-red mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="ak-muted block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Zio Browser — Windows installer URL</label>
+                    <input type="url" name="browser_windows_url" value="{{ old('browser_windows_url', $browser_windows_url) }}"
+                           placeholder="https://.../SayZio-Browser-Setup.exe"
+                           class="ak-strong ak-input w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('browser_windows_url')<p class="ak-red mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+            </div>
+        </div>
+
         {{-- Subscribe block — WhatsApp settings --}}
         <div class="glass rounded-2xl p-6 space-y-5">
             <div>

@@ -195,7 +195,7 @@ class ShowcaseAccountSeeder extends Seeder
         $lap('seedAnalytics');
 
         $this->command?->info(sprintf(
-            'Showcase account ready: %s (%d links across 16 types — 2 demos + 1 explainer per type, fresh main bio page, widget catalog, 90 days of backdated analytics).',
+            'Showcase account ready: %s (%d links across 16 types: 2 demos + 1 explainer per type, fresh main bio page, widget catalog, 90 days of backdated analytics).',
             static::EMAIL,
             count($allLinkIds)
         ));
@@ -1085,7 +1085,7 @@ class ShowcaseAccountSeeder extends Seeder
             [
                 'slug' => 'url', 'title' => 'Short Links: how to use them',
                 'heading' => 'Short Links 🔗',
-                'intro' => 'Turn long, ugly URLs into clean, branded links you can share anywhere — and see every click in real time.',
+                'intro' => 'Turn long, ugly URLs into clean, branded links you can share anywhere, and see every click in real time.',
                 'features' => [
                     'Shorten any URL into a clean, on-brand link',
                     'Repoint the destination any time, the link never changes',
@@ -1110,7 +1110,7 @@ class ShowcaseAccountSeeder extends Seeder
             [
                 'slug' => 'ics', 'title' => 'Event Links: how to use them',
                 'heading' => 'Event Links 📅',
-                'intro' => 'One link that adds your event straight to any calendar — no attachments, no confusion.',
+                'intro' => 'One link that adds your event straight to any calendar, no attachments, no confusion.',
                 'features' => [
                     'Share date, time, location and organizer in one link',
                     'Visitors add it to Google, Apple or Outlook in one tap',
@@ -1134,7 +1134,7 @@ class ShowcaseAccountSeeder extends Seeder
             [
                 'slug' => 'biolink', 'title' => 'Link in Bio: how to use it',
                 'heading' => 'Link in Bio 🌟',
-                'intro' => 'One beautiful page for all your links — built for the "link in bio" slot on every social platform.',
+                'intro' => 'One beautiful page for all your links: built for the "link in bio" slot on every social platform.',
                 'features' => [
                     'Drag-and-drop blocks for text, media, products and more',
                     'Dozens of themes and full visual customization',
@@ -1147,7 +1147,7 @@ class ShowcaseAccountSeeder extends Seeder
             [
                 'slug' => 'slides', 'title' => 'Slides: how to use them',
                 'heading' => 'Slides 🖼️',
-                'intro' => 'Tell your story as a swipeable, story-style presentation — perfect for portfolios and product tours.',
+                'intro' => 'Tell your story as a swipeable, story-style presentation: perfect for portfolios and product tours.',
                 'features' => [
                     'Swipeable, full-screen story slides',
                     'Mix text, images and links per slide',
@@ -1159,7 +1159,7 @@ class ShowcaseAccountSeeder extends Seeder
             [
                 'slug' => 'restaurant-menu', 'title' => 'Restaurant Menu: how to use it',
                 'heading' => 'Restaurant Menu 🍽️',
-                'intro' => 'A digital menu with photos, prices and table-side ordering — a QR menu that actually takes orders.',
+                'intro' => 'A digital menu with photos, prices and table-side ordering: a QR menu that actually takes orders.',
                 'features' => [
                     'Build categories and items with photos and prices',
                     'Each table gets its own QR code and ordering link',
@@ -1172,7 +1172,7 @@ class ShowcaseAccountSeeder extends Seeder
             [
                 'slug' => 'store', 'title' => 'Store: how to use it',
                 'heading' => 'Store 🛍️',
-                'intro' => 'A simple product catalog with order requests — visitors browse, pick and send their order in seconds.',
+                'intro' => 'A simple product catalog with order requests: visitors browse, pick and send their order in seconds.',
                 'features' => [
                     'Categories and products with photos and prices',
                     'Order requests with name and contact, no payment needed',
@@ -1185,7 +1185,7 @@ class ShowcaseAccountSeeder extends Seeder
             [
                 'slug' => 'booking', 'title' => 'Service Booking: how to use it',
                 'heading' => 'Service Booking 🗓️',
-                'intro' => 'Let clients book time with you straight from a link — pick a service, pick a slot, done.',
+                'intro' => 'Let clients book time with you straight from a link: pick a service, pick a slot, done.',
                 'features' => [
                     'Offer services with set durations and availability',
                     'Visitors pick a slot without back-and-forth emails',
@@ -1197,7 +1197,7 @@ class ShowcaseAccountSeeder extends Seeder
             [
                 'slug' => 'resume', 'title' => 'Resume Links: how to use them',
                 'heading' => 'Resume & Portfolio 📄',
-                'intro' => 'A living resume you share as a link — always current, beautifully presented, with a PDF one tap away.',
+                'intro' => 'A living resume you share as a link: always current, beautifully presented, with a PDF one tap away.',
                 'features' => [
                     'Structured sections: experience, education, skills, projects',
                     'Share one link instead of emailing attachments',
@@ -1210,7 +1210,7 @@ class ShowcaseAccountSeeder extends Seeder
             [
                 'slug' => 'calendar', 'title' => 'Calendar Links: how to use them',
                 'heading' => 'Followable Calendars 📆',
-                'intro' => 'Publish a whole calendar of events people can follow — new events appear in their calendar automatically.',
+                'intro' => 'Publish a whole calendar of events people can follow: new events appear in their calendar automatically.',
                 'features' => [
                     'One link for your full schedule of events',
                     'Visitors subscribe once, updates sync automatically',
@@ -1222,7 +1222,7 @@ class ShowcaseAccountSeeder extends Seeder
             [
                 'slug' => 'paid-page', 'title' => 'Paid Pages: how to use them',
                 'heading' => 'Paid Pages 💎',
-                'intro' => 'Put your best content behind a link — supporters unlock it, you keep 100% of what you earn.',
+                'intro' => 'Put your best content behind a link: supporters unlock it, you keep 100% of what you earn.',
                 'features' => [
                     'Gate exclusive content behind a subscription or payment',
                     'Reuses your creator feed with visibility tiers',
@@ -1234,7 +1234,7 @@ class ShowcaseAccountSeeder extends Seeder
             [
                 'slug' => 'reviews', 'title' => 'Review Pages: how to use them',
                 'heading' => 'Reviews ⭐',
-                'intro' => 'Collect and showcase reviews on one page — native reviews plus imports from Google and Trustpilot.',
+                'intro' => 'Collect and showcase reviews on one page: native reviews plus imports from Google and Trustpilot.',
                 'features' => [
                     'Visitors leave reviews right on your page',
                     'Import and merge Google and Trustpilot reviews',
@@ -1247,7 +1247,7 @@ class ShowcaseAccountSeeder extends Seeder
             [
                 'slug' => 'brand-kit', 'title' => 'Brand Kits: how to use them',
                 'heading' => 'Brand Kits 🎨',
-                'intro' => 'One shareable page for your logos, colors, fonts and voice — so everyone stays on brand.',
+                'intro' => 'One shareable page for your logos, colors, fonts and voice, so everyone stays on brand.',
                 'features' => [
                     'Collect logos, palette, typography and tone in one link',
                     'Share with partners, press and collaborators',
@@ -1272,7 +1272,7 @@ class ShowcaseAccountSeeder extends Seeder
             [
                 'slug' => 'conversational', 'title' => 'Conversational Pages: how to use them',
                 'heading' => 'Conversational 💬',
-                'intro' => 'Guide visitors through your links one friendly message at a time — great for onboarding and storytelling.',
+                'intro' => 'Guide visitors through your links one friendly message at a time: great for onboarding and storytelling.',
                 'features' => [
                     'A chat-style flow that reveals links step by step',
                     'Write a fixed script that feels personal',
@@ -1300,14 +1300,14 @@ class ShowcaseAccountSeeder extends Seeder
             'user_id' => $this->user->id,
             'type' => 'biolink',
             'alias' => $h,
-            'title' => 'Sana Rahman — Everything in one link',
+            'title' => 'Sana Rahman: Everything in one link',
             'is_active' => true,
             'visibility' => 'public',
             'is_demo' => true,
             'settings' => [
                 'biolink' => [
                     'biolink_title' => 'Sana Rahman',
-                    'biolink_description' => 'Designer, founder & creator — everything I make, teach and sell, in one link.',
+                    'biolink_description' => 'Designer, founder & creator: everything I make, teach and sell, in one link.',
                 ],
             ],
         ]);
@@ -1315,7 +1315,7 @@ class ShowcaseAccountSeeder extends Seeder
         $defs = [
             ['avatar', ['url' => $this->img('sana-avatar', 320, 320), 'size' => 112, 'rounded' => true]],
             ['heading', ['text' => 'Sana Rahman ✨', 'size' => 'h1', 'align' => 'center', 'style' => 'plain']],
-            ['paragraph', ['text' => 'Designer, founder & creator. I help small brands look big — browse my work, book time with me, or grab something from the studio store.', 'align' => 'center']],
+            ['paragraph', ['text' => 'Designer, founder & creator. I help small brands look big: browse my work, book time with me, or grab something from the studio store.', 'align' => 'center']],
             ['socials', ['platforms' => [
                 ['platform' => 'instagram', 'url' => 'https://instagram.com/sanarahman'],
                 ['platform' => 'twitter', 'url' => 'https://twitter.com/sanarahman'],
@@ -1335,10 +1335,10 @@ class ShowcaseAccountSeeder extends Seeder
                 'description' => 'One email a month: what I shipped, learned and loved.',
                 'placeholder' => 'you@example.com',
                 'button_text' => 'Subscribe',
-                'success_message' => 'Thanks — you\'re on the list!',
+                'success_message' => 'Thanks, you\'re on the list!',
                 'name_field' => false,
             ]],
-            ['paragraph', ['text' => 'Made with Sayzio — one link for everything.', 'align' => 'center']],
+            ['paragraph', ['text' => 'Made with Sayzio: one link for everything.', 'align' => 'center']],
         ];
 
         foreach ($defs as $i => [$type, $settings]) {

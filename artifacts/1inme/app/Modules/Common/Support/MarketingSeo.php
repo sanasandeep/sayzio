@@ -154,6 +154,38 @@ class MarketingSeo
                 'description' => 'Get the SayZio Browser desktop app — your links, Link in Bio pages and analytics in a fast, distraction-free browser. Free download for macOS (Intel & Apple Silicon) and Windows.',
                 'keywords' => 'sayzio browser, download sayzio, sayzio desktop app, sayzio for mac, sayzio for windows, link in bio desktop',
             ],
+            'zio-dialer' => [
+                'label' => 'Zio Dialer',
+                'group' => 'Apps',
+                'url' => '/dialer',
+                'title' => 'Zio Dialer — The Smart Android Dialer With Caller ID',
+                'description' => 'Meet Zio Dialer: a beautiful Android dialer with T9 smart search, caller ID overlay, quick call / SMS / WhatsApp channels, Google Contacts sync and phone-to-biolink superpowers. Free download.',
+                'keywords' => 'zio dialer, android dialer app, t9 dialer, caller id app, smart dialer download, contacts app, sayzio dialer',
+            ],
+            'zio-browser' => [
+                'label' => 'Zio Browser',
+                'group' => 'Apps',
+                'url' => '/browser',
+                'title' => 'Zio Browser — A Fast, Focused Desktop Browser',
+                'description' => 'Zio Browser is the SayZio desktop browser for Mac and Windows: private profiles, a built-in device lab, distraction-free browsing and one-click access to your links, pages and analytics.',
+                'keywords' => 'zio browser, sayzio browser, desktop browser download, browser for mac, browser for windows, private browsing profiles',
+            ],
+            'zio-extension' => [
+                'label' => 'Browser extension',
+                'group' => 'Apps',
+                'url' => '/extension',
+                'title' => 'Zio Extension — Shorten & Save Links From Any Tab',
+                'description' => 'Add the Zio Extension to Chrome, Edge or Firefox and shorten the page you\'re on, generate a QR code, and save links to your Sayzio account in one click — right from your toolbar.',
+                'keywords' => 'zio extension, browser extension, chrome extension, edge addon, firefox addon, url shortener extension, qr code extension',
+            ],
+            'mobile-app' => [
+                'label' => 'Mobile app',
+                'group' => 'Apps',
+                'url' => '/app',
+                'title' => 'Sayzio Mobile App — Your Links, Pages & Stats On the Go',
+                'description' => 'Manage everything from your pocket with the Sayzio mobile app: edit your Link in Bio, create short links and QR codes, chat with your audience and watch analytics in real time.',
+                'keywords' => 'sayzio app, mobile app download, link in bio app, android app, iphone app, link management app',
+            ],
             'compare-index' => [
                 'label' => 'Compare overview',
                 'group' => 'Compare',
@@ -206,6 +238,7 @@ class MarketingSeo
             'creators-feed' => 'creators feed, creator posts, follow creators, social feed, updates, sayzio feed',
             'workspace-team' => 'workspaces, team, collaboration, roles, permissions, agency, multi client, sayzio team',
             'buzz' => 'social proof, buzz, live notifications, conversion, visitor activity, sayzio buzz',
+            'newsroom' => 'newsroom, press, news, awards, media coverage, testimonials, sayzio newsroom',
             'services' => 'use cases, link in bio for business, creators, agencies, portfolio, marketing, sayzio services',
             'ai-chatbot' => 'ai chatbot, biolink chatbot, lead capture, automated chat, ai assistant, sayzio ai',
             'ai-agent' => 'ai agent, automation, ai tasks, lead qualification, workflows, ai teammate, sayzio ai',
@@ -231,6 +264,7 @@ class MarketingSeo
             'how-it-works' => ['label' => 'How it works', 'group' => 'Capabilities'],
             'workspace-team' => ['label' => 'Workspaces & team', 'group' => 'Capabilities'],
             'buzz' => ['label' => 'Buzz (social proof)', 'group' => 'Capabilities'],
+            'newsroom' => ['label' => 'Newsroom (press & love)', 'group' => 'Capabilities'],
             'services' => ['label' => 'Use cases (services)', 'group' => 'Capabilities'],
             'ai-chatbot' => ['label' => 'AI chatbot', 'group' => 'AI suite'],
             'ai-agent' => ['label' => 'AI agent', 'group' => 'AI suite'],
@@ -329,6 +363,10 @@ class MarketingSeo
             'title' => self::firstNonEmpty([$ov['title'] ?? null, $def['title'] ?? null]) ?? $appName,
             'description' => self::firstNonEmpty([$ov['description'] ?? null, $def['description'] ?? null]) ?? '',
             'keywords' => self::firstNonEmpty([$ov['keywords'] ?? null, $def['keywords'] ?? null]) ?? '',
+            // Per-page Open Graph / share image. Admin-set only (no seeded
+            // default); the share-meta partial falls back to the site-wide
+            // default from Marketing Settings when this is empty.
+            'share_image' => trim((string) ($ov['share_image'] ?? '')),
         ];
     }
 
@@ -349,10 +387,16 @@ class MarketingSeo
             $keywords = self::sitePageKeywordDefaults()[$page->slug] ?? '';
         }
 
+        $shareImage = '';
+        if (is_array($page->extra ?? null)) {
+            $shareImage = trim((string) ($page->extra['share_image'] ?? ''));
+        }
+
         return [
             'title' => $title,
             'description' => $description,
             'keywords' => $keywords,
+            'share_image' => $shareImage,
         ];
     }
 
@@ -397,6 +441,7 @@ class MarketingSeo
             'title' => $title,
             'description' => $description,
             'keywords' => '',
+            'share_image' => '',
         ];
     }
 

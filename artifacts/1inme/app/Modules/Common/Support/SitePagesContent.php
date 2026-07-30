@@ -982,7 +982,7 @@ class SitePagesContent
     public static function footerSlugs(): array
     {
         return [
-            'features', 'how-it-works', 'workspace-team', 'buzz',
+            'features', 'how-it-works', 'workspace-team', 'buzz', 'newsroom',
             'ai-chatbot', 'ai-agent', 'ai-widget', 'ai-voice-assistant',
             'discovery', 'creators-feed', 'faqs',
             'about', 'contact',
@@ -1914,7 +1914,7 @@ class SitePagesContent
                     ['name' => 'Commerce blocks', 'description' => 'Sell products, accept payments, take tips, and showcase services right inside the Link in Bio.'],
                     ['name' => 'Contact & lead blocks', 'description' => 'Drop in contact forms, booking requests, and lead capture fields without leaving the builder.'],
                     ['name' => 'Social & embed blocks', 'description' => 'Pull in social handles, feeds, maps, and third-party embeds in a single click.'],
-                    ['name' => 'Visual customization', 'description' => 'Fine-tune colors, fonts, backgrounds, button styles, and spacing for a fully on-brand look.'],
+                    ['name' => 'Visual customization', 'description' => 'Fine-tune colors, fonts, backgrounds, button styles, and spacing for a fully on-brand look: a Designs gallery of button looks, curated background presets and stock images, page stickers, and a live readability check.'],
                     ['name' => 'Splash pages', 'description' => 'Show a branded interstitial before visitors land on the main Link in Bio to set the mood or run announcements.'],
                 ],
             ],

@@ -15,7 +15,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import {
   type WalletBalance,
-  type WalletTransaction,
+  type WalletLedgerDay,
+  type WalletLedgerSummary,
   wallet as walletApi,
 } from "@/lib/api";
 import { showAlert } from "@/lib/webAlert";
@@ -27,18 +28,20 @@ export default function WalletScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [balance, setBalance] = useState<WalletBalance | null>(null);
-  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [days, setDays] = useState<WalletLedgerDay[]>([]);
+  const [summary, setSummary] = useState<WalletLedgerSummary | null>(null);
 
   const load = useCallback(async () => {
     try {
       // Buying coins lives on its own /coin-packages screen now, so the
-      // wallet view focuses purely on balance + history.
+      // wallet view focuses purely on balance + the day-by-day ledger.
       const [bal, tx] = await Promise.all([
         walletApi.balance(),
-        walletApi.transactions({ limit: 15 }),
+        walletApi.transactions({ limit: 100 }),
       ]);
       setBalance(bal);
-      setTransactions(tx.items);
+      setDays(tx.days ?? []);
+      setSummary(tx.summary ?? null);
     } catch (e: unknown) {
       const err = e as { status?: number; message?: string } | undefined;
       if (err?.status === 404) {
@@ -133,58 +136,122 @@ export default function WalletScreen() {
           <Feather name="chevron-right" size={18} color={colors.primary} />
         </Pressable>
 
+        {summary && (
+          <View style={styles.tilesRow}>
+            <View
+              style={[
+                styles.tile,
+                { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+              ]}
+            >
+              <Text style={[styles.tileLabel, { color: colors.mutedForeground }]}>Purchased</Text>
+              <Text style={[styles.tileValue, { color: colors.success }]}>
+                +{summary.coins_in.toLocaleString()}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.tile,
+                { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+              ]}
+            >
+              <Text style={[styles.tileLabel, { color: colors.mutedForeground }]}>Spent</Text>
+              <Text style={[styles.tileValue, { color: colors.destructive }]}>
+                −{summary.coins_out.toLocaleString()}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.tile,
+                { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+              ]}
+            >
+              <Text style={[styles.tileLabel, { color: colors.mutedForeground }]}>Net</Text>
+              <Text
+                style={[
+                  styles.tileValue,
+                  { color: summary.net >= 0 ? colors.success : colors.destructive },
+                ]}
+              >
+                {summary.net >= 0 ? "+" : ""}
+                {summary.net.toLocaleString()}
+              </Text>
+            </View>
+          </View>
+        )}
+
         <View>
-          <Text style={[styles.section, { color: colors.foreground }]}>Recent transactions</Text>
-          {transactions.length === 0 ? (
+          <Text style={[styles.section, { color: colors.foreground }]}>Coin ledger</Text>
+          {days.length === 0 ? (
             <Text style={[styles.subtle, { color: colors.mutedForeground }]}>
               No transactions yet.
             </Text>
           ) : (
-            <View
-              style={[
-                styles.txList,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  borderRadius: colors.radius,
-                },
-              ]}
-            >
-              {transactions.map((tx, i) => (
-                <View
-                  key={tx.id}
-                  style={[
-                    styles.txRow,
-                    {
-                      borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
-                      borderTopColor: colors.border,
-                    },
-                  ]}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.txType, { color: colors.foreground }]}>{tx.type}</Text>
-                    {tx.reason ? (
-                      <Text
-                        style={[styles.subtle, { color: colors.mutedForeground }]}
-                        numberOfLines={1}
-                      >
-                        {tx.reason}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <View style={{ alignItems: "flex-end" }}>
+            <View style={{ gap: 14 }}>
+              {days.map((day) => (
+                <View key={day.date}>
+                  <View style={styles.dayHeader}>
+                    <Text style={[styles.dayTitle, { color: colors.foreground }]}>
+                      {formatDay(day.date)}
+                    </Text>
                     <Text
                       style={[
-                        styles.txDelta,
-                        { color: tx.delta_coins >= 0 ? colors.success : colors.destructive },
+                        styles.dayNet,
+                        { color: day.net >= 0 ? colors.success : colors.destructive },
                       ]}
                     >
-                      {tx.delta_coins >= 0 ? "+" : ""}
-                      {tx.delta_coins.toLocaleString()}
+                      {day.net >= 0 ? "+" : ""}
+                      {day.net.toLocaleString()}
                     </Text>
-                    <Text style={[styles.subtle, { color: colors.mutedForeground }]}>
-                      bal {tx.balance_after.toLocaleString()}
-                    </Text>
+                  </View>
+                  <Text style={[styles.subtle, { color: colors.mutedForeground, marginBottom: 6 }]}>
+                    In +{day.coins_in.toLocaleString()} · Out −{day.coins_out.toLocaleString()}
+                  </Text>
+                  <View
+                    style={[
+                      styles.txList,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        borderRadius: colors.radius,
+                      },
+                    ]}
+                  >
+                    {day.items.map((tx, i) => (
+                      <View
+                        key={tx.id}
+                        style={[
+                          styles.txRow,
+                          {
+                            borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                            borderTopColor: colors.border,
+                          },
+                        ]}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.txType, { color: colors.foreground }]}>
+                            {tx.reason ?? tx.type}
+                          </Text>
+                          <Text style={[styles.subtle, { color: colors.mutedForeground }]}>
+                            {formatTime(tx.created_at)} · {tx.type}
+                          </Text>
+                        </View>
+                        <View style={{ alignItems: "flex-end" }}>
+                          <Text
+                            style={[
+                              styles.txDelta,
+                              { color: tx.delta_coins >= 0 ? colors.success : colors.destructive },
+                            ]}
+                          >
+                            {tx.delta_coins >= 0 ? "+" : ""}
+                            {tx.delta_coins.toLocaleString()}
+                          </Text>
+                          <Text style={[styles.subtle, { color: colors.mutedForeground }]}>
+                            bal {tx.balance_after.toLocaleString()}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
                   </View>
                 </View>
               ))}
@@ -194,6 +261,30 @@ export default function WalletScreen() {
       </ScrollView>
     </View>
   );
+}
+
+function formatDay(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  const today = new Date();
+  const sameDay =
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate();
+  const label = d.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  return sameDay ? `Today · ${label}` : label;
+}
+
+function formatTime(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
 const styles = StyleSheet.create({
@@ -213,6 +304,13 @@ const styles = StyleSheet.create({
   },
   pkgName: { fontSize: 15, fontWeight: "600" },
   price: { fontSize: 16, fontWeight: "700" },
+  tilesRow: { flexDirection: "row", gap: 10 },
+  tile: { flex: 1, padding: 12, borderWidth: 1, gap: 2 },
+  tileLabel: { fontSize: 10, textTransform: "uppercase", letterSpacing: 0.8 },
+  tileValue: { fontSize: 16, fontWeight: "700" },
+  dayHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  dayTitle: { fontSize: 13, fontWeight: "700" },
+  dayNet: { fontSize: 13, fontWeight: "700" },
   txList: { borderWidth: 1, paddingVertical: 4 },
   txRow: { flexDirection: "row", alignItems: "center", padding: 14, gap: 10 },
   txType: { fontSize: 13, fontWeight: "600", textTransform: "capitalize" },

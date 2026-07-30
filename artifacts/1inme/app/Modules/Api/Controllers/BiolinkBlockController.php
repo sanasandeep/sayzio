@@ -71,9 +71,47 @@ class BiolinkBlockController extends Controller
             }
         }
 
+        // Admin-managed Designs catalog additions (Task #6045). The mobile
+        // editor keeps its hardcoded built-in mirror and merges this on
+        // top: `custom` entries are appended per matching type, `hidden`
+        // keys are filtered out of the gallery, and `version` keys the
+        // client cache so admin edits refresh without an app update.
+        $customVariants = [];
+        foreach (\App\Modules\User\Support\AdminBlockDesigns::customVariants() as $v) {
+            if (empty($v['enabled'])) continue;
+            $shaped = \App\Modules\User\Support\AdminBlockDesigns::variantForCatalog($v);
+            $customVariants[] = [
+                'key'     => $shaped['key'],
+                'name'    => $shaped['name'],
+                'tags'    => $shaped['tags'],
+                'shape'   => $shaped['shape'],
+                'types'   => array_values(array_filter((array) ($v['types'] ?? []))),
+                'preview' => $shaped['preview'],
+            ];
+        }
+
+        $customTemplates = [];
+        foreach (\App\Modules\User\Support\AdminBlockDesigns::customTemplates() as $key => $tpl) {
+            if (empty($tpl['enabled'])) continue;
+            $customTemplates[] = [
+                'key'          => $key,
+                'label'        => (string) ($tpl['label'] ?? $key),
+                'icon'         => (string) ($tpl['icon'] ?? 'fa-swatchbook'),
+                'preview_bg'   => (string) ($tpl['preview_bg'] ?? '#1a1a2e'),
+                'preview_text' => (string) ($tpl['preview_text'] ?? '#fff'),
+            ];
+        }
+
         return $this->ok([
-            'categories' => $categories,
-            'types'      => $types,
+            'categories'     => $categories,
+            'types'          => $types,
+            'design_catalog' => [
+                'version'          => \App\Modules\User\Support\BlockVariantCatalog::version(),
+                'hidden'           => \App\Modules\User\Support\AdminBlockDesigns::hiddenVariantKeys(),
+                'custom'           => $customVariants,
+                'hidden_templates' => \App\Modules\User\Support\AdminBlockDesigns::hiddenTemplateKeys(),
+                'custom_templates' => $customTemplates,
+            ],
         ]);
     }
 
@@ -127,6 +165,19 @@ class BiolinkBlockController extends Controller
             }
         }
 
+        // Seed `_style` only when the caller didn't supply one — web-editor
+        // parity (Task #6042): template "Default colors" layer on top of the
+        // platform defaults so blocks added from mobile look on-theme too.
+        // Empty defaults = inherit; per-block edits (a client-sent _style)
+        // still win.
+        if (!isset($settings['_style']) || !is_array($settings['_style']) || $settings['_style'] === []) {
+            $settings['_style'] = array_merge(
+                BiolinkBlock::STYLE_DEFAULTS,
+                \App\Modules\User\Support\BlockDefaults::styleForType($data['type']),
+                \App\Modules\User\Support\TemplateDefaultColors::styleFor($link, $data['type'])
+            );
+        }
+
         // Design lock parity with the web editor: on a locked page a new
         // block's `_style` is always seeded server-side from the template's
         // styling for its type — any client-sent style is ignored.
@@ -134,6 +185,7 @@ class BiolinkBlockController extends Controller
             $settings['_style'] = array_merge(
                 BiolinkBlock::STYLE_DEFAULTS,
                 \App\Modules\User\Support\BlockDefaults::styleForType($data['type']),
+                \App\Modules\User\Support\TemplateDefaultColors::styleFor($link, $data['type']),
                 $link->designLockStyleFor($data['type']) ?? []
             );
             unset($settings['_style_custom_snapshot']);

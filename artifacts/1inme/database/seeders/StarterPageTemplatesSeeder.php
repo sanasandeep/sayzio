@@ -151,7 +151,7 @@ class StarterPageTemplatesSeeder extends Seeder
                 'description'          => 'A friendly all-in-one personal page: profile, socials, your top links and a way to reach you.',
                 'recommended_personas' => ['other', 'student', 'freelancer'],
                 'snapshot'             => $this->snapshot([
-                    $this->profile('Your Name', 'A little about you — what you do, what you love, and where people can find you.', $this->face('starter-personal-face'), $kits['personal']),
+                    $this->profile('Your Name', 'A little about you: what you do, what you love, and where people can find you.', $this->face('starter-personal-face'), $kits['personal']),
                     $this->socials(),
                     // Block-level catalog preset showcase (Task #5970).
                     $this->withPreset($this->link('My latest project', 'https://example.com/project', 'fas fa-rocket', $kits['personal']), 'abstract_fourtyfive', 80),
@@ -183,7 +183,7 @@ class StarterPageTemplatesSeeder extends Seeder
                 'description'          => 'A bold creator page with a cover hero, big tappable links, a highlight reel and an email capture-style CTA.',
                 'recommended_personas' => ['creator', 'influencer', 'youtuber'],
                 'snapshot'             => $this->snapshot([
-                    $this->profile('Your Name', 'Creator. Storyteller. New drops every week — everything I make lives here.', $this->face('starter-linkbio-face'), $kits['linkbio'], $this->photo('creative,lifestyle', 1200, 480, 'starter-linkbio-cover')),
+                    $this->profile('Your Name', 'Creator. Storyteller. New drops every week: everything I make lives here.', $this->face('starter-linkbio-face'), $kits['linkbio'], $this->photo('creative,lifestyle', 1200, 480, 'starter-linkbio-cover')),
                     $this->badge('NEW DROP', '#ec4899'),
                     $this->linkBig('Watch my latest video', 'https://youtube.com/@yourhandle', 'fab fa-youtube', $kits['linkbio']),
                     $this->linkBig('Shop the merch', 'https://example.com/shop', 'fas fa-bag-shopping', $kits['linkbio']),
@@ -217,9 +217,9 @@ class StarterPageTemplatesSeeder extends Seeder
                     $this->profile('Your Restaurant', 'Seasonal plates, natural wine, and a room that feels like home. Walk-ins welcome.', $this->face('starter-restaurant-face'), $kits['restaurant'], $this->photo('restaurant-hero', 1200, 480, 'starter-restaurant-cover')),
                     $this->ticker(['Open Tue–Sun · 12:00–23:00', 'Happy hour 17:00–19:00', 'Private dining available']),
                     $this->tabs([
-                        ['label' => 'Starters', 'text' => 'Burrata & blood orange — 12. Crispy artichokes — 10. Sourdough & cultured butter — 6.'],
-                        ['label' => 'Mains',    'text' => 'Wood-fired sea bass — 28. Short rib agnolotti — 24. Charred cauliflower steak — 19.'],
-                        ['label' => 'Dessert',  'text' => 'Burnt basque cheesecake — 9. Olive-oil gelato — 7.'],
+                        ['label' => 'Starters', 'text' => 'Burrata & blood orange: 12. Crispy artichokes: 10. Sourdough & cultured butter: 6.'],
+                        ['label' => 'Mains',    'text' => 'Wood-fired sea bass: 28. Short rib agnolotti: 24. Charred cauliflower steak: 19.'],
+                        ['label' => 'Dessert',  'text' => 'Burnt basque cheesecake: 9. Olive-oil gelato: 7.'],
                     ]),
                     $this->listPricing([
                         ['name' => 'Tasting menu (5 courses)', 'price' => '$65'],
@@ -231,7 +231,7 @@ class StarterPageTemplatesSeeder extends Seeder
                         $this->photo('restaurant-2', 600, 600, 'starter-restaurant-g2'),
                         $this->photo('restaurant-3', 600, 600, 'starter-restaurant-g3'),
                     ], 3),
-                    $this->review('Amelia R.', 5, 'Best table in town — the tasting menu is worth every penny.', $this->face('starter-restaurant-review')),
+                    $this->review('Amelia R.', 5, 'Best table in town, the tasting menu is worth every penny.', $this->face('starter-restaurant-review')),
                     $this->whatsapp('+15551234567', 'Reserve on WhatsApp', 'Hi! I\'d like to book a table.'),
                     $this->link('See the full menu (PDF)', 'https://example.com/menu.pdf', 'fas fa-utensils', $kits['restaurant']),
                 ], [
@@ -255,7 +255,7 @@ class StarterPageTemplatesSeeder extends Seeder
                 'snapshot'             => $this->snapshot([
                     $this->profile('The Big Night', 'One evening. Live music, great food, and people worth meeting. Save your seat below.', $this->face('starter-event-face'), $kits['event'], $this->photo('concert,event', 1200, 480, 'starter-event-cover')),
                     $this->countdown('Doors open in', '+21 days'),
-                    $this->ctaButton('RSVP — it\'s free', 'https://example.com/rsvp', '#3d6bff'),
+                    $this->ctaButton('RSVP: it\'s free', 'https://example.com/rsvp', '#3d6bff'),
                     $this->heading('Schedule'),
                     $this->timeline([
                         ['title' => 'Doors & welcome drinks', 'description' => 'Grab a badge and settle in.',            'date' => '6:00 PM'],
@@ -265,7 +265,7 @@ class StarterPageTemplatesSeeder extends Seeder
                     $this->faq([
                         ['question' => 'Where is it?',        'answer' => 'The Warehouse, 42 River St. Doors at 6 PM sharp.'],
                         ['question' => 'Is there parking?',   'answer' => 'Street parking plus a paid lot next door.'],
-                        ['question' => 'Can I bring a +1?',   'answer' => 'Yes — just add them to your RSVP.'],
+                        ['question' => 'Can I bring a +1?',   'answer' => 'Yes, just add them to your RSVP.'],
                     ]),
                     $this->link('Get directions', 'https://maps.google.com', 'fas fa-map-marker-alt', $kits['event']),
                 ], [
@@ -287,7 +287,7 @@ class StarterPageTemplatesSeeder extends Seeder
                 'description'          => 'A clean portfolio with a work grid, at-a-glance stats, client praise and a hire-me link.',
                 'recommended_personas' => ['artist', 'photographer', 'developer'],
                 'snapshot'             => $this->snapshot([
-                    $this->profile('Your Name', 'Designer & maker. Selected work below — currently booking new projects.', $this->face('starter-portfolio-face'), $kits['portfolio']),
+                    $this->profile('Your Name', 'Designer & maker. Selected work below: currently booking new projects.', $this->face('starter-portfolio-face'), $kits['portfolio']),
                     $this->stats('At a glance', [
                         ['value' => '9 yrs',  'label' => 'Experience'],
                         ['value' => '120+',   'label' => 'Projects shipped'],
@@ -304,7 +304,7 @@ class StarterPageTemplatesSeeder extends Seeder
                     ], 3),
                     $this->testimonialCarousel([
                         ['quote' => 'Sharp eye, fast turnaround, zero drama. We rebooked immediately.', 'name' => 'Jordan P.', 'title' => 'Brand Lead'],
-                        ['quote' => 'The work speaks for itself — our launch looked incredible.',       'name' => 'Sam K.',    'title' => 'Founder'],
+                        ['quote' => 'The work speaks for itself: our launch looked incredible.',       'name' => 'Sam K.',    'title' => 'Founder'],
                     ]),
                     $this->linkBig('View full portfolio', 'https://example.com/work', 'fas fa-images', $kits['portfolio']),
                     $this->link('Download my CV', 'https://example.com/cv.pdf', 'fas fa-file-arrow-down', $kits['portfolio']),
@@ -640,7 +640,7 @@ class StarterPageTemplatesSeeder extends Seeder
                 'slug'                 => 'starter-purple-split',
                 'name'                 => 'Purple Split',
                 'category'             => 'biolink',
-                'description'          => 'A bold purple split layout — oversized display name, italic serif tagline, and a portrait photo beside a stack of action-word links. Stacks to one column on mobile.',
+                'description'          => 'A bold purple split layout: oversized display name, italic serif tagline, and a portrait photo beside a stack of action-word links. Stacks to one column on mobile.',
                 'recommended_personas' => ['musician', 'creator', 'artist'],
                 'snapshot'             => $this->snapshot([
                     $this->block('heading', [

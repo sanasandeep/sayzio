@@ -95,7 +95,7 @@ class CardBrochureExtractionService
         // but adding/removing a file produces a new one.
         $hashes = array_map(fn ($f) => hash_file('sha256', $f->getRealPath()), $files);
         $bundleHash = hash('sha256', implode('|', $hashes));
-        $model    = $this->modelName();
+        $model    = $this->modelName($owner);
         // Hash the composite key so we always fit in the 96-char DB
         // column even when model names grow long. Prefix kept for
         // human-readable debugging in DB inspectors. The instruction is
@@ -190,7 +190,7 @@ class CardBrochureExtractionService
         }
 
         $ids   = array_map(fn ($f) => $f->id, $userFiles);
-        $model = $this->modelName();
+        $model = $this->modelName($owner);
         // Prefix "vaulted:" so idem keys from pre-vaulted files don't
         // collide with keys from fresh UploadedFile bundles. The
         // instruction is folded in so re-scanning the same vaulted files
@@ -544,9 +544,9 @@ class CardBrochureExtractionService
      * default to the same gpt-4o-mini fallback as every other feature
      * (which supports vision).
      */
-    public function modelName(): string
+    public function modelName(?User $user = null): string
     {
-        return AiEngineSettings::featureModel('card_scan');
+        return AiEngineSettings::featureModel('card_scan', $user);
     }
 
     /**

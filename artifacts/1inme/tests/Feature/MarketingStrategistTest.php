@@ -93,7 +93,7 @@ class MarketingStrategistTest extends TestCase
     {
         return User::factory()->create([
             'role' => 'user',
-            'plan_id' => $plan->id,
+            'plan_id' => ($plan ?? $this->plan())->id,
         ])->fresh();
     }
 
@@ -662,6 +662,50 @@ class MarketingStrategistTest extends TestCase
         $strategy = MarketingStrategy::where('user_id', $user->id)->firstOrFail();
         $this->assertSame(5, $strategy->depth());
         $this->assertSame('subscribers', $strategy->goal_metric);
+    }
+
+    /** metricValue counts the ACTUAL chosen metric, not clicks. */
+    public function test_metric_value_counts_subscribers_followers_orders_revenue(): void
+    {
+        $user = $this->makeUser();
+        $link = $this->biolink($user, 'metrics-' . Str::lower(Str::random(6)));
+        $now  = now();
+
+        \Illuminate\Support\Facades\DB::table('subscribers')->insert([
+            ['user_id' => $user->id, 'link_id' => $link->id, 'type' => 'email', 'email' => 'a@sub.test', 'status' => 'active', 'subscribed_at' => $now, 'created_at' => $now, 'updated_at' => $now],
+            ['user_id' => $user->id, 'link_id' => $link->id, 'type' => 'email', 'email' => 'b@sub.test', 'status' => 'active', 'subscribed_at' => $now, 'created_at' => $now, 'updated_at' => $now],
+            // Unsubscribed rows never count.
+            ['user_id' => $user->id, 'link_id' => $link->id, 'type' => 'email', 'email' => 'c@sub.test', 'status' => 'unsubscribed', 'subscribed_at' => $now, 'created_at' => $now, 'updated_at' => $now],
+        ]);
+
+        $follower = User::factory()->create(['role' => 'user']);
+        \Illuminate\Support\Facades\DB::table('follows')->insert([
+            'follower_id' => $follower->id, 'creator_id' => $user->id, 'created_at' => $now,
+        ]);
+
+        \Illuminate\Support\Facades\DB::table('store_orders')->insert([
+            ['menu_id' => 1, 'link_id' => $link->id, 'public_token' => Str::random(20), 'status' => 'new', 'subtotal' => 10, 'total' => 12.50, 'currency' => 'USD', 'created_at' => $now, 'updated_at' => $now],
+            // Cancelled orders never count.
+            ['menu_id' => 1, 'link_id' => $link->id, 'public_token' => Str::random(20), 'status' => 'cancelled', 'subtotal' => 99, 'total' => 99, 'currency' => 'USD', 'created_at' => $now, 'updated_at' => $now],
+        ]);
+        \Illuminate\Support\Facades\DB::table('restaurant_orders')->insert([
+            'menu_id' => 1, 'link_id' => $link->id, 'public_token' => Str::random(20), 'status' => 'new', 'subtotal' => 20, 'total' => 22.50, 'currency' => 'USD', 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        \Illuminate\Support\Facades\DB::table('product_orders')->insert([
+            ['buyer_user_id' => $follower->id, 'creator_user_id' => $user->id, 'link_id' => $link->id, 'public_token' => Str::random(20), 'status' => 'paid', 'subtotal_cents' => 500, 'currency' => 'USD', 'created_at' => $now, 'updated_at' => $now],
+            // Pending checkouts never charged the buyer.
+            ['buyer_user_id' => $follower->id, 'creator_user_id' => $user->id, 'link_id' => $link->id, 'public_token' => Str::random(20), 'status' => 'pending', 'subtotal_cents' => 900, 'currency' => 'USD', 'created_at' => $now, 'updated_at' => $now],
+        ]);
+
+        $svc = app(\App\Services\AI\Marketing\MarketingDiagnosisService::class);
+        $this->assertSame(2, $svc->metricValue($user, 'subscribers'));
+        $this->assertSame(1, $svc->metricValue($user, 'followers'));
+        // 1 store + 1 restaurant + 1 paid product order.
+        $this->assertSame(3, $svc->metricValue($user, 'orders'));
+        // 12.50 + 22.50 + 5.00 = 40.
+        $this->assertSame(40, $svc->metricValue($user, 'revenue'));
+        // No traffic at all, so clicks/views are honestly 0.
+        $this->assertSame(0, $svc->metricValue($user, 'views'));
     }
 
     /** Re-scoring recomputes a 0-100 scorecard from data and records history. */

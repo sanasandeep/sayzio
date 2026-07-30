@@ -1383,6 +1383,18 @@
                     you keep on hand and only spend when you need more than your plan includes.
                     No overage bills, no hard stops, no jumping to a bigger plan just for a busy week.
                 </p>
+                @php
+                    $pbUser = auth()->user();
+                    $pbOnPaid = $pbUser && ($pbUser->plan?->slug ?? 'free') !== 'free'
+                        && (\App\Services\Billing\CoinPlanBonus::PLAN_BONUS_PCT[$pbUser->plan?->slug] ?? 0) > 0;
+                    [$pbMin, $pbMax] = \App\Services\Billing\CoinPlanBonus::teaserRange();
+                @endphp
+                @unless($pbOnPaid)
+                    <div class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-400/30 text-sm text-blue-200">
+                        <i class="fas fa-gift"></i>
+                        Paid plans earn {{ $pbMin }}&ndash;{{ $pbMax }}% extra bonus coins on Pro packages and above.
+                    </div>
+                @endunless
             </div>
 
             {{-- ── "What are coins?" explainer — plain-language breakdown of the
@@ -1484,12 +1496,19 @@
                             @if($pkg->bonus_coins > 0)
                                 <div class="text-[11px] text-gray-500 mt-1">{{ number_format($pkg->coin_amount) }} base + <span class="text-amber-300">{{ number_format($pkg->bonus_coins) }} bonus</span></div>
                             @endif
+                            @php $planBonus = \App\Services\Billing\CoinPlanBonus::breakdownFor(auth()->user(), $pkg); @endphp
+                            @if($planBonus['plan_bonus_pct'] > 0)
+                                <div class="mt-2 inline-flex items-center gap-1.5 self-start px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-400/30 text-[11px] text-blue-300 font-semibold">
+                                    <i class="fas fa-gift"></i>
+                                    +{{ $planBonus['plan_bonus_pct'] }}% {{ $planBonus['plan_name'] }} plan bonus ({{ number_format($planBonus['plan_bonus_coins']) }} extra coins &mdash; {{ number_format($planBonus['total_with_plan_bonus']) }} total)
+                                </div>
+                            @endif
 
                             <div class="mt-3 rounded-lg bg-white/[0.03] border border-white/5 px-3 py-2">
                                 <div class="text-[10px] uppercase tracking-wider text-amber-300/80 font-bold mb-0.5">
                                     <i class="fas fa-bullseye"></i> Best for
                                 </div>
-                                <div class="text-xs text-gray-300 leading-snug">{{ $bestForFor($row) }}</div>
+                                <div class="text-xs text-gray-300 leading-snug">{{ $pkg->best_for ?: $bestForFor($row) }}</div>
                             </div>
 
                             @if($pkg->description)

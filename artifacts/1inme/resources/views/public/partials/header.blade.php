@@ -37,13 +37,19 @@
     $navProductCareer = [
         [route('site.resume-builder'), 'fa-file-lines', 'Résumé & Portfolio', 'Build a CV & portfolio link in 5 min', 'site.resume-builder'],
     ];
+    $navProductApps = [
+        [route('site.mobile-app'),    'fa-mobile-screen-button', 'Mobile app',        'Sayzio for Android & iPhone',        'site.mobile-app'],
+        [route('site.zio-dialer'),    'fa-phone',                'Zio Dialer',        'Smart Android dialer & caller ID',   'site.zio-dialer'],
+        [route('site.zio-browser'),   'fa-window-maximize',      'Zio Browser',       'Fast desktop browser, Mac & Windows','site.zio-browser'],
+        [route('site.zio-extension'), 'fa-puzzle-piece',         'Browser extension', 'Shorten links from any tab',         'site.zio-extension'],
+    ];
     $navSolutions = [
         [route('site.services'),                    'fa-bullseye',            'Use cases',              'For creators, brands, agencies & teams', 'site.services'],
         [route('site.compare.index'),               'fa-scale-balanced',      'Compare Sayzio',          'vs Linktree, Beacons, Bitly & more',    ['site.compare.index', 'site.compare.show']],
         [route('site.demos'),                       'fa-wand-magic-sparkles', 'See what you can build', 'Live demo of every link type',           'site.demos'],
         [route('site.discovery'),                   'fa-compass',             'Discover creators',      'Browse the public directory',            'site.discovery'],
         [route('site.creators-feed'),               'fa-stream',              'Creators feed',          'What the community is shipping',         'site.creators-feed'],
-        [route('site.buzz'),                        'fa-bullhorn',            'Buzz',                   'News, press & love',                     'site.buzz'],
+        [route('site.newsroom'),                    'fa-newspaper',           'Newsroom',               'News, press & love',                     'site.newsroom'],
         // Events entry: active state is owned by the dedicated Events pill, not the Solutions group.
         [route('events.index'),                     'fa-calendar-day',        'Events & RSVPs',         'Run launches with one link',             null],
         // Referrals is an anchor into the Features page — the plain Features top link owns that page's highlight.
@@ -71,7 +77,7 @@
         }
         return false;
     };
-    $productActive   = $anyNavActive([$navProductCore, $navProductAi, $navProductCareer], ['site.features']);
+    $productActive   = $anyNavActive([$navProductCore, $navProductAi, $navProductCareer, $navProductApps], ['site.features']);
     $solutionsActive = $anyNavActive([$navSolutions]) || $activeUseCase !== null;
     $topActive = [
         'features' => request()->routeIs('site.features'),
@@ -175,6 +181,21 @@
                                 <div class="px-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">Core product</div>
                                 <div class="grid grid-cols-2 gap-1">
                                     @foreach($navProductCore as [$__href, $__icon, $__title, $__desc, $__routes])
+                                        @php $__active = $routeIs($__routes); @endphp
+                                        <a href="{{ $__href }}" @if($__active) aria-current="page" @endif class="group flex items-start gap-3 px-3 py-2.5 rounded-xl transition-colors {{ $__active ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-300 transition-transform group-hover:scale-110 {{ $__active ? 'ring-2 ring-blue-400/60' : '' }}">
+                                                <i class="fas {{ $__icon }} text-sm"></i>
+                                            </span>
+                                            <span class="min-w-0">
+                                                <span class="block text-sm font-semibold {{ $__active ? 'text-blue-400' : 'text-white' }}">{{ $__title }}</span>
+                                                <span class="block text-xs leading-snug text-gray-500">{{ $__desc }}</span>
+                                            </span>
+                                        </a>
+                                    @endforeach
+                                </div>
+                                <div class="px-1 pt-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">Apps &amp; downloads</div>
+                                <div class="grid grid-cols-2 gap-1">
+                                    @foreach($navProductApps as [$__href, $__icon, $__title, $__desc, $__routes])
                                         @php $__active = $routeIs($__routes); @endphp
                                         <a href="{{ $__href }}" @if($__active) aria-current="page" @endif class="group flex items-start gap-3 px-3 py-2.5 rounded-xl transition-colors {{ $__active ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}">
                                             <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-300 transition-transform group-hover:scale-110 {{ $__active ? 'ring-2 ring-blue-400/60' : '' }}">
@@ -374,7 +395,7 @@
                     <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform" :class="mobileGroup === 'm-product' ? 'rotate-180' : ''"></i>
                 </button>
                 <div x-show="mobileGroup === 'm-product'" x-collapse x-cloak class="px-2 pb-2 space-y-0.5">
-                    @foreach(array_merge($navProductCore, $navProductAi, $navProductCareer) as [$__href, $__icon, $__title, $__desc, $__routes])
+                    @foreach(array_merge($navProductCore, $navProductAi, $navProductCareer, $navProductApps) as [$__href, $__icon, $__title, $__desc, $__routes])
                         @php $__active = $routeIs($__routes); @endphp
                         <a href="{{ $__href }}" @click="mobileOpen=false" @if($__active) aria-current="page" @endif class="flex items-center gap-3 px-3 py-2 rounded-lg {{ $__active ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}">
                             <i class="fas {{ $__icon }} w-4 text-center text-blue-300 text-sm"></i>

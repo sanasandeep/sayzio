@@ -214,7 +214,7 @@ class CoachController extends Controller
         ];
 
         try {
-            $out = $this->ai->chat($request->user(), AiEngineSettings::featureModel('coach'), $messages, [
+            $out = $this->ai->chat($request->user(), AiEngineSettings::featureModel('coach', $request->user()), $messages, [
                 'feature'     => 'coach.suggest',
                 'related_id'  => $link->id,
                 'temperature' => 0.5,

@@ -2,6 +2,8 @@
 
 namespace App\Actions\Billing;
 
+use App\Modules\Admin\Models\CoinPackage;
+use App\Modules\Admin\Models\CoinPurchaseAllocation;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\BillingAddress;
 use App\Modules\User\Models\Invoice;
@@ -70,14 +72,36 @@ class ActivateSubscription
                     $totalCoins += (int) ($m['coins'] ?? 0) + (int) ($m['bonus'] ?? 0);
                     $packageId = $packageId ?? (int) ($m['coin_package_id'] ?? 0) ?: null;
                 }
+                // Plan-based bonus for Pro+ packages — resolved server-side
+                // at credit time from the buyer's active plan; never trusted
+                // from the invoice meta / client.
+                $planBonusCoins = 0;
+                $planBonusPct   = 0;
+                $package = $packageId ? CoinPackage::find($packageId) : null;
+                if ($package) {
+                    $planBonusPct   = \App\Services\Billing\CoinPlanBonus::percentFor($fresh->user, $package);
+                    $planBonusCoins = \App\Services\Billing\CoinPlanBonus::bonusCoinsFor($fresh->user, $package);
+                    $totalCoins    += $planBonusCoins;
+                }
                 if ($totalCoins > 0) {
+                    $reason = 'Coin pack purchase (invoice ' . $fresh->number . ')';
+                    if ($planBonusCoins > 0) {
+                        $reason .= ' incl. ' . number_format($planBonusCoins) . ' coins '
+                            . $planBonusPct . '% ' . ($fresh->user->plan?->name ?? 'plan') . ' plan bonus';
+                    }
                     app(WalletService::class)->credit($fresh->user, $totalCoins, [
-                        'reason'          => 'Coin pack purchase (invoice ' . $fresh->number . ')',
+                        'reason'          => $reason,
                         'invoice_id'      => $fresh->id,
                         'coin_package_id' => $packageId,
                         'idempotency_key' => 'invoice:' . $fresh->id,
+                        'meta'            => $planBonusCoins > 0 ? [
+                            'plan_bonus_pct'   => $planBonusPct,
+                            'plan_bonus_coins' => $planBonusCoins,
+                            'plan_slug'        => $fresh->user->plan?->slug,
+                        ] : null,
                     ]);
                 }
+                $this->recordCoinAllocation($fresh, $coinItems, $packageId, $totalCoins);
                 $fresh->forceFill([
                     'gateway' => $gateway,
                     'status'  => 'paid',
@@ -389,6 +413,47 @@ class ActivateSubscription
         $invoice = InvoiceService::issue($user, $calc, $address);
         $invoice->forceFill(['status' => 'pending', 'paid_at' => null])->save();
         return $invoice;
+    }
+
+    /**
+     * Snapshot the ADMIN-ONLY internal revenue split for a completed coin
+     * purchase: the coin line-items' collected amount (pre-tax, minor units)
+     * divided into API budget vs platform margin at the package's allocation
+     * percentages at this moment. One row per invoice — the unique
+     * invoice_id constraint plus the firstOrCreate makes webhook re-delivery
+     * a clean no-op. Runs inside the activation transaction, so a failure
+     * rolls back alongside the (idempotent) wallet credit and is retried on
+     * the next delivery.
+     */
+    protected function recordCoinAllocation(Invoice $invoice, array $coinItems, ?int $packageId, int $coins): void
+    {
+        $amountMinor = 0;
+        foreach ($coinItems as $ci) {
+            $amountMinor += (int) ($ci['amount_minor'] ?? 0) * max(1, (int) ($ci['quantity'] ?? 1));
+        }
+        if ($amountMinor <= 0) {
+            return; // Nothing collected (free/zero line) — no split to record.
+        }
+
+        $package = $packageId ? CoinPackage::find($packageId) : null;
+        $apiPct = $package ? $package->apiBudgetPct() : CoinPackage::DEFAULT_API_BUDGET_PCT;
+        $apiPct = max(0.0, min(100.0, $apiPct));
+        $apiMinor = (int) round($amountMinor * $apiPct / 100);
+
+        CoinPurchaseAllocation::firstOrCreate(
+            ['invoice_id' => $invoice->id],
+            [
+                'user_id'          => $invoice->user_id,
+                'coin_package_id'  => $packageId,
+                'coins'            => $coins,
+                'currency'         => $invoice->currency,
+                'amount_minor'     => $amountMinor,
+                'api_budget_pct'   => $apiPct,
+                'margin_pct'       => round(100.0 - $apiPct, 2),
+                'api_budget_minor' => $apiMinor,
+                'margin_minor'     => $amountMinor - $apiMinor,
+            ],
+        );
     }
 
     /**

@@ -52,15 +52,56 @@ class WalletController extends Controller
                 $q->where('type', $t);
             }
         }
-        $items = $q->limit($limit)->get()->map(fn($tx) => [
+        if ($from = $request->query('from')) {
+            $q->where('created_at', '>=', $from);
+        }
+        if ($to = $request->query('to')) {
+            $q->where('created_at', '<=', $to . ' 23:59:59');
+        }
+
+        // Period summary over the whole filtered range (not just the
+        // returned window) so the mobile statement can render totals.
+        $summaryRow = (clone $q)->reorder()
+            ->selectRaw('COALESCE(SUM(CASE WHEN delta_coins > 0 THEN delta_coins ELSE 0 END),0) AS coins_in,'
+                . 'COALESCE(SUM(CASE WHEN delta_coins < 0 THEN -delta_coins ELSE 0 END),0) AS coins_out,'
+                . 'COALESCE(SUM(delta_coins),0) AS net, COUNT(*) AS entries')
+            ->first();
+
+        $rows = $q->orderByDesc('created_at')->orderByDesc('id')->limit($limit)->get();
+        $mapTx = fn($tx) => [
             'id'            => $tx->id,
             'type'          => $tx->type,
             'delta_coins'   => (int) $tx->delta_coins,
             'balance_after' => (int) $tx->balance_after,
             'reason'        => $tx->reason,
             'created_at'    => optional($tx->created_at)->toIso8601String(),
-        ])->all();
-        return $this->ok(['items' => $items]);
+        ];
+        $items = $rows->map($mapTx)->all();
+
+        // Day-grouped statement: group the returned window by calendar day
+        // with per-day subtotals (computed from the same window).
+        $days = [];
+        foreach ($rows as $tx) {
+            $key = $tx->created_at ? $tx->created_at->format('Y-m-d') : 'unknown';
+            if (!isset($days[$key])) {
+                $days[$key] = ['date' => $key, 'coins_in' => 0, 'coins_out' => 0, 'net' => 0, 'items' => []];
+            }
+            $d = (int) $tx->delta_coins;
+            $days[$key]['net'] += $d;
+            if ($d >= 0) $days[$key]['coins_in'] += $d; else $days[$key]['coins_out'] += -$d;
+            $days[$key]['items'][] = $mapTx($tx);
+        }
+
+        return $this->ok([
+            'items'   => $items,
+            'days'    => array_values($days),
+            'summary' => [
+                'coins_in'  => (int) ($summaryRow->coins_in ?? 0),
+                'coins_out' => (int) ($summaryRow->coins_out ?? 0),
+                'net'       => (int) ($summaryRow->net ?? 0),
+                'entries'   => (int) ($summaryRow->entries ?? 0),
+            ],
+        ]);
     }
 
     public function packages(Request $request)
@@ -69,18 +110,24 @@ class WalletController extends Controller
         $user = $request->user();
         $currency = PricingResolver::currencyForUser($user);
         $items = CoinPackage::active()->ordered()->with('prices')->get()
-            ->map(function ($p) use ($currency) {
+            ->map(function ($p) use ($currency, $user) {
                 $priced = PricingResolver::priceForCurrency($p, $currency, 'monthly');
                 $current = (int) ($priced['amount_minor'] ?? 0);
                 $orig = $p->originalPriceDisplay($currency, $current);
+                $planBonus = \App\Services\Billing\CoinPlanBonus::breakdownFor($user, $p);
                 return [
                     'id'                    => $p->id,
                     'slug'                  => $p->slug,
                     'name'                  => $p->name,
                     'description'           => $p->description,
+                    'best_for'              => $p->best_for,
                     'coin_amount'           => (int) $p->coin_amount,
                     'bonus_coins'           => (int) $p->bonus_coins,
                     'total_coins'           => $p->totalCoins(),
+                    'plan_bonus_pct'        => $planBonus['plan_bonus_pct'],
+                    'plan_bonus_coins'      => $planBonus['plan_bonus_coins'],
+                    'plan_bonus_plan_name'  => $planBonus['plan_name'],
+                    'total_with_plan_bonus' => $planBonus['total_with_plan_bonus'],
                     'currency'              => $currency,
                     'amount_minor'          => $current,
                     'formatted'             => $priced['formatted'] ?? null,

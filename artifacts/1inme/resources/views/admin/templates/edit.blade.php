@@ -18,7 +18,7 @@
                         <i class="fas fa-wand-magic-sparkles mr-1.5 ak-blue" style="color:#90acff;"></i>Design editor
                     </div>
                     <div class="text-[11px] text-white/50 ak-note mt-0.5">
-                        Edit this template's background and blocks visually with a live preview — the same editor users get. Use "Save to template" inside the editor to publish the design to users.
+                        Edit this template's background and blocks visually with a live preview, the same editor users get. Use "Save to template" inside the editor to publish the design to users.
                     </div>
                 </div>
                 <a href="{{ route('admin.templates.design.session', ['id' => $tpl->id]) }}"

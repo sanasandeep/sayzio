@@ -1104,6 +1104,102 @@ uri = "file://artifacts/1inme/public/template-assets/floral-editorial-bg.png"
 type = "image"
 title = "floral editorial botanical background"
 
+[[generated]]
+id = "_HChaNuyk9hfuiibwbEc7"
+uri = "file://artifacts/1inme/public/images/marketing/extension/hero-desk.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "ltZnE1aiaEgf0wGs9ichb"
+uri = "file://artifacts/1inme/public/images/marketing/extension/workflow.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "0P67J9iYhYpwgrh9WRBaw"
+uri = "file://artifacts/1inme/public/images/marketing/extension/qr-share.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "-wb0hGLId279-Jqn_mdYO"
+uri = "file://artifacts/1inme/public/images/marketing/extension/campaign.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "1_x3eo3mpOw_lIMSC6UqK"
+uri = "file://artifacts/1inme/public/images/marketing/app/hero-creator.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "SjsUh2qG7ghCQ4ZfeYMm3"
+uri = "file://artifacts/1inme/public/images/marketing/app/analytics-hand.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "tjY8eaMcHxqZppH9AdhC9"
+uri = "file://artifacts/1inme/public/images/marketing/app/restaurant.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "OQYz5nk485qojvpb8uSiS"
+uri = "file://artifacts/1inme/public/images/marketing/app/inbox-couch.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "eRhqLEePPQ3ASg8TSVQMk"
+uri = "file://artifacts/1inme/public/images/marketing/dialer/hero-call.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "7mDJE-4V5uqeuGHihBfS8"
+uri = "file://artifacts/1inme/public/images/marketing/dialer/keypad-hand.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "vaVkV6c7XVQa2zxnn322h"
+uri = "file://artifacts/1inme/public/images/marketing/dialer/caller-id.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "ot1-XQMrCEgVa_gU_lns2"
+uri = "file://artifacts/1inme/public/images/marketing/dialer/sync-desk.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "OhcEuC8juE37jKLicVumP"
+uri = "file://artifacts/1inme/public/images/marketing/browser/hero-desktop.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "PP2djhYwLU04BUSzUDN8h"
+uri = "file://artifacts/1inme/public/images/marketing/browser/device-lab.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "kngYHNQ7o7o4AFGuzjUkv"
+uri = "file://artifacts/1inme/public/images/marketing/browser/focus.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "6LWKytc8HnCgp0p-T7ffW"
+uri = "file://artifacts/1inme/public/images/marketing/browser/profiles.png"
+type = "image"
+title = "generated_image"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"

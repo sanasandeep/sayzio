@@ -306,6 +306,14 @@
             <span class="sidebar-tooltip">Coin Packages</span>
         </a>
 
+        <a href="{{ route('admin.monetization.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.monetization.*') ? 'active' : '' }}"
+           style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-chart-pie"></i></div>
+            <span class="nav-label">Monetization</span>
+            <span class="sidebar-tooltip">Monetization Overview</span>
+        </a>
+
         <a href="{{ route('admin.wallet-settings.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.wallet-settings.*') ? 'active' : '' }}"
            style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
@@ -419,6 +427,14 @@
             <div class="nav-icon-wrap"><i class="fas fa-layer-group"></i></div>
             <span class="nav-label">Block Defaults</span>
             <span class="sidebar-tooltip">Block First-Paint Defaults</span>
+        </a>
+
+        <a href="{{ route('admin.block-designs.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.block-designs.*') ? 'active' : '' }}"
+           style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-palette"></i></div>
+            <span class="nav-label">Block Designs</span>
+            <span class="sidebar-tooltip">Designs Gallery &amp; Theme Presets</span>
         </a>
 
         {{-- ============ Marketing & Comms ============ --}}

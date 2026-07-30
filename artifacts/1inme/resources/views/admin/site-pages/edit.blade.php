@@ -173,6 +173,8 @@
             @error('meta_keywords')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
         </div>
 
+        @include('admin.site-pages.partials.share-image-field', ['page' => $page])
+
         @if($isPolicy)
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Intro paragraph</label>

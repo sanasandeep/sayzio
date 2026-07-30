@@ -174,7 +174,7 @@ assert.equal(tagColor("feature", colors), colors.primary);
 assert.equal(tagColor("fix", colors), colors.destructive);
 assert.equal(tagColor("improvement", colors), colors.success);
 assert.equal(tagColor("breaking", colors), "#f59e0b");
-assert.equal(tagColor("announcement", colors), "#8b5cf6");
+assert.equal(tagColor("announcement", colors), "#0ea5e9");
 assert.equal(tagColor(null, colors), colors.mutedForeground, "no tag falls back to muted");
 assert.equal(tagColor("unknown-future-tag", colors), colors.mutedForeground);
 ok("real tagColor maps every tag to its distinct color (muted fallback)");

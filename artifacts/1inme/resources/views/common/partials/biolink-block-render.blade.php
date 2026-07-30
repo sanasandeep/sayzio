@@ -792,6 +792,20 @@
                         };
                         $containerStyle = $bgStyle . ' padding:' . $pad . 'px; border-radius:' . $br . 'px; border:' . $bw . 'px solid ' . $bc . '; box-shadow:' . $shadow . ';';
                         $gridTemplate = 'repeat(' . $cols . ', 1fr)';
+                        // Task #6173: unified `_style` parity for card
+                        // containers. The unified picker's inline CSS is
+                        // appended AFTER the legacy chrome so any `_style`
+                        // property (background / borders / corners / shadow /
+                        // padding / margins / glass) overrides the legacy
+                        // declaration via CSS last-wins, while cards with no
+                        // `_style` keep rendering the legacy chrome exactly
+                        // as before. Horizontal margins are skipped — they
+                        // render on the top-level block wrap (Task #6114).
+                        $cardUnifiedStyle = \App\Modules\User\Models\BiolinkBlock::getBlockStyle($s, $globalTheme);
+                        $cardHasUnified = !empty($s['_style']) || (!empty($globalTheme) && ($globalTheme['apply_to_all'] ?? false));
+                        if ($cardHasUnified) {
+                            $containerStyle .= \App\Modules\User\Models\BiolinkBlock::buildInlineStyle($cardUnifiedStyle, true);
+                        }
                     } elseif ($isAutoGrid) {
                         // Auto-fit responsive grid — plain (no chrome). Columns are
                         // derived from a minimum item width; children wrap as space
@@ -852,17 +866,42 @@
                                 $childInline = \App\Modules\User\Models\BiolinkBlock::buildInlineStyle($childStyle);
                                 $childHasStyle = !empty($cs['_style']) || (!empty($globalTheme) && ($globalTheme['apply_to_all'] ?? false));
                                 $childIsBtnLike = in_array($childBlock->type, ['link', 'link_big', 'cta_button', 'button']);
-                                $childSkipWrap = in_array($childBlock->type, ['avatar', 'divider', 'spacer', 'social_icons']) || $childIsBtnLike;
+                                // Card containers apply their unified `_style`
+                                // on their own render div (Task #6173) — a
+                                // .block-styled wrap would double-apply it.
+                                $childSkipWrap = in_array($childBlock->type, ['avatar', 'divider', 'spacer', 'social_icons', 'card']) || $childIsBtnLike;
                                 $childBtnInline = ($childIsBtnLike && $childHasStyle) ? $childInline : '';
                                 // Fixed-column containers honour the child's grid_span;
                                 // auto-fit grids give every child a single cell.
                                 $childSpanRaw = intval($childStyle['grid_span'] ?? 12) ?: 12;
                                 $childSpan = $cols > 0 ? min(max(1, (int)round($childSpanRaw / 12 * $cols)), $cols) : 1;
+                                // Desktop width override (Task #6119): map the
+                                // child's grid_span_md onto this container's
+                                // column count and re-place it at/above 768px
+                                // via the shared .md-span rule (grid-column:
+                                // span var(--md-span)), same as top-level wraps.
+                                $childSpanMdRaw = intval($childStyle['grid_span_md'] ?? 0);
+                                $childSpanMd = ($childSpanMdRaw && $cols > 0) ? min(max(1, (int)round($childSpanMdRaw / 12 * $cols)), $cols) : 0;
+                                // Row spans (Task #6123): base `grid_row_span`
+                                // stretches the child across N container rows at
+                                // every width; `grid_row_span_md` overrides it
+                                // at/above 768px via the shared .md-row-span rule.
+                                $childRowSpan = intval($childStyle['grid_row_span'] ?? 0);
+                                $childRowSpanMd = intval($childStyle['grid_row_span_md'] ?? 0);
+                                $childWrapClass = trim(($childSpanMd ? 'biolink-block-wrap md-span' : '')
+                                    . ($childRowSpan ? ' row-span' : '')
+                                    . ($childRowSpanMd ? ' md-row-span' : ''));
+                                if (($childRowSpan || $childRowSpanMd) && !str_contains($childWrapClass, 'biolink-block-wrap')) {
+                                    $childWrapClass = trim('biolink-block-wrap ' . $childWrapClass);
+                                }
+                                $childWrapVars = ($childSpanMd ? " --md-span: {$childSpanMd};" : '')
+                                    . ($childRowSpan ? " --row-span: {$childRowSpan};" : '')
+                                    . ($childRowSpanMd ? " --md-row-span: {$childRowSpanMd};" : '');
                                 // Preset background layer for card/grid children
                                 // (Task #5970) — mirrors the top-level block wrap.
                                 $childPreset = \App\Modules\User\Models\BiolinkBlock::presetLayer($childStyle);
                             @endphp
-                            <div style="grid-column: span {{ $childSpan }};">
+                            <div class="{{ $childWrapClass }}" style="grid-column: span {{ $childSpan }};{{ $childWrapVars }}">
                             @if($childHasStyle && !$childSkipWrap)
                                 <div class="block-styled" style="{{ $childInline }}{{ $childPreset ? ';position:relative;isolation:isolate;overflow:hidden;' : '' }}">
                                 @if($childPreset)

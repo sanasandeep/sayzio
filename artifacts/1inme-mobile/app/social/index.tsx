@@ -24,7 +24,9 @@ import {
   disconnect,
   listConnections,
   listProofs,
+  type ProofNotification,
   refreshConnection,
+  type SocialProof,
   updateProof,
   updateSearchable,
 } from "@/lib/api/social";
@@ -35,6 +37,7 @@ export default function SocialScreen() {
   const qc = useQueryClient();
   const [showConnect, setShowConnect] = useState(false);
   const [showProof, setShowProof] = useState(false);
+  const [editing, setEditing] = useState<SocialProof | null>(null);
 
   const conns = useQuery({ queryKey: ["social", "conns"], queryFn: listConnections });
   const proofs = useQuery({ queryKey: ["social", "proofs"], queryFn: listProofs });
@@ -211,6 +214,13 @@ export default function SocialScreen() {
                 trackColor={{ true: colors.primary }}
               />
               <Pressable
+                onPress={() => setEditing(p)}
+                hitSlop={6}
+                style={{ paddingLeft: 8 }}
+              >
+                <Feather name="edit-2" size={16} color={colors.primary} />
+              </Pressable>
+              <Pressable
                 onPress={() =>
                   showAlert("Delete?", `Remove "${p.name}"?`, [
                     { text: "Cancel", style: "cancel" },
@@ -238,6 +248,14 @@ export default function SocialScreen() {
         onSubmit={async (p, h) => {
           await connectAccount({ platform: p, handle: h });
           qc.invalidateQueries({ queryKey: ["social", "conns"] });
+        }}
+      />
+      <EditProofModal
+        proof={editing}
+        onClose={() => setEditing(null)}
+        onSubmit={async (id, name, notifications) => {
+          await updateProof(id, { name, notifications });
+          qc.invalidateQueries({ queryKey: ["social", "proofs"] });
         }}
       />
       <ProofModal
@@ -373,13 +391,24 @@ function ProofModal({
 }: {
   visible: boolean;
   onClose: () => void;
-  types: { type: string; label: string }[];
+  types: { type: string; label: string; description?: string; group?: string }[];
   onSubmit: (name: string, type: string) => Promise<void>;
 }) {
   const colors = useColors();
   const [name, setName] = useState("");
   const [type, setType] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const groups: { group: string; items: typeof types }[] = [];
+  for (const t of types) {
+    const g = t.group || "Other";
+    let bucket = groups.find((x) => x.group === g);
+    if (!bucket) {
+      bucket = { group: g, items: [] };
+      groups.push(bucket);
+    }
+    bucket.items.push(t);
+  }
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -389,24 +418,52 @@ function ProofModal({
         </Text>
         <TextField label="Name" value={name} onChangeText={setName} placeholder="Holiday sale promo" />
         <ScrollView contentContainerStyle={{ gap: 8, paddingBottom: 8 }}>
-          {types.map((t) => (
-            <Pressable
-              key={t.type}
-              onPress={() => setType(t.type)}
-              style={[
-                styles.platformItem,
-                {
-                  backgroundColor:
-                    type === t.type ? colors.primary + "1c" : colors.card,
-                  borderColor: type === t.type ? colors.primary : colors.border,
-                  borderRadius: colors.radius,
-                },
-              ]}
-            >
-              <Text style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_500Medium" }}>
-                {t.label}
+          {groups.map((g) => (
+            <View key={g.group} style={{ gap: 8 }}>
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontFamily: "SpaceGrotesk_600SemiBold",
+                  fontSize: 11,
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                  marginTop: 6,
+                }}
+              >
+                {g.group}
               </Text>
-            </Pressable>
+              {g.items.map((t) => (
+                <Pressable
+                  key={t.type}
+                  onPress={() => setType(t.type)}
+                  style={[
+                    styles.platformItem,
+                    {
+                      backgroundColor:
+                        type === t.type ? colors.primary + "1c" : colors.card,
+                      borderColor: type === t.type ? colors.primary : colors.border,
+                      borderRadius: colors.radius,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_500Medium" }}>
+                    {t.label}
+                  </Text>
+                  {!!t.description && (
+                    <Text
+                      style={{
+                        color: colors.mutedForeground,
+                        fontFamily: "SpaceGrotesk_400Regular",
+                        fontSize: 12,
+                        marginTop: 2,
+                      }}
+                    >
+                      {t.description}
+                    </Text>
+                  )}
+                </Pressable>
+              ))}
+            </View>
           ))}
         </ScrollView>
         <View style={{ flexDirection: "row", gap: 10 }}>
@@ -423,6 +480,121 @@ function ProofModal({
                   await onSubmit(name.trim(), type);
                   setName("");
                   setType("");
+                  onClose();
+                } catch (e: any) {
+                  showAlert("Failed", e?.message ?? "Try again");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            />
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function EditProofModal({
+  proof,
+  onClose,
+  onSubmit,
+}: {
+  proof: SocialProof | null;
+  onClose: () => void;
+  onSubmit: (id: number, name: string, notifications: ProofNotification[]) => Promise<void>;
+}) {
+  const colors = useColors();
+  const [name, setName] = useState("");
+  const [notifs, setNotifs] = useState<ProofNotification[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [loadedFor, setLoadedFor] = useState<number | null>(null);
+
+  if (proof && loadedFor !== proof.id) {
+    setLoadedFor(proof.id);
+    setName(proof.name);
+    setNotifs(proof.notifications ?? []);
+  }
+  if (!proof && loadedFor !== null) {
+    setLoadedFor(null);
+  }
+
+  const setSetting = (ni: number, key: string, value: string) => {
+    setNotifs((prev) =>
+      prev.map((n, i) =>
+        i === ni ? { ...n, settings: { ...n.settings, [key]: value } } : n,
+      ),
+    );
+  };
+
+  const labelFor = (key: string) =>
+    key
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+
+  return (
+    <Modal
+      visible={!!proof}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <View style={{ flex: 1, backgroundColor: colors.background, padding: 20, gap: 14 }}>
+        <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+          Edit social proof
+        </Text>
+        <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 8 }}>
+          <TextField label="Name" value={name} onChangeText={setName} />
+          {notifs.map((n, ni) => {
+            const editableKeys = Object.keys(n.settings ?? {}).filter((k) => {
+              const v = n.settings[k];
+              return (
+                !k.startsWith("_") &&
+                (typeof v === "string" || typeof v === "number")
+              );
+            });
+            if (editableKeys.length === 0) return null;
+            return (
+              <View key={n.id} style={{ gap: 10 }}>
+                {notifs.length > 1 && (
+                  <Text
+                    style={{
+                      color: colors.mutedForeground,
+                      fontFamily: "SpaceGrotesk_600SemiBold",
+                      fontSize: 11,
+                      textTransform: "uppercase",
+                      letterSpacing: 1,
+                      marginTop: 6,
+                    }}
+                  >
+                    {n.name || n.type}
+                  </Text>
+                )}
+                {editableKeys.map((k) => (
+                  <TextField
+                    key={k}
+                    label={labelFor(k)}
+                    value={String(n.settings[k] ?? "")}
+                    onChangeText={(v) => setSetting(ni, k, v)}
+                  />
+                ))}
+              </View>
+            );
+          })}
+        </ScrollView>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <Button label="Cancel" variant="outline" onPress={onClose} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button
+              label={busy ? "Saving…" : "Save"}
+              disabled={busy || !proof || !name.trim()}
+              onPress={async () => {
+                if (!proof) return;
+                setBusy(true);
+                try {
+                  await onSubmit(proof.id, name.trim(), notifs);
                   onClose();
                 } catch (e: any) {
                   showAlert("Failed", e?.message ?? "Try again");

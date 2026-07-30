@@ -310,7 +310,7 @@
                     @endif
                     @if($tab === 'page' && ($tpl->design_locked ?? false))
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-300 ak-amber"
-                              title="Applying this template locks the page design — styling surfaces are hidden until the user detaches from the template.">
+                              title="Applying this template locks the page design: styling surfaces are hidden until the user detaches from the template.">
                             <i class="fas fa-lock mr-1 text-[9px]"></i>Design locked
                         </span>
                     @endif

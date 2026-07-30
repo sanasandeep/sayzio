@@ -98,8 +98,12 @@ class SocialAccountController extends Controller
         return $this->ok([
             'items' => $items->map(fn ($p) => $this->transformProof($p))->all(),
             'types' => collect(SocialProof::TYPES)->map(fn ($label, $type) => [
-                'type'  => $type,
-                'label' => $label,
+                'type'        => $type,
+                'label'       => $label,
+                'description' => SocialProof::TYPE_DESCRIPTIONS[$type] ?? '',
+                'icon'        => SocialProof::TYPE_ICONS[$type] ?? 'fa-bell',
+                'group'       => collect(SocialProof::TYPE_GROUPS)
+                    ->search(fn ($keys) => in_array($type, $keys, true)) ?: 'Other',
             ])->values()->all(),
         ]);
     }
@@ -143,9 +147,18 @@ class SocialAccountController extends Controller
         $p = SocialProof::where('user_id', $request->user()->id)->find($id);
         if (!$p) return $this->notFound('Social proof not found');
         $data = $request->validate([
-            'name'      => ['sometimes', 'string', 'max:120'],
-            'is_active' => ['sometimes', 'boolean'],
+            'name'          => ['sometimes', 'string', 'max:120'],
+            'is_active'     => ['sometimes', 'boolean'],
+            'notifications' => ['sometimes', 'array'],
+            'notifications.*' => ['array'],
         ]);
+        if (array_key_exists('notifications', $data)) {
+            $p->notifications = array_map(
+                fn ($n) => SocialProof::normalizeNotification(is_array($n) ? $n : []),
+                array_values($data['notifications'])
+            );
+            unset($data['notifications']);
+        }
         $p->fill($data)->save();
         return $this->ok(['proof' => $this->transformProof($p->fresh())]);
     }
@@ -189,6 +202,10 @@ class SocialAccountController extends Controller
             'impressions' => (int) $p->impressions,
             'clicks'      => (int) $p->clicks,
             'conversions' => (int) $p->conversions,
+            'notifications' => array_map(
+                fn ($n) => SocialProof::normalizeNotification(is_array($n) ? $n : []),
+                is_array($p->notifications) ? $p->notifications : []
+            ),
             'created_at'  => optional($p->created_at)->toIso8601String(),
         ];
     }

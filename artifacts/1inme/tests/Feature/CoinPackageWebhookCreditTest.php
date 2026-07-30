@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Actions\Billing\ActivateSubscription;
+use App\Modules\Admin\Models\CoinPackage;
+use App\Modules\Admin\Models\CoinPurchaseAllocation;
 use App\Modules\User\Models\Invoice;
 use App\Modules\User\Models\PaymentAttempt;
 use App\Modules\User\Models\User;
@@ -44,7 +46,7 @@ class CoinPackageWebhookCreditTest extends TestCase
      * shape that {@see \App\Modules\User\Controllers\WalletController} emits
      * at checkout: meta.kind='coin_package' with coins + bonus + package id.
      */
-    private function makeCoinInvoice(User $user, int $coins, int $bonus, int $packageId = 7): Invoice
+    private function makeCoinInvoice(User $user, int $coins, int $bonus, int $packageId = 999999): Invoice
     {
         return Invoice::create([
             'number'                   => 'INV/TEST/'.Str::upper(Str::random(8)),
@@ -90,6 +92,45 @@ class CoinPackageWebhookCreditTest extends TestCase
         $credits = WalletTransaction::where('user_id', $user->id)->where('type', 'purchase')->get();
         $this->assertCount(1, $credits, 'Exactly one credit transaction should exist.');
         $this->assertSame('invoice:'.$invoice->id, $credits->first()->idempotency_key);
+
+        // Admin-only allocation snapshot: the default package id points at a
+        // non-existent row, so the default 70% API budget applies to the
+        // $10.00 collected. (A fresh DB seeds the real lineup, so low ids
+        // would match a seeded package with its own pct.)
+        $alloc = CoinPurchaseAllocation::where('invoice_id', $invoice->id)->first();
+        $this->assertNotNull($alloc, 'Completed coin purchase must record an allocation snapshot.');
+        $this->assertSame(550, (int) $alloc->coins);
+        $this->assertSame('USD', $alloc->currency);
+        $this->assertSame(1000, (int) $alloc->amount_minor);
+        $this->assertSame(70.0, (float) $alloc->api_budget_pct);
+        $this->assertSame(30.0, (float) $alloc->margin_pct);
+        $this->assertSame(700, (int) $alloc->api_budget_minor);
+        $this->assertSame(300, (int) $alloc->margin_minor);
+    }
+
+    public function test_allocation_snapshot_uses_package_api_budget_pct(): void
+    {
+        $user = $this->makeUser();
+        $pkg  = CoinPackage::create([
+            'slug'           => 'coins-test-pro',
+            'name'           => 'Pro Test',
+            'coin_amount'    => 500,
+            'bonus_coins'    => 50,
+            'status'         => 'active',
+            'sort_order'     => 1,
+            'api_budget_pct' => 78,
+        ]);
+        $invoice = $this->makeCoinInvoice($user, coins: 500, bonus: 50, packageId: $pkg->id);
+
+        app(ActivateSubscription::class)->run($invoice, 'stripe', 'evt_pkg_pct');
+
+        $alloc = CoinPurchaseAllocation::where('invoice_id', $invoice->id)->firstOrFail();
+        $this->assertSame($pkg->id, (int) $alloc->coin_package_id);
+        $this->assertSame(78.0, (float) $alloc->api_budget_pct);
+        $this->assertSame(22.0, (float) $alloc->margin_pct);
+        $this->assertSame(780, (int) $alloc->api_budget_minor);
+        $this->assertSame(220, (int) $alloc->margin_minor);
+        $this->assertSame(1000, (int) $alloc->api_budget_minor + (int) $alloc->margin_minor, 'Split must sum to the collected amount.');
     }
 
     public function test_redelivered_activation_for_same_invoice_does_not_double_credit(): void
@@ -113,6 +154,11 @@ class CoinPackageWebhookCreditTest extends TestCase
             1,
             WalletTransaction::where('user_id', $user->id)->where('type', 'purchase')->get(),
             'Re-delivery must not write a second credit transaction.'
+        );
+        $this->assertSame(
+            1,
+            CoinPurchaseAllocation::where('invoice_id', $invoice->id)->count(),
+            'Re-delivery must not write a second allocation snapshot.'
         );
     }
 

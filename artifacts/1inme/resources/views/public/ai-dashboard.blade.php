@@ -39,7 +39,7 @@
     .aid-preset-card:hover { transform: translateY(-4px); border-color: rgba(61,107,255,.4); background: rgba(255,255,255,.05); }
     .aid-preset-icon {
         width:2.75rem; height:2.75rem; border-radius:.9rem; display:flex; align-items:center; justify-content:center;
-        background: linear-gradient(135deg, #3d6bff, #6e61ff); color:#fff; box-shadow: 0 14px 30px -12px rgba(61,107,255,.6);
+        background: linear-gradient(135deg, #3d6bff, #6e61ff, #22d3ee); color:#fff; box-shadow: 0 14px 30px -12px rgba(61,107,255,.6);
     }
     .aid-widget-chip {
         display:inline-block; font-size:.68rem; font-weight:600; color:#a5b4fc;

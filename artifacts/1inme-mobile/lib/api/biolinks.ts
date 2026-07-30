@@ -73,6 +73,12 @@ export type PageSticker = {
   rotation: number;
   scale: number;
   layer: "front" | "back";
+  /** 'fixed' pins to the viewport (default); 'scroll' moves with the page. */
+  position_mode?: "fixed" | "scroll";
+  /** Looping highlight effect; 'none' (default) disables it. */
+  animation?: "none" | "pulse" | "bounce" | "wiggle" | "spin" | "float" | "glow";
+  /** Animation repeat count: '1' | '3' | '5' | 'infinite' (default). */
+  loop?: string;
 };
 
 export type BiolinkAbTestInfo = {

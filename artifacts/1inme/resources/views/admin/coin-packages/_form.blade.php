@@ -17,6 +17,12 @@
         <textarea name="description" rows="2"
                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white ak-strong ak-input">{{ old('description', $package->description) }}</textarea>
     </div>
+    <div>
+        <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Best for <span class="text-white/30 ak-note">- short audience label, e.g. "Trying AI"</span></label>
+        <input type="text" name="best_for" maxlength="100" value="{{ old('best_for', $package->best_for) }}"
+               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white ak-strong ak-input">
+        @error('best_for')<p class="mt-1 text-sm text-red-400 ak-red">{{ $message }}</p>@enderror
+    </div>
     <div class="grid grid-cols-3 gap-4">
         <div>
             <label class="block text-xs text-white/60 mb-1 ak-muted">Coin amount</label>
@@ -86,6 +92,29 @@
         </div>
     </div>
     <p class="text-xs text-white/40 -mt-2 ak-note">Set a higher original price to show it struck through next to the live price (the classic discount look). Leave blank or 0 to hide it. Display-only, checkout always charges the live price.</p>
+    <div class="rounded-xl border border-amber-400/20 bg-amber-400/[0.04] p-4">
+        <label class="block text-sm font-medium text-white/80 mb-1 ak-strong"><i class="fas fa-lock mr-1 text-amber-300"></i>Internal allocation: API budget %</label>
+        <div class="flex items-center gap-3">
+            <input type="number" name="api_budget_pct" min="0" max="100" step="0.01"
+                   value="{{ old('api_budget_pct', $package->api_budget_pct) }}"
+                   class="w-36 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm ak-strong ak-input"
+                   data-alloc-pct>
+            <span class="text-sm text-white/60 ak-muted">Platform margin: <span class="font-semibold text-white ak-strong" data-alloc-margin>{{ $package->api_budget_pct !== null ? rtrim(rtrim(number_format(100 - $package->api_budget_pct, 2, '.', ''), '0'), '.') : '—' }}</span>%</span>
+        </div>
+        @error('api_budget_pct')<p class="mt-1 text-sm text-red-400 ak-red">{{ $message }}</p>@enderror
+        <p class="mt-2 text-[11px] text-white/40 ak-note">Hidden internal split of each sale: this % of the price is budgeted for API costs; the platform margin is always the remaining 100&nbsp;−&nbsp;X. Snapshotted on every completed purchase for the <a href="{{ route('admin.coin-packages.allocations') }}" class="text-blue-400 hover:underline ak-blue">allocation report</a>. Never shown to customers. Blank = default {{ \App\Modules\Admin\Models\CoinPackage::DEFAULT_API_BUDGET_PCT }}%.</p>
+    </div>
+    <script>
+        (function () {
+            var pct = document.querySelector('[data-alloc-pct]');
+            var out = document.querySelector('[data-alloc-margin]');
+            if (!pct || !out) return;
+            pct.addEventListener('input', function () {
+                var v = parseFloat(pct.value);
+                out.textContent = (isNaN(v) || v < 0 || v > 100) ? '—' : String(Math.round((100 - v) * 100) / 100);
+            });
+        })();
+    </script>
     <div>
         <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Status</label>
         <select name="status" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white ak-strong ak-input">

@@ -13,7 +13,7 @@
     $gtBorderStyles = ['none' => 'None', 'solid' => 'Solid', 'dashed' => 'Dashed', 'dotted' => 'Dotted', 'double' => 'Double'];
     $gtShadowTypes = ['none' => 'None', 'soft' => 'Soft', 'hard' => 'Hard', 'neon' => 'Neon Glow', 'glow' => 'Subtle Glow', 'neumorphic' => 'Neumorphic', 'inset' => 'Inner Shadow'];
     $gtEffects = ['none' => 'None', 'glass' => 'Glassmorphism', 'gradient_border' => 'Gradient Border'];
-    $gtTemplates = \App\Modules\User\Models\BiolinkBlock::BLOCK_TEMPLATES;
+    $gtTemplates = \App\Modules\User\Models\BiolinkBlock::blockTemplates();
     $btnStyle = $bs['button_style'] ?? 'rounded';
     $btnColor = $bs['button_color'] ?? '#3d6bff';
     $btnTextColor = $bs['button_text_color'] ?? '#ffffff';

@@ -25,7 +25,7 @@
     .nf-bell {
         width: 38px; height: 38px; border-radius: 12px; flex-shrink:0;
         display:flex; align-items:center; justify-content:center; color:#fff;
-        background: linear-gradient(135deg,#1bd4d9,#3d6bff);
+        background: linear-gradient(135deg,#3d6bff,#6e61ff,#22d3ee);
         box-shadow: 0 8px 22px -8px rgba(27,212,217,.7);
     }
     .nf-bell i { animation: nfRing 4s ease-in-out infinite; transform-origin: top center; }
@@ -130,7 +130,7 @@
                             <span class="nf-unread"></span>
                         </div>
                         <div class="nf-row">
-                            <span class="nf-ico" style="background:linear-gradient(135deg,#3d6bff,#6e61ff);"><i class="fas fa-utensils"></i></span>
+                            <span class="nf-ico" style="background:linear-gradient(135deg,#3d6bff,#6e61ff,#22d3ee);"><i class="fas fa-utensils"></i></span>
                             <div class="min-w-0">
                                 <div class="text-sm font-semibold text-white leading-tight">New order · Table 6</div>
                                 <div class="text-[11px] text-gray-500 mt-0.5">Push · 2m ago</div>

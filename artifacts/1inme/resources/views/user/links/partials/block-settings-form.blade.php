@@ -254,8 +254,8 @@ function linkBlockEditor(cfg) {
     $haSel = \App\Modules\User\Support\AccentShapeCatalog::parseTokens((string) ($haSt['_heading_accents'] ?? ''));
     $haOptions = \App\Modules\User\Support\AccentShapeCatalog::LABELS;
     $haPlacements = [
-        'behind_left'  => 'Behind — left',
-        'behind_right' => 'Behind — right',
+        'behind_left'  => 'Behind: left',
+        'behind_right' => 'Behind: right',
         'top_left'     => 'Top-left corner',
         'top_right'    => 'Top-right corner',
     ];
@@ -527,12 +527,40 @@ function linkBlockEditor(cfg) {
 </div>
 
 @elseif($block->type === 'badge')
-<div class="space-y-3">
+{{-- Accent/label contrast warning (Task #6051): mirrors the Default Colors tab
+     accent pair helper. Non-blocking — warns only, never prevents saving. --}}
+<div class="space-y-3" x-data="{
+    acBg: @js((string) ($s['color'] ?? '#3d6bff')),
+    acText: @js((string) ($s['text_color'] ?? '#ffffff')),
+    acLum(hex) {
+        const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+        if (!m) return null;
+        const n = parseInt(m[1], 16);
+        const chan = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+        return 0.2126 * chan((n >> 16) & 255) + 0.7152 * chan((n >> 8) & 255) + 0.0722 * chan(n & 255);
+    },
+    acRatio() {
+        const a = this.acLum(this.acText), b = this.acLum(this.acBg);
+        if (a === null || b === null) return null;
+        const hi = Math.max(a, b), lo = Math.min(a, b);
+        return (hi + 0.05) / (lo + 0.05);
+    },
+    acLow() { const r = this.acRatio(); return r !== null && r < 4.5; },
+    acFmt() { const r = this.acRatio(); return r === null ? '' : (Math.round(r * 10) / 10) + ':1'; }
+}">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#3d6bff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
-        <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+        <div><label class="{{ $labelClass }}">Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#3d6bff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" @input="acBg = $event.target.value"></div>
+        <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" @input="acText = $event.target.value"></div>
     </div>
+    <template x-if="acLow()">
+        <div class="flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium"
+             style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
+             data-testid="block-contrast-warning-accent">
+            <i class="fas fa-triangle-exclamation"></i>
+            <span>Low contrast (<span x-text="acFmt()"></span>): badge text may be hard to read on this color. Aim for at least 4.5:1.</span>
+        </div>
+    </template>
 </div>
 
 @elseif($block->type === 'image')
@@ -1153,13 +1181,41 @@ if (typeof window.resetPollVotes !== 'function') {
 </div>
 
 @elseif($block->type === 'cta_button')
-<div class="space-y-3">
+{{-- Accent/label contrast warning (Task #6051): mirrors the Default Colors tab
+     accent pair helper. Non-blocking — warns only, never prevents saving. --}}
+<div class="space-y-3" x-data="{
+    acBg: @js((string) ($s['color'] ?? '#3d6bff')),
+    acText: @js((string) ($s['text_color'] ?? '#ffffff')),
+    acLum(hex) {
+        const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+        if (!m) return null;
+        const n = parseInt(m[1], 16);
+        const chan = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+        return 0.2126 * chan((n >> 16) & 255) + 0.7152 * chan((n >> 8) & 255) + 0.0722 * chan(n & 255);
+    },
+    acRatio() {
+        const a = this.acLum(this.acText), b = this.acLum(this.acBg);
+        if (a === null || b === null) return null;
+        const hi = Math.max(a, b), lo = Math.min(a, b);
+        return (hi + 0.05) / (lo + 0.05);
+    },
+    acLow() { const r = this.acRatio(); return r !== null && r < 4.5; },
+    acFmt() { const r = this.acRatio(); return r === null ? '' : (Math.round(r * 10) / 10) + ':1'; }
+}">
     <div><label class="{{ $labelClass }}">Button Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Button Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#3d6bff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
-        <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+        <div><label class="{{ $labelClass }}">Button Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#3d6bff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" @input="acBg = $event.target.value"></div>
+        <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" @input="acText = $event.target.value"></div>
     </div>
+    <template x-if="acLow()">
+        <div class="flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium"
+             style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
+             data-testid="block-contrast-warning-accent">
+            <i class="fas fa-triangle-exclamation"></i>
+            <span>Low contrast (<span x-text="acFmt()"></span>): button text may be hard to read on this color. Aim for at least 4.5:1.</span>
+        </div>
+    </template>
     <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="sm" {{ ($s['size'] ?? '') === 'sm' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Small</option><option value="md" {{ ($s['size'] ?? '') === 'md' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Medium</option><option value="lg" {{ ($s['size'] ?? '') === 'lg' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Large</option></select></div>
 </div>
 
@@ -1401,7 +1457,7 @@ if (typeof window.resetPollVotes !== 'function') {
             <input type="hidden" name="style[_avatar_frame_color]" :value="fc">
             <input type="color" :value="fc || '#3d6bff'" @input="fc = $event.target.value" class="h-8 w-10 rounded cursor-pointer border border-white/10 bg-transparent p-0.5">
             <button type="button" x-show="fc !== ''" @click="fc = ''" class="text-xs text-blue-400 hover:text-blue-300">Reset to accent</button>
-            <span x-show="fc === ''" class="text-xs text-white/30">Auto — uses the design accent</span>
+            <span x-show="fc === ''" class="text-xs text-white/30">Auto: uses the design accent</span>
         </div>
     </div>
 </div>
@@ -1427,7 +1483,7 @@ if (typeof window.resetPollVotes !== 'function') {
 </div>
 
 @elseif($block->type === 'card')
-<div class="space-y-4" x-data="{ bgType: '{{ $s['bg_type'] ?? 'glass' }}' }">
+<div class="space-y-4">
     <div><label class="{{ $labelClass }}">Card Title (optional)</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}" placeholder="Optional section title"></div>
 
     <div class="grid grid-cols-2 gap-3">
@@ -1441,56 +1497,18 @@ if (typeof window.resetPollVotes !== 'function') {
         <div><label class="{{ $labelClass }}">Gap between items (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? '' }}" min="0" max="48" placeholder="Page default" class="{{ $inputClass }}"></div>
     </div>
 
-    <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Padding (px)</label><input type="number" name="settings[padding]" value="{{ $s['padding'] ?? 16 }}" min="0" max="64" class="{{ $inputClass }}"></div>
-        <div><label class="{{ $labelClass }}">Border Radius (px)</label><input type="number" name="settings[border_radius]" value="{{ $s['border_radius'] ?? 16 }}" min="0" max="48" class="{{ $inputClass }}"></div>
-    </div>
-
-    <div><label class="{{ $labelClass }}">Background Type</label>
-        <select name="settings[bg_type]" x-model="bgType" class="{{ $selectClass }}">
-            <option value="glass">Glassmorphism</option>
-            <option value="color">Solid Color</option>
-            <option value="gradient">Gradient</option>
-            <option value="image">Background Image</option>
-            <option value="transparent">Transparent</option>
-        </select>
-    </div>
-
-    <div x-show="bgType === 'color'" x-cloak>
-        <label class="{{ $labelClass }}">Background Color</label>
-        <input type="text" name="settings[bg_color]" value="{{ $s['bg_color'] ?? 'rgba(255,255,255,0.06)' }}" class="{{ $inputClass }}" placeholder="e.g. #1a1a2e or rgba(...)">
-    </div>
-
-    <div x-show="bgType === 'gradient'" x-cloak>
-        <label class="{{ $labelClass }}">CSS Gradient</label>
-        <input type="text" name="settings[bg_gradient]" value="{{ $s['bg_gradient'] ?? '' }}" class="{{ $inputClass }}" placeholder="linear-gradient(135deg, #3d6bff, #ec4899)">
-    </div>
-
-    <div x-show="bgType === 'image'" x-cloak>
-        <label class="{{ $labelClass }}">Image URL</label>
-        <input type="url" name="settings[bg_image]" value="{{ $s['bg_image'] ?? '' }}" class="{{ $inputClass }}" placeholder="https://...">
-    </div>
-
-    <div x-show="bgType === 'glass'" x-cloak class="space-y-3">
-        <div><label class="{{ $labelClass }}">Glass Blur (px)</label><input type="range" name="settings[glass_blur]" value="{{ $s['glass_blur'] ?? 12 }}" min="0" max="40" class="w-full accent-indigo-500"></div>
-        <div><label class="{{ $labelClass }}">Glass Opacity (%)</label><input type="range" name="settings[glass_opacity]" value="{{ $s['glass_opacity'] ?? 6 }}" min="0" max="30" class="w-full accent-indigo-500"></div>
-    </div>
-
-    <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Border Color</label><input type="text" name="settings[border_color]" value="{{ $s['border_color'] ?? 'rgba(255,255,255,0.08)' }}" class="{{ $inputClass }}"></div>
-        <div><label class="{{ $labelClass }}">Border Width (px)</label><input type="number" name="settings[border_width]" value="{{ $s['border_width'] ?? 1 }}" min="0" max="8" class="{{ $inputClass }}"></div>
-    </div>
-
-    <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Shadow</label>
-            <select name="settings[shadow]" class="{{ $selectClass }}">
-                @foreach(['none'=>'None','sm'=>'Small','md'=>'Medium','lg'=>'Large','xl'=>'Extra Large'] as $sv=>$sl)
-                <option value="{{ $sv }}" {{ ($s['shadow'] ?? 'none') === $sv ? 'selected' : '' }}>{{ $sl }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div><label class="{{ $labelClass }}">Shadow Color</label><input type="text" name="settings[shadow_color]" value="{{ $s['shadow_color'] ?? '#00000040' }}" class="{{ $inputClass }}"></div>
-    </div>
+    {{-- Task #6173: backgrounds, borders, corners, shadows, glass and
+         spacing are now edited via the unified Block Styling section
+         below (same picker as every other block). The legacy card style
+         keys ride along as hidden inputs so previously customized cards
+         keep rendering identically — the unified `_style` overrides them
+         property-by-property only where set. --}}
+    @foreach(['bg_type', 'bg_color', 'bg_gradient', 'bg_image', 'glass_blur', 'glass_opacity', 'padding', 'border_radius', 'border_color', 'border_width', 'shadow', 'shadow_color'] as $legacyKey)
+        @if(array_key_exists($legacyKey, $s))
+            <input type="hidden" name="settings[{{ $legacyKey }}]" value="{{ is_scalar($s[$legacyKey]) ? $s[$legacyKey] : '' }}">
+        @endif
+    @endforeach
+    <p class="text-xs" style="color: var(--text-faint);"><i class="fas fa-wand-magic-sparkles mr-1 text-pink-400"></i>Background, borders, shadow and spacing for this card are in <strong>Block Styling</strong> below.</p>
 </div>
 
 @elseif($block->type === 'grid')

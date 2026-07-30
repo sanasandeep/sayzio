@@ -67,7 +67,7 @@ ok(
 
 // Inline mode must not nest a ScrollView inside the list's ScrollView.
 ok(
-  /\{inline \? \(\s*\/\/[^\n]*\n[^\n]*\n\s*<View style=\{styles\.bodyInline\}>\{body\}<\/View>\s*\) : \(\s*<ScrollView contentContainerStyle=\{styles\.body\}>\{body\}<\/ScrollView>/.test(
+  /\{inline \? \(\s*\/\/[^\n]*\n[^\n]*\n\s*<View style=\{styles\.bodyInline\}>\{body\}<\/View>\s*\) : \(\s*<ScrollView(?:\s+ref=\{editorScrollRef\})?\s+contentContainerStyle=\{styles\.body\}>\{body\}<\/ScrollView>/.test(
     editorSrc,
   ),
   "inline mode renders a plain View; screen mode keeps its own ScrollView",

@@ -158,6 +158,45 @@ Event · AI / Chat.
 **Per-block styling.** 11 properties, 10 templates; image styling (10 mask shapes,
 borders, 6 shadows); trackable image-block destination links; per-block display
 rules (schedule/location/device/OS/browser/language); card container block.
+Unified per-block backgrounds: `_style.bg_color` (color OR gradient string) /
+`bg_image` / `bg_gradient` via `BlockStyleSanitizer`. Heading accents in
+`_style._heading_accents` (`AccentShapeCatalog`; color/placement/size);
+torn-paper block background (`background_type=torn` + `torn_paper_color`);
+container item `gap` (default 12). A client-side **WCAG contrast checker** runs
+in the block-style drawer and the admin Default Colors editor.
+
+**Button/link layouts.** `_style.link_layout` from `BlockVariantCatalog`
+(taped_note, text_divider, image_overhanging, title_desc_row,
+image_cover_square, image_cover + dark/polaroid/neon/arch variants); browsable
+Designs gallery with shape filters (card/pill/square/outline/plain_text/
+image_full). New placements need 4 lockstep surfaces: renderer branch,
+sanitizer allowlist (missing = silently stripped on save), catalog
+bundle/VERSION, mobile key mirror.
+
+**Profile cards.** `_style._profile_layout` adds paper_collage,
+portrait_poster, brand_rail, split_pill, badge_card; avatar frames
+`_style._avatar_frame` + `_avatar_frame_color` (`AvatarFrameCatalog`, mirrored
+in mobile `lib/avatarFrames.ts`); `hero_style`
+(glow/wave/grid/spotlight/aurora).
+
+**Stickers.** Page stickers in `settings.biolink.stickers` (max 10; kind
+emoji|image, x/y/rotation/scale/layer; `BiolinkStickers::sanitize`). Image
+blocks: `_style._photo_stickers` (`PhotoStickerSanitizer`; vault-owned files,
+size 24–160, offsets ±80) and `_style._photo_text_stickers` (max 10, 80-char
+text).
+
+**Backgrounds & stock assets.** Appearance presets: `_style.bg_preset_key` +
+`bg_preset_opacity` (0–100) from `GET /bg-presets`; admin background templates
+from `GET /bg-templates`; `settings.biolink.bg_attachment` (fixed|scroll —
+fixed renders on an iOS-safe viewport layer). Curated stock gallery served via
+`GET /platform-assets/{folder}` (`PlatformAssetController`); mobile parity via
+swatch thumbnails + native gallery pickers.
+
+**Design-locked templates.** `settings.biolink.design_locked` (template_id,
+palette, fixed_blocks) stamped by `StarterPageTemplatesSeeder` templates
+(seed-versioned; SVG thumbs at `/template-thumbs/{slug}.svg`); the fixed-block
+prefix is enforced in every position-mutation sink (update/reorder/move, web +
+API); detach via `POST /links/{id}/page-templates/detach`.
 
 **Block type gating.** `block_types` allowlist in plan features. Gating matches
 RAW block-type strings; never collapse aliases via `BlockTypeRegistry::canonical()`.
@@ -597,6 +636,18 @@ bridged to back-office Admin by email (`User::adminAccount`). An admin can
 **set a user's password** from the user editor; admin-set credentials work on
 the normal user login across web/API/mobile, and protected accounts block the
 change on every surface.
+
+**Block Designs & design assets.** `/admin/block-designs`
+(`BlockDesignsController`) — browse the button-layout catalog and add custom
+block designs (stored with an `adm_` key prefix) that surface in every user's
+Designs gallery. `AdminAssetController` runs the curated **Asset Vault** behind
+the editor Stock tab: folder uploads, bulk edit, resumable/cancellable ZIP
+import via `ProcessAdminAssetZipImportJob`. The admin **Default Colors** editor
+shares the client-side WCAG contrast checker with the user block-style drawer.
+
+**Versions & Releases.** `/admin/versions` (`VersionsController`) —
+`VersionRegistry` + `releases` table; release notes are Markdown rendered
+through `SafeHtml`.
 
 **Profile verification moderation.** Account-level verified badges with typed
 ticks: users apply with official name, purpose message and proof attachments;

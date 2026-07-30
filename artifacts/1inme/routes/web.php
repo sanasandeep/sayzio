@@ -230,6 +230,8 @@ Route::post  ('/sp/{uuid}/track', [\App\Modules\Common\Controllers\SocialProofPu
 Route::options('/sp/{uuid}/track',[\App\Modules\Common\Controllers\SocialProofPublicController::class, 'preflight'])->where('uuid', '[a-f0-9-]{36}');
 Route::post  ('/sp/{uuid}/subscribe', [\App\Modules\Common\Controllers\SocialProofPublicController::class, 'subscribe'])->name('sp.public.subscribe')->where('uuid', '[a-f0-9-]{36}')->middleware('throttle:30,1');
 Route::options('/sp/{uuid}/subscribe',[\App\Modules\Common\Controllers\SocialProofPublicController::class, 'preflight'])->where('uuid', '[a-f0-9-]{36}');
+Route::post  ('/sp/{uuid}/submit', [\App\Modules\Common\Controllers\SocialProofPublicController::class, 'submit'])->name('sp.public.submit')->where('uuid', '[a-f0-9-]{36}')->middleware('throttle:30,1');
+Route::options('/sp/{uuid}/submit',[\App\Modules\Common\Controllers\SocialProofPublicController::class, 'preflight'])->where('uuid', '[a-f0-9-]{36}');
 
 Route::get('/qr/link/{alias}', [PublicQrController::class, 'forLink'])->name('qr.public.link');
 Route::get('/qr/render', [PublicQrController::class, 'render'])->name('qr.public.render');
@@ -304,6 +306,7 @@ Route::middleware('brand.primary')->controller(\App\Modules\Common\Controllers\S
     Route::get('/creators-feed', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('creators-feed'))->name('site.creators-feed');
     Route::get('/workspace-team', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('workspace-team'))->name('site.workspace-team');
     Route::get('/buzz',           fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('buzz'))->name('site.buzz');
+    Route::get('/newsroom',       fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('newsroom'))->name('site.newsroom');
     Route::get('/ai-chatbot',         fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('ai-chatbot'))->name('site.ai-chatbot');
     Route::get('/ai-agent',           fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('ai-agent'))->name('site.ai-agent');
     Route::get('/ai-widget',          fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('ai-widget'))->name('site.ai-widget');
@@ -363,6 +366,26 @@ Route::middleware('brand.primary')->controller(\App\Modules\Common\Controllers\S
     // separate route below (outside this brand.primary group) so it works
     // on any domain without a redirect.
     Route::get('/android', [\App\Modules\Common\Controllers\AndroidApkPublicController::class, 'show'])->name('android.show');
+    // Standalone product marketing pages (Apps family). Download / store
+    // CTAs are admin-managed with automatic fallbacks — see
+    // Common\Support\ProductDownloadLinks. All four slugs are reserved in
+    // ReservedAlias so the /{alias} catch-all can never capture them.
+    Route::get('/dialer', fn () => view('public.zio-dialer', [
+        'seoKey' => 'zio-dialer',
+        'cta'    => \App\Modules\Common\Support\ProductDownloadLinks::dialer(),
+    ]))->name('site.zio-dialer');
+    Route::get('/browser', fn () => view('public.zio-browser', [
+        'seoKey' => 'zio-browser',
+        'cta'    => \App\Modules\Common\Support\ProductDownloadLinks::browser(),
+    ]))->name('site.zio-browser');
+    Route::get('/extension', fn () => view('public.zio-extension', [
+        'seoKey' => 'zio-extension',
+        'stores' => \App\Modules\Common\Support\ProductDownloadLinks::extension(),
+    ]))->name('site.zio-extension');
+    Route::get('/app', fn () => view('public.mobile-app', [
+        'seoKey' => 'mobile-app',
+        'cta'    => \App\Modules\Common\Support\ProductDownloadLinks::app(),
+    ]))->name('site.mobile-app');
     Route::get('/{slug}/history', [\App\Modules\Common\Controllers\SitePageController::class, 'history'])
         ->where('slug', 'terms|privacy|refunds|cookies|gdpr')
         ->name('site.policy.history');
@@ -549,7 +572,7 @@ Route::get('/{handle}/resume/v/{slug}.pdf',
 // allow-list of suffixes that does not include "resume").
 Route::get ('/{handle}/resume', [\App\Modules\Common\Controllers\PublicResumeController::class, 'show'])
     ->name('resume.public.show')
-    ->where('handle', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|whatsapp-agent|ai-marketing-strategist|ai-dashboard|docs|newsletter|pricing|coins|blogs|creators|feed|viewer|companion|embed|assistant|sp|r|analytics|audience|integrations|compare|for)[a-zA-Z0-9_\-\.]+$');
+    ->where('handle', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|newsroom|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|whatsapp-agent|ai-marketing-strategist|ai-dashboard|docs|newsletter|pricing|coins|blogs|creators|feed|viewer|companion|embed|assistant|sp|r|analytics|audience|integrations|compare|for)[a-zA-Z0-9_\-\.]+$');
 Route::post('/{handle}/resume', [\App\Modules\Common\Controllers\PublicResumeController::class, 'unlock'])
     ->name('resume.public.unlock')
     ->middleware('throttle:10,1')

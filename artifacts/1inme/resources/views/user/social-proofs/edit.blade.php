@@ -86,6 +86,10 @@ html.light-mode .bz-tpl-desc{color:#64748b}
     $design    = array_merge(\App\Modules\User\Models\SocialProof::defaultDesign(),    (array)($proof->design ?? []));
     $targeting = array_merge(\App\Modules\User\Models\SocialProof::defaultTargeting(), (array)($proof->targeting ?? []));
     $notifications = is_array($proof->notifications) ? $proof->notifications : [];
+    // Transparently alias legacy types (visitor_count/conversion_count →
+    // counter, email_signup/exit_offer → capture_prompt) so the editor always
+    // works with the consolidated catalog and the right mode preselected.
+    $notifications = array_map([\App\Modules\User\Models\SocialProof::class, 'normalizeNotification'], $notifications);
 @endphp
 
 <div id="bz-header" class="bz-scope mb-5 flex items-center justify-between">
@@ -174,6 +178,10 @@ html.light-mode .bz-tpl-desc{color:#64748b}
             <div>
                 <h3 class="text-white font-semibold text-sm">Notifications in this campaign</h3>
                 <p class="text-white/40 text-xs mt-0.5">Add as many notifications as you want. They'll all run on the embed and rotate based on their triggers.</p>
+                <a x-show="hasSubmissionTypes()" href="{{ route('user.social-proofs.submissions', $proof) }}"
+                   class="inline-flex items-center gap-1 text-xs text-blue-300 hover:text-blue-200 mt-1">
+                    <i class="fas fa-inbox"></i> View collected submissions
+                </a>
             </div>
             <button type="button" @click="openTypePicker = !openTypePicker" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium">
                 <i class="fas mr-1" :class="openTypePicker ? 'fa-times' : 'fa-plus'"></i>
@@ -203,7 +211,9 @@ html.light-mode .bz-tpl-desc{color:#64748b}
                                 class="bz-tpl text-left rounded-xl overflow-hidden transition group">
                             <div class="bz-tpl-preview" x-html="templatePreview('{{ $k }}')"></div>
                             <div class="bz-tpl-meta px-3 py-2.5">
-                                <div class="bz-tpl-label text-sm font-semibold">{{ \App\Modules\User\Models\SocialProof::TYPES[$k] }}</div>
+                                <div class="bz-tpl-label text-sm font-semibold">
+                                    <i class="fas {{ \App\Modules\User\Models\SocialProof::TYPE_ICONS[$k] ?? 'fa-bell' }} mr-1 text-blue-300/80"></i>{{ \App\Modules\User\Models\SocialProof::TYPES[$k] }}
+                                </div>
                                 <div class="bz-tpl-desc text-[11px] mt-0.5">{{ \App\Modules\User\Models\SocialProof::TYPE_DESCRIPTIONS[$k] ?? '' }}</div>
                             </div>
                         </button>
@@ -461,6 +471,7 @@ window.__BUZZ = {
     uuid: @json($proof->uuid),
     types: @json(\App\Modules\User\Models\SocialProof::TYPES),
     directoryBadgeTypes: @json(\App\Modules\User\Models\SocialProof::DIRECTORY_BADGE_TYPES),
+    submissionTypes: @json(\App\Modules\User\Models\SocialProof::SUBMISSION_TYPES),
     directoryBadgeId: @json($proof->directory_badge_notification_id),
     defaultsForUrl: null,
     defaults: @json(collect(array_keys(\App\Modules\User\Models\SocialProof::TYPES))->mapWithKeys(fn($t) => [$t => \App\Modules\User\Models\SocialProof::defaultSettingsFor($t)])),
@@ -483,6 +494,7 @@ function buzzEditor() {
         targeting: {...window.__BUZZ.targeting},
         directoryBadgeId: window.__BUZZ.directoryBadgeId || null,
         directoryBadgeTypes: window.__BUZZ.directoryBadgeTypes || [],
+        submissionTypes: window.__BUZZ.submissionTypes || [],
 
         init() {
             // Open the first notification by default
@@ -512,6 +524,10 @@ function buzzEditor() {
 
         typeLabel(t) { return this.types[t] || t; },
 
+        hasSubmissionTypes() {
+            return this.notifications.some(n => this.submissionTypes.indexOf(n.type) !== -1);
+        },
+
         isBadgeEligible(t) { return this.directoryBadgeTypes.indexOf(t) !== -1; },
 
         toggleDirectoryBadge(n) {
@@ -537,12 +553,9 @@ function buzzEditor() {
                 recent_activity:
                     '<div class="tpl-card"><div class="tpl-avatar">SR</div>'+
                     '<div class="tpl-body"><div class="tpl-t1">Sarah from NYC</div><div class="tpl-t2">just signed up · 2m ago</div></div></div>',
-                visitor_count:
+                counter:
                     '<div class="tpl-card"><span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;animation:pulse 2s infinite"></span>'+
-                    '<div class="tpl-body"><div class="tpl-t1">23 people viewing</div><div class="tpl-t2">right now</div></div></div>',
-                conversion_count:
-                    '<div class="tpl-card"><div class="tpl-avatar" style="background:linear-gradient(135deg,#34d399,#059669)">✓</div>'+
-                    '<div class="tpl-body"><div class="tpl-t1">142 purchases</div><div class="tpl-t2">in the last 24 hours</div></div></div>',
+                    '<div class="tpl-body"><div class="tpl-t1">23 people viewing</div><div class="tpl-t2">live visitors or conversions</div></div></div>',
                 social_followers:
                     '<div class="tpl-card"><div class="tpl-avatar" style="background:#1da1f2">𝕏</div>'+
                     '<div class="tpl-body"><div class="tpl-t1">12.4k followers</div><div class="tpl-t2">join us on social</div></div></div>',
@@ -556,13 +569,10 @@ function buzzEditor() {
                     '<div style="font-size:14px;color:#3d6bff;line-height:1">"</div>'+
                     '<div class="tpl-t2" style="font-style:italic;color:#0f172a">A total game-changer for our team.</div>'+
                     '<div class="tpl-t2" style="margin-top:3px"> - Alex K.</div></div></div>',
-                email_signup:
+                capture_prompt:
                     '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px"><div class="tpl-t1">Get 10% off</div>'+
-                    '<div style="display:flex;gap:4px"><div style="flex:1;height:18px;background:#f1f5f9;border-radius:4px"></div><div style="height:18px;padding:0 8px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center">Join</div></div></div>',
-                exit_offer:
-                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px;border:2px solid #3d6bff">'+
-                    '<div class="tpl-t1" style="color:#3d6bff">Wait! Don\'t leave</div>'+
-                    '<div class="tpl-t2">Take 15% off your order</div></div>',
+                    '<div style="display:flex;gap:4px"><div style="flex:1;height:18px;background:#f1f5f9;border-radius:4px"></div><div style="height:18px;padding:0 8px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center">Join</div></div>'+
+                    '<div class="tpl-t2">always-on or exit-intent</div></div>',
                 feedback_thumbs:
                     '<div class="tpl-card" style="gap:6px"><div class="tpl-body" style="flex-direction:row;align-items:center;gap:5px">'+
                     '<div class="tpl-t1">Helpful?</div><span style="font-size:14px">👍</span><span style="font-size:14px">👎</span></div></div>',
@@ -606,6 +616,99 @@ function buzzEditor() {
                 custom_html:
                     '<div class="tpl-card" style="font-family:monospace;background:#0f172a;color:#10b981;font-size:9.5px"><span>&lt;/&gt;</span>'+
                     '<div class="tpl-body" style="color:#cbd5e1"><div>Your HTML here</div><div class="tpl-t2" style="color:#64748b">// fully custom</div></div></div>',
+                informational_mini:
+                    '<div class="tpl-card" style="padding:6px 10px"><span style="font-size:11px">ℹ️</span><div class="tpl-body"><div class="tpl-t2" style="font-size:9px">We ship worldwide 🌍</div></div></div>',
+                inline_informational:
+                    '<div class="tpl-card"><span style="font-size:14px">💡</span><div class="tpl-body"><div class="tpl-t2">Did you know? Orders ship free over $50.</div></div></div>',
+                inline_conversions:
+                    '<div class="tpl-card"><span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block"></span>'+
+                    '<div class="tpl-body"><div class="tpl-t1">312 signups</div><div class="tpl-t2">this week</div></div></div>',
+                new_feature:
+                    '<div class="tpl-card"><div class="tpl-body"><div class="tpl-t1"><span style="background:#3d6bff;color:#fff;font-size:7px;font-weight:700;padding:1px 5px;border-radius:99px;margin-right:4px">NEW</span>Dark mode</div><div class="tpl-t2">Try it in settings →</div></div></div>',
+                informational_bar_mini:
+                    '<div class="tpl-bar top" style="background:#0f172a;font-size:8px;padding:3px 8px">30-day money-back guarantee</div>'+
+                    '<div style="margin-top:12px;color:rgba(255,255,255,.4);font-size:9px">Mini bar</div>',
+                newsletter_signup:
+                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px"><div class="tpl-t1">Subscribe to our newsletter</div>'+
+                    '<div style="display:flex;gap:4px"><div style="flex:1;height:18px;background:#f1f5f9;border-radius:4px"></div><div style="height:18px;padding:0 8px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center">Subscribe</div></div>'+
+                    '<div class="tpl-t2" style="font-size:7.5px;opacity:.7">Unsubscribe anytime.</div></div>',
+                collector_bar:
+                    '<div class="tpl-bar top" style="background:#0f172a;gap:5px"><span>Join the list</span><span style="width:52px;height:14px;background:#334155;border-radius:3px"></span><span style="background:#3d6bff;padding:2px 6px;border-radius:3px">Go</span></div>'+
+                    '<div style="margin-top:14px;color:rgba(255,255,255,.4);font-size:9px">Email bar</div>',
+                coupon_bar:
+                    '<div class="tpl-bar top" style="background:#7c3aed;gap:6px"><span>Use code</span><span style="border:1px dashed rgba(255,255,255,.6);padding:1px 6px;border-radius:3px;letter-spacing:1px">SAVE20</span></div>'+
+                    '<div style="margin-top:14px;color:rgba(255,255,255,.4);font-size:9px">Copy-code bar</div>',
+                free_shipping_bar:
+                    '<div class="tpl-bar top" style="background:#059669">🚚 Free shipping over $50</div>'+
+                    '<div style="margin-top:14px;color:rgba(255,255,255,.4);font-size:9px">Shipping bar</div>',
+                collector_modal:
+                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px;box-shadow:0 0 0 40px rgba(15,23,42,.35)">'+
+                    '<div class="tpl-t1" style="text-align:center">Get 10% off</div>'+
+                    '<div style="display:flex;gap:4px"><div style="flex:1;height:18px;background:#f1f5f9;border-radius:4px"></div><div style="height:18px;padding:0 8px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center">Join</div></div></div>',
+                two_step_modal:
+                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px"><div class="tpl-t1">Want 15% off?</div>'+
+                    '<div style="height:18px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center;justify-content:center">Yes please → step 2</div></div>',
+                button_modal:
+                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px;box-shadow:0 0 0 40px rgba(15,23,42,.35)"><div class="tpl-t1" style="text-align:center">Big launch 🎉</div>'+
+                    '<div style="height:18px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center;justify-content:center">See what\'s new</div></div>',
+                request_collector:
+                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:4px"><div class="tpl-t1">Request a callback</div>'+
+                    '<div style="height:14px;background:#f1f5f9;border-radius:4px"></div><div style="height:14px;background:#f1f5f9;border-radius:4px"></div>'+
+                    '<div style="height:16px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center;justify-content:center">Send</div></div>',
+                sms_collector:
+                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px"><div class="tpl-t1">📱 Text alerts</div>'+
+                    '<div style="display:flex;gap:4px"><div style="flex:1;height:18px;background:#f1f5f9;border-radius:4px"></div><div style="height:18px;padding:0 8px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center">Join</div></div></div>',
+                webinar_signup:
+                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px"><div class="tpl-t1">🎓 Live webinar</div><div class="tpl-t2">Thu 3pm — save your seat</div>'+
+                    '<div style="height:16px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center;justify-content:center">Register</div></div>',
+                push_opt_in:
+                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px"><div class="tpl-t1">🔔 Stay in the loop?</div>'+
+                    '<div style="display:flex;gap:4px"><div style="flex:1;height:16px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center;justify-content:center">Enable</div><div style="flex:1;height:16px;background:#f1f5f9;border-radius:4px;font-size:9px;display:flex;align-items:center;justify-content:center;color:#64748b">Not now</div></div></div>',
+                emoji_feedback:
+                    '<div class="tpl-card" style="gap:6px"><div class="tpl-body" style="flex-direction:row;align-items:center;gap:4px"><div class="tpl-t2">How was it?</div><span style="font-size:13px">😠🙂😍</span></div></div>',
+                score_feedback:
+                    '<div class="tpl-card" style="flex-direction:column;align-items:stretch;gap:4px;max-width:180px"><div class="tpl-t2">How likely to recommend us?</div>'+
+                    '<div style="display:flex;gap:2px">'+Array.from({length:11},(_,i)=>'<span style="width:11px;height:11px;border:1px solid #e2e8f0;border-radius:2px;font-size:6px;display:flex;align-items:center;justify-content:center;color:#64748b">'+i+'</span>').join('')+'</div></div>',
+                text_feedback:
+                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:4px"><div class="tpl-t1">Tell us more</div>'+
+                    '<div style="height:26px;background:#f1f5f9;border-radius:4px"></div><div style="height:14px;background:#3d6bff;border-radius:4px"></div></div>',
+                star_rating:
+                    '<div class="tpl-card"><div class="tpl-body"><div class="tpl-t2">Rate your experience</div><div class="tpl-stars" style="font-size:13px">★★★★☆</div></div></div>',
+                survey_popup:
+                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:3px"><div class="tpl-t1">Quick question</div>'+
+                    '<div style="height:13px;background:#f1f5f9;border-radius:3px;font-size:8px;display:flex;align-items:center;padding:0 5px;color:#334155">Option A</div>'+
+                    '<div style="height:13px;background:#f1f5f9;border-radius:3px;font-size:8px;display:flex;align-items:center;padding:0 5px;color:#334155">Option B</div></div>',
+                coupon:
+                    '<div class="tpl-card" style="max-width:170px;flex-direction:column;align-items:center;gap:4px"><div class="tpl-t1">Here\'s 20% off</div>'+
+                    '<div style="border:1px dashed #3d6bff;color:#3d6bff;padding:2px 10px;border-radius:4px;font-size:9px;letter-spacing:2px;font-weight:700">SAVE20</div></div>',
+                abandoned_cart:
+                    '<div class="tpl-card" style="border-left:3px solid #f59e0b"><span style="font-size:14px">🛒</span>'+
+                    '<div class="tpl-body"><div class="tpl-t1">Still thinking it over?</div><div class="tpl-t2">Your cart is waiting</div></div></div>',
+                loyalty_points:
+                    '<div class="tpl-card"><span style="font-size:14px">🎯</span><div class="tpl-body"><div class="tpl-t1">Earn 2x points</div><div class="tpl-t2">this weekend only</div></div></div>',
+                holiday_seasonal:
+                    '<div class="tpl-card" style="flex-direction:column;align-items:center;gap:2px;max-width:160px"><span style="font-size:16px">🎄</span>'+
+                    '<div class="tpl-t1">Holiday sale</div><div class="tpl-t2">Up to 50% off</div></div>',
+                audio_widget:
+                    '<div class="tpl-card" style="gap:6px;max-width:180px"><div style="width:22px;height:22px;border-radius:50%;background:#3d6bff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px">▶</div>'+
+                    '<div class="tpl-body"><div class="tpl-t1">A note from us</div><div style="height:6px;background:linear-gradient(90deg,#3d6bff 40%,#e2e8f0 40%);border-radius:3px;margin-top:3px"></div></div></div>',
+                image_widget:
+                    '<div style="width:130px;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.12)"><div style="height:56px;background:linear-gradient(135deg,#818cf8,#ec4899)"></div>'+
+                    '<div style="font-size:8.5px;color:#334155;padding:4px 6px">New collection ✨</div></div>',
+                engagement_links:
+                    '<div class="tpl-card" style="max-width:170px;flex-direction:column;align-items:stretch;gap:3px"><div class="tpl-t1">Popular right now</div>'+
+                    '<div style="height:13px;background:#f1f5f9;border-radius:3px;font-size:8px;display:flex;align-items:center;padding:0 5px;color:#334155">Guide: getting started →</div>'+
+                    '<div style="height:13px;background:#f1f5f9;border-radius:3px;font-size:8px;display:flex;align-items:center;padding:0 5px;color:#334155">Pricing plans →</div></div>',
+                referral_program:
+                    '<div class="tpl-card" style="max-width:170px;flex-direction:column;align-items:stretch;gap:4px"><div class="tpl-t1">🎁 Give $10, get $10</div>'+
+                    '<div style="height:16px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center;justify-content:center">Copy my link</div></div>',
+                app_download:
+                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:4px"><div class="tpl-t1">📱 Get the app</div>'+
+                    '<div style="display:flex;gap:4px"><div style="flex:1;height:15px;background:#000;color:#fff;border-radius:4px;font-size:7px;display:flex;align-items:center;justify-content:center"> App Store</div><div style="flex:1;height:15px;background:#0f9d58;color:#fff;border-radius:4px;font-size:7px;display:flex;align-items:center;justify-content:center">▶ Play</div></div></div>',
+                contact_us:
+                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:4px"><div class="tpl-t1">💬 Contact us</div>'+
+                    '<div style="height:12px;background:#f1f5f9;border-radius:4px"></div><div style="height:22px;background:#f1f5f9;border-radius:4px"></div>'+
+                    '<div style="height:15px;background:#3d6bff;border-radius:4px"></div></div>',
             };
             return tpl[type] || '<div class="tpl-card"><div class="tpl-body"><div class="tpl-t1">Notification</div></div></div>';
         },
@@ -703,15 +806,18 @@ function buzzEditor() {
             switch (n.type) {
                 case 'recent_activity':
                     return this.fieldsRecent(n);
-                case 'visitor_count':
+                case 'counter':
+                    if (s.mode === 'conversions') {
+                        return this.tpl([
+                            this.select(n,'settings.mode','Counter mode',{live_visitors:'Live visitors',conversions:'Conversions'}),
+                            this.text(n,'settings.text','Text','{count} purchased recently'),
+                            this.num(n,'settings.count','Count'),
+                        ]);
+                    }
                     return this.tpl([
+                        this.select(n,'settings.mode','Counter mode',{live_visitors:'Live visitors',conversions:'Conversions'}),
                         this.text(n,'settings.text','Text','{count} people are viewing this page'),
                         this.row([this.num(n,'settings.min','Min count'), this.num(n,'settings.max','Max count')]),
-                    ]);
-                case 'conversion_count':
-                    return this.tpl([
-                        this.text(n,'settings.text','Text','{count} purchased recently'),
-                        this.num(n,'settings.count','Count'),
                     ]);
                 case 'social_followers':
                     return this.tpl([
@@ -733,17 +839,20 @@ function buzzEditor() {
                         this.textarea(n,'settings.quote','Quote'),
                         this.row([this.text(n,'settings.author','Author','Jane Doe'), this.text(n,'settings.role','Role','CEO at Acme')]),
                     ]);
-                case 'email_signup':
+                case 'capture_prompt':
+                    if (s.trigger === 'exit_intent') {
+                        return this.tpl([
+                            this.select(n,'settings.trigger','Show',{always:'Always',exit_intent:'On exit intent'}),
+                            this.text(n,'settings.title','Title'),
+                            this.textarea(n,'settings.body','Body'),
+                            this.row([this.text(n,'settings.cta','Button label'), this.text(n,'settings.cta_url','Button URL','https://...')]),
+                        ]);
+                    }
                     return this.tpl([
+                        this.select(n,'settings.trigger','Show',{always:'Always',exit_intent:'On exit intent'}),
                         this.text(n,'settings.title','Title','Join our newsletter'),
                         this.textarea(n,'settings.body','Body'),
                         this.text(n,'settings.cta','Button label','Subscribe'),
-                    ]);
-                case 'exit_offer':
-                    return this.tpl([
-                        this.text(n,'settings.title','Title'),
-                        this.textarea(n,'settings.body','Body'),
-                        this.row([this.text(n,'settings.cta','Button label'), this.text(n,'settings.cta_url','Button URL','https://...')]),
                     ]);
                 case 'feedback_thumbs':
                     return this.tpl([this.text(n,'settings.question','Question','Was this helpful?')]);
@@ -815,6 +924,179 @@ function buzzEditor() {
                     return this.tpl([
                         '<div><label class="bz-label">HTML (sanitized, script/iframe/event handlers stripped)</label>'
                         + '<textarea x-model="getNotif(\''+n.id+'\').settings.html" @input="livePreview()" rows="6" class="bz-input font-mono text-xs"></textarea></div>'
+                    ]);
+                case 'inline_informational':
+                    return this.tpl([
+                        this.row([this.text(n,'settings.icon','Icon (emoji)','💡'), this.text(n,'settings.text','Text')]),
+                        this.text(n,'settings.selector','Inline CSS selector (e.g. #reviews, .sidebar) — blank = floating card','#my-section'),
+                    ]);
+                case 'inline_conversions':
+                    return this.tpl([
+                        this.text(n,'settings.text','Text','{count} people signed up this week'),
+                        this.num(n,'settings.count','Count'),
+                        this.text(n,'settings.selector','Inline CSS selector (e.g. #reviews, .sidebar) — blank = floating card','#my-section'),
+                    ]);
+                case 'informational_mini':
+                    return this.tpl([
+                        this.row([this.text(n,'settings.icon','Icon (emoji)','ℹ️'), this.text(n,'settings.text','Text')]),
+                    ]);
+                case 'informational_bar_mini':
+                    return this.tpl([
+                        this.text(n,'settings.text','Bar text'),
+                        this.select(n,'settings.placement','Placement',{top:'Top',bottom:'Bottom'}),
+                    ]);
+                case 'newsletter_signup':
+                    return this.tpl([
+                        this.text(n,'settings.title','Title','Subscribe to our newsletter'),
+                        this.textarea(n,'settings.body','Body'),
+                        this.row([this.text(n,'settings.placeholder','Input placeholder','Your email'), this.text(n,'settings.cta','Button label','Subscribe')]),
+                        this.row([this.text(n,'settings.consent_note','Consent note','You can unsubscribe at any time.'), this.text(n,'settings.success_text','Success message','Welcome aboard!')]),
+                    ]);
+                case 'new_feature':
+                    return this.tpl([
+                        this.row([this.text(n,'settings.badge','Badge label','NEW'), this.text(n,'settings.title','Title')]),
+                        this.textarea(n,'settings.body','Body'),
+                        this.row([this.text(n,'settings.cta','Button label'), this.text(n,'settings.cta_url','Button URL','https://...')]),
+                    ]);
+                case 'collector_bar':
+                    return this.tpl([
+                        this.text(n,'settings.text','Bar text'),
+                        this.row([this.text(n,'settings.placeholder','Input placeholder','Your email'), this.text(n,'settings.cta','Button label','Subscribe')]),
+                        this.row([this.select(n,'settings.placement','Placement',{top:'Top',bottom:'Bottom'}), this.text(n,'settings.success_text','Success message','Thanks!')]),
+                    ]);
+                case 'coupon_bar':
+                    return this.tpl([
+                        this.text(n,'settings.text','Bar text'),
+                        this.row([this.text(n,'settings.code','Coupon code','SAVE20'), this.select(n,'settings.placement','Placement',{top:'Top',bottom:'Bottom'})]),
+                    ]);
+                case 'free_shipping_bar':
+                    return this.tpl([
+                        this.text(n,'settings.text','Text ({threshold} placeholder)','Free shipping on orders over {threshold}!'),
+                        this.row([this.text(n,'settings.threshold','Threshold','$50'), this.select(n,'settings.placement','Placement',{top:'Top',bottom:'Bottom'})]),
+                        this.row([this.text(n,'settings.cta_label','Button label'), this.text(n,'settings.cta_url','Button URL')]),
+                    ]);
+                case 'collector_modal':
+                case 'two_step_modal':
+                    var extra = (n.type === 'two_step_modal')
+                        ? [this.row([this.text(n,'settings.teaser','Teaser question','Want 15% off?'), this.text(n,'settings.teaser_cta','Teaser button','Yes please!')])]
+                        : [];
+                    return this.tpl(extra.concat([
+                        this.text(n,'settings.title','Title'),
+                        this.textarea(n,'settings.body','Body'),
+                        this.row([this.text(n,'settings.placeholder','Input placeholder','Your email'), this.text(n,'settings.cta','Button label')]),
+                        this.text(n,'settings.success_text','Success message','Thanks!'),
+                    ]));
+                case 'button_modal':
+                    return this.tpl([
+                        this.text(n,'settings.title','Title'),
+                        this.textarea(n,'settings.body','Body'),
+                        this.row([this.text(n,'settings.cta','Button label'), this.text(n,'settings.cta_url','Button URL','https://...')]),
+                    ]);
+                case 'request_collector':
+                    return this.tpl([
+                        this.text(n,'settings.title','Title','Request a callback'),
+                        this.textarea(n,'settings.body','Body'),
+                        this.row([this.text(n,'settings.cta','Button label','Send request'), this.text(n,'settings.success_text','Success message','We\\'ll be in touch!')]),
+                    ]);
+                case 'sms_collector':
+                    return this.tpl([
+                        this.text(n,'settings.title','Title','Get text alerts'),
+                        this.textarea(n,'settings.body','Body'),
+                        this.row([this.text(n,'settings.placeholder','Input placeholder','Phone number'), this.text(n,'settings.cta','Button label','Sign me up')]),
+                        this.text(n,'settings.success_text','Success message','You\\'re on the list!'),
+                    ]);
+                case 'webinar_signup':
+                    return this.tpl([
+                        this.text(n,'settings.title','Title','Join our live webinar'),
+                        this.textarea(n,'settings.body','Body'),
+                        this.row([this.text(n,'settings.event_at','Event date (ISO 8601)','2026-08-15T15:00:00Z'), this.text(n,'settings.cta','Button label','Save my seat')]),
+                        this.text(n,'settings.success_text','Success message','Seat saved!'),
+                    ]);
+                case 'push_opt_in':
+                    return this.tpl([
+                        this.text(n,'settings.title','Title','Stay in the loop?'),
+                        this.textarea(n,'settings.body','Body'),
+                        this.row([this.text(n,'settings.allow_label','Allow label','Enable'), this.text(n,'settings.deny_label','Deny label','Not now')]),
+                        this.text(n,'settings.success_text','Success message','Notifications enabled!'),
+                    ]);
+                case 'emoji_feedback':
+                    return this.tpl([
+                        this.text(n,'settings.question','Question','How was your experience?'),
+                        this.text(n,'settings.success_text','Success message','Thanks for your feedback!'),
+                    ]);
+                case 'score_feedback':
+                    return this.tpl([
+                        this.text(n,'settings.question','Question','How likely are you to recommend us?'),
+                        this.row([this.text(n,'settings.low_label','Low label','Not likely'), this.text(n,'settings.high_label','High label','Very likely')]),
+                        this.text(n,'settings.success_text','Success message','Thanks!'),
+                    ]);
+                case 'text_feedback':
+                    return this.tpl([
+                        this.text(n,'settings.question','Question','What can we improve?'),
+                        this.row([this.text(n,'settings.placeholder','Placeholder','Tell us more...'), this.text(n,'settings.cta','Button label','Send')]),
+                        this.text(n,'settings.success_text','Success message','Thanks for the feedback!'),
+                    ]);
+                case 'star_rating':
+                    return this.tpl([
+                        this.text(n,'settings.question','Question','Rate your experience'),
+                        this.text(n,'settings.success_text','Success message','Thanks for rating us!'),
+                    ]);
+                case 'survey_popup':
+                    return this.fieldsSurvey(n);
+                case 'coupon':
+                    return this.tpl([
+                        this.text(n,'settings.title','Title','Here\\'s a treat 🎁'),
+                        this.textarea(n,'settings.body','Body'),
+                        this.row([this.text(n,'settings.code','Coupon code','SAVE20'), this.text(n,'settings.cta_label','Link label')]),
+                        this.text(n,'settings.cta_url','Link URL','https://...'),
+                    ]);
+                case 'abandoned_cart':
+                    return this.tpl([
+                        this.text(n,'settings.title','Title','Still thinking it over?'),
+                        this.textarea(n,'settings.body','Body'),
+                        this.row([this.text(n,'settings.cta','Button label','Return to cart'), this.text(n,'settings.cta_url','Button URL')]),
+                    ]);
+                case 'loyalty_points':
+                    return this.tpl([
+                        this.text(n,'settings.title','Title','Earn double points!'),
+                        this.textarea(n,'settings.body','Body'),
+                        this.row([this.text(n,'settings.cta','Button label'), this.text(n,'settings.cta_url','Button URL')]),
+                    ]);
+                case 'holiday_seasonal':
+                    return this.tpl([
+                        this.row([this.text(n,'settings.emoji','Emoji','🎄'), this.text(n,'settings.title','Title','Holiday sale!')]),
+                        this.textarea(n,'settings.body','Body'),
+                        this.row([this.text(n,'settings.cta','Button label'), this.text(n,'settings.cta_url','Button URL')]),
+                    ]);
+                case 'audio_widget':
+                    return this.tpl([
+                        this.text(n,'settings.title','Title','A message for you'),
+                        this.text(n,'settings.audio_url','Audio URL (mp3/wav)','https://...'),
+                    ]);
+                case 'image_widget':
+                    return this.tpl([
+                        this.text(n,'settings.image_url','Image URL','https://...'),
+                        this.row([this.text(n,'settings.caption','Caption'), this.text(n,'settings.link_url','Click-through URL')]),
+                    ]);
+                case 'engagement_links':
+                    return this.fieldsEngagementLinks(n);
+                case 'referral_program':
+                    return this.tpl([
+                        this.text(n,'settings.title','Title','Give $10, get $10'),
+                        this.textarea(n,'settings.body','Body'),
+                        this.row([this.text(n,'settings.referral_url','Referral URL','https://...'), this.text(n,'settings.cta','Button label','Copy my link')]),
+                    ]);
+                case 'app_download':
+                    return this.tpl([
+                        this.text(n,'settings.title','Title','Get our app'),
+                        this.textarea(n,'settings.body','Body'),
+                        this.row([this.text(n,'settings.appstore_url','App Store URL'), this.text(n,'settings.play_url','Google Play URL')]),
+                    ]);
+                case 'contact_us':
+                    return this.tpl([
+                        this.text(n,'settings.title','Title','Contact us'),
+                        this.textarea(n,'settings.body','Body'),
+                        this.row([this.text(n,'settings.cta','Button label','Send message'), this.text(n,'settings.success_text','Success message','Message sent!')]),
                     ]);
             }
             return '';
@@ -893,6 +1175,38 @@ function buzzEditor() {
                 '<label class="inline-flex items-center gap-2 text-xs text-white/70"><input type="checkbox" x-model="getNotif(\''+n.id+'\').settings.rotate" @change="livePreview()"> Rotate through reviews</label>',
                 '<div><label class="bz-label">Reviews</label><div>' + rows + '</div>'
                 + '<button type="button" class="text-xs text-blue-300 hover:text-blue-200 mt-1" @click="getNotif(\''+n.id+'\').settings.items = getNotif(\''+n.id+'\').settings.items || []; getNotif(\''+n.id+'\').settings.items.push({author:\'\',text:\'\',rating:5}); livePreview()"><i class="fas fa-plus mr-1"></i>Add review</button></div>',
+            ]);
+        },
+
+        fieldsSurvey(n) {
+            var opts = n.settings.options || [];
+            var rows = opts.map(function (o, i) {
+                return '<div class="flex gap-2 items-center bg-white/5 rounded-lg p-2 mb-1">'
+                  + '<input type="text" placeholder="Option" value="'+String(o==null?'':o).replace(/"/g,'&quot;')+'" @input="getNotif(\''+n.id+'\').settings.options['+i+']=$event.target.value;livePreview()" class="bz-input">'
+                  + '<button type="button" class="bz-btn-icon hover:!text-rose-400" @click="getNotif(\''+n.id+'\').settings.options.splice('+i+',1);livePreview()"><i class="fas fa-times"></i></button>'
+                  + '</div>';
+            }).join('');
+            return this.tpl([
+                this.text(n,'settings.question','Question','What brought you here today?'),
+                '<div><label class="bz-label">Answer options</label><div>' + rows + '</div>'
+                + '<button type="button" class="text-xs text-blue-300 hover:text-blue-200 mt-1" @click="getNotif(\''+n.id+'\').settings.options = getNotif(\''+n.id+'\').settings.options || []; getNotif(\''+n.id+'\').settings.options.push(\'\'); livePreview()"><i class="fas fa-plus mr-1"></i>Add option</button></div>',
+                this.text(n,'settings.success_text','Success message','Thanks!'),
+            ]);
+        },
+
+        fieldsEngagementLinks(n) {
+            var links = n.settings.links || [];
+            var rows = links.map(function (l, i) {
+                return '<div class="flex gap-2 items-center bg-white/5 rounded-lg p-2 mb-1">'
+                  + '<input type="text" placeholder="Label" value="'+(l.label||'').replace(/"/g,'&quot;')+'" @input="getNotif(\''+n.id+'\').settings.links['+i+'].label=$event.target.value;livePreview()" class="bz-input">'
+                  + '<input type="text" placeholder="https://..." value="'+(l.url||'').replace(/"/g,'&quot;')+'" @input="getNotif(\''+n.id+'\').settings.links['+i+'].url=$event.target.value;livePreview()" class="bz-input">'
+                  + '<button type="button" class="bz-btn-icon hover:!text-rose-400" @click="getNotif(\''+n.id+'\').settings.links.splice('+i+',1);livePreview()"><i class="fas fa-times"></i></button>'
+                  + '</div>';
+            }).join('');
+            return this.tpl([
+                this.text(n,'settings.title','Heading','Popular right now'),
+                '<div><label class="bz-label">Links</label><div>' + rows + '</div>'
+                + '<button type="button" class="text-xs text-blue-300 hover:text-blue-200 mt-1" @click="getNotif(\''+n.id+'\').settings.links = getNotif(\''+n.id+'\').settings.links || []; getNotif(\''+n.id+'\').settings.links.push({label:\'\',url:\'\'}); livePreview()"><i class="fas fa-plus mr-1"></i>Add link</button></div>',
             ]);
         },
     };

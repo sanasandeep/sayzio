@@ -137,6 +137,13 @@ export default function CoinPackagesScreen() {
                     {pkg.coin_amount.toLocaleString()} coins
                     {pkg.bonus_coins > 0 ? ` + ${pkg.bonus_coins.toLocaleString()} bonus` : ""}
                   </Text>
+                  {pkg.plan_bonus_pct > 0 ? (
+                    <Text style={[styles.subtle, { color: colors.primary }]}>
+                      +{pkg.plan_bonus_coins.toLocaleString()} coins ({pkg.plan_bonus_pct}%{" "}
+                      {pkg.plan_bonus_plan_name ?? "plan"} plan bonus) —{" "}
+                      {pkg.total_with_plan_bonus.toLocaleString()} total
+                    </Text>
+                  ) : null}
                   {pkg.description ? (
                     <Text style={[styles.subtle, { color: colors.mutedForeground }]}>
                       {pkg.description}

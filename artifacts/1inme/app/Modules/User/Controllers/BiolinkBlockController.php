@@ -257,6 +257,22 @@ class BiolinkBlockController extends Controller
         return view('user.links.settings.block-theme', compact('link'));
     }
 
+    /**
+     * "Default colors" tab (Task #6039) — only meaningful while editing a
+     * template draft in a design session: the admin sets baseline colors
+     * that seed the `_style` of every NEW block created on this draft and
+     * on pages later created from the template. Existing blocks are never
+     * restyled; every seeded block stays individually editable.
+     */
+    public function settingsDefaultColors(Link $link)
+    {
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
+        if (!is_array($link->settings['_template_draft'] ?? null)) {
+            return redirect()->route('user.links.settings.appearance', $link);
+        }
+        return view('user.links.settings.default-colors', compact('link'));
+    }
+
     public function settingsAdvanced(Link $link)
     {
         abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
@@ -378,11 +394,16 @@ class BiolinkBlockController extends Controller
             ? $defaults
             : array_replace($defaults, $incoming);
 
-        // Seed `_style` only when the caller didn't supply one.
+        // Seed `_style` only when the caller didn't supply one. Template
+        // default colors (Task #6039) — set on a template draft and carried
+        // onto pages created from that template — layer on top of the
+        // platform defaults so new blocks look on-theme immediately while
+        // staying individually editable.
         if (!isset($settings['_style']) || !is_array($settings['_style']) || $settings['_style'] === []) {
             $settings['_style'] = $this->sanitizeBlockStyle(array_merge(
                 BiolinkBlock::STYLE_DEFAULTS,
-                BlockDefaults::styleForType($validated['type'])
+                BlockDefaults::styleForType($validated['type']),
+                $this->templateDefaultColorStyleFor($link, $validated['type'])
             ));
         }
 
@@ -394,6 +415,7 @@ class BiolinkBlockController extends Controller
             $settings['_style'] = $this->sanitizeBlockStyle(array_merge(
                 BiolinkBlock::STYLE_DEFAULTS,
                 BlockDefaults::styleForType($validated['type']),
+                $this->templateDefaultColorStyleFor($link, $validated['type']),
                 $link->designLockStyleFor($validated['type']) ?? []
             ));
             unset($settings['_style_custom_snapshot']);
@@ -705,7 +727,7 @@ class BiolinkBlockController extends Controller
             $variant['style'],
             [
                 '_variant' => $validated['variant'],
-                '_variant_version' => BlockVariantCatalog::VERSION,
+                '_variant_version' => BlockVariantCatalog::version(),
             ]
         ));
 
@@ -777,7 +799,7 @@ class BiolinkBlockController extends Controller
             $variant['style'],
             [
                 '_variant' => $validated['variant'],
-                '_variant_version' => BlockVariantCatalog::VERSION,
+                '_variant_version' => BlockVariantCatalog::version(),
             ]
         ));
 
@@ -1398,6 +1420,16 @@ class BiolinkBlockController extends Controller
             // serialized by the editor into a hidden input. Decoded and
             // bounded server-side by BiolinkStickers::sanitize().
             'stickers_json' => 'nullable|string|max:20000',
+
+            // Template default colors (Task #6039) — baseline colors set on
+            // a template draft that seed the `_style` of new blocks. Empty
+            // string = inherit.
+            'template_default_colors' => 'nullable|array',
+            'template_default_colors.text_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'template_default_colors.bg_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'template_default_colors.border_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'template_default_colors.accent_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'template_default_colors.accent_text_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
         ]);
 
         $user = auth()->user();
@@ -1487,6 +1519,26 @@ class BiolinkBlockController extends Controller
         unset($validated['stickers_json']);
         if ($request->has('stickers_json') && !$link->isDesignLocked()) {
             $settings['biolink']['stickers'] = \App\Modules\User\Support\BiolinkStickers::sanitize($stickersJson ?? '[]');
+        }
+
+        // Template default colors (Task #6039): replace the whole map on
+        // every save so cleared fields actually clear (empty = inherit).
+        // Only valid hex values are kept; an all-empty form removes the key.
+        $tplColorsInput = $validated['template_default_colors'] ?? null;
+        unset($validated['template_default_colors']);
+        if ($request->has('template_default_colors') && !$link->isDesignLocked()) {
+            $cleanColors = [];
+            foreach (self::TEMPLATE_DEFAULT_COLOR_KEYS as $k) {
+                $v = is_array($tplColorsInput) ? ($tplColorsInput[$k] ?? null) : null;
+                if (is_string($v) && preg_match('/^#[0-9a-fA-F]{3,8}$/', $v)) {
+                    $cleanColors[$k] = $v;
+                }
+            }
+            if ($cleanColors !== []) {
+                $settings['biolink']['template_default_colors'] = $cleanColors;
+            } else {
+                unset($settings['biolink']['template_default_colors']);
+            }
         }
 
         // Page-level text overlays are a design surface: sanitize the JSON
@@ -1798,6 +1850,8 @@ class BiolinkBlockController extends Controller
             return redirect()->route('user.links.settings.layout', $link)->with('success', 'Page settings updated.');
         } elseif (str_contains($referer, '/settings/block-theme')) {
             return redirect()->route('user.links.settings.block-theme', $link)->with('success', 'Page settings updated.');
+        } elseif (str_contains($referer, '/settings/default-colors')) {
+            return redirect()->route('user.links.settings.default-colors', $link)->with('success', 'Default colors updated.');
         } elseif (str_contains($referer, '/settings/advanced')) {
             return redirect()->route('user.links.settings.advanced', $link)->with('success', 'Page settings updated.');
         }
@@ -1905,6 +1959,41 @@ class BiolinkBlockController extends Controller
                         fn($v) => strtolower(trim((string) $v)),
                         (array) ($settings[$arrKey] ?? [])
                     )));
+                }
+            }
+        }
+
+        // Card container backgrounds (Task #6044): the render partial
+        // interpolates these straight into an inline style attribute, so
+        // they must be constrained here. Invalid values are dropped
+        // silently (the renderer falls back to its defaults).
+        if ($type === 'card') {
+            foreach (['bg_color', 'border_color', 'shadow_color'] as $ck) {
+                if (isset($settings[$ck]) && $settings[$ck] !== '') {
+                    $cv = trim((string) $settings[$ck]);
+                    if (!preg_match('/^(#[0-9a-fA-F]{3,8}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*[\d.]+\s*)?\)|transparent)$/', $cv)) {
+                        unset($settings[$ck]);
+                    } else {
+                        $settings[$ck] = $cv;
+                    }
+                }
+            }
+            if (isset($settings['bg_gradient']) && $settings['bg_gradient'] !== '') {
+                $gv = trim((string) $settings['bg_gradient']);
+                if (strlen($gv) > 500 || !preg_match('/^(linear|radial|conic)-gradient\([^;{}<>"\'`]+\)$/i', $gv)) {
+                    unset($settings['bg_gradient']);
+                } else {
+                    $settings['bg_gradient'] = $gv;
+                }
+            }
+            if (isset($settings['bg_image']) && $settings['bg_image'] !== '') {
+                $iv = trim((string) $settings['bg_image']);
+                $okAbs = filter_var($iv, FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//', $iv) && !preg_match('/[\'"()\s;{}<>`]/', $iv);
+                $okRel = (bool) preg_match('#^/f/[A-Za-z0-9._/\-]+$#', $iv);
+                if ($okAbs || $okRel) {
+                    $settings['bg_image'] = substr($iv, 0, 500);
+                } else {
+                    unset($settings['bg_image']);
                 }
             }
         }
@@ -2183,196 +2272,37 @@ class BiolinkBlockController extends Controller
         return $result;
     }
 
+    /**
+     * Template default colors (Task #6039). Stored on the biolink settings
+     * of a template draft (and carried into pages created from the
+     * template via the snapshot). Only these keys are recognised.
+     */
+    public const TEMPLATE_DEFAULT_COLOR_KEYS = \App\Modules\User\Support\TemplateDefaultColors::KEYS;
+
+    /**
+     * Read the link's template default colors, keeping only known keys with
+     * valid hex values. Read-side validation keeps unsanitized snapshot
+     * merges harmless.
+     */
+    private function templateDefaultColors(Link $link): array
+    {
+        return \App\Modules\User\Support\TemplateDefaultColors::colorsFor($link);
+    }
+
+    /**
+     * Map the template default colors onto per-block `_style` keys for a
+     * new block of the given type. Empty defaults = inherit (no key set).
+     */
+    private function templateDefaultColorStyleFor(Link $link, string $type): array
+    {
+        return \App\Modules\User\Support\TemplateDefaultColors::styleFor($link, $type);
+    }
+
     private function sanitizeBlockStyle(array $input): array
     {
-        $enums = [
-            'font_style' => ['normal', 'italic'],
-            'border_style' => ['none', 'solid', 'dashed', 'dotted', 'double', 'groove', 'ridge'],
-            'shadow_type' => ['none', 'soft', 'hard', 'neon', 'glow', 'neumorphic', 'inset'],
-            'shadow_preset' => ['none', 'soft', 'medium', 'strong'],
-            'glass_preset' => ['off', 'light', 'heavy'],
-            'display_mode' => ['card', 'content'],
-            'effect' => ['none', 'glass', 'gradient_border'],
-            // Per-block layout switch for link-family blocks. Empty
-            // string is the default (existing button render); since the
-            // foreach skips empty values, only non-default picks
-            // ('plain_text' / 'image_cover') will ever be persisted —
-            // which is exactly what we want.
-            'link_layout' => [
-                'plain_text', 'image_cover', 'action_row', 'text_divider',
-                'icon_left', 'icon_right', 'icon_both', 'icon_only',
-                'icon_circle_left', 'icon_circle_right', 'icon_box',
-                'image_left', 'image_right', 'image_top',
-                'image_overhang_top', 'image_overhang_left',
-                'image_icon_rounded', 'image_icon_square', 'image_icon_circle',
-                'title_desc_row', 'image_cover_square',
-                'taped_note',
-                'arrow_hex', 'numbered_list', 'side_accent_tab',
-                'icon_top', 'offset_frame', 'torn_tape',
-            ],
-        ];
-        $numericBounds = [
-            'font_size' => [8, 72],
-            'bg_opacity' => [0, 100],
-            'border_width' => [0, 10],
-            'border_radius' => [0, 999],
-            'shadow_x' => [-50, 50],
-            'shadow_y' => [-50, 50],
-            'shadow_blur' => [0, 100],
-            'shadow_spread' => [-20, 50],
-            'glass_blur' => [0, 100],
-            'glass_opacity' => [0, 100],
-            'padding' => [0, 60],
-            'padding_top' => [0, 200],
-            'padding_bottom' => [0, 200],
-            'padding_left' => [0, 200],
-            'padding_right' => [0, 200],
-            'margin_top' => [-100, 200],
-            'margin_bottom' => [-100, 200],
-            'margin_left' => [-100, 200],
-            'margin_right' => [-100, 200],
-            'grid_span' => [1, 12],
-            'stack_mobile' => [0, 1],
-            'grid_span_md' => [1, 12],
-            'grid_row_span_md' => [1, 6],
-            // Block/card preset background transparency (Task #5970).
-            'bg_preset_opacity' => [0, 100],
-        ];
-        // Decorative avatar frame for profile cards (Task #5910). Strict
-        // enum from the catalog — unknown keys are silently dropped so a
-        // bad value can never break the public page.
-        $enums['_avatar_frame'] = \App\Modules\User\Support\AvatarFrameCatalog::keys();
-        // Hero-photo decorations for image blocks (Task #5922).
-        $enums['_photo_mask'] = ['arch', 'torn'];
-        $enums['_photo_frame'] = ['concentric_arch'];
-        $numericBounds['_photo_frame_strokes'] = [2, 5];
-        // Text-block tilt in degrees (Task #5954) — clamped so a tilted
-        // heading/paragraph can never rotate off the page.
-        $numericBounds['_tilt'] = [BiolinkBlock::TILT_MIN, BiolinkBlock::TILT_MAX];
-        // Heading shape accents (Task #5938) — strict enums; the shape
-        // token list shares the accent branch below with `_photo_accents`.
-        $enums['_heading_accent_placement'] = \App\Modules\User\Support\AccentShapeCatalog::HEADING_PLACEMENTS;
-        $enums['_heading_accent_size'] = \App\Modules\User\Support\AccentShapeCatalog::HEADING_SIZES;
-        $colorKeys = [
-            'text_color', 'bg_color', 'border_color', 'shadow_color', '_avatar_frame_color',
-            '_photo_frame_color', '_photo_banner_bg', '_photo_banner_text_color', '_photo_accent_color',
-            '_heading_accent_color',
-        ];
-        $fontWeightKeys = ['font_weight'];
-        $fontFamilyKeys = ['font_family'];
-        $urlKeys = ['bg_image'];
-
-        $allowed = array_keys(BiolinkBlock::STYLE_DEFAULTS);
-        $result = [];
-        foreach ($allowed as $key) {
-            if (!isset($input[$key]) || $input[$key] === '') continue;
-            $val = is_string($input[$key]) ? trim($input[$key]) : $input[$key];
-
-            if (isset($enums[$key])) {
-                if (in_array($val, $enums[$key], true)) $result[$key] = $val;
-            } elseif (isset($numericBounds[$key])) {
-                if (is_numeric($val)) {
-                    // 0° tilt means "level" — the range input always submits
-                    // a value, so drop the default instead of stamping
-                    // `_tilt: 0` onto every heading/paragraph save.
-                    if ($key === '_tilt' && (float) $val === 0.0) continue;
-                    $result[$key] = max($numericBounds[$key][0], min($numericBounds[$key][1], (float) $val));
-                }
-            } elseif (in_array($key, $colorKeys, true)) {
-                if (preg_match('/^(#[0-9a-fA-F]{3,8}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*[\d.]+\s*)?\)|transparent)$/', $val)) {
-                    $result[$key] = $val;
-                } elseif ($key === 'bg_color' && is_string($val) && strlen($val) <= 240
-                    && preg_match('/^(linear|radial|conic)-gradient\([^;{}<>"\'`]+\)$/i', $val)
-                ) {
-                    // Task #1041: allow CSS gradients on `bg_color` so curated
-                    // cover/profile variants (e.g. cover_aurora) round-trip.
-                    // We forbid `;{}<>"\'\`` so the value can never break out
-                    // of the inline style attribute it ends up in.
-                    $result[$key] = $val;
-                }
-            } elseif (in_array($key, $fontWeightKeys, true)) {
-                if (preg_match('/^(300|400|500|600|700|800|900)$/', (string) $val)) {
-                    $result[$key] = (string) $val;
-                }
-            } elseif (in_array($key, $fontFamilyKeys, true)) {
-                // Allow Google Font names plus a "custom:<family>" prefix for
-                // user-uploaded fonts. The colon is the only structural
-                // delimiter we accept; anything else (quotes, parens, semis)
-                // would be unsafe inside a CSS font-family declaration.
-                $safe = preg_replace('/[^a-zA-Z0-9 :_\-]/', '', substr((string) $val, 0, 80));
-                if ($safe !== '') $result[$key] = trim($safe);
-            } elseif (in_array($key, $urlKeys, true)) {
-                if (filter_var($val, FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//', $val)) {
-                    $result[$key] = substr($val, 0, 500);
-                }
-            } elseif ($key === 'bg_preset_key') {
-                // Catalog preset background for blocks & card containers
-                // (Task #5970). Only real, non-torn catalog keys persist —
-                // torn composites need full-page layers and are excluded at
-                // block level. Unknown keys are silently dropped so a bad
-                // value can never emit broken CSS on the public page.
-                $safe = preg_replace('/[^a-z0-9_]/', '', substr((string) $val, 0, 60));
-                if ($safe !== ''
-                    && \App\Modules\User\Support\BgPresetCatalog::findByKey($safe)
-                    && !\App\Modules\User\Support\BgPresetCatalog::isTorn($safe)
-                ) {
-                    $result[$key] = $safe;
-                }
-            } elseif ($key === '_template') {
-                $validTemplates = array_keys(BiolinkBlock::BLOCK_TEMPLATES);
-                if (in_array($val, $validTemplates, true)) {
-                    $result[$key] = $val;
-                }
-            } elseif ($key === '_variant') {
-                // Variant key is opaque; we accept any short slug-shaped
-                // string. If the catalog later drops it, the renderer just
-                // falls back to whatever's in _style. This keeps old pages
-                // visually stable across catalog versions.
-                $safe = preg_replace('/[^a-z0-9_\-]/i', '', substr((string) $val, 0, 60));
-                if ($safe !== '') $result[$key] = $safe;
-            } elseif ($key === '_variant_version') {
-                $n = (int) $val;
-                if ($n >= 0 && $n < 100000) $result[$key] = $n;
-            } elseif ($key === '_photo_banner_text') {
-                // Plain-text banner label — strip tags, collapse whitespace,
-                // hard cap the length. Rendered through Blade's {{ }} so it
-                // is escaped again on output.
-                $safe = trim(preg_replace('/\s+/', ' ', strip_tags((string) $val)) ?? '');
-                if ($safe !== '') $result[$key] = mb_substr($safe, 0, 60);
-            } elseif (in_array($key, ['_photo_accents', '_heading_accents'], true)) {
-                // Comma-separated accent-shape tokens; unknown tokens are
-                // dropped, order preserved, duplicates removed. Allowlist
-                // comes from the shared AccentShapeCatalog.
-                $raw = is_array($val) ? implode(',', array_map('strval', $val)) : (string) $val;
-                $tokens = \App\Modules\User\Support\AccentShapeCatalog::parseTokens($raw);
-                if (!empty($tokens)) $result[$key] = implode(',', $tokens);
-            } elseif ($key === '_photo_stickers') {
-                // Custom sticker overlays (Task #5939). The editor submits a
-                // JSON string; templates/variants may carry a plain array.
-                // Every entry must reference an image file OWNED by the
-                // current workspace owner — foreign/missing/non-image refs
-                // fail closed (the entry is dropped, never an error). The
-                // public `url` is re-derived server-side from the file row
-                // so a tampered client URL can never be persisted.
-                $clean = \App\Modules\User\Support\PhotoStickerSanitizer::sanitize($val);
-                if ($clean !== []) $result[$key] = $clean;
-            } elseif ($key === '_photo_text_stickers') {
-                // Text overlays on image blocks (Task #5954). JSON string
-                // from the editor or plain array from templates/variants;
-                // every field is validated + clamped, invalid entries are
-                // dropped silently.
-                $clean = $this->sanitizePhotoTextStickers($val);
-                if ($clean !== []) $result[$key] = $clean;
-            } elseif (in_array($key, ['_animation', '_gallery_layout', '_social_set', '_profile_layout'], true)) {
-                // Opaque slug-shaped variant metadata hooks (Task #1041).
-                // The renderer is free to ignore unknown values; we only
-                // bound the character set + length so they're safe to
-                // emit as CSS class suffixes / data attributes later.
-                $safe = preg_replace('/[^a-z0-9_\-]/i', '', substr((string) $val, 0, 40));
-                if ($safe !== '') $result[$key] = $safe;
-            }
-        }
-        return $result;
+        // Single-source sanitizer shared with the admin Block Designs
+        // manager (Task #6045) — see BlockStyleSanitizer for all rules.
+        return \App\Modules\User\Support\BlockStyleSanitizer::sanitize($input);
     }
 
     /**
@@ -2428,58 +2358,6 @@ class BiolinkBlockController extends Controller
                 'dy'      => max(-80, min(80, (int) ($entry['dy'] ?? 0))),
             ];
             if (count($clean) >= BiolinkBlock::PHOTO_STICKER_MAX) break;
-        }
-
-        return $clean;
-    }
-
-    /**
-     * Task #5954 — validate text overlay entries for image blocks.
-     * Accepts a JSON string (editor hidden input) or an array
-     * (templates/variants). Text is plain-text only (tags stripped,
-     * length capped); fonts pass the same character allowlist as
-     * per-block `font_family`; colors must match the strict color
-     * regex; every numeric field is clamped. Invalid entries are
-     * dropped silently — the sanitizer never errors.
-     */
-    private function sanitizePhotoTextStickers(mixed $raw): array
-    {
-        $list = is_array($raw) ? $raw : json_decode((string) $raw, true);
-        if (!is_array($list) || $list === []) return [];
-
-        $clean = [];
-        foreach ($list as $entry) {
-            if (!is_array($entry)) continue;
-
-            $text = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($entry['text'] ?? ''))) ?? '');
-            if ($text === '') continue; // text is the one required field
-            $text = mb_substr($text, 0, 80);
-
-            $font = '';
-            if (!empty($entry['font'])) {
-                // Same allowlist as font_family: letters/digits/spaces plus
-                // the "custom:" prefix delimiter — safe inside a CSS
-                // font-family declaration.
-                $font = trim((string) preg_replace('/[^a-zA-Z0-9 :_\-]/', '', substr((string) $entry['font'], 0, 80)));
-            }
-
-            $color = (string) ($entry['color'] ?? '');
-            if (!preg_match('/^#[0-9a-fA-F]{3,8}$/', $color)) $color = '#ffffff';
-
-            $pos = (string) ($entry['pos'] ?? 'top_right');
-            if (!in_array($pos, BiolinkBlock::PHOTO_STICKER_POSITIONS, true)) $pos = 'top_right';
-
-            $clean[] = [
-                'text'   => $text,
-                'font'   => $font,
-                'color'  => $color,
-                'pos'    => $pos,
-                'size'   => max(10, min(64, (int) ($entry['size'] ?? 20))),
-                'rotate' => max(-180, min(180, (int) ($entry['rotate'] ?? 0))),
-                'dx'     => max(-80, min(80, (int) ($entry['dx'] ?? 0))),
-                'dy'     => max(-80, min(80, (int) ($entry['dy'] ?? 0))),
-            ];
-            if (count($clean) >= BiolinkBlock::PHOTO_TEXT_STICKER_MAX) break;
         }
 
         return $clean;

@@ -248,7 +248,7 @@ class MarketingStrategistService
     public function estimateCredits(User $user, string $goal, array $parameters, string $context): int
     {
         $depth    = $this->normalizeDepth($parameters['depth'] ?? null);
-        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        $model    = AiEngineSettings::featureModel(self::FEATURE, $user);
         $messages = $this->buildMessages($goal, $parameters, $context, [], $depth);
         return $this->openai->estimateChatCoins($model, $messages, $this->depthTokens($depth), $user);
     }
@@ -259,7 +259,7 @@ class MarketingStrategistService
      */
     public function estimateReportCredits(User $user, MarketingStrategy $strategy): int
     {
-        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        $model    = AiEngineSettings::featureModel(self::FEATURE, $user);
         $messages = $this->buildReportMessages($strategy);
         return $this->openai->estimateChatCoins($model, $messages, self::REPORT_MAX_OUTPUT_TOKENS, $user);
     }
@@ -298,7 +298,7 @@ class MarketingStrategistService
         $analysis = $this->computeAnalysis($user, $depth, $goalMetric, $parameters, $workspaceId);
 
         $messages = $this->buildMessages($goal, $parameters, $assembled['context'], $analysis, $depth, $projectSnapshot);
-        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        $model    = AiEngineSettings::featureModel(self::FEATURE, $user);
 
         $result = $this->openai->chat($user, $model, $messages, [
             'temperature'     => 0.6,
@@ -1823,7 +1823,7 @@ PROMPT;
      */
     public function generatePremiumReport(User $user, MarketingStrategy $strategy): array
     {
-        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        $model    = AiEngineSettings::featureModel(self::FEATURE, $user);
         $messages = $this->buildReportMessages($strategy);
 
         $result = $this->openai->chat($user, $model, $messages, [

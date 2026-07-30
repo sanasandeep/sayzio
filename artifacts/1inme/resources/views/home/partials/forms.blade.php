@@ -19,7 +19,7 @@
     }
     .fb-card-head {
         padding: 20px 22px 16px; color:#fff; position:relative; overflow:hidden;
-        background: linear-gradient(135deg, #3d6bff 0%, #1bd4d9 130%);
+        background: linear-gradient(135deg, #3d6bff 0%, #6e61ff 60%, #22d3ee 130%);
     }
     .fb-card-head::before {
         content:""; position:absolute; inset:0;

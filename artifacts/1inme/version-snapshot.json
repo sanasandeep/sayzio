@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-29T15:04:22.937Z",
+  "generated_at": "2026-07-30T11:23:49.368Z",
   "surfaces": {
     "marketing": "0.1.0",
     "mobile": "1.0.0",
@@ -8,5 +8,5 @@
     "extension": "0.1.0",
     "api_server": "0.0.0"
   },
-  "docs_updated_at": "2026-07-27T09:44:31.173Z"
+  "docs_updated_at": "2026-07-30T03:44:18.869Z"
 }

@@ -80,7 +80,7 @@ abstract class AbstractAiTypeBuilderService
     public function estimateCredits(User $user, string $description, array $links, array $images): int
     {
         $messages = $this->buildMessages($user, $description, $this->cleanUrls($links), $this->cleanImageUrls($images));
-        $model    = AiEngineSettings::featureModel($this->feature());
+        $model    = AiEngineSettings::featureModel($this->feature(), $user);
 
         return $this->openai->estimateChatCoins($model, $messages, static::MAX_OUTPUT_TOKENS, $user);
     }
@@ -98,7 +98,7 @@ abstract class AbstractAiTypeBuilderService
         $images = $this->supportsImages() ? $this->cleanImageUrls($images) : [];
 
         $messages = $this->buildMessages($user, $description, $links, $images);
-        $model    = AiEngineSettings::featureModel($this->feature());
+        $model    = AiEngineSettings::featureModel($this->feature(), $user);
 
         $response = $this->openai->chat($user, $model, $messages, [
             'max_tokens'      => static::MAX_OUTPUT_TOKENS,

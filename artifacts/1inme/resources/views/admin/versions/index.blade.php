@@ -23,7 +23,33 @@
     html.light-mode .release-notes code { background: rgba(15,23,42,0.06); border-color: rgba(15,23,42,0.12); }
     html.light-mode .release-notes blockquote { border-left-color: rgba(15,23,42,0.2); color: rgba(15,23,42,0.55); }
 </style>
-<div class="max-w-5xl space-y-6" x-data="{ open: null, editing: null, adding: null }">
+@php
+    // Client-side search haystacks: per-surface (label + versions + all note
+    // text) and per-release (version + date + notes), lowercased for matching.
+    $surfaceHay = [];
+    $releaseHay = [];
+    foreach ($surfaces as $s) {
+        $parts = [$s['label'], $s['key'], (string) $s['current'], (string) $s['latest']];
+        foreach ($s['releases'] as $r) {
+            $rHay = mb_strtolower(trim($r->version . ' ' . ($r->released_at?->toDateString() ?? '') . ' ' . strip_tags((string) $r->notes)));
+            $releaseHay[$r->id] = $rHay;
+            $parts[] = $rHay;
+        }
+        $surfaceHay[$s['key']] = mb_strtolower(implode(' ', array_filter($parts)));
+    }
+@endphp
+<div class="max-w-5xl space-y-6"
+     x-data="{
+        open: null, editing: null, adding: null,
+        q: '',
+        surfaceHay: @js((object) $surfaceHay),
+        releaseHay: @js((object) $releaseHay),
+        get qq() { return this.q.trim().toLowerCase(); },
+        surfaceMatch(key) { return this.qq === '' || (this.surfaceHay[key] || '').includes(this.qq); },
+        releaseMatch(id) { return this.qq !== '' && (this.releaseHay[id] || '').includes(this.qq); },
+        get anyMatch() { return Object.keys(this.surfaceHay).some(k => this.surfaceMatch(k)); },
+        isOpen(key) { return this.qq !== '' ? this.surfaceMatch(key) : this.open === key; }
+     }">
 
     {{-- Session flash --}}
     @if(session('success'))
@@ -59,6 +85,18 @@
         @endif
     </div>
 
+    {{-- Release search --}}
+    <div class="relative">
+        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 ak-note text-xs pointer-events-none"></i>
+        <input type="search" x-model="q" placeholder="Search releases: surface, version, or notes…"
+               class="w-full pl-9 pr-9 py-2.5 rounded-xl bg-black/25 border border-white/10 text-sm text-white placeholder-white/30 focus:border-blue-400/50 focus:outline-none">
+        <button type="button" x-show="q !== ''" x-cloak @click="q = ''"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-white/40 hover:text-white/80 ak-note"
+                aria-label="Clear search">
+            <i class="fas fa-xmark text-xs"></i>
+        </button>
+    </div>
+
     {{-- Surface cards --}}
     <div class="space-y-3">
         @foreach($surfaces as $surface)
@@ -70,7 +108,7 @@
                 };
                 $key = $surface['key'];
             @endphp
-            <div class="glass rounded-2xl border border-white/10 overflow-hidden">
+            <div class="glass rounded-2xl border border-white/10 overflow-hidden" x-show="surfaceMatch('{{ $key }}')">
                 <button type="button"
                         class="w-full flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 text-left hover:bg-white/[0.03] transition-colors"
                         @click="open = (open === '{{ $key }}' ? null : '{{ $key }}')">
@@ -99,11 +137,11 @@
                         <i class="fas {{ $badge['icon'] }}"></i> {{ $badge['label'] }}
                     </span>
                     <i class="fas fa-chevron-down text-white/30 ak-note text-xs transition-transform"
-                       :class="open === '{{ $key }}' ? 'rotate-180' : ''"></i>
+                       :class="isOpen('{{ $key }}') ? 'rotate-180' : ''"></i>
                 </button>
 
                 {{-- Expandable changelog --}}
-                <div x-show="open === '{{ $key }}'" x-cloak class="border-t border-white/10 px-5 py-4 space-y-3">
+                <div x-show="isOpen('{{ $key }}')" x-cloak class="border-t border-white/10 px-5 py-4 space-y-3">
                     <div class="flex items-center justify-between">
                         <p class="text-xs font-semibold uppercase tracking-wider text-white/40 ak-note">Changelog</p>
                         <button type="button"
@@ -146,7 +184,8 @@
                     @else
                         <div class="space-y-2">
                             @foreach($surface['releases'] as $release)
-                                <div class="rounded-xl bg-white/[0.02] border border-white/10">
+                                <div class="rounded-xl bg-white/[0.02] border border-white/10"
+                                     :class="releaseMatch({{ $release->id }}) ? 'ring-1 ring-blue-400/50 border-blue-400/40' : ''">
                                     <div class="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3">
                                         <span class="font-mono text-sm text-white ak-strong">{{ $release->version }}</span>
                                         @if($release->released_at)
@@ -209,6 +248,15 @@
                 </div>
             </div>
         @endforeach
+
+        {{-- Search empty state --}}
+        <div x-show="q !== '' && !anyMatch" x-cloak
+             class="glass rounded-2xl border border-white/10 px-6 py-10 text-center">
+            <i class="fas fa-magnifying-glass text-white/20 ak-note text-2xl"></i>
+            <p class="text-sm font-medium text-white/70 ak-muted mt-3">No releases match "<span x-text="q"></span>"</p>
+            <p class="text-xs text-white/40 ak-note mt-1">Try a different surface name, version, or notes keyword.</p>
+            <button type="button" class="mt-4 px-4 py-2 rounded-lg border border-white/10 text-xs text-white/60 hover:text-white/90 ak-muted" @click="q = ''">Clear search</button>
+        </div>
     </div>
 
     {{-- Sync status panel --}}
@@ -217,7 +265,7 @@
             <div>
                 <h2 class="text-base font-semibold text-white ak-strong">Sync status</h2>
                 <p class="text-xs text-white/45 mt-1 ak-muted">
-                    Last recorded result of each parity guard. Guards run automatically at CI/post-merge time —
+                    Last recorded result of each parity guard. Guards run automatically at CI/post-merge time,
                     this panel is read-only and never triggers a run.
                 </p>
             </div>
@@ -237,9 +285,9 @@
                         <p class="text-[11px] text-white/40 ak-note">
                             @if($guard['status'] && $guard['ran_at'])
                                 {{ ucfirst($guard['status']) }}ed {{ \Illuminate\Support\Carbon::parse($guard['ran_at'])->diffForHumans() }}
-                                @if($guard['note']) — {{ $guard['note'] }} @endif
+                                @if($guard['note']) ({{ $guard['note'] }}) @endif
                             @else
-                                Not run recently — no result recorded yet.
+                                Not run recently, no result recorded yet.
                             @endif
                         </p>
                     </div>

@@ -77,7 +77,7 @@
       cont.style.zIndex = '5';
       cfg.mountEl.appendChild(cont);
     } else {
-      mountWidget(cont, cfg);
+      document.body.appendChild(cont);
     }
   }
 
@@ -300,6 +300,14 @@
 .__1inme_sp_thumb_btn{width:38px;height:38px;border-radius:50%;border:1px solid rgba(0,0,0,.1);background:#fff;cursor:pointer;font-size:16px;display:inline-flex;align-items:center;justify-content:center}
 .__1inme_sp_dark .__sp_thumb_btn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15);color:#fff}
 .__1inme_sp_thumb_btn:hover{background:var(--sp-accent);color:#fff;border-color:var(--sp-accent)}
+.__1inme_sp_modal_overlay{position:fixed;inset:0;left:0;right:0;top:0;bottom:0;width:auto;max-width:none;background:rgba(0,0,0,.55);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px}
+.__1inme_sp_modal_overlay .__sp_modal_card{max-width:380px;width:100%;flex-direction:column;align-items:stretch;cursor:default;padding:20px 18px}
+.__1inme_sp .__sp_score_btn{width:26px;height:26px;border-radius:6px;border:1px solid rgba(0,0,0,.12);background:#fff;cursor:pointer;font-size:12px;font-weight:600}
+.__1inme_sp_dark .__sp_score_btn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15);color:#fff}
+.__1inme_sp .__sp_score_btn:hover{background:var(--sp-accent);color:#fff;border-color:var(--sp-accent)}
+.__1inme_sp .__sp_star_btn{background:none;border:0;font-size:24px;cursor:pointer;color:rgba(0,0,0,.2);padding:0 2px;line-height:1}
+.__1inme_sp_dark .__sp_star_btn{color:rgba(255,255,255,.25)}
+.__1inme_sp .__sp_star_btn.__sp_star_on{color:#f59e0b}
 `;
     var s = document.createElement('style');
     s.id = '__1inme_sp_styles';
@@ -468,6 +476,13 @@
     basicCard(cfg, n, design, html, { duration: dur });
   };
 
+  // Consolidated "Counter" type: settings.mode picks between the legacy
+  // visitor_count (live_visitors) and conversion_count (conversions) looks.
+  RENDERERS.counter = function (cfg, config, n, design, s, dur, inst) {
+    var target = (s.mode === 'conversions') ? RENDERERS.conversion_count : RENDERERS.visitor_count;
+    target(cfg, config, n, design, s, dur, inst);
+  };
+
   RENDERERS.social_followers = function (cfg, config, n, design, s, dur) {
     var icons = {instagram:'\uD83D\uDCF7', twitter:'\uD83D\uDC26', facebook:'f', linkedin:'in', tiktok:'\u266B', youtube:'\u25B6'};
     var html = '<div class="__sp_img" style="background:var(--sp-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">'
@@ -571,6 +586,13 @@
     });
   };
 
+  // Consolidated "Capture Prompt" type: settings.trigger picks between the
+  // legacy email_signup (always) and exit_offer (exit_intent) looks.
+  RENDERERS.capture_prompt = function (cfg, config, n, design, s, dur, inst) {
+    var target = (s.trigger === 'exit_intent') ? RENDERERS.exit_offer : RENDERERS.email_signup;
+    target(cfg, config, n, design, s, dur, inst);
+  };
+
   RENDERERS.feedback_thumbs = function (cfg, config, n, design, s, dur) {
     var html = '<div class="__sp_body" style="display:flex;gap:10px;align-items:center">'
       + '<p class="__sp_text" style="white-space:normal;margin:0;flex:1">' + escapeHtml(s.question || 'Was this helpful?') + '</p>'
@@ -653,6 +675,15 @@
     r.container.classList.add('__1inme_sp_bar');
     var a = r.card.querySelector('a.__sp_btn');
     if (a) a.addEventListener('click', function () { track(cfg, n, 'click'); });
+  };
+
+  RENDERERS.informational_bar_mini = function (cfg, config, n, design, s, dur) {
+    var html = '<div class="__sp_body" style="display:flex;align-items:center;justify-content:center;width:100%">'
+      + '<span style="font-size:12px;font-weight:500">' + escapeHtml(s.text || '') + '</span>'
+      + '</div>';
+    var r = basicCard(cfg, n, design, html, { duration: 0, fullBar: true, barPlacement: s.placement === 'bottom' ? 'bottom' : 'top' });
+    r.container.classList.add('__1inme_sp_bar');
+    r.card.style.padding = '6px 12px';
   };
 
   RENDERERS.sticky_cta = function (cfg, config, n, design, s, dur) {
@@ -763,6 +794,528 @@
     track(cfg, n, 'impression');
     var closer = showFor(cont, 0);
     withCloseButton(card, design, closer);
+  };
+
+  /* ======== 50-template catalog additions (task #6179) ======== */
+
+  // Post a visitor submission (collector/feedback types) to the shared
+  // submission store. Fire-and-forget like subscribeEmail.
+  function submitData(cfg, n, payload) {
+    if (cfg.preview) return;
+    var url = cfg.submitUrl || ('/sp/' + cfg.uuid + '/submit');
+    try {
+      payload = payload || {};
+      payload.page_url = location.href;
+      payload.notification_id = n && n.id;
+      fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),credentials:'omit'});
+    } catch (e) {}
+  }
+
+  // Shared stacked-card scaffold (title/body + arbitrary rows).
+  function stackedCard(cfg, n, design) {
+    var card = document.createElement('div'); card.className = '__sp_card';
+    card.style.flexDirection = 'column'; card.style.alignItems = 'stretch'; card.style.cursor = 'default';
+    var cont = makeContainer(cfg.uuid, design);
+    cont.appendChild(card); mountWidget(cont, cfg);
+    track(cfg, n, 'impression');
+    var closer = showFor(cont, 0);
+    withCloseButton(card, design, closer);
+    return { container: cont, card: card, closer: closer };
+  }
+  function elP(cls, text, style) {
+    var p = document.createElement('p'); p.className = cls; p.textContent = text || '';
+    if (cls === '__sp_text') { p.style.whiteSpace = 'normal'; }
+    Object.assign(p.style, style || {});
+    return p;
+  }
+  function successAndClose(card, text, closer) {
+    card.querySelectorAll('input,button,textarea,a').forEach(function (el) { if (!el.classList.contains('__sp_close')) el.style.display = 'none'; });
+    card.appendChild(elP('__sp_text', text || 'Thanks!', {margin:'4px 0', fontWeight:'600'}));
+    setTimeout(closer, 1800);
+  }
+  // Generic single-input collector card (email / phone / text).
+  function collectorCard(cfg, n, design, opts) {
+    var r = stackedCard(cfg, n, design);
+    if (opts.title) r.card.appendChild(elP('__sp_title', opts.title, {fontSize:'15px', whiteSpace:'normal'}));
+    if (opts.body) r.card.appendChild(elP('__sp_text', opts.body, {margin:'4px 0 8px'}));
+    var row = document.createElement('div'); row.style.display = 'flex'; row.style.gap = '6px';
+    var input = document.createElement('input');
+    input.type = opts.inputType || 'email';
+    input.placeholder = opts.placeholder || '';
+    input.className = '__sp_input';
+    var btn = document.createElement('button'); btn.className = '__sp_btn'; btn.textContent = opts.cta || 'Submit';
+    row.appendChild(input); row.appendChild(btn);
+    r.card.appendChild(row);
+    btn.addEventListener('click', function () {
+      var v = (input.value || '').trim();
+      if (!v || (opts.inputType === 'email' && v.indexOf('@') === -1)) { input.focus(); return; }
+      submitData(cfg, n, opts.buildPayload ? opts.buildPayload(v) : {email: v});
+      track(cfg, n, 'conversion');
+      successAndClose(r.card, opts.successText, r.closer);
+    });
+    return r;
+  }
+  // Fullscreen dim overlay hosting a modal card.
+  function modalOverlay(cfg, n) {
+    var ov = document.createElement('div');
+    ov.className = '__1inme_sp __1inme_sp_modal_overlay';
+    ov.setAttribute('data-uuid', cfg.uuid);
+    mountWidget(ov, cfg);
+    return ov;
+  }
+
+  // --- Informational ---
+  // True inline placement: when settings.selector matches an element on the
+  // host page, the widget is inserted INTO that element (static flow, no
+  // fixed positioning, persistent). Falls back to a floating card when the
+  // selector is empty / not found, or in editor preview mode (where the
+  // host page's DOM target does not exist).
+  function inlineCard(cfg, n, design, html, s, dur) {
+    var target = null;
+    if (!cfg.mountEl && s && s.selector) {
+      try { target = document.querySelector(String(s.selector)); } catch (e) { target = null; }
+    }
+    if (!target) { return basicCard(cfg, n, design, html, { duration: dur }); }
+    var cont = document.createElement('div');
+    cont.className = '__1inme_sp __1inme_sp_inline __1inme_sp_theme_' + ((design && design.theme) === 'dark' ? 'dark' : 'light');
+    cont.setAttribute('data-uuid', cfg.uuid);
+    cont.style.position = 'static';
+    cont.style.margin = '8px 0';
+    if (design && design.accent) cont.style.setProperty('--sp-accent', design.accent);
+    var card = document.createElement('div'); card.className = '__sp_card';
+    card.style.maxWidth = '100%';
+    card.innerHTML = html;
+    cont.appendChild(card);
+    target.appendChild(cont);
+    track(cfg, n, 'impression');
+    cont.style.opacity = '1';
+    return { container: cont, card: card, closer: function () { cont.parentNode && cont.parentNode.removeChild(cont); } };
+  }
+  RENDERERS.inline_informational = function (cfg, config, n, design, s, dur) {
+    var html = '<div class="__sp_body" style="display:flex;gap:8px;align-items:center">'
+      + '<span style="font-size:18px">' + escapeHtml(s.icon || '💡') + '</span>'
+      + '<p class="__sp_text" style="white-space:normal;margin:0">' + escapeHtml(s.text || '') + '</p></div>';
+    inlineCard(cfg, n, design, html, s, dur);
+  };
+  RENDERERS.inline_conversions = function (cfg, config, n, design, s, dur) {
+    var html = '<div class="__sp_body"><p class="__sp_title"><span class="__sp_dot"></span>'
+      + escapeHtml((s.text || '{count} people signed up this week').replace('{count}', String(s.count || 0))) + '</p></div>';
+    inlineCard(cfg, n, design, html, s, dur);
+  };
+  RENDERERS.informational_mini = function (cfg, config, n, design, s, dur) {
+    var html = '<div class="__sp_body" style="display:flex;gap:8px;align-items:center">'
+      + '<span style="font-size:15px">' + escapeHtml(s.icon || 'ℹ️') + '</span>'
+      + '<p class="__sp_text" style="white-space:normal;margin:0;font-size:12px">' + escapeHtml(s.text || '') + '</p></div>';
+    var r = basicCard(cfg, n, design, html, { duration: dur });
+    r.card.style.padding = '8px 12px';
+  };
+  RENDERERS.new_feature = function (cfg, config, n, design, s, dur) {
+    var html = '<div class="__sp_body">'
+      + '<p class="__sp_title" style="white-space:normal"><span style="background:var(--sp-accent);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:999px;margin-right:6px;vertical-align:middle">' + escapeHtml(s.badge || 'NEW') + '</span>' + escapeHtml(s.title || '') + '</p>'
+      + '<p class="__sp_text" style="white-space:normal">' + escapeHtml(s.body || '') + '</p>'
+      + (s.cta ? '<a href="' + escapeHtml(s.cta_url || '#') + '" class="__sp_btn" style="margin-top:8px" target="_blank" rel="noopener">' + escapeHtml(s.cta) + '</a>' : '')
+      + '</div>';
+    var r = basicCard(cfg, n, design, html, { duration: 0 });
+    var a = r.card.querySelector('a.__sp_btn');
+    if (a) a.addEventListener('click', function () { track(cfg, n, 'click'); });
+  };
+
+  // --- Bars ---
+  RENDERERS.collector_bar = function (cfg, config, n, design, s, dur) {
+    var card = document.createElement('div'); card.className = '__sp_card'; card.style.cursor = 'default';
+    card.style.justifyContent = 'center'; card.style.flexWrap = 'wrap'; card.style.borderRadius = '0';
+    var label = elP('__sp_title', s.text || '', {margin:0, whiteSpace:'normal'});
+    var input = document.createElement('input'); input.type = 'email'; input.placeholder = s.placeholder || 'Your email'; input.className = '__sp_input'; input.style.maxWidth = '220px';
+    var btn = document.createElement('button'); btn.className = '__sp_btn'; btn.textContent = s.cta || 'Subscribe';
+    card.appendChild(label); card.appendChild(input); card.appendChild(btn);
+    var cont = makeContainer(cfg.uuid, design, { fullBar: true, barPlacement: s.placement === 'bottom' ? 'bottom' : 'top' });
+    cont.classList.add('__1inme_sp_bar');
+    cont.appendChild(card); mountWidget(cont, cfg);
+    track(cfg, n, 'impression');
+    var closer = showFor(cont, 0);
+    withCloseButton(card, design, closer);
+    btn.addEventListener('click', function () {
+      var v = (input.value || '').trim();
+      if (!v || v.indexOf('@') === -1) { input.focus(); return; }
+      submitData(cfg, n, {email: v});
+      track(cfg, n, 'conversion');
+      successAndClose(card, s.success_text, closer);
+    });
+  };
+  RENDERERS.coupon_bar = function (cfg, config, n, design, s, dur) {
+    var html = '<div class="__sp_body" style="display:flex;gap:10px;align-items:center;justify-content:center;width:100%;flex-wrap:wrap">'
+      + '<span style="font-weight:500">' + escapeHtml(s.text || '') + '</span>'
+      + '<button class="__sp_btn" data-code style="letter-spacing:1px">' + escapeHtml(s.code || '') + '</button>'
+      + '</div>';
+    var r = basicCard(cfg, n, design, html, { duration: 0, fullBar: true, barPlacement: s.placement === 'bottom' ? 'bottom' : 'top' });
+    r.container.classList.add('__1inme_sp_bar');
+    var b = r.card.querySelector('[data-code]');
+    if (b) b.addEventListener('click', function () {
+      try { navigator.clipboard && navigator.clipboard.writeText(s.code || ''); } catch (e) {}
+      b.textContent = '✓ Copied';
+      track(cfg, n, 'conversion');
+    });
+  };
+  RENDERERS.free_shipping_bar = function (cfg, config, n, design, s, dur) {
+    var html = '<div class="__sp_body" style="display:flex;gap:10px;align-items:center;justify-content:center;width:100%;flex-wrap:wrap">'
+      + '<span style="font-weight:500">🚚 ' + escapeHtml((s.text || '').replace('{threshold}', s.threshold || '')) + '</span>'
+      + (s.cta_label ? '<a href="' + escapeHtml(s.cta_url || '#') + '" class="__sp_btn" style="padding:5px 11px;font-size:12px" target="_blank" rel="noopener">' + escapeHtml(s.cta_label) + '</a>' : '')
+      + '</div>';
+    var r = basicCard(cfg, n, design, html, { duration: 0, fullBar: true, barPlacement: s.placement === 'bottom' ? 'bottom' : 'top' });
+    r.container.classList.add('__1inme_sp_bar');
+    var a = r.card.querySelector('a.__sp_btn');
+    if (a) a.addEventListener('click', function () { track(cfg, n, 'click'); });
+  };
+
+  // --- Collectors ---
+  RENDERERS.newsletter_signup = function (cfg, config, n, design, s, dur) {
+    var r = collectorCard(cfg, n, design, {
+      title: s.title || 'Subscribe to our newsletter',
+      body: s.body || '',
+      inputType: 'email',
+      placeholder: s.placeholder || 'Your email',
+      cta: s.cta || 'Subscribe',
+      successText: s.success_text,
+      buildPayload: function (v) { return { email: v }; }
+    });
+    if (s.consent_note) {
+      r.card.appendChild(elP('__sp_text', s.consent_note, {marginTop:'6px', fontSize:'11px', opacity:'.7'}));
+    }
+  };
+
+  // --- Modals ---
+  RENDERERS.collector_modal = function (cfg, config, n, design, s, dur) {
+    var ov = modalOverlay(cfg, n);
+    var card = document.createElement('div'); card.className = '__sp_card __sp_modal_card';
+    card.innerHTML = '<div class="__sp_body" style="text-align:center">'
+      + '<p class="__sp_title" style="font-size:18px;white-space:normal">' + escapeHtml(s.title || '') + '</p>'
+      + '<p class="__sp_text" style="white-space:normal;margin:6px 0 12px">' + escapeHtml(s.body || '') + '</p>'
+      + '<div style="display:flex;gap:6px"><input type="email" class="__sp_input" placeholder="' + escapeHtml(s.placeholder || 'Your email') + '">'
+      + '<button class="__sp_btn">' + escapeHtml(s.cta || 'Subscribe') + '</button></div>'
+      + '</div>';
+    ov.appendChild(card);
+    track(cfg, n, 'impression');
+    function closer() { ov.remove(); }
+    ov.addEventListener('click', function (e) { if (e.target === ov) closer(); });
+    withCloseButton(card, design, closer);
+    var input = card.querySelector('input'), btn = card.querySelector('button.__sp_btn');
+    btn.addEventListener('click', function () {
+      var v = (input.value || '').trim();
+      if (!v || v.indexOf('@') === -1) { input.focus(); return; }
+      submitData(cfg, n, {email: v});
+      track(cfg, n, 'conversion');
+      successAndClose(card, s.success_text, closer);
+    });
+  };
+  RENDERERS.two_step_modal = function (cfg, config, n, design, s, dur) {
+    var teaserHtml = '<div class="__sp_body"><p class="__sp_title" style="white-space:normal">' + escapeHtml(s.teaser || '') + '</p>'
+      + '<button class="__sp_btn" style="margin-top:8px">' + escapeHtml(s.teaser_cta || 'Yes') + '</button></div>';
+    var r = basicCard(cfg, n, design, teaserHtml, { duration: 0 });
+    var tbtn = r.card.querySelector('button.__sp_btn');
+    tbtn.addEventListener('click', function () {
+      track(cfg, n, 'click');
+      r.closer();
+      RENDERERS.collector_modal(cfg, config, n, design, s, dur);
+    });
+  };
+  RENDERERS.button_modal = function (cfg, config, n, design, s, dur) {
+    var ov = modalOverlay(cfg, n);
+    var card = document.createElement('div'); card.className = '__sp_card __sp_modal_card';
+    card.innerHTML = '<div class="__sp_body" style="text-align:center">'
+      + '<p class="__sp_title" style="font-size:18px;white-space:normal">' + escapeHtml(s.title || '') + '</p>'
+      + '<p class="__sp_text" style="white-space:normal;margin:6px 0 12px">' + escapeHtml(s.body || '') + '</p>'
+      + '<a href="' + escapeHtml(s.cta_url || '#') + '" class="__sp_btn" target="_blank" rel="noopener">' + escapeHtml(s.cta || 'Go') + '</a>'
+      + '</div>';
+    ov.appendChild(card);
+    track(cfg, n, 'impression');
+    function closer() { ov.remove(); }
+    ov.addEventListener('click', function (e) { if (e.target === ov) closer(); });
+    withCloseButton(card, design, closer);
+    card.querySelector('a.__sp_btn').addEventListener('click', function () { track(cfg, n, 'conversion'); closer(); });
+  };
+
+  // --- Collectors ---
+  RENDERERS.request_collector = function (cfg, config, n, design, s, dur) {
+    var r = stackedCard(cfg, n, design);
+    r.card.appendChild(elP('__sp_title', s.title || 'Request a callback', {fontSize:'15px', whiteSpace:'normal'}));
+    if (s.body) r.card.appendChild(elP('__sp_text', s.body, {margin:'4px 0 8px'}));
+    var name = document.createElement('input'); name.className = '__sp_input'; name.placeholder = 'Your name'; name.style.marginBottom = '6px';
+    var phone = document.createElement('input'); phone.className = '__sp_input'; phone.type = 'tel'; phone.placeholder = 'Phone or email'; phone.style.marginBottom = '6px';
+    var msg = document.createElement('textarea'); msg.className = '__sp_input'; msg.rows = 2; msg.placeholder = 'What do you need?'; msg.style.marginBottom = '8px'; msg.style.resize = 'vertical'; msg.style.fontFamily = 'inherit';
+    var btn = document.createElement('button'); btn.className = '__sp_btn'; btn.textContent = s.cta || 'Send request';
+    r.card.appendChild(name); r.card.appendChild(phone); r.card.appendChild(msg); r.card.appendChild(btn);
+    btn.addEventListener('click', function () {
+      var contact = (phone.value || '').trim();
+      if (!contact) { phone.focus(); return; }
+      var payload = {name: (name.value || '').trim(), message: (msg.value || '').trim()};
+      if (contact.indexOf('@') !== -1) payload.email = contact; else payload.phone = contact;
+      submitData(cfg, n, payload);
+      track(cfg, n, 'conversion');
+      successAndClose(r.card, s.success_text, r.closer);
+    });
+  };
+  RENDERERS.sms_collector = function (cfg, config, n, design, s, dur) {
+    collectorCard(cfg, n, design, {
+      title: s.title, body: s.body, cta: s.cta || 'Sign me up',
+      inputType: 'tel', placeholder: s.placeholder || 'Phone number',
+      successText: s.success_text,
+      buildPayload: function (v) { return {phone: v}; }
+    });
+  };
+  RENDERERS.webinar_signup = function (cfg, config, n, design, s, dur) {
+    var when = '';
+    try { if (s.event_at) when = new Date(s.event_at).toLocaleString(undefined, {dateStyle:'medium', timeStyle:'short'}); } catch (e) {}
+    collectorCard(cfg, n, design, {
+      title: s.title, body: (s.body || '') + (when ? ' — ' + when : ''),
+      cta: s.cta || 'Save my seat', inputType: 'email', placeholder: 'Your email',
+      successText: s.success_text
+    });
+  };
+  RENDERERS.push_opt_in = function (cfg, config, n, design, s, dur) {
+    var html = '<div class="__sp_body">'
+      + '<p class="__sp_title" style="white-space:normal">🔔 ' + escapeHtml(s.title || '') + '</p>'
+      + '<p class="__sp_text" style="white-space:normal">' + escapeHtml(s.body || '') + '</p>'
+      + '<div style="display:flex;gap:6px;margin-top:8px">'
+      + '<button class="__sp_btn" data-act="allow">' + escapeHtml(s.allow_label || 'Enable') + '</button>'
+      + '<button class="__sp_btn_ghost" data-act="deny">' + escapeHtml(s.deny_label || 'Not now') + '</button>'
+      + '</div></div>';
+    var r = basicCard(cfg, n, design, html, { duration: 0 });
+    r.card.style.cursor = 'default';
+    r.card.querySelectorAll('button[data-act]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (b.dataset.act === 'allow') {
+          submitData(cfg, n, {answer: 'opted_in'});
+          track(cfg, n, 'conversion');
+          successAndClose(r.card, s.success_text, r.closer);
+        } else { track(cfg, n, 'click'); r.closer(); }
+      });
+    });
+  };
+
+  // --- Feedback ---
+  RENDERERS.emoji_feedback = function (cfg, config, n, design, s, dur) {
+    var emojis = (s.emojis && s.emojis.length) ? s.emojis : ['😠','🙁','😐','🙂','😍'];
+    var btns = emojis.map(function (e, i) {
+      return '<button class="__sp_thumb_btn" data-v="' + (i + 1) + '" style="font-size:18px">' + escapeHtml(e) + '</button>';
+    }).join('');
+    var html = '<div class="__sp_body"><p class="__sp_text" style="white-space:normal;margin:0 0 8px">' + escapeHtml(s.question || '') + '</p>'
+      + '<div style="display:flex;gap:6px">' + btns + '</div></div>';
+    var r = basicCard(cfg, n, design, html, { duration: 0 });
+    r.card.style.cursor = 'default';
+    r.card.querySelectorAll('.__sp_thumb_btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        submitData(cfg, n, {rating: +b.dataset.v, answer: b.textContent});
+        track(cfg, n, 'conversion');
+        successAndClose(r.card, s.success_text, r.closer);
+      });
+    });
+  };
+  RENDERERS.score_feedback = function (cfg, config, n, design, s, dur) {
+    var btns = '';
+    for (var i = 0; i <= 10; i++) btns += '<button class="__sp_score_btn" data-v="' + i + '">' + i + '</button>';
+    var html = '<div class="__sp_body"><p class="__sp_text" style="white-space:normal;margin:0 0 8px">' + escapeHtml(s.question || '') + '</p>'
+      + '<div style="display:flex;gap:3px;flex-wrap:wrap">' + btns + '</div>'
+      + '<div class="__sp_meta" style="display:flex;justify-content:space-between;margin-top:4px"><span>' + escapeHtml(s.low_label || '') + '</span><span>' + escapeHtml(s.high_label || '') + '</span></div></div>';
+    var r = basicCard(cfg, n, design, html, { duration: 0 });
+    r.card.style.cursor = 'default';
+    r.card.querySelectorAll('.__sp_score_btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        submitData(cfg, n, {rating: +b.dataset.v});
+        track(cfg, n, 'conversion');
+        successAndClose(r.card, s.success_text, r.closer);
+      });
+    });
+  };
+  RENDERERS.text_feedback = function (cfg, config, n, design, s, dur) {
+    var r = stackedCard(cfg, n, design);
+    r.card.appendChild(elP('__sp_text', s.question || '', {margin:'0 0 8px', fontWeight:'600'}));
+    var ta = document.createElement('textarea'); ta.className = '__sp_input'; ta.rows = 3; ta.placeholder = s.placeholder || ''; ta.style.resize = 'vertical'; ta.style.fontFamily = 'inherit'; ta.style.marginBottom = '8px';
+    var btn = document.createElement('button'); btn.className = '__sp_btn'; btn.textContent = s.cta || 'Send';
+    r.card.appendChild(ta); r.card.appendChild(btn);
+    btn.addEventListener('click', function () {
+      var v = (ta.value || '').trim();
+      if (!v) { ta.focus(); return; }
+      submitData(cfg, n, {message: v});
+      track(cfg, n, 'conversion');
+      successAndClose(r.card, s.success_text, r.closer);
+    });
+  };
+  RENDERERS.star_rating = function (cfg, config, n, design, s, dur) {
+    var stars = '';
+    for (var i = 1; i <= 5; i++) stars += '<button class="__sp_star_btn" data-v="' + i + '">★</button>';
+    var html = '<div class="__sp_body"><p class="__sp_text" style="white-space:normal;margin:0 0 6px;font-weight:600">' + escapeHtml(s.question || '') + '</p>'
+      + '<div style="display:flex;gap:2px">' + stars + '</div></div>';
+    var r = basicCard(cfg, n, design, html, { duration: 0 });
+    r.card.style.cursor = 'default';
+    var all = r.card.querySelectorAll('.__sp_star_btn');
+    all.forEach(function (b) {
+      b.addEventListener('mouseenter', function () {
+        all.forEach(function (x) { x.classList.toggle('__sp_star_on', +x.dataset.v <= +b.dataset.v); });
+      });
+      b.addEventListener('click', function () {
+        submitData(cfg, n, {rating: +b.dataset.v});
+        track(cfg, n, 'conversion');
+        successAndClose(r.card, s.success_text, r.closer);
+      });
+    });
+  };
+  RENDERERS.survey_popup = function (cfg, config, n, design, s, dur) {
+    var opts = (s.options && s.options.length) ? s.options : ['Yes', 'No'];
+    var btns = opts.map(function (o) {
+      return '<button class="__sp_btn_ghost __sp_survey_opt" style="display:block;width:100%;text-align:left;margin-bottom:6px">' + escapeHtml(o) + '</button>';
+    }).join('');
+    var html = '<div class="__sp_body"><p class="__sp_text" style="white-space:normal;margin:0 0 8px;font-weight:600">' + escapeHtml(s.question || '') + '</p>' + btns + '</div>';
+    var r = basicCard(cfg, n, design, html, { duration: 0 });
+    r.card.style.cursor = 'default';
+    r.card.querySelectorAll('.__sp_survey_opt').forEach(function (b) {
+      b.addEventListener('click', function () {
+        submitData(cfg, n, {answer: b.textContent.trim()});
+        track(cfg, n, 'conversion');
+        successAndClose(r.card, s.success_text || 'Thanks!', r.closer);
+      });
+    });
+  };
+
+  // --- Urgency & Ecommerce ---
+  RENDERERS.coupon = function (cfg, config, n, design, s, dur) {
+    var html = '<div class="__sp_body" style="text-align:center">'
+      + '<p class="__sp_title" style="white-space:normal">' + escapeHtml(s.title || '') + '</p>'
+      + '<p class="__sp_text" style="white-space:normal">' + escapeHtml(s.body || '') + '</p>'
+      + '<button class="__sp_btn" data-code style="margin-top:8px;letter-spacing:2px;border:1px dashed rgba(255,255,255,.6)">' + escapeHtml(s.code || '') + '</button>'
+      + (s.cta_label ? '<div><a href="' + escapeHtml(s.cta_url || '#') + '" style="font-size:12px;text-decoration:underline;margin-top:6px;display:inline-block" target="_blank" rel="noopener">' + escapeHtml(s.cta_label) + '</a></div>' : '')
+      + '</div>';
+    var r = basicCard(cfg, n, design, html, { duration: 0 });
+    r.card.style.cursor = 'default';
+    var b = r.card.querySelector('[data-code]');
+    if (b) b.addEventListener('click', function () {
+      try { navigator.clipboard && navigator.clipboard.writeText(s.code || ''); } catch (e) {}
+      b.textContent = '✓ Copied';
+      track(cfg, n, 'conversion');
+    });
+  };
+  RENDERERS.abandoned_cart = function (cfg, config, n, design, s, dur) {
+    var html = '<div class="__sp_img" style="background:#fef3c7;color:#d97706;display:flex;align-items:center;justify-content:center;font-size:20px">🛒</div>'
+      + '<div class="__sp_body"><p class="__sp_title" style="white-space:normal">' + escapeHtml(s.title || '') + '</p>'
+      + '<p class="__sp_text" style="white-space:normal">' + escapeHtml(s.body || '') + '</p>'
+      + (s.cta ? '<a href="' + escapeHtml(s.cta_url || '#') + '" class="__sp_btn" style="margin-top:6px;padding:5px 11px;font-size:12px" target="_blank" rel="noopener">' + escapeHtml(s.cta) + '</a>' : '')
+      + '</div>';
+    var r = basicCard(cfg, n, design, html, { duration: 0 });
+    var a = r.card.querySelector('a.__sp_btn');
+    if (a) a.addEventListener('click', function () { track(cfg, n, 'conversion'); });
+  };
+  RENDERERS.loyalty_points = function (cfg, config, n, design, s, dur) {
+    var html = '<div class="__sp_img" style="background:#ede9fe;color:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:20px">🎯</div>'
+      + '<div class="__sp_body"><p class="__sp_title" style="white-space:normal">' + escapeHtml(s.title || '') + '</p>'
+      + '<p class="__sp_text" style="white-space:normal">' + escapeHtml(s.body || '') + '</p>'
+      + (s.cta ? '<a href="' + escapeHtml(s.cta_url || '#') + '" class="__sp_btn" style="margin-top:6px;padding:5px 11px;font-size:12px" target="_blank" rel="noopener">' + escapeHtml(s.cta) + '</a>' : '')
+      + '</div>';
+    var r = basicCard(cfg, n, design, html, { duration: 0 });
+    var a = r.card.querySelector('a.__sp_btn');
+    if (a) a.addEventListener('click', function () { track(cfg, n, 'click'); });
+  };
+  RENDERERS.holiday_seasonal = function (cfg, config, n, design, s, dur) {
+    var html = '<div class="__sp_body" style="text-align:center">'
+      + '<div style="font-size:28px">' + escapeHtml(s.emoji || '🎄') + '</div>'
+      + '<p class="__sp_title" style="white-space:normal">' + escapeHtml(s.title || '') + '</p>'
+      + '<p class="__sp_text" style="white-space:normal">' + escapeHtml(s.body || '') + '</p>'
+      + (s.cta ? '<a href="' + escapeHtml(s.cta_url || '#') + '" class="__sp_btn" style="margin-top:8px" target="_blank" rel="noopener">' + escapeHtml(s.cta) + '</a>' : '')
+      + '</div>';
+    var r = basicCard(cfg, n, design, html, { duration: 0 });
+    var a = r.card.querySelector('a.__sp_btn');
+    if (a) a.addEventListener('click', function () { track(cfg, n, 'click'); });
+  };
+
+  // --- Media ---
+  RENDERERS.audio_widget = function (cfg, config, n, design, s, dur) {
+    var r = stackedCard(cfg, n, design);
+    if (s.title) r.card.appendChild(elP('__sp_title', s.title, {whiteSpace:'normal'}));
+    if (s.audio_url) {
+      var audio = document.createElement('audio');
+      audio.controls = true; audio.src = String(s.audio_url); audio.style.width = '100%'; audio.style.marginTop = '6px';
+      audio.addEventListener('play', function () { track(cfg, n, 'click'); }, { once: true });
+      r.card.appendChild(audio);
+    } else {
+      r.card.appendChild(elP('__sp_text', 'No audio configured yet.'));
+    }
+  };
+  RENDERERS.image_widget = function (cfg, config, n, design, s, dur) {
+    var r = stackedCard(cfg, n, design);
+    r.card.style.padding = '0'; r.card.style.overflow = 'hidden';
+    if (s.image_url) {
+      var img = document.createElement('img'); img.src = String(s.image_url); img.alt = s.caption || '';
+      img.style.width = '100%'; img.style.display = 'block';
+      r.card.appendChild(img);
+    }
+    if (s.caption) r.card.appendChild(elP('__sp_text', s.caption, {padding:'8px 12px', margin:0}));
+    if (s.link_url) {
+      r.card.style.cursor = 'pointer';
+      r.card.addEventListener('click', function (e) {
+        if (e.target.closest('.__sp_close')) return;
+        track(cfg, n, 'click'); window.open(s.link_url, '_blank', 'noopener');
+      });
+    }
+  };
+
+  // --- Engagement ---
+  RENDERERS.engagement_links = function (cfg, config, n, design, s, dur) {
+    var links = (s.links && s.links.length) ? s.links : [];
+    var items = links.map(function (l) {
+      return '<a href="' + escapeHtml(l.url || '#') + '" class="__sp_btn_ghost" style="display:block;margin-bottom:6px;text-decoration:none;text-align:left" target="_blank" rel="noopener">' + escapeHtml(l.label || l.url || '') + ' →</a>';
+    }).join('');
+    var html = '<div class="__sp_body"><p class="__sp_title" style="margin-bottom:8px">' + escapeHtml(s.title || '') + '</p>' + items + '</div>';
+    var r = basicCard(cfg, n, design, html, { duration: 0 });
+    r.card.style.cursor = 'default';
+    r.card.querySelectorAll('a.__sp_btn_ghost').forEach(function (a) {
+      a.addEventListener('click', function () { track(cfg, n, 'click'); });
+    });
+  };
+  RENDERERS.referral_program = function (cfg, config, n, design, s, dur) {
+    var url = String(s.referral_url || location.href);
+    var html = '<div class="__sp_body"><p class="__sp_title" style="white-space:normal">' + escapeHtml(s.title || '') + '</p>'
+      + '<p class="__sp_text" style="white-space:normal">' + escapeHtml(s.body || '') + '</p>'
+      + '<button class="__sp_btn" data-copy style="margin-top:8px">' + escapeHtml(s.cta || 'Copy my link') + '</button></div>';
+    var r = basicCard(cfg, n, design, html, { duration: 0 });
+    r.card.style.cursor = 'default';
+    var b = r.card.querySelector('[data-copy]');
+    b.addEventListener('click', function () {
+      try { navigator.clipboard && navigator.clipboard.writeText(url); } catch (e) {}
+      b.textContent = '✓ Copied';
+      track(cfg, n, 'conversion');
+    });
+  };
+  RENDERERS.app_download = function (cfg, config, n, design, s, dur) {
+    var badges = '';
+    if (s.appstore_url) badges += '<a href="' + escapeHtml(s.appstore_url) + '" class="__sp_btn" style="background:#000" target="_blank" rel="noopener"> App Store</a>';
+    if (s.play_url) badges += '<a href="' + escapeHtml(s.play_url) + '" class="__sp_btn" style="background:#0f9d58" target="_blank" rel="noopener">▶ Google Play</a>';
+    var html = '<div class="__sp_body"><p class="__sp_title" style="white-space:normal">📱 ' + escapeHtml(s.title || '') + '</p>'
+      + '<p class="__sp_text" style="white-space:normal">' + escapeHtml(s.body || '') + '</p>'
+      + '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">' + badges + '</div></div>';
+    var r = basicCard(cfg, n, design, html, { duration: 0 });
+    r.card.style.cursor = 'default';
+    r.card.querySelectorAll('a.__sp_btn').forEach(function (a) {
+      a.addEventListener('click', function () { track(cfg, n, 'click'); });
+    });
+  };
+
+  // --- Contact ---
+  RENDERERS.contact_us = function (cfg, config, n, design, s, dur) {
+    var r = stackedCard(cfg, n, design);
+    r.card.appendChild(elP('__sp_title', s.title || 'Contact us', {fontSize:'15px', whiteSpace:'normal'}));
+    if (s.body) r.card.appendChild(elP('__sp_text', s.body, {margin:'4px 0 8px'}));
+    var name = document.createElement('input'); name.className = '__sp_input'; name.placeholder = 'Your name'; name.style.marginBottom = '6px';
+    var email = document.createElement('input'); email.className = '__sp_input'; email.type = 'email'; email.placeholder = 'Your email'; email.style.marginBottom = '6px';
+    var msg = document.createElement('textarea'); msg.className = '__sp_input'; msg.rows = 3; msg.placeholder = 'Your message'; msg.style.marginBottom = '8px'; msg.style.resize = 'vertical'; msg.style.fontFamily = 'inherit';
+    var btn = document.createElement('button'); btn.className = '__sp_btn'; btn.textContent = s.cta || 'Send message';
+    r.card.appendChild(name); r.card.appendChild(email); r.card.appendChild(msg); r.card.appendChild(btn);
+    btn.addEventListener('click', function () {
+      var m = (msg.value || '').trim();
+      var e = (email.value || '').trim();
+      if (!m) { msg.focus(); return; }
+      if (e && e.indexOf('@') === -1) { email.focus(); return; }
+      submitData(cfg, n, {name: (name.value || '').trim(), email: e, message: m});
+      track(cfg, n, 'conversion');
+      successAndClose(r.card, s.success_text, r.closer);
+    });
   };
 
   /* -------- HTML sanitizer (for custom_html) -------- */

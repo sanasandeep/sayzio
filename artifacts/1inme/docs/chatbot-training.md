@@ -313,9 +313,15 @@ of **blocks**. It's split into two pages: **Blocks** and **Settings**.
   Divider / Spacer, Link Group.
 - **Layout & profile** — Card Container, Grid / Auto-Fit Grid, Card Carousel /
   Scrolling Cards, Profile Card (Classic / Cover / Stats / Badges identity
-  layouts with avatar, name, bio, optional socials/stats/verified badges).
+  layouts with avatar, name, bio, optional socials/stats/verified badges, plus
+  newer looks: Paper Collage, Portrait Poster, Brand Rail, Split Pill, Badge
+  Card — with optional decorative **avatar frames** like starburst, scalloped,
+  zigzag, wavy, double ring, dotted ring, petal in any color, and **hero photo
+  styles** like glow, wave, grid, spotlight, aurora).
 - **Media** — Image / Image Grid / Image Slider (mask shapes, borders, shadows,
-  and an optional trackable destination link), Video / Header Video, Audio
+  and an optional trackable destination link; plus drag-to-place **photo
+  stickers** from your vault and up to 10 short **text overlays** layered right
+  on the photo), Video / Header Video, Audio
   Player / Playlist, File Download, plus embeds (YouTube, Vimeo, Spotify, Apple
   Music, SoundCloud, Instagram, TikTok, X/Twitter, Pinterest, and more).
 - **Engagement** — FAQ (simple & accordion), Poll, Quiz (with live results),
@@ -330,9 +336,20 @@ of **blocks**. It's split into two pages: **Blocks** and **Settings**.
 
 **Per-block styling & display rules.** Each block has its own style controls
 (font, colors, corner radius, shadow, effects) plus ready-made templates; you can
-set a global theme and let individual blocks override it. **Display rules** let
+set a global theme and let individual blocks override it. Every block also has a
+unified **background picker** (solid color, gradient, or image for just that
+block), headings can carry small **decorative accents**, and blocks support a
+**torn-paper background** edge. A live **contrast (readability) check** warns
+when your text and background colors would be hard to read. Link/button blocks
+have a **Designs gallery** with shape filters (card, pill, square, outline,
+plain text, full image) and looks like Taped Note, Text Divider, Overhanging
+Image, Title + Description Row, and Square Image Cover. Card/grid containers
+have an **item gap** control. **Display rules** let
 you show or hide a block by schedule, location, device, OS, browser, or language,
 so different visitors see different blocks.
+
+**Page stickers.** Decorate the whole page with up to **10 stickers** (an emoji
+or one of your images): drag each anywhere, then rotate, resize, and layer it.
 
 ---
 
@@ -341,7 +358,11 @@ so different visitors see different blocks.
 Open the **Settings** page of the biolink editor to control the whole page:
 
 - **Appearance** — global background (color, gradient, image, or video), font
-  family, and primary text color.
+  family, and primary text color. A **Presets** gallery offers curated
+  background looks with an opacity dial, and a **Fixed / Scroll** toggle
+  controls whether the background stays put while the page scrolls. Image
+  pickers include a **Stock** tab with a curated gallery of ready-to-use photos
+  and textures.
 - **Layout** — content max-width, page padding, and block spacing per device.
 - **Block theme** — set a global block theme (colors, radius, shadows,
   glassmorphism) or pick a pre-designed template; save looks as **themes** and

@@ -251,6 +251,15 @@
         );
         $backStickers  = array_values(array_filter($pageStickers, fn ($s) => $s['layer'] === 'back'));
         $frontStickers = array_values(array_filter($pageStickers, fn ($s) => $s['layer'] === 'front'));
+        // Split each layer by position mode: 'fixed' stickers pin to the
+        // viewport, 'scroll' stickers ride a page-height absolute layer.
+        $stickerLayers = [];
+        foreach (['back' => $backStickers, 'front' => $frontStickers] as $stlKey => $stlList) {
+            foreach (['fixed', 'scroll'] as $stlMode) {
+                $stlItems = array_values(array_filter($stlList, fn ($s) => ($s['position_mode'] ?? 'fixed') === $stlMode));
+                if ($stlItems) $stickerLayers[] = ['layer' => $stlKey, 'mode' => $stlMode, 'items' => $stlItems];
+            }
+        }
     @endphp
     @php
         // Collect every font referenced by this biolink: page font, block-
@@ -505,6 +514,10 @@
             pointer-events: none;
             overflow: hidden;
         }
+        {{-- Scroll-mode stickers live on an absolutely-positioned page-height
+             layer (body is the containing block) so they move away with the
+             content while fixed stickers stay pinned to the viewport. --}}
+        .page-stickers--scroll { position: absolute; }
         .page-stickers-back { z-index: 0; }
         .page-stickers-front { z-index: 2; }
         .page-sticker {
@@ -519,12 +532,31 @@
                  shadow keeps outline-style emoji visible on any background. --}}
             filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
         }
+        .page-sticker-inner { display: inline-block; }
         .page-sticker-image img {
             width: var(--st-size, 64px);
             height: auto;
             display: block;
             filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
         }
+        {{-- Looping highlight animations. The positioning transform lives on
+             the OUTER .page-sticker, so effects animate an inner wrapper and
+             never fight it. --st-loops carries the chosen repeat count
+             (a number or `infinite`). Fully disabled under reduced motion. --}}
+        @media (prefers-reduced-motion: no-preference) {
+            .st-anim-pulse  { animation: st-pulse 1.4s ease-in-out var(--st-loops, infinite); }
+            .st-anim-bounce { animation: st-bounce 1.1s ease-in-out var(--st-loops, infinite); }
+            .st-anim-wiggle { animation: st-wiggle 0.9s ease-in-out var(--st-loops, infinite); }
+            .st-anim-spin   { animation: st-spin 2.2s linear var(--st-loops, infinite); }
+            .st-anim-float  { animation: st-float 2.6s ease-in-out var(--st-loops, infinite); }
+            .st-anim-glow   { animation: st-glow 1.6s ease-in-out var(--st-loops, infinite); }
+        }
+        @keyframes st-pulse  { 0%,100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+        @keyframes st-bounce { 0%,100% { transform: translateY(0); } 40% { transform: translateY(-12px); } 60% { transform: translateY(-6px); } }
+        @keyframes st-wiggle { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(-9deg); } 75% { transform: rotate(9deg); } }
+        @keyframes st-spin   { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes st-float  { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        @keyframes st-glow   { 0%,100% { filter: drop-shadow(0 0 0 rgba(255,255,255,0)); } 50% { filter: drop-shadow(0 0 10px rgba(255,255,255,0.85)) brightness(1.15); } }
         @endif
         @if($bgType === 'slideshow' && count($slideshowImages) > 0)
         {{-- "Fixed": the slideshow layer pins to the viewport. "Scroll": it becomes an
@@ -928,13 +960,27 @@
             width: 100%;
             max-width: {{ $maxPhone }}px;
             margin: 0 auto;
-            padding: {{ $pagePadTop }}px {{ $pagePadX }}px {{ $pagePadBottom }}px;
+            /* Task #6114: the page itself has NO horizontal padding — the
+               default side spacing lives on each direct child as a margin
+               instead, so an individual block can zero its own margins and
+               go truly edge-to-edge. */
+            padding: {{ $pagePadTop }}px 0 {{ $pagePadBottom }}px;
             display: grid;
             grid-template-columns: repeat(12, 1fr);
             gap: {{ $blockGap }}px;
             align-items: start;
             position: relative;
             z-index: 1;
+        }
+        /* Default per-child horizontal margin (matches the old page padding
+           so existing pages look unchanged). Absolutely-positioned children
+           (e.g. the text-overlay layer with inset:0) shrink by the same
+           margins, keeping their reference box identical to the old padding
+           box. Blocks override this inline via _style margin_left/right —
+           an explicit 0 means full width. */
+        .biolink-container > * {
+            margin-left: {{ $pagePadX }}px;
+            margin-right: {{ $pagePadX }}px;
         }
         /* Keep the fixed bg-template layer behind everything else. */
         .bg-template.bg-layer { z-index: 0 !important; }
@@ -967,10 +1013,20 @@
            `--md-span` / `--md-row-span` vars on its wrap plus these marker
            classes; on wide screens the media rules re-place it. `!important`
            is required to beat the wrap's inline `grid-column: span N`. */
+        /* Base (mobile-first) row span (Task #6123). A block carrying
+           `_style.grid_row_span` emits `--row-span` on its wrap plus the
+           `row-span` marker class; the block stretches across N grid rows
+           at every width. `grid_row_span_md` still overrides it at ≥768px
+           via the md rule below (`!important` beats this base rule). */
+        .biolink-block-wrap.row-span {
+            grid-row: span var(--row-span);
+            align-self: stretch;
+        }
+        .biolink-block-wrap.row-span > :first-child { height: 100%; }
         @media (min-width: 768px) {
             .biolink-block-wrap.md-span { grid-column: span var(--md-span) !important; }
             .biolink-block-wrap.md-row-span {
-                grid-row: span var(--md-row-span);
+                grid-row: span var(--md-row-span) !important;
                 align-self: stretch;
             }
             .biolink-block-wrap.md-row-span > :first-child { height: 100%; }
@@ -1149,25 +1205,26 @@
          Rendered as two fixed pointer-events-none layers: "back" with the
          background (z 0), "front" above content (z 2). Percent positioning
          keeps placement proportional across phone/desktop widths. --}}
-    @if(count($backStickers) || count($frontStickers))
-        @foreach(['back' => $backStickers, 'front' => $frontStickers] as $stLayer => $stList)
-            @if(count($stList))
-            <div class="page-stickers page-stickers-{{ $stLayer }} bg-layer" aria-hidden="true">
-                @foreach($stList as $st)
-                    @if($st['kind'] === 'image')
-                        <div class="page-sticker page-sticker-image"
-                             style="left:{{ $st['x'] }}%;top:{{ $st['y'] }}%;--st-rot:{{ $st['rotation'] }}deg;--st-size:{{ round(64 * $st['scale']) }}px;">
-                            <img src="{{ $st['value'] }}" alt="" loading="lazy" draggable="false">
-                        </div>
-                    @else
-                        <div class="page-sticker page-sticker-emoji"
-                             style="left:{{ $st['x'] }}%;top:{{ $st['y'] }}%;--st-rot:{{ $st['rotation'] }}deg;--st-size:{{ round(36 * $st['scale']) }}px;">{{ $st['value'] }}</div>
-                    @endif
-                @endforeach
-            </div>
-            @endif
-        @endforeach
-    @endif
+    @foreach($stickerLayers as $stl)
+        <div class="page-stickers page-stickers-{{ $stl['layer'] }} {{ $stl['mode'] === 'scroll' ? 'page-stickers--scroll' : '' }} bg-layer" aria-hidden="true">
+            @foreach($stl['items'] as $st)
+                @php
+                    $stAnim = ($st['animation'] ?? 'none') !== 'none' ? $st['animation'] : null;
+                    $stLoops = $stAnim ? (($st['loop'] ?? 'infinite') === 'infinite' ? 'infinite' : (int) $st['loop']) : null;
+                    $stAnimStyle = $stAnim ? '--st-loops:' . $stLoops . ';' : '';
+                @endphp
+                @if($st['kind'] === 'image')
+                    <div class="page-sticker page-sticker-image"
+                         style="left:{{ $st['x'] }}%;top:{{ $st['y'] }}%;--st-rot:{{ $st['rotation'] }}deg;--st-size:{{ round(64 * $st['scale']) }}px;{{ $stAnimStyle }}">
+                        <span class="page-sticker-inner {{ $stAnim ? 'st-anim-' . $stAnim : '' }}"><img src="{{ $st['value'] }}" alt="" loading="lazy" draggable="false"></span>
+                    </div>
+                @else
+                    <div class="page-sticker page-sticker-emoji"
+                         style="left:{{ $st['x'] }}%;top:{{ $st['y'] }}%;--st-rot:{{ $st['rotation'] }}deg;--st-size:{{ round(36 * $st['scale']) }}px;{{ $stAnimStyle }}"><span class="page-sticker-inner {{ $stAnim ? 'st-anim-' . $stAnim : '' }}">{{ $st['value'] }}</span></div>
+                @endif
+            @endforeach
+        </div>
+    @endforeach
 
     <div class="biolink-container">
         @if(!empty($pageTextOverlays))
@@ -1272,7 +1329,10 @@
             @php
                 $s = $block->settings ?? [];
                 $blockStyle = \App\Modules\User\Models\BiolinkBlock::getBlockStyle($s, $globalTheme);
-                $blockInline = \App\Modules\User\Models\BiolinkBlock::buildInlineStyle($blockStyle);
+                // Task #6114: horizontal margins render on the wrap (see
+                // $wrapExtraStyle below), so skip them here to avoid
+                // double-applying.
+                $blockInline = \App\Modules\User\Models\BiolinkBlock::buildInlineStyle($blockStyle, true);
                 $hasCustomStyle = !empty($s['_style']) || (!empty($globalTheme) && ($globalTheme['apply_to_all'] ?? false));
                 // Button-like blocks must apply the preset directly to the
                 // <a> element (the actual visible button), NOT to a wrapper
@@ -1284,7 +1344,11 @@
                 // identity-design renderer applies $blockInline itself and
                 // needs overflow-hidden to clip cover images — so the generic
                 // .block-styled wrapper must not double-wrap them.
-                $skipWrap = in_array($block->type, ['avatar', 'divider', 'spacer', 'social_icons'])
+                // Card containers (Task #6173) apply their unified `_style`
+                // directly on their own .card-container-render div inside
+                // the render partial — wrapping them here would double-apply
+                // the background/border/shadow chrome.
+                $skipWrap = in_array($block->type, ['avatar', 'divider', 'spacer', 'social_icons', 'card'])
                     || str_starts_with($block->type, 'profile_card')
                     || $isBtnLike;
                 $btnInline = ($isBtnLike && $hasCustomStyle) ? $blockInline : '';
@@ -1301,9 +1365,17 @@
                 $gridSpan = intval($blockStyle['grid_span'] ?? 12) ?: 12;
                 // Desktop overrides — sanitizer bounds these to 1..12 / 1..6.
                 $mdSpan = intval($blockStyle['grid_span_md'] ?? 0);
+                $rowSpan = intval($blockStyle['grid_row_span'] ?? 0);
                 $mdRowSpan = intval($blockStyle['grid_row_span_md'] ?? 0);
-                $wrapExtraClass = ($mdSpan ? ' md-span' : '') . ($mdRowSpan ? ' md-row-span' : '');
-                $wrapExtraStyle = ($mdSpan ? ";--md-span:{$mdSpan}" : '') . ($mdRowSpan ? ";--md-row-span:{$mdRowSpan}" : '');
+                $wrapExtraClass = ($mdSpan ? ' md-span' : '') . ($rowSpan ? ' row-span' : '') . ($mdRowSpan ? ' md-row-span' : '');
+                $wrapExtraStyle = ($mdSpan ? ";--md-span:{$mdSpan}" : '') . ($rowSpan ? ";--row-span:{$rowSpan}" : '') . ($mdRowSpan ? ";--md-row-span:{$mdRowSpan}" : '');
+                // Task #6114: side spacing lives on the wrap. An explicit
+                // _style margin_left/right — including 0 for a full-width
+                // block — overrides the container's default child margin.
+                $mxL = $blockStyle['margin_left'] ?? '';
+                $mxR = $blockStyle['margin_right'] ?? '';
+                $wrapExtraStyle .= ($mxL !== '' && $mxL !== null ? ';margin-left:' . (0 + $mxL) . 'px' : '')
+                    . ($mxR !== '' && $mxR !== null ? ';margin-right:' . (0 + $mxR) . 'px' : '');
                 // Task #1041: forward variant metadata hooks as data-attrs
                 // so CSS in <style> can drive heading animations, gallery
                 // layouts, and social icon style sets without per-block
@@ -2377,11 +2449,22 @@
                     'style.border_width': function (el, v) { el.style.borderWidth = v === '' ? '' : parseInt(v, 10) + 'px'; },
                     'style.border_style': function (el, v) { el.style.borderStyle = v; },
                     'style.border_color': function (el, v) { el.style.borderColor = v; },
+                    // Advanced borders (Task #6038): per-corner radius +
+                    // per-side style/width/color patch the wrapper live.
+                    'style.border_radius_tl': function (el, v) { el.style.borderTopLeftRadius = v === '' ? '' : parseInt(v, 10) + 'px'; },
+                    'style.border_radius_tr': function (el, v) { el.style.borderTopRightRadius = v === '' ? '' : parseInt(v, 10) + 'px'; },
+                    'style.border_radius_bl': function (el, v) { el.style.borderBottomLeftRadius = v === '' ? '' : parseInt(v, 10) + 'px'; },
+                    'style.border_radius_br': function (el, v) { el.style.borderBottomRightRadius = v === '' ? '' : parseInt(v, 10) + 'px'; },
                     'style.padding': function (el, v) { el.style.padding = v === '' ? '' : parseInt(v, 10) + 'px'; },
                     'style.padding_top': function (el, v) { el.style.paddingTop = v === '' ? '' : parseInt(v, 10) + 'px'; },
                     'style.padding_bottom': function (el, v) { el.style.paddingBottom = v === '' ? '' : parseInt(v, 10) + 'px'; },
                     'style.padding_left': function (el, v) { el.style.paddingLeft = v === '' ? '' : parseInt(v, 10) + 'px'; },
-                    'style.padding_right': function (el, v) { el.style.paddingRight = v === '' ? '' : parseInt(v, 10) + 'px'; }
+                    'style.padding_right': function (el, v) { el.style.paddingRight = v === '' ? '' : parseInt(v, 10) + 'px'; },
+                    // Task #6114: vertical margins patch the styled element
+                    // (mirrors buildInlineStyle); horizontal margins are
+                    // special-cased in applyLiveStyle to hit the wrap.
+                    'style.margin_top': function (el, v) { el.style.marginTop = v === '' ? '' : parseInt(v, 10) + 'px'; },
+                    'style.margin_bottom': function (el, v) { el.style.marginBottom = v === '' ? '' : parseInt(v, 10) + 'px'; }
                 };
                 // Text tilt (Task #5954): heading/paragraph partials always
                 // emit a [data-tilt-wrap] element, so live rotation works
@@ -2524,7 +2607,63 @@
                         return true;
                     }
                 };
+                // Per-side borders (Task #6041): style/width/color for each
+                // side depend on the sibling fields plus the shorthand
+                // fallbacks, so recompute ALL border props from the full
+                // form payload — mirroring BiolinkBlock::buildInlineStyle.
+                function borderFieldVal(fields, name) {
+                    var v = fields['style[' + name + ']'];
+                    return v === undefined || v === null ? '' : String(v);
+                }
+                var BORDER_SIDES = ['top', 'right', 'bottom', 'left'];
+                var BORDER_SIDE_PROPS = { top: 'borderTop', right: 'borderRight', bottom: 'borderBottom', left: 'borderLeft' };
+                function borderHasSideOverride(fields) {
+                    return BORDER_SIDES.some(function (side) {
+                        return borderFieldVal(fields, 'border_' + side + '_style') !== ''
+                            || borderFieldVal(fields, 'border_' + side + '_width') !== ''
+                            || borderFieldVal(fields, 'border_' + side + '_color') !== '';
+                    });
+                }
+                function applyLiveSideBorders(el, fields) {
+                    var shStyle = borderFieldVal(fields, 'border_style');
+                    var shWidth = borderFieldVal(fields, 'border_width');
+                    var shColor = borderFieldVal(fields, 'border_color');
+                    if (borderHasSideOverride(fields)) {
+                        // Clear any shorthand first, then set each side
+                        // explicitly (matches the per-side server branch).
+                        el.style.border = '';
+                        BORDER_SIDES.forEach(function (side) {
+                            var s = borderFieldVal(fields, 'border_' + side + '_style');
+                            if (s === '') s = shStyle !== '' ? shStyle : 'none';
+                            var w = borderFieldVal(fields, 'border_' + side + '_width');
+                            if (w === '') w = shWidth;
+                            var c = borderFieldVal(fields, 'border_' + side + '_color');
+                            if (c === '') c = shColor;
+                            if (s !== 'none' && s !== '' && w !== '' && parseFloat(w) > 0) {
+                                el.style[BORDER_SIDE_PROPS[side]] = parseFloat(w) + 'px ' + s + (c !== '' ? ' ' + c : '');
+                            } else {
+                                el.style[BORDER_SIDE_PROPS[side]] = 'none';
+                            }
+                        });
+                    } else {
+                        // No per-side overrides left — revert to the plain
+                        // shorthand semantics (server elseif branch).
+                        BORDER_SIDES.forEach(function (side) { el.style[BORDER_SIDE_PROPS[side]] = ''; });
+                        if (shStyle !== '' && shStyle !== 'none' && shWidth !== '' && parseFloat(shWidth) > 0) {
+                            el.style.border = parseFloat(shWidth) + 'px ' + shStyle + (shColor !== '' ? ' ' + shColor : '');
+                        } else {
+                            el.style.border = '';
+                        }
+                    }
+                    return true;
+                }
                 function styleTarget(root) {
+                    // Card containers carry their unified style on their own
+                    // render div (Task #6173) — check it FIRST, because a
+                    // .block-styled child inside the card would otherwise be
+                    // picked up and patched instead of the container itself.
+                    var _bt = root.getAttribute('data-block-type') || '';
+                    if (_bt === 'card') return root.querySelector('.card-container-render');
                     // Styled blocks render a .block-styled wrapper; button-like
                     // blocks carry the inline style on the anchor itself. If
                     // neither exists the block has no custom style yet and a
@@ -2544,6 +2683,14 @@
                 }
                 function applyLiveStyle(root, key, value, fields) {
                     if (key === 'style._tilt') return applyLiveTilt(root, value);
+                    // Task #6114: horizontal margins live on the block wrap
+                    // itself (the page has no side padding); clearing the
+                    // field reverts to the container's default child margin.
+                    if (key === 'style.margin_left' || key === 'style.margin_right') {
+                        var mProp = key === 'style.margin_left' ? 'marginLeft' : 'marginRight';
+                        root.style[mProp] = value === '' ? '' : parseInt(value, 10) + 'px';
+                        return true;
+                    }
                     // Preset background transparency (Task #5988): fade the
                     // block's preset layer live while dragging the slider.
                     // querySelector picks the block's OWN layer first (a
@@ -2625,6 +2772,41 @@
                         // hero container; anything else needs a reload.
                         var hero = root.querySelector('[data-photo-hero]');
                         return hero ? pfn(hero, value) !== false : false;
+                    }
+                    // Per-side border fields (Task #6041): each side's final
+                    // CSS depends on its style+width+color plus the shorthand
+                    // fallbacks, so recompute from the full form payload.
+                    // Shorthand border edits also reroute here whenever any
+                    // per-side override exists, otherwise the naive single-
+                    // property patch would clobber the per-side values.
+                    var isSideBorderKey = /^style\.border_(top|right|bottom|left)_(style|width|color)$/.test(key);
+                    var isShorthandBorderKey = key === 'style.border_style' || key === 'style.border_width' || key === 'style.border_color';
+                    if (fields && (isSideBorderKey || (isShorthandBorderKey && borderHasSideOverride(fields)))) {
+                        var bEl = styleTarget(root);
+                        if (!bEl) return false;
+                        return applyLiveSideBorders(bEl, fields);
+                    }
+                    if (isSideBorderKey) return false;
+                    // Per-device block width (Task #6119): patch the grid wrap
+                    // itself. The base span drives the inline grid-column; the
+                    // desktop override toggles the .md-span class + --md-span
+                    // var (only visible at/above the 768px breakpoint, so the
+                    // phone-width editor preview correctly keeps the base span).
+                    if (key === 'style.grid_span') {
+                        var gs = parseInt(value, 10) || 12;
+                        root.style.gridColumn = 'span ' + Math.max(1, Math.min(12, gs));
+                        return true;
+                    }
+                    if (key === 'style.grid_span_md') {
+                        var gsm = parseInt(value, 10) || 0;
+                        if (gsm >= 1 && gsm <= 12) {
+                            root.classList.add('md-span');
+                            root.style.setProperty('--md-span', String(gsm));
+                        } else {
+                            root.classList.remove('md-span');
+                            root.style.removeProperty('--md-span');
+                        }
+                        return true;
                     }
                     var fn = LIVE_STYLE_KEYS[key];
                     if (!fn) return false;

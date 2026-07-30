@@ -68,6 +68,62 @@ args = "e2e-admin-tpl-live"
 task = "workflow.run"
 args = "e2e-admin-tpl-edit-preview"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "pc-name-focus"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "editor-dnd-regress"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "editor-inline-regress"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "blk-contrast-e2e"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-default-colors-contrast"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "blk-bgop"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "blk-bgsw"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-admin-bd-style-editor"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-block-live-side-borders"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-admin-variant-gallery"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "em-dash"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-border-recents"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-editor-badge-light-mode"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-width-device-toggle"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -200,6 +256,160 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh admin-template-edit
 [workflows.workflow.metadata]
 isValidation = true
 
+[[workflows.workflow]]
+name = "pc-name-focus"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5057 bash tests/Browser/run-validation.sh profile-card-name-focus.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "editor-dnd-regress"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5062 bash tests/Browser/run-validation.sh biolink-editor-palette-dnd.spec.ts"
+
+[[workflows.workflow]]
+name = "editor-inline-regress"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5059 bash tests/Browser/run-validation.sh biolink-editor-inline-edit.spec.ts"
+
+[[workflows.workflow]]
+name = "blk-contrast-e2e"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5063 bash tests/Browser/run-validation.sh block-style-contrast-warning.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "blk-bgop"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5053 bash tests/Browser/run-validation.sh biolink-block-bg-preset-opacity-live.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-default-colors-contrast"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "VALIDATION_PORT=5064 bash artifacts/1inme/tests/Browser/run-validation.sh default-colors-contrast-warning.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "blk-bgsw"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "VALIDATION_PORT=5054 bash artifacts/1inme/tests/Browser/run-validation.sh biolink-block-bg-preset-swatch-live.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-admin-bd-style-editor"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh admin-block-designs-style-editor.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-block-live-side-borders"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-block-live-preview.spec.ts -g \"per-side border\""
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-admin-variant-gallery"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "VALIDATION_PORT=5071 bash artifacts/1inme/tests/Browser/run-validation.sh admin-variant-designs-gallery.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "em-dash"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:em-dash"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-border-recents"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5093 bash tests/Browser/run-validation.sh border-color-recents.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-editor-badge-light-mode"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "VALIDATION_PORT=5094 bash artifacts/1inme/tests/Browser/run-validation.sh editor-badge-light-mode.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-width-device-toggle"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-block-width-device-toggle.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
 
   [agent]
 stack = "PNPM_WORKSPACE"
@@ -220,7 +430,7 @@ AWS_DEFAULT_REGION = "ap-south-2"
 AWS_URL = "https://d3l7wvr1shk1cg.cloudfront.net"
 AWS_USE_PATH_STYLE_ENDPOINT = "true"
 USER_CONTENT_DISK = "s3"
-CONTACT_ADMIN_TOKEN = ""
+CONTACT_ADMIN_TOKEN = "secret stripped"
 APP_NAME = "Sayzio"
 
 [[ports]]

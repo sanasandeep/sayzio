@@ -19,6 +19,7 @@ use App\Modules\Admin\Controllers\WalletSettingsController;
 use App\Modules\Admin\Controllers\LinkManagementController;
 use App\Modules\Admin\Controllers\CoachDefaultsController;
 use App\Modules\Admin\Controllers\BlockDefaultsController;
+use App\Modules\Admin\Controllers\BlockDesignsController;
 use App\Modules\Admin\Controllers\TemplateController;
 use App\Modules\Admin\Controllers\AdminAssetController;
 use App\Modules\Admin\Controllers\BrandingController;
@@ -214,6 +215,24 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('{type}', [BlockDefaultsController::class, 'edit'])->name('edit');
             Route::put('{type}', [BlockDefaultsController::class, 'update'])->name('update');
             Route::delete('{type}', [BlockDefaultsController::class, 'reset'])->name('reset');
+        });
+
+        // Admin-managed Designs gallery variants + Block Theme presets (Task #6045).
+        Route::prefix('block-designs')->name('block-designs.')->middleware(CheckPermission::class . ':settings.manage')->group(function () {
+            Route::get('/', [BlockDesignsController::class, 'index'])->name('index');
+            Route::get('variants/create', [BlockDesignsController::class, 'createVariant'])->name('variants.create');
+            Route::post('variants', [BlockDesignsController::class, 'saveVariant'])->name('variants.save');
+            Route::get('variants/{key}/edit', [BlockDesignsController::class, 'editVariant'])->name('variants.edit');
+            Route::post('variants/{key}/duplicate', [BlockDesignsController::class, 'duplicateVariant'])->name('variants.duplicate');
+            Route::post('variants/{key}/move', [BlockDesignsController::class, 'moveVariant'])->name('variants.move');
+            Route::post('variants/{key}/toggle', [BlockDesignsController::class, 'toggleVariant'])->name('variants.toggle');
+            Route::delete('variants/{key}', [BlockDesignsController::class, 'deleteVariant'])->name('variants.delete');
+            Route::get('templates/create', [BlockDesignsController::class, 'createTemplate'])->name('templates.create');
+            Route::post('templates', [BlockDesignsController::class, 'saveTemplate'])->name('templates.save');
+            Route::get('templates/{key}/edit', [BlockDesignsController::class, 'editTemplate'])->name('templates.edit');
+            Route::post('templates/{key}/duplicate', [BlockDesignsController::class, 'duplicateTemplate'])->name('templates.duplicate');
+            Route::post('templates/{key}/toggle', [BlockDesignsController::class, 'toggleTemplate'])->name('templates.toggle');
+            Route::delete('templates/{key}', [BlockDesignsController::class, 'deleteTemplate'])->name('templates.delete');
         });
 
         Route::prefix('assets')->name('assets.')->group(function () {
@@ -530,15 +549,28 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('{message}', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 
+        // Read-only monetization report: coin packages vs AI costs, AI coin
+        // burn vs top-up, and plan-wise profitability.
+        Route::get('monetization', [\App\Modules\Admin\Controllers\MonetizationOverviewController::class, 'index'])
+            ->middleware(CheckPermission::class . ':settings.manage')
+            ->name('monetization.index');
+
         Route::prefix('coin-packages')->name('coin-packages.')->group(function () {
             Route::get('/',           [CoinPackageController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::get('create',      [CoinPackageController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
             Route::post('/',          [CoinPackageController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
             Route::post('fx-rate',    [CoinPackageController::class, 'updateFxRate'])->middleware(CheckPermission::class . ':settings.manage')->name('fx-rate');
+            Route::get('allocations', [CoinPackageController::class, 'allocations'])->middleware(CheckPermission::class . ':settings.manage')->name('allocations');
             Route::get('{coinPackage}/edit',  [CoinPackageController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('{coinPackage}',       [CoinPackageController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::post('{coinPackage}/archive', [CoinPackageController::class, 'archive'])->middleware(CheckPermission::class . ':settings.manage')->name('archive');
             Route::delete('{coinPackage}',    [CoinPackageController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+        });
+
+        // Platform-wide coin ledger (read-only audit of wallet_transactions).
+        Route::prefix('coin-ledger')->name('coin-ledger.')->group(function () {
+            Route::get('/',       [\App\Modules\Admin\Controllers\CoinLedgerController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('export',  [\App\Modules\Admin\Controllers\CoinLedgerController::class, 'export'])->middleware(CheckPermission::class . ':settings.manage')->name('export');
         });
 
         Route::prefix('onboarding-slides')->name('onboarding-slides.')->group(function () {

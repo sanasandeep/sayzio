@@ -19,8 +19,11 @@
                     <li><a href="{{ route('site.workspace-team') }}" class="text-sm text-gray-500 hover:text-white">Workspace &amp; Team</a></li>
                     <li><a href="{{ route('site.ai-dashboard') }}" class="text-sm text-gray-500 hover:text-white">AI Dashboard</a></li>
                     <li><a href="{{ route('site.pricing') }}" class="text-sm text-gray-500 hover:text-white">Pricing</a></li>
-                    <li><a href="{{ route('site.download') }}" class="text-sm text-gray-500 hover:text-white">Download browser</a></li>
                     <li><a href="{{ route('site.api-docs') }}" class="text-sm text-gray-500 hover:text-white">API</a></li>
+                    <li><a href="{{ route('site.mobile-app') }}" class="text-sm text-gray-500 hover:text-white">Mobile app</a></li>
+                    <li><a href="{{ route('site.zio-dialer') }}" class="text-sm text-gray-500 hover:text-white">Zio Dialer</a></li>
+                    <li><a href="{{ route('site.zio-browser') }}" class="text-sm text-gray-500 hover:text-white">Zio Browser</a></li>
+                    <li><a href="{{ route('site.zio-extension') }}" class="text-sm text-gray-500 hover:text-white">Browser extension</a></li>
                 </ul>
             </div>
             <div>
@@ -29,7 +32,7 @@
                     <li><a href="{{ route('site.services') }}" class="text-sm text-gray-500 hover:text-white">Use cases</a></li>
                     <li><a href="{{ route('site.discovery') }}" class="text-sm text-gray-500 hover:text-white">Discover creators</a></li>
                     <li><a href="{{ route('site.creators-feed') }}" class="text-sm text-gray-500 hover:text-white">Creators feed</a></li>
-                    <li><a href="{{ route('site.buzz') }}" class="text-sm text-gray-500 hover:text-white">Buzz</a></li>
+                    <li><a href="{{ route('site.newsroom') }}" class="text-sm text-gray-500 hover:text-white">Newsroom</a></li>
                 </ul>
             </div>
             <div>

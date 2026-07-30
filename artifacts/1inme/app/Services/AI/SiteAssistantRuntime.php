@@ -382,7 +382,7 @@ class SiteAssistantRuntime
         }
         $messages[] = ['role' => 'user', 'content' => $userMsg->content];
 
-        $model = $this->modelFor($cfg);
+        $model = $this->modelFor($cfg, $billingUser);
 
         try {
             $result = $this->openai->chat($billingUser, $model, $messages, [
@@ -670,7 +670,7 @@ class SiteAssistantRuntime
         foreach ($history as $h) $messages[] = ['role' => $h->role === 'assistant' ? 'assistant' : 'user', 'content' => (string) $h->content];
         $messages[] = ['role' => 'user', 'content' => $userMsg->content];
 
-        $model = $this->modelFor($cfg);
+        $model = $this->modelFor($cfg, $billingUser);
 
         // Mirror tokens into a local buffer so that, if the upstream
         // request errors mid-stream, we can still persist whatever the
@@ -765,7 +765,7 @@ class SiteAssistantRuntime
      * choice if set and enabled, otherwise the engine's mapped model
      * for the `companion` feature.
      */
-    protected function modelFor(array $cfg): string
+    protected function modelFor(array $cfg, ?User $billingUser = null): string
     {
         $configured = trim((string) ($cfg['model'] ?? ''));
         if ($configured !== '') {
@@ -774,7 +774,7 @@ class SiteAssistantRuntime
                 return $configured;
             }
         }
-        return AiEngineSettings::featureModel('companion');
+        return AiEngineSettings::featureModel('companion', $billingUser);
     }
 
     /**

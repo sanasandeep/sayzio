@@ -21,7 +21,7 @@
                     Editing template: {{ $tplDraft['template_name'] ?? 'Page template' }}
                 </div>
                 <div class="text-[11px]" style="color: var(--text-dim);">
-                    This is a draft page — changes only reach users after you save them to the template.
+                    This is a draft page: changes only reach users after you save them to the template.
                 </div>
             </div>
         </div>
@@ -680,6 +680,76 @@ $catColors = [
             border: 1px solid rgba(220,38,38,0.7);
             box-shadow: 0 2px 6px rgba(239,68,68,0.3);
         }
+
+        /* ── Light-mode pairing: editor badges/pills/chips ──────────────────
+           The badge palette above (and the inline pastel pills in the
+           block-card / display-settings partials) was tuned for the dark
+           theme — pastel text on translucent tinted backgrounds. On light
+           backgrounds that washes out, so every badge gets a targeted
+           html.light-mode counterpart: text darkens to a high-contrast
+           ink of the SAME tint (blue stays blue, rose stays rose, …) while
+           the translucent tinted background is kept. Dark mode unchanged. */
+
+        /* Width-fraction chips ("¼" … "Full") on block rows + child rows.
+           Active chip used pale #90acff text — unreadable on light. */
+        html.light-mode .span-btn.active,
+        html.light-mode .child-span-btn.active {
+            background: rgba(61,107,255,0.12);
+            color: #2342c7;
+            border-color: rgba(61,107,255,0.40);
+        }
+
+        /* FIXED (pinned-by-template) pill: pale amber #fbbf24 on 12% tint. */
+        html.light-mode .editor-pill-badge[style*="#fbbf24"] {
+            background: rgba(251,191,36,0.22) !important;
+            color: #92400e !important;
+            border-color: rgba(180,83,9,0.40) !important;
+            text-shadow: none;
+        }
+        /* Pin toggle icon button when active (inline color:#fbbf24). */
+        html.light-mode .fixed-toggle-btn[style*="#fbbf24"] { color: #b45309 !important; }
+
+        /* Opaque-gradient badges (span "6/12", HIDDEN) keep white text but
+           lose the dark-theme glow shadow that looks muddy on white cards. */
+        html.light-mode .editor-pill-badge--span,
+        html.light-mode .editor-pill-badge--hidden { box-shadow: none; }
+
+        /* Pale #90acff inline accents ("Add block to card", special-panel
+           button) and the palette drag-ghost label. */
+        html.light-mode [style*="color: #90acff"],
+        html.light-mode [style*="color:#90acff"] { color: #2342c7 !important; }
+        html.light-mode .palette-block-item.palette-drop-ghost .palette-block-label { color: #2342c7; }
+
+        /* Display Settings section pills + preview-state pills (inline
+           pastel rgba text set in block-display-settings partial, incl.
+           Alpine :style bindings — attribute selectors still match). */
+        html.light-mode [style*="color: rgba(188,207,255"],
+        html.light-mode [style*="color:rgba(188,207,255"]  { color: #2342c7 !important; }  /* blue: Schedule / Add slot */
+        html.light-mode [style*="color: rgba(254,205,211"],
+        html.light-mode [style*="color:rgba(254,205,211"]  { color: #be123c !important; }  /* rose: Limits & Scarcity */
+        html.light-mode [style*="color: rgba(165,243,252"],
+        html.light-mode [style*="color:rgba(165,243,252"]  { color: #0e7490 !important; }  /* cyan: Audience & Location */
+        html.light-mode [style*="color: rgba(251,207,232"],
+        html.light-mode [style*="color:rgba(251,207,232"]  { color: #be185d !important; }  /* pink: Device & Browser */
+        html.light-mode [style*="color: rgba(254,243,199"],
+        html.light-mode [style*="color:rgba(254,243,199"]  { color: #92400e !important; }  /* amber: "Only 3 left" preview */
+        html.light-mode [style*="color: rgba(187,247,208"],
+        html.light-mode [style*="color:rgba(187,247,208"]  { color: #047857 !important; }  /* green: countdown preview */
+        html.light-mode [style*="color: rgba(231,229,228"],
+        html.light-mode [style*="color:rgba(231,229,228"]  { color: #44403c !important; }  /* stone: expired preview */
+
+        /* Day chips / preset buttons / preview-state buttons inside the
+           block settings form use Tailwind white-alpha + pastel classes
+           tuned for dark mode; give each a dark-ink counterpart. */
+        html.light-mode .block-settings-form .text-white\/30 { color: rgba(15,23,42,0.40); }
+        html.light-mode .block-settings-form .text-white\/40 { color: rgba(15,23,42,0.50); }
+        html.light-mode .block-settings-form .text-white\/45 { color: rgba(15,23,42,0.55); }
+        html.light-mode .block-settings-form .text-white\/50 { color: rgba(15,23,42,0.60); }
+        html.light-mode .block-settings-form .text-white\/70 { color: rgba(15,23,42,0.75); }
+        html.light-mode .block-settings-form .hover\:text-white\/70:hover { color: rgba(15,23,42,0.80); }
+        html.light-mode .block-settings-form .hover\:text-blue-300:hover { color: #2342c7; }
+        html.light-mode .block-settings-form .text-blue-200 { color: #2342c7; }
+        html.light-mode .block-settings-form .text-rose-200 { color: #be123c; }
     </style>
 
     <style>
@@ -2123,6 +2193,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }},
             draggable: '.block-card-wrapper',
             filter: '.card-children-area, .card-child-list, .child-span-row, .grid-span-row, .insert-block-btn, .inline-block-editor',
+            // Sortable's default preventOnFilter:true calls preventDefault()
+            // on every pointerdown inside filtered zones, which blocks text
+            // inputs in the inline block editor from ever taking focus.
+            preventOnFilter: false,
             onAdd: function(evt) {
                 if (handlePaletteDrop(evt, el, null)) return;
                 var blockId = parseInt(evt.item.dataset.blockId);
@@ -2171,6 +2245,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }},
             draggable: '.child-block-card, .block-card, .block-card-wrapper',
             filter: '.inline-block-editor, .child-span-row',
+            preventOnFilter: false, // keep inline-editor inputs focusable
             onAdd: function(evt) {
                 if (handlePaletteDrop(evt, childList, cardId)) return;
                 var blockId = parseInt(evt.item.dataset.blockId);

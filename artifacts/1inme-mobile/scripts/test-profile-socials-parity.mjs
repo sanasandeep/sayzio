@@ -82,7 +82,11 @@ for (let i = 0; i < marks.length; i++) {
   // branches are contiguous `if (...) { return (...); }` blocks, the chunk
   // between two marks is exactly one branch.
   mobileBranches.add(marks[i].layout);
-  if (chunk.includes("<ProfileSocialsRow")) mobileWith.add(marks[i].layout);
+  // A branch renders socials either via the shared <ProfileSocialsRow>
+  // component or via a bespoke inline render of the socials array (e.g.
+  // brand_rail's vertical icon rail maps `socials` directly).
+  if (chunk.includes("<ProfileSocialsRow") || chunk.includes("socials.map("))
+    mobileWith.add(marks[i].layout);
 }
 
 // The fallback (badges & everything unlisted) must NOT render socials —
@@ -91,7 +95,8 @@ const lastChunk = viewSrc.slice(marks[marks.length - 1].start);
 const fallbackStart = lastChunk.indexOf("LEGACY: BADGES");
 assert.ok(fallbackStart !== -1, "badges fallback marker not found");
 assert.ok(
-  !lastChunk.slice(fallbackStart).includes("<ProfileSocialsRow"),
+  !lastChunk.slice(fallbackStart).includes("<ProfileSocialsRow") &&
+    !lastChunk.slice(fallbackStart).includes("socials.map("),
   "mobile fallback branch renders ProfileSocialsRow — unlisted layouts would all show socials",
 );
 

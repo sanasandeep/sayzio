@@ -96,7 +96,7 @@ class BiolinkBlock extends Model
         if ($variantKey === '') return;
 
         $storedVersion = (int) ($style['_variant_version'] ?? 0);
-        if ($storedVersion >= BlockVariantCatalog::VERSION) return;
+        if ($storedVersion >= BlockVariantCatalog::version()) return;
 
         $variant = BlockVariantCatalog::find($this->type, $variantKey);
         if ($variant === null) {
@@ -104,7 +104,7 @@ class BiolinkBlock extends Model
             // Leave `_style` alone (renderer falls back to it), but mark
             // the block as up-to-date with the current catalog so we
             // don't keep doing this lookup on every read.
-            $style['_variant_version'] = BlockVariantCatalog::VERSION;
+            $style['_variant_version'] = BlockVariantCatalog::version();
             $settings['_style'] = $style;
             $this->settings = $settings;
             $this->saveQuietly();
@@ -119,7 +119,7 @@ class BiolinkBlock extends Model
             $variant['style'],
             [
                 '_variant' => $variantKey,
-                '_variant_version' => BlockVariantCatalog::VERSION,
+                '_variant_version' => BlockVariantCatalog::version(),
             ]
         );
 
@@ -386,6 +386,26 @@ class BiolinkBlock extends Model
         'border_radius' => '',
         'border_width' => '',
         'border_style' => 'none',
+        // Advanced borders (Task #6038): per-corner radius + per-side
+        // style/width/color. Empty = fall back to the shorthand value
+        // field-by-field at render time, so the simple controls keep
+        // working and advanced values only override what they set.
+        'border_radius_tl' => '',
+        'border_radius_tr' => '',
+        'border_radius_bl' => '',
+        'border_radius_br' => '',
+        'border_top_style' => '',
+        'border_top_width' => '',
+        'border_top_color' => '',
+        'border_right_style' => '',
+        'border_right_width' => '',
+        'border_right_color' => '',
+        'border_bottom_style' => '',
+        'border_bottom_width' => '',
+        'border_bottom_color' => '',
+        'border_left_style' => '',
+        'border_left_width' => '',
+        'border_left_color' => '',
         'shadow_type' => 'none',
         'shadow_color' => '#00000040',
         'shadow_x' => 0,
@@ -424,6 +444,10 @@ class BiolinkBlock extends Model
         // template can stack blocks full-width on phones but arrange them
         // side-by-side (e.g. split-hero + tile grid) on desktop.
         'grid_span_md' => '',
+        // Base (mobile-first) row span (Task #6123). Empty = auto height
+        // (legacy). When set, the wrap stretches across N grid rows at
+        // every width unless `grid_row_span_md` overrides it on desktop.
+        'grid_row_span' => '',
         'grid_row_span_md' => '',
         '_template' => '',
         // Per-block design variant key from BlockVariantCatalog::forType().
@@ -656,6 +680,38 @@ class BiolinkBlock extends Model
         ],
     ];
 
+    /**
+     * Merged Block Theme preset catalog (Task #6045): the hardcoded
+     * BLOCK_TEMPLATES built-ins plus enabled admin-created presets,
+     * minus admin-hidden keys when $forPicker is true. The sanitizer's
+     * `_template` branch validates against the picker view including
+     * hidden built-ins staying invalid for NEW applies, but pages that
+     * already persisted a now-hidden key keep their stored `_style`
+     * (templates copy styles at apply time, so nothing breaks).
+     *
+     * @return array<string,array{label:string,icon:string,preview_bg:string,preview_text:string,style:array}>
+     */
+    public static function blockTemplates(bool $forPicker = true): array
+    {
+        $templates = self::BLOCK_TEMPLATES;
+        foreach (\App\Modules\User\Support\AdminBlockDesigns::customTemplates() as $key => $tpl) {
+            if ($forPicker && empty($tpl['enabled'])) continue;
+            $templates[$key] = [
+                'label'        => (string) ($tpl['label'] ?? $key),
+                'icon'         => (string) ($tpl['icon'] ?? 'fa-swatchbook'),
+                'preview_bg'   => (string) ($tpl['preview_bg'] ?? '#1a1a2e'),
+                'preview_text' => (string) ($tpl['preview_text'] ?? '#fff'),
+                'style'        => is_array($tpl['style'] ?? null) ? $tpl['style'] : [],
+            ];
+        }
+        if ($forPicker) {
+            foreach (\App\Modules\User\Support\AdminBlockDesigns::hiddenTemplateKeys() as $hiddenKey) {
+                unset($templates[$hiddenKey]);
+            }
+        }
+        return $templates;
+    }
+
     public static function getBlockStyle(array $blockSettings, array $globalTheme = []): array
     {
         $style = self::STYLE_DEFAULTS;
@@ -742,7 +798,7 @@ class BiolinkBlock extends Model
         return ['css' => rtrim($css, "; \t\n\r"), 'opacity' => $op];
     }
 
-    public static function buildInlineStyle(array $style): string
+    public static function buildInlineStyle(array $style, bool $skipHorizontalMargins = false): string
     {
         $css = [];
         if (!empty($style['font_family'])) {
@@ -775,12 +831,17 @@ class BiolinkBlock extends Model
             $css[] = "padding:{$style['padding']}px";
         }
 
-        $hasMargin = !empty($style['margin_top']) || !empty($style['margin_bottom']) || !empty($style['margin_left']) || !empty($style['margin_right']);
-        if ($hasMargin) {
-            if (!empty($style['margin_top'])) $css[] = "margin-top:{$style['margin_top']}px";
-            if (!empty($style['margin_bottom'])) $css[] = "margin-bottom:{$style['margin_bottom']}px";
-            if (!empty($style['margin_left'])) $css[] = "margin-left:{$style['margin_left']}px";
-            if (!empty($style['margin_right'])) $css[] = "margin-right:{$style['margin_right']}px";
+        // Task #6114: an explicit 0 margin is a real value (e.g. full-width
+        // blocks), so test against '' instead of !empty. On the public page
+        // horizontal margins live on the .biolink-block-wrap element (the
+        // page has no horizontal padding anymore) — the top-level render
+        // path passes $skipHorizontalMargins so they aren't applied twice.
+        $mSet = fn($k) => ($style[$k] ?? '') !== '' && $style[$k] !== null;
+        if ($mSet('margin_top')) $css[] = 'margin-top:' . (0 + $style['margin_top']) . 'px';
+        if ($mSet('margin_bottom')) $css[] = 'margin-bottom:' . (0 + $style['margin_bottom']) . 'px';
+        if (!$skipHorizontalMargins) {
+            if ($mSet('margin_left')) $css[] = 'margin-left:' . (0 + $style['margin_left']) . 'px';
+            if ($mSet('margin_right')) $css[] = 'margin-right:' . (0 + $style['margin_right']) . 'px';
         }
 
         if (($style['display_mode'] ?? 'card') === 'card') {
@@ -801,8 +862,50 @@ class BiolinkBlock extends Model
             } elseif (($style['bg_color'] ?? '') === 'transparent') {
                 $css[] = "background:transparent";
             }
-            if (!empty($style['border_radius'])) $css[] = "border-radius:{$style['border_radius']}px";
-            if (($style['border_style'] ?? 'none') !== 'none' && !empty($style['border_width'])) {
+            // Border radius: per-corner values (Task #6038) override the
+            // shorthand field-by-field; blank corners fall back to it.
+            $cornerMap = [
+                'border_radius_tl' => 'border-top-left-radius',
+                'border_radius_tr' => 'border-top-right-radius',
+                'border_radius_bl' => 'border-bottom-left-radius',
+                'border_radius_br' => 'border-bottom-right-radius',
+            ];
+            $hasCorner = false;
+            foreach ($cornerMap as $k => $prop) {
+                if (($style[$k] ?? '') !== '') { $hasCorner = true; break; }
+            }
+            if ($hasCorner) {
+                foreach ($cornerMap as $k => $prop) {
+                    $v = ($style[$k] ?? '') !== '' ? $style[$k] : ($style['border_radius'] ?? '');
+                    if ($v !== '') $css[] = "{$prop}:{$v}px";
+                }
+            } elseif (!empty($style['border_radius'])) {
+                $css[] = "border-radius:{$style['border_radius']}px";
+            }
+
+            // Border: per-side style/width/color (Task #6038) override the
+            // shorthand field-by-field; sides with no resolved visible
+            // border emit border-<side>:none so a shorthand border can be
+            // selectively switched off per side.
+            $sides = ['top', 'right', 'bottom', 'left'];
+            $hasSide = false;
+            foreach ($sides as $side) {
+                if (($style["border_{$side}_style"] ?? '') !== ''
+                    || ($style["border_{$side}_width"] ?? '') !== ''
+                    || ($style["border_{$side}_color"] ?? '') !== '') { $hasSide = true; break; }
+            }
+            if ($hasSide) {
+                foreach ($sides as $side) {
+                    $s = ($style["border_{$side}_style"] ?? '') !== '' ? $style["border_{$side}_style"] : ($style['border_style'] ?? 'none');
+                    $w = ($style["border_{$side}_width"] ?? '') !== '' ? $style["border_{$side}_width"] : ($style['border_width'] ?? '');
+                    $c = ($style["border_{$side}_color"] ?? '') !== '' ? $style["border_{$side}_color"] : ($style['border_color'] ?? '');
+                    if ($s !== 'none' && $s !== '' && $w !== '' && (float) $w > 0) {
+                        $css[] = "border-{$side}:{$w}px {$s} {$c}";
+                    } else {
+                        $css[] = "border-{$side}:none";
+                    }
+                }
+            } elseif (($style['border_style'] ?? 'none') !== 'none' && !empty($style['border_width'])) {
                 $css[] = "border:{$style['border_width']}px {$style['border_style']} {$style['border_color']}";
             }
             if (($style['effect'] ?? 'none') === 'glass') {
@@ -822,8 +925,8 @@ class BiolinkBlock extends Model
             if ($shadow) $css[] = "box-shadow:{$shadow}";
         }
 
-        if (!empty($style['bg_image']) && preg_match('/^https?:\/\//', $style['bg_image'])) {
-            $css[] = "background-image:url('" . str_replace("'", '', $style['bg_image']) . "')";
+        if (!empty($style['bg_image']) && preg_match('#^(https?://|/f/)#', $style['bg_image'])) {
+            $css[] = "background-image:url('" . str_replace(["'", '"', '(', ')'], '', $style['bg_image']) . "')";
             $css[] = "background-size:cover";
             $css[] = "background-position:center";
         }

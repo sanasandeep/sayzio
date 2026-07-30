@@ -29,7 +29,7 @@ class MarketingDiagnosisService
     public const WINDOW_DAYS = 30;
 
     /** Goal metrics we can baseline / re-measure deterministically. */
-    public const METRICS = ['clicks', 'reach', 'engagement', 'sessions'];
+    public const METRICS = ['clicks', 'reach', 'engagement', 'sessions', 'views', 'subscribers', 'followers', 'orders', 'revenue'];
 
     /**
      * Full diagnosis payload used by the scorecard, forecast and the AI
@@ -256,6 +256,32 @@ class MarketingDiagnosisService
 
         try {
             switch ($metric) {
+                case 'subscribers':
+                    return $this->hasTable('subscribers')
+                        ? (int) DB::table('subscribers')->where('user_id', $user->id)
+                            ->where('status', 'active')
+                            ->whereBetween('subscribed_at', [$start, $now])->count()
+                        : 0;
+                case 'followers':
+                    return $this->hasTable('follows')
+                        ? (int) DB::table('follows')->where('creator_id', $user->id)
+                            ->whereBetween('created_at', [$start, $now])->count()
+                        : 0;
+                case 'orders':
+                    return $this->countOrders($user, $linkIds, $start, $now);
+                case 'revenue':
+                    return $this->sumRevenue($user, $linkIds, $start, $now);
+                case 'views':
+                    // Page views across the creator's links: prefer session
+                    // starts (one per visit), fall back to block impressions.
+                    if ($this->hasTable('page_sessions')) {
+                        return (int) DB::table('page_sessions')->whereIn('link_id', $linkIds)
+                            ->whereBetween('started_at', [$start, $now])->count();
+                    }
+                    return $this->hasTable('block_views')
+                        ? (int) DB::table('block_views')->whereIn('link_id', $linkIds)
+                            ->whereBetween('first_viewed_at', [$start, $now])->sum('impression_count')
+                        : 0;
                 case 'sessions':
                     return $this->hasTable('page_sessions')
                         ? (int) DB::table('page_sessions')->whereIn('link_id', $linkIds)
@@ -286,6 +312,72 @@ class MarketingDiagnosisService
         } catch (\Throwable $e) {
             return 0;
         }
+    }
+
+    /**
+     * Count fulfilled-intent orders across every commerce surface tied to
+     * the creator: restaurant orders, store order-requests (both scoped by
+     * link_id) and paid product-storefront checkouts (scoped by creator).
+     * Cancelled orders never count.
+     */
+    protected function countOrders(User $user, array $linkIds, Carbon $start, Carbon $now): int
+    {
+        $total = 0;
+        foreach (['restaurant_orders', 'store_orders'] as $table) {
+            if (!$this->hasTable($table)) {
+                continue;
+            }
+            try {
+                $total += (int) DB::table($table)->whereIn('link_id', $linkIds)
+                    ->where('status', '!=', 'cancelled')
+                    ->whereBetween('created_at', [$start, $now])->count();
+            } catch (\Throwable $e) {
+            }
+        }
+        if ($this->hasTable('product_orders')) {
+            try {
+                $total += (int) DB::table('product_orders')
+                    ->where('creator_user_id', $user->id)
+                    ->whereIn('status', ['paid', 'fulfilled'])
+                    ->whereBetween('created_at', [$start, $now])->count();
+            } catch (\Throwable $e) {
+            }
+        }
+        return $total;
+    }
+
+    /**
+     * Sum gross revenue (whole currency units, rounded) from the same
+     * commerce surfaces as countOrders(). Restaurant/store totals are an
+     * estimated bill (no payment collected); product orders are real paid
+     * checkouts stored in cents.
+     */
+    protected function sumRevenue(User $user, array $linkIds, Carbon $start, Carbon $now): int
+    {
+        $total = 0.0;
+        foreach (['restaurant_orders', 'store_orders'] as $table) {
+            if (!$this->hasTable($table)) {
+                continue;
+            }
+            try {
+                $col = Schema::hasColumn($table, 'total') ? 'total' : 'subtotal';
+                $total += (float) DB::table($table)->whereIn('link_id', $linkIds)
+                    ->where('status', '!=', 'cancelled')
+                    ->whereBetween('created_at', [$start, $now])->sum($col);
+            } catch (\Throwable $e) {
+            }
+        }
+        if ($this->hasTable('product_orders')) {
+            try {
+                $cents = (float) DB::table('product_orders')
+                    ->where('creator_user_id', $user->id)
+                    ->whereIn('status', ['paid', 'fulfilled'])
+                    ->whereBetween('created_at', [$start, $now])->sum('subtotal_cents');
+                $total += $cents / 100;
+            } catch (\Throwable $e) {
+            }
+        }
+        return (int) round($total);
     }
 
     /** Normalise a requested goal metric to a supported key. */

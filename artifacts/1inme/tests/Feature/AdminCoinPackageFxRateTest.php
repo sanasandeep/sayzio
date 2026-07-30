@@ -72,17 +72,24 @@ class AdminCoinPackageFxRateTest extends TestCase
 
     public function test_seeder_computes_inr_from_stored_rate(): void
     {
+        // A fresh DB is pre-seeded by the lineup data migration at the
+        // default ₹90, and seedPriceIfMissing never rewrites existing rows —
+        // wipe the tier so this run prices it from scratch at ₹80.
+        CoinPackage::where('slug', 'coins-starter')->each(function ($p) {
+            $p->prices()->delete();
+            $p->delete();
+        });
         BillingFxRate::put(80.0);
 
         $this->seed(CoinPackagesSeeder::class);
 
-        $pkg = CoinPackage::where('slug', 'ai-credits-10')->firstOrFail();
+        $pkg = CoinPackage::where('slug', 'coins-starter')->firstOrFail();
         $inr = $pkg->prices()->where('currency', 'INR')->where('billing_cycle', 'monthly')->firstOrFail();
         $usd = $pkg->prices()->where('currency', 'USD')->where('billing_cycle', 'monthly')->firstOrFail();
 
-        $this->assertSame(960, (int) $usd->amount_minor_units);
-        // ₹80/$1 → 960 cents * 80 = 76,800 paise.
-        $this->assertSame(76800, (int) $inr->amount_minor_units);
+        $this->assertSame(1000, (int) $usd->amount_minor_units);
+        // ₹80/$1 → 1,000 cents * 80 = 80,000 paise.
+        $this->assertSame(80000, (int) $inr->amount_minor_units);
     }
 
     public function test_seeder_rerun_does_not_overwrite_existing_inr_prices(): void
@@ -92,11 +99,11 @@ class AdminCoinPackageFxRateTest extends TestCase
         BillingFxRate::put(100.0);
         $this->seed(CoinPackagesSeeder::class); // re-run at new rate
 
-        $pkg = CoinPackage::where('slug', 'ai-credits-10')->firstOrFail();
+        $pkg = CoinPackage::where('slug', 'coins-starter')->firstOrFail();
         $inr = $pkg->prices()->where('currency', 'INR')->where('billing_cycle', 'monthly')->firstOrFail();
 
-        // Existing rows are preserved (₹90 * 960 = 86,400), not rewritten at ₹100.
-        $this->assertSame(86400, (int) $inr->amount_minor_units);
+        // Existing rows are preserved (₹90 * 1,000 = 90,000), not rewritten at ₹100.
+        $this->assertSame(90000, (int) $inr->amount_minor_units);
     }
 
     public function test_edit_form_shows_computed_inr_hint(): void
@@ -104,16 +111,16 @@ class AdminCoinPackageFxRateTest extends TestCase
         $admin = $this->makeAdmin();
         BillingFxRate::put(85.0);
         $this->seed(CoinPackagesSeeder::class);
-        $pkg = CoinPackage::where('slug', 'ai-credits-10')->firstOrFail();
+        $pkg = CoinPackage::where('slug', 'coins-starter')->firstOrFail();
 
         $resp = $this->actingAs($admin, 'admin')
             ->get(route('admin.coin-packages.edit', $pkg))
             ->assertOk();
 
         $resp->assertSee('data-fx-hint', false);
-        // 960 cents at ₹85 → 81,600 paise.
+        // 1,000 cents at ₹85 → 85,000 paise.
         $resp->assertSee('data-fx-rate="85"', false);
-        $resp->assertSee('81600');
+        $resp->assertSee('85000');
     }
 
     public function test_index_shows_fx_rate_form(): void

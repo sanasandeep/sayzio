@@ -82,18 +82,60 @@
         </div>
     </div>
 
-    {{-- Models with per-1k coin rates --}}
+    {{-- How model config fits together --}}
+    <div class="glass rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5">
+        <div class="flex flex-col md:flex-row md:items-stretch gap-4">
+            <div class="flex-1 flex items-start gap-3">
+                <span class="ak-blue shrink-0 w-7 h-7 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-200 flex items-center justify-center text-xs font-bold">1</span>
+                <div>
+                    <p class="ak-strong text-sm font-semibold text-white">Model catalog &amp; rates</p>
+                    <p class="ak-note text-xs text-white/40 mt-0.5">Define which OpenAI models exist on the platform and how many coins each charges per 1&nbsp;000 tokens.</p>
+                </div>
+            </div>
+            <div class="hidden md:flex items-center text-white/20"><i class="fas fa-arrow-right-long"></i></div>
+            <div class="flex-1 flex items-start gap-3">
+                <span class="ak-blue shrink-0 w-7 h-7 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-200 flex items-center justify-center text-xs font-bold">2</span>
+                <div>
+                    <p class="ak-strong text-sm font-semibold text-white">Feature assignments</p>
+                    <p class="ak-note text-xs text-white/40 mt-0.5">Point each AI feature at one chat model from the catalog. That model's rates set what the feature costs users.</p>
+                </div>
+            </div>
+        </div>
+        <p class="ak-note text-[11px] text-white/30 mt-3 pt-3 border-t border-white/10">
+            These are the platform defaults. Paid users may additionally pick their own model per feature from their
+            Settings → AI Models tab — only <em>enabled chat</em> models from the catalog are offered, and their calls
+            are charged at the chosen model's rates.
+        </p>
+    </div>
+
+    {{-- Step 1: Models with per-1k coin rates --}}
     <div class="glass rounded-2xl border border-white/10 p-6 space-y-3">
-        <div class="flex items-center justify-between">
-            <div>
-                <h3 class="ak-strong font-semibold text-white">Models &amp; rates</h3>
-                <p class="ak-note text-xs text-white/40">Coins charged per 1 000 tokens (fractional allowed). Per-call cost is rounded up to whole coins.</p>
+        <div class="flex items-center justify-between gap-4">
+            <div class="flex items-start gap-3">
+                <span class="ak-blue shrink-0 w-7 h-7 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-200 flex items-center justify-center text-xs font-bold">1</span>
+                <div>
+                    <h3 class="ak-strong font-semibold text-white">Models &amp; rates <span class="ak-note text-white/30 font-normal text-xs ml-1">— the catalog</span></h3>
+                    <p class="ak-note text-xs text-white/40">Coins charged per 1 000 tokens (fractional allowed). Per-call cost is rounded up to whole coins. Disabled models can't be assigned or picked by users.</p>
+                </div>
             </div>
             <button type="button" onclick="addModelRow()"
-                    class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700">
+                    class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 whitespace-nowrap">
                 <i class="fas fa-plus mr-1"></i> Add model
             </button>
         </div>
+
+        @if(count($modelDeprecations))
+            <div class="ak-amber p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs space-y-1">
+                <p class="font-semibold"><i class="fas fa-triangle-exclamation mr-1"></i> OpenAI is retiring some of these models</p>
+                <p class="text-amber-300/80">
+                    The GPT-5 snapshots are removed from the OpenAI API on <strong>Dec 11, 2026</strong>, and the
+                    GPT-4.1 / GPT-4o families are already off the live price sheet. Any AI feature still pointing at
+                    a retired model will start failing. Move the affected features below to the GPT-5.6 successors
+                    (<span class="font-mono">gpt-5.6-sol</span> / <span class="font-mono">gpt-5.6-terra</span> /
+                    <span class="font-mono">gpt-5.6-luna</span>) before then.
+                </p>
+            </div>
+        @endif
 
         @php
             $modelToFeatures = [];
@@ -116,7 +158,15 @@
             @foreach($models as $i => $m)
                 @php $usedBy = $modelToFeatures[$m['name']] ?? []; @endphp
                 <tr class="border-t border-white/5 align-top" data-model-row data-features="{{ implode(',', $usedBy) }}">
-                    <td class="py-2"><input name="models[{{ $i }}][name]" value="{{ $m['name'] }}" class="ak-strong ak-input w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm" required></td>
+                    <td class="py-2">
+                        <input name="models[{{ $i }}][name]" value="{{ $m['name'] }}" class="ak-strong ak-input w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm" required>
+                        @if(isset($modelDeprecations[$m['name']]))
+                            <p class="ak-amber mt-1 text-[11px] text-amber-300 flex items-start gap-1">
+                                <i class="fas fa-triangle-exclamation mt-0.5"></i>
+                                <span>{{ $modelDeprecations[$m['name']] }}</span>
+                            </p>
+                        @endif
+                    </td>
                     <td class="py-2">
                         @if($usedBy)
                             <div class="flex flex-wrap gap-1">
@@ -149,51 +199,86 @@
         </table>
     </div>
 
-    {{-- Per-feature model picker --}}
+    {{-- Step 2: Per-feature model picker --}}
     <div class="glass rounded-2xl border border-white/10 p-6 space-y-4">
-        <div>
-            <h3 class="ak-strong font-semibold text-white">Feature models</h3>
-            <p class="ak-note text-xs text-white/40">
-                Choose which chat model each AI feature uses. Falls back to
-                <span class="ak-amber font-mono text-amber-300">{{ $defaultFeatureModel }}</span> if unset.
-            </p>
+        <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+            <div class="flex items-start gap-3">
+                <span class="ak-blue shrink-0 w-7 h-7 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-200 flex items-center justify-center text-xs font-bold">2</span>
+                <div>
+                    <h3 class="ak-strong font-semibold text-white">Feature models <span class="ak-note text-white/30 font-normal text-xs ml-1">— the assignments</span></h3>
+                    <p class="ak-note text-xs text-white/40">
+                        Choose which chat model from the catalog each AI feature uses. Falls back to
+                        <span class="ak-amber font-mono text-amber-300">{{ $defaultFeatureModel }}</span> if unset.
+                    </p>
+                </div>
+            </div>
+            <div class="relative md:w-64 shrink-0">
+                <i class="fas fa-magnifying-glass ak-note absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-xs"></i>
+                <input type="text" id="feature-search" placeholder="Search features…" autocomplete="off"
+                       oninput="filterFeatures(this.value)"
+                       class="ak-input w-full bg-white/5 border border-white/10 rounded-lg pl-8 pr-3 py-2 text-white text-sm placeholder-white/30">
+            </div>
         </div>
 
         @php
             $chatModelNames = array_values(array_map(fn($m) => $m['name'],
                 array_filter($models, fn($m) => ($m['kind'] ?? 'chat') === 'chat')));
+
+            $featureGroups = [
+                'Page & content builders' => ['biolink_builder', 'slides_builder', 'restaurant_menu_builder', 'store_menu_builder', 'service_booking_builder', 'resume_builder'],
+                'Chat & coaching'         => ['companion', 'coach', 'ask_coach', 'mind', 'persona'],
+                'Resume tools'            => ['resume_import', 'resume_tailor', 'resume_cover_letter'],
+                'Inbox & automation'      => ['inbox_agent', 'whatsapp_agent', 'ai_staff_billing', 'ai_staff_contacts', 'ai_staff_general'],
+                'Brand & growth'          => ['brand_kit', 'marketing_strategist', 'dashboard_designer', 'competitor_teardown', 'card_scan'],
+            ];
+            $grouped = collect($featureGroups)->map(fn($fs) => array_values(array_intersect($fs, $features)))->filter(fn($fs) => count($fs));
+            $other = array_values(array_diff($features, array_merge(...array_values($featureGroups))));
+            if (count($other)) $grouped['Other'] = $other;
         @endphp
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            @foreach($features as $f)
-                @php
-                    $current = $featureModels[$f] ?? $defaultFeatureModel;
-                    $status  = $featureStatus[$f];
-                    $inList  = in_array($current, $chatModelNames, true);
-                @endphp
-                <div class="space-y-1.5">
-                    <label class="ak-note text-xs uppercase tracking-wider text-white/40 block">{{ ucfirst($f) }}</label>
-                    <select name="feature_models[{{ $f }}]"
-                            data-feature-select="{{ $f }}"
-                            class="ak-strong ak-input w-full bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-white text-sm">
-                        @foreach($chatModelNames as $name)
-                            <option value="{{ $name }}" {{ $name === $current ? 'selected' : '' }}>{{ $name }}</option>
-                        @endforeach
-                        @if(!$inList)
-                            <option value="{{ $current }}" selected>{{ $current }} (not in models table)</option>
-                        @endif
-                    </select>
-                    @if(!$status['ok'])
-                        <p class="ak-red text-[11px] text-red-300 flex items-start gap-1.5">
-                            <i class="fas fa-triangle-exclamation mt-0.5"></i>
-                            <span>{{ $status['message'] }}</span>
-                        </p>
-                    @else
-                        <p class="ak-note text-[11px] text-white/30">Spend tagged <span class="font-mono">{{ $f }}</span>.</p>
-                    @endif
+        <p id="feature-search-empty" class="ak-note hidden text-xs text-white/40 italic">No features match your search.</p>
+
+        @foreach($grouped as $groupLabel => $groupFeatures)
+            <div data-feature-group class="space-y-3">
+                <p class="ak-note text-[11px] uppercase tracking-widest text-white/30 font-semibold border-b border-white/5 pb-1.5">{{ $groupLabel }}</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @foreach($groupFeatures as $f)
+                        @php
+                            $current = $featureModels[$f] ?? $defaultFeatureModel;
+                            $status  = $featureStatus[$f];
+                            $inList  = in_array($current, $chatModelNames, true);
+                            $label   = ucwords(str_replace('_', ' ', $f));
+                        @endphp
+                        <div class="space-y-1.5 rounded-xl bg-white/[0.03] border border-white/5 p-3" data-feature-card data-feature-name="{{ strtolower($f . ' ' . $label) }}">
+                            <label class="ak-note text-xs uppercase tracking-wider text-white/40 block">{{ $label }}</label>
+                            <select name="feature_models[{{ $f }}]"
+                                    data-feature-select="{{ $f }}"
+                                    class="ak-strong ak-input w-full bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-white text-sm">
+                                @foreach($chatModelNames as $name)
+                                    <option value="{{ $name }}" {{ $name === $current ? 'selected' : '' }}>{{ $name }}</option>
+                                @endforeach
+                                @if(!$inList)
+                                    <option value="{{ $current }}" selected>{{ $current }} (not in models table)</option>
+                                @endif
+                            </select>
+                            @if(!$status['ok'])
+                                <p class="ak-red text-[11px] text-red-300 flex items-start gap-1.5">
+                                    <i class="fas fa-triangle-exclamation mt-0.5"></i>
+                                    <span>{{ $status['message'] }}</span>
+                                </p>
+                            @elseif(isset($featureDeprecations[$f]))
+                                <p class="ak-amber text-[11px] text-amber-300 flex items-start gap-1.5">
+                                    <i class="fas fa-triangle-exclamation mt-0.5"></i>
+                                    <span>{{ $featureDeprecations[$f] }}</span>
+                                </p>
+                            @else
+                                <p class="ak-note text-[11px] text-white/30">Spend tagged <span class="font-mono">{{ $f }}</span>.</p>
+                            @endif
+                        </div>
+                    @endforeach
                 </div>
-            @endforeach
-        </div>
+            </div>
+        @endforeach
     </div>
 
     {{-- Per-feature model change history --}}
@@ -551,6 +636,23 @@ async function testVoiceKey(btn, which) {
     } finally {
         btn.disabled = false;
     }
+}
+
+function filterFeatures(q) {
+    q = (q || '').trim().toLowerCase();
+    let anyVisible = false;
+    document.querySelectorAll('[data-feature-group]').forEach(function (group) {
+        let groupVisible = false;
+        group.querySelectorAll('[data-feature-card]').forEach(function (card) {
+            const hit = !q || (card.getAttribute('data-feature-name') || '').indexOf(q) !== -1;
+            card.classList.toggle('hidden', !hit);
+            if (hit) groupVisible = true;
+        });
+        group.classList.toggle('hidden', !groupVisible);
+        if (groupVisible) anyVisible = true;
+    });
+    const empty = document.getElementById('feature-search-empty');
+    if (empty) empty.classList.toggle('hidden', anyVisible);
 }
 
 function addModelRow() {

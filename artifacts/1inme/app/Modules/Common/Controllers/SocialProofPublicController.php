@@ -21,6 +21,9 @@ use Illuminate\Support\Facades\DB;
  */
 class SocialProofPublicController extends Controller
 {
+    /** Bump on every public/js/social-proof-widget.js change (cache-buster). */
+    public const WIDGET_VERSION = 3;
+
     public function loaderJs(Request $request, string $uuid)
     {
         $proof = SocialProof::where('uuid', $uuid)->first();
@@ -36,16 +39,18 @@ class SocialProofPublicController extends Controller
         $configUrl    = url('/sp/' . $uuid . '.json');
         $trackUrl     = url('/sp/' . $uuid . '/track');
         $subscribeUrl = url('/sp/' . $uuid . '/subscribe');
-        $runtimeUrl   = url('/js/social-proof-widget.js');
+        $submitUrl    = url('/sp/' . $uuid . '/submit');
+        // Cache-busting version — bump when public/js/social-proof-widget.js changes.
+        $runtimeUrl   = url('/js/social-proof-widget.js') . '?v=' . self::WIDGET_VERSION;
 
         $js = <<<JS
             (function(){
               if (window.__1inmeSP && window.__1inmeSP.loaded) {
-                window.__1inmeSP.boot && window.__1inmeSP.boot({uuid:"$uuid",configUrl:"$configUrl",trackUrl:"$trackUrl",subscribeUrl:"$subscribeUrl"});
+                window.__1inmeSP.boot && window.__1inmeSP.boot({uuid:"$uuid",configUrl:"$configUrl",trackUrl:"$trackUrl",subscribeUrl:"$subscribeUrl",submitUrl:"$submitUrl"});
                 return;
               }
               window.__1inmeSP = window.__1inmeSP || { queue: [] };
-              window.__1inmeSP.queue.push({uuid:"$uuid",configUrl:"$configUrl",trackUrl:"$trackUrl",subscribeUrl:"$subscribeUrl"});
+              window.__1inmeSP.queue.push({uuid:"$uuid",configUrl:"$configUrl",trackUrl:"$trackUrl",subscribeUrl:"$subscribeUrl",submitUrl:"$submitUrl"});
               if (window.__1inmeSP.loading) return;
               window.__1inmeSP.loading = true;
               var s = document.createElement('script');
@@ -87,7 +92,10 @@ class SocialProofPublicController extends Controller
         if ($hideLive) {
             // Mirror the directory-side gating: strip every notification
             // type that surfaces a live visitor / click / conversion count.
-            $liveCounterTypes = ['visitor_count', 'conversion_count'];
+            // Notifications are normalized above, so legacy visitor_count /
+            // conversion_count entries already surface as 'counter'; the
+            // legacy keys are kept defensively.
+            $liveCounterTypes = ['counter', 'visitor_count', 'conversion_count'];
             $notifications = array_values(array_filter(
                 $notifications,
                 fn($n) => !in_array($n['type'] ?? '', $liveCounterTypes, true)
@@ -206,7 +214,9 @@ class SocialProofPublicController extends Controller
             if (is_array($n) && ($n['id'] ?? null) === $notificationId) { $notification = $n; break; }
         }
         $notificationType = $notification['type'] ?? null;
-        $captureTypes = ['email_signup', 'exit_offer'];
+        // Raw stored notifications may still carry legacy type keys; the
+        // consolidated 'capture_prompt' covers both looks going forward.
+        $captureTypes = ['capture_prompt', 'email_signup', 'exit_offer'];
         // Require the notification to resolve to an active capture-type entry.
         // A missing/unknown notification_id or a non-capture type is rejected so
         // this endpoint can't be used to stuff arbitrary emails through other
@@ -294,6 +304,147 @@ class SocialProofPublicController extends Controller
         return response()->json(['ok' => true], 200, $this->corsHeaders());
     }
 
+    /**
+     * Generic submission endpoint for collector/feedback notification types
+     * (task #6179). Stores a row in the shared social_proof_submissions
+     * store; when the payload carries a valid email on an email-capture
+     * type, the visitor is also mirrored into the owner's Subscribers list.
+     */
+    public function submit(Request $request, string $uuid)
+    {
+        $proof = SocialProof::where('uuid', $uuid)->where('is_active', true)->first();
+        if (!$proof) {
+            return response()->json(['ok' => false], 404, $this->corsHeaders());
+        }
+
+        // Resolve the originating notification and require it to be an active
+        // submission-capable type so this endpoint can't be used to stuff
+        // arbitrary data through non-collector notifications.
+        $notificationId = substr((string) $request->input('notification_id', ''), 0, 64) ?: null;
+        $notification = null;
+        foreach ((array) $proof->notifications as $n) {
+            if (is_array($n) && ($n['id'] ?? null) === $notificationId) { $notification = $n; break; }
+        }
+        $type = $notification['type'] ?? null;
+        if ($notification === null || !in_array($type, SocialProof::SUBMISSION_TYPES, true)) {
+            return response()->json(['ok' => false, 'error' => 'not_collector'], 422, $this->corsHeaders());
+        }
+        if (array_key_exists('is_active', $notification) && !$notification['is_active']) {
+            return response()->json(['ok' => false, 'error' => 'not_collector'], 422, $this->corsHeaders());
+        }
+
+        $name    = mb_substr(trim((string) $request->input('name', '')), 0, 200);
+        $email   = mb_substr(trim((string) $request->input('email', '')), 0, 200);
+        $phone   = mb_substr(trim((string) $request->input('phone', '')), 0, 40);
+        $message = mb_substr(trim((string) $request->input('message', '')), 0, 5000);
+        $answer  = mb_substr(trim((string) $request->input('answer', '')), 0, 300);
+        $rating  = $request->filled('rating') ? (int) $request->input('rating') : null;
+        if ($rating !== null) $rating = max(-10, min(10, $rating));
+
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return response()->json(['ok' => false, 'error' => 'invalid_email'], 422, $this->corsHeaders());
+        }
+        // Require at least one captured value.
+        if ($name === '' && $email === '' && $phone === '' && $message === '' && $answer === '' && $rating === null) {
+            return response()->json(['ok' => false, 'error' => 'empty'], 422, $this->corsHeaders());
+        }
+
+        // Spam heuristics — same checker as the subscribe flow. Flagged rows
+        // are stored but marked.
+        $spamCheck = app(SpamChecker::class)->check([
+            'honeypot' => $request->input('_hp'),
+            'ip'       => $request->ip(),
+            'text'     => trim($email . ' ' . $message . ' ' . $answer),
+            'scope'    => 'buzz_submit:' . $proof->id,
+            'user_id'  => (int) $proof->user_id,
+            'email'    => $email ?: null,
+        ]);
+
+        \App\Modules\User\Models\SocialProofSubmission::create([
+            'social_proof_id' => $proof->id,
+            'notification_id' => $notificationId,
+            'type'            => $type,
+            'name'            => $name ?: null,
+            'email'           => $email ?: null,
+            'phone'           => $phone ?: null,
+            'message'         => $message ?: null,
+            'answer'          => $answer ?: null,
+            'rating'          => $rating,
+            'page_url'        => substr((string) $request->input('page_url', ''), 0, 1000) ?: null,
+            'ip'              => $request->ip(),
+            'is_spam'         => (bool) $spamCheck['is_spam'],
+        ]);
+
+        // Mirror email captures into the owner's Subscribers list, reusing the
+        // exact storage semantics of subscribe(). Best-effort: a subscriber
+        // failure must not lose the submission.
+        if ($email !== '' && in_array($type, SocialProof::EMAIL_CAPTURE_TYPES, true)) {
+            try {
+                $this->storeBuzzSubscriber($proof, $email, $notificationId, $type, (string) $request->input('page_url', ''), $spamCheck);
+            } catch (\Throwable $e) {
+                logger()->warning('Buzz submit → subscriber mirror failed: ' . $e->getMessage());
+            }
+        }
+
+        return response()->json(['ok' => true], 200, $this->corsHeaders());
+    }
+
+    /** Store an email capture as a Subscriber (shared by subscribe + submit). */
+    private function storeBuzzSubscriber(SocialProof $proof, string $email, ?string $notificationId, ?string $notificationType, string $pageUrl, array $spamCheck): void
+    {
+        $ownerId = (int) $proof->user_id;
+        $source  = 'Buzz · ' . (trim((string) $proof->name) ?: 'Campaign');
+
+        $existing = Subscriber::withoutGlobalScope('workspace')
+            ->where('user_id', $ownerId)
+            ->where('type', 'email')
+            ->where('source', $source)
+            ->where('email', $email)
+            ->first();
+
+        if ($existing) {
+            if ($existing->status === 'unsubscribed') {
+                $existing->update(['status' => 'active', 'unsubscribed_at' => null]);
+            }
+            return;
+        }
+
+        $workspaceId = $proof->workspace_id;
+        if (empty($workspaceId)) {
+            $workspaceId = optional($proof->user?->accessibleWorkspaces()->first())->id;
+        }
+
+        $subscriber = new Subscriber([
+            'user_id'       => $ownerId,
+            'type'          => 'email',
+            'email'         => $email,
+            'status'        => 'active',
+            'source'        => $source,
+            'metadata'      => array_filter([
+                'origin'            => 'buzz',
+                'social_proof_id'   => $proof->id,
+                'social_proof_uuid' => $proof->uuid,
+                'campaign'          => $proof->name,
+                'notification_id'   => $notificationId,
+                'notification_type' => $notificationType,
+                'page_url'          => substr($pageUrl, 0, 1000) ?: null,
+            ], fn ($v) => $v !== null && $v !== ''),
+            'subscribed_at' => now(),
+            'is_spam'       => $spamCheck['is_spam'],
+            'spam_reason'   => $spamCheck['is_spam'] ? ($spamCheck['reason'] ?? null) : null,
+        ]);
+        $subscriber->workspace_id = $workspaceId;
+        $subscriber->save();
+
+        if (! $spamCheck['is_spam']) {
+            try {
+                app(InboxForwarder::class)->dispatchForSubscriber($ownerId, $subscriber);
+            } catch (\Throwable $e) {
+                logger()->warning('Inbox forwarder (buzz submission) failed: ' . $e->getMessage());
+            }
+        }
+    }
+
     public function preflight(Request $request, string $uuid)
     {
         return response('', 204, $this->corsHeaders());
@@ -310,15 +461,19 @@ class SocialProofPublicController extends Controller
     }
 
     /**
-     * For visitor_count notifications: deterministic per-30s plausible number.
-     * If the campaign has any visitor_count notifications, derive the number
-     * from the first one's min/max settings.
+     * For live-visitor counter notifications: deterministic per-30s plausible
+     * number. If the campaign has any counter notifications in live_visitors
+     * mode (or legacy visitor_count entries), derive the number from the
+     * first one's min/max settings.
      */
     private function liveVisitorCountFor(array $notifications): int
     {
         $vc = null;
         foreach ($notifications as $n) {
-            if (($n['type'] ?? '') === 'visitor_count') { $vc = $n; break; }
+            $type = $n['type'] ?? '';
+            $isLive = $type === 'visitor_count'
+                || ($type === 'counter' && (($n['settings']['mode'] ?? 'live_visitors') !== 'conversions'));
+            if ($isLive) { $vc = $n; break; }
         }
         if (!$vc) return 0;
         $s = $vc['settings'] ?? [];

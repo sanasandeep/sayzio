@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Image,
   PanResponder,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -49,6 +50,131 @@ const PRICING_STYLES: StyleOption[] = [
   { key: "comparison", label: "Comparison", desc: "Included / not included" },
   { key: "featured", label: "Featured", desc: "Highlight one plan" },
 ];
+
+// Border color validity hint (Task #6096): free-text border color fields
+// accept anything (value is saved as typed, matching web behavior), but an
+// obviously invalid string — a truncated hex like "#fffff" or a stray word —
+// shows a subtle inline warning so broken borders don't ship silently.
+// The block between the extract markers is lifted verbatim by the
+// source-driven test (scripts/test-border-color-validity.mjs); keep it
+// self-contained and free of imports.
+// [extract:isLikelyCssColor:start]
+const CSS_NAMED_COLORS = new Set(
+  (
+    "aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue " +
+    "blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk " +
+    "crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki " +
+    "darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen " +
+    "darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue " +
+    "dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite " +
+    "gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki " +
+    "lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan " +
+    "lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen " +
+    "lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen " +
+    "linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple " +
+    "mediumseagreen mediumslateblue mediumspringgreen mediumturquoise mediumvioletred " +
+    "midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab " +
+    "orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip " +
+    "peachpuff peru pink plum powderblue purple rebeccapurple red rosybrown royalblue " +
+    "saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue slateblue " +
+    "slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet " +
+    "wheat white whitesmoke yellow yellowgreen transparent currentcolor inherit"
+  ).split(" "),
+);
+function isLikelyCssColor(raw: string): boolean {
+  const v = raw.trim();
+  if (v === "") return true; // blank = use the default, never a warning
+  if (/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)) return true;
+  if (/^(?:rgb|rgba|hsl|hsla)\(\s*[^)]+\)$/i.test(v)) return true;
+  if (/^var\(\s*--[\w-]+\s*(?:,[^)]*)?\)$/i.test(v)) return true;
+  if (/^[a-zA-Z]+$/.test(v)) return CSS_NAMED_COLORS.has(v.toLowerCase());
+  return false;
+}
+// [extract:isLikelyCssColor:end]
+
+// [extract:borderSwatchSelected:start]
+function borderSwatchSelected(value: string, swatch: string): boolean {
+  return value.trim().toLowerCase() === swatch.trim().toLowerCase();
+}
+// [extract:borderSwatchSelected:end]
+
+// Quick-pick swatches for border color fields; tapping one writes the hex
+// into the paired free-text input (which stays authoritative).
+const BORDER_ROW_SWATCHES = [
+  "#ffffff",
+  "#000000",
+  "#7c3aed",
+  "#3b82f6",
+  "#22c55e",
+  "#f59e0b",
+  "#ef4444",
+  "#ec4899",
+];
+
+function BorderColorSwatchRow({
+  value,
+  onSelect,
+  testIDPrefix,
+  chipBorderColor,
+}: {
+  value: string;
+  onSelect: (color: string) => void;
+  testIDPrefix: string;
+  chipBorderColor: string;
+}) {
+  // Recently used custom colors surface here too, deduped against presets,
+  // so a brand hex typed anywhere is one tap away in the border rows.
+  const recents = useRecentColors().filter(
+    (c) => !BORDER_ROW_SWATCHES.some((p) => p.toLowerCase() === c.toLowerCase()),
+  );
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+      {BORDER_ROW_SWATCHES.map((c) => {
+        const sel = borderSwatchSelected(value, c);
+        return (
+          <Pressable
+            {...WEB_FOCUS_RING_PROPS}
+            key={c}
+            testID={`${testIDPrefix}-${c.slice(1)}`}
+            accessibilityLabel={`Border color ${c}`}
+            onPress={() => onSelect(c)}
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 999,
+              backgroundColor: c,
+              borderWidth: sel ? 2 : 1,
+              borderColor: sel ? "#7c3aed" : chipBorderColor,
+            }}
+          />
+        );
+      })}
+      {recents.length > 0 ? (
+        <View style={{ width: 1, height: 16, backgroundColor: chipBorderColor }} />
+      ) : null}
+      {recents.map((c) => {
+        const sel = borderSwatchSelected(value, c);
+        return (
+          <Pressable
+            {...WEB_FOCUS_RING_PROPS}
+            key={`recent-${c}`}
+            testID={`${testIDPrefix}-recent-${c.replace(/[^a-z0-9]/gi, "")}`}
+            accessibilityLabel={`Recent color ${c}`}
+            onPress={() => onSelect(c)}
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 999,
+              backgroundColor: c,
+              borderWidth: sel ? 2 : 1,
+              borderColor: sel ? "#7c3aed" : chipBorderColor,
+            }}
+          />
+        );
+      })}
+    </View>
+  );
+}
 
 type ListItem = { text: string; icon: string };
 type PricingItem = {
@@ -208,6 +334,7 @@ import {
 } from "@/components/AvatarFrame";
 import { BlockView, StoreCartProvider } from "@/app/biolink/[handle]";
 import { Button } from "@/components/Button";
+import { ColorSwatchRow } from "@/components/ColorSwatchRow";
 
 // Live block-background preview (Task #5984). The bg-preset section renders
 // the block through the same native renderer the design preview uses
@@ -219,6 +346,7 @@ const BLOCK_PREVIEW_ALIAS = "__block_preview__";
 const NOOP_BLOCK_PREVIEW_EMBED = () => {};
 
 import { DictationMic } from "@/components/DictationMic";
+import { DraggableRepeaterRows } from "@/components/DraggableRepeaterRows";
 import {
   IconPickerButton,
   IconPickerModal,
@@ -247,8 +375,18 @@ import {
 } from "@/lib/api/files";
 import { getBgPresets } from "@/lib/api/bgPresets";
 import { LinearGradient } from "expo-linear-gradient";
-import { variantsForType, findVariant } from "@/lib/blockVariants";
+import {
+  variantsForType,
+  findVariant,
+  applyRemoteDesignCatalog,
+} from "@/lib/blockVariants";
+import { getBlockCatalog } from "@/lib/api/blocks";
 import { canonicalBlockType } from "@/lib/blockTypeRegistry";
+import {
+  rememberRecentColorFromTyping,
+  rememberRecentColors,
+  useRecentColors,
+} from "@/lib/recentColors";
 import { showAlert } from "@/lib/webAlert";
 import { handlePlanLockedError } from "@/lib/upgradePrompt";
 
@@ -264,6 +402,32 @@ const AVATAR_FRAME_COLOR_PRESETS = [
   "#f8fafc",
   "#0f172a",
 ];
+
+// Quick-pick swatches for the Borders section color fields (Task #6089
+// presets + Task #6094 recents). Custom hex colors typed into any border
+// color field are remembered on-device (AsyncStorage, most recent first,
+// capped) and rendered alongside these presets; preset duplicates are
+// never re-added to the recents list.
+const BORDER_COLOR_SWATCHES = [
+  "#ffffff",
+  "#0f172a",
+  "#7d9bff",
+  "#f59e0b",
+  "#ef4444",
+  "#10b981",
+  "#ec4899",
+  "#8b5cf6",
+];
+const RECENT_BORDER_COLORS_KEY = "biolink.editor.recentBorderColors";
+const MAX_RECENT_BORDER_COLORS = 5;
+
+// Normalizes a user-typed color to a lowercase #rgb/#rrggbb/#rrggbbaa hex
+// string, or null when it isn't a plain hex color (keywords, gradients and
+// partial input are not remembered as swatches).
+function normalizeHexColor(raw: string): string | null {
+  const v = raw.trim().toLowerCase();
+  return /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/.test(v) ? v : null;
+}
 
 // Mirrors the catalog-version constant on the PHP side. Bumped whenever a
 // variant payload changes in a way clients should re-apply. Stored
@@ -942,6 +1106,154 @@ export function BlockSettingsEditor({
   const [bgPresetOpacity, setBgPresetOpacity] = useState<number>(100);
   const [bgPresetOpen, setBgPresetOpen] = useState(false);
   const [bgPresetGroup, setBgPresetGroup] = useState<string>("all");
+  // Unified block background (Task #6044): None / Color / Gradient /
+  // Preset / Image, mirroring the web editor's Style-tab picker. Color
+  // and Gradient both persist into `_style.bg_color` (gradient as a CSS
+  // gradient string); Image into `_style.bg_image` (http(s) or /f/ vault
+  // path); Preset keeps the existing `_style.bg_preset_key` fields.
+  const [bgMode, setBgMode] = useState<"none" | "color" | "gradient" | "preset" | "image">("none");
+  const [bgColorVal, setBgColorVal] = useState<string>("");
+  const [gradType, setGradType] = useState<"linear" | "radial" | "conic">("linear");
+  const [gradAngle, setGradAngle] = useState<number>(135);
+  const [gradStops, setGradStops] = useState<string[]>(["#7c3aed", "#22d3ee"]);
+  const [bgImageVal, setBgImageVal] = useState<string>("");
+  const [bgImgUploading, setBgImgUploading] = useState(false);
+  // Per-device block width (Task #6119 web parity): base `_style.grid_span`
+  // (mobile, 12-column grid) plus the optional desktop-only override
+  // `_style.grid_span_md` ("" = same as mobile, cleared on save).
+  const [widthDevice, setWidthDevice] = useState<"mobile" | "desktop">("mobile");
+  const [gridSpan, setGridSpan] = useState<string>("12");
+  const [gridSpanMd, setGridSpanMd] = useState<string>("");
+  // Per-device block height / row span (Task #6123 web parity): base
+  // `_style.grid_row_span` ("" = auto height) plus the desktop-only
+  // override `_style.grid_row_span_md` ("" = same as mobile).
+  const [heightDevice, setHeightDevice] = useState<"mobile" | "desktop">("mobile");
+  const [gridRowSpan, setGridRowSpan] = useState<string>("");
+  const [gridRowSpanMd, setGridRowSpanMd] = useState<string>("");
+  // Borders (Task #6038 web parity): shorthand style/width/color/radius
+  // plus advanced per-corner radii and per-side style/width/color behind
+  // an expander. Blank advanced fields fall back to the shorthand
+  // field-by-field at render time (server + renderers own the semantics).
+  const [bdStyle, setBdStyle] = useState<string>("none");
+  const [bdWidth, setBdWidth] = useState<string>("");
+  const [bdColor, setBdColor] = useState<string>("");
+  const [bdRadius, setBdRadius] = useState<string>("");
+  const [bdAdvOpen, setBdAdvOpen] = useState(false);
+  const [bdCorners, setBdCorners] = useState<Record<"tl" | "tr" | "bl" | "br", string>>({
+    tl: "",
+    tr: "",
+    bl: "",
+    br: "",
+  });
+  const [bdSides, setBdSides] = useState<
+    Record<"top" | "right" | "bottom" | "left", { style: string; width: string; color: string }>
+  >({
+    top: { style: "", width: "", color: "" },
+    right: { style: "", width: "", color: "" },
+    bottom: { style: "", width: "", color: "" },
+    left: { style: "", width: "", color: "" },
+  });
+  // Recently used custom border colors (Task #6094): hydrated once from
+  // AsyncStorage, appended to the preset swatch row, updated whenever a
+  // valid custom hex is committed (blur) in any border color field.
+  const [recentBorderColors, setRecentBorderColors] = useState<string[]>([]);
+  useEffect(() => {
+    AsyncStorage.getItem(RECENT_BORDER_COLORS_KEY)
+      .then((raw) => {
+        if (!raw) return;
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            setRecentBorderColors(
+              parsed
+                .filter((c): c is string => typeof c === "string" && normalizeHexColor(c) !== null)
+                .filter((c) => !BORDER_COLOR_SWATCHES.includes(c.toLowerCase()))
+                .slice(0, MAX_RECENT_BORDER_COLORS),
+            );
+          }
+        } catch {}
+      })
+      .catch(() => {});
+  }, []);
+  const rememberBorderColor = useCallback((raw: string) => {
+    const hex = normalizeHexColor(raw);
+    if (!hex || BORDER_COLOR_SWATCHES.includes(hex)) return;
+    setRecentBorderColors((prev) => {
+      const next = [hex, ...prev.filter((c) => c !== hex)].slice(0, MAX_RECENT_BORDER_COLORS);
+      if (next.length === prev.length && next.every((c, i) => c === prev[i])) return prev;
+      AsyncStorage.setItem(RECENT_BORDER_COLORS_KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+  // Long-press a RECENT swatch to remove it (Task #6103); presets are fixed.
+  const removeRecentBorderColor = useCallback((raw: string) => {
+    const hex = raw.trim().toLowerCase();
+    setRecentBorderColors((prev) => {
+      const next = prev.filter((c) => c !== hex);
+      if (next.length === prev.length) return prev;
+      AsyncStorage.setItem(RECENT_BORDER_COLORS_KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+  const confirmRemoveRecentBorderColor = useCallback(
+    (hex: string) => {
+      if (Platform.OS === "web") {
+        if (typeof window !== "undefined" && window.confirm(`Remove ${hex} from your recent border colors?`)) {
+          removeRecentBorderColor(hex);
+        }
+        return;
+      }
+      showAlert(`Remove recent color`, `Remove ${hex} from your recent border colors?`, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Remove", style: "destructive", onPress: () => removeRecentBorderColor(hex) },
+      ]);
+    },
+    [removeRecentBorderColor],
+  );
+  // Instant borders live preview (Task #6074): true when any border field
+  // is set, so the preview only appears once borders are in play.
+  const borderFieldsDirty = useMemo(
+    () =>
+      bdStyle !== "none" ||
+      [bdWidth, bdColor, bdRadius, bdCorners.tl, bdCorners.tr, bdCorners.bl, bdCorners.br].some(
+        (v) => v.trim() !== "",
+      ) ||
+      (["top", "right", "bottom", "left"] as const).some(
+        (s) =>
+          bdSides[s].style.trim() !== "" ||
+          bdSides[s].width.trim() !== "" ||
+          bdSides[s].color.trim() !== "",
+      ),
+    [bdStyle, bdWidth, bdColor, bdRadius, bdCorners, bdSides],
+  );
+  // In-progress `_style` for the borders live preview: the saved _style
+  // with the editing border fields patched in — the EXACT merge the save
+  // path performs (non-empty set, blank deleted), so the preview and the
+  // eventual save can never disagree. Rendering is pure state, so edits
+  // show instantly with no re-fetch/flash.
+  const borderPreviewStyle = useMemo(() => {
+    const base =
+      (block?.settings?._style as Record<string, unknown> | undefined) ?? {};
+    const out: Record<string, unknown> = { ...base };
+    const put = (key: string, val: string) => {
+      if (val.trim() !== "") out[key] = val.trim();
+      else delete out[key];
+    };
+    put("border_style", bdStyle === "none" ? "" : bdStyle);
+    put("border_width", bdWidth);
+    put("border_color", bdColor);
+    put("border_radius", bdRadius);
+    put("border_radius_tl", bdCorners.tl);
+    put("border_radius_tr", bdCorners.tr);
+    put("border_radius_bl", bdCorners.bl);
+    put("border_radius_br", bdCorners.br);
+    (["top", "right", "bottom", "left"] as const).forEach((side) => {
+      put(`border_${side}_style`, bdSides[side].style);
+      put(`border_${side}_width`, bdSides[side].width);
+      put(`border_${side}_color`, bdSides[side].color);
+    });
+    return out;
+  }, [block, bdStyle, bdWidth, bdColor, bdRadius, bdCorners, bdSides]);
   // Task #5987 — when a preset swatch is tapped in the grid, the live
   // preview (which sits above the grid) may be scrolled off-screen.
   // These refs let us bring it back into view: on web via the DOM's
@@ -987,6 +1299,16 @@ export function BlockSettingsEditor({
     staleTime: 60 * 60 * 1000,
     enabled: bgPresetOpen || bgPresetKey !== "",
   });
+  // Admin-managed Designs catalog additions (Task #6045): merge remote
+  // customs/hidden into the hardcoded variant mirror before the gallery
+  // renders. Shares the blocks screen's cache key.
+  const blockCatalogQ = useQuery({
+    queryKey: ["block-catalog"],
+    queryFn: getBlockCatalog,
+    staleTime: 5 * 60 * 1000,
+  });
+  const designCatalog = blockCatalogQ.data?.design_catalog;
+  applyRemoteDesignCatalog(designCatalog ?? null);
   const [avatarFrameColor, setAvatarFrameColor] = useState<string>("");
   // Stats (`[{label,value}]`, "stats" layout) and badges (`[{label}]`,
   // "badges" layout) repeaters. Edited via bespoke sections below, gated
@@ -1152,6 +1474,81 @@ export function BlockSettingsEditor({
       setBgPresetOpacity(
         Number.isFinite(rawOp) ? Math.max(0, Math.min(100, Math.round(rawOp))) : 100,
       );
+      // Unified background mode hydrate (Task #6044): mode is derived
+      // from whichever field is populated — preset wins, then image,
+      // then gradient-vs-color (both live in bg_color).
+      const bgc = typeof st.bg_color === "string" ? st.bg_color.trim() : "";
+      const bgi = typeof st.bg_image === "string" ? st.bg_image.trim() : "";
+      const gradMatch = /^(linear|radial|conic)-gradient\(/i.exec(bgc);
+      if (typeof st.bg_preset_key === "string" && st.bg_preset_key !== "") {
+        setBgMode("preset");
+      } else if (bgi !== "") {
+        setBgMode("image");
+      } else if (gradMatch) {
+        setBgMode("gradient");
+      } else if (bgc !== "" && bgc !== "transparent") {
+        setBgMode("color");
+      } else {
+        setBgMode("none");
+      }
+      setBgImageVal(bgi);
+      if (gradMatch) {
+        setGradType(gradMatch[1].toLowerCase() as "linear" | "radial" | "conic");
+        const ang = /(?:\(|from\s)\s*(-?\d+(?:\.\d+)?)deg/i.exec(bgc);
+        if (ang) setGradAngle(Math.round(Number(ang[1])));
+        const cols = bgc.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)/g) ?? [];
+        if (cols.length >= 2) setGradStops(cols.slice(0, 4));
+        setBgColorVal("");
+      } else {
+        setBgColorVal(bgc === "transparent" ? "" : bgc);
+      }
+      // Hydrate borders (Task #6038): shorthand + per-corner + per-side.
+      const bstr = (v: unknown): string =>
+        typeof v === "string" ? v.trim() : typeof v === "number" ? String(v) : "";
+      // Hydrate per-device block width (Task #6119). Spans may round-trip
+      // as numbers (sanitizer casts) — normalize to the chip value strings.
+      const spanNum = (v: unknown): number => {
+        const n = parseInt(bstr(v), 10);
+        return Number.isFinite(n) && n >= 1 && n <= 12 ? n : 0;
+      };
+      setGridSpan(String(spanNum(st.grid_span) || 12));
+      const mdSpan = spanNum(st.grid_span_md);
+      setGridSpanMd(mdSpan ? String(mdSpan) : "");
+      setWidthDevice("mobile");
+      // Hydrate per-device row span (Task #6123) — bounded 1..6, "" = unset.
+      const rowSpanNum = (v: unknown): number => {
+        const n = parseInt(bstr(v), 10);
+        return Number.isFinite(n) && n >= 1 && n <= 6 ? n : 0;
+      };
+      const baseRowSpan = rowSpanNum(st.grid_row_span);
+      setGridRowSpan(baseRowSpan ? String(baseRowSpan) : "");
+      const mdRowSpan = rowSpanNum(st.grid_row_span_md);
+      setGridRowSpanMd(mdRowSpan ? String(mdRowSpan) : "");
+      setHeightDevice("mobile");
+      setBdStyle(bstr(st.border_style) || "none");
+      setBdWidth(bstr(st.border_width));
+      setBdColor(bstr(st.border_color));
+      setBdRadius(bstr(st.border_radius));
+      const corners = {
+        tl: bstr(st.border_radius_tl),
+        tr: bstr(st.border_radius_tr),
+        bl: bstr(st.border_radius_bl),
+        br: bstr(st.border_radius_br),
+      };
+      setBdCorners(corners);
+      const sidesNext = {
+        top: { style: bstr(st.border_top_style), width: bstr(st.border_top_width), color: bstr(st.border_top_color) },
+        right: { style: bstr(st.border_right_style), width: bstr(st.border_right_width), color: bstr(st.border_right_color) },
+        bottom: { style: bstr(st.border_bottom_style), width: bstr(st.border_bottom_width), color: bstr(st.border_bottom_color) },
+        left: { style: bstr(st.border_left_style), width: bstr(st.border_left_width), color: bstr(st.border_left_color) },
+      };
+      setBdSides(sidesNext);
+      // Auto-expand the advanced panel when any advanced value is set,
+      // mirroring the web expander's initial state.
+      setBdAdvOpen(
+        Object.values(corners).some((v) => v !== "") ||
+          Object.values(sidesNext).some((s) => s.style !== "" || s.width !== "" || s.color !== ""),
+      );
     }
   }, [block]);
 
@@ -1215,7 +1612,7 @@ export function BlockSettingsEditor({
     if (activeFilter === "all") return all;
     if (activeFilter === "favorites") return all.filter((v) => favorites.indexOf(v.key) !== -1);
     return all.filter((v) => v.tags.indexOf(activeFilter) !== -1);
-  }, [block, activeFilter, favorites]);
+  }, [block, activeFilter, favorites, designCatalog]);
 
   // Build the next block.settings payload for a given variant key. We do
   // a FULL `_style` REPLACE — never a merge — so swapping from variant A
@@ -1529,13 +1926,72 @@ export function BlockSettingsEditor({
           (block?.settings?._style as Record<string, unknown> | undefined) ??
           {};
         const styleOut: Record<string, unknown> = { ...baseStyle };
-        if (bgPresetKey) {
+        if (bgMode === "preset" && bgPresetKey) {
           styleOut.bg_preset_key = bgPresetKey;
           styleOut.bg_preset_opacity = clampNum(Math.round(bgPresetOpacity), 0, 100);
         } else {
           delete styleOut.bg_preset_key;
           delete styleOut.bg_preset_opacity;
         }
+        // Unified background modes (Task #6044): each mode owns its
+        // field(s); the others are dropped so switching modes round-trips
+        // cleanly (server merge semantics treat a missing key as removal
+        // only when an empty value is sent — we delete + rely on the
+        // full-_style replace the mobile save already performs).
+        if (bgMode === "color" && bgColorVal.trim() !== "") {
+          styleOut.bg_color = bgColorVal.trim();
+        } else if (bgMode === "gradient") {
+          const stops = gradStops.filter((c) => c.trim() !== "");
+          if (stops.length >= 2) {
+            const stopList = stops
+              .map((c, i) => `${c.trim()} ${Math.round((i / (stops.length - 1)) * 100)}%`)
+              .join(", ");
+            styleOut.bg_color =
+              gradType === "linear"
+                ? `linear-gradient(${gradAngle}deg, ${stopList})`
+                : gradType === "radial"
+                  ? `radial-gradient(circle at center, ${stopList})`
+                  : `conic-gradient(from ${gradAngle}deg at center, ${stopList})`;
+          } else {
+            delete styleOut.bg_color;
+          }
+        } else {
+          delete styleOut.bg_color;
+        }
+        if (bgMode === "image" && bgImageVal.trim() !== "") {
+          styleOut.bg_image = bgImageVal.trim();
+        } else {
+          delete styleOut.bg_image;
+        }
+        // Borders (Task #6038): persist shorthand + per-corner + per-side
+        // values; blank fields are deleted so clearing round-trips and the
+        // renderers fall back to the shorthand field-by-field.
+        const putStyle = (key: string, val: string) => {
+          if (val.trim() !== "") styleOut[key] = val.trim();
+          else delete styleOut[key];
+        };
+        // Per-device block width (Task #6119): the base span always
+        // persists (12 = full width); the desktop override only when set —
+        // deleting it means "same as mobile" on the public page.
+        putStyle("grid_span", gridSpan);
+        putStyle("grid_span_md", gridSpanMd);
+        // Per-device row span (Task #6123): both keys only persist when
+        // set — deleting them means "auto height" / "same as mobile".
+        putStyle("grid_row_span", gridRowSpan);
+        putStyle("grid_row_span_md", gridRowSpanMd);
+        putStyle("border_style", bdStyle === "none" ? "" : bdStyle);
+        putStyle("border_width", bdWidth);
+        putStyle("border_color", bdColor);
+        putStyle("border_radius", bdRadius);
+        putStyle("border_radius_tl", bdCorners.tl);
+        putStyle("border_radius_tr", bdCorners.tr);
+        putStyle("border_radius_bl", bdCorners.bl);
+        putStyle("border_radius_br", bdCorners.br);
+        (["top", "right", "bottom", "left"] as const).forEach((side) => {
+          putStyle(`border_${side}_style`, bdSides[side].style);
+          putStyle(`border_${side}_width`, bdSides[side].width);
+          putStyle(`border_${side}_color`, bdSides[side].color);
+        });
         if (Object.keys(styleOut).length > 0) nextSettings._style = styleOut;
         else delete nextSettings._style;
       }
@@ -1564,6 +2020,18 @@ export function BlockSettingsEditor({
       const endDateIso = endDate ? endDate : null;
       const mcParsed = parseInt((maxClicks || "").trim(), 10);
       const maxClicksOut = Number.isFinite(mcParsed) && mcParsed > 0 ? mcParsed : null;
+      // Remember any applied custom colors as extra swatches for every
+      // ColorSwatchRow (persists across restarts via AsyncStorage).
+      rememberRecentColors([
+        bgMode === "color" ? bgColorVal : "",
+        ...(bgMode === "gradient" ? gradStops : []),
+        bdColor,
+        bdSides.top.color,
+        bdSides.right.color,
+        bdSides.bottom.color,
+        bdSides.left.color,
+        avatarFrameColor,
+      ]);
       return updateBlock(id, blockId, {
         is_active: active,
         settings: nextSettings,
@@ -1584,7 +2052,7 @@ export function BlockSettingsEditor({
     const present = new Set<string>();
     variantsForType(block.type).forEach((v) => v.tags.forEach((t) => present.add(t)));
     return Array.from(present);
-  }, [block]);
+  }, [block, designCatalog]);
 
   // Voice turns started while this editor is open prefer the general
   // in-app tools; dictation works via the per-field mics regardless.
@@ -1868,6 +2336,249 @@ export function BlockSettingsEditor({
             via `paper`) painted behind THIS block with a 0–100 transparency.
             Saved into `_style.bg_preset_key` / `_style.bg_preset_opacity`
             on the normal save path. */}
+        {/* Unified block background (Task #6044) — None / Color / Gradient /
+            Preset / Image mode picker mirroring the web Style tab. */}
+        <View style={{ gap: 8 }} testID="block-bg-section">
+          <Text style={[styles.rowLabel, { color: colors.foreground }]}>Background</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            {(
+              [
+                { key: "none", label: "None" },
+                { key: "color", label: "Color" },
+                { key: "gradient", label: "Gradient" },
+                { key: "preset", label: "Preset" },
+                { key: "image", label: "Image" },
+              ] as const
+            ).map((m) => {
+              const sel = bgMode === m.key;
+              return (
+                <Pressable {...WEB_FOCUS_RING_PROPS}
+                  key={m.key}
+                  testID={`block-bg-mode-${m.key}`}
+                  onPress={() => {
+                    setBgMode(m.key);
+                    if (m.key === "preset") setBgPresetOpen(true);
+                  }}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                    backgroundColor: sel ? colors.primary : colors.card,
+                    borderWidth: 1,
+                    borderColor: sel ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ color: sel ? "#fff" : colors.foreground, fontWeight: "600", fontSize: 11 }}>
+                    {m.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {bgMode === "color" ? (
+            <View style={{ gap: 6 }}>
+              <ColorSwatchRow
+                prefix="block-bg-color-swatch"
+                value={bgColorVal}
+                onPick={setBgColorVal}
+                palette={["#7c3aed", "#2563eb", "#059669", "#dc2626", "#f59e0b", "#0f172a", "#ffffff", "rgba(255,255,255,0.12)"]}
+              />
+              <TextInput
+                testID="block-bg-color-input"
+                value={bgColorVal}
+                onChangeText={(v) => {
+                  setBgColorVal(v);
+                  // Valid typed colors join the shared recent set (debounced).
+                  rememberRecentColorFromTyping("block-bg-color", v);
+                }}
+                placeholder="#7c3aed or rgba(...)"
+                placeholderTextColor={colors.mutedForeground}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={[{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+              />
+            </View>
+          ) : null}
+
+          {bgMode === "gradient" ? (
+            <View style={{ gap: 8 }}>
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                {(["linear", "radial", "conic"] as const).map((g) => {
+                  const sel = gradType === g;
+                  return (
+                    <Pressable {...WEB_FOCUS_RING_PROPS}
+                      key={g}
+                      testID={`block-bg-grad-${g}`}
+                      onPress={() => setGradType(g)}
+                      style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 5,
+                        borderRadius: 999,
+                        backgroundColor: sel ? colors.primary : colors.card,
+                        borderWidth: 1,
+                        borderColor: sel ? colors.primary : colors.border,
+                      }}
+                    >
+                      <Text style={{ color: sel ? "#fff" : colors.foreground, fontWeight: "600", fontSize: 11 }}>
+                        {g.charAt(0).toUpperCase() + g.slice(1)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {gradType !== "radial" ? (
+                <View style={{ gap: 4 }}>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Angle · {gradAngle}°</Text>
+                  <Slider
+                    style={{ width: "100%", height: 32 }}
+                    minimumValue={0}
+                    maximumValue={360}
+                    step={1}
+                    value={gradAngle}
+                    minimumTrackTintColor={colors.primary}
+                    maximumTrackTintColor={colors.border}
+                    thumbTintColor={colors.primary}
+                    onValueChange={(v) => setGradAngle(Math.round(v))}
+                  />
+                </View>
+              ) : null}
+              {gradStops.map((c, i) => (
+                <View key={i} style={{ gap: 6 }}>
+                <ColorSwatchRow
+                  prefix={`block-bg-grad-stop-${i}-swatch`}
+                  value={c}
+                  onPick={(v) =>
+                    setGradStops((prev) => prev.map((p, j) => (j === i ? v : p)))
+                  }
+                  size={22}
+                />
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <View style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: c || colors.muted, borderWidth: 1, borderColor: colors.border }} />
+                  <TextInput
+                    testID={`block-bg-grad-stop-${i}`}
+                    value={c}
+                    onChangeText={(v) => {
+                      setGradStops((prev) => prev.map((p, j) => (j === i ? v : p)));
+                      rememberRecentColorFromTyping(`block-bg-grad-stop-${i}`, v);
+                    }}
+                    placeholder="#7c3aed"
+                    placeholderTextColor={colors.mutedForeground}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    style={[{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, flex: 1, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+                  />
+                  {gradStops.length > 2 ? (
+                    <Pressable {...WEB_FOCUS_RING_PROPS}
+                      onPress={() => setGradStops((prev) => prev.filter((_, j) => j !== i))}
+                      style={{ paddingHorizontal: 8, paddingVertical: 6 }}
+                    >
+                      <Text style={{ color: colors.destructive, fontWeight: "700", fontSize: 12 }}>✕</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+                </View>
+              ))}
+              {gradStops.length < 4 ? (
+                <Pressable {...WEB_FOCUS_RING_PROPS}
+                  testID="block-bg-grad-add-stop"
+                  onPress={() => setGradStops((prev) => [...prev, "#f59e0b"])}
+                  style={{
+                    alignSelf: "flex-start",
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 11 }}>+ Add color</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
+
+          {bgMode === "image" ? (
+            <View style={{ gap: 8 }}>
+              <TextInput
+                testID="block-bg-image-input"
+                value={bgImageVal}
+                onChangeText={setBgImageVal}
+                placeholder="https://… or /f/… vault path"
+                placeholderTextColor={colors.mutedForeground}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={[{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+              />
+              <Pressable {...WEB_FOCUS_RING_PROPS}
+                testID="block-bg-image-upload"
+                disabled={bgImgUploading}
+                onPress={async () => {
+                  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                  if (!perm.granted) {
+                    showAlert(
+                      "Photos access needed",
+                      "Allow access to your photo library in Settings to pick an image.",
+                    );
+                    return;
+                  }
+                  const res = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                    quality: 0.9,
+                  });
+                  if (res.canceled || !res.assets?.[0]) return;
+                  const asset = res.assets[0];
+                  setBgImgUploading(true);
+                  try {
+                    const file = await uploadVaultFile({
+                      uri: asset.uri,
+                      name: asset.fileName ?? undefined,
+                      mime: asset.mimeType ?? undefined,
+                    });
+                    setBgImageVal(file.url_path || file.url);
+                  } catch (e) {
+                    if (!handlePlanLockedError(e, "Your storage is full on your current plan.")) {
+                      const msg =
+                        e && typeof e === "object" && "message" in e
+                          ? String((e as { message: unknown }).message)
+                          : "Upload failed.";
+                      showAlert("Upload failed", msg);
+                    }
+                  } finally {
+                    setBgImgUploading(false);
+                  }
+                }}
+                style={{
+                  alignSelf: "flex-start",
+                  paddingHorizontal: 12,
+                  paddingVertical: 7,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  backgroundColor: colors.card,
+                  opacity: bgImgUploading ? 0.6 : 1,
+                }}
+              >
+                <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 11 }}>
+                  {bgImgUploading ? "Uploading…" : "Upload from device"}
+                </Text>
+              </Pressable>
+              {bgImageVal ? (
+                <Image
+                  source={{
+                    uri: /^https?:\/\//i.test(bgImageVal)
+                      ? bgImageVal
+                      : `${getBaseUrl()}${bgImageVal}`,
+                  }}
+                  style={{ width: 96, height: 64, borderRadius: 8, borderWidth: 1, borderColor: colors.border }}
+                  resizeMode="cover"
+                />
+              ) : null}
+            </View>
+          ) : null}
+        </View>
+
+        {bgMode === "preset" ? (
         <View style={{ gap: 8 }} testID="block-bg-preset-section">
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             <Text style={[styles.rowLabel, { color: colors.foreground }]}>Background preset</Text>
@@ -2082,6 +2793,493 @@ export function BlockSettingsEditor({
             )
           ) : null}
         </View>
+        ) : null}
+
+        {/* Block Width (Task #6119) — per-device span chips mirroring the
+            web Style tab: Mobile edits the base `grid_span`; Desktop edits
+            the `grid_span_md` override, where "Same" clears it so large
+            screens follow the mobile width. */}
+        <View style={{ gap: 8 }} testID="block-width-section">
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>Block Width</Text>
+            <View style={{ flexDirection: "row", borderRadius: 999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, padding: 2 }}>
+              {(["mobile", "desktop"] as const).map((dev) => {
+                const sel = widthDevice === dev;
+                return (
+                  <Pressable {...WEB_FOCUS_RING_PROPS}
+                    key={dev}
+                    testID={`block-width-device-${dev}`}
+                    onPress={() => setWidthDevice(dev)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: 999,
+                      backgroundColor: sel ? colors.primary : "transparent",
+                    }}
+                  >
+                    <Text style={{ color: sel ? "#fff" : colors.mutedForeground, fontWeight: "600", fontSize: 11 }}>
+                      {dev === "mobile" ? "Mobile" : "Desktop"}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            {(widthDevice === "desktop"
+              ? ([["", "Same"], ["3", "¼"], ["4", "⅓"], ["6", "½"], ["8", "⅔"], ["9", "¾"], ["12", "Full"]] as const)
+              : ([["3", "¼"], ["4", "⅓"], ["6", "½"], ["8", "⅔"], ["9", "¾"], ["12", "Full"]] as const)
+            ).map(([val, label]) => {
+              const sel = widthDevice === "desktop" ? gridSpanMd === val : gridSpan === val;
+              return (
+                <Pressable {...WEB_FOCUS_RING_PROPS}
+                  key={`${widthDevice}-${val || "same"}`}
+                  testID={`block-width-${widthDevice}-${val || "same"}`}
+                  onPress={() =>
+                    widthDevice === "desktop" ? setGridSpanMd(val) : setGridSpan(val)
+                  }
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 7,
+                    borderRadius: 999,
+                    backgroundColor: sel ? colors.primary : colors.card,
+                    borderWidth: 1,
+                    borderColor: sel ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ color: sel ? "#fff" : colors.foreground, fontWeight: "600", fontSize: 12 }}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+            {widthDevice === "mobile"
+              ? "Width on phones — smaller widths place blocks side-by-side"
+              : "Width on large screens — \u201cSame\u201d keeps the mobile width"}
+          </Text>
+        </View>
+
+        {/* Block Height (Task #6123) — per-device row-span chips mirroring
+            the web Style tab: Mobile edits the base `grid_row_span`
+            ("Auto" clears it, natural height); Desktop edits the
+            `grid_row_span_md` override, where "Same" clears it so large
+            screens follow the mobile setting. */}
+        <View style={{ gap: 8 }} testID="block-height-section">
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>Block Height (Rows)</Text>
+            <View style={{ flexDirection: "row", borderRadius: 999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, padding: 2 }}>
+              {(["mobile", "desktop"] as const).map((dev) => {
+                const sel = heightDevice === dev;
+                return (
+                  <Pressable {...WEB_FOCUS_RING_PROPS}
+                    key={dev}
+                    testID={`block-height-device-${dev}`}
+                    onPress={() => setHeightDevice(dev)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: 999,
+                      backgroundColor: sel ? colors.primary : "transparent",
+                    }}
+                  >
+                    <Text style={{ color: sel ? "#fff" : colors.mutedForeground, fontWeight: "600", fontSize: 11 }}>
+                      {dev === "mobile" ? "Mobile" : "Desktop"}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            {(heightDevice === "desktop"
+              ? ([["", "Same"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"], ["5", "5"], ["6", "6"]] as const)
+              : ([["", "Auto"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"], ["5", "5"], ["6", "6"]] as const)
+            ).map(([val, label]) => {
+              const sel = heightDevice === "desktop" ? gridRowSpanMd === val : gridRowSpan === val;
+              return (
+                <Pressable {...WEB_FOCUS_RING_PROPS}
+                  key={`${heightDevice}-${val || "unset"}`}
+                  testID={`block-height-${heightDevice}-${val || "unset"}`}
+                  onPress={() =>
+                    heightDevice === "desktop" ? setGridRowSpanMd(val) : setGridRowSpan(val)
+                  }
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 7,
+                    borderRadius: 999,
+                    backgroundColor: sel ? colors.primary : colors.card,
+                    borderWidth: 1,
+                    borderColor: sel ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ color: sel ? "#fff" : colors.foreground, fontWeight: "600", fontSize: 12 }}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+            {heightDevice === "mobile"
+              ? "Rows the block stretches across next to side-by-side blocks — \u201cAuto\u201d keeps natural height"
+              : "Rows on large screens — \u201cSame\u201d keeps the mobile setting"}
+          </Text>
+        </View>
+
+        {/* Borders (Task #6038) — shorthand border + corner radius with an
+            Advanced expander exposing per-corner radii and per-side
+            style/width/color, mirroring the web Style tab. Blank advanced
+            fields fall back to the shorthand field-by-field. */}
+        <View style={{ gap: 8 }} testID="block-borders-section">
+          <Text style={[styles.rowLabel, { color: colors.foreground }]}>Borders</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            {(["none", "solid", "dashed", "dotted", "double"] as const).map((bs) => {
+              const sel = bdStyle === bs;
+              return (
+                <Pressable {...WEB_FOCUS_RING_PROPS}
+                  key={bs}
+                  testID={`block-border-style-${bs}`}
+                  onPress={() => setBdStyle(bs)}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                    backgroundColor: sel ? colors.primary : colors.card,
+                    borderWidth: 1,
+                    borderColor: sel ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ color: sel ? "#fff" : colors.foreground, fontWeight: "600", fontSize: 11 }}>
+                    {bs.charAt(0).toUpperCase() + bs.slice(1)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Width (px)</Text>
+              <TextInput
+                testID="block-border-width-input"
+                value={bdWidth}
+                onChangeText={setBdWidth}
+                placeholder="1"
+                placeholderTextColor={colors.mutedForeground}
+                keyboardType="numeric"
+                style={[{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+              />
+            </View>
+            <View style={{ flex: 1.4, gap: 4 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Color</Text>
+              <ColorSwatchRow
+                prefix="block-border-color-swatch"
+                value={bdColor}
+                onPick={setBdColor}
+              />
+              <TextInput
+                testID="block-border-color-input"
+                value={bdColor}
+                onChangeText={(v) => {
+                  setBdColor(v);
+                  rememberRecentColorFromTyping("block-border-color", v);
+                }}
+                onBlur={() => rememberBorderColor(bdColor)}
+                placeholder="#ffffff"
+                placeholderTextColor={colors.mutedForeground}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={[{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+              />
+              <BorderColorSwatchRow
+                value={bdColor}
+                onSelect={setBdColor}
+                testIDPrefix="block-border-color-swatch"
+                chipBorderColor={colors.border}
+              />
+              {!isLikelyCssColor(bdColor) ? (
+                <Text
+                  testID="block-border-color-invalid"
+                  style={{ color: "#f59e0b", fontSize: 10 }}
+                >
+                  This doesn't look like a valid color; check for typos (e.g. #ffffff).
+                </Text>
+              ) : null}
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Radius (px)</Text>
+              <TextInput
+                testID="block-border-radius-input"
+                value={bdRadius}
+                onChangeText={setBdRadius}
+                placeholder="12"
+                placeholderTextColor={colors.mutedForeground}
+                keyboardType="numeric"
+                style={[{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+              />
+            </View>
+          </View>
+          <ColorSwatchRow
+            prefix="block-border-color"
+            value={bdColor}
+            onPick={setBdColor}
+            size={24}
+          />
+
+          {/* Border color quick-pick swatches: fixed presets plus the
+              creator's recently used custom colors (Task #6094). Tapping a
+              swatch fills the shorthand Color field above. */}
+          <View
+            testID="block-border-color-swatches"
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" }}
+          >
+            {[
+              ...BORDER_COLOR_SWATCHES.map((c) => ({ color: c, recent: false })),
+              ...recentBorderColors
+                .filter((c) => !BORDER_COLOR_SWATCHES.includes(c))
+                .map((c) => ({ color: c, recent: true })),
+            ].map(({ color: sw, recent }) => {
+              const sel = bdColor.trim().toLowerCase() === sw;
+              return (
+                <Pressable {...WEB_FOCUS_RING_PROPS}
+                  key={`${recent ? "recent" : "preset"}-${sw}`}
+                  testID={`block-border-color-quick-${sw.replace("#", "")}`}
+                  accessibilityLabel={`${recent ? "Recent" : "Preset"} border color ${sw}`}
+                  onPress={() => {
+                    setBdColor(sw);
+                    if (recent) rememberBorderColor(sw);
+                  }}
+                  onLongPress={recent ? () => confirmRemoveRecentBorderColor(sw) : undefined}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    backgroundColor: sw,
+                    borderWidth: sel ? 2 : 1,
+                    borderColor: sel ? colors.primary : colors.border,
+                  }}
+                />
+              );
+            })}
+          </View>
+          {recentBorderColors.length > 0 ? (
+            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>
+              Your recent custom colors appear at the end of the row.
+            </Text>
+          ) : null}
+
+          <Pressable {...WEB_FOCUS_RING_PROPS}
+            testID="block-borders-advanced-toggle"
+            onPress={() => setBdAdvOpen((v) => !v)}
+            style={{
+              alignSelf: "flex-start",
+              paddingHorizontal: 12,
+              paddingVertical: 7,
+              borderRadius: 999,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.card,
+            }}
+          >
+            <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 11 }}>
+              {bdAdvOpen ? "Hide advanced" : "Advanced settings"}
+            </Text>
+          </Pressable>
+
+          {bdAdvOpen ? (
+            <View
+              testID="block-borders-advanced-panel"
+              style={{
+                gap: 10,
+                padding: 10,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderStyle: "dashed",
+                borderColor: colors.border,
+              }}
+            >
+              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
+                Corner radius
+              </Text>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {(
+                  [
+                    { key: "tl", label: "T-L" },
+                    { key: "tr", label: "T-R" },
+                    { key: "bl", label: "B-L" },
+                    { key: "br", label: "B-R" },
+                  ] as const
+                ).map((c) => (
+                  <View key={c.key} style={{ flex: 1, gap: 4 }}>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700" }}>
+                      {c.label}
+                    </Text>
+                    <TextInput
+                      testID={`block-border-radius-${c.key}`}
+                      value={bdCorners[c.key]}
+                      onChangeText={(v) => setBdCorners((prev) => ({ ...prev, [c.key]: v }))}
+                      placeholder="-"
+                      placeholderTextColor={colors.mutedForeground}
+                      keyboardType="numeric"
+                      style={[{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+                    />
+                  </View>
+                ))}
+              </View>
+              <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>
+                Blank corners use the radius above.
+              </Text>
+
+              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
+                Per-side borders
+              </Text>
+              {(
+                [
+                  { key: "top", label: "Top" },
+                  { key: "right", label: "Right" },
+                  { key: "bottom", label: "Bottom" },
+                  { key: "left", label: "Left" },
+                ] as const
+              ).map((sd) => (
+                <View key={sd.key} style={{ gap: 6 }}>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700" }}>
+                    {sd.label}
+                  </Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
+                    {(["", "none", "solid", "dashed", "dotted", "double"] as const).map((bs) => {
+                      const sel = bdSides[sd.key].style === bs;
+                      return (
+                        <Pressable {...WEB_FOCUS_RING_PROPS}
+                          key={bs || "default"}
+                          testID={`block-border-${sd.key}-style-${bs || "default"}`}
+                          onPress={() =>
+                            setBdSides((prev) => ({
+                              ...prev,
+                              [sd.key]: { ...prev[sd.key], style: bs },
+                            }))
+                          }
+                          style={{
+                            paddingHorizontal: 9,
+                            paddingVertical: 4,
+                            borderRadius: 999,
+                            backgroundColor: sel ? colors.primary : colors.card,
+                            borderWidth: 1,
+                            borderColor: sel ? colors.primary : colors.border,
+                          }}
+                        >
+                          <Text style={{ color: sel ? "#fff" : colors.foreground, fontWeight: "600", fontSize: 10 }}>
+                            {bs === "" ? "Default" : bs.charAt(0).toUpperCase() + bs.slice(1)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  <ColorSwatchRow
+                    prefix={`block-border-${sd.key}-color-swatch`}
+                    value={bdSides[sd.key].color}
+                    onPick={(v) =>
+                      setBdSides((prev) => ({
+                        ...prev,
+                        [sd.key]: { ...prev[sd.key], color: v },
+                      }))
+                    }
+                  />
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <TextInput
+                      testID={`block-border-${sd.key}-width`}
+                      value={bdSides[sd.key].width}
+                      onChangeText={(v) =>
+                        setBdSides((prev) => ({
+                          ...prev,
+                          [sd.key]: { ...prev[sd.key], width: v },
+                        }))
+                      }
+                      placeholder="Width"
+                      placeholderTextColor={colors.mutedForeground}
+                      keyboardType="numeric"
+                      style={[{ flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+                    />
+                    <TextInput
+                      testID={`block-border-${sd.key}-color`}
+                      value={bdSides[sd.key].color}
+                      onChangeText={(v) => {
+                        setBdSides((prev) => ({
+                          ...prev,
+                          [sd.key]: { ...prev[sd.key], color: v },
+                        }));
+                        rememberRecentColorFromTyping(`block-border-${sd.key}-color`, v);
+                      }}
+                      onBlur={() => rememberBorderColor(bdSides[sd.key].color)}
+                      placeholder="#ffffff"
+                      placeholderTextColor={colors.mutedForeground}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      style={[{ flex: 1.4, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+                    />
+                  </View>
+                  <BorderColorSwatchRow
+                    value={bdSides[sd.key].color}
+                    onSelect={(c) =>
+                      setBdSides((prev) => ({
+                        ...prev,
+                        [sd.key]: { ...prev[sd.key], color: c },
+                      }))
+                    }
+                    testIDPrefix={`block-border-${sd.key}-color-swatch`}
+                    chipBorderColor={colors.border}
+                  />
+                  {!isLikelyCssColor(bdSides[sd.key].color) ? (
+                    <Text
+                      testID={`block-border-${sd.key}-color-invalid`}
+                      style={{ color: "#f59e0b", fontSize: 10 }}
+                    >
+                      This doesn't look like a valid color; check for typos (e.g. #ffffff).
+                    </Text>
+                  ) : null}
+                </View>
+              ))}
+              <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>
+                Blank fields use the border settings above. Pick "None" to remove one side.
+              </Text>
+            </View>
+          ) : null}
+          {/* Instant live preview (Task #6074) — the same native renderer
+              as the public page, with the in-progress border fields
+              patched into `_style`. State-driven, so it updates the
+              moment a field changes (no network round-trip / flash). */}
+          {block && borderFieldsDirty ? (
+            <View style={{ gap: 6 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Live preview</Text>
+              <View
+                testID="block-borders-live-preview"
+                pointerEvents="none"
+                style={{
+                  padding: 12,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: colors.border,
+                }}
+              >
+                <StoreCartProvider alias={BLOCK_PREVIEW_ALIAS}>
+                  <BlockView
+                    block={{
+                      ...block,
+                      settings: {
+                        ...(block.settings ?? {}),
+                        _style: borderPreviewStyle,
+                      },
+                    }}
+                    alias={BLOCK_PREVIEW_ALIAS}
+                    allBlocks={q.data ?? []}
+                    openEmbed={NOOP_BLOCK_PREVIEW_EMBED}
+                  />
+                </StoreCartProvider>
+              </View>
+            </View>
+          ) : null}
+        </View>
 
         {isAnyList ? (
           <View style={{ gap: 12 }}>
@@ -2204,10 +3402,16 @@ export function BlockSettingsEditor({
             <View style={{ gap: 8 }}>
               <Text style={[styles.rowLabel, { color: colors.foreground }]}>Items</Text>
 
-              {(isList || isListNumbered) &&
-                listItems.map((it, idx) => (
+              {(isList || isListNumbered) && (
+                <DraggableRepeaterRows
+                  items={listItems}
+                  gap={8}
+                  handleColor={colors.mutedForeground}
+                  onReorder={(perm) =>
+                    setListItems((prev) => perm.map((i) => prev[i]))
+                  }
+                  renderRow={(it, idx, dragHandle) => (
                   <View
-                    key={idx}
                     style={{
                       padding: 10,
                       borderRadius: 12,
@@ -2218,6 +3422,7 @@ export function BlockSettingsEditor({
                     }}
                   >
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      {dragHandle}
                       <Text style={{ color: colors.mutedForeground, fontSize: 12, width: 22 }}>
                         {isListNumbered ? `${idx + 1}.` : "•"}
                       </Text>
@@ -2322,12 +3527,20 @@ export function BlockSettingsEditor({
                       />
                     ) : null}
                   </View>
-                ))}
+                  )}
+                />
+              )}
 
-              {isPricing &&
-                pricingItems.map((it, idx) => (
+              {isPricing && (
+                <DraggableRepeaterRows
+                  items={pricingItems}
+                  gap={8}
+                  handleColor={colors.mutedForeground}
+                  onReorder={(perm) =>
+                    setPricingItems((prev) => perm.map((i) => prev[i]))
+                  }
+                  renderRow={(it, idx, dragHandle) => (
                   <View
-                    key={idx}
                     style={{
                       padding: 10,
                       borderRadius: 12,
@@ -2510,6 +3723,8 @@ export function BlockSettingsEditor({
                         gap: 4,
                       }}
                     >
+                      {dragHandle}
+                      <View style={{ flex: 1 }} />
                       <Pressable
                         {...WEB_FOCUS_RING_PROPS}
                         disabled={idx === 0}
@@ -2581,7 +3796,9 @@ export function BlockSettingsEditor({
                       </Pressable>
                     </View>
                   </View>
-                ))}
+                  )}
+                />
+              )}
 
               <Pressable {...WEB_FOCUS_RING_PROPS}
                 onPress={() => {
@@ -2710,7 +3927,7 @@ export function BlockSettingsEditor({
             </Text>
             <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
               {photoStickers.length > 0
-                ? "Drag a sticker to reposition it — it snaps to the nearest corner or edge with a fine offset, exactly like the web editor."
+                ? "Drag a sticker to reposition it: it snaps to the nearest corner or edge with a fine offset, exactly like the web editor."
                 : "Layer up to 4 of your own sticker images (PNG or WebP with transparency work best) over the photo."}
             </Text>
             {photoStickers.length > 0 ? (
@@ -2985,7 +4202,7 @@ export function BlockSettingsEditor({
                       >
                         {stickerVaultQuery.trim()
                           ? "No images match that name."
-                          : "No images in your files yet — upload one from your device instead."}
+                          : "No images in your files yet: upload one from your device instead."}
                       </Text>
                     )}
                     {!stickerVaultLoading &&
@@ -3046,7 +4263,7 @@ export function BlockSettingsEditor({
               </View>
             ) : (
               <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
-                Sticker limit reached (4 max) — remove one to add another.
+                Sticker limit reached (4 max): remove one to add another.
               </Text>
             )}
           </View>
@@ -3061,9 +4278,15 @@ export function BlockSettingsEditor({
               Add image URLs or pick from the curated stock gallery below.
               Rows without a URL are dropped on save.
             </Text>
-            {galleryImages.map((img, idx) => (
+            <DraggableRepeaterRows
+              items={galleryImages}
+              gap={12}
+              handleColor={colors.mutedForeground}
+              onReorder={(perm) =>
+                setGalleryImages((prev) => perm.map((i) => prev[i]))
+              }
+              renderRow={(img, idx, dragHandle) => (
               <View
-                key={`gallery-img-${idx}`}
                 style={{
                   gap: 8,
                   padding: 10,
@@ -3075,6 +4298,7 @@ export function BlockSettingsEditor({
                 <View
                   style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                 >
+                  {dragHandle}
                   {img.url.trim() ? (
                     <Image
                       source={{ uri: img.url.trim() }}
@@ -3200,7 +4424,8 @@ export function BlockSettingsEditor({
                   }
                 />
               </View>
-            ))}
+              )}
+            />
             <Button
               label="Add image"
               variant="ghost"
@@ -3422,7 +4647,7 @@ export function BlockSettingsEditor({
               {avatarFrame !== "" ? (
                 <View style={{ marginTop: 10 }}>
                   <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 6 }}>
-                    Frame color — Auto uses the layout accent.
+                    Frame color. Auto uses the layout accent.
                   </Text>
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                     <Pressable
@@ -3438,24 +4663,13 @@ export function BlockSettingsEditor({
                     >
                       <Text style={{ color: colors.foreground, fontSize: 11 }}>Auto</Text>
                     </Pressable>
-                    {AVATAR_FRAME_COLOR_PRESETS.map((c) => {
-                      const sel = avatarFrameColor.toLowerCase() === c.toLowerCase();
-                      return (
-                        <Pressable
-                          key={c}
-                          {...WEB_FOCUS_RING_PROPS}
-                          onPress={() => setAvatarFrameColor(c)}
-                          style={{
-                            width: 30,
-                            height: 30,
-                            borderRadius: 15,
-                            backgroundColor: c,
-                            borderWidth: sel ? 3 : 1,
-                            borderColor: sel ? colors.primary : colors.border,
-                          }}
-                        />
-                      );
-                    })}
+                    <ColorSwatchRow
+                      prefix="avatar-frame-color"
+                      value={avatarFrameColor}
+                      onPick={setAvatarFrameColor}
+                      palette={AVATAR_FRAME_COLOR_PRESETS}
+                      size={30}
+                    />
                   </View>
                 </View>
               ) : null}
@@ -3515,9 +4729,15 @@ export function BlockSettingsEditor({
               <Text style={[styles.rowLabel, { color: colors.foreground }]}>
                 Social links
               </Text>
-              {profileSocials.map((soc, idx) => (
+              <DraggableRepeaterRows
+                items={profileSocials}
+                gap={8}
+                handleColor={colors.mutedForeground}
+                onReorder={(perm) =>
+                  setProfileSocials((prev) => perm.map((i) => prev[i]))
+                }
+                renderRow={(soc, idx, dragHandle) => (
                 <View
-                  key={idx}
                   style={{
                     gap: 8,
                     padding: 10,
@@ -3528,6 +4748,7 @@ export function BlockSettingsEditor({
                   }}
                 >
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <View style={{ marginTop: 18 }}>{dragHandle}</View>
                     <View style={{ flex: 1 }}>
                       <TextField
                         label="Platform"
@@ -3621,7 +4842,8 @@ export function BlockSettingsEditor({
                     autoCapitalize="none"
                   />
                 </View>
-              ))}
+                )}
+              />
               <Pressable {...WEB_FOCUS_RING_PROPS}
                 onPress={() =>
                   setProfileSocials((p) => [...p, { name: "", url: "" }])

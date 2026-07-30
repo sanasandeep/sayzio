@@ -64,7 +64,7 @@ class CompetitorTeardownService
             'extracted'     => $extracted,
         ]);
 
-        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        $model    = AiEngineSettings::featureModel(self::FEATURE, $owner);
         $messages = $this->buildMessages($extracted);
 
         try {

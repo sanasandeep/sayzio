@@ -138,7 +138,7 @@ export function BgTemplatePicker({ linkId }: { linkId: number }) {
         ]}
       >
         <LinearGradient
-          colors={["#0ea5e9", "#8b5cf6", "#22c55e"]}
+          colors={["#0ea5e9", "#3d6bff", "#22c55e"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.typeSwatch}

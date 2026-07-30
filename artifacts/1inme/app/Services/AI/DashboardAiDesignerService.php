@@ -97,7 +97,7 @@ class DashboardAiDesignerService
 
     public function estimateCredits(User $user, array $answers): int
     {
-        $model = AiEngineSettings::featureModel(self::FEATURE);
+        $model = AiEngineSettings::featureModel(self::FEATURE, $user);
         $messages = $this->buildMessages($answers);
         return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS, $user);
     }
@@ -114,7 +114,7 @@ class DashboardAiDesignerService
     public function generate(User $user, array $answers): array
     {
         $messages = $this->buildMessages($answers);
-        $model = AiEngineSettings::featureModel(self::FEATURE);
+        $model = AiEngineSettings::featureModel(self::FEATURE, $user);
 
         $result = $this->openai->chat($user, $model, $messages, [
             'temperature'     => 0.3,

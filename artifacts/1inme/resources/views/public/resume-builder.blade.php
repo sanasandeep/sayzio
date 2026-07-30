@@ -36,7 +36,7 @@
     @keyframes rbpFloat { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-10px) rotate(-3deg); } }
     .rbp-paper-head {
         padding: 22px; color:#fff;
-        background: linear-gradient(135deg,#3d6bff,#6e61ff);
+        background: linear-gradient(135deg,#3d6bff,#6e61ff,#22d3ee);
     }
     /* Hero art wrapper — inline-block so it shrinks to the paper width and the
        floating status pill can centre itself over the paper. */
@@ -51,7 +51,7 @@
     .rb-bar { height: 7px; border-radius: 999px; background: #e5e7eb; overflow: hidden; position: relative; }
     .rb-bar > span {
         position:absolute; left:0; top:0; bottom:0; border-radius: inherit;
-        background: linear-gradient(90deg, #3d6bff, #6e61ff);
+        background: linear-gradient(90deg, #3d6bff, #6e61ff, #22d3ee);
         transform-origin: left center; width: var(--rb-w, 70%); transform: scaleX(1);
     }
     @keyframes rbFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
@@ -279,7 +279,7 @@
                         <div class="rb-build rb-b-port" style="--ty:32px;--rot:3deg;">
                             <div class="text-[11px] font-bold uppercase tracking-wider text-blue-700 mb-1.5">Portfolio</div>
                             <div class="grid grid-cols-3 gap-1.5">
-                                <div class="aspect-square rounded-md" style="background:linear-gradient(135deg,#3d6bff,#1bd4d9);"></div>
+                                <div class="aspect-square rounded-md" style="background:linear-gradient(135deg,#3d6bff,#6e61ff,#22d3ee);"></div>
                                 <div class="aspect-square rounded-md" style="background:linear-gradient(135deg,#e94e8c,#ff8a3c);"></div>
                                 <div class="aspect-square rounded-md" style="background:linear-gradient(135deg,#22d3ee,#16a34a);"></div>
                             </div>

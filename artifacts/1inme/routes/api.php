@@ -494,6 +494,14 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/adult-content', [\App\Modules\Api\Controllers\CreatorPayoutsApiController::class, 'adultShow']);
         Route::post  ('/adult-content', [\App\Modules\Api\Controllers\CreatorPayoutsApiController::class, 'adultUpdate']);
 
+        // ── Per-feature AI model overrides (Task #6143) ─────────────
+        // Mobile parity for the web Settings → AI Models tab: paid users
+        // pick which enabled chat model each AI feature uses for their
+        // calls. Free callers can GET (upgrade prompt) but not write.
+        Route::get   ('/me/ai-models', [\App\Modules\Api\Controllers\AiModelSettingsApiController::class, 'show']);
+        Route::put   ('/me/ai-models', [\App\Modules\Api\Controllers\AiModelSettingsApiController::class, 'update']);
+        Route::delete('/me/ai-models', [\App\Modules\Api\Controllers\AiModelSettingsApiController::class, 'reset']);
+
         // ── Cloud File Library (Google Drive / Dropbox / OneDrive) ──
         // Web parity for connect/browse/library/attach. Workspace
         // permissions (files.view / files.create / files.delete) are enforced

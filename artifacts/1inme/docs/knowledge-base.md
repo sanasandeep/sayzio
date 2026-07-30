@@ -378,6 +378,16 @@ Private links instead show a "view on site" prompt.
    page's title, description and image and shows a **preview card** you can
    **Apply** or **Dismiss**. Works on web and mobile.
 
+**The Designs gallery.** Link/button blocks have a browsable **Designs**
+gallery with shape filters (card, pill, square, outline, plain text, full
+image) so you can flip a block between looks — from a classic image-cover card
+to playful styles like **Taped Note**, **Text Divider**, **Overhanging Image**,
+**Title + Description Row**, and **Square Image Cover** — with one click.
+
+**Page stickers.** Decorate the whole page with up to **10 stickers** (an emoji
+or one of your uploaded images): drag each one anywhere, then rotate, resize,
+and layer it in front of or behind your blocks.
+
 **The Settings page.** See [section 11](#11-biolink-settings).
 
 ---
@@ -399,13 +409,19 @@ Blocks are grouped into categories in the picker. Highlights:
 - **Card Container** — a styled card that holds other blocks inside it.
 - **Grid / Auto-Fit Grid** — arrange child blocks in columns.
 - **Card Carousel / Scrolling Cards** — swipeable card series.
-- **Profile Card** (Classic, Cover, Stats, Badges) — your identity block with
-  avatar, name, bio, and optional socials/stats/verified badges.
+- **Profile Card** (Classic, Cover, Stats, Badges, plus newer looks like
+  **Paper Collage**, **Portrait Poster**, **Brand Rail**, **Split Pill**, and
+  **Badge Card**) — your identity block with avatar, name, bio, and optional
+  socials/stats/verified badges. Dress it up with **decorative avatar frames**
+  (starburst, scalloped, zigzag, wavy, double ring, dotted ring, petal — in any
+  color) and **hero photo styles** (glow, wave, grid, spotlight, aurora).
 
 **Media**
 - **Image / Image Grid / Image Slider** — photos, mosaics, galleries (with mask
   shapes, borders, and shadows; image blocks can carry a trackable destination
-  URL).
+  URL). Image blocks also support drag-to-place **photo stickers** (small
+  images from your vault) and **text overlays** (up to 10 short labels) layered
+  right on the photo.
 - **Video / Header Video**, **Audio Player / Playlist**, **File Download**.
 - **Embeds** for YouTube, Vimeo, Spotify, Apple Music, SoundCloud, Instagram,
   TikTok, X/Twitter, Pinterest, and more.
@@ -438,11 +454,20 @@ Blocks are grouped into categories in the picker. Highlights:
 
 - **Block styling** — each block has its own style controls (font, colors, corner
   radius, shadow, effects) plus ready-made templates; you can also set a global
-  theme and let individual blocks override it.
+  theme and let individual blocks override it. Every block also has a unified
+  **background picker** — pick a solid color, a gradient, or an image for just
+  that block. Headings can carry small **decorative accents** (shapes with your
+  choice of color, placement and size), and blocks support a fun **torn-paper
+  background** edge.
+- **Readability check** — as you pick text and background colors, the style
+  drawer shows a live **contrast (WCAG) check** and warns you when the combo
+  would be hard to read.
 - **Layout variants** — some blocks offer alternate looks: link/button blocks can
-  switch between **button-style layouts** (e.g. plain text vs. an image-cover
-  card), and the **Profile Card** comes in identity layouts (Classic, Cover,
-  Stats, Badges).
+  switch between **button-style layouts** in the Designs gallery (e.g. plain
+  text, image-cover card, Taped Note, Text Divider, Overhanging Image), and the
+  **Profile Card** comes in identity layouts (Classic, Cover, Stats, Badges,
+  Paper Collage, Portrait Poster, Brand Rail, Split Pill, Badge Card). Card and
+  grid containers have an **item gap** control for the spacing between children.
 - **Display / visibility settings** — show or hide a block based on a **schedule**,
   **location**, **device**, **OS**, **browser**, or **language**, so different
   visitors see different blocks.
@@ -454,7 +479,13 @@ Blocks are grouped into categories in the picker. Highlights:
 Open the **Settings** page of the biolink editor to control the whole page:
 
 - **Appearance** — global background (color, gradient, image, or video), font
-  family, and primary text color.
+  family, and primary text color. A **Presets** gallery offers curated
+  background looks with an opacity dial, and a **Fixed / Scroll** toggle
+  controls whether the background stays put or scrolls with the page. Image
+  pickers include a **Stock** tab with a curated gallery of ready-to-use
+  photos and textures.
+- **Stickers** — scatter up to 10 emoji or image stickers across the page and
+  position, rotate, resize, and layer each one.
 - **Layout** — content max-width, page padding, and block spacing per device.
 - **Block theme** — set a global block theme (colors, radius, shadows,
   glassmorphism) or pick a pre-designed template; you can save looks as **themes**
@@ -1529,7 +1560,30 @@ device, OS, browser, or language.
 
 **How do I change my page's background and fonts?**
 On the **Settings** page under **Appearance**, set the background (color,
-gradient, image, or video), font, and text color.
+gradient, image, or video), font, and text color. Try the **Presets** gallery
+for curated background looks (with an opacity dial), the **Stock** tab for
+ready-to-use photos, and the **Fixed / Scroll** toggle to keep the background
+still while the page scrolls.
+
+**Can I decorate my page with stickers?**
+Yes — add up to 10 emoji or image **stickers** to the page and drag, rotate,
+resize, and layer each one. Image blocks also take **photo stickers** and
+**text overlays** placed right on the photo.
+
+**Can I change how my buttons look?**
+Yes — open a link block's **Designs** gallery and filter by shape (card, pill,
+square, outline, plain text, full image) to switch between looks like Taped
+Note, Text Divider, Overhanging Image, and Square Image Cover.
+
+**Why can't I move the top blocks on my template?**
+You applied a **design-locked** template: its signature header blocks stay in
+their designed order so the page keeps its look. You can **detach** the design
+lock at any time to regain full control.
+
+**Will Sayzio warn me about hard-to-read colors?**
+Yes — the block style drawer runs a live **contrast (readability) check** on
+your text/background colors and flags combinations that fail accessibility
+guidelines.
 
 **Can I add custom CSS or JavaScript?**
 Yes, on a Pro plan — open **Settings → Custom CSS/JS**.

@@ -8,7 +8,12 @@
     $spacingFields  = ['padding', 'padding_top', 'padding_bottom', 'padding_left', 'padding_right', 'margin_top', 'margin_bottom', 'margin_left', 'margin_right'];
     $typographyFields = ['font_family', 'font_size', 'font_weight', 'font_style', 'text_color'];
     $bgFields       = ['bg_color', 'bg_image', 'bg_opacity'];
-    $borderFields   = ['border_style', 'border_width', 'border_radius', 'border_color'];
+    $borderFields   = ['border_style', 'border_width', 'border_radius', 'border_color',
+                       'border_radius_tl', 'border_radius_tr', 'border_radius_bl', 'border_radius_br',
+                       'border_top_style', 'border_top_width', 'border_top_color',
+                       'border_right_style', 'border_right_width', 'border_right_color',
+                       'border_bottom_style', 'border_bottom_width', 'border_bottom_color',
+                       'border_left_style', 'border_left_width', 'border_left_color'];
     $shadowFields   = ['shadow_preset', 'glass_preset', 'effect'];
 
     $hasLayout     = !empty(array_intersect_key($adminOverride['style'] ?? [], array_flip($layoutFields)));
@@ -205,6 +210,7 @@
     previewTimer: null,
     previewLoading: false,
     jsonInvalid: false,
+    previewSeq: 0,
     schedulePreview() {
         clearTimeout(this.previewTimer);
         this.previewTimer = setTimeout(() => this.fetchPreview(), 400);
@@ -215,6 +221,10 @@
         if (content !== '') {
             try { JSON.parse(content); } catch (e) { this.jsonInvalid = true; return; }
         }
+        /* Sequence token: rapid edits fire overlapping requests whose
+           responses can land out of order; only the latest may write the
+           preview frame or a stale render clobbers the fresh one. */
+        const seq = ++this.previewSeq;
         this.previewLoading = true;
         try {
             const body = new URLSearchParams();
@@ -228,14 +238,16 @@
                 headers: { 'X-CSRF-TOKEN': @js(csrf_token()), 'Accept': 'text/html' },
                 body,
             });
+            const html = res.ok ? await res.text() : null;
+            if (seq !== this.previewSeq) return; /* stale response — drop it */
             if (res.ok) {
-                this.$refs.previewFrame.srcdoc = await res.text();
+                this.$refs.previewFrame.srcdoc = html;
             } else if (res.status === 422) {
                 this.jsonInvalid = true;
             }
         } catch (e) {
         } finally {
-            this.previewLoading = false;
+            if (seq === this.previewSeq) this.previewLoading = false;
         }
     },
 }"
@@ -597,6 +609,68 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                                                placeholder="{{ $systemStyle['border_color'] ?? '' }}">
                                     </div>
                                 </label>
+                            </div>
+
+                            {{-- Advanced borders (Task #6038): per-corner radius + per-side
+                                 style/width/color. Blank = fall back to the shorthand above. --}}
+                            @php
+                                $advBorderKeys = array_slice($borderFields, 4);
+                                $advBorderOpen = !empty(array_intersect_key($adminOverride['style'] ?? [], array_flip($advBorderKeys)));
+                            @endphp
+                            <div class="mt-3" x-data="{ showAdvBorder: {{ $advBorderOpen ? 'true' : 'false' }} }">
+                                <button type="button" class="bd-clear-btn" style="width:100%; justify-content:center;"
+                                        @click="showAdvBorder = !showAdvBorder">
+                                    <i class="fas" :class="showAdvBorder ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                                    Advanced settings (per-corner &amp; per-side)
+                                </button>
+                                <div x-show="showAdvBorder" x-collapse x-cloak class="mt-2">
+                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-2">
+                                        @foreach(['tl' => 'Top-left radius', 'tr' => 'Top-right radius', 'bl' => 'Bottom-left radius', 'br' => 'Bottom-right radius'] as $ck => $cl)
+                                        <label class="bd-label">
+                                            {{ $cl }}
+                                            <input type="text" name="style[border_radius_{{ $ck }}]" class="bd-input"
+                                                   :value="getStyle('border_radius_{{ $ck }}')"
+                                                   @input="setStyle('border_radius_{{ $ck }}', $event.target.value)"
+                                                   placeholder="{{ $systemStyle['border_radius_' . $ck] ?? '' }}">
+                                        </label>
+                                        @endforeach
+                                    </div>
+                                    @foreach(['top' => 'Top', 'right' => 'Right', 'bottom' => 'Bottom', 'left' => 'Left'] as $side => $sideLabel)
+                                    <div class="grid grid-cols-3 gap-3 mb-2">
+                                        <label class="bd-label">
+                                            {{ $sideLabel }} style
+                                            <select name="style[border_{{ $side }}_style]" class="bd-select"
+                                                    :value="getStyle('border_{{ $side }}_style')"
+                                                    @change="setStyle('border_{{ $side }}_style', $event.target.value)">
+                                                <option value="">Default</option>
+                                                @foreach(['none', 'solid', 'dashed', 'dotted', 'double', 'groove', 'ridge'] as $bs)
+                                                <option value="{{ $bs }}">{{ ucfirst($bs) }}</option>
+                                                @endforeach
+                                            </select>
+                                        </label>
+                                        <label class="bd-label">
+                                            {{ $sideLabel }} width (px)
+                                            <input type="text" name="style[border_{{ $side }}_width]" class="bd-input"
+                                                   :value="getStyle('border_{{ $side }}_width')"
+                                                   @input="setStyle('border_{{ $side }}_width', $event.target.value)"
+                                                   placeholder="{{ $systemStyle['border_' . $side . '_width'] ?? '' }}">
+                                        </label>
+                                        <label class="bd-label">
+                                            {{ $sideLabel }} colour
+                                            <div class="flex gap-2 items-center">
+                                                <input type="color" class="bd-color"
+                                                       :value="getStyle('border_{{ $side }}_color') || '#ffffff'"
+                                                       @input="setStyle('border_{{ $side }}_color', $event.target.value)">
+                                                <input type="text" name="style[border_{{ $side }}_color]" class="bd-input flex-1"
+                                                       :value="getStyle('border_{{ $side }}_color')"
+                                                       @input="setStyle('border_{{ $side }}_color', $event.target.value)"
+                                                       placeholder="{{ $systemStyle['border_' . $side . '_color'] ?? '' }}">
+                                            </div>
+                                        </label>
+                                    </div>
+                                    @endforeach
+                                    <p class="text-xs" style="color: var(--text-dimmed);">Blank fields inherit the shorthand border settings above.</p>
+                                </div>
                             </div>
                         </div>
                     </div>

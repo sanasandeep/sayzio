@@ -396,7 +396,56 @@ const TYPE_ONE_OFFS: Record<string, MobileVariant[]> = {
  *  `BlockVariantCatalog::forType`. Common variants come first, then
  *  bundle entries, then one-offs; later duplicates of the same key are
  *  dropped so a saved variant key is always resolvable. */
-export function variantsForType(type: string): MobileVariant[] {
+/**
+ * Admin-managed catalog additions (Task #6045), fetched via
+ * GET /block-catalog (`design_catalog`) and applied module-wide before
+ * the gallery renders. Custom variants are appended per matching type;
+ * `hidden` keys are filtered from the gallery only — `findVariant` stays
+ * permissive so a block already wearing a hidden design keeps rendering.
+ */
+type RemoteDesignCatalog = {
+  hidden: string[];
+  custom: {
+    key: string;
+    name: string;
+    tags: string[];
+    shape?: string | null;
+    types: string[];
+    preview: Partial<MobileVariant["preview"]>;
+  }[];
+};
+
+let remoteCatalog: RemoteDesignCatalog | null = null;
+
+export function applyRemoteDesignCatalog(remote: RemoteDesignCatalog | null | undefined): void {
+  remoteCatalog = remote ?? null;
+}
+
+function remoteVariantsFor(type: string, canonical: string): MobileVariant[] {
+  if (!remoteCatalog) return [];
+  return remoteCatalog.custom
+    .filter(
+      (v) =>
+        v.types.length === 0 ||
+        v.types.indexOf(type) !== -1 ||
+        v.types.indexOf(canonical) !== -1,
+    )
+    .map((v) => ({
+      key: v.key,
+      name: v.name,
+      tags: v.tags ?? [],
+      preview: {
+        bg: v.preview?.bg ?? "#1a1a2e",
+        text: v.preview?.text ?? "#fff",
+        radius: typeof v.preview?.radius === "number" ? v.preview.radius : 12,
+        border: v.preview?.border,
+        dashed: v.preview?.dashed,
+        serif: v.preview?.serif,
+      },
+    }));
+}
+
+function allVariantsForType(type: string): MobileVariant[] {
   const canonical = canonicalBlockType(type);
   const out: MobileVariant[] = [...COMMON];
   for (const bundleId of TYPE_BUNDLES[canonical] ?? []) {
@@ -405,6 +454,7 @@ export function variantsForType(type: string): MobileVariant[] {
   // One-offs key off the raw stored type so legacy entries (cta_button,
   // faq_v2) still resolve their own special variants.
   for (const v of TYPE_ONE_OFFS[type] ?? TYPE_ONE_OFFS[canonical] ?? []) out.push(v);
+  for (const v of remoteVariantsFor(type, canonical)) out.push(v);
 
   const seen = new Set<string>();
   return out.filter((v) => {
@@ -414,8 +464,17 @@ export function variantsForType(type: string): MobileVariant[] {
   });
 }
 
+/** Gallery view: admin-hidden keys are filtered out. */
+export function variantsForType(type: string): MobileVariant[] {
+  const hidden = remoteCatalog?.hidden ?? [];
+  const all = allVariantsForType(type);
+  return hidden.length === 0 ? all : all.filter((v) => hidden.indexOf(v.key) === -1);
+}
+
 export function findVariant(type: string, key: string): MobileVariant | undefined {
-  return variantsForType(type).find((v) => v.key === key);
+  // Unfiltered: hidden variants must still resolve for blocks that
+  // already wear them.
+  return allVariantsForType(type).find((v) => v.key === key);
 }
 
 /**
@@ -434,6 +493,21 @@ export function variantOverlay(
   borderRadius?: number;
   borderStyle?: "solid" | "dashed" | "dotted";
   textColor?: string;
+  // Advanced borders (Task #6038 web parity): per-corner radius and
+  // per-side width/color. Blank keys fall back to the shorthand values
+  // field-by-field, mirroring BiolinkBlock::buildInlineStyle.
+  borderTopLeftRadius?: number;
+  borderTopRightRadius?: number;
+  borderBottomLeftRadius?: number;
+  borderBottomRightRadius?: number;
+  borderTopWidth?: number;
+  borderRightWidth?: number;
+  borderBottomWidth?: number;
+  borderLeftWidth?: number;
+  borderTopColor?: string;
+  borderRightColor?: string;
+  borderBottomColor?: string;
+  borderLeftColor?: string;
 } | null {
   if (!settings) return null;
   const style = (settings._style as Record<string, unknown> | undefined) ?? {};
@@ -442,7 +516,13 @@ export function variantOverlay(
 
   // Prefer explicit _style overrides (set by the web editor) over the
   // catalog preview hint — the latter is just a thumbnail approximation.
-  const bg = (style.bg_color as string) || variant?.preview.bg;
+  // Gradient strings (Task #6044) can't be RN backgroundColor values —
+  // BlockView paints them on a LinearGradient layer instead, so they are
+  // filtered out here (falling back to the variant hint when present).
+  const rawBg = style.bg_color as string;
+  const isGradientStr = (v: unknown): boolean =>
+    typeof v === "string" && /^(linear|radial|conic)-gradient\(/i.test(v.trim());
+  const bg = (isGradientStr(rawBg) ? "" : rawBg) || (isGradientStr(variant?.preview.bg) ? "" : variant?.preview.bg);
   const borderColor = (style.border_color as string) || variant?.preview.border;
   const borderStyleRaw = (style.border_style as string) || (variant?.preview.dashed ? "dashed" : undefined);
   const radiusRaw = style.border_radius ?? variant?.preview.radius;
@@ -462,6 +542,86 @@ export function variantOverlay(
     if (Number.isFinite(n)) out!.borderRadius = Math.min(n, 999);
   }
   if (textColor) out!.textColor = textColor;
+
+  // ---- Advanced borders (Task #6038): per-corner radius ----
+  // Any explicitly-set corner activates per-corner mode; blank corners
+  // fall back to the shorthand radius. RN resolves an unset corner prop
+  // from the generic `borderRadius`, so we only emit resolved values.
+  const str = (v: unknown): string =>
+    typeof v === "string" ? v.trim() : typeof v === "number" ? String(v) : "";
+  const cornerProps = {
+    tl: "borderTopLeftRadius",
+    tr: "borderTopRightRadius",
+    bl: "borderBottomLeftRadius",
+    br: "borderBottomRightRadius",
+  } as const;
+  const cornerVals = {
+    tl: str(style.border_radius_tl),
+    tr: str(style.border_radius_tr),
+    bl: str(style.border_radius_bl),
+    br: str(style.border_radius_br),
+  };
+  if (Object.values(cornerVals).some((v) => v !== "")) {
+    const shorthand = str(style.border_radius);
+    (Object.keys(cornerProps) as Array<keyof typeof cornerProps>).forEach((k) => {
+      const v = cornerVals[k] !== "" ? cornerVals[k] : shorthand;
+      if (v === "") return;
+      const n = Number(v);
+      if (Number.isFinite(n)) out![cornerProps[k]] = Math.max(0, Math.min(n, 999));
+    });
+  }
+
+  // ---- Advanced borders (Task #6038): per-side style/width/color ----
+  // Any explicitly-set side field activates per-side mode. Each side
+  // resolves style/width/color field-by-field against the shorthand;
+  // sides with no visible resolved border get width 0 (mirrors the web
+  // `border-<side>:none`). RN supports only one `borderStyle` per box,
+  // so the first visible side's style wins when they differ.
+  const sides = ["top", "right", "bottom", "left"] as const;
+  const hasSide = sides.some(
+    (s) =>
+      str(style[`border_${s}_style`]) !== "" ||
+      str(style[`border_${s}_width`]) !== "" ||
+      str(style[`border_${s}_color`]) !== "",
+  );
+  if (hasSide) {
+    const shStyle = str(style.border_style) || "none";
+    const shWidth = str(style.border_width);
+    const shColor = str(style.border_color) || out!.borderColor || "";
+    const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+    let pickedStyle: string | undefined;
+    sides.forEach((side) => {
+      const s = str(style[`border_${side}_style`]) || shStyle;
+      const wRaw = str(style[`border_${side}_width`]) || shWidth;
+      const c = str(style[`border_${side}_color`]) || shColor;
+      const w = Number(wRaw);
+      const visible = s !== "none" && s !== "" && wRaw !== "" && Number.isFinite(w) && w > 0;
+      const widthKey = `border${cap(side)}Width` as
+        | "borderTopWidth"
+        | "borderRightWidth"
+        | "borderBottomWidth"
+        | "borderLeftWidth";
+      const colorKey = `border${cap(side)}Color` as
+        | "borderTopColor"
+        | "borderRightColor"
+        | "borderBottomColor"
+        | "borderLeftColor";
+      if (visible) {
+        out![widthKey] = Math.max(0, Math.min(w, 10));
+        if (c) out![colorKey] = c;
+        if (!pickedStyle) pickedStyle = s;
+      } else {
+        out![widthKey] = 0;
+      }
+    });
+    if (pickedStyle === "solid" || pickedStyle === "dashed" || pickedStyle === "dotted") {
+      out!.borderStyle = pickedStyle;
+    } else if (pickedStyle) {
+      // RN only supports solid/dashed/dotted; map the remaining CSS
+      // styles (double/groove/ridge) to a deterministic solid fallback.
+      out!.borderStyle = "solid";
+    }
+  }
 
   return Object.keys(out!).length === 0 ? null : out;
 }

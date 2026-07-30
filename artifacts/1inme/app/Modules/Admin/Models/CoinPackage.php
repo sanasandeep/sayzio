@@ -14,18 +14,41 @@ class CoinPackage extends Model
      */
     public const COMPARE_CYCLE = 'compare';
 
+    /**
+     * Fallback internal API-budget allocation (% of price) used when a
+     * package pre-dates the allocation column and admin has not set one.
+     */
+    public const DEFAULT_API_BUDGET_PCT = 70.0;
+
     protected $fillable = [
-        'name', 'slug', 'description', 'coin_amount', 'bonus_coins',
-        'status', 'is_archived', 'sort_order',
+        'name', 'slug', 'description', 'best_for', 'coin_amount', 'bonus_coins',
+        'status', 'is_archived', 'sort_order', 'api_budget_pct',
     ];
 
     protected function casts(): array
     {
         return [
-            'coin_amount' => 'integer',
-            'bonus_coins' => 'integer',
-            'is_archived' => 'boolean',
+            'coin_amount'    => 'integer',
+            'bonus_coins'    => 'integer',
+            'is_archived'    => 'boolean',
+            'api_budget_pct' => 'float',
         ];
+    }
+
+    /**
+     * Hidden internal allocation: % of the purchase price budgeted for API
+     * costs. NEVER expose on user-facing surfaces — admin-only.
+     */
+    public function apiBudgetPct(): float
+    {
+        $pct = $this->api_budget_pct;
+        return $pct === null ? self::DEFAULT_API_BUDGET_PCT : (float) $pct;
+    }
+
+    /** Platform margin % — always the complement of the API budget. */
+    public function marginPct(): float
+    {
+        return round(100.0 - $this->apiBudgetPct(), 2);
     }
 
     public function prices()

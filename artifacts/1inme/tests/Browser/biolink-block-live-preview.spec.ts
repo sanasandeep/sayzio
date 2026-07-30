@@ -73,6 +73,7 @@ function seedFixtures(): {
   faqId: number;
   testimonialsId: number;
   featuredPinId: number;
+  styledHeadingId: number;
 } {
   const php = `
 use App\\Modules\\User\\Models\\User;
@@ -126,8 +127,9 @@ $list = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'list', 'sort_ord
 $faq = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'faq', 'sort_order' => 10, 'is_active' => true, 'settings' => ['items' => [['question' => 'Q one before', 'answer' => 'A one before'], ['question' => 'Q two before', 'answer' => 'A two before']]]]);
 $testi = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'testimonials', 'sort_order' => 11, 'is_active' => true, 'settings' => ['items' => [['name' => 'Alice Before', 'text' => 'Great before', 'rating' => 5], ['name' => 'Bob Before', 'text' => 'Nice before', 'rating' => 4]]]]);
 $pin = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'featured_pin', 'sort_order' => 12, 'is_active' => true, 'settings' => ['text' => 'Pinned Before', 'description' => 'Pin desc before', 'url' => 'https://example.com/pin-before']]);
+$sh = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'heading', 'sort_order' => 13, 'is_active' => true, 'settings' => ['text' => 'Styled Border H', '_style' => ['border_style' => 'solid', 'border_width' => 2, 'border_color' => '#ff0000']]]);
 
-echo 'IDS=' . json_encode(['linkId' => $bio->id, 'headingId' => $h->id, 'badgeId' => $badge->id, 'videoId' => $video->id, 'productId' => $product->id, 'countdownId' => $cd->id, 'cardId' => $card->id, 'socialsId' => $soc->id, 'socialsMultiId' => $socMulti->id, 'progressId' => $prog->id, 'listId' => $list->id, 'faqId' => $faq->id, 'testimonialsId' => $testi->id, 'featuredPinId' => $pin->id]);
+echo 'IDS=' . json_encode(['linkId' => $bio->id, 'headingId' => $h->id, 'badgeId' => $badge->id, 'videoId' => $video->id, 'productId' => $product->id, 'countdownId' => $cd->id, 'cardId' => $card->id, 'socialsId' => $soc->id, 'socialsMultiId' => $socMulti->id, 'progressId' => $prog->id, 'listId' => $list->id, 'faqId' => $faq->id, 'testimonialsId' => $testi->id, 'featuredPinId' => $pin->id, 'styledHeadingId' => $sh->id]);
 `.trim();
 
   const out = runTinkerSeed(php);
@@ -562,6 +564,57 @@ test("featured pin title, description and URL patch live without a reload", asyn
   await expectNoReload(preview);
 
   await savePromise;
+  await page.waitForTimeout(2_000);
+  await expectNoReload(preview);
+});
+
+test("per-side border tweaks patch the styled wrapper live without a reload", async ({
+  page,
+}) => {
+  const { preview } = await gotoEditorWithPreview(page);
+  const form = await openDrawer(page, ids.styledHeadingId);
+
+  // The style panel is collapsed behind "Block Styling"; the border fields
+  // live in the Look tab, behind "More options" + "Per-side borders".
+  const styleRoot = form.locator("[data-style-root]");
+  await styleRoot.locator('button:has-text("Block Styling")').click();
+  await styleRoot.locator('button:has-text("Look")').click();
+  await styleRoot.locator('button:has-text("More options")').click();
+  await styleRoot.locator('button:has-text("Per-side borders")').click();
+
+  const wrapper = preview
+    .locator(`[data-block-id="${ids.styledHeadingId}"] .block-styled`)
+    .first();
+  await expect(wrapper).toBeVisible({ timeout: 15_000 });
+
+  // Overriding one side's width must patch that side in place, with the
+  // other sides falling back to the seeded 2px solid #ff0000 shorthand.
+  await form.locator('input[name="style[border_top_width]"]').fill("6");
+  await expect(async () => {
+    const s = await wrapper.evaluate((el) => ({
+      top: getComputedStyle(el).borderTopWidth + " " + getComputedStyle(el).borderTopStyle,
+      bottom: getComputedStyle(el).borderBottomWidth + " " + getComputedStyle(el).borderBottomStyle,
+    }));
+    expect(s.top).toBe("6px solid");
+    expect(s.bottom).toBe("2px solid");
+  }).toPass({ timeout: 10_000 });
+  await expectNoReload(preview);
+
+  // Switching one side's style to "None" must emit border-<side>:none.
+  await form
+    .locator('select[name="style[border_left_style]"]')
+    .selectOption("none");
+  await expect(async () => {
+    const left = await wrapper.evaluate(
+      (el) => getComputedStyle(el).borderLeftStyle,
+    );
+    expect(left).toBe("none");
+  }).toPass({ timeout: 10_000 });
+  await expectNoReload(preview);
+
+  // After the debounced autosave lands, every changed field was acked as
+  // handled so the editor must skip the reload.
+  await waitForAutosave(page, ids.styledHeadingId);
   await page.waitForTimeout(2_000);
   await expectNoReload(preview);
 });

@@ -450,6 +450,14 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get('/', [\App\Modules\User\Controllers\ContactPrivacyController::class, 'show'])->name('show');
             Route::put('/', [\App\Modules\User\Controllers\ContactPrivacyController::class, 'update'])->name('update');
         });
+        // Task #6143: paid users pick their own chat model per AI feature.
+        // The page is visible to everyone who can reach settings, but the
+        // controller (and the runtime resolver) enforce the paid gate.
+        Route::prefix('settings/ai-models')->name('settings.ai-models.')->group(function () {
+            Route::get('/', [\App\Modules\User\Controllers\AiModelSettingsController::class, 'show'])->name('show');
+            Route::put('/', [\App\Modules\User\Controllers\AiModelSettingsController::class, 'update'])->name('update');
+            Route::delete('/', [\App\Modules\User\Controllers\AiModelSettingsController::class, 'reset'])->name('reset');
+        });
         // On-demand "Send sample now" preview for the weekly backlink
         // digest. Always emails the signed-in user, never an arbitrary
         // recipient, and is rate-limited inside the controller.
@@ -994,6 +1002,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/settings/appearance', [BiolinkBlockController::class, 'settingsAppearance'])->middleware('workspace.can:links.view')->name('links.settings.appearance');
         Route::get('links/{link}/settings/layout', [BiolinkBlockController::class, 'settingsLayout'])->middleware('workspace.can:links.view')->name('links.settings.layout');
         Route::get('links/{link}/settings/block-theme', [BiolinkBlockController::class, 'settingsBlockTheme'])->middleware('workspace.can:links.view')->name('links.settings.block-theme');
+        Route::get('links/{link}/settings/default-colors', [BiolinkBlockController::class, 'settingsDefaultColors'])->middleware('workspace.can:links.view')->name('links.settings.default-colors');
         Route::get('links/{link}/settings/advanced', [BiolinkBlockController::class, 'settingsAdvanced'])->middleware('workspace.can:links.view')->name('links.settings.advanced');
         Route::get('links/{link}/settings/embed', [BiolinkBlockController::class, 'settingsEmbed'])->middleware('workspace.can:links.view')->name('links.settings.embed');
 
@@ -1164,6 +1173,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get ('wallet',                [\App\Modules\User\Controllers\WalletController::class, 'show'])->name('wallet.show');
         Route::get ('wallet/balance',        [\App\Modules\User\Controllers\WalletController::class, 'balance'])->name('wallet.balance');
         Route::get ('wallet/transactions',   [\App\Modules\User\Controllers\WalletController::class, 'transactions'])->name('wallet.transactions');
+        Route::get ('wallet/transactions/export', [\App\Modules\User\Controllers\WalletController::class, 'transactionsExport'])->name('wallet.transactions.export');
         Route::get ('wallet/buy',            [\App\Modules\User\Controllers\WalletController::class, 'buy'])->name('wallet.buy');
         Route::post('wallet/buy',            [\App\Modules\User\Controllers\WalletController::class, 'buyHandoff'])->name('wallet.buy.handoff');
         Route::post('addons/{addon}/activate-with-coins', [\App\Modules\User\Controllers\WalletController::class, 'activateAddon'])->name('addons.activate-with-coins');
@@ -1644,6 +1654,8 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::put('{socialProof}',                [\App\Modules\User\Controllers\SocialProofController::class, 'update'])->middleware('workspace.can:links.edit')->name('update');
             Route::post('{socialProof}/toggle',        [\App\Modules\User\Controllers\SocialProofController::class, 'toggleActive'])->middleware('workspace.can:links.edit')->name('toggle');
             Route::delete('{socialProof}',             [\App\Modules\User\Controllers\SocialProofController::class, 'destroy'])->middleware('workspace.can:links.delete')->name('destroy');
+            Route::get('{socialProof}/submissions',    [\App\Modules\User\Controllers\SocialProofController::class, 'submissions'])->middleware('workspace.can:links.view')->name('submissions');
+            Route::get('{socialProof}/submissions.csv',[\App\Modules\User\Controllers\SocialProofController::class, 'submissionsCsv'])->middleware('workspace.can:links.view')->name('submissions.csv');
             Route::post('{socialProof}/items',         [\App\Modules\User\Controllers\SocialProofController::class, 'storeItem'])->middleware('workspace.can:links.edit')->name('items.store');
             Route::delete('{socialProof}/items/{item}',[\App\Modules\User\Controllers\SocialProofController::class, 'destroyItem'])->middleware('workspace.can:links.edit')->name('items.destroy');
         });

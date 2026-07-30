@@ -96,7 +96,7 @@
     }
     html.light-mode .store-cs-notify-input::placeholder { color: rgba(15,23,42,.4); }
     .store-cs-notify-btn {
-        background: linear-gradient(135deg, #3d6bff, #1bd4d9); color: #fff; border: none;
+        background: linear-gradient(135deg, #3d6bff, #6e61ff, #22d3ee); color: #fff; border: none;
         cursor: pointer; transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease;
     }
     .store-cs-notify-btn:hover:not(:disabled) {
@@ -141,7 +141,7 @@
         display: none;
         flex-direction: column; align-items: center; justify-content: center; gap: 8px;
         text-align: center; padding: 16px;
-        background: linear-gradient(160deg, #3d6bff 0%, #1bd4d9 100%);
+        background: linear-gradient(160deg, #3d6bff 0%, #6e61ff 55%, #22d3ee 100%);
     }
     .store-cs-screen-fallback .store-cs-wordmark {
         font-family: 'Space Grotesk', system-ui, sans-serif;

@@ -261,7 +261,7 @@ class AiBiolinkBuilderService
      */
     public function estimateCredits(User $user, string $description, array $links, array $images, array $files = [], string $grounding = '', string $brandDirectives = '', array $imageChoices = []): int
     {
-        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        $model    = AiEngineSettings::featureModel(self::FEATURE, $user);
         $messages = $this->buildMessages($user, $description, $links, $images, $files, $grounding, $brandDirectives);
         $cost     = $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS, $user);
 
@@ -316,7 +316,7 @@ class AiBiolinkBuilderService
             $user, $description, $links, $images, $files, $grounding, $brandDirectives,
             $sourced['uploaded'] === 0 && $images !== [],
         );
-        $model = AiEngineSettings::featureModel(self::FEATURE);
+        $model = AiEngineSettings::featureModel(self::FEATURE, $user);
 
         try {
             $result = $this->openai->chat($user, $model, $messages, [
@@ -576,7 +576,7 @@ class AiBiolinkBuilderService
             if ($variant && !empty($variant['style'])) {
                 $style = array_merge($style, $variant['style'], [
                     '_variant'         => $variant['key'],
-                    '_variant_version' => BlockVariantCatalog::VERSION,
+                    '_variant_version' => BlockVariantCatalog::version(),
                 ]);
             }
         }

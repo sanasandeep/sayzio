@@ -158,6 +158,13 @@ class SettingsTabs
                 'route' => 'user.settings.privacy.show',
                 'match' => ['user.settings.privacy.*'],
             ],
+            'ai-models' => [
+                'label' => 'AI Models',
+                'icon'  => 'fa-microchip',
+                'route' => 'user.settings.ai-models.show',
+                'match' => ['user.settings.ai-models.*'],
+                'gate'  => 'paid_plan',
+            ],
             'billing' => [
                 'label' => 'Billing & Identity',
                 'icon'  => 'fa-building',
@@ -220,6 +227,12 @@ class SettingsTabs
             $user = Auth::user();
 
             return $user !== null && $user->planFeatureEnabled('api_access');
+        }
+
+        if ($gate === 'paid_plan') {
+            $user = Auth::user();
+
+            return $user !== null && ! $user->isOnFreePlan();
         }
 
         return true;

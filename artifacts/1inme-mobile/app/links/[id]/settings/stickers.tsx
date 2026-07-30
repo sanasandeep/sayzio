@@ -22,6 +22,23 @@ import { getLink, updateLink } from "@/lib/api/links";
 const MAX_STICKERS = 10;
 const PALETTE = ["😀", "😍", "🤩", "🔥", "✨", "⭐", "💖", "🌈", "🎉", "🚀", "👑", "💎"];
 
+// Mirrors the web appearance card + BiolinkStickers server allowlists.
+const ANIMATIONS: { value: NonNullable<PageSticker["animation"]>; label: string }[] = [
+  { value: "none", label: "None" },
+  { value: "pulse", label: "Pulse" },
+  { value: "bounce", label: "Bounce" },
+  { value: "wiggle", label: "Wiggle" },
+  { value: "spin", label: "Spin" },
+  { value: "float", label: "Float" },
+  { value: "glow", label: "Glow" },
+];
+const LOOPS: { value: string; label: string }[] = [
+  { value: "1", label: "1 time" },
+  { value: "3", label: "3 times" },
+  { value: "5", label: "5 times" },
+  { value: "infinite", label: "Infinite" },
+];
+
 // Basic page-sticker management for mobile. Mirrors the web appearance
 // card: add emoji/image stickers, tweak position/tilt/size/layer with
 // steppers, reorder and delete. Saves the whole list into
@@ -70,12 +87,12 @@ export default function StickerSettings() {
   const addEmoji = (value: string) => {
     const v = value.trim();
     if (!v) return;
-    add({ kind: "emoji", value: v.slice(0, 16), x: 20 + ((stickers.length * 15) % 60), y: 15 + ((stickers.length * 18) % 65), rotation: -12, scale: 1, layer: "front" });
+    add({ kind: "emoji", value: v.slice(0, 16), x: 20 + ((stickers.length * 15) % 60), y: 15 + ((stickers.length * 18) % 65), rotation: -12, scale: 1, layer: "front", position_mode: "fixed", animation: "none", loop: "infinite" });
   };
   const addImage = () => {
     const v = imageUrl.trim();
     if (!v || (!/^https?:\/\//i.test(v) && !v.startsWith("/f/"))) return;
-    add({ kind: "image", value: v, x: 50, y: 30, rotation: -8, scale: 1, layer: "front" });
+    add({ kind: "image", value: v, x: 50, y: 30, rotation: -8, scale: 1, layer: "front", position_mode: "fixed", animation: "none", loop: "infinite" });
     setImageUrl("");
   };
   const patchSelected = (patch: Partial<PageSticker>) => {
@@ -183,7 +200,7 @@ export default function StickerSettings() {
               </>
             ) : (
               <Text style={[styles.blurb, { color: "#fbbf24" }]}>
-                Sticker limit reached — remove one to add another.
+                Sticker limit reached: remove one to add another.
               </Text>
             )}
 
@@ -252,6 +269,81 @@ export default function StickerSettings() {
                     </Pressable>
                   ))}
                 </View>
+
+                <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Position mode</Text>
+                <View style={styles.layerRow}>
+                  {(["fixed", "scroll"] as const).map((mode) => {
+                    const active = (sel.position_mode ?? "fixed") === mode;
+                    return (
+                      <Pressable
+                        key={mode}
+                        style={[
+                          styles.layerBtn,
+                          {
+                            borderColor: active ? "#3d6bff" : colors.border,
+                            backgroundColor: active ? "rgba(61,107,255,0.15)" : colors.card,
+                          },
+                        ]}
+                        onPress={() => patchSelected({ position_mode: mode })}
+                        testID={`sticker-mode-${mode}`}
+                      >
+                        <Text style={{ fontSize: 12, color: active ? "#7d9bff" : colors.mutedForeground }}>
+                          {mode === "fixed" ? "Fixed on screen" : "Moves with page"}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Animation</Text>
+                <View style={styles.chipRow}>
+                  {ANIMATIONS.map((a) => {
+                    const active = (sel.animation ?? "none") === a.value;
+                    return (
+                      <Pressable
+                        key={a.value}
+                        style={[
+                          styles.chip,
+                          {
+                            borderColor: active ? "#3d6bff" : colors.border,
+                            backgroundColor: active ? "rgba(61,107,255,0.15)" : colors.card,
+                          },
+                        ]}
+                        onPress={() => patchSelected({ animation: a.value })}
+                        testID={`sticker-anim-${a.value}`}
+                      >
+                        <Text style={{ fontSize: 12, color: active ? "#7d9bff" : colors.mutedForeground }}>{a.label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                {(sel.animation ?? "none") !== "none" ? (
+                  <>
+                    <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Repeat</Text>
+                    <View style={styles.chipRow}>
+                      {LOOPS.map((l) => {
+                        const active = (sel.loop ?? "infinite") === l.value;
+                        return (
+                          <Pressable
+                            key={l.value}
+                            style={[
+                              styles.chip,
+                              {
+                                borderColor: active ? "#3d6bff" : colors.border,
+                                backgroundColor: active ? "rgba(61,107,255,0.15)" : colors.card,
+                              },
+                            ]}
+                            onPress={() => patchSelected({ loop: l.value })}
+                            testID={`sticker-loop-${l.value}`}
+                          >
+                            <Text style={{ fontSize: 12, color: active ? "#7d9bff" : colors.mutedForeground }}>{l.label}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </>
+                ) : null}
               </>
             ) : null}
 
@@ -266,7 +358,7 @@ export default function StickerSettings() {
             ) : null}
             {save.isError ? (
               <Text style={{ color: "#f87171", fontSize: 12, textAlign: "center" }}>
-                Could not save — please try again.
+                Could not save: please try again.
               </Text>
             ) : null}
           </ScrollView>
@@ -314,5 +406,7 @@ const styles = StyleSheet.create({
   },
   stepValue: { fontSize: 13, fontVariant: ["tabular-nums"], minWidth: 48, textAlign: "center" },
   layerRow: { flexDirection: "row", gap: 8 },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   layerBtn: { flex: 1, borderWidth: 1, borderRadius: 10, paddingVertical: 10, alignItems: "center" },
 });

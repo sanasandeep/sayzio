@@ -41,7 +41,7 @@ class AiStaffRuntime
     public function chat(User $user, AiStaff $staff, string $message, array $history = []): array
     {
         $feature = $staff->featureKey();
-        $model = AiEngineSettings::featureModel($feature);
+        $model = AiEngineSettings::featureModel($feature, $user);
 
         $messages = [['role' => 'system', 'content' => $this->systemPrompt($staff)]];
         foreach (array_slice($history, -10) as $turn) {
@@ -117,7 +117,7 @@ class AiStaffRuntime
      */
     public function draftInvoiceFromPrompt(User $user, AiStaff $staff, Workspace $ws, string $prompt): AiStaffSuggestion
     {
-        $model = AiEngineSettings::featureModel($staff->featureKey());
+        $model = AiEngineSettings::featureModel($staff->featureKey(), $user);
 
         $system = <<<PROMPT
 You turn a short natural-language request into a draft client invoice.
@@ -251,7 +251,7 @@ PROMPT;
 
     protected function chaseMessage(User $user, AiStaff $staff, Invoice $invoice): string
     {
-        $model = AiEngineSettings::featureModel($staff->featureKey());
+        $model = AiEngineSettings::featureModel($staff->featureKey(), $user);
         $balance = number_format($invoice->balanceMinor() / 100, 2) . ' ' . strtoupper((string) $invoice->currency);
 
         $system = 'You write short, friendly, professional payment-reminder messages for a freelancer/business to send '
@@ -280,7 +280,7 @@ PROMPT;
     /** @return array{summary:string,next_steps:array<int,string>} */
     public function summarizeContact(User $user, AiStaff $staff, Contact $contact): array
     {
-        $model = AiEngineSettings::featureModel($staff->featureKey());
+        $model = AiEngineSettings::featureModel($staff->featureKey(), $user);
         $profile = $this->contactBrief($contact);
 
         $system = <<<PROMPT
@@ -315,7 +315,7 @@ PROMPT;
 
     public function draftFollowup(User $user, AiStaff $staff, Contact $contact, string $goal = ''): string
     {
-        $model = AiEngineSettings::featureModel($staff->featureKey());
+        $model = AiEngineSettings::featureModel($staff->featureKey(), $user);
         $profile = $this->contactBrief($contact);
         $goalLine = trim($goal) !== '' ? "\n\nGoal for this follow-up: " . trim($goal) : '';
 

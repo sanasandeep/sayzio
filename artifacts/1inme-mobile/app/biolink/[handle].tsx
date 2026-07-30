@@ -16,6 +16,7 @@ import {
   useState,
 } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Animated,
   Dimensions,
@@ -107,6 +108,18 @@ function blockCardStyle(
   borderWidth?: number;
   borderRadius?: number;
   borderStyle?: "solid" | "dashed" | "dotted";
+  borderTopLeftRadius?: number;
+  borderTopRightRadius?: number;
+  borderBottomLeftRadius?: number;
+  borderBottomRightRadius?: number;
+  borderTopWidth?: number;
+  borderRightWidth?: number;
+  borderBottomWidth?: number;
+  borderLeftWidth?: number;
+  borderTopColor?: string;
+  borderRightColor?: string;
+  borderBottomColor?: string;
+  borderLeftColor?: string;
 } {
   const o = variantOverlay(block.type, block.settings ?? null);
   return {
@@ -115,6 +128,22 @@ function blockCardStyle(
     ...(o?.borderWidth != null ? { borderWidth: o.borderWidth } : {}),
     ...(o?.borderRadius != null ? { borderRadius: o.borderRadius } : {}),
     ...(o?.borderStyle != null ? { borderStyle: o.borderStyle } : {}),
+    // Advanced borders (Task #6038): per-corner radius + per-side
+    // width/color computed by variantOverlay with field-by-field
+    // fallback to the shorthand. Spread after the generic props so a
+    // set corner/side always wins.
+    ...(o?.borderTopLeftRadius != null ? { borderTopLeftRadius: o.borderTopLeftRadius } : {}),
+    ...(o?.borderTopRightRadius != null ? { borderTopRightRadius: o.borderTopRightRadius } : {}),
+    ...(o?.borderBottomLeftRadius != null ? { borderBottomLeftRadius: o.borderBottomLeftRadius } : {}),
+    ...(o?.borderBottomRightRadius != null ? { borderBottomRightRadius: o.borderBottomRightRadius } : {}),
+    ...(o?.borderTopWidth != null ? { borderTopWidth: o.borderTopWidth } : {}),
+    ...(o?.borderRightWidth != null ? { borderRightWidth: o.borderRightWidth } : {}),
+    ...(o?.borderBottomWidth != null ? { borderBottomWidth: o.borderBottomWidth } : {}),
+    ...(o?.borderLeftWidth != null ? { borderLeftWidth: o.borderLeftWidth } : {}),
+    ...(o?.borderTopColor != null ? { borderTopColor: o.borderTopColor } : {}),
+    ...(o?.borderRightColor != null ? { borderRightColor: o.borderRightColor } : {}),
+    ...(o?.borderBottomColor != null ? { borderBottomColor: o.borderBottomColor } : {}),
+    ...(o?.borderLeftColor != null ? { borderLeftColor: o.borderLeftColor } : {}),
   };
 }
 
@@ -171,18 +200,113 @@ function publicBiolinkUrl(alias: string): string {
   return `${base}/${alias}`;
 }
 
+// Reduced-motion preference — sticker highlight animations must stay still
+// when the visitor asked the OS to reduce motion (web parity with the
+// prefers-reduced-motion CSS gate).
+function useReduceMotion(): boolean {
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((v) => {
+      if (mounted) setReduce(!!v);
+    });
+    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", (v) =>
+      setReduce(!!v),
+    );
+    return () => {
+      mounted = false;
+      sub.remove();
+    };
+  }, []);
+  return reduce;
+}
+
+// Looping highlight animation wrapper for a single sticker. Mirrors the web
+// CSS keyframes (pulse/bounce/wiggle/spin/float/glow) with the chosen loop
+// count ('infinite' loops forever). No-op when the effect is 'none' or the
+// visitor prefers reduced motion.
+function AnimatedStickerInner({
+  animation,
+  loop,
+  reduceMotion,
+  children,
+}: {
+  animation?: string;
+  loop?: string;
+  reduceMotion: boolean;
+  children: React.ReactNode;
+}) {
+  const v = useRef(new Animated.Value(0)).current;
+  const effect = animation && animation !== "none" ? animation : null;
+
+  useEffect(() => {
+    if (!effect || reduceMotion) return;
+    const durations: Record<string, number> = {
+      pulse: 1400, bounce: 1100, wiggle: 900, spin: 2200, float: 2600, glow: 1600,
+    };
+    const dur = durations[effect] ?? 1400;
+    const seq =
+      effect === "spin"
+        ? Animated.timing(v, { toValue: 1, duration: dur, useNativeDriver: true })
+        : Animated.sequence([
+            Animated.timing(v, { toValue: 1, duration: dur / 2, useNativeDriver: true }),
+            Animated.timing(v, { toValue: 0, duration: dur / 2, useNativeDriver: true }),
+          ]);
+    const iterations = loop === "infinite" || !loop ? -1 : Math.max(1, parseInt(loop, 10) || 1);
+    const anim = Animated.loop(
+      effect === "spin"
+        ? Animated.sequence([
+            seq,
+            Animated.timing(v, { toValue: 0, duration: 0, useNativeDriver: true }),
+          ])
+        : seq,
+      { iterations },
+    );
+    anim.start();
+    return () => {
+      anim.stop();
+      v.setValue(0);
+    };
+  }, [effect, loop, reduceMotion, v]);
+
+  if (!effect || reduceMotion) return <>{children}</>;
+
+  const style =
+    effect === "pulse"
+      ? { transform: [{ scale: v.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] }) }] }
+      : effect === "bounce"
+        ? { transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [0, -12] }) }] }
+        : effect === "wiggle"
+          ? { transform: [{ rotate: v.interpolate({ inputRange: [0, 1], outputRange: ["-9deg", "9deg"] }) }] }
+          : effect === "spin"
+            ? { transform: [{ rotate: v.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] }) }] }
+            : effect === "float"
+              ? { transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [0, -8] }) }] }
+              : /* glow — approximated as a soft opacity shimmer */
+                { opacity: v.interpolate({ inputRange: [0, 1], outputRange: [1, 0.55] }) };
+
+  return <Animated.View style={style}>{children}</Animated.View>;
+}
+
 // Decorative page stickers (emoji/image overlays) — mirrors the web
 // renderer: percent positioning on a full-screen pointer-events-none layer,
 // "back" behind the content, "front" above it. Base sizes match web
-// (36px emoji / 64px image, multiplied by scale).
+// (36px emoji / 64px image, multiplied by scale). `mode` splits stickers by
+// position_mode: "fixed" layers overlay the viewport, "scroll" layers are
+// rendered inside the ScrollView so they move with the page content.
 function StickerOverlay({
   stickers,
   layer,
+  mode = "fixed",
 }: {
   stickers?: import("@/lib/api/biolinks").PageSticker[];
   layer: "front" | "back";
+  mode?: "fixed" | "scroll";
 }) {
-  const list = (stickers ?? []).filter((s) => s.layer === layer);
+  const reduceMotion = useReduceMotion();
+  const list = (stickers ?? []).filter(
+    (s) => s.layer === layer && (s.position_mode ?? "fixed") === mode,
+  );
   if (!list.length) return null;
   const host = getBaseUrl().replace(/\/?api\/?$/, "").replace(/\/+$/, "");
   return (
@@ -199,32 +323,36 @@ function StickerOverlay({
           const uri = s.value.startsWith("/") ? `${host}${s.value}` : s.value;
           return (
             <View key={i} style={wrap}>
-              <Image
-                source={{ uri }}
-                style={{
-                  width: size,
-                  height: size,
-                  marginLeft: -size / 2,
-                  marginTop: -size / 2,
-                }}
-                resizeMode="contain"
-              />
+              <AnimatedStickerInner animation={s.animation} loop={s.loop} reduceMotion={reduceMotion}>
+                <Image
+                  source={{ uri }}
+                  style={{
+                    width: size,
+                    height: size,
+                    marginLeft: -size / 2,
+                    marginTop: -size / 2,
+                  }}
+                  resizeMode="contain"
+                />
+              </AnimatedStickerInner>
             </View>
           );
         }
         const fontSize = Math.round(36 * s.scale);
         return (
           <View key={i} style={wrap}>
-            <Text
-              style={{
-                fontSize,
-                lineHeight: fontSize * 1.2,
-                marginLeft: -fontSize / 2,
-                marginTop: -fontSize / 2,
-              }}
-            >
-              {s.value}
-            </Text>
+            <AnimatedStickerInner animation={s.animation} loop={s.loop} reduceMotion={reduceMotion}>
+              <Text
+                style={{
+                  fontSize,
+                  lineHeight: fontSize * 1.2,
+                  marginLeft: -fontSize / 2,
+                  marginTop: -fontSize / 2,
+                }}
+              >
+                {s.value}
+              </Text>
+            </AnimatedStickerInner>
           </View>
         );
       })}
@@ -1037,6 +1165,34 @@ function NativeProductBlock({
 // swatch of the REAL texture when the server advertises one — the same
 // approximation the Appearance preset picker/preview already uses. The
 // layer honours `bg_preset_opacity` (0–100, default 100).
+// ── Per-block horizontal margins (Task #6114) ────────────────────────
+// The public page no longer has horizontal page padding; the default
+// side spacing lives on each top-level block instead so a creator can
+// set a block's Left/Right margin to 0 for a truly full-width block.
+// Mirrors the web renderer: an explicit 0 is a real value, not "unset".
+const BLOCK_DEFAULT_SIDE_MARGIN = 24;
+
+function styleMarginNum(st: Record<string, unknown>, key: string): number | null {
+  const v = st[key];
+  const n =
+    typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : null;
+}
+
+export function blockWrapMargins(block: BiolinkBlock): ViewStyle {
+  const st = (block.settings?._style as Record<string, unknown> | undefined) ?? {};
+  const ml = styleMarginNum(st, "margin_left");
+  const mr = styleMarginNum(st, "margin_right");
+  const mt = styleMarginNum(st, "margin_top");
+  const mb = styleMarginNum(st, "margin_bottom");
+  return {
+    marginLeft: ml ?? BLOCK_DEFAULT_SIDE_MARGIN,
+    marginRight: mr ?? BLOCK_DEFAULT_SIDE_MARGIN,
+    ...(mt != null ? { marginTop: mt } : {}),
+    ...(mb != null ? { marginBottom: mb } : {}),
+  };
+}
+
 export function BlockView(props: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
   const st = (props.block.settings?._style as Record<string, unknown> | undefined) ?? {};
   const presetKey = typeof st.bg_preset_key === "string" ? st.bg_preset_key.trim() : "";
@@ -1057,15 +1213,38 @@ export function BlockView(props: { block: BiolinkBlock; alias: string; allBlocks
     ? catalogQ.data?.presets.find((p) => p.key === presetKey && !p.paper)
     : undefined;
 
+  // Custom gradient / image backgrounds (Task #6044): a gradient string in
+  // `_style.bg_color` is approximated with its color stops on a
+  // LinearGradient layer (RN can't render CSS strings); `_style.bg_image`
+  // paints a cover image layer — root-relative /f/ vault paths resolve
+  // against the API base. Preset wins when both are somehow present
+  // (mirrors the web layer stacking order).
+  const bgColorStr = typeof st.bg_color === "string" ? st.bg_color.trim() : "";
+  const gradientColors = /^(linear|radial|conic)-gradient\(/i.test(bgColorStr)
+    ? (bgColorStr.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)/g) ?? [])
+    : [];
+  const bgImageRaw = typeof st.bg_image === "string" ? st.bg_image.trim() : "";
+  const bgImageUri = bgImageRaw
+    ? /^https?:\/\//i.test(bgImageRaw)
+      ? bgImageRaw
+      : bgImageRaw.startsWith("/f/")
+        ? `${getBaseUrl()}${bgImageRaw}`
+        : ""
+    : "";
+
   const inner = <BlockViewInner {...props} />;
-  if (!preset) return inner;
-  const stops =
-    preset.colors.length >= 2
-      ? (preset.colors as [string, string, ...string[]])
-      : ([preset.colors[0] ?? "#3d3654", preset.colors[0] ?? "#3d3654"] as [string, string]);
-  return (
-    <View style={{ borderRadius: 14, overflow: "hidden" }}>
-      <View style={[StyleSheet.absoluteFill, { opacity: presetOpacity / 100 }]} pointerEvents="none">
+  if (!preset && gradientColors.length < 2 && !bgImageUri) return inner;
+
+  let layer: React.ReactNode = null;
+  let layerOpacity = 1;
+  if (preset) {
+    const stops =
+      preset.colors.length >= 2
+        ? (preset.colors as [string, string, ...string[]])
+        : ([preset.colors[0] ?? "#3d3654", preset.colors[0] ?? "#3d3654"] as [string, string]);
+    layerOpacity = presetOpacity / 100;
+    layer = (
+      <>
         <LinearGradient
           colors={stops}
           start={{ x: 0, y: 0 }}
@@ -1079,8 +1258,33 @@ export function BlockView(props: { block: BiolinkBlock; alias: string; allBlocks
             resizeMode="cover"
           />
         ) : null}
+      </>
+    );
+  } else if (bgImageUri) {
+    layer = (
+      <ImageBackground
+        source={{ uri: bgImageUri }}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+      />
+    );
+  } else {
+    layer = (
+      <LinearGradient
+        colors={gradientColors as [string, string, ...string[]]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+    );
+  }
+
+  return (
+    <View style={{ borderRadius: 14, overflow: "hidden" }}>
+      <View style={[StyleSheet.absoluteFill, { opacity: layerOpacity }]} pointerEvents="none">
+        {layer}
       </View>
-      <View style={{ padding: presetOpacity > 0 ? 8 : 0 }}>{inner}</View>
+      <View style={{ padding: layerOpacity > 0 ? 8 : 0 }}>{inner}</View>
     </View>
   );
 }
@@ -1103,6 +1307,21 @@ function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: Biolink
         ...(overlay.borderWidth != null ? { borderWidth: overlay.borderWidth } : {}),
         ...(overlay.borderRadius != null ? { borderRadius: overlay.borderRadius } : {}),
         ...(overlay.borderStyle != null ? { borderStyle: overlay.borderStyle } : {}),
+        // Advanced borders (Task #6038): per-corner radius + per-side
+        // width/color, spread after the generic props so a set
+        // corner/side always wins (mirrors blockCardStyle()).
+        ...(overlay.borderTopLeftRadius != null ? { borderTopLeftRadius: overlay.borderTopLeftRadius } : {}),
+        ...(overlay.borderTopRightRadius != null ? { borderTopRightRadius: overlay.borderTopRightRadius } : {}),
+        ...(overlay.borderBottomLeftRadius != null ? { borderBottomLeftRadius: overlay.borderBottomLeftRadius } : {}),
+        ...(overlay.borderBottomRightRadius != null ? { borderBottomRightRadius: overlay.borderBottomRightRadius } : {}),
+        ...(overlay.borderTopWidth != null ? { borderTopWidth: overlay.borderTopWidth } : {}),
+        ...(overlay.borderRightWidth != null ? { borderRightWidth: overlay.borderRightWidth } : {}),
+        ...(overlay.borderBottomWidth != null ? { borderBottomWidth: overlay.borderBottomWidth } : {}),
+        ...(overlay.borderLeftWidth != null ? { borderLeftWidth: overlay.borderLeftWidth } : {}),
+        ...(overlay.borderTopColor != null ? { borderTopColor: overlay.borderTopColor } : {}),
+        ...(overlay.borderRightColor != null ? { borderRightColor: overlay.borderRightColor } : {}),
+        ...(overlay.borderBottomColor != null ? { borderBottomColor: overlay.borderBottomColor } : {}),
+        ...(overlay.borderLeftColor != null ? { borderLeftColor: overlay.borderLeftColor } : {}),
       }
     : null;
 
@@ -1116,11 +1335,110 @@ function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: Biolink
     const title = pickStr(s, "title");
     const isCard = t === "card";
     const pad = pickNum(s, "padding");
+    // Card container's OWN background settings (Task #6044): honour the
+    // web card builder's bg_type/bg_color/bg_gradient/bg_image so the
+    // mobile grouping matches the public web page. Gradient strings are
+    // approximated with their color stops; /f/ vault paths resolve
+    // against the API base.
+    const cardBgType = isCard ? (pickStr(s, "bg_type") ?? "glass") : "glass";
+    const cardBgColor = isCard && cardBgType === "color" ? pickStr(s, "bg_color") : undefined;
+    const cardGradientStr = isCard && cardBgType === "gradient" ? (pickStr(s, "bg_gradient") ?? "") : "";
+    const cardGradientColors = cardGradientStr
+      ? (cardGradientStr.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)/g) ?? [])
+      : [];
+    const cardBgImgRaw = isCard && cardBgType === "image" ? (pickStr(s, "bg_image") ?? "") : "";
+    const cardBgImgUri = cardBgImgRaw
+      ? /^https?:\/\//i.test(cardBgImgRaw)
+        ? cardBgImgRaw
+        : cardBgImgRaw.startsWith("/f/")
+          ? `${getBaseUrl()}${cardBgImgRaw}`
+          : ""
+      : "";
+    const cardBgOverride =
+      cardBgType === "transparent"
+        ? { backgroundColor: "transparent" }
+        : cardBgColor
+          ? { backgroundColor: cardBgColor }
+          : cardGradientColors.length >= 2 || cardBgImgUri
+            ? { backgroundColor: "transparent" }
+            : null;
+    // Unified `_style` parity for card containers (Task #6173): the web
+    // editor's Block Styling picker now styles cards too. `_style` values
+    // override the legacy bg_type mapping property-by-property (borders /
+    // corners already flow in via blockCardStyle → variantOverlay; this
+    // block adds backgrounds, glass and per-side padding/margins).
+    const _cs = isCard ? (((s as Record<string, unknown>)._style ?? null) as Record<string, unknown> | null) : null;
+    const csStr = (k: string): string => {
+      const v = _cs?.[k];
+      return typeof v === "string" ? v.trim() : typeof v === "number" ? String(v) : "";
+    };
+    const csNum = (k: string): number | null => {
+      const v = csStr(k);
+      const n = Number(v);
+      return v !== "" && Number.isFinite(n) ? n : null;
+    };
+    const uBgRaw = csStr("bg_color");
+    const uIsGrad = /^(linear|radial|conic)-gradient\(/i.test(uBgRaw);
+    const uGradColors = uIsGrad ? (uBgRaw.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)/g) ?? []) : [];
+    const uSolidBg = !uIsGrad ? uBgRaw : "";
+    const uImgRaw = csStr("bg_image");
+    const uImgUri = uImgRaw
+      ? /^https?:\/\//i.test(uImgRaw)
+        ? uImgRaw
+        : uImgRaw.startsWith("/f/")
+          ? `${getBaseUrl()}${uImgRaw}`
+          : ""
+      : "";
+    const uGlass = csStr("effect") === "glass" && uBgRaw === "" && uImgRaw === "";
+    // Any unified background pick supersedes the legacy bg layers entirely
+    // (web CSS last-wins equivalent).
+    const unifiedBgSet = uBgRaw !== "" || uImgRaw !== "" || uGlass;
+    const gradColors = unifiedBgSet ? uGradColors : cardGradientColors;
+    const bgImgUri = unifiedBgSet ? uImgUri : cardBgImgUri;
+    const uPad = csNum("padding");
+    const unifiedOverride = _cs
+      ? {
+          ...(uSolidBg !== "" && uSolidBg !== "transparent"
+            ? { backgroundColor: uSolidBg }
+            : uGlass
+              ? { backgroundColor: "rgba(255,255,255,0.08)" }
+              : unifiedBgSet || uSolidBg === "transparent"
+                ? { backgroundColor: "transparent" }
+                : {}),
+          ...(uPad != null ? { padding: uPad } : {}),
+          ...(csNum("padding_top") != null ? { paddingTop: csNum("padding_top")! } : {}),
+          ...(csNum("padding_right") != null ? { paddingRight: csNum("padding_right")! } : {}),
+          ...(csNum("padding_bottom") != null ? { paddingBottom: csNum("padding_bottom")! } : {}),
+          ...(csNum("padding_left") != null ? { paddingLeft: csNum("padding_left")! } : {}),
+          ...(csNum("margin_top") != null ? { marginTop: csNum("margin_top")! } : {}),
+          ...(csNum("margin_bottom") != null ? { marginBottom: csNum("margin_bottom")! } : {}),
+          ...(csNum("margin_left") != null ? { marginLeft: csNum("margin_left")! } : {}),
+          ...(csNum("margin_right") != null ? { marginRight: csNum("margin_right")! } : {}),
+        }
+      : null;
     const containerStyle = isCard
-      ? [styles.cardContainer, blockCardStyle(block, colors)]
+      ? [styles.cardContainer, blockCardStyle(block, colors), cardBgOverride, unifiedOverride, { overflow: "hidden" as const }]
       : [styles.gridContainer, pad != null ? { padding: pad } : null];
     return (
       <View style={containerStyle}>
+        {isCard && gradColors.length >= 2 ? (
+          <LinearGradient
+            colors={gradColors as [string, string, ...string[]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        ) : null}
+        {isCard && bgImgUri ? (
+          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            <ImageBackground
+              source={{ uri: bgImgUri }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+          </View>
+        ) : null}
         {title ? <Text style={[styles.heading, { color: colors.foreground, fontSize: 16, marginTop: 0 }]}>{title}</Text> : null}
         {children.map((c) => (
           <BlockView key={c.id} block={c} alias={alias} allBlocks={allBlocks} openEmbed={openEmbed} />
@@ -5285,11 +5603,18 @@ export default function BiolinkViewer() {
       ) : null}
 
       {q.data && (q.data.biolink.mode !== "slides" || !q.data.slides) && (
-        <StickerOverlay stickers={q.data.biolink.stickers} layer="back" />
+        <StickerOverlay stickers={q.data.biolink.stickers} layer="back" mode="fixed" />
       )}
 
       {q.data && (q.data.biolink.mode !== "slides" || !q.data.slides) && (
         <ScrollView contentContainerStyle={styles.content}>
+          {/* Scroll-mode stickers live inside the ScrollView so they move
+              with the page content (web parity: .page-stickers--scroll). */}
+          <StickerOverlay stickers={q.data.biolink.stickers} layer="back" mode="scroll" />
+          {/* Task #6114: the scroll content has no horizontal padding any
+              more (blocks manage their own side margins), so the profile
+              header keeps its old 24px inset via this wrapper. */}
+          <View style={styles.headerPad}>
           {q.data.owner.avatar ? (
             <Image
               source={{ uri: q.data.owner.avatar }}
@@ -5347,11 +5672,17 @@ export default function BiolinkViewer() {
               </Text>
             </View>
           ) : null}
+          </View>
           <View style={styles.blocks}>
             {q.data.blocks
               .filter((b) => !b.parent_id)
               .map((b) => (
-                <BlockView key={b.id} block={b} alias={alias} allBlocks={q.data.blocks} openEmbed={openEmbed} />
+                // Task #6114: default side spacing lives on each top-level
+                // block (overridable via _style margins — 0 = full width);
+                // card children rendered inside BlockView are unaffected.
+                <View key={b.id} style={blockWrapMargins(b)}>
+                  <BlockView block={b} alias={alias} allBlocks={q.data.blocks} openEmbed={openEmbed} />
+                </View>
               ))}
             {/* Free-floating page text overlays (Task #5954). Percent x/y are
                 relative to the blocks column; pointerEvents none so they
@@ -5387,16 +5718,19 @@ export default function BiolinkViewer() {
               </View>
             ))}
           </View>
-          <LinkTypePairings
-            pairings={q.data.pairings}
-            theme="biolink"
-            fontColor={colors.foreground}
-          />
+          <View style={styles.headerPad}>
+            <LinkTypePairings
+              pairings={q.data.pairings}
+              theme="biolink"
+              fontColor={colors.foreground}
+            />
+          </View>
+          <StickerOverlay stickers={q.data.biolink.stickers} layer="front" mode="scroll" />
         </ScrollView>
       )}
 
       {q.data && (q.data.biolink.mode !== "slides" || !q.data.slides) && (
-        <StickerOverlay stickers={q.data.biolink.stickers} layer="front" />
+        <StickerOverlay stickers={q.data.biolink.stickers} layer="front" mode="fixed" />
       )}
 
       <EmbedModal
@@ -5426,7 +5760,9 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: "center",
-    paddingHorizontal: 24,
+    // Task #6114: no horizontal padding — each top-level block carries its
+    // own side margin (default 24, creator-overridable down to 0 for true
+    // full-width blocks). The profile header keeps its inset via headerPad.
     paddingBottom: 64,
     gap: 14,
   },
@@ -5459,6 +5795,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
   },
+  headerPad: { alignSelf: "stretch", alignItems: "center", paddingHorizontal: 24 },
   blocks: { width: "100%", maxWidth: 480, gap: 10, marginTop: 12 },
   btn: {
     width: "100%",

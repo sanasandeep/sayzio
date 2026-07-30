@@ -10,6 +10,7 @@ use App\Modules\User\Models\Pixel;
 use App\Modules\User\Models\User;
 use App\Modules\User\Support\BlockDefaults;
 use App\Modules\User\Support\BlockTypeRegistry;
+use App\Modules\User\Support\TemplateDefaultColors;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
@@ -327,7 +328,18 @@ class MarketingSuggestionApplier
             default     => $this->linkBlockSettings($content, (string) ($payload['url'] ?? '')),
         };
 
-        $settings['_style'] = BlockDefaults::styleForType($type);
+        // Seed `_style` the same way as the web editor / mobile API store
+        // paths: platform defaults layered with the type's defaults and the
+        // page's template default colors (Task #6039/#6042), so AI-added
+        // blocks look on-theme on template-derived pages. Only when the
+        // suggestion supplied no `_style` of its own.
+        if (!isset($settings['_style']) || !is_array($settings['_style']) || $settings['_style'] === []) {
+            $settings['_style'] = array_merge(
+                BiolinkBlock::STYLE_DEFAULTS,
+                BlockDefaults::styleForType($type),
+                TemplateDefaultColors::styleFor($link, $type)
+            );
+        }
 
         $sortOrder = (int) BiolinkBlock::where('link_id', $link->id)
             ->whereNull('parent_id')

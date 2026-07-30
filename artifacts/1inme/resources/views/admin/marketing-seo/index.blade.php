@@ -31,7 +31,8 @@
                 <h2 class="text-sm font-semibold uppercase tracking-wider text-white/60 ak-muted">{{ $group }}</h2>
 
                 @foreach($pages as $p)
-                    <div x-data="{ open: {{ ($p['override']['title'] !== '' || $p['override']['description'] !== '' || $p['override']['keywords'] !== '') ? 'true' : 'false' }} }"
+                    @php $__customised = $p['override']['title'] !== '' || $p['override']['description'] !== '' || $p['override']['keywords'] !== '' || $p['override']['share_image'] !== ''; @endphp
+                    <div x-data="{ open: {{ $__customised ? 'true' : 'false' }} }"
                          class="bg-black/20 border border-white/10 rounded-xl">
                         {{-- div role=button (not <button>): the header row holds a real
                              <a> to the live page, and interactive content inside a
@@ -46,14 +47,14 @@
                                    class="text-[11px] text-blue-400 hover:underline shrink-0 ak-blue">{{ $p['url'] }}</a>
                             </span>
                             <span class="flex items-center gap-2 shrink-0">
-                                @if($p['override']['title'] !== '' || $p['override']['description'] !== '' || $p['override']['keywords'] !== '')
+                                @if($__customised)
                                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-200 border border-blue-400/30 ak-blue">Customised</span>
                                 @else
                                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/40 border border-white/10 ak-note">Default</span>
                                 @endif
                                 <i class="fas fa-chevron-down text-white/40 text-xs transition-transform ak-note" :class="open && 'rotate-180'"></i>
                             </span>
-                        </button>
+                        </div>
 
                         <div x-show="open" x-cloak class="px-4 pb-4 space-y-3 border-t border-white/10 pt-3">
                             <div>
@@ -77,6 +78,39 @@
                                        class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
                                 <p class="mt-1 text-[11px] text-white/30 ak-note">Comma-separated. Placeholder shows the seeded default.</p>
                             </div>
+                            <div x-data="{ url: @js(old('seo.'.$p['key'].'.share_image', $p['override']['share_image'])) }">
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-white/50 mb-1 ak-muted">Share preview image <span class="normal-case tracking-normal text-white/40 font-normal ak-note">(og:image, ideally 1200×630)</span></label>
+                                <div x-data="aboutPhotoUploader({ get: () => url, set: (v) => url = v, aspect: 1200/630, outputSize: 1200, isCircle: false })" class="space-y-2">
+                                    <div class="flex items-start gap-3">
+                                        <div class="shrink-0 text-center">
+                                            <template x-if="url">
+                                                <img :src="url" alt="" class="w-40 object-cover rounded-md border border-white/10 bg-white/5" style="height:84px" x-on:error="$el.style.display='none'">
+                                            </template>
+                                            <template x-if="!url">
+                                                <div class="w-40 rounded-md border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[10px] text-white/40 text-center px-2 ak-note" style="height:84px">Falls back to the global default share image</div>
+                                            </template>
+                                            <div class="text-[10px] text-white/40 mt-1 ak-note">Live preview</div>
+                                        </div>
+                                        <div class="flex-1 space-y-2">
+                                            <input type="text" name="seo[{{ $p['key'] }}][share_image]" x-model="url"
+                                                   placeholder="https://… or /storage/… (or upload)"
+                                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                                            @error('seo.'.$p['key'].'.share_image')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
+                                                    <i class="fas fa-upload"></i>
+                                                    <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
+                                                </button>
+                                                <button type="button" x-show="url" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white ak-muted"><i class="fas fa-times mr-1"></i>Remove</button>
+                                            </div>
+                                            <p x-show="error" x-text="error" class="text-xs text-red-400 ak-red"></p>
+                                            <p class="text-[11px] text-white/30 ak-note">Leave blank to use the global default share image from Marketing Settings.</p>
+                                        </div>
+                                    </div>
+                                    <input type="file" x-ref="fileInput" @change="handleFile($event)" accept="image/*" class="hidden">
+                                    @include('admin.site-pages.partials.about-crop-modal')
+                                </div>
+                            </div>
                         </div>
                     </div>
                 @endforeach
@@ -90,6 +124,8 @@
             </button>
         </div>
     </form>
+
+    @include('admin.site-pages.partials.photo-uploader')
 
     {{-- Content pages backed by a site_pages row: deep-link to their editor. --}}
     @foreach($siteGroups as $group => $pages)

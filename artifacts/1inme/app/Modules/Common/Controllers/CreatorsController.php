@@ -558,7 +558,7 @@ class CreatorsController extends Controller
         // so the auto-picker falls through to a non-leaky badge (or none).
         // Mirrors the same data_get path used in social-proof.blade.php.
         $hiddenCreatorIds = $this->creatorsHidingVisitorCounts($creatorIds, $primaryBiolinks);
-        $liveCounterTypes = ['visitor_count', 'conversion_count'];
+        $liveCounterTypes = ['counter', 'visitor_count', 'conversion_count'];
         $allowedTypesPerCreator = [];
         foreach ($creatorIds as $cid) {
             $allowedTypesPerCreator[(int) $cid] = in_array((int) $cid, $hiddenCreatorIds, true)
@@ -658,6 +658,21 @@ class CreatorsController extends Controller
         $s = is_array($n['settings'] ?? null) ? $n['settings'] : [];
 
         return match ($n['type']) {
+            // Consolidated Counter type — dispatch on settings.mode. Stored
+            // rows may still carry the legacy keys, handled below.
+            'counter' => (function () use ($s) {
+                if (($s['mode'] ?? 'live_visitors') === 'conversions') {
+                    return [
+                        'icon' => 'fa-bolt',
+                        'text' => str_replace('{count}', (string)(int)($s['count'] ?? 0), (string)($s['text'] ?? '{count} recent conversions')),
+                    ];
+                }
+                $min = max(0, (int)($s['min'] ?? 5));
+                $max = max($min, (int)($s['max'] ?? $min + 10));
+                $count = $max === $min ? $min : $min + ((int) floor(time() / 30) % ($max - $min + 1));
+                $text = (string)($s['text'] ?? '{count} people are viewing this page');
+                return ['icon' => 'fa-eye', 'text' => str_replace('{count}', (string)$count, $text)];
+            })(),
             'visitor_count' => (function () use ($s) {
                 $min = max(0, (int)($s['min'] ?? 5));
                 $max = max($min, (int)($s['max'] ?? $min + 10));

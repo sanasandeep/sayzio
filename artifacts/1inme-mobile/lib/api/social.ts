@@ -81,7 +81,20 @@ export type SocialProof = {
   impressions: number;
   clicks: number;
   conversions: number;
+  notifications: ProofNotification[];
   created_at: string | null;
+};
+
+export type ProofNotification = {
+  id: string;
+  type: string;
+  name: string;
+  settings: Record<string, unknown>;
+  design_override: Record<string, unknown>;
+  triggers: { kind: string; params: Record<string, unknown> }[];
+  triggers_logic: "or" | "and";
+  is_active: boolean;
+  sort_order: number;
 };
 
 export type ProofType = { type: string; label: string };
@@ -109,7 +122,7 @@ export async function createProof(payload: {
 
 export async function updateProof(
   id: number,
-  payload: { name?: string; is_active?: boolean },
+  payload: { name?: string; is_active?: boolean; notifications?: ProofNotification[] },
 ): Promise<SocialProof> {
   const res = await apiFetch<{ data: { proof: SocialProof } }>(
     `/social/proofs/${id}`,

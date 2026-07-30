@@ -39,7 +39,7 @@
             </div>
         </div>
     </div>
-    <p class="text-[11px] mb-3" style="color: #fbbf24;" x-show="stickers.length >= max" x-cloak>Sticker limit reached — remove one to add another.</p>
+    <p class="text-[11px] mb-3" style="color: #fbbf24;" x-show="stickers.length >= max" x-cloak>Sticker limit reached: remove one to add another.</p>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" x-show="stickers.length" x-cloak>
         {{-- Drag pad: proportional phone-shaped stage. Drag stickers to place
@@ -110,6 +110,40 @@
                                     @click="stickers[selected].layer = 'back'; sync()">Behind content</button>
                         </div>
                     </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Position mode</label>
+                        <div class="flex gap-2">
+                            <button type="button" class="px-3 py-1.5 rounded-lg text-[11px]"
+                                    :style="stickers[selected].position_mode !== 'scroll' ? 'background: rgba(61,107,255,0.15); color: #90acff; border: 1px solid rgba(61,107,255,0.3);' : 'background: rgba(255,255,255,0.04); color: var(--text-faint); border: 1px solid var(--border-glass);'"
+                                    @click="stickers[selected].position_mode = 'fixed'; sync()">Fixed on screen</button>
+                            <button type="button" class="px-3 py-1.5 rounded-lg text-[11px]"
+                                    :style="stickers[selected].position_mode === 'scroll' ? 'background: rgba(61,107,255,0.15); color: #90acff; border: 1px solid rgba(61,107,255,0.3);' : 'background: rgba(255,255,255,0.04); color: var(--text-faint); border: 1px solid var(--border-glass);'"
+                                    @click="stickers[selected].position_mode = 'scroll'; sync()">Moves with page</button>
+                        </div>
+                        <p class="text-[10px] mt-1" style="color: var(--text-faint);">Fixed stays pinned while visitors scroll; moving stickers scroll away with the page.</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Animation</label>
+                            <select class="theme-input w-full text-sm"
+                                    :value="stickers[selected].animation || 'none'"
+                                    @change="stickers[selected].animation = $event.target.value; sync()">
+                                <template x-for="a in animations" :key="a.value">
+                                    <option :value="a.value" x-text="a.label" :selected="(stickers[selected].animation || 'none') === a.value"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div x-show="(stickers[selected].animation || 'none') !== 'none'">
+                            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Repeat</label>
+                            <select class="theme-input w-full text-sm"
+                                    :value="stickers[selected].loop || 'infinite'"
+                                    @change="stickers[selected].loop = $event.target.value; sync()">
+                                <template x-for="l in loops" :key="l.value">
+                                    <option :value="l.value" x-text="l.label" :selected="(stickers[selected].loop || 'infinite') === l.value"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </template>
         </div>
@@ -126,6 +160,21 @@ function pageStickersCard(initial, max) {
         customImageUrl: '',
         dragging: null,
         palette: ['😀','😍','🤩','😎','🥳','🔥','✨','⭐','💖','💫','🌈','🌸','🍀','🎯','🎉','🎵','☕','🚀','👑','💎','🦋','🌙','⚡','🫶'],
+        animations: [
+            { value: 'none', label: 'None' },
+            { value: 'pulse', label: 'Pulse' },
+            { value: 'bounce', label: 'Bounce' },
+            { value: 'wiggle', label: 'Wiggle' },
+            { value: 'spin', label: 'Spin' },
+            { value: 'float', label: 'Float' },
+            { value: 'glow', label: 'Glow' }
+        ],
+        loops: [
+            { value: '1', label: '1 time' },
+            { value: '3', label: '3 times' },
+            { value: '5', label: '5 times' },
+            { value: 'infinite', label: 'Infinite' }
+        ],
 
         sync() {
             // Update the hidden input and let the event bubble to the form so
@@ -144,7 +193,7 @@ function pageStickersCard(initial, max) {
         addEmoji(value) {
             value = (value || '').trim();
             if (!value) return;
-            this.addSticker({ kind: 'emoji', value: value.slice(0, 16), x: this.spawnX(), y: this.spawnY(), rotation: -12, scale: 1, layer: 'front' });
+            this.addSticker({ kind: 'emoji', value: value.slice(0, 16), x: this.spawnX(), y: this.spawnY(), rotation: -12, scale: 1, layer: 'front', position_mode: 'fixed', animation: 'none', loop: 'infinite' });
         },
         addImage() {
             var url = (this.customImageUrl || '').trim();
@@ -153,7 +202,7 @@ function pageStickersCard(initial, max) {
                 alert('Image stickers need an https:// URL or a /f/ vault file path.');
                 return;
             }
-            this.addSticker({ kind: 'image', value: url, x: this.spawnX(), y: this.spawnY(), rotation: -8, scale: 1, layer: 'front' });
+            this.addSticker({ kind: 'image', value: url, x: this.spawnX(), y: this.spawnY(), rotation: -8, scale: 1, layer: 'front', position_mode: 'fixed', animation: 'none', loop: 'infinite' });
             this.customImageUrl = '';
         },
         // Spread new stickers around so they don't all pile up in one spot.
