@@ -363,6 +363,26 @@ Route::middleware('brand.primary')->controller(\App\Modules\Common\Controllers\S
     // separate route below (outside this brand.primary group) so it works
     // on any domain without a redirect.
     Route::get('/android', [\App\Modules\Common\Controllers\AndroidApkPublicController::class, 'show'])->name('android.show');
+    // Standalone product marketing pages (Apps family). Download / store
+    // CTAs are admin-managed with automatic fallbacks — see
+    // Common\Support\ProductDownloadLinks. All four slugs are reserved in
+    // ReservedAlias so the /{alias} catch-all can never capture them.
+    Route::get('/dialer', fn () => view('public.zio-dialer', [
+        'seoKey' => 'zio-dialer',
+        'cta'    => \App\Modules\Common\Support\ProductDownloadLinks::dialer(),
+    ]))->name('site.zio-dialer');
+    Route::get('/browser', fn () => view('public.zio-browser', [
+        'seoKey' => 'zio-browser',
+        'cta'    => \App\Modules\Common\Support\ProductDownloadLinks::browser(),
+    ]))->name('site.zio-browser');
+    Route::get('/extension', fn () => view('public.zio-extension', [
+        'seoKey' => 'zio-extension',
+        'stores' => \App\Modules\Common\Support\ProductDownloadLinks::extension(),
+    ]))->name('site.zio-extension');
+    Route::get('/app', fn () => view('public.mobile-app', [
+        'seoKey' => 'mobile-app',
+        'cta'    => \App\Modules\Common\Support\ProductDownloadLinks::app(),
+    ]))->name('site.mobile-app');
     Route::get('/{slug}/history', [\App\Modules\Common\Controllers\SitePageController::class, 'history'])
         ->where('slug', 'terms|privacy|refunds|cookies|gdpr')
         ->name('site.policy.history');

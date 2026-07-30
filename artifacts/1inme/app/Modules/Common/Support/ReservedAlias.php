@@ -34,6 +34,7 @@ final class ReservedAlias
         'checkout', 'analytics', 'audience', 'integrations',
         'compare', 'for', 'demos', 'dialer-contacts', 'events',
         'android', 'digest',
+        'dialer', 'browser', 'extension', 'app',
     ];
 
     /**

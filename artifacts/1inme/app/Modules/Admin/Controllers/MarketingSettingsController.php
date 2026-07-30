@@ -28,6 +28,10 @@ class MarketingSettingsController extends Controller
             'extension_chrome_url'     => (string) AppSetting::get('extension_chrome_store_url', ''),
             'extension_edge_url'       => (string) AppSetting::get('extension_edge_store_url', ''),
             'extension_firefox_url'    => (string) AppSetting::get('extension_firefox_store_url', ''),
+            'dialer_play_url'          => (string) AppSetting::get(\App\Modules\Common\Support\ProductDownloadLinks::DIALER_PLAY_URL, ''),
+            'dialer_apk_url'           => (string) AppSetting::get(\App\Modules\Common\Support\ProductDownloadLinks::DIALER_APK_URL, ''),
+            'browser_mac_url'          => (string) AppSetting::get(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_MAC_URL, ''),
+            'browser_windows_url'      => (string) AppSetting::get(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_WIN_URL, ''),
             'trust_strip'              => SitePagesContent::normalizeTrustStrip(
                 (array) AppSetting::get('marketing_trust_strip', [])
             ),
@@ -66,6 +70,14 @@ class MarketingSettingsController extends Controller
             'extension_chrome_url'            => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             'extension_edge_url'              => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             'extension_firefox_url'           => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
+            // Product-page download links (/dialer and /browser marketing
+            // pages). Blank = fall back to the admin APK manager's live
+            // release (dialer) / the live SayZio Browser GitHub release
+            // (browser). See ProductDownloadLinks.
+            'dialer_play_url'                 => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
+            'dialer_apk_url'                  => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
+            'browser_mac_url'                 => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
+            'browser_windows_url'             => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             'trust_strip'                     => 'nullable|array|max:6',
             'trust_strip.*.value'             => 'nullable|string|max:60',
             'trust_strip.*.label'             => 'nullable|string|max:120',
@@ -109,6 +121,11 @@ class MarketingSettingsController extends Controller
         AppSetting::put('extension_chrome_store_url', trim((string) ($data['extension_chrome_url'] ?? '')));
         AppSetting::put('extension_edge_store_url', trim((string) ($data['extension_edge_url'] ?? '')));
         AppSetting::put('extension_firefox_store_url', trim((string) ($data['extension_firefox_url'] ?? '')));
+
+        AppSetting::put(\App\Modules\Common\Support\ProductDownloadLinks::DIALER_PLAY_URL, trim((string) ($data['dialer_play_url'] ?? '')));
+        AppSetting::put(\App\Modules\Common\Support\ProductDownloadLinks::DIALER_APK_URL, trim((string) ($data['dialer_apk_url'] ?? '')));
+        AppSetting::put(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_MAC_URL, trim((string) ($data['browser_mac_url'] ?? '')));
+        AppSetting::put(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_WIN_URL, trim((string) ($data['browser_windows_url'] ?? '')));
 
         AppSetting::put('marketing_trust_strip',
             SitePagesContent::normalizeTrustStrip((array) ($data['trust_strip'] ?? []))
