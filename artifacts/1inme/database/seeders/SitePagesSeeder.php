@@ -56,6 +56,18 @@ class SitePagesSeeder extends Seeder
                 'cta_url' => '/register',
             ],
             [
+                'slug' => 'newsroom',
+                'title' => 'Newsroom',
+                'meta_description' => 'Press, awards, customer love and the tiny moments that keep us shipping. A round-up of everything happening around Sayzio.',
+                'sections' => [
+                    ['heading' => 'In the press', 'body' => 'Recent stories about Sayzio and the people behind it, from launch coverage to deep dives on how creators run their business from one link.'],
+                    ['heading' => 'Awards & recognition', 'body' => 'A short list of recent recognition, from Product Hunt launches to creator-tool round-ups.'],
+                    ['heading' => 'Customer love', 'body' => 'Stories from people who run their entire creator business on Sayzio.'],
+                ],
+                'cta_label' => 'Get in touch',
+                'cta_url' => '/contact',
+            ],
+            [
                 'slug' => 'services',
                 'title' => 'What you can do with Sayzio',
                 'meta_description' => 'See how marketers, creators, agencies, small businesses and event organizers use Sayzio as their link-in-bio, portfolio, and audience hub.',

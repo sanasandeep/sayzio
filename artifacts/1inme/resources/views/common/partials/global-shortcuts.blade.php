@@ -51,7 +51,7 @@
                 ['Pricing',       $__r('site.pricing'),         'fa-solid fa-tags'],
                 ['Discover',      $__r('site.discovery'),       'fa-solid fa-compass'],
                 ['Creators feed', $__r('site.creators-feed'),   'fa-solid fa-rss'],
-                ['Buzz',          $__r('site.buzz'),            'fa-solid fa-bolt-lightning'],
+                ['Newsroom',      $__r('site.newsroom'),        'fa-solid fa-newspaper'],
                 ['Workspace & Team', $__r('site.workspace-team'), 'fa-solid fa-people-roof'],
             ]],
             ['Company', [

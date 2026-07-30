@@ -304,6 +304,7 @@ Route::middleware('brand.primary')->controller(\App\Modules\Common\Controllers\S
     Route::get('/creators-feed', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('creators-feed'))->name('site.creators-feed');
     Route::get('/workspace-team', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('workspace-team'))->name('site.workspace-team');
     Route::get('/buzz',           fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('buzz'))->name('site.buzz');
+    Route::get('/newsroom',       fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('newsroom'))->name('site.newsroom');
     Route::get('/ai-chatbot',         fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('ai-chatbot'))->name('site.ai-chatbot');
     Route::get('/ai-agent',           fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('ai-agent'))->name('site.ai-agent');
     Route::get('/ai-widget',          fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('ai-widget'))->name('site.ai-widget');
@@ -569,7 +570,7 @@ Route::get('/{handle}/resume/v/{slug}.pdf',
 // allow-list of suffixes that does not include "resume").
 Route::get ('/{handle}/resume', [\App\Modules\Common\Controllers\PublicResumeController::class, 'show'])
     ->name('resume.public.show')
-    ->where('handle', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|whatsapp-agent|ai-marketing-strategist|ai-dashboard|docs|newsletter|pricing|coins|blogs|creators|feed|viewer|companion|embed|assistant|sp|r|analytics|audience|integrations|compare|for)[a-zA-Z0-9_\-\.]+$');
+    ->where('handle', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|newsroom|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|whatsapp-agent|ai-marketing-strategist|ai-dashboard|docs|newsletter|pricing|coins|blogs|creators|feed|viewer|companion|embed|assistant|sp|r|analytics|audience|integrations|compare|for)[a-zA-Z0-9_\-\.]+$');
 Route::post('/{handle}/resume', [\App\Modules\Common\Controllers\PublicResumeController::class, 'unlock'])
     ->name('resume.public.unlock')
     ->middleware('throttle:10,1')

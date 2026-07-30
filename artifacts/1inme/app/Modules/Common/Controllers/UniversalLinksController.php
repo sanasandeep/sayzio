@@ -49,7 +49,7 @@ class UniversalLinksController extends Controller
             '/login', '/register', '/logout',
             '/features', '/how-it-works', '/about', '/contact', '/faqs',
             '/terms', '/refunds', '/privacy', '/gdpr', '/cookies',
-            '/creators-feed', '/workspace-team', '/buzz', '/docs', '/newsletter',
+            '/creators-feed', '/workspace-team', '/buzz', '/newsroom', '/docs', '/newsletter',
         ];
         $components = array_map(
             fn ($p) => ['/' => $p, 'exclude' => true],

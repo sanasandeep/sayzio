@@ -32,7 +32,7 @@
                     <li><a href="{{ route('site.services') }}" class="text-sm text-gray-500 hover:text-white">Use cases</a></li>
                     <li><a href="{{ route('site.discovery') }}" class="text-sm text-gray-500 hover:text-white">Discover creators</a></li>
                     <li><a href="{{ route('site.creators-feed') }}" class="text-sm text-gray-500 hover:text-white">Creators feed</a></li>
-                    <li><a href="{{ route('site.buzz') }}" class="text-sm text-gray-500 hover:text-white">Buzz</a></li>
+                    <li><a href="{{ route('site.newsroom') }}" class="text-sm text-gray-500 hover:text-white">Newsroom</a></li>
                 </ul>
             </div>
             <div>

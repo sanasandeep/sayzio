@@ -153,6 +153,9 @@ class SitePageController extends Controller
         if ($slug === 'buzz') {
             return view('public.buzz', ['page' => $page]);
         }
+        if ($slug === 'newsroom') {
+            return view('public.newsroom', ['page' => $page]);
+        }
         if ($slug === 'ai-dashboard') {
             return view('public.ai-dashboard', [
                 'page'    => $page,

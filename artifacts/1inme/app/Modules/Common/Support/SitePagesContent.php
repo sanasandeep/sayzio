@@ -982,7 +982,7 @@ class SitePagesContent
     public static function footerSlugs(): array
     {
         return [
-            'features', 'how-it-works', 'workspace-team', 'buzz',
+            'features', 'how-it-works', 'workspace-team', 'buzz', 'newsroom',
             'ai-chatbot', 'ai-agent', 'ai-widget', 'ai-voice-assistant',
             'discovery', 'creators-feed', 'faqs',
             'about', 'contact',

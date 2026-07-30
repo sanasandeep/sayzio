@@ -49,7 +49,7 @@
         [route('site.demos'),                       'fa-wand-magic-sparkles', 'See what you can build', 'Live demo of every link type',           'site.demos'],
         [route('site.discovery'),                   'fa-compass',             'Discover creators',      'Browse the public directory',            'site.discovery'],
         [route('site.creators-feed'),               'fa-stream',              'Creators feed',          'What the community is shipping',         'site.creators-feed'],
-        [route('site.buzz'),                        'fa-bullhorn',            'Buzz',                   'News, press & love',                     'site.buzz'],
+        [route('site.newsroom'),                    'fa-newspaper',           'Newsroom',               'News, press & love',                     'site.newsroom'],
         // Events entry: active state is owned by the dedicated Events pill, not the Solutions group.
         [route('events.index'),                     'fa-calendar-day',        'Events & RSVPs',         'Run launches with one link',             null],
         // Referrals is an anchor into the Features page — the plain Features top link owns that page's highlight.
