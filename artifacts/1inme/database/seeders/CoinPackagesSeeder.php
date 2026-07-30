@@ -18,22 +18,31 @@ use Illuminate\Database\Seeder;
  * is the convention CoinPackageController uses so the
  * PricingResolver can look prices back up at checkout.
  *
- * Lineup v2 (AI-credit formula)
- * ─────────────────────────────
- * 1 coin = $0.80 of AI credits + 20% platform margin → $0.96/coin customer price.
+ * Lineup v3 (8 named tiers)
+ * ─────────────────────────
+ * Starter $10 → Ultimate $2,500, with bonus coins from Basic upward and a
+ * customer-facing "Best for" audience label per tier. Each tier also carries
+ * a HIDDEN internal allocation (`api_budget_pct`): the % of the price
+ * budgeted for API costs; platform margin is the remaining 100 − pct.
+ * The allocation is never shown on any user-facing surface — it only feeds
+ * the admin-only per-purchase revenue-split snapshot.
+ *
  * INR rate: admin-editable via the `billing.fx_rate_inr` app setting
- * (BillingFxRate; falls back to ₹90/$1 → ₹86.40/coin when unset).
- * Tax is NOT baked in; checkout adds GST/VAT on top.
- * Old v1 packages are archived (not deleted) so purchase history references survive.
+ * (BillingFxRate; falls back to ₹90/$1 when unset). Tax is NOT baked in;
+ * checkout adds GST/VAT on top.
+ * Old v1 + v2 packages are archived (not deleted) so purchase-history
+ * references survive.
  */
 class CoinPackagesSeeder extends Seeder
 {
     /**
-     * Slugs that belong to the previous (v1) lineup. On each seeder run these
-     * are moved to archived+inactive so they stop appearing in the shop, but
-     * their rows (and any linked purchase records) are never deleted.
+     * Slugs that belong to previous lineups (v1 named packs + v2 ai-credits
+     * formula packs). On each seeder run these are moved to archived+inactive
+     * so they stop appearing in the shop, but their rows (and any linked
+     * purchase records) are never deleted.
      */
-    private const LEGACY_SLUGS = [
+    public const LEGACY_SLUGS = [
+        // v1
         'starter-pack',
         'mini-pack',
         'value-pack',
@@ -42,11 +51,119 @@ class CoinPackagesSeeder extends Seeder
         'pro-pack',
         'mega-pack',
         'ultimate-pack',
+        // v2
+        'ai-credits-10',
+        'ai-credits-50',
+        'ai-credits-100',
+        'ai-credits-250',
+        'ai-credits-500',
+        'ai-credits-1000',
+        'ai-credits-2000',
+        'ai-credits-3500',
+        'ai-credits-5000',
+        'ai-credits-10000',
+    ];
+
+    /**
+     * The v3 lineup. `coin_amount` is the BASE coins (total − bonus) so
+     * total_coins = coin_amount + bonus_coins matches the advertised total.
+     * `usd` is the customer price in cents. `api_budget_pct` is the hidden
+     * internal API-cost allocation; margin is always 100 − pct.
+     */
+    public const LINEUP = [
+        [
+            'slug'           => 'coins-starter',
+            'name'           => 'Starter',
+            'best_for'       => 'Trying AI',
+            'description'    => '7,000 coins to take Sayzio AI for a spin.',
+            'coin_amount'    => 7000,
+            'bonus_coins'    => 0,
+            'usd'            => 1000,
+            'api_budget_pct' => 70,
+            'sort_order'     => 10,
+        ],
+        [
+            'slug'           => 'coins-basic',
+            'name'           => 'Basic',
+            'best_for'       => 'Casual users',
+            'description'    => '15,000 coins (incl. 1,000 bonus) for light, everyday AI use.',
+            'coin_amount'    => 14000,
+            'bonus_coins'    => 1000,
+            'usd'            => 2000,
+            'api_budget_pct' => 72,
+            'sort_order'     => 20,
+        ],
+        [
+            'slug'           => 'coins-standard',
+            'name'           => 'Standard',
+            'best_for'       => 'Regular users',
+            'description'    => '23,000 coins (incl. 2,000 bonus) for steady weekly AI workflows.',
+            'coin_amount'    => 21000,
+            'bonus_coins'    => 2000,
+            'usd'            => 3000,
+            'api_budget_pct' => 74,
+            'sort_order'     => 30,
+        ],
+        [
+            'slug'           => 'coins-pro',
+            'name'           => 'Pro',
+            'best_for'       => 'Professionals',
+            'description'    => '80,000 coins (incl. 10,000 bonus) for professionals who use AI daily.',
+            'coin_amount'    => 70000,
+            'bonus_coins'    => 10000,
+            'usd'            => 10000,
+            'api_budget_pct' => 78,
+            'sort_order'     => 40,
+        ],
+        [
+            'slug'           => 'coins-business',
+            'name'           => 'Business',
+            'best_for'       => 'Small teams',
+            'description'    => '205,000 coins (incl. 30,000 bonus) to keep a small team running on AI.',
+            'coin_amount'    => 175000,
+            'bonus_coins'    => 30000,
+            'usd'            => 25000,
+            'api_budget_pct' => 80,
+            'sort_order'     => 50,
+        ],
+        [
+            'slug'           => 'coins-enterprise',
+            'name'           => 'Enterprise',
+            'best_for'       => 'Growing businesses',
+            'description'    => '420,000 coins (incl. 70,000 bonus) for growing businesses scaling AI output.',
+            'coin_amount'    => 350000,
+            'bonus_coins'    => 70000,
+            'usd'            => 50000,
+            'api_budget_pct' => 82,
+            'sort_order'     => 60,
+        ],
+        [
+            'slug'           => 'coins-scale',
+            'name'           => 'Scale',
+            'best_for'       => 'Large organizations',
+            'description'    => '850,000 coins (incl. 150,000 bonus) for large organizations with heavy AI pipelines.',
+            'coin_amount'    => 700000,
+            'bonus_coins'    => 150000,
+            'usd'            => 100000,
+            'api_budget_pct' => 84,
+            'sort_order'     => 70,
+        ],
+        [
+            'slug'           => 'coins-ultimate',
+            'name'           => 'Ultimate',
+            'best_for'       => 'Enterprise AI',
+            'description'    => '2,150,000 coins (incl. 400,000 bonus): the maximum reserve for enterprise-scale AI automation.',
+            'coin_amount'    => 1750000,
+            'bonus_coins'    => 400000,
+            'usd'            => 250000,
+            'api_budget_pct' => 85,
+            'sort_order'     => 80,
+        ],
     ];
 
     public function run(): void
     {
-        // ── Step 1: archive the v1 lineup ────────────────────────────────────
+        // ── Step 1: archive the previous lineups ────────────────────────────
         // Only touches rows that are still active/unarchived so repeated runs
         // are idempotent and admin overrides (e.g. manually re-activating one)
         // are NOT clobbered — we only ever move status in the "retire" direction.
@@ -57,113 +174,40 @@ class CoinPackagesSeeder extends Seeder
             })
             ->update(['status' => 'inactive', 'is_archived' => true]);
 
-        // ── Step 2: seed the v2 lineup ────────────────────────────────────────
-        // Formula: $0.96/coin (USD cents); INR prices are computed from the
-        // admin-editable FX rate (BillingFxRate, fallback ₹90/$1 → ₹86.40/coin).
-        // No bonus coins, no compare-at (original) prices per spec.
+        // ── Step 2: seed the v3 lineup ───────────────────────────────────────
         $fxRate = BillingFxRate::get();
-        $packages = [
-            [
-                'slug'        => 'ai-credits-10',
-                'name'        => 'Micro Pack',
-                'description' => '10 coins: a small top-up to try AI-powered features.',
-                'coin_amount' => 10,
-                'sort_order'  => 10,
-                'prices'      => ['USD' => 960, 'INR' => BillingFxRate::usdMinorToInrMinor(960, $fxRate)],
-            ],
-            [
-                'slug'        => 'ai-credits-50',
-                'name'        => 'Starter Pack',
-                'description' => '50 coins for occasional AI tasks and one-off boosts.',
-                'coin_amount' => 50,
-                'sort_order'  => 20,
-                'prices'      => ['USD' => 4800, 'INR' => BillingFxRate::usdMinorToInrMinor(4800, $fxRate)],
-            ],
-            [
-                'slug'        => 'ai-credits-100',
-                'name'        => 'Basic Pack',
-                'description' => '100 coins: a comfortable reserve for regular AI use.',
-                'coin_amount' => 100,
-                'sort_order'  => 30,
-                'prices'      => ['USD' => 9600, 'INR' => BillingFxRate::usdMinorToInrMinor(9600, $fxRate)],
-            ],
-            [
-                'slug'        => 'ai-credits-250',
-                'name'        => 'Standard Pack',
-                'description' => '250 coins for creators who rely on AI features daily.',
-                'coin_amount' => 250,
-                'sort_order'  => 40,
-                'prices'      => ['USD' => 24000, 'INR' => BillingFxRate::usdMinorToInrMinor(24000, $fxRate)],
-            ],
-            [
-                'slug'        => 'ai-credits-500',
-                'name'        => 'Plus Pack',
-                'description' => '500 coins: solid headroom for active AI-assisted workflows.',
-                'coin_amount' => 500,
-                'sort_order'  => 50,
-                'prices'      => ['USD' => 48000, 'INR' => BillingFxRate::usdMinorToInrMinor(48000, $fxRate)],
-            ],
-            [
-                'slug'        => 'ai-credits-1000',
-                'name'        => 'Pro Pack',
-                'description' => '1,000 coins for power users running frequent AI campaigns.',
-                'coin_amount' => 1000,
-                'sort_order'  => 60,
-                'prices'      => ['USD' => 96000, 'INR' => BillingFxRate::usdMinorToInrMinor(96000, $fxRate)],
-            ],
-            [
-                'slug'        => 'ai-credits-2000',
-                'name'        => 'Growth Pack',
-                'description' => '2,000 coins for teams scaling their AI-driven content.',
-                'coin_amount' => 2000,
-                'sort_order'  => 70,
-                'prices'      => ['USD' => 192000, 'INR' => BillingFxRate::usdMinorToInrMinor(192000, $fxRate)],
-            ],
-            [
-                'slug'        => 'ai-credits-3500',
-                'name'        => 'Scale Pack',
-                'description' => '3,500 coins: the sweet spot for high-volume AI usage.',
-                'coin_amount' => 3500,
-                'sort_order'  => 80,
-                'prices'      => ['USD' => 336000, 'INR' => BillingFxRate::usdMinorToInrMinor(336000, $fxRate)],
-            ],
-            [
-                'slug'        => 'ai-credits-5000',
-                'name'        => 'Power Pack',
-                'description' => '5,000 coins for agencies running continuous AI pipelines.',
-                'coin_amount' => 5000,
-                'sort_order'  => 90,
-                'prices'      => ['USD' => 480000, 'INR' => BillingFxRate::usdMinorToInrMinor(480000, $fxRate)],
-            ],
-            [
-                'slug'        => 'ai-credits-10000',
-                'name'        => 'Enterprise Pack',
-                'description' => '10,000 coins: maximum reserve for enterprise-scale AI automation.',
-                'coin_amount' => 10000,
-                'sort_order'  => 100,
-                'prices'      => ['USD' => 960000, 'INR' => BillingFxRate::usdMinorToInrMinor(960000, $fxRate)],
-            ],
-        ];
 
-        foreach ($packages as $row) {
-            $prices = $row['prices'];
-            unset($row['prices']);
+        foreach (self::LINEUP as $row) {
+            $usdMinor = $row['usd'];
+            unset($row['usd']);
 
             // firstOrCreate keeps this seeder idempotent — admin edits
-            // to existing v2 packages survive re-runs of `db:seed`.
+            // to existing packages survive re-runs of `db:seed`.
             $pkg = CoinPackage::firstOrCreate(
                 ['slug' => $row['slug']],
                 array_merge($row, [
-                    'bonus_coins' => 0,
                     'status'      => 'active',
                     'is_archived' => false,
                 ]),
             );
 
-            foreach ($prices as $currency => $minor) {
-                $this->seedPriceIfMissing($pkg, $currency, 'monthly', $minor);
+            $this->seedPriceIfMissing($pkg, 'USD', 'monthly', $usdMinor);
+            $this->seedPriceIfMissing($pkg, 'INR', 'monthly', BillingFxRate::usdMinorToInrMinor($usdMinor, $fxRate));
+            // No compare-at (original) prices for the v3 lineup per spec.
+
+            // Backfill the internal allocation + label on rows that pre-date
+            // those columns (or were created before this seeder version) but
+            // never overwrite an admin-set value.
+            $dirty = [];
+            if ($pkg->api_budget_pct === null) {
+                $dirty['api_budget_pct'] = $row['api_budget_pct'];
             }
-            // No compare-at (original) prices for the v2 lineup per spec.
+            if ($pkg->best_for === null) {
+                $dirty['best_for'] = $row['best_for'];
+            }
+            if ($dirty) {
+                $pkg->forceFill($dirty)->save();
+            }
         }
     }
 

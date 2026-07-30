@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\CoinPackage;
+use App\Modules\Admin\Models\CoinPurchaseAllocation;
 use App\Modules\Admin\Support\BillingFxRate;
 use App\Modules\Common\Support\PricingPageCache;
 use App\Services\PricingResolver;
@@ -35,6 +36,45 @@ class CoinPackageController extends Controller
             ->with('success', 'INR exchange rate updated to ₹' . rtrim(rtrim(number_format((float) $data['fx_rate_inr'], 4, '.', ''), '0'), '.') . '/$1.');
     }
 
+    /**
+     * Admin-only revenue-split report: per-purchase allocation snapshots
+     * (API budget vs platform margin) with an optional date range filter
+     * and per-currency aggregates. Nothing here is ever user-facing.
+     */
+    public function allocations(Request $request)
+    {
+        $data = $request->validate([
+            'from' => 'nullable|date',
+            'to'   => 'nullable|date',
+        ]);
+        $from = !empty($data['from']) ? \Carbon\Carbon::parse($data['from'])->startOfDay() : null;
+        $to   = !empty($data['to'])   ? \Carbon\Carbon::parse($data['to'])->endOfDay()   : null;
+
+        $base = CoinPurchaseAllocation::query()
+            ->when($from, fn ($q) => $q->where('created_at', '>=', $from))
+            ->when($to,   fn ($q) => $q->where('created_at', '<=', $to));
+
+        // Per-currency aggregates over the filtered range.
+        $totals = (clone $base)
+            ->selectRaw('currency, COUNT(*) AS purchases, SUM(amount_minor) AS amount_minor, SUM(api_budget_minor) AS api_budget_minor, SUM(margin_minor) AS margin_minor, SUM(coins) AS coins')
+            ->groupBy('currency')
+            ->orderBy('currency')
+            ->get();
+
+        $rows = (clone $base)
+            ->with(['user:id,name,email', 'package:id,name,slug', 'invoice:id,number'])
+            ->orderByDesc('created_at')
+            ->paginate(50)
+            ->withQueryString();
+
+        return view('admin.coin-packages.allocations', [
+            'rows'   => $rows,
+            'totals' => $totals,
+            'from'   => $data['from'] ?? null,
+            'to'     => $data['to'] ?? null,
+        ]);
+    }
+
     public function create()
     {
         $package = new CoinPackage(['status' => 'active']);
@@ -52,10 +92,13 @@ class CoinPackageController extends Controller
             'name'        => $data['name'],
             'slug'        => $data['slug'],
             'description' => $data['description'] ?? null,
+            'best_for'    => $data['best_for'] ?? null,
             'coin_amount' => $data['coin_amount'],
             'bonus_coins' => $data['bonus_coins'] ?? 0,
             'status'      => $data['status'],
             'sort_order'  => $data['sort_order'] ?? 0,
+            'api_budget_pct' => isset($data['api_budget_pct']) && $data['api_budget_pct'] !== null
+                ? round((float) $data['api_budget_pct'], 2) : null,
         ]);
         $this->syncPrices($package, $minor);
         $this->syncOriginalPrices($package, $this->extractOriginalMinor($data));
@@ -78,10 +121,13 @@ class CoinPackageController extends Controller
         $coinPackage->update([
             'name'        => $data['name'],
             'description' => $data['description'] ?? null,
+            'best_for'    => $data['best_for'] ?? null,
             'coin_amount' => $data['coin_amount'],
             'bonus_coins' => $data['bonus_coins'] ?? 0,
             'status'      => $data['status'],
             'sort_order'  => $data['sort_order'] ?? 0,
+            'api_budget_pct' => isset($data['api_budget_pct']) && $data['api_budget_pct'] !== null
+                ? round((float) $data['api_budget_pct'], 2) : null,
         ]);
         $this->syncPrices($coinPackage, $minor);
         $this->syncOriginalPrices($coinPackage, $this->extractOriginalMinor($data));
@@ -109,8 +155,12 @@ class CoinPackageController extends Controller
         return $request->validate([
             'name'        => 'required|string|max:255',
             'description' => 'nullable|string',
+            'best_for'    => 'nullable|string|max:100',
             'coin_amount' => 'required|integer|min:1',
             'bonus_coins' => 'nullable|integer|min:0',
+            // Hidden internal allocation: % of price budgeted for API costs.
+            // Margin is always 100 − this. Admin-only, never user-facing.
+            'api_budget_pct' => 'nullable|numeric|min:0|max:100',
             'status'      => 'required|in:active,inactive',
             'sort_order'  => 'nullable|integer|min:0',
             // Per-currency price in MINOR units (cents/paise).

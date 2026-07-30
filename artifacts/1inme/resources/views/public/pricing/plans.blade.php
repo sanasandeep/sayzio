@@ -1489,7 +1489,7 @@
                                 <div class="text-[10px] uppercase tracking-wider text-amber-300/80 font-bold mb-0.5">
                                     <i class="fas fa-bullseye"></i> Best for
                                 </div>
-                                <div class="text-xs text-gray-300 leading-snug">{{ $bestForFor($row) }}</div>
+                                <div class="text-xs text-gray-300 leading-snug">{{ $pkg->best_for ?: $bestForFor($row) }}</div>
                             </div>
 
                             @if($pkg->description)

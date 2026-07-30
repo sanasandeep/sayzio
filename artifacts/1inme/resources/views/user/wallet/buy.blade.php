@@ -20,13 +20,14 @@
             @php $pkg = $row['model']; $priced = $row['priced']; @endphp
             <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
                 <h3 class="text-white font-semibold">{{ $pkg->name }}</h3>
+                @if($pkg->best_for)<p class="text-xs text-amber-300/90 mt-1"><i class="fas fa-bullseye mr-1"></i>Best for {{ $pkg->best_for }}</p>@endif
                 @if($pkg->description)<p class="text-xs text-white/40 mt-1">{{ $pkg->description }}</p>@endif
                 <div class="mt-4 flex items-baseline gap-2">
-                    <span class="text-3xl font-bold text-amber-300">{{ number_format($pkg->coin_amount) }}</span>
+                    <span class="text-3xl font-bold text-amber-300">{{ number_format($pkg->totalCoins()) }}</span>
                     <span class="text-white/40">coins</span>
                 </div>
                 @if($pkg->bonus_coins > 0)
-                    <p class="text-xs text-emerald-300 mt-1">+{{ number_format($pkg->bonus_coins) }} bonus coins</p>
+                    <p class="text-xs text-emerald-300 mt-1">{{ number_format($pkg->coin_amount) }} + {{ number_format($pkg->bonus_coins) }} bonus coins</p>
                 @endif
                 @php $orig = $pkg->originalPriceDisplay($currency, (int)($priced['amount_minor'] ?? 0)); @endphp
                 <div class="my-4 flex items-baseline gap-2">

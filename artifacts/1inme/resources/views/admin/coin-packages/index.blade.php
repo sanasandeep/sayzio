@@ -5,7 +5,10 @@
 @section('content')
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40 ak-note">Buyable coin bundles. Customers top up coins and spend them on coin-priced add-ons.</p>
-    <a href="{{ route('admin.coin-packages.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"><i class="fas fa-plus mr-2"></i>Add Package</a>
+    <div class="flex items-center gap-2">
+        <a href="{{ route('admin.coin-packages.allocations') }}" class="px-4 py-2 bg-white/10 text-white/80 rounded-xl text-sm font-medium hover:bg-white/[0.06] ak-strong"><i class="fas fa-chart-pie mr-2"></i>Allocation Report</a>
+        <a href="{{ route('admin.coin-packages.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"><i class="fas fa-plus mr-2"></i>Add Package</a>
+    </div>
 </div>
 
 @if(session('success'))
@@ -40,6 +43,9 @@
                 {{ $pkg->is_archived ? 'Archived' : ucfirst($pkg->status) }}
             </span>
         </div>
+        @if($pkg->best_for)
+            <p class="text-xs text-amber-300/90 mb-1 ak-amber"><i class="fas fa-bullseye mr-1"></i>Best for: {{ $pkg->best_for }}</p>
+        @endif
         <p class="text-sm text-white/40 mb-4 ak-note">{{ $pkg->description ?? 'No description' }}</p>
 
         <div class="space-y-1 mb-4 text-sm">
@@ -53,6 +59,7 @@
             @php $oInr = $pkg->originalPriceDisplay('INR', (int)($pInr->amount_minor_units ?? 0)); @endphp
             <div class="flex justify-between"><span class="text-white/40 ak-note">Price USD</span><span class="font-semibold text-white ak-strong">@if($oUsd)<span class="text-white/30 line-through mr-1.5 font-normal ak-note">${{ number_format($oUsd['amount_minor']/100, 2) }}</span>@endif${{ number_format(($pUsd->amount_minor_units ?? 0)/100, 2) }}</span></div>
             <div class="flex justify-between"><span class="text-white/40 ak-note">Price INR</span><span class="font-semibold text-white ak-strong">@if($oInr)<span class="text-white/30 line-through mr-1.5 font-normal ak-note">₹{{ number_format($oInr['amount_minor']/100, 2) }}</span>@endif₹{{ number_format(($pInr->amount_minor_units ?? 0)/100, 2) }}</span></div>
+            <div class="flex justify-between"><span class="text-white/40 ak-note" title="Internal only, never shown to customers">Allocation <i class="fas fa-lock text-[10px]"></i></span><span class="font-semibold text-white/70 ak-muted">{{ rtrim(rtrim(number_format($pkg->apiBudgetPct(), 2, '.', ''), '0'), '.') }}% API / {{ rtrim(rtrim(number_format($pkg->marginPct(), 2, '.', ''), '0'), '.') }}% margin</span></div>
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-4 border-t border-white/5">

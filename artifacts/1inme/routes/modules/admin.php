@@ -554,6 +554,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('create',      [CoinPackageController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
             Route::post('/',          [CoinPackageController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
             Route::post('fx-rate',    [CoinPackageController::class, 'updateFxRate'])->middleware(CheckPermission::class . ':settings.manage')->name('fx-rate');
+            Route::get('allocations', [CoinPackageController::class, 'allocations'])->middleware(CheckPermission::class . ':settings.manage')->name('allocations');
             Route::get('{coinPackage}/edit',  [CoinPackageController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('{coinPackage}',       [CoinPackageController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::post('{coinPackage}/archive', [CoinPackageController::class, 'archive'])->middleware(CheckPermission::class . ':settings.manage')->name('archive');

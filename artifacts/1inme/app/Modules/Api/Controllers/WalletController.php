@@ -78,6 +78,7 @@ class WalletController extends Controller
                     'slug'                  => $p->slug,
                     'name'                  => $p->name,
                     'description'           => $p->description,
+                    'best_for'              => $p->best_for,
                     'coin_amount'           => (int) $p->coin_amount,
                     'bonus_coins'           => (int) $p->bonus_coins,
                     'total_coins'           => $p->totalCoins(),
