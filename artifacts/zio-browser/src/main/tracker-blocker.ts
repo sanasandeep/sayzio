@@ -65,6 +65,17 @@ const _blockedCounts: Map<string, number> = new Map();
 let _mainWin: BrowserWindow | null = null;
 let _getTabId: (wcId: number) => string | null = () => null;
 const _installedSessions = new WeakSet<Session>();
+/**
+ * Optional per-site override resolver. Given the webContents id that issued a
+ * request, returns true/false to force blocking on/off for that page's site,
+ * or null to fall back to the global `_enabled` flag.
+ */
+let _siteOverrideResolver: ((wcId: number) => boolean | null) | null = null;
+
+/** Install the per-site content-blocker override resolver. */
+export function setSiteOverrideResolver(resolver: (wcId: number) => boolean | null): void {
+  _siteOverrideResolver = resolver;
+}
 
 // ── Persistent weekly tracker stats ──────────────────────────────────────────
 // Shape stored in the TRACKER_STATS preference (JSON):
@@ -194,7 +205,16 @@ export function installTrackerHooks(sess: Session): void {
   _installedSessions.add(sess);
 
   sess.webRequest.onBeforeRequest((details, callback) => {
-    if (!_enabled) {
+    let effectiveEnabled = _enabled;
+    if (_siteOverrideResolver && details.webContentsId !== undefined) {
+      try {
+        const override = _siteOverrideResolver(details.webContentsId);
+        if (override !== null) effectiveEnabled = override;
+      } catch {
+        // Per-site override is best-effort; fall back to the global flag.
+      }
+    }
+    if (!effectiveEnabled) {
       callback({ cancel: false });
       return;
     }

@@ -44,6 +44,18 @@ args = "e2e-bg-preset-live-single"
 task = "workflow.run"
 args = "e2e-biolink-editor-preview-focus"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "eas-apk-build"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "zio-browser-test"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "eas-dialer-build-kick"
+
 [[workflows.workflow]]
 name = "e2e-block-defaults"
 author = "agent"
@@ -121,6 +133,39 @@ args = "VALIDATION_PORT=5065 bash artifacts/1inme/tests/Browser/run-validation.s
 [workflows.workflow.metadata]
 isValidation = true
 
+[[workflows.workflow]]
+name = "eas-apk-build"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme-mobile && EAS_NO_VCS=1 npx -y eas-cli build --platform android --profile preview --non-interactive --no-wait 2>&1 | tee /tmp/eas-build-kick.log"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "zio-browser-test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/zio-browser run test"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "eas-dialer-build-kick"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd sayzio-dialer-standalone && EAS_NO_VCS=1 npx -y eas-cli build --platform android --profile preview --non-interactive --no-wait 2>&1 | tee /tmp/eas-dialer-kick.log"
+
+[workflows.workflow.metadata]
+isValidation = true
+
 
   [agent]
 stack = "PNPM_WORKSPACE"
@@ -141,7 +186,7 @@ AWS_DEFAULT_REGION = "ap-south-2"
 AWS_URL = "https://d3l7wvr1shk1cg.cloudfront.net"
 AWS_USE_PATH_STYLE_ENDPOINT = "true"
 USER_CONTENT_DISK = "s3"
-CONTACT_ADMIN_TOKEN = "qNApHcj3SDKCnQRrNcTyWOXdsxQMmeyhRy4Mf0"
+
 APP_NAME = "Sayzio"
 
 [[ports]]

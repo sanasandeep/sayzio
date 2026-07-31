@@ -7,6 +7,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useTabStore } from '../store/tab-store';
 import { useAuthStore } from '../store/auth-store';
 import { ShortenPopover } from './ShortenPopover';
+import { SiteSettingsPopover } from './SiteSettingsPopover';
 import { CreateLinkPopover } from './CreateLinkPopover';
 import { TabModeSwitcher } from './TabModeSwitcher';
 import { normalizeTabMode } from '../../shared/window-mode';
@@ -14,16 +15,20 @@ import { ProfileSwitcher } from './ProfileSwitcher';
 import { useChromeOverlay } from '../hooks/use-chrome-overlay';
 import { AccountButton } from './AccountButton';
 import zioIcon from '../assets/zio-icon.png';
+import zioMascot from '../assets/zio-mascot.png';
 import type { RecentlyClosedEntry } from '../../main/tab-manager';
 import { resolveFavicon } from '../../shared/favicon';
 import { FaviconImg } from './FaviconImg';
 import type { SyncQueueProfileCount } from '../../main/db';
 import { ApiClient } from '../../shared/api-client';
-import type { SiteResolveResult } from '../../shared/api-client';
 import { profileToAutofillCard } from '../../shared/form-autofill';
 import { MAX_PINNED_TOOLS } from '../../shared/toolbar-pins';
 import type { PinnableTool } from '../../shared/toolbar-pins';
 import { usePinnedTools } from '../hooks/use-pinned-tools';
+import { useSiteResolve } from '../hooks/use-site-resolve';
+import { useOmniboxUrlSync } from '../hooks/use-omnibox-url-sync';
+import { checkSayzioExists, isSayzioSuggestEligible } from '../../shared/sayzio-suggest';
+import type { SayzioExistsResult } from '../../shared/sayzio-suggest';
 
 interface Props {
   zioPanelOpen: boolean;
@@ -56,23 +61,6 @@ interface Props {
 
 const BASE_URL = 'https://sayzio.app';
 
-// Per-host cache for the "On Sayzio" site resolver (session-lifetime).
-const siteResolveCache = new Map<string, SiteResolveResult>();
-
-/** Extract a lookup-worthy hostname from a tab URL, or null to skip. */
-function hostForSiteResolve(url: string | undefined | null): string | null {
-  if (!url || !/^https?:\/\//i.test(url)) return null;
-  try {
-    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, '');
-    if (!host.includes('.')) return null;
-    // Sayzio's own hosts don't need a lookup.
-    if (host === 'sayzio.app' || host.endsWith('.sayzio.app')) return null;
-    return host;
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Context-menu "Fill form with my Sayzio card": fetch the signed-in profile
  * and run the autofill script on the target tab. Fire-and-forget — result
@@ -95,7 +83,25 @@ async function runContextAutofill(tabId: string, token: string | null): Promise<
 interface OmniSuggestion {
   url: string;
   title: string;
-  kind: 'history' | 'bookmark' | 'search';
+  kind: 'history' | 'bookmark' | 'search' | 'sayzio-link' | 'sayzio-profile';
+  /** Secondary description text (used by Sayzio jump rows). */
+  subtitle?: string;
+}
+
+// Session cache of Sayzio existence lookups (keyed by lowercased query) so
+// backspacing/retyping the same handle doesn't re-hit the API.
+const sayzioExistsCache = new Map<string, SayzioExistsResult>();
+
+/**
+ * Live-check Sayzio for an exact link alias and creator handle match.
+ * Pure logic lives in shared/sayzio-suggest (tested); this wrapper binds the
+ * session cache and a token-authed ApiClient. Requires a signed-in token
+ * because the alias check is an authed endpoint (and the privacy gate only
+ * allows remote lookups for signed-in users anyway).
+ */
+function checkSayzioExistsWithToken(q: string, token: string): Promise<SayzioExistsResult> {
+  const client = new ApiClient({ baseUrl: BASE_URL, token });
+  return checkSayzioExists(q, client, sayzioExistsCache);
 }
 
 interface HistoryRow { url: string; title: string | null }
@@ -409,6 +415,7 @@ export function ChromeBar({
   const activeTab = activeTabId ? tabs[activeTabId] : null;
   const [omniboxValue, setOmniboxValue] = useState('');
   const [omniboxFocused, setOmniboxFocused] = useState(false);
+  const [omniboxEdited, setOmniboxEdited] = useState(false);
   const [shortenOpen, setShortenOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   // Context-menu link tools: override target URL/title and preselected type.
@@ -418,8 +425,10 @@ export function ChromeBar({
   // native WebContentsViews sit ABOVE the renderer DOM and would occlude them.
   // Hold the chrome overlay (detaches native views) while either is open.
   const [overflowOpen, setOverflowOpen] = useState(false);
+  // Safari-style "Settings for this website" popover (per-site settings).
+  const [sitePopoverOpen, setSitePopoverOpen] = useState(false);
   const overflowBtnRef = useRef<HTMLButtonElement>(null);
-  useChromeOverlay(shortenOpen || createOpen || overflowOpen);
+  useChromeOverlay(shortenOpen || createOpen || overflowOpen || sitePopoverOpen);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [pendingSyncByProfile, setPendingSyncByProfile] = useState<SyncQueueProfileCount[]>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -519,15 +528,37 @@ export function ChromeBar({
       setSuggestions([]); setSuggestionIndex(-1);
       return;
     }
+    // Sayzio jump rows: handle-like query only, and mirror the site-resolve
+    // privacy gate — never in private windows, only when signed in.
+    const sayzioEligible = isSayzioSuggestEligible(q, { isPrivate: !!isPrivate, token });
     const timer = setTimeout(() => {
       void Promise.all([
         window.zio.history.search(q).catch(() => []),
         window.zio.bookmarks.search(q).catch(() => []),
-      ]).then(([hist, bms]) => {
+        sayzioEligible && token
+          ? checkSayzioExistsWithToken(q, token).catch(() => ({ link: false, profile: false }))
+          : Promise.resolve({ link: false, profile: false }),
+      ]).then(([hist, bms, sayzio]) => {
         // Ignore stale responses
         if (suggestQueryRef.current !== q) return;
         const seen = new Set<string>();
         const merged: OmniSuggestion[] = [];
+        if (sayzio.link) {
+          merged.push({
+            url: `https://sayzio.app/${q}`,
+            title: `sayzio.app/${q}`,
+            subtitle: 'Open link on Sayzio',
+            kind: 'sayzio-link',
+          });
+        }
+        if (sayzio.profile) {
+          merged.push({
+            url: `https://sayzio.app/@${q}`,
+            title: `sayzio.app/@${q}`,
+            subtitle: 'Creator profile',
+            kind: 'sayzio-profile',
+          });
+        }
         for (const b of (bms as BookmarkRow[])) {
           if (!b?.url || seen.has(b.url)) continue;
           seen.add(b.url);
@@ -547,19 +578,40 @@ export function ChromeBar({
       });
     }, 120);
     return () => clearTimeout(timer);
-  }, [omniboxValue, omniboxFocused, activeTab?.url]);
+  }, [omniboxValue, omniboxFocused, activeTab?.url, isPrivate, token]);
 
   const acceptSuggestion = useCallback((s: OmniSuggestion) => {
     if (!activeTabId) return;
     void navigate(activeTabId, s.url);
     setSuggestions([]);
     setSuggestionIndex(-1);
+    setOmniboxEdited(false);
+    discardedTypedTextRef.current = null;
     omniboxRef.current?.blur();
   }, [activeTabId, navigate]);
 
   const handleOmniboxKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Ctrl/Cmd+Z restores typed text that an automatic navigation discarded,
+    // but only when there are no fresh uncommitted edits (native undo applies then).
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'z'
+        && !omniboxEdited && discardedTypedTextRef.current !== null) {
+      e.preventDefault();
+      setOmniboxValue(discardedTypedTextRef.current);
+      setOmniboxEdited(true);
+      discardedTypedTextRef.current = null;
+      return;
+    }
     if (!suggestionsOpen) {
-      if (e.key === 'Escape') omniboxRef.current?.blur();
+      if (e.key === 'Escape') {
+        // Like Chrome, Escape-cleared text goes into the Ctrl/Cmd+Z recovery
+        // stash so the reset doesn't strand recoverable text.
+        if (omniboxEdited && omniboxValue.trim() !== '') {
+          discardedTypedTextRef.current = omniboxValue;
+        }
+        setOmniboxEdited(false);
+        setOmniboxValue(activeTab?.url ?? '');
+        omniboxRef.current?.blur();
+      }
       return;
     }
     if (e.key === 'ArrowDown') {
@@ -578,7 +630,7 @@ export function ChromeBar({
       setSuggestions([]);
       setSuggestionIndex(-1);
     }
-  }, [suggestionsOpen, suggestions, suggestionIndex, acceptSuggestion]);
+  }, [suggestionsOpen, suggestions, suggestionIndex, acceptSuggestion, activeTab?.url, omniboxEdited, omniboxValue]);
 
   // Track reading list state for the active page
   useEffect(() => {
@@ -689,12 +741,22 @@ export function ChromeBar({
     void window.zio.tracker.getCount(activeTabId).then((n: number) => setBlockedCount(n)).catch(() => setBlockedCount(0));
   }, [activeTabId]);
 
-  // Sync omnibox with active tab URL
-  useEffect(() => {
-    if (!omniboxFocused) {
-      setOmniboxValue(activeTab?.url ?? '');
-    }
-  }, [activeTab?.url, omniboxFocused]);
+  // Sync omnibox with active tab URL (unless the user has uncommitted edits);
+  // discard-on-navigation + tab-switch reset live in the shared hook so the
+  // behavior is unit-testable (tests/omnibox-url-sync.test.tsx). The hook also
+  // stashes text discarded by an automatic navigation so the user can recover
+  // it with Ctrl/Cmd+Z in the omnibox (like Chrome); the buffer is kept per
+  // tab across tab switches (returning to a tab restores its stash) and
+  // clears whenever the user commits a navigation themselves.
+  const { discardedTypedTextRef } = useOmniboxUrlSync({
+    activeTabId,
+    activeTabUrl: activeTab?.url ?? '',
+    omniboxFocused,
+    omniboxEdited,
+    omniboxValue,
+    setOmniboxValue,
+    setOmniboxEdited,
+  });
 
   // Close popovers when the active tab changes
   useEffect(() => {
@@ -740,28 +802,13 @@ export function ChromeBar({
   const canShorten = !!(activeTab?.url && activeTab.url !== 'about:newtab' && activeTab.url !== '');
 
   // "On Sayzio" site detection — debounced, per-host cached public lookup.
-  const [siteResolve, setSiteResolve] = useState<SiteResolveResult | null>(null);
-  useEffect(() => {
-    // Privacy: never in private windows, and only for signed-in users
-    // (who already have a first-party relationship with Sayzio).
-    if (isPrivate || !token) { setSiteResolve(null); return; }
-    const host = hostForSiteResolve(activeTab?.url);
-    if (!host) { setSiteResolve(null); return; }
-    const cached = siteResolveCache.get(host);
-    if (cached) { setSiteResolve(cached); return; }
-    setSiteResolve(null);
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      const client = new ApiClient({ baseUrl: BASE_URL });
-      client.resolveSite(host)
-        .then((res) => {
-          siteResolveCache.set(host, res);
-          if (!cancelled) setSiteResolve(res);
-        })
-        .catch(() => { /* Silent — indicator only. */ });
-    }, 800);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [activeTab?.url]);
+  // The hook clears the badge the moment the window flips private or the
+  // user signs out, and cancels any pending debounced lookup.
+  const siteResolve = useSiteResolve({
+    url: activeTab?.url,
+    isPrivate: !!isPrivate,
+    token,
+  });
 
   // Listen for custom events dispatched by the command palette
   useEffect(() => {
@@ -784,6 +831,8 @@ export function ChromeBar({
     e.preventDefault();
     if (!activeTabId || !omniboxValue.trim()) return;
     void navigate(activeTabId, omniboxValue.trim());
+    setOmniboxEdited(false);
+    discardedTypedTextRef.current = null;
     omniboxRef.current?.blur();
   }, [activeTabId, navigate, omniboxValue]);
 
@@ -1160,8 +1209,8 @@ export function ChromeBar({
         <form onSubmit={handleOmniboxSubmit} style={{ flex: 1, position: 'relative' }}>
           <input
             ref={omniboxRef}
-            value={omniboxFocused ? omniboxValue : (activeTab?.url ?? '')}
-            onChange={e => setOmniboxValue(e.target.value)}
+            value={omniboxFocused || omniboxEdited ? omniboxValue : (activeTab?.url ?? '')}
+            onChange={e => { setOmniboxValue(e.target.value); setOmniboxEdited(true); }}
             onFocus={(e) => { setOmniboxFocused(true); setOmniboxValue(e.target.value); e.target.select(); }}
             onBlur={() => setOmniboxFocused(false)}
             onKeyDown={handleOmniboxKeyDown}
@@ -1211,9 +1260,26 @@ export function ChromeBar({
                     transition: 'background 0.08s',
                   }}
                 >
-                  <span style={{ fontSize: 12, flexShrink: 0, opacity: 0.8 }}>
-                    {s.kind === 'bookmark' ? '★' : s.kind === 'history' ? '🕘' : '🔍'}
-                  </span>
+                  {(s.kind === 'sayzio-link' || s.kind === 'sayzio-profile') ? (
+                    <span style={{
+                      fontSize: 9,
+                      fontWeight: 800,
+                      flexShrink: 0,
+                      width: 16,
+                      height: 16,
+                      borderRadius: 5,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'var(--gradient-primary, var(--color-primary))',
+                      color: '#fff',
+                      lineHeight: 1,
+                    }}>S</span>
+                  ) : (
+                    <span style={{ fontSize: 12, flexShrink: 0, opacity: 0.8 }}>
+                      {s.kind === 'bookmark' ? '★' : s.kind === 'history' ? '🕘' : '🔍'}
+                    </span>
+                  )}
                   <span style={{
                     fontSize: 12,
                     color: 'var(--color-text)',
@@ -1223,7 +1289,15 @@ export function ChromeBar({
                     flexShrink: 0,
                     maxWidth: '45%',
                   }}>{s.title}</span>
-                  {s.kind !== 'search' && (
+                  {s.subtitle ? (
+                    <span style={{
+                      fontSize: 11,
+                      color: 'var(--color-text-muted)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>{s.subtitle}</span>
+                  ) : s.kind !== 'search' && (
                     <span style={{
                       fontSize: 11,
                       color: 'var(--color-text-muted)',
@@ -1296,6 +1370,44 @@ export function ChromeBar({
             Sync pending
           </div>
         )}
+
+        {/* "Settings for this website" popover button (per-site settings). */}
+        {!isPrivate && (() => {
+          let siteOrigin: string | null = null;
+          try {
+            const u = new URL(activeTab?.url ?? '');
+            if (u.origin.startsWith('http')) siteOrigin = u.origin;
+          } catch { /* not a web page */ }
+          if (!siteOrigin) return null;
+          return (
+            <>
+              <button
+                onClick={() => setSitePopoverOpen(o => !o)}
+                title="Settings for this website"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  background: sitePopoverOpen ? 'var(--color-primary-transparent, rgba(70,110,255,0.15))' : 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-border)',
+                  fontSize: 14,
+                  flexShrink: 0,
+                }}
+              >
+                ⚙️
+              </button>
+              {sitePopoverOpen && (
+                <SiteSettingsPopover
+                  origin={siteOrigin}
+                  onClose={() => setSitePopoverOpen(false)}
+                />
+              )}
+            </>
+          );
+        })()}
 
         {/* Shield / site settings button with tracker badge */}
         <button
@@ -1416,7 +1528,7 @@ export function ChromeBar({
               transition: 'all 0.15s',
             }}
             title="Open Zio AI Panel"
-          >⚡ Zio</button>
+          ><img src={zioMascot} alt="" aria-hidden="true" style={{ width: 16, height: 16, objectFit: 'contain', verticalAlign: 'text-bottom', marginRight: 4 }} />Zio</button>
         ) : (
           <div
             title="Zio AI is not available in private windows"
@@ -1432,7 +1544,7 @@ export function ChromeBar({
               cursor: 'default',
               userSelect: 'none',
             }}
-          >⚡ Zio</div>
+          ><img src={zioMascot} alt="" aria-hidden="true" style={{ width: 16, height: 16, objectFit: 'contain', verticalAlign: 'text-bottom', marginRight: 4, opacity: 0.5 }} />Zio</div>
         )}
 
         {/* Per-tab view mode switcher — not available in private windows */}

@@ -52,7 +52,10 @@ class FakeWebContents extends MiniEmitter {
   setZoomFactor(z: number): void { this.zoom = z; }
   focus(): void {}
   stopFindInPage(): void {}
-  setWindowOpenHandler(): void {}
+  windowOpenHandler: ((details: { url: string }) => { action: string }) | null = null;
+  setWindowOpenHandler(handler: (details: { url: string }) => { action: string }): void {
+    this.windowOpenHandler = handler;
+  }
   get id(): number { return 1; }
 }
 
@@ -482,5 +485,47 @@ describe('Renderer-drawn internal pages (about:sayzio / about:zio)', () => {
     const recent = tm.getRecentlyClosed();
     expect(recent[0]?.url).toBe('about:sayzio');
     expect(recent[0]?.title).toBe('About Sayzio');
+  });
+});
+
+describe('TabManager per-site pop-up policy', () => {
+  function makeWithPolicy(popups: string | null) {
+    const { tm } = makeManager();
+    const blocked: Array<{ pageUrl: string; popupUrl: string }> = [];
+    tm.setCallbacks({
+      resolveSiteSettings: () => ({ zoom: null, autoplay: null, popups }),
+      onPopupBlocked: (pageUrl: string, popupUrl: string) => blocked.push({ pageUrl, popupUrl }),
+    } as Parameters<TabManager['setCallbacks']>[0]);
+    const id = tm.createTab('https://site.test');
+    setPage(tm, id, 'https://site.test/');
+    const wc = tm.getWebContents(id) as unknown as FakeWebContents;
+    return { tm, wc, blocked };
+  }
+
+  it("null policy (default) allows: pop-up opens as a new tab", () => {
+    const { tm, wc, blocked } = makeWithPolicy(null);
+    const before = tm.getTabOrder().length;
+    const res = wc.windowOpenHandler!({ url: 'https://popup.test' });
+    expect(res.action).toBe('deny'); // opened as a managed tab instead
+    expect(tm.getTabOrder().length).toBe(before + 1);
+    expect(blocked).toHaveLength(0);
+  });
+
+  it("'block' denies silently", () => {
+    const { tm, wc, blocked } = makeWithPolicy('block');
+    const before = tm.getTabOrder().length;
+    const res = wc.windowOpenHandler!({ url: 'https://popup.test' });
+    expect(res.action).toBe('deny');
+    expect(tm.getTabOrder().length).toBe(before);
+    expect(blocked).toHaveLength(0);
+  });
+
+  it("'block-notify' denies and notifies", () => {
+    const { tm, wc, blocked } = makeWithPolicy('block-notify');
+    const before = tm.getTabOrder().length;
+    const res = wc.windowOpenHandler!({ url: 'https://popup.test' });
+    expect(res.action).toBe('deny');
+    expect(tm.getTabOrder().length).toBe(before);
+    expect(blocked).toEqual([{ pageUrl: 'https://site.test/', popupUrl: 'https://popup.test' }]);
   });
 });

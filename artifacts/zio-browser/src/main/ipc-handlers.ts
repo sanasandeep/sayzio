@@ -85,9 +85,13 @@ import {
   setDomainMuted,
   getMuteAllTabs,
   setMuteAllTabs,
+  getSiteSettings,
+  setSiteSettings,
+  type SiteSettingsPatch,
 } from './db';
+import { invalidateSiteSettingsCache } from './site-settings';
 import { getActiveItem } from './download-manager';
-import { resolvePermissionRequest } from './permission-handler';
+import { resolvePermissionRequest, setupPermissionHandlers } from './permission-handler';
 import {
   setTrackerBlockingEnabled,
   isTrackerBlockingEnabled,
@@ -369,6 +373,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     if (senderIsPrivate(event)) return false;
     // setTabMode normalizes any raw/legacy mode string itself.
     resolveTabManager(event)?.setTabMode(id, mode);
+    return true;
+  });
+  ipcMain.handle('tabs:set-split-ratio', (event, id: string, ratio: number) => {
+    resolveTabManager(event)?.setTabSplitRatio(id, ratio);
     return true;
   });
   ipcMain.handle('tabs:get-state', (event, id: string) => resolveTabManager(event)?.getTabState(id) ?? null);
@@ -1197,6 +1205,12 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       const sess = session.fromPartition(sessionPartitionForProfile(profileId));
       installPrivacyHooks(sess);
       installTrackerHooks(sess);
+      // Permission gating (camera/mic/screen-sharing/location + display-media)
+      // must also cover the newly activated partition session.
+      if (win) {
+        const tm = resolveTabManager(event);
+        setupPermissionHandlers(sess, win, (wc) => tm?.getTabIdByWebContentsId(wc.id) !== null && tm?.getTabIdByWebContentsId(wc.id) !== undefined);
+      }
     } catch { /* best-effort */ }
     // Make sure the newly active profile's cookie jar carries a Sayzio web
     // session (no-op if already seeded or no token is stored). Never from a
@@ -1225,13 +1239,19 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('profiles:warm-session', (event, profileId: string) => {
     const partition = sessionPartitionForProfile(profileId);
     // Accessing the session via fromPartition creates + registers it.
-    const { session: electronSession } = require('electron') as typeof import('electron');
-    const sess = electronSession.fromPartition(partition);
+    const sess = session.fromPartition(partition);
     // Cover the pre-warmed session with privacy + tracker hooks so protections
     // apply from the very first request (idempotent per session).
     try {
       installPrivacyHooks(sess);
       installTrackerHooks(sess);
+      // Permission gating must cover the pre-warmed session too, so the first
+      // tab opened in this profile gets camera/mic/screen-sharing enforcement.
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (win) {
+        const tm = resolveTabManager(event);
+        setupPermissionHandlers(sess, win, (wc) => tm?.getTabIdByWebContentsId(wc.id) !== null && tm?.getTabIdByWebContentsId(wc.id) !== undefined);
+      }
     } catch { /* best-effort */ }
     // Seed a Sayzio web session into the pre-warmed cookie jar — never from
     // a private window (would mutate a persistent partition).
@@ -1350,6 +1370,49 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('permissions:respond', (_, requestId: string, decision: 'allow' | 'block', remember: boolean, origin: string, permission: string) => {
     resolvePermissionRequest(requestId, decision, remember, origin, permission);
     return true;
+  });
+
+  // ── Per-site settings ("Settings for this website" popover) ──────────────
+  ipcMain.handle('site-settings:get', (event, origin: string) => {
+    if (senderIsPrivate(event)) return null;
+    if (typeof origin !== 'string' || !origin.startsWith('http')) return null;
+    try {
+      return getSiteSettings(origin);
+    } catch {
+      return null;
+    }
+  });
+  ipcMain.handle('site-settings:set', (event, origin: string, patch: SiteSettingsPatch) => {
+    if (senderIsPrivate(event)) return false;
+    if (typeof origin !== 'string' || !origin.startsWith('http')) return false;
+    if (!patch || typeof patch !== 'object') return false;
+    const clean: SiteSettingsPatch = {};
+    if ('zoom' in patch) {
+      const z = patch.zoom;
+      clean.zoom = z === null ? null : (typeof z === 'number' && z >= 0.5 && z <= 3.0 ? z : undefined);
+      if (clean.zoom === undefined) delete clean.zoom;
+    }
+    if ('autoplay' in patch) {
+      const a = patch.autoplay;
+      if (a === null || a === 'allow' || a === 'stop-with-sound' || a === 'never') clean.autoplay = a === 'allow' ? null : a;
+    }
+    if ('popups' in patch) {
+      const p = patch.popups;
+      if (p === null || p === 'allow' || p === 'block' || p === 'block-notify') clean.popups = p === 'allow' ? null : p;
+    }
+    if ('contentBlockers' in patch) {
+      const c = patch.contentBlockers;
+      if (c === null || typeof c === 'boolean') clean.contentBlockers = c;
+    }
+    try {
+      setSiteSettings(origin, clean);
+      invalidateSiteSettingsCache(origin);
+      // Live-apply zoom + auto-play to any open tabs on this origin.
+      resolveTabManager(event)?.applySiteSettingsToOrigin(origin);
+      return true;
+    } catch {
+      return false;
+    }
   });
 
   // ── Named sessions (save / restore sets of tabs) ─────────────────────────

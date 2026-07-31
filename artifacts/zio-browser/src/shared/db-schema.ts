@@ -6,7 +6,7 @@
  * importing better-sqlite3 (which requires native bindings).
  */
 
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 export const CREATE_TABLES_SQL = `
 PRAGMA journal_mode = WAL;
@@ -195,6 +195,15 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS site_settings (
+  origin           TEXT PRIMARY KEY NOT NULL,
+  zoom             REAL,
+  autoplay         TEXT,
+  popups           TEXT,
+  content_blockers INTEGER,
+  updated_at       TEXT NOT NULL
+);
 `;
 
 /**
@@ -240,7 +249,24 @@ export const MIGRATION_SQL: Record<number, string> = {
       updated_at TEXT NOT NULL
     );
   `,
+  10: `
+    CREATE TABLE IF NOT EXISTS site_settings (
+      origin           TEXT PRIMARY KEY NOT NULL,
+      zoom             REAL,
+      autoplay         TEXT,
+      popups           TEXT,
+      content_blockers INTEGER,
+      updated_at       TEXT NOT NULL
+    );
+  `,
 };
+
+// ── Per-site settings (Safari-style "Settings for this website") ────────────
+
+/** Auto-play policy values stored in site_settings.autoplay. */
+export type SiteAutoplayPolicy = 'allow' | 'stop-with-sound' | 'never';
+/** Pop-up window policy values stored in site_settings.popups. */
+export type SitePopupPolicy = 'block-notify' | 'block' | 'allow';
 
 /**
  * Locally cached Sayzio link (row shape of the `sayzio_links` table).

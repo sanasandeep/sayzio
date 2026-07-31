@@ -261,6 +261,25 @@ class LinkController extends Controller
             }
         }
 
+        // File links need a companion FileLink row for the public download
+        // route (RedirectController::handleFileDownload 404s without one).
+        // The desktop browser flow uploads to the Sayzio Files vault first
+        // (POST /me/files/upload) then passes the vault file id under
+        // settings.file.id. Resolve + ownership-check the vault file BEFORE
+        // creating the link so a bad reference never leaves a dangling,
+        // unservable file link (Task #6247).
+        $fileForLink = null;
+        if ($data['type'] === 'file') {
+            $request->validate([
+                'settings.file.id' => ['required', 'integer'],
+            ]);
+            $fileForLink = $request->user()->files()
+                ->find((int) $request->input('settings.file.id'));
+            if (!$fileForLink) {
+                return $this->fail('That file was not found in your Sayzio Files.', 422, 'file_not_found');
+            }
+        }
+
         $alias = $data['alias'] ?? Str::lower(Str::random(7));
         while (Link::where('alias', $alias)->exists()) {
             $alias = Str::lower(Str::random(7));
@@ -394,6 +413,24 @@ class LinkController extends Controller
                 $link->visibility = 'public';
             }
             $link->save();
+        }
+
+        // Companion FileLink row for file links so the public short URL
+        // actually serves the vault file (mirrors the web
+        // FileLinkController::store and WhatsAppAgentTools::createFileLink).
+        if ($fileForLink !== null) {
+            \App\Modules\User\Models\FileLink::create([
+                'link_id'       => $link->id,
+                'original_name' => $fileForLink->original_name,
+                'stored_path'   => $fileForLink->path,
+                'mime_type'     => $fileForLink->mime_type,
+                'file_size'     => $fileForLink->size_bytes,
+                'disk'          => $fileForLink->disk,
+            ]);
+            if (!$link->title) {
+                $link->title = $fileForLink->original_name;
+                $link->save();
+            }
         }
 
         return $this->created(['link' => LinkResource::toArray($link)]);

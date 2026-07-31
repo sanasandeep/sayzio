@@ -28,6 +28,7 @@ import { useFindStore } from '../store/find-store';
 import { useDownloadStore } from '../store/download-store';
 import type { WindowMode } from '../../shared/window-mode';
 import { SPLIT_DIVIDER_WIDTH, MIN_SPLIT_RATIO, MAX_SPLIT_RATIO } from '../../shared/window-mode';
+import zioMascot from '../assets/zio-mascot.png';
 
 const DASHBOARD_HEADER_HEIGHT = 44;
 
@@ -140,7 +141,9 @@ export function SplitLayout({
                   transition: 'all 0.12s',
                 }}
               >
-                {tab === 'dashboard' ? '⊡ Dashboard' : '⚡ Zio'}
+                {tab === 'dashboard' ? '⊡ Dashboard' : (
+                  <><img src={zioMascot} alt="" aria-hidden="true" style={{ width: 14, height: 14, objectFit: 'contain', verticalAlign: 'text-bottom', marginRight: 4 }} />Zio</>
+                )}
               </button>
             ))}
           </div>

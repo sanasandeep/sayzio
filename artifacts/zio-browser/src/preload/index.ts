@@ -51,6 +51,7 @@ const api = {
     findStop: (id: string) => ipcRenderer.invoke('tabs:find-stop', id),
     mute: (id: string, muted: boolean) => ipcRenderer.invoke('tabs:mute', id, muted),
     setMode: (id: string, mode: string) => ipcRenderer.invoke('tabs:set-mode', id, mode),
+    setSplitRatio: (id: string, ratio: number) => ipcRenderer.invoke('tabs:set-split-ratio', id, ratio),
     getState: (id: string) => ipcRenderer.invoke('tabs:get-state', id),
     getOrder: () => ipcRenderer.invoke('tabs:get-order'),
     getActive: () => ipcRenderer.invoke('tabs:get-active'),
@@ -324,6 +325,27 @@ const api = {
     clearAll: () => ipcRenderer.invoke('permissions:clear-all'),
     respond: (requestId: string, decision: 'allow' | 'block', remember: boolean, origin: string, permission: string) =>
       ipcRenderer.invoke('permissions:respond', requestId, decision, remember, origin, permission),
+  },
+
+  // ── Per-site settings ("Settings for this website" popover) ──────────────
+  siteSettings: {
+    /** Stored settings row for an origin, or null (always null in private windows). */
+    get: (origin: string) =>
+      ipcRenderer.invoke('site-settings:get', origin) as Promise<{
+        origin: string;
+        zoom: number | null;
+        autoplay: string | null;
+        popups: string | null;
+        content_blockers: number | null;
+        updated_at: string;
+      } | null>,
+    /** Merge-patch settings for an origin; null values revert to the default. */
+    set: (origin: string, patch: {
+      zoom?: number | null;
+      autoplay?: string | null;
+      popups?: string | null;
+      contentBlockers?: boolean | null;
+    }) => ipcRenderer.invoke('site-settings:set', origin, patch) as Promise<boolean>,
   },
 
   // ── Named sessions (save / restore sets of tabs) ─────────────────────────

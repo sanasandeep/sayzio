@@ -38,6 +38,14 @@ export interface SiteResolveResult {
   owner?: { name: string | null; handle: string | null; avatar: string | null } | null;
 }
 
+/** Minimal public creator-profile payload from GET /creator-profile/{handle}/mini. */
+export interface CreatorProfileMini {
+  handle: string;
+  name: string | null;
+  avatar: string | null;
+  profile_published: boolean;
+}
+
 export interface ApiUserProfile extends ApiUser {
   phone: string | null;
   given_name?: string | null;
@@ -264,6 +272,15 @@ export class ApiClient {
   /** Public "is this site on Sayzio?" resolver — no auth required. */
   async resolveSite(host: string): Promise<SiteResolveResult> {
     return this.get(`/resolve/site?host=${encodeURIComponent(host)}`);
+  }
+
+  /**
+   * Public mini creator-profile lookup (throws ApiClientError 404 when the
+   * handle doesn't exist or the profile is unpublished). Used by the omnibox
+   * "jump to Sayzio" suggestions.
+   */
+  async creatorProfileMini(handle: string): Promise<CreatorProfileMini> {
+    return this.get(`/creator-profile/${encodeURIComponent(handle)}/mini`);
   }
 
   async createContact(data: ContactPayload): Promise<{ contact: ApiContact }> {
@@ -560,7 +577,7 @@ export class ApiClient {
    * Throws ApiClientError('quota_exceeded') when the storage limit is hit.
    */
   async uploadFile(blob: Blob, filename: string): Promise<ApiFile> {
-    const url = `${this.baseUrl}/api/v1/files`;
+    const url = `${this.baseUrl}/api/v1/me/files/upload`;
     const headers: Record<string, string> = {
       'Accept': 'application/json',
       'User-Agent': this.userAgent,

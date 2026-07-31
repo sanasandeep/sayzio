@@ -2,9 +2,10 @@
  * Zio Browser — Electron main process entry point.
  */
 import path from 'path';
-import { app, BrowserWindow, Menu, session, nativeTheme, dialog } from 'electron';
+import { app, BrowserWindow, Menu, session, nativeTheme, dialog, webContents } from 'electron';
 import type { BaseWindow } from 'electron';
-import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, setDomainMuted, pruneHistoryOlderThan } from './db';
+import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, setDomainMuted, pruneHistoryOlderThan, setSiteSettings } from './db';
+import { resolveSiteSettingsForUrl, contentBlockerOverrideForOrigin, invalidateSiteSettingsCache } from './site-settings';
 import { PREFERENCE_KEYS, type PreferenceKey } from '../shared/db-schema';
 import { hostForMutePolicy } from '../shared/mute-policy';
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
@@ -23,7 +24,7 @@ import {
 import { setupDownloadManager } from './download-manager';
 import { getPrivateSession, registerPrivateWindow } from './private-session';
 import { setupPermissionHandlers } from './permission-handler';
-import { setupTrackerBlocking, resetBlockedCount, installTrackerHooks } from './tracker-blocker';
+import { setupTrackerBlocking, resetBlockedCount, installTrackerHooks, setSiteOverrideResolver } from './tracker-blocker';
 import { setupPrivacyControls, installPrivacyHooks } from './privacy';
 import type { WindowMode } from '../shared/window-mode';
 import { ZIO_PANEL_DIVIDER_WIDTH } from '../shared/window-mode';
@@ -257,6 +258,24 @@ export function createWindow(): BrowserWindow {
       (safeGetPreference(PREFERENCE_KEYS.SPELLCHECK_ENABLED) ?? '1') === '1',
     resolveTranslateLang: () =>
       safeGetPreference(PREFERENCE_KEYS.TRANSLATE_TARGET_LANG) ?? 'en',
+    // Per-site "Settings for this website" (zoom / auto-play / pop-ups).
+    resolveSiteSettings: (url) => resolveSiteSettingsForUrl(url),
+    // Persist user-driven zoom changes per site (100% clears the override).
+    onZoomPersist: (url, factor) => {
+      try {
+        const origin = new URL(url).origin;
+        if (!origin.startsWith('http')) return;
+        setSiteSettings(origin, { zoom: Math.abs(factor - 1) < 0.001 ? null : factor });
+        invalidateSiteSettingsCache(origin);
+      } catch {
+        // DB unavailable — skip persistence rather than crash.
+      }
+    },
+    onPopupBlocked: (pageUrl) => {
+      let host = pageUrl;
+      try { host = new URL(pageUrl).hostname; } catch { /* keep raw */ }
+      sendToWin('toast:show', `Pop-up blocked on ${host}`);
+    },
   });
 
   const savedMode  = (safeGetPreference(PREFERENCE_KEYS.WINDOW_MODE) as WindowMode | null) ?? 'browser';
@@ -299,6 +318,23 @@ export function createWindow(): BrowserWindow {
     (wcId) => tabManager?.getTabIdByWebContentsId(wcId) ?? null,
   );
 
+  // Per-site content-blocker override ("Settings for this website"). Private
+  // windows run in non-persistent sessions and never read per-site settings.
+  setSiteOverrideResolver((wcId) => {
+    try {
+      const wc = webContents.fromId(wcId);
+      if (!wc || wc.isDestroyed()) return null;
+      if (!wc.session.isPersistent()) return null;
+      const url = wc.getURL();
+      if (!url) return null;
+      const origin = new URL(url).origin;
+      if (!origin.startsWith('http')) return null;
+      return contentBlockerOverrideForOrigin(origin);
+    } catch {
+      return null;
+    }
+  });
+
   // Setup privacy controls (Do Not Track header, third-party cookie blocking)
   setupPrivacyControls(
     session.defaultSession,
@@ -312,6 +348,13 @@ export function createWindow(): BrowserWindow {
     const profileSession = session.fromPartition(sessionPartitionForProfile(savedProfileId));
     installTrackerHooks(profileSession);
     installPrivacyHooks(profileSession);
+    // Tabs live in this profile partition, so permission gating (including the
+    // display-media / screen-sharing handler) must be installed here too.
+    setupPermissionHandlers(
+      profileSession,
+      win,
+      (wc) => tabManager?.getTabIdByWebContentsId(wc.id) !== null,
+    );
   }
 
   win.once('ready-to-show', () => {
