@@ -1,9 +1,11 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import * as ImagePicker from "expo-image-picker";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -14,13 +16,20 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { ColorSwatchRow } from "@/components/ColorSwatchRow";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import { createBlock } from "@/lib/api/blocks";
 import {
+  listVaultFiles,
+  uploadVaultFile,
+  type VaultFile,
+} from "@/lib/api/files";
+import {
   getSlideDeck,
   saveSlideDeck,
   type DeckSlide,
+  type SlideDeckBackground,
   type SlideDeckEditor,
 } from "@/lib/api/slides";
 
@@ -60,6 +69,8 @@ export default function SlidesEditorScreen() {
     { slide: number; kind: "attach" | "create" } | null
   >(null);
   const [creatingType, setCreatingType] = useState<string | null>(null);
+  // Which slide's background is open in the visual background editor.
+  const [bgEditorFor, setBgEditorFor] = useState<number | null>(null);
 
   // Hydrate local editor state from the server only when explicitly allowed
   // (initial load and right after a successful save). Background refetches
@@ -392,9 +403,32 @@ export default function SlidesEditorScreen() {
                 <Text style={[styles.subTitle, { color: colors.foreground }]}>
                   Background
                 </Text>
-                <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-                  {bgSummary(s.background)}
-                </Text>
+                <Pressable
+                  testID={`slide-${i}-bg-open`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Edit background for slide ${i + 1}`}
+                  onPress={() => setBgEditorFor(i)}
+                  style={[
+                    styles.bgRow,
+                    { borderColor: colors.border, borderRadius: colors.radius },
+                  ]}
+                >
+                  <BgPreviewSwatch background={s.background} />
+                  <Text
+                    style={[
+                      styles.hint,
+                      { color: colors.foreground, flex: 1 },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {bgSummary(s.background)}
+                  </Text>
+                  <Feather
+                    name="edit-2"
+                    size={14}
+                    color={colors.mutedForeground}
+                  />
+                </Pressable>
                 <View style={styles.row2}>
                   {i > 0 ? (
                     <Pressable
@@ -636,7 +670,379 @@ export default function SlidesEditorScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <BackgroundEditorModal
+        visible={bgEditorFor != null}
+        slideNumber={(bgEditorFor ?? 0) + 1}
+        background={
+          (bgEditorFor != null ? slides[bgEditorFor]?.background : null) ?? {}
+        }
+        onClose={() => setBgEditorFor(null)}
+        onChange={(bg) => {
+          if (bgEditorFor == null) return;
+          updateSlideAt(bgEditorFor, (s) => ({ ...s, background: bg }));
+        }}
+      />
     </View>
+  );
+}
+
+/** Small visual preview of a slide background (color / gradient / image). */
+function BgPreviewSwatch({ background }: { background: SlideDeckBackground }) {
+  const colors = useColors();
+  const t = background?.type ?? "color";
+  if (t === "image" && background?.image_url) {
+    return (
+      <Image
+        source={{ uri: String(background.image_url) }}
+        style={[styles.bgSwatch, { borderColor: colors.border }]}
+      />
+    );
+  }
+  if (t === "gradient") {
+    return (
+      <View style={[styles.bgSwatch, { borderColor: colors.border }]}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: background?.from_color ?? "#0f172a",
+          }}
+        />
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: background?.to_color ?? "#3d6bff",
+          }}
+        />
+      </View>
+    );
+  }
+  return (
+    <View
+      style={[
+        styles.bgSwatch,
+        {
+          borderColor: colors.border,
+          backgroundColor:
+            t === "color" ? (background?.color ?? "#0f172a") : colors.muted,
+        },
+      ]}
+    />
+  );
+}
+
+const EDITABLE_BG_TYPES = [
+  { type: "color", label: "Color" },
+  { type: "gradient", label: "Gradient" },
+  { type: "image", label: "Image" },
+] as const;
+
+/**
+ * Visual per-slide background editor: switch type (color / gradient /
+ * image) and pick values in place. Changes apply live to the local slide
+ * state and persist through the existing "Save deck" PUT
+ * /links/{id}/slides call — the server validates types/colors and
+ * sanitizes media URLs (SlideDeckController::saveRules /
+ * sanitizeSaveData), matching the web editor exactly.
+ */
+function BackgroundEditorModal({
+  visible,
+  slideNumber,
+  background,
+  onClose,
+  onChange,
+}: {
+  visible: boolean;
+  slideNumber: number;
+  background: SlideDeckBackground;
+  onClose: () => void;
+  onChange: (bg: SlideDeckBackground) => void;
+}) {
+  const colors = useColors();
+  const t = background.type ?? "color";
+  const editable = t === "color" || t === "gradient" || t === "image";
+
+  // Vault images for the image tab: fetched lazily the first time the
+  // image tab is visible, then cached for the modal's lifetime.
+  const [vault, setVault] = useState<VaultFile[] | null>(null);
+  const [vaultLoading, setVaultLoading] = useState(false);
+  const [vaultError, setVaultError] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!visible || t !== "image" || vault !== null || vaultLoading) return;
+    let cancelled = false;
+    setVaultLoading(true);
+    setVaultError(false);
+    listVaultFiles({ type: "image", perPage: 24 })
+      .then((res) => {
+        if (!cancelled) setVault(res.files);
+      })
+      .catch(() => {
+        if (!cancelled) setVaultError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setVaultLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, t, vault, vaultLoading]);
+
+  const set = (patch: Partial<SlideDeckBackground>) =>
+    onChange({ ...background, ...patch });
+
+  const switchType = (next: "color" | "gradient" | "image") => {
+    // Seed sensible defaults for the target type without discarding the
+    // other keys, so toggling back and forth never loses picked values.
+    const patch: Partial<SlideDeckBackground> = { type: next };
+    if (next === "color" && !background.color) patch.color = "#0f172a";
+    if (next === "gradient") {
+      if (!background.from_color) patch.from_color = "#0f172a";
+      if (!background.to_color) patch.to_color = "#3d6bff";
+    }
+    set(patch);
+  };
+
+  const uploadFromDevice = async () => {
+    if (uploading) return;
+    setUploadError(null);
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      setUploadError("Photo library permission is needed to upload.");
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.9,
+    });
+    if (res.canceled || !res.assets?.length) return;
+    setUploading(true);
+    try {
+      const asset = res.assets[0];
+      const file = await uploadVaultFile({
+        uri: asset.uri,
+        name: asset.fileName ?? undefined,
+        mime: asset.mimeType ?? undefined,
+      });
+      setVault((prev) => [file, ...(prev ?? [])]);
+      set({ type: "image", image_url: file.url });
+    } catch (e) {
+      setUploadError(
+        (e as { message?: string })?.message || "Upload failed.",
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable
+          style={[
+            styles.modalSheet,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+          onPress={() => {}}
+        >
+          <View style={styles.rowBetween}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+              Slide {slideNumber} background
+            </Text>
+            <Pressable onPress={onClose} hitSlop={8} testID="bg-editor-close">
+              <Feather name="x" size={18} color={colors.mutedForeground} />
+            </Pressable>
+          </View>
+
+          <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ gap: 12 }}>
+            <View style={styles.row2}>
+              {EDITABLE_BG_TYPES.map((opt) => {
+                const active = t === opt.type;
+                return (
+                  <Pressable
+                    key={opt.type}
+                    testID={`bg-type-${opt.type}`}
+                    onPress={() => switchType(opt.type)}
+                    style={[
+                      styles.smallBtn,
+                      {
+                        borderColor: active ? colors.primary : colors.border,
+                        backgroundColor: active
+                          ? `${colors.primary}22`
+                          : "transparent",
+                        borderRadius: 999,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.smallBtnText,
+                        {
+                          color: active ? colors.primary : colors.foreground,
+                        },
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {!editable ? (
+              <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                This slide uses a {t} background, which is set up in the web
+                editor. Picking a type above replaces it.
+              </Text>
+            ) : null}
+
+            {t === "color" ? (
+              <View style={{ gap: 8 }}>
+                <ColorSwatchRow
+                  prefix="slide-bg-color-swatch"
+                  value={String(background.color ?? "")}
+                  onPick={(c) => set({ color: c })}
+                />
+                <TextField
+                  label="Color"
+                  value={String(background.color ?? "")}
+                  onChangeText={(v) => set({ color: v })}
+                  placeholder="#0f172a"
+                  autoCapitalize="none"
+                />
+              </View>
+            ) : null}
+
+            {t === "gradient" ? (
+              <View style={{ gap: 8 }}>
+                <ColorSwatchRow
+                  prefix="slide-bg-from-swatch"
+                  value={String(background.from_color ?? "")}
+                  onPick={(c) => set({ from_color: c })}
+                />
+                <TextField
+                  label="From color"
+                  value={String(background.from_color ?? "")}
+                  onChangeText={(v) => set({ from_color: v })}
+                  placeholder="#0f172a"
+                  autoCapitalize="none"
+                />
+                <ColorSwatchRow
+                  prefix="slide-bg-to-swatch"
+                  value={String(background.to_color ?? "")}
+                  onPick={(c) => set({ to_color: c })}
+                />
+                <TextField
+                  label="To color"
+                  value={String(background.to_color ?? "")}
+                  onChangeText={(v) => set({ to_color: v })}
+                  placeholder="#3d6bff"
+                  autoCapitalize="none"
+                />
+              </View>
+            ) : null}
+
+            {t === "image" ? (
+              <View style={{ gap: 10 }}>
+                <TextField
+                  label="Image URL"
+                  value={String(background.image_url ?? "")}
+                  onChangeText={(v) => set({ image_url: v })}
+                  placeholder="https://…"
+                  autoCapitalize="none"
+                />
+                <View style={styles.row2}>
+                  <Pressable
+                    testID="bg-image-upload"
+                    onPress={uploadFromDevice}
+                    disabled={uploading}
+                    style={[
+                      styles.smallBtn,
+                      { borderColor: colors.primary, borderRadius: 999 },
+                    ]}
+                  >
+                    {uploading ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <Feather name="upload" size={13} color={colors.primary} />
+                    )}
+                    <Text
+                      style={[styles.smallBtnText, { color: colors.primary }]}
+                    >
+                      {uploading ? "Uploading…" : "Upload image"}
+                    </Text>
+                  </Pressable>
+                </View>
+                {uploadError ? (
+                  <Text style={[styles.hint, { color: colors.destructive }]}>
+                    {uploadError}
+                  </Text>
+                ) : null}
+                <Text
+                  style={[styles.subTitle, { color: colors.foreground }]}
+                >
+                  From your files
+                </Text>
+                {vaultLoading ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : vaultError ? (
+                  <Text
+                    style={[styles.hint, { color: colors.mutedForeground }]}
+                  >
+                    Couldn't load your files.
+                  </Text>
+                ) : vault && vault.length > 0 ? (
+                  <View style={styles.vaultGrid}>
+                    {vault.map((f) => {
+                      const sel = background.image_url === f.url;
+                      return (
+                        <Pressable
+                          key={f.id}
+                          testID={`bg-vault-${f.id}`}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Use image ${f.original_name}`}
+                          onPress={() =>
+                            set({ type: "image", image_url: f.url })
+                          }
+                          style={[
+                            styles.vaultThumbWrap,
+                            {
+                              borderColor: sel
+                                ? colors.primary
+                                : colors.border,
+                              borderWidth: sel ? 2 : 1,
+                            },
+                          ]}
+                        >
+                          <Image
+                            source={{ uri: f.url }}
+                            style={styles.vaultThumb}
+                          />
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                ) : (
+                  <Text
+                    style={[styles.hint, { color: colors.mutedForeground }]}
+                  >
+                    No images in your files yet — upload one above.
+                  </Text>
+                )}
+              </View>
+            ) : null}
+          </ScrollView>
+
+          <Button label="Done" onPress={onClose} />
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -718,4 +1124,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   optionText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 14 },
+  bgRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  bgSwatch: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 1,
+    overflow: "hidden",
+    flexDirection: "row",
+  },
+  vaultGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  vaultThumbWrap: { borderRadius: 8, overflow: "hidden" },
+  vaultThumb: { width: 64, height: 64 },
 });
