@@ -804,6 +804,14 @@ Route::prefix('v1')->group(function () {
         // the shared flow validation/persistence helpers.
         Route::get ('/links/{id}/conversational', [\App\Modules\Api\Controllers\ConversationFlowController::class, 'show'])->whereNumber('id');
         Route::put ('/links/{id}/conversational', [\App\Modules\Api\Controllers\ConversationFlowController::class, 'save'])->whereNumber('id');
+
+        // Slide deck editor (biolink-family links in "slides" mode). Mirrors
+        // the web user.links.slides.{editor,save} routes, reusing the shared
+        // deck validation/persistence helpers. Auto-play, per-slide
+        // backgrounds and slide↔block attachment; new blocks are created via
+        // the existing POST /links/{id}/blocks endpoint (same plan gating).
+        Route::get ('/links/{id}/slides', [\App\Modules\Api\Controllers\SlideDeckApiController::class, 'show'])->whereNumber('id');
+        Route::put ('/links/{id}/slides', [\App\Modules\Api\Controllers\SlideDeckApiController::class, 'save'])->whereNumber('id');
         Route::get   ('/links/{id}/analytics', [LinkController::class, 'analytics'])->whereNumber('id');
         // On-demand AI audience estimation (parity for web POST
         // /user/links/{link}/audience/estimate). Charges AI credits, so

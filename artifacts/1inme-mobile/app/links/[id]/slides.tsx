@@ -1,0 +1,721 @@
+import { Feather } from "@expo/vector-icons";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Stack, useLocalSearchParams } from "expo-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from "react-native";
+
+import { Button } from "@/components/Button";
+import { TextField } from "@/components/TextField";
+import { useColors } from "@/hooks/useColors";
+import { createBlock } from "@/lib/api/blocks";
+import {
+  getSlideDeck,
+  saveSlideDeck,
+  type DeckSlide,
+  type SlideDeckEditor,
+} from "@/lib/api/slides";
+
+function bgSummary(bg: DeckSlide["background"]): string {
+  const t = bg?.type ?? "color";
+  if (t === "color") return `Color ${bg?.color ?? "#0f172a"}`;
+  if (t === "gradient")
+    return `Gradient ${bg?.from_color ?? ""} → ${bg?.to_color ?? ""}`.trim();
+  if (t === "image") return "Image";
+  if (t === "slideshow") return `Slideshow (${bg?.images?.length ?? 0} images)`;
+  if (t === "video") return "Video";
+  if (t === "template") return "Template";
+  return t;
+}
+
+export default function SlidesEditorScreen() {
+  const colors = useColors();
+  const qc = useQueryClient();
+  const { id: idParam } = useLocalSearchParams<{ id: string }>();
+  const id = Number(idParam);
+
+  const q = useQuery({
+    queryKey: ["slides-deck", id],
+    queryFn: () => getSlideDeck(id),
+    enabled: Number.isFinite(id),
+  });
+
+  const [slides, setSlides] = useState<DeckSlide[]>([]);
+  // Auto-play: deck settings.auto_advance is milliseconds; 0 = off. The UI
+  // exposes a toggle + a seconds field, mirroring the web slides editor.
+  const [autoOn, setAutoOn] = useState(false);
+  const [autoSeconds, setAutoSeconds] = useState("5");
+  const [loop, setLoop] = useState(false);
+  const [published, setPublished] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [pickerFor, setPickerFor] = useState<
+    { slide: number; kind: "attach" | "create" } | null
+  >(null);
+  const [creatingType, setCreatingType] = useState<string | null>(null);
+
+  // Hydrate local editor state from the server only when explicitly allowed
+  // (initial load and right after a successful save). Background refetches
+  // must never clobber unsaved local edits.
+  const hydratedRef = useRef(false);
+
+  useEffect(() => {
+    const d = q.data;
+    if (!d || hydratedRef.current) return;
+    hydratedRef.current = true;
+    setSlides(
+      d.deck.slides.map((s) => ({
+        ...s,
+        block_ids: [...(s.block_ids ?? [])],
+        background: { ...(s.background ?? { type: "color", color: "#0f172a" }) },
+      })),
+    );
+    const adv = Number(d.deck.settings?.auto_advance ?? 0);
+    setAutoOn(adv > 0);
+    setAutoSeconds(String(adv > 0 ? Math.round(adv / 100) / 10 : 5));
+    setLoop(!!d.deck.settings?.loop);
+    setPublished(!!d.deck.is_published);
+  }, [q.data]);
+
+  const meta = q.data?.meta;
+  const blockById = useMemo(() => {
+    const m = new Map<number, { type: string; label: string | null }>();
+    (meta?.blocks ?? []).forEach((b) => m.set(b.id, b));
+    return m;
+  }, [meta?.blocks]);
+
+  const save = useMutation({
+    mutationFn: () => {
+      if (!slides.length) throw new Error("Add at least one slide.");
+      const secs = Math.max(0, Math.min(60, Number(autoSeconds) || 0));
+      return saveSlideDeck(id, {
+        settings: {
+          ...(q.data?.deck.settings ?? {}),
+          auto_advance: autoOn ? Math.round(secs * 1000) : 0,
+          loop,
+        },
+        is_published: published,
+        slides,
+      });
+    },
+    onSuccess: (data: SlideDeckEditor) => {
+      // Rehydrate from the saved payload (slides now carry server ids).
+      hydratedRef.current = false;
+      qc.setQueryData(["slides-deck", id], data);
+      qc.invalidateQueries({ queryKey: ["link", id] });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    },
+  });
+
+  const updateSlideAt = (i: number, fn: (s: DeckSlide) => DeckSlide) =>
+    setSlides((prev) => prev.map((s, idx) => (idx === i ? fn(s) : s)));
+
+  const addSlide = () =>
+    setSlides((prev) => [
+      ...prev,
+      {
+        title: `Slide ${prev.length + 1}`,
+        block_ids: [],
+        block_settings: {},
+        background: { type: "color", color: "#0f172a" },
+        animation: { enter: "fade", duration_ms: 400 },
+        transition: "slide",
+        settings: {},
+      },
+    ]);
+
+  const removeSlideAt = (i: number) =>
+    setSlides((prev) => prev.filter((_, idx) => idx !== i));
+
+  const moveSlide = (i: number, dir: -1 | 1) =>
+    setSlides((prev) => {
+      const j = i + dir;
+      if (j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+
+  // Background parity actions (mirror the web editor's copy-from-previous
+  // and apply-to-all buttons): deep-clone so slides never share one object.
+  const copyBgFromPrevious = (i: number) => {
+    if (i <= 0) return;
+    const prevBg = slides[i - 1]?.background ?? {};
+    updateSlideAt(i, (s) => ({
+      ...s,
+      background: JSON.parse(JSON.stringify(prevBg)),
+    }));
+  };
+
+  const applyBgToAll = (i: number) => {
+    const bg = slides[i]?.background ?? {};
+    setSlides((prev) =>
+      prev.map((s, idx) =>
+        idx === i ? s : { ...s, background: JSON.parse(JSON.stringify(bg)) },
+      ),
+    );
+  };
+
+  const attachBlock = (slideIdx: number, blockId: number) => {
+    updateSlideAt(slideIdx, (s) =>
+      s.block_ids.includes(blockId) || s.block_ids.length >= 10
+        ? s
+        : { ...s, block_ids: [...s.block_ids, blockId] },
+    );
+    setPickerFor(null);
+  };
+
+  const detachBlock = (slideIdx: number, blockId: number) =>
+    updateSlideAt(slideIdx, (s) => ({
+      ...s,
+      block_ids: s.block_ids.filter((b) => b !== blockId),
+    }));
+
+  // In-slide block creation: POST /links/{id}/blocks (same endpoint + plan
+  // gating as the biolink editor) then attach the new block to the slide.
+  const createAndAttach = async (slideIdx: number, type: string) => {
+    if (creatingType) return;
+    setCreatingType(type);
+    try {
+      const block = await createBlock(id, { type });
+      updateSlideAt(slideIdx, (s) =>
+        s.block_ids.length >= 10
+          ? s
+          : { ...s, block_ids: [...s.block_ids, block.id] },
+      );
+      // Patch the cached meta so the new block shows in the attach list and
+      // labels resolve — WITHOUT refetching, which would discard local edits.
+      qc.setQueryData<SlideDeckEditor>(["slides-deck", id], (old) =>
+        old
+          ? {
+              ...old,
+              meta: {
+                ...old.meta,
+                blocks: [
+                  ...old.meta.blocks,
+                  { id: block.id, type: block.type, label: null },
+                ],
+              },
+            }
+          : old,
+      );
+      setPickerFor(null);
+    } finally {
+      setCreatingType(null);
+    }
+  };
+
+  if (q.isLoading) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <Stack.Screen options={{ headerShown: true, title: "Slides" }} />
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+  if (q.error || !q.data) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <Stack.Screen options={{ headerShown: true, title: "Slides" }} />
+        <Text style={{ color: colors.destructive }}>
+          Couldn't load the slide deck.
+        </Text>
+      </View>
+    );
+  }
+
+  const creatable = meta?.creatable_types ?? [];
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <Stack.Screen options={{ headerShown: true, title: "Edit slides" }} />
+      <ScrollView contentContainerStyle={styles.body}>
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            Playback
+          </Text>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                borderRadius: colors.radius,
+              },
+            ]}
+          >
+            <View style={styles.rowBetween}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                  Auto-play
+                </Text>
+                <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                  Advance slides automatically.
+                </Text>
+              </View>
+              <Switch
+                value={autoOn}
+                onValueChange={setAutoOn}
+                trackColor={{ true: colors.primary, false: colors.border }}
+              />
+            </View>
+            {autoOn ? (
+              <TextField
+                label="Seconds per slide"
+                value={autoSeconds}
+                onChangeText={setAutoSeconds}
+                keyboardType="numeric"
+                placeholder="5"
+              />
+            ) : null}
+            <View style={styles.rowBetween}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                  Loop
+                </Text>
+                <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                  Restart from the first slide at the end.
+                </Text>
+              </View>
+              <Switch
+                value={loop}
+                onValueChange={setLoop}
+                trackColor={{ true: colors.primary, false: colors.border }}
+              />
+            </View>
+            <View style={styles.rowBetween}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                  Published
+                </Text>
+                <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                  Visitors see the latest published version.
+                </Text>
+              </View>
+              <Switch
+                value={published}
+                onValueChange={setPublished}
+                trackColor={{ true: colors.primary, false: colors.border }}
+              />
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.rowBetween}>
+            <Text
+              style={[styles.sectionLabel, { color: colors.mutedForeground }]}
+            >
+              Slides ({slides.length})
+            </Text>
+            <Pressable onPress={addSlide} hitSlop={8} style={styles.addLink}>
+              <Feather name="plus" size={14} color={colors.primary} />
+              <Text style={[styles.addLinkText, { color: colors.primary }]}>
+                Add slide
+              </Text>
+            </Pressable>
+          </View>
+
+          {slides.map((s, i) => (
+            <View
+              key={s.id ?? `new-${i}`}
+              style={[
+                styles.card,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderRadius: colors.radius,
+                },
+              ]}
+            >
+              <View style={styles.rowBetween}>
+                <Text style={[styles.cardTag, { color: colors.primary }]}>
+                  Slide {i + 1}
+                </Text>
+                <View style={styles.rowCenter}>
+                  <Pressable
+                    onPress={() => moveSlide(i, -1)}
+                    hitSlop={8}
+                    disabled={i === 0}
+                  >
+                    <Feather
+                      name="arrow-up"
+                      size={16}
+                      color={i === 0 ? colors.border : colors.mutedForeground}
+                    />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => moveSlide(i, 1)}
+                    hitSlop={8}
+                    disabled={i === slides.length - 1}
+                  >
+                    <Feather
+                      name="arrow-down"
+                      size={16}
+                      color={
+                        i === slides.length - 1
+                          ? colors.border
+                          : colors.mutedForeground
+                      }
+                    />
+                  </Pressable>
+                  {slides.length > 1 ? (
+                    <Pressable onPress={() => removeSlideAt(i)} hitSlop={8}>
+                      <Feather
+                        name="trash-2"
+                        size={16}
+                        color={colors.destructive}
+                      />
+                    </Pressable>
+                  ) : null}
+                </View>
+              </View>
+
+              <TextField
+                label="Title"
+                value={s.title ?? ""}
+                onChangeText={(v) =>
+                  updateSlideAt(i, (sl) => ({ ...sl, title: v }))
+                }
+                placeholder={`Slide ${i + 1}`}
+              />
+
+              <View style={styles.subSection}>
+                <Text style={[styles.subTitle, { color: colors.foreground }]}>
+                  Background
+                </Text>
+                <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                  {bgSummary(s.background)}
+                </Text>
+                <View style={styles.row2}>
+                  {i > 0 ? (
+                    <Pressable
+                      onPress={() => copyBgFromPrevious(i)}
+                      style={[
+                        styles.smallBtn,
+                        { borderColor: colors.border, borderRadius: 999 },
+                      ]}
+                    >
+                      <Feather
+                        name="copy"
+                        size={13}
+                        color={colors.foreground}
+                      />
+                      <Text
+                        style={[styles.smallBtnText, { color: colors.foreground }]}
+                      >
+                        Copy previous
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                  {slides.length > 1 ? (
+                    <Pressable
+                      onPress={() => applyBgToAll(i)}
+                      style={[
+                        styles.smallBtn,
+                        { borderColor: colors.border, borderRadius: 999 },
+                      ]}
+                    >
+                      <Feather
+                        name="layers"
+                        size={13}
+                        color={colors.foreground}
+                      />
+                      <Text
+                        style={[styles.smallBtnText, { color: colors.foreground }]}
+                      >
+                        Apply to all
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </View>
+
+              <View style={styles.subSection}>
+                <Text style={[styles.subTitle, { color: colors.foreground }]}>
+                  Blocks ({s.block_ids.length}/10)
+                </Text>
+                {s.block_ids.length === 0 ? (
+                  <Text
+                    style={[styles.hint, { color: colors.mutedForeground }]}
+                  >
+                    No blocks on this slide yet.
+                  </Text>
+                ) : (
+                  s.block_ids.map((bid) => {
+                    const b = blockById.get(bid);
+                    return (
+                      <View
+                        key={bid}
+                        style={[
+                          styles.blockRow,
+                          {
+                            borderColor: colors.border,
+                            borderRadius: colors.radius,
+                          },
+                        ]}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={[
+                              styles.blockType,
+                              { color: colors.foreground },
+                            ]}
+                          >
+                            {b?.type ?? `Block #${bid}`}
+                          </Text>
+                          {b?.label ? (
+                            <Text
+                              numberOfLines={1}
+                              style={[
+                                styles.hint,
+                                { color: colors.mutedForeground },
+                              ]}
+                            >
+                              {b.label}
+                            </Text>
+                          ) : null}
+                        </View>
+                        <Pressable onPress={() => detachBlock(i, bid)} hitSlop={8}>
+                          <Feather name="x" size={16} color={colors.destructive} />
+                        </Pressable>
+                      </View>
+                    );
+                  })
+                )}
+                <View style={styles.row2}>
+                  <Pressable
+                    onPress={() => setPickerFor({ slide: i, kind: "attach" })}
+                    style={[
+                      styles.smallBtn,
+                      { borderColor: colors.border, borderRadius: 999 },
+                    ]}
+                  >
+                    <Feather name="link" size={13} color={colors.foreground} />
+                    <Text
+                      style={[styles.smallBtnText, { color: colors.foreground }]}
+                    >
+                      Attach block
+                    </Text>
+                  </Pressable>
+                  {creatable.length ? (
+                    <Pressable
+                      onPress={() => setPickerFor({ slide: i, kind: "create" })}
+                      style={[
+                        styles.smallBtn,
+                        { borderColor: colors.primary, borderRadius: 999 },
+                      ]}
+                    >
+                      <Feather name="plus" size={13} color={colors.primary} />
+                      <Text
+                        style={[styles.smallBtnText, { color: colors.primary }]}
+                      >
+                        New block
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        <Button
+          label={save.isPending ? "Saving…" : saved ? "Saved" : "Save deck"}
+          onPress={() => save.mutate()}
+          disabled={save.isPending}
+        />
+        {save.error ? (
+          <Text style={{ color: colors.destructive }}>
+            {(save.error as Error).message || "Couldn't save the deck."}
+          </Text>
+        ) : null}
+      </ScrollView>
+
+      <Modal
+        visible={pickerFor != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPickerFor(null)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setPickerFor(null)}
+        >
+          <Pressable
+            style={[
+              styles.modalSheet,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+            onPress={() => {}}
+          >
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+              {pickerFor?.kind === "create" ? "New block" : "Attach a block"}
+            </Text>
+            <ScrollView style={{ maxHeight: 420 }}>
+              {pickerFor?.kind === "create"
+                ? creatable.map((t) => (
+                    <Pressable
+                      key={t.type}
+                      style={styles.optionRow}
+                      disabled={creatingType != null}
+                      onPress={() => createAndAttach(pickerFor.slide, t.type)}
+                    >
+                      <Text
+                        style={[styles.optionText, { color: colors.foreground }]}
+                      >
+                        {t.label}
+                      </Text>
+                      {creatingType === t.type ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <Feather
+                          name="plus"
+                          size={16}
+                          color={colors.mutedForeground}
+                        />
+                      )}
+                    </Pressable>
+                  ))
+                : (meta?.blocks ?? [])
+                    .filter(
+                      (b) =>
+                        pickerFor == null ||
+                        !slides[pickerFor.slide]?.block_ids.includes(b.id),
+                    )
+                    .map((b) => (
+                      <Pressable
+                        key={b.id}
+                        style={styles.optionRow}
+                        onPress={() =>
+                          pickerFor && attachBlock(pickerFor.slide, b.id)
+                        }
+                      >
+                        <View style={{ flex: 1, paddingRight: 10 }}>
+                          <Text
+                            style={[
+                              styles.optionText,
+                              { color: colors.foreground },
+                            ]}
+                          >
+                            {b.type}
+                          </Text>
+                          {b.label ? (
+                            <Text
+                              numberOfLines={1}
+                              style={[
+                                styles.hint,
+                                { color: colors.mutedForeground },
+                              ]}
+                            >
+                              {b.label}
+                            </Text>
+                          ) : null}
+                        </View>
+                        <Feather
+                          name="link"
+                          size={16}
+                          color={colors.mutedForeground}
+                        />
+                      </Pressable>
+                    ))}
+              {pickerFor?.kind === "attach" && !(meta?.blocks ?? []).length ? (
+                <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                  This page has no blocks yet — create one instead.
+                </Text>
+              ) : null}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  body: { padding: 20, gap: 18, paddingBottom: 64 },
+  section: { gap: 10 },
+  sectionLabel: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 12,
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
+  card: { padding: 14, borderWidth: 1, gap: 10 },
+  cardTag: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 },
+  rowBetween: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  rowCenter: { flexDirection: "row", alignItems: "center", gap: 14 },
+  rowLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
+  addLink: { flexDirection: "row", alignItems: "center", gap: 4 },
+  addLinkText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
+  subSection: {
+    gap: 8,
+    marginTop: 6,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(127,127,127,0.25)",
+  },
+  subTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
+  hint: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  row2: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
+  smallBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  smallBtnText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 },
+  blockRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  blockType: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    padding: 24,
+  },
+  modalSheet: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+  },
+  modalTitle: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 15,
+    marginBottom: 4,
+  },
+  optionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+  },
+  optionText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 14 },
+});
