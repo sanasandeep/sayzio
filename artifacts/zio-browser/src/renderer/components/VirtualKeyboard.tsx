@@ -134,7 +134,7 @@ export function VirtualKeyboard({ settings, fieldKind, onClose }: Props) {
   const prefix = lastWordOf(buffer);
   const suggestions = useMemo<VkSuggestion[]>(() => {
     if (!allowSuggest) return [];
-    if (prefix) return suggestFor(prefix, { shortcuts, history, dictionary: VK_DICTIONARY });
+    if (prefix) return suggestFor(prefix, { shortcuts, history, dictionary: VK_DICTIONARY, prevWord, bigrams });
     // After a space: predict whole next words from learned bigrams.
     if (prevWord && buffer.endsWith(' ')) return suggestNextWords(prevWord, bigrams, 3, VK_COMMON_BIGRAMS);
     return [];

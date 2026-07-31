@@ -340,8 +340,10 @@ export interface VkSuggestion {
 
 /**
  * Compute word suggestions for the current prefix. A matching text shortcut
- * is always the top suggestion, then learned history words (most-used first),
- * then dictionary words. Deduplicated, capped at `limit`.
+ * is always the top suggestion; when `prevWord` + `bigrams` are provided,
+ * learned next-word predictions that also start with the prefix come next
+ * (phone-keyboard style blending); then learned history words (most-used
+ * first), then dictionary words. Deduplicated, capped at `limit`.
  */
 export function suggestFor(
   prefix: string,
@@ -350,6 +352,10 @@ export function suggestFor(
     history: VkTypingHistory;
     dictionary: readonly string[];
     limit?: number;
+    /** Previous completed word — enables mid-word bigram blending. */
+    prevWord?: string;
+    /** Learned bigram history, used with `prevWord`. */
+    bigrams?: VkBigramHistory;
   },
 ): VkSuggestion[] {
   const p = prefix.trim().toLowerCase();
@@ -362,6 +368,22 @@ export function suggestFor(
   if (shortcut) {
     out.push({ word: shortcut.trigger, source: 'shortcut', expansion: shortcut.expansion });
     seen.add(shortcut.trigger);
+  }
+
+  const prev = opts.prevWord?.trim().toLowerCase();
+  if (prev && opts.bigrams) {
+    const bigramPrefix = `${prev} `;
+    const predicted = Object.entries(opts.bigrams)
+      .filter(([k]) => k.startsWith(bigramPrefix))
+      .map(([k, n]) => [k.slice(bigramPrefix.length), n] as const)
+      .filter(([w]) => w.startsWith(p) && w !== p)
+      .sort((a, b) => b[1] - a[1]);
+    for (const [w] of predicted) {
+      if (out.length >= limit) return out;
+      if (seen.has(w)) continue;
+      seen.add(w);
+      out.push({ word: w, source: 'prediction' });
+    }
   }
 
   const historyMatches = Object.entries(opts.history)

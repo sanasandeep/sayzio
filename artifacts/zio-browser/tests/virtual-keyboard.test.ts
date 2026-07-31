@@ -318,6 +318,43 @@ describe('suggestFor', () => {
     expect(out.map(s => s.word)).toEqual(['becauseof']);
   });
 
+  it('blends bigram predictions above history and dictionary, below shortcuts', () => {
+    const bigrams = { 'on beaches': 3, 'on behalf': 8, 'on the': 9, 'in because': 4 };
+    const out = suggestFor('be', { shortcuts, history, dictionary: VK_DICTIONARY, prevWord: 'on', bigrams });
+    expect(out).toEqual([
+      { word: 'behalf', source: 'prediction' },
+      { word: 'beaches', source: 'prediction' },
+      { word: 'become', source: 'history' },
+    ]);
+
+    const withShortcut = suggestFor('om', {
+      shortcuts,
+      history: {},
+      dictionary: ['omelette'],
+      prevWord: 'the',
+      bigrams: { 'the omen': 2 },
+    });
+    expect(withShortcut[0].source).toBe('shortcut');
+    expect(withShortcut[1]).toEqual({ word: 'omen', source: 'prediction' });
+    expect(withShortcut[2]).toEqual({ word: 'omelette', source: 'dictionary' });
+  });
+
+  it('bigram blending dedupes against history and skips the exact prefix', () => {
+    const bigrams = { 'on become': 5, 'on be': 7 };
+    const out = suggestFor('be', { shortcuts: [], history, dictionary: [], prevWord: 'On ', bigrams });
+    expect(out).toEqual([
+      { word: 'become', source: 'prediction' },
+      { word: 'because', source: 'history' },
+    ]);
+  });
+
+  it('ignores bigrams for other previous words or when prevWord is absent', () => {
+    const bigrams = { 'in because': 9 };
+    expect(suggestFor('be', { shortcuts: [], history: {}, dictionary: [], prevWord: 'on', bigrams })).toEqual([]);
+    const noPrev = suggestFor('be', { shortcuts: [], history, dictionary: [], bigrams });
+    expect(noPrev.map(s => s.source)).toEqual(['history', 'history']);
+  });
+
   it('returns [] for an empty prefix', () => {
     expect(suggestFor('  ', { shortcuts, history, dictionary: VK_DICTIONARY })).toEqual([]);
   });
