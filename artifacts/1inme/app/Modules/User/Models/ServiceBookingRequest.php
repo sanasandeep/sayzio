@@ -200,4 +200,29 @@ class ServiceBookingRequest extends Model
         }
         return false;
     }
+
+    /**
+     * Record that the assigned staff member's reminder at a given lead time
+     * was sent, stored in meta['staff_reminders_sent'] (Task #6338).
+     */
+    public function markStaffReminderSent(int $leadMinutes): void
+    {
+        $meta = $this->meta ?? [];
+        $sent = $meta['staff_reminders_sent'] ?? [];
+        $sent[] = ['lead_minutes' => $leadMinutes, 'sent_at' => now()->toIso8601String()];
+        $this->meta = array_merge($meta, ['staff_reminders_sent' => $sent]);
+        $this->save();
+    }
+
+    /** True when the staff reminder at this lead time was already dispatched. */
+    public function wasStaffReminderSent(int $leadMinutes): bool
+    {
+        $sent = $this->meta['staff_reminders_sent'] ?? [];
+        foreach ($sent as $entry) {
+            if ((int) ($entry['lead_minutes'] ?? 0) === $leadMinutes) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

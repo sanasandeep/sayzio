@@ -435,6 +435,11 @@
             <div class="sb-row"><label class="sb-label">Name</label><input class="sb-input" x-model="staffModal.name"></div>
             <div class="sb-row"><label class="sb-label">Title (optional)</label><input class="sb-input" x-model="staffModal.title" maxlength="120" placeholder="e.g. Senior stylist"></div>
             <div class="sb-row"><label class="sb-label">Bio (optional)</label><textarea class="sb-textarea" x-model="staffModal.bio"></textarea></div>
+            <div class="sb-row">
+                <label class="sb-label">Notification email (optional)</label>
+                <input class="sb-input" type="email" x-model="staffModal.email" maxlength="190" placeholder="member@example.com">
+                <p class="text-xs mt-1" style="color:var(--text-muted)">When set, this member gets an email whenever a booking is placed, rescheduled or cancelled for them — plus appointment reminders.</p>
+            </div>
             <div class="sb-row"><label class="sb-label">Photo URL (optional)</label><input class="sb-input" x-model="staffModal.photo_url" placeholder="https://…"></div>
             <div class="sb-row">
                 <label class="sb-label">Services this member performs</label>
@@ -496,7 +501,7 @@
     $sbBuffers = ['before' => $config->bufferBeforeMinutes(), 'after' => $config->bufferAfterMinutes()];
     $sbSelfService = ['allow_cancel' => $config->selfServiceAllowsCancel(), 'allow_reschedule' => $config->selfServiceAllowsReschedule(), 'cutoff_hours' => $config->selfServiceCutoffHours()];
     $sbCalendarSync = ['enabled' => $config->calendarSyncEnabled(), 'account_id' => $config->calendarSyncAccountId() ?: ''];
-    $sbStaff = $config->staff->map(fn($m)=>['id'=>$m->id,'name'=>$m->name,'title'=>$m->title,'bio'=>$m->bio,'photo_url'=>$m->photo_url,'is_active'=>(bool)$m->is_active,'calendar_account_id'=>$m->calendar_account_id ?: '','service_ids'=>$m->services->pluck('id')->map(fn($i)=>(int)$i)->values()->all()])->values();
+    $sbStaff = $config->staff->map(fn($m)=>['id'=>$m->id,'name'=>$m->name,'title'=>$m->title,'bio'=>$m->bio,'email'=>$m->email,'photo_url'=>$m->photo_url,'is_active'=>(bool)$m->is_active,'calendar_account_id'=>$m->calendar_account_id ?: '','service_ids'=>$m->services->pluck('id')->map(fn($i)=>(int)$i)->values()->all()])->values();
     $sbCalAccounts = $calendarAccounts->map(fn($a)=>['id'=>$a->id,'label'=>trim(($a->display_name ?: ucfirst($a->provider)) . ($a->account_email ? ' · '.$a->account_email : ''))])->values();
 @endphp
 function serviceBookingEditor() {
@@ -512,7 +517,7 @@ function serviceBookingEditor() {
         calendarSync: @json($sbCalendarSync),
         staff: @json($sbStaff),
         calendarAccounts: @json($sbCalAccounts),
-        staffModal: { open:false, id:null, name:'', title:'', bio:'', photo_url:'', is_active:true, calendar_account_id:'', service_ids:[] },
+        staffModal: { open:false, id:null, name:'', title:'', bio:'', email:'', photo_url:'', is_active:true, calendar_account_id:'', service_ids:[] },
         days: [{idx:1,short:'Mon'},{idx:2,short:'Tue'},{idx:3,short:'Wed'},{idx:4,short:'Thu'},{idx:5,short:'Fri'},{idx:6,short:'Sat'},{idx:0,short:'Sun'}],
         savedMsg: '',
         catModal: { open:false, id:null, name:'', description:'' },
@@ -657,12 +662,13 @@ function serviceBookingEditor() {
             if (i >= 0) this.staffModal.service_ids.splice(i,1); else this.staffModal.service_ids.push(id);
         },
         openStaff(m){ this.staffModal = m
-            ? {open:true,id:m.id,name:m.name,title:m.title||'',bio:m.bio||'',photo_url:m.photo_url||'',is_active:!!m.is_active,calendar_account_id:m.calendar_account_id||'',service_ids:(m.service_ids||[]).slice()}
-            : {open:true,id:null,name:'',title:'',bio:'',photo_url:'',is_active:true,calendar_account_id:'',service_ids:[]}; },
+            ? {open:true,id:m.id,name:m.name,title:m.title||'',bio:m.bio||'',email:m.email||'',photo_url:m.photo_url||'',is_active:!!m.is_active,calendar_account_id:m.calendar_account_id||'',service_ids:(m.service_ids||[]).slice()}
+            : {open:true,id:null,name:'',title:'',bio:'',email:'',photo_url:'',is_active:true,calendar_account_id:'',service_ids:[]}; },
         async saveStaff(){
             if (!this.staffModal.name.trim()) return;
             const payload = {
                 name:this.staffModal.name, title:this.staffModal.title||null, bio:this.staffModal.bio||null,
+                email:this.staffModal.email||null,
                 photo_url:this.staffModal.photo_url||null, is_active:!!this.staffModal.is_active,
                 calendar_account_id:this.staffModal.calendar_account_id ? parseInt(this.staffModal.calendar_account_id) : null,
                 service_ids:this.staffModal.service_ids,

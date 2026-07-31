@@ -670,6 +670,7 @@ function StaffSection({
   const colors = useColors();
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
+  const [email, setEmail] = useState("");
 
   const staff = cfg.staff ?? [];
   const cap = cfg.staff_cap ?? 0;
@@ -680,10 +681,12 @@ function StaffSection({
       createStaffMember(linkId, {
         name: name.trim(),
         title: title.trim() || null,
+        email: email.trim() || null,
       }),
     onSuccess: () => {
       setName("");
       setTitle("");
+      setEmail("");
       onChanged();
     },
   });
@@ -754,6 +757,14 @@ function StaffSection({
           <Input value={name} onChangeText={setName} placeholder="e.g. Priya" />
           <Label>Title (optional)</Label>
           <Input value={title} onChangeText={setTitle} placeholder="e.g. Senior stylist" />
+          <Label>Notification email (optional)</Label>
+          <Input
+            value={email}
+            onChangeText={setEmail}
+            placeholder="member@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
           <Pressable
             disabled={!name.trim() || add.isPending}
             onPress={() => add.mutate()}

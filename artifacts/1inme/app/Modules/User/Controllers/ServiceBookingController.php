@@ -517,6 +517,7 @@ class ServiceBookingController extends Controller
             'name'                => $staff->name,
             'title'               => $staff->title,
             'bio'                 => $staff->bio,
+            'email'               => $staff->email,
             'photo_url'           => $staff->photo_url,
             'is_active'           => (bool) $staff->is_active,
             'sort_order'          => (int) $staff->sort_order,
@@ -542,6 +543,7 @@ class ServiceBookingController extends Controller
             'name'                => 'required|string|max:120',
             'title'               => 'nullable|string|max:120',
             'bio'                 => 'nullable|string|max:2000',
+            'email'               => 'nullable|email|max:190',
             'photo_url'           => 'nullable|string|max:2048',
             'is_active'           => 'sometimes|boolean',
             'calendar_account_id' => 'nullable|integer',
@@ -557,6 +559,7 @@ class ServiceBookingController extends Controller
             'name'                => trim($data['name']),
             'title'               => $data['title'] ?? null,
             'bio'                 => $data['bio'] ?? null,
+            'email'               => $data['email'] ?? null,
             'photo_url'           => $data['photo_url'] ?? null,
             'is_active'           => (bool) ($data['is_active'] ?? true),
             'calendar_account_id' => $data['calendar_account_id'] ?? null,
@@ -577,6 +580,7 @@ class ServiceBookingController extends Controller
             'name'                => 'sometimes|required|string|max:120',
             'title'               => 'nullable|string|max:120',
             'bio'                 => 'nullable|string|max:2000',
+            'email'               => 'nullable|email|max:190',
             'photo_url'           => 'nullable|string|max:2048',
             'is_active'           => 'sometimes|boolean',
             'calendar_account_id' => 'sometimes|nullable|integer',
@@ -591,7 +595,7 @@ class ServiceBookingController extends Controller
         $staff->fill(array_filter([
             'name'      => isset($data['name']) ? trim($data['name']) : null,
         ], fn ($v) => $v !== null));
-        foreach (['title', 'bio', 'photo_url'] as $key) {
+        foreach (['title', 'bio', 'email', 'photo_url'] as $key) {
             if ($request->has($key)) {
                 $staff->{$key} = $data[$key] ?? null;
             }

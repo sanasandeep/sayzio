@@ -18,7 +18,7 @@ class ServiceBookingStaff extends Model
     protected $table = 'service_booking_staff';
 
     protected $fillable = [
-        'service_booking_id', 'name', 'title', 'bio', 'photo_url',
+        'service_booking_id', 'name', 'title', 'bio', 'email', 'photo_url',
         'calendar_account_id', 'is_active', 'sort_order', 'settings',
     ];
 

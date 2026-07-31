@@ -224,6 +224,7 @@ class ServiceBookingRequestService
         if (!$requiresPayment || $paymentCents <= 0) {
             $this->notifyOwner($link, $config, $fresh);
             $this->notifyVisitorReceived($link, $config, $fresh);
+            $this->notifyStaff($fresh, 'placed');
         }
 
         return [
@@ -253,6 +254,9 @@ class ServiceBookingRequestService
 
         // Push to the linked calendar when payment auto-confirmed the booking.
         $this->calendarSync->syncBookingEvent($request);
+
+        // Assigned team member alert (paid bookings notify after payment).
+        $this->notifyStaff($request, 'placed');
 
         // Visitor confirmation email.
         $email = trim((string) ($request->customer_email ?? ''));
@@ -432,6 +436,14 @@ class ServiceBookingRequestService
         // declined ones. Never blocks the status flow (Task #6325).
         $this->calendarSync->syncBookingEvent($request);
 
+        // Tell the assigned team member when their appointment is called off.
+        if (in_array($request->status, [
+            ServiceBookingRequest::STATUS_CANCELLED,
+            ServiceBookingRequest::STATUS_DECLINED,
+        ], true)) {
+            $this->notifyStaff($request, 'cancelled');
+        }
+
         $email = trim((string) ($request->customer_email ?? ''));
         if ($email === '') {
             return;
@@ -516,6 +528,7 @@ class ServiceBookingRequestService
 
         $this->calendarSync->syncBookingEvent($fresh);
         $this->notifyOwnerVisitorChange($fresh, 'cancelled');
+        $this->notifyStaff($fresh, 'cancelled');
     }
 
     /**
@@ -537,9 +550,49 @@ class ServiceBookingRequestService
         $fresh = $request->fresh(['items', 'serviceBooking', 'link', 'staff']);
         $this->calendarSync->syncBookingEvent($fresh);
         $this->notifyOwnerVisitorChange($fresh, 'rescheduled');
+        $this->notifyStaff($fresh, 'rescheduled');
 
         // Tell the visitor too (their confirmation email shows the old time).
         $this->notifyStatusChange($fresh);
+    }
+
+    /**
+     * Email the assigned team member (when they have a notification email)
+     * that a booking was placed / rescheduled / cancelled for them.
+     * Never blocks the booking flow (Task #6338).
+     */
+    protected function notifyStaff(ServiceBookingRequest $request, string $action): void
+    {
+        $request->loadMissing(['staff', 'serviceBooking', 'link', 'items']);
+
+        $staff = $request->staff;
+        $email = trim((string) ($staff?->email ?? ''));
+        if (!$staff || $email === '') {
+            return;
+        }
+
+        $config = $request->serviceBooking;
+        $link   = $request->link;
+        if (!$config || !$link) {
+            return;
+        }
+
+        [$serviceNames, $when] = $this->visitorTokens($config, $request);
+
+        try {
+            Emailer::send('service_booking.staff_booking', $email, [
+                'staff_name' => $staff->name,
+                'action'     => $action,
+                'customer'   => $request->customer_name,
+                'services'   => $serviceNames,
+                'when'       => $when,
+                'link_title' => $link->title,
+            ], ['related' => $request, 'to_name' => $staff->name]);
+        } catch (\Throwable $e) {
+            Log::warning('service_booking staff email failed: ' . $e->getMessage(), [
+                'booking' => $request->id, 'action' => $action,
+            ]);
+        }
     }
 
     /** Owner alert (in-app + email + push) about a visitor-made change. */

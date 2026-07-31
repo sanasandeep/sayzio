@@ -215,6 +215,7 @@ export type OwnerStaffMember = {
   name: string;
   title: string | null;
   bio: string | null;
+  email: string | null;
   photo_url: string | null;
   is_active: boolean;
   sort_order: number;
@@ -600,6 +601,7 @@ export type StaffInput = {
   name: string;
   title?: string | null;
   bio?: string | null;
+  email?: string | null;
   photo_url?: string | null;
   is_active?: boolean;
   calendar_account_id?: number | null;

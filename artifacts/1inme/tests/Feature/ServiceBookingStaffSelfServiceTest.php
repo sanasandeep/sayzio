@@ -423,6 +423,47 @@ class ServiceBookingStaffSelfServiceTest extends TestCase
         $this->assertNull(ServiceBookingStaff::find($staffId));
     }
 
+    public function test_owner_staff_notification_email_persists_and_is_validated(): void
+    {
+        [$owner, $link, $config] = $this->makePage();
+        $plan = Plan::create([
+            'name'               => 'Team',
+            'slug'               => 'plan-' . Str::lower(Str::random(6)),
+            'monthly_price'      => 0,
+            'annual_price'       => 0,
+            'trial_days'         => 0,
+            'grace_days'         => 0,
+            'refund_window_days' => 0,
+            'status'             => 'active',
+            'sort_order'         => 1,
+            'features'           => ['max_service_booking_staff' => -1],
+        ]);
+        $owner->update(['plan_id' => $plan->id]);
+        $owner = $owner->fresh();
+        $headers = [
+            'Authorization' => 'Bearer ' . $owner->createToken('test', ['*'])->plainTextToken,
+            'Accept'        => 'application/json',
+        ];
+        $base = '/api/v1/service-booking/links/' . $link->id . '/config/staff';
+
+        // Bad email rejected.
+        $this->postJson($base, ['name' => 'Priya', 'email' => 'not-an-email'], $headers)
+            ->assertStatus(422);
+
+        // Valid email persists and round-trips in the payload.
+        $created = $this->postJson($base, ['name' => 'Priya', 'email' => 'priya@example.com'], $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.staff.email', 'priya@example.com');
+        $staffId = $created->json('data.staff.id');
+        $this->assertSame('priya@example.com', ServiceBookingStaff::find($staffId)->email);
+
+        // Update can clear it.
+        $this->putJson($base . '/' . $staffId, ['email' => null], $headers)
+            ->assertOk()
+            ->assertJsonPath('data.staff.email', null);
+        $this->assertNull(ServiceBookingStaff::find($staffId)->fresh()->email);
+    }
+
     public function test_owner_can_manage_per_staff_hours_and_blocked_dates(): void
     {
         [$owner, $link, $config] = $this->makePage();

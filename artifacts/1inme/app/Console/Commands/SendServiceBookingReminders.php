@@ -35,11 +35,12 @@ class SendServiceBookingReminders extends Command
         $now  = now();
         $sent = 0;
 
-        // Load all confirmed future bookings that have an email address.
-        $bookings = ServiceBookingRequest::with(['serviceBooking', 'items', 'link'])
+        // Load all confirmed future bookings. Visitor reminders need a
+        // customer email; staff reminders only need an assigned team member
+        // with a notification email, so filter per-recipient below.
+        $bookings = ServiceBookingRequest::with(['serviceBooking', 'items', 'link', 'staff'])
             ->withoutGlobalScope('workspace')
             ->where('status', ServiceBookingRequest::STATUS_CONFIRMED)
-            ->whereNotNull('customer_email')
             ->where('slot_start', '>', $now)
             ->cursor();
 
@@ -56,10 +57,6 @@ class SendServiceBookingReminders extends Command
             foreach ($leads as $lead) {
                 $lead = (int) $lead;
                 if ($lead <= 0) {
-                    continue;
-                }
-
-                if ($booking->wasReminderSent($lead)) {
                     continue;
                 }
 
@@ -83,22 +80,48 @@ class SendServiceBookingReminders extends Command
                     ? round($lead / 60) . ' hour' . (round($lead / 60) !== 1.0 ? 's' : '')
                     : $lead . ' minute' . ($lead !== 1 ? 's' : '');
 
-                try {
-                    Emailer::send('service_booking.reminder', $booking->customer_email, [
-                        'customer'   => $booking->customer_name,
-                        'services'   => $serviceNames,
-                        'when'       => $when,
-                        'lead_label' => $leadLabel,
-                        'link_title' => $link?->title ?? 'your appointment',
-                        'status_url' => \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('sb.public.booking.page', ['token' => $booking->public_token])),
-                    ], [
-                        'related'  => $booking,
-                        'to_name'  => $booking->customer_name,
-                    ]);
-                    $booking->markReminderSent($lead);
-                    $sent++;
-                } catch (\Throwable $e) {
-                    $this->warn("Failed reminder for booking {$booking->id} (lead={$lead}): {$e->getMessage()}");
+                // Visitor reminder.
+                if ($booking->customer_email && !$booking->wasReminderSent($lead)) {
+                    try {
+                        Emailer::send('service_booking.reminder', $booking->customer_email, [
+                            'customer'   => $booking->customer_name,
+                            'services'   => $serviceNames,
+                            'when'       => $when,
+                            'lead_label' => $leadLabel,
+                            'link_title' => $link?->title ?? 'your appointment',
+                            'status_url' => \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('sb.public.booking.page', ['token' => $booking->public_token])),
+                        ], [
+                            'related'  => $booking,
+                            'to_name'  => $booking->customer_name,
+                        ]);
+                        $booking->markReminderSent($lead);
+                        $sent++;
+                    } catch (\Throwable $e) {
+                        $this->warn("Failed reminder for booking {$booking->id} (lead={$lead}): {$e->getMessage()}");
+                    }
+                }
+
+                // Assigned team member reminder (Task #6338).
+                $staff      = $booking->staff;
+                $staffEmail = trim((string) ($staff?->email ?? ''));
+                if ($staff && $staffEmail !== '' && !$booking->wasStaffReminderSent($lead)) {
+                    try {
+                        Emailer::send('service_booking.staff_reminder', $staffEmail, [
+                            'staff_name' => $staff->name,
+                            'customer'   => $booking->customer_name,
+                            'services'   => $serviceNames,
+                            'when'       => $when,
+                            'lead_label' => $leadLabel,
+                            'link_title' => $link?->title ?? 'your appointment',
+                        ], [
+                            'related' => $booking,
+                            'to_name' => $staff->name,
+                        ]);
+                        $booking->markStaffReminderSent($lead);
+                        $sent++;
+                    } catch (\Throwable $e) {
+                        $this->warn("Failed staff reminder for booking {$booking->id} (lead={$lead}): {$e->getMessage()}");
+                    }
                 }
             }
         }
