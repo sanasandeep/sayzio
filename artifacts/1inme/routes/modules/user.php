@@ -777,6 +777,11 @@ Route::prefix('user')->name('user.')->group(function () {
         // matched as a literal path and not as the `links/{link}` show-route.
         Route::get('links/check-alias', [LinkController::class, 'checkAlias'])->middleware('workspace.can:links.create')->name('links.check-alias');
 
+        // AJAX quick-shorten endpoint for the header clipboard-shortcut
+        // popover. Must also sit BEFORE the resource so the literal path
+        // wins over links/{link}. Same gating stack as the full store flow.
+        Route::post('links/quick-shorten', [LinkController::class, 'quickShorten'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.quick-shorten');
+
         // Export the My Links list (honours the list filters) as CSV. Must sit
         // BEFORE Route::resource('links', ...) so `links/export` is matched as
         // a literal path and not as the `links/{link}` show-route.

@@ -1370,6 +1370,10 @@
                         </div>
                     </div>
 
+                    @if($__can['links_create'])
+                        @include('user.partials.quick-shorten')
+                    @endif
+
                     <a href="{{ route('user.links.create') }}" class="btn-primary btn-primary-gradient hidden sm:inline-flex items-center gap-1.5 text-xs px-3.5 py-2 whitespace-nowrap">
                         <i class="fas fa-plus" style="font-size: 9px;"></i>
                         <span>New Link</span>
@@ -1426,6 +1430,12 @@
                         @endif
                         @if($__can['links_create'])
                         <a href="{{ route('user.links.create') }}" class="sidebar-link {{ request()->routeIs('user.links.create') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plus-circle"></i></div> <span>Create Link</span></a>
+                        {{-- Clipboard quick-shorten — mirrors the desktop header shortcut button (Task #6285) --}}
+                        <button type="button"
+                                @click="mobileMenu = false; $nextTick(() => window.dispatchEvent(new CustomEvent('open-quick-shorten')))"
+                                class="sidebar-link w-full text-left" style="color: var(--text-muted);">
+                            <div class="nav-icon-wrap"><i class="fas fa-bolt"></i></div> <span>Quick Shorten</span>
+                        </button>
                         @endif
                         @if($__can['links_view'])
                         <a href="{{ route('user.calendars.mine') }}" class="sidebar-link {{ request()->routeIs('user.calendars.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-days"></i></div> <span>My Calendar</span></a>

@@ -51,7 +51,14 @@ class CheckPlanLimit
             case 'links':
                 $maxLinks = $features['max_links'] ?? 5;
                 if ($maxLinks !== -1 && $user->links()->count() >= $maxLinks) {
-                    return back()->with('error', "You've reached your plan's link limit ({$maxLinks}). Upgrade your plan for more links.");
+                    $msg = "You've reached your plan's link limit ({$maxLinks}). Upgrade your plan for more links.";
+                    // AJAX callers (e.g. the header quick-shorten popover)
+                    // need the rejection inline as JSON — a redirect-back
+                    // would just hand fetch() an HTML page it can't parse.
+                    if ($request->expectsJson()) {
+                        return response()->json(['error' => $msg], 422);
+                    }
+                    return back()->with('error', $msg);
                 }
                 break;
 
