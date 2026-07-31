@@ -213,6 +213,37 @@
         width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border-glass);
         display: inline-block; vertical-align: middle;
     }
+
+    /* Inline block-edit modal — hosts the same AJAX edit form the Blocks
+       tab uses, so slide-block content is editable without leaving Slides
+       Mode. */
+    .sl-edit-overlay {
+        position: fixed; inset: 0; z-index: 1000;
+        background: rgba(2,6,23,0.62); backdrop-filter: blur(4px);
+        display: flex; align-items: flex-start; justify-content: center;
+        padding: 4vh 16px; overflow-y: auto;
+    }
+    .sl-edit-modal {
+        background: var(--bg-card); border: 1px solid var(--border-glass);
+        border-radius: 16px; width: 100%; max-width: 560px;
+        box-shadow: 0 24px 80px -20px rgba(0,0,0,0.7);
+        display: flex; flex-direction: column; max-height: 92vh;
+    }
+    .sl-edit-modal-head {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 10px; padding: 14px 18px;
+        border-bottom: 1px solid var(--border-glass); flex-shrink: 0;
+    }
+    .sl-edit-modal-head h5 { margin: 0; font-weight: 700; color: var(--text-primary); font-size: 15px; }
+    .sl-edit-modal-close {
+        background: transparent; border: 0; color: var(--text-muted);
+        font-size: 18px; cursor: pointer; padding: 4px 8px; line-height: 1;
+        border-radius: 8px;
+    }
+    .sl-edit-modal-close:hover { color: var(--text-primary); background: var(--bg-glass-input); }
+    .sl-edit-modal-body { padding: 16px 18px; overflow-y: auto; }
+    .sl-block-chip .sl-chip-edit { color: #90acff; font-size: 12px; }
+    html.light-mode .sl-block-chip .sl-chip-edit { color: #3d6bff; }
 </style>
 
 @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'slides'])
@@ -321,6 +352,19 @@
     </div>
 </div>
 
+{{-- Block-edit modal — loads the same AJAX edit form partial the Blocks tab
+     uses (user.links.partials.block-edit-form-ajax via editForm), so slide
+     blocks can be edited in place with zero duplicated form markup. --}}
+<div id="sl-edit-overlay" class="sl-edit-overlay" hidden>
+    <div class="sl-edit-modal" role="dialog" aria-modal="true" aria-label="Edit block">
+        <div class="sl-edit-modal-head">
+            <h5 id="sl-edit-title">Edit block</h5>
+            <button type="button" class="sl-edit-modal-close" onclick="closeEditDrawerGlobal()" title="Close">×</button>
+        </div>
+        <div id="sl-edit-body" class="sl-edit-modal-body"></div>
+    </div>
+</div>
+
 <script>
 const DECK = @json($deckPayload);
 const BLOCKS = @json($blockOptions);
@@ -329,6 +373,7 @@ const URLS = {
     toggle:     @json(route('user.links.slides.toggle', $link)),
     preview:    @json($previewUrl),
     blockStore: @json(route('user.links.blocks.store', $link)),
+    editForm:   @json(route('user.links.blocks.editForm', [$link, '__ID__'])),
 };
 // Plan-gated subset of block types creatable straight from the slides
 // editor. Creation POSTs to the shared biolink block store endpoint so
@@ -604,6 +649,7 @@ function renderSlides() {
                 row.innerHTML = `
                     <div class="sl-block-row-top">
                         <span class="sl-block-chip" style="margin:0;">${escAttr(blockLabel(bid))}
+                            <button type="button" class="sl-chip-edit" data-edit title="Edit content"><i class="fas fa-pen"></i></button>
                             <button type="button" data-rm title="Remove">×</button>
                         </span>
                         <div class="sl-span-row" style="flex:1; min-width: 220px;">
@@ -631,6 +677,7 @@ function renderSlides() {
                 `;
                 chips.appendChild(row);
 
+                row.querySelector('[data-edit]').addEventListener('click', () => slOpenBlockEdit(bid));
                 row.querySelector('[data-rm]').addEventListener('click', () => {
                     slides[i].block_ids.splice(bi, 1);
                     if (slides[i].block_settings) delete slides[i].block_settings[bid];
@@ -874,6 +921,148 @@ function reloadDevicePreview() {
             f.src = f.src + sep + '_t=' + Date.now();
         }
     });
+}
+
+// ---------------------------------------------------------------------------
+// In-slide block editing. Loads the shared AJAX edit-form partial (the same
+// one the Blocks tab uses) into a modal. The partial's markup calls the
+// globals `ajaxSaveBlock` / `closeEditDrawerGlobal`, and its style-gallery
+// scripts call `refreshBlockEditor` / `refreshPreview` / `showToast` — we
+// provide slides-flavoured implementations of all of them here.
+let _slEditBlockId = null;
+let _slEditInjectedScripts = [];
+
+function slOpenBlockEdit(blockId) {
+    _slEditBlockId = blockId;
+    const overlay = document.getElementById('sl-edit-overlay');
+    const body = document.getElementById('sl-edit-body');
+    document.getElementById('sl-edit-title').textContent = 'Edit · ' + blockLabel(blockId);
+    overlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+    body.innerHTML = '<div style="display:flex;justify-content:center;padding:48px 0;"><i class="fas fa-spinner fa-spin" style="font-size:22px;color:var(--text-faint);"></i></div>';
+    _slFetchEditForm(blockId, body);
+}
+
+function _slFetchEditForm(blockId, body) {
+    fetch(URLS.editForm.replace('__ID__', blockId), {
+        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+        credentials: 'same-origin',
+    }).then(r => r.json()).then(data => {
+        if (_slEditBlockId !== blockId) return; // modal closed / switched meanwhile
+        if (!data.html) { _slShowEditError(body, blockId); return; }
+        _slInjectEditForm(body, data.html);
+    }).catch(() => { if (_slEditBlockId === blockId) _slShowEditError(body, blockId); });
+}
+
+function _slShowEditError(body, blockId) {
+    body.innerHTML =
+        '<div style="text-align:center;padding:32px 0;">' +
+        '<p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Couldn\'t load the block editor.</p>' +
+        '<button type="button" class="sl-btn" onclick="slOpenBlockEdit(' + Number(blockId) + ')"><i class="fas fa-rotate-right"></i> Retry</button>' +
+        '</div>';
+}
+
+// Mirror of the Blocks tab's injector: strip <script> tags out of the
+// rendered partial, set the markup, then execute the scripts and hydrate
+// Alpine so pickers/galleries inside the form work.
+function _slInjectEditForm(body, html) {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    const scripts = [];
+    div.querySelectorAll('script').forEach(s => { scripts.push(s.textContent); s.remove(); });
+    body.innerHTML = div.innerHTML;
+    _slEditInjectedScripts.forEach(s => { if (s.parentNode) s.parentNode.removeChild(s); });
+    _slEditInjectedScripts = [];
+    scripts.forEach(code => {
+        try {
+            const script = document.createElement('script');
+            script.textContent = code;
+            document.body.appendChild(script);
+            _slEditInjectedScripts.push(script);
+        } catch (e) { console.warn('Script exec error:', e); }
+    });
+    if (window.Alpine && Alpine.initTree) { try { Alpine.initTree(body); } catch (e) {} }
+}
+
+// Called by the edit form's Cancel button and the modal close (X).
+function closeEditDrawerGlobal() {
+    const overlay = document.getElementById('sl-edit-overlay');
+    const body = document.getElementById('sl-edit-body');
+    if (window.Alpine && Alpine.destroyTree) { try { Alpine.destroyTree(body); } catch (e) {} }
+    body.innerHTML = '';
+    _slEditInjectedScripts.forEach(s => { if (s.parentNode) s.parentNode.removeChild(s); });
+    _slEditInjectedScripts = [];
+    overlay.hidden = true;
+    document.body.style.overflow = '';
+    _slEditBlockId = null;
+}
+
+document.getElementById('sl-edit-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeEditDrawerGlobal();
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && _slEditBlockId) closeEditDrawerGlobal();
+});
+
+// Design-gallery scripts inside the form re-fetch the whole form after a
+// variant is applied; in Slides Mode that just means reloading the modal.
+function refreshBlockEditor() {
+    if (!_slEditBlockId) return;
+    _slFetchEditForm(_slEditBlockId, document.getElementById('sl-edit-body'));
+}
+function refreshPreview() { reloadDevicePreview(); }
+function _refreshEditPreview() { reloadDevicePreview(); }
+
+// Minimal toast for form scripts that expect the Blocks tab's showToast.
+if (typeof window.showToast !== 'function') {
+    window.showToast = function (msg, type) {
+        const el = document.createElement('div');
+        el.textContent = msg;
+        el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:1100;'
+            + 'padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;color:#fff;'
+            + 'box-shadow:0 8px 30px -8px rgba(0,0,0,.5);background:'
+            + (type === 'error' ? '#dc2626' : '#16a34a') + ';';
+        document.body.appendChild(el);
+        setTimeout(() => { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; }, 2200);
+        setTimeout(() => el.remove(), 2600);
+    };
+}
+
+// Submit handler wired by the shared form partial (onsubmit="return
+// ajaxSaveBlock(event, this)"). Saves via the existing PUT blocks/{block}
+// endpoint, refreshes the chip label from the saved block, and reloads the
+// slide preview.
+function ajaxSaveBlock(e, form) {
+    e.preventDefault();
+    const btn = form.querySelector('button[type="submit"]');
+    const origText = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Saving...'; }
+    fetch(form.action, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin',
+        body: new FormData(form),
+    }).then(r => r.json()).then(data => {
+        if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+        if (data.success) {
+            if (data.block) {
+                const st = (data.block.settings && typeof data.block.settings === 'object') ? data.block.settings : {};
+                const label = ['title','text','heading','label'].map(k => st[k]).find(v => typeof v === 'string' && v.trim());
+                const entry = BLOCKS.find(b => b.id === data.block.id);
+                if (entry) entry.label = label ? String(label).slice(0, 60) : null;
+            }
+            showToast('Block saved', 'success');
+            closeEditDrawerGlobal();
+            renderSlides();
+            reloadDevicePreview();
+        } else {
+            showToast(data.error || 'Failed to save', 'error');
+        }
+    }).catch(() => {
+        if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+        showToast('Failed to save', 'error');
+    });
+    return false;
 }
 
 renderSlides();

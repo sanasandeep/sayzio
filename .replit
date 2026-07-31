@@ -68,6 +68,10 @@ args = "e2e-quick-shorten-backhalf"
 task = "workflow.run"
 args = "e2e-slides-editor-block-create"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-slides-block-edit-modal"
+
 [[workflows.workflow]]
 name = "e2e-block-defaults"
 author = "agent"
@@ -207,6 +211,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh slides-editor-block-create.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-slides-block-edit-modal"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh slides-block-edit-modal.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
