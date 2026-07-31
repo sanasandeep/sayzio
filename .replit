@@ -72,6 +72,10 @@ args = "e2e-slides-editor-block-create"
 task = "workflow.run"
 args = "e2e-slides-block-edit-modal"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-sidebar-findbar"
+
 [[workflows.workflow]]
 name = "e2e-block-defaults"
 author = "agent"
@@ -222,6 +226,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh slides-block-edit-modal.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-sidebar-findbar"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5178 bash tests/Browser/run-validation.sh sidebar-findbar.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true

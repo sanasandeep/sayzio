@@ -200,11 +200,33 @@
         selected: [],
         moveOpen: false,
         moveTarget: '',
+        view: localStorage.getItem('sayzio_links_view') === 'grid' ? 'grid' : 'list',
+        setView(v) { this.view = v; localStorage.setItem('sayzio_links_view', v); },
         toggleAll(e) {
             const ids = Array.from(document.querySelectorAll('[data-link-id]')).map(el => parseInt(el.dataset.linkId, 10));
             this.selected = e.target.checked ? ids : [];
         },
     }">
+
+{{-- ===== View toggle: list (rows) vs grid (folder-coloured icon tiles) ===== --}}
+<div class="flex items-center justify-end mb-3">
+    <div class="inline-flex items-center rounded-xl border p-0.5" style="border-color: var(--border-strong); background: var(--bg-card);" role="group" aria-label="View mode">
+        <button type="button" @click="setView('list')"
+                :class="view === 'list' ? 'bg-blue-500/15 text-blue-400' : ''"
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                :style="view === 'list' ? '' : 'color: var(--text-faint);'"
+                :aria-pressed="view === 'list' ? 'true' : 'false'" title="List view">
+            <i class="fas fa-list text-[10px]"></i> List
+        </button>
+        <button type="button" @click="setView('grid')"
+                :class="view === 'grid' ? 'bg-blue-500/15 text-blue-400' : ''"
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                :style="view === 'grid' ? '' : 'color: var(--text-faint);'"
+                :aria-pressed="view === 'grid' ? 'true' : 'false'" title="Grid view">
+            <i class="fas fa-border-all text-[10px]"></i> Grid
+        </button>
+    </div>
+</div>
 
 @if($__canMove)
 <div x-show="selected.length > 0" x-cloak
@@ -250,7 +272,7 @@
         'resume'  => ['bg' => 'rgba(99,102,241,0.08)', 'border' => 'rgba(99,102,241,0.12)', 'color' => '#a5b4fc'],
     ];
 @endphp
-<div class="space-y-2.5">
+<div class="space-y-2.5" x-show="view === 'list'">
     @foreach($links as $link)
     @php
         $typeMeta  = $linkTypes[$link->type] ?? $linkTypes['url'];
@@ -488,6 +510,43 @@
             </div>
         </div>
     </div>
+    @endforeach
+</div>
+
+{{-- ===== GRID VIEW: Finder-style icon tiles, tinted by the folder colour ===== --}}
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" x-show="view === 'grid'" x-cloak>
+    @foreach($links as $link)
+    @php
+        $typeMeta = $linkTypes[$link->type] ?? $linkTypes['url'];
+        // Tile tint follows the folder (project) colour; default blue when the
+        // link is not in a folder or the folder has no colour set.
+        $__pcHex = $link->project?->color ?: '#3b82f6';
+        $__pcHex = preg_match('/^#[0-9a-fA-F]{6}$/', $__pcHex) ? $__pcHex : '#3b82f6';
+        [$__pr, $__pg, $__pb] = sscanf($__pcHex, '#%02x%02x%02x');
+    @endphp
+    <a href="{{ route('user.links.show', $link) }}"
+       class="card-premium p-4 flex flex-col items-center text-center group relative transition-transform hover:-translate-y-0.5"
+       title="{{ $link->title ?: $link->alias }}">
+        @if(!$link->is_active)
+            <span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-400" title="Inactive"></span>
+        @endif
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-2.5"
+             style="background: rgba({{ $__pr }},{{ $__pg }},{{ $__pb }},0.12); border: 1px solid rgba({{ $__pr }},{{ $__pg }},{{ $__pb }},0.25);">
+            <i class="fas {{ $typeMeta['icon'] }} text-xl" style="color: {{ $__pcHex }};"></i>
+        </div>
+        <p class="text-xs font-semibold w-full truncate" style="color: var(--text-primary);">{{ $link->title ?: $link->alias }}</p>
+        <p class="text-[10px] w-full truncate mt-0.5 text-blue-400/60">{{ $link->getShortUrl() }}</p>
+        <div class="flex items-center gap-1.5 mt-1.5 text-[10px]" style="color: var(--text-faint);">
+            @if($link->project)
+                <span class="flex items-center gap-1 min-w-0">
+                    <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background-color: {{ $__pcHex }}"></span>
+                    <span class="truncate max-w-[90px]">{{ $link->project->name }}</span>
+                </span>
+                <span aria-hidden="true">·</span>
+            @endif
+            <span>{{ number_format($link->total_clicks) }} clicks</span>
+        </div>
+    </a>
     @endforeach
 </div>
 

@@ -31,3 +31,9 @@ container after a refactor.
   (`elementFromPoint` at its center once its rect is past the box edge).
 - Guarded example: `artifacts/1inme/tests/Browser/sidebar-findbar.spec.ts`
   (the sidebar `<nav>` = paint boundary + inner `.sidebar-nav-scroll`).
+
+**Safari gotcha (the bug came back in prod):** `overflow:hidden` boxes are
+still programmatically scrollable, and Safari's find-in-page reveal WILL scroll
+them — blanking the nav with no scrollbar to recover. The robust paint boundary
+is `overflow:clip` (unscrollable by spec) plus an `onscroll` scrollTop-reset
+fallback for engines without clip. The spec accepts 'hidden' OR 'clip'.

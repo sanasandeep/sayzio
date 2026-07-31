@@ -255,10 +255,13 @@ test.describe("sidebar find-bar fix", () => {
     if (!shape.found) return;
 
     // 1) The <nav> is a bounded paint boundary — NOT itself a scroll container.
+    // 'clip' is the strengthened form of the fix: unlike 'hidden', a clip box
+    // cannot be programmatically scrolled at all — Safari's find-in-page was
+    // still able to scroll the overflow:hidden nav and blank the menu.
     expect(
-      shape.nav.overflowY,
-      `sidebar <nav> overflow-y must be 'hidden' (a paint boundary), got '${shape.nav.overflowY}' — the find-bar fix was reverted to a direct scroll container`,
-    ).toBe("hidden");
+      ["hidden", "clip"],
+      `sidebar <nav> overflow-y must be 'hidden' or 'clip' (a paint boundary), got '${shape.nav.overflowY}' — the find-bar fix was reverted to a direct scroll container`,
+    ).toContain(shape.nav.overflowY);
     expect(
       shape.nav.position,
       `sidebar <nav> position must be 'relative' to host the absolute inner scroller, got '${shape.nav.position}'`,
