@@ -1,5 +1,7 @@
 <?php
 
+use App\Modules\Common\Support\PlatformHosts;
+use App\Modules\User\Models\Domain;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Project;
 use App\Modules\User\Models\User;
@@ -10,6 +12,19 @@ if (!$user) {
     echo "ERROR: user sana@sayzio.app not found\n";
     return;
 }
+
+// Domain binding: bind seeded links to the admin-global primary brand domain
+// row (sayzio.app) when it exists, matching links created through the app UI
+// on production. NOTE: domain_id NULL would ALSO resolve on sayzio.app — the
+// default platform domain's alias namespace includes legacy NULL rows (see
+// Link::resolveByAlias + AliasNamespace::scope, pinned by
+// SeededLinkDomainResolutionTest) — but binding explicitly keeps seeded rows
+// indistinguishable from UI-created ones. Never hardcode a numeric id here;
+// row ids differ across environments.
+$primaryDomainId = Domain::whereNull('user_id')
+    ->where('domain', PlatformHosts::primaryBrandDomain())
+    ->value('id');
+echo 'Primary brand domain id: ' . var_export($primaryDomainId, true) . "\n";
 
 $workspaceId = optional($user->ownedWorkspaces()->orderBy('id')->first())->id;
 echo "User #{$user->id}, workspace: " . var_export($workspaceId, true) . "\n";
@@ -73,7 +88,7 @@ foreach ($folders as $name => $def) {
             'user_id' => $user->id,
             'project_id' => $project->id,
             'type' => 'url',
-        'domain_id' => 2,
+        'domain_id' => $primaryDomainId,
             'alias' => $mkAlias(),
             'title' => $title,
             'long_url' => $url,
@@ -98,7 +113,7 @@ foreach ($unfiled as [$title, $url]) {
     $link = new Link([
         'user_id' => $user->id,
         'type' => 'url',
-        'domain_id' => 2,
+        'domain_id' => $primaryDomainId,
         'alias' => $mkAlias(),
         'title' => $title,
         'long_url' => $url,
