@@ -387,20 +387,29 @@ export function suggestFor(
  * Predict likely next words after `prevWord` from learned bigram frequency
  * (most-used first). Used when the strip has no in-progress prefix — i.e.
  * right after a space — to suggest whole next words like phone keyboards.
+ *
+ * When the learned bigrams have no match for `prevWord`, an optional bundled
+ * common-pairs table (`fallback`) fills in so predictions work from day one.
+ * Learned pairs always outrank the fallback; nothing new is stored or learned.
  */
 export function suggestNextWords(
   prevWord: string,
   bigrams: VkBigramHistory,
   limit = 3,
+  fallback?: Readonly<Record<string, readonly string[]>>,
 ): VkSuggestion[] {
   const prev = prevWord.trim().toLowerCase();
   if (!prev || limit <= 0) return [];
   const prefix = `${prev} `;
-  return Object.entries(bigrams)
+  const learned = Object.entries(bigrams)
     .filter(([k]) => k.startsWith(prefix))
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
     .map(([k]) => ({ word: k.slice(prefix.length), source: 'prediction' as const }));
+  if (learned.length > 0 || !fallback) return learned;
+  const common = fallback[prev];
+  if (!common) return [];
+  return common.slice(0, limit).map(word => ({ word, source: 'prediction' as const }));
 }
 
 /** The trailing word of a typed buffer (letters/apostrophes), or ''. */

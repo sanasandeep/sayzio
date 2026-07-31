@@ -50,7 +50,7 @@ import {
   VK_SYMBOL_ROWS,
   VK_NUMERIC_ROWS,
 } from '../src/shared/virtual-keyboard';
-import { VK_DICTIONARY } from '../src/shared/vk-dictionary';
+import { VK_COMMON_BIGRAMS, VK_DICTIONARY } from '../src/shared/vk-dictionary';
 import { PREFERENCE_KEYS } from '../src/shared/db-schema';
 
 describe('preference keys', () => {
@@ -264,6 +264,34 @@ describe('bigram (next-word) history', () => {
     expect(suggestNextWords('nowhere', bigrams)).toEqual([]);
     expect(suggestNextWords('', bigrams)).toEqual([]);
     expect(suggestNextWords('on', bigrams, 1)).toEqual([{ word: 'the', source: 'prediction' }]);
+  });
+
+  it('falls back to built-in common pairs only when learned bigrams have no match', () => {
+    const bigrams = { 'on the': 9 };
+    // No learned match → fallback fills in.
+    expect(suggestNextWords('thank', bigrams, 3, VK_COMMON_BIGRAMS)).toEqual([
+      { word: 'you', source: 'prediction' },
+    ]);
+    // Learned pairs outrank the fallback entirely.
+    expect(suggestNextWords('on', bigrams, 3, VK_COMMON_BIGRAMS)).toEqual([
+      { word: 'the', source: 'prediction' },
+    ]);
+    // Respects limit and case-insensitivity; unknown words still yield nothing.
+    expect(suggestNextWords('Thank', bigrams, 3, VK_COMMON_BIGRAMS)).toEqual([
+      { word: 'you', source: 'prediction' },
+    ]);
+    expect(suggestNextWords('of', bigrams, 2, VK_COMMON_BIGRAMS)).toHaveLength(2);
+    expect(suggestNextWords('zzzunknown', bigrams, 3, VK_COMMON_BIGRAMS)).toEqual([]);
+    // No fallback provided → old behavior.
+    expect(suggestNextWords('thank', bigrams)).toEqual([]);
+  });
+
+  it('VK_COMMON_BIGRAMS entries are well-formed lowercase words', () => {
+    for (const [prev, nexts] of Object.entries(VK_COMMON_BIGRAMS)) {
+      expect(prev).toMatch(/^[a-z']{1,32}$/);
+      expect(nexts.length).toBeGreaterThan(0);
+      for (const w of nexts) expect(w).toMatch(/^[a-z']{1,32}$/);
+    }
   });
 });
 

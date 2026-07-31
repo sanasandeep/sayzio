@@ -42,7 +42,7 @@ import {
   type VkStripUpdatePayload,
   type VkSpecialKey,
 } from '../../shared/virtual-keyboard';
-import { VK_DICTIONARY } from '../../shared/vk-dictionary';
+import { VK_COMMON_BIGRAMS, VK_DICTIONARY } from '../../shared/vk-dictionary';
 
 interface Props {
   settings: VkSettings;
@@ -136,7 +136,7 @@ export function VirtualKeyboard({ settings, fieldKind, onClose }: Props) {
     if (!allowSuggest) return [];
     if (prefix) return suggestFor(prefix, { shortcuts, history, dictionary: VK_DICTIONARY });
     // After a space: predict whole next words from learned bigrams.
-    if (prevWord && buffer.endsWith(' ')) return suggestNextWords(prevWord, bigrams);
+    if (prevWord && buffer.endsWith(' ')) return suggestNextWords(prevWord, bigrams, 3, VK_COMMON_BIGRAMS);
     return [];
   }, [allowSuggest, prefix, shortcuts, history, prevWord, buffer, bigrams]);
 
