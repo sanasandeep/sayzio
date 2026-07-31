@@ -511,7 +511,12 @@
                     'referrals_view' => WP::userCan('referrals.view'),
                 ];
             @endphp
-            <nav class="flex-1 relative overflow-hidden">
+            {{-- overflow:clip (not hidden): browser find-in-page (esp. Safari) can
+                 programmatically scroll an overflow:hidden box, blanking the whole
+                 nav with no scrollbar to recover it. clip is unscrollable by spec;
+                 the onscroll reset is the fallback for engines without clip. --}}
+            <nav class="flex-1 relative overflow-hidden" style="overflow:clip"
+                 onscroll="this.scrollTop=0;this.scrollLeft=0">
             <div class="absolute inset-0 overflow-y-auto overflow-x-hidden sidebar-nav-scroll py-4" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
                 {{-- ========== TOP LEVEL — most-used destinations stay visible ========== --}}
                 <a href="{{ route('user.dashboard') }}"
