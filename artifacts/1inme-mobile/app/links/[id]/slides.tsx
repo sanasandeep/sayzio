@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 
+import { BlockSettingsEditor } from "@/app/links/[id]/blocks/[blockId]";
 import { Button } from "@/components/Button";
 import { ColorSwatchRow } from "@/components/ColorSwatchRow";
 import { TextField } from "@/components/TextField";
@@ -61,6 +62,9 @@ export default function SlidesEditorScreen() {
   // Auto-play: deck settings.auto_advance is milliseconds; 0 = off. The UI
   // exposes a toggle + a seconds field, mirroring the web slides editor.
   const [autoOn, setAutoOn] = useState(false);
+  // In-place block editing (Task #6391): tapping an attached block row
+  // expands the shared BlockSettingsEditor inline beneath it.
+  const [expandedBlockId, setExpandedBlockId] = useState<number | null>(null);
   const [autoSeconds, setAutoSeconds] = useState("5");
   const [loop, setLoop] = useState(false);
   const [published, setPublished] = useState(false);
@@ -486,41 +490,87 @@ export default function SlidesEditorScreen() {
                 ) : (
                   s.block_ids.map((bid) => {
                     const b = blockById.get(bid);
+                    const expanded = expandedBlockId === bid;
                     return (
-                      <View
-                        key={bid}
-                        style={[
-                          styles.blockRow,
-                          {
-                            borderColor: colors.border,
-                            borderRadius: colors.radius,
-                          },
-                        ]}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <Text
-                            style={[
-                              styles.blockType,
-                              { color: colors.foreground },
-                            ]}
+                      <View key={bid}>
+                        <View
+                          style={[
+                            styles.blockRow,
+                            {
+                              borderColor: expanded
+                                ? colors.primary
+                                : colors.border,
+                              borderRadius: colors.radius,
+                            },
+                          ]}
+                        >
+                          <Pressable
+                            style={{ flex: 1 }}
+                            onPress={() =>
+                              setExpandedBlockId(expanded ? null : bid)
+                            }
                           >
-                            {b?.type ?? `Block #${bid}`}
-                          </Text>
-                          {b?.label ? (
                             <Text
-                              numberOfLines={1}
                               style={[
-                                styles.hint,
-                                { color: colors.mutedForeground },
+                                styles.blockType,
+                                { color: colors.foreground },
                               ]}
                             >
-                              {b.label}
+                              {b?.type ?? `Block #${bid}`}
                             </Text>
-                          ) : null}
+                            {b?.label ? (
+                              <Text
+                                numberOfLines={1}
+                                style={[
+                                  styles.hint,
+                                  { color: colors.mutedForeground },
+                                ]}
+                              >
+                                {b.label}
+                              </Text>
+                            ) : null}
+                          </Pressable>
+                          <Pressable
+                            onPress={() =>
+                              setExpandedBlockId(expanded ? null : bid)
+                            }
+                            hitSlop={8}
+                            style={{ marginRight: 12 }}
+                          >
+                            <Feather
+                              name={expanded ? "chevron-up" : "edit-2"}
+                              size={15}
+                              color={expanded ? colors.primary : colors.mutedForeground}
+                            />
+                          </Pressable>
+                          <Pressable onPress={() => detachBlock(i, bid)} hitSlop={8}>
+                            <Feather name="x" size={16} color={colors.destructive} />
+                          </Pressable>
                         </View>
-                        <Pressable onPress={() => detachBlock(i, bid)} hitSlop={8}>
-                          <Feather name="x" size={16} color={colors.destructive} />
-                        </Pressable>
+                        {expanded ? (
+                          <View
+                            style={[
+                              styles.inlineEditor,
+                              {
+                                borderColor: colors.border,
+                                borderBottomLeftRadius: colors.radius,
+                                borderBottomRightRadius: colors.radius,
+                              },
+                            ]}
+                          >
+                            <BlockSettingsEditor
+                              inline
+                              linkId={id}
+                              blockId={bid}
+                              onDone={() => {
+                                setExpandedBlockId(null);
+                                qc.invalidateQueries({
+                                  queryKey: ["slides-deck", id],
+                                });
+                              }}
+                            />
+                          </View>
+                        ) : null}
                       </View>
                     );
                   })
@@ -1143,4 +1193,9 @@ const styles = StyleSheet.create({
   vaultGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   vaultThumbWrap: { borderRadius: 8, overflow: "hidden" },
   vaultThumb: { width: 64, height: 64 },
+  inlineEditor: {
+    borderWidth: 1,
+    borderTopWidth: 0,
+    padding: 12,
+  },
 });
