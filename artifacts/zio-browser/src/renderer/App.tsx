@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChromeBar } from './components/ChromeBar';
 import { ZioPanel } from './components/ZioPanel';
+import { FilesPane } from './components/FilesPane';
 import { DialerPanel } from './components/DialerPanel';
 import { NewTabPage } from './components/NewTabPage';
 import { AboutPage } from './components/AboutPages';
@@ -322,8 +323,18 @@ export default function App() {
   const showDockedPanel = ((zioPanelOpen && zioPanelDocked && !isPrivate) || activeTabZioSplit) && !settingsOpen;
   const showOverlayPanel = zioPanelOpen && !zioPanelDocked && !isPrivate && !activeTabZioSplit && !settingsOpen;
 
+  // ── My Files pane presentation flags ───────────────────────────────────────
+  // Standalone 'files' and 'files+zio' render the Files pane in the content
+  // flex area (in files+zio the docked Zio panel takes the right strip).
+  // 'dashboard+files' / 'browser+files' render it absolutely to the RIGHT of
+  // the tab-split divider (the main process leaves that half empty — the
+  // 'files' pane has no native view).
+  const activeTabFilesEmbedded =
+    !isPrivate && (activeTabMode === 'files' || activeTabMode === 'files+zio') && !settingsOpen;
+
   // ── Tab split (two native panes) divider ──────────────────────────────────
   const activeTabPanes = parseTabMode(activeTabMode);
+  const activeTabFilesRight = !isPrivate && activeTabPanes.right === 'files' && !settingsOpen;
   const activeTabTwoNativePanes = !!activeTab && activeTabPanes.right !== null && activeTabPanes.right !== 'zio';
   const activeTabSplitRatio =
     tabDragRatio ??
@@ -718,6 +729,13 @@ export default function App() {
               />
             </div>
           )}
+          {/* Full-area My Files — 'files' fills the tab; in 'files+zio' the
+              docked Zio panel takes the right strip and this fills the rest. */}
+          {activeTabFilesEmbedded && (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'stretch' }}>
+              <FilesPane onOpenAuth={() => setAuthModalOpen(true)} />
+            </div>
+          )}
         </div>
 
         {/* ── Dual address bars for Website + Website (one per pane) ────── */}
@@ -748,6 +766,25 @@ export default function App() {
             }}
             title="Drag to resize split"
           />
+        )}
+
+        {/* ── My Files right pane (dashboard+files / browser+files) ────────
+            The main process leaves the right half of the split empty (the
+            'files' pane has no native view); this renders the Files pane
+            there, tracking the divider ratio live while dragging. */}
+        {activeTabFilesRight && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: `calc(${activeTabSplitRatio * 100}% + ${Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2)}px)`,
+            right: 0,
+            display: 'flex',
+            alignItems: 'stretch',
+            zIndex: 5,
+          }}>
+            <FilesPane onOpenAuth={() => setAuthModalOpen(true)} />
+          </div>
         )}
 
         {/* ── Docked Zio panel (push layout) ─────────────────────────────── */}

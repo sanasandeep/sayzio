@@ -623,6 +623,20 @@ export class ApiClient {
 
     return (json as ApiEnvelope<{ file: ApiFile }>).data.file;
   }
+
+  /** List the user's Sayzio Files vault (newest first). */
+  async listFiles(params?: { page?: number; per_page?: number }): Promise<ApiFilesPage> {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.per_page) qs.set('per_page', String(params.per_page));
+    const query = qs.toString() ? `?${qs.toString()}` : '';
+    return this.get<ApiFilesPage>(`/me/files${query}`);
+  }
+
+  /** Delete a file from the user's Sayzio Files vault. */
+  async deleteFile(id: number): Promise<void> {
+    await this.delete(`/me/files/${id}`);
+  }
 }
 
 // ── Shared types ─────────────────────────────────────────────────────────────
@@ -635,6 +649,20 @@ export interface ApiFile {
   size: number;
   url: string;
   created_at: string | null;
+  /** File kind reported by the API (image, video, document, …). */
+  type?: string;
+  /** Human-readable size string from the API (e.g. "1.2 MB"). */
+  size_human?: string;
+  url_path?: string;
+}
+
+export interface ApiFilesPage {
+  files: ApiFile[];
+  pagination: {
+    current_page: number;
+    last_page: number;
+    total: number;
+  };
 }
 
 export interface BrowserDeviceInfo {

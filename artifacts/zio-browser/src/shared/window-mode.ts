@@ -33,20 +33,22 @@ export const WINDOW_MODE_ICONS: Record<WindowMode, string> = {
 // (The standalone 'sayzio' website pane was removed — the Sayzio site is
 // reachable as a regular website tab; see normalizeTabMode for legacy mapping.)
 
-export type TabPane = 'browser' | 'dashboard' | 'zio';
+export type TabPane = 'browser' | 'dashboard' | 'zio' | 'files';
 
-export const TAB_PANES: TabPane[] = ['browser', 'dashboard', 'zio'];
+export const TAB_PANES: TabPane[] = ['browser', 'dashboard', 'zio', 'files'];
 
 export const TAB_PANE_LABELS: Record<TabPane, string> = {
   browser: 'Website',
   dashboard: 'Dashboard',
   zio: 'Ask Zio',
+  files: 'My Files',
 };
 
 export const TAB_PANE_ICONS: Record<TabPane, string> = {
   browser: '🌐',
   dashboard: '⊡',
   zio: '⚡',
+  files: '📁',
 };
 
 /**
@@ -57,49 +59,69 @@ export type TabMode =
   | 'browser'
   | 'dashboard'
   | 'zio'
+  | 'files'
   | 'dashboard+browser'
   | 'browser+browser'
   | 'browser+zio'
-  | 'dashboard+zio';
+  | 'dashboard+zio'
+  | 'dashboard+files'
+  | 'files+zio'
+  | 'browser+files';
 
 export const TAB_MODES: TabMode[] = [
   'browser',
   'dashboard',
   'zio',
+  'files',
   'dashboard+browser',
   'browser+browser',
   'browser+zio',
   'dashboard+zio',
+  'dashboard+files',
+  'files+zio',
+  'browser+files',
 ];
 
 export const TAB_MODE_LABELS: Record<TabMode, string> = {
   browser: 'Website',
   dashboard: 'Dashboard',
   zio: 'Ask Zio',
+  files: 'My Files',
   'dashboard+browser': 'Dashboard + Website',
   'browser+browser': 'Website + Website',
   'browser+zio': 'Website + Ask Zio',
   'dashboard+zio': 'Dashboard + Ask Zio',
+  'dashboard+files': 'Dashboard + My Files',
+  'files+zio': 'My Files + Ask Zio',
+  'browser+files': 'Website + My Files',
 };
 
 export const TAB_MODE_DESCRIPTIONS: Record<TabMode, string> = {
   browser: 'Just the website in this tab',
   dashboard: 'Your Sayzio dashboard fills this tab',
   zio: 'Ask Zio fills this tab',
+  files: 'Your Sayzio Files fill this tab — drop files to upload',
   'dashboard+browser': 'Dashboard on the left, website on the right',
   'browser+browser': 'Two independent websites side by side',
   'browser+zio': 'Website on the left, Ask Zio on the right',
   'dashboard+zio': 'Dashboard on the left, Ask Zio on the right',
+  'dashboard+files': 'Dashboard on the left, your files on the right',
+  'files+zio': 'Your files on the left, Ask Zio on the right',
+  'browser+files': 'Website on the left, your files on the right',
 };
 
 export const TAB_MODE_ICONS: Record<TabMode, string> = {
   browser: '🌐',
   dashboard: '⊡',
   zio: '⚡',
+  files: '📁',
   'dashboard+browser': '⊡🌐',
   'browser+browser': '🌐🌐',
   'browser+zio': '🌐⚡',
   'dashboard+zio': '⊡⚡',
+  'dashboard+files': '⊡📁',
+  'files+zio': '📁⚡',
+  'browser+files': '🌐📁',
 };
 
 /** Split a TabMode into its left/right panes. */

@@ -1284,7 +1284,9 @@ export class TabManager {
         // New Tab page is renderer-drawn — no native view may cover it.
         case 'browser': return tab.isNewTabPage ? null : tab.view;
         case 'dashboard': return tab.dashboardView;
+        // Ask Zio and My Files panes are renderer-drawn — no native view.
         case 'zio': return null;
+        case 'files': return null;
       }
     };
 
@@ -1700,6 +1702,7 @@ export class TabManager {
         case 'browser': return tab.isNewTabPage ? null : tab.view;
         case 'dashboard': return tab.dashboardView;
         case 'zio': return null;
+        case 'files': return null;
       }
     };
     const views: WebContentsView[] = [];

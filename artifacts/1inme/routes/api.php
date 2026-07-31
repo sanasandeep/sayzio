@@ -1163,6 +1163,7 @@ Route::prefix('v1')->group(function () {
         // pipeline (quota + mime allowlist + image compression).
         Route::get ('/me/files',        [\App\Modules\Api\Controllers\FilesController::class, 'index']);
         Route::post('/me/files/upload', [\App\Modules\Api\Controllers\FilesController::class, 'upload'])->middleware('throttle:30,1');
+        Route::delete('/me/files/{file}', [\App\Modules\Api\Controllers\FilesController::class, 'destroy'])->whereNumber('file');
         // Task #6028 — server-side import of a curated platform asset
         // (key allow-listed to assets/<folder>/ prefixes); needed because
         // the asset CDN has no CORS headers, so Expo WEB can't fetch the
