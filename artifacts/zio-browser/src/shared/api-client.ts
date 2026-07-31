@@ -723,7 +723,10 @@ export interface DialerSearchResult {
 }
 
 export interface DialerHandoffStatus {
+  /** A Zio Dialer install is signed in (device record OR push token). */
   device_linked: boolean;
+  /** A push token exists, so click-to-call requests can be delivered. */
+  push_available: boolean;
 }
 
 export interface DialerCallRequestResult {

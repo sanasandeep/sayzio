@@ -15,14 +15,28 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 import { useWebFocusRing } from "@/hooks/useWebFocusRing";
+import { syncDialerDeviceRegistration } from "@/lib/api/dialerDevice";
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
+
+// Records this install with the backend at sign-in/unlock, independent of
+// push-token registration, so the Zio Browser Dialer pane knows a phone is
+// linked even when notification permission was denied (task #6353).
+function DialerDeviceRegistrar() {
+  const { user, token, locked } = useAuth();
+  useEffect(() => {
+    if (user && token && !locked) {
+      void syncDialerDeviceRegistration();
+    }
+  }, [user, token, locked]);
+  return null;
+}
 
 function RootLayoutNav() {
   const colors = useColors();
@@ -100,6 +114,7 @@ export default function RootLayout() {
             <AuthProvider>
               <GestureHandlerRootView style={{ flex: 1 }}>
                 <RootLayoutNav />
+                <DialerDeviceRegistrar />
               </GestureHandlerRootView>
             </AuthProvider>
           </ErrorBoundary>

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Common\Services\ExpoPushNotifier;
 use App\Modules\User\Models\DevicePushToken;
 use App\Modules\User\Models\DialerCallEvent;
+use App\Modules\User\Models\DialerDevice;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -66,24 +67,138 @@ class DialerHandoffTest extends TestCase
             ->assertStatus(401);
     }
 
-    public function test_handoff_status_reports_device_linked(): void
+    public function test_handoff_status_reports_device_linked_and_push_available(): void
     {
         $this->getJson('/api/v1/dialer/handoff/status')->assertStatus(401);
 
         $user = $this->makeUser();
         $token = $this->tokenFor($user);
 
+        // Nothing registered at all.
         $this->withToken($token)
             ->getJson('/api/v1/dialer/handoff/status')
             ->assertStatus(200)
-            ->assertJsonPath('data.device_linked', false);
+            ->assertJsonPath('data.device_linked', false)
+            ->assertJsonPath('data.push_available', false);
 
+        // Device record only (app installed, notifications denied):
+        // linked, but push unavailable — the desktop shows the
+        // "enable notifications" hint, NOT the download promo.
+        DialerDevice::create([
+            'user_id'    => $user->id,
+            'device_key' => 'device-key-' . Str::random(12),
+        ]);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/dialer/handoff/status')
+            ->assertStatus(200)
+            ->assertJsonPath('data.device_linked', true)
+            ->assertJsonPath('data.push_available', false);
+
+        // Push token added → both true.
         $this->registerPhone($user);
 
         $this->withToken($token)
             ->getJson('/api/v1/dialer/handoff/status')
             ->assertStatus(200)
-            ->assertJsonPath('data.device_linked', true);
+            ->assertJsonPath('data.device_linked', true)
+            ->assertJsonPath('data.push_available', true);
+    }
+
+    public function test_handoff_status_push_token_alone_counts_as_linked(): void
+    {
+        // Legacy installs registered a push token but never a device
+        // record — they must still count as linked.
+        $user = $this->makeUser();
+        $this->registerPhone($user);
+
+        $this->withToken($this->tokenFor($user))
+            ->getJson('/api/v1/dialer/handoff/status')
+            ->assertStatus(200)
+            ->assertJsonPath('data.device_linked', true)
+            ->assertJsonPath('data.push_available', true);
+    }
+
+    public function test_register_device_upserts_and_heartbeats(): void
+    {
+        $this->postJson('/api/v1/dialer/device', ['device_key' => 'abcdef123456'])
+            ->assertStatus(401);
+
+        $user  = $this->makeUser();
+        $token = $this->tokenFor($user);
+
+        $this->withToken($token)
+            ->postJson('/api/v1/dialer/device', [
+                'device_key'  => 'my-device-key-01',
+                'platform'    => 'android',
+                'device_name' => 'Pixel 9',
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('data.registered', true);
+
+        $this->assertDatabaseHas('dialer_devices', [
+            'user_id'     => $user->id,
+            'device_key'  => 'my-device-key-01',
+            'platform'    => 'android',
+            'device_name' => 'Pixel 9',
+        ]);
+
+        // Re-registering the same key heartbeats the existing row, never
+        // duplicates it.
+        $this->withToken($token)
+            ->postJson('/api/v1/dialer/device', [
+                'device_key' => 'my-device-key-01',
+                'platform'   => 'android',
+            ])
+            ->assertStatus(200);
+
+        $this->assertSame(1, DialerDevice::where('user_id', $user->id)->count());
+
+        // Bad keys are rejected: too short, or disallowed characters.
+        $this->withToken($token)
+            ->postJson('/api/v1/dialer/device', ['device_key' => 'short'])
+            ->assertStatus(422);
+        $this->withToken($token)
+            ->postJson('/api/v1/dialer/device', ['device_key' => 'bad key with spaces!'])
+            ->assertStatus(422);
+    }
+
+    public function test_unregister_device_removes_only_own_row(): void
+    {
+        $user  = $this->makeUser();
+        $other = $this->makeUser('o');
+
+        DialerDevice::create(['user_id' => $user->id,  'device_key' => 'shared-key-123']);
+        DialerDevice::create(['user_id' => $other->id, 'device_key' => 'shared-key-123']);
+
+        $this->withToken($this->tokenFor($user))
+            ->deleteJson('/api/v1/dialer/device', ['device_key' => 'shared-key-123'])
+            ->assertStatus(200)
+            ->assertJsonPath('data.unregistered', true);
+
+        $this->assertDatabaseMissing('dialer_devices', [
+            'user_id'    => $user->id,
+            'device_key' => 'shared-key-123',
+        ]);
+        // The other user's identically-keyed row is untouched.
+        $this->assertDatabaseHas('dialer_devices', [
+            'user_id'    => $other->id,
+            'device_key' => 'shared-key-123',
+        ]);
+    }
+
+    public function test_request_call_with_device_but_no_push_returns_no_push_token(): void
+    {
+        $user = $this->makeUser();
+        DialerDevice::create([
+            'user_id'    => $user->id,
+            'device_key' => 'pushless-device-1',
+        ]);
+
+        $this->withToken($this->tokenFor($user))
+            ->postJson('/api/v1/dialer/handoff/call', ['number' => '+15551234567'])
+            ->assertStatus(409)
+            ->assertJsonPath('error.code', 'no_push_token');
     }
 
     public function test_request_call_without_phone_returns_no_dialer_device(): void

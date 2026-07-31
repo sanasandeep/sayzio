@@ -20,6 +20,7 @@ import { useAuthStore } from '../store/auth-store';
 import { ApiClient, ApiClientError } from '../../shared/api-client';
 import type { DialerSearchResult, DialerCallEvent } from '../../shared/api-client';
 import { buildSessions, formatElapsed, sessionDuration } from '../lib/dialer-call-sessions';
+import { decideDialerPromo } from '../lib/dialer-promo';
 import { quickQrImageUrl } from '../../shared/link-tools';
 
 const BASE_URL = 'https://sayzio.app';
@@ -90,10 +91,12 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<DialerSearchResult | null>(null);
   const [searching, setSearching] = useState(false);
-  const [callState, setCallState] = useState<{ number: string; status: 'sending' | 'sent' | 'error'; message?: string; noDevice?: boolean } | null>(null);
+  const [callState, setCallState] = useState<{ number: string; status: 'sending' | 'sent' | 'error'; message?: string; errorCode?: string | null } | null>(null);
   const [events, setEvents] = useState<DialerCallEvent[]>([]);
-  // null = unknown (check pending/failed) — only `false` shows the proactive offer.
+  // null = unknown (check pending/failed) — only definite answers drive the
+  // proactive download offer / enable-notifications hint.
   const [deviceLinked, setDeviceLinked] = useState<boolean | null>(null);
+  const [pushAvailable, setPushAvailable] = useState<boolean | null>(null);
 
   const getClient = useCallback((): ApiClient | null => {
     if (!token) return null;
@@ -137,13 +140,22 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
       await client.dialerRequestCall(number, name ?? undefined);
       setCallState({ number, status: 'sent' });
       setDeviceLinked(true);
+      setPushAvailable(true);
     } catch (err) {
-      const noDevice = err instanceof ApiClientError && err.code === 'no_dialer_device';
-      if (noDevice) setDeviceLinked(false);
-      const message = noDevice
-        ? 'No phone linked — sign in to the Zio Dialer app on your phone first.'
-        : 'Could not reach your phone. Try again.';
-      setCallState({ number, status: 'error', message, noDevice });
+      const code = err instanceof ApiClientError ? err.code : null;
+      let message = 'Could not reach your phone. Try again.';
+      if (code === 'no_dialer_device') {
+        setDeviceLinked(false);
+        setPushAvailable(false);
+        message = 'No phone linked — sign in to the Zio Dialer app on your phone first.';
+      } else if (code === 'no_push_token') {
+        // The app is installed and signed in, but can't receive pushes —
+        // guide the user to notifications, not the download page.
+        setDeviceLinked(true);
+        setPushAvailable(false);
+        message = 'Your phone is linked but can\'t receive call requests — enable notifications for the Zio Dialer app on your phone.';
+      }
+      setCallState({ number, status: 'error', message, errorCode: code });
     }
   }, [getClient]);
 
@@ -151,6 +163,7 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
   useEffect(() => {
     if (!token) {
       setDeviceLinked(null);
+      setPushAvailable(null);
       return;
     }
     let cancelled = false;
@@ -158,7 +171,9 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
     if (!client) return;
     client.dialerHandoffStatus()
       .then((res) => {
-        if (!cancelled) setDeviceLinked(res.device_linked);
+        if (cancelled) return;
+        setDeviceLinked(res.device_linked);
+        setPushAvailable(res.push_available ?? res.device_linked);
       })
       .catch(() => { /* unknown — fall back to the post-failure offer */ });
     return () => { cancelled = true; };
@@ -170,7 +185,14 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
   // 'loading' while in flight, ApkInfo on success, 'unavailable' when the
   // endpoint 404s (no APK uploaded) or the request fails.
   const [apkInfo, setApkInfo] = useState<ApkInfo | 'loading' | 'unavailable' | null>(null);
-  const showApkOffer = deviceLinked === false || (callState?.status === 'error' && !!callState.noDevice);
+  // 'download' → the APK QR promo; 'enable-push' → the gentler
+  // "turn on notifications" hint; null → neither.
+  const linkPromo = decideDialerPromo({
+    deviceLinked,
+    pushAvailable,
+    lastCallErrorCode: callState?.status === 'error' ? callState.errorCode : null,
+  });
+  const showApkOffer = linkPromo === 'download';
   useEffect(() => {
     if (!showApkOffer || apkInfo !== null) return;
     let cancelled = false;
@@ -408,6 +430,24 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
                     </button>
                   </>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Phone linked but push unavailable (notifications denied /
+              no push token) → gentle hint instead of the download QR. */}
+          {linkPromo === 'enable-push' && callState?.status !== 'error' && (
+            <div style={{
+              margin: '8px 12px 0', padding: '9px 11px', borderRadius: 8,
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-bg)',
+              display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12.5,
+            }}>
+              <span style={{ fontSize: 15, flexShrink: 0 }}>🔕</span>
+              <div style={{ lineHeight: 1.4, color: 'var(--color-text-secondary)' }}>
+                Your phone is linked, but notifications are off — enable
+                notifications for the Zio Dialer app on your phone to
+                receive click-to-call requests.
               </div>
             </div>
           )}
