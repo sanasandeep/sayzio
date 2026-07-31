@@ -4,7 +4,7 @@
 import path from 'path';
 import { app, BrowserWindow, Menu, session, nativeTheme, dialog, webContents } from 'electron';
 import type { BaseWindow } from 'electron';
-import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, setDomainMuted, pruneHistoryOlderThan, setSiteSettings } from './db';
+import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, setDomainMuted, pruneHistoryOlderThan, setSiteSettings, addBookmark, isBookmarked, getAllBookmarks, getRecentHistory } from './db';
 import { resolveSiteSettingsForUrl, contentBlockerOverrideForOrigin, invalidateSiteSettingsCache } from './site-settings';
 import { PREFERENCE_KEYS, type PreferenceKey } from '../shared/db-schema';
 import { hostForMutePolicy } from '../shared/mute-policy';
@@ -19,6 +19,7 @@ import {
   registerWindowProfile,
   getTabManagerForWindow,
   getModeManagerForWindow,
+  profileIdForWindow,
   setLogoutHandler,
 } from './ipc-handlers';
 import { setupDownloadManager } from './download-manager';
@@ -599,12 +600,66 @@ function asBrowserWin(win: BaseWindow | undefined): BrowserWindow | undefined {
 
 // ── Application menu ──────────────────────────────────────────────────────────
 
+/** Navigate the focused window's active tab (or open a new tab) to a URL. */
+function openUrlInWindow(bw: BaseWindow | undefined, url: string): void {
+  const browserWin = asBrowserWin(bw) ?? BrowserWindow.getFocusedWindow() ?? mainWindow ?? undefined;
+  if (!browserWin || browserWin.isDestroyed()) return;
+  const tm = getTabManagerForWindow(browserWin);
+  if (!tm) return;
+  const mm = getModeManagerForWindow(browserWin);
+  if (mm?.getMode() === 'dashboard') mm.setMode('browser');
+  const activeId = tm.getActiveTabId();
+  if (activeId) tm.navigate(activeId, url);
+  else tm.createTab(url);
+}
+
+/** Profile scope for menu-built bookmark/history lists (focused window). */
+function menuProfileId(): string {
+  const win = BrowserWindow.getFocusedWindow() ?? mainWindow;
+  return win && !win.isDestroyed() ? profileIdForWindow(win) : DEFAULT_PROFILE_ID;
+}
+
+/** Trim long page titles so menu rows stay readable. */
+function menuLabel(title: string | null | undefined, url: string): string {
+  const raw = (title && title.trim()) || url;
+  return raw.length > 60 ? `${raw.slice(0, 57)}…` : raw;
+}
+
 function buildMenu(): void {
   const isMac = process.platform === 'darwin';
+
+  // Dynamic rows are computed at build time; the menu is rebuilt on every
+  // window focus (and after Bookmark This Page) so they stay fresh.
+  const profileId = menuProfileId();
+  let bookmarkItems: Electron.MenuItemConstructorOptions[] = [];
+  let recentHistoryItems: Electron.MenuItemConstructorOptions[] = [];
+  try {
+    bookmarkItems = getAllBookmarks(undefined, profileId).slice(0, 15).map((b) => ({
+      label: menuLabel(b.title, b.url),
+      click: (_item: Electron.MenuItem, bw: BaseWindow | undefined) => openUrlInWindow(bw, b.url),
+    }));
+  } catch { /* db unavailable — menu stays static */ }
+  try {
+    recentHistoryItems = getRecentHistory(10, profileId).map((h) => ({
+      label: menuLabel(h.title, h.url),
+      click: (_item: Electron.MenuItem, bw: BaseWindow | undefined) => openUrlInWindow(bw, h.url),
+    }));
+  } catch { /* db unavailable — menu stays static */ }
+
+  const settingsItem: Electron.MenuItemConstructorOptions = {
+    label: 'Settings…',
+    accelerator: 'CmdOrCtrl+,',
+    click: (_item, bw) => {
+      const browserWin = asBrowserWin(bw) ?? BrowserWindow.getFocusedWindow() ?? mainWindow ?? undefined;
+      if (browserWin && !browserWin.isDestroyed()) browserWin.webContents.send('settings:open');
+    },
+  };
 
   const template: Electron.MenuItemConstructorOptions[] = [
     ...(isMac ? [{ label: app.getName(), submenu: [
       { role: 'about' as const },
+      { type: 'separator' as const },
+      settingsItem,
       { type: 'separator' as const },
       { role: 'services' as const },
       { type: 'separator' as const },
@@ -676,6 +731,7 @@ function buildMenu(): void {
           },
         },
         { type: 'separator' },
+        ...(!isMac ? [settingsItem, { type: 'separator' as const }] : []),
         isMac ? { role: 'close' as const } : { role: 'quit' as const },
       ],
     },
@@ -801,6 +857,36 @@ function buildMenu(): void {
       ],
     },
     {
+      label: 'Bookmarks',
+      submenu: [
+        {
+          label: 'Bookmark This Page',
+          accelerator: 'CmdOrCtrl+D',
+          click: (_item, bw) => {
+            const browserWin = asBrowserWin(bw);
+            if (!browserWin) return;
+            const tm = getTabManagerForWindow(browserWin);
+            const id = tm?.getActiveTabId();
+            const state = id ? tm?.getTabState(id) : null;
+            const url = state?.url;
+            if (!url || url === 'about:newtab' || url.startsWith('about:')) return;
+            const pid = profileIdForWindow(browserWin);
+            try {
+              if (!isBookmarked(url, pid)) {
+                addBookmark(url, state?.title || url, {}, pid);
+              }
+              browserWin.webContents.send('bookmarks:changed');
+              browserWin.webContents.send('toast:show', 'Bookmarked this page.');
+              buildMenu();
+            } catch { /* db unavailable */ }
+          },
+        },
+        ...(bookmarkItems.length > 0
+          ? [{ type: 'separator' as const }, ...bookmarkItems]
+          : []),
+      ],
+    },
+    {
       label: 'History',
       submenu: [
         { label: 'Back', accelerator: 'Alt+Left', click: (_item, bw) => {
@@ -817,6 +903,21 @@ function buildMenu(): void {
           const id = tm?.getActiveTabId();
           if (id) tm?.goForward(id);
         }},
+        {
+          label: 'Reopen Closed Tab',
+          click: (_item, bw) => {
+            const browserWin = asBrowserWin(bw);
+            if (!browserWin) return;
+            getTabManagerForWindow(browserWin)?.reopenClosedTab();
+          },
+        },
+        ...(recentHistoryItems.length > 0
+          ? [
+              { type: 'separator' as const },
+              { label: 'Recently Visited', enabled: false },
+              ...recentHistoryItems,
+            ]
+          : []),
       ],
     },
     {
@@ -833,6 +934,10 @@ function buildMenu(): void {
 }
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
+
+// Branded app name — drives the macOS application menu title and OS-level
+// surfaces that read app.getName(). Must be set before the menu is built.
+app.setName('Zio Browser');
 
 app.whenReady().then(() => {
   // Show the branded splash immediately — before any heavy startup work.
@@ -939,6 +1044,12 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) {
       mainWindow = createWindow();
     }
+  });
+
+  // Refresh the dynamic Bookmarks/History menu rows whenever a window gains
+  // focus (also re-scopes them to that window's active profile).
+  app.on('browser-window-focus', () => {
+    try { buildMenu(); } catch { /* keep the previous menu */ }
   });
 });
 

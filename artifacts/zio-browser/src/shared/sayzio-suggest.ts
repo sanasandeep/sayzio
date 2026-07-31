@@ -25,15 +25,48 @@ export interface SayzioLookupClient {
 export const SAYZIO_HANDLE_PATTERN = /^[a-z0-9][a-z0-9_-]{1,62}$/i;
 
 /**
+ * A Sayzio handle extracted from an omnibox query.
+ * - form 'plain'   → bare handle typed (check both link + profile)
+ * - form 'link'    → sayzio.app/<handle> URL typed (check link alias only)
+ * - form 'profile' → sayzio.app/@<handle> URL typed (check profile only)
+ */
+export interface SayzioSuggestQuery {
+  handle: string;
+  form: 'plain' | 'link' | 'profile';
+}
+
+// Full-URL forms of a Sayzio handle: optional scheme, optional www.,
+// sayzio.app host, then /<handle> or /@<handle> (optional trailing slash).
+const SAYZIO_URL_PATTERN =
+  /^(?:https?:\/\/)?(?:www\.)?sayzio\.app\/(@?)([a-z0-9][a-z0-9_-]{1,62})\/?$/i;
+
+/**
+ * Extract the Sayzio handle a query refers to, if any. Accepts bare handles
+ * ("sana") and full Sayzio URLs ("sayzio.app/sana", "https://sayzio.app/@sana").
+ * Returns null for anything else (multi-word searches, other URLs, paths).
+ */
+export function extractSayzioSuggestQuery(query: string): SayzioSuggestQuery | null {
+  const q = query.trim();
+  if (SAYZIO_HANDLE_PATTERN.test(q)) {
+    return { handle: q, form: 'plain' };
+  }
+  const m = SAYZIO_URL_PATTERN.exec(q);
+  if (m) {
+    return { handle: m[2], form: m[1] === '@' ? 'profile' : 'link' };
+  }
+  return null;
+}
+
+/**
  * Whether a query may trigger a remote Sayzio lookup at all. Mirrors the
  * site-resolve privacy gate: never in private windows, only when signed in,
- * and only for handle-like queries.
+ * and only for handle-like queries or full sayzio.app handle URLs.
  */
 export function isSayzioSuggestEligible(
   query: string,
   opts: { isPrivate: boolean; token: string | null | undefined },
 ): boolean {
-  return !opts.isPrivate && !!opts.token && SAYZIO_HANDLE_PATTERN.test(query);
+  return !opts.isPrivate && !!opts.token && extractSayzioSuggestQuery(query) !== null;
 }
 
 /**

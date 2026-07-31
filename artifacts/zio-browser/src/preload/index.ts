@@ -10,6 +10,13 @@ import { contextBridge, ipcRenderer } from 'electron';
 // Type for IPC listener cleanup
 type IpcListener = (...args: unknown[]) => void;
 
+/**
+ * on() wraps each renderer listener so the IPC event object is stripped from
+ * the args; off() must remove the exact wrapper we registered, so keep a
+ * per-channel map from the original listener to its wrapper.
+ */
+const listenerWrappers = new Map<string, Map<IpcListener, (...args: unknown[]) => void>>();
+
 const api = {
   // ── Platform (for platform-specific chrome, e.g. Windows/Linux title bars) ─
   platform: process.platform,
@@ -42,6 +49,8 @@ const api = {
     close: (id: string) => ipcRenderer.invoke('tabs:close', id),
     activate: (id: string) => ipcRenderer.invoke('tabs:activate', id),
     navigate: (id: string, input: string) => ipcRenderer.invoke('tabs:navigate', id, input),
+    navigatePane: (id: string, pane: 'primary' | 'second', input: string) =>
+      ipcRenderer.invoke('tabs:navigate-pane', id, pane, input),
     back: (id: string) => ipcRenderer.invoke('tabs:back', id),
     forward: (id: string) => ipcRenderer.invoke('tabs:forward', id),
     reload: (id: string, force?: boolean) => ipcRenderer.invoke('tabs:reload', id, force),
@@ -421,6 +430,10 @@ const api = {
       'chrome-overlay:backdrop',
       // Command palette — open from main process menu shortcut
       'palette:open',
+      // Settings — open from the main process menu (Cmd/Ctrl+,)
+      'settings:open',
+      // Bookmarks changed from the main process menu (Bookmark This Page)
+      'bookmarks:changed',
       // Permission prompts
       'permission:request',
       // Tracker blocking count updates
@@ -429,11 +442,22 @@ const api = {
       'toast:show',
     ]);
     if (!ALLOWED_CHANNELS.has(channel)) return;
-    ipcRenderer.on(channel, (_, ...args) => listener(...args));
+    const wrapper = (_: unknown, ...args: unknown[]) => listener(...args);
+    let channelMap = listenerWrappers.get(channel);
+    if (!channelMap) {
+      channelMap = new Map();
+      listenerWrappers.set(channel, channelMap);
+    }
+    channelMap.set(listener, wrapper);
+    ipcRenderer.on(channel, wrapper as Parameters<typeof ipcRenderer.on>[1]);
   },
 
   off: (channel: string, listener: IpcListener) => {
-    ipcRenderer.removeListener(channel, listener as Parameters<typeof ipcRenderer.removeListener>[1]);
+    const channelMap = listenerWrappers.get(channel);
+    const wrapper = channelMap?.get(listener);
+    if (!wrapper) return;
+    channelMap!.delete(listener);
+    ipcRenderer.removeListener(channel, wrapper as Parameters<typeof ipcRenderer.removeListener>[1]);
   },
 };
 

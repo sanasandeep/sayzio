@@ -184,6 +184,12 @@ export const TAB_SPLIT_RATIO = 0.5;
 export const MIN_TAB_SPLIT_RATIO = 0.2;
 export const MAX_TAB_SPLIT_RATIO = 0.8;
 export const TAB_SPLIT_DIVIDER_WIDTH = 4;
+/**
+ * Height of the per-pane address-bar strip shown above a Website + Website
+ * split. The main process shifts both native views down by this amount so the
+ * renderer-drawn dual URL bars stay visible and clickable.
+ */
+export const SPLIT_URL_BAR_HEIGHT = 40;
 
 export const DEFAULT_SPLIT_RATIO = 0.35;
 export const MIN_SPLIT_RATIO = 0.20;

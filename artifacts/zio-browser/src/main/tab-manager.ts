@@ -22,6 +22,7 @@ import {
   MIN_TAB_SPLIT_RATIO,
   MAX_TAB_SPLIT_RATIO,
   TAB_SPLIT_DIVIDER_WIDTH,
+  SPLIT_URL_BAR_HEIGHT,
 } from '../shared/window-mode';
 
 /** Background color applied to all native views to avoid white/blank flashes. */
@@ -43,6 +44,10 @@ export interface TabState {
   mode: TabMode;
   /** Left-pane share of the tab area when the mode is a two-native-pane split. */
   splitRatio: number;
+  /** Current URL of the primary (left) pane — always published, regardless of pane focus. */
+  primaryUrl?: string;
+  /** Current URL of the second (right) pane in a Website+Website split. */
+  secondUrl?: string;
 }
 
 export interface RecentlyClosedEntry {
@@ -384,6 +389,7 @@ export class TabManager {
       this.onFindResult?.({ tabId: id, activeMatchOrdinal: 0, matches: 0, finalUpdate: true });
       this.onTabStateChange?.(id, {
         url: navUrl,
+        primaryUrl: navUrl,
         canGoBack: wc.canGoBack(),
         canGoForward: wc.canGoForward(),
         isLoading: false,
@@ -422,7 +428,7 @@ export class TabManager {
     });
 
     wc.on('did-navigate-in-page', (_, navUrl) => {
-      this.onTabStateChange?.(id, { url: navUrl });
+      this.onTabStateChange?.(id, { url: navUrl, primaryUrl: navUrl });
     });
 
     wc.on('page-title-updated', (_, title) => {
@@ -999,6 +1005,16 @@ export class TabManager {
     if (mode === 'browser+browser' && !tab.secondView) {
       tab.secondView = this.createSecondBrowserView(tab);
     }
+    // Entering the Website+Website split: publish a snapshot of both pane
+    // URLs so the dual address bars render current values immediately.
+    if (mode === 'browser+browser') {
+      const primaryWc = tab.view.webContents;
+      const secondWc = tab.secondView?.webContents;
+      this.onTabStateChange?.(id, {
+        primaryUrl: tab.internalUrl ?? (isAlive(primaryWc) ? primaryWc.getURL() : ''),
+        ...(secondWc && isAlive(secondWc) ? { secondUrl: secondWc.getURL() } : {}),
+      });
+    }
     // Leaving the Website+Website split: the toolbar controls the primary
     // pane again.
     if (mode !== 'browser+browser' && tab.focusedPane !== 'primary') {
@@ -1101,6 +1117,9 @@ export class TabManager {
     };
 
     wc.on('did-navigate', (_, navUrl) => {
+      // The pane's own URL is always published (feeds the split's dedicated
+      // right-pane address bar); the shared toolbar state only when focused.
+      this.onTabStateChange?.(id, { secondUrl: navUrl });
       emitIfFocused({
         url: navUrl,
         displayUrl: navUrl,
@@ -1110,6 +1129,7 @@ export class TabManager {
       });
     });
     wc.on('did-navigate-in-page', (_, navUrl) => {
+      this.onTabStateChange?.(id, { secondUrl: navUrl });
       emitIfFocused({ url: navUrl, displayUrl: navUrl });
     });
     wc.on('page-title-updated', (_, title) => {
@@ -1162,6 +1182,7 @@ export class TabManager {
       startUrl = new URL(this.searchEngine.searchTemplate).origin;
     } catch { /* keep fallback */ }
     void wc.loadURL(startUrl);
+    this.onTabStateChange?.(id, { secondUrl: startUrl });
     return view;
   }
 
@@ -1179,7 +1200,16 @@ export class TabManager {
     if (!tab) return;
 
     const [w, h] = this.win.getContentSize();
-    const area = this.contentBounds ?? { x: 0, y: 72, width: w, height: Math.max(0, h - 72) };
+    let area = this.contentBounds ?? { x: 0, y: 72, width: w, height: Math.max(0, h - 72) };
+    // Website + Website split: reserve a strip above both panes for the
+    // renderer-drawn per-pane address bars.
+    if (tab.mode === 'browser+browser') {
+      area = {
+        ...area,
+        y: area.y + SPLIT_URL_BAR_HEIGHT,
+        height: Math.max(0, area.height - SPLIT_URL_BAR_HEIGHT),
+      };
+    }
 
     const attach = (v: WebContentsView) => {
       try { this.win.contentView.addChildView(v); } catch { }
@@ -1363,7 +1393,20 @@ export class TabManager {
     const tab = this.tabs.get(id);
     if (!tab) return;
     // In a Website+Website split the address bar drives the focused pane.
-    if (tab.mode === 'browser+browser' && tab.focusedPane === 'second' && tab.secondView) {
+    const pane = tab.mode === 'browser+browser' && tab.focusedPane === 'second' ? 'second' : 'primary';
+    this.navigatePane(id, pane, input);
+  }
+
+  /**
+   * Navigate a specific pane of a tab. 'second' targets the independent
+   * right-hand view of a Website + Website split (no-op outside that mode);
+   * 'primary' always targets the tab's own browser view.
+   */
+  navigatePane(id: TabId, pane: 'primary' | 'second', input: string): void {
+    const tab = this.tabs.get(id);
+    if (!tab) return;
+    if (pane === 'second') {
+      if (tab.mode !== 'browser+browser' || !tab.secondView) return;
       const secondWc = tab.secondView.webContents;
       if (isAlive(secondWc)) {
         const result = parseOmniboxInput(input, this.searchEngine);

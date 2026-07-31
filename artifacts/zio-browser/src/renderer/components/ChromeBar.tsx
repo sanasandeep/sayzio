@@ -27,7 +27,7 @@ import type { PinnableTool } from '../../shared/toolbar-pins';
 import { usePinnedTools } from '../hooks/use-pinned-tools';
 import { useSiteResolve } from '../hooks/use-site-resolve';
 import { useOmniboxUrlSync } from '../hooks/use-omnibox-url-sync';
-import { checkSayzioExists, isSayzioSuggestEligible } from '../../shared/sayzio-suggest';
+import { checkSayzioExists, extractSayzioSuggestQuery } from '../../shared/sayzio-suggest';
 import type { SayzioExistsResult } from '../../shared/sayzio-suggest';
 
 interface Props {
@@ -528,33 +528,37 @@ export function ChromeBar({
       setSuggestions([]); setSuggestionIndex(-1);
       return;
     }
-    // Sayzio jump rows: handle-like query only, and mirror the site-resolve
-    // privacy gate — never in private windows, only when signed in.
-    const sayzioEligible = isSayzioSuggestEligible(q, { isPrivate: !!isPrivate, token });
+    // Sayzio jump rows: bare handles AND full sayzio.app handle URLs, and
+    // mirror the site-resolve privacy gate — never in private windows, only
+    // when signed in.
+    const sayzioQuery = !isPrivate && token ? extractSayzioSuggestQuery(q) : null;
     const timer = setTimeout(() => {
       void Promise.all([
         window.zio.history.search(q).catch(() => []),
         window.zio.bookmarks.search(q).catch(() => []),
-        sayzioEligible && token
-          ? checkSayzioExistsWithToken(q, token).catch(() => ({ link: false, profile: false }))
+        sayzioQuery && token
+          ? checkSayzioExistsWithToken(sayzioQuery.handle, token).catch(() => ({ link: false, profile: false }))
           : Promise.resolve({ link: false, profile: false }),
       ]).then(([hist, bms, sayzio]) => {
         // Ignore stale responses
         if (suggestQueryRef.current !== q) return;
         const seen = new Set<string>();
         const merged: OmniSuggestion[] = [];
-        if (sayzio.link) {
+        const handle = sayzioQuery?.handle ?? q;
+        // A typed sayzio.app/@handle URL only offers the profile row (and
+        // vice-versa for a plain link URL); a bare handle offers both.
+        if (sayzio.link && sayzioQuery?.form !== 'profile') {
           merged.push({
-            url: `https://sayzio.app/${q}`,
-            title: `sayzio.app/${q}`,
+            url: `https://sayzio.app/${handle}`,
+            title: `sayzio.app/${handle}`,
             subtitle: 'Open link on Sayzio',
             kind: 'sayzio-link',
           });
         }
-        if (sayzio.profile) {
+        if (sayzio.profile && sayzioQuery?.form !== 'link') {
           merged.push({
-            url: `https://sayzio.app/@${q}`,
-            title: `sayzio.app/@${q}`,
+            url: `https://sayzio.app/@${handle}`,
+            title: `sayzio.app/@${handle}`,
             subtitle: 'Creator profile',
             kind: 'sayzio-profile',
           });
@@ -663,10 +667,18 @@ export function ChromeBar({
       return;
     }
     let cancelled = false;
-    void window.zio.bookmarks.isBookmarked(url).then((saved: boolean) => {
-      if (!cancelled) setIsBookmarked(saved);
-    }).catch(() => { /* main not ready */ });
-    return () => { cancelled = true; };
+    const check = () => {
+      void window.zio.bookmarks.isBookmarked(url).then((saved: boolean) => {
+        if (!cancelled) setIsBookmarked(saved);
+      }).catch(() => { /* main not ready */ });
+    };
+    check();
+    // Re-check when the main process changes bookmarks (menu "Bookmark This Page").
+    window.zio.on('bookmarks:changed', check);
+    return () => {
+      cancelled = true;
+      window.zio.off('bookmarks:changed', check);
+    };
   }, [activeTab?.url]);
 
   const handleToggleBookmark = useCallback(async () => {
