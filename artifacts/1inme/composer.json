@@ -89,6 +89,9 @@
         "check:query-columns": [
             "@php scripts/check-query-columns.php"
         ],
+        "check:hardcoded-row-ids": [
+            "@php scripts/check-hardcoded-row-ids.php"
+        ],
         "check:plan-features-reads": [
             "@php scripts/check-plan-features-reads.php"
         ],
