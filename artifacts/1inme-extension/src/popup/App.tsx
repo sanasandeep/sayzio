@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { browser } from "../lib/browser";
-import { ApiError, api, AbVariantsPayload, AliasCheckResult, BacklinkRow, LinkSummary, SmartRule, WorkspacePixels, NotificationItem } from "../lib/api";
+import { ApiError, api, AbVariantsPayload, AliasCheckResult, BacklinkRow, DomainOption, LinkSummary, SmartRule, WorkspacePixels, NotificationItem } from "../lib/api";
 import { NotificationsView } from "./NotificationsView";
 import { AddToBiolinkView } from "./AddToBiolinkView";
 import { QuickQrView, QrContentType } from "./QuickQrView";
@@ -158,6 +158,12 @@ export function App() {
   const [alias, setAlias] = useState<string>("");
   const [aliasCheck, setAliasCheck] = useState<AliasCheckResult | null>(null);
   const [aliasChecking, setAliasChecking] = useState(false);
+  // Branded/custom domain picker for the next shorten. null = platform
+  // default domain. Fed by GET /domains/available (own verified domains
+  // + admin global domains) — same source as the web/mobile pickers.
+  const [domains, setDomains] = useState<DomainOption[]>([]);
+  const [defaultHost, setDefaultHost] = useState<string>("");
+  const [domainId, setDomainId] = useState<number | null>(null);
 
   const loadAbTests = useCallback(async () => {
     setAbLoading(true);
@@ -305,6 +311,25 @@ export function App() {
     return () => { cancelled = true; };
   }, [settings?.token, settings?.workspaceId]);
 
+  // Load the pickable domains whenever auth changes. Reset the selection
+  // to the platform default when the account changes (a previously picked
+  // domain id may not exist on the new account).
+  useEffect(() => {
+    if (!settings?.token) { setDomains([]); setDefaultHost(""); setDomainId(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await api.availableDomains();
+        if (!cancelled) {
+          setDomains(r.items || []);
+          setDefaultHost(r.default_host || "");
+          setDomainId((prev) => (prev && (r.items || []).some((d) => d.id === prev) ? prev : null));
+        }
+      } catch { if (!cancelled) { setDomains([]); setDefaultHost(""); setDomainId(null); } }
+    })();
+    return () => { cancelled = true; };
+  }, [settings?.token]);
+
   const showToast = useCallback((t: Toast) => {
     setToast(t);
     if (t) setTimeout(() => setToast(null), 4500);
@@ -318,7 +343,9 @@ export function App() {
     let cancelled = false;
     const timer = setTimeout(async () => {
       try {
-        const r = await api.checkAlias(trimmed);
+        // Alias namespaces are per-domain, so the verdict must be checked
+        // against the domain the link will actually be created on.
+        const r = await api.checkAlias(trimmed, domainId);
         if (!cancelled) setAliasCheck(r);
       } catch {
         if (!cancelled) setAliasCheck(null);
@@ -327,7 +354,7 @@ export function App() {
       }
     }, 350);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [alias]);
+  }, [alias, domainId]);
 
   const aliasBlocked = alias.trim() !== "" && aliasCheck?.available === false;
 
@@ -338,6 +365,7 @@ export function App() {
       const resp: any = await browser.runtime.sendMessage({
         type: "SHORTEN_URL", url: tabUrl, title: tabTitle, autoPixel,
         alias: alias.trim() || undefined,
+        domainId: domainId ?? undefined,
       });
       if (resp?.ok) {
         setAlias("");
@@ -728,6 +756,23 @@ export function App() {
                 <input type="checkbox" checked={autoPixel} onChange={(e) => setAutoPixel(e.target.checked)} />
                 <span>Auto-fire on this link</span>
               </label>
+            </div>
+          )}
+          {domains.length > 0 && (
+            <div className="field">
+              <label>Domain</label>
+              <select
+                className="workspace-select"
+                value={domainId ?? ""}
+                onChange={(e) => setDomainId(e.target.value ? Number(e.target.value) : null)}
+              >
+                <option value="">{defaultHost || "Default domain"}</option>
+                {domains.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.domain}{d.is_verified === false ? " (unverified)" : ""}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
           <div className="field">

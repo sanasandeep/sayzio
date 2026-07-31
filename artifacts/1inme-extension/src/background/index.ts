@@ -63,14 +63,16 @@ function notify(title: string, message: string) {
   } catch { /* notifications permission may be missing */ }
 }
 
-async function shortenAndCopy(destination: string, title?: string, openTabId?: number, autoPixel?: boolean, alias?: string): Promise<{ ok: true; shortUrl: string; linkId: number } | { ok: false; error: string }> {
+async function shortenAndCopy(destination: string, title?: string, openTabId?: number, autoPixel?: boolean, alias?: string, domainId?: number | null): Promise<{ ok: true; shortUrl: string; linkId: number } | { ok: false; error: string }> {
   const settings = await getSettings();
   if (!settings.token) return { ok: false, error: "Not signed in" };
   try {
     // Send the RAW text to the quick-shorten endpoint — the server owns
     // classification (web URL / bare domain / email → mailto: / phone →
     // tel:), so the extension can never drift from web/mobile parsing.
-    const result = await api.quickShorten(destination, alias, settings.workspaceId);
+    // domainId (optional) binds the link to a branded/custom domain; the
+    // server validates ownership and the returned short_url uses that host.
+    const result = await api.quickShorten(destination, alias, settings.workspaceId, domainId);
     const shortUrl = result.short_url;
 
     // Quick-shorten doesn't take a title or the auto-pixel flag; patch them
@@ -784,7 +786,7 @@ browser.runtime.onMessage.addListener(async (msg: any, sender: any) => {
         const tabs = await browser.tabs.query({ active: true, currentWindow: true });
         activeTabId = tabs[0]?.id;
       }
-      return shortenAndCopy(msg.url, msg.title, activeTabId, msg.autoPixel, msg.alias);
+      return shortenAndCopy(msg.url, msg.title, activeTabId, msg.autoPixel, msg.alias, msg.domainId);
     }
     case "PAGE_TO_BIOLINK": {
       const tabId = msg.tabId ?? sender.tab?.id;
