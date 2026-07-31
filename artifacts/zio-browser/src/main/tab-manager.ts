@@ -95,8 +95,6 @@ interface ManagedTab {
    * these, so state reads must prefer this over wc.getURL().
    */
   internalUrl: string | null;
-  /** Lazily created Sayzio website view (pane: 'sayzio'). */
-  sayzioView: WebContentsView | null;
   /** Lazily created Sayzio dashboard view (pane: 'dashboard'). */
   dashboardView: WebContentsView | null;
   /** Lazily created second independent browser view ('browser+browser' mode). */
@@ -674,7 +672,7 @@ export class TabManager {
     if (pinned) this.pinnedTabs.add(id);
     const isInternal = isInternalPageUrl(url);
     const isNewTabPage = !url || url === 'about:newtab' || isInternal;
-    const tab: ManagedTab = { id, view, pinned, favicon: null, muteOverride: null, mode: 'browser', sayzioView: null, dashboardView: null, secondView: null, splitRatio: TAB_SPLIT_RATIO, focusedPane: 'primary', isNewTabPage, internalUrl: isInternal && url ? url : null };
+    const tab: ManagedTab = { id, view, pinned, favicon: null, muteOverride: null, mode: 'browser', dashboardView: null, secondView: null, splitRatio: TAB_SPLIT_RATIO, focusedPane: 'primary', isNewTabPage, internalUrl: isInternal && url ? url : null };
     this.tabs.set(id, tab);
     this.insertInOrder(id, pinned);
 
@@ -749,14 +747,13 @@ export class TabManager {
       // May already be removed
     }
 
-    for (const extra of [tab.sayzioView, tab.dashboardView, tab.secondView]) {
+    for (const extra of [tab.dashboardView, tab.secondView]) {
       if (!extra) continue;
       try { this.win.contentView.removeChildView(extra); } catch { }
       if (!extra.webContents.isDestroyed()) {
         extra.webContents.close();
       }
     }
-    tab.sayzioView = null;
     tab.dashboardView = null;
     tab.secondView = null;
 
@@ -964,7 +961,7 @@ export class TabManager {
     if (prevId && prevId !== id) {
       const prev = this.tabs.get(prevId);
       if (prev) {
-        for (const v of [prev.view, prev.sayzioView, prev.dashboardView, prev.secondView]) {
+        for (const v of [prev.view, prev.dashboardView, prev.secondView]) {
           if (!v) continue;
           try { this.win.contentView.removeChildView(v); } catch { }
         }
@@ -994,11 +991,14 @@ export class TabManager {
 
     tab.mode = mode;
 
+    // Legacy full-view 'sayzio' tabs restore as a website tab pointing at
+    // the Sayzio home page (the standalone Sayzio pane was removed).
+    if (rawMode === 'sayzio' && mode === 'browser') {
+      this.navigate(id, SAYZIO_HOME_URL);
+    }
+
     // Lazily create the Sayzio views the new mode needs.
     const shouldHideAssistant = () => tabModeIncludes(tab.mode, 'zio');
-    if (tabModeIncludes(mode, 'sayzio') && !tab.sayzioView) {
-      tab.sayzioView = this.createSayzioView(SAYZIO_HOME_URL, shouldHideAssistant);
-    }
     if (tabModeIncludes(mode, 'dashboard') && !tab.dashboardView) {
       tab.dashboardView = this.createSayzioView(SAYZIO_DASHBOARD_URL, shouldHideAssistant);
     }
@@ -1029,9 +1029,6 @@ export class TabManager {
       this.layoutActiveTab();
     } else {
       // Detach views the (inactive) tab no longer shows.
-      if (tab.sayzioView && !tabModeIncludes(mode, 'sayzio')) {
-        try { this.win.contentView.removeChildView(tab.sayzioView); } catch { }
-      }
       if (tab.dashboardView && !tabModeIncludes(mode, 'dashboard')) {
         try { this.win.contentView.removeChildView(tab.dashboardView); } catch { }
       }
@@ -1232,7 +1229,6 @@ export class TabManager {
       switch (pane) {
         // New Tab page is renderer-drawn — no native view may cover it.
         case 'browser': return tab.isNewTabPage ? null : tab.view;
-        case 'sayzio': return tab.sayzioView;
         case 'dashboard': return tab.dashboardView;
         case 'zio': return null;
       }
@@ -1281,7 +1277,7 @@ export class TabManager {
       view.setBounds(bounds);
       attach(view);
     }
-    for (const v of [tab.view, tab.sayzioView, tab.dashboardView, tab.secondView]) {
+    for (const v of [tab.view, tab.dashboardView, tab.secondView]) {
       if (v && !shown.has(v)) detach(v);
     }
   }
@@ -1301,7 +1297,7 @@ export class TabManager {
    */
   private updateSiteAssistantVisibility(tab: ManagedTab): void {
     const hide = tabModeIncludes(tab.mode, 'zio');
-    for (const view of [tab.sayzioView, tab.dashboardView]) {
+    for (const view of [tab.dashboardView]) {
       if (!view) continue;
       const wc = view.webContents;
       if (!isAlive(wc)) continue;
@@ -1560,7 +1556,7 @@ export class TabManager {
     for (const [id, tab] of this.tabs) {
       tab.view.setBounds(bounds);
       if (id !== this.activeTabId) {
-        for (const v of [tab.view, tab.sayzioView, tab.dashboardView, tab.secondView]) {
+        for (const v of [tab.view, tab.dashboardView, tab.secondView]) {
           if (!v) continue;
           try { this.win.contentView.removeChildView(v); } catch { }
         }
@@ -1600,7 +1596,6 @@ export class TabManager {
     const viewFor = (pane: TabPane): WebContentsView | null => {
       switch (pane) {
         case 'browser': return tab.isNewTabPage ? null : tab.view;
-        case 'sayzio': return tab.sayzioView;
         case 'dashboard': return tab.dashboardView;
         case 'zio': return null;
       }
@@ -1634,7 +1629,7 @@ export class TabManager {
    */
   hideAllTabs(): void {
     for (const [, tab] of this.tabs) {
-      for (const v of [tab.view, tab.sayzioView, tab.dashboardView, tab.secondView]) {
+      for (const v of [tab.view, tab.dashboardView, tab.secondView]) {
         if (!v) continue;
         try { this.win.contentView.removeChildView(v); } catch { }
       }

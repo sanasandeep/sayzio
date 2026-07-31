@@ -25,28 +25,27 @@ export const WINDOW_MODE_ICONS: Record<WindowMode, string> = {
 };
 
 // ── Per-tab view modes ────────────────────────────────────────────────────────
-// Each tab is built from four primitives ("panes"):
+// Each tab is built from three primitives ("panes"):
 //   browser   — any website (the tab's own web view)
 //   dashboard — the Sayzio dashboard app (1in.me/user/dashboard)
-//   sayzio    — the Sayzio website (1in.me)
 //   zio       — the Ask Zio AI panel (renderer-drawn)
-// A tab shows ONE pane, or a split of any TWO panes → 10 possible modes.
+// A tab shows ONE pane, or a split of TWO panes → 7 possible modes.
+// (The standalone 'sayzio' website pane was removed — the Sayzio site is
+// reachable as a regular website tab; see normalizeTabMode for legacy mapping.)
 
-export type TabPane = 'browser' | 'dashboard' | 'sayzio' | 'zio';
+export type TabPane = 'browser' | 'dashboard' | 'zio';
 
-export const TAB_PANES: TabPane[] = ['browser', 'dashboard', 'sayzio', 'zio'];
+export const TAB_PANES: TabPane[] = ['browser', 'dashboard', 'zio'];
 
 export const TAB_PANE_LABELS: Record<TabPane, string> = {
   browser: 'Website',
   dashboard: 'Dashboard',
-  sayzio: 'Sayzio',
   zio: 'Ask Zio',
 };
 
 export const TAB_PANE_ICONS: Record<TabPane, string> = {
   browser: '🌐',
   dashboard: '⊡',
-  sayzio: '⬛',
   zio: '⚡',
 };
 
@@ -57,65 +56,50 @@ export const TAB_PANE_ICONS: Record<TabPane, string> = {
 export type TabMode =
   | 'browser'
   | 'dashboard'
-  | 'sayzio'
+  | 'zio'
   | 'dashboard+browser'
-  | 'sayzio+browser'
-  | 'dashboard+sayzio'
   | 'browser+browser'
   | 'browser+zio'
-  | 'dashboard+zio'
-  | 'sayzio+zio';
+  | 'dashboard+zio';
 
 export const TAB_MODES: TabMode[] = [
   'browser',
   'dashboard',
-  'sayzio',
+  'zio',
   'dashboard+browser',
-  'sayzio+browser',
-  'dashboard+sayzio',
   'browser+browser',
   'browser+zio',
   'dashboard+zio',
-  'sayzio+zio',
 ];
 
 export const TAB_MODE_LABELS: Record<TabMode, string> = {
   browser: 'Website',
   dashboard: 'Dashboard',
-  sayzio: 'Sayzio',
+  zio: 'Ask Zio',
   'dashboard+browser': 'Dashboard + Website',
-  'sayzio+browser': 'Sayzio + Website',
-  'dashboard+sayzio': 'Dashboard + Sayzio',
   'browser+browser': 'Website + Website',
   'browser+zio': 'Website + Ask Zio',
   'dashboard+zio': 'Dashboard + Ask Zio',
-  'sayzio+zio': 'Sayzio + Ask Zio',
 };
 
 export const TAB_MODE_DESCRIPTIONS: Record<TabMode, string> = {
   browser: 'Just the website in this tab',
   dashboard: 'Your Sayzio dashboard fills this tab',
-  sayzio: 'The Sayzio website fills this tab',
+  zio: 'Ask Zio fills this tab',
   'dashboard+browser': 'Dashboard on the left, website on the right',
-  'sayzio+browser': 'Sayzio on the left, website on the right',
-  'dashboard+sayzio': 'Dashboard on the left, Sayzio on the right',
   'browser+browser': 'Two independent websites side by side',
   'browser+zio': 'Website on the left, Ask Zio on the right',
   'dashboard+zio': 'Dashboard on the left, Ask Zio on the right',
-  'sayzio+zio': 'Sayzio on the left, Ask Zio on the right',
 };
 
 export const TAB_MODE_ICONS: Record<TabMode, string> = {
   browser: '🌐',
   dashboard: '⊡',
-  sayzio: '⬛',
+  zio: '⚡',
   'dashboard+browser': '⊡🌐',
-  'sayzio+browser': '⬛🌐',
-  'dashboard+sayzio': '⊡⬛',
   'browser+browser': '🌐🌐',
   'browser+zio': '🌐⚡',
   'dashboard+zio': '⊡⚡',
-  'sayzio+zio': '⬛⚡',
 };
 
 /** Split a TabMode into its left/right panes. */
@@ -138,19 +122,22 @@ export function tabModeIncludes(mode: TabMode, pane: TabPane): boolean {
  */
 export function normalizeTabMode(raw: string | null | undefined): TabMode | null {
   if (!raw) return null;
-  // Canonical modes win first — 'sayzio' is BOTH a legacy v0.1.x value (the
-  // webapp, now 'dashboard') and a canonical single-pane mode (Sayzio home).
-  // Checking canonical first keeps the new mode selectable; old persisted
-  // 'sayzio' tabs simply restore as the Sayzio home surface.
   if ((TAB_MODES as string[]).includes(raw)) return raw as TabMode;
-  // Legacy v0.1.x tab modes
+  // Legacy modes: v0.1.x values plus the removed 'sayzio' website pane.
+  // Persisted sayzio modes restore to the nearest surviving mode; the
+  // standalone 'sayzio' tab restores as a website tab (the caller points it
+  // at the Sayzio home URL — see TabManager.setTabMode).
   const legacy: Record<string, TabMode> = {
     web: 'browser',
     'sayzio-split': 'dashboard+browser',
     'zio-split': 'browser+zio',
-    // The standalone full-view Ask Zio tab mode was removed — persisted
-    // 'zio' tabs restore as plain websites (the docked panel remains).
-    zio: 'browser',
+    sayzio: 'browser',
+    'sayzio+browser': 'browser',
+    'browser+sayzio': 'browser',
+    'dashboard+sayzio': 'dashboard',
+    'sayzio+dashboard': 'dashboard',
+    'sayzio+zio': 'zio',
+    'zio+sayzio': 'zio',
   };
   if (raw in legacy) return legacy[raw] as TabMode;
   // Non-canonical pane pair (e.g. 'browser+dashboard') → canonical order
@@ -168,8 +155,9 @@ export function normalizeTabMode(raw: string | null | undefined): TabMode | null
 
 /** The mode left after removing one pane from a split (or 'browser' fallback). */
 export function tabModeWithout(mode: TabMode, pane: TabPane): TabMode {
-  // A lone pane is only a valid TabMode if it exists as a standalone mode
-  // (e.g. 'zio' is split-only now) — otherwise fall back to 'browser'.
+  // A lone pane is only a valid TabMode if it exists as a standalone mode —
+  // otherwise fall back to 'browser'. (All three panes are standalone today;
+  // the guard keeps this safe if a split-only pane is ever added.)
   const asMode = (p: TabPane): TabMode =>
     (TAB_MODES as readonly string[]).includes(p) ? (p as TabMode) : 'browser';
   const { left, right } = parseTabMode(mode);

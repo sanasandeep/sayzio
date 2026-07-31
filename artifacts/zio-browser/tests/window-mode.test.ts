@@ -15,20 +15,25 @@ describe('normalizeTabMode', () => {
     }
   });
 
-  it('canonical "sayzio" wins over the legacy alias', () => {
-    expect(normalizeTabMode('sayzio')).toBe('sayzio');
-  });
-
   it('maps legacy v0.1.x modes', () => {
     expect(normalizeTabMode('web')).toBe('browser');
     expect(normalizeTabMode('sayzio-split')).toBe('dashboard+browser');
     expect(normalizeTabMode('zio-split')).toBe('browser+zio');
   });
 
+  it('maps removed sayzio-pane modes to the nearest surviving mode', () => {
+    expect(normalizeTabMode('sayzio')).toBe('browser');
+    expect(normalizeTabMode('sayzio+browser')).toBe('browser');
+    expect(normalizeTabMode('browser+sayzio')).toBe('browser');
+    expect(normalizeTabMode('dashboard+sayzio')).toBe('dashboard');
+    expect(normalizeTabMode('sayzio+dashboard')).toBe('dashboard');
+    expect(normalizeTabMode('sayzio+zio')).toBe('zio');
+    expect(normalizeTabMode('zio+sayzio')).toBe('zio');
+  });
+
   it('normalizes flipped split orders', () => {
     expect(normalizeTabMode('browser+dashboard')).toBe('dashboard+browser');
     expect(normalizeTabMode('zio+browser')).toBe('browser+zio');
-    expect(normalizeTabMode('zio+sayzio')).toBe('sayzio+zio');
   });
 
   it('rejects invalid input', () => {
@@ -50,14 +55,13 @@ describe('parseTabMode / tabModeIncludes / tabModeWithout', () => {
   it('tabModeIncludes checks both panes', () => {
     expect(tabModeIncludes('dashboard+zio', 'zio')).toBe(true);
     expect(tabModeIncludes('dashboard+zio', 'browser')).toBe(false);
-    expect(tabModeIncludes('sayzio', 'sayzio')).toBe(true);
+    expect(tabModeIncludes('zio', 'zio')).toBe(true);
   });
 
-  it('tabModeWithout drops a pane, falling back to browser', () => {
+  it('tabModeWithout drops a pane', () => {
     expect(tabModeWithout('dashboard+zio', 'zio')).toBe('dashboard');
-    // 'zio' is split-only (no standalone mode) — dropping the other pane
-    // falls back to 'browser' rather than producing an invalid lone 'zio'.
-    expect(tabModeWithout('dashboard+zio', 'dashboard')).toBe('browser');
+    // 'zio' is a standalone mode now — dropping the other pane keeps it.
+    expect(tabModeWithout('dashboard+zio', 'dashboard')).toBe('zio');
     expect(tabModeWithout('browser+zio', 'dashboard')).toBe('browser+zio');
   });
 });

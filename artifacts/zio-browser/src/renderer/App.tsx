@@ -311,8 +311,11 @@ export default function App() {
       : null;
 
   // ── Zio panel presentation flags (browser mode) ───────────────────────────
-  // A tab in "Ask Zio + Website" split mode forces the docked Zio panel open.
-  const activeTabZioSplit = !isPrivate && tabModeIncludes(activeTabMode, 'zio');
+  // A tab in full "Ask Zio" mode renders the panel filling the whole tab area
+  // (no native views are attached in that mode).
+  const activeTabFullZio = !isPrivate && activeTabMode === 'zio';
+  // A tab in an "… + Ask Zio" split mode forces the docked Zio panel open.
+  const activeTabZioSplit = !isPrivate && !activeTabFullZio && tabModeIncludes(activeTabMode, 'zio');
   // While the Settings panel is open it owns the content area — hiding the
   // docked Zio panel prevents the two DOM surfaces from fighting over it
   // (the old behavior left Settings squeezed/hidden in split-view tabs).
@@ -698,6 +701,20 @@ export default function App() {
                     void window.zio.tabs.navigate(activeTabId, url);
                   }
                 }}
+              />
+            </div>
+          )}
+          {/* Full-page Ask Zio — the 'zio' tab mode fills the tab area with
+              the panel (no native views are attached in this mode). */}
+          {activeTabFullZio && !settingsOpen && (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'stretch' }}>
+              <ZioPanel
+                pageContext={null}
+                onClose={() => {
+                  if (activeTabId) void setTabMode(activeTabId, 'browser');
+                }}
+                presentation="embedded"
+                onSetDocked={(d) => void setZioPanelDocked(d)}
               />
             </div>
           )}
