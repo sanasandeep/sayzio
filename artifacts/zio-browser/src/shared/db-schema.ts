@@ -326,6 +326,7 @@ export const PREFERENCE_KEYS = {
   VK_EXPAND_ON_SPACE: 'vk_expand_on_space',
   VK_SHORTCUTS: 'vk_shortcuts',
   VK_TYPING_HISTORY: 'vk_typing_history',
+  VK_BIGRAMS: 'vk_bigrams',
   VK_STRIP_POS: 'vk_strip_pos',
 } as const;
 

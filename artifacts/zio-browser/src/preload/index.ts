@@ -188,7 +188,8 @@ const api = {
     insertText: (text: string) => ipcRenderer.invoke('vk:insert-text', text) as Promise<boolean>,
     sendKey: (key: string) => ipcRenderer.invoke('vk:send-key', key) as Promise<boolean>,
     setReserve: (px: number) => ipcRenderer.invoke('vk:set-reserve', px) as Promise<boolean>,
-    recordWords: (words: string[]) => ipcRenderer.invoke('vk:record-words', words) as Promise<boolean>,
+    recordWords: (words: string[], pairs: Array<[string, string]> = []) =>
+      ipcRenderer.invoke('vk:record-words', words, pairs) as Promise<boolean>,
     clearHistory: () => ipcRenderer.invoke('vk:clear-history') as Promise<boolean>,
     stripShow: () => ipcRenderer.invoke('vk:strip-show') as Promise<boolean>,
     stripUpdate: (payload: unknown) => ipcRenderer.invoke('vk:strip-update', payload) as Promise<boolean>,

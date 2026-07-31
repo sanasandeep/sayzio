@@ -14,6 +14,7 @@ export const VK_PREF_KEYS = {
   EXPAND_ON_SPACE: 'vk_expand_on_space',
   SHORTCUTS: 'vk_shortcuts',
   TYPING_HISTORY: 'vk_typing_history',
+  BIGRAMS: 'vk_bigrams',
   STRIP_POS: 'vk_strip_pos',
 } as const;
 
@@ -246,11 +247,93 @@ export function mergeHistory(history: VkTypingHistory, words: string[], cap = VK
   return next;
 }
 
+// ── Bigram (next-word) history ───────────────────────────────────────────────
+//
+// Learned word pairs power "next word" predictions after a space, like phone
+// keyboards. Stored as a flat map of "prev next" → use count under the
+// vk_bigrams preference. Same privacy rules as word history: learning is
+// gated by the same handler (never passwords, never private windows) and the
+// "Clear learned words" action wipes bigrams too.
+
+/** "prev next" → use count. */
+export type VkBigramHistory = Record<string, number>;
+
+export const VK_BIGRAM_CAP = 800;
+
+const VK_WORD_RE = /^[a-z']{2,32}$/;
+
+export function bigramKey(prev: string, next: string): string {
+  return `${prev} ${next}`;
+}
+
+export function parseBigramHistory(raw: string | null | undefined): VkBigramHistory {
+  if (!raw) return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const out: VkBigramHistory = {};
+    for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof v !== 'number' || v <= 0) continue;
+      const parts = k.split(' ');
+      if (parts.length !== 2) continue;
+      if (!VK_WORD_RE.test(parts[0]) || !VK_WORD_RE.test(parts[1])) continue;
+      if (!/[a-z]/.test(parts[0]) || !/[a-z]/.test(parts[1])) continue;
+      out[k] = Math.floor(v);
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+export function serializeBigramHistory(bigrams: VkBigramHistory): string {
+  return JSON.stringify(bigrams);
+}
+
+/**
+ * Extract learnable consecutive word pairs from typed text. Words here are
+ * 2+ letters (shorter than single-word learning's 3+ so common connectors
+ * like "to"/"of" can be predicted), lowercase, letters/apostrophes only.
+ */
+export function extractWordPairs(text: string): Array<[string, string]> {
+  const words = (text.toLowerCase().match(/[a-z']{2,32}/g) ?? []).filter(w => /[a-z]/.test(w));
+  const pairs: Array<[string, string]> = [];
+  for (let i = 0; i + 1 < words.length; i++) pairs.push([words[i], words[i + 1]]);
+  return pairs;
+}
+
+/**
+ * Merge newly typed word pairs into the bigram history, incrementing counts
+ * and pruning the least-used entries when over the cap.
+ */
+export function mergeBigrams(
+  bigrams: VkBigramHistory,
+  pairs: Array<[string, string]>,
+  cap = VK_BIGRAM_CAP,
+): VkBigramHistory {
+  const next: VkBigramHistory = { ...bigrams };
+  for (const pair of pairs) {
+    if (!Array.isArray(pair) || pair.length !== 2) continue;
+    const [a, b] = pair;
+    if (typeof a !== 'string' || typeof b !== 'string') continue;
+    if (!VK_WORD_RE.test(a) || !VK_WORD_RE.test(b)) continue;
+    if (!/[a-z]/.test(a) || !/[a-z]/.test(b)) continue;
+    const k = bigramKey(a, b);
+    next[k] = (next[k] ?? 0) + 1;
+  }
+  const entries = Object.entries(next);
+  if (entries.length > cap) {
+    entries.sort((a, b) => b[1] - a[1]);
+    return Object.fromEntries(entries.slice(0, cap));
+  }
+  return next;
+}
+
 // ── Suggestions ──────────────────────────────────────────────────────────────
 
 export interface VkSuggestion {
   word: string;
-  source: 'shortcut' | 'history' | 'dictionary';
+  source: 'shortcut' | 'history' | 'dictionary' | 'prediction';
   /** Present for shortcut suggestions — the text to insert instead. */
   expansion?: string;
 }
@@ -298,6 +381,26 @@ export function suggestFor(
     out.push({ word: w, source: 'dictionary' });
   }
   return out;
+}
+
+/**
+ * Predict likely next words after `prevWord` from learned bigram frequency
+ * (most-used first). Used when the strip has no in-progress prefix — i.e.
+ * right after a space — to suggest whole next words like phone keyboards.
+ */
+export function suggestNextWords(
+  prevWord: string,
+  bigrams: VkBigramHistory,
+  limit = 3,
+): VkSuggestion[] {
+  const prev = prevWord.trim().toLowerCase();
+  if (!prev || limit <= 0) return [];
+  const prefix = `${prev} `;
+  return Object.entries(bigrams)
+    .filter(([k]) => k.startsWith(prefix))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([k]) => ({ word: k.slice(prefix.length), source: 'prediction' as const }));
 }
 
 /** The trailing word of a typed buffer (letters/apostrophes), or ''. */

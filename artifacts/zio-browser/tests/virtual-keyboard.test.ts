@@ -32,6 +32,13 @@ import {
   VK_HISTORY_CAP,
   suggestFor,
   lastWordOf,
+  bigramKey,
+  parseBigramHistory,
+  serializeBigramHistory,
+  extractWordPairs,
+  mergeBigrams,
+  suggestNextWords,
+  VK_BIGRAM_CAP,
   parseStripPos,
   clampStripPos,
   keyEventsFor,
@@ -191,6 +198,72 @@ describe('typing history', () => {
     expect(Object.keys(over).length).toBeLessThanOrEqual(VK_HISTORY_CAP);
     // 'zzz' has count 1 — the least used — so it gets pruned first.
     expect(over['zzz']).toBeUndefined();
+  });
+});
+
+describe('bigram (next-word) history', () => {
+  it('vk_bigrams pref key exists and bigramKey joins with a space', () => {
+    expect(VK_PREF_KEYS.BIGRAMS).toBe('vk_bigrams');
+    expect(bigramKey('hello', 'world')).toBe('hello world');
+  });
+
+  it('parses only sane pair entries and round-trips', () => {
+    const raw = JSON.stringify({
+      'hello world': 3,
+      'to be': 2,
+      'a b': 1,            // single-letter words — rejected
+      'three word key': 4, // not a pair — rejected
+      "'' ''": 2,          // no letters — rejected
+      'neg pair': -1,
+      'frac pair': 2.9,
+    });
+    const b = parseBigramHistory(raw);
+    expect(b).toEqual({ 'hello world': 3, 'to be': 2, 'frac pair': 2 });
+    expect(parseBigramHistory('nope')).toEqual({});
+    expect(parseBigramHistory(null)).toEqual({});
+    expect(parseBigramHistory(serializeBigramHistory(b))).toEqual(b);
+  });
+
+  it('extractWordPairs yields consecutive lowercase pairs (2+ letters)', () => {
+    expect(extractWordPairs('On my way home')).toEqual([
+      ['on', 'my'],
+      ['my', 'way'],
+      ['way', 'home'],
+    ]);
+    expect(extractWordPairs('a b')).toEqual([]);
+    expect(extractWordPairs('solo')).toEqual([]);
+  });
+
+  it('mergeBigrams increments counts, rejects junk, prunes at the cap', () => {
+    const merged = mergeBigrams({ 'hello world': 1 }, [
+      ['hello', 'world'],
+      ['to', 'be'],
+      ['x', 'be'],       // too short
+      ['bad word!', 'ok'], // invalid chars
+    ]);
+    expect(merged).toEqual({ 'hello world': 2, 'to be': 1 });
+
+    const big: Record<string, number> = {};
+    for (let i = 0; i < VK_BIGRAM_CAP; i++) {
+      const w = `word${String(i).replace(/[0-9]/g, (d) => 'abcdefghij'[Number(d)])}`;
+      big[`${w} next`] = i + 2;
+    }
+    const over = mergeBigrams(big, [['zz', 'zz']]);
+    expect(Object.keys(over).length).toBeLessThanOrEqual(VK_BIGRAM_CAP);
+    expect(over['zz zz']).toBeUndefined(); // count 1 — pruned first
+  });
+
+  it('suggestNextWords predicts by frequency for the previous word only', () => {
+    const bigrams = { 'on my': 5, 'on the': 9, 'on top': 2, 'on a': 1, 'in the': 7 };
+    const out = suggestNextWords('On', bigrams);
+    expect(out).toEqual([
+      { word: 'the', source: 'prediction' },
+      { word: 'my', source: 'prediction' },
+      { word: 'top', source: 'prediction' },
+    ]);
+    expect(suggestNextWords('nowhere', bigrams)).toEqual([]);
+    expect(suggestNextWords('', bigrams)).toEqual([]);
+    expect(suggestNextWords('on', bigrams, 1)).toEqual([{ word: 'the', source: 'prediction' }]);
   });
 });
 

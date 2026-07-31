@@ -100,6 +100,9 @@ import {
   mergeHistory,
   parseTypingHistory,
   serializeTypingHistory,
+  mergeBigrams,
+  parseBigramHistory,
+  serializeBigramHistory,
   parseStripPos,
   type VkStripUpdatePayload,
 } from '../shared/virtual-keyboard';
@@ -431,20 +434,31 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     resolveTabManager(event)?.setKeyboardReserve(typeof px === 'number' ? px : 0);
     return true;
   });
-  ipcMain.handle('vk:record-words', (event, words: string[]) => {
+  ipcMain.handle('vk:record-words', (event, words: string[], pairs?: Array<[string, string]>) => {
     // Never learn from private windows, and only when the user opted in.
     if (senderIsPrivate(event)) return false;
     if (getPreference(VK_PREF_KEYS.LEARN_HISTORY) !== '1') return false;
     if (!Array.isArray(words)) return false;
     const clean = words.filter((w): w is string => typeof w === 'string');
-    if (clean.length === 0) return false;
-    const merged = mergeHistory(parseTypingHistory(getPreference(VK_PREF_KEYS.TYPING_HISTORY)), clean);
-    setPreference(VK_PREF_KEYS.TYPING_HISTORY, serializeTypingHistory(merged));
+    const cleanPairs = Array.isArray(pairs)
+      ? pairs.filter((p): p is [string, string] =>
+          Array.isArray(p) && p.length === 2 && typeof p[0] === 'string' && typeof p[1] === 'string')
+      : [];
+    if (clean.length === 0 && cleanPairs.length === 0) return false;
+    if (clean.length > 0) {
+      const merged = mergeHistory(parseTypingHistory(getPreference(VK_PREF_KEYS.TYPING_HISTORY)), clean);
+      setPreference(VK_PREF_KEYS.TYPING_HISTORY, serializeTypingHistory(merged));
+    }
+    if (cleanPairs.length > 0) {
+      const merged = mergeBigrams(parseBigramHistory(getPreference(VK_PREF_KEYS.BIGRAMS)), cleanPairs);
+      setPreference(VK_PREF_KEYS.BIGRAMS, serializeBigramHistory(merged));
+    }
     return true;
   });
   ipcMain.handle('vk:clear-history', (event) => {
     if (senderIsPrivate(event)) return false;
     setPreference(VK_PREF_KEYS.TYPING_HISTORY, '{}');
+    setPreference(VK_PREF_KEYS.BIGRAMS, '{}');
     return true;
   });
   // Floating suggestion strip — a frameless child window per chrome window

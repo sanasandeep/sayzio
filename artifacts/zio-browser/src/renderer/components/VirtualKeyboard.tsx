@@ -22,11 +22,14 @@ import {
   layerForFieldKind,
   suggestionsAllowedFor,
   suggestFor,
+  suggestNextWords,
   lastWordOf,
   expandShortcutOnSpace,
   extractWords,
+  extractWordPairs,
   parseShortcuts,
   parseTypingHistory,
+  parseBigramHistory,
   stripLabelFor,
   type VkLayer,
   type VkShiftState,
@@ -34,6 +37,7 @@ import {
   type VkSettings,
   type VkShortcut,
   type VkTypingHistory,
+  type VkBigramHistory,
   type VkSuggestion,
   type VkStripUpdatePayload,
   type VkSpecialKey,
@@ -76,7 +80,13 @@ export function VirtualKeyboard({ settings, fieldKind, onClose }: Props) {
   const [buffer, setBuffer] = useState('');
   const [shortcuts, setShortcuts] = useState<VkShortcut[]>([]);
   const [history, setHistory] = useState<VkTypingHistory>({});
+  const [bigrams, setBigrams] = useState<VkBigramHistory>({});
+  // Last word completed with space/suggestion — drives next-word predictions.
+  const [prevWord, setPrevWord] = useState('');
   const pendingWordsRef = useRef<string[]>([]);
+  const pendingPairsRef = useRef<Array<[string, string]>>([]);
+  // Bridges word pairs across separate learnFrom calls (word … space … word).
+  const lastLearnedWordRef = useRef('');
 
   // Follow the focused field: numeric fields open the numeric layer, and any
   // focus change resets the local typing echo (the page's real content is
@@ -84,6 +94,8 @@ export function VirtualKeyboard({ settings, fieldKind, onClose }: Props) {
   useEffect(() => {
     setLayer(layerForFieldKind(fieldKind));
     setBuffer('');
+    setPrevWord('');
+    lastLearnedWordRef.current = '';
   }, [fieldKind]);
 
   // Load shortcuts + history once per open.
@@ -91,13 +103,15 @@ export function VirtualKeyboard({ settings, fieldKind, onClose }: Props) {
     let cancelled = false;
     void (async () => {
       try {
-        const [rawShortcuts, rawHistory] = await Promise.all([
+        const [rawShortcuts, rawHistory, rawBigrams] = await Promise.all([
           window.zio.prefs.get(VK_PREF_KEYS.SHORTCUTS) as Promise<string | null>,
           window.zio.prefs.get(VK_PREF_KEYS.TYPING_HISTORY) as Promise<string | null>,
+          window.zio.prefs.get(VK_PREF_KEYS.BIGRAMS) as Promise<string | null>,
         ]);
         if (cancelled) return;
         setShortcuts(parseShortcuts(rawShortcuts));
         setHistory(parseTypingHistory(rawHistory));
+        setBigrams(parseBigramHistory(rawBigrams));
       } catch { /* defaults are fine */ }
     })();
     return () => { cancelled = true; };
@@ -106,9 +120,11 @@ export function VirtualKeyboard({ settings, fieldKind, onClose }: Props) {
   // Flush learned words when the keyboard closes or on unload.
   const flushLearned = useCallback(() => {
     const words = pendingWordsRef.current;
-    if (words.length === 0) return;
+    const pairs = pendingPairsRef.current;
+    if (words.length === 0 && pairs.length === 0) return;
     pendingWordsRef.current = [];
-    if (settings.learnHistory) void window.zio.vk.recordWords(words);
+    pendingPairsRef.current = [];
+    if (settings.learnHistory) void window.zio.vk.recordWords(words, pairs);
   }, [settings.learnHistory]);
   useEffect(() => () => { flushLearned(); }, [flushLearned]);
 
@@ -117,9 +133,12 @@ export function VirtualKeyboard({ settings, fieldKind, onClose }: Props) {
 
   const prefix = lastWordOf(buffer);
   const suggestions = useMemo<VkSuggestion[]>(() => {
-    if (!allowSuggest || !prefix) return [];
-    return suggestFor(prefix, { shortcuts, history, dictionary: VK_DICTIONARY });
-  }, [allowSuggest, prefix, shortcuts, history]);
+    if (!allowSuggest) return [];
+    if (prefix) return suggestFor(prefix, { shortcuts, history, dictionary: VK_DICTIONARY });
+    // After a space: predict whole next words from learned bigrams.
+    if (prevWord && buffer.endsWith(' ')) return suggestNextWords(prevWord, bigrams);
+    return [];
+  }, [allowSuggest, prefix, shortcuts, history, prevWord, buffer, bigrams]);
 
   // ── Input actions ──────────────────────────────────────────────────────────
 
@@ -131,6 +150,13 @@ export function VirtualKeyboard({ settings, fieldKind, onClose }: Props) {
     if (!allowLearn) return;
     const words = extractWords(text);
     if (words.length > 0) pendingWordsRef.current.push(...words);
+    // Learn word pairs for next-word prediction, bridging across the previous
+    // learned word (learnFrom usually receives one word at a time).
+    const pairText = lastLearnedWordRef.current ? `${lastLearnedWordRef.current} ${text}` : text;
+    const pairs = extractWordPairs(pairText);
+    if (pairs.length > 0) pendingPairsRef.current.push(...pairs);
+    const seq = (text.toLowerCase().match(/[a-z']{2,32}/g) ?? []).filter(w => /[a-z]/.test(w));
+    if (seq.length > 0) lastLearnedWordRef.current = seq[seq.length - 1];
   }, [allowLearn]);
 
   const handleChar = useCallback((ch: string) => {
@@ -151,25 +177,35 @@ export function VirtualKeyboard({ settings, fieldKind, onClose }: Props) {
         await window.zio.vk.insertText(expansion.insertText);
       })();
       learnFrom(expansion.insertText);
-      setBuffer('');
+      const expWord = lastWordOf(expansion.insertText.trimEnd());
+      setPrevWord(expWord.toLowerCase());
+      setBuffer(' ');
       return;
     }
     insert(' ');
     if (word) learnFrom(word);
-    setBuffer('');
+    setPrevWord(word.toLowerCase());
+    // Keep a trailing-space echo so next-word predictions know a word just
+    // ended (the prefix is empty right after a space).
+    setBuffer(word ? ' ' : '');
   }, [buffer, shortcuts, settings.expandOnSpace, insert, learnFrom]);
 
   const handleSpecial = useCallback((key: VkSpecialKey) => {
     void window.zio.vk.sendKey(key);
     if (key === 'Backspace') {
       setBuffer(prev => prev.slice(0, -1));
+      setPrevWord('');
     } else if (key === 'Enter') {
       const word = lastWordOf(buffer);
       if (word) learnFrom(word);
       setBuffer('');
+      setPrevWord('');
+      lastLearnedWordRef.current = '';
     } else {
       // Arrows / Tab move the caret somewhere we can't track — reset the echo.
       setBuffer('');
+      setPrevWord('');
+      lastLearnedWordRef.current = '';
     }
   }, [buffer, learnFrom]);
 
@@ -183,7 +219,9 @@ export function VirtualKeyboard({ settings, fieldKind, onClose }: Props) {
       await window.zio.vk.insertText(text);
       learnFrom(text);
     })();
-    setBuffer('');
+    const accepted = lastWordOf((s.source === 'shortcut' && s.expansion ? s.expansion : s.word).trimEnd());
+    setPrevWord(accepted.toLowerCase());
+    setBuffer(' ');
   }, [buffer, learnFrom]);
 
   // ── Floating suggestion strip (frameless child window, main-owned) ─────────

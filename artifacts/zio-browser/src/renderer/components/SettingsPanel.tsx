@@ -1660,7 +1660,7 @@ function VirtualKeyboardSection() {
 
       <SettingRow
         title="Clear learned words"
-        description="Forget everything the keyboard has learned from your typing."
+        description="Forget everything the keyboard has learned from your typing, including next-word predictions."
       >
         <button
           onClick={() => void clearHistory()}
