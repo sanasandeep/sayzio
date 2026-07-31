@@ -245,14 +245,17 @@ export function createWindow(): BrowserWindow {
         // DB unavailable — skip persistence rather than crash.
       }
     },
-    // Reserve room on the right for the renderer-drawn Ask Zio panel when the
-    // active tab is in zio-split mode. modeManager is assigned just below;
-    // the callback only fires on layout passes long after startup.
-    // When the docked panel is both preferred AND currently visible,
-    // WindowModeManager's applyBrowserBounds() already reserves the
-    // right-side width — return 0 here so the reserve isn't subtracted twice.
+    // Reserve room on the right for the renderer-drawn docked Ask Zio panel.
+    // The renderer reports visibility via window:set-zio-panel-visible exactly
+    // when it draws the docked panel (toggle-open OR zio-split tab mode), so
+    // this single callback is the ONLY place the reserve is computed — the
+    // old split between applyBrowserBounds() and this callback let the two
+    // disagree and the native view covered the panel's left edge + divider.
+    // Mode-aware: the docked panel only exists in browser window mode, so a
+    // stale visible=true (renderer hasn't reported yet after a main-process
+    // mode switch to split/dashboard) must not narrow those layouts.
     resolveZioPanelReserve: () =>
-      modeManager && !(modeManager.getZioPanelDocked() && modeManager.getZioPanelVisible())
+      modeManager && modeManager.getMode() === 'browser' && modeManager.getZioPanelVisible()
         ? modeManager.getZioPanelWidth() + ZIO_PANEL_DIVIDER_WIDTH
         : 0,
     resolveSpellcheckEnabled: () =>

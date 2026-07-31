@@ -18,7 +18,6 @@ import {
   DEFAULT_ZIO_PANEL_WIDTH,
   MIN_ZIO_PANEL_WIDTH,
   MAX_ZIO_PANEL_WIDTH,
-  ZIO_PANEL_DIVIDER_WIDTH,
 } from '../shared/window-mode';
 import type { TabManager } from './tab-manager';
 import { seedSayzioDefaultSession } from './sayzio-session';
@@ -137,9 +136,11 @@ export class WindowModeManager {
   setZioPanelVisible(visible: boolean): void {
     if (this.zioPanelVisible === visible) return;
     this.zioPanelVisible = visible;
-    if (this.mode === 'browser') {
-      this.applyBounds();
-    }
+    // Reapply in EVERY mode: the renderer's visibility report can land after
+    // a main-process mode switch, and the tab layout reads this flag via
+    // resolveZioPanelReserve — skipping the relayout here would leave a stale
+    // reserve (or a missing one) until some unrelated resize event.
+    this.applyBounds();
   }
 
   /**
@@ -199,18 +200,14 @@ export class WindowModeManager {
   }
 
   private applyBrowserBounds(w: number, h: number): void {
-    // When the Zio panel is docked AND actually visible, it occupies the
-    // right side. The tabs fill the remaining left portion. Overlay mode —
-    // and a docked-but-closed panel — leave tabs full-width.
-    const reservedRight = this.zioPanelDocked && this.zioPanelVisible
-      ? this.zioPanelWidth + ZIO_PANEL_DIVIDER_WIDTH
-      : 0;
-    const tabWidth = Math.max(0, w - reservedRight);
-
+    // Content bounds are always the FULL area below the chrome. The docked
+    // Ask Zio panel reserve is applied in exactly one place — the tab
+    // manager's layout pass via resolveZioPanelReserve — so the native view
+    // and the renderer-drawn panel can never disagree about the strip.
     this.tabManager.resizeTabs({
       x: 0,
       y: CHROME_HEIGHT,
-      width: tabWidth,
+      width: w,
       height: Math.max(0, h - CHROME_HEIGHT),
     });
   }

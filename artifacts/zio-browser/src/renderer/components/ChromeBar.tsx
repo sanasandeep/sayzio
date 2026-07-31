@@ -7,6 +7,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useTabStore } from '../store/tab-store';
 import { useAuthStore } from '../store/auth-store';
 import { ShortenPopover } from './ShortenPopover';
+import { ClipboardPopover } from './ClipboardPopover';
 import { SiteSettingsPopover } from './SiteSettingsPopover';
 import { CreateLinkPopover } from './CreateLinkPopover';
 import { TabModeSwitcher } from './TabModeSwitcher';
@@ -418,6 +419,7 @@ export function ChromeBar({
   const [omniboxEdited, setOmniboxEdited] = useState(false);
   const [shortenOpen, setShortenOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [clipboardOpen, setClipboardOpen] = useState(false);
   // Context-menu link tools: override target URL/title and preselected type.
   const [linkToolTarget, setLinkToolTarget] = useState<{ url: string; title: string } | null>(null);
   const [createInitialType, setCreateInitialType] = useState<string | null>(null);
@@ -428,7 +430,7 @@ export function ChromeBar({
   // Safari-style "Settings for this website" popover (per-site settings).
   const [sitePopoverOpen, setSitePopoverOpen] = useState(false);
   const overflowBtnRef = useRef<HTMLButtonElement>(null);
-  useChromeOverlay(shortenOpen || createOpen || overflowOpen || sitePopoverOpen);
+  useChromeOverlay(shortenOpen || createOpen || clipboardOpen || overflowOpen || sitePopoverOpen);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [pendingSyncByProfile, setPendingSyncByProfile] = useState<SyncQueueProfileCount[]>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -1348,6 +1350,32 @@ export function ChromeBar({
           }}
         >+ Create</button>
 
+        {/* Clipboard tool — read clipboard, detect content, shorten links */}
+        {!isPrivate && (
+          <button
+            onClick={() => {
+              setShortenOpen(false);
+              setCreateOpen(false);
+              setClipboardOpen(prev => !prev);
+            }}
+            title="Clipboard — detect what you copied and create a short URL from it"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              background: clipboardOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+              border: '1px solid var(--color-border)',
+              fontSize: 14,
+              flexShrink: 0,
+              cursor: 'pointer',
+              transition: 'all 0.12s',
+            }}
+          >📋</button>
+        )}
+
         {/* Sync pending indicator */}
         {pendingSyncCount > 0 && (
           <div
@@ -1753,6 +1781,16 @@ export function ChromeBar({
               void window.zio.tabs.navigate(activeTabId, url);
             }
           }}
+        />
+      )}
+
+      {/* Clipboard popover */}
+      {clipboardOpen && (
+        <ClipboardPopover
+          baseUrl={BASE_URL}
+          onClose={() => setClipboardOpen(false)}
+          onOpenAuth={() => { setClipboardOpen(false); onOpenAuth(); }}
+          onOpenInNewTab={(url) => void createTab(url)}
         />
       )}
 
