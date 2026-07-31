@@ -163,6 +163,18 @@ export function extractSearchQuery(url: string): string | null {
 }
 
 /**
+ * True when a download is plain text (viewable in a browser tab with
+ * Chromium's native text rendering): `text/plain` MIME type or `.txt` extension.
+ */
+export function isPlainTextDownload(filename: string, mimeType?: string | null): boolean {
+  if (mimeType) {
+    const base = mimeType.split(';')[0]?.trim().toLowerCase();
+    if (base === 'text/plain') return true;
+  }
+  return /\.txt$/i.test(filename.trim());
+}
+
+/**
  * Normalize a URL for history deduplication — strips fragments and normalizes
  * trailing slashes.
  */

@@ -149,6 +149,7 @@ const api = {
     recent: () => ipcRenderer.invoke('downloads:recent'),
     search: (q: string) => ipcRenderer.invoke('downloads:search', q),
     open: (filePath: string) => ipcRenderer.invoke('downloads:open', filePath),
+    openInTab: (filePath: string) => ipcRenderer.invoke('downloads:open-in-tab', filePath),
     show: (filePath: string) => ipcRenderer.invoke('downloads:show', filePath),
     exists: (filePath: string) => ipcRenderer.invoke('downloads:exists', filePath),
     choosePath: () => ipcRenderer.invoke('downloads:choose-path'),

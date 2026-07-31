@@ -113,6 +113,13 @@ function progressPercent(entry: DownloadEntry): number {
   return Math.min(100, Math.round((received / total) * 100));
 }
 
+/** Plain-text downloads (`text/plain` or `.txt`) can be viewed in a browser tab. */
+function isTextEntry(entry: DownloadEntry): boolean {
+  const mime = entry.mime_type?.split(';')[0]?.trim().toLowerCase();
+  if (mime === 'text/plain') return true;
+  return /\.txt$/i.test(entry.filename.trim());
+}
+
 function isActive(entry: DownloadEntry): boolean {
   return !!entry.liveProgress && !['completed', 'cancelled', 'interrupted'].includes(entry.state);
 }
@@ -294,6 +301,13 @@ export function DownloadsPanel({ onClose }: Props) {
 
   const handleOpen = useCallback(async (id: string, savePath: string) => {
     const result = await window.zio.downloads.open(savePath) as { ok: boolean; error?: string; missing?: boolean };
+    if (!result.ok && result.missing) {
+      setMissingIds(prev => new Set(prev).add(id));
+    }
+  }, []);
+
+  const handleViewInTab = useCallback(async (id: string, savePath: string) => {
+    const result = await window.zio.downloads.openInTab(savePath) as { ok: boolean; error?: string; missing?: boolean };
     if (!result.ok && result.missing) {
       setMissingIds(prev => new Set(prev).add(id));
     }
@@ -555,6 +569,14 @@ export function DownloadsPanel({ onClose }: Props) {
                       )}
                       {isComplete && entry.save_path && (
                         <>
+                          {isTextEntry(entry) && (
+                            <button
+                              onClick={() => void handleViewInTab(entry.id, entry.save_path!)}
+                              disabled={isMissing}
+                              style={isMissing ? { ...iconBtnStyle, opacity: 0.4, cursor: 'default' } : iconBtnStyle}
+                              title={isMissing ? 'File not found' : 'View in a browser tab'}
+                            >View in browser</button>
+                          )}
                           <button
                             onClick={() => void handleOpen(entry.id, entry.save_path!)}
                             disabled={isMissing}

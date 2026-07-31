@@ -10,6 +10,7 @@ import { app, ipcMain, shell, dialog, clipboard, nativeTheme, BrowserWindow, ses
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
+import { pathToFileURL } from 'url';
 import type { TabManager } from './tab-manager';
 import type { TabMode } from '../shared/window-mode';
 import type { WindowModeManager } from './window-mode-manager';
@@ -877,6 +878,15 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     return { ok: true };
   });
   ipcMain.handle('downloads:exists', (_, filePath: string) => fs.existsSync(filePath));
+  // Open a downloaded file inside the browser (new tab, file:// URL).
+  ipcMain.handle('downloads:open-in-tab', (event, filePath: string) => {
+    if (!fs.existsSync(filePath)) {
+      return { ok: false, error: 'File not found', missing: true };
+    }
+    const fileUrl = pathToFileURL(filePath).toString();
+    const tabId = resolveTabManager(event)?.createTab(fileUrl) ?? null;
+    return tabId ? { ok: true, tabId } : { ok: false, error: 'No tab manager available' };
+  });
   ipcMain.handle('downloads:choose-path', async () => {
     const result = await dialog.showSaveDialog({ title: 'Save File' });
     return result.canceled ? null : result.filePath;

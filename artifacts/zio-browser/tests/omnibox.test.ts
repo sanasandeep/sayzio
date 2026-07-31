@@ -4,6 +4,7 @@ import {
   formatDisplayUrl,
   extractSearchQuery,
   normalizeUrlForHistory,
+  isPlainTextDownload,
   SEARCH_ENGINES,
 } from '../src/shared/omnibox';
 
@@ -140,5 +141,28 @@ describe('normalizeUrlForHistory', () => {
 
   it('handles invalid URL gracefully', () => {
     expect(normalizeUrlForHistory('invalid')).toBe('invalid');
+  });
+});
+
+describe('isPlainTextDownload', () => {
+  it('detects text/plain mime type', () => {
+    expect(isPlainTextDownload('notes', 'text/plain')).toBe(true);
+  });
+
+  it('detects text/plain with charset parameter', () => {
+    expect(isPlainTextDownload('notes.bin', 'text/plain; charset=utf-8')).toBe(true);
+  });
+
+  it('detects .txt extension regardless of mime', () => {
+    expect(isPlainTextDownload('readme.txt', 'application/octet-stream')).toBe(true);
+    expect(isPlainTextDownload('README.TXT', null)).toBe(true);
+    expect(isPlainTextDownload('notes.txt')).toBe(true);
+  });
+
+  it('rejects non-text downloads', () => {
+    expect(isPlainTextDownload('photo.png', 'image/png')).toBe(false);
+    expect(isPlainTextDownload('archive.zip', 'application/zip')).toBe(false);
+    expect(isPlainTextDownload('page.html', 'text/html')).toBe(false);
+    expect(isPlainTextDownload('data.csv', null)).toBe(false);
   });
 });
