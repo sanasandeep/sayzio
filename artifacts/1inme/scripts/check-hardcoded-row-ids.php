@@ -17,7 +17,9 @@
  * database/migrations/ (one-off data migrations can hardcode row ids just as
  * easily as seeders) and app/Console/Commands/ (maintenance/backfill commands
  * like reconcile or reseed jobs write seeded rows too; comments blanked via
- * the tokenizer so docblocks can discuss the pattern)
+ * the tokenizer so docblocks can discuss the pattern) and app/Jobs/ (queued
+ * background jobs write rows outside any request context and can hardcode an
+ * environment-specific row id just as easily)
  * and fails on any *_id key or property receiving a bare integer literal:
  *
  *   1. array keys:            'domain_id' => 2         (also "..." keys)
@@ -35,7 +37,7 @@
  * to ALLOWLIST below with a reason — never weaken the matcher.
  *
  * Usage:
- *   php scripts/check-hardcoded-row-ids.php [dir ...]   # default: scripts database/seeders database/migrations app/Console/Commands
+ *   php scripts/check-hardcoded-row-ids.php [dir ...]   # default: scripts database/seeders database/migrations app/Console/Commands app/Jobs
  *
  * Exit codes:
  *   0  no hardcoded row ids found
@@ -68,7 +70,7 @@ const PATTERNS = [
 
 $dirs = array_slice($argv, 1);
 if ($dirs === []) {
-    $dirs = ['scripts', 'database/seeders', 'database/migrations', 'app/Console/Commands'];
+    $dirs = ['scripts', 'database/seeders', 'database/migrations', 'app/Console/Commands', 'app/Jobs'];
 }
 
 $self = __FILE__;
