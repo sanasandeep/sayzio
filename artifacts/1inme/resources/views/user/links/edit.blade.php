@@ -117,6 +117,15 @@
             </div>
             @endif
 
+            @if($link->type === 'text')
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-white/60 mb-1">Text content</label>
+                <textarea name="text_content" rows="8" maxlength="20000" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 font-mono">{{ old('text_content', data_get($link->settings, 'text.content', '')) }}</textarea>
+                <p class="text-xs text-white/40 mt-1">This is what visitors see on the public page, with a copy button.</p>
+                @error('text_content') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+            </div>
+            @endif
+
             <div class="mb-4">
                 <label class="block text-sm font-medium text-white/60 mb-1">Title</label>
                 <input type="text" name="title" value="{{ old('title', $link->title) }}" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40">

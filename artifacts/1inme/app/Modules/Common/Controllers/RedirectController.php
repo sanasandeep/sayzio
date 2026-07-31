@@ -495,6 +495,7 @@ class RedirectController extends Controller
             'brand_kit' => $this->handleBrandKitPage($request, $link),
             'calendar' => $this->handleCalendarPage($request, $link),
             'updates' => $this->handleUpdatesPage($request, $link),
+            'text' => $this->handleTextPage($request, $link),
             default => abort(404),
         };
     }
@@ -1650,6 +1651,26 @@ class RedirectController extends Controller
             ]),
             $request
         );
+    }
+
+    /**
+     * Public page for a `text`-type link (created via Quick Shorten when
+     * the pasted content isn't a URL/email/phone). Renders the stored
+     * text — selectable, with a copy button.
+     */
+    protected function handleTextPage(Request $request, Link $link)
+    {
+        $content = (string) data_get($link->settings, 'text.content', '');
+
+        $creator = \App\Modules\User\Models\User::find($link->user_id);
+
+        $pageTitle = $link->title ?: 'Shared text';
+
+        $themeClass = 'dark';
+
+        return response()->view('common.text-page', compact(
+            'link', 'content', 'creator', 'pageTitle', 'themeClass'
+        ));
     }
 
     /**

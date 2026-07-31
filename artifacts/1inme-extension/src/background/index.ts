@@ -76,7 +76,7 @@ async function shortenAndCopy(destination: string, title?: string, openTabId?: n
     // shortens), fall back to the persisted preferred domain from the
     // popup's picker so background-created links share the branded host.
     const effectiveDomainId = domainId !== undefined ? domainId : (settings.shortenDomainId ?? null);
-    let result: { id: number; short_url: string; long_url: string; kind: "url" | "email" | "phone" };
+    let result: { id: number; short_url: string; long_url: string | null; kind: "url" | "email" | "phone" | "text" };
     try {
       result = await api.quickShorten(destination, alias, settings.workspaceId, effectiveDomainId);
     } catch (e) {
@@ -123,7 +123,7 @@ async function shortenAndCopy(destination: string, title?: string, openTabId?: n
       } catch { /* host permission may be missing on chrome:// pages */ }
     }
 
-    notify("Shortened with Sayzio", shortUrl);
+    notify(result.kind === "text" ? "Text page created with Sayzio" : "Shortened with Sayzio", shortUrl);
     return { ok: true, shortUrl, linkId: result.id };
   } catch (e) {
     const msg = e instanceof ApiError ? e.message : (e as Error).message || "Shorten failed";
@@ -664,7 +664,7 @@ browser.contextMenus?.onClicked.addListener(async (info, tab) => {
     if (!sel) { notify("Zio Extension", "No text selected."); return; }
     // Pass the raw selection through — the quick-shorten API classifies
     // URLs, bare domains, emails (→ mailto:) and phone numbers (→ tel:)
-    // server-side and answers `not_shortenable` for anything else.
+    // server-side; anything else becomes a shareable text-page link.
     const result = await shortenAndCopy(sel, undefined, tab.id);
     if (!result.ok) notify("Zio Extension — error", result.error);
   } else if (info.menuItemId === "1inme-qr-selection") {

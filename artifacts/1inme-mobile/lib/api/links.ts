@@ -116,8 +116,8 @@ export async function exportLinksCsv(
 export type QuickShortenResult = {
   id: number;
   short_url: string;
-  long_url: string;
-  kind: "url" | "email" | "phone";
+  long_url: string | null;
+  kind: "url" | "email" | "phone" | "text";
 };
 
 /**

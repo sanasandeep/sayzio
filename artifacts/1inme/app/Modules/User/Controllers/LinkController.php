@@ -356,7 +356,7 @@ class LinkController extends Controller
         $owner = workspace_owner();
 
         $validated = $request->validate([
-            'destination' => 'required|string|max:2048',
+            'destination' => 'required|string|max:20000',
             'domain_id' => ['nullable', $this->availableDomainRule($request->user())],
             'alias' => array_merge(
                 ['nullable', 'string', new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\User\Rules\UniqueAliasCi(null, $request->input('domain_id'))],
@@ -367,18 +367,33 @@ class LinkController extends Controller
         ]);
 
         $normalized = self::normalizeQuickDestination($validated['destination']);
-        if ($normalized === null) {
-            return response()->json([
-                'error' => "That doesn't look like something we can shorten. Paste a web URL, email address or phone number — or use the full link creator.",
-            ], 422);
-        }
-
-        [$longUrl, $kind] = $normalized;
 
         $alias = trim((string) ($validated['alias'] ?? ''));
         if ($alias === '') {
             $alias = Link::generateAlias();
         }
+
+        if ($normalized === null) {
+            // Not a URL / email / phone — treat it as a shareable text
+            // snippet instead of rejecting: a `text`-type link whose public
+            // page shows the full text with a copy button.
+            $link = Link::create(self::quickTextAttributes($validated['destination']) + [
+                'alias'     => $alias,
+                'domain_id' => !empty($validated['domain_id']) ? (int) $validated['domain_id'] : null,
+                'user_id'   => workspace_owner_id(),
+            ]);
+
+            return response()->json([
+                'id'        => $link->id,
+                'short_url' => $link->getShortUrl(),
+                'long_url'  => null,
+                'kind'      => 'text',
+                'edit_url'  => route('user.links.edit', $link),
+                'open_url'  => $link->getShortUrl(),
+            ]);
+        }
+
+        [$longUrl, $kind] = $normalized;
 
         $link = Link::create([
             'type'      => 'url',
@@ -429,6 +444,25 @@ class LinkController extends Controller
     }
 
     /**
+     * Attribute payload for a quick-created `text`-type link — plain text
+     * that isn't a URL/email/phone is saved as a shareable text page (the
+     * public /{alias} route renders the full text with a copy button).
+     * Shared by the web and API quick-shorten endpoints.
+     */
+    public static function quickTextAttributes(string $raw): array
+    {
+        $raw = trim($raw);
+        $firstLine = trim((string) strtok($raw, "\n"));
+
+        return [
+            'type'     => 'text',
+            'long_url' => null,
+            'settings' => ['text' => ['content' => $raw]],
+            'title'    => $firstLine !== '' ? \Illuminate\Support\Str::limit($firstLine, 60) : 'Text snippet',
+        ];
+    }
+
+    /**
      * Turn raw clipboard content into a redirectable long_url. Returns
      * [$longUrl, $kind] or null when the content isn't shortenable.
      * Mirrors the client-side detection in the header popover so the
@@ -437,7 +471,18 @@ class LinkController extends Controller
     public static function normalizeQuickDestination(string $raw): ?array
     {
         $raw = trim($raw);
-        if ($raw === '' || mb_strlen($raw) > 2048) {
+        if ($raw === '') {
+            return null;
+        }
+        if (mb_strlen($raw) > 2048) {
+            // A URL-shaped paste that's just too long should fail loudly
+            // rather than silently becoming a text page.
+            if (preg_match('~^(https?|mailto|tel):~i', $raw)
+                || (!preg_match('/\s/', $raw) && preg_match('/^[A-Za-z0-9][A-Za-z0-9.-]*\.[A-Za-z]{2,}[\/?#]/', $raw))) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'destination' => ['That link is too long to shorten (2,048 characters max).'],
+                ]);
+            }
             return null;
         }
 
@@ -2886,7 +2931,20 @@ class LinkController extends Controller
             'smart_rules_json' => 'nullable|string|max:20000',
             'visibility' => 'nullable|in:public,registered,followers,subscribers',
             'resume_id' => "nullable|exists:resumes,id,user_id,{$userId}",
+            'text_content' => 'nullable|string|max:20000',
         ] + self::protectionSchedulingRules());
+
+        // Text-page content lives in settings['text']['content'] — only
+        // meaningful for `text`-type links; strip the field for every other
+        // type so it can never be stamped onto the wrong link.
+        if ($link->type === 'text' && $request->has('text_content')) {
+            $settings = $link->settings ?? [];
+            $settings['text'] = array_merge($settings['text'] ?? [], [
+                'content' => trim((string) $validated['text_content']),
+            ]);
+            $link->settings = $settings;
+        }
+        unset($validated['text_content']);
 
         // Resume version pick. Only meaningful for resume links: the owner
         // chooses which named résumé version the short link resolves to.

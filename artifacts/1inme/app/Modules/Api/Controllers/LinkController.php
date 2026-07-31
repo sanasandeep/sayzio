@@ -86,7 +86,7 @@ class LinkController extends Controller
 
         $aliasLimits = $user->getAliasLengthLimits();
         $validated = $request->validate([
-            'destination' => ['required', 'string', 'max:2048'],
+            'destination' => ['required', 'string', 'max:20000'],
             // Optional branded host — same allow-list as the full create flow
             // (own verified + plan-entitled global domains), and the alias
             // uniqueness check is scoped to the chosen domain namespace.
@@ -115,33 +115,39 @@ class LinkController extends Controller
         }
 
         $normalized = UserLinkController::normalizeQuickDestination($validated['destination']);
-        if ($normalized === null) {
-            return $this->fail(
-                "That doesn't look like something we can shorten. Copy a web URL, email address or phone number and try again.",
-                422,
-                'not_shortenable'
-            );
-        }
-
-        [$longUrl, $kind] = $normalized;
 
         $alias = trim((string) ($validated['alias'] ?? ''));
         if ($alias === '') {
             $alias = Link::generateAlias();
         }
 
-        $link = new Link([
-            'type'      => 'url',
-            'long_url'  => $longUrl,
-            'alias'     => $alias,
-            'domain_id' => !empty($validated['domain_id']) ? (int) $validated['domain_id'] : null,
-            'user_id'   => $user->id,
-            'title'    => match ($kind) {
-                'email' => 'Email ' . preg_replace('/^mailto:/', '', $longUrl),
-                'phone' => 'Call ' . preg_replace('/^tel:/', '', $longUrl),
-                default => null,
-            },
-        ]);
+        if ($normalized === null) {
+            // Plain text (not a URL/email/phone) — mirror the web endpoint:
+            // save it as a `text`-type link whose public page renders the
+            // full text with a copy button.
+            $longUrl = null;
+            $kind = 'text';
+            $link = new Link(UserLinkController::quickTextAttributes($validated['destination']) + [
+                'alias'     => $alias,
+                'domain_id' => !empty($validated['domain_id']) ? (int) $validated['domain_id'] : null,
+                'user_id'   => $user->id,
+            ]);
+        } else {
+            [$longUrl, $kind] = $normalized;
+
+            $link = new Link([
+                'type'      => 'url',
+                'long_url'  => $longUrl,
+                'alias'     => $alias,
+                'domain_id' => !empty($validated['domain_id']) ? (int) $validated['domain_id'] : null,
+                'user_id'   => $user->id,
+                'title'    => match ($kind) {
+                    'email' => 'Email ' . preg_replace('/^mailto:/', '', $longUrl),
+                    'phone' => 'Call ' . preg_replace('/^tel:/', '', $longUrl),
+                    default => null,
+                },
+            ]);
+        }
 
         // Tag the active workspace (the Sanctum path never runs
         // SetActiveWorkspace, so without this the link lands with

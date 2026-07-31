@@ -82,11 +82,25 @@ class QuickShortenTest extends TestCase
             ->assertJsonPath('long_url', 'tel:+14155550123');
     }
 
-    public function test_plain_text_is_rejected(): void
+    public function test_plain_text_creates_text_page_link(): void
     {
         $user = $this->makeUser();
-        $res = $this->post_($user, ['destination' => 'just some sentence with words']);
-        $res->assertStatus(422)->assertJsonStructure(['error']);
+        $res = $this->post_($user, ['destination' => "just some sentence with words\nsecond line"]);
+        $res->assertOk()->assertJsonPath('kind', 'text');
+
+        $link = \App\Modules\User\Models\Link::withoutGlobalScopes()->find($res->json('id'));
+        $this->assertSame('text', $link->type);
+        $this->assertNull($link->long_url);
+        $this->assertSame("just some sentence with words\nsecond line", data_get($link->settings, 'text.content'));
+        $this->assertSame('just some sentence with words', $link->title);
+    }
+
+    public function test_overlong_url_is_rejected_not_turned_into_text(): void
+    {
+        $user = $this->makeUser();
+        $url = 'https://example.com/?q=' . str_repeat('a', 2100);
+        $res = $this->post_($user, ['destination' => $url]);
+        $res->assertStatus(422)->assertJsonValidationErrors(['destination']);
     }
 
     public function test_custom_alias_is_used_and_duplicates_rejected(): void

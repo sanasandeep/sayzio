@@ -510,6 +510,22 @@ export class ApiClient {
     return this.post('/links', data);
   }
 
+  /**
+   * Quick shorten — sends the RAW clipboard text; the server classifies it
+   * (web URL / bare domain / email → mailto: / phone → tel:) and anything
+   * else becomes a shareable text-page link (kind 'text').
+   */
+  async quickShorten(
+    destination: string,
+    opts?: { alias?: string; domain_id?: number | null },
+  ): Promise<QuickShortenResult> {
+    return this.post('/links/quick-shorten', {
+      destination,
+      alias: opts?.alias || undefined,
+      domain_id: opts?.domain_id ?? undefined,
+    });
+  }
+
   async checkAlias(alias: string, ignoreId?: number): Promise<AliasCheckResult> {
     const qs = new URLSearchParams({ alias });
     if (ignoreId !== undefined) qs.set('ignore_id', String(ignoreId));
@@ -772,6 +788,13 @@ export interface DialerLookupResult {
 }
 
 // ── Links ─────────────────────────────────────────────────────────────────────
+
+export interface QuickShortenResult {
+  id: number;
+  short_url: string;
+  long_url: string | null;
+  kind: 'url' | 'email' | 'phone' | 'text';
+}
 
 export interface ApiLink {
   id: number;
