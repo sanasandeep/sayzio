@@ -163,6 +163,15 @@ class IntegrationCatalog
                         'route'    => route('admin.integrations.google-contacts.edit'),
                         'external' => false,
                     ],
+                    [
+                        'key'      => 'google-calendar',
+                        'label'    => 'Google Calendar OAuth',
+                        'desc'     => 'OAuth client powering Service Booking two-way Google Calendar sync (busy-block import + event push).',
+                        'icon'     => 'fab fa-google',
+                        'status'   => PlatformServiceSettings::googleCalendarStatus(),
+                        'route'    => route('admin.integrations.google-calendar.edit'),
+                        'external' => false,
+                    ],
                 ],
             ],
             [
