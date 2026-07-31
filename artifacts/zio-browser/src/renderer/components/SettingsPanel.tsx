@@ -17,6 +17,8 @@ import {
   parseShortcuts,
   serializeShortcuts,
   normalizeShortcutTrigger,
+  parseTypingHistory,
+  parseBigramHistory,
   type VkShortcut,
 } from '../../shared/virtual-keyboard';
 
@@ -1549,6 +1551,22 @@ function VirtualKeyboardSection() {
   const [newTrigger, setNewTrigger] = useState('');
   const [newExpansion, setNewExpansion] = useState('');
   const [historyCleared, setHistoryCleared] = useState(false);
+  const [learnedCounts, setLearnedCounts] = useState<{ words: number; pairs: number } | null>(null);
+
+  const loadLearnedCounts = useCallback(async () => {
+    try {
+      const [rawHistory, rawBigrams] = await Promise.all([
+        window.zio.prefs.get(VK_PREF_KEYS.TYPING_HISTORY),
+        window.zio.prefs.get(VK_PREF_KEYS.BIGRAMS),
+      ]) as (string | null)[];
+      setLearnedCounts({
+        words: Object.keys(parseTypingHistory(rawHistory)).length,
+        pairs: Object.keys(parseBigramHistory(rawBigrams)).length,
+      });
+    } catch { /* non-fatal */ }
+  }, []);
+
+  useEffect(() => { void loadLearnedCounts(); }, [loadLearnedCounts]);
 
   useEffect(() => {
     void (async () => {
@@ -1608,10 +1626,12 @@ function VirtualKeyboardSection() {
   const clearHistory = useCallback(async () => {
     try {
       await window.zio.vk.clearHistory();
+      setLearnedCounts({ words: 0, pairs: 0 });
+      void loadLearnedCounts();
       setHistoryCleared(true);
       setTimeout(() => setHistoryCleared(false), 2500);
     } catch { /* non-fatal */ }
-  }, []);
+  }, [loadLearnedCounts]);
 
   const inputStyle: React.CSSProperties = {
     fontSize: 12,
@@ -1660,7 +1680,11 @@ function VirtualKeyboardSection() {
 
       <SettingRow
         title="Clear learned words"
-        description="Forget everything the keyboard has learned from your typing, including next-word predictions."
+        description={`Forget everything the keyboard has learned from your typing, including next-word predictions.${
+          learnedCounts === null
+            ? ''
+            : ` Currently stored: ${learnedCounts.words} ${learnedCounts.words === 1 ? 'word' : 'words'}, ${learnedCounts.pairs} ${learnedCounts.pairs === 1 ? 'word pair' : 'word pairs'}.`
+        }`}
       >
         <button
           onClick={() => void clearHistory()}
