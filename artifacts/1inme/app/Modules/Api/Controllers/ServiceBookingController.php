@@ -425,7 +425,7 @@ class ServiceBookingController extends Controller
             'slot_length_minutes' => $data['slot_length_minutes'],
             'lead_time_minutes'   => $data['lead_time_minutes'],
             'max_days_ahead'      => $data['max_days_ahead'],
-            'timezone'            => $tz !== '' ? $tz : null,
+            'timezone'            => $tz !== '' ? $tz : ($config->timezone ?: 'UTC'),
             'settings'            => $settings,
         ]);
 
