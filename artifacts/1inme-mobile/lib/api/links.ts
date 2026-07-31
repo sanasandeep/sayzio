@@ -125,16 +125,21 @@ export type QuickShortenResult = {
  * (web URL, email address, phone number, or bare domain). The server
  * classifies + normalizes the destination itself, so we just pass the
  * raw string through. Mirrors the web header bolt button.
+ *
+ * An optional custom back-half (`alias`) is validated server-side with the
+ * full alias stack (format, banned names, uniqueness, per-plan length);
+ * when omitted or blank the server auto-generates one.
  */
 export async function quickShorten(
   destination: string,
   opts?: { alias?: string; domain_id?: number | null },
 ): Promise<QuickShortenResult> {
+  const alias = opts?.alias?.trim();
   const res = await apiFetch<{ data: QuickShortenResult }>(`/links/quick-shorten`, {
     method: "POST",
     body: JSON.stringify({
       destination,
-      ...(opts?.alias ? { alias: opts.alias } : {}),
+      ...(alias ? { alias } : {}),
       ...(opts?.domain_id != null ? { domain_id: opts.domain_id } : {}),
     }),
   });

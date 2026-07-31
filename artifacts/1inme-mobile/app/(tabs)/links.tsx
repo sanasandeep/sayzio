@@ -127,7 +127,17 @@ export default function LinksTab() {
     [toastOpacity],
   );
 
+  // When a long-press opened the sheet, React Native still fires onPress on
+  // pointer release — suppress that trailing tap so a long-press never ALSO
+  // runs the one-tap quick-shorten (which would create an unintended link
+  // behind the sheet).
+  const longPressedRef = useRef(false);
+
   const onQuickShorten = async () => {
+    if (longPressedRef.current) {
+      longPressedRef.current = false;
+      return;
+    }
     if (shortening) return;
     setShortening(true);
     try {
@@ -159,8 +169,10 @@ export default function LinksTab() {
   // Long-press on the bolt opens a small sheet where the user can pick a
   // custom back-half (alias) and which domain the short link lives on —
   // full parity with the web header popover and the create-link screen.
+  // The alias field runs the live availability check (same GET
+  // /links/check-alias the edit screen uses) and any server-side 422
+  // (taken/banned/format/length) surfaces inline.
   const [sheetOpen, setSheetOpen] = useState(false);
-  const longPressedRef = useRef(false);
   const [sheetDest, setSheetDest] = useState("");
   const [sheetAlias, setSheetAlias] = useState("");
   const [sheetBusy, setSheetBusy] = useState(false);
@@ -214,12 +226,18 @@ export default function LinksTab() {
   }, [sheetAlias, domainId, sheetOpen]);
 
   const onOpenSheet = async () => {
+    if (shortening || sheetBusy) return;
     const raw = ((await Clipboard.getStringAsync()) ?? "").trim();
     setSheetDest(raw);
     setSheetAlias("");
     setAliasCheck(null);
     setSheetError(null);
     setSheetOpen(true);
+  };
+
+  const closeSheet = () => {
+    if (sheetBusy) return;
+    setSheetOpen(false);
   };
 
   const onSheetShorten = async () => {
@@ -241,15 +259,37 @@ export default function LinksTab() {
       showToast(`Short link created and copied: ${result.short_url}`);
       query.refetch();
     } catch (e) {
+      // Surface a 422 (alias taken/banned/format/length or bad
+      // destination) inline in the sheet instead of a blocking alert.
+      const err = e as { errors?: Record<string, string[]>; message?: string };
+      const fieldErrors = err?.errors
+        ? [...(err.errors.alias ?? []), ...(err.errors.destination ?? [])]
+        : [];
       setSheetError(
-        e instanceof Error && e.message
-          ? e.message
-          : "Couldn't shorten that. Check the destination and try again.",
+        fieldErrors[0] ||
+          (typeof err?.message === "string" && err.message
+            ? err.message
+            : "Couldn't shorten that. Check the destination and try again."),
       );
     } finally {
       setSheetBusy(false);
     }
   };
+
+  const aliasStatusText = aliasChecking
+    ? "Checking availability…"
+    : aliasCheck
+      ? aliasCheck.message
+      : sheetAlias.trim() === ""
+        ? "Leave blank to auto-generate a back-half."
+        : "";
+  const aliasStatusColor = aliasChecking
+    ? colors.mutedForeground
+    : aliasCheck
+      ? aliasCheck.available
+        ? colors.success
+        : colors.destructive
+      : colors.mutedForeground;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -281,9 +321,11 @@ export default function LinksTab() {
                 longPressedRef.current = true;
                 onOpenSheet();
               }}
+              delayLongPress={400}
               hitSlop={8}
               accessibilityLabel="Quick-shorten from clipboard"
               accessibilityHint="Long press to customize the back-half and domain"
+              testID="quick-shorten-bolt"
               disabled={shortening}
               style={[
                 styles.healthBtn,
@@ -498,7 +540,7 @@ export default function LinksTab() {
         visible={sheetOpen}
         transparent
         animationType="fade"
-        onRequestClose={() => setSheetOpen(false)}
+        onRequestClose={closeSheet}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -506,10 +548,11 @@ export default function LinksTab() {
         >
           <Pressable
             style={StyleSheet.absoluteFill}
-            onPress={() => setSheetOpen(false)}
+            onPress={closeSheet}
             accessibilityLabel="Close quick-shorten sheet"
           />
           <View
+            testID="quick-shorten-sheet"
             style={[
               styles.sheet,
               {
@@ -526,6 +569,7 @@ export default function LinksTab() {
               Destination
             </Text>
             <TextInput
+              testID="quick-shorten-destination"
               value={sheetDest}
               onChangeText={setSheetDest}
               placeholder="https://example.com/very/long/path"
@@ -547,6 +591,7 @@ export default function LinksTab() {
               Custom back-half
             </Text>
             <TextInput
+              testID="quick-shorten-alias-input"
               value={sheetAlias}
               onChangeText={setSheetAlias}
               placeholder="leave blank to auto-generate"
@@ -558,31 +603,20 @@ export default function LinksTab() {
                 {
                   color: colors.foreground,
                   backgroundColor: colors.card,
-                  borderColor: colors.border,
+                  borderColor:
+                    aliasCheck && aliasCheck.available === false
+                      ? colors.destructive
+                      : colors.border,
                   borderRadius: colors.radius,
                 },
               ]}
             />
-            {sheetAlias.trim() !== "" ? (
+            {aliasStatusText ? (
               <Text
-                style={[
-                  styles.sheetAliasStatus,
-                  {
-                    color: aliasChecking
-                      ? colors.mutedForeground
-                      : aliasCheck?.available
-                        ? colors.success
-                        : aliasCheck
-                          ? colors.destructive
-                          : colors.mutedForeground,
-                  },
-                ]}
+                testID="quick-shorten-alias-status"
+                style={[styles.sheetAliasStatus, { color: aliasStatusColor }]}
               >
-                {aliasChecking
-                  ? "Checking availability…"
-                  : aliasCheck
-                    ? `${aliasCheck.available ? "✓" : "✕"} ${aliasCheck.message}`
-                    : ""}
+                {aliasStatusText}
               </Text>
             ) : null}
 
@@ -597,12 +631,16 @@ export default function LinksTab() {
             />
 
             {sheetError ? (
-              <Text style={[styles.sheetAliasStatus, { color: colors.destructive }]}>
+              <Text
+                testID="quick-shorten-error"
+                style={[styles.sheetAliasStatus, { color: colors.destructive }]}
+              >
                 {sheetError}
               </Text>
             ) : null}
 
             <Pressable
+              testID="quick-shorten-create"
               onPress={onSheetShorten}
               disabled={sheetBusy}
               accessibilityRole="button"
