@@ -427,17 +427,17 @@ class LinkController extends Controller
             $qcfg  = $typeQuotaMap[$attrs['type']];
             $owner = $request->user();
             if (!$owner->getPlanFeature($qcfg['module'], true)) {
-                return $this->planLimitError(
+                return $this->planGate(
                     "{$qcfg['label']} pages aren't available on your current plan. Upgrade to enable them.",
-                    $owner, $qcfg['module']
+                    $qcfg['module'], $owner
                 );
             }
             $count = $owner->links()->where('type', $attrs['type'])->count();
             if (!$owner->planUnderLimit($qcfg['cap'], $count, -1)) {
                 $max = (int) $owner->getPlanFeature($qcfg['cap'], -1);
-                return $this->planLimitError(
+                return $this->planGate(
                     "You've reached your plan's {$qcfg['label']} page limit ({$max}). Upgrade your plan for more.",
-                    $owner, $qcfg['cap'], $count
+                    $qcfg['cap'], $owner, 402, 'plan_upgrade_required', $count
                 );
             }
         }
