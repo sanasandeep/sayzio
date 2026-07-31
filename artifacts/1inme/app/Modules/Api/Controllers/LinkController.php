@@ -903,6 +903,26 @@ class LinkController extends Controller
             ->get()
             ->all();
 
+        // Text-page download / raw-fetch counts — parity with the web link
+        // analytics page. `serveTextContent()` records these interactions as
+        // link_clicks rows tagged source `txt_download` (the Download .txt
+        // button) and `txt_raw` (the /raw plain-text endpoint). Uses the
+        // LinkClick model relation so the default "no bots" global scope
+        // applies — same exclusions as the web numbers.
+        $payload['link_type'] = $link->type;
+        $payload['txt_downloads'] = 0;
+        $payload['txt_raw'] = 0;
+        if ($link->type === 'text') {
+            $txtCounts = $link->clicks()
+                ->whereBetween('clicked_at', [$from, $to])
+                ->whereIn('source', ['txt_download', 'txt_raw'])
+                ->selectRaw('source, COUNT(*) as count')
+                ->groupBy('source')
+                ->pluck('count', 'source');
+            $payload['txt_downloads'] = (int) ($txtCounts['txt_download'] ?? 0);
+            $payload['txt_raw'] = (int) ($txtCounts['txt_raw'] ?? 0);
+        }
+
         // Bot + throttled traffic the global LinkClick scope hides from
         // the human-only stats above. We surface it here so the mobile
         // dashboard can render the "Blocked X bot attempts this week"

@@ -145,6 +145,24 @@ export default function LinkAnalyticsScreen() {
             hint="Excluded from totals"
           />
         </View>
+        {data.link_type === "text" ? (
+          <View style={styles.tileRow}>
+            <StatTile
+              label="Downloads"
+              value={data.txt_downloads ?? 0}
+              icon="download"
+              hint="Download .txt taps"
+            />
+            {(data.txt_raw ?? 0) > 0 ? (
+              <StatTile
+                label="Raw fetches"
+                value={data.txt_raw ?? 0}
+                icon="file-text"
+                hint="/raw endpoint hits"
+              />
+            ) : null}
+          </View>
+        ) : null}
         {linkQ.data?.short_url ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <NfcWriteTrigger
