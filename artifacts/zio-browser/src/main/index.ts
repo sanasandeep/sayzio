@@ -7,6 +7,7 @@ import type { BaseWindow } from 'electron';
 import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, setDomainMuted, pruneHistoryOlderThan, setSiteSettings, addBookmark, isBookmarked, getAllBookmarks, getRecentHistory } from './db';
 import { resolveSiteSettingsForUrl, contentBlockerOverrideForOrigin, invalidateSiteSettingsCache } from './site-settings';
 import { PREFERENCE_KEYS, type PreferenceKey } from '../shared/db-schema';
+import { VK_PREF_KEYS } from '../shared/virtual-keyboard';
 import { hostForMutePolicy } from '../shared/mute-policy';
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import { seedSayzioWebSession } from './sayzio-session';
@@ -280,6 +281,9 @@ export function createWindow(): BrowserWindow {
       try { host = new URL(pageUrl).hostname; } catch { /* keep raw */ }
       sendToWin('toast:show', `Pop-up blocked on ${host}`);
     },
+    // Virtual keyboard: reporter injection gate + field-focus relay.
+    resolveVkEnabled: () => safeGetPreference(VK_PREF_KEYS.ENABLED) === '1',
+    onVkFocus: (payload) => sendToWin('vk:focus', payload),
   });
 
   const savedMode  = (safeGetPreference(PREFERENCE_KEYS.WINDOW_MODE) as WindowMode | null) ?? 'browser';
@@ -552,6 +556,10 @@ export function createPrivateWindow(startUrl?: string): BrowserWindow {
       (safeGetPreference(PREFERENCE_KEYS.SPELLCHECK_ENABLED) ?? '1') === '1',
     resolveTranslateLang: () =>
       safeGetPreference(PREFERENCE_KEYS.TRANSLATE_TARGET_LANG) ?? 'en',
+    // Virtual keyboard works in private windows too — typing is just never
+    // learned (vk:record-words rejects private senders).
+    resolveVkEnabled: () => safeGetPreference(VK_PREF_KEYS.ENABLED) === '1',
+    onVkFocus: (payload) => sendToWin('vk:focus', payload),
   });
 
   // Private windows are browser-only — no dashboard or split pane.

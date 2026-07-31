@@ -182,6 +182,18 @@ const api = {
     deleteAll: () => ipcRenderer.invoke('passwords:delete-all'),
   },
 
+  // ── Virtual keyboard ──────────────────────────────────────────────────────
+  vk: {
+    insertText: (text: string) => ipcRenderer.invoke('vk:insert-text', text) as Promise<boolean>,
+    sendKey: (key: string) => ipcRenderer.invoke('vk:send-key', key) as Promise<boolean>,
+    setReserve: (px: number) => ipcRenderer.invoke('vk:set-reserve', px) as Promise<boolean>,
+    recordWords: (words: string[]) => ipcRenderer.invoke('vk:record-words', words) as Promise<boolean>,
+    clearHistory: () => ipcRenderer.invoke('vk:clear-history') as Promise<boolean>,
+    stripShow: () => ipcRenderer.invoke('vk:strip-show') as Promise<boolean>,
+    stripUpdate: (payload: unknown) => ipcRenderer.invoke('vk:strip-update', payload) as Promise<boolean>,
+    stripHide: () => ipcRenderer.invoke('vk:strip-hide') as Promise<boolean>,
+  },
+
   // ── Spell check ───────────────────────────────────────────────────────────
   spellcheck: {
     getEnabled: () => ipcRenderer.invoke('spellcheck:get-enabled') as Promise<boolean>,
@@ -440,6 +452,10 @@ const api = {
       'tracker:blocked-count',
       // Generic message toast (e.g. "Reader mode isn't available")
       'toast:show',
+      // Virtual keyboard — page field-focus reports
+      'vk:focus',
+      // Virtual keyboard — floating strip suggestion selected (index payload)
+      'vk:strip-select',
     ]);
     if (!ALLOWED_CHANNELS.has(channel)) return;
     const wrapper = (_: unknown, ...args: unknown[]) => listener(...args);

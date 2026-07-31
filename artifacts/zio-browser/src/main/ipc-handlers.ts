@@ -90,6 +90,19 @@ import {
   type SiteSettingsPatch,
 } from './db';
 import { invalidateSiteSettingsCache } from './site-settings';
+import {
+  VK_PREF_KEYS,
+  VK_STRIP_WIDTH,
+  VK_STRIP_HEIGHT,
+  keyEventsFor,
+  isVkSpecialKey,
+  mergeHistory,
+  parseTypingHistory,
+  serializeTypingHistory,
+  parseStripPos,
+  type VkStripUpdatePayload,
+} from '../shared/virtual-keyboard';
+import { VkStripWindow } from './vk-strip';
 import { getActiveItem } from './download-manager';
 import { resolvePermissionRequest, setupPermissionHandlers } from './permission-handler';
 import {
@@ -312,6 +325,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       if (days > 0) {
         try { pruneHistoryOlderThan(days); } catch { /* best-effort */ }
       }
+    } else if (key === VK_PREF_KEYS.ENABLED && value === '1') {
+      // Feature flipped on: already-open pages must start reporting field
+      // focus without a reload.
+      for (const tm of tabManagerRegistry.values()) tm.injectVkReporterAll();
     }
     return true;
   });
@@ -388,6 +405,89 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     resolveTabManager(event)?.setTabSplitRatio(id, ratio);
     return true;
   });
+  // ── Virtual keyboard ─────────────────────────────────────────────────────
+  const vkFocusedWc = (event: Electron.IpcMainInvokeEvent) => {
+    const tm = resolveTabManager(event);
+    const activeId = tm?.getActiveTabId();
+    return activeId ? tm!.getFocusedWebContentsForTab(activeId) : null;
+  };
+  ipcMain.handle('vk:insert-text', async (event, text: string) => {
+    if (typeof text !== 'string' || !text) return false;
+    const wc = vkFocusedWc(event);
+    if (!wc) return false;
+    try { await wc.insertText(text); return true; } catch { return false; }
+  });
+  ipcMain.handle('vk:send-key', (event, key: string) => {
+    if (typeof key !== 'string' || !isVkSpecialKey(key)) return false;
+    const wc = vkFocusedWc(event);
+    if (!wc) return false;
+    try {
+      for (const ev of keyEventsFor(key)) wc.sendInputEvent(ev);
+      return true;
+    } catch { return false; }
+  });
+  ipcMain.handle('vk:set-reserve', (event, px: number) => {
+    resolveTabManager(event)?.setKeyboardReserve(typeof px === 'number' ? px : 0);
+    return true;
+  });
+  ipcMain.handle('vk:record-words', (event, words: string[]) => {
+    // Never learn from private windows, and only when the user opted in.
+    if (senderIsPrivate(event)) return false;
+    if (getPreference(VK_PREF_KEYS.LEARN_HISTORY) !== '1') return false;
+    if (!Array.isArray(words)) return false;
+    const clean = words.filter((w): w is string => typeof w === 'string');
+    if (clean.length === 0) return false;
+    const merged = mergeHistory(parseTypingHistory(getPreference(VK_PREF_KEYS.TYPING_HISTORY)), clean);
+    setPreference(VK_PREF_KEYS.TYPING_HISTORY, serializeTypingHistory(merged));
+    return true;
+  });
+  ipcMain.handle('vk:clear-history', (event) => {
+    if (senderIsPrivate(event)) return false;
+    setPreference(VK_PREF_KEYS.TYPING_HISTORY, '{}');
+    return true;
+  });
+  // Floating suggestion strip — a frameless child window per chrome window
+  // (native views cover the renderer DOM, so the strip must be a real window).
+  const vkStrips = new Map<number, VkStripWindow>();
+  const vkStripFor = (event: Electron.IpcMainInvokeEvent): VkStripWindow | null => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win || win.isDestroyed()) return null;
+    let strip = vkStrips.get(win.id);
+    if (!strip) {
+      strip = new VkStripWindow(
+        win,
+        (index) => { if (!win.isDestroyed()) win.webContents.send('vk:strip-select', index); },
+        (pos) => setPreference(VK_PREF_KEYS.STRIP_POS, JSON.stringify(pos)),
+      );
+      vkStrips.set(win.id, strip);
+      win.once('closed', () => vkStrips.delete(win.id));
+    }
+    return strip;
+  };
+  ipcMain.handle('vk:strip-show', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const strip = vkStripFor(event);
+    if (!win || !strip) return false;
+    const b = win.getContentBounds();
+    const pos = parseStripPos(getPreference(VK_PREF_KEYS.STRIP_POS), {
+      width: Math.max(0, b.width - VK_STRIP_WIDTH),
+      height: Math.max(0, b.height - VK_STRIP_HEIGHT),
+    });
+    strip.show(pos);
+    return true;
+  });
+  ipcMain.handle('vk:strip-update', (event, payload: VkStripUpdatePayload) => {
+    if (!payload || typeof payload !== 'object' || !Array.isArray(payload.suggestions)) return false;
+    const strip = vkStripFor(event);
+    if (!strip) return false;
+    strip.update(payload);
+    return true;
+  });
+  ipcMain.handle('vk:strip-hide', (event) => {
+    vkStrips.get(BrowserWindow.fromWebContents(event.sender)?.id ?? -1)?.hide();
+    return true;
+  });
+
   ipcMain.handle('tabs:get-state', (event, id: string) => resolveTabManager(event)?.getTabState(id) ?? null);
   ipcMain.handle('tabs:get-order', (event) => resolveTabManager(event)?.getTabOrder() ?? []);
   ipcMain.handle('tabs:get-active', (event) => resolveTabManager(event)?.getActiveTabId() ?? null);

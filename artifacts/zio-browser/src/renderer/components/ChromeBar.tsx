@@ -58,6 +58,10 @@ interface Props {
   /** Callback to open the browser settings panel. */
   onOpenSettings?: () => void;
   settingsOpen?: boolean;
+  /** Virtual keyboard — toolbar toggle (shown only when the feature is enabled). */
+  vkEnabled?: boolean;
+  vkOpen?: boolean;
+  onToggleVk?: () => void;
 }
 
 const BASE_URL = 'https://sayzio.app';
@@ -406,6 +410,9 @@ export function ChromeBar({
   onToggleDialer,
   onOpenSettings,
   settingsOpen = false,
+  vkEnabled = false,
+  vkOpen = false,
+  onToggleVk,
 }: Props) {
   const {
     tabs, tabOrder, activeTabId, recentlyClosed,
@@ -1664,6 +1671,28 @@ export function ChromeBar({
           }
           return null;
         })}
+
+        {/* Virtual keyboard toggle */}
+        {vkEnabled && onToggleVk && (
+          <button
+            onClick={onToggleVk}
+            title={vkOpen ? 'Hide virtual keyboard' : 'Show virtual keyboard'}
+            data-testid="vk-toggle"
+            style={{
+              fontSize: 15,
+              padding: '2px 7px',
+              borderRadius: 8,
+              background: vkOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+              color: vkOpen ? '#fff' : 'var(--color-text-muted)',
+              border: '1px solid var(--color-border)',
+              transition: 'all 0.12s',
+              flexShrink: 0,
+              cursor: 'pointer',
+            }}
+          >
+            ⌨️
+          </button>
+        )}
 
         {/* Settings button */}
         {onOpenSettings && (

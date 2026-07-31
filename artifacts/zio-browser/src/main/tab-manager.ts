@@ -10,6 +10,11 @@ import { parseOmniboxInput, type SearchEngineConfig, DEFAULT_SEARCH_ENGINE } fro
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import { isInternalPageUrl, internalPageTitle } from '../shared/internal-pages';
 import {
+  buildVkFocusReporterScript,
+  parseVkFocusMessage,
+  type VkFocusPayload,
+} from '../shared/virtual-keyboard';
+import {
   type TabMode,
   type TabPane,
   parseTabMode,
@@ -191,6 +196,12 @@ export class TabManager {
   private onZoomPersist?: (url: string, factor: number) => void;
   /** A pop-up was blocked by the per-site pop-up policy ('block-notify'). */
   private onPopupBlocked?: (pageUrl: string, popupUrl: string) => void;
+  /** Pixel height reserved at the bottom of the tab area for the virtual keyboard. */
+  private keyboardReserve = 0;
+  /** Returns whether the virtual keyboard feature is enabled (preference-backed). */
+  private resolveVkEnabled?: () => boolean;
+  /** A tab page reported which kind of editable field is focused. */
+  private onVkFocus?: (payload: VkFocusPayload) => void;
 
   constructor(win: BrowserWindow, options: TabManagerOptions = {}) {
     this.win = win;
@@ -221,6 +232,8 @@ export class TabManager {
     resolveSiteSettings?: (url: string) => { zoom: number | null; autoplay: string | null; popups: string | null } | null;
     onZoomPersist?: (url: string, factor: number) => void;
     onPopupBlocked?: (pageUrl: string, popupUrl: string) => void;
+    resolveVkEnabled?: () => boolean;
+    onVkFocus?: (payload: VkFocusPayload) => void;
   }): void {
     this.onTabStateChange = cbs.onTabStateChange;
     this.onTabCreated = cbs.onTabCreated;
@@ -244,6 +257,72 @@ export class TabManager {
     this.resolveSiteSettings = cbs.resolveSiteSettings;
     this.onZoomPersist = cbs.onZoomPersist;
     this.onPopupBlocked = cbs.onPopupBlocked;
+    this.resolveVkEnabled = cbs.resolveVkEnabled;
+    this.onVkFocus = cbs.onVkFocus;
+  }
+
+  // ── Virtual keyboard support ───────────────────────────────────────────────
+
+  /**
+   * Reserve pixels at the bottom of the tab area for the renderer-drawn
+   * docked virtual keyboard, shrinking every native view above it.
+   */
+  setKeyboardReserve(px: number): void {
+    const next = Math.max(0, Math.floor(px) || 0);
+    if (next === this.keyboardReserve) return;
+    this.keyboardReserve = next;
+    this.layoutActiveTab();
+  }
+
+  /**
+   * Wire virtual-keyboard focus reporting on a tab webContents: inject the
+   * page-side reporter on every load (when the feature is enabled) and relay
+   * its console-message signals to the renderer. Focus reports only matter
+   * for the ACTIVE tab — background views can't receive user focus.
+   */
+  private wireVkFocusReporting(wc: WebContents, tabId: TabId): void {
+    wc.on('dom-ready', () => {
+      if (this.resolveVkEnabled?.()) this.injectVkReporter(wc);
+    });
+    wc.on('console-message', (event) => {
+      const payload = parseVkFocusMessage(event.message ?? '');
+      if (!payload) return;
+      // Suppress the reporter line from normal console handling.
+      event.preventDefault?.();
+      if (this.activeTabId === tabId) this.onVkFocus?.(payload);
+    });
+  }
+
+  /** Inject the focus reporter into one page (idempotent via window guard). */
+  private injectVkReporter(wc: WebContents): void {
+    if (!isAlive(wc)) return;
+    const url = wc.getURL();
+    if (!/^(https?|file):/.test(url)) return;
+    wc.executeJavaScript(buildVkFocusReporterScript()).catch(() => { });
+  }
+
+  /**
+   * Inject the focus reporter into every live tab page. Called when the
+   * virtual-keyboard preference flips on so already-open pages start
+   * reporting without a reload.
+   */
+  injectVkReporterAll(): void {
+    for (const tab of this.tabs.values()) {
+      for (const view of [tab.view, tab.secondView]) {
+        if (view && isAlive(view.webContents)) this.injectVkReporter(view.webContents);
+      }
+    }
+  }
+
+  /**
+   * The webContents virtual-keyboard input should be injected into for a tab
+   * (the focused pane in a Website+Website split). Null for internal pages.
+   */
+  getFocusedWebContentsForTab(id: TabId): WebContents | null {
+    const tab = this.tabs.get(id);
+    if (!tab || this.isFocusedPaneInternal(tab)) return null;
+    const wc = this.focusedWebContents(tab);
+    return isAlive(wc) ? wc : null;
   }
 
   /** Stored per-site settings for a URL, or null (always null in private windows). */
@@ -415,6 +494,9 @@ export class TabManager {
         }
       }
     });
+
+    // Virtual keyboard: focus reporting for this tab's page.
+    this.wireVkFocusReporting(wc, id);
 
     // Enforce the per-site auto-play policy once the page is ready and again
     // whenever media actually starts playing (covers late-started players).
@@ -1203,6 +1285,9 @@ export class TabManager {
       }
     });
 
+    // Virtual keyboard: the split's second pane reports field focus too.
+    this.wireVkFocusReporting(wc, id);
+
     wc.on('will-navigate', (event, navUrl) => {
       const allowed = ['http:', 'https:', 'file:', 'about:'];
       try {
@@ -1268,6 +1353,12 @@ export class TabManager {
     const zioReserve = Math.max(0, this.resolveZioPanelReserve?.() ?? 0);
     if (zioReserve > 0) {
       area = { ...area, width: Math.max(0, area.width - zioReserve) };
+    }
+
+    // Docked virtual keyboard: reserve its strip at the bottom so no native
+    // view can cover the renderer-drawn keys.
+    if (this.keyboardReserve > 0) {
+      area = { ...area, height: Math.max(0, area.height - this.keyboardReserve) };
     }
 
     const attach = (v: WebContentsView) => {
