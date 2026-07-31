@@ -1,5 +1,5 @@
 import { browser } from "../lib/browser";
-import { api, ApiError } from "../lib/api";
+import { api, ApiError, type AliasCheckResult } from "../lib/api";
 import { appendDialHistory, applyNotifUnreadCount, clearAuth, clearCachedProperties, getSettings, setSettings, syncPendingThanks } from "../lib/storage";
 import {
   ensureProperties,
@@ -911,13 +911,68 @@ if ((browser as any).omnibox) {
     }
   });
 
-  // Show a helpful default suggestion while the user is typing.
+  // Show a helpful default suggestion while the user is typing. When the
+  // input looks like "szo <destination> <alias>", check the custom
+  // back-half's availability live (debounced) via the same endpoint the
+  // popup and mobile quick-shorten sheet use, and reflect the verdict
+  // (✓ available / ✕ taken / invalid…) in the suggestion text.
+  const OMNIBOX_HINT =
+    "Shorten or search Sayzio: type a URL, email, or phone (add a word after it for a custom back-half), or text to search your dashboard";
+  const ALIAS_CHECK_DEBOUNCE_MS = 300;
+  let aliasCheckTimer: ReturnType<typeof setTimeout> | undefined;
+  let aliasCheckSeq = 0;
+  // Tiny verdict cache so backspacing/retyping the same alias doesn't
+  // re-hit the API within the same service-worker lifetime.
+  const aliasVerdictCache = new Map<string, string>();
+
+  function aliasVerdictDescription(alias: string, r: AliasCheckResult): string {
+    if (r.status === "available") return `✓ "${alias}" is available`;
+    const label =
+      r.status === "taken" ? `✕ "${alias}" is taken` : `✕ "${alias}": ${r.message || r.status.replace(/_/g, " ")}`;
+    const sugg = r.suggestions?.length ? ` — try: ${r.suggestions.slice(0, 3).join(", ")}` : "";
+    return label + sugg;
+  }
+
   (browser as any).omnibox.onInputChanged.addListener(
-    (_text: string, suggest: (suggestions: Array<{ content: string; description: string }>) => void) => {
-      suggest([{
-        content: _text,
-        description: "Shorten or search Sayzio: type a URL, email, or phone (add a word after it for a custom back-half), or text to search your dashboard",
-      }]);
+    (text: string, suggest: (suggestions: Array<{ content: string; description: string }>) => void) => {
+      if (aliasCheckTimer !== undefined) clearTimeout(aliasCheckTimer);
+      const seq = ++aliasCheckSeq;
+
+      const parts = text.trim().split(/\s+/).filter(Boolean);
+      const alias = parts.length === 2 ? parts[1] : undefined;
+
+      // No alias typed (just a URL, or something else) — keep the static hint.
+      if (!alias) {
+        suggest([{ content: text, description: OMNIBOX_HINT }]);
+        return;
+      }
+
+      const cached = aliasVerdictCache.get(alias);
+      if (cached) {
+        suggest([{ content: text, description: cached }]);
+        return;
+      }
+
+      // Show a neutral "checking…" line immediately; the real verdict
+      // arrives after the debounce window (calling suggest() again for
+      // the same input updates the suggestion in place).
+      suggest([{ content: text, description: `Checking availability of "${alias}"…` }]);
+
+      aliasCheckTimer = setTimeout(async () => {
+        try {
+          const settings = await getSettings();
+          if (!settings.token) return; // signed out — no live check
+          const result = await api.checkAlias(alias);
+          if (seq !== aliasCheckSeq) return; // input changed since — stale
+          const description = aliasVerdictDescription(alias, result);
+          aliasVerdictCache.set(alias, description);
+          if (aliasVerdictCache.size > 100) {
+            const oldest = aliasVerdictCache.keys().next().value;
+            if (oldest !== undefined) aliasVerdictCache.delete(oldest);
+          }
+          suggest([{ content: text, description }]);
+        } catch { /* offline / API error — leave the checking line as-is */ }
+      }, ALIAS_CHECK_DEBOUNCE_MS);
     },
   );
 }
