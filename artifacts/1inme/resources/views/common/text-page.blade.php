@@ -62,6 +62,19 @@
         .copy-btn:hover { background: #1d4ed8; }
         .copy-btn.copied { background: #059669; border-color: #059669; }
 
+        .header-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        a.download-btn {
+            text-decoration: none;
+            color: #e8e6f0; background: rgba(255,255,255,.07);
+            border: 1px solid rgba(255,255,255,.16);
+        }
+        a.download-btn:hover { background: rgba(255,255,255,.13); }
+        html.light-mode a.download-btn {
+            color: #18172b; background: #fff;
+            border-color: rgba(24,23,43,.16);
+        }
+        html.light-mode a.download-btn:hover { background: #f0eff6; }
+
         .text-card {
             background: rgba(255,255,255,.05);
             border: 1px solid rgba(255,255,255,.1);
@@ -103,10 +116,19 @@
     <div class="page-header">
         <h1 class="page-heading">{{ $pageTitle }}</h1>
         @if($content !== '')
-        <button type="button" class="copy-btn" id="copy-text-btn" aria-label="Copy text">
-            <i class="fa-regular fa-copy" aria-hidden="true"></i>
-            <span id="copy-text-label">Copy text</span>
-        </button>
+        <div class="header-actions">
+            <a class="copy-btn download-btn"
+               href="{{ url('/' . (request()->route('alias') ?? $link->alias) . '/download.txt') }}"
+               download
+               aria-label="Download as .txt">
+                <i class="fa-solid fa-download" aria-hidden="true"></i>
+                <span>Download .txt</span>
+            </a>
+            <button type="button" class="copy-btn" id="copy-text-btn" aria-label="Copy text">
+                <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                <span id="copy-text-label">Copy text</span>
+            </button>
+        </div>
         @endif
     </div>
 

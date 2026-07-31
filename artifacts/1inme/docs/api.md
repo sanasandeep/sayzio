@@ -472,6 +472,25 @@ Standalone Paid Page (`links.type = paid_page`) resolved by link alias so the ap
 | GET    | `/paid-page/{alias}`                | opt  | Paid-page header + theme + tabs by link alias.   |
 | GET    | `/paid-page/{alias}/posts`          | opt  | Paginated paid-page post feed.                   |
 
+## Text pages (public, non-API)
+
+Text Page (`links.type = text`) content is available programmatically via two
+public companion URLs on the **short-link domain itself** (not under
+`/api/v1`, no bearer token needed beyond the link's own visibility gates):
+
+| Method | Path                          | Auth | Description                                                        |
+| ------ | ----------------------------- | ---- | ------------------------------------------------------------------ |
+| GET    | `https://{domain}/{alias}/raw`          | —    | Raw content as `text/plain; charset=UTF-8` (inline) for curl/scripts. |
+| GET    | `https://{domain}/{alias}/download.txt` | —    | Same content streamed as an attachment named `{alias}.txt`.        |
+
+Both URLs enforce the link's expiry, moderation, visibility tier, and password
+gates exactly like the public page, and each hit is recorded in the link's
+analytics (source `txt_raw` / `txt_download`). Non-`text` links return 404.
+
+```bash
+curl https://1in.me/my-notes/raw
+```
+
 ## Creator monetization
 
 Public per-creator endpoints; listing tiers is unauthenticated, while subscribing/unlocking/tipping require a bearer token. Owner dashboards require the creator's own token.

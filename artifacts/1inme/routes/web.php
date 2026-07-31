@@ -808,6 +808,11 @@ Route::post('/biolink/{link}/appeal', [\App\Modules\Common\Controllers\BiolinkRe
 Route::post('/{alias}', [RedirectController::class, 'handle'])->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks)[^/]+$');
 Route::get('/{alias}/b/{blockId}', [RedirectController::class, 'handleBlockClick'])->name('redirect.block')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$');
 Route::get('/{alias}/download', [RedirectController::class, 'rawFileDownload'])->name('redirect.file.raw')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$');
+// Text-page companions: one-tap .txt download + raw plain-text view for
+// programmatic consumption. Two-segment paths keep them clear of the
+// single-segment /{alias} catch-all; same access gates as the page itself.
+Route::get('/{alias}/download.txt', [RedirectController::class, 'textDownload'])->name('redirect.text.download')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$');
+Route::get('/{alias}/raw', [RedirectController::class, 'textRaw'])->name('redirect.text.raw')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$');
 Route::get('/{alias}/rsvp',  [RedirectController::class, 'rsvpForm'])->name('redirect.rsvp.form')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
 Route::post('/{alias}/rsvp', [RedirectController::class, 'rsvpSubmit'])->name('redirect.rsvp.submit')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:10,1');
 Route::post('/{alias}/interest', [\App\Modules\Common\Controllers\EventInterestController::class, 'toggle'])->name('events.interest.toggle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:30,1');

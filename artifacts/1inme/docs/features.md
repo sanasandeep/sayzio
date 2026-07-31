@@ -125,8 +125,14 @@ exportable guest list; optional preview page. *Web · REST · Mobile.*
 **Text Page (`text`)** — paste or type any text (up to 20,000 characters) and
 share it as a clean, readable public page behind a short link. The body is
 stored under `settings['text']['content']`; visitors can select the text
-freely or copy all of it with a one-tap **copy button**, and every view is
-tracked like any other link. The text is editable any time without changing
+freely, copy all of it with a one-tap **copy button**, or **download it as a
+`.txt` file** (`GET /{alias}/download.txt` — streamed as `{alias}.txt`). A
+**raw plain-text view** at `GET /{alias}/raw` serves the bare content with
+`Content-Type: text/plain` for programmatic consumption (curl, scripts).
+Views, downloads, and raw fetches are all tracked in the link's analytics
+(downloads/raw hits carry source tags `txt_download` / `txt_raw`); both
+companion URLs enforce the same expiry, moderation, visibility, and password
+gates as the page. The text is editable any time without changing
 the short link. Also creatable from the quick-shorten sheet by pasting plain
 text. Toggle `module_text`, cap `max_text_pages`. *Web · REST · Mobile.*
 
