@@ -603,6 +603,11 @@ export function ChromeBar({
     }
     if (!suggestionsOpen) {
       if (e.key === 'Escape') {
+        // Like Chrome, Escape-cleared text goes into the Ctrl/Cmd+Z recovery
+        // stash so the reset doesn't strand recoverable text.
+        if (omniboxEdited && omniboxValue.trim() !== '') {
+          discardedTypedTextRef.current = omniboxValue;
+        }
         setOmniboxEdited(false);
         setOmniboxValue(activeTab?.url ?? '');
         omniboxRef.current?.blur();
@@ -625,7 +630,7 @@ export function ChromeBar({
       setSuggestions([]);
       setSuggestionIndex(-1);
     }
-  }, [suggestionsOpen, suggestions, suggestionIndex, acceptSuggestion, activeTab?.url, omniboxEdited]);
+  }, [suggestionsOpen, suggestions, suggestionIndex, acceptSuggestion, activeTab?.url, omniboxEdited, omniboxValue]);
 
   // Track reading list state for the active page
   useEffect(() => {

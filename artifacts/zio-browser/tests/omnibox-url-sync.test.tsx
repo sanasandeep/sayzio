@@ -16,6 +16,10 @@
  *     discardedTypedTextRef and Ctrl/Cmd+Z restores it (edited flag set);
  *     the stash clears on tab switch and on user-committed navigations
  *     (Enter submit / suggestion accept).
+ *  7. ESCAPE path: Escape resets the bar to the tab URL and clears the edited
+ *     flag, but — like Chrome — the cleared text is stashed first so Ctrl/Cmd+Z
+ *     restores exactly what Escape wiped (never older stale text); whitespace
+ *     or empty values are never stashed.
  */
 import { describe, it, expect, vi } from 'vitest';
 import React, { act, useRef, useState } from 'react';
@@ -68,6 +72,17 @@ function OmniboxHarness({
       setOmniboxValue(discardedTypedTextRef.current);
       setOmniboxEdited(true);
       discardedTypedTextRef.current = null;
+      return;
+    }
+    // Mirrors ChromeBar's Escape branch (suggestions closed): reset to the
+    // tab URL, but stash the cleared text first so Ctrl/Cmd+Z can recover it.
+    if (e.key === 'Escape') {
+      if (omniboxEdited && omniboxValue.trim() !== '') {
+        discardedTypedTextRef.current = omniboxValue;
+      }
+      setOmniboxEdited(false);
+      setOmniboxValue(tabUrl);
+      omniboxRef.current?.blur();
     }
   };
 
@@ -559,5 +574,96 @@ describe('useOmniboxUrlSync — Ctrl/Cmd+Z recovers text discarded by a surprise
     expect(stash.current!.current).toBeNull();
     await pressUndo(m.el, { ctrlKey: true });
     expect(text(m.el, 'edited')).toBe('clean');
+  });
+});
+
+describe('Escape resets the omnibox without stranding recoverable text', () => {
+  const keyEvent = (key: string, opts: KeyboardEventInit = {}) =>
+    new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...opts });
+
+  async function press(el: HTMLElement, key: string, opts: KeyboardEventInit = {}) {
+    await act(async () => { input(el).dispatchEvent(keyEvent(key, opts)); });
+  }
+
+  it('Escape resets to the tab URL, clears the edited flag, and stashes the cleared text', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const m = await mount('tab-1', 'https://start.example/', undefined, stash);
+
+    await focus(m.el);
+    await typeInto(m.el, 'escape me draft');
+    expect(text(m.el, 'edited')).toBe('edited');
+
+    await press(m.el, 'Escape');
+
+    expect(text(m.el, 'value')).toBe('https://start.example/');
+    expect(text(m.el, 'edited')).toBe('clean');
+    expect(stash.current!.current).toBe('escape me draft');
+  });
+
+  it('Ctrl+Z after Escape restores exactly the text Escape cleared', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const m = await mount('tab-1', 'https://start.example/', undefined, stash);
+
+    await focus(m.el);
+    await typeInto(m.el, 'wiped by escape');
+    await press(m.el, 'Escape');
+    expect(text(m.el, 'edited')).toBe('clean');
+
+    await press(m.el, 'z', { ctrlKey: true });
+
+    expect(text(m.el, 'value')).toBe('wiped by escape');
+    expect(input(m.el).value).toBe('wiped by escape');
+    expect(text(m.el, 'edited')).toBe('edited');
+    // The stash is consumed.
+    expect(stash.current!.current).toBeNull();
+  });
+
+  it('Escape overwrites an older stash so Ctrl+Z never restores stale text', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const m = await mount('tab-1', 'https://start.example/', undefined, stash);
+
+    // An automatic navigation stashes an older draft.
+    await focus(m.el);
+    await typeInto(m.el, 'older stale draft');
+    await blur(m.el);
+    await m.render('tab-1', 'https://surprise.example/');
+    expect(stash.current!.current).toBe('older stale draft');
+
+    // The user types fresh text and hits Escape.
+    await focus(m.el);
+    await typeInto(m.el, 'newest draft');
+    await press(m.el, 'Escape');
+    expect(stash.current!.current).toBe('newest draft');
+
+    await press(m.el, 'z', { ctrlKey: true });
+    expect(text(m.el, 'value')).toBe('newest draft');
+    expect(text(m.el, 'edited')).toBe('edited');
+  });
+
+  it('Escape with no edits or whitespace-only text does not touch the stash', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const m = await mount('tab-1', 'https://start.example/', undefined, stash);
+
+    // No edits at all: Escape leaves the (empty) stash alone.
+    await focus(m.el);
+    await press(m.el, 'Escape');
+    expect(stash.current!.current).toBeNull();
+
+    // Whitespace-only edits are never stashed.
+    await focus(m.el);
+    await typeInto(m.el, '   ');
+    await press(m.el, 'Escape');
+    expect(stash.current!.current).toBeNull();
+    expect(text(m.el, 'edited')).toBe('clean');
+
+    // And Escape with no edits must not clobber an EXISTING stash.
+    await focus(m.el);
+    await typeInto(m.el, 'keep me safe');
+    await blur(m.el);
+    await m.render('tab-1', 'https://surprise.example/');
+    expect(stash.current!.current).toBe('keep me safe');
+    await focus(m.el);
+    await press(m.el, 'Escape');
+    expect(stash.current!.current).toBe('keep me safe');
   });
 });
