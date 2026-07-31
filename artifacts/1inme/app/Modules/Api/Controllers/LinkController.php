@@ -578,6 +578,16 @@ class LinkController extends Controller
             'domain_id'  => ['sometimes', 'nullable', $this->availableDomainRule($request->user())],
         ]);
 
+        // Text Page body parity with create + web edit: the PATCH path must
+        // enforce the same shared 20k-char cap on settings.text.content, or a
+        // third-party API client could store an arbitrarily large body on an
+        // existing text link that the create/web forms would have rejected.
+        if ($link->type === 'text' && $request->has('settings.text.content')) {
+            $request->validate([
+                'settings.text.content' => ['nullable', 'string', 'max:20000'],
+            ]);
+        }
+
         if (array_key_exists('settings', $data)) {
             // Deep-merge supplied keys into the existing settings JSON so
             // mobile clients can patch a single sub-key (e.g. just
