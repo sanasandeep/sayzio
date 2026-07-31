@@ -164,14 +164,29 @@ export interface ShortcutEntry {
   keys: string[];
 }
 
+/**
+ * The complete, read-only registry of every keyboard shortcut the browser
+ * actually responds to. This is the single source of truth for BOTH the
+ * command palette's "Keyboard Shortcuts" cheat-sheet and the Settings →
+ * Shortcuts tab. Entries mirror the Electron menu accelerators registered in
+ * `src/main/index.ts` (buildMenu) plus the renderer-level global key handlers
+ * in `src/renderer/App.tsx`. Keep this list in lockstep with those handlers —
+ * no phantom entries, no missing ones.
+ */
 export const KEYBOARD_SHORTCUTS: ShortcutEntry[] = [
-  // Palette
+  // General
   { category: 'General', label: 'Open Command Palette', keys: ['Ctrl/Cmd', 'K'] },
-  { category: 'General', label: 'Find on page', keys: ['Ctrl/Cmd', 'F'] },
-  { category: 'General', label: 'Focus address bar', keys: ['Ctrl/Cmd', 'L'] },
+  { category: 'General', label: 'Open Settings', keys: ['Ctrl/Cmd', ','] },
+  { category: 'General', label: 'Find on Page', keys: ['Ctrl/Cmd', 'F'] },
+  { category: 'General', label: 'Search Tabs', keys: ['Ctrl/Cmd', 'Shift', 'A'] },
+  { category: 'General', label: 'Print Page', keys: ['Ctrl/Cmd', 'P'] },
   // Tabs
   { category: 'Tabs', label: 'New Tab', keys: ['Ctrl/Cmd', 'T'] },
   { category: 'Tabs', label: 'Close Tab', keys: ['Ctrl/Cmd', 'W'] },
+  { category: 'Tabs', label: 'Reopen Closed Tab', keys: ['Ctrl/Cmd', 'Shift', 'T'] },
+  // Windows
+  { category: 'Windows', label: 'New Window', keys: ['Ctrl/Cmd', 'N'] },
+  { category: 'Windows', label: 'New Private Window', keys: ['Ctrl/Cmd', 'Shift', 'N'] },
   // Navigation
   { category: 'Navigation', label: 'Back', keys: ['Alt', '←'] },
   { category: 'Navigation', label: 'Forward', keys: ['Alt', '→'] },
@@ -181,11 +196,15 @@ export const KEYBOARD_SHORTCUTS: ShortcutEntry[] = [
   { category: 'View', label: 'Zoom In', keys: ['Ctrl/Cmd', '='] },
   { category: 'View', label: 'Zoom Out', keys: ['Ctrl/Cmd', '−'] },
   { category: 'View', label: 'Reset Zoom', keys: ['Ctrl/Cmd', '0'] },
+  { category: 'View', label: 'Reader Mode', keys: ['Ctrl/Cmd', 'Alt', 'R'] },
   // Window modes
   { category: 'Modes', label: 'Dashboard mode', keys: ['Ctrl/Cmd', 'Shift', '1'] },
   { category: 'Modes', label: 'Split mode', keys: ['Ctrl/Cmd', 'Shift', '2'] },
   { category: 'Modes', label: 'Browser mode', keys: ['Ctrl/Cmd', 'Shift', '3'] },
-  { category: 'Modes', label: 'New Private Window', keys: ['Ctrl/Cmd', 'Shift', 'N'] },
+  // Bookmarks
+  { category: 'Bookmarks', label: 'Bookmark This Page', keys: ['Ctrl/Cmd', 'D'] },
+  // Privacy
+  { category: 'Privacy', label: 'Clear Browsing Data', keys: ['Ctrl/Cmd', 'Shift', 'Delete'] },
   // Developer
   { category: 'Developer', label: 'Developer Tools', keys: ['F12'] },
 ];

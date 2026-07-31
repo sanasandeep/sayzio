@@ -60,7 +60,7 @@ const SECTIONS: Array<{ id: SectionId; icon: string; label: string; keywords: st
   { id: 'sessions', icon: '🗂️', label: 'Sessions', keywords: 'saved sessions tabs restore named workspace' },
   { id: 'passwords', icon: '🔑', label: 'Passwords', keywords: 'saved passwords credentials sign in autofill' },
   { id: 'extensions', icon: '🧩', label: 'Extensions', keywords: 'chrome extensions unpacked addons plugins' },
-  { id: 'shortcuts', icon: '⌨️', label: 'Shortcuts', keywords: 'keyboard shortcuts hotkeys command palette keys' },
+  { id: 'shortcuts', icon: '⌨️', label: 'Shortcuts', keywords: 'keyboard shortcuts hotkeys command palette keys tabs windows navigation view modes bookmarks privacy developer reader mode zoom print clear browsing data' },
 ];
 
 export function SettingsPanel({ onClose }: Props) {
