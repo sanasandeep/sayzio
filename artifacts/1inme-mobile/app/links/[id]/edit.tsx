@@ -32,6 +32,7 @@ import { listAvailableDomains } from "@/lib/api/domains";
 import {
   checkAlias,
   deleteLink,
+  downloadTextPageTxt,
   duplicateLink,
   getLink,
   resetLink,
@@ -113,6 +114,8 @@ export default function EditLinkScreen() {
   // Text Page body — lives in settings.text.content (same shape the
   // create flow and web editor use). Capped at the shared 20k limit.
   const [textContent, setTextContent] = useState("");
+  // In-flight guard for the "Download .txt" action below.
+  const [txtDownloading, setTxtDownloading] = useState(false);
 
   const domainsQ = useQuery({
     queryKey: ["domains-available"],
@@ -747,6 +750,30 @@ export default function EditLinkScreen() {
               {textContent.length.toLocaleString()} /{" "}
               {TEXT_CONTENT_MAX.toLocaleString()}
             </Text>
+            <Button
+              label={txtDownloading ? "Preparing…" : "Download .txt"}
+              variant="outline"
+              disabled={txtDownloading}
+              onPress={async () => {
+                if (txtDownloading) return;
+                setTxtDownloading(true);
+                try {
+                  await downloadTextPageTxt({
+                    alias: l.alias,
+                    short_url: l.short_url,
+                  });
+                } catch (e) {
+                  showAlert(
+                    "Download failed",
+                    e instanceof Error
+                      ? e.message
+                      : "Couldn't download the text file.",
+                  );
+                } finally {
+                  setTxtDownloading(false);
+                }
+              }}
+            />
           </View>
         ) : null}
 
