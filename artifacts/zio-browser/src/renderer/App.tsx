@@ -392,9 +392,14 @@ export default function App() {
   }, [user, isPrivate]);
 
   // ── Zio panel divider drag (browser mode, docked) ─────────────────────────
+  // Native views swallow mouse events the moment the cursor leaves the thin
+  // divider, so — like the tab-split divider below — hold the chrome overlay
+  // for the duration of the drag (views detach, snapshot backdrop shows) and
+  // release it on mouseup. Width updates live so the panel tracks the cursor.
   const handleDividerMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     isDraggingRef.current = true;
+    void window.zio.window.setChromeOverlay(true);
 
     const onMove = (ev: MouseEvent) => {
       if (!isDraggingRef.current || !containerRef.current) return;
@@ -410,6 +415,7 @@ export default function App() {
       isDraggingRef.current = false;
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
+      void window.zio.window.setChromeOverlay(false);
     };
 
     document.addEventListener('mousemove', onMove);
@@ -730,7 +736,8 @@ export default function App() {
         {/* ── Docked Zio panel (push layout) ─────────────────────────────── */}
         {showDockedPanel && (
           <>
-            {/* Drag divider */}
+            {/* Drag divider — visible rail with a centered grip, plus an
+                invisible widened hit area so it's easy to grab. */}
             <div
               onMouseDown={handleDividerMouseDown}
               style={{
@@ -742,8 +749,28 @@ export default function App() {
                 position: 'relative',
                 zIndex: 10,
               }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'var(--color-primary, #6366f1)'; }}
+              onMouseLeave={(e) => { if (!isDraggingRef.current) (e.currentTarget as HTMLDivElement).style.background = 'var(--color-border)'; }}
               title="Drag to resize Zio panel"
-            />
+            >
+              {/* Widened invisible hit zone (±5px each side) */}
+              <div style={{ position: 'absolute', top: 0, bottom: 0, left: -5, right: -5, cursor: 'col-resize' }} />
+              {/* Grip dots */}
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 3,
+                pointerEvents: 'none',
+              }}>
+                {[0, 1, 2].map(i => (
+                  <span key={i} style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--color-text-muted, #888)' }} />
+                ))}
+              </div>
+            </div>
             <ZioPanel
               pageContext={activeTab ? { url: activeTab.url, title: activeTab.title } : null}
               onClose={() => {

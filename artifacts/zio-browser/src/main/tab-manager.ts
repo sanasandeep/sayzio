@@ -1211,6 +1211,14 @@ export class TabManager {
       };
     }
 
+    // When the renderer is drawing the docked Ask Zio panel (toggle-open or
+    // zio-split tab mode), reserve its strip on the right for EVERY layout
+    // branch so no native view can cover the panel or its divider.
+    const zioReserve = Math.max(0, this.resolveZioPanelReserve?.() ?? 0);
+    if (zioReserve > 0) {
+      area = { ...area, width: Math.max(0, area.width - zioReserve) };
+    }
+
     const attach = (v: WebContentsView) => {
       try { this.win.contentView.addChildView(v); } catch { }
     };
@@ -1241,12 +1249,11 @@ export class TabManager {
     // Compute bounds for the native views this mode shows.
     const placements: Array<{ view: WebContentsView; bounds: Electron.Rectangle }> = [];
     if (right === 'zio') {
-      // Left pane native; renderer draws the Zio panel in the reserved strip.
-      const reserve = Math.max(0, this.resolveZioPanelReserve?.() ?? 0);
+      // Left pane native; the Zio panel strip is already excluded from `area`.
       if (leftView) {
         placements.push({
           view: leftView,
-          bounds: { x: area.x, y: area.y, width: Math.max(0, area.width - reserve), height: area.height },
+          bounds: { x: area.x, y: area.y, width: area.width, height: area.height },
         });
       }
     } else if (right) {
