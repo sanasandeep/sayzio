@@ -931,9 +931,11 @@ function reloadDevicePreview() {
 // provide slides-flavoured implementations of all of them here.
 let _slEditBlockId = null;
 let _slEditInjectedScripts = [];
+let _slEditDirty = false;
 
 function slOpenBlockEdit(blockId) {
     _slEditBlockId = blockId;
+    _slEditDirty = false;
     const overlay = document.getElementById('sl-edit-overlay');
     const body = document.getElementById('sl-edit-body');
     document.getElementById('sl-edit-title').textContent = 'Edit · ' + blockLabel(blockId);
@@ -982,10 +984,18 @@ function _slInjectEditForm(body, html) {
         } catch (e) { console.warn('Script exec error:', e); }
     });
     if (window.Alpine && Alpine.initTree) { try { Alpine.initTree(body); } catch (e) {} }
+    _slEditDirty = false;
 }
 
 // Called by the edit form's Cancel button and the modal close (X).
 function closeEditDrawerGlobal() {
+    if (_slEditDirty && !window.confirm('Discard unsaved changes?')) return;
+    _slCloseEditModal();
+}
+
+// Closes without any dirty-check (used after a successful save).
+function _slCloseEditModal() {
+    _slEditDirty = false;
     const overlay = document.getElementById('sl-edit-overlay');
     const body = document.getElementById('sl-edit-body');
     if (window.Alpine && Alpine.destroyTree) { try { Alpine.destroyTree(body); } catch (e) {} }
@@ -1000,6 +1010,9 @@ function closeEditDrawerGlobal() {
 document.getElementById('sl-edit-overlay').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeEditDrawerGlobal();
 });
+// Mark the loaded form dirty on any user edit inside the modal body.
+document.getElementById('sl-edit-body').addEventListener('input', () => { _slEditDirty = true; });
+document.getElementById('sl-edit-body').addEventListener('change', () => { _slEditDirty = true; });
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && _slEditBlockId) closeEditDrawerGlobal();
 });
@@ -1052,7 +1065,7 @@ function ajaxSaveBlock(e, form) {
                 if (entry) entry.label = label ? String(label).slice(0, 60) : null;
             }
             showToast('Block saved', 'success');
-            closeEditDrawerGlobal();
+            _slCloseEditModal();
             renderSlides();
             reloadDevicePreview();
         } else {

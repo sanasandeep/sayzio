@@ -163,6 +163,43 @@ test("chip edit opens the shared block edit form in a modal", async ({
   await expect(page.locator("#sl-edit-body form")).toHaveCount(0);
 });
 
+test("dirty modal warns before discarding on Escape / backdrop close", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await gotoSlidesEditor(page);
+
+  await page.click(".sl-block-chip .sl-chip-edit");
+  const form = page.locator("#sl-edit-body form");
+  await expect(form).toBeVisible({ timeout: 30_000 });
+
+  const textInput = form
+    .locator('input[name="settings[text]"], textarea[name="settings[text]"]')
+    .first();
+  await textInput.fill("Slides Heading Dirty Draft");
+
+  // Declining the confirm keeps the modal (and the draft) open.
+  let confirmMessage = "";
+  page.once("dialog", (d) => {
+    confirmMessage = d.message();
+    void d.dismiss();
+  });
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#sl-edit-overlay")).toBeVisible();
+  await expect(textInput).toHaveValue("Slides Heading Dirty Draft");
+  expect(confirmMessage).toContain("Discard unsaved changes?");
+
+  // Accepting the confirm via a backdrop click discards and closes.
+  page.once("dialog", (d) => void d.accept());
+  await page
+    .locator("#sl-edit-overlay")
+    .click({ position: { x: 5, y: 5 } });
+  await expect(page.locator("#sl-edit-overlay")).toBeHidden({
+    timeout: 15_000,
+  });
+  await expect(page.locator("#sl-edit-body form")).toHaveCount(0);
+});
+
 test("saving from the modal persists, updates the chip and closes", async ({
   page,
 }) => {
