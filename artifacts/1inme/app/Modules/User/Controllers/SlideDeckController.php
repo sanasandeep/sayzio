@@ -106,6 +106,23 @@ class SlideDeckController extends Controller
             ])->values(),
         ];
 
+        // In-slide block creation: a curated subset of common biolink block
+        // types the user can create without leaving the slides editor. The
+        // list respects the same per-plan allowlist the biolink editor
+        // enforces (userCanUseBlockType), and creation itself still goes
+        // through BiolinkBlockController::store so gating can't drift.
+        $creatableTypes = collect([
+            'heading', 'paragraph', 'paragraph_rich', 'image', 'image_grid',
+            'link', 'link_big', 'list', 'divider', 'spacer', 'alert', 'badge',
+            'socials', 'video', 'audio',
+        ])
+            ->filter(fn ($t) => workspace_owner()->userCanUseBlockType($t))
+            ->map(fn ($t) => [
+                'type'  => $t,
+                'label' => BiolinkBlock::TYPES[$t]['label'] ?? $t,
+            ])
+            ->values();
+
         // Per-slide backgrounds re-use the same "template" catalog as the
         // page background so creators get a consistent picker. We pull the
         // active templates here and pass a lightweight payload to the editor.
@@ -118,6 +135,7 @@ class SlideDeckController extends Controller
             'blockOptions' => $blockOptions,
             'previewUrl'   => $previewUrl,
             'bgTemplates'  => $bgTemplates,
+            'creatableTypes' => $creatableTypes,
         ]);
     }
 
