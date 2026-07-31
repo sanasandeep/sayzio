@@ -134,3 +134,6 @@ A publish can fail with NO code change: the promote step allows ~5 min from "Cre
 
 ## Image-size margin (July 2026, second failure same day)
 When TWO consecutive promotes miss the ~5-min window, don't just retry: the container image is huge (workspace ~12G; attached_assets screenshots alone were 1.4G) and non-reserved-VM deploys skip SOCI streaming, so pull time eats the whole window. Mitigations: prune attached_assets chat screenshots (keep named asset folders + newest few; nothing in code references attached_assets), or suggest Reserved VM (streams image + scheduler never sleeps).
+
+## Pre-framework fast path (Jul 31 2026)
+ProdStartupProbe middleware alone was NOT enough: on a cold container Laravel boot itself (autoload + boot-time app_settings reads over cross-region RDS) exceeds the ~5s promote probe deadline before any middleware runs. Fix: server.php (php -S router, prod only) answers GET / probe-UAs instantly and serves /up + a "/" splash during the prod_boot_ms boot window BEFORE loading Laravel. Keep UA list/window in sync with the middleware; never make /up unconditionally 200 outside the boot window (masks broken deploys).
