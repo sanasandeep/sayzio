@@ -15,7 +15,8 @@ export type LinkKind =
   | "restaurant_menu"
   | "store_menu"
   | "service_booking"
-  | "reviews";
+  | "reviews"
+  | "text";
 
 type IconName = keyof typeof Feather.glyphMap;
 
@@ -36,7 +37,8 @@ export type LinkKindMeta = {
     | "restaurant_menu"
     | "store_menu"
     | "service_booking"
-    | "reviews";
+    | "reviews"
+    | "text";
   label: string;
   blurb: string;
   icon: IconName;
@@ -77,6 +79,13 @@ export const LINK_KINDS: LinkKindMeta[] = [
     label: "vCard",
     blurb: "Tap-to-save digital business card.",
     icon: "user",
+  },
+  {
+    kind: "text",
+    apiType: "text",
+    label: "Text Page",
+    blurb: "Paste any text and share it as a clean page with a copy button.",
+    icon: "align-left",
   },
   {
     kind: "calendar",
@@ -168,7 +177,7 @@ export const LINK_KIND_CATEGORIES: LinkKindCategory[] = [
   {
     label: "Everyday links",
     desc: "Quick, single-purpose links you can share anywhere in seconds.",
-    kinds: ["url", "file", "calendar", "vcard"],
+    kinds: ["url", "file", "calendar", "vcard", "text"],
   },
   {
     label: "Pages & mini-sites",

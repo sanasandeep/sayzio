@@ -224,7 +224,7 @@ class LinkController extends Controller
         // (e.g. from a "Perfect pairings" cross-promo card) takes priority
         // over the remembered session type for a one-off deep link, but is
         // never persisted to session itself.
-        $allowedTypes = ['url', 'biolink', 'conversational', 'slides', 'ai_chat', 'restaurant_menu', 'store_menu', 'service_booking', 'file', 'ics', 'vcf'];
+        $allowedTypes = ['url', 'biolink', 'conversational', 'slides', 'ai_chat', 'restaurant_menu', 'store_menu', 'service_booking', 'file', 'ics', 'vcf', 'text'];
         $queryType = $request->query('type');
         $lastType = in_array($queryType, $allowedTypes, true)
             ? $queryType
@@ -272,7 +272,7 @@ class LinkController extends Controller
         $limits = workspace_owner()->getAliasLengthLimits();
 
         $validated = $request->validate([
-            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,file,ics,vcf,reviews,resume,paid_page,calendar,brand_kit,updates',
+            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,file,ics,vcf,text,reviews,resume,paid_page,calendar,brand_kit,updates',
             'alias' => [
                 'nullable', 'string', new \App\Modules\User\Rules\AliasFormat(),
                 'min:' . $limits['min'],
@@ -316,6 +316,7 @@ class LinkController extends Controller
             'brand_kit'      => redirect()->route('user.links.brand-kit.create', $params),
             'calendar'       => redirect()->route('user.calendars.create', $params),
             'updates'        => redirect()->route('user.links.updates.create', $params),
+            'text'           => redirect()->route('user.links.text.create', $params),
         };
     }
 
@@ -592,6 +593,26 @@ class LinkController extends Controller
     }
 
     /**
+     * Step 2 for the Text Page — paste/type the text + name + alias +
+     * project. store() persists the content into settings['text']['content']
+     * and the public /{alias} route renders it with a copy button.
+     */
+    public function createText(Request $request)
+    {
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
+        $domains  = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
+
+        return view('user.links.create-text', [
+            'projects'       => $projects,
+            'domains'        => $domains,
+            'defaultDomainId'=> $this->resolveDefaultDomainId($request, $domains),
+            'prefillAlias'   => (string) $request->query('alias', ''),
+            'aliasLimits'    => workspace_owner()->getAliasLengthLimits(),
+            'domainHost'     => \App\Modules\Common\Support\PlatformHosts::primary(),
+        ]);
+    }
+
+    /**
      * Step 2 for the standalone Reviews page — name + alias + project only,
      * then the dedicated reviews editor takes over.
      */
@@ -703,6 +724,7 @@ class LinkController extends Controller
             'calendar'        => ['module' => 'module_calendar',        'cap' => 'max_calendars',       'label' => 'Calendar'],
             'brand_kit'       => ['module' => 'module_brand_kit',       'cap' => 'max_brand_kit_pages', 'label' => 'Brand / Press Kit'],
             'updates'         => ['module' => 'module_updates',         'cap' => 'max_updates_pages',   'label' => 'Updates'],
+            'text'            => ['module' => 'module_text',            'cap' => 'max_text_pages',      'label' => 'Text Page'],
         ];
         $cfg = $map[$type] ?? null;
         if (!$cfg) {
@@ -729,7 +751,8 @@ class LinkController extends Controller
         $userId = workspace_owner_id();
 
         $validated = $request->validate([
-            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,file,ics,vcf,reviews,resume,paid_page,calendar,brand_kit,updates',
+            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,file,ics,vcf,text,reviews,resume,paid_page,calendar,brand_kit,updates',
+            'text_content' => 'required_if:type,text|nullable|string|max:20000',
             'paid_page_template' => 'nullable|string|in:' . implode(',', \App\Modules\User\Support\PaidPageTemplates::ids()),
             'brand_kit_id' => "nullable|integer|exists:brand_kits,id,user_id,{$userId}",
             'long_url' => 'required_if:type,url|nullable|url|max:2048',
@@ -851,6 +874,13 @@ class LinkController extends Controller
                 $settings['open_in_app'] = $deepLinkAllowed;
             }
         }
+        // Text Page — persist the pasted text so the public page can render
+        // it (selectable, with a copy button). Content lives in
+        // settings['text']['content'], same shape the quick-shorten path uses.
+        if (($validated['type'] ?? null) === 'text') {
+            $settings['text'] = ['content' => (string) ($validated['text_content'] ?? '')];
+        }
+        unset($validated['text_content']);
         // Smart redirect rules — supported on every link type. For non-url
         // types a matched rule overrides the normal landing/file behavior
         // with the rule's destination URL (see RedirectController::handle).
@@ -1037,6 +1067,10 @@ class LinkController extends Controller
         if ($link->type === 'updates') {
             return redirect()->route('user.links.updates.editor', $link)
                 ->with('success', 'Updates page created — post your first entry to get started.');
+        }
+        if ($link->type === 'text') {
+            return redirect()->route('user.links.edit', $link)
+                ->with('success', 'Text Page created — share the link; visitors can read and copy your text.');
         }
 
         // "Build with AI" start mode — skip the picker and send the user to

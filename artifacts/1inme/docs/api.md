@@ -159,7 +159,7 @@ handle and a first link.
 | ------ | ---------------- | ---- | ------------------------------------------------------------------------------------ |
 | GET    | `/links`         | yes  | Paginated list. Filters: `type`, `q`, `per_page`.                                    |
 | GET    | `/links/export.csv` | yes | CSV export of your links (same `type`/`q` filters as the list). Streamed; **not** plan-gated. Columns: `title,type,short_url,destination,project,status,total_clicks,created_at`. |
-| POST   | `/links`         | yes  | Body: `type` (short/biolink/file/qr/event/vcard/social/sms/wifi/pdf/ai_chat/…), `alias?`, `title?`, `long_url?`, `visibility?`. |
+| POST   | `/links`         | yes  | Body: `type` (short/biolink/file/qr/event/vcard/social/sms/wifi/pdf/ai_chat/text/…), `alias?`, `title?`, `long_url?`, `visibility?`. For `type=text` the pasted body is required under `settings.text.content` (max 20,000 chars); the public page shows it with a copy button. Plan gates: `module_text` toggle, `max_text_pages` cap. |
 | GET    | `/links/{id}`    | yes  | Show single link you own.                                                            |
 | PATCH  | `/links/{id}`    | yes  | Partial update.                                                                      |
 | DELETE | `/links/{id}`    | yes  | Delete link.                                                                         |

@@ -215,6 +215,7 @@ or as biolink blocks.
 | **QR Code** | A trackable QR code, designed in QR Studio Pro. |
 | **Event** | A page visitors can add to their calendar in one tap, with RSVP collection. |
 | **Contact Card (vCard)** | A digital business card; visitors tap "Save Contact" to download your `.vcf`. |
+| **Text Page** | Paste or type any text and share it as a clean page behind a short link. Visitors can select the text or copy it all with one tap. |
 | **SMS** | A tap-to-text link that pre-composes a message to a number. |
 | **WiFi** | A tap-to-join link/QR that connects visitors to a WiFi network. |
 | **PDF** | Share a PDF behind a viewer/download page. |

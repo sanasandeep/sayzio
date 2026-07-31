@@ -35,6 +35,7 @@ class LinkTypeCategories
                     ['value' => 'file', 'icon' => 'fa-file',         'badge' => 'bg-emerald-500/15 text-emerald-300','label' => 'File Share',   'desc' => 'Share a downloadable file behind a short link.'],
                     ['value' => 'ics',  'icon' => 'fa-calendar',     'badge' => 'bg-amber-500/15 text-amber-300',    'label' => 'Event',        'desc' => 'A calendar event visitors can add in a single tap.'],
                     ['value' => 'vcf',  'icon' => 'fa-address-card', 'badge' => 'bg-cyan-500/15 text-cyan-300',      'label' => 'Contact Card', 'desc' => 'A digital business card visitors can save instantly.'],
+                    ['value' => 'text', 'icon' => 'fa-align-left',   'badge' => 'bg-sky-500/15 text-sky-300',        'label' => 'Text Page',    'desc' => 'Paste any text and share it as a clean page with a copy button.'],
                 ],
             ],
             [

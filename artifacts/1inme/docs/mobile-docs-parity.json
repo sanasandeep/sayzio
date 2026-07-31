@@ -228,17 +228,17 @@
         },
         "image_grid": {
             "label": "Image Grid",
-            "mobile": false,
+            "mobile": true,
             "docs": true
         },
         "image_slider": {
             "label": "Image Slider",
-            "mobile": false,
+            "mobile": true,
             "docs": true
         },
         "image_slider_v2": {
             "label": "Photo Carousel",
-            "mobile": false,
+            "mobile": true,
             "docs": false
         },
         "insider": {
@@ -534,7 +534,7 @@
         "ticker": {
             "label": "News Ticker",
             "mobile": false,
-            "docs": false
+            "docs": true
         },
         "tidal": {
             "label": "Tidal",
@@ -702,6 +702,10 @@
         },
         "store_menu": {
             "label": "Store Menu",
+            "docs": true
+        },
+        "text": {
+            "label": "Text Page",
             "docs": true
         },
         "updates": {

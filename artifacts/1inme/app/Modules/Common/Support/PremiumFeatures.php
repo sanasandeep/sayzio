@@ -57,6 +57,7 @@ class PremiumFeatures
             ['key' => 'max_brand_kit_pages', 'group' => 'Pages & link types', 'name' => 'Brand / Press Kit pages', 'description' => 'How many shareable Brand / Press Kit pages (logos, colours, fonts, voice, boilerplate) you can publish.', 'unit' => 'pages'],
             ['key' => 'max_paid_page', 'group' => 'Pages & link types', 'name' => 'Paid / members pages', 'description' => 'How many paid, members-only content pages you can publish — gated behind a follow, subscription or one-off payment.', 'unit' => 'pages'],
             ['key' => 'max_updates_pages', 'group' => 'Pages & link types', 'name' => 'Updates / Changelog pages', 'description' => 'How many public changelog pages — dated entries with follower notifications — you can publish.', 'unit' => 'pages'],
+            ['key' => 'max_text_pages', 'group' => 'Pages & link types', 'name' => 'Text Pages', 'description' => 'How many Text Pages — paste any text and share it as a clean page with a copy button — you can publish.', 'unit' => 'pages'],
             ['key' => 'calendar_sync', 'group' => 'Pages & link types', 'name' => 'Calendar sync', 'description' => 'Two-way sync between your calendar events and Google Calendar so updates flow both ways automatically.'],
 
             // ---- Short links & aliases ----

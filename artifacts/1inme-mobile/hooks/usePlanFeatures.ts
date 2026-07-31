@@ -36,6 +36,7 @@ const GATED_LINK_TYPES = new Set<string>([
   "slides",
   "ai_chat",
   "event",
+  "text",
 ]);
 
 // Most gated types follow the uniform `module_<apiType>` / `max_<apiType>`
@@ -51,6 +52,7 @@ const MODULE_KEY_BY_TYPE: Record<string, string> = {
 const CAP_KEY_BY_TYPE: Record<string, string> = {
   event: "max_calendars",
   brand_kit: "max_brand_kit_pages",
+  text: "max_text_pages",
 };
 
 function truthy(v: unknown): boolean {

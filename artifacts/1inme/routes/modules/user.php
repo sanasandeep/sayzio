@@ -906,6 +906,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get ('links-brand-kit/create', [LinkController::class, 'createBrandKit'])->middleware('workspace.can:links.create')->name('links.brand-kit.create');
         // Standalone Updates / Changelog page: step-2 create + dedicated editor.
         Route::get ('links-updates/create', [LinkController::class, 'createUpdates'])->middleware('workspace.can:links.create')->name('links.updates.create');
+        // Text Page: paste text → short link; step-2 create form.
+        Route::get ('links-text/create', [LinkController::class, 'createText'])->middleware('workspace.can:links.create')->name('links.text.create');
         // Followable Calendar link type: step-2 create + dedicated event editor,
         // per-calendar settings, event CRUD, and the cross-calendar "My Calendar"
         // agenda (owned + followed). Distinct from the external CalendarAccount

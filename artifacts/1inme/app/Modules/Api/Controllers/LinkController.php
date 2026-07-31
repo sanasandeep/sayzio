@@ -304,7 +304,7 @@ class LinkController extends Controller
         // land on the same floor as the web form and live checker.
         $aliasLimits = $request->user()->getAliasLengthLimits();
         $data = $request->validate([
-            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'ics', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page', 'brand_kit'])],
+            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'ics', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page', 'brand_kit', 'text'])],
             // The admin banned/reserved-names list is enforced on the mobile
             // create submit too (privileged `user.banned_names.bypass` holders
             // skip it), mirroring the web chooseType() rule and the live
@@ -360,6 +360,15 @@ class LinkController extends Controller
                     'settings.event.end'   => ['nullable', 'date'],
                 ]);
             }
+        }
+
+        // Text Page links carry their pasted body under settings.text.content
+        // (same storage shape as the web create form and quick-shorten sheet),
+        // so require it here and cap it at the shared 20k-char limit.
+        if ($data['type'] === 'text') {
+            $request->validate([
+                'settings.text.content' => ['required', 'string', 'max:20000'],
+            ]);
         }
 
         // File links need a companion FileLink row for the public download
@@ -439,6 +448,7 @@ class LinkController extends Controller
             'resume'         => ['module' => 'module_resume',         'cap' => 'max_resume',         'label' => 'Resume / Portfolio'],
             'paid_page'      => ['module' => 'module_paid_page',      'cap' => 'max_paid_page',      'label' => 'Paid Page'],
             'brand_kit'      => ['module' => 'module_brand_kit',      'cap' => 'max_brand_kit_pages','label' => 'Brand / Press Kit'],
+            'text'           => ['module' => 'module_text',           'cap' => 'max_text_pages',     'label' => 'Text Page'],
         ];
         if (isset($typeQuotaMap[$attrs['type']])) {
             $qcfg  = $typeQuotaMap[$attrs['type']];
