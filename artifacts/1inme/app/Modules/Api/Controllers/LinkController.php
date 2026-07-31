@@ -92,6 +92,9 @@ class LinkController extends Controller
             // uniqueness check is scoped to the chosen domain namespace.
             'domain_id'   => ['nullable', $this->availableDomainRule($user)],
             'alias'       => ['nullable', 'string', 'min:' . $aliasLimits['min'], 'max:' . $aliasLimits['max'], new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\Admin\Rules\NotBannedName(), new \App\Modules\User\Rules\UniqueAliasCi(null, $request->input('domain_id'))],
+            // Inaccessible/unknown ids fall back to the active workspace in
+            // resolveWorkspaceId(); this rule only rejects malformed input.
+            'workspace_id' => ['nullable', 'integer'],
         ]);
 
         // Plan link cap — mirrors CheckPlanLimit:links on the web route.
@@ -142,8 +145,11 @@ class LinkController extends Controller
 
         // Tag the active workspace (the Sanctum path never runs
         // SetActiveWorkspace, so without this the link lands with
-        // workspace_id = null and is hidden from the web list).
-        $workspaceId = $this->resolveWorkspaceId($user);
+        // workspace_id = null and is hidden from the web list). Honour a
+        // caller-supplied workspace_id (browser extension workspace picker)
+        // the same way store() does — resolveWorkspaceId() only accepts
+        // workspaces the caller can actually access.
+        $workspaceId = $this->resolveWorkspaceId($user, $request->input('workspace_id'));
         if ($workspaceId !== null && Schema::hasColumn('links', 'workspace_id')) {
             $link->workspace_id = (int) $workspaceId;
         }

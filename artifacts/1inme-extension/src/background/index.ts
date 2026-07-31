@@ -63,13 +63,24 @@ function notify(title: string, message: string) {
   } catch { /* notifications permission may be missing */ }
 }
 
-async function shortenAndCopy(url: string, title?: string, openTabId?: number, autoPixel?: boolean): Promise<{ ok: true; shortUrl: string; linkId: number } | { ok: false; error: string }> {
+async function shortenAndCopy(destination: string, title?: string, openTabId?: number, autoPixel?: boolean, alias?: string): Promise<{ ok: true; shortUrl: string; linkId: number } | { ok: false; error: string }> {
   const settings = await getSettings();
   if (!settings.token) return { ok: false, error: "Not signed in" };
   try {
-    const result = await api.createShortLink(url, title, settings.workspaceId, autoPixel);
-    const alias = result.link.alias;
-    const shortUrl = result.link.short_url || `${settings.webBaseUrl}/${alias}`;
+    // Send the RAW text to the quick-shorten endpoint — the server owns
+    // classification (web URL / bare domain / email → mailto: / phone →
+    // tel:), so the extension can never drift from web/mobile parsing.
+    const result = await api.quickShorten(destination, alias, settings.workspaceId);
+    const shortUrl = result.short_url;
+
+    // Quick-shorten doesn't take a title or the auto-pixel flag; patch them
+    // on best-effort (the server already titles email/phone links itself).
+    const patch: Record<string, unknown> = {};
+    if (title && result.kind === "url") patch.title = title;
+    if (autoPixel) patch.auto_pixel = true;
+    if (Object.keys(patch).length > 0) {
+      try { await api.updateLink(result.id, patch); } catch { /* non-fatal */ }
+    }
 
     // Try to copy via the active tab content script. The background's
     // service worker doesn't have a clipboard API on its own.
@@ -95,7 +106,7 @@ async function shortenAndCopy(url: string, title?: string, openTabId?: number, a
     }
 
     notify("Shortened with Sayzio", shortUrl);
-    return { ok: true, shortUrl, linkId: result.link.id };
+    return { ok: true, shortUrl, linkId: result.id };
   } catch (e) {
     const msg = e instanceof ApiError ? e.message : (e as Error).message || "Shorten failed";
     return { ok: false, error: msg };
@@ -633,15 +644,10 @@ browser.contextMenus?.onClicked.addListener(async (info, tab) => {
   else if (info.menuItemId === "1inme-shorten-selection") {
     const sel = (info.selectionText || "").trim();
     if (!sel) { notify("Zio Extension", "No text selected."); return; }
-    let targetUrl = sel;
-    try { new URL(sel); } catch {
-      // Not a bare URL — try prefixing https://
-      try { targetUrl = new URL("https://" + sel).href; } catch {
-        notify("Zio Extension — error", "Selected text is not a valid URL.");
-        return;
-      }
-    }
-    const result = await shortenAndCopy(targetUrl, undefined, tab.id);
+    // Pass the raw selection through — the quick-shorten API classifies
+    // URLs, bare domains, emails (→ mailto:) and phone numbers (→ tel:)
+    // server-side and answers `not_shortenable` for anything else.
+    const result = await shortenAndCopy(sel, undefined, tab.id);
     if (!result.ok) notify("Zio Extension — error", result.error);
   } else if (info.menuItemId === "1inme-qr-selection") {
     const sel = (info.selectionText || "").trim();
@@ -778,7 +784,7 @@ browser.runtime.onMessage.addListener(async (msg: any, sender: any) => {
         const tabs = await browser.tabs.query({ active: true, currentWindow: true });
         activeTabId = tabs[0]?.id;
       }
-      return shortenAndCopy(msg.url, msg.title, activeTabId, msg.autoPixel);
+      return shortenAndCopy(msg.url, msg.title, activeTabId, msg.autoPixel, msg.alias);
     }
     case "PAGE_TO_BIOLINK": {
       const tabId = msg.tabId ?? sender.tab?.id;

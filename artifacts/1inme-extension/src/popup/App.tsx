@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { browser } from "../lib/browser";
-import { ApiError, api, AbVariantsPayload, BacklinkRow, LinkSummary, SmartRule, WorkspacePixels, NotificationItem } from "../lib/api";
+import { ApiError, api, AbVariantsPayload, AliasCheckResult, BacklinkRow, LinkSummary, SmartRule, WorkspacePixels, NotificationItem } from "../lib/api";
 import { NotificationsView } from "./NotificationsView";
 import { AddToBiolinkView } from "./AddToBiolinkView";
 import { QuickQrView, QrContentType } from "./QuickQrView";
@@ -153,6 +153,11 @@ export function App() {
   const [qrPrefillContentType, setQrPrefillContentType] = useState<QrContentType>("text");
   // Link health alerts — populated when radar matches link on page and health check reveals issues.
   const [unhealthyLinks, setUnhealthyLinks] = useState<Array<{ alias: string; status: "inactive" | "expired" }>>([]);
+  // Optional custom back-half for the next shorten, with a debounced live
+  // availability check (same taken/banned/invalid verdicts as web/mobile).
+  const [alias, setAlias] = useState<string>("");
+  const [aliasCheck, setAliasCheck] = useState<AliasCheckResult | null>(null);
+  const [aliasChecking, setAliasChecking] = useState(false);
 
   const loadAbTests = useCallback(async () => {
     setAbLoading(true);
@@ -305,14 +310,38 @@ export function App() {
     if (t) setTimeout(() => setToast(null), 4500);
   }, []);
 
+  // Debounced live availability check for the custom back-half field.
+  useEffect(() => {
+    const trimmed = alias.trim();
+    if (!trimmed) { setAliasCheck(null); setAliasChecking(false); return; }
+    setAliasChecking(true);
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const r = await api.checkAlias(trimmed);
+        if (!cancelled) setAliasCheck(r);
+      } catch {
+        if (!cancelled) setAliasCheck(null);
+      } finally {
+        if (!cancelled) setAliasChecking(false);
+      }
+    }, 350);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [alias]);
+
+  const aliasBlocked = alias.trim() !== "" && aliasCheck?.available === false;
+
   const handleShorten = async () => {
     if (!tabUrl) return;
     setBusy("shorten");
     try {
       const resp: any = await browser.runtime.sendMessage({
         type: "SHORTEN_URL", url: tabUrl, title: tabTitle, autoPixel,
+        alias: alias.trim() || undefined,
       });
       if (resp?.ok) {
+        setAlias("");
+        setAliasCheck(null);
         showToast({
           kind: "success",
           text: `Shortened: ${resp.shortUrl}`,
@@ -701,7 +730,50 @@ export function App() {
               </label>
             </div>
           )}
-          <button className="btn-primary" disabled={!tabUrl || busy !== null} onClick={handleShorten}>
+          <div className="field">
+            <label>Custom back-half <span className="muted">(optional)</span></label>
+            <input
+              type="text"
+              placeholder="Leave blank to auto-generate"
+              value={alias}
+              onChange={(e) => setAlias(e.target.value)}
+              spellCheck={false}
+              autoComplete="off"
+            />
+            {alias.trim() !== "" && (
+              <div
+                className="muted"
+                style={{
+                  fontSize: 11,
+                  marginTop: 3,
+                  color: aliasChecking
+                    ? undefined
+                    : aliasCheck?.available === true
+                      ? "#22c55e"
+                      : aliasCheck?.available === false
+                        ? "#ef4444"
+                        : undefined,
+                }}
+              >
+                {aliasChecking ? "Checking availability…" : aliasCheck?.message || ""}
+                {!aliasChecking && aliasCheck?.available === false && (aliasCheck?.suggestions?.length ?? 0) > 0 && (
+                  <div style={{ marginTop: 3, display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    {aliasCheck!.suggestions!.slice(0, 3).map((s) => (
+                      <button
+                        key={s}
+                        className="btn-link"
+                        style={{ padding: 0, fontSize: 11 }}
+                        onClick={() => setAlias(s)}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <button className="btn-primary" disabled={!tabUrl || busy !== null || aliasBlocked || aliasChecking} onClick={handleShorten}>
             {busy === "shorten" && <span className="spinner" />}Shorten &amp; copy
           </button>
           <button className="btn-secondary" disabled={!tabId || busy !== null} onClick={() => setView("biolink-mode")}>

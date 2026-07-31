@@ -169,6 +169,45 @@ class ApiQuickShortenTest extends TestCase
         $this->assertSame(0, Link::withoutGlobalScopes()->where('user_id', $user->id)->count());
     }
 
+    public function test_honours_requested_workspace_id(): void
+    {
+        $user = $this->makeUser();
+        $ws = \App\Modules\User\Models\Workspace::create([
+            'owner_user_id' => $user->id,
+            'name'          => 'AQS WS',
+        ]);
+
+        $res = $this->post_($user, [
+            'destination'  => 'https://example.com/ws',
+            'workspace_id' => $ws->id,
+        ]);
+
+        $res->assertCreated();
+        $this->assertSame(
+            $ws->id,
+            Link::withoutGlobalScopes()->find($res->json('data.id'))->workspace_id
+        );
+    }
+
+    public function test_foreign_workspace_id_falls_back_to_active_workspace(): void
+    {
+        $user  = $this->makeUser();
+        $other = $this->makeUser();
+        $foreign = \App\Modules\User\Models\Workspace::create([
+            'owner_user_id' => $other->id,
+            'name'          => 'Foreign WS',
+        ]);
+
+        $res = $this->post_($user, [
+            'destination'  => 'https://example.com/foreign-ws',
+            'workspace_id' => $foreign->id,
+        ]);
+
+        $res->assertCreated();
+        $link = Link::withoutGlobalScopes()->find($res->json('data.id'));
+        $this->assertNotSame($foreign->id, $link->workspace_id);
+    }
+
     public function test_enforces_plan_link_cap(): void
     {
         $user = $this->makeUser(['max_links' => 1]);
