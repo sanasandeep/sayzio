@@ -12,6 +12,7 @@ import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { pathToFileURL } from 'url';
 import { isMarkdownDownload, renderMarkdownDocument } from '../shared/markdown';
+import { isCsvDownload, buildCsvViewerHtml, CSV_VIEWER_MAX_FILE_BYTES } from '../shared/csv-viewer';
 import type { TabManager } from './tab-manager';
 import type { TabMode } from '../shared/window-mode';
 import type { WindowModeManager } from './window-mode-manager';
@@ -898,8 +899,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   const MARKDOWN_VIEWER_MAX_BYTES = 2 * 1024 * 1024;
   // Open a downloaded file inside the browser (new tab, file:// URL).
   // Markdown files get a sanitized rendered viewer page (temp HTML) with a
-  // "View raw source" link back to the original file; other text formats
-  // keep Chromium's plain-text rendering.
+  // "View raw source" link back to the original file; CSV files get a
+  // generated table-viewer page instead of raw comma text; other text
+  // formats keep Chromium's plain-text rendering.
   ipcMain.handle('downloads:open-in-tab', (event, filePath: string) => {
     if (!fs.existsSync(filePath)) {
       return { ok: false, error: 'File not found', missing: true };
@@ -924,6 +926,22 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       } catch {
         // Fall back to the raw file:// view on any read/render failure.
         fileUrl = rawFileUrl;
+      }
+    } else if (isCsvDownload(path.basename(filePath))) {
+      try {
+        const stat = fs.statSync(filePath);
+        if (stat.size <= CSV_VIEWER_MAX_FILE_BYTES) {
+          const csvText = fs.readFileSync(filePath, 'utf8');
+          const html = buildCsvViewerHtml(path.basename(filePath), csvText);
+          const viewerDir = path.join(app.getPath('temp'), 'zio-csv-viewer');
+          fs.mkdirSync(viewerDir, { recursive: true });
+          const viewerPath = path.join(viewerDir, `${randomUUID()}.html`);
+          fs.writeFileSync(viewerPath, html, 'utf8');
+          fileUrl = pathToFileURL(viewerPath).toString();
+        }
+        // Oversized CSVs fall through to the plain file:// rendering.
+      } catch {
+        // Viewer generation failed — fall back to the raw file view.
       }
     }
     const tabId = resolveTabManager(event)?.createTab(fileUrl) ?? null;
