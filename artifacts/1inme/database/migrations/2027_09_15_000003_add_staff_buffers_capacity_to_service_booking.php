@@ -99,6 +99,47 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Additive-only migration against the shared RDS — no destructive down.
+        // Never run against the shared RDS (additive-only policy); this exists
+        // so CI's migrate → rollback → migrate cycle can unwind cleanly.
+        if (Schema::hasTable('service_booking_requests')) {
+            Schema::table('service_booking_requests', function (Blueprint $table) {
+                if (Schema::hasColumn('service_booking_requests', 'staff_id')) {
+                    $table->dropConstrainedForeignId('staff_id');
+                }
+                if (Schema::hasColumn('service_booking_requests', 'buffer_before_minutes')) {
+                    $table->dropColumn('buffer_before_minutes');
+                }
+                if (Schema::hasColumn('service_booking_requests', 'buffer_after_minutes')) {
+                    $table->dropColumn('buffer_after_minutes');
+                }
+            });
+        }
+
+        if (Schema::hasTable('service_booking_services')) {
+            Schema::table('service_booking_services', function (Blueprint $table) {
+                foreach (['capacity', 'buffer_before_minutes', 'buffer_after_minutes'] as $column) {
+                    if (Schema::hasColumn('service_booking_services', $column)) {
+                        $table->dropColumn($column);
+                    }
+                }
+            });
+        }
+
+        if (Schema::hasTable('service_booking_blocked_dates')
+            && Schema::hasColumn('service_booking_blocked_dates', 'staff_id')) {
+            Schema::table('service_booking_blocked_dates', function (Blueprint $table) {
+                $table->dropConstrainedForeignId('staff_id');
+            });
+        }
+
+        if (Schema::hasTable('service_booking_availability_rules')
+            && Schema::hasColumn('service_booking_availability_rules', 'staff_id')) {
+            Schema::table('service_booking_availability_rules', function (Blueprint $table) {
+                $table->dropConstrainedForeignId('staff_id');
+            });
+        }
+
+        Schema::dropIfExists('service_booking_staff_service');
+        Schema::dropIfExists('service_booking_staff');
     }
 };
