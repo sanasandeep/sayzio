@@ -157,8 +157,7 @@
                 {{-- Highlighted "Events" badge — visually distinct pill (vs the
                      plain text links above) to drive discovery of /events. --}}
                 <a href="{{ route('events.index') }}" @mouseenter="openMenu=null" @if($topActive['events']) aria-current="page" @endif
-                   class="ml-1 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors {{ $topActive['events'] ? 'mkt-events-pill-active' : '' }}"
-                   style="background:rgba(61,107,255,0.14); border:1px solid rgba(61,107,255,0.4); color:#8fa8ff;">
+                   class="ml-1 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors mkt-events-pill {{ $topActive['events'] ? 'mkt-events-pill-active' : '' }}">
                     <i class="fas fa-calendar-day text-[11px]"></i> Events
                 </a>
 
@@ -438,8 +437,7 @@
                  treatment as desktop, placed above the accordions so it
                  stays prominent. --}}
             <a href="{{ route('events.index') }}" @click="mobileOpen=false" @if($topActive['events']) aria-current="page" @endif
-               class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold {{ $topActive['events'] ? 'mkt-events-pill-active' : '' }}"
-               style="background:rgba(61,107,255,0.14); border:1px solid rgba(61,107,255,0.4); color:#8fa8ff;">
+               class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold mkt-events-pill {{ $topActive['events'] ? 'mkt-events-pill-active' : '' }}">
                 <i class="fas fa-calendar-day text-xs"></i> Events
             </a>
 
