@@ -72,7 +72,23 @@ async function shortenAndCopy(destination: string, title?: string, openTabId?: n
     // tel:), so the extension can never drift from web/mobile parsing.
     // domainId (optional) binds the link to a branded/custom domain; the
     // server validates ownership and the returned short_url uses that host.
-    const result = await api.quickShorten(destination, alias, settings.workspaceId, domainId);
+    // When the caller didn't pick one explicitly (context-menu / selection
+    // shortens), fall back to the persisted preferred domain from the
+    // popup's picker so background-created links share the branded host.
+    const effectiveDomainId = domainId !== undefined ? domainId : (settings.shortenDomainId ?? null);
+    let result: { id: number; short_url: string; long_url: string; kind: "url" | "email" | "phone" };
+    try {
+      result = await api.quickShorten(destination, alias, settings.workspaceId, effectiveDomainId);
+    } catch (e) {
+      // A persisted preference can go stale (domain removed / unverified /
+      // account changed). Retry once on the default host and clear the
+      // stale preference so future shortens don't keep failing.
+      const retriable = domainId === undefined && effectiveDomainId != null &&
+        e instanceof ApiError && (e.status === 403 || e.status === 404 || e.status === 422);
+      if (!retriable) throw e;
+      await setSettings({ shortenDomainId: null });
+      result = await api.quickShorten(destination, alias, settings.workspaceId, null);
+    }
     const shortUrl = result.short_url;
 
     // Quick-shorten doesn't take a title or the auto-pixel flag; patch them
