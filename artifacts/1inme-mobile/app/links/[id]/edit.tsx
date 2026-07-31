@@ -161,7 +161,7 @@ export default function EditLinkScreen() {
     let cancelled = false;
     const t = setTimeout(async () => {
       try {
-        const res = await checkAlias(trimmed, id);
+        const res = await checkAlias(trimmed, id, domainId);
         if (!cancelled) setAliasCheck(res);
       } catch {
         // Network/transient errors leave the last known state; the save
@@ -175,7 +175,7 @@ export default function EditLinkScreen() {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [alias, id]);
+  }, [alias, id, domainId]);
 
   const save = useMutation({
     mutationFn: () => {
