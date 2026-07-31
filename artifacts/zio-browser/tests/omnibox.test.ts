@@ -5,6 +5,7 @@ import {
   extractSearchQuery,
   normalizeUrlForHistory,
   isPlainTextDownload,
+  isViewableTextDownload,
   SEARCH_ENGINES,
 } from '../src/shared/omnibox';
 
@@ -159,10 +160,27 @@ describe('isPlainTextDownload', () => {
     expect(isPlainTextDownload('notes.txt')).toBe(true);
   });
 
+  it('detects markdown, json, csv, and log files by extension', () => {
+    expect(isViewableTextDownload('README.md', null)).toBe(true);
+    expect(isViewableTextDownload('guide.markdown', null)).toBe(true);
+    expect(isViewableTextDownload('data.json', 'application/octet-stream')).toBe(true);
+    expect(isViewableTextDownload('data.csv', null)).toBe(true);
+    expect(isViewableTextDownload('server.log', null)).toBe(true);
+  });
+
+  it('detects viewable text mime types', () => {
+    expect(isViewableTextDownload('download', 'text/markdown')).toBe(true);
+    expect(isViewableTextDownload('download', 'text/csv; charset=utf-8')).toBe(true);
+    expect(isViewableTextDownload('download', 'application/json')).toBe(true);
+  });
+
   it('rejects non-text downloads', () => {
     expect(isPlainTextDownload('photo.png', 'image/png')).toBe(false);
     expect(isPlainTextDownload('archive.zip', 'application/zip')).toBe(false);
     expect(isPlainTextDownload('page.html', 'text/html')).toBe(false);
-    expect(isPlainTextDownload('data.csv', null)).toBe(false);
+    expect(isViewableTextDownload('report.doc', 'application/msword')).toBe(false);
+    expect(isViewableTextDownload('report.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')).toBe(false);
+    expect(isViewableTextDownload('deck.pptx', null)).toBe(false);
+    expect(isViewableTextDownload('sheet.xlsx', null)).toBe(false);
   });
 });

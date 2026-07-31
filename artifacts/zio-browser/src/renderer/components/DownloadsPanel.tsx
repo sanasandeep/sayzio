@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Download } from '../../main/db';
+import { isViewableTextDownload } from '../../shared/omnibox';
 
 // ── Types extended for live state ────────────────────────────────────────────
 
@@ -113,11 +114,9 @@ function progressPercent(entry: DownloadEntry): number {
   return Math.min(100, Math.round((received / total) * 100));
 }
 
-/** Plain-text downloads (`text/plain` or `.txt`) can be viewed in a browser tab. */
+/** Text-based downloads (.txt/.md/.json/.csv/.log or text MIME) can be viewed in a browser tab. */
 function isTextEntry(entry: DownloadEntry): boolean {
-  const mime = entry.mime_type?.split(';')[0]?.trim().toLowerCase();
-  if (mime === 'text/plain') return true;
-  return /\.txt$/i.test(entry.filename.trim());
+  return isViewableTextDownload(entry.filename, entry.mime_type);
 }
 
 function isActive(entry: DownloadEntry): boolean {

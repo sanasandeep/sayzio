@@ -1,8 +1,9 @@
 /**
  * DownloadToast — slim, non-blocking toast shown at the bottom-right of the
  * window when a download starts. Auto-dismisses after ~4 s unless hovered.
- * Plain-text downloads (`.txt` / `text/plain`) get a "View in browser" action
- * once complete, opening the saved file in a new tab instead of the OS app.
+ * Text-based downloads (.txt/.md/.json/.csv/.log or text MIME types) get a
+ * "View in browser" action once complete, opening the saved file in a new tab
+ * instead of the OS app.
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 
