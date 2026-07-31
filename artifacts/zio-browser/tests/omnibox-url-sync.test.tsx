@@ -20,6 +20,10 @@
  *     flag, but — like Chrome — the cleared text is stashed first so Ctrl/Cmd+Z
  *     restores exactly what Escape wiped (never older stale text); whitespace
  *     or empty values are never stashed.
+ *  8. TWO-PRESS ESCAPE: with the suggestions dropdown OPEN, the first Escape
+ *     only closes the dropdown — typed text and the edited flag are untouched;
+ *     the second Escape (suggestions now closed) resets the bar AND stashes
+ *     the text so Ctrl/Cmd+Z still recovers it.
  */
 import { describe, it, expect, vi } from 'vitest';
 import React, { act, useRef, useState } from 'react';
@@ -49,6 +53,11 @@ function OmniboxHarness({
   const [omniboxValue, setOmniboxValue] = useState('');
   const [omniboxFocused, setOmniboxFocused] = useState(false);
   const [omniboxEdited, setOmniboxEdited] = useState(false);
+  // Mirrors ChromeBar's suggestions dropdown state (suggestionsOpen is
+  // derived from a non-empty suggestions list there).
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestionIndex, setSuggestionIndex] = useState(-1);
+  const suggestionsOpen = suggestions.length > 0;
   const omniboxRef = useRef<HTMLInputElement>(null);
 
   const { discardedTypedTextRef } = useOmniboxUrlSync({
@@ -74,15 +83,25 @@ function OmniboxHarness({
       discardedTypedTextRef.current = null;
       return;
     }
-    // Mirrors ChromeBar's Escape branch (suggestions closed): reset to the
-    // tab URL, but stash the cleared text first so Ctrl/Cmd+Z can recover it.
-    if (e.key === 'Escape') {
-      if (omniboxEdited && omniboxValue.trim() !== '') {
-        discardedTypedTextRef.current = omniboxValue;
+    // Mirrors ChromeBar's TWO Escape branches:
+    //  - suggestions CLOSED: reset to the tab URL, but stash the cleared text
+    //    first so Ctrl/Cmd+Z can recover it.
+    //  - suggestions OPEN: only close the dropdown — typed text and the
+    //    edited flag are untouched.
+    if (!suggestionsOpen) {
+      if (e.key === 'Escape') {
+        if (omniboxEdited && omniboxValue.trim() !== '') {
+          discardedTypedTextRef.current = omniboxValue;
+        }
+        setOmniboxEdited(false);
+        setOmniboxValue(tabUrl);
+        omniboxRef.current?.blur();
       }
-      setOmniboxEdited(false);
-      setOmniboxValue(tabUrl);
-      omniboxRef.current?.blur();
+      return;
+    }
+    if (e.key === 'Escape') {
+      setSuggestions([]);
+      setSuggestionIndex(-1);
     }
   };
 
@@ -125,6 +144,18 @@ function OmniboxHarness({
       <div data-testid="value">{omniboxValue}</div>
       <div data-testid="edited">{omniboxEdited ? 'edited' : 'clean'}</div>
       <div data-testid="focused">{omniboxFocused ? 'focused' : 'blurred'}</div>
+      <div data-testid="suggestions">{suggestionsOpen ? 'open' : 'closed'}</div>
+      <div data-testid="suggestion-index">{suggestionIndex}</div>
+      <button
+        type="button"
+        data-testid="open-suggestions"
+        onClick={() => {
+          setSuggestions(['https://one.suggested.example/', 'https://two.suggested.example/']);
+          setSuggestionIndex(0);
+        }}
+      >
+        open suggestions
+      </button>
       <button
         type="button"
         data-testid="suggestion"
@@ -665,5 +696,86 @@ describe('Escape resets the omnibox without stranding recoverable text', () => {
     await focus(m.el);
     await press(m.el, 'Escape');
     expect(stash.current!.current).toBe('keep me safe');
+  });
+
+  async function openSuggestions(el: HTMLElement) {
+    await act(async () => {
+      (el.querySelector('[data-testid="open-suggestions"]') as HTMLButtonElement).click();
+    });
+  }
+
+  it('with suggestions open, the first Escape only closes the dropdown — typed text and edited flag survive', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const m = await mount('tab-1', 'https://start.example/', undefined, stash);
+
+    await focus(m.el);
+    await typeInto(m.el, 'two-press draft');
+    await openSuggestions(m.el);
+    expect(text(m.el, 'suggestions')).toBe('open');
+
+    await press(m.el, 'Escape');
+
+    // Dropdown closed, highlight reset — but the text is untouched, the
+    // edited flag stays set, the bar stays focused, and nothing was stashed.
+    expect(text(m.el, 'suggestions')).toBe('closed');
+    expect(text(m.el, 'suggestion-index')).toBe('-1');
+    expect(input(m.el).value).toBe('two-press draft');
+    expect(text(m.el, 'value')).toBe('two-press draft');
+    expect(text(m.el, 'edited')).toBe('edited');
+    expect(text(m.el, 'focused')).toBe('focused');
+    expect(stash.current!.current).toBeNull();
+  });
+
+  it('the second Escape (suggestions now closed) resets the bar, stashes the text, and Ctrl+Z restores it', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const m = await mount('tab-1', 'https://start.example/', undefined, stash);
+
+    await focus(m.el);
+    await typeInto(m.el, 'recover after two escapes');
+    await openSuggestions(m.el);
+
+    // Escape #1: closes suggestions only.
+    await press(m.el, 'Escape');
+    expect(text(m.el, 'suggestions')).toBe('closed');
+    expect(text(m.el, 'edited')).toBe('edited');
+    expect(stash.current!.current).toBeNull();
+
+    // Escape #2: resets to the tab URL and stashes the typed text.
+    await press(m.el, 'Escape');
+    expect(text(m.el, 'value')).toBe('https://start.example/');
+    expect(text(m.el, 'edited')).toBe('clean');
+    expect(stash.current!.current).toBe('recover after two escapes');
+
+    // Ctrl+Z brings the text back exactly.
+    await press(m.el, 'z', { ctrlKey: true });
+    expect(text(m.el, 'value')).toBe('recover after two escapes');
+    expect(input(m.el).value).toBe('recover after two escapes');
+    expect(text(m.el, 'edited')).toBe('edited');
+    expect(stash.current!.current).toBeNull();
+  });
+
+  it('while suggestions are open, Escape never clobbers an existing stash', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const m = await mount('tab-1', 'https://start.example/', undefined, stash);
+
+    // An automatic navigation stashes an earlier draft.
+    await focus(m.el);
+    await typeInto(m.el, 'earlier stashed draft');
+    await blur(m.el);
+    await m.render('tab-1', 'https://surprise.example/');
+    expect(stash.current!.current).toBe('earlier stashed draft');
+
+    // Fresh typing with the dropdown open; Escape #1 must leave the old
+    // stash alone (the fresh text is still live in the bar).
+    await focus(m.el);
+    await typeInto(m.el, 'fresh dropdown draft');
+    await openSuggestions(m.el);
+    await press(m.el, 'Escape');
+    expect(stash.current!.current).toBe('earlier stashed draft');
+    expect(input(m.el).value).toBe('fresh dropdown draft');
+
+    // Escape #2 replaces the stash with the freshly cleared text.
+    await press(m.el, 'Escape');
+    expect(stash.current!.current).toBe('fresh dropdown draft');
   });
 });
