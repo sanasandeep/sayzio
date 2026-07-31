@@ -1,7 +1,7 @@
 /**
  * TabModeSwitcher — toolbar dropdown to pick the ACTIVE TAB's view mode.
- * A tab shows ONE of four primitives (Website / Dashboard / Sayzio / Ask Zio)
- * or a split of any TWO — 10 configurations, grouped as singles then splits.
+ * A tab shows ONE of three primitives (Website / Dashboard / Ask Zio)
+ * or a split of TWO — 7 configurations, grouped as singles then splits.
  * Uses the chrome-overlay pattern (native views sit above the DOM and would
  * swallow clicks on the dropdown).
  */

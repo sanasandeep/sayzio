@@ -113,6 +113,39 @@ export async function exportLinksCsv(
   }
 }
 
+export type QuickShortenResult = {
+  id: number;
+  short_url: string;
+  long_url: string;
+  kind: "url" | "email" | "phone";
+};
+
+/**
+ * Clipboard quick-shorten — one-tap create from raw clipboard content
+ * (web URL, email address, phone number, or bare domain). The server
+ * classifies + normalizes the destination itself, so we just pass the
+ * raw string through. Mirrors the web header bolt button.
+ *
+ * An optional custom back-half (`alias`) is validated server-side with the
+ * full alias stack (format, banned names, uniqueness, per-plan length);
+ * when omitted or blank the server auto-generates one.
+ */
+export async function quickShorten(
+  destination: string,
+  opts?: { alias?: string; domain_id?: number | null },
+): Promise<QuickShortenResult> {
+  const alias = opts?.alias?.trim();
+  const res = await apiFetch<{ data: QuickShortenResult }>(`/links/quick-shorten`, {
+    method: "POST",
+    body: JSON.stringify({
+      destination,
+      ...(alias ? { alias } : {}),
+      ...(opts?.domain_id != null ? { domain_id: opts.domain_id } : {}),
+    }),
+  });
+  return res.data;
+}
+
 export type AliasCheck = {
   status:
     | "empty"
@@ -129,11 +162,14 @@ export type AliasCheck = {
 export async function checkAlias(
   alias: string,
   ignoreId?: number,
+  domainId?: number | null,
 ): Promise<AliasCheck> {
   const qs = new URLSearchParams({ alias });
   // On the edit screen, exclude the link's own current alias from the
   // "taken" check so an unchanged alias reads as available.
   if (ignoreId != null) qs.set("ignore_id", String(ignoreId));
+  // Uniqueness is per-domain, so scope the verdict to the chosen host.
+  if (domainId != null) qs.set("domain_id", String(domainId));
   return apiFetch<AliasCheck>(`/links/check-alias?${qs}`);
 }
 

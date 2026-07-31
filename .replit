@@ -56,6 +56,14 @@ args = "zio-browser-test"
 task = "workflow.run"
 args = "eas-dialer-build-kick"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-quick-shorten-sheet"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-quick-shorten-backhalf"
+
 [[workflows.workflow]]
 name = "e2e-block-defaults"
 author = "agent"
@@ -162,6 +170,28 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd sayzio-dialer-standalone && EAS_NO_VCS=1 npx -y eas-cli build --platform android --profile preview --non-interactive --no-wait 2>&1 | tee /tmp/eas-dialer-kick.log"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-quick-shorten-sheet"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:quick-shorten-sheet-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-quick-shorten-backhalf"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:quick-shorten-backhalf-real-api-e2e"
 
 [workflows.workflow.metadata]
 isValidation = true

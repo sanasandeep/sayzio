@@ -341,6 +341,144 @@ class LinkController extends Controller
     }
 
     /**
+     * AJAX quick-create endpoint backing the header clipboard-shortcut
+     * popover (Task #6285). Accepts a raw "destination" (web URL, email
+     * address, phone number, or bare domain), normalizes it into a
+     * redirectable long_url (https://, mailto:, tel:), validates the
+     * optional custom alias with the exact same rule stack as the full
+     * create flow, creates a short url-type link and returns JSON with
+     * the full short URL — no page navigation. Plan gating is enforced
+     * by the route middleware (workspace.can:links.create +
+     * CheckPlanLimit:links, which answers in JSON for AJAX callers).
+     */
+    public function quickShorten(Request $request)
+    {
+        $owner = workspace_owner();
+
+        $validated = $request->validate([
+            'destination' => 'required|string|max:2048',
+            'domain_id' => ['nullable', $this->availableDomainRule($request->user())],
+            'alias' => array_merge(
+                ['nullable', 'string', new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\User\Rules\UniqueAliasCi(null, $request->input('domain_id'))],
+                ['min:' . $owner->getAliasLengthLimits()['min']],
+                ['max:' . $owner->getAliasLengthLimits()['max']],
+                [new \App\Modules\Admin\Rules\NotBannedName()],
+            ),
+        ]);
+
+        $normalized = self::normalizeQuickDestination($validated['destination']);
+        if ($normalized === null) {
+            return response()->json([
+                'error' => "That doesn't look like something we can shorten. Paste a web URL, email address or phone number — or use the full link creator.",
+            ], 422);
+        }
+
+        [$longUrl, $kind] = $normalized;
+
+        $alias = trim((string) ($validated['alias'] ?? ''));
+        if ($alias === '') {
+            $alias = Link::generateAlias();
+        }
+
+        $link = Link::create([
+            'type'      => 'url',
+            'long_url'  => $longUrl,
+            'alias'     => $alias,
+            'domain_id' => !empty($validated['domain_id']) ? (int) $validated['domain_id'] : null,
+            'user_id'   => workspace_owner_id(),
+            'title'    => match ($kind) {
+                'email' => 'Email ' . preg_replace('/^mailto:/', '', $longUrl),
+                'phone' => 'Call ' . preg_replace('/^tel:/', '', $longUrl),
+                default => null,
+            },
+        ]);
+
+        return response()->json([
+            'id'        => $link->id,
+            'short_url' => $link->getShortUrl(),
+            'long_url'  => $longUrl,
+            'kind'      => $kind,
+            'edit_url'  => route('user.links.edit', $link),
+            'open_url'  => $link->getShortUrl(),
+        ]);
+    }
+
+    /**
+     * JSON list of domains the caller can bind a quick-shortened link to —
+     * their own verified custom domains plus admin-global domains for their
+     * plan. Fetched lazily when the header quick-shorten popover opens (so
+     * the header include costs no extra query on normal page loads). Mirrors
+     * the mobile `GET /api/v1/domains/available` picker shape: items +
+     * primary_domain_id + default_host.
+     */
+    public function quickShortenDomains(Request $request)
+    {
+        $items = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
+
+        $primary = $items->firstWhere(fn ($d) => $d->isGlobal() && $d->is_primary);
+
+        return response()->json([
+            'items' => $items->map(fn ($d) => [
+                'id'        => $d->id,
+                'domain'    => $d->domain,
+                'is_global' => $d->isGlobal(),
+            ])->values()->all(),
+            'primary_domain_id' => $primary?->id,
+            'default_host'      => \App\Modules\Common\Support\PlatformHosts::primary(),
+        ]);
+    }
+
+    /**
+     * Turn raw clipboard content into a redirectable long_url. Returns
+     * [$longUrl, $kind] or null when the content isn't shortenable.
+     * Mirrors the client-side detection in the header popover so the
+     * server never trusts the client's classification.
+     */
+    public static function normalizeQuickDestination(string $raw): ?array
+    {
+        $raw = trim($raw);
+        if ($raw === '' || mb_strlen($raw) > 2048) {
+            return null;
+        }
+
+        // Already-schemed web URL.
+        if (preg_match('~^https?://~i', $raw)) {
+            return filter_var($raw, FILTER_VALIDATE_URL) ? [$raw, 'url'] : null;
+        }
+
+        // mailto:/tel: pasted verbatim.
+        if (preg_match('/^mailto:(.+)$/i', $raw, $m)) {
+            return filter_var(trim($m[1]), FILTER_VALIDATE_EMAIL) ? ['mailto:' . trim($m[1]), 'email'] : null;
+        }
+        if (preg_match('/^tel:(.+)$/i', $raw, $m)) {
+            $raw = trim($m[1]);
+            // fall through to the phone branch below
+        }
+
+        // Email address.
+        if (filter_var($raw, FILTER_VALIDATE_EMAIL)) {
+            return ['mailto:' . $raw, 'email'];
+        }
+
+        // Phone number — digits with optional +, spaces, dashes, dots, parens.
+        if (preg_match('/^\+?[0-9][0-9\s\-().]{4,24}$/', $raw)) {
+            $tel = preg_replace('/[^0-9+]/', '', $raw);
+            if (strlen(ltrim($tel, '+')) >= 5) {
+                return ['tel:' . $tel, 'phone'];
+            }
+            return null;
+        }
+
+        // Bare domain / www URL (single token containing a dot, no spaces).
+        if (!preg_match('/\s/', $raw) && preg_match('/^[A-Za-z0-9][A-Za-z0-9.-]*\.[A-Za-z]{2,}([\/?#][^\s]*)?$/', $raw)) {
+            $candidate = 'https://' . $raw;
+            return filter_var($candidate, FILTER_VALIDATE_URL) ? [$candidate, 'url'] : null;
+        }
+
+        return null;
+    }
+
+    /**
      * Step 2 for the standalone Paid Page — name + alias + project + a
      * starting template. The link bridges to the creator's existing
      * monetized feed (posts / tiers / PPV / tipping); the dedicated

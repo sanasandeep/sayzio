@@ -70,48 +70,6 @@ export default function CreateLinkScreen() {
   const [aliasCheck, setAliasCheck] = useState<AliasCheck | null>(null);
   const [aliasChecking, setAliasChecking] = useState(false);
 
-  useEffect(() => {
-    const trimmed = alias.trim();
-    if (trimmed === "") {
-      setAliasCheck(null);
-      setAliasChecking(false);
-      return;
-    }
-    setAliasChecking(true);
-    let cancelled = false;
-    const t = setTimeout(async () => {
-      try {
-        const res = await checkAlias(trimmed);
-        if (!cancelled) setAliasCheck(res);
-      } catch {
-        // Network/transient errors leave the last known state; the create
-        // submit still enforces the rules server-side regardless.
-        if (!cancelled) setAliasCheck(null);
-      } finally {
-        if (!cancelled) setAliasChecking(false);
-      }
-    }, 450);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
-  }, [alias]);
-
-  // Tell the floating Voice Assistant that voice turns started while
-  // this form is open should prefer the create-link tools.
-  useFocusEffect(
-    useCallback(() => {
-      setVoiceSurface("create_link");
-      return () => setVoiceSurface(null);
-    }, []),
-  );
-
-  // Append a dictated chunk to whichever field's setter is passed in,
-  // mirroring the web's per-field `l({ onText })` dictation factory.
-  const dictateInto =
-    (setter: React.Dispatch<React.SetStateAction<string>>) => (t: string) =>
-      setter((v) => (v ? v.trim() + " " : "") + t);
-
   const domainsQ = useQuery({
     queryKey: ["domains-available"],
     queryFn: listAvailableDomains,
@@ -127,6 +85,48 @@ export default function CreateLinkScreen() {
     const primary = domainsQ.data?.primary_domain_id ?? null;
     if (primary !== null) setDomainId(primary);
   }, [domainsQ.data?.primary_domain_id, domainTouched]);
+
+  useEffect(() => {
+    const trimmed = alias.trim();
+    if (trimmed === "") {
+      setAliasCheck(null);
+      setAliasChecking(false);
+      return;
+    }
+    setAliasChecking(true);
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const res = await checkAlias(trimmed, undefined, domainId);
+        if (!cancelled) setAliasCheck(res);
+      } catch {
+        // Network/transient errors leave the last known state; the create
+        // submit still enforces the rules server-side regardless.
+        if (!cancelled) setAliasCheck(null);
+      } finally {
+        if (!cancelled) setAliasChecking(false);
+      }
+    }, 450);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [alias, domainId]);
+
+  // Tell the floating Voice Assistant that voice turns started while
+  // this form is open should prefer the create-link tools.
+  useFocusEffect(
+    useCallback(() => {
+      setVoiceSurface("create_link");
+      return () => setVoiceSurface(null);
+    }, []),
+  );
+
+  // Append a dictated chunk to whichever field's setter is passed in,
+  // mirroring the web's per-field `l({ onText })` dictation factory.
+  const dictateInto =
+    (setter: React.Dispatch<React.SetStateAction<string>>) => (t: string) =>
+      setter((v) => (v ? v.trim() + " " : "") + t);
 
   async function onSubmit() {
     if (locked) {

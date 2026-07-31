@@ -45,6 +45,8 @@
     "test:bg-effect-preview-e2e": "node scripts/test-bg-effect-preview-e2e.mjs",
     "test:image-sticker-add-e2e": "node scripts/test-image-sticker-add-e2e.mjs",
     "test:stock-image-real-api-e2e": "node scripts/test-stock-image-real-api-e2e.mjs",
+    "test:quick-shorten-sheet-e2e": "node scripts/test-quick-shorten-sheet-e2e.mjs",
+    "test:quick-shorten-backhalf-real-api-e2e": "node scripts/test-quick-shorten-backhalf-real-api-e2e.mjs",
     "test:workspaces-crud-e2e": "node scripts/test-workspaces-crud-e2e.mjs",
     "test:drawer-focus-ring-e2e": "node scripts/test-drawer-focus-ring-e2e.mjs",
     "test:form-focus-ring-e2e": "node scripts/test-form-focus-ring-e2e.mjs",

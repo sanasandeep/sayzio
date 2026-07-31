@@ -81,6 +81,28 @@ export type SmartRule =
   | { id?: string; type: "language"; match: string[]; url: string; label?: string }
   | { id?: string; type: "time";     from: string; to: string; tz: string; url: string; label?: string };
 
+export interface DomainOption {
+  id: number;
+  domain: string;
+  is_global?: boolean;
+  is_verified?: boolean;
+  is_primary?: boolean;
+}
+
+export interface AvailableDomainsResult {
+  items: DomainOption[];
+  primary_domain_id: number | null;
+  default_host: string;
+  can_manage?: boolean;
+}
+
+export interface AliasCheckResult {
+  status: "empty" | "invalid" | "too_short" | "too_long" | "banned" | "taken" | "available";
+  available: boolean | null;
+  message: string;
+  suggestions?: string[];
+}
+
 export interface LinkSummary {
   id: number;
   alias: string;
@@ -123,6 +145,38 @@ export const api = {
         auto_pixel: autoPixel,
       },
     }),
+
+  // Quick shorten — server-side normalization of the raw destination
+  // (web URL, bare domain, email → mailto:, phone → tel:) so the
+  // extension's classification can never drift from web/mobile. Optional
+  // custom back-half (alias) validated with the full create-flow rules.
+  quickShorten: (destination: string, alias?: string, workspaceId?: number | null, domainId?: number | null) =>
+    request<{ id: number; short_url: string; long_url: string; kind: "url" | "email" | "phone" }>(
+      "/links/quick-shorten",
+      {
+        method: "POST",
+        body: {
+          destination,
+          alias: alias || undefined,
+          workspace_id: workspaceId ?? undefined,
+          domain_id: domainId ?? undefined,
+        },
+      },
+    ),
+
+  // Live custom back-half availability check (same endpoint the mobile
+  // app uses; verdicts match exactly what quickShorten enforces on save).
+  // Alias uniqueness is per-domain, so pass the target domain when the
+  // user picked a branded one — the verdict depends on it.
+  checkAlias: (alias: string, domainId?: number | null) =>
+    request<AliasCheckResult>(
+      `/links/check-alias?alias=${encodeURIComponent(alias)}${domainId ? `&domain_id=${domainId}` : ""}`,
+    ),
+
+  // Domains the user can attach a link to (their own verified domains +
+  // admin-provisioned global domains) — feeds the popup domain picker.
+  availableDomains: () =>
+    request<AvailableDomainsResult>("/domains/available"),
 
   updateLink: (linkId: number, patch: Record<string, unknown>) =>
     request<{ link: { id: number; alias: string; auto_pixel?: boolean } }>(`/links/${linkId}`, {

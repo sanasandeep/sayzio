@@ -1,5 +1,5 @@
 import { browser } from "../lib/browser";
-import { api, ApiError } from "../lib/api";
+import { api, ApiError, type AliasCheckResult } from "../lib/api";
 import { appendDialHistory, applyNotifUnreadCount, clearAuth, clearCachedProperties, getSettings, setSettings, syncPendingThanks } from "../lib/storage";
 import {
   ensureProperties,
@@ -63,13 +63,42 @@ function notify(title: string, message: string) {
   } catch { /* notifications permission may be missing */ }
 }
 
-async function shortenAndCopy(url: string, title?: string, openTabId?: number, autoPixel?: boolean): Promise<{ ok: true; shortUrl: string; linkId: number } | { ok: false; error: string }> {
+async function shortenAndCopy(destination: string, title?: string, openTabId?: number, autoPixel?: boolean, alias?: string, domainId?: number | null): Promise<{ ok: true; shortUrl: string; linkId: number } | { ok: false; error: string }> {
   const settings = await getSettings();
   if (!settings.token) return { ok: false, error: "Not signed in" };
   try {
-    const result = await api.createShortLink(url, title, settings.workspaceId, autoPixel);
-    const alias = result.link.alias;
-    const shortUrl = result.link.short_url || `${settings.webBaseUrl}/${alias}`;
+    // Send the RAW text to the quick-shorten endpoint — the server owns
+    // classification (web URL / bare domain / email → mailto: / phone →
+    // tel:), so the extension can never drift from web/mobile parsing.
+    // domainId (optional) binds the link to a branded/custom domain; the
+    // server validates ownership and the returned short_url uses that host.
+    // When the caller didn't pick one explicitly (context-menu / selection
+    // shortens), fall back to the persisted preferred domain from the
+    // popup's picker so background-created links share the branded host.
+    const effectiveDomainId = domainId !== undefined ? domainId : (settings.shortenDomainId ?? null);
+    let result: { id: number; short_url: string; long_url: string; kind: "url" | "email" | "phone" };
+    try {
+      result = await api.quickShorten(destination, alias, settings.workspaceId, effectiveDomainId);
+    } catch (e) {
+      // A persisted preference can go stale (domain removed / unverified /
+      // account changed). Retry once on the default host and clear the
+      // stale preference so future shortens don't keep failing.
+      const retriable = domainId === undefined && effectiveDomainId != null &&
+        e instanceof ApiError && (e.status === 403 || e.status === 404 || e.status === 422);
+      if (!retriable) throw e;
+      await setSettings({ shortenDomainId: null });
+      result = await api.quickShorten(destination, alias, settings.workspaceId, null);
+    }
+    const shortUrl = result.short_url;
+
+    // Quick-shorten doesn't take a title or the auto-pixel flag; patch them
+    // on best-effort (the server already titles email/phone links itself).
+    const patch: Record<string, unknown> = {};
+    if (title && result.kind === "url") patch.title = title;
+    if (autoPixel) patch.auto_pixel = true;
+    if (Object.keys(patch).length > 0) {
+      try { await api.updateLink(result.id, patch); } catch { /* non-fatal */ }
+    }
 
     // Try to copy via the active tab content script. The background's
     // service worker doesn't have a clipboard API on its own.
@@ -95,7 +124,7 @@ async function shortenAndCopy(url: string, title?: string, openTabId?: number, a
     }
 
     notify("Shortened with Sayzio", shortUrl);
-    return { ok: true, shortUrl, linkId: result.link.id };
+    return { ok: true, shortUrl, linkId: result.id };
   } catch (e) {
     const msg = e instanceof ApiError ? e.message : (e as Error).message || "Shorten failed";
     return { ok: false, error: msg };
@@ -633,15 +662,10 @@ browser.contextMenus?.onClicked.addListener(async (info, tab) => {
   else if (info.menuItemId === "1inme-shorten-selection") {
     const sel = (info.selectionText || "").trim();
     if (!sel) { notify("Zio Extension", "No text selected."); return; }
-    let targetUrl = sel;
-    try { new URL(sel); } catch {
-      // Not a bare URL — try prefixing https://
-      try { targetUrl = new URL("https://" + sel).href; } catch {
-        notify("Zio Extension — error", "Selected text is not a valid URL.");
-        return;
-      }
-    }
-    const result = await shortenAndCopy(targetUrl, undefined, tab.id);
+    // Pass the raw selection through — the quick-shorten API classifies
+    // URLs, bare domains, emails (→ mailto:) and phone numbers (→ tel:)
+    // server-side and answers `not_shortenable` for anything else.
+    const result = await shortenAndCopy(sel, undefined, tab.id);
     if (!result.ok) notify("Zio Extension — error", result.error);
   } else if (info.menuItemId === "1inme-qr-selection") {
     const sel = (info.selectionText || "").trim();
@@ -778,7 +802,7 @@ browser.runtime.onMessage.addListener(async (msg: any, sender: any) => {
         const tabs = await browser.tabs.query({ active: true, currentWindow: true });
         activeTabId = tabs[0]?.id;
       }
-      return shortenAndCopy(msg.url, msg.title, activeTabId, msg.autoPixel);
+      return shortenAndCopy(msg.url, msg.title, activeTabId, msg.autoPixel, msg.alias, msg.domainId);
     }
     case "PAGE_TO_BIOLINK": {
       const tabId = msg.tabId ?? sender.tab?.id;
@@ -857,17 +881,32 @@ if ((browser as any).omnibox) {
     const settings = await getSettings();
     const base = settings.webBaseUrl || "https://1inme.com";
     let targetUrl: string;
-    let isUrl = false;
-    try { new URL(q); isUrl = true; } catch { /* not a URL */ }
-    if (!isUrl) {
-      try { new URL("https://" + q); isUrl = true; } catch { /* still not */ }
+    // Optional custom back-half: "szo <destination> <alias>".
+    const parts = q.split(/\s+/);
+    const first = parts[0];
+    const alias = parts.length === 2 ? parts[1] : undefined;
+    // Decide shorten vs dashboard search. The server owns the real
+    // classification (URL / bare domain / email → mailto: / phone → tel:);
+    // this is only a coarse "is it shortenable at all?" check.
+    let shortenable = false;
+    if (parts.length <= 2) {
+      try { new URL(first); shortenable = true; } catch { /* not a URL */ }
+      if (!shortenable) {
+        try {
+          const u = new URL("https://" + first);
+          shortenable = u.hostname.includes(".");
+        } catch { /* still not */ }
+      }
+      if (!shortenable && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(first)) shortenable = true; // email
+      if (!shortenable && /^\+?[\d\s().-]{6,}$/.test(first)) shortenable = true; // phone
     }
-    if (isUrl) {
-      // Shorten a URL typed into the omnibox.
+    if (shortenable) {
+      // Shorten what was typed into the omnibox via the smart quick-shorten
+      // endpoint (same as the popup and right-click flows), passing the
+      // optional custom back-half through.
       try {
-        const rawUrl = q.includes("://") ? q : "https://" + q;
-        const result = await api.createShortLink(rawUrl, undefined, settings.workspaceId ?? undefined, false);
-        const short = result.link.short_url || `${base}/${result.link.alias}`;
+        const result = await api.quickShorten(first, alias, settings.workspaceId);
+        const short = result.short_url;
         // Copy the result; notify the user.
         notify("Zio Extension — shortened", short);
         targetUrl = short;
@@ -888,13 +927,68 @@ if ((browser as any).omnibox) {
     }
   });
 
-  // Show a helpful default suggestion while the user is typing.
+  // Show a helpful default suggestion while the user is typing. When the
+  // input looks like "szo <destination> <alias>", check the custom
+  // back-half's availability live (debounced) via the same endpoint the
+  // popup and mobile quick-shorten sheet use, and reflect the verdict
+  // (✓ available / ✕ taken / invalid…) in the suggestion text.
+  const OMNIBOX_HINT =
+    "Shorten or search Sayzio: type a URL, email, or phone (add a word after it for a custom back-half), or text to search your dashboard";
+  const ALIAS_CHECK_DEBOUNCE_MS = 300;
+  let aliasCheckTimer: ReturnType<typeof setTimeout> | undefined;
+  let aliasCheckSeq = 0;
+  // Tiny verdict cache so backspacing/retyping the same alias doesn't
+  // re-hit the API within the same service-worker lifetime.
+  const aliasVerdictCache = new Map<string, string>();
+
+  function aliasVerdictDescription(alias: string, r: AliasCheckResult): string {
+    if (r.status === "available") return `✓ "${alias}" is available`;
+    const label =
+      r.status === "taken" ? `✕ "${alias}" is taken` : `✕ "${alias}": ${r.message || r.status.replace(/_/g, " ")}`;
+    const sugg = r.suggestions?.length ? ` — try: ${r.suggestions.slice(0, 3).join(", ")}` : "";
+    return label + sugg;
+  }
+
   (browser as any).omnibox.onInputChanged.addListener(
-    (_text: string, suggest: (suggestions: Array<{ content: string; description: string }>) => void) => {
-      suggest([{
-        content: _text,
-        description: "Shorten or search Sayzio: type a URL to shorten it, or text to search your dashboard",
-      }]);
+    (text: string, suggest: (suggestions: Array<{ content: string; description: string }>) => void) => {
+      if (aliasCheckTimer !== undefined) clearTimeout(aliasCheckTimer);
+      const seq = ++aliasCheckSeq;
+
+      const parts = text.trim().split(/\s+/).filter(Boolean);
+      const alias = parts.length === 2 ? parts[1] : undefined;
+
+      // No alias typed (just a URL, or something else) — keep the static hint.
+      if (!alias) {
+        suggest([{ content: text, description: OMNIBOX_HINT }]);
+        return;
+      }
+
+      const cached = aliasVerdictCache.get(alias);
+      if (cached) {
+        suggest([{ content: text, description: cached }]);
+        return;
+      }
+
+      // Show a neutral "checking…" line immediately; the real verdict
+      // arrives after the debounce window (calling suggest() again for
+      // the same input updates the suggestion in place).
+      suggest([{ content: text, description: `Checking availability of "${alias}"…` }]);
+
+      aliasCheckTimer = setTimeout(async () => {
+        try {
+          const settings = await getSettings();
+          if (!settings.token) return; // signed out — no live check
+          const result = await api.checkAlias(alias);
+          if (seq !== aliasCheckSeq) return; // input changed since — stale
+          const description = aliasVerdictDescription(alias, result);
+          aliasVerdictCache.set(alias, description);
+          if (aliasVerdictCache.size > 100) {
+            const oldest = aliasVerdictCache.keys().next().value;
+            if (oldest !== undefined) aliasVerdictCache.delete(oldest);
+          }
+          suggest([{ content: text, description }]);
+        } catch { /* offline / API error — leave the checking line as-is */ }
+      }, ALIAS_CHECK_DEBOUNCE_MS);
     },
   );
 }
