@@ -136,6 +136,48 @@ class TextPageDownloadTest extends TestCase
         $this->get("/{$link->alias}/raw")->assertForbidden();
     }
 
+    public function test_analytics_page_shows_download_and_raw_counts_for_text_links(): void
+    {
+        $user = $this->makeUser();
+        $link = $this->makeTextLink($user, 'analytics body');
+        $this->asVisitor();
+
+        $this->get("/{$link->alias}/download.txt")->assertOk();
+        $this->get("/{$link->alias}/download.txt")->assertOk();
+        $this->get("/{$link->alias}/raw")->assertOk();
+        app(\App\Modules\Common\Services\ClickWriteBuffer::class)->flush();
+
+        // Re-bind the workspace context (asVisitor cleared it) before hitting
+        // the owner-side analytics page.
+        $ws = app(WorkspaceContext::class)->resolve($user);
+        app()->instance('current_workspace', $ws);
+        app()->instance('workspace_owner', $user);
+
+        $res = $this->actingAs($user)->get(route('user.links.show', $link));
+        $res->assertOk();
+        $res->assertSee('Downloads');
+        $res->assertSee('Raw fetches');
+
+        $this->assertSame(2, (int) LinkClick::where('link_id', $link->id)->where('source', 'txt_download')->count());
+        $this->assertSame(1, (int) LinkClick::where('link_id', $link->id)->where('source', 'txt_raw')->count());
+    }
+
+    public function test_analytics_download_counts_exclude_bot_hits(): void
+    {
+        $user = $this->makeUser();
+        $link = $this->makeTextLink($user, 'bot body');
+        $this->asVisitor();
+
+        // A crawler downloading the .txt: recorded with is_bot=true, so the
+        // default (bot-excluding) scope used by the analytics page must not
+        // count it.
+        $this->get("/{$link->alias}/download.txt", ['User-Agent' => 'Googlebot/2.1 (+http://www.google.com/bot.html)'])->assertOk();
+        app(\App\Modules\Common\Services\ClickWriteBuffer::class)->flush();
+
+        $this->assertSame(0, (int) LinkClick::where('link_id', $link->id)->where('source', 'txt_download')->count());
+        $this->assertSame(1, (int) LinkClick::withBots()->where('link_id', $link->id)->where('source', 'txt_download')->count());
+    }
+
     public function test_download_button_rendered_on_public_text_page(): void
     {
         $user = $this->makeUser();

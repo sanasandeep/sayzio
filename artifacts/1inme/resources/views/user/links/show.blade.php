@@ -717,6 +717,20 @@
         <div class="kpi-cell-value">{{ number_format($pollVotesInRange) }}</div>
     </a>
     @endif
+    @if($link->type === 'text')
+    <div class="kpi-cell"
+         title="Times a visitor downloaded this text page as a .txt file. Same bot filtering as all other numbers.">
+        <div class="kpi-cell-head"><i class="fas fa-download"></i> Downloads</div>
+        <div class="kpi-cell-value">{{ number_format($txtDownloadsInRange) }}</div>
+    </div>
+    @if($txtRawInRange > 0)
+    <div class="kpi-cell"
+         title="Plain-text fetches of this page via its /raw URL (usually scripts or programmatic readers).">
+        <div class="kpi-cell-head"><i class="fas fa-code"></i> Raw fetches</div>
+        <div class="kpi-cell-value">{{ number_format($txtRawInRange) }}</div>
+    </div>
+    @endif
+    @endif
     <div class="kpi-cell">
         <div class="kpi-cell-head"><i class="fas fa-hourglass-half"></i> Engaged time</div>
         <div class="kpi-cell-value">{{ _fmtSecs($totalEngagedSeconds) }}</div>

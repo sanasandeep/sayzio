@@ -1240,6 +1240,37 @@ class LinkController extends Controller
             ];
         })->sortByDesc('votes')->values();
 
+        // Text-page download / raw-fetch counts. `serveTextContent()` records
+        // these interactions as link_clicks rows tagged source `txt_download`
+        // (the Download .txt button) and `txt_raw` (the /raw plain-text
+        // endpoint), so creators of text-type links can see how many visitors
+        // grabbed the content vs just viewed the page. Inherits the model's
+        // global "no bots" scope (throttled hits are flagged is_bot too), so
+        // these numbers respect the same exclusions as every other stat here.
+        // Mirrors the dimension filters of $clicksQuery EXCEPT the
+        // traffic-source filter — these rows carry their own source tags, so
+        // applying a mobile_app/web source filter would always zero them out.
+        $txtDownloadsInRange = 0;
+        $txtRawInRange = 0;
+        if ($link->type === 'text') {
+            $txtInteractionCounts = $link->clicks()
+                ->whereBetween('clicked_at', [$startDate, $endDate])
+                ->whereIn('source', ['txt_download', 'txt_raw'])
+                ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
+                ->when($countryFilter, fn ($q) => $q->where('country_code', $countryFilter))
+                ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
+                ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
+                ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
+                ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
+                ->when($channelFilter, fn ($q) => $q->where('channel', $channelFilter))
+                ->when($baseLanguageFilter, $applyBaseLanguage)
+                ->selectRaw('source, COUNT(*) as count')
+                ->groupBy('source')
+                ->pluck('count', 'source');
+            $txtDownloadsInRange = (int) ($txtInteractionCounts['txt_download'] ?? 0);
+            $txtRawInRange = (int) ($txtInteractionCounts['txt_raw'] ?? 0);
+        }
+
         // Count of bot/scraper clicks that the global scope filtered out of the
         // numbers above. Surfaced on the analytics page as a small "X bot hits
         // filtered" badge so creators understand drops in popular-link traffic
@@ -1743,6 +1774,7 @@ class LinkController extends Controller
             'recentClicks', 'totalInRange', 'uniqueInRange',
             'blockClicksInRange', 'pageVisitsInRange', 'botClicksInRange', 'botFamilyBreakdown',
             'pollVotesInRange', 'pollBreakdown', 'hasPollBlocks',
+            'txtDownloadsInRange', 'txtRawInRange',
             'period', 'groupBy', 'startDate', 'endDate',
             'totalSessions', 'avgSessionSeconds', 'totalEngagedSeconds',
             'bounceRate', 'blockEngagement', 'blockClickMap', 'blockMeta',
