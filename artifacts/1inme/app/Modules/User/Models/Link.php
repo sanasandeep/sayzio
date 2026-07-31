@@ -108,6 +108,12 @@ protected $fillable = [
         return $this->belongsToMany(Pixel::class, 'link_pixels');
     }
 
+    public function folders()
+    {
+        return $this->belongsToMany(LinkFolder::class, 'link_folder_links')
+            ->withTimestamps();
+    }
+
     public function clicks()
     {
         return $this->hasMany(LinkClick::class);
