@@ -47,6 +47,9 @@ export type Analytics = {
   blocked_this_week?: number;
   blocked_by_day?: { day: string; clicks: number }[];
   rate_limit?: RateLimitConfig;
+  link_type?: string;
+  txt_downloads?: number;
+  txt_raw?: number;
 };
 
 export async function getRateLimit(linkId: number): Promise<RateLimitConfig> {

@@ -10,6 +10,9 @@ import { app, ipcMain, shell, dialog, clipboard, nativeTheme, BrowserWindow, ses
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
+import { pathToFileURL } from 'url';
+import { isMarkdownDownload, renderMarkdownDocument } from '../shared/markdown';
+import { isCsvDownload, buildCsvViewerHtml, CSV_VIEWER_MAX_FILE_BYTES } from '../shared/csv-viewer';
 import type { TabManager } from './tab-manager';
 import type { TabMode } from '../shared/window-mode';
 import type { WindowModeManager } from './window-mode-manager';
@@ -90,6 +93,22 @@ import {
   type SiteSettingsPatch,
 } from './db';
 import { invalidateSiteSettingsCache } from './site-settings';
+import {
+  VK_PREF_KEYS,
+  VK_STRIP_WIDTH,
+  VK_STRIP_HEIGHT,
+  keyEventsFor,
+  isVkSpecialKey,
+  mergeHistory,
+  parseTypingHistory,
+  serializeTypingHistory,
+  mergeBigrams,
+  parseBigramHistory,
+  serializeBigramHistory,
+  parseStripPos,
+  type VkStripUpdatePayload,
+} from '../shared/virtual-keyboard';
+import { VkStripWindow } from './vk-strip';
 import { getActiveItem } from './download-manager';
 import { resolvePermissionRequest, setupPermissionHandlers } from './permission-handler';
 import {
@@ -312,6 +331,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       if (days > 0) {
         try { pruneHistoryOlderThan(days); } catch { /* best-effort */ }
       }
+    } else if (key === VK_PREF_KEYS.ENABLED && value === '1') {
+      // Feature flipped on: already-open pages must start reporting field
+      // focus without a reload.
+      for (const tm of tabManagerRegistry.values()) tm.injectVkReporterAll();
     }
     return true;
   });
@@ -388,6 +411,100 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     resolveTabManager(event)?.setTabSplitRatio(id, ratio);
     return true;
   });
+  // ── Virtual keyboard ─────────────────────────────────────────────────────
+  const vkFocusedWc = (event: Electron.IpcMainInvokeEvent) => {
+    const tm = resolveTabManager(event);
+    const activeId = tm?.getActiveTabId();
+    return activeId ? tm!.getFocusedWebContentsForTab(activeId) : null;
+  };
+  ipcMain.handle('vk:insert-text', async (event, text: string) => {
+    if (typeof text !== 'string' || !text) return false;
+    const wc = vkFocusedWc(event);
+    if (!wc) return false;
+    try { await wc.insertText(text); return true; } catch { return false; }
+  });
+  ipcMain.handle('vk:send-key', (event, key: string) => {
+    if (typeof key !== 'string' || !isVkSpecialKey(key)) return false;
+    const wc = vkFocusedWc(event);
+    if (!wc) return false;
+    try {
+      for (const ev of keyEventsFor(key)) wc.sendInputEvent(ev);
+      return true;
+    } catch { return false; }
+  });
+  ipcMain.handle('vk:set-reserve', (event, px: number) => {
+    resolveTabManager(event)?.setKeyboardReserve(typeof px === 'number' ? px : 0);
+    return true;
+  });
+  ipcMain.handle('vk:record-words', (event, words: string[], pairs?: Array<[string, string]>) => {
+    // Never learn from private windows, and only when the user opted in.
+    if (senderIsPrivate(event)) return false;
+    if (getPreference(VK_PREF_KEYS.LEARN_HISTORY) !== '1') return false;
+    if (!Array.isArray(words)) return false;
+    const clean = words.filter((w): w is string => typeof w === 'string');
+    const cleanPairs = Array.isArray(pairs)
+      ? pairs.filter((p): p is [string, string] =>
+          Array.isArray(p) && p.length === 2 && typeof p[0] === 'string' && typeof p[1] === 'string')
+      : [];
+    if (clean.length === 0 && cleanPairs.length === 0) return false;
+    if (clean.length > 0) {
+      const merged = mergeHistory(parseTypingHistory(getPreference(VK_PREF_KEYS.TYPING_HISTORY)), clean);
+      setPreference(VK_PREF_KEYS.TYPING_HISTORY, serializeTypingHistory(merged));
+    }
+    if (cleanPairs.length > 0) {
+      const merged = mergeBigrams(parseBigramHistory(getPreference(VK_PREF_KEYS.BIGRAMS)), cleanPairs);
+      setPreference(VK_PREF_KEYS.BIGRAMS, serializeBigramHistory(merged));
+    }
+    return true;
+  });
+  ipcMain.handle('vk:clear-history', (event) => {
+    if (senderIsPrivate(event)) return false;
+    setPreference(VK_PREF_KEYS.TYPING_HISTORY, '{}');
+    setPreference(VK_PREF_KEYS.BIGRAMS, '{}');
+    return true;
+  });
+  // Floating suggestion strip — a frameless child window per chrome window
+  // (native views cover the renderer DOM, so the strip must be a real window).
+  const vkStrips = new Map<number, VkStripWindow>();
+  const vkStripFor = (event: Electron.IpcMainInvokeEvent): VkStripWindow | null => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win || win.isDestroyed()) return null;
+    let strip = vkStrips.get(win.id);
+    if (!strip) {
+      strip = new VkStripWindow(
+        win,
+        (index) => { if (!win.isDestroyed()) win.webContents.send('vk:strip-select', index); },
+        (pos) => setPreference(VK_PREF_KEYS.STRIP_POS, JSON.stringify(pos)),
+      );
+      vkStrips.set(win.id, strip);
+      win.once('closed', () => vkStrips.delete(win.id));
+    }
+    return strip;
+  };
+  ipcMain.handle('vk:strip-show', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const strip = vkStripFor(event);
+    if (!win || !strip) return false;
+    const b = win.getContentBounds();
+    const pos = parseStripPos(getPreference(VK_PREF_KEYS.STRIP_POS), {
+      width: Math.max(0, b.width - VK_STRIP_WIDTH),
+      height: Math.max(0, b.height - VK_STRIP_HEIGHT),
+    });
+    strip.show(pos);
+    return true;
+  });
+  ipcMain.handle('vk:strip-update', (event, payload: VkStripUpdatePayload) => {
+    if (!payload || typeof payload !== 'object' || !Array.isArray(payload.suggestions)) return false;
+    const strip = vkStripFor(event);
+    if (!strip) return false;
+    strip.update(payload);
+    return true;
+  });
+  ipcMain.handle('vk:strip-hide', (event) => {
+    vkStrips.get(BrowserWindow.fromWebContents(event.sender)?.id ?? -1)?.hide();
+    return true;
+  });
+
   ipcMain.handle('tabs:get-state', (event, id: string) => resolveTabManager(event)?.getTabState(id) ?? null);
   ipcMain.handle('tabs:get-order', (event) => resolveTabManager(event)?.getTabOrder() ?? []);
   ipcMain.handle('tabs:get-active', (event) => resolveTabManager(event)?.getActiveTabId() ?? null);
@@ -777,6 +894,59 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     return { ok: true };
   });
   ipcMain.handle('downloads:exists', (_, filePath: string) => fs.existsSync(filePath));
+  // Markdown files larger than this open as raw text instead of the rendered
+  // viewer (the naive renderer would be slow and the temp copy wasteful).
+  const MARKDOWN_VIEWER_MAX_BYTES = 2 * 1024 * 1024;
+  // Open a downloaded file inside the browser (new tab, file:// URL).
+  // Markdown files get a sanitized rendered viewer page (temp HTML) with a
+  // "View raw source" link back to the original file; CSV files get a
+  // generated table-viewer page instead of raw comma text; other text
+  // formats keep Chromium's plain-text rendering.
+  ipcMain.handle('downloads:open-in-tab', (event, filePath: string) => {
+    if (!fs.existsSync(filePath)) {
+      return { ok: false, error: 'File not found', missing: true };
+    }
+    const rawFileUrl = pathToFileURL(filePath).toString();
+    let fileUrl = rawFileUrl;
+    if (isMarkdownDownload(path.basename(filePath))) {
+      try {
+        const stat = fs.statSync(filePath);
+        if (stat.size <= MARKDOWN_VIEWER_MAX_BYTES) {
+          const source = fs.readFileSync(filePath, 'utf8');
+          const doc = renderMarkdownDocument(source, {
+            title: path.basename(filePath),
+            rawFileUrl,
+          });
+          const dir = path.join(app.getPath('temp'), 'zio-md-viewer');
+          fs.mkdirSync(dir, { recursive: true });
+          const outPath = path.join(dir, `${randomUUID()}.html`);
+          fs.writeFileSync(outPath, doc, 'utf8');
+          fileUrl = pathToFileURL(outPath).toString();
+        }
+      } catch {
+        // Fall back to the raw file:// view on any read/render failure.
+        fileUrl = rawFileUrl;
+      }
+    } else if (isCsvDownload(path.basename(filePath))) {
+      try {
+        const stat = fs.statSync(filePath);
+        if (stat.size <= CSV_VIEWER_MAX_FILE_BYTES) {
+          const csvText = fs.readFileSync(filePath, 'utf8');
+          const html = buildCsvViewerHtml(path.basename(filePath), csvText);
+          const viewerDir = path.join(app.getPath('temp'), 'zio-csv-viewer');
+          fs.mkdirSync(viewerDir, { recursive: true });
+          const viewerPath = path.join(viewerDir, `${randomUUID()}.html`);
+          fs.writeFileSync(viewerPath, html, 'utf8');
+          fileUrl = pathToFileURL(viewerPath).toString();
+        }
+        // Oversized CSVs fall through to the plain file:// rendering.
+      } catch {
+        // Viewer generation failed — fall back to the raw file view.
+      }
+    }
+    const tabId = resolveTabManager(event)?.createTab(fileUrl) ?? null;
+    return tabId ? { ok: true, tabId } : { ok: false, error: 'No tab manager available' };
+  });
   ipcMain.handle('downloads:choose-path', async () => {
     const result = await dialog.showSaveDialog({ title: 'Save File' });
     return result.canceled ? null : result.filePath;

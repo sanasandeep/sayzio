@@ -35,7 +35,7 @@ class LinkTypeExplainerSeeder extends Seeder
      * untouched pages get refreshed on the next seed. Edited pages are
      * still left alone (see refresh guard in seedPage()).
      */
-    private const SEED_VERSION = 7;
+    private const SEED_VERSION = 8;
 
     /**
      * Bump when the live demo restaurant menu (`/demo-restaurant`) content
@@ -701,6 +701,23 @@ class LinkTypeExplainerSeeder extends Seeder
                 'cta_label' => 'Build your form',
                 'cta_url' => $create('form'),
                 'cta_icon' => 'fa-list-check',
+            ],
+            [
+                'alias' => 'demo-type-text-page',
+                'link_type' => 'text',
+                'title' => 'Text Page: explained',
+                'heading' => 'Text Page 📄',
+                'intro' => 'Paste or type any text and share it as a clean, readable page behind a short link. Perfect for notes, snippets, instructions and announcements.',
+                'features' => [
+                    'Paste up to 20,000 characters and share instantly',
+                    'Visitors can select the text or copy it all with one tap',
+                    'Edit the text any time, the short link never changes',
+                    'Add a title, custom alias and expiry like any other link',
+                    'Every view is tracked in real-time analytics',
+                ],
+                'cta_label' => 'Create your text page',
+                'cta_url' => $create('text'),
+                'cta_icon' => 'fa-align-left',
             ],
         ];
     }

@@ -145,20 +145,24 @@ export default function LinksTab() {
       if (!raw) {
         showAlert(
           "Clipboard is empty",
-          "Copy a web URL, email address or phone number first, then tap the bolt.",
+          "Copy a web URL, email address, phone number or any text first, then tap the bolt.",
         );
         return;
       }
       const result = await quickShorten(raw);
       await Clipboard.setStringAsync(result.short_url);
-      showToast(`Short link created and copied: ${result.short_url}`);
+      showToast(
+        result.kind === "text"
+          ? `Text page link created and copied: ${result.short_url}`
+          : `Short link created and copied: ${result.short_url}`,
+      );
       query.refetch();
     } catch (e) {
       showAlert(
         "Couldn't shorten that",
         e instanceof Error && e.message
           ? e.message
-          : "Copy a web URL, email address or phone number and try again.",
+          : "Copy a web URL, email address, phone number or some text and try again.",
       );
     } finally {
       setShortening(false);
@@ -249,7 +253,9 @@ export default function LinksTab() {
     if (sheetBusy) return;
     const dest = sheetDest.trim();
     if (!dest) {
-      setSheetError("Paste or type a web URL, email address or phone number.");
+      setSheetError(
+        "Paste or type a web URL, email address, phone number or any text.",
+      );
       return;
     }
     if (aliasBlocked) {
@@ -267,7 +273,11 @@ export default function LinksTab() {
       });
       await Clipboard.setStringAsync(result.short_url);
       setSheetOpen(false);
-      showToast(`Short link created and copied: ${result.short_url}`);
+      showToast(
+        result.kind === "text"
+          ? `Text page link created and copied: ${result.short_url}`
+          : `Short link created and copied: ${result.short_url}`,
+      );
       query.refetch();
     } catch (e) {
       // Surface a 422 (alias taken/banned/format/length or bad

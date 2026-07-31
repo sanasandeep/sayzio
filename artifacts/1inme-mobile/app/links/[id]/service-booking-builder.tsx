@@ -21,16 +21,20 @@ import {
   createBlockedDate,
   createService,
   createServiceCategory,
+  createStaffMember,
   deleteAvailabilityRule,
   deleteBlockedDate,
   deleteService,
   deleteServiceCategory,
+  deleteStaffMember,
   getOwnerServiceBookingConfig,
   saveOwnerServiceBookingSettings,
   updateService,
+  updateStaffMember,
   uploadServicePhoto,
   type OwnerServiceBookingConfig,
   type OwnerServiceItem,
+  type OwnerStaffMember,
 } from "@/lib/api/service-booking";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -89,6 +93,11 @@ export default function ServiceBookingBuilderScreen() {
           cfg={cfg}
           onChanged={invalidate}
         />
+        <StaffSection
+          linkId={linkId}
+          cfg={cfg}
+          onChanged={invalidate}
+        />
         <AvailabilitySection
           linkId={linkId}
           cfg={cfg}
@@ -125,6 +134,23 @@ function SettingsSection({
   const [taxRate, setTaxRate] = useState(String(cfg.tax.rate));
   const [taxInclusive, setTaxInclusive] = useState(cfg.tax.inclusive);
   const [taxLabel, setTaxLabel] = useState(cfg.tax.label);
+  const [bufBefore, setBufBefore] = useState(String(cfg.buffers?.before ?? 0));
+  const [bufAfter, setBufAfter] = useState(String(cfg.buffers?.after ?? 0));
+  const [allowCancel, setAllowCancel] = useState(
+    cfg.self_service?.allow_cancel ?? true,
+  );
+  const [allowReschedule, setAllowReschedule] = useState(
+    cfg.self_service?.allow_reschedule ?? true,
+  );
+  const [cutoffHours, setCutoffHours] = useState(
+    String(cfg.self_service?.cutoff_hours ?? 24),
+  );
+  const [calSyncEnabled, setCalSyncEnabled] = useState(
+    cfg.calendar_sync?.enabled ?? false,
+  );
+  const [calAccountId, setCalAccountId] = useState<number | null>(
+    cfg.calendar_sync?.account_id ?? null,
+  );
 
   const save = useMutation({
     mutationFn: () =>
@@ -138,6 +164,13 @@ function SettingsSection({
         tax_rate: Number(taxRate) || 0,
         tax_inclusive: taxInclusive,
         tax_label: taxLabel.trim() || "Tax",
+        buffer_before_minutes: Number(bufBefore) || 0,
+        buffer_after_minutes: Number(bufAfter) || 0,
+        self_service_allow_cancel: allowCancel,
+        self_service_allow_reschedule: allowReschedule,
+        self_service_cutoff_hours: Number(cutoffHours) || 0,
+        calendar_sync_enabled: calSyncEnabled,
+        calendar_sync_account_id: calSyncEnabled ? calAccountId : null,
       }),
     onSuccess: onSaved,
   });
@@ -194,6 +227,97 @@ function SettingsSection({
               </View>
             </View>
           </View>
+        </>
+      ) : null}
+
+      <View style={styles.grid2}>
+        <View style={{ flex: 1 }}>
+          <Label>Buffer before (min)</Label>
+          <Input
+            value={bufBefore}
+            onChangeText={setBufBefore}
+            keyboardType="number-pad"
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Label>Buffer after (min)</Label>
+          <Input
+            value={bufAfter}
+            onChangeText={setBufAfter}
+            keyboardType="number-pad"
+          />
+        </View>
+      </View>
+
+      <View style={[styles.rowBetween, { marginTop: 14 }]}>
+        <Label noMargin>Visitors can cancel</Label>
+        <Switch value={allowCancel} onValueChange={setAllowCancel} />
+      </View>
+      <View style={styles.rowBetween}>
+        <Label noMargin>Visitors can reschedule</Label>
+        <Switch value={allowReschedule} onValueChange={setAllowReschedule} />
+      </View>
+      {allowCancel || allowReschedule ? (
+        <>
+          <Label>Cutoff (hours before start)</Label>
+          <Input
+            value={cutoffHours}
+            onChangeText={setCutoffHours}
+            keyboardType="number-pad"
+          />
+        </>
+      ) : null}
+
+      {cfg.calendar_sync?.allowed ? (
+        <>
+          <View style={[styles.rowBetween, { marginTop: 14 }]}>
+            <Label noMargin>Google Calendar sync</Label>
+            <Switch value={calSyncEnabled} onValueChange={setCalSyncEnabled} />
+          </View>
+          {calSyncEnabled ? (
+            (cfg.calendar_accounts ?? []).length === 0 ? (
+              <Text
+                style={{ color: colors.mutedForeground, fontSize: 12.5 }}
+              >
+                Connect a Google Calendar account on the web app first.
+              </Text>
+            ) : (
+              <View style={[styles.dayRow, { marginTop: 6 }]}>
+                {(cfg.calendar_accounts ?? []).map((a) => {
+                  const active = calAccountId === a.id;
+                  const label =
+                    a.display_name ||
+                    `${a.provider.charAt(0).toUpperCase()}${a.provider.slice(1)}${
+                      a.account_email ? ` · ${a.account_email}` : ""
+                    }`;
+                  return (
+                    <Pressable
+                      key={a.id}
+                      onPress={() => setCalAccountId(active ? null : a.id)}
+                      style={[
+                        styles.dayChip,
+                        { borderColor: colors.border },
+                        active && {
+                          backgroundColor: colors.primary,
+                          borderColor: colors.primary,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          color: active ? "#fff" : colors.foreground,
+                          fontSize: 12,
+                          fontWeight: "600",
+                        }}
+                      >
+                        {label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )
+          ) : null}
         </>
       ) : null}
 
@@ -391,6 +515,7 @@ function ServiceAdder({
   const [desc, setDesc] = useState("");
   const [price, setPrice] = useState("");
   const [duration, setDuration] = useState("30");
+  const [capacity, setCapacity] = useState("1");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -402,6 +527,7 @@ function ServiceAdder({
         description: desc.trim() || null,
         price: Number(price) || 0,
         duration_minutes: Number(duration) || 30,
+        capacity: Math.max(1, Number(capacity) || 1),
         photo_url: photoUrl,
       }),
     onSuccess: () => {
@@ -409,6 +535,7 @@ function ServiceAdder({
       setDesc("");
       setPrice("");
       setDuration("30");
+      setCapacity("1");
       setPhotoUrl(null);
       setOpen(false);
       onChanged();
@@ -481,6 +608,12 @@ function ServiceAdder({
           />
         </View>
       </View>
+      <Input
+        value={capacity}
+        onChangeText={setCapacity}
+        placeholder="Group size per slot (default 1)"
+        keyboardType="number-pad"
+      />
       <Pressable
         onPress={pickPhoto}
         style={[styles.ghostBtn, { borderColor: colors.border, marginTop: 4 }]}
@@ -523,6 +656,137 @@ function ServiceAdder({
   );
 }
 
+// ── Staff / team ─────────────────────────────────────────────────
+
+function StaffSection({
+  linkId,
+  cfg,
+  onChanged,
+}: {
+  linkId: string;
+  cfg: OwnerServiceBookingConfig;
+  onChanged: () => void;
+}) {
+  const colors = useColors();
+  const [name, setName] = useState("");
+  const [title, setTitle] = useState("");
+  const [email, setEmail] = useState("");
+
+  const staff = cfg.staff ?? [];
+  const cap = cfg.staff_cap ?? 0;
+  const capReached = cap > 0 && staff.length >= cap;
+
+  const add = useMutation({
+    mutationFn: () =>
+      createStaffMember(linkId, {
+        name: name.trim(),
+        title: title.trim() || null,
+        email: email.trim() || null,
+      }),
+    onSuccess: () => {
+      setName("");
+      setTitle("");
+      setEmail("");
+      onChanged();
+    },
+  });
+  const del = useMutation({
+    mutationFn: (id: number) => deleteStaffMember(linkId, id),
+    onSuccess: onChanged,
+  });
+  const toggle = useMutation({
+    mutationFn: (m: OwnerStaffMember) =>
+      updateStaffMember(linkId, m.id, { is_active: !m.is_active }),
+    onSuccess: onChanged,
+  });
+
+  return (
+    <Card title="Team members">
+      {staff.length === 0 ? (
+        <Text
+          style={{ color: colors.mutedForeground, fontSize: 13, marginBottom: 10 }}
+        >
+          Add team members so visitors can pick who they book with. Assign
+          services to each member on the web editor.
+        </Text>
+      ) : null}
+      {staff.map((m) => (
+        <View key={m.id} style={styles.rowBetween}>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                color: colors.foreground,
+                fontWeight: "600",
+                opacity: m.is_active ? 1 : 0.5,
+              }}
+            >
+              {m.name}
+              {m.title ? ` · ${m.title}` : ""}
+            </Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+              {m.service_ids.length === 0
+                ? "All services"
+                : `${m.service_ids.length} service(s)`}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => toggle.mutate(m)}
+            hitSlop={8}
+            style={{ marginRight: 14 }}
+          >
+            <Feather
+              name={m.is_active ? "eye" : "eye-off"}
+              size={16}
+              color={colors.mutedForeground}
+            />
+          </Pressable>
+          <Pressable onPress={() => del.mutate(m.id)} hitSlop={8}>
+            <Feather name="trash-2" size={16} color={colors.destructive} />
+          </Pressable>
+        </View>
+      ))}
+
+      {capReached ? (
+        <Text style={{ color: colors.mutedForeground, fontSize: 12.5, marginTop: 8 }}>
+          Your plan allows up to {cap} team member(s). Upgrade to add more.
+        </Text>
+      ) : (
+        <>
+          <View style={[styles.divider, { borderColor: colors.border }]} />
+          <Label>Name</Label>
+          <Input value={name} onChangeText={setName} placeholder="e.g. Priya" />
+          <Label>Title (optional)</Label>
+          <Input value={title} onChangeText={setTitle} placeholder="e.g. Senior stylist" />
+          <Label>Notification email (optional)</Label>
+          <Input
+            value={email}
+            onChangeText={setEmail}
+            placeholder="member@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          <Pressable
+            disabled={!name.trim() || add.isPending}
+            onPress={() => add.mutate()}
+            style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+          >
+            {add.isPending ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.primaryBtnText}>Add team member</Text>
+            )}
+          </Pressable>
+          {add.isError ? (
+            <Text style={{ color: colors.destructive, marginTop: 8, fontSize: 12.5 }}>
+              {(add.error as Error)?.message ?? "Could not add team member"}
+            </Text>
+          ) : null}
+        </>
+      )}
+    </Card>
+  );
+}
+
 // ── Availability ─────────────────────────────────────────────────
 
 function AvailabilitySection({
@@ -538,6 +802,10 @@ function AvailabilitySection({
   const [day, setDay] = useState(1);
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("17:00");
+  const [staffId, setStaffId] = useState<number | null>(null);
+  const staffList = cfg.staff ?? [];
+  const staffName = (id: number | null) =>
+    staffList.find((m) => m.id === id)?.name ?? "";
 
   const add = useMutation({
     mutationFn: () =>
@@ -545,6 +813,7 @@ function AvailabilitySection({
         day_of_week: day,
         start_time: start.trim(),
         end_time: end.trim(),
+        staff_id: staffId,
       }),
     onSuccess: onChanged,
   });
@@ -564,6 +833,7 @@ function AvailabilitySection({
         <View key={r.id} style={styles.rowBetween}>
           <Text style={{ color: colors.foreground }}>
             {DAY_LABELS[r.day_of_week]} · {r.start_time}–{r.end_time}
+            {r.staff_id ? ` · ${staffName(r.staff_id)}` : ""}
           </Text>
           <Pressable onPress={() => del.mutate(r.id)} hitSlop={8}>
             <Feather name="trash-2" size={16} color={colors.destructive} />
@@ -606,6 +876,39 @@ function AvailabilitySection({
           <Input value={end} onChangeText={setEnd} placeholder="17:00" />
         </View>
       </View>
+      {staffList.length > 0 ? (
+        <>
+          <Label>Applies to</Label>
+          <View style={styles.dayRow}>
+            {[{ id: null as number | null, name: "Whole page" }]
+              .concat(staffList.map((m) => ({ id: m.id as number | null, name: m.name })))
+              .map((opt) => (
+                <Pressable
+                  key={opt.id ?? 0}
+                  onPress={() => setStaffId(opt.id)}
+                  style={[
+                    styles.dayChip,
+                    { borderColor: colors.border },
+                    staffId === opt.id && {
+                      backgroundColor: colors.primary,
+                      borderColor: colors.primary,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: staffId === opt.id ? "#fff" : colors.foreground,
+                      fontSize: 12,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {opt.name}
+                  </Text>
+                </Pressable>
+              ))}
+          </View>
+        </>
+      ) : null}
       <Pressable
         disabled={add.isPending}
         onPress={() => add.mutate()}
@@ -640,16 +943,22 @@ function BlockedDatesSection({
   const colors = useColors();
   const [date, setDate] = useState("");
   const [reason, setReason] = useState("");
+  const [staffId, setStaffId] = useState<number | null>(null);
+  const staffList = cfg.staff ?? [];
+  const staffName = (id: number | null) =>
+    staffList.find((m) => m.id === id)?.name ?? "";
 
   const add = useMutation({
     mutationFn: () =>
       createBlockedDate(linkId, {
         date: date.trim(),
         reason: reason.trim() || null,
+        staff_id: staffId,
       }),
     onSuccess: () => {
       setDate("");
       setReason("");
+      setStaffId(null);
       onChanged();
     },
   });
@@ -664,6 +973,7 @@ function BlockedDatesSection({
         <View key={b.id} style={styles.rowBetween}>
           <Text style={{ color: colors.foreground }}>
             {b.date}
+            {b.staff_id ? ` · ${staffName(b.staff_id)}` : ""}
             {b.reason ? ` · ${b.reason}` : ""}
           </Text>
           <Pressable onPress={() => del.mutate(b.id)} hitSlop={8}>
@@ -677,6 +987,39 @@ function BlockedDatesSection({
       <Input value={date} onChangeText={setDate} placeholder="2026-12-25" />
       <Label>Reason (optional)</Label>
       <Input value={reason} onChangeText={setReason} placeholder="Holiday" />
+      {staffList.length > 0 ? (
+        <>
+          <Label>Applies to</Label>
+          <View style={styles.dayRow}>
+            {[{ id: null as number | null, name: "Whole page" }]
+              .concat(staffList.map((m) => ({ id: m.id as number | null, name: m.name })))
+              .map((opt) => (
+                <Pressable
+                  key={opt.id ?? 0}
+                  onPress={() => setStaffId(opt.id)}
+                  style={[
+                    styles.dayChip,
+                    { borderColor: colors.border },
+                    staffId === opt.id && {
+                      backgroundColor: colors.primary,
+                      borderColor: colors.primary,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: staffId === opt.id ? "#fff" : colors.foreground,
+                      fontSize: 12,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {opt.name}
+                  </Text>
+                </Pressable>
+              ))}
+          </View>
+        </>
+      ) : null}
       <Pressable
         disabled={!date.trim() || add.isPending}
         onPress={() => add.mutate()}

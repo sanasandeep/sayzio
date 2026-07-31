@@ -9,6 +9,7 @@ import path from 'path';
 import { app, BrowserWindow } from 'electron';
 import type { Session, DownloadItem } from 'electron';
 import { generateId } from '../shared/collection-store';
+import { isViewableTextDownload } from '../shared/omnibox';
 import { recordDownload, updateDownload } from './db';
 import { getPreference } from './db';
 import { PREFERENCE_KEYS } from '../shared/db-schema';
@@ -96,6 +97,7 @@ export function setupDownloadManager(
       totalBytes: item.getTotalBytes() || null,
       mimeType: item.getMimeType() || null,
       isPrivate,
+      isText: isViewableTextDownload(filename, item.getMimeType() || null),
     });
 
     item.on('updated', (__, state) => {
@@ -142,6 +144,7 @@ export function setupDownloadManager(
         savePath: finalPath,
         filename,
         isPrivate,
+        isText: isViewableTextDownload(filename, item.getMimeType() || null),
       });
     });
   });

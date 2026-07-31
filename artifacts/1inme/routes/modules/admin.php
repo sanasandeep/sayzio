@@ -647,6 +647,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('google-contacts', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'editGoogleContacts'])->middleware(CheckPermission::class . ':settings.manage')->name('google-contacts.edit');
             Route::put('google-contacts', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'updateGoogleContacts'])->middleware(CheckPermission::class . ':settings.manage')->name('google-contacts.update');
 
+            Route::get('google-calendar', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'editGoogleCalendar'])->middleware(CheckPermission::class . ':settings.manage')->name('google-calendar.edit');
+            Route::put('google-calendar', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'updateGoogleCalendar'])->middleware(CheckPermission::class . ':settings.manage')->name('google-calendar.update');
+
             Route::get('google-cse', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'editGoogleCse'])->middleware(CheckPermission::class . ':settings.manage')->name('google-cse.edit');
             Route::put('google-cse', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'updateGoogleCse'])->middleware(CheckPermission::class . ':settings.manage')->name('google-cse.update');
 

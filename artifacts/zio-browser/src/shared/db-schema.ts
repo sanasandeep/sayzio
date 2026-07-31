@@ -318,6 +318,16 @@ export const PREFERENCE_KEYS = {
   TRACKER_STATS: 'tracker_stats',
   IMPORT_ENABLED: 'import_enabled',
   PINNED_TOOLBAR_TOOLS: 'pinned_toolbar_tools',
+  VK_ENABLED: 'vk_enabled',
+  VK_AUTO_SHOW: 'vk_auto_show',
+  VK_SUGGESTIONS: 'vk_suggestions',
+  VK_LEARN_HISTORY: 'vk_learn_history',
+  VK_SELECTION_MODE: 'vk_selection_mode',
+  VK_EXPAND_ON_SPACE: 'vk_expand_on_space',
+  VK_SHORTCUTS: 'vk_shortcuts',
+  VK_TYPING_HISTORY: 'vk_typing_history',
+  VK_BIGRAMS: 'vk_bigrams',
+  VK_STRIP_POS: 'vk_strip_pos',
 } as const;
 
 export type PreferenceKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];

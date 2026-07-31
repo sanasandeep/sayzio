@@ -229,6 +229,12 @@ APP_DEBUG = "false"
 # (single-worker php -S serializes ALL traffic, incl. health checks).
 DB_PERSISTENT = "true"
 PHP_CLI_SERVER_WORKERS = "10"
+# Surface Laravel exceptions in the deployment log stream. The default 'stack'
+# channel writes only to storage/logs/laravel.log inside the container, which
+# is unreadable after a failed publish — a health-check 500 on "/" left no
+# trace of the actual exception. stderr makes report()ed exceptions visible in
+# the Replit deployment logs.
+LOG_CHANNEL = "stderr"
 
 [services.production.health.startup]
 path = "/up"

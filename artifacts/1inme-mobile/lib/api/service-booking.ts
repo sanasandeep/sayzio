@@ -27,6 +27,15 @@ export type ServiceBookingCategory = {
   services: ServiceBookingService[];
 };
 
+export type ServiceBookingStaffMember = {
+  id: number;
+  name: string;
+  title: string | null;
+  bio: string | null;
+  photo_url: string | null;
+  service_ids: number[];
+};
+
 export type ServiceBookingPage = {
   config: {
     mode: "display" | "booking";
@@ -39,12 +48,14 @@ export type ServiceBookingPage = {
   link: { alias: string; title: string | null; description: string | null };
   categories: ServiceBookingCategory[];
   uncategorized: ServiceBookingService[];
+  staff: ServiceBookingStaffMember[];
 };
 
 export type ServiceBookingSlot = {
   start: string;
   end: string;
   label: string;
+  remaining?: number;
 };
 
 export type ServiceBookingDay = {
@@ -98,6 +109,10 @@ export type GuestBooking = {
   public_token: string;
   status: string;
   status_label: string;
+  staff: { id: number; name: string } | null;
+  can_cancel: boolean;
+  can_reschedule: boolean;
+  self_service_cutoff_hours: number;
   customer_name: string | null;
   slot_start: string | null;
   slot_end: string | null;
@@ -142,6 +157,8 @@ export type OwnerBooking = {
   total: string | null;
   currency: string;
   is_estimate: boolean;
+  staff_id: number | null;
+  staff_name: string | null;
   created_at: string | null;
   updated_at: string | null;
   items: OwnerBookingItem[];
@@ -164,6 +181,9 @@ export type OwnerServiceItem = {
   photo_url: string | null;
   is_unavailable: boolean;
   is_active: boolean;
+  capacity: number;
+  buffer_before_minutes: number | null;
+  buffer_after_minutes: number | null;
 };
 
 export type OwnerServiceCategory = {
@@ -176,6 +196,7 @@ export type OwnerServiceCategory = {
 
 export type OwnerAvailabilityRule = {
   id: number;
+  staff_id: number | null;
   day_of_week: number;
   start_time: string;
   end_time: string;
@@ -184,8 +205,29 @@ export type OwnerAvailabilityRule = {
 
 export type OwnerBlockedDate = {
   id: number;
+  staff_id: number | null;
   date: string;
   reason: string | null;
+};
+
+export type OwnerStaffMember = {
+  id: number;
+  name: string;
+  title: string | null;
+  bio: string | null;
+  email: string | null;
+  photo_url: string | null;
+  is_active: boolean;
+  sort_order: number;
+  calendar_account_id: number | null;
+  service_ids: number[];
+};
+
+export type OwnerCalendarAccount = {
+  id: number;
+  provider: string;
+  display_name: string | null;
+  account_email: string | null;
 };
 
 export type OwnerServiceBookingConfig = {
@@ -203,10 +245,25 @@ export type OwnerServiceBookingConfig = {
   uncategorized: OwnerServiceItem[];
   availability_rules: OwnerAvailabilityRule[];
   blocked_dates: OwnerBlockedDate[];
+  buffers: { before: number; after: number };
+  self_service: {
+    allow_cancel: boolean;
+    allow_reschedule: boolean;
+    cutoff_hours: number;
+  };
+  calendar_sync: {
+    enabled: boolean;
+    account_id: number | null;
+    allowed: boolean;
+  };
+  staff: OwnerStaffMember[];
+  staff_cap: number;
+  calendar_accounts: OwnerCalendarAccount[];
 };
 
 export type CartInput = {
   services: { service_id: number; quantity?: number }[];
+  staff_id?: number | null;
 };
 
 export type BookInput = {
@@ -216,6 +273,7 @@ export type BookInput = {
   customer_note?: string | null;
   slot_start: string;
   services: { service_id: number; quantity?: number }[];
+  staff_id?: number | null;
 };
 
 // ── Public calls ─────────────────────────────────────────────────
@@ -267,6 +325,35 @@ export async function getGuestBookingStatus(
 ): Promise<GuestBooking> {
   const res = await apiFetch<{ data: { booking: GuestBooking } }>(
     `/service-booking/bookings/${encodeURIComponent(token)}/status`,
+  );
+  return res.data.booking;
+}
+
+export async function getGuestRescheduleSlots(
+  token: string,
+): Promise<ServiceBookingSlotsResponse> {
+  const res = await apiFetch<{ data: ServiceBookingSlotsResponse }>(
+    `/service-booking/bookings/${encodeURIComponent(token)}/reschedule-slots`,
+    { method: "POST", body: JSON.stringify({}) },
+  );
+  return res.data;
+}
+
+export async function rescheduleGuestBooking(
+  token: string,
+  slotStart: string,
+): Promise<GuestBooking> {
+  const res = await apiFetch<{ data: { booking: GuestBooking } }>(
+    `/service-booking/bookings/${encodeURIComponent(token)}/reschedule`,
+    { method: "POST", body: JSON.stringify({ slot_start: slotStart }) },
+  );
+  return res.data.booking;
+}
+
+export async function cancelGuestBooking(token: string): Promise<GuestBooking> {
+  const res = await apiFetch<{ data: { booking: GuestBooking } }>(
+    `/service-booking/bookings/${encodeURIComponent(token)}/cancel`,
+    { method: "POST", body: JSON.stringify({}) },
   );
   return res.data.booking;
 }
@@ -347,6 +434,13 @@ export async function saveOwnerServiceBookingSettings(
     tax_rate?: number | null;
     tax_inclusive?: boolean;
     tax_label?: string | null;
+    buffer_before_minutes?: number | null;
+    buffer_after_minutes?: number | null;
+    self_service_allow_cancel?: boolean;
+    self_service_allow_reschedule?: boolean;
+    self_service_cutoff_hours?: number | null;
+    calendar_sync_enabled?: boolean;
+    calendar_sync_account_id?: number | null;
   },
 ): Promise<OwnerServiceBookingConfig> {
   const res = await apiFetch<{ data: { config: OwnerServiceBookingConfig } }>(
@@ -398,6 +492,9 @@ export type ServiceInput = {
   duration_minutes: number;
   photo_url?: string | null;
   is_unavailable?: boolean;
+  capacity?: number | null;
+  buffer_before_minutes?: number | null;
+  buffer_after_minutes?: number | null;
 };
 
 export async function createService(
@@ -435,7 +532,12 @@ export async function deleteService(
 
 export async function createAvailabilityRule(
   linkId: number | string,
-  input: { day_of_week: number; start_time: string; end_time: string },
+  input: {
+    day_of_week: number;
+    start_time: string;
+    end_time: string;
+    staff_id?: number | null;
+  },
 ): Promise<OwnerAvailabilityRule> {
   const res = await apiFetch<{ data: { rule: OwnerAvailabilityRule } }>(
     `/service-booking/links/${linkId}/config/availability`,
@@ -452,6 +554,7 @@ export async function updateAvailabilityRule(
     start_time?: string;
     end_time?: string;
     is_active?: boolean;
+    staff_id?: number | null;
   },
 ): Promise<OwnerAvailabilityRule> {
   const res = await apiFetch<{ data: { rule: OwnerAvailabilityRule } }>(
@@ -473,7 +576,7 @@ export async function deleteAvailabilityRule(
 
 export async function createBlockedDate(
   linkId: number | string,
-  input: { date: string; reason?: string | null },
+  input: { date: string; reason?: string | null; staff_id?: number | null },
 ): Promise<OwnerBlockedDate> {
   const res = await apiFetch<{ data: { blocked_date: OwnerBlockedDate } }>(
     `/service-booking/links/${linkId}/config/blocked-dates`,
@@ -490,6 +593,61 @@ export async function deleteBlockedDate(
     `/service-booking/links/${linkId}/config/blocked-dates/${blockedDateId}`,
     { method: "DELETE" },
   );
+}
+
+// ── Owner staff / team members ───────────────────────────────────
+
+export type StaffInput = {
+  name: string;
+  title?: string | null;
+  bio?: string | null;
+  email?: string | null;
+  photo_url?: string | null;
+  is_active?: boolean;
+  calendar_account_id?: number | null;
+  service_ids?: number[];
+};
+
+export async function createStaffMember(
+  linkId: number | string,
+  input: StaffInput,
+): Promise<OwnerStaffMember> {
+  const res = await apiFetch<{ data: { staff: OwnerStaffMember } }>(
+    `/service-booking/links/${linkId}/config/staff`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return res.data.staff;
+}
+
+export async function updateStaffMember(
+  linkId: number | string,
+  staffId: number,
+  input: Partial<StaffInput>,
+): Promise<OwnerStaffMember> {
+  const res = await apiFetch<{ data: { staff: OwnerStaffMember } }>(
+    `/service-booking/links/${linkId}/config/staff/${staffId}`,
+    { method: "PUT", body: JSON.stringify(input) },
+  );
+  return res.data.staff;
+}
+
+export async function deleteStaffMember(
+  linkId: number | string,
+  staffId: number,
+): Promise<void> {
+  await apiFetch(`/service-booking/links/${linkId}/config/staff/${staffId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function reorderStaffMembers(
+  linkId: number | string,
+  ids: number[],
+): Promise<void> {
+  await apiFetch(`/service-booking/links/${linkId}/config/staff/reorder`, {
+    method: "POST",
+    body: JSON.stringify({ ids }),
+  });
 }
 
 /**

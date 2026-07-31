@@ -103,6 +103,7 @@ differ from the underlying `links.type` value — both are listed below.
 | **File Share** | `file` | Host a downloadable file behind a branded download page + short link. |
 | **Event** | `ics` | A calendar event visitors add in one tap, with RSVP collection. |
 | **Contact Card** | `vcf` | A digital business card visitors can save instantly (see [§5.5](#55-digital-contact-cards-vcard)). |
+| **Text Page** | `text` | Paste any text and share it as a clean, tracked page with a copy button. |
 
 **Short Link (`url`)** — destination URL with 301/302 redirect choice; UTM
 builder (source/medium/campaign/term/content); password protection;
@@ -120,6 +121,20 @@ exportable guest list; optional preview page. *Web · REST · Mobile.*
 
 **Contact Card (`vcf`)** — full vCard 3.0 landing page; details in
 [§5.5](#55-digital-contact-cards-vcard).
+
+**Text Page (`text`)** — paste or type any text (up to 20,000 characters) and
+share it as a clean, readable public page behind a short link. The body is
+stored under `settings['text']['content']`; visitors can select the text
+freely, copy all of it with a one-tap **copy button**, or **download it as a
+`.txt` file** (`GET /{alias}/download.txt` — streamed as `{alias}.txt`). A
+**raw plain-text view** at `GET /{alias}/raw` serves the bare content with
+`Content-Type: text/plain` for programmatic consumption (curl, scripts).
+Views, downloads, and raw fetches are all tracked in the link's analytics
+(downloads/raw hits carry source tags `txt_download` / `txt_raw`); both
+companion URLs enforce the same expiry, moderation, visibility, and password
+gates as the page. The text is editable any time without changing
+the short link. Also creatable from the quick-shorten sheet by pasting plain
+text. Toggle `module_text`, cap `max_text_pages`. *Web · REST · Mobile.*
 
 ### 2.2 Pages & mini-sites
 

@@ -91,6 +91,7 @@ Every link is created via **Create Link → Step 1** (type + alias) **→ Step 2
 | File Share | `file` | Download page behind a short link; quota-aware |
 | Event | `ics` | Add-to-calendar; RSVP collection with exportable guest list |
 | Contact Card | `vcf` | Full vCard 3.0 landing page |
+| Text Page | `text` | Pasted text (≤ 20,000 chars) served as a public page with a copy button; body in `settings['text']['content']`; toggle `module_text`, cap `max_text_pages`. |
 
 ### 3.2 Pages & mini-sites (biolink family)
 

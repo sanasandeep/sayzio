@@ -163,6 +163,22 @@ class FilesController extends Controller
     }
 
     /**
+     * DELETE /me/files/{file} — remove a vault file. Mirrors the web
+     * vault's UserFileController::destroy (ownership check + deleteFile,
+     * which removes the stored object and the row).
+     */
+    public function destroy(Request $request, UserFile $file)
+    {
+        if ((int) $file->user_id !== (int) $request->user()->id) {
+            return $this->fail('File not found.', 404, 'not_found');
+        }
+
+        $file->deleteFile();
+
+        return $this->ok(['deleted' => true]);
+    }
+
+    /**
      * Minimal client-facing shape — enough for pickers and the sticker
      * flow without leaking storage paths or scan internals.
      */

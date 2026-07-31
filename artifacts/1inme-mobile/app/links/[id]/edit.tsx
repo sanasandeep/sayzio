@@ -32,6 +32,7 @@ import { listAvailableDomains } from "@/lib/api/domains";
 import {
   checkAlias,
   deleteLink,
+  downloadTextPageTxt,
   duplicateLink,
   getLink,
   resetLink,
@@ -110,6 +111,11 @@ export default function EditLinkScreen() {
   // Paid Page (paid_page) template + public/gated toggle. Mirrors the
   // web editor: visibility "public" => anyone, "registered" => gated.
   const [paidTemplate, setPaidTemplate] = useState<string>("aurora");
+  // Text Page body — lives in settings.text.content (same shape the
+  // create flow and web editor use). Capped at the shared 20k limit.
+  const [textContent, setTextContent] = useState("");
+  // In-flight guard for the "Download .txt" action below.
+  const [txtDownloading, setTxtDownloading] = useState(false);
 
   const domainsQ = useQuery({
     queryKey: ["domains-available"],
@@ -141,6 +147,7 @@ export default function EditLinkScreen() {
     setActive(l.is_active);
     setDomainId(l.domain_id ?? null);
     setPaidTemplate(paidPageTemplateId(readPaidPageTemplate(l.settings ?? null)));
+    setTextContent(readTextContent(l.settings ?? null));
     const privacy = readPrivacy(l.settings ?? null);
     setPrivacyHide(privacy.hide_public_visitor_counts ?? true);
     setPrivacyNoRef(privacy.disable_referrer_logging ?? true);
@@ -214,6 +221,24 @@ export default function EditLinkScreen() {
           paid_page: {
             ...existingPaid,
             template: paidPageTemplateId(paidTemplate),
+          },
+        };
+      }
+      const isText =
+        (q.data?.type ?? "").toString() === "text" || meta.kind === "text";
+      if (isText) {
+        // Deep-merge so any other settings keys on the link survive the
+        // save; the server merges this into settings.text.content.
+        const existing: SettingsRecord = (q.data?.settings ??
+          {}) as SettingsRecord;
+        const existingText: SettingsRecord = isRecord(existing.text)
+          ? existing.text
+          : {};
+        payload.settings = {
+          ...existing,
+          text: {
+            ...existingText,
+            content: textContent.slice(0, TEXT_CONTENT_MAX),
           },
         };
       }
@@ -677,7 +702,8 @@ export default function EditLinkScreen() {
           meta.kind !== "restaurant_menu" &&
           meta.kind !== "store_menu" &&
           meta.kind !== "service_booking" &&
-          meta.kind !== "reviews" ? (
+          meta.kind !== "reviews" &&
+          meta.kind !== "text" ? (
             <TextField
               label="Destination URL"
               value={longUrl}
@@ -693,6 +719,63 @@ export default function EditLinkScreen() {
             loading={domainsQ.isLoading}
           />
         </View>
+
+        {meta.kind === "text" ? (
+          <View style={styles.section}>
+            <Text
+              style={[styles.sectionLabel, { color: colors.mutedForeground }]}
+            >
+              Your text
+            </Text>
+            <TextField
+              label="Content"
+              value={textContent}
+              onChangeText={(t) => setTextContent(t.slice(0, TEXT_CONTENT_MAX))}
+              placeholder="Paste or type the text you want to share…"
+              multiline
+              numberOfLines={10}
+              style={{ height: 200, textAlignVertical: "top", paddingTop: 12 }}
+              trailing={<DictationMic onText={dictateInto(setTextContent)} />}
+            />
+            <Text
+              style={{
+                color:
+                  textContent.length >= TEXT_CONTENT_MAX
+                    ? colors.destructive
+                    : colors.mutedForeground,
+                fontSize: 12,
+                textAlign: "right",
+              }}
+            >
+              {textContent.length.toLocaleString()} /{" "}
+              {TEXT_CONTENT_MAX.toLocaleString()}
+            </Text>
+            <Button
+              label={txtDownloading ? "Preparing…" : "Download .txt"}
+              variant="outline"
+              disabled={txtDownloading}
+              onPress={async () => {
+                if (txtDownloading) return;
+                setTxtDownloading(true);
+                try {
+                  await downloadTextPageTxt({
+                    alias: l.alias,
+                    short_url: l.short_url,
+                  });
+                } catch (e) {
+                  showAlert(
+                    "Download failed",
+                    e instanceof Error
+                      ? e.message
+                      : "Couldn't download the text file.",
+                  );
+                } finally {
+                  setTxtDownloading(false);
+                }
+              }}
+            />
+          </View>
+        ) : null}
 
         {meta.kind === "paid_page" ? (
           <View style={styles.section}>
@@ -1013,6 +1096,10 @@ export default function EditLinkScreen() {
   );
 }
 
+// Shared 20k-char cap on Text Page content — same limit the web edit
+// form and the REST create/update validators enforce server-side.
+const TEXT_CONTENT_MAX = 20000;
+
 type SettingsRecord = Record<string, unknown>;
 
 type PrivacySettings = {
@@ -1033,6 +1120,13 @@ function readPaidPageTemplate(settings: unknown): unknown {
   const paid = settings.paid_page;
   if (!isRecord(paid)) return undefined;
   return paid.template;
+}
+
+function readTextContent(settings: unknown): string {
+  if (!isRecord(settings)) return "";
+  const text = settings.text;
+  if (!isRecord(text)) return "";
+  return typeof text.content === "string" ? text.content : "";
 }
 
 function readPrivacy(settings: unknown): PrivacySettings {

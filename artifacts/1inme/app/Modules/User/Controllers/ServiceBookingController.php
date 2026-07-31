@@ -47,19 +47,44 @@ class ServiceBookingController extends Controller
         abort_if((int) $model->service_booking_id !== (int) $config->id, 404);
     }
 
+    /**
+     * Validate an optional staff_id in the payload belongs to this booking
+     * config. Returns a 422 JSON response on mismatch, null when fine.
+     */
+    protected function staffScopeError(ServiceBooking $config, array $data)
+    {
+        $staffId = $data['staff_id'] ?? null;
+        if ($staffId === null || $staffId === '') {
+            return null;
+        }
+        $owns = $config->staff()->where('id', (int) $staffId)->exists();
+
+        return $owns ? null : response()->json(['error' => [
+            'message' => 'That team member was not found on this booking page.',
+            'code'    => 'invalid_staff',
+        ]], 422);
+    }
+
     public function editor(Request $request, Link $link)
     {
         $config = $this->bookingFor($link);
-        $config->load(['categories', 'services', 'availabilityRules', 'blockedDates']);
+        $config->load(['categories', 'services', 'availabilityRules', 'blockedDates', 'staff.services']);
 
         $openBookings = ServiceBookingRequest::where('service_booking_id', $config->id)
             ->whereIn('status', ServiceBookingRequest::OPEN_STATUSES)
             ->count();
 
+        $calendarAccounts = \App\Modules\User\Models\CalendarAccount::where('user_id', $config->user_id)
+            ->orderBy('id')
+            ->get(['id', 'provider', 'display_name', 'account_email']);
+
         return view('user.links.service-booking.editor', [
-            'link'         => $link,
-            'config'       => $config,
-            'openBookings' => $openBookings,
+            'link'             => $link,
+            'config'           => $config,
+            'openBookings'     => $openBookings,
+            'calendarAccounts' => $calendarAccounts,
+            'staffCap'         => (int) $link->user->getPlanFeature('max_service_booking_staff'),
+            'calendarSyncAllowed' => (bool) $link->user->getPlanFeature('service_booking_calendar_sync'),
         ]);
     }
 
@@ -82,6 +107,14 @@ class ServiceBookingController extends Controller
             'tax_label'               => 'nullable|string|max:24',
             'whatsapp_number'         => 'sometimes|nullable|string|max:40',
             'reminder_lead_minutes'   => 'sometimes|nullable',
+            // Task #6325 — buffers, visitor self-service, calendar sync.
+            'buffer_before_minutes'   => 'sometimes|nullable|integer|min:0|max:480',
+            'buffer_after_minutes'    => 'sometimes|nullable|integer|min:0|max:480',
+            'self_service_allow_cancel'     => 'sometimes|boolean',
+            'self_service_allow_reschedule' => 'sometimes|boolean',
+            'self_service_cutoff_hours'     => 'sometimes|nullable|integer|min:0|max:720',
+            'calendar_sync_enabled'   => 'sometimes|boolean',
+            'calendar_sync_account_id' => 'sometimes|nullable|integer',
         ]);
 
         $settings = $data['settings'] ?? ($config->settings ?? []);
@@ -122,6 +155,55 @@ class ServiceBookingController extends Controller
             ];
         }
 
+        // Global booking buffers (Task #6325).
+        if ($request->has('buffer_before_minutes') || $request->has('buffer_after_minutes')) {
+            $settings['buffers'] = [
+                'before' => max(0, (int) ($data['buffer_before_minutes'] ?? ($settings['buffers']['before'] ?? 0))),
+                'after'  => max(0, (int) ($data['buffer_after_minutes'] ?? ($settings['buffers']['after'] ?? 0))),
+            ];
+        }
+
+        // Visitor self-service reschedule / cancel (Task #6325).
+        if ($request->has('self_service_allow_cancel') || $request->has('self_service_allow_reschedule')
+            || $request->has('self_service_cutoff_hours')) {
+            $prev = $settings['self_service'] ?? [];
+            $settings['self_service'] = [
+                'allow_cancel'     => $request->has('self_service_allow_cancel') ? (bool) $data['self_service_allow_cancel'] : (bool) ($prev['allow_cancel'] ?? true),
+                'allow_reschedule' => $request->has('self_service_allow_reschedule') ? (bool) $data['self_service_allow_reschedule'] : (bool) ($prev['allow_reschedule'] ?? true),
+                'cutoff_hours'     => $request->has('self_service_cutoff_hours') ? max(0, (int) ($data['self_service_cutoff_hours'] ?? 24)) : (int) ($prev['cutoff_hours'] ?? 24),
+            ];
+        }
+
+        // Google Calendar two-way sync (Task #6325) — plan-gated.
+        if ($request->has('calendar_sync_enabled') || $request->has('calendar_sync_account_id')) {
+            $enabled = $request->has('calendar_sync_enabled')
+                ? (bool) $data['calendar_sync_enabled']
+                : (bool) ($settings['calendar_sync']['enabled'] ?? false);
+            if ($enabled && !$link->user->getPlanFeature('service_booking_calendar_sync')) {
+                return response()->json(['error' => [
+                    'message' => 'Calendar sync is not included in your plan.',
+                    'code'    => 'plan_gated',
+                ]], 422);
+            }
+            $accountId = $request->has('calendar_sync_account_id')
+                ? ($data['calendar_sync_account_id'] ?? null)
+                : ($settings['calendar_sync']['account_id'] ?? null);
+            if ($accountId !== null) {
+                $owns = \App\Modules\User\Models\CalendarAccount::where('id', (int) $accountId)
+                    ->where('user_id', $config->user_id)->exists();
+                if (!$owns) {
+                    return response()->json(['error' => [
+                        'message' => 'That calendar account was not found.',
+                        'code'    => 'invalid_calendar_account',
+                    ]], 422);
+                }
+            }
+            $settings['calendar_sync'] = [
+                'enabled'    => $enabled,
+                'account_id' => $accountId !== null ? (int) $accountId : null,
+            ];
+        }
+
         $tz = trim((string) ($data['timezone'] ?? ''));
         if ($tz !== '' && !in_array($tz, timezone_identifiers_list(), true)) {
             return response()->json(['error' => [
@@ -137,7 +219,7 @@ class ServiceBookingController extends Controller
             'slot_length_minutes' => $data['slot_length_minutes'],
             'lead_time_minutes'   => $data['lead_time_minutes'],
             'max_days_ahead'      => $data['max_days_ahead'],
-            'timezone'            => $tz !== '' ? $tz : null,
+            'timezone'            => $tz !== '' ? $tz : ($config->timezone ?: 'UTC'),
             'settings'            => $settings,
         ]);
 
@@ -220,6 +302,9 @@ class ServiceBookingController extends Controller
             'payment_mode'     => 'sometimes|in:none,deposit,full',
             'deposit_type'     => 'sometimes|nullable|in:fixed,percent',
             'deposit_value'    => 'sometimes|nullable|numeric|min:0|max:9999999',
+            'capacity'              => 'sometimes|nullable|integer|min:1|max:500',
+            'buffer_before_minutes' => 'sometimes|nullable|integer|min:0|max:480',
+            'buffer_after_minutes'  => 'sometimes|nullable|integer|min:0|max:480',
         ]);
 
         if (!empty($data['category_id'])) {
@@ -239,6 +324,9 @@ class ServiceBookingController extends Controller
             'payment_mode'       => $data['payment_mode'] ?? ServiceBookingService::PAYMENT_MODE_NONE,
             'deposit_type'       => $data['deposit_type'] ?? null,
             'deposit_value'      => $data['deposit_value'] ?? null,
+            'capacity'           => isset($data['capacity']) ? max(1, (int) $data['capacity']) : 1,
+            'buffer_before_minutes' => $data['buffer_before_minutes'] ?? null,
+            'buffer_after_minutes'  => $data['buffer_after_minutes'] ?? null,
             'sort_order'         => (int) ServiceBookingService::where('service_booking_id', $config->id)->max('sort_order') + 1,
         ]);
 
@@ -263,8 +351,14 @@ class ServiceBookingController extends Controller
             'payment_mode'     => 'sometimes|in:none,deposit,full',
             'deposit_type'     => 'sometimes|nullable|in:fixed,percent',
             'deposit_value'    => 'sometimes|nullable|numeric|min:0|max:9999999',
+            'capacity'              => 'sometimes|nullable|integer|min:1|max:500',
+            'buffer_before_minutes' => 'sometimes|nullable|integer|min:0|max:480',
+            'buffer_after_minutes'  => 'sometimes|nullable|integer|min:0|max:480',
         ]);
 
+        if (array_key_exists('capacity', $data)) {
+            $data['capacity'] = $data['capacity'] !== null ? max(1, (int) $data['capacity']) : 1;
+        }
         if (array_key_exists('category_id', $data) && !empty($data['category_id'])) {
             ServiceBookingCategory::where('service_booking_id', $config->id)->findOrFail($data['category_id']);
         }
@@ -307,10 +401,16 @@ class ServiceBookingController extends Controller
             'day_of_week' => 'required|integer|min:0|max:6',
             'start_time'  => 'required|date_format:H:i',
             'end_time'    => 'required|date_format:H:i|after:start_time',
+            'staff_id'    => 'nullable|integer',
         ]);
+
+        if ($err = $this->staffScopeError($config, $data)) {
+            return $err;
+        }
 
         $rule = ServiceBookingAvailabilityRule::create([
             'service_booking_id' => $config->id,
+            'staff_id'           => $data['staff_id'] ?? null,
             'day_of_week'        => $data['day_of_week'],
             'start_time'         => $data['start_time'],
             'end_time'           => $data['end_time'],
@@ -330,7 +430,12 @@ class ServiceBookingController extends Controller
             'start_time'  => 'sometimes|date_format:H:i',
             'end_time'    => 'sometimes|date_format:H:i',
             'is_active'   => 'sometimes|boolean',
+            'staff_id'    => 'sometimes|nullable|integer',
         ]);
+
+        if (array_key_exists('staff_id', $data) && ($err = $this->staffScopeError($config, $data))) {
+            return $err;
+        }
 
         $start = $data['start_time'] ?? $rule->start_time;
         $end   = $data['end_time'] ?? $rule->end_time;
@@ -360,12 +465,22 @@ class ServiceBookingController extends Controller
     {
         $config = $this->bookingFor($link);
         $data = $request->validate([
-            'date'   => 'required|date',
-            'reason' => 'nullable|string|max:160',
+            'date'     => 'required|date',
+            'reason'   => 'nullable|string|max:160',
+            'staff_id' => 'nullable|integer',
         ]);
 
+        if ($err = $this->staffScopeError($config, $data)) {
+            return $err;
+        }
+
+        $staffId = $data['staff_id'] ?? null;
         $date = \Carbon\Carbon::parse($data['date'])->format('Y-m-d');
-        if (ServiceBookingBlockedDate::where('service_booking_id', $config->id)->whereDate('date', $date)->exists()) {
+        $dupe = ServiceBookingBlockedDate::where('service_booking_id', $config->id)
+            ->whereDate('date', $date)
+            ->when($staffId, fn ($q) => $q->where('staff_id', $staffId), fn ($q) => $q->whereNull('staff_id'))
+            ->exists();
+        if ($dupe) {
             return response()->json(['error' => [
                 'message' => 'That date is already blocked.',
                 'code'    => 'duplicate_date',
@@ -374,6 +489,7 @@ class ServiceBookingController extends Controller
 
         $blocked = ServiceBookingBlockedDate::create([
             'service_booking_id' => $config->id,
+            'staff_id'           => $staffId,
             'date'               => $date,
             'reason'             => $data['reason'] ?? null,
         ]);
@@ -390,12 +506,167 @@ class ServiceBookingController extends Controller
         return response()->json(['data' => ['deleted' => true]]);
     }
 
+    // ── Staff / team members (Task #6325) ────────────────────────
+    /** Serialize a staff member for editor JSON responses. */
+    protected function staffPayload(\App\Modules\User\Models\ServiceBookingStaff $staff): array
+    {
+        $staff->loadMissing('services');
+
+        return [
+            'id'                  => $staff->id,
+            'name'                => $staff->name,
+            'title'               => $staff->title,
+            'bio'                 => $staff->bio,
+            'email'               => $staff->email,
+            'photo_url'           => $staff->photo_url,
+            'is_active'           => (bool) $staff->is_active,
+            'sort_order'          => (int) $staff->sort_order,
+            'calendar_account_id' => $staff->calendar_account_id,
+            'service_ids'         => $staff->services->pluck('id')->map(fn ($i) => (int) $i)->values()->all(),
+        ];
+    }
+
+    public function storeStaff(Request $request, Link $link)
+    {
+        $config = $this->bookingFor($link);
+
+        $cap = (int) $link->user->getPlanFeature('max_service_booking_staff');
+        $current = $config->staff()->count();
+        if ($cap !== -1 && $current >= max(0, $cap)) {
+            return response()->json(['error' => [
+                'message' => 'Your plan allows up to ' . max(0, $cap) . ' team member' . ($cap === 1 ? '' : 's') . ' per booking page. Upgrade to add more.',
+                'code'    => 'plan_limit',
+            ]], 422);
+        }
+
+        $data = $request->validate([
+            'name'                => 'required|string|max:120',
+            'title'               => 'nullable|string|max:120',
+            'bio'                 => 'nullable|string|max:2000',
+            'email'               => 'nullable|email|max:190',
+            'photo_url'           => 'nullable|string|max:2048',
+            'is_active'           => 'sometimes|boolean',
+            'calendar_account_id' => 'nullable|integer',
+            'service_ids'         => 'sometimes|array',
+            'service_ids.*'       => 'integer',
+        ]);
+
+        if ($err = $this->validateStaffCalendarAccount($config, $data)) {
+            return $err;
+        }
+
+        $staff = $config->staff()->create([
+            'name'                => trim($data['name']),
+            'title'               => $data['title'] ?? null,
+            'bio'                 => $data['bio'] ?? null,
+            'email'               => $data['email'] ?? null,
+            'photo_url'           => $data['photo_url'] ?? null,
+            'is_active'           => (bool) ($data['is_active'] ?? true),
+            'calendar_account_id' => $data['calendar_account_id'] ?? null,
+            'sort_order'          => ($config->staff()->max('sort_order') ?? 0) + 1,
+        ]);
+
+        $this->syncStaffServices($config, $staff, $data);
+
+        return response()->json(['data' => ['staff' => $this->staffPayload($staff)]], 201);
+    }
+
+    public function updateStaff(Request $request, Link $link, \App\Modules\User\Models\ServiceBookingStaff $staff)
+    {
+        $config = $this->bookingFor($link);
+        $this->assertOwns($config, $staff);
+
+        $data = $request->validate([
+            'name'                => 'sometimes|required|string|max:120',
+            'title'               => 'nullable|string|max:120',
+            'bio'                 => 'nullable|string|max:2000',
+            'email'               => 'nullable|email|max:190',
+            'photo_url'           => 'nullable|string|max:2048',
+            'is_active'           => 'sometimes|boolean',
+            'calendar_account_id' => 'sometimes|nullable|integer',
+            'service_ids'         => 'sometimes|array',
+            'service_ids.*'       => 'integer',
+        ]);
+
+        if ($err = $this->validateStaffCalendarAccount($config, $data)) {
+            return $err;
+        }
+
+        $staff->fill(array_filter([
+            'name'      => isset($data['name']) ? trim($data['name']) : null,
+        ], fn ($v) => $v !== null));
+        foreach (['title', 'bio', 'email', 'photo_url'] as $key) {
+            if ($request->has($key)) {
+                $staff->{$key} = $data[$key] ?? null;
+            }
+        }
+        if ($request->has('is_active')) {
+            $staff->is_active = (bool) $data['is_active'];
+        }
+        if ($request->has('calendar_account_id')) {
+            $staff->calendar_account_id = $data['calendar_account_id'] ?? null;
+        }
+        $staff->save();
+
+        $this->syncStaffServices($config, $staff, $data);
+
+        return response()->json(['data' => ['staff' => $this->staffPayload($staff->fresh())]]);
+    }
+
+    public function destroyStaff(Request $request, Link $link, \App\Modules\User\Models\ServiceBookingStaff $staff)
+    {
+        $config = $this->bookingFor($link);
+        $this->assertOwns($config, $staff);
+        $staff->delete();
+
+        return response()->json(['data' => ['deleted' => true]]);
+    }
+
+    public function reorderStaff(Request $request, Link $link)
+    {
+        $config = $this->bookingFor($link);
+        $ids = $request->validate(['ids' => 'required|array', 'ids.*' => 'integer'])['ids'];
+
+        foreach (array_values($ids) as $i => $id) {
+            $config->staff()->where('id', (int) $id)->update(['sort_order' => $i + 1]);
+        }
+
+        return response()->json(['data' => ['reordered' => true]]);
+    }
+
+    /** Restrict a staff member to a subset of services (empty = all). */
+    protected function syncStaffServices(ServiceBooking $config, \App\Modules\User\Models\ServiceBookingStaff $staff, array $data): void
+    {
+        if (!array_key_exists('service_ids', $data)) {
+            return;
+        }
+        $valid = $config->services()->whereIn('id', array_map('intval', $data['service_ids'] ?? []))
+            ->pluck('id')->all();
+        $staff->services()->sync($valid);
+    }
+
+    /** Ensure a linked calendar account belongs to the page owner. */
+    protected function validateStaffCalendarAccount(ServiceBooking $config, array $data)
+    {
+        $accountId = $data['calendar_account_id'] ?? null;
+        if ($accountId === null) {
+            return null;
+        }
+        $owns = \App\Modules\User\Models\CalendarAccount::where('id', (int) $accountId)
+            ->where('user_id', $config->user_id)->exists();
+
+        return $owns ? null : response()->json(['error' => [
+            'message' => 'That calendar account was not found.',
+            'code'    => 'invalid_calendar_account',
+        ]], 422);
+    }
+
     // ── Bookings dashboard ───────────────────────────────────────
     public function bookings(Request $request, Link $link)
     {
         $config = $this->bookingFor($link);
 
-        $bookings = ServiceBookingRequest::with('items')
+        $bookings = ServiceBookingRequest::with(['items', 'staff'])
             ->where('service_booking_id', $config->id)
             ->latest()
             ->limit(100)
@@ -413,7 +684,7 @@ class ServiceBookingController extends Controller
     {
         $config = $this->bookingFor($link);
 
-        $query = ServiceBookingRequest::with('items')->where('service_booking_id', $config->id);
+        $query = ServiceBookingRequest::with(['items', 'staff'])->where('service_booking_id', $config->id);
 
         if ($since = $request->query('since')) {
             try {

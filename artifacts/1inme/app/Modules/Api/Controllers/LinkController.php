@@ -86,7 +86,7 @@ class LinkController extends Controller
 
         $aliasLimits = $user->getAliasLengthLimits();
         $validated = $request->validate([
-            'destination' => ['required', 'string', 'max:2048'],
+            'destination' => ['required', 'string', 'max:20000'],
             // Optional branded host — same allow-list as the full create flow
             // (own verified + plan-entitled global domains), and the alias
             // uniqueness check is scoped to the chosen domain namespace.
@@ -115,33 +115,39 @@ class LinkController extends Controller
         }
 
         $normalized = UserLinkController::normalizeQuickDestination($validated['destination']);
-        if ($normalized === null) {
-            return $this->fail(
-                "That doesn't look like something we can shorten. Copy a web URL, email address or phone number and try again.",
-                422,
-                'not_shortenable'
-            );
-        }
-
-        [$longUrl, $kind] = $normalized;
 
         $alias = trim((string) ($validated['alias'] ?? ''));
         if ($alias === '') {
             $alias = Link::generateAlias();
         }
 
-        $link = new Link([
-            'type'      => 'url',
-            'long_url'  => $longUrl,
-            'alias'     => $alias,
-            'domain_id' => !empty($validated['domain_id']) ? (int) $validated['domain_id'] : null,
-            'user_id'   => $user->id,
-            'title'    => match ($kind) {
-                'email' => 'Email ' . preg_replace('/^mailto:/', '', $longUrl),
-                'phone' => 'Call ' . preg_replace('/^tel:/', '', $longUrl),
-                default => null,
-            },
-        ]);
+        if ($normalized === null) {
+            // Plain text (not a URL/email/phone) — mirror the web endpoint:
+            // save it as a `text`-type link whose public page renders the
+            // full text with a copy button.
+            $longUrl = null;
+            $kind = 'text';
+            $link = new Link(UserLinkController::quickTextAttributes($validated['destination']) + [
+                'alias'     => $alias,
+                'domain_id' => !empty($validated['domain_id']) ? (int) $validated['domain_id'] : null,
+                'user_id'   => $user->id,
+            ]);
+        } else {
+            [$longUrl, $kind] = $normalized;
+
+            $link = new Link([
+                'type'      => 'url',
+                'long_url'  => $longUrl,
+                'alias'     => $alias,
+                'domain_id' => !empty($validated['domain_id']) ? (int) $validated['domain_id'] : null,
+                'user_id'   => $user->id,
+                'title'    => match ($kind) {
+                    'email' => 'Email ' . preg_replace('/^mailto:/', '', $longUrl),
+                    'phone' => 'Call ' . preg_replace('/^tel:/', '', $longUrl),
+                    default => null,
+                },
+            ]);
+        }
 
         // Tag the active workspace (the Sanctum path never runs
         // SetActiveWorkspace, so without this the link lands with
@@ -298,7 +304,7 @@ class LinkController extends Controller
         // land on the same floor as the web form and live checker.
         $aliasLimits = $request->user()->getAliasLengthLimits();
         $data = $request->validate([
-            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'ics', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page', 'brand_kit'])],
+            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'ics', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page', 'brand_kit', 'text', 'restaurant_menu', 'store_menu', 'service_booking', 'calendar', 'reviews', 'updates'])],
             // The admin banned/reserved-names list is enforced on the mobile
             // create submit too (privileged `user.banned_names.bypass` holders
             // skip it), mirroring the web chooseType() rule and the live
@@ -354,6 +360,15 @@ class LinkController extends Controller
                     'settings.event.end'   => ['nullable', 'date'],
                 ]);
             }
+        }
+
+        // Text Page links carry their pasted body under settings.text.content
+        // (same storage shape as the web create form and quick-shorten sheet),
+        // so require it here and cap it at the shared 20k-char limit.
+        if ($data['type'] === 'text') {
+            $request->validate([
+                'settings.text.content' => ['required', 'string', 'max:20000'],
+            ]);
         }
 
         // File links need a companion FileLink row for the public download
@@ -433,6 +448,16 @@ class LinkController extends Controller
             'resume'         => ['module' => 'module_resume',         'cap' => 'max_resume',         'label' => 'Resume / Portfolio'],
             'paid_page'      => ['module' => 'module_paid_page',      'cap' => 'max_paid_page',      'label' => 'Paid Page'],
             'brand_kit'      => ['module' => 'module_brand_kit',      'cap' => 'max_brand_kit_pages','label' => 'Brand / Press Kit'],
+            'text'           => ['module' => 'module_text',           'cap' => 'max_text_pages',     'label' => 'Text Page'],
+            // Editor-backed page types creatable from the desktop browser's
+            // "+ Create" popover. Module/cap keys mirror the web
+            // enforceLinkTypeQuota() map exactly so both surfaces gate alike.
+            'restaurant_menu' => ['module' => 'module_restaurant_menu', 'cap' => 'max_restaurant_menu', 'label' => 'Restaurant Menu'],
+            'store_menu'      => ['module' => 'module_store_menu',      'cap' => 'max_store_menu',      'label' => 'Store Menu'],
+            'service_booking' => ['module' => 'module_service_booking', 'cap' => 'max_service_booking', 'label' => 'Service Booking'],
+            'calendar'        => ['module' => 'module_calendar',        'cap' => 'max_calendars',       'label' => 'Calendar'],
+            'reviews'         => ['module' => 'module_reviews',         'cap' => 'max_reviews',         'label' => 'Reviews'],
+            'updates'         => ['module' => 'module_updates',         'cap' => 'max_updates_pages',   'label' => 'Updates'],
         ];
         if (isset($typeQuotaMap[$attrs['type']])) {
             $qcfg  = $typeQuotaMap[$attrs['type']];
@@ -510,6 +535,88 @@ class LinkController extends Controller
             $link->save();
         }
 
+        // Restaurant Menu / Store Menu / Service Booking links seed their
+        // companion builder rows with the same defaults the web editors use
+        // on first open (RestaurantMenuController::menuFor /
+        // StoreMenuController::menuFor / ServiceBookingController::bookingFor),
+        // so the public page renders correctly the moment it is created.
+        if ($link->type === 'restaurant_menu') {
+            \App\Modules\User\Models\RestaurantMenu::firstOrCreate(
+                ['link_id' => $link->id],
+                ['user_id' => $link->user_id, 'mode' => \App\Modules\User\Models\RestaurantMenu::MODE_DISPLAY, 'currency' => 'USD']
+            );
+        }
+        if ($link->type === 'store_menu') {
+            \App\Modules\User\Models\StoreMenu::firstOrCreate(
+                ['link_id' => $link->id],
+                ['user_id' => $link->user_id, 'mode' => \App\Modules\User\Models\StoreMenu::MODE_DISPLAY, 'currency' => 'USD']
+            );
+        }
+        if ($link->type === 'service_booking') {
+            \App\Modules\User\Models\ServiceBooking::firstOrCreate(
+                ['link_id' => $link->id],
+                [
+                    'user_id'             => $link->user_id,
+                    'mode'                => \App\Modules\User\Models\ServiceBooking::MODE_BOOKING,
+                    'currency'            => 'USD',
+                    'slot_length_minutes' => 30,
+                    'lead_time_minutes'   => 120,
+                    'max_days_ahead'      => 30,
+                    'timezone'            => \App\Support\PlatformTimezone::forUser($request->user()),
+                ]
+            );
+        }
+
+        // Calendar links bridge 1:1 to a followable Calendar collection —
+        // mirrors the web LinkController::store() seeding (title/slug/tz/
+        // accent, public by default) so the page is followable immediately.
+        if ($link->type === 'calendar') {
+            $calSettings = (array) ($settingsPayload['calendar'] ?? []);
+            $tz = (string) ($calSettings['timezone'] ?? '');
+            if ($tz === '' || !in_array($tz, timezone_identifiers_list(), true)) {
+                $tz = \App\Support\PlatformTimezone::forUser($request->user());
+            }
+            $accent = (string) ($calSettings['accent_color'] ?? '#3d6bff');
+            if (!preg_match('/^#[0-9a-fA-F]{6}$/', $accent)) {
+                $accent = '#3d6bff';
+            }
+            $calendar = \App\Modules\User\Models\Calendar::create([
+                'link_id'      => $link->id,
+                'user_id'      => $link->user_id,
+                'title'        => $link->title ?: 'My Calendar',
+                'slug'         => $link->alias,
+                'description'  => (string) ($calSettings['description'] ?? ''),
+                'timezone'     => $tz,
+                'accent_color' => $accent,
+                'is_public'    => true,
+            ]);
+            $link->calendar_id = $calendar->id;
+            $link->visibility = 'public';
+            $link->save();
+        }
+
+        // Reviews / Updates pages store their configuration in link settings.
+        // Seed the same defaults the web editors start from so the public
+        // page is presentable before the owner ever opens the editor.
+        if ($link->type === 'reviews') {
+            $settings = (array) ($link->settings ?? []);
+            $settings['reviews'] = array_replace(
+                \App\Modules\User\Controllers\ReviewsController::DEFAULT_SETTINGS,
+                (array) ($settings['reviews'] ?? [])
+            );
+            $link->settings = $settings;
+            $link->save();
+        }
+        if ($link->type === 'updates') {
+            $settings = (array) ($link->settings ?? []);
+            $settings['updates'] = array_replace(
+                \App\Modules\User\Controllers\UpdatesController::DEFAULT_SETTINGS,
+                (array) ($settings['updates'] ?? [])
+            );
+            $link->settings = $settings;
+            $link->save();
+        }
+
         // Companion FileLink row for file links so the public short URL
         // actually serves the vault file (mirrors the web
         // FileLinkController::store and WhatsAppAgentTools::createFileLink).
@@ -561,6 +668,16 @@ class LinkController extends Controller
             'auto_pixel' => ['sometimes', 'boolean'],
             'domain_id'  => ['sometimes', 'nullable', $this->availableDomainRule($request->user())],
         ]);
+
+        // Text Page body parity with create + web edit: the PATCH path must
+        // enforce the same shared 20k-char cap on settings.text.content, or a
+        // third-party API client could store an arbitrarily large body on an
+        // existing text link that the create/web forms would have rejected.
+        if ($link->type === 'text' && $request->has('settings.text.content')) {
+            $request->validate([
+                'settings.text.content' => ['nullable', 'string', 'max:20000'],
+            ]);
+        }
 
         if (array_key_exists('settings', $data)) {
             // Deep-merge supplied keys into the existing settings JSON so
@@ -876,6 +993,26 @@ class LinkController extends Controller
             ->orderByDesc('clicks')
             ->get()
             ->all();
+
+        // Text-page download / raw-fetch counts — parity with the web link
+        // analytics page. `serveTextContent()` records these interactions as
+        // link_clicks rows tagged source `txt_download` (the Download .txt
+        // button) and `txt_raw` (the /raw plain-text endpoint). Uses the
+        // LinkClick model relation so the default "no bots" global scope
+        // applies — same exclusions as the web numbers.
+        $payload['link_type'] = $link->type;
+        $payload['txt_downloads'] = 0;
+        $payload['txt_raw'] = 0;
+        if ($link->type === 'text') {
+            $txtCounts = $link->clicks()
+                ->whereBetween('clicked_at', [$from, $to])
+                ->whereIn('source', ['txt_download', 'txt_raw'])
+                ->selectRaw('source, COUNT(*) as count')
+                ->groupBy('source')
+                ->pluck('count', 'source');
+            $payload['txt_downloads'] = (int) ($txtCounts['txt_download'] ?? 0);
+            $payload['txt_raw'] = (int) ($txtCounts['txt_raw'] ?? 0);
+        }
 
         // Bot + throttled traffic the global LinkClick scope hides from
         // the human-only stats above. We surface it here so the mobile

@@ -224,7 +224,7 @@ class LinkController extends Controller
         // (e.g. from a "Perfect pairings" cross-promo card) takes priority
         // over the remembered session type for a one-off deep link, but is
         // never persisted to session itself.
-        $allowedTypes = ['url', 'biolink', 'conversational', 'slides', 'ai_chat', 'restaurant_menu', 'store_menu', 'service_booking', 'file', 'ics', 'vcf'];
+        $allowedTypes = ['url', 'biolink', 'conversational', 'slides', 'ai_chat', 'restaurant_menu', 'store_menu', 'service_booking', 'file', 'ics', 'vcf', 'text'];
         $queryType = $request->query('type');
         $lastType = in_array($queryType, $allowedTypes, true)
             ? $queryType
@@ -272,7 +272,7 @@ class LinkController extends Controller
         $limits = workspace_owner()->getAliasLengthLimits();
 
         $validated = $request->validate([
-            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,file,ics,vcf,reviews,resume,paid_page,calendar,brand_kit,updates',
+            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,file,ics,vcf,text,reviews,resume,paid_page,calendar,brand_kit,updates',
             'alias' => [
                 'nullable', 'string', new \App\Modules\User\Rules\AliasFormat(),
                 'min:' . $limits['min'],
@@ -316,6 +316,7 @@ class LinkController extends Controller
             'brand_kit'      => redirect()->route('user.links.brand-kit.create', $params),
             'calendar'       => redirect()->route('user.calendars.create', $params),
             'updates'        => redirect()->route('user.links.updates.create', $params),
+            'text'           => redirect()->route('user.links.text.create', $params),
         };
     }
 
@@ -356,7 +357,7 @@ class LinkController extends Controller
         $owner = workspace_owner();
 
         $validated = $request->validate([
-            'destination' => 'required|string|max:2048',
+            'destination' => 'required|string|max:20000',
             'domain_id' => ['nullable', $this->availableDomainRule($request->user())],
             'alias' => array_merge(
                 ['nullable', 'string', new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\User\Rules\UniqueAliasCi(null, $request->input('domain_id'))],
@@ -367,18 +368,33 @@ class LinkController extends Controller
         ]);
 
         $normalized = self::normalizeQuickDestination($validated['destination']);
-        if ($normalized === null) {
-            return response()->json([
-                'error' => "That doesn't look like something we can shorten. Paste a web URL, email address or phone number — or use the full link creator.",
-            ], 422);
-        }
-
-        [$longUrl, $kind] = $normalized;
 
         $alias = trim((string) ($validated['alias'] ?? ''));
         if ($alias === '') {
             $alias = Link::generateAlias();
         }
+
+        if ($normalized === null) {
+            // Not a URL / email / phone — treat it as a shareable text
+            // snippet instead of rejecting: a `text`-type link whose public
+            // page shows the full text with a copy button.
+            $link = Link::create(self::quickTextAttributes($validated['destination']) + [
+                'alias'     => $alias,
+                'domain_id' => !empty($validated['domain_id']) ? (int) $validated['domain_id'] : null,
+                'user_id'   => workspace_owner_id(),
+            ]);
+
+            return response()->json([
+                'id'        => $link->id,
+                'short_url' => $link->getShortUrl(),
+                'long_url'  => null,
+                'kind'      => 'text',
+                'edit_url'  => route('user.links.edit', $link),
+                'open_url'  => $link->getShortUrl(),
+            ]);
+        }
+
+        [$longUrl, $kind] = $normalized;
 
         $link = Link::create([
             'type'      => 'url',
@@ -429,6 +445,25 @@ class LinkController extends Controller
     }
 
     /**
+     * Attribute payload for a quick-created `text`-type link — plain text
+     * that isn't a URL/email/phone is saved as a shareable text page (the
+     * public /{alias} route renders the full text with a copy button).
+     * Shared by the web and API quick-shorten endpoints.
+     */
+    public static function quickTextAttributes(string $raw): array
+    {
+        $raw = trim($raw);
+        $firstLine = trim((string) strtok($raw, "\n"));
+
+        return [
+            'type'     => 'text',
+            'long_url' => null,
+            'settings' => ['text' => ['content' => $raw]],
+            'title'    => $firstLine !== '' ? \Illuminate\Support\Str::limit($firstLine, 60) : 'Text snippet',
+        ];
+    }
+
+    /**
      * Turn raw clipboard content into a redirectable long_url. Returns
      * [$longUrl, $kind] or null when the content isn't shortenable.
      * Mirrors the client-side detection in the header popover so the
@@ -437,7 +472,18 @@ class LinkController extends Controller
     public static function normalizeQuickDestination(string $raw): ?array
     {
         $raw = trim($raw);
-        if ($raw === '' || mb_strlen($raw) > 2048) {
+        if ($raw === '') {
+            return null;
+        }
+        if (mb_strlen($raw) > 2048) {
+            // A URL-shaped paste that's just too long should fail loudly
+            // rather than silently becoming a text page.
+            if (preg_match('~^(https?|mailto|tel):~i', $raw)
+                || (!preg_match('/\s/', $raw) && preg_match('/^[A-Za-z0-9][A-Za-z0-9.-]*\.[A-Za-z]{2,}[\/?#]/', $raw))) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'destination' => ['That link is too long to shorten (2,048 characters max).'],
+                ]);
+            }
             return null;
         }
 
@@ -537,6 +583,26 @@ class LinkController extends Controller
         $domains  = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
 
         return view('user.links.create-updates', [
+            'projects'       => $projects,
+            'domains'        => $domains,
+            'defaultDomainId'=> $this->resolveDefaultDomainId($request, $domains),
+            'prefillAlias'   => (string) $request->query('alias', ''),
+            'aliasLimits'    => workspace_owner()->getAliasLengthLimits(),
+            'domainHost'     => \App\Modules\Common\Support\PlatformHosts::primary(),
+        ]);
+    }
+
+    /**
+     * Step 2 for the Text Page — paste/type the text + name + alias +
+     * project. store() persists the content into settings['text']['content']
+     * and the public /{alias} route renders it with a copy button.
+     */
+    public function createText(Request $request)
+    {
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
+        $domains  = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
+
+        return view('user.links.create-text', [
             'projects'       => $projects,
             'domains'        => $domains,
             'defaultDomainId'=> $this->resolveDefaultDomainId($request, $domains),
@@ -658,6 +724,7 @@ class LinkController extends Controller
             'calendar'        => ['module' => 'module_calendar',        'cap' => 'max_calendars',       'label' => 'Calendar'],
             'brand_kit'       => ['module' => 'module_brand_kit',       'cap' => 'max_brand_kit_pages', 'label' => 'Brand / Press Kit'],
             'updates'         => ['module' => 'module_updates',         'cap' => 'max_updates_pages',   'label' => 'Updates'],
+            'text'            => ['module' => 'module_text',            'cap' => 'max_text_pages',      'label' => 'Text Page'],
         ];
         $cfg = $map[$type] ?? null;
         if (!$cfg) {
@@ -684,7 +751,8 @@ class LinkController extends Controller
         $userId = workspace_owner_id();
 
         $validated = $request->validate([
-            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,file,ics,vcf,reviews,resume,paid_page,calendar,brand_kit,updates',
+            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,file,ics,vcf,text,reviews,resume,paid_page,calendar,brand_kit,updates',
+            'text_content' => 'required_if:type,text|nullable|string|max:20000',
             'paid_page_template' => 'nullable|string|in:' . implode(',', \App\Modules\User\Support\PaidPageTemplates::ids()),
             'brand_kit_id' => "nullable|integer|exists:brand_kits,id,user_id,{$userId}",
             'long_url' => 'required_if:type,url|nullable|url|max:2048',
@@ -806,6 +874,13 @@ class LinkController extends Controller
                 $settings['open_in_app'] = $deepLinkAllowed;
             }
         }
+        // Text Page — persist the pasted text so the public page can render
+        // it (selectable, with a copy button). Content lives in
+        // settings['text']['content'], same shape the quick-shorten path uses.
+        if (($validated['type'] ?? null) === 'text') {
+            $settings['text'] = ['content' => (string) ($validated['text_content'] ?? '')];
+        }
+        unset($validated['text_content']);
         // Smart redirect rules — supported on every link type. For non-url
         // types a matched rule overrides the normal landing/file behavior
         // with the rule's destination URL (see RedirectController::handle).
@@ -993,6 +1068,10 @@ class LinkController extends Controller
             return redirect()->route('user.links.updates.editor', $link)
                 ->with('success', 'Updates page created — post your first entry to get started.');
         }
+        if ($link->type === 'text') {
+            return redirect()->route('user.links.edit', $link)
+                ->with('success', 'Text Page created — share the link; visitors can read and copy your text.');
+        }
 
         // "Build with AI" start mode — skip the picker and send the user to
         // the AI page builder intake, where they describe the page and the
@@ -1160,6 +1239,37 @@ class LinkController extends Controller
                 'votes'    => (int) ($pollVoteCountsByBlock[$blk->id] ?? 0),
             ];
         })->sortByDesc('votes')->values();
+
+        // Text-page download / raw-fetch counts. `serveTextContent()` records
+        // these interactions as link_clicks rows tagged source `txt_download`
+        // (the Download .txt button) and `txt_raw` (the /raw plain-text
+        // endpoint), so creators of text-type links can see how many visitors
+        // grabbed the content vs just viewed the page. Inherits the model's
+        // global "no bots" scope (throttled hits are flagged is_bot too), so
+        // these numbers respect the same exclusions as every other stat here.
+        // Mirrors the dimension filters of $clicksQuery EXCEPT the
+        // traffic-source filter — these rows carry their own source tags, so
+        // applying a mobile_app/web source filter would always zero them out.
+        $txtDownloadsInRange = 0;
+        $txtRawInRange = 0;
+        if ($link->type === 'text') {
+            $txtInteractionCounts = $link->clicks()
+                ->whereBetween('clicked_at', [$startDate, $endDate])
+                ->whereIn('source', ['txt_download', 'txt_raw'])
+                ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
+                ->when($countryFilter, fn ($q) => $q->where('country_code', $countryFilter))
+                ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
+                ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
+                ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
+                ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
+                ->when($channelFilter, fn ($q) => $q->where('channel', $channelFilter))
+                ->when($baseLanguageFilter, $applyBaseLanguage)
+                ->selectRaw('source, COUNT(*) as count')
+                ->groupBy('source')
+                ->pluck('count', 'source');
+            $txtDownloadsInRange = (int) ($txtInteractionCounts['txt_download'] ?? 0);
+            $txtRawInRange = (int) ($txtInteractionCounts['txt_raw'] ?? 0);
+        }
 
         // Count of bot/scraper clicks that the global scope filtered out of the
         // numbers above. Surfaced on the analytics page as a small "X bot hits
@@ -1664,6 +1774,7 @@ class LinkController extends Controller
             'recentClicks', 'totalInRange', 'uniqueInRange',
             'blockClicksInRange', 'pageVisitsInRange', 'botClicksInRange', 'botFamilyBreakdown',
             'pollVotesInRange', 'pollBreakdown', 'hasPollBlocks',
+            'txtDownloadsInRange', 'txtRawInRange',
             'period', 'groupBy', 'startDate', 'endDate',
             'totalSessions', 'avgSessionSeconds', 'totalEngagedSeconds',
             'bounceRate', 'blockEngagement', 'blockClickMap', 'blockMeta',
@@ -2886,7 +2997,20 @@ class LinkController extends Controller
             'smart_rules_json' => 'nullable|string|max:20000',
             'visibility' => 'nullable|in:public,registered,followers,subscribers',
             'resume_id' => "nullable|exists:resumes,id,user_id,{$userId}",
+            'text_content' => 'nullable|string|max:20000',
         ] + self::protectionSchedulingRules());
+
+        // Text-page content lives in settings['text']['content'] — only
+        // meaningful for `text`-type links; strip the field for every other
+        // type so it can never be stamped onto the wrong link.
+        if ($link->type === 'text' && $request->has('text_content')) {
+            $settings = $link->settings ?? [];
+            $settings['text'] = array_merge($settings['text'] ?? [], [
+                'content' => trim((string) $validated['text_content']),
+            ]);
+            $link->settings = $settings;
+        }
+        unset($validated['text_content']);
 
         // Resume version pick. Only meaningful for resume links: the owner
         // chooses which named résumé version the short link resolves to.

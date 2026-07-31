@@ -1,4 +1,4 @@
-@extends('user.layout.app')
+@extends('user.layouts.app')
 
 @section('title', 'Create Updates Page')
 

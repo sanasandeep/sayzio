@@ -60,6 +60,8 @@ export default function CreateLinkScreen() {
   const [fileName, setFileName] = useState("");
   // Paid Page
   const [paidTemplate, setPaidTemplate] = useState<string>("aurora");
+  // Text Page
+  const [textContent, setTextContent] = useState("");
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -183,6 +185,11 @@ export default function CreateLinkScreen() {
         settings.rsvp_disabled = !evRsvpsOn;
       } else if (meta.kind === "paid_page") {
         settings.paid_page = { template: paidTemplate };
+      } else if (meta.kind === "text") {
+        // Same storage shape as the web create form and quick-shorten
+        // sheet: the pasted body lives under settings.text.content.
+        if (!textContent.trim()) throw new Error("Please paste or type some text");
+        settings.text = { content: textContent };
       }
 
       payload.settings = settings;
@@ -417,6 +424,18 @@ export default function CreateLinkScreen() {
               />
             </View>
           </>
+        ) : null}
+
+        {meta.kind === "text" ? (
+          <TextField
+            label="Your text"
+            value={textContent}
+            onChangeText={setTextContent}
+            placeholder="Paste or type the text you want to share…"
+            multiline
+            numberOfLines={8}
+            trailing={<DictationMic onText={dictateInto(setTextContent)} />}
+          />
         ) : null}
 
         {meta.kind === "paid_page" ? (

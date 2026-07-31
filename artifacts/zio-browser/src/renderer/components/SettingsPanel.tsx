@@ -10,6 +10,17 @@ import {
   PINNABLE_TOOLS, PINNABLE_TOOL_INFO, MAX_PINNED_TOOLS,
 } from '../../shared/toolbar-pins';
 import { usePinnedTools } from '../hooks/use-pinned-tools';
+import {
+  VK_PREF_KEYS,
+  VK_DEFAULT_SETTINGS,
+  VK_SETTINGS_CHANGED_EVENT,
+  parseShortcuts,
+  serializeShortcuts,
+  normalizeShortcutTrigger,
+  parseTypingHistory,
+  parseBigramHistory,
+  type VkShortcut,
+} from '../../shared/virtual-keyboard';
 
 interface Props {
   onClose: () => void;
@@ -25,6 +36,7 @@ type SectionId =
   | 'sessions'
   | 'passwords'
   | 'extensions'
+  | 'vkeyboard'
   | 'shortcuts';
 
 type ThemeMode = 'system' | 'dark' | 'light';
@@ -60,6 +72,7 @@ const SECTIONS: Array<{ id: SectionId; icon: string; label: string; keywords: st
   { id: 'sessions', icon: '🗂️', label: 'Sessions', keywords: 'saved sessions tabs restore named workspace' },
   { id: 'passwords', icon: '🔑', label: 'Passwords', keywords: 'saved passwords credentials sign in autofill' },
   { id: 'extensions', icon: '🧩', label: 'Extensions', keywords: 'chrome extensions unpacked addons plugins' },
+  { id: 'vkeyboard', icon: '⌨️', label: 'Virtual Keyboard', keywords: 'virtual keyboard on-screen onscreen touch typing suggestions word predictions text shortcuts expansion snippets dwell hover learn history' },
   { id: 'shortcuts', icon: '⌨️', label: 'Shortcuts', keywords: 'keyboard shortcuts hotkeys command palette keys tabs windows navigation view modes bookmarks privacy developer reader mode zoom print clear browsing data' },
 ];
 
@@ -195,6 +208,7 @@ export function SettingsPanel({ onClose }: Props) {
           {section === 'sessions' && <SessionsSection />}
           {section === 'passwords' && <PasswordsSection />}
           {section === 'extensions' && <ExtensionsSection />}
+          {section === 'vkeyboard' && <VirtualKeyboardSection />}
           {section === 'shortcuts' && <ShortcutsSection />}
         </div>
       </div>
@@ -1520,6 +1534,271 @@ function SettingRow({ title, description, children }: {
         <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2, lineHeight: 1.5 }}>{description}</div>
       </div>
       <div style={{ flexShrink: 0 }}>{children}</div>
+    </div>
+  );
+}
+
+// ── Virtual Keyboard section ─────────────────────────────────────────────────
+
+function VirtualKeyboardSection() {
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [autoShow, setAutoShow] = useState(VK_DEFAULT_SETTINGS.autoShow);
+  const [suggestions, setSuggestions] = useState(VK_DEFAULT_SETTINGS.suggestions);
+  const [learnHistory, setLearnHistory] = useState(VK_DEFAULT_SETTINGS.learnHistory);
+  const [selectionMode, setSelectionMode] = useState<'click' | 'dwell'>(VK_DEFAULT_SETTINGS.selectionMode);
+  const [expandOnSpace, setExpandOnSpace] = useState(VK_DEFAULT_SETTINGS.expandOnSpace);
+  const [shortcuts, setShortcuts] = useState<VkShortcut[]>([]);
+  const [newTrigger, setNewTrigger] = useState('');
+  const [newExpansion, setNewExpansion] = useState('');
+  const [historyCleared, setHistoryCleared] = useState(false);
+  const [learnedCounts, setLearnedCounts] = useState<{ words: number; pairs: number } | null>(null);
+
+  const loadLearnedCounts = useCallback(async () => {
+    try {
+      const [rawHistory, rawBigrams] = await Promise.all([
+        window.zio.prefs.get(VK_PREF_KEYS.TYPING_HISTORY),
+        window.zio.prefs.get(VK_PREF_KEYS.BIGRAMS),
+      ]) as (string | null)[];
+      setLearnedCounts({
+        words: Object.keys(parseTypingHistory(rawHistory)).length,
+        pairs: Object.keys(parseBigramHistory(rawBigrams)).length,
+      });
+    } catch { /* non-fatal */ }
+  }, []);
+
+  useEffect(() => { void loadLearnedCounts(); }, [loadLearnedCounts]);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const [en, as, sg, lh, sm, es, sc] = await Promise.all([
+          window.zio.prefs.get(VK_PREF_KEYS.ENABLED),
+          window.zio.prefs.get(VK_PREF_KEYS.AUTO_SHOW),
+          window.zio.prefs.get(VK_PREF_KEYS.SUGGESTIONS),
+          window.zio.prefs.get(VK_PREF_KEYS.LEARN_HISTORY),
+          window.zio.prefs.get(VK_PREF_KEYS.SELECTION_MODE),
+          window.zio.prefs.get(VK_PREF_KEYS.EXPAND_ON_SPACE),
+          window.zio.prefs.get(VK_PREF_KEYS.SHORTCUTS),
+        ]) as (string | null)[];
+        setEnabled(en === '1');
+        setAutoShow(as === null ? VK_DEFAULT_SETTINGS.autoShow : as === '1');
+        setSuggestions(sg === null ? VK_DEFAULT_SETTINGS.suggestions : sg === '1');
+        setLearnHistory(lh === null ? VK_DEFAULT_SETTINGS.learnHistory : lh === '1');
+        setSelectionMode(sm === 'dwell' ? 'dwell' : 'click');
+        setExpandOnSpace(es === null ? VK_DEFAULT_SETTINGS.expandOnSpace : es === '1');
+        setShortcuts(parseShortcuts(sc));
+      } catch {
+        setEnabled(false);
+      }
+    })();
+  }, []);
+
+  // Save one preference + let the App/keyboard reload live.
+  const save = useCallback(async (key: string, value: string) => {
+    try {
+      await window.zio.prefs.set(key, value);
+      window.dispatchEvent(new Event(VK_SETTINGS_CHANGED_EVENT));
+    } catch { /* non-fatal */ }
+  }, []);
+
+  const flip = useCallback((key: string, current: boolean, setter: (v: boolean) => void) => {
+    const next = !current;
+    setter(next);
+    void save(key, next ? '1' : '0');
+  }, [save]);
+
+  const saveShortcuts = useCallback((next: VkShortcut[]) => {
+    setShortcuts(next);
+    void save(VK_PREF_KEYS.SHORTCUTS, serializeShortcuts(next));
+  }, [save]);
+
+  const addShortcut = useCallback(() => {
+    const trigger = normalizeShortcutTrigger(newTrigger);
+    const expansion = newExpansion;
+    if (!trigger || !expansion.trim()) return;
+    const next = shortcuts.filter(s => s.trigger !== trigger);
+    next.push({ trigger, expansion });
+    saveShortcuts(next);
+    setNewTrigger('');
+    setNewExpansion('');
+  }, [newTrigger, newExpansion, shortcuts, saveShortcuts]);
+
+  const clearHistory = useCallback(async () => {
+    try {
+      await window.zio.vk.clearHistory();
+      setLearnedCounts({ words: 0, pairs: 0 });
+      void loadLearnedCounts();
+      setHistoryCleared(true);
+      setTimeout(() => setHistoryCleared(false), 2500);
+    } catch { /* non-fatal */ }
+  }, [loadLearnedCounts]);
+
+  const inputStyle: React.CSSProperties = {
+    fontSize: 12,
+    padding: '6px 10px',
+    borderRadius: 8,
+    background: 'var(--color-bg)',
+    color: 'var(--color-text)',
+    border: '1px solid var(--color-border)',
+    width: '100%',
+    boxSizing: 'border-box',
+  };
+
+  return (
+    <div style={sectionBodyStyle}>
+      <SettingRow
+        title="Enable virtual keyboard"
+        description="Shows a ⌨️ button in the toolbar and lets you type with an on-screen keyboard."
+      >
+        <Toggle
+          checked={enabled === true}
+          disabled={enabled === null}
+          onChange={() => { if (enabled !== null) flip(VK_PREF_KEYS.ENABLED, enabled, setEnabled); }}
+        />
+      </SettingRow>
+
+      <SettingRow
+        title="Open automatically"
+        description="Pop the keyboard up when you tap a text field on a page."
+      >
+        <Toggle checked={autoShow} disabled={enabled !== true} onChange={() => flip(VK_PREF_KEYS.AUTO_SHOW, autoShow, setAutoShow)} />
+      </SettingRow>
+
+      <SettingRow
+        title="Word suggestions"
+        description="Show up to three word suggestions in a floating strip as you type. Never shown in password fields."
+      >
+        <Toggle checked={suggestions} disabled={enabled !== true} onChange={() => flip(VK_PREF_KEYS.SUGGESTIONS, suggestions, setSuggestions)} />
+      </SettingRow>
+
+      <SettingRow
+        title="Learn from my typing"
+        description="Remember the words you type (never in password fields or private windows) so suggestions get smarter."
+      >
+        <Toggle checked={learnHistory} disabled={enabled !== true} onChange={() => flip(VK_PREF_KEYS.LEARN_HISTORY, learnHistory, setLearnHistory)} />
+      </SettingRow>
+
+      <SettingRow
+        title="Clear learned words"
+        description={`Forget everything the keyboard has learned from your typing, including next-word predictions.${
+          learnedCounts === null
+            ? ''
+            : ` Currently stored: ${learnedCounts.words} ${learnedCounts.words === 1 ? 'word' : 'words'}, ${learnedCounts.pairs} ${learnedCounts.pairs === 1 ? 'word pair' : 'word pairs'}.`
+        }`}
+      >
+        <button
+          onClick={() => void clearHistory()}
+          style={{
+            fontSize: 12,
+            padding: '5px 12px',
+            borderRadius: 8,
+            border: '1px solid var(--color-border)',
+            background: 'var(--color-bg-elevated)',
+            color: historyCleared ? 'var(--color-primary)' : 'var(--color-text)',
+            cursor: 'pointer',
+          }}
+        >
+          {historyCleared ? 'Cleared ✓' : 'Clear history'}
+        </button>
+      </SettingRow>
+
+      <SettingRow
+        title="Suggestion selection"
+        description="Choose whether tapping a suggestion inserts it, or hovering it briefly (dwell) does."
+      >
+        <select
+          value={selectionMode}
+          disabled={enabled !== true}
+          onChange={(e) => {
+            const v = e.target.value === 'dwell' ? 'dwell' : 'click';
+            setSelectionMode(v);
+            void save(VK_PREF_KEYS.SELECTION_MODE, v);
+          }}
+          style={selectStyle}
+        >
+          <option value="click">Click to select</option>
+          <option value="dwell">Hover to select (dwell)</option>
+        </select>
+      </SettingRow>
+
+      <SettingRow
+        title="Expand shortcuts on space"
+        description="Typing a shortcut trigger followed by space replaces it with the full text automatically."
+      >
+        <Toggle checked={expandOnSpace} disabled={enabled !== true} onChange={() => flip(VK_PREF_KEYS.EXPAND_ON_SPACE, expandOnSpace, setExpandOnSpace)} />
+      </SettingRow>
+
+      {/* ── Text shortcuts manager ─────────────────────────────────────────── */}
+      <div style={cardStyle}>
+        <div style={cardTitleStyle}>Text shortcuts</div>
+        <div style={{ ...mutedTextStyle, marginBottom: 10 }}>
+          Type a short trigger word and the keyboard suggests (or auto-expands) the full text — including multi-line snippets like an address or email signature.
+        </div>
+
+        {shortcuts.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+            {shortcuts.map((s) => (
+              <div
+                key={s.trigger}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 8,
+                  padding: '6px 8px',
+                  borderRadius: 8,
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-bg)',
+                }}
+              >
+                <code style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-primary)', flexShrink: 0, paddingTop: 1 }}>{s.trigger}</code>
+                <div style={{ flex: 1, fontSize: 12, whiteSpace: 'pre-wrap', color: 'var(--color-text)', minWidth: 0, overflowWrap: 'anywhere' }}>{s.expansion}</div>
+                <button
+                  onClick={() => { setNewTrigger(s.trigger); setNewExpansion(s.expansion); }}
+                  title={`Edit shortcut "${s.trigger}"`}
+                  style={{ fontSize: 12, color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+                >
+                  ✎
+                </button>
+                <button
+                  onClick={() => saveShortcuts(shortcuts.filter(x => x.trigger !== s.trigger))}
+                  title={`Delete shortcut "${s.trigger}"`}
+                  style={{ fontSize: 12, color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <input
+            value={newTrigger}
+            onChange={(e) => setNewTrigger(e.target.value)}
+            placeholder="Trigger (e.g. addr)"
+            style={inputStyle}
+          />
+          <textarea
+            value={newExpansion}
+            onChange={(e) => setNewExpansion(e.target.value)}
+            placeholder={'Expansion text — can span\nmultiple lines'}
+            rows={3}
+            style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }}
+          />
+          <button
+            onClick={addShortcut}
+            disabled={!normalizeShortcutTrigger(newTrigger) || !newExpansion.trim()}
+            style={{
+              ...primaryBtnStyle,
+              alignSelf: 'flex-start',
+              opacity: (!normalizeShortcutTrigger(newTrigger) || !newExpansion.trim()) ? 0.5 : 1,
+              cursor: 'pointer',
+            }}
+          >
+            Add shortcut
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

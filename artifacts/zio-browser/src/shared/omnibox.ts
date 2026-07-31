@@ -162,6 +162,36 @@ export function extractSearchQuery(url: string): string | null {
   return null;
 }
 
+/** MIME types Chromium can render natively as text in a tab. */
+const VIEWABLE_TEXT_MIME_TYPES = new Set([
+  'text/plain',
+  'text/markdown',
+  'text/csv',
+  'application/json',
+  'text/json',
+  'application/ld+json',
+]);
+
+/** File extensions treated as text viewable in a tab. */
+const VIEWABLE_TEXT_EXTENSION = /\.(txt|md|markdown|json|csv|log)$/i;
+
+/**
+ * True when a download is text-based and viewable in a browser tab with
+ * Chromium's native text rendering: plain text, Markdown, JSON, CSV, or log
+ * files — matched by MIME type or file extension. Binary formats (including
+ * .doc/.docx) are excluded and keep the OS-app open behavior.
+ */
+export function isViewableTextDownload(filename: string, mimeType?: string | null): boolean {
+  if (mimeType) {
+    const base = mimeType.split(';')[0]?.trim().toLowerCase();
+    if (base && VIEWABLE_TEXT_MIME_TYPES.has(base)) return true;
+  }
+  return VIEWABLE_TEXT_EXTENSION.test(filename.trim());
+}
+
+/** @deprecated Use {@link isViewableTextDownload}. Kept for backwards compatibility. */
+export const isPlainTextDownload = isViewableTextDownload;
+
 /**
  * Normalize a URL for history deduplication — strips fragments and normalizes
  * trailing slashes.

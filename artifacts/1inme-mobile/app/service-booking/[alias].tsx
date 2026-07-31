@@ -16,10 +16,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
 import {
+  cancelGuestBooking,
+  getGuestRescheduleSlots,
   getServiceBookingPage,
   getServiceBookingSlots,
   placeServiceBooking,
   quoteServiceBooking,
+  rescheduleGuestBooking,
   type GuestBooking,
   type ServiceBookingService,
 } from "@/lib/api/service-booking";
@@ -37,6 +40,8 @@ export default function ServiceBookingScreen() {
   const [phone, setPhone] = useState("");
   const [note, setNote] = useState("");
   const [placed, setPlaced] = useState<GuestBooking | null>(null);
+  const [staffId, setStaffId] = useState<number | null>(null);
+  const [rescheduling, setRescheduling] = useState(false);
 
   const q = useQuery({
     queryKey: ["service-booking-page", alias],
@@ -53,8 +58,12 @@ export default function ServiceBookingScreen() {
   );
 
   const slotsQ = useQuery({
-    queryKey: ["service-booking-slots", alias, cartServices],
-    queryFn: () => getServiceBookingSlots(alias, { services: cartServices }),
+    queryKey: ["service-booking-slots", alias, cartServices, staffId],
+    queryFn: () =>
+      getServiceBookingSlots(alias, {
+        services: cartServices,
+        staff_id: staffId,
+      }),
     enabled: alias.length > 0 && cartServices.length > 0,
   });
 
@@ -73,12 +82,36 @@ export default function ServiceBookingScreen() {
         customer_note: note || null,
         slot_start: slotStart as string,
         services: cartServices,
+        staff_id: staffId,
       }),
     onSuccess: (booking) => {
       setPlaced(booking);
       setCart({});
       setSlotStart(null);
       setNote("");
+    },
+  });
+
+  const rescheduleSlotsQ = useQuery({
+    queryKey: ["guest-reschedule-slots", placed?.public_token],
+    queryFn: () => getGuestRescheduleSlots(placed?.public_token as string),
+    enabled: rescheduling && !!placed?.public_token,
+  });
+
+  const cancelBooking = useMutation({
+    mutationFn: () => cancelGuestBooking(placed?.public_token as string),
+    onSuccess: (booking) => {
+      setPlaced(booking);
+      setRescheduling(false);
+    },
+  });
+
+  const rescheduleBooking = useMutation({
+    mutationFn: (start: string) =>
+      rescheduleGuestBooking(placed?.public_token as string, start),
+    onSuccess: (booking) => {
+      setPlaced(booking);
+      setRescheduling(false);
     },
   });
 
@@ -248,6 +281,79 @@ export default function ServiceBookingScreen() {
           </View>
         ) : null}
 
+        {bookingMode && cartCount > 0 && (page.staff ?? []).length > 0 ? (
+          <View style={{ marginTop: 26 }}>
+            <Text style={[styles.catName, { color: colors.foreground }]}>
+              Who would you like?
+            </Text>
+            <View style={styles.slotWrap}>
+              <Pressable
+                onPress={() => {
+                  setStaffId(null);
+                  setSlotStart(null);
+                }}
+                style={[
+                  styles.slotChip,
+                  { borderColor: colors.border },
+                  staffId === null && {
+                    backgroundColor: accent,
+                    borderColor: accent,
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: staffId === null ? "#fff" : colors.foreground,
+                    fontWeight: "600",
+                    fontSize: 13,
+                  }}
+                >
+                  Any available
+                </Text>
+              </Pressable>
+              {(page.staff ?? [])
+                .filter(
+                  (m) =>
+                    m.service_ids.length === 0 ||
+                    cartServices.every((cs) =>
+                      m.service_ids.includes(cs.service_id),
+                    ),
+                )
+                .map((m) => {
+                  const active = staffId === m.id;
+                  return (
+                    <Pressable
+                      key={m.id}
+                      onPress={() => {
+                        setStaffId(active ? null : m.id);
+                        setSlotStart(null);
+                      }}
+                      style={[
+                        styles.slotChip,
+                        { borderColor: colors.border },
+                        active && {
+                          backgroundColor: accent,
+                          borderColor: accent,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          color: active ? "#fff" : colors.foreground,
+                          fontWeight: "600",
+                          fontSize: 13,
+                        }}
+                      >
+                        {m.name}
+                        {m.title ? ` · ${m.title}` : ""}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+            </View>
+          </View>
+        ) : null}
+
         {bookingMode && cartCount > 0 ? (
           <View style={{ marginTop: 26 }}>
             <Text style={[styles.catName, { color: colors.foreground }]}>
@@ -292,6 +398,10 @@ export default function ServiceBookingScreen() {
                             }}
                           >
                             {slot.label}
+                            {typeof slot.remaining === "number" &&
+                            slot.remaining > 1
+                              ? ` · ${slot.remaining} spots`
+                              : ""}
                           </Text>
                         </Pressable>
                       );
@@ -457,6 +567,17 @@ export default function ServiceBookingScreen() {
               {Number(placed.total ?? placed.subtotal ?? 0).toFixed(2)}. The
               provider will confirm your request.
             </Text>
+            {placed.staff ? (
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  marginTop: 6,
+                  textAlign: "center",
+                }}
+              >
+                With {placed.staff.name}
+              </Text>
+            ) : null}
             <Text
               style={[
                 styles.disclaimer,
@@ -466,6 +587,115 @@ export default function ServiceBookingScreen() {
               This is an estimated price, not the final bill. No payment was
               taken.
             </Text>
+            {rescheduling ? (
+              <View style={{ alignSelf: "stretch", marginTop: 12 }}>
+                <Text
+                  style={{
+                    color: colors.foreground,
+                    fontWeight: "700",
+                    marginBottom: 8,
+                  }}
+                >
+                  Pick a new time
+                </Text>
+                {rescheduleSlotsQ.isLoading ? (
+                  <ActivityIndicator color={accent} />
+                ) : (rescheduleSlotsQ.data?.days ?? []).length === 0 ? (
+                  <Text style={{ color: colors.mutedForeground }}>
+                    No alternative slots are free right now.
+                  </Text>
+                ) : (
+                  <ScrollView style={{ maxHeight: 220 }}>
+                    {(rescheduleSlotsQ.data?.days ?? []).map((day) => (
+                      <View key={day.date} style={{ marginBottom: 10 }}>
+                        <Text
+                          style={{
+                            color: colors.mutedForeground,
+                            fontSize: 12,
+                            marginBottom: 6,
+                          }}
+                        >
+                          {day.label}
+                        </Text>
+                        <View style={styles.slotWrap}>
+                          {day.slots.map((slot) => (
+                            <Pressable
+                              key={slot.start}
+                              disabled={rescheduleBooking.isPending}
+                              onPress={() => rescheduleBooking.mutate(slot.start)}
+                              style={[
+                                styles.slotChip,
+                                { borderColor: colors.border },
+                              ]}
+                            >
+                              <Text
+                                style={{
+                                  color: colors.foreground,
+                                  fontWeight: "600",
+                                  fontSize: 13,
+                                }}
+                              >
+                                {slot.label}
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                      </View>
+                    ))}
+                  </ScrollView>
+                )}
+                <Pressable
+                  onPress={() => setRescheduling(false)}
+                  style={[
+                    styles.placeBtn,
+                    { backgroundColor: colors.muted, marginTop: 10 },
+                  ]}
+                >
+                  <Text
+                    style={[styles.placeBtnText, { color: colors.foreground }]}
+                  >
+                    Keep current time
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View style={{ flexDirection: "row", gap: 10, marginTop: 4 }}>
+                {placed.can_reschedule ? (
+                  <Pressable
+                    onPress={() => setRescheduling(true)}
+                    style={[
+                      styles.placeBtn,
+                      { backgroundColor: colors.muted, marginTop: 12 },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.placeBtnText,
+                        { color: colors.foreground },
+                      ]}
+                    >
+                      Reschedule
+                    </Text>
+                  </Pressable>
+                ) : null}
+                {placed.can_cancel ? (
+                  <Pressable
+                    disabled={cancelBooking.isPending}
+                    onPress={() => cancelBooking.mutate()}
+                    style={[
+                      styles.placeBtn,
+                      { backgroundColor: colors.destructive, marginTop: 12 },
+                    ]}
+                  >
+                    {cancelBooking.isPending ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.placeBtnText}>Cancel booking</Text>
+                    )}
+                  </Pressable>
+                ) : null}
+              </View>
+            )}
             <Pressable
               onPress={() => setPlaced(null)}
               style={[

@@ -906,6 +906,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get ('links-brand-kit/create', [LinkController::class, 'createBrandKit'])->middleware('workspace.can:links.create')->name('links.brand-kit.create');
         // Standalone Updates / Changelog page: step-2 create + dedicated editor.
         Route::get ('links-updates/create', [LinkController::class, 'createUpdates'])->middleware('workspace.can:links.create')->name('links.updates.create');
+        // Text Page: paste text → short link; step-2 create form.
+        Route::get ('links-text/create', [LinkController::class, 'createText'])->middleware('workspace.can:links.create')->name('links.text.create');
         // Followable Calendar link type: step-2 create + dedicated event editor,
         // per-calendar settings, event CRUD, and the cross-calendar "My Calendar"
         // agenda (owned + followed). Distinct from the external CalendarAccount
@@ -1145,6 +1147,11 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::put   ('links/{link}/service-booking/availability/{rule}',  [\App\Modules\User\Controllers\ServiceBookingController::class, 'updateAvailability'])->middleware('workspace.can:links.edit')->name('links.service-booking.availability.update');
         Route::delete('links/{link}/service-booking/availability/{rule}',  [\App\Modules\User\Controllers\ServiceBookingController::class, 'destroyAvailability'])->middleware('workspace.can:links.edit')->name('links.service-booking.availability.destroy');
         // Blocked dates
+        Route::post  ('links/{link}/service-booking/staff',            [\App\Modules\User\Controllers\ServiceBookingController::class, 'storeStaff'])->middleware('workspace.can:links.edit')->name('links.service-booking.staff.store');
+        Route::put   ('links/{link}/service-booking/staff/{staff}',    [\App\Modules\User\Controllers\ServiceBookingController::class, 'updateStaff'])->middleware('workspace.can:links.edit')->name('links.service-booking.staff.update');
+        Route::delete('links/{link}/service-booking/staff/{staff}',    [\App\Modules\User\Controllers\ServiceBookingController::class, 'destroyStaff'])->middleware('workspace.can:links.edit')->name('links.service-booking.staff.destroy');
+        Route::post  ('links/{link}/service-booking/staff/reorder',    [\App\Modules\User\Controllers\ServiceBookingController::class, 'reorderStaff'])->middleware('workspace.can:links.edit')->name('links.service-booking.staff.reorder');
+
         Route::post  ('links/{link}/service-booking/blocked-dates',                 [\App\Modules\User\Controllers\ServiceBookingController::class, 'storeBlockedDate'])->middleware('workspace.can:links.edit')->name('links.service-booking.blocked-dates.store');
         Route::delete('links/{link}/service-booking/blocked-dates/{blockedDate}',   [\App\Modules\User\Controllers\ServiceBookingController::class, 'destroyBlockedDate'])->middleware('workspace.can:links.edit')->name('links.service-booking.blocked-dates.destroy');
         // Bookings dashboard + near-real-time polling + status workflow

@@ -147,11 +147,12 @@ export const api = {
     }),
 
   // Quick shorten — server-side normalization of the raw destination
-  // (web URL, bare domain, email → mailto:, phone → tel:) so the
-  // extension's classification can never drift from web/mobile. Optional
-  // custom back-half (alias) validated with the full create-flow rules.
+  // (web URL, bare domain, email → mailto:, phone → tel:; anything else
+  // becomes a shareable text page) so the extension's classification can
+  // never drift from web/mobile. Optional custom back-half (alias)
+  // validated with the full create-flow rules.
   quickShorten: (destination: string, alias?: string, workspaceId?: number | null, domainId?: number | null) =>
-    request<{ id: number; short_url: string; long_url: string; kind: "url" | "email" | "phone" }>(
+    request<{ id: number; short_url: string; long_url: string | null; kind: "url" | "email" | "phone" | "text" }>(
       "/links/quick-shorten",
       {
         method: "POST",

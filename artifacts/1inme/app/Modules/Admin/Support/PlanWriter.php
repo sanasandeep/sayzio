@@ -336,6 +336,8 @@ class PlanWriter
             'features.max_ai_chat'             => 'nullable|integer|min:-1',
             'features.max_restaurant_menu'     => 'nullable|integer|min:-1',
             'features.max_service_booking'     => 'nullable|integer|min:-1',
+            'features.max_service_booking_staff' => 'nullable|integer|min:-1',
+            'features.service_booking_calendar_sync' => 'nullable|boolean',
             'features.max_reviews'             => 'nullable|integer|min:-1',
             'features.max_resume'              => 'nullable|integer|min:-1',
             'features.max_projects'            => 'nullable|integer|min:-1',

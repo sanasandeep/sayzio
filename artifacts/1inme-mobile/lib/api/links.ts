@@ -113,11 +113,59 @@ export async function exportLinksCsv(
   }
 }
 
+/**
+ * Download a Text Page's content as a .txt file — mobile parity for the
+ * web page's "Download .txt" button (`GET /{alias}/download.txt`). The
+ * endpoint enforces the same access gates server-side (active/expiry,
+ * moderation, visibility tiers, password unlock), so we just fetch it.
+ * On web we trigger an anchor download; on native we download to the
+ * cache and hand the file to the share sheet (save/share).
+ */
+export async function downloadTextPageTxt(link: {
+  alias: string;
+  short_url: string;
+}): Promise<void> {
+  const url = `${link.short_url.replace(/\/+$/, "")}/download.txt`;
+  const safeAlias = link.alias.replace(/[^A-Za-z0-9_-]+/g, "-") || "text-page";
+  const filename = `${safeAlias}.txt`;
+  const headers: Record<string, string> = {
+    "User-Agent": MOBILE_USER_AGENT,
+    "X-1INME-Client": MOBILE_USER_AGENT,
+  };
+
+  if (Platform.OS === "web") {
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error(`Download failed (${res.status}).`);
+    const blob = await res.blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
+    return;
+  }
+
+  const FileSystem = await import("expo-file-system/legacy");
+  const Sharing = await import("expo-sharing");
+  const target = `${FileSystem.cacheDirectory ?? ""}${filename}`;
+  const dl = await FileSystem.downloadAsync(url, target, { headers });
+  if (dl.status !== 200) throw new Error(`Download failed (${dl.status}).`);
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(dl.uri, {
+      mimeType: "text/plain",
+      dialogTitle: "Save or share text",
+    });
+  }
+}
+
 export type QuickShortenResult = {
   id: number;
   short_url: string;
-  long_url: string;
-  kind: "url" | "email" | "phone";
+  long_url: string | null;
+  kind: "url" | "email" | "phone" | "text";
 };
 
 /**

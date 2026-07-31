@@ -495,6 +495,7 @@ class RedirectController extends Controller
             'brand_kit' => $this->handleBrandKitPage($request, $link),
             'calendar' => $this->handleCalendarPage($request, $link),
             'updates' => $this->handleUpdatesPage($request, $link),
+            'text' => $this->handleTextPage($request, $link),
             default => abort(404),
         };
     }
@@ -970,6 +971,81 @@ class RedirectController extends Controller
 
         $fileLink->increment('download_count');
         return Storage::disk($disk)->download($fileLink->stored_path, $fileLink->original_name);
+    }
+
+    /**
+     * Download the content of a `text`-type link as `{alias}.txt`
+     * (GET /{alias}/download.txt). Mirrors the same access gates as the
+     * public text page (expiry, moderation, visibility, password) so the
+     * download path can't be used to bypass them, and records the download
+     * in the link's analytics like any other interaction (source tag
+     * `txt_download` so it's distinguishable from page views).
+     */
+    public function textDownload(Request $request, string $alias)
+    {
+        return $this->serveTextContent($request, $alias, true);
+    }
+
+    /**
+     * Raw plain-text view of a `text`-type link (GET /{alias}/raw) for
+     * programmatic consumption — responds `text/plain` inline, same
+     * access gates as the public page. Tracked with source `txt_raw`.
+     */
+    public function textRaw(Request $request, string $alias)
+    {
+        return $this->serveTextContent($request, $alias, false);
+    }
+
+    protected function serveTextContent(Request $request, string $alias, bool $download)
+    {
+        $link = Link::resolveByAlias($alias, $request->getHost());
+        if (!$link || $link->type !== 'text') abort(404);
+
+        if (!$link->isAccessible()) {
+            if ($redirect = $link->getExpiryRedirectUrl()) {
+                return redirect()->away($redirect, 302);
+            }
+            return response()->view('common.link-expired', ['link' => $link], 410);
+        }
+
+        // Moderation gate — mirrors handle(). Text hidden by an admin is
+        // inaccessible to non-owners through the raw/download paths too.
+        if ($link->moderation_state === 'hidden') {
+            $viewerId = optional($request->user())->id
+                ?? \App\Modules\Common\Services\ViewerSession::id();
+            if ((int) $viewerId !== (int) $link->user_id) {
+                return response()->view('common.link-moderated', ['link' => $link], 451);
+            }
+        }
+
+        // Visibility gate — mirrors handle() so registered/followers/
+        // subscribers tiers can't be bypassed via the raw/download URLs.
+        if ($gated = $this->enforceVisibility($request, $link)) {
+            return $gated;
+        }
+
+        if ($link->is_password_protected && !session("link_unlocked_{$link->id}")) {
+            abort(403, 'This link is password protected.');
+        }
+
+        $content = (string) data_get($link->settings, 'text.content', '');
+
+        // Count the interaction in the link's analytics. Best-effort — the
+        // response must never fail because the analytics buffer did.
+        try {
+            $this->trackingService->track($link, $request, $alias, $download ? 'txt_download' : 'txt_raw');
+        } catch (\Throwable $e) { /* analytics row is best-effort */ }
+
+        $headers = ['Content-Type' => 'text/plain; charset=UTF-8'];
+        if ($download) {
+            $filename = preg_replace('/[^A-Za-z0-9._-]+/', '-', $alias) ?: 'text';
+            $headers['Content-Disposition'] = 'attachment; filename="' . $filename . '.txt"';
+        } else {
+            $headers['Content-Disposition'] = 'inline';
+            $headers['X-Content-Type-Options'] = 'nosniff';
+        }
+
+        return response($content, 200, $headers);
     }
 
     public function handleBlockClick(Request $request, string $alias, int $blockId)
@@ -1650,6 +1726,26 @@ class RedirectController extends Controller
             ]),
             $request
         );
+    }
+
+    /**
+     * Public page for a `text`-type link (created via Quick Shorten when
+     * the pasted content isn't a URL/email/phone). Renders the stored
+     * text — selectable, with a copy button.
+     */
+    protected function handleTextPage(Request $request, Link $link)
+    {
+        $content = (string) data_get($link->settings, 'text.content', '');
+
+        $creator = \App\Modules\User\Models\User::find($link->user_id);
+
+        $pageTitle = $link->title ?: 'Shared text';
+
+        $themeClass = 'dark';
+
+        return response()->view('common.text-page', compact(
+            'link', 'content', 'creator', 'pageTitle', 'themeClass'
+        ));
     }
 
     /**

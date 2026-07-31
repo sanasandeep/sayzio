@@ -301,11 +301,22 @@ html {
     scroll-padding-top: calc(5rem + var(--inme-anno-h, 0px));
 }
 
-/* ---- Current-page ("you are here") state for the header Events pill ----
-   The pill's idle look is set inline in the header partial, so the active
-   state is a class that overrides it: a stronger fill + border, brighter
-   label, and a soft outer ring. Light mode swaps the pale-blue label for the
-   deep brand blue so it stays legible on the near-white bar. */
+/* ---- Header Events pill (idle + active states) ----
+   Idle look for the highlighted Events pill in the marketing header (desktop
+   nav + mobile menu). Light mode swaps the pale-blue label for the deep brand
+   blue so it stays legible on the near-white bar. */
+.mkt-events-pill {
+    background: rgba(61,107,255,0.14);
+    border: 1px solid rgba(61,107,255,0.4);
+    color: #8fa8ff;
+}
+html.light-mode .mkt-events-pill {
+    background: rgba(61,107,255,0.10);
+    border-color: rgba(61,107,255,0.45);
+    color: #1d4ed8;
+}
+/* Current-page ("you are here") state — a class that overrides the idle
+   class: a stronger fill + border, brighter label, and a soft outer ring. */
 .mkt-events-pill-active {
     background: rgba(61,107,255,0.30) !important;
     border-color: rgba(61,107,255,0.85) !important;

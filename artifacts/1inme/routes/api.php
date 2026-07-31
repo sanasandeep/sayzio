@@ -136,6 +136,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/service-booking/{alias}/quote',          [ServiceBookingController::class, 'quote'])->middleware('throttle:120,1');
         Route::post('/service-booking/{alias}/book',           [ServiceBookingController::class, 'book'])->middleware('throttle:20,1');
         Route::get ('/service-booking/bookings/{token}/status',[ServiceBookingController::class, 'bookingStatus']);
+        Route::post('/service-booking/bookings/{token}/reschedule-slots', [ServiceBookingController::class, 'rescheduleSlots'])->middleware('throttle:60,1');
+        Route::post('/service-booking/bookings/{token}/reschedule',       [ServiceBookingController::class, 'rescheduleBooking'])->middleware('throttle:20,1');
+        Route::post('/service-booking/bookings/{token}/cancel',           [ServiceBookingController::class, 'cancelBooking'])->middleware('throttle:20,1');
 
         // Public reviews feed + summary for a standalone Reviews page.
         Route::get('/reviews/{alias}',             [\App\Modules\Api\Controllers\ReviewApiController::class, 'index']);
@@ -1160,6 +1163,7 @@ Route::prefix('v1')->group(function () {
         // pipeline (quota + mime allowlist + image compression).
         Route::get ('/me/files',        [\App\Modules\Api\Controllers\FilesController::class, 'index']);
         Route::post('/me/files/upload', [\App\Modules\Api\Controllers\FilesController::class, 'upload'])->middleware('throttle:30,1');
+        Route::delete('/me/files/{file}', [\App\Modules\Api\Controllers\FilesController::class, 'destroy'])->whereNumber('file');
         // Task #6028 — server-side import of a curated platform asset
         // (key allow-listed to assets/<folder>/ prefixes); needed because
         // the asset CDN has no CORS headers, so Expo WEB can't fetch the
@@ -1342,6 +1346,10 @@ Route::prefix('v1')->group(function () {
         Route::delete('/service-booking/links/{link}/config/availability/{rule}',    [ServiceBookingController::class, 'destroyAvailability'])->whereNumber('link')->whereNumber('rule');
         Route::post  ('/service-booking/links/{link}/config/blocked-dates',          [ServiceBookingController::class, 'storeBlockedDate'])->whereNumber('link');
         Route::delete('/service-booking/links/{link}/config/blocked-dates/{blockedDate}', [ServiceBookingController::class, 'destroyBlockedDate'])->whereNumber('link')->whereNumber('blockedDate');
+        Route::post  ('/service-booking/links/{link}/config/staff',                 [ServiceBookingController::class, 'storeStaff'])->whereNumber('link');
+        Route::post  ('/service-booking/links/{link}/config/staff/reorder',         [ServiceBookingController::class, 'reorderStaff'])->whereNumber('link');
+        Route::put   ('/service-booking/links/{link}/config/staff/{staff}',         [ServiceBookingController::class, 'updateStaff'])->whereNumber('link')->whereNumber('staff');
+        Route::delete('/service-booking/links/{link}/config/staff/{staff}',         [ServiceBookingController::class, 'destroyStaff'])->whereNumber('link')->whereNumber('staff');
 
         // Social accounts + social proof
         Route::get   ('/social/connections',                 [SocialAccountController::class, 'connections']);
@@ -1529,6 +1537,8 @@ Route::prefix('v1')->group(function () {
         Route::delete('/dialer/callback/{id}',      [DialerController::class, 'clearCallback'])->whereNumber('id');
         // Desktop ⇄ phone call handoff (Zio Browser Dialer pane, task #5780).
         Route::get   ('/dialer/handoff/status',     [\App\Modules\Api\Controllers\DialerHandoffController::class, 'status']);
+        Route::post  ('/dialer/device',             [\App\Modules\Api\Controllers\DialerHandoffController::class, 'registerDevice'])->middleware('throttle:30,1');
+        Route::delete('/dialer/device',             [\App\Modules\Api\Controllers\DialerHandoffController::class, 'unregisterDevice'])->middleware('throttle:30,1');
         Route::post  ('/dialer/handoff/call',       [\App\Modules\Api\Controllers\DialerHandoffController::class, 'requestCall'])->middleware('throttle:30,1');
         Route::post  ('/dialer/call-events',        [\App\Modules\Api\Controllers\DialerHandoffController::class, 'reportCallEvent'])->middleware('throttle:60,1');
         Route::get   ('/dialer/call-events',        [\App\Modules\Api\Controllers\DialerHandoffController::class, 'callEvents']);

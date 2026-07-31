@@ -63,6 +63,7 @@ class ServiceBookingController extends Controller
         $config->load([
             'categories' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order'),
             'services'   => fn ($q) => $q->where('is_active', true)->orderBy('sort_order'),
+            'staff'      => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')->with('services:id'),
         ]);
 
         $byCat = $config->services->groupBy('category_id');
@@ -88,6 +89,14 @@ class ServiceBookingController extends Controller
                 'services'    => ($byCat->get($c->id) ?? collect())->map(fn ($s) => $this->publicService($s))->values(),
             ])->values(),
             'uncategorized' => ($byCat->get(null) ?? collect())->map(fn ($s) => $this->publicService($s))->values(),
+            'staff' => $config->staff->map(fn ($m) => [
+                'id'          => $m->id,
+                'name'        => $m->name,
+                'title'       => $m->title,
+                'bio'         => $m->bio,
+                'photo_url'   => $m->photo_url,
+                'service_ids' => $m->services->pluck('id')->map(fn ($i) => (int) $i)->values()->all(),
+            ])->values(),
         ]);
     }
 
@@ -108,10 +117,15 @@ class ServiceBookingController extends Controller
             return $this->fail('Pick at least one available service.', 422, 'no_services');
         }
 
+        $opts = $this->cartOpts($config, $data['services']);
+        if (!empty($data['staff_id'])) {
+            $opts['staff_id'] = (int) $data['staff_id'];
+        }
+
         return $this->ok([
             'duration_minutes' => $duration,
             'timezone'         => $config->effectiveTimezone(),
-            'days'             => $this->slots->freeSlots($config, $duration),
+            'days'             => $this->slots->freeSlots($config, $duration, null, $opts),
         ]);
     }
 
@@ -164,6 +178,7 @@ class ServiceBookingController extends Controller
             'services'              => 'required|array|min:1',
             'services.*.service_id' => 'required|integer',
             'services.*.quantity'   => 'nullable|integer|min:1|max:99',
+            'staff_id'              => 'nullable|integer',
         ]);
 
         try {
@@ -209,6 +224,73 @@ class ServiceBookingController extends Controller
         return $this->ok(['booking' => PublicServiceBookingController::serializeGuestBooking($booking)]);
     }
 
+    /** Guest: free slots their existing booking could move to (Task #6325). */
+    public function rescheduleSlots(Request $request, string $token)
+    {
+        $booking = ServiceBookingRequest::with(['items', 'serviceBooking'])->where('public_token', $token)->first();
+        if (!$booking || !$booking->serviceBooking) {
+            return $this->notFound('Booking not found');
+        }
+        if ($blocker = $this->requests->selfServiceBlocker($booking, 'reschedule')) {
+            return $this->fail($blocker, 422, 'not_allowed');
+        }
+
+        $config   = $booking->serviceBooking;
+        $duration = max(1, (int) $booking->duration_minutes);
+
+        return $this->ok([
+            'duration_minutes' => $duration,
+            'timezone'         => $config->effectiveTimezone(),
+            'days'             => $this->slots->freeSlots($config, $duration, null, $this->bookingOpts($booking)),
+        ]);
+    }
+
+    /** Guest: move their booking to a new slot (cutoff + toggles enforced). */
+    public function rescheduleBooking(Request $request, string $token)
+    {
+        $booking = ServiceBookingRequest::with(['items', 'serviceBooking', 'link'])->where('public_token', $token)->first();
+        if (!$booking || !$booking->serviceBooking) {
+            return $this->notFound('Booking not found');
+        }
+        if ($blocker = $this->requests->selfServiceBlocker($booking, 'reschedule')) {
+            return $this->fail($blocker, 422, 'not_allowed');
+        }
+
+        $data = $request->validate(['slot_start' => 'required|string|max:64']);
+
+        $config = $booking->serviceBooking;
+        try {
+            $start = \Carbon\Carbon::parse($data['slot_start'], $config->effectiveTimezone());
+        } catch (\Throwable $e) {
+            return $this->fail('Invalid slot time.', 422, 'invalid_slot');
+        }
+
+        $duration = max(1, (int) $booking->duration_minutes);
+        if (!$this->slots->slotIsAvailable($config, $duration, $start, $booking->id, $this->bookingOpts($booking))) {
+            return $this->fail('That time is no longer available — please pick another slot.', 422, 'slot_taken');
+        }
+
+        $this->requests->visitorReschedule($booking, $start);
+
+        return $this->ok(['booking' => PublicServiceBookingController::serializeGuestBooking($booking->fresh('items'))]);
+    }
+
+    /** Guest: cancel their booking (cutoff + toggles enforced). */
+    public function cancelBooking(Request $request, string $token)
+    {
+        $booking = ServiceBookingRequest::with(['items', 'serviceBooking', 'link'])->where('public_token', $token)->first();
+        if (!$booking || !$booking->serviceBooking) {
+            return $this->notFound('Booking not found');
+        }
+        if ($blocker = $this->requests->selfServiceBlocker($booking, 'cancel')) {
+            return $this->fail($blocker, 422, 'not_allowed');
+        }
+
+        $this->requests->visitorCancel($booking);
+
+        return $this->ok(['booking' => PublicServiceBookingController::serializeGuestBooking($booking->fresh('items'))]);
+    }
+
     // ── Owner (Sanctum) ──────────────────────────────────────────
 
     /** Owner: full config — settings, categories+services, availability, blocked dates. */
@@ -244,6 +326,13 @@ class ServiceBookingController extends Controller
             'tax_label'               => 'nullable|string|max:24',
             'whatsapp_number'         => 'sometimes|nullable|string|max:40',
             'reminder_lead_minutes'   => 'sometimes|nullable',
+            'buffer_before_minutes'   => 'sometimes|nullable|integer|min:0|max:480',
+            'buffer_after_minutes'    => 'sometimes|nullable|integer|min:0|max:480',
+            'self_service_allow_cancel'     => 'sometimes|boolean',
+            'self_service_allow_reschedule' => 'sometimes|boolean',
+            'self_service_cutoff_hours'     => 'sometimes|nullable|integer|min:0|max:720',
+            'calendar_sync_enabled'   => 'sometimes|boolean',
+            'calendar_sync_account_id' => 'sometimes|nullable|integer',
         ]);
 
         $settings = $config->settings ?? [];
@@ -281,6 +370,49 @@ class ServiceBookingController extends Controller
             ];
         }
 
+        // Global booking buffers (Task #6325).
+        if ($request->has('buffer_before_minutes') || $request->has('buffer_after_minutes')) {
+            $settings['buffers'] = [
+                'before' => max(0, (int) ($data['buffer_before_minutes'] ?? ($settings['buffers']['before'] ?? 0))),
+                'after'  => max(0, (int) ($data['buffer_after_minutes'] ?? ($settings['buffers']['after'] ?? 0))),
+            ];
+        }
+
+        // Visitor self-service reschedule / cancel (Task #6325).
+        if ($request->has('self_service_allow_cancel') || $request->has('self_service_allow_reschedule')
+            || $request->has('self_service_cutoff_hours')) {
+            $prev = $settings['self_service'] ?? [];
+            $settings['self_service'] = [
+                'allow_cancel'     => $request->has('self_service_allow_cancel') ? (bool) $data['self_service_allow_cancel'] : (bool) ($prev['allow_cancel'] ?? true),
+                'allow_reschedule' => $request->has('self_service_allow_reschedule') ? (bool) $data['self_service_allow_reschedule'] : (bool) ($prev['allow_reschedule'] ?? true),
+                'cutoff_hours'     => $request->has('self_service_cutoff_hours') ? max(0, (int) ($data['self_service_cutoff_hours'] ?? 24)) : (int) ($prev['cutoff_hours'] ?? 24),
+            ];
+        }
+
+        // Google Calendar two-way sync (Task #6325) — plan-gated.
+        if ($request->has('calendar_sync_enabled') || $request->has('calendar_sync_account_id')) {
+            $enabled = $request->has('calendar_sync_enabled')
+                ? (bool) $data['calendar_sync_enabled']
+                : (bool) ($settings['calendar_sync']['enabled'] ?? false);
+            if ($enabled && !$link->user->getPlanFeature('service_booking_calendar_sync')) {
+                return $this->fail('Calendar sync is not included in your plan.', 422, 'plan_gated');
+            }
+            $accountId = $request->has('calendar_sync_account_id')
+                ? ($data['calendar_sync_account_id'] ?? null)
+                : ($settings['calendar_sync']['account_id'] ?? null);
+            if ($accountId !== null) {
+                $owns = \App\Modules\User\Models\CalendarAccount::where('id', (int) $accountId)
+                    ->where('user_id', $config->user_id)->exists();
+                if (!$owns) {
+                    return $this->fail('That calendar account was not found.', 422, 'invalid_calendar_account');
+                }
+            }
+            $settings['calendar_sync'] = [
+                'enabled'    => $enabled,
+                'account_id' => $accountId !== null ? (int) $accountId : null,
+            ];
+        }
+
         $tz = trim((string) ($data['timezone'] ?? ''));
         if ($tz !== '' && !in_array($tz, timezone_identifiers_list(), true)) {
             return $this->fail('That timezone is not recognized.', 422, 'invalid_timezone');
@@ -293,7 +425,7 @@ class ServiceBookingController extends Controller
             'slot_length_minutes' => $data['slot_length_minutes'],
             'lead_time_minutes'   => $data['lead_time_minutes'],
             'max_days_ahead'      => $data['max_days_ahead'],
-            'timezone'            => $tz !== '' ? $tz : null,
+            'timezone'            => $tz !== '' ? $tz : ($config->timezone ?: 'UTC'),
             'settings'            => $settings,
         ]);
 
@@ -412,6 +544,9 @@ class ServiceBookingController extends Controller
             'payment_mode'     => 'sometimes|in:none,deposit,full',
             'deposit_type'     => 'sometimes|nullable|in:fixed,percent',
             'deposit_value'    => 'sometimes|nullable|numeric|min:0|max:9999999',
+            'capacity'              => 'sometimes|nullable|integer|min:1|max:500',
+            'buffer_before_minutes' => 'sometimes|nullable|integer|min:0|max:480',
+            'buffer_after_minutes'  => 'sometimes|nullable|integer|min:0|max:480',
         ]);
 
         if (!empty($data['category_id'])) {
@@ -434,6 +569,9 @@ class ServiceBookingController extends Controller
             'payment_mode'       => $data['payment_mode'] ?? \App\Modules\User\Models\ServiceBookingService::PAYMENT_MODE_NONE,
             'deposit_type'       => $data['deposit_type'] ?? null,
             'deposit_value'      => $data['deposit_value'] ?? null,
+            'capacity'              => max(1, (int) ($data['capacity'] ?? 1)),
+            'buffer_before_minutes' => $data['buffer_before_minutes'] ?? null,
+            'buffer_after_minutes'  => $data['buffer_after_minutes'] ?? null,
             'sort_order'         => (int) ServiceBookingService::where('service_booking_id', $config->id)->max('sort_order') + 1,
         ]);
 
@@ -460,7 +598,14 @@ class ServiceBookingController extends Controller
             'payment_mode'     => 'sometimes|in:none,deposit,full',
             'deposit_type'     => 'sometimes|nullable|in:fixed,percent',
             'deposit_value'    => 'sometimes|nullable|numeric|min:0|max:9999999',
+            'capacity'              => 'sometimes|nullable|integer|min:1|max:500',
+            'buffer_before_minutes' => 'sometimes|nullable|integer|min:0|max:480',
+            'buffer_after_minutes'  => 'sometimes|nullable|integer|min:0|max:480',
         ]);
+
+        if (array_key_exists('capacity', $data)) {
+            $data['capacity'] = max(1, (int) ($data['capacity'] ?? 1));
+        }
 
         if (array_key_exists('category_id', $data) && !empty($data['category_id'])) {
             $owned = ServiceBookingCategory::where('service_booking_id', $config->id)->find($data['category_id']);
@@ -489,6 +634,167 @@ class ServiceBookingController extends Controller
         return $this->ok(['deleted' => true]);
     }
 
+    // ── Staff / team members (Task #6325) ────────────────────────
+    public function storeStaff(Request $request, Link $link)
+    {
+        $config = $this->ownedConfig($request, $link);
+        if (!$config) {
+            return $this->notFound('Booking page not found');
+        }
+
+        $cap = (int) $link->user->getPlanFeature('max_service_booking_staff');
+        $current = $config->staff()->count();
+        if ($cap !== -1 && $current >= max(0, $cap)) {
+            return $this->fail(
+                'Your plan allows up to ' . max(0, $cap) . ' team member' . ($cap === 1 ? '' : 's') . ' per booking page. Upgrade to add more.',
+                422,
+                'plan_limit',
+            );
+        }
+
+        $data = $request->validate([
+            'name'                => 'required|string|max:120',
+            'title'               => 'nullable|string|max:120',
+            'bio'                 => 'nullable|string|max:2000',
+            'email'               => 'nullable|email|max:190',
+            'photo_url'           => 'nullable|string|max:2048',
+            'is_active'           => 'sometimes|boolean',
+            'calendar_account_id' => 'nullable|integer',
+            'service_ids'         => 'sometimes|array',
+            'service_ids.*'       => 'integer',
+        ]);
+
+        if ($err = $this->staffCalendarError($config, $data)) {
+            return $err;
+        }
+
+        $staff = $config->staff()->create([
+            'name'                => trim($data['name']),
+            'title'               => $data['title'] ?? null,
+            'bio'                 => $data['bio'] ?? null,
+            'email'               => $data['email'] ?? null,
+            'photo_url'           => $data['photo_url'] ?? null,
+            'is_active'           => (bool) ($data['is_active'] ?? true),
+            'calendar_account_id' => $data['calendar_account_id'] ?? null,
+            'sort_order'          => ($config->staff()->max('sort_order') ?? 0) + 1,
+        ]);
+
+        $this->syncStaffServices($config, $staff, $data);
+
+        return $this->created(['staff' => $this->ownerStaff($staff)]);
+    }
+
+    public function updateStaff(Request $request, Link $link, \App\Modules\User\Models\ServiceBookingStaff $staff)
+    {
+        $config = $this->ownedConfig($request, $link);
+        if (!$config || (int) $staff->service_booking_id !== (int) $config->id) {
+            return $this->notFound('Team member not found');
+        }
+
+        $data = $request->validate([
+            'name'                => 'sometimes|required|string|max:120',
+            'title'               => 'nullable|string|max:120',
+            'bio'                 => 'nullable|string|max:2000',
+            'email'               => 'nullable|email|max:190',
+            'photo_url'           => 'nullable|string|max:2048',
+            'is_active'           => 'sometimes|boolean',
+            'calendar_account_id' => 'sometimes|nullable|integer',
+            'service_ids'         => 'sometimes|array',
+            'service_ids.*'       => 'integer',
+        ]);
+
+        if ($err = $this->staffCalendarError($config, $data)) {
+            return $err;
+        }
+
+        if (isset($data['name'])) {
+            $staff->name = trim($data['name']);
+        }
+        foreach (['title', 'bio', 'email', 'photo_url'] as $key) {
+            if ($request->has($key)) {
+                $staff->{$key} = $data[$key] ?? null;
+            }
+        }
+        if ($request->has('is_active')) {
+            $staff->is_active = (bool) $data['is_active'];
+        }
+        if ($request->has('calendar_account_id')) {
+            $staff->calendar_account_id = $data['calendar_account_id'] ?? null;
+        }
+        $staff->save();
+
+        $this->syncStaffServices($config, $staff, $data);
+
+        return $this->ok(['staff' => $this->ownerStaff($staff->fresh())]);
+    }
+
+    public function destroyStaff(Request $request, Link $link, \App\Modules\User\Models\ServiceBookingStaff $staff)
+    {
+        $config = $this->ownedConfig($request, $link);
+        if (!$config || (int) $staff->service_booking_id !== (int) $config->id) {
+            return $this->notFound('Team member not found');
+        }
+
+        $staff->delete();
+
+        return $this->ok(['deleted' => true]);
+    }
+
+    public function reorderStaff(Request $request, Link $link)
+    {
+        $config = $this->ownedConfig($request, $link);
+        if (!$config) {
+            return $this->notFound('Booking page not found');
+        }
+
+        $ids = $request->validate(['ids' => 'required|array', 'ids.*' => 'integer'])['ids'];
+
+        foreach (array_values($ids) as $i => $id) {
+            $config->staff()->where('id', (int) $id)->update(['sort_order' => $i + 1]);
+        }
+
+        return $this->ok(['reordered' => true]);
+    }
+
+    /** Restrict a staff member to a subset of services (empty = all). */
+    protected function syncStaffServices(ServiceBooking $config, \App\Modules\User\Models\ServiceBookingStaff $staff, array $data): void
+    {
+        if (!array_key_exists('service_ids', $data)) {
+            return;
+        }
+        $valid = $config->services()->whereIn('id', array_map('intval', $data['service_ids'] ?? []))
+            ->pluck('id')->all();
+        $staff->services()->sync($valid);
+    }
+
+    /** Ensure a linked calendar account belongs to the page owner. */
+    /**
+     * Validate an optional staff_id in the payload belongs to this booking
+     * config. Returns a 422 envelope on mismatch, null when fine.
+     */
+    protected function staffScopeError(ServiceBooking $config, array $data)
+    {
+        $staffId = $data['staff_id'] ?? null;
+        if ($staffId === null || $staffId === '') {
+            return null;
+        }
+        $owns = $config->staff()->where('id', (int) $staffId)->exists();
+
+        return $owns ? null : $this->fail('That team member was not found on this booking page.', 422, 'invalid_staff');
+    }
+
+    protected function staffCalendarError(ServiceBooking $config, array $data)
+    {
+        $accountId = $data['calendar_account_id'] ?? null;
+        if ($accountId === null) {
+            return null;
+        }
+        $owns = \App\Modules\User\Models\CalendarAccount::where('id', (int) $accountId)
+            ->where('user_id', $config->user_id)->exists();
+
+        return $owns ? null : $this->fail('That calendar account was not found.', 422, 'invalid_calendar_account');
+    }
+
     // ── Weekly availability rules ────────────────────────────────
     public function storeAvailability(Request $request, Link $link)
     {
@@ -501,10 +807,16 @@ class ServiceBookingController extends Controller
             'day_of_week' => 'required|integer|min:0|max:6',
             'start_time'  => 'required|date_format:H:i',
             'end_time'    => 'required|date_format:H:i|after:start_time',
+            'staff_id'    => 'nullable|integer',
         ]);
+
+        if ($err = $this->staffScopeError($config, $data)) {
+            return $err;
+        }
 
         $rule = ServiceBookingAvailabilityRule::create([
             'service_booking_id' => $config->id,
+            'staff_id'           => $data['staff_id'] ?? null,
             'day_of_week'        => $data['day_of_week'],
             'start_time'         => $data['start_time'],
             'end_time'           => $data['end_time'],
@@ -526,7 +838,12 @@ class ServiceBookingController extends Controller
             'start_time'  => 'sometimes|date_format:H:i',
             'end_time'    => 'sometimes|date_format:H:i',
             'is_active'   => 'sometimes|boolean',
+            'staff_id'    => 'sometimes|nullable|integer',
         ]);
+
+        if (array_key_exists('staff_id', $data) && ($err = $this->staffScopeError($config, $data))) {
+            return $err;
+        }
 
         $start = $data['start_time'] ?? $rule->start_time;
         $end   = $data['end_time'] ?? $rule->end_time;
@@ -560,17 +877,28 @@ class ServiceBookingController extends Controller
         }
 
         $data = $request->validate([
-            'date'   => 'required|date',
-            'reason' => 'nullable|string|max:160',
+            'date'     => 'required|date',
+            'reason'   => 'nullable|string|max:160',
+            'staff_id' => 'nullable|integer',
         ]);
 
+        if ($err = $this->staffScopeError($config, $data)) {
+            return $err;
+        }
+
+        $staffId = $data['staff_id'] ?? null;
         $date = \Carbon\Carbon::parse($data['date'])->format('Y-m-d');
-        if (ServiceBookingBlockedDate::where('service_booking_id', $config->id)->whereDate('date', $date)->exists()) {
+        $dupe = ServiceBookingBlockedDate::where('service_booking_id', $config->id)
+            ->whereDate('date', $date)
+            ->when($staffId, fn ($q) => $q->where('staff_id', $staffId), fn ($q) => $q->whereNull('staff_id'))
+            ->exists();
+        if ($dupe) {
             return $this->fail('That date is already blocked.', 422, 'duplicate_date');
         }
 
         $blocked = ServiceBookingBlockedDate::create([
             'service_booking_id' => $config->id,
+            'staff_id'           => $staffId,
             'date'               => $date,
             'reason'             => $data['reason'] ?? null,
         ]);
@@ -598,7 +926,7 @@ class ServiceBookingController extends Controller
             return $this->notFound('Booking page not found');
         }
 
-        $bookings = ServiceBookingRequest::with('items')
+        $bookings = ServiceBookingRequest::with(['items', 'staff'])
             ->where('service_booking_id', $config->id)
             ->latest()
             ->limit(100)
@@ -618,7 +946,7 @@ class ServiceBookingController extends Controller
             return $this->notFound('Booking page not found');
         }
 
-        $query = ServiceBookingRequest::with('items')->where('service_booking_id', $config->id);
+        $query = ServiceBookingRequest::with(['items', 'staff'])->where('service_booking_id', $config->id);
         if ($since = $request->query('since')) {
             try {
                 $query->where('updated_at', '>', \Carbon\Carbon::parse($since));
@@ -759,7 +1087,59 @@ class ServiceBookingController extends Controller
             'services'              => 'required|array|min:1',
             'services.*.service_id' => 'required|integer',
             'services.*.quantity'   => 'nullable|integer|min:1|max:99',
+            'staff_id'              => 'nullable|integer',
         ]);
+    }
+
+    /** Availability opts (buffers/capacity/service ids) for a cart. */
+    protected function cartOpts(ServiceBooking $config, array $items): array
+    {
+        $ids = collect($items)->pluck('service_id')->map(fn ($i) => (int) $i)->all();
+        $rows = ServiceBookingService::where('service_booking_id', $config->id)
+            ->whereIn('id', $ids)
+            ->where('is_active', true)
+            ->get();
+
+        $bufBefore = 0;
+        $bufAfter  = 0;
+        $capacity  = null;
+        foreach ($rows as $service) {
+            if ($service->is_unavailable) {
+                continue;
+            }
+            $bufBefore = max($bufBefore, $service->effectiveBufferBefore($config));
+            $bufAfter  = max($bufAfter, $service->effectiveBufferAfter($config));
+            $svcCap    = max(1, (int) ($service->capacity ?? 1));
+            $capacity  = $capacity === null ? $svcCap : min($capacity, $svcCap);
+        }
+
+        return [
+            'service_ids'   => $ids,
+            'buffer_before' => $bufBefore,
+            'buffer_after'  => $bufAfter,
+            'capacity'      => $capacity ?? 1,
+        ];
+    }
+
+    /**
+     * Availability opts pinned to an existing booking: same staff member,
+     * the snapshotted buffers, and the group capacity of its services.
+     */
+    protected function bookingOpts(ServiceBookingRequest $booking): array
+    {
+        $config = $booking->serviceBooking;
+        $ids    = $booking->items->pluck('service_id')->filter()->map(fn ($i) => (int) $i)->all();
+        $opts   = $this->cartOpts($config, array_map(fn ($id) => ['service_id' => $id], $ids));
+
+        // Snapshotted buffers on the request win over the live catalog.
+        $opts['buffer_before'] = max($opts['buffer_before'] ?? 0, (int) ($booking->buffer_before_minutes ?? 0));
+        $opts['buffer_after']  = max($opts['buffer_after'] ?? 0, (int) ($booking->buffer_after_minutes ?? 0));
+        if ($booking->staff_id) {
+            $opts['staff_id'] = (int) $booking->staff_id;
+        }
+        $opts['ignore_request_id'] = $booking->id;
+
+        return $opts;
     }
 
     /**
@@ -820,7 +1200,7 @@ class ServiceBookingController extends Controller
     /** Full owner-facing config (includes inactive rows the builder edits). */
     protected function ownerConfigPayload(ServiceBooking $config, Link $link): array
     {
-        $config->load(['categories', 'services', 'availabilityRules', 'blockedDates']);
+        $config->load(['categories', 'services', 'availabilityRules', 'blockedDates', 'staff.services']);
         $byCat = $config->services->groupBy('category_id');
 
         return [
@@ -846,6 +1226,50 @@ class ServiceBookingController extends Controller
                 ->map(fn ($r) => $this->ownerRule($r))->values(),
             'blocked_dates' => $config->blockedDates->sortBy('date')
                 ->map(fn ($d) => $this->ownerBlockedDate($d))->values(),
+            'buffers' => [
+                'before' => $config->bufferBeforeMinutes(),
+                'after'  => $config->bufferAfterMinutes(),
+            ],
+            'self_service' => [
+                'allow_cancel'     => $config->selfServiceAllowsCancel(),
+                'allow_reschedule' => $config->selfServiceAllowsReschedule(),
+                'cutoff_hours'     => $config->selfServiceCutoffHours(),
+            ],
+            'calendar_sync' => [
+                'enabled'    => $config->calendarSyncEnabled(),
+                'account_id' => $config->calendarSyncAccountId(),
+                'allowed'    => (bool) $config->user?->getPlanFeature('service_booking_calendar_sync'),
+            ],
+            'staff' => $config->staff->sortBy('sort_order')->map(fn ($m) => $this->ownerStaff($m))->values(),
+            'staff_cap' => (int) ($config->user?->getPlanFeature('max_service_booking_staff') ?? 0),
+            'calendar_accounts' => \App\Modules\User\Models\CalendarAccount::where('user_id', $config->user_id)
+                ->orderBy('id')
+                ->get(['id', 'provider', 'display_name', 'account_email'])
+                ->map(fn ($a) => [
+                    'id'            => $a->id,
+                    'provider'      => $a->provider,
+                    'display_name'  => $a->display_name,
+                    'account_email' => $a->account_email,
+                ])->values(),
+        ];
+    }
+
+    /** Serialize a staff member for owner responses (Task #6325). */
+    protected function ownerStaff(\App\Modules\User\Models\ServiceBookingStaff $staff): array
+    {
+        $staff->loadMissing('services');
+
+        return [
+            'id'                  => $staff->id,
+            'name'                => $staff->name,
+            'title'               => $staff->title,
+            'bio'                 => $staff->bio,
+            'email'               => $staff->email,
+            'photo_url'           => $staff->photo_url,
+            'is_active'           => (bool) $staff->is_active,
+            'sort_order'          => (int) $staff->sort_order,
+            'calendar_account_id' => $staff->calendar_account_id,
+            'service_ids'         => $staff->services->pluck('id')->map(fn ($i) => (int) $i)->values()->all(),
         ];
     }
 
@@ -876,6 +1300,9 @@ class ServiceBookingController extends Controller
             'payment_mode'     => $s->payment_mode ?? \App\Modules\User\Models\ServiceBookingService::PAYMENT_MODE_NONE,
             'deposit_type'     => $s->deposit_type,
             'deposit_value'    => $s->deposit_value,
+            'capacity'              => max(1, (int) ($s->capacity ?? 1)),
+            'buffer_before_minutes' => $s->buffer_before_minutes !== null ? (int) $s->buffer_before_minutes : null,
+            'buffer_after_minutes'  => $s->buffer_after_minutes !== null ? (int) $s->buffer_after_minutes : null,
         ];
     }
 
@@ -883,6 +1310,7 @@ class ServiceBookingController extends Controller
     {
         return [
             'id'          => $rule->id,
+            'staff_id'    => $rule->staff_id !== null ? (int) $rule->staff_id : null,
             'day_of_week' => (int) $rule->day_of_week,
             'start_time'  => substr((string) $rule->start_time, 0, 5),
             'end_time'    => substr((string) $rule->end_time, 0, 5),
@@ -893,9 +1321,10 @@ class ServiceBookingController extends Controller
     protected function ownerBlockedDate(ServiceBookingBlockedDate $d): array
     {
         return [
-            'id'     => $d->id,
-            'date'   => \Carbon\Carbon::parse($d->date)->format('Y-m-d'),
-            'reason' => $d->reason,
+            'id'       => $d->id,
+            'staff_id' => $d->staff_id !== null ? (int) $d->staff_id : null,
+            'date'     => \Carbon\Carbon::parse($d->date)->format('Y-m-d'),
+            'reason'   => $d->reason,
         ];
     }
 
@@ -925,6 +1354,8 @@ class ServiceBookingController extends Controller
             'payment_amount_cents' => (int) ($b->payment_amount_cents ?? 0),
             'payment_currency'     => $b->payment_currency,
             'is_refundable'        => $b->isRefundable(),
+            'staff_id'             => $b->staff_id,
+            'staff_name'           => $b->relationLoaded('staff') ? $b->staff?->name : null,
             'created_at'           => optional($b->created_at)->toIso8601String(),
             'updated_at'           => optional($b->updated_at)->toIso8601String(),
             'items'                => $b->relationLoaded('items')

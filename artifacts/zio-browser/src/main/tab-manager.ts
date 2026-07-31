@@ -5,10 +5,15 @@
  * Each tab uses the session associated with the active browser profile so
  * workspace profiles are fully session-isolated.
  */
-import { BrowserWindow, WebContentsView, Menu, clipboard, session, type WebContents } from 'electron';
+import { BrowserWindow, WebContentsView, Menu, clipboard, dialog, session, type WebContents } from 'electron';
 import { parseOmniboxInput, type SearchEngineConfig, DEFAULT_SEARCH_ENGINE } from '../shared/omnibox';
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import { isInternalPageUrl, internalPageTitle } from '../shared/internal-pages';
+import {
+  buildVkFocusReporterScript,
+  parseVkFocusMessage,
+  type VkFocusPayload,
+} from '../shared/virtual-keyboard';
 import {
   type TabMode,
   type TabPane,
@@ -191,6 +196,12 @@ export class TabManager {
   private onZoomPersist?: (url: string, factor: number) => void;
   /** A pop-up was blocked by the per-site pop-up policy ('block-notify'). */
   private onPopupBlocked?: (pageUrl: string, popupUrl: string) => void;
+  /** Pixel height reserved at the bottom of the tab area for the virtual keyboard. */
+  private keyboardReserve = 0;
+  /** Returns whether the virtual keyboard feature is enabled (preference-backed). */
+  private resolveVkEnabled?: () => boolean;
+  /** A tab page reported which kind of editable field is focused. */
+  private onVkFocus?: (payload: VkFocusPayload) => void;
 
   constructor(win: BrowserWindow, options: TabManagerOptions = {}) {
     this.win = win;
@@ -221,6 +232,8 @@ export class TabManager {
     resolveSiteSettings?: (url: string) => { zoom: number | null; autoplay: string | null; popups: string | null } | null;
     onZoomPersist?: (url: string, factor: number) => void;
     onPopupBlocked?: (pageUrl: string, popupUrl: string) => void;
+    resolveVkEnabled?: () => boolean;
+    onVkFocus?: (payload: VkFocusPayload) => void;
   }): void {
     this.onTabStateChange = cbs.onTabStateChange;
     this.onTabCreated = cbs.onTabCreated;
@@ -244,6 +257,72 @@ export class TabManager {
     this.resolveSiteSettings = cbs.resolveSiteSettings;
     this.onZoomPersist = cbs.onZoomPersist;
     this.onPopupBlocked = cbs.onPopupBlocked;
+    this.resolveVkEnabled = cbs.resolveVkEnabled;
+    this.onVkFocus = cbs.onVkFocus;
+  }
+
+  // ── Virtual keyboard support ───────────────────────────────────────────────
+
+  /**
+   * Reserve pixels at the bottom of the tab area for the renderer-drawn
+   * docked virtual keyboard, shrinking every native view above it.
+   */
+  setKeyboardReserve(px: number): void {
+    const next = Math.max(0, Math.floor(px) || 0);
+    if (next === this.keyboardReserve) return;
+    this.keyboardReserve = next;
+    this.layoutActiveTab();
+  }
+
+  /**
+   * Wire virtual-keyboard focus reporting on a tab webContents: inject the
+   * page-side reporter on every load (when the feature is enabled) and relay
+   * its console-message signals to the renderer. Focus reports only matter
+   * for the ACTIVE tab — background views can't receive user focus.
+   */
+  private wireVkFocusReporting(wc: WebContents, tabId: TabId): void {
+    wc.on('dom-ready', () => {
+      if (this.resolveVkEnabled?.()) this.injectVkReporter(wc);
+    });
+    wc.on('console-message', (event) => {
+      const payload = parseVkFocusMessage(event.message ?? '');
+      if (!payload) return;
+      // Suppress the reporter line from normal console handling.
+      event.preventDefault?.();
+      if (this.activeTabId === tabId) this.onVkFocus?.(payload);
+    });
+  }
+
+  /** Inject the focus reporter into one page (idempotent via window guard). */
+  private injectVkReporter(wc: WebContents): void {
+    if (!isAlive(wc)) return;
+    const url = wc.getURL();
+    if (!/^(https?|file):/.test(url)) return;
+    wc.executeJavaScript(buildVkFocusReporterScript()).catch(() => { });
+  }
+
+  /**
+   * Inject the focus reporter into every live tab page. Called when the
+   * virtual-keyboard preference flips on so already-open pages start
+   * reporting without a reload.
+   */
+  injectVkReporterAll(): void {
+    for (const tab of this.tabs.values()) {
+      for (const view of [tab.view, tab.secondView]) {
+        if (view && isAlive(view.webContents)) this.injectVkReporter(view.webContents);
+      }
+    }
+  }
+
+  /**
+   * The webContents virtual-keyboard input should be injected into for a tab
+   * (the focused pane in a Website+Website split). Null for internal pages.
+   */
+  getFocusedWebContentsForTab(id: TabId): WebContents | null {
+    const tab = this.tabs.get(id);
+    if (!tab || this.isFocusedPaneInternal(tab)) return null;
+    const wc = this.focusedWebContents(tab);
+    return isAlive(wc) ? wc : null;
   }
 
   /** Stored per-site settings for a URL, or null (always null in private windows). */
@@ -416,6 +495,9 @@ export class TabManager {
       }
     });
 
+    // Virtual keyboard: focus reporting for this tab's page.
+    this.wireVkFocusReporting(wc, id);
+
     // Enforce the per-site auto-play policy once the page is ready and again
     // whenever media actually starts playing (covers late-started players).
     wc.on('did-finish-load', () => {
@@ -475,6 +557,27 @@ export class TabManager {
       const targetUrl = params.linkURL || params.srcURL || pageUrl;
 
       const menuItems: Electron.MenuItemConstructorOptions[] = [];
+      const isStandardPage = /^(https?|file):/.test(pageUrl);
+
+      // ── Standard navigation ───────────────────────────────────────────────
+      menuItems.push(
+        {
+          label: 'Back',
+          enabled: isAlive(wc) && wc.canGoBack(),
+          click: () => { if (isAlive(wc)) wc.goBack(); },
+        },
+        {
+          label: 'Forward',
+          enabled: isAlive(wc) && wc.canGoForward(),
+          click: () => { if (isAlive(wc)) wc.goForward(); },
+        },
+        {
+          label: 'Reload',
+          enabled: isStandardPage,
+          click: () => { if (isAlive(wc)) wc.reload(); },
+        },
+        { type: 'separator' },
+      );
 
       // ── Spell check — replacement suggestions + add-to-dictionary ─────────
       if (params.misspelledWord) {
@@ -618,6 +721,39 @@ export class TabManager {
         {
           label: 'Preview in Device Lab',
           click: () => { this.onDeviceLabPreview?.(params.linkURL || pageUrl); },
+        },
+      );
+
+      // ── Standard page actions ─────────────────────────────────────────────
+      menuItems.push(
+        { type: 'separator' },
+        {
+          label: 'Print…',
+          enabled: isStandardPage,
+          click: () => { if (isAlive(wc)) wc.print(); },
+        },
+        {
+          label: 'Save Page As…',
+          enabled: isStandardPage,
+          click: () => { void this.savePageAsFor(wc); },
+        },
+        {
+          label: 'View Page Source',
+          enabled: isStandardPage,
+          click: () => {
+            if (isAlive(wc)) {
+              const u = wc.getURL();
+              if (/^(https?|file):/.test(u)) this.createTab(`view-source:${u}`);
+            }
+          },
+        },
+        {
+          label: 'Inspect Element',
+          click: () => {
+            if (!isAlive(wc)) return;
+            wc.inspectElement(params.x, params.y);
+            if (wc.isDevToolsOpened()) wc.devToolsWebContents?.focus();
+          },
         },
       );
 
@@ -1149,6 +1285,9 @@ export class TabManager {
       }
     });
 
+    // Virtual keyboard: the split's second pane reports field focus too.
+    this.wireVkFocusReporting(wc, id);
+
     wc.on('will-navigate', (event, navUrl) => {
       const allowed = ['http:', 'https:', 'file:', 'about:'];
       try {
@@ -1216,6 +1355,12 @@ export class TabManager {
       area = { ...area, width: Math.max(0, area.width - zioReserve) };
     }
 
+    // Docked virtual keyboard: reserve its strip at the bottom so no native
+    // view can cover the renderer-drawn keys.
+    if (this.keyboardReserve > 0) {
+      area = { ...area, height: Math.max(0, area.height - this.keyboardReserve) };
+    }
+
     const attach = (v: WebContentsView) => {
       try { this.win.contentView.addChildView(v); } catch { }
     };
@@ -1230,7 +1375,9 @@ export class TabManager {
         // New Tab page is renderer-drawn — no native view may cover it.
         case 'browser': return tab.isNewTabPage ? null : tab.view;
         case 'dashboard': return tab.dashboardView;
+        // Ask Zio and My Files panes are renderer-drawn — no native view.
         case 'zio': return null;
+        case 'files': return null;
       }
     };
 
@@ -1446,6 +1593,54 @@ export class TabManager {
     void tab.view.webContents.loadURL(result.navigateUrl);
   }
 
+  /** Save the given webContents' page as complete HTML via a save dialog. */
+  private async savePageAsFor(wc: WebContents): Promise<void> {
+    if (!isAlive(wc)) return;
+    const url = wc.getURL();
+    if (!/^(https?|file):/.test(url)) return;
+    const title = (wc.getTitle() || 'page').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 100).trim() || 'page';
+    const { canceled, filePath } = await dialog.showSaveDialog(this.win, {
+      defaultPath: `${title}.html`,
+      filters: [
+        { name: 'Webpage, Complete', extensions: ['html'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+    });
+    if (canceled || !filePath || !isAlive(wc)) return;
+    try { await wc.savePage(filePath, 'HTMLComplete'); } catch { /* save failed — ignore */ }
+  }
+
+  /**
+   * True when the tab's focused pane is showing a renderer-drawn internal page
+   * (about:newtab / about:sayzio / …). The native webContents may still hold a
+   * stale prior URL there, so callers must not trust wc.getURL() in that case.
+   */
+  private isFocusedPaneInternal(tab: ManagedTab): boolean {
+    if (tab.mode === 'browser+browser' && tab.focusedPane === 'second' && tab.secondView && isAlive(tab.secondView.webContents)) {
+      return false; // secondary pane always hosts a real webContents page
+    }
+    return Boolean(tab.internalUrl) || tab.isNewTabPage;
+  }
+
+  /** Save the tab's active pane page as complete HTML (app-menu entry point). */
+  async savePageAs(id: TabId): Promise<void> {
+    const tab = this.tabs.get(id);
+    if (!tab || this.isFocusedPaneInternal(tab)) return;
+    await this.savePageAsFor(this.focusedWebContents(tab));
+  }
+
+  /** Open a view-source tab for the tab's current page (same tab manager, so
+   * private windows keep the private session). No-op on internal pages. */
+  viewPageSource(id: TabId): void {
+    const tab = this.tabs.get(id);
+    if (!tab || this.isFocusedPaneInternal(tab)) return;
+    const wc = this.focusedWebContents(tab);
+    if (!isAlive(wc)) return;
+    const url = wc.getURL();
+    if (!/^(https?|file):/.test(url)) return;
+    this.createTab(`view-source:${url}`);
+  }
+
   goBack(id: TabId): void {
     const tab = this.tabs.get(id);
     if (tab) this.focusedWebContents(tab).goBack();
@@ -1598,6 +1793,7 @@ export class TabManager {
         case 'browser': return tab.isNewTabPage ? null : tab.view;
         case 'dashboard': return tab.dashboardView;
         case 'zio': return null;
+        case 'files': return null;
       }
     };
     const views: WebContentsView[] = [];

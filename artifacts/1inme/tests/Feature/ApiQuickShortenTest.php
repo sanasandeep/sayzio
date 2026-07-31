@@ -81,12 +81,25 @@ class ApiQuickShortenTest extends TestCase
         );
     }
 
-    public function test_rejects_unshortenable_content(): void
+    public function test_plain_text_creates_text_page_link(): void
     {
         $user = $this->makeUser();
         $res = $this->post_($user, ['destination' => 'just some sentence copied from notes']);
 
-        $res->assertStatus(422)->assertJsonPath('error.code', 'not_shortenable');
+        $res->assertCreated()->assertJsonPath('data.kind', 'text');
+        $link = Link::withoutGlobalScopes()->find($res->json('data.id'));
+        $this->assertSame('text', $link->type);
+        $this->assertNull($link->long_url);
+        $this->assertSame('just some sentence copied from notes', data_get($link->settings, 'text.content'));
+    }
+
+    public function test_overlong_url_is_rejected_not_turned_into_text(): void
+    {
+        $user = $this->makeUser();
+        $url = 'https://example.com/?q=' . str_repeat('a', 2100);
+        $res = $this->post_($user, ['destination' => $url]);
+
+        $res->assertStatus(422);
         $this->assertSame(0, Link::withoutGlobalScopes()->where('user_id', $user->id)->count());
     }
 

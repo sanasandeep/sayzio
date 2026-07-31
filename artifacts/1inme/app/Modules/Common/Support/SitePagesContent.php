@@ -1503,6 +1503,7 @@ class SitePagesContent
             ['name' => 'Paid Page',        'icon' => 'fa-lock',                'color' => '#f59e0b', 'new' => true,  'desc' => 'A gated page that only unlocks after a one-time payment or subscription, perfect for premium content.'],
             ['name' => 'QR Code',          'icon' => 'fa-qrcode',              'color' => '#06b6d4', 'new' => true,  'desc' => 'A dynamic, styleable QR code that redirects anywhere you choose; re-point it any time without reprinting.'],
             ['name' => 'Forms',            'icon' => 'fa-list-check',          'color' => '#eab308', 'new' => true,  'desc' => 'A standalone form page with dozens of field types, conditional logic and instant notifications for every submission.'],
+            ['name' => 'Text Page',        'icon' => 'fa-align-left',          'color' => '#0ea5e9', 'new' => true,  'desc' => 'Paste any text and share it as a clean page visitors can read and copy with one tap.'],
         ];
     }
 
@@ -1551,6 +1552,12 @@ class SitePagesContent
                 ['name' => 'Contact Card', 'type' => 'vcf', 'icon' => 'fa-address-card', 'benefit' => 'Let visitors save your contact details in one tap.'],
                 ['name' => 'Reviews Page', 'type' => 'reviews', 'icon' => 'fa-star', 'benefit' => 'Collect and showcase feedback from your audience.'],
                 ['name' => 'Event', 'type' => 'ics', 'icon' => 'fa-calendar-day', 'benefit' => 'Promote your next event with tickets or RSVP built in.'],
+            ],
+            'text' => [
+                ['name' => 'Short Link', 'type' => 'url', 'icon' => 'fa-link', 'benefit' => 'Shorten the source link your text talks about and track clicks.'],
+                ['name' => 'QR Code', 'type' => 'qr', 'icon' => 'fa-qrcode', 'benefit' => 'Print a scannable code so people can pull up your text anywhere.'],
+                ['name' => 'File Share', 'type' => 'file', 'icon' => 'fa-file-arrow-down', 'benefit' => 'Attach the full document when plain text is not enough.'],
+                ['name' => 'Link in Bio', 'type' => 'biolink', 'icon' => 'fa-square-share-nodes', 'benefit' => 'Give readers one page with all your links and socials.'],
             ],
         ];
     }
@@ -1712,6 +1719,7 @@ class SitePagesContent
             'ics' => ['user.links.ics.create', []],
             'restaurant_menu' => ['user.links.create', ['type' => 'restaurant_menu']],
             'store_menu' => ['user.links.create', ['type' => 'store_menu']],
+            'text' => ['user.links.text.create', []],
             default => ['user.links.create', []],
         };
     }
@@ -1914,6 +1922,7 @@ class SitePagesContent
                     ['name' => 'Paid Page', 'icon' => 'fa-lock', 'description' => 'A gated page that only unlocks after a one-time payment or subscription, built on the same creator feed and access tiers as your other pages.'],
                     ['name' => 'QR Code', 'icon' => 'fa-qrcode', 'description' => 'A dynamic QR code you can style with your logo and brand colours; the destination is editable, so the same printed code keeps working forever, with scans tracked separately from clicks.'],
                     ['name' => 'Forms', 'icon' => 'fa-list-check', 'description' => 'A shareable, standalone form page with dozens of field types, conditional logic, design customization and email / SMS / webhook notifications, perfect for signups, surveys and lead capture.'],
+                    ['name' => 'Text Page', 'icon' => 'fa-align-left', 'description' => 'Paste or type any text and share it as a clean, tracked page — visitors can select the text or copy all of it with one tap.'],
                 ],
             ],
             self::aiSuiteFeaturesCategory(),

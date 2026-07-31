@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChromeBar } from './components/ChromeBar';
 import { ZioPanel } from './components/ZioPanel';
+import { FilesPane } from './components/FilesPane';
 import { DialerPanel } from './components/DialerPanel';
 import { NewTabPage } from './components/NewTabPage';
 import { AboutPage } from './components/AboutPages';
@@ -22,6 +23,7 @@ import type { PendingPermission } from './components/PermissionPrompt';
 import { SiteSettingsPanel } from './components/SiteSettingsPanel';
 import { ReadingListPanel } from './components/ReadingListPanel';
 import { SettingsPanel } from './components/SettingsPanel';
+import { VirtualKeyboard } from './components/VirtualKeyboard';
 import { SplitUrlBars } from './components/SplitUrlBars';
 import { useChromeOverlay } from './hooks/use-chrome-overlay';
 import { useTabStore } from './store/tab-store';
@@ -46,6 +48,18 @@ import {
   SPLIT_URL_BAR_HEIGHT,
 } from '../shared/window-mode';
 
+import {
+  VK_PREF_KEYS,
+  VK_DEFAULT_SETTINGS,
+  VK_DOCK_HEIGHT,
+  VK_SETTINGS_CHANGED_EVENT,
+  shouldAutoShow,
+  shouldAutoHide,
+  type VkSettings,
+  type VkFieldKind,
+  type VkFocusPayload,
+} from '../shared/virtual-keyboard';
+
 const FIRST_LAUNCH_KEY = 'zio_mode_picker_shown';
 
 export default function App() {
@@ -61,6 +75,11 @@ export default function App() {
   const [tabSearchOpen, setTabSearchOpen] = useState(false);
   const [clearDataShortcut, setClearDataShortcut] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+
+  // ── Virtual keyboard state ────────────────────────────────────────────────
+  const [vkSettings, setVkSettings] = useState<VkSettings>(VK_DEFAULT_SETTINGS);
+  const [vkOpen, setVkOpen] = useState(false);
+  const [vkFieldKind, setVkFieldKind] = useState<VkFieldKind>('none');
   // Live ratio while dragging the tab-split divider (null when not dragging).
   const [tabDragRatio, setTabDragRatio] = useState<number | null>(null);
   const tabDragRatioRef = useRef<number | null>(null);
@@ -173,6 +192,76 @@ export default function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  // ── Virtual keyboard: settings load + focus reports + view reserve ────────
+
+  // Load VK settings on mount and whenever the Settings panel saves a change.
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [enabled, autoShow, suggestions, learnHistory, selectionMode, expandOnSpace] = await Promise.all([
+          window.zio.prefs.get(VK_PREF_KEYS.ENABLED),
+          window.zio.prefs.get(VK_PREF_KEYS.AUTO_SHOW),
+          window.zio.prefs.get(VK_PREF_KEYS.SUGGESTIONS),
+          window.zio.prefs.get(VK_PREF_KEYS.LEARN_HISTORY),
+          window.zio.prefs.get(VK_PREF_KEYS.SELECTION_MODE),
+          window.zio.prefs.get(VK_PREF_KEYS.EXPAND_ON_SPACE),
+        ]) as (string | null)[];
+        if (cancelled) return;
+        setVkSettings({
+          enabled: enabled === '1',
+          autoShow: autoShow === null ? VK_DEFAULT_SETTINGS.autoShow : autoShow === '1',
+          suggestions: suggestions === null ? VK_DEFAULT_SETTINGS.suggestions : suggestions === '1',
+          learnHistory: learnHistory === null ? VK_DEFAULT_SETTINGS.learnHistory : learnHistory === '1',
+          selectionMode: selectionMode === 'dwell' ? 'dwell' : 'click',
+          expandOnSpace: expandOnSpace === null ? VK_DEFAULT_SETTINGS.expandOnSpace : expandOnSpace === '1',
+        });
+      } catch { /* keep defaults */ }
+    };
+    void load();
+    const onChanged = () => { void load(); };
+    window.addEventListener(VK_SETTINGS_CHANGED_EVENT, onChanged);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(VK_SETTINGS_CHANGED_EVENT, onChanged);
+    };
+  }, []);
+
+  // Keep a ref of the current settings for the focus listener.
+  const vkSettingsRef = useRef(vkSettings);
+  vkSettingsRef.current = vkSettings;
+
+  // Page field-focus reports from the main process.
+  useEffect(() => {
+    const listener = (...args: unknown[]) => {
+      const payload = args[0] as VkFocusPayload | undefined;
+      if (!payload || typeof payload.kind !== 'string') return;
+      setVkFieldKind(payload.kind);
+      if (shouldAutoShow(vkSettingsRef.current, payload.kind)) {
+        setVkOpen(true);
+      } else if (shouldAutoHide(vkSettingsRef.current, payload.kind)) {
+        // Blur or navigation reset focus to 'none' — auto-hide again.
+        setVkOpen(false);
+      }
+    };
+    window.zio.on('vk:focus', listener);
+    return () => window.zio.off('vk:focus', listener);
+  }, []);
+
+  // Closing the master toggle closes the keyboard too.
+  useEffect(() => {
+    if (!vkSettings.enabled && vkOpen) setVkOpen(false);
+  }, [vkSettings.enabled, vkOpen]);
+
+  // Reserve bottom space in the native tab views while the dock is visible.
+  const vkVisible = vkOpen && vkSettings.enabled && mode === 'browser';
+  useEffect(() => {
+    void window.zio.vk.setReserve(vkVisible ? VK_DOCK_HEIGHT : 0);
+    return () => { void window.zio.vk.setReserve(0); };
+  }, [vkVisible]);
+
+  const handleToggleVk = useCallback(() => setVkOpen(prev => !prev), []);
 
   // Listen for permission requests from the main process
   useEffect(() => {
@@ -322,8 +411,18 @@ export default function App() {
   const showDockedPanel = ((zioPanelOpen && zioPanelDocked && !isPrivate) || activeTabZioSplit) && !settingsOpen;
   const showOverlayPanel = zioPanelOpen && !zioPanelDocked && !isPrivate && !activeTabZioSplit && !settingsOpen;
 
+  // ── My Files pane presentation flags ───────────────────────────────────────
+  // Standalone 'files' and 'files+zio' render the Files pane in the content
+  // flex area (in files+zio the docked Zio panel takes the right strip).
+  // 'dashboard+files' / 'browser+files' render it absolutely to the RIGHT of
+  // the tab-split divider (the main process leaves that half empty — the
+  // 'files' pane has no native view).
+  const activeTabFilesEmbedded =
+    !isPrivate && (activeTabMode === 'files' || activeTabMode === 'files+zio') && !settingsOpen;
+
   // ── Tab split (two native panes) divider ──────────────────────────────────
   const activeTabPanes = parseTabMode(activeTabMode);
+  const activeTabFilesRight = !isPrivate && activeTabPanes.right === 'files' && !settingsOpen;
   const activeTabTwoNativePanes = !!activeTab && activeTabPanes.right !== null && activeTabPanes.right !== 'zio';
   const activeTabSplitRatio =
     tabDragRatio ??
@@ -666,6 +765,9 @@ export default function App() {
         onToggleDialer={handleToggleDialer}
         onOpenSettings={() => setSettingsOpen(prev => !prev)}
         settingsOpen={settingsOpen}
+        vkEnabled={vkSettings.enabled}
+        vkOpen={vkOpen}
+        onToggleVk={handleToggleVk}
       />
 
       {/* Content area */}
@@ -718,6 +820,13 @@ export default function App() {
               />
             </div>
           )}
+          {/* Full-area My Files — 'files' fills the tab; in 'files+zio' the
+              docked Zio panel takes the right strip and this fills the rest. */}
+          {activeTabFilesEmbedded && (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'stretch' }}>
+              <FilesPane onOpenAuth={() => setAuthModalOpen(true)} />
+            </div>
+          )}
         </div>
 
         {/* ── Dual address bars for Website + Website (one per pane) ────── */}
@@ -748,6 +857,25 @@ export default function App() {
             }}
             title="Drag to resize split"
           />
+        )}
+
+        {/* ── My Files right pane (dashboard+files / browser+files) ────────
+            The main process leaves the right half of the split empty (the
+            'files' pane has no native view); this renders the Files pane
+            there, tracking the divider ratio live while dragging. */}
+        {activeTabFilesRight && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: `calc(${activeTabSplitRatio * 100}% + ${Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2)}px)`,
+            right: 0,
+            display: 'flex',
+            alignItems: 'stretch',
+            zIndex: 5,
+          }}>
+            <FilesPane onOpenAuth={() => setAuthModalOpen(true)} />
+          </div>
         )}
 
         {/* ── Docked Zio panel (push layout) ─────────────────────────────── */}
@@ -847,6 +975,17 @@ export default function App() {
           <FindBar activeTabId={activeTabId} />
         )}
       </div>
+
+      {/* ── Docked virtual keyboard — below the tab area (native views are
+          shrunk by VK_DOCK_HEIGHT while visible, so the dock never overlaps
+          web content). ─────────────────────────────────────────────────── */}
+      {vkVisible && (
+        <VirtualKeyboard
+          settings={vkSettings}
+          fieldKind={vkFieldKind}
+          onClose={() => setVkOpen(false)}
+        />
+      )}
 
       {/* Downloads panel — anchored to top-right of the chrome bar */}
       {downloadsPanelOpen && (

@@ -76,7 +76,7 @@ async function shortenAndCopy(destination: string, title?: string, openTabId?: n
     // shortens), fall back to the persisted preferred domain from the
     // popup's picker so background-created links share the branded host.
     const effectiveDomainId = domainId !== undefined ? domainId : (settings.shortenDomainId ?? null);
-    let result: { id: number; short_url: string; long_url: string; kind: "url" | "email" | "phone" };
+    let result: { id: number; short_url: string; long_url: string | null; kind: "url" | "email" | "phone" | "text" };
     try {
       result = await api.quickShorten(destination, alias, settings.workspaceId, effectiveDomainId);
     } catch (e) {
@@ -123,7 +123,7 @@ async function shortenAndCopy(destination: string, title?: string, openTabId?: n
       } catch { /* host permission may be missing on chrome:// pages */ }
     }
 
-    notify("Shortened with Sayzio", shortUrl);
+    notify(result.kind === "text" ? "Text page created with Sayzio" : "Shortened with Sayzio", shortUrl);
     return { ok: true, shortUrl, linkId: result.id };
   } catch (e) {
     const msg = e instanceof ApiError ? e.message : (e as Error).message || "Shorten failed";
@@ -664,7 +664,7 @@ browser.contextMenus?.onClicked.addListener(async (info, tab) => {
     if (!sel) { notify("Zio Extension", "No text selected."); return; }
     // Pass the raw selection through — the quick-shorten API classifies
     // URLs, bare domains, emails (→ mailto:) and phone numbers (→ tel:)
-    // server-side and answers `not_shortenable` for anything else.
+    // server-side; anything else becomes a shareable text-page link.
     const result = await shortenAndCopy(sel, undefined, tab.id);
     if (!result.ok) notify("Zio Extension — error", result.error);
   } else if (info.menuItemId === "1inme-qr-selection") {
@@ -939,14 +939,34 @@ if ((browser as any).omnibox) {
   let aliasCheckSeq = 0;
   // Tiny verdict cache so backspacing/retyping the same alias doesn't
   // re-hit the API within the same service-worker lifetime.
-  const aliasVerdictCache = new Map<string, string>();
+  const aliasVerdictCache = new Map<string, { description: string; alternatives: string[] }>();
 
-  function aliasVerdictDescription(alias: string, r: AliasCheckResult): string {
-    if (r.status === "available") return `✓ "${alias}" is available`;
-    const label =
+  function aliasVerdict(alias: string, r: AliasCheckResult): { description: string; alternatives: string[] } {
+    if (r.status === "available") return { description: `✓ "${alias}" is available`, alternatives: [] };
+    const description =
       r.status === "taken" ? `✕ "${alias}" is taken` : `✕ "${alias}": ${r.message || r.status.replace(/_/g, " ")}`;
-    const sugg = r.suggestions?.length ? ` — try: ${r.suggestions.slice(0, 3).join(", ")}` : "";
-    return label + sugg;
+    return { description, alternatives: (r.suggestions || []).slice(0, 3) };
+  }
+
+  // Build the omnibox suggestion rows for a checked alias: the verdict line
+  // first, then (when the alias is unavailable) each server-suggested
+  // back-half as its own selectable row whose content re-targets the same
+  // destination — arrow-down + Enter shortens with that suggestion.
+  function aliasSuggestionRows(
+    text: string,
+    destination: string,
+    verdict: { description: string; alternatives: string[] },
+  ): Array<{ content: string; description: string }> {
+    const rows: Array<{ content: string; description: string }> = [
+      { content: text, description: verdict.description },
+    ];
+    for (const alt of verdict.alternatives) {
+      rows.push({
+        content: `${destination} ${alt}`,
+        description: `Use "${alt}" instead — shorten ${destination} with this back-half`,
+      });
+    }
+    return rows;
   }
 
   (browser as any).omnibox.onInputChanged.addListener(
@@ -963,9 +983,10 @@ if ((browser as any).omnibox) {
         return;
       }
 
+      const destination = parts[0];
       const cached = aliasVerdictCache.get(alias);
       if (cached) {
-        suggest([{ content: text, description: cached }]);
+        suggest(aliasSuggestionRows(text, destination, cached));
         return;
       }
 
@@ -980,13 +1001,13 @@ if ((browser as any).omnibox) {
           if (!settings.token) return; // signed out — no live check
           const result = await api.checkAlias(alias);
           if (seq !== aliasCheckSeq) return; // input changed since — stale
-          const description = aliasVerdictDescription(alias, result);
-          aliasVerdictCache.set(alias, description);
+          const verdict = aliasVerdict(alias, result);
+          aliasVerdictCache.set(alias, verdict);
           if (aliasVerdictCache.size > 100) {
             const oldest = aliasVerdictCache.keys().next().value;
             if (oldest !== undefined) aliasVerdictCache.delete(oldest);
           }
-          suggest([{ content: text, description }]);
+          suggest(aliasSuggestionRows(text, destination, verdict));
         } catch { /* offline / API error — leave the checking line as-is */ }
       }, ALIAS_CHECK_DEBOUNCE_MS);
     },

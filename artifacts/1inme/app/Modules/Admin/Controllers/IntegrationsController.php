@@ -132,6 +132,40 @@ class IntegrationsController extends Controller
     }
 
     // ═════════════════════════════════════════════════════════════
+    // Google Calendar OAuth (Service Booking two-way sync)
+    // ═════════════════════════════════════════════════════════════
+
+    public function editGoogleCalendar()
+    {
+        return view('admin.integrations.google-calendar', [
+            'status'       => PlatformServiceSettings::googleCalendarStatus(),
+            'clientId'     => PlatformServiceSettings::googleCalendarClientId(),
+            'hasSecret'    => PlatformServiceSettings::googleCalendarClientSecret() !== null,
+            'maskedSecret' => PlatformServiceSettings::maskedGoogleCalendarClientSecret(),
+        ]);
+    }
+
+    public function updateGoogleCalendar(Request $request)
+    {
+        $data = $request->validate([
+            'client_id'           => 'nullable|string|max:255',
+            'client_secret'       => 'nullable|string|max:255',
+            'clear_client_secret' => 'nullable|boolean',
+        ]);
+
+        PlatformServiceSettings::setGoogleCalendarClientId($data['client_id'] ?? null);
+
+        if ($request->boolean('clear_client_secret')) {
+            PlatformServiceSettings::setGoogleCalendarClientSecret(null);
+        } elseif (!empty($data['client_secret'])) {
+            PlatformServiceSettings::setGoogleCalendarClientSecret($data['client_secret']);
+        }
+
+        return redirect()->route('admin.integrations.google-calendar.edit')
+            ->with('success', 'Google Calendar OAuth settings saved.');
+    }
+
+    // ═════════════════════════════════════════════════════════════
     // Google Custom Search (AI builder image search)
     // ═════════════════════════════════════════════════════════════
 

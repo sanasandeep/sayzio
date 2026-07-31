@@ -149,6 +149,7 @@ const api = {
     recent: () => ipcRenderer.invoke('downloads:recent'),
     search: (q: string) => ipcRenderer.invoke('downloads:search', q),
     open: (filePath: string) => ipcRenderer.invoke('downloads:open', filePath),
+    openInTab: (filePath: string) => ipcRenderer.invoke('downloads:open-in-tab', filePath),
     show: (filePath: string) => ipcRenderer.invoke('downloads:show', filePath),
     exists: (filePath: string) => ipcRenderer.invoke('downloads:exists', filePath),
     choosePath: () => ipcRenderer.invoke('downloads:choose-path'),
@@ -180,6 +181,19 @@ const api = {
     reveal: (id: string) => ipcRenderer.invoke('passwords:reveal', id),
     delete: (id: string) => ipcRenderer.invoke('passwords:delete', id),
     deleteAll: () => ipcRenderer.invoke('passwords:delete-all'),
+  },
+
+  // ── Virtual keyboard ──────────────────────────────────────────────────────
+  vk: {
+    insertText: (text: string) => ipcRenderer.invoke('vk:insert-text', text) as Promise<boolean>,
+    sendKey: (key: string) => ipcRenderer.invoke('vk:send-key', key) as Promise<boolean>,
+    setReserve: (px: number) => ipcRenderer.invoke('vk:set-reserve', px) as Promise<boolean>,
+    recordWords: (words: string[], pairs: Array<[string, string]> = []) =>
+      ipcRenderer.invoke('vk:record-words', words, pairs) as Promise<boolean>,
+    clearHistory: () => ipcRenderer.invoke('vk:clear-history') as Promise<boolean>,
+    stripShow: () => ipcRenderer.invoke('vk:strip-show') as Promise<boolean>,
+    stripUpdate: (payload: unknown) => ipcRenderer.invoke('vk:strip-update', payload) as Promise<boolean>,
+    stripHide: () => ipcRenderer.invoke('vk:strip-hide') as Promise<boolean>,
   },
 
   // ── Spell check ───────────────────────────────────────────────────────────
@@ -440,6 +454,10 @@ const api = {
       'tracker:blocked-count',
       // Generic message toast (e.g. "Reader mode isn't available")
       'toast:show',
+      // Virtual keyboard — page field-focus reports
+      'vk:focus',
+      // Virtual keyboard — floating strip suggestion selected (index payload)
+      'vk:strip-select',
     ]);
     if (!ALLOWED_CHANNELS.has(channel)) return;
     const wrapper = (_: unknown, ...args: unknown[]) => listener(...args);

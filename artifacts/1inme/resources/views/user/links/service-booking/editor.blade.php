@@ -214,6 +214,94 @@
                 </template>
             </div>
 
+            <!-- Buffers (Task #6325) -->
+            <div class="sb-card" x-show="config.mode === 'booking'">
+                <h5>Buffers</h5>
+                <p class="text-xs mb-3" style="color:var(--text-muted)">Padding kept free before and after every appointment. Per-service buffers (in the service editor) override these when larger.</p>
+                <div class="sb-row" style="display:flex;gap:10px">
+                    <div style="flex:1"><label class="sb-label">Before (min)</label><input class="sb-input" type="number" min="0" max="480" step="5" x-model="buffers.before" @change="saveSettings()"></div>
+                    <div style="flex:1"><label class="sb-label">After (min)</label><input class="sb-input" type="number" min="0" max="480" step="5" x-model="buffers.after" @change="saveSettings()"></div>
+                </div>
+            </div>
+
+            <!-- Visitor self-service (Task #6325) -->
+            <div class="sb-card" x-show="config.mode === 'booking'">
+                <h5>Visitor changes</h5>
+                <p class="text-xs mb-3" style="color:var(--text-muted)">Let visitors reschedule or cancel their own booking from their status page. You're notified of every change.</p>
+                <div class="sb-row">
+                    <label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)">
+                        <input type="checkbox" x-model="selfService.allow_reschedule" @change="saveSettings()"> Allow rescheduling
+                    </label>
+                </div>
+                <div class="sb-row">
+                    <label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)">
+                        <input type="checkbox" x-model="selfService.allow_cancel" @change="saveSettings()"> Allow cancelling
+                    </label>
+                </div>
+                <div class="sb-row">
+                    <label class="sb-label">Cutoff (hours before start)</label>
+                    <input class="sb-input" type="number" min="0" max="720" x-model="selfService.cutoff_hours" @change="saveSettings()">
+                    <p class="text-xs mt-1" style="color:var(--text-muted)">Changes lock this many hours before the appointment. 0 = allowed until start time.</p>
+                </div>
+            </div>
+
+            <!-- Google Calendar sync (Task #6325) -->
+            <div class="sb-card" x-show="config.mode === 'booking'">
+                <h5>Calendar sync @if(!$calendarSyncAllowed)<span class="sb-pill">Upgrade</span>@endif</h5>
+                <p class="text-xs mb-3" style="color:var(--text-muted)">Busy times on the linked Google Calendar block booking slots, and confirmed bookings are pushed to it.</p>
+                @if($calendarSyncAllowed)
+                    <div class="sb-row">
+                        <label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)">
+                            <input type="checkbox" x-model="calendarSync.enabled" @change="saveSettings()"> Enable calendar sync
+                        </label>
+                    </div>
+                    <div class="sb-row" x-show="calendarSync.enabled">
+                        <label class="sb-label">Calendar account</label>
+                        <select class="sb-select" x-model="calendarSync.account_id" @change="saveSettings()">
+                            <option value="">— None (staff calendars only) —</option>
+                            <template x-for="a in calendarAccounts" :key="a.id">
+                                <option :value="a.id" x-text="a.label"></option>
+                            </template>
+                        </select>
+                        <template x-if="calendarAccounts.length === 0">
+                            <p class="text-xs mt-1" style="color:var(--text-muted)">No calendar accounts connected yet. Connect Google Calendar in <a href="{{ route('user.settings.tab', 'integrations') }}" style="color:#5c83ff">Settings → Integrations</a>.</p>
+                        </template>
+                    </div>
+                @else
+                    <p class="text-xs" style="color:var(--text-muted)">Calendar sync isn't included in your plan. <a href="{{ route('user.upgrade') }}" style="color:#5c83ff">Upgrade</a> to unlock it.</p>
+                @endif
+            </div>
+
+            <!-- Team members (Task #6325) -->
+            <div class="sb-card" x-show="config.mode === 'booking'">
+                <h5 style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                    <span>Team members <button class="sb-btn sm" @click="openStaff()"><i class="fas fa-plus"></i></button></span>
+                </h5>
+                <p class="text-xs mb-3" style="color:var(--text-muted)">Visitors can pick a team member (or "Any available"). Each member can have their own services, hours and days off.</p>
+                <template x-for="(m, mi) in staff" :key="m.id">
+                    <div class="sb-item" :style="m.is_active ? '' : 'opacity:.55'">
+                        <img x-show="m.photo_url" :src="m.photo_url" alt="" style="width:44px;height:44px;border-radius:999px;object-fit:cover;">
+                        <div class="meta">
+                            <div class="nm" x-text="m.name"></div>
+                            <div class="ds" x-show="m.title" x-text="m.title"></div>
+                            <div class="ds" x-text="staffServicesLabel(m)"></div>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <button class="sb-btn sm ghost" title="Move up" :disabled="mi===0" @click="moveStaff(m,-1)"><i class="fas fa-arrow-up"></i></button>
+                            <button class="sb-btn sm ghost" title="Move down" :disabled="mi===staff.length-1" @click="moveStaff(m,1)"><i class="fas fa-arrow-down"></i></button>
+                            <button class="sb-btn sm ghost" @click="openStaff(m)"><i class="fas fa-pen"></i></button>
+                            <button class="sb-btn sm danger" @click="deleteStaff(m)"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                </template>
+                <template x-if="staff.length === 0">
+                    <p class="text-sm" style="color:var(--text-muted)">No team members yet, bookings use the page-level schedule.</p>
+                </template>
+                @if($staffCap !== -1)
+                    <p class="text-xs mt-2" style="color:var(--text-muted)">Your plan allows up to {{ max(0, $staffCap) }} team {{ \Illuminate\Support\Str::plural('member', max(0, $staffCap)) }} per booking page.</p>
+                @endif
+            </div>
+
             <!-- Weekly availability -->
             <div class="sb-card" x-show="config.mode === 'booking'">
                 <h5>Weekly hours</h5>
@@ -224,6 +312,7 @@
                         <template x-for="r in rulesFor(d.idx)" :key="r.id">
                             <span style="display:inline-flex;align-items:center;gap:4px;background:var(--bg-glass-input);border:1px solid var(--border-glass);border-radius:999px;padding:3px 6px 3px 10px;font-size:12px;color:var(--text-primary)">
                                 <span x-text="r.start_time + '–' + r.end_time"></span>
+                                <span x-show="r.staff_id" style="color:var(--text-muted)" x-text="'· ' + staffName(r.staff_id)"></span>
                                 <button class="sb-btn sm danger" style="padding:2px 7px" @click="deleteRule(r)"><i class="fas fa-times"></i></button>
                             </span>
                         </template>
@@ -242,6 +331,7 @@
                     <div class="sb-table-row">
                         <span style="color:var(--text-primary)">
                             <strong x-text="b.date"></strong>
+                            <span style="color:var(--text-muted)" x-show="b.staff_id" x-text="' · ' + staffName(b.staff_id)"></span>
                             <span style="color:var(--text-muted)" x-show="b.reason" x-text="' · ' + b.reason"></span>
                         </span>
                         <button class="sb-btn sm danger" @click="deleteBlocked(b)"><i class="fas fa-trash"></i></button>
@@ -300,6 +390,13 @@
                     <img :src="svcModal.photo_url" alt="Preview" style="margin-top:8px;max-height:120px;border-radius:10px;object-fit:contain" x-on:error="$el.style.display='none'" x-on:load="$el.style.display='block'">
                 </template>
             </div>
+            <div class="sb-row" style="display:flex;gap:10px">
+                <div style="flex:1"><label class="sb-label">Group size (spots per slot)</label><input class="sb-input" type="number" min="1" max="500" x-model="svcModal.capacity" placeholder="1"></div>
+            </div>
+            <div class="sb-row" style="display:flex;gap:10px">
+                <div style="flex:1"><label class="sb-label">Buffer before (min)</label><input class="sb-input" type="number" min="0" max="480" step="5" x-model="svcModal.buffer_before_minutes" placeholder="Page default"></div>
+                <div style="flex:1"><label class="sb-label">Buffer after (min)</label><input class="sb-input" type="number" min="0" max="480" step="5" x-model="svcModal.buffer_after_minutes" placeholder="Page default"></div>
+            </div>
             <div class="sb-row"><label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)"><input type="checkbox" x-model="svcModal.is_unavailable"> Unavailable (shown but not bookable)</label></div>
             <div class="flex justify-end gap-2">
                 <button class="sb-btn ghost" @click="svcModal.open=false">Cancel</button>
@@ -316,9 +413,58 @@
                 <div style="flex:1"><label class="sb-label">From</label><input class="sb-input" type="time" x-model="ruleModal.start_time"></div>
                 <div style="flex:1"><label class="sb-label">To</label><input class="sb-input" type="time" x-model="ruleModal.end_time"></div>
             </div>
+            <div class="sb-row" x-show="staff.length > 0">
+                <label class="sb-label">Applies to</label>
+                <select class="sb-select" x-model="ruleModal.staff_id">
+                    <option value="">Whole page (everyone)</option>
+                    <template x-for="m in staff" :key="m.id"><option :value="m.id" x-text="m.name"></option></template>
+                </select>
+                <p class="text-xs mt-1" style="color:var(--text-muted)">A member with their own hours ignores the page-level hours.</p>
+            </div>
             <div class="flex justify-end gap-2">
                 <button class="sb-btn ghost" @click="ruleModal.open=false">Cancel</button>
                 <button class="sb-btn" @click="saveRule()">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff modal (Task #6325) -->
+    <div class="sb-modal-bg" x-show="staffModal.open" x-cloak @click.self="staffModal.open=false">
+        <div class="sb-modal">
+            <h5 style="color:var(--text-primary);font-weight:700;margin-bottom:14px" x-text="staffModal.id ? 'Edit team member' : 'New team member'"></h5>
+            <div class="sb-row"><label class="sb-label">Name</label><input class="sb-input" x-model="staffModal.name"></div>
+            <div class="sb-row"><label class="sb-label">Title (optional)</label><input class="sb-input" x-model="staffModal.title" maxlength="120" placeholder="e.g. Senior stylist"></div>
+            <div class="sb-row"><label class="sb-label">Bio (optional)</label><textarea class="sb-textarea" x-model="staffModal.bio"></textarea></div>
+            <div class="sb-row">
+                <label class="sb-label">Notification email (optional)</label>
+                <input class="sb-input" type="email" x-model="staffModal.email" maxlength="190" placeholder="member@example.com">
+                <p class="text-xs mt-1" style="color:var(--text-muted)">When set, this member gets an email whenever a booking is placed, rescheduled or cancelled for them — plus appointment reminders.</p>
+            </div>
+            <div class="sb-row"><label class="sb-label">Photo URL (optional)</label><input class="sb-input" x-model="staffModal.photo_url" placeholder="https://…"></div>
+            <div class="sb-row">
+                <label class="sb-label">Services this member performs</label>
+                <p class="text-xs mb-2" style="color:var(--text-muted)">Leave all unchecked to allow every service.</p>
+                <template x-for="s in services" :key="s.id">
+                    <label style="display:flex;gap:8px;align-items:center;color:var(--text-primary);padding:3px 0">
+                        <input type="checkbox" :value="s.id" @change="toggleStaffService(s.id)" :checked="staffModal.service_ids.includes(s.id)">
+                        <span x-text="s.name"></span>
+                    </label>
+                </template>
+            </div>
+            @if($calendarSyncAllowed)
+                <div class="sb-row">
+                    <label class="sb-label">Google Calendar (optional)</label>
+                    <select class="sb-select" x-model="staffModal.calendar_account_id">
+                        <option value="">— None —</option>
+                        <template x-for="a in calendarAccounts" :key="a.id"><option :value="a.id" x-text="a.label"></option></template>
+                    </select>
+                    <p class="text-xs mt-1" style="color:var(--text-muted)">Busy times on this calendar block this member's slots.</p>
+                </div>
+            @endif
+            <div class="sb-row"><label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)"><input type="checkbox" x-model="staffModal.is_active"> Active (bookable)</label></div>
+            <div class="flex justify-end gap-2">
+                <button class="sb-btn ghost" @click="staffModal.open=false">Cancel</button>
+                <button class="sb-btn" @click="saveStaff()">Save</button>
             </div>
         </div>
     </div>
@@ -329,6 +475,13 @@
             <h5 style="color:var(--text-primary);font-weight:700;margin-bottom:14px">Block a date</h5>
             <div class="sb-row"><label class="sb-label">Date</label><input class="sb-input" type="date" x-model="blockedModal.date"></div>
             <div class="sb-row"><label class="sb-label">Reason (optional)</label><input class="sb-input" x-model="blockedModal.reason" maxlength="160" placeholder="Holiday"></div>
+            <div class="sb-row" x-show="staff.length > 0">
+                <label class="sb-label">Applies to</label>
+                <select class="sb-select" x-model="blockedModal.staff_id">
+                    <option value="">Whole page (everyone)</option>
+                    <template x-for="m in staff" :key="m.id"><option :value="m.id" x-text="m.name"></option></template>
+                </select>
+            </div>
             <div class="flex justify-end gap-2">
                 <button class="sb-btn ghost" @click="blockedModal.open=false">Cancel</button>
                 <button class="sb-btn" @click="saveBlocked()">Block</button>
@@ -340,11 +493,16 @@
 <script>
 @php
     $sbCategories = $config->categories->map(fn($c)=>['id'=>$c->id,'name'=>$c->name,'description'=>$c->description])->values();
-    $sbServices = $config->services->map(fn($s)=>['id'=>$s->id,'category_id'=>$s->category_id,'name'=>$s->name,'description'=>$s->description,'price'=>$s->price,'duration_minutes'=>$s->duration_minutes,'photo_url'=>$s->photo_url,'is_unavailable'=>$s->is_unavailable])->values();
-    $sbRules = $config->availabilityRules->map(fn($r)=>['id'=>$r->id,'day_of_week'=>$r->day_of_week,'start_time'=>substr((string)$r->start_time,0,5),'end_time'=>substr((string)$r->end_time,0,5)])->values();
-    $sbBlocked = $config->blockedDates->map(fn($b)=>['id'=>$b->id,'date'=>$b->date?->format('Y-m-d'),'reason'=>$b->reason])->values();
+    $sbServices = $config->services->map(fn($s)=>['id'=>$s->id,'category_id'=>$s->category_id,'name'=>$s->name,'description'=>$s->description,'price'=>$s->price,'duration_minutes'=>$s->duration_minutes,'photo_url'=>$s->photo_url,'is_unavailable'=>$s->is_unavailable,'capacity'=>$s->capacity,'buffer_before_minutes'=>$s->buffer_before_minutes,'buffer_after_minutes'=>$s->buffer_after_minutes])->values();
+    $sbRules = $config->availabilityRules->map(fn($r)=>['id'=>$r->id,'staff_id'=>$r->staff_id ? (int)$r->staff_id : null,'day_of_week'=>$r->day_of_week,'start_time'=>substr((string)$r->start_time,0,5),'end_time'=>substr((string)$r->end_time,0,5)])->values();
+    $sbBlocked = $config->blockedDates->map(fn($b)=>['id'=>$b->id,'staff_id'=>$b->staff_id ? (int)$b->staff_id : null,'date'=>$b->date?->format('Y-m-d'),'reason'=>$b->reason])->values();
     $sbConfigData = ['mode' => $config->mode, 'currency' => $config->currency, 'accent_color' => $config->accent_color, 'slot_length_minutes' => $config->slot_length_minutes, 'lead_time_minutes' => $config->lead_time_minutes, 'max_days_ahead' => $config->max_days_ahead, 'timezone' => $config->timezone, 'whatsapp_number' => $config->settings['whatsapp_number'] ?? ''];
     $sbTaxData = ['enabled' => $config->taxEnabled(), 'rate' => $config->taxRate(), 'inclusive' => $config->taxInclusive(), 'label' => $config->taxLabel()];
+    $sbBuffers = ['before' => $config->bufferBeforeMinutes(), 'after' => $config->bufferAfterMinutes()];
+    $sbSelfService = ['allow_cancel' => $config->selfServiceAllowsCancel(), 'allow_reschedule' => $config->selfServiceAllowsReschedule(), 'cutoff_hours' => $config->selfServiceCutoffHours()];
+    $sbCalendarSync = ['enabled' => $config->calendarSyncEnabled(), 'account_id' => $config->calendarSyncAccountId() ?: ''];
+    $sbStaff = $config->staff->map(fn($m)=>['id'=>$m->id,'name'=>$m->name,'title'=>$m->title,'bio'=>$m->bio,'email'=>$m->email,'photo_url'=>$m->photo_url,'is_active'=>(bool)$m->is_active,'calendar_account_id'=>$m->calendar_account_id ?: '','service_ids'=>$m->services->pluck('id')->map(fn($i)=>(int)$i)->values()->all()])->values();
+    $sbCalAccounts = $calendarAccounts->map(fn($a)=>['id'=>$a->id,'label'=>trim(($a->display_name ?: ucfirst($a->provider)) . ($a->account_email ? ' · '.$a->account_email : ''))])->values();
 @endphp
 function serviceBookingEditor() {
     return {
@@ -354,12 +512,18 @@ function serviceBookingEditor() {
         services: @json($sbServices),
         rules: @json($sbRules),
         blockedDates: @json($sbBlocked),
+        buffers: @json($sbBuffers),
+        selfService: @json($sbSelfService),
+        calendarSync: @json($sbCalendarSync),
+        staff: @json($sbStaff),
+        calendarAccounts: @json($sbCalAccounts),
+        staffModal: { open:false, id:null, name:'', title:'', bio:'', email:'', photo_url:'', is_active:true, calendar_account_id:'', service_ids:[] },
         days: [{idx:1,short:'Mon'},{idx:2,short:'Tue'},{idx:3,short:'Wed'},{idx:4,short:'Thu'},{idx:5,short:'Fri'},{idx:6,short:'Sat'},{idx:0,short:'Sun'}],
         savedMsg: '',
         catModal: { open:false, id:null, name:'', description:'' },
         svcModal: { open:false, id:null, category_id:null, name:'', description:'', price:'', duration_minutes:30, photo_url:'', is_unavailable:false },
-        ruleModal: { open:false, day_of_week:1, start_time:'09:00', end_time:'17:00' },
-        blockedModal: { open:false, date:'', reason:'' },
+        ruleModal: { open:false, day_of_week:1, start_time:'09:00', end_time:'17:00', staff_id:'' },
+        blockedModal: { open:false, date:'', reason:'', staff_id:'' },
         base: @json(rtrim(url('/user/links/'.$link->id.'/service-booking'), '/')),
         uploadUrl: @json(route('user.files.upload')),
         csrf: @json(csrf_token()),
@@ -415,6 +579,15 @@ function serviceBookingEditor() {
                 tax_rate:parseFloat(this.tax.rate||0),
                 tax_inclusive:!!this.tax.inclusive,
                 tax_label:this.tax.label||'GST',
+                buffer_before_minutes:parseInt(this.buffers.before||0),
+                buffer_after_minutes:parseInt(this.buffers.after||0),
+                self_service_allow_cancel:!!this.selfService.allow_cancel,
+                self_service_allow_reschedule:!!this.selfService.allow_reschedule,
+                self_service_cutoff_hours:parseInt(this.selfService.cutoff_hours||0),
+                @if($calendarSyncAllowed)
+                calendar_sync_enabled:!!this.calendarSync.enabled,
+                calendar_sync_account_id:this.calendarSync.account_id ? parseInt(this.calendarSync.account_id) : null,
+                @endif
             });
             this.savedMsg = 'Saved ✓'; setTimeout(()=>this.savedMsg='', 1500);
         },
@@ -437,11 +610,14 @@ function serviceBookingEditor() {
             await this.api('POST','/categories/reorder', { order: arr.map(c=>c.id) });
         },
         openService(catId, svc){ this.svcModal = svc
-            ? {open:true,id:svc.id,category_id:svc.category_id,name:svc.name,description:svc.description||'',price:svc.price,duration_minutes:svc.duration_minutes,photo_url:svc.photo_url||'',is_unavailable:!!svc.is_unavailable}
-            : {open:true,id:null,category_id:catId||null,name:'',description:'',price:'',duration_minutes:30,photo_url:'',is_unavailable:false}; },
+            ? {open:true,id:svc.id,category_id:svc.category_id,name:svc.name,description:svc.description||'',price:svc.price,duration_minutes:svc.duration_minutes,photo_url:svc.photo_url||'',is_unavailable:!!svc.is_unavailable,capacity:svc.capacity||1,buffer_before_minutes:svc.buffer_before_minutes ?? '',buffer_after_minutes:svc.buffer_after_minutes ?? ''}
+            : {open:true,id:null,category_id:catId||null,name:'',description:'',price:'',duration_minutes:30,photo_url:'',is_unavailable:false,capacity:1,buffer_before_minutes:'',buffer_after_minutes:''}; },
         async saveService(){
             if (!this.svcModal.name.trim()) return;
-            const payload = { category_id:this.svcModal.category_id||null, name:this.svcModal.name, description:this.svcModal.description, price:parseFloat(this.svcModal.price||0), duration_minutes:parseInt(this.svcModal.duration_minutes||30), photo_url:this.svcModal.photo_url||null, is_unavailable:this.svcModal.is_unavailable };
+            const payload = { category_id:this.svcModal.category_id||null, name:this.svcModal.name, description:this.svcModal.description, price:parseFloat(this.svcModal.price||0), duration_minutes:parseInt(this.svcModal.duration_minutes||30), photo_url:this.svcModal.photo_url||null, is_unavailable:this.svcModal.is_unavailable,
+                capacity: this.svcModal.capacity !== '' && this.svcModal.capacity !== null ? Math.max(1, parseInt(this.svcModal.capacity)||1) : 1,
+                buffer_before_minutes: this.svcModal.buffer_before_minutes === '' || this.svcModal.buffer_before_minutes === null ? null : parseInt(this.svcModal.buffer_before_minutes),
+                buffer_after_minutes: this.svcModal.buffer_after_minutes === '' || this.svcModal.buffer_after_minutes === null ? null : parseInt(this.svcModal.buffer_after_minutes) };
             if (this.svcModal.id) { const d = await this.api('PUT','/services/'+this.svcModal.id, payload); const i=this.services.findIndex(x=>x.id===this.svcModal.id); this.services[i]=d.service; }
             else { const d = await this.api('POST','/services', payload); this.services.push(d.service); }
             this.svcModal.open = false;
@@ -458,22 +634,59 @@ function serviceBookingEditor() {
             this.services = others.concat(list);
             await this.api('POST','/services/reorder', { order: ids });
         },
-        openRule(dow){ this.ruleModal = {open:true, day_of_week:dow, start_time:'09:00', end_time:'17:00'}; },
+        staffName(id){ const m = this.staff.find(x=>x.id === Number(id)); return m ? m.name : ''; },
+        openRule(dow){ this.ruleModal = {open:true, day_of_week:dow, start_time:'09:00', end_time:'17:00', staff_id:''}; },
         async saveRule(){
-            const payload = { day_of_week:this.ruleModal.day_of_week, start_time:this.ruleModal.start_time, end_time:this.ruleModal.end_time };
+            const payload = { day_of_week:this.ruleModal.day_of_week, start_time:this.ruleModal.start_time, end_time:this.ruleModal.end_time, staff_id:this.ruleModal.staff_id ? Number(this.ruleModal.staff_id) : null };
             const d = await this.api('POST','/availability', payload);
-            this.rules.push({id:d.rule.id, day_of_week:d.rule.day_of_week, start_time:String(d.rule.start_time).slice(0,5), end_time:String(d.rule.end_time).slice(0,5)});
+            this.rules.push({id:d.rule.id, staff_id:d.rule.staff_id || null, day_of_week:d.rule.day_of_week, start_time:String(d.rule.start_time).slice(0,5), end_time:String(d.rule.end_time).slice(0,5)});
             this.ruleModal.open = false;
         },
         async deleteRule(r){ await this.api('DELETE','/availability/'+r.id); this.rules=this.rules.filter(x=>x.id!==r.id); },
-        openBlocked(){ this.blockedModal = {open:true, date:'', reason:''}; },
+        openBlocked(){ this.blockedModal = {open:true, date:'', reason:'', staff_id:''}; },
         async saveBlocked(){
             if (!this.blockedModal.date) return;
-            const d = await this.api('POST','/blocked-dates', { date:this.blockedModal.date, reason:this.blockedModal.reason });
-            this.blockedDates.push({id:d.blocked_date.id, date:String(d.blocked_date.date).slice(0,10), reason:d.blocked_date.reason});
+            const d = await this.api('POST','/blocked-dates', { date:this.blockedModal.date, reason:this.blockedModal.reason, staff_id:this.blockedModal.staff_id ? Number(this.blockedModal.staff_id) : null });
+            this.blockedDates.push({id:d.blocked_date.id, staff_id:d.blocked_date.staff_id || null, date:String(d.blocked_date.date).slice(0,10), reason:d.blocked_date.reason});
             this.blockedModal.open = false;
         },
         async deleteBlocked(b){ await this.api('DELETE','/blocked-dates/'+b.id); this.blockedDates=this.blockedDates.filter(x=>x.id!==b.id); },
+        // ── Team members (Task #6325) ─────────────────────────────
+        staffServicesLabel(m){
+            if (!m.service_ids || m.service_ids.length === 0) return 'All services';
+            const names = this.services.filter(s=>m.service_ids.includes(s.id)).map(s=>s.name);
+            return names.length ? names.join(', ') : 'All services';
+        },
+        toggleStaffService(id){
+            const i = this.staffModal.service_ids.indexOf(id);
+            if (i >= 0) this.staffModal.service_ids.splice(i,1); else this.staffModal.service_ids.push(id);
+        },
+        openStaff(m){ this.staffModal = m
+            ? {open:true,id:m.id,name:m.name,title:m.title||'',bio:m.bio||'',email:m.email||'',photo_url:m.photo_url||'',is_active:!!m.is_active,calendar_account_id:m.calendar_account_id||'',service_ids:(m.service_ids||[]).slice()}
+            : {open:true,id:null,name:'',title:'',bio:'',email:'',photo_url:'',is_active:true,calendar_account_id:'',service_ids:[]}; },
+        async saveStaff(){
+            if (!this.staffModal.name.trim()) return;
+            const payload = {
+                name:this.staffModal.name, title:this.staffModal.title||null, bio:this.staffModal.bio||null,
+                email:this.staffModal.email||null,
+                photo_url:this.staffModal.photo_url||null, is_active:!!this.staffModal.is_active,
+                calendar_account_id:this.staffModal.calendar_account_id ? parseInt(this.staffModal.calendar_account_id) : null,
+                service_ids:this.staffModal.service_ids,
+            };
+            if (this.staffModal.id) { const d = await this.api('PUT','/staff/'+this.staffModal.id, payload); const i=this.staff.findIndex(x=>x.id===this.staffModal.id); this.staff[i]=d.staff; }
+            else { const d = await this.api('POST','/staff', payload); this.staff.push(d.staff); }
+            this.staffModal.open = false;
+        },
+        async deleteStaff(m){ if(!confirm('Remove "'+m.name+'"? Their existing bookings are kept.')) return; await this.api('DELETE','/staff/'+m.id); this.staff=this.staff.filter(x=>x.id!==m.id); },
+        async moveStaff(m, dir){
+            const idx = this.staff.findIndex(x=>x.id===m.id);
+            const to = idx + dir;
+            if (idx<0 || to<0 || to>=this.staff.length) return;
+            const arr = this.staff.slice();
+            arr.splice(to, 0, arr.splice(idx, 1)[0]);
+            this.staff = arr;
+            await this.api('POST','/staff/reorder', { ids: arr.map(x=>x.id) });
+        },
     };
 }
 </script>

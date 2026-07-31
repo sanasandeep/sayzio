@@ -40,14 +40,13 @@
         </template>
 
         <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1" style="color: var(--text-muted);">Content</label>
-        <textarea x-model="content" @input="detect()" rows="2" placeholder="Paste a URL, email or phone number…"
+        <textarea x-model="content" @input="detect()" rows="2" placeholder="Paste a URL, email, phone number or any text…"
                   class="w-full rounded-lg px-3 py-2 text-xs mb-1 resize-none"
                   style="background: var(--bg-input, rgba(255,255,255,0.05)); border: 1px solid var(--border-subtle); color: var(--text-primary);"></textarea>
 
         <div class="flex items-center gap-2 mb-3 min-h-[18px]">
             <template x-if="kind">
-                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                      :class="kind === 'unsupported' ? 'bg-amber-500/15 text-amber-500' : 'bg-blue-500/15 text-blue-400'">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/15 text-blue-400">
                     <i class="fas" :class="kindIcon()"></i>
                     <span x-text="kindLabel()"></span>
                 </span>
@@ -55,14 +54,13 @@
             <span class="text-[10px] truncate" style="color: var(--text-muted);" x-text="preview"></span>
         </div>
 
-        <template x-if="kind === 'unsupported'">
+        <template x-if="kind === 'text'">
             <p class="text-xs mb-3" style="color: var(--text-muted);">
-                We can't shorten this content directly.
-                <a href="{{ route('user.links.create') }}" class="text-blue-400 hover:underline">Use the full link creator</a> instead.
+                We'll turn this into a shareable text page — visitors see the full text with a copy button.
             </p>
         </template>
 
-        <div x-show="kind && kind !== 'unsupported'">
+        <div x-show="kind">
             {{-- Domain picker — only when the user actually has choices
                  (own verified custom domains and/or admin global domains). --}}
             <template x-if="domains.length > 0">
@@ -93,7 +91,7 @@
             <button type="button" @click="create()" :disabled="busy || !content.trim()"
                     class="btn-primary btn-primary-gradient w-full inline-flex items-center justify-center gap-1.5 text-xs px-3.5 py-2 mt-2 disabled:opacity-50">
                 <i class="fas" :class="busy ? 'fa-spinner fa-spin' : 'fa-link'"></i>
-                <span x-text="busy ? 'Creating…' : 'Create short link'"></span>
+                <span x-text="busy ? 'Creating…' : (kind === 'text' ? 'Create text page link' : 'Create short link')"></span>
             </button>
         </div>
     </div>
@@ -174,7 +172,7 @@ function quickShorten() {
                     this.pasteHint = 'Your clipboard is empty — paste or type the content below.';
                     return;
                 }
-                this.content = text.slice(0, 2048);
+                this.content = text.slice(0, 20000);
                 this.detect();
             } catch (e) {
                 this.needPaste = true;
@@ -190,14 +188,14 @@ function quickShorten() {
             else if (/^mailto:/i.test(raw) || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(raw)) { this.kind = 'email'; }
             else if (/^tel:/i.test(raw) || /^\+?[0-9][0-9\s\-().]{4,24}$/.test(raw)) { this.kind = 'phone'; }
             else if (!/\s/.test(raw) && /^[A-Za-z0-9][A-Za-z0-9.-]*\.[A-Za-z]{2,}([\/?#][^\s]*)?$/.test(raw)) { this.kind = 'url'; }
-            else { this.kind = 'unsupported'; }
+            else { this.kind = 'text'; }
             this.preview = raw.length > 60 ? raw.slice(0, 57) + '…' : raw;
         },
         kindLabel() {
-            return { url: 'Web URL', email: 'Email address', phone: 'Phone number', unsupported: 'Unsupported' }[this.kind] || '';
+            return { url: 'Web URL', email: 'Email address', phone: 'Phone number', text: 'Text' }[this.kind] || '';
         },
         kindIcon() {
-            return { url: 'fa-globe', email: 'fa-envelope', phone: 'fa-phone', unsupported: 'fa-triangle-exclamation' }[this.kind] || 'fa-question';
+            return { url: 'fa-globe', email: 'fa-envelope', phone: 'fa-phone', text: 'fa-align-left' }[this.kind] || 'fa-question';
         },
         async checkAlias() {
             const a = this.alias.trim();

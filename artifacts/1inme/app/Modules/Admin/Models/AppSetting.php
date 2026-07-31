@@ -43,6 +43,30 @@ class AppSetting extends Model
     private const MISSING = '__app_setting_missing__';
 
     /**
+     * Whether this process has already bulk-primed the per-key caches from a
+     * single `SELECT * FROM app_settings` (see get()). Once primed, the full
+     * key set below is authoritative for "row exists?" checks, so unset keys
+     * never trigger a per-key query in the same process.
+     */
+    private static bool $bulkPrimed = false;
+
+    /**
+     * monotonic-ish timestamp of the last successful bulk prime. The primed
+     * key set is only authoritative for the same 300s window as the per-key
+     * cache TTL — after that, the next per-key miss re-runs the bulk prime,
+     * so keys created by ANOTHER process become visible within one TTL.
+     */
+    private static float $bulkPrimedAt = 0.0;
+
+    /**
+     * key => true for every row seen by the in-process bulk prime. Only
+     * meaningful when $bulkPrimed is true.
+     *
+     * @var array<string,true>
+     */
+    private static array $bulkKeys = [];
+
+    /**
      * Read a setting by key. Cached for 5 minutes to keep the hot path (boot-time
      * runtime-config overrides + the per-link coach render) from hitting the DB
      * on every request. Missing/null values are cached via a sentinel (see
@@ -61,12 +85,52 @@ class AppSetting extends Model
     public static function get(string $key, $default = null)
     {
         try {
-            $cached = Cache::remember(self::cacheKey($key), 300, function () use ($key) {
-                $row = self::where('key', $key)->first();
-                if (!$row) return self::MISSING;
-                $v = $row->value;
-                return $v === null ? self::MISSING : $v;
-            });
+            $cached = Cache::get(self::cacheKey($key));
+
+            // First per-key MISS of this process: bulk-prime EVERY setting
+            // from one `SELECT *` instead of paying one cross-region
+            // round-trip per key. A cold home render reads ~26 settings; at
+            // ~750ms/query against the production RDS the per-key misses
+            // alone were ~20s of the cold TTFB. One bulk query (~0.8s)
+            // replaces all of them. Warm requests never reach this branch.
+            $primeFresh = self::$bulkPrimed
+                && (microtime(true) - self::$bulkPrimedAt) < 300;
+
+            if ($cached === null && !$primeFresh) {
+                $keys = [];
+                foreach (self::all() as $row) {
+                    $v = $row->value;
+                    Cache::put(self::cacheKey($row->key), $v === null ? self::MISSING : $v, 300);
+                    $keys[$row->key] = true;
+                }
+                // Only mark the process as primed AFTER the full load
+                // succeeded — if the query above throws (transient DB error),
+                // the next get() retries the bulk prime instead of serving
+                // MISSING for every key from a half-initialized state.
+                self::$bulkKeys = $keys;
+                self::$bulkPrimed = true;
+                self::$bulkPrimedAt = microtime(true);
+                $primeFresh = true;
+                $cached = Cache::get(self::cacheKey($key));
+            }
+
+            // Still a miss after (or during the TTL following) a bulk prime:
+            // if this process bulk-primed, the full key set is authoritative —
+            // an unknown key has no row, so cache the sentinel WITHOUT another
+            // per-key query. Otherwise fall back to the classic per-key read.
+            if ($cached === null) {
+                if ($primeFresh && !isset(self::$bulkKeys[$key])) {
+                    $cached = self::MISSING;
+                    Cache::put(self::cacheKey($key), $cached, 300);
+                } else {
+                    $cached = Cache::remember(self::cacheKey($key), 300, function () use ($key) {
+                        $row = self::where('key', $key)->first();
+                        if (!$row) return self::MISSING;
+                        $v = $row->value;
+                        return $v === null ? self::MISSING : $v;
+                    });
+                }
+            }
 
             return $cached === self::MISSING ? $default : $cached;
         } catch (QueryException $e) {
@@ -116,5 +180,13 @@ class AppSetting extends Model
     {
         self::updateOrCreate(['key' => $key], ['value' => $value]);
         Cache::forget(self::cacheKey($key));
+
+        // Keep the in-process bulk-prime key set coherent with writes: the
+        // row now exists, so a later get() in this same process must fall
+        // through to a real per-key read instead of short-circuiting to the
+        // MISSING sentinel because the key was absent at prime time.
+        if (self::$bulkPrimed) {
+            self::$bulkKeys[$key] = true;
+        }
     }
 }

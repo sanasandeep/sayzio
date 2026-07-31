@@ -269,6 +269,7 @@ what each one is for:
 | **QR Code** | A trackable QR code; design it in [QR Studio Pro](#13-qr-studio-pro). |
 | **Event** | A page visitors can add to their calendar in one tap, with RSVP collection. |
 | **Contact Card (vCard)** | A digital business card; visitors tap "Save Contact" to download your `.vcf`. |
+| **Text Page** | Paste or type any text and share it as a clean page behind a short link. Visitors can select the text, copy it all with one tap, or download it as a `.txt` file; a raw plain-text view at `/{alias}/raw` suits scripts. Every view and download is tracked. |
 | **SMS** | A tap-to-text link that pre-composes a message to a number. |
 | **WiFi** | A tap-to-join link/QR that connects visitors to a WiFi network. |
 | **PDF** | Share a PDF behind a viewer/download page. |

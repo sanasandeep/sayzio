@@ -6,6 +6,7 @@ use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Common\Services\ExpoPushNotifier;
 use App\Modules\User\Models\DevicePushToken;
 use App\Modules\User\Models\DialerCallEvent;
+use App\Modules\User\Models\DialerDevice;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
@@ -36,12 +37,74 @@ class DialerHandoffController extends Controller
      * GET /dialer/handoff/status — lightweight linked-device check so the
      * desktop pane can offer the Zio Dialer app download proactively
      * instead of after a failed call attempt.
+     *
+     * `device_linked` means a Zio Dialer install signed in with this
+     * account (a `dialer_devices` row) OR a push token exists (legacy
+     * installs that never registered a device record). `push_available`
+     * separately reports whether click-to-call pushes can be delivered,
+     * so the desktop can show "enable notifications" instead of the
+     * download promo when the app is installed but push is unavailable.
      */
     public function status(Request $request)
     {
+        $userId = $request->user()->id;
+
+        $pushAvailable = DevicePushToken::where('user_id', $userId)->exists();
+        $deviceLinked  = $pushAvailable
+            || DialerDevice::where('user_id', $userId)->exists();
+
         return $this->ok([
-            'device_linked' => DevicePushToken::where('user_id', $request->user()->id)->exists(),
+            'device_linked'  => $deviceLinked,
+            'push_available' => $pushAvailable,
         ]);
+    }
+
+    /**
+     * POST /dialer/device — the Zio Dialer app records/heartbeats this
+     * install at sign-in/unlock, independent of push-token registration,
+     * so "device linked" no longer requires notification permission.
+     */
+    public function registerDevice(Request $request)
+    {
+        $data = $request->validate([
+            'device_key'  => ['required', 'string', 'min:8', 'max:64', 'regex:/^[A-Za-z0-9_\-]+$/'],
+            'platform'    => ['nullable', 'string', 'max:16'],
+            'device_name' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $row = DialerDevice::updateOrCreate(
+            [
+                'user_id'    => $request->user()->id,
+                'device_key' => $data['device_key'],
+            ],
+            [
+                'platform'     => $data['platform']    ?? null,
+                'device_name'  => $data['device_name'] ?? null,
+                'last_seen_at' => now(),
+            ],
+        );
+
+        return $this->ok([
+            'registered' => true,
+            'id'         => $row->id,
+        ]);
+    }
+
+    /**
+     * DELETE /dialer/device — detach this install from the user (called
+     * best-effort on sign-out, mirroring push-token unregistration).
+     */
+    public function unregisterDevice(Request $request)
+    {
+        $data = $request->validate([
+            'device_key' => ['required', 'string', 'max:64'],
+        ]);
+
+        DialerDevice::where('user_id', $request->user()->id)
+            ->where('device_key', $data['device_key'])
+            ->delete();
+
+        return $this->ok(['unregistered' => true]);
     }
 
     /**
@@ -58,6 +121,18 @@ class DialerHandoffController extends Controller
         $user = $request->user();
 
         if (!DevicePushToken::where('user_id', $user->id)->exists()) {
+            // Distinguish "no app installed at all" from "app installed but
+            // push unavailable" (notifications denied / no Expo token), so
+            // the desktop can show the right guidance instead of the
+            // download promo.
+            if (DialerDevice::where('user_id', $user->id)->exists()) {
+                return $this->fail(
+                    'Your phone is linked, but it can\'t receive call requests — enable notifications for the Zio Dialer app on your phone.',
+                    409,
+                    'no_push_token',
+                );
+            }
+
             return $this->fail(
                 'No phone with the Zio Dialer app is linked to this account. Sign in to the Zio Dialer app on your phone first.',
                 404,

@@ -397,12 +397,17 @@ class ServiceBookingFlowTest extends TestCase
         [$link, $config, $service] = $this->makePage($owner, [], ['enabled' => true, 'rate' => 10, 'inclusive' => false]);
         $this->addRule($config);
 
-        $booking = $this->placer()->place($link, $config, [
+        $result = $this->placer()->place($link, $config, [
             'customer_name'  => 'Ada Lovelace',
             'customer_email' => 'ada@example.com',
             'slot_start'     => self::TODAY . ' 10:00:00',
             'services'       => [['service_id' => $service->id, 'quantity' => 2]],
         ]);
+
+        // place() returns an array since the paid-bookings refactor; a page
+        // whose services have payment_mode=none stays a free booking.
+        $this->assertFalse($result['requires_payment']);
+        $booking = $result['request'];
 
         $this->assertSame(ServiceBookingRequest::STATUS_PENDING, $booking->status);
         $this->assertSame('Ada Lovelace', $booking->customer_name);
@@ -650,7 +655,7 @@ class ServiceBookingFlowTest extends TestCase
         [$link] = $this->makePage($owner);
 
         $res = $this->postJson(
-            "/api/v1/service-booking/links/{$link->id}/services",
+            "/api/v1/service-booking/links/{$link->id}/config/services",
             [
                 'name'             => 'Trim',
                 'price'            => 20,
@@ -669,7 +674,7 @@ class ServiceBookingFlowTest extends TestCase
         [$link] = $this->makePage($owner);
 
         $res = $this->postJson(
-            "/api/v1/service-booking/links/{$link->id}/services",
+            "/api/v1/service-booking/links/{$link->id}/config/services",
             [
                 'name'             => 'Cut',
                 'price'            => 100,
@@ -693,8 +698,8 @@ class ServiceBookingFlowTest extends TestCase
         [$link, $config] = $this->makePage($owner);
         $service = $this->addService($config, 80, 45);
 
-        $res = $this->patchJson(
-            "/api/v1/service-booking/links/{$link->id}/services/{$service->id}",
+        $res = $this->putJson(
+            "/api/v1/service-booking/links/{$link->id}/config/services/{$service->id}",
             ['payment_mode' => 'full'],
             $this->auth($owner),
         );
@@ -716,7 +721,7 @@ class ServiceBookingFlowTest extends TestCase
         $this->addRule($config);
 
         // Service defaults to payment_mode=none — no payment required.
-        $res = $this->postJson("/{$link->alias}/book", [
+        $res = $this->postJson("/sb/{$link->alias}/book", [
             'customer_name' => 'Visitor',
             'customer_email' => 'visitor@example.com',
             'slot_start'    => self::TODAY . 'T10:00:00Z',
@@ -795,7 +800,7 @@ class ServiceBookingFlowTest extends TestCase
         [$link, $config] = $this->makePage($owner);
 
         $res = $this->postJson(
-            "/api/v1/service-booking/links/{$link->id}/settings",
+            "/api/v1/service-booking/links/{$link->id}/config/settings",
             [
                 'mode'                  => 'booking',
                 'currency'              => 'USD',
@@ -819,7 +824,7 @@ class ServiceBookingFlowTest extends TestCase
         [$link, $config] = $this->makePage($owner);
 
         $res = $this->postJson(
-            "/api/v1/service-booking/links/{$link->id}/settings",
+            "/api/v1/service-booking/links/{$link->id}/config/settings",
             [
                 'mode'                  => 'booking',
                 'currency'              => 'USD',
@@ -842,7 +847,7 @@ class ServiceBookingFlowTest extends TestCase
         $config->update(['settings' => array_merge($config->settings ?? [], ['reminder_lead_minutes' => 720])]);
 
         $res = $this->postJson(
-            "/api/v1/service-booking/links/{$link->id}/settings",
+            "/api/v1/service-booking/links/{$link->id}/config/settings",
             [
                 'mode'                  => 'booking',
                 'currency'              => 'USD',

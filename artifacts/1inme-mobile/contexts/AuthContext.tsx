@@ -15,6 +15,7 @@ import {
   promptBiometric,
   type BiometricCapability,
 } from "@/lib/biometrics";
+import { clearDialerDeviceRegistration } from "@/lib/api/dialerDevice";
 import { clearPushRegistration } from "@/lib/push";
 import {
   DEFAULT_IDLE_TIMEOUT_MS,
@@ -389,10 +390,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    // Detach this device's push token while the bearer token is still
-    // valid, so a shared device stops receiving the previous user's
-    // notifications (best-effort — never blocks sign-out).
+    // Detach this device's push token and dialer-device record while the
+    // bearer token is still valid, so a shared device stops receiving the
+    // previous user's notifications and no longer counts as a linked
+    // dialer phone (best-effort — never blocks sign-out).
     await clearPushRegistration();
+    await clearDialerDeviceRegistration();
     try {
       await apiFetch("/auth/logout", { method: "POST" });
     } catch {}

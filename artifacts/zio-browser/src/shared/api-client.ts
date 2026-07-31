@@ -510,6 +510,22 @@ export class ApiClient {
     return this.post('/links', data);
   }
 
+  /**
+   * Quick shorten — sends the RAW clipboard text; the server classifies it
+   * (web URL / bare domain / email → mailto: / phone → tel:) and anything
+   * else becomes a shareable text-page link (kind 'text').
+   */
+  async quickShorten(
+    destination: string,
+    opts?: { alias?: string; domain_id?: number | null },
+  ): Promise<QuickShortenResult> {
+    return this.post('/links/quick-shorten', {
+      destination,
+      alias: opts?.alias || undefined,
+      domain_id: opts?.domain_id ?? undefined,
+    });
+  }
+
   async checkAlias(alias: string, ignoreId?: number): Promise<AliasCheckResult> {
     const qs = new URLSearchParams({ alias });
     if (ignoreId !== undefined) qs.set('ignore_id', String(ignoreId));
@@ -607,6 +623,20 @@ export class ApiClient {
 
     return (json as ApiEnvelope<{ file: ApiFile }>).data.file;
   }
+
+  /** List the user's Sayzio Files vault (newest first). */
+  async listFiles(params?: { page?: number; per_page?: number }): Promise<ApiFilesPage> {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.per_page) qs.set('per_page', String(params.per_page));
+    const query = qs.toString() ? `?${qs.toString()}` : '';
+    return this.get<ApiFilesPage>(`/me/files${query}`);
+  }
+
+  /** Delete a file from the user's Sayzio Files vault. */
+  async deleteFile(id: number): Promise<void> {
+    await this.delete(`/me/files/${id}`);
+  }
 }
 
 // ── Shared types ─────────────────────────────────────────────────────────────
@@ -619,6 +649,20 @@ export interface ApiFile {
   size: number;
   url: string;
   created_at: string | null;
+  /** File kind reported by the API (image, video, document, …). */
+  type?: string;
+  /** Human-readable size string from the API (e.g. "1.2 MB"). */
+  size_human?: string;
+  url_path?: string;
+}
+
+export interface ApiFilesPage {
+  files: ApiFile[];
+  pagination: {
+    current_page: number;
+    last_page: number;
+    total: number;
+  };
 }
 
 export interface BrowserDeviceInfo {
@@ -679,7 +723,10 @@ export interface DialerSearchResult {
 }
 
 export interface DialerHandoffStatus {
+  /** A Zio Dialer install is signed in (device record OR push token). */
   device_linked: boolean;
+  /** A push token exists, so click-to-call requests can be delivered. */
+  push_available: boolean;
 }
 
 export interface DialerCallRequestResult {
@@ -772,6 +819,13 @@ export interface DialerLookupResult {
 }
 
 // ── Links ─────────────────────────────────────────────────────────────────────
+
+export interface QuickShortenResult {
+  id: number;
+  short_url: string;
+  long_url: string | null;
+  kind: 'url' | 'email' | 'phone' | 'text';
+}
 
 export interface ApiLink {
   id: number;

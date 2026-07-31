@@ -1,6 +1,9 @@
 /**
  * DownloadToast — slim, non-blocking toast shown at the bottom-right of the
  * window when a download starts. Auto-dismisses after ~4 s unless hovered.
+ * Text-based downloads (.txt/.md/.json/.csv/.log or text MIME types) get a
+ * "View in browser" action once complete, opening the saved file in a new tab
+ * instead of the OS app.
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 
@@ -12,14 +15,30 @@ interface StartedPayload {
   totalBytes: number | null;
   mimeType: string | null;
   isPrivate: boolean;
+  isText?: boolean;
+}
+
+interface DonePayload {
+  id: string;
+  state: 'completed' | 'interrupted' | 'cancelled';
+  savePath: string;
+  filename: string;
+  isPrivate: boolean;
+  isText?: boolean;
 }
 
 interface Toast {
   key: number;
+  downloadId: string;
   filename: string;
+  isText: boolean;
+  completed: boolean;
+  savePath: string;
 }
 
 const AUTO_DISMISS_MS = 4000;
+/** Text downloads linger a bit longer once complete so "View in browser" is reachable. */
+const TEXT_DONE_DISMISS_MS = 8000;
 
 interface Props {
   onOpenDownloads: () => void;
@@ -37,10 +56,10 @@ export function DownloadToast({ onOpenDownloads }: Props) {
     setToasts(prev => prev.filter(toast => toast.key !== key));
   }, []);
 
-  const scheduleDismiss = useCallback((key: number) => {
+  const scheduleDismiss = useCallback((key: number, ms: number = AUTO_DISMISS_MS) => {
     const t = timers.current.get(key);
     if (t) clearTimeout(t);
-    timers.current.set(key, setTimeout(() => dismiss(key), AUTO_DISMISS_MS));
+    timers.current.set(key, setTimeout(() => dismiss(key), ms));
   }, [dismiss]);
 
   const pauseDismiss = useCallback((key: number) => {
@@ -53,17 +72,56 @@ export function DownloadToast({ onOpenDownloads }: Props) {
     const onStarted = (...args: unknown[]) => {
       const payload = args[0] as StartedPayload;
       const key = nextKey.current++;
-      setToasts(prev => [...prev, { key, filename: payload.filename }]);
+      setToasts(prev => [...prev, {
+        key,
+        downloadId: payload.id,
+        filename: payload.filename,
+        isText: payload.isText === true,
+        completed: false,
+        savePath: payload.savePath,
+      }]);
       scheduleDismiss(key);
     };
+    const onDone = (...args: unknown[]) => {
+      const payload = args[0] as DonePayload;
+      // Only text downloads get an upgraded "complete → view" toast state.
+      if (payload.state !== 'completed' || payload.isText !== true) return;
+      setToasts(prev => {
+        const existing = prev.find(t => t.downloadId === payload.id);
+        if (existing) {
+          scheduleDismiss(existing.key, TEXT_DONE_DISMISS_MS);
+          return prev.map(t => t.downloadId === payload.id
+            ? { ...t, completed: true, savePath: payload.savePath, isText: true }
+            : t);
+        }
+        // The start toast already auto-dismissed — show a fresh completion toast.
+        const key = nextKey.current++;
+        scheduleDismiss(key, TEXT_DONE_DISMISS_MS);
+        return [...prev, {
+          key,
+          downloadId: payload.id,
+          filename: payload.filename,
+          isText: true,
+          completed: true,
+          savePath: payload.savePath,
+        }];
+      });
+    };
     window.zio.on('download:started', onStarted);
+    window.zio.on('download:done', onDone);
     const timerMap = timers.current;
     return () => {
       window.zio.off('download:started', onStarted);
+      window.zio.off('download:done', onDone);
       timerMap.forEach(t => clearTimeout(t));
       timerMap.clear();
     };
   }, [scheduleDismiss]);
+
+  const handleViewInTab = useCallback((key: number, savePath: string) => {
+    dismiss(key);
+    void window.zio.downloads.openInTab(savePath);
+  }, [dismiss]);
 
   if (toasts.length === 0) return null;
 
@@ -83,7 +141,7 @@ export function DownloadToast({ onOpenDownloads }: Props) {
         <div
           key={toast.key}
           onMouseEnter={() => pauseDismiss(toast.key)}
-          onMouseLeave={() => scheduleDismiss(toast.key)}
+          onMouseLeave={() => scheduleDismiss(toast.key, toast.completed ? TEXT_DONE_DISMISS_MS : AUTO_DISMISS_MS)}
           style={{
             pointerEvents: 'auto',
             display: 'flex',
@@ -99,7 +157,9 @@ export function DownloadToast({ onOpenDownloads }: Props) {
             fontSize: 13,
           }}
         >
-          <span aria-hidden="true" style={{ fontSize: 16, lineHeight: 1 }}>⬇️</span>
+          <span aria-hidden="true" style={{ fontSize: 16, lineHeight: 1 }}>
+            {toast.completed ? '📄' : '⬇️'}
+          </span>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{
               whiteSpace: 'nowrap',
@@ -109,23 +169,44 @@ export function DownloadToast({ onOpenDownloads }: Props) {
             }} title={toast.filename}>
               {toast.filename}
             </div>
-            <div style={{ opacity: 0.7, fontSize: 12 }}>Download started</div>
+            <div style={{ opacity: 0.7, fontSize: 12 }}>
+              {toast.completed ? 'Download complete' : 'Download started'}
+            </div>
           </div>
-          <button
-            onClick={() => { dismiss(toast.key); onOpenDownloads(); }}
-            style={{
-              flexShrink: 0,
-              background: 'none',
-              border: 'none',
-              color: 'var(--color-primary, #60a5fa)',
-              cursor: 'pointer',
-              fontSize: 13,
-              fontWeight: 600,
-              padding: '4px 6px',
-            }}
-          >
-            View
-          </button>
+          {toast.completed && toast.isText && toast.savePath ? (
+            <button
+              onClick={() => handleViewInTab(toast.key, toast.savePath)}
+              style={{
+                flexShrink: 0,
+                background: 'none',
+                border: 'none',
+                color: 'var(--color-primary, #60a5fa)',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 600,
+                padding: '4px 6px',
+              }}
+              title="Open this text file in a browser tab"
+            >
+              View in browser
+            </button>
+          ) : (
+            <button
+              onClick={() => { dismiss(toast.key); onOpenDownloads(); }}
+              style={{
+                flexShrink: 0,
+                background: 'none',
+                border: 'none',
+                color: 'var(--color-primary, #60a5fa)',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 600,
+                padding: '4px 6px',
+              }}
+            >
+              View
+            </button>
+          )}
           <button
             aria-label="Dismiss"
             onClick={() => dismiss(toast.key)}

@@ -102,9 +102,24 @@ return [
             // server alike, a persistent PDO connection is kept warm in the
             // worker, so only the first request pays the TLS/connect cost.
             // Hugely reduces page latency when the DB is in a distant region.
-            'options' => filter_var(env('DB_PERSISTENT', true), FILTER_VALIDATE_BOOLEAN)
-                ? [PDO::ATTR_PERSISTENT => true]
-                : [],
+            //
+            // PGSQL_ATTR_DISABLE_PREPARES: pdo_pgsql's default named prepares
+            // cost TWO network round trips per query (PQprepare + PQexec-
+            // Prepared). With the cross-region RDS at ~250-370ms RTT that is
+            // ~750ms per query; disabling named prepares uses PQexecParams
+            // (still server-side parameter binding — NOT client-side
+            // emulation, so quoting/typing semantics are unchanged) and
+            // executes in ONE round trip, ~2.9x faster per query. Measured:
+            // 746ms -> 260ms per simple select against production RDS.
+            // Nothing in the app reuses a prepared statement handle across
+            // executions in a hot loop, so the per-reuse saving of named
+            // prepares never materializes here.
+            'options' => (filter_var(env('DB_PERSISTENT', true), FILTER_VALIDATE_BOOLEAN)
+                    ? [PDO::ATTR_PERSISTENT => true]
+                    : [])
+                + (filter_var(env('DB_DISABLE_PREPARES', true), FILTER_VALIDATE_BOOLEAN)
+                    ? [PDO::PGSQL_ATTR_DISABLE_PREPARES => true]
+                    : []),
         ],
 
         'sqlsrv' => [

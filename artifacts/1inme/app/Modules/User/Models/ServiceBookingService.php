@@ -33,18 +33,48 @@ class ServiceBookingService extends Model
         'currency', 'duration_minutes', 'photo_url', 'sort_order',
         'is_unavailable', 'is_active',
         'payment_mode', 'deposit_type', 'deposit_value',
+        'capacity', 'buffer_before_minutes', 'buffer_after_minutes',
     ];
 
     protected function casts(): array
     {
         return [
-            'price'            => 'decimal:2',
-            'duration_minutes' => 'integer',
-            'sort_order'       => 'integer',
-            'is_unavailable'   => 'boolean',
-            'is_active'        => 'boolean',
-            'deposit_value'    => 'decimal:2',
+            'price'                 => 'decimal:2',
+            'duration_minutes'      => 'integer',
+            'sort_order'            => 'integer',
+            'is_unavailable'        => 'boolean',
+            'is_active'             => 'boolean',
+            'deposit_value'         => 'decimal:2',
+            'capacity'              => 'integer',
+            'buffer_before_minutes' => 'integer',
+            'buffer_after_minutes'  => 'integer',
         ];
+    }
+
+    public function staff()
+    {
+        return $this->belongsToMany(
+            ServiceBookingStaff::class,
+            'service_booking_staff_service',
+            'service_id',
+            'staff_id',
+        )->withTimestamps();
+    }
+
+    /** Effective buffer before, falling back to the page-level default. */
+    public function effectiveBufferBefore(ServiceBooking $config): int
+    {
+        return $this->buffer_before_minutes !== null
+            ? max(0, (int) $this->buffer_before_minutes)
+            : $config->bufferBeforeMinutes();
+    }
+
+    /** Effective buffer after, falling back to the page-level default. */
+    public function effectiveBufferAfter(ServiceBooking $config): int
+    {
+        return $this->buffer_after_minutes !== null
+            ? max(0, (int) $this->buffer_after_minutes)
+            : $config->bufferAfterMinutes();
     }
 
     public function serviceBooking()

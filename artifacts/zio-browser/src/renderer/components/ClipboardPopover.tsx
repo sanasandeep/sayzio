@@ -1,8 +1,10 @@
 /**
  * ClipboardPopover — reads the clipboard, detects what's on it (web link,
  * email, phone number, plain text), and for web links offers one-click
- * short-URL creation with a custom alias. Creation is AJAX-only (no tab
- * navigation) and the new short URL is auto-copied back to the clipboard.
+ * short-URL creation with a custom alias. Plain text gets a one-click
+ * "text page" link (the server hosts the text on a public page with a copy
+ * button). Creation is AJAX-only (no tab navigation) and the new short URL
+ * is auto-copied back to the clipboard.
  */
 import { useState, useEffect, useCallback, useRef, forwardRef } from 'react';
 import { useAuthStore } from '../store/auth-store';
@@ -126,6 +128,29 @@ export function ClipboardPopover({ baseUrl, onClose, onOpenAuth, onOpenInNewTab 
     }
   }, [content, token, getClient, alias, selectedDomainId, onOpenAuth]);
 
+  // Plain text → shareable text-page link via the quick-shorten endpoint
+  // (the server stores the text and hosts it on a public page with a copy
+  // button). Same auto-copy behaviour as the URL flow.
+  const [textPageUrl, setTextPageUrl] = useState<string | null>(null);
+  const handleCreateTextPage = useCallback(async () => {
+    if (!content || content.kind !== 'text' || !content.text) return;
+    if (!token) { onOpenAuth(); return; }
+    const client = getClient();
+    if (!client) return;
+    setCreating(true);
+    setError(null);
+    try {
+      const res = await client.quickShorten(content.text);
+      setTextPageUrl(res.short_url);
+      await window.zio.clipboard.write(res.short_url);
+      setAutoCopied(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create text page link');
+    } finally {
+      setCreating(false);
+    }
+  }, [content, token, getClient, onOpenAuth]);
+
   const handleCopy = useCallback(async (text: string) => {
     await window.zio.clipboard.write(text);
     setCopied(true);
@@ -166,15 +191,59 @@ export function ClipboardPopover({ baseUrl, onClose, onOpenAuth, onOpenInNewTab 
         </div>
       )}
 
-      {/* Non-URL content — show what was detected, no shorten action */}
-      {content && (content.kind === 'text' || content.kind === 'email' || content.kind === 'phone') && (
+      {/* Email / phone — show what was detected, no shorten action */}
+      {content && (content.kind === 'email' || content.kind === 'phone') && (
         <div style={{ padding: 14 }}>
           <ClipboardPreview text={content.text} />
           <p style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 10 }}>
             {content.kind === 'email' && 'This looks like an email address. Copy a web link to create a short URL.'}
             {content.kind === 'phone' && 'This looks like a phone number. Copy a web link to create a short URL.'}
-            {content.kind === 'text' && 'This is plain text. Copy a web link to create a short URL.'}
           </p>
+        </div>
+      )}
+
+      {/* Plain text — one-click shareable text-page link */}
+      {content?.kind === 'text' && (
+        <div style={{ padding: 14 }}>
+          {textPageUrl ? (
+            <div>
+              <p style={{ fontSize: 11, color: 'var(--color-success, #22c55e)', marginBottom: 6, fontWeight: 600 }}>
+                ✓ Text page link created{autoCopied ? ' — copied to clipboard!' : '!'}
+              </p>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <input
+                  readOnly
+                  value={textPageUrl}
+                  style={{ ...inputStyle, flex: 1, background: 'var(--color-bg-elevated)', cursor: 'text' }}
+                />
+                <button
+                  onClick={() => void handleCopy(textPageUrl)}
+                  style={primaryBtn}
+                >{copied ? '✓' : 'Copy'}</button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <ClipboardPreview text={content.text} />
+              <p style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
+                This is plain text. Turn it into a shareable page — visitors see the full text with a copy button.
+              </p>
+              {error && (
+                <p style={{ fontSize: 11, color: 'var(--color-danger, #ef4444)' }}>{error}</p>
+              )}
+              {!token ? (
+                <button onClick={() => { onClose(); onOpenAuth(); }} style={{ ...primaryBtn, width: '100%' }}>
+                  Sign in to create a text page link
+                </button>
+              ) : (
+                <button
+                  onClick={() => void handleCreateTextPage()}
+                  disabled={creating}
+                  style={{ ...primaryBtn, width: '100%', opacity: creating ? 0.5 : 1 }}
+                >{creating ? 'Creating…' : '📝 Create text page link & copy'}</button>
+              )}
+            </div>
+          )}
         </div>
       )}
 

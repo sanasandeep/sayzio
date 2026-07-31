@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Download } from '../../main/db';
+import { isViewableTextDownload } from '../../shared/omnibox';
 
 // ── Types extended for live state ────────────────────────────────────────────
 
@@ -111,6 +112,11 @@ function progressPercent(entry: DownloadEntry): number {
   const total = entry.liveProgress?.totalBytes ?? entry.total_bytes;
   if (!total || total <= 0) return 0;
   return Math.min(100, Math.round((received / total) * 100));
+}
+
+/** Text-based downloads (.txt/.md/.json/.csv/.log or text MIME) can be viewed in a browser tab. */
+function isTextEntry(entry: DownloadEntry): boolean {
+  return isViewableTextDownload(entry.filename, entry.mime_type);
 }
 
 function isActive(entry: DownloadEntry): boolean {
@@ -294,6 +300,13 @@ export function DownloadsPanel({ onClose }: Props) {
 
   const handleOpen = useCallback(async (id: string, savePath: string) => {
     const result = await window.zio.downloads.open(savePath) as { ok: boolean; error?: string; missing?: boolean };
+    if (!result.ok && result.missing) {
+      setMissingIds(prev => new Set(prev).add(id));
+    }
+  }, []);
+
+  const handleViewInTab = useCallback(async (id: string, savePath: string) => {
+    const result = await window.zio.downloads.openInTab(savePath) as { ok: boolean; error?: string; missing?: boolean };
     if (!result.ok && result.missing) {
       setMissingIds(prev => new Set(prev).add(id));
     }
@@ -555,6 +568,14 @@ export function DownloadsPanel({ onClose }: Props) {
                       )}
                       {isComplete && entry.save_path && (
                         <>
+                          {isTextEntry(entry) && (
+                            <button
+                              onClick={() => void handleViewInTab(entry.id, entry.save_path!)}
+                              disabled={isMissing}
+                              style={isMissing ? { ...iconBtnStyle, opacity: 0.4, cursor: 'default' } : iconBtnStyle}
+                              title={isMissing ? 'File not found' : 'View in a browser tab'}
+                            >View in browser</button>
+                          )}
                           <button
                             onClick={() => void handleOpen(entry.id, entry.save_path!)}
                             disabled={isMissing}

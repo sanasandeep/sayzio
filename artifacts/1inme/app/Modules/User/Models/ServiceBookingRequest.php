@@ -112,7 +112,8 @@ class ServiceBookingRequest extends Model
     }
 
     protected $fillable = [
-        'service_booking_id', 'link_id', 'public_token', 'status',
+        'service_booking_id', 'link_id', 'staff_id', 'public_token', 'status',
+        'buffer_before_minutes', 'buffer_after_minutes',
         'customer_name', 'customer_email', 'customer_phone', 'customer_note',
         'slot_start', 'slot_end', 'duration_minutes',
         'subtotal', 'tax_rate', 'tax_inclusive', 'tax_amount', 'total',
@@ -135,6 +136,8 @@ class ServiceBookingRequest extends Model
             'tax_amount'              => 'decimal:2',
             'total'                   => 'decimal:2',
             'payment_amount_cents'    => 'integer',
+            'buffer_before_minutes'   => 'integer',
+            'buffer_after_minutes'    => 'integer',
             'meta'                    => 'array',
         ];
     }
@@ -163,6 +166,11 @@ class ServiceBookingRequest extends Model
         return $this->hasMany(ServiceBookingRequestItem::class, 'request_id');
     }
 
+    public function staff()
+    {
+        return $this->belongsTo(ServiceBookingStaff::class, 'staff_id');
+    }
+
     public function getStatusLabelAttribute(): string
     {
         return self::STATUS_LABELS[$this->status] ?? ucfirst($this->status);
@@ -185,6 +193,31 @@ class ServiceBookingRequest extends Model
     public function wasReminderSent(int $leadMinutes): bool
     {
         $sent = $this->meta['reminders_sent'] ?? [];
+        foreach ($sent as $entry) {
+            if ((int) ($entry['lead_minutes'] ?? 0) === $leadMinutes) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Record that the assigned staff member's reminder at a given lead time
+     * was sent, stored in meta['staff_reminders_sent'] (Task #6338).
+     */
+    public function markStaffReminderSent(int $leadMinutes): void
+    {
+        $meta = $this->meta ?? [];
+        $sent = $meta['staff_reminders_sent'] ?? [];
+        $sent[] = ['lead_minutes' => $leadMinutes, 'sent_at' => now()->toIso8601String()];
+        $this->meta = array_merge($meta, ['staff_reminders_sent' => $sent]);
+        $this->save();
+    }
+
+    /** True when the staff reminder at this lead time was already dispatched. */
+    public function wasStaffReminderSent(int $leadMinutes): bool
+    {
+        $sent = $this->meta['staff_reminders_sent'] ?? [];
         foreach ($sent as $entry) {
             if ((int) ($entry['lead_minutes'] ?? 0) === $leadMinutes) {
                 return true;

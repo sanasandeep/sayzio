@@ -7,6 +7,7 @@ import type { BaseWindow } from 'electron';
 import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, setDomainMuted, pruneHistoryOlderThan, setSiteSettings, addBookmark, isBookmarked, getAllBookmarks, getRecentHistory } from './db';
 import { resolveSiteSettingsForUrl, contentBlockerOverrideForOrigin, invalidateSiteSettingsCache } from './site-settings';
 import { PREFERENCE_KEYS, type PreferenceKey } from '../shared/db-schema';
+import { VK_PREF_KEYS } from '../shared/virtual-keyboard';
 import { hostForMutePolicy } from '../shared/mute-policy';
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import { seedSayzioWebSession } from './sayzio-session';
@@ -280,6 +281,9 @@ export function createWindow(): BrowserWindow {
       try { host = new URL(pageUrl).hostname; } catch { /* keep raw */ }
       sendToWin('toast:show', `Pop-up blocked on ${host}`);
     },
+    // Virtual keyboard: reporter injection gate + field-focus relay.
+    resolveVkEnabled: () => safeGetPreference(VK_PREF_KEYS.ENABLED) === '1',
+    onVkFocus: (payload) => sendToWin('vk:focus', payload),
   });
 
   const savedMode  = (safeGetPreference(PREFERENCE_KEYS.WINDOW_MODE) as WindowMode | null) ?? 'browser';
@@ -552,6 +556,10 @@ export function createPrivateWindow(startUrl?: string): BrowserWindow {
       (safeGetPreference(PREFERENCE_KEYS.SPELLCHECK_ENABLED) ?? '1') === '1',
     resolveTranslateLang: () =>
       safeGetPreference(PREFERENCE_KEYS.TRANSLATE_TARGET_LANG) ?? 'en',
+    // Virtual keyboard works in private windows too — typing is just never
+    // learned (vk:record-words rejects private senders).
+    resolveVkEnabled: () => safeGetPreference(VK_PREF_KEYS.ENABLED) === '1',
+    onVkFocus: (payload) => sendToWin('vk:focus', payload),
   });
 
   // Private windows are browser-only — no dashboard or split pane.
@@ -733,6 +741,17 @@ function buildMenu(): void {
             if (wc && !wc.isDestroyed()) wc.print();
           },
         },
+        {
+          label: 'Save Page As…',
+          accelerator: 'CmdOrCtrl+S',
+          click: (_item, bw) => {
+            const browserWin = asBrowserWin(bw);
+            if (!browserWin) return;
+            const tm = getTabManagerForWindow(browserWin);
+            const id = tm?.getActiveTabId();
+            if (id) void tm?.savePageAs(id);
+          },
+        },
         { type: 'separator' },
         ...(!isMac ? [settingsItem, { type: 'separator' as const }] : []),
         isMac ? { role: 'close' as const } : { role: 'quit' as const },
@@ -834,6 +853,20 @@ function buildMenu(): void {
           const tm = getTabManagerForWindow(browserWin);
           const id = tm?.getActiveTabId();
           if (id) tm?.reload(id, true);
+        }},
+        { label: 'Stop', accelerator: 'CmdOrCtrl+.', click: (_item, bw) => {
+          const browserWin = asBrowserWin(bw);
+          if (!browserWin) return;
+          const tm = getTabManagerForWindow(browserWin);
+          const id = tm?.getActiveTabId();
+          if (id) tm?.stop(id);
+        }},
+        { label: 'View Page Source', accelerator: 'CmdOrCtrl+U', click: (_item, bw) => {
+          const browserWin = asBrowserWin(bw);
+          if (!browserWin) return;
+          const tm = getTabManagerForWindow(browserWin);
+          const id = tm?.getActiveTabId();
+          if (id) tm?.viewPageSource(id);
         }},
         { type: 'separator' as const },
         { label: 'Reader Mode', accelerator: 'CmdOrCtrl+Alt+R', click: (_item, bw) => {
