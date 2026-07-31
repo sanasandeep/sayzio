@@ -357,8 +357,9 @@ class LinkController extends Controller
 
         $validated = $request->validate([
             'destination' => 'required|string|max:2048',
+            'domain_id' => ['nullable', $this->availableDomainRule($request->user())],
             'alias' => array_merge(
-                ['nullable', 'string', new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\User\Rules\UniqueAliasCi(null, null)],
+                ['nullable', 'string', new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\User\Rules\UniqueAliasCi(null, $request->input('domain_id'))],
                 ['min:' . $owner->getAliasLengthLimits()['min']],
                 ['max:' . $owner->getAliasLengthLimits()['max']],
                 [new \App\Modules\Admin\Rules\NotBannedName()],
@@ -380,10 +381,11 @@ class LinkController extends Controller
         }
 
         $link = Link::create([
-            'type'     => 'url',
-            'long_url' => $longUrl,
-            'alias'    => $alias,
-            'user_id'  => workspace_owner_id(),
+            'type'      => 'url',
+            'long_url'  => $longUrl,
+            'alias'     => $alias,
+            'domain_id' => !empty($validated['domain_id']) ? (int) $validated['domain_id'] : null,
+            'user_id'   => workspace_owner_id(),
             'title'    => match ($kind) {
                 'email' => 'Email ' . preg_replace('/^mailto:/', '', $longUrl),
                 'phone' => 'Call ' . preg_replace('/^tel:/', '', $longUrl),
@@ -398,6 +400,31 @@ class LinkController extends Controller
             'kind'      => $kind,
             'edit_url'  => route('user.links.edit', $link),
             'open_url'  => $link->getShortUrl(),
+        ]);
+    }
+
+    /**
+     * JSON list of domains the caller can bind a quick-shortened link to —
+     * their own verified custom domains plus admin-global domains for their
+     * plan. Fetched lazily when the header quick-shorten popover opens (so
+     * the header include costs no extra query on normal page loads). Mirrors
+     * the mobile `GET /api/v1/domains/available` picker shape: items +
+     * primary_domain_id + default_host.
+     */
+    public function quickShortenDomains(Request $request)
+    {
+        $items = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
+
+        $primary = $items->firstWhere(fn ($d) => $d->isGlobal() && $d->is_primary);
+
+        return response()->json([
+            'items' => $items->map(fn ($d) => [
+                'id'        => $d->id,
+                'domain'    => $d->domain,
+                'is_global' => $d->isGlobal(),
+            ])->values()->all(),
+            'primary_domain_id' => $primary?->id,
+            'default_host'      => \App\Modules\Common\Support\PlatformHosts::primary(),
         ]);
     }
 

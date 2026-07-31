@@ -108,6 +108,91 @@ class QuickShortenTest extends TestCase
             ->assertStatus(422)->assertJsonValidationErrors(['alias']);
     }
 
+    public function test_quick_shorten_honours_chosen_custom_domain(): void
+    {
+        $user = $this->makeUser(['custom_domains' => true]);
+        $domain = \App\Modules\User\Models\Domain::create([
+            'user_id'     => $user->id,
+            'domain'      => 'go.qs-example.com',
+            'type'        => 'custom',
+            'is_verified' => true,
+            'is_active'   => true,
+        ]);
+
+        $alias = 'qs-' . Str::lower(Str::random(8));
+        $res = $this->post_($user, [
+            'destination' => 'https://example.com/page',
+            'alias'       => $alias,
+            'domain_id'   => $domain->id,
+        ]);
+
+        $res->assertOk()->assertJsonPath('short_url', "https://go.qs-example.com/{$alias}");
+
+        $link = Link::withoutGlobalScopes()->find($res->json('id'));
+        $this->assertSame($domain->id, $link->domain_id);
+    }
+
+    public function test_same_alias_allowed_on_different_domain_namespaces(): void
+    {
+        $user = $this->makeUser(['custom_domains' => true]);
+        $domain = \App\Modules\User\Models\Domain::create([
+            'user_id'     => $user->id,
+            'domain'      => 'brand.qs-example.com',
+            'type'        => 'custom',
+            'is_verified' => true,
+            'is_active'   => true,
+        ]);
+
+        $alias = 'qs-' . Str::lower(Str::random(8));
+        $this->post_($user, ['destination' => 'https://example.com', 'alias' => $alias])->assertOk();
+
+        // Same alias on the custom domain lives in a different namespace.
+        $this->post_($user, ['destination' => 'https://example.org', 'alias' => $alias, 'domain_id' => $domain->id])
+            ->assertOk();
+
+        // But a duplicate within the SAME domain namespace is rejected.
+        $this->post_($user, ['destination' => 'https://example.net', 'alias' => $alias, 'domain_id' => $domain->id])
+            ->assertStatus(422)->assertJsonValidationErrors(['alias']);
+    }
+
+    public function test_unavailable_domain_is_rejected(): void
+    {
+        $user  = $this->makeUser(['custom_domains' => true]);
+        $other = $this->makeUser(['custom_domains' => true]);
+        $foreign = \App\Modules\User\Models\Domain::create([
+            'user_id'     => $other->id,
+            'domain'      => 'other.qs-example.com',
+            'type'        => 'custom',
+            'is_verified' => true,
+            'is_active'   => true,
+        ]);
+
+        // Re-bind the workspace context to the first user (makeUser leaves
+        // the LAST created user's context bound).
+        $ws = app(WorkspaceContext::class)->resolve($user);
+        app()->instance('current_workspace', $ws);
+        app()->instance('workspace_owner', $user);
+
+        $this->post_($user, ['destination' => 'https://example.com', 'domain_id' => $foreign->id])
+            ->assertStatus(422)->assertJsonValidationErrors(['domain_id']);
+    }
+
+    public function test_domains_picker_endpoint_lists_available_domains(): void
+    {
+        $user = $this->makeUser(['custom_domains' => true]);
+        $domain = \App\Modules\User\Models\Domain::create([
+            'user_id'     => $user->id,
+            'domain'      => 'pick.qs-example.com',
+            'type'        => 'custom',
+            'is_verified' => true,
+            'is_active'   => true,
+        ]);
+
+        $res = $this->actingAs($user)->getJson(route('user.links.quick-shorten.domains'));
+        $res->assertOk()->assertJsonStructure(['items', 'primary_domain_id', 'default_host']);
+        $this->assertContains($domain->id, array_column($res->json('items'), 'id'));
+    }
+
     public function test_plan_link_cap_returns_json_422(): void
     {
         $user = $this->makeUser(['max_links' => 1]);

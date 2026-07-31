@@ -63,6 +63,22 @@
         </template>
 
         <div x-show="kind && kind !== 'unsupported'">
+            {{-- Domain picker — only when the user actually has choices
+                 (own verified custom domains and/or admin global domains). --}}
+            <template x-if="domains.length > 0">
+                <div class="mb-3">
+                    <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1" style="color: var(--text-muted);">Domain</label>
+                    <select x-model="domainId" @change="checkAlias()"
+                            class="w-full rounded-lg px-3 py-2 text-xs"
+                            style="background: var(--bg-input, rgba(255,255,255,0.05)); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                        <option value="" x-text="defaultHost || 'Default domain'"></option>
+                        <template x-for="d in domains" :key="d.id">
+                            <option :value="String(d.id)" x-text="d.domain" :selected="String(d.id) === domainId"></option>
+                        </template>
+                    </select>
+                </div>
+            </template>
+
             <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1" style="color: var(--text-muted);">Custom alias <span class="normal-case font-normal">(optional)</span></label>
             <input type="text" x-model="alias" @input.debounce.400ms="checkAlias()" placeholder="Leave blank to auto-generate"
                    class="w-full rounded-lg px-3 py-2 text-xs"
@@ -111,16 +127,38 @@ function quickShorten() {
         open: false, needPaste: false, pasteHint: '',
         content: '', kind: null, preview: '',
         alias: '', aliasStatus: null, aliasMessage: '',
+        domains: [], domainId: '', defaultHost: '', domainsLoaded: false,
         busy: false, error: '',
         toast: false, toastUrl: '', toastEdit: '', copied: false,
 
         toggle() {
             this.open = !this.open;
-            if (this.open) this.readClipboard();
+            if (this.open) { this.readClipboard(); this.loadDomains(); }
         },
         openFromEvent() {
             this.open = true;
             this.readClipboard();
+            this.loadDomains();
+        },
+        // Lazily fetch the user's attachable domains (own verified custom
+        // domains + admin global domains) the first time the popover opens.
+        // No domains → the picker stays hidden and behaviour is unchanged.
+        async loadDomains() {
+            if (this.domainsLoaded) return;
+            try {
+                const r = await fetch(`{{ route('user.links.quick-shorten.domains') }}`, {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!r.ok) return;
+                const d = await r.json();
+                this.domains = d.items || [];
+                this.defaultHost = d.default_host || '';
+                // Pre-select the platform primary domain when the admin set one.
+                if (d.primary_domain_id && this.domains.some(x => x.id === d.primary_domain_id)) {
+                    this.domainId = String(d.primary_domain_id);
+                }
+                this.domainsLoaded = true;
+            } catch (e) { /* picker is optional — default domain still works */ }
         },
         async readClipboard() {
             this.error = ''; this.needPaste = false;
@@ -165,7 +203,7 @@ function quickShorten() {
             const a = this.alias.trim();
             if (!a) { this.aliasStatus = null; this.aliasMessage = ''; return; }
             try {
-                const r = await fetch(`{{ route('user.links.check-alias') }}?alias=${encodeURIComponent(a)}`, {
+                const r = await fetch(`{{ route('user.links.check-alias') }}?alias=${encodeURIComponent(a)}${this.domainId ? `&domain_id=${encodeURIComponent(this.domainId)}` : ''}`, {
                     headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 const d = await r.json();
@@ -184,7 +222,7 @@ function quickShorten() {
                         'X-Requested-With': 'XMLHttpRequest',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     },
-                    body: JSON.stringify({ destination: this.content.trim(), alias: this.alias.trim() || null }),
+                    body: JSON.stringify({ destination: this.content.trim(), alias: this.alias.trim() || null, domain_id: this.domainId || null }),
                 });
                 const d = await r.json().catch(() => ({}));
                 if (!r.ok) {
