@@ -14,7 +14,9 @@
  *     (the navigation landing) syncs the bar cleanly.
  *  6. RECOVERY path: text discarded by an automatic navigation is stashed in
  *     discardedTypedTextRef and Ctrl/Cmd+Z restores it (edited flag set);
- *     the stash clears on tab switch and on user-committed navigations
+ *     the stash is kept PER TAB across tab switches (returning to a tab
+ *     restores its stash, and an uncommitted draft interrupted by a tab
+ *     switch is stashed too) and clears on user-committed navigations
  *     (Enter submit / suggestion accept).
  *  7. ESCAPE path: Escape resets the bar to the tab URL and clears the edited
  *     flag, but — like Chrome — the cleared text is stashed first so Ctrl/Cmd+Z
@@ -533,7 +535,7 @@ describe('useOmniboxUrlSync — Ctrl/Cmd+Z recovers text discarded by a surprise
     expect(stash.current!.current).toBe('first draft');
   });
 
-  it('tab switch clears the stash — Ctrl+Z on the new tab restores nothing', async () => {
+  it('tab switch keeps the stash per tab — the new tab has nothing, the old tab restores', async () => {
     const stash: { current: { current: string | null } | null } = { current: null };
     const m = await mount('tab-1', 'https://one.example/', undefined, stash);
 
@@ -543,11 +545,94 @@ describe('useOmniboxUrlSync — Ctrl/Cmd+Z recovers text discarded by a surprise
     await m.render('tab-1', 'https://one.example/redirected');
     expect(stash.current!.current).toBe('tab one draft');
 
+    // On tab 2, there is no stash — Ctrl+Z restores nothing.
     await m.render('tab-2', 'https://two.example/');
     expect(stash.current!.current).toBeNull();
-
     await pressUndo(m.el, { ctrlKey: true });
     expect(input(m.el).value).toBe('https://two.example/');
+    expect(text(m.el, 'edited')).toBe('clean');
+
+    // Back on tab 1, the stash is restored and Ctrl+Z recovers the draft.
+    await m.render('tab-1', 'https://one.example/redirected');
+    expect(stash.current!.current).toBe('tab one draft');
+    await pressUndo(m.el, { ctrlKey: true });
+    expect(input(m.el).value).toBe('tab one draft');
+    expect(text(m.el, 'value')).toBe('tab one draft');
+    expect(text(m.el, 'edited')).toBe('edited');
+    expect(stash.current!.current).toBeNull();
+  });
+
+  it('an uncommitted draft interrupted by a tab switch is recoverable when returning', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const m = await mount('tab-1', 'https://one.example/', undefined, stash);
+
+    // User is mid-typing (no discard happened yet) and clicks another tab.
+    await focus(m.el);
+    await typeInto(m.el, 'half-typed on tab one');
+    await blur(m.el);
+    expect(stash.current!.current).toBeNull();
+
+    await m.render('tab-2', 'https://two.example/');
+    expect(input(m.el).value).toBe('https://two.example/');
+    expect(text(m.el, 'edited')).toBe('clean');
+    expect(stash.current!.current).toBeNull();
+
+    // Returning to tab 1: bar shows the tab URL, but Ctrl+Z restores the draft.
+    await m.render('tab-1', 'https://one.example/');
+    expect(input(m.el).value).toBe('https://one.example/');
+    expect(stash.current!.current).toBe('half-typed on tab one');
+    await pressUndo(m.el, { ctrlKey: true });
+    expect(input(m.el).value).toBe('half-typed on tab one');
+    expect(text(m.el, 'edited')).toBe('edited');
+    expect(stash.current!.current).toBeNull();
+  });
+
+  it('a fresh uncommitted draft wins over an older discarded stash on tab switch', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const m = await mount('tab-1', 'https://one.example/', undefined, stash);
+
+    // An automatic navigation stashes an older draft...
+    await focus(m.el);
+    await typeInto(m.el, 'older draft');
+    await blur(m.el);
+    await m.render('tab-1', 'https://one.example/redirected');
+    expect(stash.current!.current).toBe('older draft');
+
+    // ...then the user types NEW text and switches tabs without committing.
+    await focus(m.el);
+    await typeInto(m.el, 'newest draft');
+    await blur(m.el);
+    await m.render('tab-2', 'https://two.example/');
+
+    // Returning restores the newest draft, not the stale one.
+    await m.render('tab-1', 'https://one.example/redirected');
+    expect(stash.current!.current).toBe('newest draft');
+    await pressUndo(m.el, { ctrlKey: true });
+    expect(input(m.el).value).toBe('newest draft');
+  });
+
+  it('a committed navigation clears the per-tab stash across tab switches too', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const navigate = vi.fn(() => Promise.resolve());
+    const m = await mount('tab-1', 'https://one.example/', navigate, stash);
+
+    await focus(m.el);
+    await typeInto(m.el, 'doomed draft');
+    await blur(m.el);
+    await m.render('tab-1', 'https://one.example/redirected');
+    expect(stash.current!.current).toBe('doomed draft');
+
+    // The user commits a navigation — the stash is consumed for good.
+    await focus(m.el);
+    await typeInto(m.el, 'https://typed.example/next');
+    await pressEnter(m.el);
+    expect(stash.current!.current).toBeNull();
+
+    // Switching away and back must NOT resurrect the pre-commit draft.
+    await m.render('tab-2', 'https://two.example/');
+    await m.render('tab-1', 'https://one.example/redirected');
+    expect(stash.current!.current).toBeNull();
+    await pressUndo(m.el, { ctrlKey: true });
     expect(text(m.el, 'edited')).toBe('clean');
   });
 

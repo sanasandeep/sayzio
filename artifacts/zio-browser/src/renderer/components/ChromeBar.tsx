@@ -745,8 +745,9 @@ export function ChromeBar({
   // discard-on-navigation + tab-switch reset live in the shared hook so the
   // behavior is unit-testable (tests/omnibox-url-sync.test.tsx). The hook also
   // stashes text discarded by an automatic navigation so the user can recover
-  // it with Ctrl/Cmd+Z in the omnibox (like Chrome); the buffer clears on tab
-  // switch and whenever the user commits a navigation themselves.
+  // it with Ctrl/Cmd+Z in the omnibox (like Chrome); the buffer is kept per
+  // tab across tab switches (returning to a tab restores its stash) and
+  // clears whenever the user commits a navigation themselves.
   const { discardedTypedTextRef } = useOmniboxUrlSync({
     activeTabId,
     activeTabUrl: activeTab?.url ?? '',
