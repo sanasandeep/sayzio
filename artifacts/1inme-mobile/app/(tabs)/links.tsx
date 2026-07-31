@@ -240,11 +240,22 @@ export default function LinksTab() {
     setSheetOpen(false);
   };
 
+  // Block submit while the live alias check says the typed back-half is
+  // taken/invalid/banned/too short. Blank alias (auto-generate) never blocks.
+  const aliasBlocked =
+    sheetAlias.trim() !== "" && aliasCheck?.available === false;
+
   const onSheetShorten = async () => {
     if (sheetBusy) return;
     const dest = sheetDest.trim();
     if (!dest) {
       setSheetError("Paste or type a web URL, email address or phone number.");
+      return;
+    }
+    if (aliasBlocked) {
+      setSheetError(
+        aliasCheck?.message || "That back-half isn't available. Pick another.",
+      );
       return;
     }
     setSheetBusy(true);
@@ -279,7 +290,7 @@ export default function LinksTab() {
   const aliasStatusText = aliasChecking
     ? "Checking availability…"
     : aliasCheck
-      ? aliasCheck.message
+      ? `${aliasCheck.available ? "✓" : "✕"} ${aliasCheck.message}`
       : sheetAlias.trim() === ""
         ? "Leave blank to auto-generate a back-half."
         : "";
@@ -642,15 +653,16 @@ export default function LinksTab() {
             <Pressable
               testID="quick-shorten-create"
               onPress={onSheetShorten}
-              disabled={sheetBusy}
+              disabled={sheetBusy || aliasBlocked}
               accessibilityRole="button"
               accessibilityLabel="Create short link"
+              accessibilityState={{ disabled: sheetBusy || aliasBlocked }}
               style={[
                 styles.sheetBtn,
                 {
                   backgroundColor: colors.primary,
                   borderRadius: colors.radius,
-                  opacity: sheetBusy ? 0.6 : 1,
+                  opacity: sheetBusy || aliasBlocked ? 0.6 : 1,
                 },
               ]}
             >
