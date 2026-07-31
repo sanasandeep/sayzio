@@ -642,13 +642,40 @@
                             <span class="nav-label">AI Resume / Portfolio</span>
                             <span class="sidebar-tooltip">AI Resume / Portfolio</span>
                         </a>
-                        <a href="{{ route('user.projects.index') }}"
-                           class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"
-                           style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-folder"></i></div>
-                            <span class="nav-label">Projects</span>
-                            <span class="sidebar-tooltip">Projects</span>
-                        </a>
+                        @php
+                            $__navFolders = workspace_owner()->projects()->orderBy('name')->limit(10)->get(['id', 'name', 'color']);
+                        @endphp
+                        <div x-data="{ foldersOpen: {{ request()->routeIs('user.projects.*') || request()->filled('project_id') ? 'true' : 'false' }} }">
+                            <div class="flex items-center">
+                                <a href="{{ route('user.projects.index') }}"
+                                   class="sidebar-link flex-1 {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"
+                                   style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+                                    <div class="nav-icon-wrap"><i class="fas fa-folder"></i></div>
+                                    <span class="nav-label">Folders</span>
+                                    <span class="sidebar-tooltip">Folders</span>
+                                </a>
+                                @if($__navFolders->isNotEmpty())
+                                <button type="button" @click="foldersOpen = !foldersOpen"
+                                        class="nav-label p-1.5 mr-1 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/10"
+                                        :aria-expanded="foldersOpen ? 'true' : 'false'" aria-label="Toggle folders list">
+                                    <i class="fas fa-chevron-down text-[10px] transition-transform" :class="foldersOpen ? '' : '-rotate-90'"></i>
+                                </button>
+                                @endif
+                            </div>
+                            <div x-show="foldersOpen" x-collapse class="nav-label pl-9 pr-2 pb-1 space-y-0.5">
+                                @foreach($__navFolders as $__nf)
+                                <a href="{{ route('user.links.index', ['project_id' => $__nf->id]) }}"
+                                   class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[13px] {{ request('project_id') == $__nf->id ? 'text-white bg-white/10' : 'text-white/50 hover:text-white hover:bg-white/5' }}">
+                                    <i class="fas fa-folder text-xs" style="color: {{ $__nf->color ?: '#3b82f6' }}"></i>
+                                    <span class="truncate">{{ $__nf->name }}</span>
+                                </a>
+                                @endforeach
+                                <a href="{{ route('user.projects.create') }}" class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[13px] text-white/40 hover:text-white hover:bg-white/5">
+                                    <i class="fas fa-plus text-xs"></i>
+                                    <span>New folder</span>
+                                </a>
+                            </div>
+                        </div>
                         @endif
                         @if($__can['files_view'] || $__can['links_view'])
                         @php
@@ -1478,7 +1505,29 @@
                                 <a href="{{ route('user.backlinks.index') }}" class="sidebar-link {{ request()->routeIs('user.backlinks.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>Backlinks</span></a>
                                 <a href="{{ route('user.splash-pages.index') }}" class="sidebar-link {{ request()->routeIs('user.splash-pages.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-rocket"></i></div> <span>Intros</span></a>
                                 <a href="{{ route('user.resume.editor') }}" class="sidebar-link {{ request()->routeIs('user.resume.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-file-lines"></i></div> <span>AI Resume / Portfolio</span></a>
-                                <a href="{{ route('user.projects.index') }}" class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder"></i></div> <span>Projects</span></a>
+                                <div x-data="{ mFoldersOpen: {{ request()->routeIs('user.projects.*') || request()->filled('project_id') ? 'true' : 'false' }} }">
+                                    <div class="flex items-center">
+                                        <a href="{{ route('user.projects.index') }}" class="sidebar-link flex-1 {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder"></i></div> <span>Folders</span></a>
+                                        @php $__mNavFolders = workspace_owner()->projects()->orderBy('name')->limit(10)->get(['id', 'name', 'color']); @endphp
+                                        @if($__mNavFolders->isNotEmpty())
+                                        <button type="button" @click="mFoldersOpen = !mFoldersOpen" class="p-1.5 mr-1 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/10" :aria-expanded="mFoldersOpen ? 'true' : 'false'" aria-label="Toggle folders list">
+                                            <i class="fas fa-chevron-down text-[10px] transition-transform" :class="mFoldersOpen ? '' : '-rotate-90'"></i>
+                                        </button>
+                                        @endif
+                                    </div>
+                                    <div x-show="mFoldersOpen" x-collapse class="pl-9 pr-2 pb-1 space-y-0.5">
+                                        @foreach($__mNavFolders as $__mnf)
+                                        <a href="{{ route('user.links.index', ['project_id' => $__mnf->id]) }}" class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[13px] {{ request('project_id') == $__mnf->id ? 'text-white bg-white/10' : 'text-white/50 hover:text-white hover:bg-white/5' }}">
+                                            <i class="fas fa-folder text-xs" style="color: {{ $__mnf->color ?: '#3b82f6' }}"></i>
+                                            <span class="truncate">{{ $__mnf->name }}</span>
+                                        </a>
+                                        @endforeach
+                                        <a href="{{ route('user.projects.create') }}" class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[13px] text-white/40 hover:text-white hover:bg-white/5">
+                                            <i class="fas fa-plus text-xs"></i>
+                                            <span>New folder</span>
+                                        </a>
+                                    </div>
+                                </div>
                                 @endif
                                 @if($__can['files_view'] || $__can['links_view'])
                                 @php

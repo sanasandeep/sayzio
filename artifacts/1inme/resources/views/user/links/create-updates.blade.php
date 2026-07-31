@@ -87,9 +87,9 @@
         {{-- Project --}}
         @if($projects->count() > 0)
         <div>
-            <label for="project_id" class="block text-sm font-medium text-white/80 mb-1.5">Project <span class="text-white/40 font-normal">(optional)</span></label>
+            <label for="project_id" class="block text-sm font-medium text-white/80 mb-1.5">Folder <span class="text-white/40 font-normal">(optional)</span></label>
             <select id="project_id" name="project_id" class="glass-input w-full">
-                <option value="">No project</option>
+                <option value="">No folder</option>
                 @foreach($projects as $project)
                     <option value="{{ $project->id }}" @selected(old('project_id') == $project->id)>{{ $project->name }}</option>
                 @endforeach

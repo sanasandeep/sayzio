@@ -295,9 +295,9 @@
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Project</label>
+                                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Folder</label>
                                 <select name="project_id" class="theme-input w-full">
-                                    <option value="">No project</option>
+                                    <option value="">No folder</option>
                                     @foreach($projects as $project)
                                         <option value="{{ $project->id }}" {{ old('project_id', $link->project_id) == $project->id ? 'selected' : '' }}>{{ $project->name }}</option>
                                     @endforeach

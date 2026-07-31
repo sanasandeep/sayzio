@@ -622,6 +622,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('projects', [ProjectController::class, 'index'])->middleware('workspace.can:links.view')->name('projects.index');
         Route::get('projects/{project}', [ProjectController::class, 'show'])->middleware('workspace.can:links.view')->name('projects.show');
         Route::post('projects', [ProjectController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':projects'])->name('projects.store');
+        // "Folders" UI: move a link into / out of a folder (projects under the hood).
+        Route::post('links/{link}/move-to-folder', [ProjectController::class, 'moveLink'])->middleware('workspace.can:links.edit')->name('links.move-to-folder');
 
         // ---- Resume / Portfolio ----
         // Personal to the signed-in user (one row per account); no

@@ -36,9 +36,9 @@
                     @include('user.links.partials.alias-field')
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-white/60 mb-1">Project</label>
+                    <label class="block text-sm font-medium text-white/60 mb-1">Folder</label>
                     <select name="project_id" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40">
-                        <option value="">No project</option>
+                        <option value="">No folder</option>
                         @foreach($projects as $project)
                             <option value="{{ $project->id }}" @selected(old('project_id') == $project->id)>{{ $project->name }}</option>
                         @endforeach

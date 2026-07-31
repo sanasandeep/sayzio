@@ -259,9 +259,9 @@
                 @endif
             </div>
             <div>
-                <label class="block text-xs font-medium text-white/60 mb-1">Project</label>
+                <label class="block text-xs font-medium text-white/60 mb-1">Folder</label>
                 <select name="project_id" class="{{ $inputCls }}">
-                    <option value="" class="bg-[#0a0612]">No project</option>
+                    <option value="" class="bg-[#0a0612]">No folder</option>
                     @foreach($projects as $project)
                         <option value="{{ $project->id }}" class="bg-[#0a0612]"
                             {{ old('project_id', $link->project_id ?? null) == $project->id ? 'selected' : '' }}>{{ $project->name }}</option>

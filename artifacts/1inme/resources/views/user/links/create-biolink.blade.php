@@ -83,9 +83,9 @@
                     @error('domain_id') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-white/60 mb-1.5">Project</label>
+                    <label class="block text-sm font-medium text-white/60 mb-1.5">Folder</label>
                     <select name="project_id" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
-                        <option value="" class="bg-[#0d0818]">No project</option>
+                        <option value="" class="bg-[#0d0818]">No folder</option>
                         @foreach($projects as $project)
                             <option value="{{ $project->id }}" {{ old('project_id') == $project->id ? 'selected' : '' }} class="bg-[#0d0818]">{{ $project->name }}</option>
                         @endforeach
