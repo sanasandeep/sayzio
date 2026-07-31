@@ -21,6 +21,8 @@ export type Link = {
   seo_image: string | null;
   domain_id: number | null;
   domain: string | null;
+  /** Folder (project) the link lives in; null when not in a folder. */
+  project?: { id: number; name: string; color: string | null } | null;
   short_url: string;
   created_at: string | null;
   updated_at: string | null;

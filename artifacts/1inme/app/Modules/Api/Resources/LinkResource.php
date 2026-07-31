@@ -159,6 +159,13 @@ class LinkResource
             'seo_image'       => $l->seo_image,
             'domain_id'       => $l->domain_id,
             'domain'          => $l->domain?->domain,
+            // Folder (project) the link lives in — used by clients to tint
+            // grid tiles with the folder colour. Null when not in a folder.
+            'project'         => $l->project ? [
+                'id'    => $l->project->id,
+                'name'  => $l->project->name,
+                'color' => $l->project->color,
+            ] : null,
             'short_url'       => $l->getShortUrl(),
             'auto_pixel'      => $autoPixel,
             'pixel_fires'     => [

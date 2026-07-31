@@ -19,9 +19,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { DictationMic } from "@/components/DictationMic";
 import { DomainPicker } from "@/components/DomainPicker";
 import { EmptyState } from "@/components/EmptyState";
+import { LinkGridTile } from "@/components/LinkGridTile";
 import { LinkRow } from "@/components/LinkRow";
 import { onVoiceAction, setVoiceSurface } from "@/components/VoiceAssistant";
 import { TOP_BAR_H, useTabBar, useTabBarBottomInset } from "@/contexts/TabBarContext";
@@ -52,6 +55,22 @@ export default function LinksTab() {
   const tabBarBottomInset = useTabBarBottomInset();
   const [type, setType] = useState<string>("");
   const [q, setQ] = useState<string>("");
+
+  // ── List / grid view toggle ────────────────────────────────────
+  // Web parity for the My Links view switch: grid shows Finder-style
+  // icon tiles tinted by the link's folder colour. Choice persists.
+  const [view, setView] = useState<"list" | "grid">("list");
+  useEffect(() => {
+    AsyncStorage.getItem("sayzio_links_view")
+      .then((v) => {
+        if (v === "grid") setView("grid");
+      })
+      .catch(() => {});
+  }, []);
+  const changeView = (v: "list" | "grid") => {
+    setView(v);
+    AsyncStorage.setItem("sayzio_links_view", v).catch(() => {});
+  };
 
   // ── Voice control ──────────────────────────────────────────────
   // Spoken "find my … link" runs the search_app tool, which returns a
@@ -328,6 +347,24 @@ export default function LinksTab() {
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Pressable
+              onPress={() => changeView(view === "list" ? "grid" : "list")}
+              hitSlop={8}
+              accessibilityLabel={
+                view === "list" ? "Switch to grid view" : "Switch to list view"
+              }
+              testID="links-view-toggle"
+              style={[
+                styles.healthBtn,
+                { borderColor: colors.border, borderRadius: colors.radius },
+              ]}
+            >
+              <Feather
+                name={view === "list" ? "grid" : "list"}
+                size={16}
+                color={colors.foreground}
+              />
+            </Pressable>
+            <Pressable
               onPress={() => {
                 // Guard: on some platforms (notably react-native-web) onPress
                 // can still fire on release after a long-press — a tap after
@@ -525,8 +562,12 @@ export default function LinksTab() {
         </View>
       ) : (
         <FlatList
+          // numColumns can't change on the fly — remount when the view flips.
+          key={view}
           data={query.data?.items ?? []}
           keyExtractor={(l) => String(l.id)}
+          numColumns={view === "grid" ? 2 : 1}
+          columnWrapperStyle={view === "grid" ? { gap: 10 } : undefined}
           contentContainerStyle={{
             paddingHorizontal: 20,
             paddingBottom: tabBarBottomInset,
@@ -535,7 +576,13 @@ export default function LinksTab() {
           onScroll={(e) => reportScroll(e.nativeEvent.contentOffset.y)}
           scrollEventThrottle={16}
           ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
-          renderItem={({ item }) => <LinkRow link={item} showNfcButton />}
+          renderItem={({ item }) =>
+            view === "grid" ? (
+              <LinkGridTile link={item} />
+            ) : (
+              <LinkRow link={item} showNfcButton />
+            )
+          }
           ListEmptyComponent={
             <EmptyState
               icon="link"
