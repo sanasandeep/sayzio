@@ -863,17 +863,32 @@ if ((browser as any).omnibox) {
     const settings = await getSettings();
     const base = settings.webBaseUrl || "https://1inme.com";
     let targetUrl: string;
-    let isUrl = false;
-    try { new URL(q); isUrl = true; } catch { /* not a URL */ }
-    if (!isUrl) {
-      try { new URL("https://" + q); isUrl = true; } catch { /* still not */ }
+    // Optional custom back-half: "szo <destination> <alias>".
+    const parts = q.split(/\s+/);
+    const first = parts[0];
+    const alias = parts.length === 2 ? parts[1] : undefined;
+    // Decide shorten vs dashboard search. The server owns the real
+    // classification (URL / bare domain / email → mailto: / phone → tel:);
+    // this is only a coarse "is it shortenable at all?" check.
+    let shortenable = false;
+    if (parts.length <= 2) {
+      try { new URL(first); shortenable = true; } catch { /* not a URL */ }
+      if (!shortenable) {
+        try {
+          const u = new URL("https://" + first);
+          shortenable = u.hostname.includes(".");
+        } catch { /* still not */ }
+      }
+      if (!shortenable && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(first)) shortenable = true; // email
+      if (!shortenable && /^\+?[\d\s().-]{6,}$/.test(first)) shortenable = true; // phone
     }
-    if (isUrl) {
-      // Shorten a URL typed into the omnibox.
+    if (shortenable) {
+      // Shorten what was typed into the omnibox via the smart quick-shorten
+      // endpoint (same as the popup and right-click flows), passing the
+      // optional custom back-half through.
       try {
-        const rawUrl = q.includes("://") ? q : "https://" + q;
-        const result = await api.createShortLink(rawUrl, undefined, settings.workspaceId ?? undefined, false);
-        const short = result.link.short_url || `${base}/${result.link.alias}`;
+        const result = await api.quickShorten(first, alias, settings.workspaceId);
+        const short = result.short_url;
         // Copy the result; notify the user.
         notify("Zio Extension — shortened", short);
         targetUrl = short;
@@ -899,7 +914,7 @@ if ((browser as any).omnibox) {
     (_text: string, suggest: (suggestions: Array<{ content: string; description: string }>) => void) => {
       suggest([{
         content: _text,
-        description: "Shorten or search Sayzio: type a URL to shorten it, or text to search your dashboard",
+        description: "Shorten or search Sayzio: type a URL, email, or phone (add a word after it for a custom back-half), or text to search your dashboard",
       }]);
     },
   );
