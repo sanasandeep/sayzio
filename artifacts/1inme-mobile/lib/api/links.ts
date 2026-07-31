@@ -126,10 +126,17 @@ export type QuickShortenResult = {
  * classifies + normalizes the destination itself, so we just pass the
  * raw string through. Mirrors the web header bolt button.
  */
-export async function quickShorten(destination: string): Promise<QuickShortenResult> {
+export async function quickShorten(
+  destination: string,
+  opts?: { alias?: string; domain_id?: number | null },
+): Promise<QuickShortenResult> {
   const res = await apiFetch<{ data: QuickShortenResult }>(`/links/quick-shorten`, {
     method: "POST",
-    body: JSON.stringify({ destination }),
+    body: JSON.stringify({
+      destination,
+      ...(opts?.alias ? { alias: opts.alias } : {}),
+      ...(opts?.domain_id != null ? { domain_id: opts.domain_id } : {}),
+    }),
   });
   return res.data;
 }
@@ -150,11 +157,14 @@ export type AliasCheck = {
 export async function checkAlias(
   alias: string,
   ignoreId?: number,
+  domainId?: number | null,
 ): Promise<AliasCheck> {
   const qs = new URLSearchParams({ alias });
   // On the edit screen, exclude the link's own current alias from the
   // "taken" check so an unchanged alias reads as available.
   if (ignoreId != null) qs.set("ignore_id", String(ignoreId));
+  // Uniqueness is per-domain, so scope the verdict to the chosen host.
+  if (domainId != null) qs.set("domain_id", String(domainId));
   return apiFetch<AliasCheck>(`/links/check-alias?${qs}`);
 }
 

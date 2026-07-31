@@ -87,7 +87,11 @@ class LinkController extends Controller
         $aliasLimits = $user->getAliasLengthLimits();
         $validated = $request->validate([
             'destination' => ['required', 'string', 'max:2048'],
-            'alias'       => ['nullable', 'string', 'min:' . $aliasLimits['min'], 'max:' . $aliasLimits['max'], new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\Admin\Rules\NotBannedName(), new \App\Modules\User\Rules\UniqueAliasCi(null, null)],
+            // Optional branded host — same allow-list as the full create flow
+            // (own verified + plan-entitled global domains), and the alias
+            // uniqueness check is scoped to the chosen domain namespace.
+            'domain_id'   => ['nullable', $this->availableDomainRule($user)],
+            'alias'       => ['nullable', 'string', 'min:' . $aliasLimits['min'], 'max:' . $aliasLimits['max'], new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\Admin\Rules\NotBannedName(), new \App\Modules\User\Rules\UniqueAliasCi(null, $request->input('domain_id'))],
         ]);
 
         // Plan link cap — mirrors CheckPlanLimit:links on the web route.
@@ -124,10 +128,11 @@ class LinkController extends Controller
         }
 
         $link = new Link([
-            'type'     => 'url',
-            'long_url' => $longUrl,
-            'alias'    => $alias,
-            'user_id'  => $user->id,
+            'type'      => 'url',
+            'long_url'  => $longUrl,
+            'alias'     => $alias,
+            'domain_id' => !empty($validated['domain_id']) ? (int) $validated['domain_id'] : null,
+            'user_id'   => $user->id,
             'title'    => match ($kind) {
                 'email' => 'Email ' . preg_replace('/^mailto:/', '', $longUrl),
                 'phone' => 'Call ' . preg_replace('/^tel:/', '', $longUrl),

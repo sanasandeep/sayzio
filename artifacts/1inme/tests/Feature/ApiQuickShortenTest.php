@@ -104,6 +104,71 @@ class ApiQuickShortenTest extends TestCase
             ->assertStatus(422);
     }
 
+    public function test_honours_chosen_custom_domain(): void
+    {
+        $user = $this->makeUser(['custom_domains' => true]);
+        $domain = \App\Modules\User\Models\Domain::create([
+            'user_id'     => $user->id,
+            'domain'      => 'go.aqs-example.com',
+            'type'        => 'custom',
+            'is_verified' => true,
+            'is_active'   => true,
+        ]);
+
+        $alias = 'aqs-' . Str::lower(Str::random(8));
+        $res = $this->post_($user, [
+            'destination' => 'https://example.com/page',
+            'alias'       => $alias,
+            'domain_id'   => $domain->id,
+        ]);
+
+        $res->assertCreated()
+            ->assertJsonPath('data.short_url', "https://go.aqs-example.com/{$alias}");
+
+        $link = Link::withoutGlobalScopes()->find($res->json('data.id'));
+        $this->assertSame($domain->id, $link->domain_id);
+    }
+
+    public function test_same_alias_allowed_on_different_domain_namespaces(): void
+    {
+        $user = $this->makeUser(['custom_domains' => true]);
+        $domain = \App\Modules\User\Models\Domain::create([
+            'user_id'     => $user->id,
+            'domain'      => 'brand.aqs-example.com',
+            'type'        => 'custom',
+            'is_verified' => true,
+            'is_active'   => true,
+        ]);
+
+        $alias = 'aqs-' . Str::lower(Str::random(8));
+        $this->post_($user, ['destination' => 'https://example.com', 'alias' => $alias])->assertCreated();
+
+        // Same alias on the custom domain lives in a different namespace.
+        $this->post_($user, ['destination' => 'https://example.org', 'alias' => $alias, 'domain_id' => $domain->id])
+            ->assertCreated();
+
+        // But a duplicate within the SAME domain namespace is rejected.
+        $this->post_($user, ['destination' => 'https://example.net', 'alias' => $alias, 'domain_id' => $domain->id])
+            ->assertStatus(422);
+    }
+
+    public function test_unavailable_domain_is_rejected(): void
+    {
+        $user  = $this->makeUser(['custom_domains' => true]);
+        $other = $this->makeUser(['custom_domains' => true]);
+        $foreign = \App\Modules\User\Models\Domain::create([
+            'user_id'     => $other->id,
+            'domain'      => 'other.aqs-example.com',
+            'type'        => 'custom',
+            'is_verified' => true,
+            'is_active'   => true,
+        ]);
+
+        $this->post_($user, ['destination' => 'https://example.com', 'domain_id' => $foreign->id])
+            ->assertStatus(422);
+        $this->assertSame(0, Link::withoutGlobalScopes()->where('user_id', $user->id)->count());
+    }
+
     public function test_enforces_plan_link_cap(): void
     {
         $user = $this->makeUser(['max_links' => 1]);
