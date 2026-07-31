@@ -26,7 +26,6 @@ interface LinkTypeMeta {
   icon: string;
   desc: string;
   needsEditor?: boolean;
-  webOnly?: boolean;
 }
 
 const LINK_TYPES: LinkTypeMeta[] = [
@@ -39,7 +38,7 @@ const LINK_TYPES: LinkTypeMeta[] = [
   { type: 'sms',           label: 'SMS',            icon: '💬', desc: 'Pre-filled text message' },
   { type: 'pdf',           label: 'PDF',            icon: '📄', desc: 'Link to a PDF document' },
   { type: 'social',        label: 'Social',         icon: '🌐', desc: 'Social media profiles',     needsEditor: true },
-  { type: 'file',          label: 'File',           icon: '📁', desc: 'File link',                 webOnly: true },
+  { type: 'file',          label: 'File',           icon: '📁', desc: 'Upload & share a file' },
   { type: 'conversational',label: 'Conversational', icon: '🗣️', desc: 'Guided conversation',      needsEditor: true },
   { type: 'slides',        label: 'Slides',         icon: '🖼️', desc: 'Story slides',             needsEditor: true },
   { type: 'ai_chat',       label: 'AI Chat',        icon: '🤖', desc: 'AI companion page',         needsEditor: true },
@@ -123,6 +122,9 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, init
 
   const [createdLink, setCreatedLink] = useState<ApiLink | null>(null);
   const [creating, setCreating] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [pickedFile, setPickedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -174,8 +176,8 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, init
   }, []);
 
   const pickType = useCallback((meta: LinkTypeMeta) => {
-    if (meta.webOnly) return;
     setSelectedType(meta);
+    setPickedFile(null);
     setFields(prev => ({
       ...defaultFields(),
       url: meta.type === 'short' ? pageUrl : '',
@@ -192,7 +194,7 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, init
   const initialTypeApplied = useRef(false);
   useEffect(() => {
     if (initialTypeApplied.current || !initialType) return;
-    const meta = LINK_TYPES.find(t => t.type === initialType && !t.webOnly);
+    const meta = LINK_TYPES.find(t => t.type === initialType);
     if (meta) {
       initialTypeApplied.current = true;
       pickType(meta);
@@ -299,10 +301,11 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, init
     if (type === 'wifi' && !fields.wifiSsid) return 'SSID (network name) is required';
     if (type === 'sms' && !fields.smsPhone) return 'Phone number is required';
     if (type === 'pdf' && !fields.pdfUrl) return 'PDF URL is required';
+    if (type === 'file' && !pickedFile) return 'Pick a file to upload';
     if (type === 'qr' && !fields.url && !pageUrl) return 'Target URL is required';
     if (alias && aliasCheck && !aliasCheck.available) return aliasCheck.message;
     return null;
-  }, [selectedType, fields, alias, aliasCheck, pageUrl]);
+  }, [selectedType, fields, alias, aliasCheck, pageUrl, pickedFile]);
 
   const handleCreate = useCallback(async () => {
     if (!token) { onOpenAuth(); return; }
@@ -318,6 +321,19 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, init
     setCreating(true);
     setError(null);
     try {
+      // File links: upload to the Sayzio Files vault first, then create the
+      // link referencing the vault file. A failed upload aborts here — the
+      // link-create endpoint is never called, so no dangling link.
+      if (selectedType?.type === 'file' && pickedFile) {
+        setUploading(true);
+        try {
+          const uploaded = await client.uploadFile(pickedFile, pickedFile.name);
+          payload.settings = { file: { id: uploaded.id, name: pickedFile.name, size: pickedFile.size } };
+          if (!payload.title) payload.title = pickedFile.name;
+        } finally {
+          setUploading(false);
+        }
+      }
       const res = await client.createLink(payload as unknown as CreateLinkPayload);
       setCreatedLink(res.link);
       setView('success');
@@ -331,7 +347,7 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, init
     } finally {
       setCreating(false);
     }
-  }, [token, getClient, validateForm, buildPayload, onOpenAuth, onNavigate]);
+  }, [token, getClient, validateForm, buildPayload, onOpenAuth, onNavigate, selectedType, pickedFile]);
 
   const handleCopy = useCallback(async (text: string) => {
     await window.zio.clipboard.write(text);
@@ -343,6 +359,7 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, init
     setView('types');
     setSelectedType(null);
     setFields(defaultFields());
+    setPickedFile(null);
     setAlias('');
     setAliasCheck(null);
     setCreatedLink(null);
@@ -407,8 +424,7 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, init
             <button
               key={meta.type}
               onClick={() => pickType(meta)}
-              disabled={meta.webOnly}
-              title={meta.webOnly ? 'File upload requires the Sayzio web app' : meta.desc}
+              title={meta.desc}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -416,10 +432,10 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, init
                 gap: 4,
                 padding: '10px 6px',
                 borderRadius: 10,
-                background: meta.webOnly ? 'transparent' : 'var(--color-bg-elevated)',
-                border: `1px solid ${meta.webOnly ? 'var(--color-border)' : 'var(--color-border)'}`,
-                cursor: meta.webOnly ? 'not-allowed' : 'pointer',
-                opacity: meta.webOnly ? 0.35 : 1,
+                background: 'var(--color-bg-elevated)',
+                border: '1px solid var(--color-border)',
+                cursor: 'pointer',
+                opacity: 1,
                 transition: 'all 0.12s',
                 textAlign: 'center',
               }}
@@ -730,6 +746,43 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, init
           </>
         )}
 
+        {meta.type === 'file' && (
+          <>
+            <FormField label="File *">
+              <input
+                ref={fileInputRef}
+                type="file"
+                style={{ display: 'none' }}
+                onChange={e => {
+                  const f = e.target.files?.[0] ?? null;
+                  setPickedFile(f);
+                  setError(null);
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                style={{ ...secondaryBtn, width: '100%', padding: '8px 10px', fontSize: 12, textAlign: 'left' }}
+              >
+                {pickedFile ? 'Change file…' : 'Choose a file…'}
+              </button>
+              {pickedFile && (
+                <p style={{ fontSize: 10, marginTop: 4, color: 'var(--color-text-muted)', wordBreak: 'break-all' }}>
+                  📁 {pickedFile.name} ({formatFileSize(pickedFile.size)})
+                </p>
+              )}
+            </FormField>
+            <FormField label="Title (optional)">
+              <input
+                value={fields.title}
+                onChange={e => setField('title', e.target.value)}
+                placeholder={pickedFile?.name || 'Link title'}
+                style={inputStyle}
+              />
+            </FormField>
+          </>
+        )}
+
         {meta.type === 'pdf' && (
           <>
             <FormField label="PDF URL *">
@@ -817,10 +870,20 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, init
           onClick={() => void handleCreate()}
           disabled={creating || aliasDisabled}
           style={{ ...primaryBtn, width: '100%', opacity: creating || aliasDisabled ? 0.5 : 1, padding: '8px 14px' }}
-        >{creating ? 'Creating…' : `Create ${meta.label}`}</button>
+        >{uploading ? 'Uploading…' : creating ? 'Creating…' : `Create ${meta.label}`}</button>
       </div>
     </PopoverShell>
   );
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function formatFileSize(bytes: number): string {
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let n = bytes;
+  let i = 0;
+  while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+  return `${n < 10 && i > 0 ? n.toFixed(1) : Math.round(n)} ${units[i]}`;
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────

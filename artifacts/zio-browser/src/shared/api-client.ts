@@ -577,7 +577,7 @@ export class ApiClient {
    * Throws ApiClientError('quota_exceeded') when the storage limit is hit.
    */
   async uploadFile(blob: Blob, filename: string): Promise<ApiFile> {
-    const url = `${this.baseUrl}/api/v1/files`;
+    const url = `${this.baseUrl}/api/v1/me/files/upload`;
     const headers: Record<string, string> = {
       'Accept': 'application/json',
       'User-Agent': this.userAgent,
