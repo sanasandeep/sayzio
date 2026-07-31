@@ -12,6 +12,10 @@
  *  5. COMMIT path: pressing Enter navigates to exactly the typed text, blurs
  *     the bar, and clears the edited flag; the subsequent tab URL update
  *     (the navigation landing) syncs the bar cleanly.
+ *  6. RECOVERY path: text discarded by an automatic navigation is stashed in
+ *     discardedTypedTextRef and Ctrl/Cmd+Z restores it (edited flag set);
+ *     the stash clears on tab switch and on user-committed navigations
+ *     (Enter submit / suggestion accept).
  */
 import { describe, it, expect, vi } from 'vitest';
 import React, { act, useRef, useState } from 'react';
@@ -30,24 +34,52 @@ function OmniboxHarness({
   tabId,
   tabUrl,
   navigate,
+  stashProbe,
 }: {
   tabId: string | null;
   tabUrl: string;
   navigate?: (tabId: string, url: string) => Promise<void>;
+  /** Lets tests read the hook's discarded-text stash directly. */
+  stashProbe?: { current: { current: string | null } | null };
 }) {
   const [omniboxValue, setOmniboxValue] = useState('');
   const [omniboxFocused, setOmniboxFocused] = useState(false);
   const [omniboxEdited, setOmniboxEdited] = useState(false);
   const omniboxRef = useRef<HTMLInputElement>(null);
 
-  useOmniboxUrlSync({
+  const { discardedTypedTextRef } = useOmniboxUrlSync({
     activeTabId: tabId,
     activeTabUrl: tabUrl,
     omniboxFocused,
     omniboxEdited,
+    omniboxValue,
     setOmniboxValue,
     setOmniboxEdited,
   });
+  if (stashProbe) stashProbe.current = discardedTypedTextRef;
+
+  // Mirrors ChromeBar's handleOmniboxKeyDown Ctrl/Cmd+Z branch: restore the
+  // stashed discarded text (edited flag set), but only when there are no
+  // fresh uncommitted edits.
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'z'
+        && !omniboxEdited && discardedTypedTextRef.current !== null) {
+      e.preventDefault();
+      setOmniboxValue(discardedTypedTextRef.current);
+      setOmniboxEdited(true);
+      discardedTypedTextRef.current = null;
+    }
+  };
+
+  // Mirrors ChromeBar's acceptSuggestion (user-committed navigation via a
+  // suggestion): navigate, clear the edited flag AND the recovery stash.
+  const handleAcceptSuggestion = (url: string) => {
+    if (!tabId) return;
+    void navigate?.(tabId, url);
+    setOmniboxEdited(false);
+    discardedTypedTextRef.current = null;
+    omniboxRef.current?.blur();
+  };
 
   // Mirrors ChromeBar's handleOmniboxSubmit (the Enter-to-navigate commit
   // path): navigate with the trimmed typed text, clear the edited flag, and
@@ -57,6 +89,7 @@ function OmniboxHarness({
     if (!tabId || !omniboxValue.trim()) return;
     void navigate?.(tabId, omniboxValue.trim());
     setOmniboxEdited(false);
+    discardedTypedTextRef.current = null;
     omniboxRef.current?.blur();
   };
 
@@ -68,6 +101,7 @@ function OmniboxHarness({
         value={omniboxFocused || omniboxEdited ? omniboxValue : tabUrl}
         onFocus={() => setOmniboxFocused(true)}
         onBlur={() => setOmniboxFocused(false)}
+        onKeyDown={handleKeyDown}
         onChange={e => {
           setOmniboxValue(e.target.value);
           setOmniboxEdited(true);
@@ -76,6 +110,13 @@ function OmniboxHarness({
       <div data-testid="value">{omniboxValue}</div>
       <div data-testid="edited">{omniboxEdited ? 'edited' : 'clean'}</div>
       <div data-testid="focused">{omniboxFocused ? 'focused' : 'blurred'}</div>
+      <button
+        type="button"
+        data-testid="suggestion"
+        onClick={() => handleAcceptSuggestion('https://suggested.example/')}
+      >
+        suggestion
+      </button>
     </form>
   );
 }
@@ -90,12 +131,17 @@ async function mount(
   tabId: string | null,
   tabUrl: string,
   navigate?: (tabId: string, url: string) => Promise<void>,
+  stashProbe?: { current: { current: string | null } | null },
 ): Promise<Mounted> {
   const el = document.createElement('div');
   document.body.appendChild(el);
   const root = createRoot(el);
   const render = async (id: string | null, url: string) => {
-    await act(async () => { root.render(<OmniboxHarness tabId={id} tabUrl={url} navigate={navigate} />); });
+    await act(async () => {
+      root.render(
+        <OmniboxHarness tabId={id} tabUrl={url} navigate={navigate} stashProbe={stashProbe} />,
+      );
+    });
   };
   await render(tabId, tabUrl);
   return { root, el, render };
@@ -352,5 +398,166 @@ describe('useOmniboxUrlSync — shortcut navigations (back/forward/home/reload) 
     expect(input(m.el).value).toBe('https://h.example/two');
     expect(text(m.el, 'edited')).toBe('clean');
     expect(text(m.el, 'focused')).toBe('blurred');
+  });
+});
+
+describe('useOmniboxUrlSync — Ctrl/Cmd+Z recovers text discarded by a surprise navigation', () => {
+  const keyZ = (opts: { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean; altKey?: boolean }) =>
+    new KeyboardEvent('keydown', { key: 'z', bubbles: true, cancelable: true, ...opts });
+
+  async function pressUndo(el: HTMLElement, opts: Parameters<typeof keyZ>[0] = { ctrlKey: true }) {
+    await act(async () => { input(el).dispatchEvent(keyZ(opts)); });
+  }
+
+  it('stashes discarded text in discardedTypedTextRef after an automatic navigation', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const m = await mount('tab-1', 'https://start.example/', undefined, stash);
+
+    await focus(m.el);
+    await typeInto(m.el, 'important half-typed note');
+    await blur(m.el);
+    expect(stash.current!.current).toBeNull();
+
+    // The tab redirects on its own — the typed text is discarded but stashed.
+    await m.render('tab-1', 'https://redirected.example/final');
+    expect(input(m.el).value).toBe('https://redirected.example/final');
+    expect(text(m.el, 'edited')).toBe('clean');
+    expect(stash.current!.current).toBe('important half-typed note');
+  });
+
+  it('Ctrl+Z restores the discarded text into the bar with the edited flag set', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const m = await mount('tab-1', 'https://start.example/', undefined, stash);
+
+    await focus(m.el);
+    await typeInto(m.el, 'recover me please');
+    await blur(m.el);
+    await m.render('tab-1', 'https://surprise.example/');
+    expect(stash.current!.current).toBe('recover me please');
+
+    await pressUndo(m.el, { ctrlKey: true });
+
+    expect(text(m.el, 'value')).toBe('recover me please');
+    expect(text(m.el, 'edited')).toBe('edited');
+    expect(input(m.el).value).toBe('recover me please');
+    // The stash is consumed — a second Ctrl+Z has nothing to restore.
+    expect(stash.current!.current).toBeNull();
+  });
+
+  it('Cmd+Z (macOS) restores too; Shift/Alt-modified combos do not', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const m = await mount('tab-1', 'https://start.example/', undefined, stash);
+
+    await focus(m.el);
+    await typeInto(m.el, 'mac draft');
+    await blur(m.el);
+    await m.render('tab-1', 'https://surprise.example/');
+
+    // Ctrl+Shift+Z (redo) and Alt+Z must NOT trigger the restore.
+    await pressUndo(m.el, { ctrlKey: true, shiftKey: true });
+    expect(text(m.el, 'edited')).toBe('clean');
+    expect(stash.current!.current).toBe('mac draft');
+    await pressUndo(m.el, { ctrlKey: true, altKey: true });
+    expect(text(m.el, 'edited')).toBe('clean');
+    expect(stash.current!.current).toBe('mac draft');
+
+    await pressUndo(m.el, { metaKey: true });
+    expect(text(m.el, 'value')).toBe('mac draft');
+    expect(text(m.el, 'edited')).toBe('edited');
+    expect(stash.current!.current).toBeNull();
+  });
+
+  it('Ctrl+Z defers to native undo while there are fresh uncommitted edits', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const m = await mount('tab-1', 'https://start.example/', undefined, stash);
+
+    await focus(m.el);
+    await typeInto(m.el, 'first draft');
+    await blur(m.el);
+    await m.render('tab-1', 'https://surprise.example/');
+    expect(stash.current!.current).toBe('first draft');
+
+    // User starts typing something NEW — omniboxEdited is true again, so
+    // Ctrl+Z must be left to the input's native undo, not the stash restore.
+    await focus(m.el);
+    await typeInto(m.el, 'second draft');
+    expect(text(m.el, 'edited')).toBe('edited');
+    await pressUndo(m.el, { ctrlKey: true });
+    expect(input(m.el).value).toBe('second draft');
+    expect(stash.current!.current).toBe('first draft');
+  });
+
+  it('tab switch clears the stash — Ctrl+Z on the new tab restores nothing', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const m = await mount('tab-1', 'https://one.example/', undefined, stash);
+
+    await focus(m.el);
+    await typeInto(m.el, 'tab one draft');
+    await blur(m.el);
+    await m.render('tab-1', 'https://one.example/redirected');
+    expect(stash.current!.current).toBe('tab one draft');
+
+    await m.render('tab-2', 'https://two.example/');
+    expect(stash.current!.current).toBeNull();
+
+    await pressUndo(m.el, { ctrlKey: true });
+    expect(input(m.el).value).toBe('https://two.example/');
+    expect(text(m.el, 'edited')).toBe('clean');
+  });
+
+  it('a user-committed navigation (Enter) clears the stash', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const navigate = vi.fn(() => Promise.resolve());
+    const m = await mount('tab-1', 'https://start.example/', navigate, stash);
+
+    await focus(m.el);
+    await typeInto(m.el, 'lost draft');
+    await blur(m.el);
+    await m.render('tab-1', 'https://surprise.example/');
+    expect(stash.current!.current).toBe('lost draft');
+
+    // Instead of recovering, the user types a fresh destination and commits.
+    await focus(m.el);
+    await typeInto(m.el, 'https://typed.example/next');
+    await pressEnter(m.el);
+    expect(navigate).toHaveBeenCalledWith('tab-1', 'https://typed.example/next');
+    expect(stash.current!.current).toBeNull();
+
+    await pressUndo(m.el, { ctrlKey: true });
+    expect(text(m.el, 'edited')).toBe('clean');
+  });
+
+  it('accepting a suggestion (user commit) clears the stash', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const navigate = vi.fn(() => Promise.resolve());
+    const m = await mount('tab-1', 'https://start.example/', navigate, stash);
+
+    await focus(m.el);
+    await typeInto(m.el, 'abandoned words');
+    await blur(m.el);
+    await m.render('tab-1', 'https://surprise.example/');
+    expect(stash.current!.current).toBe('abandoned words');
+
+    await act(async () => {
+      (m.el.querySelector('[data-testid="suggestion"]') as HTMLButtonElement).click();
+    });
+    expect(navigate).toHaveBeenCalledWith('tab-1', 'https://suggested.example/');
+    expect(stash.current!.current).toBeNull();
+
+    await pressUndo(m.el, { ctrlKey: true });
+    expect(text(m.el, 'edited')).toBe('clean');
+  });
+
+  it('whitespace-only or empty typed values are never stashed', async () => {
+    const stash: { current: { current: string | null } | null } = { current: null };
+    const m = await mount('tab-1', 'https://start.example/', undefined, stash);
+
+    await focus(m.el);
+    await typeInto(m.el, '   ');
+    await blur(m.el);
+    await m.render('tab-1', 'https://surprise.example/');
+    expect(stash.current!.current).toBeNull();
+    await pressUndo(m.el, { ctrlKey: true });
+    expect(text(m.el, 'edited')).toBe('clean');
   });
 });
