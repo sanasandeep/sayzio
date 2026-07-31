@@ -68,7 +68,7 @@ export function LinkGridTile({ link }: { link: Link }) {
         numberOfLines={1}
         style={[styles.sub, { color: colors.mutedForeground }]}
       >
-        /{link.alias}
+        {meta.label} · /{link.alias}
       </Text>
       <View style={styles.metaRow}>
         {link.project ? (
