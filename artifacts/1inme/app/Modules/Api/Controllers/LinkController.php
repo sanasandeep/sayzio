@@ -69,6 +69,90 @@ class LinkController extends Controller
     }
 
     /**
+     * Clipboard quick-shorten — mobile parity for the web header bolt
+     * button (POST /user/links/quick-shorten, Task #6285/#6286). Accepts a
+     * raw "destination" (web URL, email address, phone number, or bare
+     * domain), normalizes it via the shared
+     * UserLinkController::normalizeQuickDestination() so server-side
+     * classification can never drift from web, validates the optional
+     * custom alias with the exact same rule stack as the full create flow,
+     * enforces the plan's max_links cap (the web route's CheckPlanLimit:links
+     * equivalent — the Sanctum path has no web middleware), and creates a
+     * short url-type link. Returns {id, short_url, long_url, kind}.
+     */
+    public function quickShorten(Request $request)
+    {
+        $user = $request->user();
+
+        $aliasLimits = $user->getAliasLengthLimits();
+        $validated = $request->validate([
+            'destination' => ['required', 'string', 'max:2048'],
+            'alias'       => ['nullable', 'string', 'min:' . $aliasLimits['min'], 'max:' . $aliasLimits['max'], new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\Admin\Rules\NotBannedName(), new \App\Modules\User\Rules\UniqueAliasCi(null, null)],
+        ]);
+
+        // Plan link cap — mirrors CheckPlanLimit:links on the web route.
+        $features = $user->plan?->features;
+        if (is_array($features)) {
+            $maxLinks = $features['max_links'] ?? 5;
+            $count    = $user->links()->count();
+            if ($maxLinks !== -1 && $count >= $maxLinks) {
+                return $this->planGate(
+                    "You've reached your plan's link limit ({$maxLinks}). Upgrade your plan for more links.",
+                    'max_links',
+                    $user,
+                    402,
+                    'plan_upgrade_required',
+                    $count
+                );
+            }
+        }
+
+        $normalized = UserLinkController::normalizeQuickDestination($validated['destination']);
+        if ($normalized === null) {
+            return $this->fail(
+                "That doesn't look like something we can shorten. Copy a web URL, email address or phone number and try again.",
+                422,
+                'not_shortenable'
+            );
+        }
+
+        [$longUrl, $kind] = $normalized;
+
+        $alias = trim((string) ($validated['alias'] ?? ''));
+        if ($alias === '') {
+            $alias = Link::generateAlias();
+        }
+
+        $link = new Link([
+            'type'     => 'url',
+            'long_url' => $longUrl,
+            'alias'    => $alias,
+            'user_id'  => $user->id,
+            'title'    => match ($kind) {
+                'email' => 'Email ' . preg_replace('/^mailto:/', '', $longUrl),
+                'phone' => 'Call ' . preg_replace('/^tel:/', '', $longUrl),
+                default => null,
+            },
+        ]);
+
+        // Tag the active workspace (the Sanctum path never runs
+        // SetActiveWorkspace, so without this the link lands with
+        // workspace_id = null and is hidden from the web list).
+        $workspaceId = $this->resolveWorkspaceId($user);
+        if ($workspaceId !== null && Schema::hasColumn('links', 'workspace_id')) {
+            $link->workspace_id = (int) $workspaceId;
+        }
+        $link->save();
+
+        return $this->created([
+            'id'        => $link->id,
+            'short_url' => $link->getShortUrl(),
+            'long_url'  => $longUrl,
+            'kind'      => $kind,
+        ]);
+    }
+
+    /**
      * Build the workspace-scoped base query for the caller's link list,
      * mirroring the web "My Links" page exactly: links owned by the ACTIVE
      * workspace's owner AND tagged with that workspace id. Before this, the

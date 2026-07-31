@@ -1,9 +1,11 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
+import * as Clipboard from "expo-clipboard";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   Platform,
   Pressable,
@@ -23,7 +25,7 @@ import { TOP_BAR_H, useTabBar, useTabBarBottomInset } from "@/contexts/TabBarCon
 import { useColors } from "@/hooks/useColors";
 import type { VoiceClientAction } from "@/lib/api/voice";
 import { errorStatus } from "@/lib/api";
-import { exportLinksCsv, listLinks } from "@/lib/api/links";
+import { exportLinksCsv, listLinks, quickShorten } from "@/lib/api/links";
 import { LINK_KINDS } from "@/lib/linkKinds";
 import { showAlert } from "@/lib/webAlert";
 
@@ -86,6 +88,63 @@ export default function LinksTab() {
     }
   };
 
+  // ── Clipboard quick-shorten ────────────────────────────────────
+  // Mobile parity for the web header bolt button: read the clipboard,
+  // let the server classify/normalize it (URL / email / phone / bare
+  // domain), create a short link in one tap, copy the short URL back
+  // to the clipboard and confirm with a toast.
+  const [shortening, setShortening] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = useCallback(
+    (message: string) => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      setToast(message);
+      Animated.timing(toastOpacity, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+      toastTimer.current = setTimeout(() => {
+        Animated.timing(toastOpacity, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }).start(() => setToast(null));
+      }, 2600);
+    },
+    [toastOpacity],
+  );
+
+  const onQuickShorten = async () => {
+    if (shortening) return;
+    setShortening(true);
+    try {
+      const raw = ((await Clipboard.getStringAsync()) ?? "").trim();
+      if (!raw) {
+        showAlert(
+          "Clipboard is empty",
+          "Copy a web URL, email address or phone number first, then tap the bolt.",
+        );
+        return;
+      }
+      const result = await quickShorten(raw);
+      await Clipboard.setStringAsync(result.short_url);
+      showToast(`Short link created and copied: ${result.short_url}`);
+      query.refetch();
+    } catch (e) {
+      showAlert(
+        "Couldn't shorten that",
+        e instanceof Error && e.message
+          ? e.message
+          : "Copy a web URL, email address or phone number and try again.",
+      );
+    } finally {
+      setShortening(false);
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View
@@ -101,6 +160,26 @@ export default function LinksTab() {
             Links
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Pressable
+              onPress={onQuickShorten}
+              hitSlop={8}
+              accessibilityLabel="Quick-shorten from clipboard"
+              disabled={shortening}
+              style={[
+                styles.healthBtn,
+                {
+                  borderColor: colors.border,
+                  borderRadius: colors.radius,
+                  opacity: shortening ? 0.6 : 1,
+                },
+              ]}
+            >
+              {shortening ? (
+                <ActivityIndicator size="small" color={colors.foreground} />
+              ) : (
+                <Feather name="zap" size={16} color={colors.foreground} />
+              )}
+            </Pressable>
             <Pressable
               onPress={onExport}
               hitSlop={8}
@@ -294,6 +373,27 @@ export default function LinksTab() {
           }
         />
       )}
+
+      {toast ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.toast,
+            {
+              backgroundColor: colors.primary,
+              bottom: tabBarBottomInset + 12,
+              opacity: toastOpacity,
+            },
+          ]}
+        >
+          <Text
+            style={[styles.toastText, { color: colors.primaryForeground }]}
+            numberOfLines={2}
+          >
+            {toast}
+          </Text>
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
@@ -341,4 +441,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 },
+  toast: {
+    position: "absolute",
+    left: 20,
+    right: 20,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  toastText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
 });

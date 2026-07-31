@@ -113,6 +113,27 @@ export async function exportLinksCsv(
   }
 }
 
+export type QuickShortenResult = {
+  id: number;
+  short_url: string;
+  long_url: string;
+  kind: "url" | "email" | "phone";
+};
+
+/**
+ * Clipboard quick-shorten — one-tap create from raw clipboard content
+ * (web URL, email address, phone number, or bare domain). The server
+ * classifies + normalizes the destination itself, so we just pass the
+ * raw string through. Mirrors the web header bolt button.
+ */
+export async function quickShorten(destination: string): Promise<QuickShortenResult> {
+  const res = await apiFetch<{ data: QuickShortenResult }>(`/links/quick-shorten`, {
+    method: "POST",
+    body: JSON.stringify({ destination }),
+  });
+  return res.data;
+}
+
 export type AliasCheck = {
   status:
     | "empty"

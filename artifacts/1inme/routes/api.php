@@ -726,6 +726,11 @@ Route::prefix('v1')->group(function () {
         // user.links.check-alias). Literal `check-alias` wins over the
         // whereNumber-guarded `/links/{id}` route below.
         Route::get('/links/check-alias', [LinkController::class, 'checkAlias']);
+        // Clipboard quick-shorten (mobile parity for the web header bolt
+        // button POST /user/links/quick-shorten). Literal segment wins over
+        // the whereNumber-guarded `/links/{id}` routes below. Throttled —
+        // it's a one-tap create fired straight from clipboard contents.
+        Route::post('/links/quick-shorten', [LinkController::class, 'quickShorten'])->middleware('throttle:30,1');
         // Guided Link-in-Bio wizard (mobile parity for web user.links.wizard.*).
         // Stateless: the client drives the steps and submits all answers to
         // /generate. Literal `wizard` segments win over `/links/{id}` (which is
