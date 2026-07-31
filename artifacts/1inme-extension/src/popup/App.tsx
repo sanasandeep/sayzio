@@ -311,24 +311,45 @@ export function App() {
     return () => { cancelled = true; };
   }, [settings?.token, settings?.workspaceId]);
 
-  // Load the pickable domains whenever auth changes. Reset the selection
-  // to the platform default when the account changes (a previously picked
-  // domain id may not exist on the new account).
+  // Load the pickable domains whenever auth changes. Restore the last
+  // picked domain from extension storage (like workspaceId); a saved id
+  // that no longer exists on this account (stale, removed, or account
+  // switch) gracefully falls back to the platform default. Sign-out
+  // clears the remembered selection via clearAuth().
   useEffect(() => {
     if (!settings?.token) { setDomains([]); setDefaultHost(""); setDomainId(null); return; }
     let cancelled = false;
     (async () => {
       try {
+        // Read the persisted pick fresh from storage (not React state)
+        // so a slow settings hydration can't race the restore.
+        const saved = (await getSettings()).shortenDomainId ?? null;
         const r = await api.availableDomains();
         if (!cancelled) {
-          setDomains(r.items || []);
+          const items = r.items || [];
+          setDomains(items);
           setDefaultHost(r.default_host || "");
-          setDomainId((prev) => (prev && (r.items || []).some((d) => d.id === prev) ? prev : null));
+          setDomainId((prev) => {
+            // Prefer an in-session pick; otherwise restore the persisted one.
+            const wanted = prev ?? saved;
+            const valid = wanted != null && items.some((d) => d.id === wanted) ? wanted : null;
+            if (valid == null && saved != null) {
+              // Persisted id is stale — clear it so we don't re-try forever.
+              setSettings({ shortenDomainId: null }).catch(() => undefined);
+            }
+            return valid;
+          });
         }
       } catch { if (!cancelled) { setDomains([]); setDefaultHost(""); setDomainId(null); } }
     })();
     return () => { cancelled = true; };
   }, [settings?.token]);
+
+  // Persist the pick so it survives popup close/reopen.
+  const pickDomain = useCallback((id: number | null) => {
+    setDomainId(id);
+    setSettings({ shortenDomainId: id }).catch(() => undefined);
+  }, []);
 
   const showToast = useCallback((t: Toast) => {
     setToast(t);
@@ -764,7 +785,7 @@ export function App() {
               <select
                 className="workspace-select"
                 value={domainId ?? ""}
-                onChange={(e) => setDomainId(e.target.value ? Number(e.target.value) : null)}
+                onChange={(e) => pickDomain(e.target.value ? Number(e.target.value) : null)}
               >
                 <option value="">{defaultHost || "Default domain"}</option>
                 {domains.map((d) => (

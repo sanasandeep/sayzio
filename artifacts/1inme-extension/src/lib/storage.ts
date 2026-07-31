@@ -24,6 +24,11 @@ export interface ExtSettings {
   } | null;
   workspaceId: number | null;
   workspaces: Array<{ id: number; name: string }>;
+  // Last branded domain picked in the "Shorten this page" domain picker.
+  // null = platform default domain. Restored on popup open; validated
+  // against the freshly-fetched domain list (a stale/removed id falls
+  // back to the default) and cleared on sign-out.
+  shortenDomainId: number | null;
   // Contacts: extension preferences. Persisted in browser.storage.local.
   // contactDefaultTags — applied client-side before sending to /contacts.
   // contactAllowOneClick — gates the "One-click save" button.
@@ -186,6 +191,7 @@ export const defaultSettings: ExtSettings = {
   user: null,
   workspaceId: null,
   workspaces: [],
+  shortenDomainId: null,
   contactDefaultTags: ["from-extension"],
   contactAllowOneClick: true,
   contactWorkspaceId: null,
@@ -628,7 +634,7 @@ export async function resolveThankTemplatesConflict(
 
 export async function clearAuth(): Promise<void> {
   await browser.storage.local.remove([
-    "token", "user", "workspaceId", "workspaces",
+    "token", "user", "workspaceId", "workspaces", "shortenDomainId",
     "thankTemplatesUpdatedAtMs", "thankTemplatesLastServerTs",
     "thankTemplatesWorkspaceId",
     "pendingThanksUpdatedAtMs", "pendingThanksWorkspaceId",
