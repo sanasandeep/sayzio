@@ -733,6 +733,17 @@ function buildMenu(): void {
             if (wc && !wc.isDestroyed()) wc.print();
           },
         },
+        {
+          label: 'Save Page As…',
+          accelerator: 'CmdOrCtrl+S',
+          click: (_item, bw) => {
+            const browserWin = asBrowserWin(bw);
+            if (!browserWin) return;
+            const tm = getTabManagerForWindow(browserWin);
+            const id = tm?.getActiveTabId();
+            if (id) void tm?.savePageAs(id);
+          },
+        },
         { type: 'separator' },
         ...(!isMac ? [settingsItem, { type: 'separator' as const }] : []),
         isMac ? { role: 'close' as const } : { role: 'quit' as const },
@@ -834,6 +845,20 @@ function buildMenu(): void {
           const tm = getTabManagerForWindow(browserWin);
           const id = tm?.getActiveTabId();
           if (id) tm?.reload(id, true);
+        }},
+        { label: 'Stop', accelerator: 'CmdOrCtrl+.', click: (_item, bw) => {
+          const browserWin = asBrowserWin(bw);
+          if (!browserWin) return;
+          const tm = getTabManagerForWindow(browserWin);
+          const id = tm?.getActiveTabId();
+          if (id) tm?.stop(id);
+        }},
+        { label: 'View Page Source', accelerator: 'CmdOrCtrl+U', click: (_item, bw) => {
+          const browserWin = asBrowserWin(bw);
+          if (!browserWin) return;
+          const tm = getTabManagerForWindow(browserWin);
+          const id = tm?.getActiveTabId();
+          if (id) tm?.viewPageSource(id);
         }},
         { type: 'separator' as const },
         { label: 'Reader Mode', accelerator: 'CmdOrCtrl+Alt+R', click: (_item, bw) => {

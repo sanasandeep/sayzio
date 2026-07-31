@@ -5,7 +5,7 @@
  * Each tab uses the session associated with the active browser profile so
  * workspace profiles are fully session-isolated.
  */
-import { BrowserWindow, WebContentsView, Menu, clipboard, session, type WebContents } from 'electron';
+import { BrowserWindow, WebContentsView, Menu, clipboard, dialog, session, type WebContents } from 'electron';
 import { parseOmniboxInput, type SearchEngineConfig, DEFAULT_SEARCH_ENGINE } from '../shared/omnibox';
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import { isInternalPageUrl, internalPageTitle } from '../shared/internal-pages';
@@ -475,6 +475,27 @@ export class TabManager {
       const targetUrl = params.linkURL || params.srcURL || pageUrl;
 
       const menuItems: Electron.MenuItemConstructorOptions[] = [];
+      const isStandardPage = /^(https?|file):/.test(pageUrl);
+
+      // ── Standard navigation ───────────────────────────────────────────────
+      menuItems.push(
+        {
+          label: 'Back',
+          enabled: isAlive(wc) && wc.canGoBack(),
+          click: () => { if (isAlive(wc)) wc.goBack(); },
+        },
+        {
+          label: 'Forward',
+          enabled: isAlive(wc) && wc.canGoForward(),
+          click: () => { if (isAlive(wc)) wc.goForward(); },
+        },
+        {
+          label: 'Reload',
+          enabled: isStandardPage,
+          click: () => { if (isAlive(wc)) wc.reload(); },
+        },
+        { type: 'separator' },
+      );
 
       // ── Spell check — replacement suggestions + add-to-dictionary ─────────
       if (params.misspelledWord) {
@@ -618,6 +639,39 @@ export class TabManager {
         {
           label: 'Preview in Device Lab',
           click: () => { this.onDeviceLabPreview?.(params.linkURL || pageUrl); },
+        },
+      );
+
+      // ── Standard page actions ─────────────────────────────────────────────
+      menuItems.push(
+        { type: 'separator' },
+        {
+          label: 'Print…',
+          enabled: isStandardPage,
+          click: () => { if (isAlive(wc)) wc.print(); },
+        },
+        {
+          label: 'Save Page As…',
+          enabled: isStandardPage,
+          click: () => { void this.savePageAsFor(wc); },
+        },
+        {
+          label: 'View Page Source',
+          enabled: isStandardPage,
+          click: () => {
+            if (isAlive(wc)) {
+              const u = wc.getURL();
+              if (/^(https?|file):/.test(u)) this.createTab(`view-source:${u}`);
+            }
+          },
+        },
+        {
+          label: 'Inspect Element',
+          click: () => {
+            if (!isAlive(wc)) return;
+            wc.inspectElement(params.x, params.y);
+            if (wc.isDevToolsOpened()) wc.devToolsWebContents?.focus();
+          },
         },
       );
 
@@ -1444,6 +1498,54 @@ export class TabManager {
     }
     tab.internalUrl = null;
     void tab.view.webContents.loadURL(result.navigateUrl);
+  }
+
+  /** Save the given webContents' page as complete HTML via a save dialog. */
+  private async savePageAsFor(wc: WebContents): Promise<void> {
+    if (!isAlive(wc)) return;
+    const url = wc.getURL();
+    if (!/^(https?|file):/.test(url)) return;
+    const title = (wc.getTitle() || 'page').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 100).trim() || 'page';
+    const { canceled, filePath } = await dialog.showSaveDialog(this.win, {
+      defaultPath: `${title}.html`,
+      filters: [
+        { name: 'Webpage, Complete', extensions: ['html'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+    });
+    if (canceled || !filePath || !isAlive(wc)) return;
+    try { await wc.savePage(filePath, 'HTMLComplete'); } catch { /* save failed — ignore */ }
+  }
+
+  /**
+   * True when the tab's focused pane is showing a renderer-drawn internal page
+   * (about:newtab / about:sayzio / …). The native webContents may still hold a
+   * stale prior URL there, so callers must not trust wc.getURL() in that case.
+   */
+  private isFocusedPaneInternal(tab: ManagedTab): boolean {
+    if (tab.mode === 'browser+browser' && tab.focusedPane === 'second' && tab.secondView && isAlive(tab.secondView.webContents)) {
+      return false; // secondary pane always hosts a real webContents page
+    }
+    return Boolean(tab.internalUrl) || tab.isNewTabPage;
+  }
+
+  /** Save the tab's active pane page as complete HTML (app-menu entry point). */
+  async savePageAs(id: TabId): Promise<void> {
+    const tab = this.tabs.get(id);
+    if (!tab || this.isFocusedPaneInternal(tab)) return;
+    await this.savePageAsFor(this.focusedWebContents(tab));
+  }
+
+  /** Open a view-source tab for the tab's current page (same tab manager, so
+   * private windows keep the private session). No-op on internal pages. */
+  viewPageSource(id: TabId): void {
+    const tab = this.tabs.get(id);
+    if (!tab || this.isFocusedPaneInternal(tab)) return;
+    const wc = this.focusedWebContents(tab);
+    if (!isAlive(wc)) return;
+    const url = wc.getURL();
+    if (!/^(https?|file):/.test(url)) return;
+    this.createTab(`view-source:${url}`);
   }
 
   goBack(id: TabId): void {
