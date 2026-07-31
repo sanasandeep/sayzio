@@ -11,6 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { pathToFileURL } from 'url';
+import { isMarkdownDownload, renderMarkdownDocument } from '../shared/markdown';
 import type { TabManager } from './tab-manager';
 import type { TabMode } from '../shared/window-mode';
 import type { WindowModeManager } from './window-mode-manager';
@@ -892,12 +893,39 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     return { ok: true };
   });
   ipcMain.handle('downloads:exists', (_, filePath: string) => fs.existsSync(filePath));
+  // Markdown files larger than this open as raw text instead of the rendered
+  // viewer (the naive renderer would be slow and the temp copy wasteful).
+  const MARKDOWN_VIEWER_MAX_BYTES = 2 * 1024 * 1024;
   // Open a downloaded file inside the browser (new tab, file:// URL).
+  // Markdown files get a sanitized rendered viewer page (temp HTML) with a
+  // "View raw source" link back to the original file; other text formats
+  // keep Chromium's plain-text rendering.
   ipcMain.handle('downloads:open-in-tab', (event, filePath: string) => {
     if (!fs.existsSync(filePath)) {
       return { ok: false, error: 'File not found', missing: true };
     }
-    const fileUrl = pathToFileURL(filePath).toString();
+    const rawFileUrl = pathToFileURL(filePath).toString();
+    let fileUrl = rawFileUrl;
+    if (isMarkdownDownload(path.basename(filePath))) {
+      try {
+        const stat = fs.statSync(filePath);
+        if (stat.size <= MARKDOWN_VIEWER_MAX_BYTES) {
+          const source = fs.readFileSync(filePath, 'utf8');
+          const doc = renderMarkdownDocument(source, {
+            title: path.basename(filePath),
+            rawFileUrl,
+          });
+          const dir = path.join(app.getPath('temp'), 'zio-md-viewer');
+          fs.mkdirSync(dir, { recursive: true });
+          const outPath = path.join(dir, `${randomUUID()}.html`);
+          fs.writeFileSync(outPath, doc, 'utf8');
+          fileUrl = pathToFileURL(outPath).toString();
+        }
+      } catch {
+        // Fall back to the raw file:// view on any read/render failure.
+        fileUrl = rawFileUrl;
+      }
+    }
     const tabId = resolveTabManager(event)?.createTab(fileUrl) ?? null;
     return tabId ? { ok: true, tabId } : { ok: false, error: 'No tab manager available' };
   });
