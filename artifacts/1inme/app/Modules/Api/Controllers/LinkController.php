@@ -304,7 +304,7 @@ class LinkController extends Controller
         // land on the same floor as the web form and live checker.
         $aliasLimits = $request->user()->getAliasLengthLimits();
         $data = $request->validate([
-            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'ics', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page', 'brand_kit', 'text'])],
+            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'ics', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page', 'brand_kit', 'text', 'restaurant_menu', 'store_menu', 'service_booking', 'calendar', 'reviews', 'updates'])],
             // The admin banned/reserved-names list is enforced on the mobile
             // create submit too (privileged `user.banned_names.bypass` holders
             // skip it), mirroring the web chooseType() rule and the live
@@ -449,6 +449,15 @@ class LinkController extends Controller
             'paid_page'      => ['module' => 'module_paid_page',      'cap' => 'max_paid_page',      'label' => 'Paid Page'],
             'brand_kit'      => ['module' => 'module_brand_kit',      'cap' => 'max_brand_kit_pages','label' => 'Brand / Press Kit'],
             'text'           => ['module' => 'module_text',           'cap' => 'max_text_pages',     'label' => 'Text Page'],
+            // Editor-backed page types creatable from the desktop browser's
+            // "+ Create" popover. Module/cap keys mirror the web
+            // enforceLinkTypeQuota() map exactly so both surfaces gate alike.
+            'restaurant_menu' => ['module' => 'module_restaurant_menu', 'cap' => 'max_restaurant_menu', 'label' => 'Restaurant Menu'],
+            'store_menu'      => ['module' => 'module_store_menu',      'cap' => 'max_store_menu',      'label' => 'Store Menu'],
+            'service_booking' => ['module' => 'module_service_booking', 'cap' => 'max_service_booking', 'label' => 'Service Booking'],
+            'calendar'        => ['module' => 'module_calendar',        'cap' => 'max_calendars',       'label' => 'Calendar'],
+            'reviews'         => ['module' => 'module_reviews',         'cap' => 'max_reviews',         'label' => 'Reviews'],
+            'updates'         => ['module' => 'module_updates',         'cap' => 'max_updates_pages',   'label' => 'Updates'],
         ];
         if (isset($typeQuotaMap[$attrs['type']])) {
             $qcfg  = $typeQuotaMap[$attrs['type']];
@@ -523,6 +532,88 @@ class LinkController extends Controller
             if (($link->visibility ?? null) === null) {
                 $link->visibility = 'public';
             }
+            $link->save();
+        }
+
+        // Restaurant Menu / Store Menu / Service Booking links seed their
+        // companion builder rows with the same defaults the web editors use
+        // on first open (RestaurantMenuController::menuFor /
+        // StoreMenuController::menuFor / ServiceBookingController::bookingFor),
+        // so the public page renders correctly the moment it is created.
+        if ($link->type === 'restaurant_menu') {
+            \App\Modules\User\Models\RestaurantMenu::firstOrCreate(
+                ['link_id' => $link->id],
+                ['user_id' => $link->user_id, 'mode' => \App\Modules\User\Models\RestaurantMenu::MODE_DISPLAY, 'currency' => 'USD']
+            );
+        }
+        if ($link->type === 'store_menu') {
+            \App\Modules\User\Models\StoreMenu::firstOrCreate(
+                ['link_id' => $link->id],
+                ['user_id' => $link->user_id, 'mode' => \App\Modules\User\Models\StoreMenu::MODE_DISPLAY, 'currency' => 'USD']
+            );
+        }
+        if ($link->type === 'service_booking') {
+            \App\Modules\User\Models\ServiceBooking::firstOrCreate(
+                ['link_id' => $link->id],
+                [
+                    'user_id'             => $link->user_id,
+                    'mode'                => \App\Modules\User\Models\ServiceBooking::MODE_BOOKING,
+                    'currency'            => 'USD',
+                    'slot_length_minutes' => 30,
+                    'lead_time_minutes'   => 120,
+                    'max_days_ahead'      => 30,
+                    'timezone'            => \App\Support\PlatformTimezone::forUser($request->user()),
+                ]
+            );
+        }
+
+        // Calendar links bridge 1:1 to a followable Calendar collection —
+        // mirrors the web LinkController::store() seeding (title/slug/tz/
+        // accent, public by default) so the page is followable immediately.
+        if ($link->type === 'calendar') {
+            $calSettings = (array) ($settingsPayload['calendar'] ?? []);
+            $tz = (string) ($calSettings['timezone'] ?? '');
+            if ($tz === '' || !in_array($tz, timezone_identifiers_list(), true)) {
+                $tz = \App\Support\PlatformTimezone::forUser($request->user());
+            }
+            $accent = (string) ($calSettings['accent_color'] ?? '#3d6bff');
+            if (!preg_match('/^#[0-9a-fA-F]{6}$/', $accent)) {
+                $accent = '#3d6bff';
+            }
+            $calendar = \App\Modules\User\Models\Calendar::create([
+                'link_id'      => $link->id,
+                'user_id'      => $link->user_id,
+                'title'        => $link->title ?: 'My Calendar',
+                'slug'         => $link->alias,
+                'description'  => (string) ($calSettings['description'] ?? ''),
+                'timezone'     => $tz,
+                'accent_color' => $accent,
+                'is_public'    => true,
+            ]);
+            $link->calendar_id = $calendar->id;
+            $link->visibility = 'public';
+            $link->save();
+        }
+
+        // Reviews / Updates pages store their configuration in link settings.
+        // Seed the same defaults the web editors start from so the public
+        // page is presentable before the owner ever opens the editor.
+        if ($link->type === 'reviews') {
+            $settings = (array) ($link->settings ?? []);
+            $settings['reviews'] = array_replace(
+                \App\Modules\User\Controllers\ReviewsController::DEFAULT_SETTINGS,
+                (array) ($settings['reviews'] ?? [])
+            );
+            $link->settings = $settings;
+            $link->save();
+        }
+        if ($link->type === 'updates') {
+            $settings = (array) ($link->settings ?? []);
+            $settings['updates'] = array_replace(
+                \App\Modules\User\Controllers\UpdatesController::DEFAULT_SETTINGS,
+                (array) ($settings['updates'] ?? [])
+            );
+            $link->settings = $settings;
             $link->save();
         }
 

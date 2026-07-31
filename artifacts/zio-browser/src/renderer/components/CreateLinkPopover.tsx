@@ -44,6 +44,14 @@ const LINK_TYPES: LinkTypeMeta[] = [
   { type: 'ai_chat',       label: 'AI Chat',        icon: '🤖', desc: 'AI companion page',         needsEditor: true },
   { type: 'resume',        label: 'Resume',         icon: '📋', desc: 'Shareable resume',          needsEditor: true },
   { type: 'paid_page',     label: 'Paid Page',      icon: '💰', desc: 'Gated content page',        needsEditor: true },
+  { type: 'text',          label: 'Text Page',      icon: '📝', desc: 'Share text as a clean page' },
+  { type: 'brand_kit',     label: 'Brand Kit',      icon: '🎨', desc: 'Shareable press kit',       needsEditor: true },
+  { type: 'restaurant_menu', label: 'Restaurant Menu', icon: '🍽️', desc: 'Digital menu with prices', needsEditor: true },
+  { type: 'store_menu',    label: 'Store',          icon: '🏪', desc: 'Product catalog & orders',  needsEditor: true },
+  { type: 'service_booking', label: 'Booking',      icon: '📆', desc: 'Bookable services & slots', needsEditor: true },
+  { type: 'calendar',      label: 'Calendar',       icon: '🗓️', desc: 'Followable events calendar', needsEditor: true },
+  { type: 'reviews',       label: 'Reviews',        icon: '⭐', desc: 'Collect & show reviews',    needsEditor: true },
+  { type: 'updates',       label: 'Updates',        icon: '📣', desc: 'Public changelog page',     needsEditor: true },
 ];
 
 // ── Per-type field state ──────────────────────────────────────────────────────
@@ -64,6 +72,7 @@ interface FieldState {
   smsPhone: string;
   smsBody: string;
   pdfUrl: string;
+  textContent: string;
 }
 
 const defaultFields = (): FieldState => ({
@@ -82,6 +91,7 @@ const defaultFields = (): FieldState => ({
   smsPhone: '',
   smsBody: '',
   pdfUrl: '',
+  textContent: '',
 });
 
 type PopoverView = 'types' | 'form' | 'success';
@@ -224,7 +234,19 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, init
       case 'resume':
       case 'paid_page':
       case 'social':
+      case 'brand_kit':
+      case 'restaurant_menu':
+      case 'store_menu':
+      case 'service_booking':
+      case 'calendar':
+      case 'reviews':
+      case 'updates':
         base.title = fields.title || undefined;
+        break;
+
+      case 'text':
+        base.title = fields.title || undefined;
+        base.settings = { text: { content: fields.textContent } };
         break;
 
       case 'qr':
@@ -303,6 +325,8 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, init
     if (type === 'pdf' && !fields.pdfUrl) return 'PDF URL is required';
     if (type === 'file' && !pickedFile) return 'Pick a file to upload';
     if (type === 'qr' && !fields.url && !pageUrl) return 'Target URL is required';
+    if (type === 'text' && !fields.textContent.trim()) return 'Text content is required';
+    if (type === 'text' && fields.textContent.length > 20000) return 'Text is too long (max 20,000 characters)';
     if (alias && aliasCheck && !aliasCheck.available) return aliasCheck.message;
     return null;
   }, [selectedType, fields, alias, aliasCheck, pageUrl, pickedFile]);
@@ -575,7 +599,32 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, init
           </>
         )}
 
-        {(meta.type === 'resume' || meta.type === 'paid_page') && (
+        {meta.type === 'text' && (
+          <>
+            <FormField label="Title (optional)">
+              <input
+                value={fields.title}
+                onChange={e => setField('title', e.target.value)}
+                placeholder="My Text Page"
+                style={inputStyle}
+              />
+            </FormField>
+            <FormField label="Text *">
+              <textarea
+                value={fields.textContent}
+                onChange={e => setField('textContent', e.target.value)}
+                placeholder="Paste or type any text — visitors get a clean page with a copy button."
+                rows={6}
+                style={{ ...inputStyle, height: 'auto', padding: '6px 10px', resize: 'vertical' }}
+              />
+              <p style={{ fontSize: 10, marginTop: 3, color: 'var(--color-text-muted)' }}>
+                {fields.textContent.length.toLocaleString()} / 20,000 characters
+              </p>
+            </FormField>
+          </>
+        )}
+
+        {(meta.type === 'resume' || meta.type === 'paid_page' || meta.type === 'brand_kit' || meta.type === 'restaurant_menu' || meta.type === 'store_menu' || meta.type === 'service_booking' || meta.type === 'calendar' || meta.type === 'reviews' || meta.type === 'updates') && (
           <>
             <FormField label="Title (optional)">
               <input

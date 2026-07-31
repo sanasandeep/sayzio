@@ -47,6 +47,20 @@ input, textarea {
   user-select: text;
 }
 
+/* Native <select> dropdowns render their option list with OS-default colors,
+   which can clash with the app theme (white-on-white in light mode /
+   dark-on-dark in dark mode). Pin both the control and its options to the
+   theme variables so the dropdown text stays readable in either mode. */
+select {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+select option {
+  background: var(--color-bg-surface);
+  color: var(--color-text);
+}
+
 button {
   cursor: pointer;
   border: none;

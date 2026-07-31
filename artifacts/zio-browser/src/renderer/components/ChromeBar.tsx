@@ -1438,10 +1438,13 @@ export function ChromeBar({
                   width: 28,
                   height: 28,
                   borderRadius: 8,
-                  background: sitePopoverOpen ? 'var(--color-primary-transparent, rgba(70,110,255,0.15))' : 'var(--color-bg-elevated)',
+                  background: sitePopoverOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+                  color: sitePopoverOpen ? '#fff' : 'var(--color-text-muted)',
                   border: '1px solid var(--color-border)',
                   fontSize: 14,
                   flexShrink: 0,
+                  cursor: 'pointer',
+                  transition: 'all 0.12s',
                 }}
               >
                 ⚙️
@@ -1508,10 +1511,14 @@ export function ChromeBar({
           onClick={() => void handleToggleBookmark()}
           title={isBookmarked ? 'Remove bookmark' : 'Bookmark this page'}
           style={{
-            fontSize: 16,
-            padding: '2px 6px',
+            fontSize: 15,
+            padding: '2px 7px',
+            borderRadius: 8,
+            background: 'var(--color-bg-elevated)',
             color: isBookmarked ? 'var(--color-primary)' : 'var(--color-text-muted)',
-            transition: 'color 0.15s',
+            border: '1px solid var(--color-border)',
+            transition: 'all 0.12s',
+            flexShrink: 0,
           }}
         >
           {isBookmarked ? '★' : '☆'}
@@ -1565,14 +1572,17 @@ export function ChromeBar({
           <button
             onClick={onToggleZio}
             style={{
-              padding: '4px 12px',
-              borderRadius: 14,
+              padding: '3px 10px',
+              borderRadius: 8,
               background: zioPanelOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
               color: zioPanelOpen ? '#fff' : 'var(--color-text)',
-              border: '1px solid var(--color-primary)',
+              border: '1px solid var(--color-border)',
               fontSize: 12,
               fontWeight: 600,
-              transition: 'all 0.15s',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              cursor: 'pointer',
+              transition: 'all 0.12s',
             }}
             title="Open Zio AI Panel"
           ><img src={zioMascot} alt="" aria-hidden="true" style={{ width: 16, height: 16, objectFit: 'contain', verticalAlign: 'text-bottom', marginRight: 4 }} />Zio</button>
@@ -1580,8 +1590,8 @@ export function ChromeBar({
           <div
             title="Zio AI is not available in private windows"
             style={{
-              padding: '4px 12px',
-              borderRadius: 14,
+              padding: '3px 10px',
+              borderRadius: 8,
               background: 'rgba(37,99,235,0.08)',
               color: 'rgba(147,197,253,0.35)',
               border: '1px solid rgba(59,130,246,0.2)',

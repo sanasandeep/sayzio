@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-07-31T13:09:10.685Z",
+  "surfaces": {
+    "marketing": "0.1.0",
+    "mobile": "1.0.0",
+    "dialer": "1.0.0",
+    "zio_browser": "0.3.5",
+    "extension": "0.1.0",
+    "api_server": "0.0.0"
+  },
+  "docs_updated_at": "2026-07-31T10:15:56.222Z"
+}
