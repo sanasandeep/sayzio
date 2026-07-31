@@ -26,3 +26,5 @@ The diff script's `status --porcelain` parsing must NOT `trim()` the whole outpu
 
 ## Blob-sha diff (July 2026 refinement)
 The remote squash tree may match NO local commit's tree (earlier sanitization drift). Robust diff: `GET /git/trees/<remote_tree>?recursive=1` vs `git ls-tree -r HEAD`, compare per-path {sha,mode}; upload mismatches, delete remote-only paths, chained trees with base_tree=remote tree, commit parent=remote head. Verify pushed tree sha == `git rev-parse HEAD^{tree}` (exact match proves content parity). Whole sync ran in one <110s pass when the delta is small (~30 files).
+
+**Gotcha (July 2026):** an uncommitted working-tree edit (version bump) was silently missed by the ls-tree+status overlay diff and the release guard failed on the still-old version. Before dispatching a release build, verify the bumped file's content on remote via `GET /contents/<path>?ref=main`.

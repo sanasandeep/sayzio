@@ -86,14 +86,14 @@ export function SettingsPanel({ onClose }: Props) {
 
   return (
     <div style={{
-      width: 640,
-      maxWidth: '100%',
+      position: 'absolute',
+      inset: 0,
+      width: '100%',
       height: '100%',
       background: 'var(--color-bg-surface)',
-      borderLeft: '1px solid var(--color-border)',
       display: 'flex',
       flexDirection: 'column',
-      flexShrink: 0,
+      zIndex: 20,
     }}>
       {/* Header */}
       <div style={{

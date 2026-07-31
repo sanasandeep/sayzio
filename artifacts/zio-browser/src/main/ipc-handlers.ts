@@ -144,6 +144,11 @@ export function registerWindowProfile(win: BrowserWindow, profileId: string): vo
   win.once('closed', () => windowProfileRegistry.delete(win.id));
 }
 
+/** Resolve the active profile for a window directly (used by the app menu). */
+export function profileIdForWindow(win: BrowserWindow): string {
+  return windowProfileRegistry.get(win.id) ?? DEFAULT_PROFILE_ID;
+}
+
 /** Resolve the active profile for the window that sent an IPC event. */
 function resolveProfileId(event: Electron.IpcMainInvokeEvent): string {
   const win = BrowserWindow.fromWebContents(event.sender);
@@ -354,6 +359,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('tabs:close', (event, id: string) => { resolveTabManager(event)?.closeTab(id); return true; });
   ipcMain.handle('tabs:activate', (event, id: string) => { resolveTabManager(event)?.activateTab(id); return true; });
   ipcMain.handle('tabs:navigate', (event, id: string, input: string) => { resolveTabManager(event)?.navigate(id, input); return true; });
+  ipcMain.handle('tabs:navigate-pane', (event, id: string, pane: string, input: string) => {
+    resolveTabManager(event)?.navigatePane(id, pane === 'second' ? 'second' : 'primary', input);
+    return true;
+  });
   ipcMain.handle('tabs:back', (event, id: string) => { resolveTabManager(event)?.goBack(id); return true; });
   ipcMain.handle('tabs:forward', (event, id: string) => { resolveTabManager(event)?.goForward(id); return true; });
   ipcMain.handle('tabs:reload', (event, id: string, force?: boolean) => { resolveTabManager(event)?.reload(id, force); return true; });

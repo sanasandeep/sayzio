@@ -22,6 +22,7 @@ import type { PendingPermission } from './components/PermissionPrompt';
 import { SiteSettingsPanel } from './components/SiteSettingsPanel';
 import { ReadingListPanel } from './components/ReadingListPanel';
 import { SettingsPanel } from './components/SettingsPanel';
+import { SplitUrlBars } from './components/SplitUrlBars';
 import { useChromeOverlay } from './hooks/use-chrome-overlay';
 import { useTabStore } from './store/tab-store';
 import { useAuthStore } from './store/auth-store';
@@ -42,6 +43,7 @@ import {
   MIN_TAB_SPLIT_RATIO,
   MAX_TAB_SPLIT_RATIO,
   TAB_SPLIT_DIVIDER_WIDTH,
+  SPLIT_URL_BAR_HEIGHT,
 } from '../shared/window-mode';
 
 const FIRST_LAUNCH_KEY = 'zio_mode_picker_shown';
@@ -274,9 +276,11 @@ export default function App() {
       }
     };
 
-    // Also listen for the main-process menu shortcut
+    // Also listen for the main-process menu shortcuts
     const handleIpcOpen = () => setPaletteOpen(true);
+    const handleSettingsOpen = () => setSettingsOpen(true);
     window.zio.on('palette:open', handleIpcOpen);
+    window.zio.on('settings:open', handleSettingsOpen);
     document.addEventListener('keydown', handleKeyDown);
 
     // Listen for the shortcuts-open custom event dispatched by the palette's
@@ -287,6 +291,7 @@ export default function App() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       window.zio.off('palette:open', handleIpcOpen);
+      window.zio.off('settings:open', handleSettingsOpen);
       document.removeEventListener('zio:shortcuts-open', handleShortcutsOpen);
     };
   }, [paletteOpen]);
@@ -692,6 +697,16 @@ export default function App() {
           )}
         </div>
 
+        {/* ── Dual address bars for Website + Website (one per pane) ────── */}
+        {activeTabMode === 'browser+browser' && activeTab && activeTabId && !settingsOpen && (
+          <SplitUrlBars
+            tabId={activeTabId}
+            primaryUrl={activeTab.primaryUrl ?? activeTab.url ?? ''}
+            secondUrl={activeTab.secondUrl ?? ''}
+            splitRatio={activeTabSplitRatio}
+          />
+        )}
+
         {/* ── Tab split divider (two native panes, e.g. Website+Website) ──
             Sits over the gap the main process leaves between the two native
             views; dragging it resizes the split (ratio persisted per tab). */}
@@ -700,7 +715,7 @@ export default function App() {
             onMouseDown={handleTabSplitDividerMouseDown}
             style={{
               position: 'absolute',
-              top: 0,
+              top: activeTabMode === 'browser+browser' ? SPLIT_URL_BAR_HEIGHT : 0,
               bottom: 0,
               left: `calc(${activeTabSplitRatio * 100}% - ${Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2)}px)`,
               width: TAB_SPLIT_DIVIDER_WIDTH,
