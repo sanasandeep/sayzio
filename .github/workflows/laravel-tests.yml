@@ -396,7 +396,7 @@ jobs:
           php-version: '8.4'
           coverage: none
 
-      - name: Scan scripts and seeders for hardcoded row ids
+      - name: Scan scripts, seeders and data migrations for hardcoded row ids
         run: php scripts/check-hardcoded-row-ids.php
 
   em-dash-guard:
