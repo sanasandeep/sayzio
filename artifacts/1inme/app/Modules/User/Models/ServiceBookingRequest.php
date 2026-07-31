@@ -112,7 +112,8 @@ class ServiceBookingRequest extends Model
     }
 
     protected $fillable = [
-        'service_booking_id', 'link_id', 'public_token', 'status',
+        'service_booking_id', 'link_id', 'staff_id', 'public_token', 'status',
+        'buffer_before_minutes', 'buffer_after_minutes',
         'customer_name', 'customer_email', 'customer_phone', 'customer_note',
         'slot_start', 'slot_end', 'duration_minutes',
         'subtotal', 'tax_rate', 'tax_inclusive', 'tax_amount', 'total',
@@ -135,6 +136,8 @@ class ServiceBookingRequest extends Model
             'tax_amount'              => 'decimal:2',
             'total'                   => 'decimal:2',
             'payment_amount_cents'    => 'integer',
+            'buffer_before_minutes'   => 'integer',
+            'buffer_after_minutes'    => 'integer',
             'meta'                    => 'array',
         ];
     }
@@ -161,6 +164,11 @@ class ServiceBookingRequest extends Model
     public function items()
     {
         return $this->hasMany(ServiceBookingRequestItem::class, 'request_id');
+    }
+
+    public function staff()
+    {
+        return $this->belongsTo(ServiceBookingStaff::class, 'staff_id');
     }
 
     public function getStatusLabelAttribute(): string

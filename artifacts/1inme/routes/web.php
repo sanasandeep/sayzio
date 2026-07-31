@@ -764,6 +764,12 @@ Route::post('/sb/{alias}/book', [\App\Modules\Common\Controllers\PublicServiceBo
     ->where('alias', '[^/]+')->middleware('throttle:20,1')->name('sb.public.book');
 Route::get('/sb/booking/{token}/status', [\App\Modules\Common\Controllers\PublicServiceBookingController::class, 'bookingStatus'])
     ->where('token', '[A-Za-z0-9\-]+')->middleware('throttle:120,1')->name('sb.public.booking.status');
+Route::get('/sb/booking/{token}/reschedule-slots', [\App\Modules\Common\Controllers\PublicServiceBookingController::class, 'rescheduleSlots'])
+    ->where('token', '[A-Za-z0-9\-]+')->middleware('throttle:60,1')->name('sb.public.booking.reschedule_slots');
+Route::post('/sb/booking/{token}/reschedule', [\App\Modules\Common\Controllers\PublicServiceBookingController::class, 'reschedule'])
+    ->where('token', '[A-Za-z0-9\-]+')->middleware('throttle:10,1')->name('sb.public.booking.reschedule');
+Route::post('/sb/booking/{token}/cancel', [\App\Modules\Common\Controllers\PublicServiceBookingController::class, 'cancel'])
+    ->where('token', '[A-Za-z0-9\-]+')->middleware('throttle:10,1')->name('sb.public.booking.cancel');
 Route::get('/sb/booking/{token}', [\App\Modules\Common\Controllers\PublicServiceBookingController::class, 'bookingPage'])
     ->where('token', '[A-Za-z0-9\-]+')->middleware('throttle:120,1')->name('sb.public.booking.page');
 

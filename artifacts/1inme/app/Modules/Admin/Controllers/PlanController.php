@@ -1071,6 +1071,8 @@ class PlanController extends Controller
             'max_ai_chat' => 1,
             'max_restaurant_menu' => 1,
             'max_service_booking' => 1,
+            'max_service_booking_staff' => 1,
+            'service_booking_calendar_sync' => false,
             'max_reviews' => 1,
             'max_file_size_mb' => 5,
             'storage_limit_mb' => 100,

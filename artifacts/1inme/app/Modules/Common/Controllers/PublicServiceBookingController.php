@@ -44,6 +44,7 @@ class PublicServiceBookingController extends Controller
             'services'              => 'required|array|min:1',
             'services.*.service_id' => 'required|integer',
             'services.*.quantity'   => 'nullable|integer|min:1|max:99',
+            'staff_id'              => 'nullable|integer',
         ]);
 
         [$duration] = $this->priceCart($config, $data['services']);
@@ -51,10 +52,15 @@ class PublicServiceBookingController extends Controller
             return response()->json(['error' => ['message' => 'Pick at least one available service.', 'code' => 'no_services']], 422);
         }
 
+        $opts = $this->cartOpts($config, $data['services']);
+        if (!empty($data['staff_id'])) {
+            $opts['staff_id'] = (int) $data['staff_id'];
+        }
+
         return response()->json(['data' => [
             'duration_minutes' => $duration,
             'timezone'         => $config->effectiveTimezone(),
-            'days'             => $this->slots->freeSlots($config, $duration),
+            'days'             => $this->slots->freeSlots($config, $duration, null, $opts),
         ]]);
     }
 
@@ -112,6 +118,7 @@ class PublicServiceBookingController extends Controller
             'services'              => 'required|array|min:1',
             'services.*.service_id' => 'required|integer',
             'services.*.quantity'   => 'nullable|integer|min:1|max:99',
+            'staff_id'              => 'nullable|integer',
         ]);
 
         try {
@@ -177,6 +184,129 @@ class PublicServiceBookingController extends Controller
         return response()->view('common.service-booking-status', compact('booking', 'link', 'config', 'whatsapp'));
     }
 
+    // ── Visitor self-service (Task #6325) ────────────────────────────
+
+    /** Free slots the visitor could move their existing booking to. */
+    public function rescheduleSlots(Request $request, string $token)
+    {
+        $booking = ServiceBookingRequest::with(['items', 'serviceBooking'])->where('public_token', $token)->first();
+        if (!$booking || !$booking->serviceBooking) {
+            return response()->json(['error' => ['message' => 'Booking not found', 'code' => 'not_found']], 404);
+        }
+        if ($blocker = $this->requests->selfServiceBlocker($booking, 'reschedule')) {
+            return response()->json(['error' => ['message' => $blocker, 'code' => 'not_allowed']], 422);
+        }
+
+        $config   = $booking->serviceBooking;
+        $duration = max(1, (int) $booking->duration_minutes);
+
+        return response()->json(['data' => [
+            'duration_minutes' => $duration,
+            'timezone'         => $config->effectiveTimezone(),
+            'days'             => $this->slots->freeSlots($config, $duration, null, $this->bookingOpts($booking)),
+        ]]);
+    }
+
+    /** Visitor moves their booking to a new slot (cutoff + toggles enforced). */
+    public function reschedule(Request $request, string $token)
+    {
+        $booking = ServiceBookingRequest::with(['items', 'serviceBooking', 'link'])->where('public_token', $token)->first();
+        if (!$booking || !$booking->serviceBooking) {
+            return response()->json(['error' => ['message' => 'Booking not found', 'code' => 'not_found']], 404);
+        }
+        if ($blocker = $this->requests->selfServiceBlocker($booking, 'reschedule')) {
+            return response()->json(['error' => ['message' => $blocker, 'code' => 'not_allowed']], 422);
+        }
+
+        $data = $request->validate(['slot_start' => 'required|string|max:64']);
+
+        $config = $booking->serviceBooking;
+        try {
+            $start = \Carbon\Carbon::parse($data['slot_start'], $config->effectiveTimezone());
+        } catch (\Throwable $e) {
+            return response()->json(['error' => ['message' => 'Invalid slot time.', 'code' => 'invalid_slot']], 422);
+        }
+
+        $duration = max(1, (int) $booking->duration_minutes);
+        if (!$this->slots->slotIsAvailable($config, $duration, $start, $booking->id, $this->bookingOpts($booking))) {
+            return response()->json(['error' => ['message' => 'That time is no longer available — please pick another slot.', 'code' => 'slot_taken']], 422);
+        }
+
+        $this->requests->visitorReschedule($booking, $start);
+
+        return response()->json(['data' => ['booking' => $this->serializeGuestBooking($booking->fresh('items'))]]);
+    }
+
+    /** Visitor cancels their booking (cutoff + toggles enforced). */
+    public function cancel(Request $request, string $token)
+    {
+        $booking = ServiceBookingRequest::with(['items', 'serviceBooking', 'link'])->where('public_token', $token)->first();
+        if (!$booking || !$booking->serviceBooking) {
+            return response()->json(['error' => ['message' => 'Booking not found', 'code' => 'not_found']], 404);
+        }
+        if ($blocker = $this->requests->selfServiceBlocker($booking, 'cancel')) {
+            return response()->json(['error' => ['message' => $blocker, 'code' => 'not_allowed']], 422);
+        }
+
+        $this->requests->visitorCancel($booking);
+
+        return response()->json(['data' => ['booking' => $this->serializeGuestBooking($booking->fresh('items'))]]);
+    }
+
+    /**
+     * Availability opts pinned to an existing booking: same staff member,
+     * the snapshotted buffers, and the group capacity of its services.
+     */
+    protected function bookingOpts(ServiceBookingRequest $booking): array
+    {
+        $config = $booking->serviceBooking;
+        $ids    = $booking->items->pluck('service_id')->filter()->map(fn ($i) => (int) $i)->all();
+        $opts   = $this->cartOpts($config, array_map(fn ($id) => ['service_id' => $id], $ids));
+
+        // Snapshotted buffers on the request win over the live catalog.
+        $opts['buffer_before'] = max($opts['buffer_before'] ?? 0, (int) ($booking->buffer_before_minutes ?? 0));
+        $opts['buffer_after']  = max($opts['buffer_after'] ?? 0, (int) ($booking->buffer_after_minutes ?? 0));
+        if ($booking->staff_id) {
+            $opts['staff_id'] = (int) $booking->staff_id;
+        }
+        $opts['ignore_request_id'] = $booking->id;
+
+        return $opts;
+    }
+
+    /**
+     * Cart-effective availability opts: eligible service ids, the widest
+     * buffers in the cart, and the smallest per-slot group capacity.
+     */
+    protected function cartOpts(ServiceBooking $config, array $items): array
+    {
+        $ids = collect($items)->pluck('service_id')->map(fn ($i) => (int) $i)->all();
+        $rows = ServiceBookingService::where('service_booking_id', $config->id)
+            ->whereIn('id', $ids)
+            ->where('is_active', true)
+            ->get();
+
+        $bufBefore = 0;
+        $bufAfter  = 0;
+        $capacity  = null;
+        foreach ($rows as $service) {
+            if ($service->is_unavailable) {
+                continue;
+            }
+            $bufBefore = max($bufBefore, $service->effectiveBufferBefore($config));
+            $bufAfter  = max($bufAfter, $service->effectiveBufferAfter($config));
+            $svcCap    = max(1, (int) ($service->capacity ?? 1));
+            $capacity  = $capacity === null ? $svcCap : min($capacity, $svcCap);
+        }
+
+        return [
+            'service_ids'   => $ids,
+            'buffer_before' => $bufBefore,
+            'buffer_after'  => $bufAfter,
+            'capacity'      => $capacity ?? 1,
+        ];
+    }
+
     /**
      * Price + total-duration the requested cart against the live catalog,
      * skipping unavailable/inactive services.
@@ -230,10 +360,19 @@ class PublicServiceBookingController extends Controller
             ? WhatsappOrderLink::build($config, $booking, $link->title)
             : null;
 
+        $requests = app(ServiceBookingRequestService::class);
+        $staff    = $booking->staff_id
+            ? ($booking->relationLoaded('staff') ? $booking->staff : $booking->staff()->first())
+            : null;
+
         return [
             'public_token'          => $booking->public_token,
             'status'                => $booking->status,
             'status_label'          => $booking->status_label,
+            'staff'                 => $staff ? ['id' => $staff->id, 'name' => $staff->name] : null,
+            'can_cancel'            => $requests->selfServiceBlocker($booking, 'cancel') === null,
+            'can_reschedule'        => $requests->selfServiceBlocker($booking, 'reschedule') === null,
+            'self_service_cutoff_hours' => $config ? $config->selfServiceCutoffHours() : 24,
             'whatsapp'              => $whatsapp,
             'customer_name'         => $booking->customer_name,
             'slot_start'            => optional($booking->slot_start)->toIso8601String(),

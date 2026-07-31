@@ -11,6 +11,15 @@
     $servicesByCat = $services->groupBy('category_id');
     $uncategorized = $servicesByCat->get(null) ?? $servicesByCat->get('') ?? collect();
 
+    $sbStaff = $config->staff()->where('is_active', true)->orderBy('sort_order')->with('services:id')->get()
+        ->map(fn ($m) => [
+            'id'          => $m->id,
+            'name'        => $m->name,
+            'title'       => $m->title,
+            'photo_url'   => $m->photo_url,
+            'service_ids' => $m->services->pluck('id')->map(fn ($i) => (int) $i)->values()->all(),
+        ])->values();
+
     $fmt = fn ($n) => $currency . ' ' . number_format((float) $n, 2);
     $taxLabel = $config->taxEnabled() ? $config->taxLabel() : null;
 
@@ -81,6 +90,12 @@
         .sec-h { font-size:13px; font-weight:700; opacity:.7; margin:16px 0 6px; text-transform:uppercase; letter-spacing:.04em; }
         .day-h { font-size:14px; font-weight:700; margin:14px 0 8px; }
         .slots { display:flex; flex-wrap:wrap; gap:8px; }
+        .staffrow { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:6px; }
+        .staffcard { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:12px; border:1.5px solid rgba(125,125,140,.3); background:transparent; cursor:pointer; font:inherit; color:inherit; }
+        .staffcard img { width:28px; height:28px; border-radius:999px; object-fit:cover; }
+        .staffcard .st { font-size:11px; opacity:.6; }
+        .staffcard.sel { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); }
+        .slot .left { display:block; font-size:10px; opacity:.65; }
         .slot { border:1px solid rgba(0,0,0,.18); background:transparent; color:inherit; border-radius:9px; padding:9px 13px; font-size:13.5px; cursor:pointer; font-family:inherit; }
         @media (prefers-color-scheme: dark) { .slot { border-color:rgba(255,255,255,.2); } }
         .slot.sel { background:var(--accent); color:#fff; border-color:var(--accent); }
@@ -165,6 +180,9 @@
         <div class="total"><span>Estimated total</span><span id="modalTotal">{{ $fmt(0) }}</span></div>
         <p class="muted" id="durSummary"></p>
 
+        <div class="sec-h" id="staffHead" style="display:none">Choose a team member</div>
+        <div class="staffrow" id="staffRow" style="display:none"></div>
+
         <div class="sec-h">Pick a time</div>
         <div class="slotbox" id="slotBox"><p class="muted">Loading available times…</p></div>
 
@@ -202,6 +220,8 @@
     const STATUS_BASE = @json(url('/sb/booking'));
     const CURRENCY = @json($currency);
     const SERVICES = {};
+    const STAFF = @json($sbStaff);
+    let selectedStaff = null; // null = any available
     let selectedSlot = null;
     let lastBill = null;
     let quoteSeq = 0, slotSeq = 0;
@@ -307,7 +327,7 @@
             const r = await fetch(SLOTS_URL, {
                 method:'POST',
                 headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'X-Requested-With':'XMLHttpRequest'},
-                body: JSON.stringify({ services: items })
+                body: JSON.stringify({ services: items, staff_id: selectedStaff })
             });
             const j = await r.json();
             if (seq !== slotSeq) return;
@@ -321,6 +341,12 @@
                 day.slots.forEach(slot => {
                     const b = document.createElement('button');
                     b.type = 'button'; b.className = 'slot'; b.textContent = slot.label;
+                    if (typeof slot.remaining === 'number' && slot.remaining > 0 && slot.remaining !== 1) {
+                        const left = document.createElement('span');
+                        left.className = 'left';
+                        left.textContent = slot.remaining + ' spots left';
+                        b.appendChild(left);
+                    }
                     b.setAttribute('data-start', slot.start);
                     b.onclick = () => {
                         selectedSlot = slot.start;
@@ -338,13 +364,46 @@
         }
     }
 
+    // Team members (Task #6325): only offer members who can perform every selected service.
+    function eligibleStaff() {
+        const ids = cartItems().map(i => i.service_id);
+        return STAFF.filter(m => !m.service_ids.length || ids.every(id => m.service_ids.includes(id)));
+    }
+    function renderStaff() {
+        const row = document.getElementById('staffRow');
+        const head = document.getElementById('staffHead');
+        const pool = eligibleStaff();
+        if (!STAFF.length || !pool.length) {
+            selectedStaff = null;
+            row.style.display = 'none'; head.style.display = 'none';
+            return;
+        }
+        if (selectedStaff !== null && !pool.some(m => m.id === selectedStaff)) selectedStaff = null;
+        head.style.display = ''; row.style.display = '';
+        row.innerHTML = '';
+        const make = (id, name, title, photo) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'staffcard' + ((selectedStaff === id) ? ' sel' : '');
+            if (photo) { const img = document.createElement('img'); img.src = photo; img.alt = ''; b.appendChild(img); }
+            const box = document.createElement('span');
+            const nm = document.createElement('span'); nm.textContent = name; box.appendChild(nm);
+            if (title) { const st = document.createElement('span'); st.className = 'st'; st.textContent = ' ' + title; box.appendChild(st); }
+            b.appendChild(box);
+            b.onclick = () => { selectedStaff = id; renderStaff(); loadSlots(); };
+            row.appendChild(b);
+        };
+        make(null, 'Any available', '', null);
+        pool.forEach(m => make(m.id, m.name, m.title || '', m.photo_url || null));
+    }
+
     document.getElementById('fName').addEventListener('input', updateBookBtn);
 
     window.SB = {
         add(id){ SERVICES[id].qty = 1; render(); },
         inc(id){ SERVICES[id].qty++; render(); },
         dec(id){ SERVICES[id].qty = Math.max(0, SERVICES[id].qty - 1); render(); },
-        openCart(){ lines('cartLines'); refreshQuote(); loadSlots(); document.getElementById('cartModal').classList.add('show'); },
+        openCart(){ lines('cartLines'); refreshQuote(); renderStaff(); loadSlots(); document.getElementById('cartModal').classList.add('show'); },
         closeCart(){ document.getElementById('cartModal').classList.remove('show'); },
         reset(){ if(pollTimer) clearInterval(pollTimer); location.href = location.pathname; },
         async book(){
@@ -364,6 +423,7 @@
                         customer_phone: document.getElementById('fPhone').value || null,
                         customer_note: document.getElementById('fNote').value || null,
                         slot_start: selectedSlot,
+                        staff_id: selectedStaff,
                         services: items
                     })
                 });

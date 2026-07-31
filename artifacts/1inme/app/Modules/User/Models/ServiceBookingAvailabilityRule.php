@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 class ServiceBookingAvailabilityRule extends Model
 {
     protected $fillable = [
-        'service_booking_id', 'day_of_week', 'start_time', 'end_time', 'is_active',
+        'service_booking_id', 'staff_id', 'day_of_week', 'start_time', 'end_time', 'is_active',
     ];
 
     protected function casts(): array
@@ -26,5 +26,10 @@ class ServiceBookingAvailabilityRule extends Model
     public function serviceBooking()
     {
         return $this->belongsTo(ServiceBooking::class);
+    }
+
+    public function staff()
+    {
+        return $this->belongsTo(ServiceBookingStaff::class, 'staff_id');
     }
 }

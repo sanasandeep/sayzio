@@ -136,6 +136,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/service-booking/{alias}/quote',          [ServiceBookingController::class, 'quote'])->middleware('throttle:120,1');
         Route::post('/service-booking/{alias}/book',           [ServiceBookingController::class, 'book'])->middleware('throttle:20,1');
         Route::get ('/service-booking/bookings/{token}/status',[ServiceBookingController::class, 'bookingStatus']);
+        Route::post('/service-booking/bookings/{token}/reschedule-slots', [ServiceBookingController::class, 'rescheduleSlots'])->middleware('throttle:60,1');
+        Route::post('/service-booking/bookings/{token}/reschedule',       [ServiceBookingController::class, 'rescheduleBooking'])->middleware('throttle:20,1');
+        Route::post('/service-booking/bookings/{token}/cancel',           [ServiceBookingController::class, 'cancelBooking'])->middleware('throttle:20,1');
 
         // Public reviews feed + summary for a standalone Reviews page.
         Route::get('/reviews/{alias}',             [\App\Modules\Api\Controllers\ReviewApiController::class, 'index']);
@@ -1342,6 +1345,10 @@ Route::prefix('v1')->group(function () {
         Route::delete('/service-booking/links/{link}/config/availability/{rule}',    [ServiceBookingController::class, 'destroyAvailability'])->whereNumber('link')->whereNumber('rule');
         Route::post  ('/service-booking/links/{link}/config/blocked-dates',          [ServiceBookingController::class, 'storeBlockedDate'])->whereNumber('link');
         Route::delete('/service-booking/links/{link}/config/blocked-dates/{blockedDate}', [ServiceBookingController::class, 'destroyBlockedDate'])->whereNumber('link')->whereNumber('blockedDate');
+        Route::post  ('/service-booking/links/{link}/config/staff',                 [ServiceBookingController::class, 'storeStaff'])->whereNumber('link');
+        Route::post  ('/service-booking/links/{link}/config/staff/reorder',         [ServiceBookingController::class, 'reorderStaff'])->whereNumber('link');
+        Route::put   ('/service-booking/links/{link}/config/staff/{staff}',         [ServiceBookingController::class, 'updateStaff'])->whereNumber('link')->whereNumber('staff');
+        Route::delete('/service-booking/links/{link}/config/staff/{staff}',         [ServiceBookingController::class, 'destroyStaff'])->whereNumber('link')->whereNumber('staff');
 
         // Social accounts + social proof
         Route::get   ('/social/connections',                 [SocialAccountController::class, 'connections']);

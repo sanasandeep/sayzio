@@ -182,6 +182,7 @@ export default function ServiceBookingDashboardScreen() {
                 </Text>
                 <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
                   {formatSlot(b.slot_start)} · #{b.id}
+                  {b.staff_name ? ` · ${b.staff_name}` : ""}
                 </Text>
               </View>
               <View

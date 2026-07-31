@@ -52,6 +52,7 @@
                     <div class="sb-when" x-text="slotLabel(b.slot_start)"></div>
                     <div class="sb-meta">
                         <span x-show="b.customer_name" x-text="b.customer_name + ' · '"></span>
+                        <span x-show="b.staff_name"><i class="fas fa-user"></i> <span x-text="b.staff_name"></span> · </span>
                         <span x-text="b.duration_minutes + ' min'"></span> · #<span x-text="b.id"></span>
                     </div>
                 </div>
@@ -87,7 +88,7 @@
 
 <script>
 @php
-    $bookingsData = $bookings->map(fn($b)=>['id'=>$b->id,'status'=>$b->status,'customer_name'=>$b->customer_name,'customer_email'=>$b->customer_email,'customer_phone'=>$b->customer_phone,'customer_note'=>$b->customer_note,'slot_start'=>$b->slot_start?->toIso8601String(),'slot_end'=>$b->slot_end?->toIso8601String(),'duration_minutes'=>$b->duration_minutes,'subtotal'=>$b->subtotal,'tax_rate'=>$b->tax_rate,'tax_inclusive'=>(bool)$b->tax_inclusive,'tax_amount'=>$b->tax_amount,'total'=>$b->total,'currency'=>$b->currency,'created_at'=>$b->created_at?->toIso8601String(),'updated_at'=>$b->updated_at?->toIso8601String(),'items'=>$b->items->map(fn($i)=>['id'=>$i->id,'name'=>$i->name,'quantity'=>$i->quantity,'duration_minutes'=>$i->duration_minutes,'line_total'=>$i->line_total])])->values();
+    $bookingsData = $bookings->map(fn($b)=>['id'=>$b->id,'status'=>$b->status,'customer_name'=>$b->customer_name,'customer_email'=>$b->customer_email,'customer_phone'=>$b->customer_phone,'customer_note'=>$b->customer_note,'staff_name'=>$b->staff?->name,'slot_start'=>$b->slot_start?->toIso8601String(),'slot_end'=>$b->slot_end?->toIso8601String(),'duration_minutes'=>$b->duration_minutes,'subtotal'=>$b->subtotal,'tax_rate'=>$b->tax_rate,'tax_inclusive'=>(bool)$b->tax_inclusive,'tax_amount'=>$b->tax_amount,'total'=>$b->total,'currency'=>$b->currency,'created_at'=>$b->created_at?->toIso8601String(),'updated_at'=>$b->updated_at?->toIso8601String(),'items'=>$b->items->map(fn($i)=>['id'=>$i->id,'name'=>$i->name,'quantity'=>$i->quantity,'duration_minutes'=>$i->duration_minutes,'line_total'=>$i->line_total])])->values();
 @endphp
 function bookingsBoard() {
     return {
@@ -129,7 +130,7 @@ function bookingsBoard() {
         },
         merge(b){
             const i = this.bookings.findIndex(x => x.id === b.id);
-            const norm = { id:b.id, status:b.status, customer_name:b.customer_name, customer_email:b.customer_email, customer_phone:b.customer_phone, customer_note:b.customer_note, slot_start:b.slot_start, slot_end:b.slot_end, duration_minutes:b.duration_minutes, subtotal:b.subtotal, tax_rate:b.tax_rate, tax_inclusive:b.tax_inclusive, tax_amount:b.tax_amount, total:b.total, currency:b.currency, created_at:b.created_at, updated_at:b.updated_at, items:(b.items||[]).map(it=>({id:it.id,name:it.name,quantity:it.quantity,duration_minutes:it.duration_minutes,line_total:it.line_total})) };
+            const norm = { id:b.id, status:b.status, customer_name:b.customer_name, customer_email:b.customer_email, customer_phone:b.customer_phone, customer_note:b.customer_note, staff_name:(b.staff && b.staff.name) || b.staff_name || null, slot_start:b.slot_start, slot_end:b.slot_end, duration_minutes:b.duration_minutes, subtotal:b.subtotal, tax_rate:b.tax_rate, tax_inclusive:b.tax_inclusive, tax_amount:b.tax_amount, total:b.total, currency:b.currency, created_at:b.created_at, updated_at:b.updated_at, items:(b.items||[]).map(it=>({id:it.id,name:it.name,quantity:it.quantity,duration_minutes:it.duration_minutes,line_total:it.line_total})) };
             if (i >= 0) this.bookings[i] = norm; else this.bookings.unshift(norm);
         },
     };

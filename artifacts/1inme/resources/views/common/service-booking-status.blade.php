@@ -8,6 +8,10 @@
     $tz = optional($config)->effectiveTimezone() ?: \App\Support\PlatformTimezone::platformDefault();
     $fmt = fn ($n) => $currency . ' ' . number_format((float) $n, 2);
     $when = $booking->slot_start ? \Carbon\Carbon::parse($booking->slot_start)->setTimezone($tz)->format('D, M j · g:i A') : null;
+    $requestsSvc = app(\App\Modules\Common\Services\ServiceBookingRequestService::class);
+    $canCancel = $requestsSvc->selfServiceBlocker($booking, 'cancel') === null;
+    $canReschedule = $requestsSvc->selfServiceBlocker($booking, 'reschedule') === null;
+    $staffName = $booking->staff_id ? optional($booking->staff)->name : null;
 @endphp
 <!doctype html>
 <html lang="en">
@@ -36,6 +40,18 @@
         .wa-btn { display:inline-flex; align-items:center; gap:8px; margin-top:18px; width:100%; justify-content:center; padding:12px 16px; border-radius:12px; background:#25D366; color:#fff; font-weight:700; font-size:15px; text-decoration:none; }
         .wa-btn:hover { filter:brightness(.96); }
         .sech { font-size:12px; font-weight:700; opacity:.6; text-transform:uppercase; letter-spacing:.04em; margin:18px 0 4px; }
+        .ss-actions { display:flex; gap:10px; margin-top:18px; }
+        .ss-btn { flex:1; padding:11px 14px; border-radius:12px; font-weight:700; font-size:14px; text-align:center; cursor:pointer; border:1px solid rgba(0,0,0,.15); background:transparent; color:inherit; }
+        @media (prefers-color-scheme: dark) { .ss-btn { border-color:rgba(255,255,255,.2); } }
+        .ss-btn.danger { color:#d33; border-color:rgba(221,51,51,.4); }
+        .ss-btn:disabled { opacity:.5; cursor:default; }
+        .ss-msg { font-size:13px; margin-top:10px; }
+        .ss-msg.err { color:#d33; }
+        .slot-day { font-size:13px; font-weight:700; margin:12px 0 6px; }
+        .slot-grid { display:flex; flex-wrap:wrap; gap:8px; }
+        .slot-chip { padding:8px 12px; border-radius:10px; border:1px solid rgba(0,0,0,.15); background:transparent; color:inherit; font-size:13px; cursor:pointer; }
+        .slot-chip:hover { border-color:var(--accent); color:var(--accent); }
+        @media (prefers-color-scheme: dark) { .slot-chip { border-color:rgba(255,255,255,.2); } }
     </style>
 </head>
 <body>
@@ -44,8 +60,8 @@
     <p class="sub">Your booking request</p>
     <div class="card">
         <span class="status-pill" id="bkStatus">{{ $booking->status_label }}</span>
-        @if($when)<div class="when">{{ $when }}</div>@endif
-        <p class="sub" style="margin:0">{{ $booking->customer_name }}</p>
+        @if($when)<div class="when" id="bkWhen">{{ $when }}</div>@endif
+        <p class="sub" style="margin:0">{{ $booking->customer_name }}@if($staffName) · with {{ $staffName }}@endif</p>
 
         <div class="sech">Services</div>
         @foreach($booking->items as $item)
@@ -59,6 +75,19 @@
         <div class="total"><span>Estimated total</span><span>{{ $fmt($booking->total) }}</span></div>
 
         <p class="note">This is an estimated price, not a final bill. No online payment is taken, you'll settle with the provider directly. This page updates automatically.</p>
+
+        @if($canCancel || $canReschedule)
+            <div class="ss-actions" id="ssActions">
+                @if($canReschedule)
+                    <button type="button" class="ss-btn" id="ssReschedule">Reschedule</button>
+                @endif
+                @if($canCancel)
+                    <button type="button" class="ss-btn danger" id="ssCancel">Cancel booking</button>
+                @endif
+            </div>
+            <div id="ssSlots" style="display:none"></div>
+            <p class="ss-msg" id="ssMsg" style="display:none"></p>
+        @endif
 
         @if(!empty($whatsapp))
             <a class="wa-btn" href="{{ $whatsapp['url'] }}" target="_blank" rel="noopener">
@@ -81,6 +110,72 @@
             if (el && j.data && j.data.booking) el.textContent = j.data.booking.status_label;
         } catch(e){}
     }, 8000);
+})();
+
+// Visitor self-service: reschedule + cancel (Task #6325).
+(function () {
+    const SLOTS_URL  = @json(route('sb.public.booking.reschedule_slots', ['token' => $booking->public_token]));
+    const RESCH_URL  = @json(route('sb.public.booking.reschedule', ['token' => $booking->public_token]));
+    const CANCEL_URL = @json(route('sb.public.booking.cancel', ['token' => $booking->public_token]));
+
+    const msgEl = document.getElementById('ssMsg');
+    const slotsEl = document.getElementById('ssSlots');
+    const say = (t, err) => { if (!msgEl) return; msgEl.textContent = t; msgEl.style.display = 'block'; msgEl.className = 'ss-msg' + (err ? ' err' : ''); };
+    const post = async (url, body) => {
+        const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(body || {}) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error((j.error && j.error.message) || 'Something went wrong.');
+        return j.data;
+    };
+
+    const cancelBtn = document.getElementById('ssCancel');
+    if (cancelBtn) cancelBtn.addEventListener('click', async () => {
+        if (!confirm('Cancel this booking? This cannot be undone.')) return;
+        cancelBtn.disabled = true;
+        try {
+            const d = await post(CANCEL_URL);
+            document.getElementById('bkStatus').textContent = d.booking.status_label;
+            const acts = document.getElementById('ssActions'); if (acts) acts.remove();
+            if (slotsEl) slotsEl.style.display = 'none';
+            say('Your booking was cancelled.');
+        } catch (e) { cancelBtn.disabled = false; say(e.message, true); }
+    });
+
+    const resBtn = document.getElementById('ssReschedule');
+    if (resBtn) resBtn.addEventListener('click', async () => {
+        if (slotsEl.style.display === 'block') { slotsEl.style.display = 'none'; return; }
+        resBtn.disabled = true;
+        try {
+            const r = await fetch(SLOTS_URL, { headers: { 'Accept': 'application/json' } });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error((j.error && j.error.message) || 'Something went wrong.');
+            const days = (j.data && j.data.days) || [];
+            slotsEl.innerHTML = '';
+            if (!days.length) { say('No other free times right now — please contact the provider.', true); resBtn.disabled = false; return; }
+            days.forEach(day => {
+                const h = document.createElement('div'); h.className = 'slot-day'; h.textContent = day.label || day.date;
+                const g = document.createElement('div'); g.className = 'slot-grid';
+                (day.slots || []).forEach(slot => {
+                    const b = document.createElement('button'); b.type = 'button'; b.className = 'slot-chip';
+                    b.textContent = slot.label || slot.start;
+                    b.addEventListener('click', async () => {
+                        b.disabled = true;
+                        try {
+                            const d = await post(RESCH_URL, { slot_start: slot.start });
+                            slotsEl.style.display = 'none';
+                            const whenEl = document.getElementById('bkWhen');
+                            if (whenEl && slot.label) whenEl.textContent = (day.label || day.date) + ' · ' + slot.label;
+                            say('Your booking was moved. The provider has been notified.');
+                        } catch (e) { b.disabled = false; say(e.message, true); }
+                    });
+                    g.appendChild(b);
+                });
+                slotsEl.appendChild(h); slotsEl.appendChild(g);
+            });
+            slotsEl.style.display = 'block';
+        } catch (e) { say(e.message, true); }
+        resBtn.disabled = false;
+    });
 })();
 </script>
 </body>

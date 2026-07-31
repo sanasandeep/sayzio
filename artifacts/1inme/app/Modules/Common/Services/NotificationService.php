@@ -279,6 +279,14 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => true,
             ],
+            // Visitor self-service booking changes (Task #6325).
+            'service_booking.visitor_change' => [
+                'label'          => 'Booking changes by visitors',
+                'description'    => 'When a visitor reschedules or cancels their booking from the status page.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
             // Fan→creator subscription auto-renewal reminders (Task #3011).
             'billing.creator_sub_renewal_reminder' => [
                 'label'          => 'Subscription renewal reminders',

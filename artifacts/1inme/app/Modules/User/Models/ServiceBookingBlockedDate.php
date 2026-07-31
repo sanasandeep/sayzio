@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 class ServiceBookingBlockedDate extends Model
 {
     protected $fillable = [
-        'service_booking_id', 'date', 'reason',
+        'service_booking_id', 'staff_id', 'date', 'reason',
     ];
 
     protected function casts(): array
@@ -24,5 +24,10 @@ class ServiceBookingBlockedDate extends Model
     public function serviceBooking()
     {
         return $this->belongsTo(ServiceBooking::class);
+    }
+
+    public function staff()
+    {
+        return $this->belongsTo(ServiceBookingStaff::class, 'staff_id');
     }
 }

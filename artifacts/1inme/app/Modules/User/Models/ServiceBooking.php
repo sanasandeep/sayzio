@@ -70,6 +70,11 @@ class ServiceBooking extends Model
         return $this->hasMany(ServiceBookingRequest::class)->latest();
     }
 
+    public function staff()
+    {
+        return $this->hasMany(ServiceBookingStaff::class)->orderBy('sort_order')->orderBy('id');
+    }
+
     public function isBookingMode(): bool
     {
         return $this->mode === self::MODE_BOOKING;
@@ -102,5 +107,58 @@ class ServiceBooking extends Model
         $label = trim((string) ($this->settings['tax']['label'] ?? ''));
 
         return $label !== '' ? $label : 'GST';
+    }
+
+    // ── Buffers (Task #6325, stored in the `settings` JSON) ──────────
+
+    /** Page-level default buffer before each appointment, in minutes. */
+    public function bufferBeforeMinutes(): int
+    {
+        return max(0, (int) ($this->settings['buffers']['before'] ?? 0));
+    }
+
+    /** Page-level default buffer after each appointment, in minutes. */
+    public function bufferAfterMinutes(): int
+    {
+        return max(0, (int) ($this->settings['buffers']['after'] ?? 0));
+    }
+
+    // ── Visitor self-service (Task #6325) ────────────────────────────
+
+    public function selfServiceAllowsCancel(): bool
+    {
+        return (bool) ($this->settings['self_service']['allow_cancel'] ?? true);
+    }
+
+    public function selfServiceAllowsReschedule(): bool
+    {
+        return (bool) ($this->settings['self_service']['allow_reschedule'] ?? true);
+    }
+
+    /** Hours before the appointment after which self-service changes lock. */
+    public function selfServiceCutoffHours(): int
+    {
+        return max(0, (int) ($this->settings['self_service']['cutoff_hours'] ?? 24));
+    }
+
+    // ── Google Calendar sync (Task #6325) ────────────────────────────
+
+    public function calendarSyncEnabled(): bool
+    {
+        return (bool) ($this->settings['calendar_sync']['enabled'] ?? false);
+    }
+
+    /** Page-level (owner) calendar account id used when no staff calendar applies. */
+    public function calendarSyncAccountId(): ?int
+    {
+        $id = (int) ($this->settings['calendar_sync']['account_id'] ?? 0);
+
+        return $id > 0 ? $id : null;
+    }
+
+    /** True when any active staff members exist (switches slot math to per-staff). */
+    public function hasStaff(): bool
+    {
+        return $this->staff()->where('is_active', true)->exists();
     }
 }
