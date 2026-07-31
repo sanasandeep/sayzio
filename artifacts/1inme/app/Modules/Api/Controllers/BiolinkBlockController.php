@@ -149,6 +149,32 @@ class BiolinkBlockController extends Controller
             'is_active'  => ['nullable', 'boolean'],
             'settings'   => ['nullable', 'array'],
         ]);
+
+        // Plan gating: block_types_allowed restricts the catalog of block
+        // slugs a user can add — same check the web editor enforces
+        // (User Modules BiolinkBlockController::store), so the mobile API
+        // can't be used to bypass the plan allowlist.
+        $user = $request->user();
+        if (!$user->userCanUseBlockType($data['type'])) {
+            return $this->fail(
+                "The '" . $data['type'] . "' block isn't available on your current plan. Upgrade to unlock it.",
+                403,
+                'plan_block_type_locked'
+            );
+        }
+
+        // Selling gate parity with the web editor: the product block is
+        // additionally gated by the `ecommerce` plan feature.
+        if (\App\Modules\User\Support\BlockTypeRegistry::canonical($data['type']) === 'product'
+            && !$user->hasPermission('user.plan_limits.bypass')
+            && !$user->planFeatureEnabled('ecommerce')) {
+            return $this->fail(
+                "Selling from your bio isn't available on your current plan. Upgrade to add product blocks with checkout.",
+                403,
+                'plan_block_type_locked'
+            );
+        }
+
         $sort = $data['sort_order'] ?? ((int) BiolinkBlock::where('link_id', $link->id)->max('sort_order') + 1);
         $settings = $data['settings'] ?? [];
 
