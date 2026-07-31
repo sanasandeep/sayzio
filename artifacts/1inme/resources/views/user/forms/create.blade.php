@@ -75,9 +75,9 @@
                 </div>
                 @if(auth()->user()->projects()->exists())
                 <div>
-                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Project <span class="text-[10px]" style="color: var(--text-faint);"> - optional</span></label>
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Folder <span class="text-[10px]" style="color: var(--text-faint);"> - optional</span></label>
                     <select name="project_id" class="theme-input w-full">
-                        <option value="">No project</option>
+                        <option value="">No folder</option>
                         @foreach(auth()->user()->projects()->orderBy('name')->get() as $p)
                             <option value="{{ $p->id }}">{{ $p->name }}</option>
                         @endforeach

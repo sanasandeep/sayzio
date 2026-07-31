@@ -130,6 +130,16 @@ class RedirectController extends Controller
             }
         }
 
+        // 'short' is a legacy/API alias for a plain redirect link — the
+        // smart-routing create path (Api LinkController) and some imports
+        // store type='short'. Normalize it in-memory (never persisted) so
+        // every downstream type check ($finalUrl resolution, insurance,
+        // deep-link opener, the final match) treats it exactly like 'url'
+        // instead of falling into the 404 default arm (Task #6407).
+        if ($link->type === 'short') {
+            $link->setAttribute('type', 'url');
+        }
+
         $link->load('pixels');
         // Stash the alias the visitor actually used so views and tracking can
         // distinguish e.g. "/john" vs "/john-instagram" hits on the SAME page.
@@ -479,6 +489,8 @@ class RedirectController extends Controller
         }
 
         return match ($link->type) {
+            // Note: type='short' rows were already normalized to 'url' at the
+            // top of handleResolved(), so they take this arm too.
             'url' => tap(
                 redirect()->away($finalUrl, $link->redirect_type ?: 301),
                 fn ($r) => $smartCookie && $r->withCookie($smartCookie)

@@ -27,6 +27,15 @@ class SlideDeckController extends Controller
 
     protected function ensureDeck(Link $link): LinkSlideDeck
     {
+        return static::ensureDeckFor($link);
+    }
+
+    /**
+     * Shared deck bootstrap used by both the web editor and the REST API
+     * (Api\SlideDeckController) so the seeded defaults can never drift.
+     */
+    public static function ensureDeckFor(Link $link): LinkSlideDeck
+    {
         $deck = LinkSlideDeck::where('link_id', $link->id)->first();
         if ($deck) return $deck;
 
@@ -106,6 +115,23 @@ class SlideDeckController extends Controller
             ])->values(),
         ];
 
+        // In-slide block creation: a curated subset of common biolink block
+        // types the user can create without leaving the slides editor. The
+        // list respects the same per-plan allowlist the biolink editor
+        // enforces (userCanUseBlockType), and creation itself still goes
+        // through BiolinkBlockController::store so gating can't drift.
+        $creatableTypes = collect([
+            'heading', 'paragraph', 'paragraph_rich', 'image', 'image_grid',
+            'link', 'link_big', 'list', 'divider', 'spacer', 'alert', 'badge',
+            'socials', 'video', 'audio',
+        ])
+            ->filter(fn ($t) => workspace_owner()->userCanUseBlockType($t))
+            ->map(fn ($t) => [
+                'type'  => $t,
+                'label' => BiolinkBlock::TYPES[$t]['label'] ?? $t,
+            ])
+            ->values();
+
         // Per-slide backgrounds re-use the same "template" catalog as the
         // page background so creators get a consistent picker. We pull the
         // active templates here and pass a lightweight payload to the editor.
@@ -118,6 +144,7 @@ class SlideDeckController extends Controller
             'blockOptions' => $blockOptions,
             'previewUrl'   => $previewUrl,
             'bgTemplates'  => $bgTemplates,
+            'creatableTypes' => $creatableTypes,
         ]);
     }
 
@@ -146,7 +173,28 @@ class SlideDeckController extends Controller
         $this->authorizeLink($link);
         $deck = $this->ensureDeck($link);
 
-        $data = $request->validate([
+        $data = $request->validate(static::saveRules());
+
+        $data = static::sanitizeSaveData($data, $link);
+
+        static::persistDeck($deck, $link, $data);
+
+        $deck->refresh();
+
+        return response()->json([
+            'ok'           => true,
+            'is_published' => (bool) $deck->is_published,
+            'version'      => (int) $deck->version,
+        ]);
+    }
+
+    /**
+     * Validation rules for a wholesale deck save. Shared with the REST API
+     * controller (Api\SlideDeckController) so web and mobile can't drift.
+     */
+    public static function saveRules(): array
+    {
+        return [
             'settings'                  => 'nullable|array',
             'settings.theme'            => 'nullable|array',
             'settings.transition'       => 'nullable|string|in:slide,fade,zoom,flip,none',
@@ -193,8 +241,15 @@ class SlideDeckController extends Controller
             'slides.*.animation.duration_ms' => 'nullable|integer|min:0|max:5000',
             'slides.*.transition'       => 'nullable|string|in:slide,fade,zoom,flip,none',
             'slides.*.settings'         => 'nullable|array',
-        ]);
+        ];
+    }
 
+    /**
+     * Post-validation cleanup shared by web + API saves: restrict block_ids
+     * to blocks owned by this link and sanitize background media URLs.
+     */
+    public static function sanitizeSaveData(array $data, Link $link): array
+    {
         // Restrict block_ids to ones actually owned by this link.
         $allowedBlockIds = BiolinkBlock::where('link_id', $link->id)->pluck('id')->all();
         foreach ($data['slides'] as $i => $row) {
@@ -226,6 +281,16 @@ class SlideDeckController extends Controller
             }
         }
 
+        return $data;
+    }
+
+    /**
+     * Atomically replace deck settings + slides (and rebuild the published
+     * snapshot when publishing). Shared by web + API saves. Expects data
+     * already validated (saveRules) and sanitized (sanitizeSaveData).
+     */
+    public static function persistDeck(LinkSlideDeck $deck, Link $link, array $data): void
+    {
         DB::transaction(function () use ($deck, $data, $link) {
             if (isset($data['settings'])) {
                 $deck->settings = array_merge($deck->settings ?? [], $data['settings']);
@@ -259,18 +324,10 @@ class SlideDeckController extends Controller
                 $deck->version = (int) $deck->version + 1;
                 $deck->save();
                 $deck->load('slides');
-                $deck->published_snapshot = $this->buildSnapshot($deck, $link);
+                $deck->published_snapshot = static::buildSnapshot($deck, $link);
             }
             $deck->save();
         });
-
-        $deck->refresh();
-
-        return response()->json([
-            'ok'           => true,
-            'is_published' => (bool) $deck->is_published,
-            'version'      => (int) $deck->version,
-        ]);
     }
 
     /**

@@ -288,6 +288,8 @@
                                     $tx = ['fade'=>'none','slide_up'=>'translateY(16px)','slide_down'=>'translateY(-16px)','slide_left'=>'translateX(16px)','slide_right'=>'translateX(-16px)','zoom'=>'scale(0.92)','flip'=>'rotateX(20deg)','none'=>'none'][$enter] ?? 'none';
                                 @endphp
                                 <div class="sl-block-anim"
+                                     data-block-id="{{ $b['id'] }}"
+                                     data-block-type="{{ $b['type'] }}"
                                      data-enter="{{ $enter }}"
                                      data-align="{{ $align }}"
                                      style="--bx:{{ $tx }};--bd:{{ $durMs }}ms;--ba:{{ $delay }}ms;--span:{{ $gridSpan }};">
@@ -508,5 +510,11 @@
     show(0);
 })();
 </script>
+@if($isOwnerPreview)
+    {{-- Instant block live preview — same listener the biolink page uses, so
+         the Slides Mode edit modal can patch block content in place while the
+         creator types. Gated internally on ?_preview / ?_editBlock. --}}
+    @include('common.partials.biolink-block-live-listener')
+@endif
 </body>
 </html>

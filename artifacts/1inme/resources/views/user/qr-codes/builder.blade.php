@@ -97,7 +97,7 @@
                    style="background: transparent; border: 1px solid transparent; color: var(--text-primary);">
             <select name="project_id" class="px-3 py-2 text-sm rounded-lg outline-none"
                     style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
-                <option value="">No project</option>
+                <option value="">No folder</option>
                 @foreach($projects as $p)
                     <option value="{{ $p->id }}" @selected(old('project_id', $isEdit ? $qrCode->project_id : '') == $p->id)>{{ $p->name }}</option>
                 @endforeach

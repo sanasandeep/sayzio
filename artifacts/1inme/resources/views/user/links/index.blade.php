@@ -47,7 +47,7 @@
                     @if($__summary['active'] !== $__summary['total'])
                         <span class="hero-chip"><i class="fas fa-circle text-emerald-400" style="font-size:6px;"></i> {{ number_format($__summary['active']) }} active</span>
                     @endif
-                    <span class="hero-chip"><i class="fas fa-folder"></i> {{ number_format($projects->count()) }} projects</span>
+                    <a href="{{ route('user.projects.index') }}" class="hero-chip"><i class="fas fa-folder"></i> {{ number_format($projects->count()) }} {{ Str::plural('folder', $projects->count()) }}</a>
                 </div>
                 <h1 class="hero-title gradient-text truncate" style="font-size: clamp(1.5rem, 3.2vw, 2.1rem);">My Links</h1>
                 <p class="hero-subtitle">Manage, track and organise every link you've created.</p>
@@ -147,9 +147,9 @@
             </select>
         </div>
         <div>
-            <label class="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Project</label>
+            <label class="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Folder</label>
             <select name="project_id" class="theme-input appearance-none pr-8">
-                <option value="" class="bg-[#0a0612]">All Projects</option>
+                <option value="" class="bg-[#0a0612]">All Folders</option>
                 @foreach($projects as $project)
                     <option value="{{ $project->id }}" {{ request('project_id') == $project->id ? 'selected' : '' }} class="bg-[#0a0612]">{{ $project->name }}</option>
                 @endforeach
@@ -384,6 +384,43 @@
                             <i class="fas fa-copy text-xs hover:text-cyan-400"></i>
                         </button>
                     </form>
+                    @endcanInWorkspace
+                    @canInWorkspace('links.edit')
+                    <div class="relative" x-data="{ open: false, saving: false }">
+                        <button type="button" @click="open = !open" @click.outside="open = false"
+                                class="p-1.5 rounded-md transition-all hover:bg-yellow-500/10"
+                                style="color: var(--text-faint);" title="Move to folder">
+                            <i class="fas fa-folder-open text-xs hover:text-yellow-400"></i>
+                        </button>
+                        <div x-show="open" x-cloak
+                             class="absolute right-0 top-full mt-1 w-56 rounded-lg border shadow-lg z-20 overflow-hidden max-h-72 overflow-y-auto"
+                             style="background: var(--bg-card); border-color: var(--border-strong);">
+                            <div class="px-3 py-2 text-[10px] uppercase tracking-wider font-bold border-b" style="color: var(--text-faint); border-color: var(--border-strong);">Move to folder</div>
+                            @foreach($projects as $__fp)
+                                <button type="button"
+                                        @click="saving = true; fetch('{{ route('user.links.move-to-folder', $link) }}', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest'}, body: JSON.stringify({project_id: {{ $__fp->id }}})}).then(r => r.ok ? window.location.reload() : (saving = false))"
+                                        :disabled="saving"
+                                        class="w-full text-left px-3 py-2 text-sm hover:bg-black/5 flex items-center gap-2 {{ $link->project_id == $__fp->id ? 'opacity-50' : '' }}" style="color: var(--text-primary);">
+                                    <i class="fas fa-folder text-[10px]" style="color: {{ $__fp->color ?: '#3b82f6' }}"></i>
+                                    <span class="truncate">{{ $__fp->name }}</span>
+                                    @if($link->project_id == $__fp->id)<i class="fas fa-check text-[9px] ml-auto opacity-60"></i>@endif
+                                </button>
+                            @endforeach
+                            @if($link->project_id)
+                                <button type="button"
+                                        @click="saving = true; fetch('{{ route('user.links.move-to-folder', $link) }}', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest'}, body: JSON.stringify({project_id: null})}).then(r => r.ok ? window.location.reload() : (saving = false))"
+                                        :disabled="saving"
+                                        class="w-full text-left px-3 py-2 text-sm hover:bg-black/5 flex items-center gap-2 border-t" style="color: var(--text-primary); border-color: var(--border-strong);">
+                                    <i class="fas fa-folder-minus text-[10px] opacity-60"></i>
+                                    <span>Remove from folder</span>
+                                </button>
+                            @endif
+                            <a href="{{ route('user.projects.create') }}" class="w-full text-left px-3 py-2 text-sm hover:bg-black/5 flex items-center gap-2 border-t block" style="color: var(--text-faint); border-color: var(--border-strong);">
+                                <i class="fas fa-plus text-[10px]"></i>
+                                <span>New folder</span>
+                            </a>
+                        </div>
+                    </div>
                     @endcanInWorkspace
                     @if($__canMove)
                     <div class="relative" x-data="{ open: false }">

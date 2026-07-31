@@ -213,6 +213,37 @@
         width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border-glass);
         display: inline-block; vertical-align: middle;
     }
+
+    /* Inline block-edit modal — hosts the same AJAX edit form the Blocks
+       tab uses, so slide-block content is editable without leaving Slides
+       Mode. */
+    .sl-edit-overlay {
+        position: fixed; inset: 0; z-index: 1000;
+        background: rgba(2,6,23,0.62); backdrop-filter: blur(4px);
+        display: flex; align-items: flex-start; justify-content: center;
+        padding: 4vh 16px; overflow-y: auto;
+    }
+    .sl-edit-modal {
+        background: var(--bg-card); border: 1px solid var(--border-glass);
+        border-radius: 16px; width: 100%; max-width: 560px;
+        box-shadow: 0 24px 80px -20px rgba(0,0,0,0.7);
+        display: flex; flex-direction: column; max-height: 92vh;
+    }
+    .sl-edit-modal-head {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 10px; padding: 14px 18px;
+        border-bottom: 1px solid var(--border-glass); flex-shrink: 0;
+    }
+    .sl-edit-modal-head h5 { margin: 0; font-weight: 700; color: var(--text-primary); font-size: 15px; }
+    .sl-edit-modal-close {
+        background: transparent; border: 0; color: var(--text-muted);
+        font-size: 18px; cursor: pointer; padding: 4px 8px; line-height: 1;
+        border-radius: 8px;
+    }
+    .sl-edit-modal-close:hover { color: var(--text-primary); background: var(--bg-glass-input); }
+    .sl-edit-modal-body { padding: 16px 18px; overflow-y: auto; }
+    .sl-block-chip .sl-chip-edit { color: #90acff; font-size: 12px; }
+    html.light-mode .sl-block-chip .sl-chip-edit { color: #3d6bff; }
 </style>
 
 @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'slides'])
@@ -246,6 +277,20 @@
                     <label class="sl-field-label">Text color</label>
                     <input type="color" id="sl-theme-text" class="sl-input" value="{{ $deckPayload['settings']['theme']['text'] ?? '#f8fafc' }}">
                 </div>
+                @php
+                    $autoMs = (int)($deckPayload['settings']['auto_advance'] ?? 0);
+                    $autoOn = $autoMs > 0;
+                @endphp
+                <div>
+                    <label class="sl-field-label">Auto-play slides</label>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <input type="checkbox" id="sl-auto-on" {{ $autoOn ? 'checked' : '' }} style="transform:scale(1.3);cursor:pointer;flex:0 0 auto;">
+                        <input id="sl-auto" class="sl-input" type="number" min="1" max="60" step="0.5"
+                               value="{{ $autoOn ? rtrim(rtrim(number_format($autoMs / 1000, 1, '.', ''), '0'), '.') : 5 }}"
+                               {{ $autoOn ? '' : 'disabled' }} style="max-width:90px;">
+                        <span style="font-size:12px;color:var(--text-muted);white-space:nowrap;">sec / slide</span>
+                    </div>
+                </div>
             </div>
 
             <details class="sl-advanced">
@@ -265,10 +310,6 @@
                     </div>
                 </div>
                 <div class="sl-row">
-                    <div>
-                        <label class="sl-field-label">Auto-advance (ms, 0=off)</label>
-                        <input id="sl-auto" class="sl-input" type="number" min="0" max="60000" step="500" value="{{ (int)($deckPayload['settings']['auto_advance'] ?? 0) }}">
-                    </div>
                     <div>
                         <label class="sl-field-label">Loop</label>
                         <select id="sl-loop" class="sl-select">
@@ -311,14 +352,33 @@
     </div>
 </div>
 
+{{-- Block-edit modal — loads the same AJAX edit form partial the Blocks tab
+     uses (user.links.partials.block-edit-form-ajax via editForm), so slide
+     blocks can be edited in place with zero duplicated form markup. --}}
+<div id="sl-edit-overlay" class="sl-edit-overlay" hidden>
+    <div class="sl-edit-modal" role="dialog" aria-modal="true" aria-label="Edit block">
+        <div class="sl-edit-modal-head">
+            <h5 id="sl-edit-title">Edit block</h5>
+            <button type="button" class="sl-edit-modal-close" onclick="closeEditDrawerGlobal()" title="Close">×</button>
+        </div>
+        <div id="sl-edit-body" class="sl-edit-modal-body"></div>
+    </div>
+</div>
+
 <script>
 const DECK = @json($deckPayload);
 const BLOCKS = @json($blockOptions);
 const URLS = {
-    save:    @json(route('user.links.slides.save', $link)),
-    toggle:  @json(route('user.links.slides.toggle', $link)),
-    preview: @json($previewUrl),
+    save:       @json(route('user.links.slides.save', $link)),
+    toggle:     @json(route('user.links.slides.toggle', $link)),
+    preview:    @json($previewUrl),
+    blockStore: @json(route('user.links.blocks.store', $link)),
+    editForm:   @json(route('user.links.blocks.editForm', [$link, '__ID__'])),
 };
+// Plan-gated subset of block types creatable straight from the slides
+// editor. Creation POSTs to the shared biolink block store endpoint so
+// defaults, placeholders and plan gating stay identical to the Blocks tab.
+const CREATABLE = @json($creatableTypes);
 const CSRF = '{{ csrf_token() }}';
 
 let slides = (DECK.slides || []).map(s => Object.assign({}, s, {
@@ -472,6 +532,10 @@ function renderSlides() {
                     <option value="template"  ${s.background.type==='template'?'selected':''}>Template</option>
                 </select>
                 <div class="sl-bg-fields" style="margin-top:8px;"></div>
+                <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+                    ${i > 0 ? '<button type="button" class="sl-btn sl-btn-ghost" data-bg-copy-prev title="Reuse the previous slide\'s background here"><i class="fas fa-clone"></i> Copy from previous slide</button>' : ''}
+                    ${slides.length > 1 ? '<button type="button" class="sl-btn sl-btn-ghost" data-bg-apply-all title="Use this background on every slide"><i class="fas fa-layer-group"></i> Apply to all slides</button>' : ''}
+                </div>
             </div>
 
             <div class="sl-row" style="margin-top:8px;">
@@ -497,12 +561,22 @@ function renderSlides() {
             <div style="margin-top:12px;">
                 <label class="sl-field-label">Hosted blocks</label>
                 <div class="sl-chips" style="margin-bottom:8px;"></div>
-                <div style="display:flex;gap:8px;">
-                    <select class="sl-select sl-add-block" style="flex:1;">
-                        <option value="">Add a block</option>
-                        ${BLOCKS.map(b => `<option value="${b.id}">${escAttr((b.label?b.label+' · ':'')+b.type)}</option>`).join('')}
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <select class="sl-select sl-add-block" style="flex:1;min-width:170px;">
+                        ${(() => {
+                            const avail = BLOCKS.filter(b => !s.block_ids.includes(b.id));
+                            if (!BLOCKS.length) return '<option value="">No blocks yet — create one with "New block"</option>';
+                            if (!avail.length)  return '<option value="">All existing blocks are on this slide</option>';
+                            return '<option value="">Add an existing block…</option>'
+                                + avail.map(b => `<option value="${b.id}">${escAttr((b.label?b.label+' · ':'')+b.type)}</option>`).join('');
+                        })()}
+                    </select>
+                    <select class="sl-select sl-new-block" style="flex:1;min-width:170px;">
+                        <option value="">+ New block…</option>
+                        ${CREATABLE.map(t => `<option value="${escAttr(t.type)}">${escAttr(t.label)}</option>`).join('')}
                     </select>
                 </div>
+                <div class="sl-block-feedback" style="font-size:12px;margin-top:6px;color:var(--text-muted);display:none;"></div>
             </div>
         `;
         wrap.appendChild(card);
@@ -539,6 +613,24 @@ function renderSlides() {
             });
         });
 
+        // Background conveniences — copy the previous slide's background onto
+        // this one, or broadcast this slide's background to every slide.
+        // Deep-cloned via JSON so slides never share nested references.
+        const copyPrev = card.querySelector('[data-bg-copy-prev]');
+        if (copyPrev) copyPrev.addEventListener('click', () => {
+            slides[i].background = JSON.parse(JSON.stringify(slides[i-1].background || {type:'color', color:'#0f172a'}));
+            renderSlides();
+            scheduleAutoSave();
+        });
+        const applyAll = card.querySelector('[data-bg-apply-all]');
+        if (applyAll) applyAll.addEventListener('click', () => {
+            if (!confirm('Use this background on every slide? Each slide\'s current background will be replaced.')) return;
+            const src = slides[i].background || {type:'color', color:'#0f172a'};
+            slides.forEach((sl, j) => { if (j !== i) sl.background = JSON.parse(JSON.stringify(src)); });
+            renderSlides();
+            scheduleAutoSave();
+        });
+
         // Background-type-specific fields. Mirrors the option-set of the
         // page-background card but operates entirely inside the slide JSON
         // payload so each slide can carry its own visual treatment.
@@ -557,6 +649,7 @@ function renderSlides() {
                 row.innerHTML = `
                     <div class="sl-block-row-top">
                         <span class="sl-block-chip" style="margin:0;">${escAttr(blockLabel(bid))}
+                            <button type="button" class="sl-chip-edit" data-edit title="Edit content"><i class="fas fa-pen"></i></button>
                             <button type="button" data-rm title="Remove">×</button>
                         </span>
                         <div class="sl-span-row" style="flex:1; min-width: 220px;">
@@ -584,6 +677,7 @@ function renderSlides() {
                 `;
                 chips.appendChild(row);
 
+                row.querySelector('[data-edit]').addEventListener('click', () => slOpenBlockEdit(bid));
                 row.querySelector('[data-rm]').addEventListener('click', () => {
                     slides[i].block_ids.splice(bi, 1);
                     if (slides[i].block_settings) delete slides[i].block_settings[bid];
@@ -609,14 +703,79 @@ function renderSlides() {
             });
         }
 
+        // Attach an existing block. Already-attached blocks are filtered out
+        // of the options above, so a pick always results in a visible chip.
         const addBlock = card.querySelector('.sl-add-block');
         addBlock.addEventListener('change', e => {
             const v = parseInt(e.target.value, 10);
             if (v && !slides[i].block_ids.includes(v)) {
-                slides[i].block_ids.push(v); renderSlides(); scheduleAutoSave();
+                slides[i].block_ids.push(v);
+                renderSlides();
+                scheduleAutoSave();
+                flashBlockFeedback(i, 'Added “' + blockLabel(v) + '” to this slide.');
+            } else {
+                e.target.value = '';
             }
         });
+
+        // Create a brand-new block via the shared biolink block endpoint,
+        // then auto-attach it to this slide.
+        const newBlock = card.querySelector('.sl-new-block');
+        newBlock.addEventListener('change', e => {
+            const type = e.target.value;
+            if (!type) return;
+            createBlockForSlide(i, type, newBlock);
+        });
     });
+}
+
+// Small transient status line under the block pickers of a slide card.
+function flashBlockFeedback(i, msg, isError) {
+    const card = document.querySelectorAll('#sl-slides .sl-slide-card')[i];
+    const el = card && card.querySelector('.sl-block-feedback');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.display = 'block';
+    el.style.color = isError ? '#ef4444' : 'var(--text-muted)';
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+// POST to the shared biolink block store endpoint (same defaults, placeholder
+// seeding and plan gating as the Blocks tab), then attach the new block to
+// slide `i` and autosave so the preview picks it up.
+async function createBlockForSlide(i, type, selEl) {
+    selEl.disabled = true;
+    try {
+        const r = await fetch(URLS.blockStore, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': CSRF,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ type }),
+        });
+        let j = null;
+        try { j = await r.json(); } catch (_) {}
+        if (!r.ok || !j || !j.success || !j.block) {
+            throw new Error((j && (j.error || j.message)) || 'Could not create the block.');
+        }
+        const b = j.block;
+        const st = (b.settings && typeof b.settings === 'object') ? b.settings : {};
+        const label = ['title','text','heading','label'].map(k => st[k]).find(v => typeof v === 'string' && v.trim());
+        BLOCKS.push({ id: b.id, type: b.type, label: label ? String(label).slice(0, 60) : null });
+        slides[i].block_ids.push(b.id);
+        renderSlides();
+        scheduleAutoSave();
+        flashBlockFeedback(i, 'Created “' + blockLabel(b.id) + '” and added it to this slide. Edit its content in the Blocks tab.');
+    } catch (e) {
+        selEl.disabled = false;
+        selEl.value = '';
+        flashBlockFeedback(i, e.message || 'Could not create the block.', true);
+    }
 }
 
 document.getElementById('sl-add-slide').addEventListener('click', () => {
@@ -643,6 +802,11 @@ document.getElementById('sl-add-slide').addEventListener('click', () => {
     el.addEventListener('change', () => scheduleAutoSave());
     if (el.tagName === 'INPUT') el.addEventListener('input', () => scheduleAutoSave());
 });
+// Auto-play toggle enables/disables the interval field and autosaves.
+document.getElementById('sl-auto-on').addEventListener('change', e => {
+    document.getElementById('sl-auto').disabled = !e.target.checked;
+    scheduleAutoSave();
+});
 
 function buildPayload(publish) {
     return {
@@ -654,7 +818,10 @@ function buildPayload(publish) {
                 text:       document.getElementById('sl-theme-text').value,
             },
             transition:   document.getElementById('sl-transition').value,
-            auto_advance: parseInt(document.getElementById('sl-auto').value, 10) || 0,
+            // Auto-play UI is a toggle + seconds; the deck stores ms (0=off).
+            auto_advance: document.getElementById('sl-auto-on').checked
+                ? Math.max(1000, Math.min(60000, Math.round((parseFloat(document.getElementById('sl-auto').value) || 5) * 1000)))
+                : 0,
             loop:         document.getElementById('sl-loop').value === '1',
             show_arrows:  document.getElementById('sl-arrows').value === '1',
         },
@@ -754,6 +921,265 @@ function reloadDevicePreview() {
             f.src = f.src + sep + '_t=' + Date.now();
         }
     });
+}
+
+// ---------------------------------------------------------------------------
+// In-slide block editing. Loads the shared AJAX edit-form partial (the same
+// one the Blocks tab uses) into a modal. The partial's markup calls the
+// globals `ajaxSaveBlock` / `closeEditDrawerGlobal`, and its style-gallery
+// scripts call `refreshBlockEditor` / `refreshPreview` / `showToast` — we
+// provide slides-flavoured implementations of all of them here.
+let _slEditBlockId = null;
+let _slEditInjectedScripts = [];
+let _slEditDirty = false;
+
+function slOpenBlockEdit(blockId) {
+    _slEditBlockId = blockId;
+    _slEditDirty = false;
+    const overlay = document.getElementById('sl-edit-overlay');
+    const body = document.getElementById('sl-edit-body');
+    document.getElementById('sl-edit-title').textContent = 'Edit · ' + blockLabel(blockId);
+    overlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+    body.innerHTML = '<div style="display:flex;justify-content:center;padding:48px 0;"><i class="fas fa-spinner fa-spin" style="font-size:22px;color:var(--text-faint);"></i></div>';
+    _slFetchEditForm(blockId, body);
+}
+
+function _slFetchEditForm(blockId, body) {
+    fetch(URLS.editForm.replace('__ID__', blockId), {
+        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+        credentials: 'same-origin',
+    }).then(r => r.json()).then(data => {
+        if (_slEditBlockId !== blockId) return; // modal closed / switched meanwhile
+        if (!data.html) { _slShowEditError(body, blockId); return; }
+        _slInjectEditForm(body, data.html);
+    }).catch(() => { if (_slEditBlockId === blockId) _slShowEditError(body, blockId); });
+}
+
+function _slShowEditError(body, blockId) {
+    body.innerHTML =
+        '<div style="text-align:center;padding:32px 0;">' +
+        '<p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Couldn\'t load the block editor.</p>' +
+        '<button type="button" class="sl-btn" onclick="slOpenBlockEdit(' + Number(blockId) + ')"><i class="fas fa-rotate-right"></i> Retry</button>' +
+        '</div>';
+}
+
+// Mirror of the Blocks tab's injector: strip <script> tags out of the
+// rendered partial, set the markup, then execute the scripts and hydrate
+// Alpine so pickers/galleries inside the form work.
+function _slInjectEditForm(body, html) {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    const scripts = [];
+    div.querySelectorAll('script').forEach(s => { scripts.push(s.textContent); s.remove(); });
+    body.innerHTML = div.innerHTML;
+    _slEditInjectedScripts.forEach(s => { if (s.parentNode) s.parentNode.removeChild(s); });
+    _slEditInjectedScripts = [];
+    scripts.forEach(code => {
+        try {
+            const script = document.createElement('script');
+            script.textContent = code;
+            document.body.appendChild(script);
+            _slEditInjectedScripts.push(script);
+        } catch (e) { console.warn('Script exec error:', e); }
+    });
+    if (window.Alpine && Alpine.initTree) { try { Alpine.initTree(body); } catch (e) {} }
+    _slEditDirty = false;
+    _slInitLivePreview(body);
+}
+
+// ── Instant block live preview (same diff channel as the Blocks tab) ───────
+// While the modal is open we post the full form state plus the dotted list
+// of fields changed since it opened into the device-preview iframe. The
+// slides public page (in ?_preview mode) patches the matching block(s) in
+// place, so text/style edits show up as the creator types — before saving.
+let _slLiveBaseline = null;
+let _slLiveBlockType = '';
+let _slLiveDirty = false;      // any live patch was posted since open/save
+let _slLiveTimer = null;
+let _slLiveObserver = null;
+
+function _slSerializeLiveForm(form) {
+    const out = {};
+    try {
+        const fd = new FormData(form);
+        fd.forEach((v, k) => {
+            if (k === '_token' || k === '_method') return;
+            if (typeof File !== 'undefined' && v instanceof File) return;
+            // Checkbox pattern: hidden "0" + checkbox "1" share a name and
+            // FormData yields both; last value wins (matches PHP semantics).
+            out[k] = String(v);
+        });
+    } catch (e) { return null; }
+    return out;
+}
+
+function _slInitLivePreview(body) {
+    if (_slLiveObserver) { _slLiveObserver.disconnect(); _slLiveObserver = null; }
+    if (_slLiveTimer) { clearTimeout(_slLiveTimer); _slLiveTimer = null; }
+    _slLiveBaseline = null;
+    _slLiveDirty = false;
+
+    function onFieldChange() {
+        if (_slLiveTimer) clearTimeout(_slLiveTimer);
+        _slLiveTimer = setTimeout(_slPostBlockLive, 120);
+    }
+
+    function bindElement(el) {
+        if (el._slLiveBound) return;
+        el._slLiveBound = true;
+        if (el.type === 'file') return; // file changes need a real save
+        el.addEventListener('input', onFieldChange);
+        el.addEventListener('change', onFieldChange);
+    }
+
+    setTimeout(() => {
+        body.querySelectorAll('input, select, textarea').forEach(bindElement);
+        _slLiveObserver = new MutationObserver(() => {
+            body.querySelectorAll('input, select, textarea').forEach(bindElement);
+        });
+        _slLiveObserver.observe(body, { childList: true, subtree: true });
+
+        // Capture the diff baseline NOW, while the form still holds the
+        // server-rendered values, so the first keystroke produces a diff.
+        const form = body.querySelector('form');
+        _slLiveBaseline = form ? _slSerializeLiveForm(form) : null;
+        _slLiveBlockType = form ? (form.getAttribute('data-live-block-type') || '') : '';
+    }, 100);
+}
+
+function _slPostBlockLive() {
+    if (!_slEditBlockId || !_slLiveBaseline) return;
+    const body = document.getElementById('sl-edit-body');
+    const form = body ? body.querySelector('form') : null;
+    if (!form) return;
+    const current = _slSerializeLiveForm(form);
+    if (!current) return;
+    const changed = [];
+    const seen = {};
+    Object.keys(current).forEach(k => { seen[k] = 1; });
+    Object.keys(_slLiveBaseline).forEach(k => { seen[k] = 1; });
+    Object.keys(seen).forEach(k => {
+        if ((current[k] !== undefined ? current[k] : '') !== (_slLiveBaseline[k] !== undefined ? _slLiveBaseline[k] : '')) changed.push(k);
+    });
+    if (!changed.length) return;
+    _slLiveDirty = true;
+    const payload = {
+        type: '1inme-block-live',
+        blockId: _slEditBlockId,
+        blockType: _slLiveBlockType,
+        fields: current,
+        changed: changed,
+    };
+    document.querySelectorAll('.preview-iframe').forEach(f => {
+        if (!f.contentWindow || !f.src || f.src === 'about:blank') return;
+        try { f.contentWindow.postMessage(payload, window.location.origin); } catch (e) {}
+    });
+}
+
+// Called by the edit form's Cancel button and the modal close (X).
+function closeEditDrawerGlobal() {
+    if (_slEditDirty && !window.confirm('Discard unsaved changes?')) return;
+    _slCloseEditModal();
+}
+
+// Closes without any dirty-check (used after a successful save).
+function _slCloseEditModal() {
+    _slEditDirty = false;
+    const overlay = document.getElementById('sl-edit-overlay');
+    const body = document.getElementById('sl-edit-body');
+    // Closing without saving: if live patches were posted to the preview,
+    // reload it so unsaved edits revert to the saved state.
+    if (_slLiveObserver) { _slLiveObserver.disconnect(); _slLiveObserver = null; }
+    if (_slLiveTimer) { clearTimeout(_slLiveTimer); _slLiveTimer = null; }
+    _slLiveBaseline = null;
+    if (_slLiveDirty) {
+        _slLiveDirty = false;
+        reloadDevicePreview();
+    }
+    if (window.Alpine && Alpine.destroyTree) { try { Alpine.destroyTree(body); } catch (e) {} }
+    body.innerHTML = '';
+    _slEditInjectedScripts.forEach(s => { if (s.parentNode) s.parentNode.removeChild(s); });
+    _slEditInjectedScripts = [];
+    overlay.hidden = true;
+    document.body.style.overflow = '';
+    _slEditBlockId = null;
+}
+
+document.getElementById('sl-edit-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeEditDrawerGlobal();
+});
+// Mark the loaded form dirty on any user edit inside the modal body.
+document.getElementById('sl-edit-body').addEventListener('input', () => { _slEditDirty = true; });
+document.getElementById('sl-edit-body').addEventListener('change', () => { _slEditDirty = true; });
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && _slEditBlockId) closeEditDrawerGlobal();
+});
+
+// Design-gallery scripts inside the form re-fetch the whole form after a
+// variant is applied; in Slides Mode that just means reloading the modal.
+function refreshBlockEditor() {
+    if (!_slEditBlockId) return;
+    _slFetchEditForm(_slEditBlockId, document.getElementById('sl-edit-body'));
+}
+function refreshPreview() { reloadDevicePreview(); }
+function _refreshEditPreview() { reloadDevicePreview(); }
+
+// Minimal toast for form scripts that expect the Blocks tab's showToast.
+if (typeof window.showToast !== 'function') {
+    window.showToast = function (msg, type) {
+        const el = document.createElement('div');
+        el.textContent = msg;
+        el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:1100;'
+            + 'padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;color:#fff;'
+            + 'box-shadow:0 8px 30px -8px rgba(0,0,0,.5);background:'
+            + (type === 'error' ? '#dc2626' : '#16a34a') + ';';
+        document.body.appendChild(el);
+        setTimeout(() => { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; }, 2200);
+        setTimeout(() => el.remove(), 2600);
+    };
+}
+
+// Submit handler wired by the shared form partial (onsubmit="return
+// ajaxSaveBlock(event, this)"). Saves via the existing PUT blocks/{block}
+// endpoint, refreshes the chip label from the saved block, and reloads the
+// slide preview.
+function ajaxSaveBlock(e, form) {
+    e.preventDefault();
+    const btn = form.querySelector('button[type="submit"]');
+    const origText = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Saving...'; }
+    fetch(form.action, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin',
+        body: new FormData(form),
+    }).then(r => r.json()).then(data => {
+        if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+        if (data.success) {
+            if (data.block) {
+                const st = (data.block.settings && typeof data.block.settings === 'object') ? data.block.settings : {};
+                const label = ['title','text','heading','label'].map(k => st[k]).find(v => typeof v === 'string' && v.trim());
+                const entry = BLOCKS.find(b => b.id === data.block.id);
+                if (entry) entry.label = label ? String(label).slice(0, 60) : null;
+            }
+            showToast('Block saved', 'success');
+            // Saved: the pending live patches now match the persisted state,
+            // so don't let the close handler treat them as unsaved edits —
+            // the explicit reload below refreshes the preview to the saved
+            // snapshot anyway.
+            _slLiveDirty = false;
+            _slCloseEditModal();
+            renderSlides();
+            reloadDevicePreview();
+        } else {
+            showToast(data.error || 'Failed to save', 'error');
+        }
+    }).catch(() => {
+        if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+        showToast('Failed to save', 'error');
+    });
+    return false;
 }
 
 renderSlides();

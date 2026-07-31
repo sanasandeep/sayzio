@@ -24,7 +24,7 @@
 
 @if($links->isEmpty())
 <div class="glass rounded-2xl p-12 text-center">
-    <p class="text-white/40">No links in this project yet.</p>
+    <p class="text-white/40">No links in this folder yet.</p>
 </div>
 @else
 <div class="space-y-3">

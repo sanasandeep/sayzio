@@ -370,6 +370,35 @@ jobs:
       - name: Check mobile/docs parity against web block & link types
         run: composer check:mobile-docs-parity
 
+  hardcoded-row-ids-guard:
+    name: Hardcoded row-id guard (no database)
+    needs: changes
+    if: needs.changes.outputs.onein == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    # Fail when a seed/maintenance script hardcodes a numeric database row id
+    # ('domain_id' => 2, ->plan_id = 3, where('user_id', 7)) under
+    # artifacts/1inme/scripts/ or database/seeders/. Row ids differ per
+    # environment; scripts must resolve rows by a stable natural key at
+    # runtime. Pure PHP static scan — no Composer install, no database.
+
+    defaults:
+      run:
+        working-directory: artifacts/1inme
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Scan scripts, seeders and data migrations for hardcoded row ids
+        run: php scripts/check-hardcoded-row-ids.php
+
   em-dash-guard:
     name: Em-dash copy guard (no database)
     needs: changes
@@ -440,6 +469,7 @@ jobs:
           - PHP 8.4 deprecation guard
           - Migration ordering guard (no database)
           - Mobile/docs parity guard (no database)
+          - Hardcoded row-id guard (no database)
     steps:
       - name: No 1inme changes — guard not required for this PR
         run: |

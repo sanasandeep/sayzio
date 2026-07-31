@@ -519,6 +519,13 @@ export default function EditLinkScreen() {
             <ActionTile
               icon="edit-3"
               label="Edit slides"
+              onPress={() => router.push(`/links/${id}/slides` as any)}
+            />
+          ) : null}
+          {meta.kind === "slides" ? (
+            <ActionTile
+              icon="external-link"
+              label="Full editor"
               onPress={() => openWebEditor(`/user/links/${id}/slides`)}
             />
           ) : null}
