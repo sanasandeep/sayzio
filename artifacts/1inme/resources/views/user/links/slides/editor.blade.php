@@ -985,6 +985,96 @@ function _slInjectEditForm(body, html) {
     });
     if (window.Alpine && Alpine.initTree) { try { Alpine.initTree(body); } catch (e) {} }
     _slEditDirty = false;
+    _slInitLivePreview(body);
+}
+
+// ── Instant block live preview (same diff channel as the Blocks tab) ───────
+// While the modal is open we post the full form state plus the dotted list
+// of fields changed since it opened into the device-preview iframe. The
+// slides public page (in ?_preview mode) patches the matching block(s) in
+// place, so text/style edits show up as the creator types — before saving.
+let _slLiveBaseline = null;
+let _slLiveBlockType = '';
+let _slLiveDirty = false;      // any live patch was posted since open/save
+let _slLiveTimer = null;
+let _slLiveObserver = null;
+
+function _slSerializeLiveForm(form) {
+    const out = {};
+    try {
+        const fd = new FormData(form);
+        fd.forEach((v, k) => {
+            if (k === '_token' || k === '_method') return;
+            if (typeof File !== 'undefined' && v instanceof File) return;
+            // Checkbox pattern: hidden "0" + checkbox "1" share a name and
+            // FormData yields both; last value wins (matches PHP semantics).
+            out[k] = String(v);
+        });
+    } catch (e) { return null; }
+    return out;
+}
+
+function _slInitLivePreview(body) {
+    if (_slLiveObserver) { _slLiveObserver.disconnect(); _slLiveObserver = null; }
+    if (_slLiveTimer) { clearTimeout(_slLiveTimer); _slLiveTimer = null; }
+    _slLiveBaseline = null;
+    _slLiveDirty = false;
+
+    function onFieldChange() {
+        if (_slLiveTimer) clearTimeout(_slLiveTimer);
+        _slLiveTimer = setTimeout(_slPostBlockLive, 120);
+    }
+
+    function bindElement(el) {
+        if (el._slLiveBound) return;
+        el._slLiveBound = true;
+        if (el.type === 'file') return; // file changes need a real save
+        el.addEventListener('input', onFieldChange);
+        el.addEventListener('change', onFieldChange);
+    }
+
+    setTimeout(() => {
+        body.querySelectorAll('input, select, textarea').forEach(bindElement);
+        _slLiveObserver = new MutationObserver(() => {
+            body.querySelectorAll('input, select, textarea').forEach(bindElement);
+        });
+        _slLiveObserver.observe(body, { childList: true, subtree: true });
+
+        // Capture the diff baseline NOW, while the form still holds the
+        // server-rendered values, so the first keystroke produces a diff.
+        const form = body.querySelector('form');
+        _slLiveBaseline = form ? _slSerializeLiveForm(form) : null;
+        _slLiveBlockType = form ? (form.getAttribute('data-live-block-type') || '') : '';
+    }, 100);
+}
+
+function _slPostBlockLive() {
+    if (!_slEditBlockId || !_slLiveBaseline) return;
+    const body = document.getElementById('sl-edit-body');
+    const form = body ? body.querySelector('form') : null;
+    if (!form) return;
+    const current = _slSerializeLiveForm(form);
+    if (!current) return;
+    const changed = [];
+    const seen = {};
+    Object.keys(current).forEach(k => { seen[k] = 1; });
+    Object.keys(_slLiveBaseline).forEach(k => { seen[k] = 1; });
+    Object.keys(seen).forEach(k => {
+        if ((current[k] !== undefined ? current[k] : '') !== (_slLiveBaseline[k] !== undefined ? _slLiveBaseline[k] : '')) changed.push(k);
+    });
+    if (!changed.length) return;
+    _slLiveDirty = true;
+    const payload = {
+        type: '1inme-block-live',
+        blockId: _slEditBlockId,
+        blockType: _slLiveBlockType,
+        fields: current,
+        changed: changed,
+    };
+    document.querySelectorAll('.preview-iframe').forEach(f => {
+        if (!f.contentWindow || !f.src || f.src === 'about:blank') return;
+        try { f.contentWindow.postMessage(payload, window.location.origin); } catch (e) {}
+    });
 }
 
 // Called by the edit form's Cancel button and the modal close (X).
@@ -998,6 +1088,15 @@ function _slCloseEditModal() {
     _slEditDirty = false;
     const overlay = document.getElementById('sl-edit-overlay');
     const body = document.getElementById('sl-edit-body');
+    // Closing without saving: if live patches were posted to the preview,
+    // reload it so unsaved edits revert to the saved state.
+    if (_slLiveObserver) { _slLiveObserver.disconnect(); _slLiveObserver = null; }
+    if (_slLiveTimer) { clearTimeout(_slLiveTimer); _slLiveTimer = null; }
+    _slLiveBaseline = null;
+    if (_slLiveDirty) {
+        _slLiveDirty = false;
+        reloadDevicePreview();
+    }
     if (window.Alpine && Alpine.destroyTree) { try { Alpine.destroyTree(body); } catch (e) {} }
     body.innerHTML = '';
     _slEditInjectedScripts.forEach(s => { if (s.parentNode) s.parentNode.removeChild(s); });
@@ -1065,6 +1164,11 @@ function ajaxSaveBlock(e, form) {
                 if (entry) entry.label = label ? String(label).slice(0, 60) : null;
             }
             showToast('Block saved', 'success');
+            // Saved: the pending live patches now match the persisted state,
+            // so don't let the close handler treat them as unsaved edits —
+            // the explicit reload below refreshes the preview to the saved
+            // snapshot anyway.
+            _slLiveDirty = false;
             _slCloseEditModal();
             renderSlides();
             reloadDevicePreview();

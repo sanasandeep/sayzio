@@ -242,3 +242,53 @@ test("saving from the modal persists, updates the chip and closes", async ({
     "Slides Heading Edited",
   );
 });
+
+test("typing in the modal live-updates the device preview; closing without saving reverts", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await gotoSlidesEditor(page);
+
+  // The device preview iframe hosts the slides public page in ?_preview
+  // mode, which carries the shared 1inme-block-live listener.
+  const preview = page.frameLocator(".preview-iframe").first();
+  const previewBlock = preview.locator(`[data-block-id="${ids.blockId}"]`);
+  await expect(previewBlock).toContainText("Slides Heading Edited", {
+    timeout: 60_000,
+  });
+
+  await page.click(".sl-block-chip .sl-chip-edit");
+  const form = page.locator("#sl-edit-body form");
+  await expect(form).toBeVisible({ timeout: 30_000 });
+
+  const textInput = form
+    .locator('input[name="settings[text]"], textarea[name="settings[text]"]')
+    .first();
+  // Baseline is captured ~100ms after form injection; wait it out so the
+  // first keystroke diffs against the server-rendered value.
+  await page.waitForTimeout(400);
+  await textInput.fill("Slides Heading LIVE TYPED");
+
+  // The preview patches in place, without any save request.
+  await expect(previewBlock).toContainText("Slides Heading LIVE TYPED", {
+    timeout: 15_000,
+  });
+
+  // Close WITHOUT saving: accept the "Discard unsaved changes?" confirm;
+  // the preview then reloads and reverts to the saved text.
+  page.once("dialog", (d) => d.accept());
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#sl-edit-overlay")).toBeHidden();
+  await expect(
+    page
+      .frameLocator(".preview-iframe")
+      .first()
+      .locator(`[data-block-id="${ids.blockId}"]`),
+  ).toContainText("Slides Heading Edited", { timeout: 60_000 });
+
+  // And the unsaved text never persisted.
+  await gotoSlidesEditor(page);
+  await expect(page.locator(".sl-block-chip").first()).toContainText(
+    "Slides Heading Edited",
+  );
+});
