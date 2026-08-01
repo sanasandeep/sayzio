@@ -35,7 +35,26 @@
             'url'   => $release['windows_exe'] ?? null,
             'alt'   => null,
         ],
+        [
+            'id'    => 'linux',
+            'icon'  => 'fa-brands fa-linux',
+            'title' => 'Linux',
+            'desc'  => 'For Ubuntu, Debian and most 64-bit distros.',
+            'file'  => 'Download AppImage',
+            'url'   => $release['linux_appimage'] ?? null,
+            'alt'   => $release['linux_deb'] ?? null,
+            'alt_label' => 'Or download .deb (Ubuntu/Debian)',
+        ],
     ];
+    // A .deb-only release (no AppImage) should still show a Linux card.
+    foreach ($downloads as &$d) {
+        if ($d['id'] === 'linux' && empty($d['url']) && !empty($d['alt'])) {
+            $d['url'] = $d['alt'];
+            $d['file'] = 'Download .deb (Ubuntu/Debian)';
+            $d['alt'] = null;
+        }
+    }
+    unset($d);
     $downloads = array_values(array_filter($downloads, fn ($d) => !empty($d['url'])));
 
     $features = [
@@ -59,7 +78,7 @@
             <span class="block grad-text">Download the browser.</span>
         </h1>
         <p class="mt-5 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            The SayZio Browser puts your links, Link in Bio pages and analytics front and centre, available for Mac and Windows.
+            The SayZio Browser puts your links, Link in Bio pages and analytics front and centre, available for Mac, Windows and Linux.
             @if($version)
                 <span class="block mt-2 text-sm text-gray-500">Latest version: v{{ $version }}</span>
             @endif
@@ -103,7 +122,7 @@
                         </a>
                         @if(!empty($d['alt']))
                             <a href="{{ $d['alt'] }}" class="text-xs text-gray-500 hover:text-gray-300 text-center transition-colors">
-                                Or download as .zip
+                                {{ $d['alt_label'] ?? 'Or download as .zip' }}
                             </a>
                         @endif
                     </div>
@@ -132,9 +151,11 @@
         </div>
 
         <p class="mt-10 text-center text-xs text-gray-600">
-            Windows keeps itself up to date automatically. macOS installers are unsigned for now, so Mac updates are manual
+            Windows and the Linux AppImage keep themselves up to date automatically (.deb installs update by
+            downloading the new package). macOS installers are unsigned for now, so Mac updates are manual
             (re-download from this page) until signing lands; if macOS warns on first open, right-click the app and choose “Open”.
-            Windows SmartScreen may ask you to confirm with “More info → Run anyway”.
+            Windows SmartScreen may ask you to confirm with “More info → Run anyway”. On Linux, make the AppImage
+            executable (<code>chmod +x</code>) before running it.
         </p>
     </div>
 </section>
@@ -153,7 +174,7 @@
             if (link) targets[card.getAttribute('data-zio-card')] = { url: link.getAttribute('href'), title: title ? title.textContent : '' };
         });
 
-        function apply(key, isWin) {
+        function apply(key, iconClass) {
             var t = targets[key];
             if (!t) return;
             btn.setAttribute('href', t.url);
@@ -161,12 +182,13 @@
             var label = document.getElementById('zio-primary-label');
             if (label) label.textContent = 'Download for ' + t.title;
             var icon = document.getElementById('zio-primary-icon');
-            if (icon) icon.className = (isWin ? 'fa-brands fa-windows' : 'fa-brands fa-apple') + ' text-xl';
+            if (icon) icon.className = iconClass + ' text-xl';
         }
 
         var ua = navigator.userAgent || '';
-        if (/Windows/i.test(ua)) { apply('windows', true); return; }
-        if (!/Macintosh|Mac OS X/i.test(ua)) return; // Linux/mobile: keep default
+        if (/Windows/i.test(ua)) { apply('windows', 'fa-brands fa-windows'); return; }
+        if (/Linux/i.test(ua) && !/Android/i.test(ua)) { apply('linux', 'fa-brands fa-linux'); return; }
+        if (!/Macintosh|Mac OS X/i.test(ua)) return; // mobile/other: keep default
 
         // Apple Silicon vs Intel: the UA lies (always says Intel), so probe
         // WebGL renderer strings; default to Apple Silicon (the common case

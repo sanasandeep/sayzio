@@ -80,7 +80,7 @@
                 A browser built for <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#3d6bff] via-[#6e61ff] to-[#22d3ee]">people who ship</span>
             </h1>
             <p class="mt-5 text-lg text-gray-400 leading-relaxed max-w-xl">
-                Zio Browser is the SayZio desktop browser for Mac and Windows: private,
+                Zio Browser is the SayZio desktop browser for Mac, Windows and Linux: private,
                 fully isolated profiles, a built-in device lab for testing your pages,
                 distraction-free browsing and one-click access to your links and analytics.
             </p>
@@ -97,7 +97,13 @@
                         <i class="fab fa-windows"></i> Download for Windows
                     </a>
                 @endif
-                @if($cta['mac'] === '' && $cta['windows'] === '')
+                @if(($cta['linux_appimage'] ?? '') !== '' || ($cta['linux_deb'] ?? '') !== '')
+                    <a href="{{ ($cta['linux_appimage'] ?? '') !== '' ? $cta['linux_appimage'] : $cta['linux_deb'] }}" target="_blank" rel="noopener noreferrer"
+                       class="inline-flex items-center gap-2.5 px-6 py-3 rounded-full text-sm font-bold border transition-colors {{ ($cta['mac'] !== '' || $cta['windows'] !== '') ? 'text-gray-200 border-white/20 hover:border-[#3d6bff]/60 hover:text-white' : 'text-white bg-[#3d6bff] border-transparent hover:bg-[#2342c7]' }}">
+                        <i class="fab fa-linux"></i> Download for Linux
+                    </a>
+                @endif
+                @if($cta['mac'] === '' && $cta['windows'] === '' && ($cta['linux_appimage'] ?? '') === '' && ($cta['linux_deb'] ?? '') === '')
                     <a href="{{ route('site.download') }}"
                        class="inline-flex items-center gap-2.5 px-6 py-3 rounded-full text-sm font-bold text-white bg-[#3d6bff] hover:bg-[#2342c7] transition-colors">
                         <i class="fas fa-download"></i> Go to downloads
@@ -107,7 +113,7 @@
             <p class="mt-4 text-xs text-gray-500">
                 <i class="fas fa-shield-halved mr-1"></i> Free download
                 @if($cta['version'] !== '') · Latest version {{ $cta['version'] }} @endif
-                · macOS (Intel &amp; Apple Silicon) and Windows ·
+                · macOS (Intel &amp; Apple Silicon), Windows and Linux (AppImage &amp; .deb) ·
                 <a href="{{ route('site.download') }}" class="underline hover:text-gray-300">all installers</a>
             </p>
         </div>
@@ -256,7 +262,7 @@
         </div>
         <div class="mt-10 space-y-3" x-data="{ open: null }">
             @foreach([
-                ['Which platforms are supported?', 'macOS (both Intel and Apple Silicon builds) and Windows. Grab the right installer above or from the downloads page.'],
+                ['Which platforms are supported?', 'macOS (both Intel and Apple Silicon builds), Windows, and Linux (x64, as a portable AppImage or a .deb installer for Ubuntu/Debian). Grab the right installer above or from the downloads page.'],
                 ['Is it free?', 'Yes — Zio Browser is completely free to download and use. A Sayzio account unlocks the built-in link and analytics shortcuts.'],
                 ['How are profiles different from Chrome profiles?', 'Each Zio profile is a fully isolated session: separate cookies, storage and logins with zero sharing between them, so one browser can safely hold many identities.'],
                 ['What is the device lab?', 'A built-in preview mode that renders any URL across common phone, tablet and desktop viewports at once — ideal for testing biolinks and landing pages before you share them.'],
@@ -283,7 +289,7 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl font-bold text-white">Browse like it's your workspace</h2>
-            <p class="mt-3 text-gray-400 max-w-xl mx-auto">Free for Mac and Windows. Installed in seconds.</p>
+            <p class="mt-3 text-gray-400 max-w-xl mx-auto">Free for Mac, Windows and Linux. Installed in seconds.</p>
             <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                 @if($cta['mac'] !== '')
                     <a href="{{ $cta['mac'] }}" target="_blank" rel="noopener noreferrer"
@@ -295,6 +301,12 @@
                     <a href="{{ $cta['windows'] }}" target="_blank" rel="noopener noreferrer"
                        class="inline-flex items-center gap-2.5 px-6 py-3 rounded-full text-sm font-bold text-gray-200 border border-white/20 hover:border-[#3d6bff]/60 hover:text-white transition-colors">
                         <i class="fab fa-windows"></i> Download for Windows
+                    </a>
+                @endif
+                @if(($cta['linux_appimage'] ?? '') !== '' || ($cta['linux_deb'] ?? '') !== '')
+                    <a href="{{ ($cta['linux_appimage'] ?? '') !== '' ? $cta['linux_appimage'] : $cta['linux_deb'] }}" target="_blank" rel="noopener noreferrer"
+                       class="inline-flex items-center gap-2.5 px-6 py-3 rounded-full text-sm font-bold text-gray-200 border border-white/20 hover:border-[#3d6bff]/60 hover:text-white transition-colors">
+                        <i class="fab fa-linux"></i> Download for Linux
                     </a>
                 @endif
                 <a href="{{ route('site.download') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-gray-300 hover:text-white transition-colors">

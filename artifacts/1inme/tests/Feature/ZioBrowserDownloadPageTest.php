@@ -62,6 +62,8 @@ class ZioBrowserDownloadPageTest extends TestCase
                     $this->asset("SayZio.Browser.Setup.{$version}.exe"),
                     $this->asset("SayZio.Browser-{$version}-arm64-mac.zip"),
                     $this->asset("SayZio.Browser-{$version}-mac.zip"),
+                    $this->asset("Zio-Browser-{$version}-x64.AppImage"),
+                    $this->asset("zio-browser_{$version}_amd64.deb"),
                 ]),
             ]),
         ]);
@@ -89,6 +91,51 @@ class ZioBrowserDownloadPageTest extends TestCase
         // Portable mac zips are exposed as alternate links.
         $response->assertSee($base . 'SayZio.Browser-9.9.9-arm64-mac.zip');
         $response->assertSee($base . 'SayZio.Browser-9.9.9-mac.zip');
+        // Linux: AppImage is the primary card link, .deb the alternate.
+        $response->assertSee($base . 'Zio-Browser-9.9.9-x64.AppImage');
+        $response->assertSee($base . 'zio-browser_9.9.9_amd64.deb');
+    }
+
+    public function test_release_without_linux_assets_still_renders_mac_and_windows(): void
+    {
+        // Old releases predate the Linux build — the optional keys must not
+        // break the page or leave a broken Linux card.
+        Http::fake([
+            self::RELEASES_URL => Http::response([
+                $this->githubRelease('zio-browser-v9.9.9', [
+                    $this->asset('SayZio.Browser-9.9.9-arm64.dmg'),
+                    $this->asset('SayZio.Browser-9.9.9.dmg'),
+                    $this->asset('SayZio.Browser.Setup.9.9.9.exe'),
+                ]),
+            ]),
+        ]);
+        $this->assertTrue(ZioBrowserRelease::refresh());
+
+        $response = $this->get('/download');
+        $response->assertOk();
+        $response->assertSee('v9.9.9');
+        $response->assertDontSee('.AppImage');
+        $response->assertDontSee('Download .deb');
+    }
+
+    public function test_deb_only_release_promotes_deb_to_primary_linux_link(): void
+    {
+        Http::fake([
+            self::RELEASES_URL => Http::response([
+                $this->githubRelease('zio-browser-v9.9.9', [
+                    $this->asset('SayZio.Browser-9.9.9-arm64.dmg'),
+                    $this->asset('SayZio.Browser-9.9.9.dmg'),
+                    $this->asset('SayZio.Browser.Setup.9.9.9.exe'),
+                    $this->asset('zio-browser_9.9.9_amd64.deb'),
+                ]),
+            ]),
+        ]);
+        $this->assertTrue(ZioBrowserRelease::refresh());
+
+        $response = $this->get('/download');
+        $response->assertOk();
+        $response->assertSee('zio-browser_9.9.9_amd64.deb');
+        $response->assertSee('Download .deb (Ubuntu/Debian)');
     }
 
     public function test_cache_miss_renders_fallback_instantly_and_self_heals_after_response(): void

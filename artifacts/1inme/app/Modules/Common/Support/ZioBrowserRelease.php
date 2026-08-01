@@ -65,6 +65,9 @@ class ZioBrowserRelease
         'windows_exe' => 'https://github.com/sanasandeep/sayzio/releases/download/zio-browser-v0.1.0/SayZio.Browser.Setup.0.1.0.exe',
         'mac_arm64_zip' => 'https://github.com/sanasandeep/sayzio/releases/download/zio-browser-v0.1.0/SayZio.Browser-0.1.0-arm64-mac.zip',
         'mac_x64_zip' => 'https://github.com/sanasandeep/sayzio/releases/download/zio-browser-v0.1.0/SayZio.Browser-0.1.0-mac.zip',
+        // v0.1.0 predates Linux builds — optional keys stay null.
+        'linux_appimage' => null,
+        'linux_deb' => null,
         'published_at' => null,
     ];
 
@@ -185,6 +188,8 @@ class ZioBrowserRelease
                 'windows_exe' => null,
                 'mac_arm64_zip' => null,
                 'mac_x64_zip' => null,
+                'linux_appimage' => null,
+                'linux_deb' => null,
                 'published_at' => $rel['published_at'] ?? null,
             ];
 
@@ -202,6 +207,10 @@ class ZioBrowserRelease
                     $out[$key] = $url;
                 } elseif (str_ends_with($name, '.exe')) {
                     $out['windows_exe'] = $url;
+                } elseif (str_ends_with($name, '.appimage')) {
+                    $out['linux_appimage'] = $url;
+                } elseif (str_ends_with($name, '.deb')) {
+                    $out['linux_deb'] = $url;
                 } elseif (str_ends_with($name, '.zip') && str_contains($name, 'mac')) {
                     $key = str_contains($name, 'arm64') ? 'mac_arm64_zip' : 'mac_x64_zip';
                     $out[$key] = $url;
@@ -324,6 +333,9 @@ class ZioBrowserRelease
         return $stored + [
             'mac_arm64_zip' => null,
             'mac_x64_zip' => null,
+            // Linux assets are optional — older releases predate them.
+            'linux_appimage' => null,
+            'linux_deb' => null,
             'published_at' => null,
         ];
     }

@@ -15,6 +15,15 @@ const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000; // every 4 hours
 export function setupAutoUpdater(): void {
   if (!app.isPackaged) return;
 
+  // Linux: only AppImage builds can self-update (electron-updater relies on
+  // the APPIMAGE env var to relaunch). .deb installs must update by
+  // downloading the new package — skip checks entirely so the updater never
+  // throws "APPIMAGE env is not defined" every interval.
+  if (process.platform === 'linux' && !process.env['APPIMAGE']) {
+    console.log('Auto-update disabled: non-AppImage Linux install (.deb) — update by downloading the new package.');
+    return;
+  }
+
   // Lazy require so a missing/incompatible updater never breaks app startup.
   let autoUpdater: typeof import('electron-updater').autoUpdater;
   try {
