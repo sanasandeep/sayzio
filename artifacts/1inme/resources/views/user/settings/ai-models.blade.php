@@ -27,7 +27,7 @@
             <i class="fas fa-microchip text-2xl mb-3" style="color: var(--text-muted);"></i>
             <p class="text-sm font-semibold" style="color: var(--text-primary);">Per-feature model choice is a paid perk</p>
             <p class="text-xs mt-1 mb-4" style="color: var(--text-muted);">
-                Upgrade to pick the exact AI model each feature uses — trade speed for quality
+                Upgrade to pick the exact AI model each feature uses, trade speed for quality
                 (and coin cost) per feature. On the free plan everything runs on the platform defaults.
             </p>
             <a href="{{ route('user.upgrade') }}" class="inline-block px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background: var(--color-primary-600, #2563eb);">
@@ -82,7 +82,7 @@
                             <div class="text-xs mt-0.5" style="color: var(--text-muted);">
                                 Platform default: <span class="font-mono">{{ $platform }}</span>
                                 @if($stale)
-                                    <span class="block mt-0.5 text-amber-600">Your previous pick <span class="font-mono">{{ $chosen }}</span> is no longer available — the platform default is used until you choose again.</span>
+                                    <span class="block mt-0.5 text-amber-600">Your previous pick <span class="font-mono">{{ $chosen }}</span> is no longer available, the platform default is used until you choose again.</span>
                                 @endif
                             </div>
                         </div>

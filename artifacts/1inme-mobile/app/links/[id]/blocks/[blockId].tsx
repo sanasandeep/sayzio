@@ -2856,8 +2856,8 @@ export function BlockSettingsEditor({
           </View>
           <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
             {widthDevice === "mobile"
-              ? "Width on phones — smaller widths place blocks side-by-side"
-              : "Width on large screens — \u201cSame\u201d keeps the mobile width"}
+              ? "Width on phones, smaller widths place blocks side-by-side"
+              : "Width on large screens, \u201cSame\u201d keeps the mobile width"}
           </Text>
         </View>
 
@@ -2923,8 +2923,8 @@ export function BlockSettingsEditor({
           </View>
           <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
             {heightDevice === "mobile"
-              ? "Rows the block stretches across next to side-by-side blocks — \u201cAuto\u201d keeps natural height"
-              : "Rows on large screens — \u201cSame\u201d keeps the mobile setting"}
+              ? "Rows the block stretches across next to side-by-side blocks, \u201cAuto\u201d keeps natural height"
+              : "Rows on large screens, \u201cSame\u201d keeps the mobile setting"}
           </Text>
         </View>
 

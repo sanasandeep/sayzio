@@ -258,7 +258,7 @@
                     <div class="sb-row" x-show="calendarSync.enabled">
                         <label class="sb-label">Calendar account</label>
                         <select class="sb-select" x-model="calendarSync.account_id" @change="saveSettings()">
-                            <option value="">— None (staff calendars only) —</option>
+                            <option value="">None (staff calendars only)</option>
                             <template x-for="a in calendarAccounts" :key="a.id">
                                 <option :value="a.id" x-text="a.label"></option>
                             </template>
@@ -438,7 +438,7 @@
             <div class="sb-row">
                 <label class="sb-label">Notification email (optional)</label>
                 <input class="sb-input" type="email" x-model="staffModal.email" maxlength="190" placeholder="member@example.com">
-                <p class="text-xs mt-1" style="color:var(--text-muted)">When set, this member gets an email whenever a booking is placed, rescheduled or cancelled for them — plus appointment reminders.</p>
+                <p class="text-xs mt-1" style="color:var(--text-muted)">When set, this member gets an email whenever a booking is placed, rescheduled or cancelled for them, plus appointment reminders.</p>
             </div>
             <div class="sb-row"><label class="sb-label">Photo URL (optional)</label><input class="sb-input" x-model="staffModal.photo_url" placeholder="https://…"></div>
             <div class="sb-row">
@@ -455,7 +455,7 @@
                 <div class="sb-row">
                     <label class="sb-label">Google Calendar (optional)</label>
                     <select class="sb-select" x-model="staffModal.calendar_account_id">
-                        <option value="">— None —</option>
+                        <option value="">None</option>
                         <template x-for="a in calendarAccounts" :key="a.id"><option :value="a.id" x-text="a.label"></option></template>
                     </select>
                     <p class="text-xs mt-1" style="color:var(--text-muted)">Busy times on this calendar block this member's slots.</p>

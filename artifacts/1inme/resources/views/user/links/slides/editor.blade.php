@@ -565,7 +565,7 @@ function renderSlides() {
                     <select class="sl-select sl-add-block" style="flex:1;min-width:170px;">
                         ${(() => {
                             const avail = BLOCKS.filter(b => !s.block_ids.includes(b.id));
-                            if (!BLOCKS.length) return '<option value="">No blocks yet — create one with "New block"</option>';
+                            if (!BLOCKS.length) return '<option value="">No blocks yet, create one with "New block"</option>';
                             if (!avail.length)  return '<option value="">All existing blocks are on this slide</option>';
                             return '<option value="">Add an existing block…</option>'
                                 + avail.map(b => `<option value="${b.id}">${escAttr((b.label?b.label+' · ':'')+b.type)}</option>`).join('');

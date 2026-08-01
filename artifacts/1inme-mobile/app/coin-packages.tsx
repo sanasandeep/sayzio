@@ -140,7 +140,7 @@ export default function CoinPackagesScreen() {
                   {pkg.plan_bonus_pct > 0 ? (
                     <Text style={[styles.subtle, { color: colors.primary }]}>
                       +{pkg.plan_bonus_coins.toLocaleString()} coins ({pkg.plan_bonus_pct}%{" "}
-                      {pkg.plan_bonus_plan_name ?? "plan"} plan bonus) —{" "}
+                      {pkg.plan_bonus_plan_name ?? "plan"} plan bonus) ={" "}
                       {pkg.total_with_plan_bonus.toLocaleString()} total
                     </Text>
                   ) : null}

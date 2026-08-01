@@ -294,6 +294,42 @@ const ALLOWLIST: AllowEntry[] = [
     reason: "Template-preview component renders the categorical template palette.",
   },
   {
+    path: "artifacts/1inme/public/js/social-proof-widget.js",
+    kind: "file",
+    reason:
+      "Widget preview placeholder: a purple avatar chip inside the sample-notification mock (categorical demo styling shown to the page owner while configuring), not the product brand accent.",
+  },
+  {
+    path: "artifacts/1inme-mobile/lib/bgEffectCatalog.ts",
+    kind: "file",
+    reason:
+      "TS mirror of the PHP background-effect catalog (gradients/mesh/tiles presets) — a multi-color categorical preset palette that must stay in lockstep with the server catalog, not the brand accent.",
+  },
+  {
+    path: "artifacts/1inme-mobile/components/ColorSwatchRow.tsx",
+    kind: "file",
+    reason:
+      "Color swatch PICKER row — presents a multi-color categorical palette (incl. purple) for the user to choose from, not the brand accent.",
+  },
+  {
+    path: "artifacts/1inme/resources/views/user/social-proofs/edit.blade.php",
+    kind: "file",
+    reason:
+      "Social-proof template gallery previews render each notification template's own categorical colors (e.g. a purple coupon bar), not the brand accent.",
+  },
+  {
+    path: "artifacts/1inme/resources/views/user/links/partials/block-style-settings.blade.php",
+    kind: "file",
+    reason:
+      "Block-style color PRESETS swatch palette — a multi-color categorical user-choice palette (white/navy/blue/amber/red/green/pink/purple), not the brand accent.",
+  },
+  {
+    path: "artifacts/1inme/resources/views/user/links/partials/biolink-background-card.blade.php",
+    kind: "file",
+    reason:
+      "Background-effect picker: the mesh preview thumbnail uses the catalog's own categorical gradient colors (cyan/purple), mirroring the server bg-effect catalog, not the brand accent.",
+  },
+  {
     path: "artifacts/1inme/resources/views/admin/custom-plan-requests/index.blade.php",
     kind: "file",
     reason:

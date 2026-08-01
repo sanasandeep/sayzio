@@ -91,7 +91,7 @@
                         <span>{{ ($entry['action'] ?? '') === 'add' ? 'to' : 'from' }} the {{ $entry['list'] ?? '?' }} list</span>
                         <span>by {{ $entry['admin'] ?? 'unknown' }}</span>
                         @if(!empty($entry['at']))
-                            <span class="text-white/35">— {{ \Illuminate\Support\Carbon::parse($entry['at'])->diffForHumans() }}</span>
+                            <span class="text-white/35">· {{ \Illuminate\Support\Carbon::parse($entry['at'])->diffForHumans() }}</span>
                         @endif
                     </li>
                 @endforeach

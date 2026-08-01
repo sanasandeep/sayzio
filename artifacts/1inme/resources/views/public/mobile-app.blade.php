@@ -62,7 +62,7 @@
             </h1>
             <p class="mt-5 text-lg text-gray-400 leading-relaxed max-w-xl">
                 Edit your Link in Bio, spin up short links and QR codes, answer your audience,
-                and watch clicks roll in live — the full Sayzio experience, rebuilt for
+                and watch clicks roll in live, the full Sayzio experience, rebuilt for
                 Android and iPhone.
             </p>
             <div class="mt-8">
@@ -130,12 +130,12 @@
             <span class="text-xs font-bold uppercase tracking-wider text-blue-300">Your links, off the laptop</span>
             <h2 class="mt-3 text-3xl sm:text-4xl font-bold text-white">Run your whole page from a coffee break</h2>
             <p class="mt-4 text-gray-400 leading-relaxed">
-                Your audience doesn't wait for you to get back to a desk — and with the Sayzio app you
+                Your audience doesn't wait for you to get back to a desk, and with the Sayzio app you
                 don't have to. Edit any block on your biolink, swap a headline, publish a new link or
                 pause an old one, and watch the change go live before your coffee cools.
             </p>
             <p class="mt-4 text-gray-400 leading-relaxed">
-                The same account, the same pages, the same analytics as the web dashboard — the app talks
+                The same account, the same pages, the same analytics as the web dashboard, the app talks
                 to your account through the Sayzio API, so everything you do on your phone is instantly
                 reflected everywhere else.
             </p>
@@ -159,15 +159,15 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center max-w-2xl mx-auto" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl font-bold text-white">Not a companion app. The real thing.</h2>
-            <p class="mt-3 text-gray-400">Full parity with the web — create, edit, moderate and measure anywhere.</p>
+            <p class="mt-3 text-gray-400">Full parity with the web, create, edit, moderate and measure anywhere.</p>
         </div>
         <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             @foreach([
-                ['fa-id-badge', 'Edit your Link in Bio', 'Rearrange blocks, swap images and restyle your page with a live preview — changes publish instantly.'],
+                ['fa-id-badge', 'Edit your Link in Bio', 'Rearrange blocks, swap images and restyle your page with a live preview, changes publish instantly.'],
                 ['fa-link', 'Links & QR codes', 'Create short links and fully styled QR codes on the go, with the same domains and designs as the web.'],
                 ['fa-chart-line', 'Live analytics', 'Watch clicks, scans, cities and referrers update in real time, with the same charts you know from the dashboard.'],
                 ['fa-inbox', 'Inbox & audience', 'Reply to messages, review followers and subscribers, and moderate reviews without opening a laptop.'],
-                ['fa-bell', 'Smart notifications', 'Order requests, new subscribers, milestone alerts — pushed the moment they happen, tuned per channel.'],
+                ['fa-bell', 'Smart notifications', 'Order requests, new subscribers, milestone alerts, pushed the moment they happen, tuned per channel.'],
                 ['fa-wand-magic-sparkles', 'AI on the go', 'Generate pages, tailor your résumé or draft replies with the same AI tools as the web app.'],
             ] as [$icon, $title, $desc])
                 <div class="glass rounded-2xl p-6" data-anim="fade-up">
@@ -192,11 +192,11 @@
         <div class="mt-12 grid md:grid-cols-3 gap-6">
             @foreach([
                 ['images/marketing/app/analytics-hand.webp', 'A hand holding a phone showing live click and scan analytics',
-                 'Morning: check the numbers', 'Open the app to live clicks, QR scans and visitor trends from the last 24 hours — the same analytics engine as the web dashboard, down to referrers and locations.'],
+                 'Morning: check the numbers', 'Open the app to live clicks, QR scans and visitor trends from the last 24 hours, the same analytics engine as the web dashboard, down to referrers and locations.'],
                 ['images/marketing/app/restaurant.webp', 'A cafe owner at the counter with a QR table tent and the Sayzio app',
                  'Midday: run the business', 'Restaurant and store owners watch orders arrive in real time, move them through preparing and served, and pause ordering with one tap when the rush hits.'],
                 ['images/marketing/app/inbox-couch.webp', 'A man on a couch in the evening replying to his audience from his phone',
-                 'Evening: answer your people', 'New followers, messages, form entries and reviews land in the app with push notifications — reply from the couch instead of catching up at midnight.'],
+                 'Evening: answer your people', 'New followers, messages, form entries and reviews land in the app with push notifications, reply from the couch instead of catching up at midnight.'],
             ] as [$img, $alt, $title, $desc])
                 <div class="glass rounded-2xl overflow-hidden" data-anim="fade-up">
                     <img src="{{ asset($img) }}" alt="{{ $alt }}" loading="lazy" decoding="async" class="w-full aspect-[4/3] object-cover">
@@ -218,9 +218,9 @@
         </div>
         <div class="mt-10 space-y-3" x-data="{ open: null }">
             @foreach([
-                ['Is the app free?', 'Yes — download and sign in with your existing Sayzio account. Your plan works identically on mobile and web.'],
+                ['Is the app free?', 'Yes, download and sign in with your existing Sayzio account. Your plan works identically on mobile and web.'],
                 ['Android and iPhone?', 'Both. The app ships for Android (Google Play, plus a direct APK) and iPhone via the App Store.'],
-                ['Does it do everything the website does?', 'Nearly everything — editing pages, links, QR codes, analytics, inbox, orders and settings all have full mobile parity. A few admin-only tools remain web-first.'],
+                ['Does it do everything the website does?', 'Nearly everything, editing pages, links, QR codes, analytics, inbox, orders and settings all have full mobile parity. A few admin-only tools remain web-first.'],
                 ['Will my edits sync?', 'Instantly. The app talks to the same account as the web dashboard, so a change on one appears on the other in seconds.'],
                 ['Is Zio Dialer included?', 'Zio Dialer is a separate Android app focused on calling. The Sayzio app includes contacts and the universal finder; install both for the full experience.'],
             ] as $i => [$q, $a])

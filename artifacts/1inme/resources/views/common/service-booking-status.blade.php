@@ -151,7 +151,7 @@
             if (!r.ok) throw new Error((j.error && j.error.message) || 'Something went wrong.');
             const days = (j.data && j.data.days) || [];
             slotsEl.innerHTML = '';
-            if (!days.length) { say('No other free times right now — please contact the provider.', true); resBtn.disabled = false; return; }
+            if (!days.length) { say('No other free times right now, please contact the provider.', true); resBtn.disabled = false; return; }
             days.forEach(day => {
                 const h = document.createElement('div'); h.className = 'slot-day'; h.textContent = day.label || day.date;
                 const g = document.createElement('div'); g.className = 'slot-grid';

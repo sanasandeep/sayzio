@@ -1922,7 +1922,7 @@ class SitePagesContent
                     ['name' => 'Paid Page', 'icon' => 'fa-lock', 'description' => 'A gated page that only unlocks after a one-time payment or subscription, built on the same creator feed and access tiers as your other pages.'],
                     ['name' => 'QR Code', 'icon' => 'fa-qrcode', 'description' => 'A dynamic QR code you can style with your logo and brand colours; the destination is editable, so the same printed code keeps working forever, with scans tracked separately from clicks.'],
                     ['name' => 'Forms', 'icon' => 'fa-list-check', 'description' => 'A shareable, standalone form page with dozens of field types, conditional logic, design customization and email / SMS / webhook notifications, perfect for signups, surveys and lead capture.'],
-                    ['name' => 'Text Page', 'icon' => 'fa-align-left', 'description' => 'Paste or type any text and share it as a clean, tracked page — visitors can select the text or copy all of it with one tap.'],
+                    ['name' => 'Text Page', 'icon' => 'fa-align-left', 'description' => 'Paste or type any text and share it as a clean, tracked page, visitors can select the text or copy all of it with one tap.'],
                 ],
             ],
             self::aiSuiteFeaturesCategory(),

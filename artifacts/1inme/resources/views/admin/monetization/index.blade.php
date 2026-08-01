@@ -34,7 +34,7 @@
         @endif
     </div>
     <p class="text-xs text-white/40 mb-4 ak-note">
-        Purchasing power at today's live AI rates —
+        Purchasing power at today's live AI rates:
         chat on <span class="text-white/60 ak-muted">{{ $aiRates['chat_model'] ?? 'n/a' }}</span>
         ({{ rtrim(rtrim(number_format($aiRates['chat_blended_per_1k'], 3), '0'), '.') }} coins/1k tokens blended, 1:3 in:out mix),
         artistic QR {{ $aiRates['qr_coins'] }} coins, TTS {{ $aiRates['tts_per_1k_chars'] }} coins/1k chars,
@@ -89,7 +89,7 @@
             </tbody>
         </table>
         </div>
-        <p class="text-[10px] text-white/30 mt-3 ak-note">Lower price-per-coin = better customer value. "API budget / margin" is the internal split applied to each purchase — never user-facing.</p>
+        <p class="text-[10px] text-white/30 mt-3 ak-note">Lower price-per-coin = better customer value. "API budget / margin" is the internal split applied to each purchase, never user-facing.</p>
     @endif
 </div>
 
@@ -179,8 +179,8 @@
         <div class="flex items-end gap-2 h-28 mb-2 overflow-x-auto pb-1" aria-hidden="true">
             @foreach($trend['months'] as $m)
                 <div class="flex-1 min-w-[34px] flex items-end justify-center gap-1 h-full">
-                    <div class="w-2.5 rounded-t bg-red-400/70" style="height: {{ max(2, round($m['ai_coins_spent'] / $trendMax * 100)) }}%" title="{{ $m['label'] }} — AI coins spent: {{ number_format($m['ai_coins_spent']) }}"></div>
-                    <div class="w-2.5 rounded-t bg-emerald-400/70" style="height: {{ max(2, round($m['coins_purchased'] / $trendMax * 100)) }}%" title="{{ $m['label'] }} — coins purchased: {{ number_format($m['coins_purchased']) }}"></div>
+                    <div class="w-2.5 rounded-t bg-red-400/70" style="height: {{ max(2, round($m['ai_coins_spent'] / $trendMax * 100)) }}%" title="{{ $m['label'] }}, AI coins spent: {{ number_format($m['ai_coins_spent']) }}"></div>
+                    <div class="w-2.5 rounded-t bg-emerald-400/70" style="height: {{ max(2, round($m['coins_purchased'] / $trendMax * 100)) }}%" title="{{ $m['label'] }}, coins purchased: {{ number_format($m['coins_purchased']) }}"></div>
                 </div>
             @endforeach
         </div>
