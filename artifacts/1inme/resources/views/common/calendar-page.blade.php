@@ -53,7 +53,7 @@
                     <span x-show="following" x-cloak><i class="fas fa-check mr-1"></i> Following</span>
                 </button>
             @else
-                <a href="{{ route('login') }}?redirect={{ urlencode(request()->fullUrl()) }}" class="px-6 py-2.5 rounded-xl text-sm font-semibold cal-accent-bg text-white">
+                <a href="{{ route('user.login') }}?redirect={{ urlencode(request()->fullUrl()) }}" class="px-6 py-2.5 rounded-xl text-sm font-semibold cal-accent-bg text-white">
                     <i class="fas fa-plus mr-1"></i> Sign in to follow
                 </a>
             @endif
@@ -184,7 +184,7 @@ function calFollow(){
                         'Accept': 'application/json',
                     },
                 });
-                if (res.status === 401) { window.location = '{{ route('login') }}?redirect=' + encodeURIComponent(window.location.href); return; }
+                if (res.status === 401) { window.location = '{{ route('user.login') }}?redirect=' + encodeURIComponent(window.location.href); return; }
                 const data = await res.json();
                 if (data.success) {
                     this.following = data.following;
