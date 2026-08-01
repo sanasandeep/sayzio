@@ -110,6 +110,20 @@ function readCache(filter?: { url?: string; domain?: string }): { notes: ApiDial
   return { notes, shared };
 }
 
+/**
+ * Cheap cache-only count of notes (own + shared) attached to a host. Used by
+ * the toolbar badge on every tab switch/navigation, so it must never hit the
+ * network — the cache is refreshed by the regular list/save/delete flows.
+ */
+export function countNotesForHost(host: string): number {
+  const normalized = host.toLowerCase().replace(/^www\./, '');
+  if (!normalized) return 0;
+  const row = getDb()
+    .prepare('SELECT COUNT(*) AS n FROM account_notes_cache WHERE attached_host = ?')
+    .get(normalized) as { n: number };
+  return row.n;
+}
+
 // ── Offline op queue ─────────────────────────────────────────────────────────
 
 interface NoteOpRow {

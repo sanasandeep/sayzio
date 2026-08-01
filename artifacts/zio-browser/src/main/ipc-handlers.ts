@@ -16,6 +16,7 @@ import {
   saveAccountNote,
   deleteAccountNote,
   flushNoteOps,
+  countNotesForHost,
   migrateSavedLinkNotes,
 } from './notes-store';
 import type { DialerNoteInput } from '../shared/api-client';
@@ -1074,6 +1075,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('notes:save', (_, id: number | null, input: DialerNoteInput) => saveAccountNote(id, input));
   ipcMain.handle('notes:delete', (_, id: number) => deleteAccountNote(id));
   ipcMain.handle('notes:flush', () => flushNoteOps());
+  ipcMain.handle('notes:count-for-host', (_, host: string) => countNotesForHost(host));
 
   // ── Sync ─────────────────────────────────────────────────────────────────
   //

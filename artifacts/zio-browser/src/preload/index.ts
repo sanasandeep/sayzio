@@ -266,6 +266,7 @@ const api = {
     save: (id: number | null, input: unknown) => ipcRenderer.invoke('notes:save', id, input),
     remove: (id: number) => ipcRenderer.invoke('notes:delete', id),
     flush: () => ipcRenderer.invoke('notes:flush'),
+    countForHost: (host: string) => ipcRenderer.invoke('notes:count-for-host', host) as Promise<number>,
   },
 
   // ── Reading list ──────────────────────────────────────────────────────────
