@@ -25,8 +25,23 @@ class DialerNoteController extends Controller
     {
         $user = $request->user();
 
+        // Optional "notes for this site" filters (Zio Browser per-page panel):
+        // ?url= matches the exact attached URL, ?domain= matches the attached
+        // host (www-stripped, case-insensitive). Both filter own AND shared.
+        $url = trim((string) $request->query('url', ''));
+        $domain = trim((string) $request->query('domain', ''));
+        $host = $domain !== ''
+            ? (DialerNote::hostFromUrl($domain) ?? mb_strtolower(preg_replace('/^www\./i', '', $domain)))
+            : null;
+
+        $siteFilter = function ($q) use ($url, $host) {
+            if ($url !== '') $q->where('attached_url', $url);
+            if ($host !== null && $host !== '') $q->where('attached_host', $host);
+        };
+
         $own = DialerNote::query()
             ->where('user_id', $user->id)
+            ->tap($siteFilter)
             ->with('shares')
             ->orderByDesc('updated_at')
             ->limit(500)
@@ -35,6 +50,7 @@ class DialerNoteController extends Controller
         $shared = DialerNote::query()
             ->whereHas('shares', fn ($q) => $q->where('shared_with_user_id', $user->id))
             ->where('user_id', '!=', $user->id)
+            ->tap($siteFilter)
             ->with('user:id,name')
             ->orderByDesc('updated_at')
             ->limit(200)
@@ -65,6 +81,9 @@ class DialerNoteController extends Controller
             'checklist' => array_key_exists('checklist', $data)
                 ? DialerNote::normalizeChecklist($data['checklist'])
                 : null,
+            'attached_url' => $data['attached_url'] ?? null,
+            'attached_title' => $data['attached_title'] ?? null,
+            'attached_host' => DialerNote::hostFromUrl($data['attached_url'] ?? null),
         ]);
 
         if (array_key_exists('share_phones', $data)) {
@@ -98,6 +117,18 @@ class DialerNoteController extends Controller
         if (array_key_exists('remind_at', $data)
             && (string) $data['remind_at'] !== (string) $note->remind_at?->toIso8601String()) {
             $updates['reminder_sent_at'] = null;
+        }
+        if (array_key_exists('attached_url', $data)) {
+            $updates['attached_url'] = $data['attached_url'];
+            $updates['attached_host'] = DialerNote::hostFromUrl($data['attached_url']);
+            // Clearing the URL also clears the stored page title.
+            if ($data['attached_url'] === null || $data['attached_url'] === '') {
+                $updates['attached_url'] = null;
+                $updates['attached_title'] = null;
+            }
+        }
+        if (array_key_exists('attached_title', $data) && !array_key_exists('attached_title', $updates)) {
+            $updates['attached_title'] = $data['attached_title'];
         }
         if (array_key_exists('number', $data)) {
             $updates['number_e164'] = $data['number'] !== null && $data['number'] !== ''
@@ -134,6 +165,8 @@ class DialerNoteController extends Controller
             'done' => ['nullable', 'boolean'],
             'color' => ['nullable', 'string', 'max:16'],
             'kind' => ['nullable', 'string', 'in:note,checklist'],
+            'attached_url' => ['nullable', 'string', 'url', 'max:2048'],
+            'attached_title' => ['nullable', 'string', 'max:255'],
             'checklist' => ['nullable', 'array', 'max:100'],
             'checklist.*' => ['array'],
             'checklist.*.text' => ['nullable', 'string', 'max:500'],
@@ -176,6 +209,9 @@ class DialerNoteController extends Controller
             'color' => $note->color,
             'kind' => $note->kind ?: 'note',
             'checklist' => is_array($note->checklist) ? array_values($note->checklist) : [],
+            'attached_url' => $note->attached_url,
+            'attached_title' => $note->attached_title,
+            'attached_host' => $note->attached_host,
             'source_type' => $note->source_type,
             'source_id' => $note->source_id !== null ? (int) $note->source_id : null,
             'own' => $own,

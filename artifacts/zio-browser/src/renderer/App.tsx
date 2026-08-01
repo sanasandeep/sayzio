@@ -22,6 +22,7 @@ import { PermissionPrompt } from './components/PermissionPrompt';
 import type { PendingPermission } from './components/PermissionPrompt';
 import { SiteSettingsPanel } from './components/SiteSettingsPanel';
 import { ReadingListPanel } from './components/ReadingListPanel';
+import { NotesPanel } from './components/NotesPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { PaneFocusFrames } from './components/PaneFocusFrames';
 import { VirtualKeyboard } from './components/VirtualKeyboard';
@@ -65,6 +66,8 @@ const FIRST_LAUNCH_KEY = 'zio_mode_picker_shown';
 export default function App() {
   const [zioPanelOpen, setZioPanelOpen] = useState(false);
   const [readingListOpen, setReadingListOpen] = useState(false);
+  const [notesPanelOpen, setNotesPanelOpen] = useState(false);
+  const [notesPanelScope, setNotesPanelScope] = useState<'page' | 'all'>('all');
   const [dialerPanelOpen, setDialerPanelOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -449,6 +452,7 @@ export default function App() {
   // ref-counted chrome overlay while any of them is open.
   useChromeOverlay(settingsOpen);
   useChromeOverlay(readingListOpen);
+  useChromeOverlay(notesPanelOpen);
   useChromeOverlay(dialerPanelOpen);
   useChromeOverlay(siteSettingsOpen);
   useChromeOverlay(showOverlayPanel);
@@ -495,7 +499,30 @@ export default function App() {
     setReadingListOpen(prev => !prev);
     setZioPanelOpen(false);
     setDialerPanelOpen(false);
+    setNotesPanelOpen(false);
   }, []);
+
+  const handleToggleNotes = useCallback((scope: 'page' | 'all' = 'all') => {
+    // Notes live on the Sayzio account, so require sign-in (and skip in
+    // private windows, which never carry the account).
+    if (isPrivate) return;
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
+    setNotesPanelOpen(prev => {
+      // Re-clicking with a different scope switches scope instead of closing.
+      if (prev && scope !== notesPanelScope) {
+        setNotesPanelScope(scope);
+        return true;
+      }
+      setNotesPanelScope(scope);
+      return !prev;
+    });
+    setZioPanelOpen(false);
+    setDialerPanelOpen(false);
+    setReadingListOpen(false);
+  }, [user, isPrivate, notesPanelScope]);
 
   const handleToggleDialer = useCallback(() => {
     // The Dialer pane needs an account (search + phone handoff are per-user).
@@ -506,6 +533,7 @@ export default function App() {
     }
     setDialerPanelOpen(prev => !prev);
     setReadingListOpen(false);
+    setNotesPanelOpen(false);
   }, [user, isPrivate]);
 
   // ── Zio panel divider drag (browser mode, docked) ─────────────────────────
@@ -776,6 +804,8 @@ export default function App() {
         onOpenSiteSettings={() => setSiteSettingsOpen(true)}
         readingListOpen={readingListOpen}
         onToggleReadingList={handleToggleReadingList}
+        notesPanelOpen={notesPanelOpen}
+        onToggleNotes={handleToggleNotes}
         dialerPanelOpen={dialerPanelOpen}
         onToggleDialer={handleToggleDialer}
         onOpenSettings={() => setSettingsOpen(prev => !prev)}
@@ -972,6 +1002,20 @@ export default function App() {
                 void window.zio.tabs.navigate(activeTabId, url);
               }
             }}
+          />
+        )}
+
+        {notesPanelOpen && !isPrivate && (
+          <NotesPanel
+            onClose={() => setNotesPanelOpen(false)}
+            onNavigate={(url) => {
+              if (activeTabId) {
+                void window.zio.tabs.navigate(activeTabId, url);
+              }
+            }}
+            currentUrl={activeTab?.url ?? null}
+            currentTitle={activeTab?.title ?? null}
+            initialScope={notesPanelScope}
           />
         )}
 

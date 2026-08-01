@@ -73,6 +73,60 @@ class DialerNoteProductivityTest extends TestCase
         $this->assertNull(DialerNote::find($id));
     }
 
+    public function test_note_attached_website_roundtrip_and_filters(): void
+    {
+        $user = $this->makeUser();
+
+        // Create with an attached website — host derived server-side (www. stripped).
+        $create = $this->api($user)->postJson('/api/v1/dialer/notes', [
+            'title' => 'Pricing research',
+            'body' => 'Compare tiers',
+            'attached_url' => 'https://www.Example.com/pricing?ref=1',
+            'attached_title' => 'Example — Pricing',
+        ]);
+        $create->assertStatus(201);
+        $id = $create->json('data.id');
+        $this->assertSame('https://www.Example.com/pricing?ref=1', $create->json('data.attached_url'));
+        $this->assertSame('Example — Pricing', $create->json('data.attached_title'));
+        $this->assertSame('example.com', $create->json('data.attached_host'));
+
+        // A second note on another site, and one with no attachment.
+        $other = $this->api($user)->postJson('/api/v1/dialer/notes', [
+            'title' => 'Other site',
+            'attached_url' => 'https://docs.other.org/guide',
+        ]);
+        $other->assertStatus(201);
+        $this->assertSame('docs.other.org', $other->json('data.attached_host'));
+        $this->api($user)->postJson('/api/v1/dialer/notes', ['title' => 'Unattached'])->assertStatus(201);
+
+        // ?url= filters to the exact page.
+        $byUrl = $this->api($user)->getJson('/api/v1/dialer/notes?url=' . urlencode('https://www.Example.com/pricing?ref=1'));
+        $byUrl->assertOk();
+        $this->assertSame([$id], collect($byUrl->json('data.notes'))->pluck('id')->all());
+
+        // ?domain= filters by host, tolerant of www./case.
+        $byDomain = $this->api($user)->getJson('/api/v1/dialer/notes?domain=' . urlencode('WWW.example.com'));
+        $byDomain->assertOk();
+        $this->assertSame([$id], collect($byDomain->json('data.notes'))->pluck('id')->all());
+
+        // Unfiltered index returns all three.
+        $all = $this->api($user)->getJson('/api/v1/dialer/notes');
+        $this->assertCount(3, $all->json('data.notes'));
+
+        // Invalid URL is rejected.
+        $this->api($user)->postJson('/api/v1/dialer/notes', [
+            'title' => 'Bad',
+            'attached_url' => 'not-a-url',
+        ])->assertStatus(422);
+
+        // Clearing the URL clears title + host too.
+        $clear = $this->api($user)->patchJson("/api/v1/dialer/notes/{$id}", ['attached_url' => null]);
+        $clear->assertOk();
+        $this->assertNull($clear->json('data.attached_url'));
+        $this->assertNull($clear->json('data.attached_title'));
+        $this->assertNull($clear->json('data.attached_host'));
+    }
+
     public function test_share_phone_resolves_to_account_and_lists_as_shared(): void
     {
         $owner = $this->makeUser('own');

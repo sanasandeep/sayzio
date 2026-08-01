@@ -6,7 +6,7 @@
  */
 
 /** Tools that can be pinned from the overflow menu onto the toolbar. */
-export const PINNABLE_TOOLS = ['reading_list', 'dialer', 'device_lab', 'screenshot'] as const;
+export const PINNABLE_TOOLS = ['reading_list', 'notes', 'dialer', 'device_lab', 'screenshot'] as const;
 export type PinnableTool = (typeof PINNABLE_TOOLS)[number];
 
 /** Preference key used with window.zio.prefs. */
@@ -25,6 +25,7 @@ export const PINNED_TOOLS_CHANGED_EVENT = 'zio:pinned-tools-changed';
 /** Display metadata shared by every surface that lists pinnable tools. */
 export const PINNABLE_TOOL_INFO: Record<PinnableTool, { label: string; icon: string; description: string }> = {
   reading_list: { label: 'Reading list', icon: '📖', description: 'Save pages to read later' },
+  notes: { label: 'Notes', icon: '📝', description: 'Account notes, synced everywhere' },
   dialer: { label: 'Dialer', icon: '📞', description: 'Search & call on your phone' },
   device_lab: { label: 'Device Lab', icon: '🔬', description: 'Phone / tablet / desktop preview' },
   screenshot: { label: 'Screenshot', icon: '📷', description: 'Capture the visible area' },

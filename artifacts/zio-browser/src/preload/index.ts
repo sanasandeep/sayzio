@@ -260,6 +260,14 @@ const api = {
     }>,
   },
 
+  // ── Account notes (Dialer Notes API + offline cache) ─────────────────────
+  notes: {
+    list: (filter?: { url?: string; domain?: string }) => ipcRenderer.invoke('notes:list', filter),
+    save: (id: number | null, input: unknown) => ipcRenderer.invoke('notes:save', id, input),
+    remove: (id: number) => ipcRenderer.invoke('notes:delete', id),
+    flush: () => ipcRenderer.invoke('notes:flush'),
+  },
+
   // ── Reading list ──────────────────────────────────────────────────────────
   readingList: {
     add: (url: string, title: string, favicon?: string) => ipcRenderer.invoke('reading-list:add', url, title, favicon),

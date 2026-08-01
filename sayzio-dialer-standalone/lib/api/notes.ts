@@ -18,6 +18,10 @@ export type DialerNote = {
   color: string | null;
   kind: "note" | "checklist";
   checklist: ChecklistItem[];
+  /** Attached website (URL + page title), e.g. set from the Zio Browser. */
+  attached_url: string | null;
+  attached_title: string | null;
+  attached_host: string | null;
   /** Auto-task provenance — 'event' | 'callback' | null for manual notes. */
   source_type: string | null;
   source_id: number | null;
@@ -37,6 +41,8 @@ export type NoteInput = {
   color?: string | null;
   kind?: "note" | "checklist";
   checklist?: ChecklistItem[] | null;
+  attached_url?: string | null;
+  attached_title?: string | null;
   share_phones?: string[];
 };
 

@@ -76,6 +76,18 @@
             </div>
         </template>
 
+        {{-- Attached website (set by the Zio Browser / API; removable here) --}}
+        <div x-show="form.attached_url" x-cloak class="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);">
+            <img :src="'https://www.google.com/s2/favicons?sz=32&domain=' + encodeURIComponent(attachmentHost(form.attached_url))" class="w-4 h-4 rounded" alt="">
+            <div class="flex-1 min-w-0">
+                <p class="text-xs font-medium truncate" style="color:var(--text-primary);" x-text="form.attached_title || attachmentHost(form.attached_url)"></p>
+                <p class="text-[10px] truncate" style="color:var(--text-faint);" x-text="form.attached_url"></p>
+            </div>
+            <button type="button" @click="form.attached_url = null; form.attached_title = null;" class="text-xs px-2 py-1 rounded-lg" style="color:var(--text-muted);background:rgba(255,255,255,.06);" title="Remove attached website">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <div>
                 <label class="block text-xs mb-1" style="color:var(--text-faint);">Remind me at</label>
@@ -136,6 +148,14 @@
                                 </label>
                             </template>
                         </div>
+                        {{-- Attached website chip --}}
+                        <a x-show="n.attached_url" :href="n.attached_url" target="_blank" rel="noopener noreferrer"
+                           class="inline-flex items-center gap-1.5 mt-2 px-2 py-1 rounded-lg text-[11px] font-medium max-w-full"
+                           style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:var(--color-primary-400);">
+                            <img :src="'https://www.google.com/s2/favicons?sz=32&domain=' + encodeURIComponent(attachmentHost(n.attached_url))" class="w-3.5 h-3.5 rounded" alt="">
+                            <span class="truncate" x-text="n.attached_title || attachmentHost(n.attached_url)"></span>
+                            <i class="fas fa-arrow-up-right-from-square text-[8px]" style="color:var(--text-faint);"></i>
+                        </a>
                         <div class="flex items-center gap-3 mt-2 text-[11px]" style="color:var(--text-faint);">
                             <span x-show="n.remind_at" class="inline-flex items-center gap-1">
                                 <i class="fas fa-bell text-[9px]"></i> <span x-text="formatWhen(n.remind_at)"></span>
@@ -224,7 +244,10 @@ function dialerNotes() {
             return list.sort((a, b) => (a.done - b.done) || (new Date(b.updated_at || 0) - new Date(a.updated_at || 0)));
         },
         blankForm() {
-            return { id: null, kind: 'note', title: '', body: '', checklist: [], remind_at_local: '', share_phones_raw: '', color: null };
+            return { id: null, kind: 'note', title: '', body: '', checklist: [], remind_at_local: '', share_phones_raw: '', color: null, attached_url: null, attached_title: null };
+        },
+        attachmentHost(url) {
+            try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url || ''; }
         },
         openCreate() { this.form = this.blankForm(); this.editing = true; this.error = ''; },
         openEdit(n) {
@@ -234,6 +257,8 @@ function dialerNotes() {
                 remind_at_local: n.remind_at ? this.toLocal(n.remind_at) : '',
                 share_phones_raw: (n.share_phones || []).join(', '),
                 color: n.color || null,
+                attached_url: n.attached_url || null,
+                attached_title: n.attached_title || null,
             };
             this.editing = true; this.error = '';
         },
@@ -266,6 +291,8 @@ function dialerNotes() {
                     : null,
                 remind_at: this.form.remind_at_local ? new Date(this.form.remind_at_local).toISOString() : null,
                 color: this.form.color,
+                attached_url: this.form.attached_url || null,
+                attached_title: this.form.attached_url ? (this.form.attached_title || null) : null,
                 share_phones: this.form.share_phones_raw.split(',').map(s => s.trim()).filter(Boolean),
             };
         },

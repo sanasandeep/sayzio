@@ -13,6 +13,7 @@ class DialerNote extends Model
     protected $fillable = [
         'user_id', 'title', 'body', 'number_e164', 'remind_at', 'done', 'color',
         'kind', 'checklist', 'source_type', 'source_id', 'reminder_sent_at',
+        'attached_url', 'attached_title', 'attached_host',
     ];
 
     protected $casts = [
@@ -30,6 +31,20 @@ class DialerNote extends Model
     public function isAutoTask(): bool
     {
         return $this->source_type !== null;
+    }
+
+    /**
+     * Extract the lower-cased host from an attached URL (null when absent
+     * or unparsable). Strips a leading "www." so domain filters match both
+     * forms.
+     */
+    public static function hostFromUrl(?string $url): ?string
+    {
+        if ($url === null || trim($url) === '') return null;
+        $host = parse_url(trim($url), PHP_URL_HOST);
+        if (!is_string($host) || $host === '') return null;
+        $host = mb_strtolower($host);
+        return str_starts_with($host, 'www.') ? substr($host, 4) : $host;
     }
 
     /**

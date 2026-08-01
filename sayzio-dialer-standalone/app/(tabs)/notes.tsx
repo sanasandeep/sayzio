@@ -6,6 +6,7 @@ import {
   Alert,
   FlatList,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -56,6 +57,8 @@ type EditorState = {
   remindAt: string;
   done: boolean;
   sharePhones: string;
+  attachedUrl: string | null;
+  attachedTitle: string | null;
 };
 
 const EMPTY_EDITOR: EditorState = {
@@ -68,7 +71,18 @@ const EMPTY_EDITOR: EditorState = {
   remindAt: "",
   done: false,
   sharePhones: "",
+  attachedUrl: null,
+  attachedTitle: null,
 };
+
+/** Host shown for an attached website (www-stripped; falls back to the URL). */
+function attachmentHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
 
 function formatWhen(iso: string | null): string | null {
   if (!iso) return null;
@@ -161,6 +175,8 @@ export default function NotesScreen() {
       remindAt: n.remind_at ?? "",
       done: n.done,
       sharePhones: n.share_phones.join(", "),
+      attachedUrl: n.attached_url ?? null,
+      attachedTitle: n.attached_title ?? null,
     });
     setSaveError(null);
     setEditorOpen(true);
@@ -195,6 +211,8 @@ export default function NotesScreen() {
       number: editor.number.trim() || null,
       remind_at: editor.remindAt.trim() || null,
       done: editor.done,
+      attached_url: editor.attachedUrl,
+      attached_title: editor.attachedUrl ? editor.attachedTitle : null,
       share_phones: editor.sharePhones
         .split(/[,\n]/)
         .map((p) => p.trim())
@@ -497,6 +515,28 @@ export default function NotesScreen() {
             </Pressable>
           ) : null}
         </View>
+        {n.attached_url ? (
+          <Pressable
+            onPress={() => void Linking.openURL(n.attached_url as string)}
+            style={[
+              styles.attachChip,
+              { borderColor: colors.border, backgroundColor: colors.card },
+            ]}
+            accessibilityRole="link"
+            accessibilityLabel={`Open attached website ${n.attached_title || attachmentHost(n.attached_url)}`}
+          >
+            <Feather name="globe" size={12} color={colors.primary} />
+            <Text
+              numberOfLines={1}
+              style={{ color: colors.primary, fontSize: 12, fontWeight: "600", flexShrink: 1 }}
+            >
+              {n.attached_title || attachmentHost(n.attached_url)}
+            </Text>
+            <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 11, flexShrink: 1 }}>
+              {attachmentHost(n.attached_url)}
+            </Text>
+          </Pressable>
+        ) : null}
         <View style={styles.metaRow}>
           {when ? (
             <View style={styles.metaItem}>
@@ -783,6 +823,34 @@ export default function NotesScreen() {
               <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>
                 Reminders alert you here (even offline) and on the web.
               </Text>
+              {editor.attachedUrl ? (
+                <View
+                  style={[
+                    styles.attachEditorRow,
+                    { borderColor: colors.border, backgroundColor: colors.card },
+                  ]}
+                >
+                  <Feather name="globe" size={14} color={colors.primary} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>
+                      {editor.attachedTitle || attachmentHost(editor.attachedUrl)}
+                    </Text>
+                    <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                      {editor.attachedUrl}
+                    </Text>
+                  </View>
+                  <Pressable
+                    hitSlop={8}
+                    onPress={() =>
+                      setEditor((e) => ({ ...e, attachedUrl: null, attachedTitle: null }))
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel="Remove attached website"
+                  >
+                    <Feather name="x" size={16} color={colors.mutedForeground} />
+                  </Pressable>
+                </View>
+              ) : null}
               <TextInput
                 value={editor.sharePhones}
                 onChangeText={(t) => setEditor((e) => ({ ...e, sharePhones: t }))}
@@ -889,6 +957,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  attachChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    maxWidth: "100%",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  attachEditorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginTop: 10,
+  },
   fab: {
     position: "absolute",
     right: 20,
