@@ -17,6 +17,7 @@ class MarketingSettingsController extends Controller
     public function index()
     {
         return view('admin.marketing-settings.index', [
+            'events_band_enabled'      => (bool) AppSetting::get('marketing_events_band_enabled', true),
             'ga4_id'                   => (string) AppSetting::get('marketing_ga4_id', ''),
             'meta_pixel_id'            => (string) AppSetting::get('marketing_meta_pixel_id', ''),
             'default_share_image'      => (string) AppSetting::get('marketing_default_share_image', ''),
@@ -97,6 +98,11 @@ class MarketingSettingsController extends Controller
             'why_comparison.*.ours'           => 'nullable|string|max:80',
             'why_comparison.*.theirs'         => 'nullable|string|max:80',
         ]);
+
+        // Checkbox: absent from the payload when unchecked, so read it off the
+        // raw request rather than the validated set.
+        AppSetting::put('marketing_events_band_enabled', $request->boolean('events_band_enabled'));
+        \Illuminate\Support\Facades\Cache::forget(\App\Modules\Common\Services\EventsHeroBandComposer::CACHE_KEY);
 
         AppSetting::put('marketing_ga4_id', trim((string) ($data['ga4_id'] ?? '')));
         AppSetting::put('marketing_meta_pixel_id', trim((string) ($data['meta_pixel_id'] ?? '')));
