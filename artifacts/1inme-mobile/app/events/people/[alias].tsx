@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as Location from "expo-location";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -33,11 +33,15 @@ import {
  * requests. Mutual contacts are created server-side on acceptance.
  */
 export default function PeopleAtEventScreen() {
-  const { alias, title } = useLocalSearchParams<{
+  const { alias, title, highlight_user } = useLocalSearchParams<{
     alias: string;
     title?: string;
+    highlight_user?: string;
   }>();
   const colors = useColors();
+  const highlightUserId = Number(highlight_user ?? 0) || null;
+  const listRef = useRef<FlatList<EventAttendee> | null>(null);
+  const didScrollToHighlight = useRef(false);
 
   const [state, setState] = useState<DiscoverabilityState | null>(null);
   const [data, setData] = useState<AttendeesResponse | null>(null);
@@ -185,6 +189,10 @@ export default function PeopleAtEventScreen() {
           style={[
             styles.attendeeRow,
             { backgroundColor: colors.card, borderColor: colors.border },
+            highlightUserId === item.user.id && {
+              borderColor: colors.primary,
+              borderWidth: 2,
+            },
           ]}
         >
           <View style={styles.avatar}>
@@ -303,8 +311,30 @@ export default function PeopleAtEventScreen() {
         </View>
       );
     },
-    [colors, actionBusy, handleRequest, handleAccept],
+    [colors, actionBusy, handleRequest, handleAccept, highlightUserId],
   );
+
+  // Deep-link from a contact's activity: scroll to the highlighted attendee.
+  useEffect(() => {
+    if (!highlightUserId || didScrollToHighlight.current) return;
+    const items = data?.items ?? [];
+    const index = items.findIndex((a) => a.user.id === highlightUserId);
+    if (index < 0) return;
+    didScrollToHighlight.current = true;
+    // Give the list a beat to render before scrolling.
+    const t = setTimeout(() => {
+      try {
+        listRef.current?.scrollToIndex({
+          index,
+          animated: true,
+          viewPosition: 0.2,
+        });
+      } catch {
+        // Non-fatal — the row is still highlighted.
+      }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [highlightUserId, data]);
 
   const isAttendee = state?.is_attendee ?? false;
   const isLive = state?.event_live ?? false;
@@ -395,9 +425,16 @@ export default function PeopleAtEventScreen() {
           </View>
 
           <FlatList
+            ref={listRef}
             data={data?.items ?? []}
             keyExtractor={(a) => String(a.user.id)}
             renderItem={renderAttendee}
+            onScrollToIndexFailed={({ index, averageItemLength }) => {
+              listRef.current?.scrollToOffset({
+                offset: Math.max(0, index * (averageItemLength || 76)),
+                animated: true,
+              });
+            }}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}

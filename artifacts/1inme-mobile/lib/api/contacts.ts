@@ -111,6 +111,12 @@ export type ContactActivityItem = {
     form_id?: number;
     thread_id?: number;
     invoice_id?: number;
+    /** Per-record ids so destination screens can highlight the exact record. */
+    order_id?: number;
+    booking_id?: number;
+    rsvp_id?: number;
+    ticket_id?: number;
+    user_id?: number;
   };
 };
 
@@ -129,16 +135,22 @@ export function contactActivityHref(
     case "form_submissions":
       return refs.form_id ? `/forms/${refs.form_id}` : null;
     case "restaurant_orders":
-      return refs.link_id ? `/links/${refs.link_id}/restaurant-orders` : null;
+      return refs.link_id
+        ? `/links/${refs.link_id}/restaurant-orders${refs.order_id ? `?highlight=${refs.order_id}` : ""}`
+        : null;
     case "store_orders":
-      return refs.link_id ? `/links/${refs.link_id}/store-orders` : null;
+      return refs.link_id
+        ? `/links/${refs.link_id}/store-orders${refs.order_id ? `?highlight=${refs.order_id}` : ""}`
+        : null;
     case "bookings":
       return refs.link_id
-        ? `/links/${refs.link_id}/service-booking-dashboard`
+        ? `/links/${refs.link_id}/service-booking-dashboard${refs.booking_id ? `?highlight=${refs.booking_id}` : ""}`
         : null;
     case "rsvps":
     case "event_tickets":
-      return refs.alias ? `/events/people/${encodeURIComponent(refs.alias)}` : null;
+      return refs.alias
+        ? `/events/people/${encodeURIComponent(refs.alias)}${refs.user_id ? `?highlight_user=${refs.user_id}` : ""}`
+        : null;
     case "product_orders":
       return "/orders";
     case "reviews":

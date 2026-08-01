@@ -90,7 +90,7 @@ class ContactActivityService
                 'subtitle' => ucfirst((string) $o->status),
                 'date'     => optional($o->created_at)->toIso8601String(),
                 'url'      => $o->link_id ? route('user.links.restaurant.orders', $o->link_id) : null,
-                'refs'     => (object) array_filter(['link_id' => (int) $o->link_id]),
+                'refs'     => (object) array_filter(['link_id' => (int) $o->link_id, 'order_id' => (int) $o->id]),
             ])->all());
 
         // -- Store orders -----------------------------------------------------
@@ -103,7 +103,7 @@ class ContactActivityService
                 'subtitle' => ucfirst((string) $o->status),
                 'date'     => optional($o->created_at)->toIso8601String(),
                 'url'      => $o->link_id ? route('user.links.store.orders', $o->link_id) : null,
-                'refs'     => (object) array_filter(['link_id' => (int) $o->link_id]),
+                'refs'     => (object) array_filter(['link_id' => (int) $o->link_id, 'order_id' => (int) $o->id]),
             ])->all());
 
         // -- Bookings ---------------------------------------------------------
@@ -116,7 +116,7 @@ class ContactActivityService
                 'subtitle' => ucfirst((string) $b->status),
                 'date'     => optional($b->created_at)->toIso8601String(),
                 'url'      => $b->link_id ? route('user.links.service-booking.bookings', $b->link_id) : null,
-                'refs'     => (object) array_filter(['link_id' => (int) $b->link_id]),
+                'refs'     => (object) array_filter(['link_id' => (int) $b->link_id, 'booking_id' => (int) $b->id]),
             ])->all());
 
         // -- RSVPs -------------------------------------------------------------
@@ -129,7 +129,14 @@ class ContactActivityService
                 'subtitle' => ucfirst((string) $r->status),
                 'date'     => optional($r->created_at)->toIso8601String(),
                 'url'      => $r->link_id ? route('user.links.rsvps.index', $r->link_id) : null,
-                'refs'     => (object) array_filter(['link_id' => (int) $r->link_id, 'alias' => (string) ($r->link?->alias ?? '')]),
+                'refs'     => (object) array_filter([
+                    'link_id' => (int) $r->link_id,
+                    'alias'   => (string) ($r->link?->alias ?? ''),
+                    'rsvp_id' => (int) $r->id,
+                    // The attendees screen is keyed by account id — best-effort
+                    // via the contact's attached Sayzio account.
+                    'user_id' => (int) ($contact->biolink_user_id ?? 0),
+                ]),
             ])->all());
 
         // -- Event tickets --------------------------------------------------------
@@ -142,7 +149,12 @@ class ContactActivityService
                 'subtitle' => $t->code ? ('Ticket ' . $t->code) : null,
                 'date'     => optional($t->created_at)->toIso8601String(),
                 'url'      => $t->link_id ? route('user.links.ics.tickets', $t->link_id) : null,
-                'refs'     => (object) array_filter(['link_id' => (int) $t->link_id, 'alias' => (string) ($t->link?->alias ?? '')]),
+                'refs'     => (object) array_filter([
+                    'link_id'   => (int) $t->link_id,
+                    'alias'     => (string) ($t->link?->alias ?? ''),
+                    'ticket_id' => (int) $t->id,
+                    'user_id'   => (int) ($t->buyer_user_id ?: ($contact->biolink_user_id ?? 0)),
+                ]),
             ])->all());
 
         // -- Product purchases -------------------------------------------------

@@ -36,14 +36,20 @@ const statusColors = (
 
 export default function RestaurantOrdersScreen() {
   const colors = useColors();
-  const params = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string; highlight?: string }>();
   const linkId = String(params.id ?? "");
+  const highlightId = Number(params.highlight ?? 0) || null;
   const qc = useQueryClient();
 
-  const [filter, setFilter] = useState<"open" | "all">("open");
+  // Deep-links land on "all" so the highlighted order is visible even when closed.
+  const [filter, setFilter] = useState<"open" | "all">(
+    highlightId ? "all" : "open",
+  );
   const [orders, setOrders] = useState<OwnerOrder[]>([]);
   const [openCount, setOpenCount] = useState(0);
   const cursor = useRef<string | null>(null);
+  const scrollRef = useRef<ScrollView | null>(null);
+  const didScrollToHighlight = useRef(false);
 
   const initial = useQuery({
     queryKey: ["restaurant-owner-orders", linkId],
@@ -138,7 +144,10 @@ export default function RestaurantOrdersScreen() {
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+      >
         {visible.length === 0 ? (
           <View style={styles.center}>
             <Feather name="inbox" size={32} color={colors.mutedForeground} />
@@ -151,9 +160,26 @@ export default function RestaurantOrdersScreen() {
         {visible.map((o) => (
           <View
             key={o.id}
+            onLayout={
+              highlightId === o.id
+                ? (e) => {
+                    if (!didScrollToHighlight.current) {
+                      didScrollToHighlight.current = true;
+                      scrollRef.current?.scrollTo({
+                        y: Math.max(0, e.nativeEvent.layout.y - 12),
+                        animated: true,
+                      });
+                    }
+                  }
+                : undefined
+            }
             style={[
               styles.card,
               { backgroundColor: colors.card, borderColor: colors.border },
+              highlightId === o.id && {
+                borderColor: colors.primary,
+                borderWidth: 2,
+              },
             ]}
           >
             <View style={styles.cardHead}>

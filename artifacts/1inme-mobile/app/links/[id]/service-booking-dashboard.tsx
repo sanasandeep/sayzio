@@ -48,14 +48,20 @@ function formatSlot(iso: string | null): string {
 
 export default function ServiceBookingDashboardScreen() {
   const colors = useColors();
-  const params = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string; highlight?: string }>();
   const linkId = String(params.id ?? "");
+  const highlightId = Number(params.highlight ?? 0) || null;
   const qc = useQueryClient();
 
-  const [filter, setFilter] = useState<"open" | "all">("open");
+  // Deep-links land on "all" so the highlighted booking is visible even when closed.
+  const [filter, setFilter] = useState<"open" | "all">(
+    highlightId ? "all" : "open",
+  );
   const [bookings, setBookings] = useState<OwnerBooking[]>([]);
   const [openCount, setOpenCount] = useState(0);
   const cursor = useRef<string | null>(null);
+  const scrollRef = useRef<ScrollView | null>(null);
+  const didScrollToHighlight = useRef(false);
 
   const initial = useQuery({
     queryKey: ["service-booking-owner-bookings", linkId],
@@ -157,7 +163,10 @@ export default function ServiceBookingDashboardScreen() {
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+      >
         {visible.length === 0 ? (
           <View style={styles.center}>
             <Feather name="calendar" size={32} color={colors.mutedForeground} />
@@ -170,9 +179,26 @@ export default function ServiceBookingDashboardScreen() {
         {visible.map((b) => (
           <View
             key={b.id}
+            onLayout={
+              highlightId === b.id
+                ? (e) => {
+                    if (!didScrollToHighlight.current) {
+                      didScrollToHighlight.current = true;
+                      scrollRef.current?.scrollTo({
+                        y: Math.max(0, e.nativeEvent.layout.y - 12),
+                        animated: true,
+                      });
+                    }
+                  }
+                : undefined
+            }
             style={[
               styles.card,
               { backgroundColor: colors.card, borderColor: colors.border },
+              highlightId === b.id && {
+                borderColor: colors.primary,
+                borderWidth: 2,
+              },
             ]}
           >
             <View style={styles.cardHead}>
