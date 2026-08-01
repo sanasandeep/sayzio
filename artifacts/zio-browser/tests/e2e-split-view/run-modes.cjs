@@ -406,6 +406,81 @@ const FOCUS_FRAME = 'div[title="Address bar controls this pane"]';
       'both companion surfaces removed after leaving files+zio');
     st = await tabState(page, tabId);
     ok(String(st?.url ?? '').includes('/d'), 'website pane URL intact at the end of the mode tour');
+
+    // ── Close-while-detached teardown (blank-pane / orphaned-window leak) ──
+    // Closing a split tab while ANOTHER tab is active exercises the teardown
+    // path for DETACHED companion views (secondView / dashboardView). If
+    // closeTab doesn't destroy them, they leak WebContentsViews that linger
+    // as orphaned windows in app.windows().
+    console.log('\n── Close-while-detached teardown ──');
+
+    const windowCount = () => app.windows().length;
+    const hasWindowWith = (part) => app.windows().some((p) => p.url().includes(part));
+    const windowUrls = () => app.windows().map((p) => p.url().slice(0, 80)).join(' | ');
+    // Baseline: chrome window + the single active browser tab's pane.
+    const baseline = windowCount();
+
+    // Case 1: Website+Website split closed while detached.
+    const splitTab = await page.evaluate((url) => window.zio.tabs.create(url), `${base}/x`);
+    await waitFor(async () => (await page.evaluate(() => window.zio.tabs.getActive())) === splitTab,
+      'split tab active', 10000);
+    await panePage(app, '/x');
+    await page.evaluate((id) => window.zio.tabs.setMode(id, 'browser+browser'), splitTab);
+    await waitFor(async () => (await tabState(page, splitTab))?.mode === 'browser+browser',
+      'split tab in browser+browser', 10000);
+    // Primary (/x) + second pane both register as extra windows.
+    await waitFor(() => windowCount() >= baseline + 2,
+      'both Website+Website pane windows registered', 20000);
+    ok(true, 'Website+Website split tab created with both native pane windows');
+
+    // Detach it: activate the original tab, then close the DETACHED split tab.
+    await page.evaluate((id) => window.zio.tabs.activate(id), tabId);
+    await waitFor(async () => (await page.evaluate(() => window.zio.tabs.getActive())) === tabId,
+      'original tab active again (browser+browser case)', 10000);
+    ok((await tabState(page, splitTab))?.mode === 'browser+browser',
+      'split tab keeps browser+browser mode while detached');
+    await page.evaluate((id) => window.zio.tabs.close(id), splitTab);
+    try {
+      await waitFor(() => windowCount() === baseline && !hasWindowWith('/x'),
+        'split pane windows destroyed after close-while-detached', 20000);
+      ok(true, 'closing a detached Website+Website tab destroys BOTH pane windows');
+    } catch (e) {
+      ok(false, `closing a detached Website+Website tab leaks pane windows (windows=${windowCount()} baseline=${baseline} hasX=${hasWindowWith('/x')} urls=[${windowUrls()}])`);
+    }
+    await assertPaneMarker(app, '/d', 'marker-d',
+      'remaining tab still renders after closing the detached Website+Website tab');
+
+    // Case 2: Dashboard+Website split closed while detached (dashboardView leak).
+    const dashTab = await page.evaluate((url) => window.zio.tabs.create(url), `${base}/y`);
+    await waitFor(async () => (await page.evaluate(() => window.zio.tabs.getActive())) === dashTab,
+      'dashboard-split tab active', 10000);
+    await panePage(app, '/y');
+    await page.evaluate((id) => window.zio.tabs.setMode(id, 'dashboard+browser'), dashTab);
+    await waitFor(async () => (await tabState(page, dashTab))?.mode === 'dashboard+browser',
+      'tab in dashboard+browser', 10000);
+    // Website (/y) pane + dashboard pane both register as extra windows.
+    await waitFor(() => windowCount() >= baseline + 2,
+      'dashboard + website pane windows registered', 20000);
+    ok(true, 'Dashboard+Website tab created with both native pane windows');
+
+    await page.evaluate((id) => window.zio.tabs.activate(id), tabId);
+    await waitFor(async () => (await page.evaluate(() => window.zio.tabs.getActive())) === tabId,
+      'original tab active again (dashboard+browser case)', 10000);
+    ok((await tabState(page, dashTab))?.mode === 'dashboard+browser',
+      'dashboard-split tab keeps its mode while detached');
+    await page.evaluate((id) => window.zio.tabs.close(id), dashTab);
+    try {
+      await waitFor(() => windowCount() === baseline && !hasWindowWith('/y'),
+        'dashboard pane windows destroyed after close-while-detached', 20000);
+      ok(true, 'closing a detached Dashboard+Website tab destroys website AND dashboard pane windows');
+    } catch (e) {
+      ok(false, `closing a detached Dashboard+Website tab leaks pane windows (windows=${windowCount()} baseline=${baseline} hasY=${hasWindowWith('/y')} urls=[${windowUrls()}])`);
+    }
+    await assertPaneMarker(app, '/d', 'marker-d',
+      'remaining tab still renders after closing the detached Dashboard+Website tab');
+    st = await tabState(page, tabId);
+    ok(st?.mode === 'browser' && String(st?.url ?? '').includes('/d'),
+      'remaining tab state intact after both close-while-detached teardowns');
   } finally {
     await app.close().catch(() => {});
     server.close();

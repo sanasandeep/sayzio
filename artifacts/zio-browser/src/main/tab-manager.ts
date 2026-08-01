@@ -927,9 +927,22 @@ export class TabManager {
     const wasActive = this.activeTabId === id;
     const idx = this.tabOrder.indexOf(id);
 
-    if (!tab.view.webContents.isDestroyed()) {
-      tab.view.webContents.close();
-    }
+    // webContents.close() is a polite window.close(): a view whose document
+    // never committed (blank second pane) or is still mid-load (dashboard
+    // pane on a closed-while-inactive tab) ignores it, leaking the
+    // WebContentsView as an orphaned window. Force-destroy shortly after if
+    // the contents are still alive.
+    const closeThenDestroy = (wc: Electron.WebContents): void => {
+      if (wc.isDestroyed()) return;
+      wc.close();
+      setTimeout(() => {
+        if (!wc.isDestroyed()) {
+          (wc as unknown as { destroy?: () => void }).destroy?.();
+        }
+      }, 250);
+    };
+
+    closeThenDestroy(tab.view.webContents);
 
     try {
       this.win.contentView.removeChildView(tab.view);
@@ -940,9 +953,7 @@ export class TabManager {
     for (const extra of [tab.dashboardView, tab.secondView]) {
       if (!extra) continue;
       try { this.win.contentView.removeChildView(extra); } catch { }
-      if (!extra.webContents.isDestroyed()) {
-        extra.webContents.close();
-      }
+      closeThenDestroy(extra.webContents);
     }
     tab.dashboardView = null;
     tab.secondView = null;
