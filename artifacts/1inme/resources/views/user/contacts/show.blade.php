@@ -25,6 +25,26 @@
     </div>
     @endif
 
+    {{-- Recent merges into this contact that can still be undone (30-day window) --}}
+    @foreach(($undoableMerges ?? collect()) as $audit)
+    <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between gap-3 flex-wrap" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.25); color: var(--text-primary);">
+        <span style="color:var(--text-muted);">
+            <i class="fas fa-rotate-left mr-1.5" style="color:#3d6bff;"></i>
+            <span class="font-semibold" style="color:var(--text-primary);">{{ $audit->sourceName() }}</span>
+            was merged into this contact {{ $audit->created_at?->diffForHumans() }}.
+        </span>
+        <form method="POST" action="{{ route('user.contacts.merges.undo', $audit->id) }}">
+            @csrf
+            <button type="submit"
+                    onclick="return window.themedConfirmSubmit && window.themedConfirmSubmit(this.form, {title:'Undo this merge?',message:'“{{ str_replace("'", '', $audit->sourceName()) }}” will be restored as its own contact, and its activity will move back to it.',confirmText:'Undo merge',confirmIcon:'fa-rotate-left',iconClass:'fa-rotate-left'}) || confirm('Undo this merge? The merged contact will be restored.')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap"
+                    style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.30);">
+                <i class="fas fa-rotate-left mr-1"></i> Undo merge
+            </button>
+        </form>
+    </div>
+    @endforeach
+
     <div class="card-premium p-6">
         <div class="flex items-start gap-4 mb-5">
             <div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white flex-shrink-0" style="background: linear-gradient(135deg,#3d6bff,#ec4899);">

@@ -1466,6 +1466,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('contacts/{contact}/merge-duplicate',   [ContactController::class, 'mergeContacts'])->middleware('workspace.can:settings.edit')->name('contacts.merge-duplicate');
         Route::get ('contacts/{contact}/merge-candidates',  [ContactController::class, 'mergeCandidates'])->whereNumber('contact')->middleware('workspace.can:settings.view')->name('contacts.merge-candidates');
         Route::post('contacts/{contact}/merge-into',        [ContactController::class, 'mergeInto'])->whereNumber('contact')->middleware(['workspace.can:settings.edit', 'throttle:30,1'])->name('contacts.merge-into');
+        Route::post('contacts/merges/{audit}/undo',          [ContactController::class, 'undoMerge'])->whereNumber('audit')->middleware(['workspace.can:settings.edit', 'throttle:30,1'])->name('contacts.merges.undo');
         Route::get('contacts',                              [ContactController::class, 'index'])->middleware(['workspace.can:settings.view', 'contacts.sync-on-open'])->name('contacts.index');
         // Consolidated "everything I need to follow up on" list. Must be
         // registered before the contacts/{contact} wildcard below so the

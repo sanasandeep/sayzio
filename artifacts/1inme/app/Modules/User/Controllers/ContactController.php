@@ -231,7 +231,21 @@ class ContactController extends Controller
         $activityGroups = $activityService->timeline($contact);
         $followerBridge = $activityService->followerBridge($contact);
 
-        return view('user.contacts.show', compact('contact', 'biolinkPreview', 'shareContext', 'activityGroups', 'followerBridge'));
+        // Recent merges into this contact that can still be undone.
+        $undoableMerges = collect();
+        if ($contact->user_id === workspace_owner_id()) {
+            try {
+                $undoableMerges = \App\Modules\User\Models\ContactMergeAudit::query()
+                    ->where('user_id', $contact->user_id)
+                    ->where('primary_contact_id', $contact->id)
+                    ->undoable()
+                    ->orderByDesc('id')
+                    ->limit(10)
+                    ->get();
+            } catch (\Throwable) {}
+        }
+
+        return view('user.contacts.show', compact('contact', 'biolinkPreview', 'shareContext', 'activityGroups', 'followerBridge', 'undoableMerges'));
     }
 
     public function edit(Request $request, Contact $contact)
@@ -491,7 +505,48 @@ class ContactController extends Controller
         }
 
         $groupCount = count($groups);
-        return view('user.contacts.duplicates', compact('groups', 'groupCount'));
+
+        // Recently merged contacts that can still be undone — surfaced here
+        // so an accidental merge can be reversed right where it happened.
+        $undoableMerges = collect();
+        try {
+            $undoableMerges = \App\Modules\User\Models\ContactMergeAudit::query()
+                ->where('user_id', $userId)
+                ->undoable()
+                ->orderByDesc('id')
+                ->limit(10)
+                ->get();
+        } catch (\Throwable) {}
+
+        return view('user.contacts.duplicates', compact('groups', 'groupCount', 'undoableMerges'));
+    }
+
+    /**
+     * Undo a recent contact merge: recreates the merged-away contact from
+     * the audit snapshot and repoints the recorded rows back to it.
+     *
+     * POST /contacts/merges/{audit}/undo
+     * Owner-safe (audit must belong to the workspace owner), idempotent
+     * (the undo service locks + stamps the audit row) and time-limited
+     * (ContactMergeAudit::UNDO_WINDOW_DAYS).
+     */
+    public function undoMerge(Request $request, int $audit)
+    {
+        $row = \App\Modules\User\Models\ContactMergeAudit::query()
+            ->whereKey($audit)
+            ->where('user_id', workspace_owner_id())
+            ->first();
+        abort_if(!$row, 404);
+
+        try {
+            $restored = app(\App\Modules\User\Services\Contacts\ContactMergeUndoService::class)->undo($row);
+        } catch (\Throwable $e) {
+            \Log::warning('ContactController::undoMerge failed', ['audit' => $row->id, 'err' => $e->getMessage()]);
+            return back()->with('error', 'Could not undo the merge: ' . $e->getMessage());
+        }
+
+        return redirect()->route('user.contacts.show', $restored)
+            ->with('success', 'Merge undone — "' . ($restored->nameForDisplay() ?: 'contact') . '" has been restored with its activity.');
     }
 
     /**
