@@ -88,6 +88,7 @@ function buildZioMock() {
       unreadCount: resolved(0),
       add: resolved(undefined),
     },
+    notes: { countForHost: resolved(0) },
     sync: { pendingCount: resolved(0), pendingByProfile: resolved([]) },
     tracker: { isEnabled: resolved(false), getCount: resolved(0) },
     audio: { getMuteAll: resolved(false) },

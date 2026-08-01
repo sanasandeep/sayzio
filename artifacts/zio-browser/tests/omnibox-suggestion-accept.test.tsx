@@ -90,6 +90,7 @@ function buildZioMock() {
       unreadCount: resolved(0),
       add: resolved(undefined),
     },
+    notes: { countForHost: resolved(0) },
     sync: {
       pendingCount: resolved(0),
       pendingByProfile: resolved([]),
