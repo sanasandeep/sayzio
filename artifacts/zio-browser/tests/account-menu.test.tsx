@@ -131,8 +131,10 @@ describe('AccountButton menu (browser-mode tab strip)', () => {
 
     const btn = avatarButton();
     // Anchor position at click time.
+    // Keep the button near the right edge (like the real avatar) so the
+    // narrow-window clamping in computeMenuPos never kicks in here.
     btn.getBoundingClientRect = () =>
-      ({ top: 0, bottom: 30, left: 100, right: 130, width: 30, height: 30, x: 100, y: 0, toJSON: () => ({}) }) as DOMRect;
+      ({ top: 0, bottom: 30, left: 740, right: 770, width: 30, height: 30, x: 740, y: 0, toJSON: () => ({}) }) as DOMRect;
     (window as unknown as { innerWidth: number }).innerWidth = 800;
 
     await act(async () => {
@@ -146,25 +148,25 @@ describe('AccountButton menu (browser-mode tab strip)', () => {
       return node!;
     }
     expect(fixedMenu().style.top).toBe('36px');
-    expect(fixedMenu().style.right).toBe(`${800 - 130}px`);
+    expect(fixedMenu().style.right).toBe(`${800 - 770}px`);
 
     // Simulate the button moving (tab strip scrolled / window resized).
     btn.getBoundingClientRect = () =>
-      ({ top: 0, bottom: 30, left: 60, right: 90, width: 30, height: 30, x: 60, y: 0, toJSON: () => ({}) }) as DOMRect;
+      ({ top: 0, bottom: 30, left: 530, right: 560, width: 30, height: 30, x: 530, y: 0, toJSON: () => ({}) }) as DOMRect;
     (window as unknown as { innerWidth: number }).innerWidth = 600;
 
     await act(async () => {
       window.dispatchEvent(new Event('resize'));
     });
-    expect(fixedMenu().style.right).toBe(`${600 - 90}px`);
+    expect(fixedMenu().style.right).toBe(`${600 - 560}px`);
 
     // Scroll of an ancestor (scroll doesn't bubble; component listens in capture).
     btn.getBoundingClientRect = () =>
-      ({ top: 0, bottom: 30, left: 40, right: 70, width: 30, height: 30, x: 40, y: 0, toJSON: () => ({}) }) as DOMRect;
+      ({ top: 0, bottom: 30, left: 510, right: 540, width: 30, height: 30, x: 510, y: 0, toJSON: () => ({}) }) as DOMRect;
     await act(async () => {
       container.dispatchEvent(new Event('scroll'));
     });
-    expect(fixedMenu().style.right).toBe(`${600 - 70}px`);
+    expect(fixedMenu().style.right).toBe(`${600 - 540}px`);
   });
 
   it('Sign out clears auth, releases the overlay, and reverts to a Sign in button', async () => {
