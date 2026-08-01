@@ -481,6 +481,71 @@ const FOCUS_FRAME = 'div[title="Address bar controls this pane"]';
     st = await tabState(page, tabId);
     ok(st?.mode === 'browser' && String(st?.url ?? '').includes('/d'),
       'remaining tab state intact after both close-while-detached teardowns');
+
+    // ── Close-while-ACTIVE teardown (attached panes + immediate neighbor activation) ──
+    // The mirror case: closing the ACTIVE split tab itself (Ctrl+W while in a
+    // split). Here the pane views are ATTACHED to the window when closeTab
+    // runs, and closeTab immediately activates the neighbor tab — a different
+    // path from the detached teardown above. Assert both pane windows are
+    // destroyed (back to baseline) and the auto-activated neighbor paints.
+    console.log('\n── Close-while-active teardown ──');
+
+    // Case 1: Website+Website closed while it is the active tab.
+    const activeSplitTab = await page.evaluate((url) => window.zio.tabs.create(url), `${base}/p`);
+    await waitFor(async () => (await page.evaluate(() => window.zio.tabs.getActive())) === activeSplitTab,
+      'active-split tab active', 10000);
+    await panePage(app, '/p');
+    await page.evaluate((id) => window.zio.tabs.setMode(id, 'browser+browser'), activeSplitTab);
+    await waitFor(async () => (await tabState(page, activeSplitTab))?.mode === 'browser+browser',
+      'active tab in browser+browser', 10000);
+    await waitFor(() => windowCount() >= baseline + 2,
+      'both Website+Website pane windows registered (active case)', 20000);
+    ok(true, 'active Website+Website split created with both native pane windows');
+
+    // Close it WHILE ACTIVE — panes are attached, neighbor activates immediately.
+    await page.evaluate((id) => window.zio.tabs.close(id), activeSplitTab);
+    try {
+      await waitFor(() => windowCount() === baseline && !hasWindowWith('/p'),
+        'split pane windows destroyed after close-while-active', 20000);
+      ok(true, 'closing the ACTIVE Website+Website tab destroys BOTH pane windows');
+    } catch (e) {
+      ok(false, `closing the ACTIVE Website+Website tab leaks pane windows (windows=${windowCount()} baseline=${baseline} hasP=${hasWindowWith('/p')} urls=[${windowUrls()}])`);
+    }
+    // The neighbor tab must auto-activate and actually paint (not blank).
+    await waitFor(async () => (await page.evaluate(() => window.zio.tabs.getActive())) === tabId,
+      'neighbor tab auto-activated after close-while-active (browser+browser case)', 10000);
+    ok(true, 'closing the active Website+Website tab auto-activates the neighbor tab');
+    await assertPaneMarker(app, '/d', 'marker-d',
+      'auto-activated neighbor tab renders after closing the active Website+Website tab');
+
+    // Case 2: Dashboard+Website closed while active (attached dashboardView).
+    const activeDashTab = await page.evaluate((url) => window.zio.tabs.create(url), `${base}/q`);
+    await waitFor(async () => (await page.evaluate(() => window.zio.tabs.getActive())) === activeDashTab,
+      'active dashboard-split tab active', 10000);
+    await panePage(app, '/q');
+    await page.evaluate((id) => window.zio.tabs.setMode(id, 'dashboard+browser'), activeDashTab);
+    await waitFor(async () => (await tabState(page, activeDashTab))?.mode === 'dashboard+browser',
+      'active tab in dashboard+browser', 10000);
+    await waitFor(() => windowCount() >= baseline + 2,
+      'dashboard + website pane windows registered (active case)', 20000);
+    ok(true, 'active Dashboard+Website split created with both native pane windows');
+
+    await page.evaluate((id) => window.zio.tabs.close(id), activeDashTab);
+    try {
+      await waitFor(() => windowCount() === baseline && !hasWindowWith('/q'),
+        'dashboard pane windows destroyed after close-while-active', 20000);
+      ok(true, 'closing the ACTIVE Dashboard+Website tab destroys website AND dashboard pane windows');
+    } catch (e) {
+      ok(false, `closing the ACTIVE Dashboard+Website tab leaks pane windows (windows=${windowCount()} baseline=${baseline} hasQ=${hasWindowWith('/q')} urls=[${windowUrls()}])`);
+    }
+    await waitFor(async () => (await page.evaluate(() => window.zio.tabs.getActive())) === tabId,
+      'neighbor tab auto-activated after close-while-active (dashboard+browser case)', 10000);
+    ok(true, 'closing the active Dashboard+Website tab auto-activates the neighbor tab');
+    await assertPaneMarker(app, '/d', 'marker-d',
+      'auto-activated neighbor tab renders after closing the active Dashboard+Website tab');
+    st = await tabState(page, tabId);
+    ok(st?.mode === 'browser' && String(st?.url ?? '').includes('/d'),
+      'neighbor tab state intact after both close-while-active teardowns');
   } finally {
     await app.close().catch(() => {});
     server.close();
