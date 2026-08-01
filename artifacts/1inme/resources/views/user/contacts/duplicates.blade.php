@@ -87,7 +87,7 @@
         <form method="POST" action="{{ route('user.contacts.duplicates.merge-all') }}">
             @csrf
             <button type="submit"
-                    onclick="return window.themedConfirmSubmit && window.themedConfirmSubmit(this.form, {title:'Merge all duplicates?',message:'This will merge all {{ $groupCount }} group{{ $groupCount === 1 ? '' : 's' }} at once. The first contact in each group keeps all data; the others are deleted. This cannot be undone.',confirmText:'Merge all',confirmIcon:'fa-code-merge',iconClass:'fa-code-merge'}) || confirm('Merge all {{ $groupCount }} duplicate group{{ $groupCount === 1 ? '' : 's' }}? The first contact in each group keeps all data; the others are deleted.')"
+                    onclick="return window.themedConfirmSubmit && window.themedConfirmSubmit(this.form, {title:'Merge all duplicates?',message:'This will merge all {{ $groupCount }} group{{ $groupCount === 1 ? '' : 's' }} at once. The first contact in each group keeps all data; the others are merged into it. You can undo each merge from this page for 30 days.',confirmText:'Merge all',confirmIcon:'fa-code-merge',iconClass:'fa-code-merge'}) || confirm('Merge all {{ $groupCount }} duplicate group{{ $groupCount === 1 ? '' : 's' }}? The first contact in each group keeps all data; the others are merged into it. You can undo each merge for 30 days.')"
                     class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition"
                     style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
                 <i class="fas fa-code-merge text-xs"></i> Merge all
@@ -220,7 +220,7 @@
             @endforeach
             <div class="flex items-center gap-3 flex-wrap">
                 <button type="submit"
-                        onclick="return window.themedConfirmSubmit && window.themedConfirmSubmit(this.form, {title:'Merge contacts?',message:'The selected primary will keep all data from both contacts. The others will be deleted.',confirmText:'Merge',confirmIcon:'fa-merge',iconClass:'fa-merge'}) || confirm('Merge these contacts? The primary keeps all data; the others are deleted.')"
+                        onclick="return window.themedConfirmSubmit && window.themedConfirmSubmit(this.form, {title:'Merge contacts?',message:'The selected primary will keep all data from the merged contacts. You can undo each merge from this page for 30 days.',confirmText:'Merge',confirmIcon:'fa-merge',iconClass:'fa-merge'}) || confirm('Merge these contacts? The primary keeps all data. You can undo each merge for 30 days.')"
                         class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition"
                         style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
                     <i class="fas fa-code-merge text-xs"></i> Merge into primary

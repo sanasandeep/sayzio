@@ -157,6 +157,54 @@ class ContactMergeUndoTest extends TestCase
         $this->assertNull($audit->refresh()->undone_at);
     }
 
+    public function test_merge_all_duplicates_records_one_undoable_audit_per_absorbed_contact(): void
+    {
+        $owner = $this->makeUser('owner');
+        $this->actAsOwner($owner);
+
+        // Two independent duplicate groups: a phone-matched pair and a
+        // phone-matched trio (1 primary + 2 losers = 3 absorbed contacts).
+        $mkPhone = function (string $name, string $phone) use ($owner): Contact {
+            $c = Contact::create(['user_id' => $owner->id, 'display_name' => $name, 'is_auto_captured' => true]);
+            ContactPhone::create(['contact_id' => $c->id, 'value' => $phone, 'value_e164' => $phone, 'is_primary' => true]);
+            return $c;
+        };
+
+        $a1 = $mkPhone('Pair A1', '+15550001111');
+        $a2 = $mkPhone('Pair A2', '+15550001111');
+        $b1 = $mkPhone('Trio B1', '+15550002222');
+        $b2 = $mkPhone('Trio B2', '+15550002222');
+        $b3 = $mkPhone('Trio B3', '+15550002222');
+
+        $resp = $this->post(route('user.contacts.duplicates.merge-all'));
+        $resp->assertRedirect(route('user.contacts.duplicates'));
+        $resp->assertSessionHas('success');
+
+        $audits = ContactMergeAudit::where('user_id', $owner->id)->get();
+        $this->assertCount(3, $audits, 'bulk merge must record one audit row per absorbed contact');
+
+        // Every absorbed (non-primary) contact has its own undoable audit
+        // pointing at the surviving primary of its group.
+        $expected = [
+            $a2->id => $a1->id,
+            $b2->id => $b1->id,
+            $b3->id => $b1->id,
+        ];
+        foreach ($expected as $sourceId => $primaryId) {
+            $audit = $audits->firstWhere('source_contact_id', $sourceId);
+            $this->assertNotNull($audit, "absorbed contact {$sourceId} must have an audit row");
+            $this->assertSame($primaryId, $audit->primary_contact_id);
+            $this->assertTrue($audit->isUndoable());
+        }
+
+        // And one of them actually undoes: the absorbed contact comes back.
+        $audit = $audits->firstWhere('source_contact_id', $b3->id);
+        $this->post(route('user.contacts.merges.undo', $audit->id))->assertSessionHas('success');
+        $restored = Contact::find($audit->refresh()->restored_contact_id);
+        $this->assertNotNull($restored);
+        $this->assertSame('Trio B3', $restored->display_name);
+    }
+
     public function test_undo_does_not_steal_rows_remerged_elsewhere(): void
     {
         $owner = $this->makeUser('owner');

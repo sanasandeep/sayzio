@@ -119,7 +119,7 @@ export default function ContactDuplicatesScreen() {
         .filter((c) => c.id !== primaryId)
         .map((c) => c.display_name)
         .join(", ");
-      const message = `Merge "${loserNames}" into "${primary?.display_name ?? "primary"}"? This cannot be undone.`;
+      const message = `Merge "${loserNames}" into "${primary?.display_name ?? "primary"}"? You can undo each merge for 30 days.`;
 
       const confirm = () => {
         setBusy((b) => ({ ...b, [groupIdx]: true }));
@@ -155,7 +155,7 @@ export default function ContactDuplicatesScreen() {
   const handleMergeAll = useCallback(() => {
     const count = groups.length;
     if (count === 0 || bulkBusy) return;
-    const message = `Merge all ${count} duplicate ${count === 1 ? "group" : "groups"} at once? The first contact in each group keeps all data; the others are deleted. This cannot be undone.`;
+    const message = `Merge all ${count} duplicate ${count === 1 ? "group" : "groups"} at once? The first contact in each group keeps all data; the others are merged into it. You can undo each merge for 30 days.`;
 
     const confirmAction = () => {
       setBulkBusy(true);
