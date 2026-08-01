@@ -364,12 +364,15 @@ const PopoverShell = forwardRef<HTMLDivElement, { children: React.ReactNode; onC
         left: '50%',
         transform: 'translateX(-50%)',
         width: 340,
+        maxWidth: 'calc(100vw - 16px)',
+        maxHeight: 'calc(100vh - var(--chrome-height) - 12px)',
+        overflowY: 'auto',
         background: 'var(--color-bg-surface)',
         border: '1px solid var(--color-border)',
         borderRadius: 12,
         boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
         zIndex: 1000,
-        overflow: 'hidden',
+        overflowX: 'hidden',
       }}
     >
       {children}

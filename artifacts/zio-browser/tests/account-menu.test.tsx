@@ -160,7 +160,8 @@ describe('AccountButton menu (browser-mode tab strip)', () => {
     });
     expect(fixedMenu().style.right).toBe(`${600 - 560}px`);
 
-    // Scroll of an ancestor (scroll doesn't bubble; component listens in capture).
+    // Scroll of an ancestor (scroll doesn't bubble; the re-anchor hook
+    // listens at the document level in the capture phase).
     btn.getBoundingClientRect = () =>
       ({ top: 0, bottom: 30, left: 510, right: 540, width: 30, height: 30, x: 510, y: 0, toJSON: () => ({}) }) as DOMRect;
     await act(async () => {

@@ -96,10 +96,11 @@ export function AdBlockShieldPopover({ tabId, host, blockedCount, onClose }: Pro
         aria-label={`Ad blocking on ${host}`}
         style={{
           position: 'fixed',
-          top: 86,
-          right: 96,
+          top: 'max(8px, min(86px, calc(100vh - 140px)))',
+          right: 'max(8px, min(96px, calc(100vw - 316px)))',
           width: 300,
-          maxHeight: 'calc(100vh - 120px)',
+          maxWidth: 'calc(100vw - 16px)',
+          maxHeight: 'min(calc(100vh - 16px), max(132px, calc(100vh - 94px)))',
           overflowY: 'auto',
           background: 'var(--color-bg-surface)',
           border: '1px solid var(--color-border)',

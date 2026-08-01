@@ -139,7 +139,7 @@ export function TabSearchPopover({ onClose }: Props) {
         <div
           ref={listRef}
           style={{
-            maxHeight: 340,
+            maxHeight: 'min(340px, calc(100vh - 200px))',
             overflowY: 'auto',
             padding: '4px 0',
           }}

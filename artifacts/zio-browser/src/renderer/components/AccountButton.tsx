@@ -66,27 +66,6 @@ export function AccountButton({ onOpenAuth, compact = false }: Props) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
 
-  // Keep the fixed-position menu anchored to the avatar: the coordinates are
-  // captured at click time, so a window resize or a horizontal scroll of the
-  // tab strip would otherwise leave the menu floating at its old spot.
-  useEffect(() => {
-    if (!open) return;
-    function reanchor() {
-      const btn = ref.current?.querySelector('button');
-      if (!btn) return;
-      const rect = btn.getBoundingClientRect();
-      setMenuPos({ top: rect.bottom + 6, right: Math.max(8, window.innerWidth - rect.right) });
-    }
-    window.addEventListener('resize', reanchor);
-    // Capture phase catches scrolls of any ancestor (e.g. the tab strip),
-    // since scroll events don't bubble.
-    document.addEventListener('scroll', reanchor, true);
-    return () => {
-      window.removeEventListener('resize', reanchor);
-      document.removeEventListener('scroll', reanchor, true);
-    };
-  }, [open]);
-
   if (!user) {
     return (
       <button

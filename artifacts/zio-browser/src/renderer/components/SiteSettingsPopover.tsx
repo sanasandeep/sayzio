@@ -159,10 +159,11 @@ export function SiteSettingsPopover({ origin, onClose }: Props) {
         aria-label={`Settings for ${hostname}`}
         style={{
           position: 'fixed',
-          top: 86,
-          right: 130,
+          top: 'max(8px, min(86px, calc(100vh - 140px)))',
+          right: 'max(8px, min(130px, calc(100vw - 336px)))',
           width: 320,
-          maxHeight: 'calc(100vh - 120px)',
+          maxWidth: 'calc(100vw - 16px)',
+          maxHeight: 'min(calc(100vh - 16px), max(132px, calc(100vh - 94px)))',
           overflowY: 'auto',
           background: 'var(--color-bg-surface)',
           border: '1px solid var(--color-border)',

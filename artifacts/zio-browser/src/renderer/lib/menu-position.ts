@@ -48,8 +48,10 @@ export function computeMenuPos(rect: DOMRect, menuWidth: number): MenuPos {
 }
 
 /**
- * While `open`, re-anchor the menu to its trigger on window resize so it
- * never floats detached. If the trigger is gone, close the menu instead.
+ * While `open`, re-anchor the menu to its trigger on window resize and on
+ * any ancestor scroll (capture phase — scroll events don't bubble, and the
+ * trigger can live in a horizontally scrollable tab strip) so it never
+ * floats detached. If the trigger is gone, close the menu instead.
  */
 export function useMenuReanchor(
   open: boolean,
@@ -69,6 +71,10 @@ export function useMenuReanchor(
       setMenuPos(computeMenuPos(el.getBoundingClientRect(), menuWidth));
     }
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    document.addEventListener('scroll', handleResize, true);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      document.removeEventListener('scroll', handleResize, true);
+    };
   }, [open, menuWidth, triggerRef, setMenuPos, close]);
 }

@@ -6,6 +6,9 @@
  * The parent holds the ref-counted chrome overlay while this is open.
  */
 import { useState, useRef, useEffect } from 'react';
+import { computeMenuPos, useMenuReanchor, type MenuPos } from '../lib/menu-position';
+
+const MENU_WIDTH = 220;
 
 interface Props {
   anchorRef: React.RefObject<HTMLButtonElement | null>;
@@ -37,9 +40,11 @@ export function SharePopover({ anchorRef, pageUrl, pageTitle, canShorten, onClos
   const menuRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
 
-  const rect = anchorRef.current?.getBoundingClientRect();
-  const left = rect ? Math.max(8, rect.right - 220) : undefined;
-  const top = rect ? rect.bottom + 6 : undefined;
+  const [pos, setPos] = useState<MenuPos | null>(() => {
+    const rect = anchorRef.current?.getBoundingClientRect();
+    return rect ? computeMenuPos(rect, MENU_WIDTH) : null;
+  });
+  useMenuReanchor(true, anchorRef, MENU_WIDTH, setPos, onClose);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -85,17 +90,19 @@ export function SharePopover({ anchorRef, pageUrl, pageTitle, canShorten, onClos
       data-testid="share-popover"
       style={{
         position: 'fixed',
-        left,
-        top,
-        right: rect ? undefined : 12,
-        minWidth: 220,
+        top: pos ? pos.top : undefined,
+        right: pos ? pos.right : 12,
+        maxHeight: pos ? pos.maxHeight : undefined,
+        overflowY: 'auto',
+        minWidth: MENU_WIDTH,
+        maxWidth: 'calc(100vw - 16px)',
         background: 'var(--color-bg-surface)',
         border: '1px solid var(--color-border)',
         borderRadius: 10,
         boxShadow: '0 8px 28px rgba(0,0,0,0.3)',
         zIndex: 9999,
         padding: '4px 0',
-        overflow: 'hidden',
+        overflowX: 'hidden',
       }}
     >
       <div style={{
