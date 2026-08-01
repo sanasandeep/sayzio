@@ -20,6 +20,7 @@ import {
 import { useColors } from "@/hooks/useColors";
 import {
   clearFollowUp,
+  contactActivityHref,
   getContact,
   getContactActivity,
   listContactTags,
@@ -459,47 +460,78 @@ export default function ContactDetailScreen() {
                       {g.count}
                     </Text>
                   </View>
-                  {g.items.map((item, idx) => (
-                    <View key={idx} style={{ marginBottom: 6, paddingLeft: 19 }}>
-                      <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        <Text
-                          numberOfLines={1}
-                          style={{
-                            fontFamily: "SpaceGrotesk_500Medium",
-                            fontSize: 13,
-                            color: colors.foreground,
-                            flex: 1,
-                          }}
-                        >
-                          {item.title}
-                        </Text>
-                        {item.date && (
+                  {g.items.map((item, idx) => {
+                    const href = contactActivityHref(g.key, item);
+                    const inner = (
+                      <>
+                        <View style={{ flexDirection: "row", alignItems: "center" }}>
                           <Text
+                            numberOfLines={1}
                             style={{
-                              fontFamily: "SpaceGrotesk_400Regular",
-                              fontSize: 10,
-                              color: colors.mutedForeground,
-                              marginLeft: 8,
+                              fontFamily: "SpaceGrotesk_500Medium",
+                              fontSize: 13,
+                              color: colors.foreground,
+                              flex: 1,
                             }}
                           >
-                            {new Date(item.date).toLocaleDateString()}
+                            {item.title}
                           </Text>
-                        )}
-                      </View>
-                      {item.subtitle ? (
-                        <Text
-                          numberOfLines={1}
-                          style={{
-                            fontFamily: "SpaceGrotesk_400Regular",
-                            fontSize: 11,
-                            color: colors.mutedForeground,
-                          }}
-                        >
-                          {item.subtitle}
-                        </Text>
-                      ) : null}
-                    </View>
-                  ))}
+                          {item.date && (
+                            <Text
+                              style={{
+                                fontFamily: "SpaceGrotesk_400Regular",
+                                fontSize: 10,
+                                color: colors.mutedForeground,
+                                marginLeft: 8,
+                              }}
+                            >
+                              {new Date(item.date).toLocaleDateString()}
+                            </Text>
+                          )}
+                          {href && (
+                            <Feather
+                              name="chevron-right"
+                              size={14}
+                              color={colors.mutedForeground}
+                              style={{ marginLeft: 6 }}
+                            />
+                          )}
+                        </View>
+                        {item.subtitle ? (
+                          <Text
+                            numberOfLines={1}
+                            style={{
+                              fontFamily: "SpaceGrotesk_400Regular",
+                              fontSize: 11,
+                              color: colors.mutedForeground,
+                            }}
+                          >
+                            {item.subtitle}
+                          </Text>
+                        ) : null}
+                      </>
+                    );
+                    if (!href) {
+                      return (
+                        <View key={idx} style={{ marginBottom: 6, paddingLeft: 19 }}>
+                          {inner}
+                        </View>
+                      );
+                    }
+                    return (
+                      <Pressable
+                        key={idx}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open ${item.title}`}
+                        onPress={() => router.push(href as never)}
+                        style={({ pressed }) => [
+                          { marginBottom: 6, paddingLeft: 19, opacity: pressed ? 0.6 : 1 },
+                        ]}
+                      >
+                        {inner}
+                      </Pressable>
+                    );
+                  })}
                   {g.count > g.items.length && (
                     <Text
                       style={{

@@ -36,7 +36,11 @@ class ContactActivityService
      * contact's owner (user_id / creator scope), so a stale or foreign
      * contact_id can never leak someone else's rows.
      *
-     * @return array<int, array{key:string,label:string,icon:string,count:int,items:array<int,array{title:string,subtitle:?string,date:?string,url:?string}>}>
+     * Each item carries a `refs` map of record identifiers (link_id, alias,
+     * form_id, thread_id, invoice_id…) so native clients can deep-link to the
+     * matching in-app screen without parsing the web `url`.
+     *
+     * @return array<int, array{key:string,label:string,icon:string,count:int,items:array<int,array{title:string,subtitle:?string,date:?string,url:?string,refs:array<string,int|string>}>}>
      */
     public function timeline(Contact $contact): array
     {
@@ -58,6 +62,7 @@ class ContactActivityService
                 'subtitle' => $s->status ? ucfirst((string) $s->status) : null,
                 'date'     => optional($s->created_at)->toIso8601String(),
                 'url'      => route('user.subscribers.index'),
+                'refs'     => (object) [],
             ])->all());
 
         // -- Form submissions ----------------------------------------------
@@ -72,6 +77,7 @@ class ContactActivityService
                 'subtitle' => null,
                 'date'     => optional($s->created_at)->toIso8601String(),
                 'url'      => $s->form_id ? route('user.forms.submissions.show', [$s->form_id, $s->id]) : null,
+                'refs'     => (object) array_filter(['form_id' => (int) $s->form_id]),
             ])->all());
 
         // -- Restaurant orders ----------------------------------------------
@@ -84,6 +90,7 @@ class ContactActivityService
                 'subtitle' => ucfirst((string) $o->status),
                 'date'     => optional($o->created_at)->toIso8601String(),
                 'url'      => $o->link_id ? route('user.links.restaurant.orders', $o->link_id) : null,
+                'refs'     => (object) array_filter(['link_id' => (int) $o->link_id]),
             ])->all());
 
         // -- Store orders -----------------------------------------------------
@@ -96,6 +103,7 @@ class ContactActivityService
                 'subtitle' => ucfirst((string) $o->status),
                 'date'     => optional($o->created_at)->toIso8601String(),
                 'url'      => $o->link_id ? route('user.links.store.orders', $o->link_id) : null,
+                'refs'     => (object) array_filter(['link_id' => (int) $o->link_id]),
             ])->all());
 
         // -- Bookings ---------------------------------------------------------
@@ -108,6 +116,7 @@ class ContactActivityService
                 'subtitle' => ucfirst((string) $b->status),
                 'date'     => optional($b->created_at)->toIso8601String(),
                 'url'      => $b->link_id ? route('user.links.service-booking.bookings', $b->link_id) : null,
+                'refs'     => (object) array_filter(['link_id' => (int) $b->link_id]),
             ])->all());
 
         // -- RSVPs -------------------------------------------------------------
@@ -120,6 +129,7 @@ class ContactActivityService
                 'subtitle' => ucfirst((string) $r->status),
                 'date'     => optional($r->created_at)->toIso8601String(),
                 'url'      => $r->link_id ? route('user.links.rsvps.index', $r->link_id) : null,
+                'refs'     => (object) array_filter(['link_id' => (int) $r->link_id, 'alias' => (string) ($r->link?->alias ?? '')]),
             ])->all());
 
         // -- Event tickets --------------------------------------------------------
@@ -132,6 +142,7 @@ class ContactActivityService
                 'subtitle' => $t->code ? ('Ticket ' . $t->code) : null,
                 'date'     => optional($t->created_at)->toIso8601String(),
                 'url'      => $t->link_id ? route('user.links.ics.tickets', $t->link_id) : null,
+                'refs'     => (object) array_filter(['link_id' => (int) $t->link_id, 'alias' => (string) ($t->link?->alias ?? '')]),
             ])->all());
 
         // -- Product purchases -------------------------------------------------
@@ -142,6 +153,7 @@ class ContactActivityService
                 'subtitle' => ucfirst((string) $o->status),
                 'date'     => optional($o->created_at)->toIso8601String(),
                 'url'      => route('user.monetization.orders'),
+                'refs'     => (object) [],
             ])->all());
 
         // -- Reviews ----------------------------------------------------------
@@ -152,6 +164,7 @@ class ContactActivityService
                 'subtitle' => ucfirst((string) $r->status),
                 'date'     => optional($r->created_at)->toIso8601String(),
                 'url'      => $r->link_id ? route('user.links.reviews.editor', $r->link_id) : null,
+                'refs'     => (object) array_filter(['link_id' => (int) $r->link_id]),
             ])->all());
 
         // -- Conversations ------------------------------------------------------
@@ -162,6 +175,7 @@ class ContactActivityService
                 'subtitle' => $t->sender_email,
                 'date'     => optional($t->created_at)->toIso8601String(),
                 'url'      => route('user.inbox.index'),
+                'refs'     => (object) ['thread_id' => (int) $t->id],
             ])->all());
 
         // -- Invoices (contact_id existed pre-6501) -----------------------------
@@ -172,6 +186,7 @@ class ContactActivityService
                 'subtitle' => ucfirst((string) $i->status),
                 'date'     => optional($i->created_at)->toIso8601String(),
                 'url'      => route('user.client-invoices.dashboard'),
+                'refs'     => (object) ['invoice_id' => (int) $i->id],
             ])->all());
 
         return $groups;

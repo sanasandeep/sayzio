@@ -104,7 +104,53 @@ export type ContactActivityItem = {
   subtitle: string | null;
   date: string | null;
   url: string | null;
+  /** Record identifiers (link_id, alias, form_id, thread_id, invoice_id…) for native deep-links. */
+  refs?: {
+    link_id?: number;
+    alias?: string;
+    form_id?: number;
+    thread_id?: number;
+    invoice_id?: number;
+  };
 };
+
+/**
+ * In-app destination for one activity item, keyed by its group. Returns null
+ * when no native screen exists for the record (item stays static).
+ */
+export function contactActivityHref(
+  groupKey: string,
+  item: ContactActivityItem,
+): string | null {
+  const refs = item.refs ?? {};
+  switch (groupKey) {
+    case "subscriptions":
+      return "/subscribers";
+    case "form_submissions":
+      return refs.form_id ? `/forms/${refs.form_id}` : null;
+    case "restaurant_orders":
+      return refs.link_id ? `/links/${refs.link_id}/restaurant-orders` : null;
+    case "store_orders":
+      return refs.link_id ? `/links/${refs.link_id}/store-orders` : null;
+    case "bookings":
+      return refs.link_id
+        ? `/links/${refs.link_id}/service-booking-dashboard`
+        : null;
+    case "rsvps":
+    case "event_tickets":
+      return refs.alias ? `/events/people/${encodeURIComponent(refs.alias)}` : null;
+    case "product_orders":
+      return "/orders";
+    case "reviews":
+      return "/reviews/manage";
+    case "conversations":
+      return refs.thread_id ? `/inbox/${refs.thread_id}` : null;
+    case "invoices":
+      return refs.invoice_id ? `/invoices/${refs.invoice_id}` : null;
+    default:
+      return null;
+  }
+}
 
 export type ContactActivityGroup = {
   key: string;
