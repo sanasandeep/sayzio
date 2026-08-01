@@ -8,9 +8,12 @@
  * WebContentsViews, so we use the chrome-overlay mechanism (hide all native
  * views while open, restore on close) — same pattern as ModeSwitcher.
  */
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../store/auth-store';
 import { ProfileSettingsModal } from './ProfileSettingsModal';
+import { computeMenuPos, useMenuReanchor, type MenuPos } from '../lib/menu-position';
+
+const MENU_WIDTH = 220;
 
 interface Props {
   onOpenAuth: () => void;
@@ -25,9 +28,14 @@ export function AccountButton({ onOpenAuth, compact = false }: Props) {
   // Viewport coordinates for the fixed-position menu. The button can live
   // inside a scrollable tab strip (browser mode) whose overflow clips
   // absolutely-positioned children — `position: fixed` escapes that.
-  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+  const [menuPos, setMenuPos] = useState<MenuPos | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
+  const close = useCallback(() => setOpen(false), []);
+
+  // Keep the menu anchored (and on screen) if the window resizes while open.
+  useMenuReanchor(open, triggerRef, MENU_WIDTH, setMenuPos, close);
 
   useEffect(() => {
     if (open) {
@@ -82,9 +90,9 @@ export function AccountButton({ onOpenAuth, compact = false }: Props) {
   return (
     <div ref={ref} style={{ position: 'relative', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
       <button
+        ref={triggerRef}
         onClick={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          setMenuPos({ top: rect.bottom + 6, right: Math.max(8, window.innerWidth - rect.right) });
+          setMenuPos(computeMenuPos(e.currentTarget.getBoundingClientRect(), MENU_WIDTH));
           setOpen(prev => !prev);
         }}
         title={user.name ?? 'Account'}
@@ -129,7 +137,9 @@ export function AccountButton({ onOpenAuth, compact = false }: Props) {
           position: 'fixed',
           top: menuPos.top,
           right: menuPos.right,
-          width: 220,
+          width: MENU_WIDTH,
+          maxHeight: menuPos.maxHeight,
+          overflowY: 'auto',
           background: 'var(--color-bg-surface)',
           border: '1px solid var(--color-border)',
           borderRadius: 12,
