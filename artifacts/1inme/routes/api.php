@@ -1396,6 +1396,8 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/my-calendar',                     [\App\Modules\Api\Controllers\MyCalendarController::class, 'feed']);
         Route::get   ('/my-calendar/export',              [\App\Modules\Api\Controllers\MyCalendarController::class, 'export']);
         Route::get   ('/my-calendar/today',               [\App\Modules\Api\Controllers\MyCalendarController::class, 'today']);
+        Route::get   ('/my-calendar/mirror-preferences',  [\App\Modules\Api\Controllers\MyCalendarController::class, 'mirrorPreferences']);
+        Route::patch ('/my-calendar/mirror-preferences',  [\App\Modules\Api\Controllers\MyCalendarController::class, 'updateMirrorPreferences']);
         Route::get   ('/calendars/{calendar}',            [\App\Modules\Api\Controllers\MyCalendarController::class, 'show'])->whereNumber('calendar');
         Route::post  ('/calendars/{calendar}/follow',     [\App\Modules\Api\Controllers\MyCalendarController::class, 'toggleFollow'])->whereNumber('calendar');
         // Server-side event-details detection for Add-to-Calendar (mirrors the

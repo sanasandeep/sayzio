@@ -43,3 +43,6 @@ measured: homepage >120s (timeout) → ~7.3s; static-during-slow-page 20s → 0.
 
 **Real fix beyond dev:** deploy near the DB region (latency vanishes) or move the
 RDS closer to Replit.
+
+## Detached artisan migrate gets reaped
+Even `setsid ... & disown` php artisan migrate processes get silently killed in this env after minutes (log just stops, migration left Pending, 0 rows written). For slow data-backfill migrations against the distant RDS: run the idempotent backfill helper in FOREGROUND tinker passes (`timeout 108 php artisan tinker --execute=...`, repeat until remaining=0), then `php artisan migrate --force` records the migration in seconds.
