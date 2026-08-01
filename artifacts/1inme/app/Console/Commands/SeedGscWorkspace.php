@@ -46,6 +46,23 @@ class SeedGscWorkspace extends Command
 
         $events = array_merge($this->summits(), $this->retreats(), $this->meetups());
 
+        // Remove event links from earlier seeder runs whose dates were corrected
+        // (aliases encode the date, so a date fix produces a new alias).
+        $validAliases = array_column($events, 'alias');
+        $stale = Link::withoutGlobalScopes()
+            ->where('user_id', $user->id)
+            ->where('type', 'ics')
+            ->where(function ($q) {
+                $q->where('alias', 'like', 'gsc-meetup-%')->orWhere('alias', 'like', 'gsc-fbc-%');
+            })
+            ->whereNotIn('alias', $validAliases)
+            ->get();
+        foreach ($stale as $s) {
+            IcsData::where('link_id', $s->id)->delete();
+            $s->delete();
+            $this->line("removed stale event {$s->alias}");
+        }
+
         $eventLinks = [];
         foreach ($events as $e) {
             $eventLinks[$e['alias']] = $this->makeEvent($user, $ws, $e);
@@ -157,6 +174,17 @@ class SeedGscWorkspace extends Command
         if ($link->calendar_id !== $cal->id) {
             $link->calendar_id = $cal->id;
             $link->save();
+        }
+
+        // Reconcile: drop seeded calendar entries whose title/start no longer match
+        // (date/time corrections change start_at, which is part of the upsert key).
+        $desired = array_map(fn ($e) => $e['name'] . '|' . $e['start'], $events);
+        foreach (CalendarEvent::where('calendar_id', $cal->id)->get() as $existing) {
+            $key = $existing->title . '|' . $existing->start_at?->format('Y-m-d H:i:s');
+            if (!in_array($key, $desired, true)) {
+                $existing->delete();
+                $this->line("removed stale calendar entry {$existing->title} @ {$key}");
+            }
         }
 
         foreach ($events as $e) {
@@ -279,48 +307,53 @@ class SeedGscWorkspace extends Command
 
     private function meetups(): array
     {
+        // [city, date, kind, url, tz, startTime, endTime, venue, price]
+        // Times/venues/prices from the AllEvents listings (Aug 2026 check).
         $rows = [
-            ['Noida', '2026-08-01', 'Startup Networking', 'https://allevents.in/noida/global-startups-club-l-startup-networking-noida-2026-tickets/80001686279536', 'Asia/Kolkata'],
-            ['Hyderabad', '2026-08-01', 'Startup Networking', 'https://go.allevents.in/iln6s', 'Asia/Kolkata'],
-            ['Bengaluru', '2026-08-01', "Founder's Breakfast Club", 'https://go.allevents.in/2zfs0', 'Asia/Kolkata'],
-            ['Jakarta', '2026-08-02', 'Startup Networking', 'https://allevents.in/jakarta/global-startups-club-l-startup-networking-jakarta-2026-tickets/80001128282350', 'Asia/Jakarta'],
-            ['Dubai', '2026-08-06', 'Startup Networking', 'https://allevents.in/dubai/global-startups-club-startup-networking-dubai-2026-tickets/80001141365691', 'Asia/Dubai'],
-            ['Johannesburg', '2026-08-06', 'Startup Networking', 'https://go.allevents.in/edjk9', 'Africa/Johannesburg'],
-            ['Visakhapatnam', '2026-08-08', 'Startup Networking', 'https://go.allevents.in/55knd', 'Asia/Kolkata'],
-            ['Thane', '2026-08-08', 'Startup Networking', 'https://go.allevents.in/fc3cr', 'Asia/Kolkata'],
-            ['Coimbatore', '2026-08-08', 'Startup Networking', 'https://go.allevents.in/fsrqt', 'Asia/Kolkata'],
-            ['Mumbai', '2026-08-08', 'Startup Networking', 'https://go.allevents.in/br141', 'Asia/Kolkata'],
-            ['Ahmedabad', '2026-08-08', 'Startup Networking', 'https://go.allevents.in/kixh2', 'Asia/Kolkata'],
-            ['Bengaluru', '2026-08-08', 'Startup Networking', 'https://go.allevents.in/roacj', 'Asia/Kolkata'],
-            ['Cape Town', '2026-08-13', 'Startup Networking', 'https://go.allevents.in/0n5ta', 'Africa/Johannesburg'],
-            ['Toronto', '2026-08-15', 'Startup Networking', null, 'America/Toronto'],
-            ['Vancouver', '2026-08-15', 'Startup Networking', null, 'America/Vancouver'],
-            ['Sydney', '2026-08-15', 'Startup Networking', 'https://go.allevents.in/7jtfd', 'Australia/Sydney'],
-            ['Boston', '2026-08-15', 'Startup Networking', null, 'America/New_York'],
-            ['Mumbai', '2026-08-22', 'Founders Breakfast Club', 'https://go.allevents.in/4t66p', 'Asia/Kolkata'],
-            ['Hyderabad', '2026-08-22', 'Startup Networking', 'https://go.allevents.in/l4v2s', 'Asia/Kolkata'],
-            ['Jaipur', '2026-08-22', 'Startup Networking', null, 'Asia/Kolkata'],
-            ['Dubai', '2026-08-27', 'Startup Networking', null, 'Asia/Dubai'],
-            ['Singapore', '2026-08-28', 'Startup Networking', null, 'Asia/Singapore'],
-            ['Chennai', '2026-08-29', 'Startup Networking', 'https://go.allevents.in/tu2l1', 'Asia/Kolkata'],
-            ['Mumbai', '2026-08-29', 'Startup Networking', 'https://go.allevents.in/tu2l1', 'Asia/Kolkata'],
-            ['Kolkata', '2026-08-29', 'Startup Networking', 'https://go.allevents.in/2glo0', 'Asia/Kolkata'],
-            ['Dallas', '2026-08-29', 'Startup Networking', null, 'America/Chicago'],
+            ['Noida', '2026-08-22', 'Startup Networking', 'https://allevents.in/noida/global-startups-club-l-startup-networking-noida-2026-tickets/80001686279536', 'Asia/Kolkata', '10:30', '13:30', 'Ofis Square Tower', 'INR 475'],
+            ['Bengaluru', '2026-08-01', "Founder's Breakfast Club", 'https://go.allevents.in/2zfs0', 'Asia/Kolkata', '09:00', '11:00', null, null],
+            ['Jakarta', '2026-08-02', 'Startup Networking', 'https://allevents.in/jakarta/global-startups-club-l-startup-networking-jakarta-2026-tickets/80001128282350', 'Asia/Jakarta', '14:30', '16:30', 'Milos Padel', 'USD 10'],
+            ['Dubai', '2026-08-06', 'Startup Networking', 'https://allevents.in/dubai/global-startups-club-startup-networking-dubai-2026-tickets/80001141365691', 'Asia/Dubai', null, null, null, null],
+            ['Johannesburg', '2026-08-06', 'Startup Networking', 'https://go.allevents.in/edjk9', 'Africa/Johannesburg', '16:00', '18:00', 'Bootlegger Grayston, Sandton', 'USD 7'],
+            ['Visakhapatnam', '2026-08-08', 'Startup Networking', 'https://go.allevents.in/55knd', 'Asia/Kolkata', '10:30', '13:30', null, null],
+            ['Thane', '2026-08-08', 'Startup Networking', 'https://go.allevents.in/fc3cr', 'Asia/Kolkata', '10:30', '13:30', 'Suyash Tripathi and Co, Bhaskar Colony, Thane West', 'INR 475'],
+            ['Coimbatore', '2026-08-08', 'Startup Networking', 'https://go.allevents.in/fsrqt', 'Asia/Kolkata', '10:30', '13:30', 'SNS iNNovation Hub', null],
+            ['Mumbai', '2026-08-08', 'Startup Networking', 'https://go.allevents.in/br141', 'Asia/Kolkata', '10:30', '13:30', null, 'INR 475'],
+            ['Ahmedabad', '2026-08-08', 'Startup Networking', 'https://go.allevents.in/kixh2', 'Asia/Kolkata', '10:30', '13:30', 'DevX', null],
+            ['Bengaluru', '2026-08-08', 'Startup Networking', 'https://go.allevents.in/roacj', 'Asia/Kolkata', '10:30', '13:30', '2gethr @ ORR', 'INR 475'],
+            ['Cape Town', '2026-08-13', 'Startup Networking', 'https://go.allevents.in/0n5ta', 'Africa/Johannesburg', '18:30', '20:30', 'Bootlegger Green Point', null],
+            ['Toronto', '2026-08-15', 'Startup Networking', null, 'America/Toronto', null, null, null, null],
+            ['Vancouver', '2026-08-15', 'Startup Networking', null, 'America/Vancouver', null, null, null, null],
+            ['Sydney', '2026-08-15', 'Startup Networking', 'https://go.allevents.in/7jtfd', 'Australia/Sydney', '14:30', '16:30', 'Cabana Bar, 25 Martin Pl', null],
+            ['Boston', '2026-08-15', 'Startup Networking', null, 'America/New_York', null, null, null, null],
+            ['Mumbai', '2026-08-22', 'Founders Breakfast Club', 'https://go.allevents.in/4t66p', 'Asia/Kolkata', '09:00', '11:00', null, 'INR 475'],
+            ['Hyderabad', '2026-08-22', 'Startup Networking', 'https://go.allevents.in/l4v2s', 'Asia/Kolkata', '10:30', '13:30', 'The Headquarters Orbit', null],
+            ['Jaipur', '2026-08-22', 'Startup Networking', null, 'Asia/Kolkata', null, null, null, null],
+            ['Dubai', '2026-08-27', 'Startup Networking', null, 'Asia/Dubai', null, null, null, null],
+            ['Singapore', '2026-08-28', 'Startup Networking', null, 'Asia/Singapore', null, null, null, null],
+            ['Chennai', '2026-08-29', 'Startup Networking', 'https://go.allevents.in/tu2l1', 'Asia/Kolkata', '10:30', '13:30', 'Annular Technologies, Perungudi', null],
+            ['Mumbai', '2026-08-29', 'Startup Networking', null, 'Asia/Kolkata', null, null, null, null],
+            ['Kolkata', '2026-08-29', 'Startup Networking', 'https://go.allevents.in/2glo0', 'Asia/Kolkata', '10:30', '13:30', 'Ideapod Coworking', null],
+            ['Dallas', '2026-08-29', 'Startup Networking', null, 'America/Chicago', null, null, null, null],
         ];
         $out = [];
-        foreach ($rows as [$city, $date, $kind, $url, $tz]) {
+        foreach ($rows as [$city, $date, $kind, $url, $tz, $from, $to, $venue, $price]) {
             $slugCity = str()->slug($city);
             $slugKind = str_contains($kind, 'Breakfast') ? 'fbc' : 'meetup';
+            $desc = "Global Startups Club monthly {$kind} in {$city}: a networking hub bringing together founders, experts, consultants, influential leaders and startup professionals. Innovate. Network. Execute.";
+            if ($price) {
+                $desc .= " Tickets from {$price}.";
+            }
             $out[] = [
                 'group' => 'meetup',
                 'alias' => "gsc-{$slugKind}-{$slugCity}-" . str_replace('-', '', substr($date, 5)),
                 'name' => "Global Startups Club — {$kind} | {$city}",
-                'start' => $date . ' 00:00:00',
-                'end' => $date . ' 23:59:00',
+                'start' => $date . ' ' . ($from ? $from . ':00' : '00:00:00'),
+                'end' => $date . ' ' . ($to ? $to . ':00' : '23:59:00'),
                 'tz' => $tz,
-                'all_day' => true,
-                'location' => $city,
-                'desc' => "Global Startups Club monthly {$kind} in {$city}: a networking hub bringing together founders, experts, consultants, influential leaders and startup professionals. Innovate. Network. Execute.",
+                'all_day' => !$from,
+                'location' => $venue ? "{$venue}, {$city}" : $city,
+                'desc' => $desc,
                 'url' => $url,
                 'city' => $city,
             ];
