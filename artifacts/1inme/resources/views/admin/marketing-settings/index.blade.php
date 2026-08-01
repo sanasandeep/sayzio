@@ -173,6 +173,10 @@
                            placeholder="https://.../SayZio-Browser.dmg"
                            class="ak-strong ak-input w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                     @error('browser_mac_url')<p class="ak-red mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    @include('admin.marketing-settings._browser-fallback-hint', [
+                        'overrideValue' => old('browser_mac_url', $browser_mac_url),
+                        'fallbackUrl'   => $browser_fallbacks['mac'],
+                    ])
                 </div>
                 <div>
                     <label class="ak-muted block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Zio Browser — Windows installer URL</label>
@@ -180,6 +184,10 @@
                            placeholder="https://.../SayZio-Browser-Setup.exe"
                            class="ak-strong ak-input w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                     @error('browser_windows_url')<p class="ak-red mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    @include('admin.marketing-settings._browser-fallback-hint', [
+                        'overrideValue' => old('browser_windows_url', $browser_windows_url),
+                        'fallbackUrl'   => $browser_fallbacks['windows'],
+                    ])
                 </div>
                 <div>
                     <label class="ak-muted block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Zio Browser — Linux AppImage URL</label>
@@ -187,6 +195,10 @@
                            placeholder="https://.../SayZio-Browser.AppImage"
                            class="ak-strong ak-input w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                     @error('browser_linux_appimage_url')<p class="ak-red mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    @include('admin.marketing-settings._browser-fallback-hint', [
+                        'overrideValue' => old('browser_linux_appimage_url', $browser_linux_appimage_url),
+                        'fallbackUrl'   => $browser_fallbacks['linux_appimage'],
+                    ])
                 </div>
                 <div>
                     <label class="ak-muted block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Zio Browser — Linux .deb URL</label>
@@ -194,6 +206,10 @@
                            placeholder="https://.../sayzio-browser.deb"
                            class="ak-strong ak-input w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                     @error('browser_linux_deb_url')<p class="ak-red mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    @include('admin.marketing-settings._browser-fallback-hint', [
+                        'overrideValue' => old('browser_linux_deb_url', $browser_linux_deb_url),
+                        'fallbackUrl'   => $browser_fallbacks['linux_deb'],
+                    ])
                 </div>
             </div>
         </div>

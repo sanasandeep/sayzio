@@ -16,7 +16,24 @@ class MarketingSettingsController extends Controller
      */
     public function index()
     {
+        // Resolved live-release fallbacks for the Zio Browser override fields,
+        // so admins can see what a blank field currently falls back to.
+        // Cache-only read (never hits the network); tolerate any failure.
+        try {
+            $release = \App\Modules\Common\Support\ZioBrowserRelease::current();
+        } catch (\Throwable $e) {
+            $release = [];
+        }
+        $browserFallbacks = [
+            'mac'            => (string) ($release['mac_arm64_dmg'] ?? ($release['mac_x64_dmg'] ?? '')),
+            'windows'        => (string) ($release['windows_exe'] ?? ''),
+            'linux_appimage' => (string) ($release['linux_appimage'] ?? ''),
+            'linux_deb'      => (string) ($release['linux_deb'] ?? ''),
+        ];
+
         return view('admin.marketing-settings.index', [
+            'browser_release_version'  => (string) ($release['version'] ?? ''),
+            'browser_fallbacks'        => $browserFallbacks,
             'events_band_enabled'      => (bool) AppSetting::get('marketing_events_band_enabled', true),
             'ga4_id'                   => (string) AppSetting::get('marketing_ga4_id', ''),
             'meta_pixel_id'            => (string) AppSetting::get('marketing_meta_pixel_id', ''),
