@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -26,10 +26,13 @@ import {
 } from "@/lib/api/contacts";
 
 export default function ContactDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, focus } = useLocalSearchParams<{ id: string; focus?: string }>();
   const numId = parseInt(id ?? "0", 10);
   const colors = useColors();
   const qc = useQueryClient();
+  const scrollRef = useRef<ScrollView>(null);
+  const activityYRef = useRef<number | null>(null);
+  const didFocusScrollRef = useRef(false);
 
   const contactQ = useQuery({
     queryKey: ["contact", numId],
@@ -49,6 +52,16 @@ export default function ContactDetailScreen() {
     enabled: numId > 0,
     staleTime: 60_000,
   });
+
+  function maybeScrollToActivity() {
+    if (focus !== "activity" || didFocusScrollRef.current) return;
+    const y = activityYRef.current;
+    if (y == null) return;
+    didFocusScrollRef.current = true;
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: Math.max(y - 12, 0), animated: true });
+    });
+  }
 
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesDraft, setNotesDraft] = useState("");
@@ -145,7 +158,7 @@ export default function ContactDetailScreen() {
           headerTintColor: colors.primary,
         }}
       />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
+      <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
 
         {/* Avatar + Name */}
         <View style={{ alignItems: "center", marginBottom: 24 }}>
@@ -347,6 +360,12 @@ export default function ContactDetailScreen() {
         </Section>
 
         {/* Activity across Sayzio (unified contact linking) */}
+        <View
+          onLayout={(e) => {
+            activityYRef.current = e.nativeEvent.layout.y;
+            maybeScrollToActivity();
+          }}
+        >
         <Section title="Activity across Sayzio" colors={colors}>
           {(activityQ.data?.is_auto_captured || activityQ.data?.follower_bridge?.is_follower) && (
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
@@ -452,6 +471,7 @@ export default function ContactDetailScreen() {
             </View>
           )}
         </Section>
+        </View>
 
       </ScrollView>
     </View>

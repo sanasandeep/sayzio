@@ -620,12 +620,19 @@ function ContactRow({
         )}
       </View>
       {(c.activity_count ?? 0) > 0 && (
-        <View style={styles.activityBadge}>
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation?.();
+            router.push(`/contacts/${c.id}?focus=activity` as any);
+          }}
+          hitSlop={8}
+          style={({ pressed }) => [styles.activityBadge, { opacity: pressed ? 0.6 : 1 }]}
+        >
           <Feather name="zap" size={10} color="#22d3ee" />
           <Text style={{ fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 10, color: "#22d3ee" }}>
             {c.activity_count}
           </Text>
-        </View>
+        </Pressable>
       )}
       {c.follow_up_at && (
         <View style={[styles.followUpBadge, { backgroundColor: colors.primary + "18" }]}>
