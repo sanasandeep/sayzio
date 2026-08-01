@@ -7,8 +7,8 @@ import type { WindowMode } from '../../shared/window-mode';
 import {
   WINDOW_MODES,
   WINDOW_MODE_LABELS,
-  WINDOW_MODE_ICONS,
 } from '../../shared/window-mode';
+import { ModeIcon } from './ModeIcon';
 
 interface Props {
   currentMode: WindowMode;
@@ -78,7 +78,7 @@ export function ModeSwitcher({ currentMode, onSetMode }: Props) {
           transition: 'all 0.15s',
         }}
       >
-        <span style={{ fontSize: 14 }}>{WINDOW_MODE_ICONS[currentMode]}</span>
+        <span style={{ display: 'flex', alignItems: 'center' }}><ModeIcon mode={currentMode} size={15} /></span>
         <span>{WINDOW_MODE_LABELS[currentMode]}</span>
         <span style={{ fontSize: 10, opacity: 0.5 }}>▼</span>
       </button>
@@ -124,7 +124,7 @@ export function ModeSwitcher({ currentMode, onSetMode }: Props) {
                 transition: 'background 0.12s',
               }}
             >
-              <span style={{ fontSize: 16, flexShrink: 0 }}>{WINDOW_MODE_ICONS[mode]}</span>
+              <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}><ModeIcon mode={mode} size={20} /></span>
               <div>
                 <div style={{ fontSize: 13, fontWeight: currentMode === mode ? 600 : 400 }}>
                   {WINDOW_MODE_LABELS[mode]}

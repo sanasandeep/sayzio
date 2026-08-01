@@ -8,8 +8,8 @@ import {
   WINDOW_MODES,
   WINDOW_MODE_LABELS,
   WINDOW_MODE_DESCRIPTIONS,
-  WINDOW_MODE_ICONS,
 } from '../../shared/window-mode';
+import { ModeIcon } from './ModeIcon';
 import zioBrowserLogo from '../assets/zio-browser-logo.png';
 
 interface Props {
@@ -67,7 +67,21 @@ export function ModePicker({ defaultMode, onPick }: Props) {
               transition: 'all 0.15s',
             }}
           >
-            <div style={{ fontSize: 28, marginBottom: 12 }}>{WINDOW_MODE_ICONS[mode]}</div>
+            <div style={{
+              width: 64,
+              height: 64,
+              borderRadius: 16,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 14,
+              background: 'var(--color-bg-elevated)',
+              border: '1px solid var(--color-border)',
+              boxShadow: selected === mode ? '0 4px 18px rgba(99,102,241,0.25)' : 'none',
+              transition: 'box-shadow 0.15s',
+            }}>
+              <ModeIcon mode={mode} size={40} />
+            </div>
             <div style={{
               fontSize: 15,
               fontWeight: 700,

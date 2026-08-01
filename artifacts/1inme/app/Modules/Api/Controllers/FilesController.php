@@ -35,6 +35,14 @@ class FilesController extends Controller
         if (in_array($type, ['image', 'video', 'audio', 'document'], true)) {
             $query->where('type', $type);
         }
+        // Optional folder scoping: `folder_id=root` → only root-level files;
+        // numeric id → only that folder's files; absent → all files (legacy).
+        $folderParam = $request->query('folder_id');
+        if ($folderParam === 'root') {
+            $query->whereNull('folder_id');
+        } elseif ($folderParam !== null && $folderParam !== '' && ctype_digit((string) $folderParam)) {
+            $query->where('folder_id', (int) $folderParam);
+        }
         if ($q !== '') {
             $query->where('original_name', 'ilike', '%' . addcslashes($q, '%_\\') . '%');
         }
@@ -59,10 +67,25 @@ class FilesController extends Controller
     public function upload(Request $request)
     {
         $request->validate([
-            'file' => ['required', 'file'],
+            'file'      => ['required', 'file'],
+            'folder_id' => ['sometimes', 'nullable', 'integer'],
         ]);
 
         $user = $request->user();
+
+        // Optional target folder — must belong to the caller, else ignored
+        // into the root rather than failing the whole upload.
+        $targetFolderId = null;
+        if ($request->filled('folder_id')) {
+            $candidate = (int) $request->input('folder_id');
+            $owned = \App\Modules\User\Models\UserFileFolder::query()
+                ->where('id', $candidate)
+                ->where('user_id', $user->id)
+                ->exists();
+            if ($owned) {
+                $targetFolderId = $candidate;
+            }
+        }
 
         try {
             $userFile = UserFile::createFromUpload($request->file('file'), $user);
@@ -87,6 +110,11 @@ class FilesController extends Controller
         // it directly (mirrors BiolinkWizardController::uploadImage).
         if ($userFile->workspace_id === null) {
             $userFile->workspace_id = $this->activeWorkspaceId($user);
+        }
+        if ($targetFolderId !== null) {
+            $userFile->folder_id = $targetFolderId;
+        }
+        if ($userFile->isDirty()) {
             $userFile->save();
         }
 
@@ -163,6 +191,111 @@ class FilesController extends Controller
     }
 
     /**
+     * GET /me/files/folders — the caller's vault folders (single level),
+     * with per-folder file counts for the Zio Browser Files pane.
+     */
+    public function folders(Request $request)
+    {
+        $folders = \App\Modules\User\Models\UserFileFolder::query()
+            ->where('user_id', $request->user()->id)
+            ->withCount(['files' => fn ($q) => $q->whereNull('context')])
+            ->orderBy('name')
+            ->get();
+
+        return $this->ok([
+            'folders' => $folders->map(fn ($f) => [
+                'id'          => (int) $f->id,
+                'name'        => (string) $f->name,
+                'files_count' => (int) $f->files_count,
+                'created_at'  => optional($f->created_at)->toIso8601String(),
+            ])->all(),
+        ]);
+    }
+
+    /**
+     * POST /me/files/folders — create a vault folder (unique per user,
+     * case-insensitive match rejected with a friendly 422).
+     */
+    public function createFolder(Request $request)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+        ]);
+
+        $user = $request->user();
+        $name = trim($data['name']);
+        if ($name === '') {
+            return $this->fail('Folder name cannot be empty.', 422, 'invalid_name');
+        }
+
+        $exists = \App\Modules\User\Models\UserFileFolder::query()
+            ->where('user_id', $user->id)
+            ->whereRaw('lower(name) = ?', [mb_strtolower($name)])
+            ->exists();
+        if ($exists) {
+            return $this->fail('You already have a folder with that name.', 422, 'duplicate_folder');
+        }
+
+        $folder = \App\Modules\User\Models\UserFileFolder::create([
+            'user_id' => $user->id,
+            'name'    => $name,
+        ]);
+
+        return $this->ok(['folder' => [
+            'id'          => (int) $folder->id,
+            'name'        => (string) $folder->name,
+            'files_count' => 0,
+            'created_at'  => optional($folder->created_at)->toIso8601String(),
+        ]], 201);
+    }
+
+    /**
+     * DELETE /me/files/folders/{folder} — delete a vault folder. Its files
+     * are NOT deleted; the FK's nullOnDelete returns them to the root.
+     */
+    public function destroyFolder(Request $request, \App\Modules\User\Models\UserFileFolder $folder)
+    {
+        if ((int) $folder->user_id !== (int) $request->user()->id) {
+            return $this->fail('Folder not found.', 404, 'not_found');
+        }
+
+        $folder->delete();
+
+        return $this->ok(['deleted' => true]);
+    }
+
+    /**
+     * PATCH /me/files/{file}/move — move a vault file into a folder
+     * (folder_id null = back to root). Ownership checked on both sides.
+     */
+    public function move(Request $request, UserFile $file)
+    {
+        if ((int) $file->user_id !== (int) $request->user()->id) {
+            return $this->fail('File not found.', 404, 'not_found');
+        }
+
+        $data = $request->validate([
+            'folder_id' => ['nullable', 'integer'],
+        ]);
+
+        $folderId = $data['folder_id'] ?? null;
+        if ($folderId !== null) {
+            $owned = \App\Modules\User\Models\UserFileFolder::query()
+                ->where('id', (int) $folderId)
+                ->where('user_id', $request->user()->id)
+                ->exists();
+            if (!$owned) {
+                return $this->fail('Folder not found.', 404, 'folder_not_found');
+            }
+        }
+
+        $file->folder_id = $folderId !== null ? (int) $folderId : null;
+        $file->save();
+
+        return $this->ok(['file' => $this->serializeFile($file)]);
+    }
+
+    /**
      * DELETE /me/files/{file} — remove a vault file. Mirrors the web
      * vault's UserFileController::destroy (ownership check + deleteFile,
      * which removes the stored object and the row).
@@ -192,6 +325,7 @@ class FilesController extends Controller
             'url'           => (string) $file->url,
             'url_path'      => (string) $file->url_path,
             'size_human'    => (string) $file->size_human,
+            'folder_id'     => $file->folder_id !== null ? (int) $file->folder_id : null,
             'created_at'    => optional($file->created_at)->toIso8601String(),
         ];
     }

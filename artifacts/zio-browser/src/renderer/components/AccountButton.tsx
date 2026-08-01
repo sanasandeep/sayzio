@@ -10,6 +10,7 @@
  */
 import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '../store/auth-store';
+import { ProfileSettingsModal } from './ProfileSettingsModal';
 
 interface Props {
   onOpenAuth: () => void;
@@ -20,6 +21,7 @@ interface Props {
 export function AccountButton({ onOpenAuth, compact = false }: Props) {
   const { user, clearAuth } = useAuthStore();
   const [open, setOpen] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const wasOpen = useRef(false);
 
@@ -148,6 +150,25 @@ export function AccountButton({ onOpenAuth, compact = false }: Props) {
             )}
           </div>
           <button
+            onClick={() => { setOpen(false); setShowProfile(true); }}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '10px 14px',
+              background: 'transparent',
+              color: 'var(--color-text)',
+              cursor: 'pointer',
+              textAlign: 'left',
+              fontSize: 13,
+              borderBottom: '1px solid var(--color-border)',
+            }}
+          >
+            <span style={{ fontSize: 14 }}>👤</span>
+            Profile settings
+          </button>
+          <button
             onClick={() => { setOpen(false); void clearAuth(); }}
             style={{
               width: '100%',
@@ -167,6 +188,8 @@ export function AccountButton({ onOpenAuth, compact = false }: Props) {
           </button>
         </div>
       )}
+
+      {showProfile && <ProfileSettingsModal onClose={() => setShowProfile(false)} />}
     </div>
   );
 }

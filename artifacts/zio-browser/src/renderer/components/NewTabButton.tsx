@@ -15,8 +15,8 @@ import type { WindowMode } from '../../shared/window-mode';
 import {
   WINDOW_MODES,
   WINDOW_MODE_LABELS,
-  WINDOW_MODE_ICONS,
 } from '../../shared/window-mode';
+import { ModeIcon } from './ModeIcon';
 
 interface Props {
   currentMode: WindowMode;
@@ -146,7 +146,7 @@ export function NewTabButton({ currentMode, onSetMode }: Props) {
                 transition: 'background 0.12s',
               }}
             >
-              <span style={{ fontSize: 16, flexShrink: 0 }}>{WINDOW_MODE_ICONS[mode]}</span>
+              <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}><ModeIcon mode={mode} size={20} /></span>
               <div>
                 <div style={{ fontSize: 13, fontWeight: currentMode === mode ? 600 : 400 }}>
                   {WINDOW_MODE_LABELS[mode]}
