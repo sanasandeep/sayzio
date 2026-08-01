@@ -27,7 +27,7 @@ import {
   MIN_TAB_SPLIT_RATIO,
   MAX_TAB_SPLIT_RATIO,
   TAB_SPLIT_DIVIDER_WIDTH,
-  SPLIT_URL_BAR_HEIGHT,
+  TAB_SPLIT_FOCUS_FRAME,
 } from '../shared/window-mode';
 
 /** Background color applied to all native views to avoid white/blank flashes. */
@@ -53,6 +53,8 @@ export interface TabState {
   primaryUrl?: string;
   /** Current URL of the second (right) pane in a Website+Website split. */
   secondUrl?: string;
+  /** Which pane the shared toolbar controls in a Website+Website split. */
+  focusedPane?: 'primary' | 'second';
 }
 
 export interface RecentlyClosedEntry {
@@ -804,6 +806,14 @@ export class TabManager {
         this.setFocusedPane(t, 'primary');
       }
     });
+    // Inserted CSS (unfocused-pane dim) does not survive navigation.
+    wc.on('dom-ready', () => {
+      const t = this.tabs.get(id);
+      if (t && t.mode === 'browser+browser') {
+        this.paneDimKeys.delete(t.view);
+        this.refreshPaneDim(t);
+      }
+    });
 
     if (pinned) this.pinnedTabs.add(id);
     const isInternal = isInternalPageUrl(url);
@@ -1142,11 +1152,13 @@ export class TabManager {
       tab.secondView = this.createSecondBrowserView(tab);
     }
     // Entering the Website+Website split: publish a snapshot of both pane
-    // URLs so the dual address bars render current values immediately.
+    // URLs plus the focused pane so the smart address bar and focus frame
+    // render current values immediately.
     if (mode === 'browser+browser') {
       const primaryWc = tab.view.webContents;
       const secondWc = tab.secondView?.webContents;
       this.onTabStateChange?.(id, {
+        focusedPane: tab.focusedPane,
         primaryUrl: tab.internalUrl ?? (isAlive(primaryWc) ? primaryWc.getURL() : ''),
         ...(secondWc && isAlive(secondWc) ? { secondUrl: secondWc.getURL() } : {}),
       });
@@ -1156,6 +1168,8 @@ export class TabManager {
     if (mode !== 'browser+browser' && tab.focusedPane !== 'primary') {
       this.setFocusedPane(tab, 'primary');
     }
+    // Keep the unfocused-pane dim overlay in sync with the new mode.
+    this.refreshPaneDim(tab);
 
     // Hide the embedded site chatbot inside Sayzio panes whenever this tab
     // also shows the Ask Zio pane (two assistants at once is confusing).
@@ -1200,10 +1214,15 @@ export class TabManager {
   private setFocusedPane(tab: ManagedTab, pane: 'primary' | 'second'): void {
     if (tab.focusedPane === pane) return;
     tab.focusedPane = pane;
+    this.refreshPaneDim(tab);
     const wc = this.focusedWebContents(tab);
-    if (!isAlive(wc)) return;
+    if (!isAlive(wc)) {
+      this.onTabStateChange?.(tab.id, { focusedPane: pane });
+      return;
+    }
     const url = pane === 'primary' ? (tab.internalUrl ?? wc.getURL()) : wc.getURL();
     this.onTabStateChange?.(tab.id, {
+      focusedPane: pane,
       url,
       displayUrl: url,
       title: pane === 'primary' && tab.internalUrl ? internalPageTitle(tab.internalUrl) : wc.getTitle(),
@@ -1211,6 +1230,63 @@ export class TabManager {
       canGoBack: wc.canGoBack(),
       canGoForward: wc.canGoForward(),
     });
+  }
+
+  /**
+   * Renderer-driven pane focus switch (focus frame click / keyboard shortcut)
+   * for a Website+Website split. Also moves real keyboard focus into the pane
+   * so subsequent typing lands there.
+   */
+  focusPane(id: TabId, pane: 'primary' | 'second'): void {
+    const tab = this.tabs.get(id);
+    if (!tab || tab.mode !== 'browser+browser') return;
+    if (pane === 'second' && !tab.secondView) return;
+    this.setFocusedPane(tab, pane);
+    const wc = this.focusedWebContents(tab);
+    if (isAlive(wc)) wc.focus();
+  }
+
+  /** CSS overlay that visually dims the UNFOCUSED pane of a Website+Website split. */
+  private static readonly PANE_DIM_CSS =
+    'html::before{content:"";position:fixed;inset:0;background:rgba(0,0,0,0.25);z-index:2147483647;pointer-events:none}';
+
+  /** Inserted-CSS keys for the pane-dim overlay, per native view. */
+  private paneDimKeys = new Map<WebContentsView, string>();
+
+  /**
+   * Apply/remove the dim overlay so only the UNFOCUSED pane of a
+   * Website+Website split is dimmed. Inserted CSS does not survive
+   * navigation, so this is also re-run on each pane's dom-ready.
+   */
+  private refreshPaneDim(tab: ManagedTab): void {
+    const panes: Array<{ view: WebContentsView | null; pane: 'primary' | 'second' }> = [
+      { view: tab.view, pane: 'primary' },
+      { view: tab.secondView, pane: 'second' },
+    ];
+    for (const { view, pane } of panes) {
+      if (!view) continue;
+      const wc = view.webContents;
+      if (!isAlive(wc)) continue;
+      const shouldDim = tab.mode === 'browser+browser' && tab.focusedPane !== pane;
+      const existingKey = this.paneDimKeys.get(view);
+      if (shouldDim && !existingKey) {
+        this.paneDimKeys.set(view, 'pending');
+        wc.insertCSS(TabManager.PANE_DIM_CSS)
+          .then((key) => {
+            if (this.paneDimKeys.get(view) === 'pending') {
+              this.paneDimKeys.set(view, key);
+            } else {
+              wc.removeInsertedCSS(key).catch(() => { });
+            }
+          })
+          .catch(() => { this.paneDimKeys.delete(view); });
+      } else if (!shouldDim && existingKey) {
+        this.paneDimKeys.delete(view);
+        if (existingKey !== 'pending') {
+          wc.removeInsertedCSS(existingKey).catch(() => { });
+        }
+      }
+    }
   }
 
   /**
@@ -1284,6 +1360,14 @@ export class TabManager {
         this.setFocusedPane(t, 'second');
       }
     });
+    // Inserted CSS (unfocused-pane dim) does not survive navigation.
+    wc.on('dom-ready', () => {
+      const t = this.tabs.get(id);
+      if (t && t.secondView === view && t.mode === 'browser+browser') {
+        this.paneDimKeys.delete(view);
+        this.refreshPaneDim(t);
+      }
+    });
 
     // Virtual keyboard: the split's second pane reports field focus too.
     this.wireVkFocusReporting(wc, id);
@@ -1337,15 +1421,6 @@ export class TabManager {
 
     const [w, h] = this.win.getContentSize();
     let area = this.contentBounds ?? { x: 0, y: 72, width: w, height: Math.max(0, h - 72) };
-    // Website + Website split: reserve a strip above both panes for the
-    // renderer-drawn per-pane address bars.
-    if (tab.mode === 'browser+browser') {
-      area = {
-        ...area,
-        y: area.y + SPLIT_URL_BAR_HEIGHT,
-        height: Math.max(0, area.height - SPLIT_URL_BAR_HEIGHT),
-      };
-    }
 
     // When the renderer is drawing the docked Ask Zio panel (toggle-open or
     // zio-split tab mode), reserve its strip on the right for EVERY layout
@@ -1405,11 +1480,20 @@ export class TabManager {
       const leftWidth = Math.max(0, Math.floor(area.width * ratio) - Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2));
       const rightX = area.x + leftWidth + TAB_SPLIT_DIVIDER_WIDTH;
       const rightWidth = Math.max(0, area.x + area.width - rightX);
+      // Website+Website: inset both panes so the renderer can draw a
+      // clickable focus frame around each pane.
+      const inset = tab.mode === 'browser+browser' ? TAB_SPLIT_FOCUS_FRAME : 0;
+      const insetBounds = (b: Electron.Rectangle): Electron.Rectangle => ({
+        x: b.x + inset,
+        y: b.y + inset,
+        width: Math.max(0, b.width - inset * 2),
+        height: Math.max(0, b.height - inset * 2),
+      });
       if (leftView) {
-        placements.push({ view: leftView, bounds: { x: area.x, y: area.y, width: leftWidth, height: area.height } });
+        placements.push({ view: leftView, bounds: insetBounds({ x: area.x, y: area.y, width: leftWidth, height: area.height }) });
       }
       if (rightView) {
-        placements.push({ view: rightView, bounds: { x: rightX, y: area.y, width: rightWidth, height: area.height } });
+        placements.push({ view: rightView, bounds: insetBounds({ x: rightX, y: area.y, width: rightWidth, height: area.height }) });
       }
     } else if (leftView) {
       // Single native pane fills the whole area. (mode 'zio' has no native

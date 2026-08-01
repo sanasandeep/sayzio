@@ -386,6 +386,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     resolveTabManager(event)?.navigatePane(id, pane === 'second' ? 'second' : 'primary', input);
     return true;
   });
+  ipcMain.handle('tabs:focus-pane', (event, id: string, pane: string) => {
+    resolveTabManager(event)?.focusPane(id, pane === 'second' ? 'second' : 'primary');
+    return true;
+  });
   ipcMain.handle('tabs:back', (event, id: string) => { resolveTabManager(event)?.goBack(id); return true; });
   ipcMain.handle('tabs:forward', (event, id: string) => { resolveTabManager(event)?.goForward(id); return true; });
   ipcMain.handle('tabs:reload', (event, id: string, force?: boolean) => { resolveTabManager(event)?.reload(id, force); return true; });

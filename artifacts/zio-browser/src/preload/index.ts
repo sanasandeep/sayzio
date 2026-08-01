@@ -51,6 +51,8 @@ const api = {
     navigate: (id: string, input: string) => ipcRenderer.invoke('tabs:navigate', id, input),
     navigatePane: (id: string, pane: 'primary' | 'second', input: string) =>
       ipcRenderer.invoke('tabs:navigate-pane', id, pane, input),
+    focusPane: (id: string, pane: 'primary' | 'second') =>
+      ipcRenderer.invoke('tabs:focus-pane', id, pane),
     back: (id: string) => ipcRenderer.invoke('tabs:back', id),
     forward: (id: string) => ipcRenderer.invoke('tabs:forward', id),
     reload: (id: string, force?: boolean) => ipcRenderer.invoke('tabs:reload', id, force),

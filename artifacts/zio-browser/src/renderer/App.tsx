@@ -24,7 +24,6 @@ import { SiteSettingsPanel } from './components/SiteSettingsPanel';
 import { ReadingListPanel } from './components/ReadingListPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { VirtualKeyboard } from './components/VirtualKeyboard';
-import { SplitUrlBars } from './components/SplitUrlBars';
 import { useChromeOverlay } from './hooks/use-chrome-overlay';
 import { useTabStore } from './store/tab-store';
 import { useAuthStore } from './store/auth-store';
@@ -45,7 +44,7 @@ import {
   MIN_TAB_SPLIT_RATIO,
   MAX_TAB_SPLIT_RATIO,
   TAB_SPLIT_DIVIDER_WIDTH,
-  SPLIT_URL_BAR_HEIGHT,
+  TAB_SPLIT_FOCUS_FRAME,
 } from '../shared/window-mode';
 
 import {
@@ -343,6 +342,21 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [reopenClosedTab]);
+
+  // Ctrl/Cmd+Alt+Left/Right → switch the focused pane of a Website+Website split
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || !e.altKey) return;
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      if (!activeTabId) return;
+      const tab = tabs[activeTabId];
+      if (normalizeTabMode(tab?.mode) !== 'browser+browser') return;
+      e.preventDefault();
+      void window.zio.tabs.focusPane(activeTabId, e.key === 'ArrowLeft' ? 'primary' : 'second');
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTabId, tabs]);
 
   // Listen for main-process tab:search-open event (sent from menu shortcut)
   useEffect(() => {
@@ -829,14 +843,38 @@ export default function App() {
           )}
         </div>
 
-        {/* ── Dual address bars for Website + Website (one per pane) ────── */}
+        {/* ── Focus frames for Website + Website (one per pane) ───────────
+            The main process insets both native panes by TAB_SPLIT_FOCUS_FRAME,
+            so these renderer-drawn frames stay visible and clickable around
+            each pane. The focused pane gets the accent frame; clicking a
+            frame (or anywhere inside a pane's page) moves pane focus. */}
         {activeTabMode === 'browser+browser' && activeTab && activeTabId && !settingsOpen && (
-          <SplitUrlBars
-            tabId={activeTabId}
-            primaryUrl={activeTab.primaryUrl ?? activeTab.url ?? ''}
-            secondUrl={activeTab.secondUrl ?? ''}
-            splitRatio={activeTabSplitRatio}
-          />
+          <>
+            {(['primary', 'second'] as const).map((pane) => {
+              const focused = (activeTab.focusedPane ?? 'primary') === pane;
+              const dividerHalf = Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2);
+              return (
+                <div
+                  key={pane}
+                  onMouseDown={() => { void window.zio.tabs.focusPane(activeTabId, pane); }}
+                  title={focused ? 'Address bar controls this pane' : 'Click to control this pane from the address bar'}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    bottom: 0,
+                    left: pane === 'primary' ? 0 : `calc(${activeTabSplitRatio * 100}% + ${dividerHalf}px)`,
+                    right: pane === 'primary' ? undefined : 0,
+                    width: pane === 'primary' ? `calc(${activeTabSplitRatio * 100}% - ${dividerHalf}px)` : undefined,
+                    border: focused
+                      ? `${TAB_SPLIT_FOCUS_FRAME}px solid var(--color-primary, #6366f1)`
+                      : `${TAB_SPLIT_FOCUS_FRAME}px solid var(--color-border)`,
+                    boxSizing: 'border-box',
+                    zIndex: 9,
+                  }}
+                />
+              );
+            })}
+          </>
         )}
 
         {/* ── Tab split divider (two native panes, e.g. Website+Website) ──
@@ -847,7 +885,7 @@ export default function App() {
             onMouseDown={handleTabSplitDividerMouseDown}
             style={{
               position: 'absolute',
-              top: activeTabMode === 'browser+browser' ? SPLIT_URL_BAR_HEIGHT : 0,
+              top: 0,
               bottom: 0,
               left: `calc(${activeTabSplitRatio * 100}% - ${Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2)}px)`,
               width: TAB_SPLIT_DIVIDER_WIDTH,
