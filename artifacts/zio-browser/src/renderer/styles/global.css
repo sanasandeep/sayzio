@@ -1,15 +1,18 @@
 :root {
-  --color-primary: #2563eb;
-  --color-primary-light: #3b82f6;
-  --color-primary-rgb: 37, 99, 235;
-  --gradient-primary: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+  /* Brand palette — matched to the main Sayzio website (blue / purple / cyan). */
+  --color-primary: #3d6bff;
+  --color-primary-light: #5c83ff;
+  --color-primary-rgb: 61, 107, 255;
+  --color-secondary: #8b5cf6;
+  --color-secondary-rgb: 139, 92, 246;
+  --gradient-primary: linear-gradient(135deg, #3d6bff 0%, #8b5cf6 55%, #22d3ee 100%);
   --color-bg: #0f0f23;
   --color-bg-surface: #1a1a35;
   --color-bg-elevated: #252545;
   --color-border: #2e2e50;
   --color-text: #e8e8f0;
   --color-text-muted: #8888aa;
-  --color-accent: #00c6ff;
+  --color-accent: #22d3ee;
   --color-danger: #ef4444;
   --color-success: #22c55e;
   --chrome-height: 72px;

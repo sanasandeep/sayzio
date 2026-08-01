@@ -66,7 +66,7 @@ function CtaButton({ label, onClick, primary = false, delay }: { label: string; 
         fontWeight: 600,
         cursor: 'pointer',
         border: primary ? 'none' : '1px solid var(--color-border)',
-        background: primary ? 'linear-gradient(90deg, #2563eb, #0ea5e9)' : 'var(--color-bg-elevated)',
+        background: primary ? 'linear-gradient(90deg, #3d6bff, #8b5cf6)' : 'var(--color-bg-elevated)',
         color: primary ? '#fff' : 'var(--color-text)',
         boxShadow: primary ? '0 4px 20px rgba(37,99,235,0.4)' : 'none',
       }}

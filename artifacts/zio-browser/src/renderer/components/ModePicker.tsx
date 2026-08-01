@@ -10,6 +10,7 @@ import {
   WINDOW_MODE_DESCRIPTIONS,
   WINDOW_MODE_ICONS,
 } from '../../shared/window-mode';
+import zioBrowserLogo from '../assets/zio-browser-logo.png';
 
 interface Props {
   defaultMode: WindowMode;
@@ -30,8 +31,19 @@ export function ModePicker({ defaultMode, onPick }: Props) {
       justifyContent: 'center',
       zIndex: 2000,
     }}>
+      {/* Draggable strip so the frameless window can still be moved
+          while the mode picker covers the whole window. */}
+      <div
+        className="drag-region"
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 48 }}
+      />
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
-        <div style={{ fontSize: 32, marginBottom: 8 }}>⚡ Zio Browser</div>
+        <img
+          src={zioBrowserLogo}
+          alt="Zio Browser"
+          style={{ height: 96, marginBottom: 12, display: 'inline-block' }}
+          draggable={false}
+        />
         <p style={{ fontSize: 16, color: 'var(--color-text-muted)' }}>Choose how you want to use this window</p>
       </div>
 
