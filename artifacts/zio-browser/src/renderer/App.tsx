@@ -871,7 +871,31 @@ export default function App() {
                     boxSizing: 'border-box',
                     zIndex: 9,
                   }}
-                />
+                >
+                  {/* Focused-pane tag — makes the address-bar target unmistakable
+                      when both panes show similar-looking sites. */}
+                  {focused && (
+                    <span style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      background: 'var(--color-primary, #6366f1)',
+                      color: '#fff',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      letterSpacing: 0.3,
+                      textTransform: 'uppercase',
+                      lineHeight: 1,
+                      padding: '3px 8px 4px',
+                      borderRadius: '0 0 8px 8px',
+                      whiteSpace: 'nowrap',
+                      pointerEvents: 'none',
+                    }}>
+                      Address bar · {pane === 'primary' ? 'Left' : 'Right'} pane
+                    </span>
+                  )}
+                </div>
               );
             })}
           </>

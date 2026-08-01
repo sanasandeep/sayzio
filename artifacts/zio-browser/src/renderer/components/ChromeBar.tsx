@@ -1227,6 +1227,15 @@ export function ChromeBar({
         )}
 
         {/* Omnibox */}
+        {(() => {
+          // In the Website+Website split the single address bar drives the
+          // focused pane; surface WHICH pane that is with a small badge so
+          // similar-looking sites can't be confused. Clicking it toggles the
+          // controlled pane.
+          const splitPane = activeTab?.mode === 'browser+browser'
+            ? (activeTab.focusedPane ?? 'primary')
+            : null;
+          return (
         <form onSubmit={handleOmniboxSubmit} style={{ flex: 1, position: 'relative' }}>
           <input
             ref={omniboxRef}
@@ -1248,8 +1257,52 @@ export function ChromeBar({
               outline: omniboxFocused ? '2px solid var(--color-primary)' : 'none',
               outlineOffset: 0,
               transition: 'all 0.15s',
+              ...(splitPane ? { paddingRight: 96 } : {}),
             }}
           />
+
+          {/* Split-pane target badge — which pane the address bar controls */}
+          {splitPane && (
+            <button
+              type="button"
+              // mousedown (with preventDefault) keeps omnibox focus intact
+              onMouseDown={(e) => {
+                e.preventDefault();
+                if (activeTabId) {
+                  void window.zio.tabs.focusPane(
+                    activeTabId,
+                    splitPane === 'primary' ? 'second' : 'primary',
+                  );
+                }
+              }}
+              title={`The address bar controls the ${splitPane === 'primary' ? 'left' : 'right'} pane. Click to switch to the ${splitPane === 'primary' ? 'right' : 'left'} pane.`}
+              style={{
+                position: 'absolute',
+                right: 5,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                height: 20,
+                padding: '0 8px',
+                borderRadius: 10,
+                border: 'none',
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: 0.3,
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+                color: '#fff',
+                background: 'var(--color-primary)',
+                cursor: 'pointer',
+                lineHeight: 1,
+              }}
+            >
+              <span aria-hidden style={{ fontSize: 11 }}>{splitPane === 'primary' ? '◧' : '◨'}</span>
+              {splitPane === 'primary' ? 'Left pane' : 'Right pane'}
+            </button>
+          )}
 
           {/* Suggestions dropdown */}
           {suggestionsOpen && (
@@ -1332,6 +1385,8 @@ export function ChromeBar({
             </div>
           )}
         </form>
+          );
+        })()}
 
         {/* ── Link tool buttons ─────────────────────────────────────────────── */}
 
