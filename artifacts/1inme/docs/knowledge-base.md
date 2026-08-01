@@ -41,7 +41,7 @@ of *what it is*, *why you'd use it*, and *how to use it* step by step. A large
    - [22c. Service Booking (appointment requests)](#22c-service-booking-appointment-requests)
 23. [Inbox & messages](#23-inbox--messages)
 24. [Notifications & digests](#24-notifications--digests)
-25. [Organizing your work: Projects, Workspaces, Team, Client portals](#25-organizing-your-work)
+25. [Organizing your work: Folders, Workspaces, Team, Client portals](#25-organizing-your-work)
 26. [Security & sessions](#26-security--sessions)
 27. [Settings & integrations](#27-settings--integrations)
 28. [The mobile app & browser extension](#28-mobile-app--browser-extension)
@@ -274,7 +274,7 @@ what each one is for:
 | **WiFi** | A tap-to-join link/QR that connects visitors to a WiFi network. |
 | **PDF** | Share a PDF behind a viewer/download page. |
 | **Conversational** | A guided, chat-style page that walks visitors through your links one message at a time on a fixed script. |
-| **Slides** | A swipeable, story-style deck served from a single link — great for presentations or portfolios. |
+| **Slides** | A swipeable, story-style deck served from a single link — great for presentations or portfolios. The editor lets you edit blocks right inside a slide, shows a live device preview while you type, and supports per-slide background colors/images and auto-play (on web and mobile). |
 | **AI Chatbot (AI Chat)** | A full-page AI assistant that answers visitors' questions about you, powered by your Chat Widget and AI Minds. |
 | **Restaurant Menu** | A digital menu with categories, items, prices, photos, and optional table-side ordering. See [Restaurant menu](#22-restaurant-menu--orders). |
 | **Resume / Portfolio** | A shareable, professional resume page with PDF download and AI tooling. |
@@ -955,6 +955,12 @@ contact's history and timeline**, and you can attach **notes and tasks with
 reminder alarms** to people, then review them in **agenda views** so follow-ups
 never slip.
 
+**Your notes go everywhere.** Notes and checklists live in one account-level
+store, so the same notes appear on the web dashboard, in the mobile app, and in
+**Zio Browser** (which shows a per-site note-count badge and keeps notes
+available offline). Notes with a reminder time can also show up on **My
+Calendar** automatically (see "Tasks & Reminders on My Calendar").
+
 **Connected apps (CRM sync).** On paid plans you can connect **Salesforce,
 HubSpot or Zoho** so new leads, subscribers and form submissions flow straight
 into your CRM — and their contacts flow back into Sayzio. You can also forward
@@ -1059,6 +1065,11 @@ link with PDF download. Find it under **Resume / Portfolio**.
   your events). On supported plans (the `calendar_sync` feature), your events stay
   in **two-way sync** with your connected calendar (Google; Outlook where
   supported); connect or disconnect calendar accounts under **Calendar**.
+- **Tasks & Reminders on My Calendar** — Task Board due dates show up on My
+  Calendar as all-day "Task: …" entries, and dialer-note reminders as timed
+  "Reminder: …" entries, in an automatic "Tasks & Reminders" calendar. Both
+  are on by default; turn either off in the My Calendar preferences (web and
+  mobile) and the mirrored entries disappear (they come back if you re-enable).
 - **Contact swaps at events** — attendees at the same event can offer to swap
   contact details with each other. Retention: an **accepted** swap record is
   kept for **2 years** after acceptance and then deleted (the contact entries
@@ -1067,10 +1078,19 @@ link with PDF download. Find it under **Resume / Portfolio**.
   ends — or about **90 days** after the request was made if the event has no
   end date.
 
-### Projects & Task Boards
+### Folders & Task Boards
 
-- **Projects** — group related links, files, and work together to stay organized.
+- **Folders** — group related links into colored, Finder-style folders to stay
+  organized (formerly called "Projects"). Give each folder a name, a color from
+  the preset palette, and an optional description; in the My Links grid view
+  the folder color tints its link cards. New accounts start with a few demo
+  folders (Marketing, Social, Docs, Partners) you can rename or delete.
+- **List or grid view** — switch My Links between a detailed list and a card
+  grid with the view toggle; your choice is remembered per device on web and
+  mobile.
 - **Task Boards / Tasks** — lightweight task tracking inside the workspace.
+  Cards with a due date can appear on **My Calendar** automatically (see
+  "Tasks & Reminders on My Calendar" in §21).
 
 ---
 
@@ -1175,6 +1195,12 @@ set to *None*, no payment is collected and the total shown is an estimate only.
 **Appointment reminders.** Set up one or more automatic reminder notifications sent
 to the visitor before their appointment (e.g. 24 hours and 1 hour ahead). Configure
 them in the service booking settings under **Reminders**.
+
+**Staff notifications.** If you add staff members to your booking page, you can
+give each one an optional **email address**. Staff with an email get notified
+automatically whenever a booking assigned to them is placed, rescheduled, or
+cancelled (for paid bookings, the "new booking" email goes out once payment is
+confirmed).
 
 **Mobile.** The service booking builder and bookings dashboard have full native
 parity in the Sayzio mobile app.
@@ -1319,6 +1345,21 @@ page. It gives you:
 - **Device Lab** — side-by-side device previews using CSS-scaled iframes.
 - **Offline access** — links and the dashboard are accessible without a live
   connection.
+- **Ad blocker** — a built-in ad and tracker blocker (EasyList + EasyPrivacy)
+  with an on/off switch, a strength setting, and per-site allow/block lists.
+- **My Files** — browse your Sayzio file storage in a sidebar pane, with
+  folders, drag-and-drop upload, and your storage quota.
+- **Notes everywhere** — your Sayzio notes are shared across web, mobile and
+  the browser; a badge next to the address bar shows how many notes you have
+  for the site you're viewing, and notes stay available offline.
+- **Dialpad** — a T9 dialpad with a hand-off to the Zio Dialer app.
+- **File viewers** — `.txt`, Markdown, JSON and CSV files open right in the
+  browser instead of downloading.
+- **Quick create** — the Create popover includes tiles for AI Chat, Paid Page,
+  Text Page, Restaurant Menu, Store, and Booking pages.
+
+On **Linux**, Zio Browser is available as an AppImage and a `.deb` package
+(x64) from the same /download page.
 
 ### Sayzio mobile app
 

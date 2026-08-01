@@ -213,6 +213,12 @@
                 ['fa-link', 'Sayzio built in', 'Jump to your links, biolinks, QR codes and analytics from anywhere with one click — no bookmarks needed.'],
                 ['fa-eye-slash', 'True private windows', 'Private windows keep zero traces and are walled off from every profile — by design, not by setting.'],
                 ['fa-rotate', 'Auto-updates', 'New releases install themselves quietly in the background, so you\'re always on the latest version.'],
+                ['fa-shield-halved', 'Built-in ad blocker', 'Block ads and trackers out of the box, tune the strength, and keep per-site allow and block lists for the pages you trust.'],
+                ['fa-folder-open', 'My Files at hand', 'Browse your Sayzio storage from a sidebar pane: folders, drag-and-drop uploads and your quota, without opening the dashboard.'],
+                ['fa-note-sticky', 'Notes on every site', 'Your Sayzio notes ride along: a badge shows how many notes you have for the site you\'re on, synced with web and mobile and available offline.'],
+                ['fa-phone', 'Dialpad built in', 'A T9 dialpad panel hands off to the Zio Dialer app so a number found on any page becomes a call in two clicks.'],
+                ['fa-file-lines', 'Files open in place', 'Text, Markdown, JSON and CSV files open in clean built-in viewers instead of piling up in your downloads folder.'],
+                ['fa-wand-magic-sparkles', 'Create from anywhere', 'The Create popover includes quick tiles for the newest page types: AI Chat, Paid Page, Text Page, Restaurant Menu, Store and Booking.'],
             ] as [$icon, $title, $desc])
                 <div class="glass rounded-2xl p-6" data-anim="fade-up">
                     <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-300">

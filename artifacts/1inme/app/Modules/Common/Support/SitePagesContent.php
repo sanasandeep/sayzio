@@ -1951,7 +1951,8 @@ class SitePagesContent
                 'intro' => 'Shorten, organise, and manage every kind of link you need to share, with project folders and lifecycle controls.',
                 'features' => [
                     ['name' => 'Short URLs', 'description' => 'Turn long URLs into clean, branded short links you can share anywhere.'],
-                    ['name' => 'Projects', 'description' => 'Group related links into project folders to keep large libraries tidy and easy to navigate.'],
+                    ['name' => 'Folders', 'description' => 'Group related links into colored, Finder-style folders to keep large libraries tidy and easy to navigate.'],
+                    ['name' => 'List & grid views', 'description' => 'Switch My Links between a detailed list and a colored card grid; your choice is remembered on every device.'],
                     ['name' => 'URL link type', 'description' => 'Standard short link that redirects visitors to any web address you choose.'],
                     ['name' => 'File link type', 'description' => 'Upload a file and share it through a short link that streams the download to visitors.'],
                     ['name' => 'ICS calendar link type', 'description' => 'Generate calendar event links that visitors can add straight to their own calendar.'],
@@ -2010,6 +2011,10 @@ class SitePagesContent
                     ['name' => 'Extension page-to-bio-link (Quick & AI)', 'description' => 'Instantly convert any webpage into a new Link in Bio: choose Quick mode (free, instant) or AI-powered mode (AI Biolink Builder, charged in coins).'],
                     ['name' => 'Mobile share-sheet import', 'description' => 'Share any URL to Sayzio directly from the iOS or Android share sheet. The app auto-shortens on arrival (toggleable) and lets you switch to Create QR or Add to Calendar without opening the full app.'],
                     ['name' => 'Deep-link URL import', 'description' => 'Open the Import screen from any automation or Shortcut via sayzio://import-url?url=…, works even when the app is fully closed, launching straight to the result.'],
+                    ['name' => 'Zio Browser desktop app', 'description' => 'A full desktop browser for Windows, macOS, and Linux (AppImage and .deb) with workspace profiles, a Device Lab for side-by-side previews, and offline access to your links and dashboard.'],
+                    ['name' => 'Zio Browser ad blocker', 'description' => 'A built-in ad and tracker blocker with an on/off switch, a strength setting, and per-site allow and block lists.'],
+                    ['name' => 'Zio Browser My Files & notes', 'description' => 'Browse your Sayzio file storage in a sidebar pane, and see a per-site badge with your unified notes, synced with web and mobile and available offline.'],
+                    ['name' => 'Zio Browser dialpad & viewers', 'description' => 'A T9 dialpad with hand-off to the Zio Dialer app, plus built-in viewers that open text, Markdown, JSON, and CSV files right in the browser.'],
                 ],
             ],
             [
