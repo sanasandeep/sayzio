@@ -84,6 +84,9 @@ const api = {
     reopenFromRecent: (url: string) => ipcRenderer.invoke('tabs:reopen-from-recent', url),
     restoreSession: () => ipcRenderer.invoke('tabs:restore-session'),
     hideAll: () => ipcRenderer.invoke('tabs:hide-all'),
+    /** Tab Overview: per-tab thumbnail data URLs (null = no capture available). */
+    captureThumbnails: () =>
+      ipcRenderer.invoke('tabs:capture-thumbnails') as Promise<Record<string, string | null>>,
   },
 
   // ── Window mode ───────────────────────────────────────────────────────────

@@ -600,6 +600,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   });
   // Restore the last saved browsing session (non-pinned tabs from the
   // previous run). Returns the number of tabs restored.
+  // Tab Overview: downscaled per-tab thumbnails (active captured fresh,
+  // background tabs served from the last-visible-frame cache).
+  ipcMain.handle('tabs:capture-thumbnails', async (event) => {
+    const tm = resolveTabManager(event);
+    if (!tm) return {};
+    return tm.captureThumbnails();
+  });
   ipcMain.handle('tabs:hide-all', (event) => {
     resolveTabManager(event)?.hideAllTabs();
     // Return keyboard focus to the chrome renderer — a tab WebContentsView may

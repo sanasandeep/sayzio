@@ -7,6 +7,8 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useTabStore } from '../store/tab-store';
 import { useAuthStore } from '../store/auth-store';
 import { ShortenPopover } from './ShortenPopover';
+import { SharePopover } from './SharePopover';
+import { TabOverview, type TabOverviewHandle } from './TabOverview';
 import { ClipboardPopover } from './ClipboardPopover';
 import { SiteSettingsPopover } from './SiteSettingsPopover';
 import { CreateLinkPopover } from './CreateLinkPopover';
@@ -65,6 +67,25 @@ interface Props {
 }
 
 const BASE_URL = 'https://sayzio.app';
+
+/** Icon button style for the Safari-style far-right toolbar cluster. */
+function clusterBtnStyle(active: boolean): React.CSSProperties {
+  return {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    background: active ? 'var(--color-primary)' : 'transparent',
+    color: active ? '#fff' : 'var(--color-text-muted)',
+    border: '1px solid transparent',
+    cursor: 'pointer',
+    flexShrink: 0,
+    transition: 'all 0.12s',
+  };
+}
 
 /**
  * Context-menu "Fill form with my Sayzio card": fetch the signed-in profile
@@ -437,7 +458,23 @@ export function ChromeBar({
   // Safari-style "Settings for this website" popover (per-site settings).
   const [sitePopoverOpen, setSitePopoverOpen] = useState(false);
   const overflowBtnRef = useRef<HTMLButtonElement>(null);
-  useChromeOverlay(shortenOpen || createOpen || clipboardOpen || overflowOpen || sitePopoverOpen);
+  // Safari-style far-right cluster: Share popover + full-window Tab Overview.
+  const [shareOpen, setShareOpen] = useState(false);
+  const shareBtnRef = useRef<HTMLButtonElement>(null);
+  const [tabOverviewOpen, setTabOverviewOpen] = useState(false);
+  const tabOverviewRef = useRef<TabOverviewHandle>(null);
+  // Toggle helper: closing goes through the overview's animated dismiss so
+  // the toolbar button / keyboard shortcut never hard-unmounts it.
+  const toggleTabOverview = useCallback(() => {
+    setTabOverviewOpen((open) => {
+      if (open) {
+        tabOverviewRef.current?.dismiss();
+        return open; // dismiss() calls onClose after the exit animation
+      }
+      return true;
+    });
+  }, []);
+  useChromeOverlay(shortenOpen || createOpen || clipboardOpen || overflowOpen || sitePopoverOpen || shareOpen || tabOverviewOpen);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [pendingSyncByProfile, setPendingSyncByProfile] = useState<SyncQueueProfileCount[]>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -821,6 +858,19 @@ export function ChromeBar({
   }, [token]);
 
   const canShorten = !!(activeTab?.url && activeTab.url !== 'about:newtab' && activeTab.url !== '');
+
+  // Keyboard shortcut: Cmd/Ctrl+Shift+\ toggles the Tab Overview (Safari's
+  // Show All Tabs shortcut).
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === '\\' || e.key === '|')) {
+        e.preventDefault();
+        toggleTabOverview();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [toggleTabOverview]);
 
   // "On Sayzio" site detection — debounced, per-host cached public lookup.
   // The hook clears the badge the moment the window flips private or the
@@ -1580,48 +1630,6 @@ export function ChromeBar({
         </button>
         )}
 
-        {/* Downloads button */}
-        {onToggleDownloads && (
-          <button
-            onClick={onToggleDownloads}
-            title="Downloads"
-            style={{
-              position: 'relative',
-              fontSize: 15,
-              padding: '2px 7px',
-              borderRadius: 8,
-              background: downloadsPanelOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
-              color: downloadsPanelOpen ? '#fff' : 'var(--color-text-muted)',
-              border: '1px solid var(--color-border)',
-              transition: 'all 0.12s',
-            }}
-          >
-            ⬇
-            {activeDownloadCount > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: -5,
-                right: -5,
-                minWidth: 16,
-                height: 16,
-                borderRadius: 8,
-                background: 'var(--gradient-primary)',
-                color: '#fff',
-                fontSize: 9,
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0 3px',
-                border: '1.5px solid var(--color-bg-surface)',
-                lineHeight: 1,
-              }}>
-                {activeDownloadCount}
-              </span>
-            )}
-          </button>
-        )}
-
         {/* Zio AI button — hidden / disabled in private mode */}
         {!isPrivate ? (
           <button
@@ -1815,6 +1823,95 @@ export function ChromeBar({
             </span>
           )}
         </div>
+
+        {/* ── Safari-style far-right cluster: Downloads · Share · New Tab · Tab Overview ── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          marginLeft: 6,
+          paddingLeft: 8,
+          borderLeft: '1px solid var(--color-border)',
+          flexShrink: 0,
+        }}>
+          {/* Downloads (relocated — keeps its badge) */}
+          {onToggleDownloads && (
+            <button
+              onClick={onToggleDownloads}
+              title="Downloads"
+              data-testid="cluster-downloads"
+              style={clusterBtnStyle(downloadsPanelOpen)}
+            >
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 13h10" />
+              </svg>
+              {activeDownloadCount > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: -5,
+                  right: -5,
+                  minWidth: 16,
+                  height: 16,
+                  borderRadius: 8,
+                  background: 'var(--gradient-primary)',
+                  color: '#fff',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 3px',
+                  border: '1.5px solid var(--color-bg-surface)',
+                  lineHeight: 1,
+                }}>
+                  {activeDownloadCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* Share */}
+          <button
+            ref={shareBtnRef}
+            onClick={() => setShareOpen(o => !o)}
+            title="Share this page"
+            data-testid="cluster-share"
+            disabled={!activeTab?.url || activeTab.url === 'about:newtab'}
+            style={{
+              ...clusterBtnStyle(shareOpen),
+              opacity: !activeTab?.url || activeTab.url === 'about:newtab' ? 0.4 : 1,
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 1.5v8m0-8L5.5 4M8 1.5L10.5 4M4.5 7H3.5v7h9V7h-1" />
+            </svg>
+          </button>
+
+          {/* New tab */}
+          <button
+            onClick={() => void createTab()}
+            title="New tab (Cmd/Ctrl+T)"
+            data-testid="cluster-new-tab"
+            style={clusterBtnStyle(false)}
+          >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+              <path d="M8 3v10M3 8h10" />
+            </svg>
+          </button>
+
+          {/* Tab Overview — Safari-style overlapping squares */}
+          <button
+            onClick={toggleTabOverview}
+            title="Tab Overview (Cmd/Ctrl+Shift+\)"
+            data-testid="cluster-tab-overview"
+            style={clusterBtnStyle(tabOverviewOpen)}
+          >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
+              <rect x="2" y="5" width="9" height="9" rx="1.5" />
+              <path d="M5.5 3H12a2 2 0 0 1 2 2v6.5" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Overflow menu dropdown */}
@@ -1859,6 +1956,33 @@ export function ChromeBar({
               void window.zio.tabs.navigate(activeTabId, url);
             }
           }}
+        />
+      )}
+
+      {/* Share popover (far-right cluster) */}
+      {shareOpen && activeTab && (
+        <SharePopover
+          anchorRef={shareBtnRef}
+          pageUrl={activeTab.url}
+          pageTitle={activeTab.title ?? ''}
+          canShorten={canShorten}
+          onClose={() => setShareOpen(false)}
+          onShorten={() => setShortenOpen(true)}
+        />
+      )}
+
+      {/* Tab Overview — full-window exposé grid (far-right cluster) */}
+      {tabOverviewOpen && (
+        <TabOverview
+          ref={tabOverviewRef}
+          tabs={tabs}
+          tabOrder={tabOrder}
+          activeTabId={activeTabId}
+          isPrivate={isPrivate}
+          onClose={() => setTabOverviewOpen(false)}
+          onActivate={(id) => void activateTab(id)}
+          onCloseTab={(id) => void closeTab(id)}
+          onNewTab={() => void createTab()}
         />
       )}
 

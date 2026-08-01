@@ -204,6 +204,12 @@ export class TabManager {
   private resolveVkEnabled?: () => boolean;
   /** A tab page reported which kind of editable field is focused. */
   private onVkFocus?: (payload: VkFocusPayload) => void;
+  /**
+   * Cached tab thumbnails for the Tab Overview grid. Background tabs cannot
+   * be captured while detached (their views are not painted), so the last
+   * visible frame is snapshotted just before a tab deactivates.
+   */
+  private thumbnailCache = new Map<TabId, { dataUrl: string; at: number }>();
 
   constructor(win: BrowserWindow, options: TabManagerOptions = {}) {
     this.win = win;
@@ -904,6 +910,7 @@ export class TabManager {
     tab.secondView = null;
 
     this.pinnedTabs.delete(id);
+    this.thumbnailCache.delete(id);
     this.tabs.delete(id);
     this.tabOrder.splice(idx, 1);
     this.onTabClosed?.(id);
@@ -1098,6 +1105,12 @@ export class TabManager {
     if (!tab) return;
 
     const prevId = this.activeTabId;
+
+    // Snapshot the outgoing tab's last visible frame for the Tab Overview
+    // grid — once detached, its view no longer paints and can't be captured.
+    if (prevId && prevId !== id) {
+      void this.snapshotThumbnail(prevId);
+    }
 
     // Attach the new tab's views FIRST (they render on top), then detach the
     // previous tab's views — avoids a blank flash between tabs.
@@ -1914,6 +1927,46 @@ export class TabManager {
         try { this.win.contentView.removeChildView(v); } catch { }
       }
     }
+  }
+
+  /**
+   * Snapshot a tab's currently painted frame into the thumbnail cache
+   * (downscaled). Only works while the tab's view is attached/painting —
+   * callers invoke this for the active tab or a tab about to be detached.
+   */
+  async snapshotThumbnail(id: TabId): Promise<string | null> {
+    const tab = this.tabs.get(id);
+    if (!tab || tab.isNewTabPage) return null;
+    const wc = tab.view.webContents;
+    if (!isAlive(wc)) return null;
+    try {
+      const image = await wc.capturePage();
+      if (image.isEmpty()) return null;
+      const size = image.getSize();
+      const scaled = size.width > 640 ? image.resize({ width: 640 }) : image;
+      const dataUrl = scaled.toDataURL();
+      this.thumbnailCache.set(id, { dataUrl, at: Date.now() });
+      return dataUrl;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Thumbnails for the Tab Overview grid: capture the active tab fresh
+   * (it's the only one currently painting), and return cached snapshots for
+   * background tabs. Missing entries are null — the grid falls back to a
+   * favicon/title placeholder card.
+   */
+  async captureThumbnails(): Promise<Record<string, string | null>> {
+    if (this.activeTabId) {
+      await this.snapshotThumbnail(this.activeTabId);
+    }
+    const out: Record<string, string | null> = {};
+    for (const id of this.tabOrder) {
+      out[id] = this.thumbnailCache.get(id)?.dataUrl ?? null;
+    }
+    return out;
   }
 
   /**
