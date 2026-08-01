@@ -99,6 +99,11 @@ class LinkCapturesToContacts extends Command
 
         $verb = $this->option('dry-run') ? 'would link' : 'linked';
         $this->info("Done: {$verb} {$this->linked}, skipped {$this->skipped}.");
+        \Log::info('contacts:link-captures summary', [
+            'dry_run' => (bool) $this->option('dry-run'),
+            'linked'  => $this->linked,
+            'skipped' => $this->skipped,
+        ]);
 
         return self::SUCCESS;
     }
