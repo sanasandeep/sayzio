@@ -111,7 +111,27 @@ class ContactController extends Controller
         $page = $q->orderBy('display_name')
             ->paginate(min(200, max(1, (int) $request->input('per_page', 50))));
 
-        $items = collect($page->items())->map(fn ($c) => $this->transform($c, $sharedWsId))->all();
+        // Unified contact activity counts (mobile parity with the web list's
+        // ⚡ badges) — one grouped query per capture table for the visible
+        // page, never per contact. Counts are pinned to the caller's own
+        // records, so shared contacts owned by other members read 0 here.
+        $activityCounts = [];
+        try {
+            $ownIds = collect($page->items())
+                ->filter(fn ($c) => (int) $c->user_id === (int) $user->id)
+                ->pluck('id')->all();
+            if ($ownIds) {
+                $activityCounts = app(\App\Modules\User\Services\Contacts\ContactActivityService::class)
+                    ->countsFor((int) $user->id, $ownIds);
+            }
+        } catch (\Throwable) {}
+
+        $items = collect($page->items())->map(function ($c) use ($sharedWsId, $activityCounts) {
+            $row = $this->transform($c, $sharedWsId);
+            $row['activity_count'] = (int) ($activityCounts[$c->id] ?? 0);
+
+            return $row;
+        })->all();
 
         // Count only the caller's own contacts for the usage gauge; shared
         // contacts belong to another account's quota.

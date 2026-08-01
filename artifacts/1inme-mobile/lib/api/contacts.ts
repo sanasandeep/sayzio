@@ -33,6 +33,8 @@ export type Contact = {
   follow_up_note: string | null;
   follow_up_tz: string | null;
   created_at: string | null;
+  /** Linked capture records (orders, forms, RSVPs…) — list endpoint only. */
+  activity_count?: number;
 };
 
 export type ManualChannel = { type: string; label: string; value: string };

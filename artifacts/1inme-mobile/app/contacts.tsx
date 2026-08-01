@@ -619,6 +619,14 @@ function ContactRow({
           </View>
         )}
       </View>
+      {(c.activity_count ?? 0) > 0 && (
+        <View style={styles.activityBadge}>
+          <Feather name="zap" size={10} color="#22d3ee" />
+          <Text style={{ fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 10, color: "#22d3ee" }}>
+            {c.activity_count}
+          </Text>
+        </View>
+      )}
       {c.follow_up_at && (
         <View style={[styles.followUpBadge, { backgroundColor: colors.primary + "18" }]}>
           <Feather name="clock" size={11} color={colors.primary} />
@@ -718,6 +726,18 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 15,
+  },
+  activityBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    backgroundColor: "rgba(34,211,238,0.12)",
+    borderColor: "rgba(34,211,238,0.20)",
+    marginLeft: 4,
   },
   followUpBadge: {
     width: 24,
