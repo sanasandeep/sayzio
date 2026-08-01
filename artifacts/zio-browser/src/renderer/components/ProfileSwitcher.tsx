@@ -246,7 +246,7 @@ export function ProfileSwitcher({ isAuthenticated, onOpenAuth }: Props) {
  * has its own distinct avatar tint.
  */
 export function profileColor(profileId: string): string {
-  if (profileId === 'default') return '#2563eb';
+  if (profileId === 'default') return '#3d6bff';
   const PALETTE = [
     '#e05c97', '#3b82f6', '#10b981', '#f59e0b',
     '#0ea5e9', '#ef4444', '#14b8a6', '#f97316',
@@ -255,5 +255,5 @@ export function profileColor(profileId: string): string {
   for (let i = 0; i < profileId.length; i++) {
     h = (h * 31 + profileId.charCodeAt(i)) >>> 0;
   }
-  return PALETTE[h % PALETTE.length] ?? '#2563eb';
+  return PALETTE[h % PALETTE.length] ?? '#3d6bff';
 }

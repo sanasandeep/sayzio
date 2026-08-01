@@ -202,7 +202,7 @@ class LinkController extends Controller
 
     public function index(Request $request)
     {
-        $q = $this->scopedLinksQuery($request)->with('domain');
+        $q = $this->scopedLinksQuery($request)->with(['domain', 'project']);
 
         if ($type = $request->string('type')->toString()) {
             $q->where('type', $type);

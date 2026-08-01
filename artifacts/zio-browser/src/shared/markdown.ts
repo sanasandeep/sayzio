@@ -219,7 +219,7 @@ export function renderMarkdownDocument(source: string, opts: { title: string; ra
 <meta name="color-scheme" content="light dark">
 <title>${title}</title>
 <style>
-:root { --fg: #1f2430; --muted: #667085; --border: #e4e7ec; --code-bg: #f4f5f7; --accent: #2563eb; --bg: #ffffff; }
+:root { --fg: #1f2430; --muted: #667085; --border: #e4e7ec; --code-bg: #f4f5f7; --accent: #3d6bff; --bg: #ffffff; }
 @media (prefers-color-scheme: dark) {
   :root { --fg: #e5e9f0; --muted: #9aa4b2; --border: #2c3340; --code-bg: #1b202b; --accent: #7aa5ff; --bg: #12151c; }
 }
