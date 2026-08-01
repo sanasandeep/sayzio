@@ -355,6 +355,38 @@ async function assertPaneMarker(app, urlPart, markerId, label) {
     await waitDim(app, '/d', false, '/d undimmed after swap');
     ok(true, 'focused pane (/d, now left) is undimmed');
 
+    console.log('\n── History follows each pane through the swap ──');
+
+    // The focused pane (now left) built its own history before the swap:
+    // search home → /b → /c → /d. The toolbar back action must walk THAT
+    // pane's history — a regression that kept routing back/forward by side
+    // (instead of by view) would pop the OTHER pane's history here.
+    const stPreBack = await tabState(page, tabId);
+    ok(stPreBack?.canGoBack === true, 'focused pane reports canGoBack after the swap');
+    await page.evaluate((id) => window.zio.tabs.back(id), tabId);
+    await waitFor(async () => {
+      const st = await tabState(page, tabId);
+      return String(st?.url ?? '').includes('/c');
+    }, 'toolbar back returns the focused pane to /c after the swap', 15000);
+    ok(true, 'toolbar back navigates the FOCUSED pane to its own previous page (/c)');
+    const stBack = await tabState(page, tabId);
+    ok(stBack?.canGoForward === true, 'canGoForward true after going back (own /d ahead)');
+    ok(stBack?.canGoBack === true, 'canGoBack still true (own /b further back)');
+    // The other pane (/a, now right) must be untouched by the back action.
+    ok(app.windows().some(p => p.url().includes('/a')), 'other pane still on /a — untouched by back');
+    ok(!String(stBack?.url ?? '').includes('/a'), 'toolbar does not show the other pane URL after back');
+
+    // Toolbar forward walks the same pane's history back to /d.
+    await page.evaluate((id) => window.zio.tabs.forward(id), tabId);
+    await waitFor(async () => {
+      const st = await tabState(page, tabId);
+      return String(st?.url ?? '').includes('/d');
+    }, 'toolbar forward returns the focused pane to /d', 15000);
+    const stFwd = await tabState(page, tabId);
+    ok(stFwd?.canGoForward === false, 'canGoForward false again at the top of the pane history');
+    ok(app.windows().some(p => p.url().includes('/a')), 'other pane still on /a — untouched by forward');
+    ok(true, 'toolbar forward re-advances the focused pane to /d');
+
     // 24-25. Swap again — the round trip restores the original sides.
     await page.evaluate((id) => window.zio.tabs.swapPanes(id), tabId);
     await waitFor(() => page.getByText('Address bar · Right pane').count(), 'right-pane badge after swap-back', 8000);

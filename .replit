@@ -84,6 +84,10 @@ args = "e2e-zio-split-view"
 task = "workflow.run"
 args = "e2e-zio-split-view-run"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-zio-split-view-swap-history"
+
 [[workflows.workflow]]
 name = "e2e-block-defaults"
 author = "agent"
@@ -267,6 +271,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/zio-browser/tests/e2e-split-view/run-validation.sh run.cjs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-zio-split-view-swap-history"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "VALIDATION_PORT=5074 bash artifacts/zio-browser/tests/e2e-split-view/run-validation.sh run.cjs"
 
 [workflows.workflow.metadata]
 isValidation = true
