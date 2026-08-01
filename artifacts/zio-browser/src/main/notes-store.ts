@@ -13,6 +13,7 @@
  */
 
 import { randomUUID } from 'crypto';
+import { BrowserWindow } from 'electron';
 import { getDb, getPreference, setPreference } from './db';
 import { retrieveToken } from './auth-store';
 import { PREFERENCE_KEYS } from '../shared/db-schema';
@@ -34,6 +35,23 @@ export function hostFromUrl(url: string): string | null {
     return new URL(url).hostname.toLowerCase().replace(/^www\./, '') || null;
   } catch {
     return null;
+  }
+}
+
+// ── Renderer notifications ───────────────────────────────────────────────────
+
+/**
+ * Tell every window that the notes cache changed so live UI (e.g. the toolbar
+ * note-count badge) can re-read counts without waiting for a panel close or
+ * navigation. Best-effort — never throws.
+ */
+function notifyNotesChanged(): void {
+  try {
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) win.webContents.send('notes:changed');
+    }
+  } catch {
+    // best-effort UI refresh only
   }
 }
 
@@ -171,10 +189,14 @@ export async function flushNoteOps(): Promise<boolean> {
   const client = makeClient();
   if (!client) return false;
   const db = getDb();
+  let applied = 0;
 
   for (;;) {
     const row = db.prepare('SELECT * FROM notes_ops_queue ORDER BY created_at ASC LIMIT 1').get() as NoteOpRow | undefined;
-    if (!row) return true;
+    if (!row) {
+      if (applied > 0) notifyNotesChanged();
+      return true;
+    }
     try {
       if (row.op === 'create') {
         const input = JSON.parse(row.payload ?? '{}') as DialerNoteInput;
@@ -207,9 +229,11 @@ export async function flushNoteOps(): Promise<boolean> {
         }
         db.prepare('DELETE FROM notes_ops_queue WHERE id = ?').run(row.id);
       }
+      applied += 1;
     } catch (e) {
       db.prepare('UPDATE notes_ops_queue SET attempts = attempts + 1, last_error = ? WHERE id = ?')
         .run(e instanceof Error ? e.message : String(e), row.id);
+      if (applied > 0) notifyNotesChanged();
       return false;
     }
   }
@@ -265,6 +289,7 @@ export async function saveAccountNote(id: number | null, input: DialerNoteInput)
         ? await client.updateNote(id, input)
         : await client.createNote(input);
       cacheNote(saved);
+      notifyNotesChanged();
       return saved;
     } catch (e) {
       // Validation errors (422) should surface, not queue.
@@ -284,12 +309,14 @@ export async function saveAccountNote(id: number | null, input: DialerNoteInput)
     };
     cacheNote(merged);
     enqueueOp('update', id, null, input);
+    notifyNotesChanged();
     return merged;
   }
   const localId = nextLocalId();
   const created: ApiDialerNote = { ...emptyNote(localId), ...normalizeInput(input), id: localId, created_at: now, updated_at: now };
   cacheNote(created);
   enqueueOp('create', null, localId, input);
+  notifyNotesChanged();
   return created;
 }
 
@@ -301,10 +328,12 @@ export async function deleteAccountNote(id: number): Promise<void> {
       await flushNoteOps();
       await client.deleteNote(id);
       removeFromCache(id);
+      notifyNotesChanged();
       return;
     } catch (e) {
       if (e instanceof Error && 'status' in e && (e as { status?: number }).status === 404) {
         removeFromCache(id);
+        notifyNotesChanged();
         return;
       }
       // fall through to offline queue
@@ -317,6 +346,7 @@ export async function deleteAccountNote(id: number): Promise<void> {
     // Note only ever existed locally — drop its pending create/updates.
     getDb().prepare('DELETE FROM notes_ops_queue WHERE local_id = ? OR note_id = ?').run(id, id);
   }
+  notifyNotesChanged();
 }
 
 function emptyNote(id: number): ApiDialerNote {

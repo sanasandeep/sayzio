@@ -508,6 +508,8 @@ const api = {
       'permission:request',
       // Ad-block policy changed (strength, lists, pauses, admin policy)
       'adblock:state-changed',
+      // Account-notes cache changed (save/delete/offline flush) — badge refresh
+      'notes:changed',
       // Tracker blocking count updates
       'tracker:blocked-count',
       // Generic message toast (e.g. "Reader mode isn't available")

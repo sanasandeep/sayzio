@@ -717,7 +717,8 @@ export function ChromeBar({
   }, [readingListOpen]);
 
   // Per-site note count badge for the notes tool — cheap cache-only read on
-  // tab switch/navigation; refreshed when the notes panel closes (edits).
+  // tab switch/navigation; refreshed when the notes panel closes (edits) and
+  // live via the main-process 'notes:changed' event (save/delete/offline sync).
   useEffect(() => {
     const url = activeTab?.url;
     let host: string | null = null;
@@ -731,10 +732,17 @@ export function ChromeBar({
       return;
     }
     let cancelled = false;
-    void window.zio.notes.countForHost(host).then((n: number) => {
-      if (!cancelled) setNoteCount(n);
-    }).catch(() => { /* main not ready */ });
-    return () => { cancelled = true; };
+    const refresh = () => {
+      void window.zio.notes.countForHost(host).then((n: number) => {
+        if (!cancelled) setNoteCount(n);
+      }).catch(() => { /* main not ready */ });
+    };
+    refresh();
+    window.zio.on('notes:changed', refresh);
+    return () => {
+      cancelled = true;
+      window.zio.off('notes:changed', refresh);
+    };
   }, [activeTab?.url, isPrivate, notesPanelOpen]);
 
   // Track bookmark state for the active page
