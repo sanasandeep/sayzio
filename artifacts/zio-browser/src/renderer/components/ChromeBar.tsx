@@ -1214,12 +1214,11 @@ export function ChromeBar({
           title="Recently closed tabs & tab actions"
         >⋮</button>
 
-        {/* Account — avatar menu at the right edge of the tab row */}
-        {user && (
-          <div style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-            <AccountButton onOpenAuth={onOpenAuth} compact />
-          </div>
-        )}
+        {/* Account — avatar menu at the right edge of the tab row.
+            Rendered signed-out too so a "Sign in" affordance appears after logout. */}
+        <div style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+          <AccountButton onOpenAuth={onOpenAuth} compact />
+        </div>
       </div>
 
       {/* Address Bar Row */}
