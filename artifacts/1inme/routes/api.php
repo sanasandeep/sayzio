@@ -111,6 +111,11 @@ Route::prefix('v1')->group(function () {
     Route::get('/resolve/site', [\App\Modules\Api\Controllers\SiteResolveController::class, 'site'])
         ->middleware('throttle:60,1');
 
+    // Zio Browser admin-mandated ad-block policy (PUBLIC, versioned + ETag).
+    // Browsers fetch on launch and every 6h; 304 when unchanged.
+    Route::get('/zio-browser/adblock-policy', [\App\Modules\Api\Controllers\ZioBrowserAdblockPolicyController::class, 'show'])
+        ->middleware('throttle:60,1');
+
     // ── Public, visibility-aware (optional bearer token) ────────────
     Route::middleware('api.optional_auth')->group(function () {
         Route::get('/biolinks/{alias}',            [BiolinkController::class, 'show']);

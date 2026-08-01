@@ -11,6 +11,7 @@ import { SharePopover } from './SharePopover';
 import { TabOverview, type TabOverviewHandle } from './TabOverview';
 import { ClipboardPopover } from './ClipboardPopover';
 import { SiteSettingsPopover } from './SiteSettingsPopover';
+import { AdBlockShieldPopover } from './AdBlockShieldPopover';
 import { CreateLinkPopover } from './CreateLinkPopover';
 import { TabModeSwitcher } from './TabModeSwitcher';
 import { normalizeTabMode } from '../../shared/window-mode';
@@ -457,6 +458,9 @@ export function ChromeBar({
   const [overflowOpen, setOverflowOpen] = useState(false);
   // Safari-style "Settings for this website" popover (per-site settings).
   const [sitePopoverOpen, setSitePopoverOpen] = useState(false);
+  const [adblockPopoverOpen, setAdblockPopoverOpen] = useState(false);
+  const [adblockActive, setAdblockActive] = useState(false);
+  const [adblockLocked, setAdblockLocked] = useState(false);
   const overflowBtnRef = useRef<HTMLButtonElement>(null);
   // Safari-style far-right cluster: Share popover + full-window Tab Overview.
   const [shareOpen, setShareOpen] = useState(false);
@@ -474,7 +478,7 @@ export function ChromeBar({
       return true;
     });
   }, []);
-  useChromeOverlay(shortenOpen || createOpen || clipboardOpen || overflowOpen || sitePopoverOpen || shareOpen || tabOverviewOpen);
+  useChromeOverlay(shortenOpen || createOpen || clipboardOpen || overflowOpen || sitePopoverOpen || adblockPopoverOpen || shareOpen || tabOverviewOpen);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [pendingSyncByProfile, setPendingSyncByProfile] = useState<SyncQueueProfileCount[]>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -798,6 +802,26 @@ export function ChromeBar({
     if (!activeTabId) { setBlockedCount(0); return; }
     void window.zio.tracker.getCount(activeTabId).then((n: number) => setBlockedCount(n)).catch(() => setBlockedCount(0));
   }, [activeTabId]);
+
+  // Ad-block shield icon state — effective policy for the active tab.
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      if (!activeTabId) { setAdblockActive(false); setAdblockLocked(false); return; }
+      // Optional-chained: unit-test harnesses mock window.zio partially.
+      void window.zio.adblock?.getState?.(activeTabId)?.then(s => {
+        if (cancelled) return;
+        setAdblockActive(s.active);
+        setAdblockLocked(s.adminLocked);
+      }).catch(() => {});
+    };
+    refresh();
+    window.zio.on('adblock:state-changed', refresh);
+    return () => {
+      cancelled = true;
+      window.zio.off('adblock:state-changed', refresh);
+    };
+  }, [activeTabId, activeTab?.url]);
 
   // Sync omnibox with active tab URL (unless the user has uncommitted edits);
   // discard-on-navigation + tab-switch reset live in the shared hook so the
@@ -1600,12 +1624,14 @@ export function ChromeBar({
           );
         })()}
 
-        {/* Shield / site settings button with tracker badge */}
+        {/* Shield button — ad-block quick controls popover, with tracker badge */}
         <button
-          onClick={() => onOpenSiteSettings?.()}
-          title={trackerEnabled
-            ? `Privacy settings — ${blockedCount} tracker${blockedCount === 1 ? '' : 's'} blocked on this page`
-            : 'Site settings & permissions'}
+          onClick={() => setAdblockPopoverOpen(o => !o)}
+          title={adblockLocked
+            ? 'Ad blocking — Managed by Sayzio'
+            : adblockActive
+              ? `Ad blocking on — ${blockedCount} blocked on this page`
+              : 'Ad blocking off or paused'}
           style={{
             position: 'relative',
             display: 'flex',
@@ -1614,15 +1640,15 @@ export function ChromeBar({
             width: 28,
             height: 28,
             borderRadius: 8,
-            background: 'var(--color-bg-elevated)',
+            background: adblockPopoverOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
             border: `1px solid ${blockedCount > 0 ? 'var(--color-success)' : 'var(--color-border)'}`,
             fontSize: 14,
-            opacity: trackerEnabled || blockedCount > 0 ? 1 : 0.65,
+            opacity: adblockActive || trackerEnabled || blockedCount > 0 ? 1 : 0.65,
             transition: 'all 0.15s',
             flexShrink: 0,
           } as React.CSSProperties}
         >
-          🛡️
+          {adblockLocked ? '🔒' : adblockActive ? '🛡️' : '🛡'}
           {trackerEnabled && blockedCount > 0 && (
             <span style={{
               position: 'absolute',
@@ -1645,6 +1671,14 @@ export function ChromeBar({
             </span>
           )}
         </button>
+        {adblockPopoverOpen && activeTabId && (
+          <AdBlockShieldPopover
+            tabId={activeTabId}
+            host={(() => { try { return new URL(activeTab?.url ?? '').hostname; } catch { return ''; } })()}
+            blockedCount={blockedCount}
+            onClose={() => setAdblockPopoverOpen(false)}
+          />
+        )}
 
         {/* Bookmark button (hidden in private windows — bookmarks are not saved there) */}
         {!isPrivate && (

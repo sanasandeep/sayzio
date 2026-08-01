@@ -50,25 +50,25 @@ const RESOURCE_TYPE_MAP: Record<string, string> = {
 
 /** Module state (single browser instance). */
 let _engine: FiltersEngine | null = null;
-let _enabled = false;
 let _refreshTimer: NodeJS.Timeout | null = null;
 /**
- * Per-site override resolver: given the webContents id that issued a request,
- * returns true/false to force ad blocking on/off for that page's site, or
- * null to fall back to the global flag (default-as-null everywhere).
+ * Effective-state resolver: the layered policy module (admin policy → pauses
+ * → per-site setting → user lists → global toggle) registered from index.ts.
+ * Null (e.g. in unit tests) means the fallback flag below decides.
  */
-let _siteOverrideResolver: ((wcId: number) => boolean | null) | null = null;
+let _policyResolver: ((wcId: number | undefined) => boolean) | null = null;
+let _fallbackEnabled = false;
 
-export function setAdBlockSiteOverrideResolver(resolver: (wcId: number) => boolean | null): void {
-  _siteOverrideResolver = resolver;
+export function setAdBlockPolicyResolver(resolver: (wcId: number | undefined) => boolean): void {
+  _policyResolver = resolver;
 }
 
 export function setAdBlockingEnabled(enabled: boolean): void {
-  _enabled = enabled;
+  _fallbackEnabled = enabled;
 }
 
 export function isAdBlockingEnabled(): boolean {
-  return _enabled;
+  return _fallbackEnabled;
 }
 
 /** Whether the filter engine has finished loading. */
@@ -77,20 +77,18 @@ export function isAdBlockEngineReady(): boolean {
 }
 
 /**
- * Effective on/off decision for a given webContents: per-site override first
- * (persistent sessions only — the resolver returns null for private windows),
- * then the global flag.
+ * Effective on/off decision for a given webContents — delegates to the
+ * layered policy resolver when registered, else the plain global flag.
  */
 export function isAdBlockingEffectiveForWc(wcId: number | undefined): boolean {
-  if (_siteOverrideResolver && wcId !== undefined) {
+  if (_policyResolver) {
     try {
-      const override = _siteOverrideResolver(wcId);
-      if (override !== null) return override;
+      return _policyResolver(wcId);
     } catch {
       // Best-effort; fall through to the global flag.
     }
   }
-  return _enabled;
+  return _fallbackEnabled;
 }
 
 // ── Bundled list resolution ──────────────────────────────────────────────────
@@ -161,7 +159,7 @@ function loadEngineCache(): FiltersEngine | null {
 let _initialized = false;
 
 export function initAdBlocker(initialEnabled: boolean): void {
-  _enabled = initialEnabled;
+  _fallbackEnabled = initialEnabled;
   if (_initialized) return;
   _initialized = true;
 

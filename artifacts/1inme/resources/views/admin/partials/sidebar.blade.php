@@ -249,6 +249,14 @@
             <span class="sidebar-tooltip">Spam Rules</span>
         </a>
 
+        <a href="{{ route('admin.zio-adblock-policy.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.zio-adblock-policy.*') ? 'active' : '' }}"
+           style="--nav-tint:#3b82f6; --nav-tint-soft:rgba(59,130,246,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-shield"></i></div>
+            <span class="nav-label">Zio Ad-Block Policy</span>
+            <span class="sidebar-tooltip">Zio Browser Ad-Block Policy</span>
+        </a>
+
         <a href="{{ route('admin.banned-names.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.banned-names.*') ? 'active' : '' }}"
            style="--nav-tint:#ef4444; --nav-tint-soft:rgba(239,68,68,0.12);">

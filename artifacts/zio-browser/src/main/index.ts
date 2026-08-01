@@ -27,7 +27,9 @@ import { setupDownloadManager } from './download-manager';
 import { getPrivateSession, registerPrivateWindow } from './private-session';
 import { setupPermissionHandlers } from './permission-handler';
 import { setupTrackerBlocking, resetBlockedCount, installTrackerHooks, setSiteOverrideResolver } from './tracker-blocker';
-import { initAdBlocker, setAdBlockSiteOverrideResolver, isAdBlockingEffectiveForWc, getCosmeticStylesForUrl } from './ad-blocker';
+import { initAdBlocker, setAdBlockPolicyResolver, isAdBlockingEffectiveForWc, getCosmeticStylesForUrl } from './ad-blocker';
+import { initAdBlockPolicy, startAdminPolicySync, isAdBlockActiveForWc, overrideForRequestHost, getStrength } from './adblock-policy';
+import { setRequestHostOverrideResolver } from './tracker-blocker';
 import { setupPrivacyControls, installPrivacyHooks } from './privacy';
 import type { WindowMode } from '../shared/window-mode';
 import { ZIO_PANEL_DIVIDER_WIDTH } from '../shared/window-mode';
@@ -345,24 +347,17 @@ export function createWindow(): BrowserWindow {
   });
 
   // Full ad blocker (EasyList/EasyPrivacy engine) — separate toggle, off by
-  // default. Shares the tracker-blocker webRequest dispatcher; per-site "Ads"
-  // override mirrors the content-blockers pattern (private windows always
-  // fall back to the global flag).
-  initAdBlocker((safeGetPreference(PREFERENCE_KEYS.AD_BLOCKING_ENABLED) ?? '0') === '1');
-  setAdBlockSiteOverrideResolver((wcId) => {
-    try {
-      const wc = webContents.fromId(wcId);
-      if (!wc || wc.isDestroyed()) return null;
-      if (!wc.session.isPersistent()) return null;
-      const url = wc.getURL();
-      if (!url) return null;
-      const origin = new URL(url).origin;
-      if (!origin.startsWith('http')) return null;
-      return adBlockOverrideForOrigin(origin);
-    } catch {
-      return null;
-    }
-  });
+  // default. Shares the tracker-blocker webRequest dispatcher. The layered
+  // policy resolver (admin policy → pauses → per-site "Ads" override → user
+  // lists → global toggle/strength) owns the effective on/off decision, and
+  // the request-host override enforces admin/user domain lists in every
+  // session (private windows included), even when the global toggle is off.
+  const adBlockInitialEnabled = (safeGetPreference(PREFERENCE_KEYS.AD_BLOCKING_ENABLED) ?? '0') === '1';
+  initAdBlocker(adBlockInitialEnabled);
+  initAdBlockPolicy(adBlockInitialEnabled);
+  setAdBlockPolicyResolver((wcId) => isAdBlockActiveForWc(wcId));
+  setRequestHostOverrideResolver((host) => overrideForRequestHost(host));
+  startAdminPolicySync();
 
   // Setup privacy controls (Do Not Track header, third-party cookie blocking)
   setupPrivacyControls(
@@ -1167,6 +1162,9 @@ app.on('web-contents-created', (_, contents) => {
     try {
       if (contents.isDestroyed()) return;
       if (!isAdBlockingEffectiveForWc(contents.id)) return;
+      // Cosmetic element-hiding is the Strict extra; Balanced (default) does
+      // network blocking only to minimize page breakage.
+      if (getStrength() !== 'strict') return;
       const styles = getCosmeticStylesForUrl(contents.getURL());
       if (styles) void contents.insertCSS(styles, { cssOrigin: 'user' }).catch(() => { /* page may be gone */ });
     } catch {

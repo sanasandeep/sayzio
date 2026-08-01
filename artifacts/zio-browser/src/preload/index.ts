@@ -418,6 +418,38 @@ const api = {
   adblock: {
     isEnabled: () => ipcRenderer.invoke('adblock:is-enabled') as Promise<boolean>,
     setEnabled: (enabled: boolean) => ipcRenderer.invoke('adblock:set-enabled', enabled) as Promise<boolean>,
+    /** Effective layered state for a tab (omit tabId for global-only info). */
+    getState: (tabId?: string) => ipcRenderer.invoke('adblock:get-state', tabId) as Promise<{
+      active: boolean;
+      reason: string;
+      adminLocked: boolean;
+      strength: 'strict' | 'balanced';
+      globalEnabled: boolean;
+      timedPauseUntil: number | null;
+      pausedUntilRestart: boolean;
+    }>,
+    pausePage: (tabId: string) => ipcRenderer.invoke('adblock:pause-page', tabId) as Promise<boolean>,
+    /** Pause for N minutes, or until restart when null. */
+    pauseTimed: (minutes: number | null) => ipcRenderer.invoke('adblock:pause-timed', minutes) as Promise<boolean>,
+    resume: () => ipcRenderer.invoke('adblock:resume') as Promise<boolean>,
+    getStrength: () => ipcRenderer.invoke('adblock:get-strength') as Promise<'strict' | 'balanced'>,
+    setStrength: (strength: 'strict' | 'balanced') =>
+      ipcRenderer.invoke('adblock:set-strength', strength) as Promise<boolean>,
+    getLists: () => ipcRenderer.invoke('adblock:get-lists') as Promise<{ allow: string[]; block: string[] }>,
+    addListDomain: (kind: 'allow' | 'block', domain: string) =>
+      ipcRenderer.invoke('adblock:add-list-domain', kind, domain) as Promise<string | null>,
+    removeListDomain: (kind: 'allow' | 'block', domain: string) =>
+      ipcRenderer.invoke('adblock:remove-list-domain', kind, domain) as Promise<boolean>,
+    getAdminPolicy: () => ipcRenderer.invoke('adblock:get-admin-policy') as Promise<{
+      policy: { version: number; allow: string[]; block: string[] };
+      fetchedAt: string | null;
+    }>,
+    refreshAdminPolicy: () => ipcRenderer.invoke('adblock:refresh-admin-policy') as Promise<{
+      policy: { version: number; allow: string[]; block: string[] };
+      fetchedAt: string | null;
+    }>,
+    isHostAdminControlled: (host: string) =>
+      ipcRenderer.invoke('adblock:is-host-admin-controlled', host) as Promise<boolean>,
   },
 
   // ── Events (from main → renderer) ────────────────────────────────────────
@@ -465,6 +497,8 @@ const api = {
       'bookmarks:changed',
       // Permission prompts
       'permission:request',
+      // Ad-block policy changed (strength, lists, pauses, admin policy)
+      'adblock:state-changed',
       // Tracker blocking count updates
       'tracker:blocked-count',
       // Generic message toast (e.g. "Reader mode isn't available")

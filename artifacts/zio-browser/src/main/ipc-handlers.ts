@@ -119,7 +119,24 @@ import {
   getTrackerStats,
   installTrackerHooks,
 } from './tracker-blocker';
-import { isAdBlockingEnabled, setAdBlockingEnabled } from './ad-blocker';
+import { setAdBlockingEnabled } from './ad-blocker';
+import {
+  getStateForWc as getAdBlockStateForWc,
+  getPauseInfo,
+  getStrength as getAdBlockStrength,
+  setStrength as setAdBlockStrength,
+  isGlobalAdBlockEnabled,
+  setGlobalAdBlockEnabled,
+  getUserLists,
+  addUserListDomain,
+  removeUserListDomain,
+  getAdminPolicyInfo,
+  refreshAdminPolicy,
+  pausePage,
+  pauseTimed,
+  resumeAdBlocking,
+  isHostAdminControlled,
+} from './adblock-policy';
 import { setDoNotTrack, setBlockThirdPartyCookies, installPrivacyHooks } from './privacy';
 import { SEARCH_ENGINES } from '../shared/omnibox';
 import { buildAutofillScript } from '../shared/form-autofill';
@@ -1700,12 +1717,70 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('tracker:get-count', (_, tabId: string) => getBlockedCount(tabId));
 
   // ── Ad blocking (EasyList/EasyPrivacy filter engine) ─────────────────────
-  ipcMain.handle('adblock:is-enabled', () => isAdBlockingEnabled());
+  ipcMain.handle('adblock:is-enabled', () => isGlobalAdBlockEnabled());
   ipcMain.handle('adblock:set-enabled', (_, enabled: boolean) => {
+    // Keep the ad-blocker fallback flag in sync, then let the policy module
+    // own persistence + renderer broadcast.
     setAdBlockingEnabled(enabled === true);
-    setPreference(PREFERENCE_KEYS.AD_BLOCKING_ENABLED, enabled === true ? '1' : '0');
+    setGlobalAdBlockEnabled(enabled === true);
     return true;
   });
+
+  // ── Ad-block policy (strength, pauses, user lists, admin policy) ─────────
+  ipcMain.handle('adblock:get-state', (event, tabId?: string) => {
+    const wcId = typeof tabId === 'string'
+      ? resolveTabManager(event)?.getWebContents(tabId)?.id
+      : undefined;
+    const state = getAdBlockStateForWc(wcId);
+    const pause = getPauseInfo();
+    return {
+      ...state,
+      strength: getAdBlockStrength(),
+      globalEnabled: isGlobalAdBlockEnabled(),
+      timedPauseUntil: pause.timedPauseUntil,
+      pausedUntilRestart: pause.pausedUntilRestart,
+    };
+  });
+  ipcMain.handle('adblock:pause-page', (event, tabId: string) => {
+    const wcId = typeof tabId === 'string'
+      ? resolveTabManager(event)?.getWebContents(tabId)?.id
+      : undefined;
+    if (wcId === undefined) return false;
+    // Admin-mandated sites cannot be paused.
+    if (getAdBlockStateForWc(wcId).adminLocked) return false;
+    return pausePage(wcId);
+  });
+  ipcMain.handle('adblock:pause-timed', (_, minutes: number | null) => {
+    pauseTimed(typeof minutes === 'number' ? minutes : null);
+    return true;
+  });
+  ipcMain.handle('adblock:resume', () => {
+    resumeAdBlocking();
+    return true;
+  });
+  ipcMain.handle('adblock:get-strength', () => getAdBlockStrength());
+  ipcMain.handle('adblock:set-strength', (_, strength: string) => {
+    setAdBlockStrength(strength === 'strict' ? 'strict' : 'balanced');
+    return true;
+  });
+  ipcMain.handle('adblock:get-lists', () => getUserLists());
+  ipcMain.handle('adblock:add-list-domain', (_, kind: 'allow' | 'block', domain: string) => {
+    if (kind !== 'allow' && kind !== 'block') return null;
+    // Admin-controlled domains cannot be overridden by user lists.
+    if (typeof domain === 'string' && isHostAdminControlled(domain.trim().toLowerCase())) return null;
+    return addUserListDomain(kind, String(domain ?? ''));
+  });
+  ipcMain.handle('adblock:remove-list-domain', (_, kind: 'allow' | 'block', domain: string) => {
+    if (kind !== 'allow' && kind !== 'block') return false;
+    return removeUserListDomain(kind, String(domain ?? ''));
+  });
+  ipcMain.handle('adblock:get-admin-policy', () => getAdminPolicyInfo());
+  ipcMain.handle('adblock:refresh-admin-policy', async () => {
+    await refreshAdminPolicy();
+    return getAdminPolicyInfo();
+  });
+  ipcMain.handle('adblock:is-host-admin-controlled', (_, host: string) =>
+    isHostAdminControlled(typeof host === 'string' ? host : null));
   ipcMain.handle('tracker:reset-count', (_, tabId: string) => {
     resetBlockedCount(tabId);
     return true;

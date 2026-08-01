@@ -282,6 +282,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
                 ->name('index');
         });
 
+        // Zio Browser admin-mandated ad-block policy (Task #6453).
+        Route::prefix('zio-adblock-policy')->name('zio-adblock-policy.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\ZioBrowserAdblockPolicyController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::post('/', [\App\Modules\Admin\Controllers\ZioBrowserAdblockPolicyController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::delete('/', [\App\Modules\Admin\Controllers\ZioBrowserAdblockPolicyController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+        });
+
         Route::prefix('banned-names')->name('banned-names.')->group(function () {
             Route::get('/', [BannedNameController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::get('export', [BannedNameController::class, 'export'])->middleware(CheckPermission::class . ':settings.manage')->name('export');

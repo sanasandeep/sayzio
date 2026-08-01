@@ -78,6 +78,18 @@ export function setSiteOverrideResolver(resolver: (wcId: number) => boolean | nu
   _siteOverrideResolver = resolver;
 }
 
+/**
+ * Per-request host override resolver (admin + user allow/block domain lists).
+ * 'allow' skips ALL blocking for the request, 'block' cancels it outright,
+ * null falls through to the normal tracker/ad checks. Registered from
+ * index.ts; applies in every session including private windows.
+ */
+let _requestHostOverrideResolver: ((host: string) => 'allow' | 'block' | null) | null = null;
+
+export function setRequestHostOverrideResolver(resolver: (host: string) => 'allow' | 'block' | null): void {
+  _requestHostOverrideResolver = resolver;
+}
+
 // ── Persistent weekly tracker stats ──────────────────────────────────────────
 // Shape stored in the TRACKER_STATS preference (JSON):
 //   { "2026-07-25": { "doubleclick.net": 12, ... }, ... }
@@ -209,6 +221,35 @@ export function installTrackerHooks(sess: Session): void {
   // It enforces both the tracker blocklist and (when enabled) the full ad
   // blocker filter engine — never install a second listener for ads.
   sess.webRequest.onBeforeRequest((details, callback) => {
+    // Domain-list overrides (admin policy + user custom lists) apply to every
+    // request in every session — even when both global toggles are off. Never
+    // cancel a top-level navigation ('block' only drops subresources).
+    if (_requestHostOverrideResolver) {
+      try {
+        const reqHost = new URL(details.url).hostname;
+        const override = _requestHostOverrideResolver(reqHost);
+        if (override === 'allow') {
+          callback({ cancel: false });
+          return;
+        }
+        if (override === 'block' && details.resourceType !== 'mainFrame') {
+          recordBlockedTracker(reqHost.startsWith('www.') ? reqHost.slice(4) : reqHost);
+          const owcId = details.webContentsId;
+          if (owcId !== undefined) {
+            const tabId = _getTabId(owcId);
+            if (tabId) {
+              _blockedCounts.set(tabId, (_blockedCounts.get(tabId) ?? 0) + 1);
+              _mainWin?.webContents.send('tracker:blocked-count', tabId, _blockedCounts.get(tabId) ?? 0);
+            }
+          }
+          callback({ cancel: true });
+          return;
+        }
+      } catch {
+        // Best-effort — fall through to the normal checks.
+      }
+    }
+
     let effectiveEnabled = _enabled;
     if (_siteOverrideResolver && details.webContentsId !== undefined) {
       try {

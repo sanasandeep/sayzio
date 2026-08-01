@@ -58,6 +58,7 @@ export function SiteSettingsPopover({ origin, onClose }: Props) {
   const [adBlockers, setAdBlockers] = useState<'default' | 'on' | 'off'>('default');
   const [globalTracker, setGlobalTracker] = useState(false);
   const [globalAdBlock, setGlobalAdBlock] = useState(false);
+  const [adminControlled, setAdminControlled] = useState(false);
   const [perms, setPerms] = useState<Record<string, PermValue>>({});
   const [loaded, setLoaded] = useState(false);
 
@@ -65,15 +66,18 @@ export function SiteSettingsPopover({ origin, onClose }: Props) {
     let cancelled = false;
     void (async () => {
       try {
-        const [row, allPerms, trackerOn, adBlockOn] = await Promise.all([
+        const host = (() => { try { return new URL(origin).hostname; } catch { return origin; } })();
+        const [row, allPerms, trackerOn, adBlockOn, adminLocked] = await Promise.all([
           window.zio.siteSettings.get(origin),
           window.zio.permissions.getAll() as Promise<Array<{ origin: string; permission: string; decision: 'allow' | 'block' }>>,
           window.zio.tracker.isEnabled() as Promise<boolean>,
           window.zio.adblock.isEnabled() as Promise<boolean>,
+          window.zio.adblock.isHostAdminControlled(host),
         ]);
         if (cancelled) return;
         setGlobalTracker(trackerOn);
         setGlobalAdBlock(adBlockOn);
+        setAdminControlled(adminLocked === true);
         if (row) {
           if (typeof row.zoom === 'number') setZoom(row.zoom);
           if (row.autoplay === 'stop-with-sound' || row.autoplay === 'never') setAutoplay(row.autoplay);
@@ -204,15 +208,24 @@ export function SiteSettingsPopover({ origin, onClose }: Props) {
 
             <div style={rowStyle}>
               <span style={labelStyle}>🧹 Ads</span>
-              <select
-                style={selectStyle}
-                value={adBlockers}
-                onChange={e => handleAdBlockers(e.target.value as 'default' | 'on' | 'off')}
-              >
-                <option value="default">Default ({globalAdBlock ? 'Blocked' : 'Allowed'})</option>
-                <option value="on">Block on this site</option>
-                <option value="off">Allow on this site</option>
-              </select>
+              {adminControlled ? (
+                <span
+                  title="This site's ad-blocking setting is set by policy and can't be changed."
+                  style={{ ...selectStyle, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'not-allowed', opacity: 0.8 }}
+                >
+                  🔒 Managed by Sayzio
+                </span>
+              ) : (
+                <select
+                  style={selectStyle}
+                  value={adBlockers}
+                  onChange={e => handleAdBlockers(e.target.value as 'default' | 'on' | 'off')}
+                >
+                  <option value="default">Default ({globalAdBlock ? 'Blocked' : 'Allowed'})</option>
+                  <option value="on">Block on this site</option>
+                  <option value="off">Allow on this site</option>
+                </select>
+              )}
             </div>
 
             <div style={rowStyle}>

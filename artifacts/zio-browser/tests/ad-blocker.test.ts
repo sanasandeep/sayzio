@@ -25,7 +25,7 @@ import {
   __setEngineFromTextForTests,
   matchAdRequest,
   isAdBlockingEffectiveForWc,
-  setAdBlockSiteOverrideResolver,
+  setAdBlockPolicyResolver,
   setAdBlockingEnabled,
   isAdBlockEngineReady,
   getCosmeticStylesForUrl,
@@ -79,35 +79,31 @@ describe('matchAdRequest', () => {
   });
 });
 
-describe('isAdBlockingEffectiveForWc (override precedence)', () => {
-  it('falls back to the global flag when the resolver returns null', () => {
-    setAdBlockSiteOverrideResolver(() => null);
+describe('isAdBlockingEffectiveForWc (policy resolver delegation)', () => {
+  it('the registered policy resolver decides in both directions', () => {
     setAdBlockingEnabled(false);
-    expect(isAdBlockingEffectiveForWc(1)).toBe(false);
-    setAdBlockingEnabled(true);
-    expect(isAdBlockingEffectiveForWc(1)).toBe(true);
-  });
-
-  it('per-site override wins over the global flag in both directions', () => {
-    setAdBlockingEnabled(false);
-    setAdBlockSiteOverrideResolver(() => true);
+    setAdBlockPolicyResolver(() => true);
     expect(isAdBlockingEffectiveForWc(1)).toBe(true);
 
     setAdBlockingEnabled(true);
-    setAdBlockSiteOverrideResolver(() => false);
+    setAdBlockPolicyResolver(() => false);
     expect(isAdBlockingEffectiveForWc(1)).toBe(false);
   });
 
-  it('uses the global flag when no webContents id is available', () => {
-    setAdBlockSiteOverrideResolver(() => false);
-    setAdBlockingEnabled(true);
+  it('the resolver also decides when no webContents id is available', () => {
+    setAdBlockPolicyResolver((wcId) => wcId === undefined);
+    setAdBlockingEnabled(false);
     expect(isAdBlockingEffectiveForWc(undefined)).toBe(true);
+    setAdBlockingEnabled(true);
+    expect(isAdBlockingEffectiveForWc(1)).toBe(false);
   });
 
   it('a throwing resolver falls back to the global flag', () => {
-    setAdBlockSiteOverrideResolver(() => { throw new Error('boom'); });
+    setAdBlockPolicyResolver(() => { throw new Error('boom'); });
     setAdBlockingEnabled(true);
     expect(isAdBlockingEffectiveForWc(1)).toBe(true);
+    setAdBlockingEnabled(false);
+    expect(isAdBlockingEffectiveForWc(1)).toBe(false);
   });
 });
 
