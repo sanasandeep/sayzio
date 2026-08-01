@@ -126,6 +126,47 @@ describe('AccountButton menu (browser-mode tab strip)', () => {
     expect(overlaySpy).not.toHaveBeenCalledWith(false);
   });
 
+  it('re-anchors the open menu when the window resizes or an ancestor scrolls', async () => {
+    await mount();
+
+    const btn = avatarButton();
+    // Anchor position at click time.
+    btn.getBoundingClientRect = () =>
+      ({ top: 0, bottom: 30, left: 100, right: 130, width: 30, height: 30, x: 100, y: 0, toJSON: () => ({}) }) as DOMRect;
+    (window as unknown as { innerWidth: number }).innerWidth = 800;
+
+    await act(async () => {
+      btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    function fixedMenu(): HTMLElement {
+      let node: HTMLElement | null = findByText('Sign out');
+      while (node && node.style?.position !== 'fixed') node = node.parentElement;
+      expect(node, 'fixed menu container must exist').toBeTruthy();
+      return node!;
+    }
+    expect(fixedMenu().style.top).toBe('36px');
+    expect(fixedMenu().style.right).toBe(`${800 - 130}px`);
+
+    // Simulate the button moving (tab strip scrolled / window resized).
+    btn.getBoundingClientRect = () =>
+      ({ top: 0, bottom: 30, left: 60, right: 90, width: 30, height: 30, x: 60, y: 0, toJSON: () => ({}) }) as DOMRect;
+    (window as unknown as { innerWidth: number }).innerWidth = 600;
+
+    await act(async () => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    expect(fixedMenu().style.right).toBe(`${600 - 90}px`);
+
+    // Scroll of an ancestor (scroll doesn't bubble; component listens in capture).
+    btn.getBoundingClientRect = () =>
+      ({ top: 0, bottom: 30, left: 40, right: 70, width: 30, height: 30, x: 40, y: 0, toJSON: () => ({}) }) as DOMRect;
+    await act(async () => {
+      container.dispatchEvent(new Event('scroll'));
+    });
+    expect(fixedMenu().style.right).toBe(`${600 - 70}px`);
+  });
+
   it('Sign out clears auth, releases the overlay, and reverts to a Sign in button', async () => {
     await mount();
 
