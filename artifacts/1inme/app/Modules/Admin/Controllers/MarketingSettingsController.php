@@ -33,6 +33,8 @@ class MarketingSettingsController extends Controller
             'dialer_apk_url'           => (string) AppSetting::get(\App\Modules\Common\Support\ProductDownloadLinks::DIALER_APK_URL, ''),
             'browser_mac_url'          => (string) AppSetting::get(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_MAC_URL, ''),
             'browser_windows_url'      => (string) AppSetting::get(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_WIN_URL, ''),
+            'browser_linux_appimage_url' => (string) AppSetting::get(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_LINUX_APPIMAGE_URL, ''),
+            'browser_linux_deb_url'    => (string) AppSetting::get(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_LINUX_DEB_URL, ''),
             'trust_strip'              => SitePagesContent::normalizeTrustStrip(
                 (array) AppSetting::get('marketing_trust_strip', [])
             ),
@@ -79,6 +81,8 @@ class MarketingSettingsController extends Controller
             'dialer_apk_url'                  => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             'browser_mac_url'                 => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             'browser_windows_url'             => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
+            'browser_linux_appimage_url'      => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
+            'browser_linux_deb_url'           => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             'trust_strip'                     => 'nullable|array|max:6',
             'trust_strip.*.value'             => 'nullable|string|max:60',
             'trust_strip.*.label'             => 'nullable|string|max:120',
@@ -132,6 +136,8 @@ class MarketingSettingsController extends Controller
         AppSetting::put(\App\Modules\Common\Support\ProductDownloadLinks::DIALER_APK_URL, trim((string) ($data['dialer_apk_url'] ?? '')));
         AppSetting::put(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_MAC_URL, trim((string) ($data['browser_mac_url'] ?? '')));
         AppSetting::put(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_WIN_URL, trim((string) ($data['browser_windows_url'] ?? '')));
+        AppSetting::put(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_LINUX_APPIMAGE_URL, trim((string) ($data['browser_linux_appimage_url'] ?? '')));
+        AppSetting::put(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_LINUX_DEB_URL, trim((string) ($data['browser_linux_deb_url'] ?? '')));
 
         AppSetting::put('marketing_trust_strip',
             SitePagesContent::normalizeTrustStrip((array) ($data['trust_strip'] ?? []))

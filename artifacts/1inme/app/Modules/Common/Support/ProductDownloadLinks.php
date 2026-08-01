@@ -26,6 +26,8 @@ class ProductDownloadLinks
     public const DIALER_APK_URL    = 'product_dialer_apk_url';
     public const BROWSER_MAC_URL   = 'product_browser_mac_url';
     public const BROWSER_WIN_URL   = 'product_browser_windows_url';
+    public const BROWSER_LINUX_APPIMAGE_URL = 'product_browser_linux_appimage_url';
+    public const BROWSER_LINUX_DEB_URL      = 'product_browser_linux_deb_url';
 
     private static function setting(string $key): string
     {
@@ -70,8 +72,8 @@ class ProductDownloadLinks
      * Zio Browser desktop CTAs. Admin overrides win; otherwise the live
      * GitHub release resolved by ZioBrowserRelease (same as /download).
      *
-     * Linux URLs come straight from the release (no admin override yet) and
-     * are '' for older releases without Linux assets.
+     * Linux URLs honor the same admin overrides and fall back to the live
+     * release; they are '' for older releases without Linux assets.
      *
      * @return array{mac:string, windows:string, linux_appimage:string, linux_deb:string, version:string}
      */
@@ -79,6 +81,8 @@ class ProductDownloadLinks
     {
         $mac = self::setting(self::BROWSER_MAC_URL);
         $win = self::setting(self::BROWSER_WIN_URL);
+        $appimage = self::setting(self::BROWSER_LINUX_APPIMAGE_URL);
+        $deb = self::setting(self::BROWSER_LINUX_DEB_URL);
         $version = '';
 
         try {
@@ -93,12 +97,18 @@ class ProductDownloadLinks
         if ($win === '') {
             $win = (string) ($release['windows_exe'] ?? '');
         }
+        if ($appimage === '') {
+            $appimage = (string) ($release['linux_appimage'] ?? '');
+        }
+        if ($deb === '') {
+            $deb = (string) ($release['linux_deb'] ?? '');
+        }
 
         return [
             'mac' => $mac,
             'windows' => $win,
-            'linux_appimage' => (string) ($release['linux_appimage'] ?? ''),
-            'linux_deb' => (string) ($release['linux_deb'] ?? ''),
+            'linux_appimage' => $appimage,
+            'linux_deb' => $deb,
             'version' => $version,
         ];
     }
