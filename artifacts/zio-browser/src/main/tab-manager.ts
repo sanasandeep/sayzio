@@ -68,7 +68,7 @@ export interface RecentlyClosedEntry {
  * `null` for a plain single-pane Website tab.
  */
 export interface SessionTabLayout {
-  /** The tab's view mode (currently only 'browser+browser' is persisted). */
+  /** The tab's view mode (any non-'browser' mode is persisted). */
   mode: string;
   /** Left-pane share of the tab area (0.2–0.8). */
   splitRatio?: number;
@@ -1151,14 +1151,17 @@ export class TabManager {
       if (!url || url === 'about:newtab' || url === 'about:blank') continue;
       if (id === this.activeTabId) activeIndex = urls.length;
       urls.push(url);
-      // Persist the Website+Website split layout (mode, divider ratio and the
-      // second pane's URL) so the next launch can rebuild it.
+      // Persist any non-default view mode (mode + divider ratio) so the next
+      // launch can rebuild the split. The second pane's URL only exists for
+      // the Website+Website split — other right panes (My Files, Ask Zio,
+      // Dashboard) are app surfaces recreated from the mode alone.
       let layout: SessionTabLayout | null = null;
-      if (tab.mode === 'browser+browser') {
+      if (tab.mode !== 'browser') {
         const secondWc = tab.secondView?.webContents;
-        const secondUrl = secondWc && isAlive(secondWc) ? secondWc.getURL() : '';
+        const secondUrl =
+          tab.mode === 'browser+browser' && secondWc && isAlive(secondWc) ? secondWc.getURL() : '';
         layout = {
-          mode: 'browser+browser',
+          mode: tab.mode,
           splitRatio: tab.splitRatio,
           ...(secondUrl && secondUrl !== 'about:blank' ? { secondUrl } : {}),
         };
@@ -1171,8 +1174,8 @@ export class TabManager {
   /**
    * Restore a previous session's non-pinned tabs (in order) and activate the
    * saved active tab. Call after pinned tabs have been restored.
-   * `layouts` (parallel to `urls`) rebuilds Website+Website split tabs —
-   * mode, divider ratio and the second pane's URL.
+   * `layouts` (parallel to `urls`) rebuilds split/pane tabs — mode, divider
+   * ratio, and (for Website+Website only) the second pane's URL.
    */
   restoreSessionTabs(urls: string[], activeIndex = -1, layouts?: (SessionTabLayout | null)[]): void {
     const ids: TabId[] = [];
@@ -1182,12 +1185,15 @@ export class TabManager {
       const id = this.createTab(url, true);
       ids.push(id);
       const layout = layouts?.[i];
-      if (layout && layout.mode === 'browser+browser') {
-        this.setTabMode(id, 'browser+browser');
+      const mode = layout ? normalizeTabMode(layout.mode) : null;
+      if (layout && mode && mode !== 'browser') {
+        this.setTabMode(id, mode);
         if (typeof layout.splitRatio === 'number') {
           this.setTabSplitRatio(id, layout.splitRatio);
         }
-        if (typeof layout.secondUrl === 'string' && layout.secondUrl) {
+        // Only the Website+Website split has a persisted second-pane URL —
+        // other right panes are app surfaces recreated by setTabMode alone.
+        if (mode === 'browser+browser' && typeof layout.secondUrl === 'string' && layout.secondUrl) {
           this.navigatePane(id, 'second', layout.secondUrl);
           // Loading/attaching the second pane can grab keyboard focus, which
           // the focus-follows handler translates into toolbar control. A
@@ -1593,6 +1599,12 @@ export class TabManager {
     // silently swallow its clicks. The overlay release re-runs the layout.
     if (this.overlaySuppressed) return;
     if (!this.activeTabId) return;
+    // The window can be destroyed between a queued layout trigger and its
+    // execution (e.g. the startup mode-pick recreates the window while the
+    // old window's deferred restore/activate callbacks are still pending).
+    // Laying out against a destroyed window throws "Object has been
+    // destroyed" — a destroyed window simply has no layout to do.
+    if (this.win.isDestroyed()) return;
     const tab = this.tabs.get(this.activeTabId);
     if (!tab) return;
 

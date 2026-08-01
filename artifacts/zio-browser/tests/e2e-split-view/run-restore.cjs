@@ -170,6 +170,25 @@ async function tabState(page, tabId) {
       ok(Math.abs(stSplit.splitRatio - 0.3) < 0.01, `split ratio set to ${stSplit.splitRatio.toFixed(2)} before close`);
       ok(await page.locator('div[title="Drag to resize split"]').count() === 1, 'split divider rendered before close');
 
+      // Second tab in a NON-browser split mode (Website + My Files): its
+      // mode + ratio must be persisted too (no second-pane URL — My Files
+      // is an app surface recreated from the mode alone).
+      const filesTabId = await page.evaluate((url) => window.zio.tabs.create(url), `${base}/c`);
+      await waitFor(async () => (await tabState(page, filesTabId))?.url?.includes('/c'), 'files-split tab on page C', 15000);
+      await page.evaluate((id) => window.zio.tabs.setMode(id, 'browser+files'), filesTabId);
+      await waitFor(async () => (await tabState(page, filesTabId))?.mode === 'browser+files', "tab in 'browser+files' mode", 10000);
+      await page.evaluate(({ id, ratio }) => window.zio.tabs.setSplitRatio(id, ratio), { id: filesTabId, ratio: 0.7 });
+      await waitFor(async () => {
+        const s = await tabState(page, filesTabId);
+        return s && Math.abs(s.splitRatio - 0.7) < 0.01;
+      }, 'files-split ratio persisted at 0.7', 8000);
+      ok(true, "second tab entered the Website + My Files split at ratio 0.7");
+
+      // Re-activate the ORIGINAL split tab so the snapshot's active index
+      // points at it — run 2 asserts the ACTIVE restored tab shows /a.
+      await page.evaluate((id) => window.zio.tabs.activate(id), tabId);
+      await waitFor(() => page.evaluate(() => window.zio.tabs.getActive()).then(a => a === tabId), 'original split tab re-activated', 8000);
+
       // Settle so the mode/ratio state has flushed, then close CLEANLY —
       // BrowserWindow 'close' persists the session snapshot and before-quit
       // stamps CLEAN_EXIT, so run 2 restores silently (no crash dialog).
@@ -230,6 +249,23 @@ async function tabState(page, tabId) {
       await page.evaluate((id) => window.zio.tabs.setMode(id, 'browser+browser'), tabId);
       await waitFor(async () => (await tabState(page, tabId))?.mode === 'browser+browser', 'restored tab re-enters split', 10000);
       ok(true, 'restored tab can leave and re-enter the Website + Website split');
+
+      // The NON-browser split (Website + My Files) is restored too: the tab
+      // on page C comes back in 'browser+files' mode at the saved 0.7 ratio.
+      const filesTab = await waitFor(async () => {
+        const order = await page.evaluate(() => window.zio.tabs.getOrder());
+        for (const id of order) {
+          const s = await tabState(page, id);
+          if (s?.url?.includes('/c')) return { id, state: s };
+        }
+        return null;
+      }, 'restored Website + My Files tab on page C', 20000);
+      const fState = await waitFor(async () => {
+        const s = await tabState(page, filesTab.id);
+        return s?.mode === 'browser+files' ? s : null;
+      }, "restored tab back in 'browser+files' mode", 15000);
+      ok(fState?.mode === 'browser+files', `restored tab re-entered the Website + My Files split (mode='${fState?.mode}')`);
+      ok(Math.abs((fState?.splitRatio ?? 0) - 0.7) < 0.01, `files-split ratio restored at the saved 0.7 (got ${fState?.splitRatio})`);
     } finally {
       await app.close().catch(() => {});
     }

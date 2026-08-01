@@ -388,6 +388,11 @@ export function createWindow(): BrowserWindow {
 
   win.once('ready-to-show', () => {
     clearTimeout(showFailsafe);
+    // The startup mode pick can recreate the window and destroy this one
+    // while this callback is still queued — restoring the session into a
+    // destroyed window throws mid-restore and strands the whole launch.
+    // The replacement window runs its own ready-to-show restore.
+    if (win.isDestroyed()) return;
     closeSplash();
     win.show();
     modeManager.setMode(savedMode);
