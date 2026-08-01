@@ -417,7 +417,30 @@ const FOCUS_FRAME = 'div[title="Address bar controls this pane"]';
     const windowCount = () => app.windows().length;
     const hasWindowWith = (part) => app.windows().some((p) => p.url().includes(part));
     const windowUrls = () => app.windows().map((p) => p.url().slice(0, 80)).join(' | ');
-    // Baseline: chrome window + the single active browser tab's pane.
+    // Baseline: chrome window + the single active browser tab's pane, PLUS
+    // any windows the mode tour left behind. The Dashboard sections created
+    // tabId's lazy dashboardView (kept detached for cheap re-entry — that's
+    // by design, not a leak); its remote Sayzio page can commit LATE, making
+    // its Playwright page target register minutes after creation. Capturing
+    // the baseline before that target appears makes every windowCount()
+    // === baseline check below fail by one. Wait for the window set to
+    // settle (unchanged for a few seconds) before snapshotting it.
+    {
+      const settleStart = Date.now();
+      let stableSince = Date.now();
+      let lastUrls = windowUrls();
+      while (Date.now() - settleStart < 60000) {
+        await new Promise((r) => setTimeout(r, 1000));
+        const urls = windowUrls();
+        if (urls !== lastUrls) {
+          lastUrls = urls;
+          stableSince = Date.now();
+        } else if (Date.now() - stableSince >= 5000) {
+          break;
+        }
+      }
+      console.log(`  (baseline window set settled: [${lastUrls}])`);
+    }
     const baseline = windowCount();
 
     // Case 1: Website+Website split closed while detached.
