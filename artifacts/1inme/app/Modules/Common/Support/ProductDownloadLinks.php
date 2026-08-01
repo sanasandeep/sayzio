@@ -70,7 +70,10 @@ class ProductDownloadLinks
      * Zio Browser desktop CTAs. Admin overrides win; otherwise the live
      * GitHub release resolved by ZioBrowserRelease (same as /download).
      *
-     * @return array{mac:string, windows:string, version:string}
+     * Linux URLs come straight from the release (no admin override yet) and
+     * are '' for older releases without Linux assets.
+     *
+     * @return array{mac:string, windows:string, linux_appimage:string, linux_deb:string, version:string}
      */
     public static function browser(): array
     {
@@ -78,22 +81,26 @@ class ProductDownloadLinks
         $win = self::setting(self::BROWSER_WIN_URL);
         $version = '';
 
-        if ($mac === '' || $win === '') {
-            try {
-                $release = ZioBrowserRelease::current();
-            } catch (\Throwable $e) {
-                $release = [];
-            }
-            $version = (string) ($release['version'] ?? '');
-            if ($mac === '') {
-                $mac = (string) ($release['mac_arm64_dmg'] ?? ($release['mac_x64_dmg'] ?? ''));
-            }
-            if ($win === '') {
-                $win = (string) ($release['windows_exe'] ?? '');
-            }
+        try {
+            $release = ZioBrowserRelease::current();
+        } catch (\Throwable $e) {
+            $release = [];
+        }
+        $version = (string) ($release['version'] ?? '');
+        if ($mac === '') {
+            $mac = (string) ($release['mac_arm64_dmg'] ?? ($release['mac_x64_dmg'] ?? ''));
+        }
+        if ($win === '') {
+            $win = (string) ($release['windows_exe'] ?? '');
         }
 
-        return ['mac' => $mac, 'windows' => $win, 'version' => $version];
+        return [
+            'mac' => $mac,
+            'windows' => $win,
+            'linux_appimage' => (string) ($release['linux_appimage'] ?? ''),
+            'linux_deb' => (string) ($release['linux_deb'] ?? ''),
+            'version' => $version,
+        ];
     }
 
     /**

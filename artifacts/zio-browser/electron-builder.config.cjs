@@ -126,6 +126,45 @@ const config = {
     target: [{ target: 'nsis', arch: ['x64'] }],
   },
 
+  // Linux — AppImage (portable, electron-updater auto-update via
+  // latest-linux.yml) + deb (Ubuntu/Debian installer, manual updates).
+  linux: {
+    icon: 'build-resources/icon.png',
+    category: 'Network',
+    synopsis: 'The Sayzio desktop browser',
+    description:
+      'Zio Browser is the Sayzio desktop browser: private isolated profiles, a built-in device lab, and one-click access to your links and analytics.',
+    maintainer: 'Sayzio <support@sayz.io>',
+    executableName: 'zio-browser',
+    desktop: {
+      entry: {
+        Name: 'Zio Browser',
+        Comment: 'The Sayzio desktop browser',
+        Categories: 'Network;WebBrowser;',
+        StartupWMClass: 'Zio Browser',
+      },
+    },
+    target: [
+      { target: 'AppImage', arch: ['x64'] },
+      { target: 'deb', arch: ['x64'] },
+    ],
+  },
+
+  deb: {
+    // Electron sandbox / tray dependencies commonly needed on Debian/Ubuntu.
+    depends: [
+      'libgtk-3-0',
+      'libnotify4',
+      'libnss3',
+      'libxss1',
+      'libxtst6',
+      'xdg-utils',
+      'libatspi2.0-0',
+      'libuuid1',
+      'libsecret-1-0',
+    ],
+  },
+
   nsis: {
     oneClick: false,
     allowToChangeInstallationDirectory: true,
