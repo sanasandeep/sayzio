@@ -35,6 +35,27 @@ class Review extends Model
         ];
     }
 
+    /**
+     * Unified contact linking (Task #6501): tie each non-spam native review
+     * to the owner's Contact by author email, off the hot path.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (Review $review): void {
+            if ($review->is_spam || !$review->user_id) {
+                return;
+            }
+            \App\Jobs\LinkCaptureToContactJob::forRecord(
+                $review, (int) $review->user_id, $review->author_email, null, $review->author_name, 'review'
+            );
+        });
+    }
+
+    public function contact()
+    {
+        return $this->belongsTo(Contact::class);
+    }
+
     /** A review that passed customer verification (email / subscriber / contact). */
     public function isVerified(): bool
     {

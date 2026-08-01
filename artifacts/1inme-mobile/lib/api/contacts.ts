@@ -94,6 +94,42 @@ export async function getContact(id: number): Promise<Contact> {
   return res.data;
 }
 
+export type ContactActivityItem = {
+  title: string;
+  subtitle: string | null;
+  date: string | null;
+  url: string | null;
+};
+
+export type ContactActivityGroup = {
+  key: string;
+  label: string;
+  icon: string;
+  count: number;
+  items: ContactActivityItem[];
+};
+
+export type ContactFollowerBridge = {
+  is_follower: boolean;
+  followed_at?: string | null;
+};
+
+export type ContactActivity = {
+  groups: ContactActivityGroup[];
+  follower_bridge: ContactFollowerBridge;
+  is_auto_captured: boolean;
+};
+
+/** Unified cross-feature activity timeline for a contact. */
+export async function getContactActivity(
+  id: number,
+): Promise<ContactActivity> {
+  const res = await apiFetch<{ data: ContactActivity }>(
+    `/contacts/${id}/activity`,
+  );
+  return res.data;
+}
+
 /** Return all distinct tags used across the authenticated user's contacts. */
 export async function listContactTags(): Promise<string[]> {
   const res = await apiFetch<{ data: { tags: string[] } }>(`/contacts/tags`);

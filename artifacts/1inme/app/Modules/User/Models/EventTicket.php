@@ -31,6 +31,32 @@ class EventTicket extends Model
         ];
     }
 
+    /**
+     * Unified contact linking (Task #6501): tie the ticket to the event
+     * owner's Contact by attendee email/phone, off the hot path.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (EventTicket $ticket): void {
+            $ownerId = $ticket->link_id
+                ? Link::withoutGlobalScope('workspace')->whereKey($ticket->link_id)->value('user_id')
+                : null;
+            \App\Jobs\LinkCaptureToContactJob::forRecord(
+                $ticket,
+                $ownerId ? (int) $ownerId : null,
+                $ticket->attendee_email,
+                $ticket->attendee_phone,
+                $ticket->attendee_name,
+                'event_ticket'
+            );
+        });
+    }
+
+    public function contact()
+    {
+        return $this->belongsTo(Contact::class);
+    }
+
     public function tier()
     {
         return $this->belongsTo(EventTicketTier::class, 'tier_id');

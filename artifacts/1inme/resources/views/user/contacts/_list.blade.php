@@ -46,6 +46,9 @@
                             <a href="{{ route('user.contacts.show', $c) }}" class="text-sm font-semibold truncate block" style="color:var(--text-primary);">
                                 {{ $c->nameForDisplay() }}
                                 <span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(236,72,153,.15);color:#f472b6">Sayzio</span>
+                                @if(($activityCounts[$c->id] ?? 0) > 0)
+                                    <span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-semibold" title="Linked activity across Sayzio" style="background:rgba(34,211,238,.12);color:#22d3ee;border:1px solid rgba(34,211,238,.20)"><i class="fas fa-bolt mr-0.5"></i>{{ $activityCounts[$c->id] }}</span>
+                                @endif
                             </a>
                             <div class="text-xs truncate" style="color:var(--text-muted);">
                                 {{ $c->phones->first()?->value ?? $c->emails->first()?->value ?? '—' }}
@@ -89,6 +92,9 @@
                             {{ $c->nameForDisplay() }}
                             @if($c->biolink_user_id)
                                 <span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(236,72,153,.15);color:#f472b6">Sayzio</span>
+                            @endif
+                            @if(($activityCounts[$c->id] ?? 0) > 0)
+                                <span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-semibold" title="Linked activity across Sayzio" style="background:rgba(34,211,238,.12);color:#22d3ee;border:1px solid rgba(34,211,238,.20)"><i class="fas fa-bolt mr-0.5"></i>{{ $activityCounts[$c->id] }}</span>
                             @endif
                         </div>
                         <div class="text-xs truncate" style="color:var(--text-muted);">

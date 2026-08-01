@@ -1066,6 +1066,28 @@ class ContactController extends Controller
     }
 
     /**
+     * Unified contact activity (Task #6501): grouped cross-feature capture
+     * history plus the read-side follower bridge, for the mobile contact page.
+     *
+     * GET /contacts/{id}/activity
+     */
+    public function activity(Request $request, int $id)
+    {
+        $c = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', $request->user()->id)
+            ->find($id);
+        if (!$c) return $this->notFound('Contact not found');
+
+        $svc = app(\App\Modules\User\Services\Contacts\ContactActivityService::class);
+
+        return $this->ok([
+            'groups'           => array_values($svc->timeline($c)),
+            'follower_bridge'  => $svc->followerBridge($c),
+            'is_auto_captured' => (bool) $c->is_auto_captured,
+        ]);
+    }
+
+    /**
      * Batch-log identified incoming calls against a contact (Dialer native
      * call-screening queue drain). Idempotent: the (contact, number,
      * occurred_at) unique key lets a re-drained native queue post the same

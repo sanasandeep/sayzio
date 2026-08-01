@@ -42,6 +42,36 @@ class ProductOrder extends Model
         ];
     }
 
+    /**
+     * Unified contact linking (Task #6501): the buyer is a real Sayzio user,
+     * so resolve their account email/phone into the creator's Contact.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (ProductOrder $order): void {
+            if (!$order->creator_user_id || !$order->buyer_user_id) {
+                return;
+            }
+            $buyer = User::find($order->buyer_user_id);
+            if (!$buyer) {
+                return;
+            }
+            \App\Jobs\LinkCaptureToContactJob::forRecord(
+                $order,
+                (int) $order->creator_user_id,
+                $buyer->email,
+                $buyer->mobile,
+                $buyer->name,
+                'product_order'
+            );
+        });
+    }
+
+    public function contact(): BelongsTo
+    {
+        return $this->belongsTo(Contact::class);
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(ProductOrderItem::class, 'order_id');

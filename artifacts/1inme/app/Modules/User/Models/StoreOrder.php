@@ -87,6 +87,29 @@ class StoreOrder extends Model
                 $order->public_token = (string) Str::uuid();
             }
         });
+
+        // Unified contact linking (Task #6501). customer_contact is a
+        // free-text "phone or email" field — sniff which one it is.
+        static::created(function (StoreOrder $order): void {
+            $ownerId = $order->link_id
+                ? Link::withoutGlobalScope('workspace')->whereKey($order->link_id)->value('user_id')
+                : null;
+            $contactRaw = trim((string) $order->customer_contact);
+            $isEmail = $contactRaw !== '' && filter_var($contactRaw, FILTER_VALIDATE_EMAIL);
+            \App\Jobs\LinkCaptureToContactJob::forRecord(
+                $order,
+                $ownerId ? (int) $ownerId : null,
+                $isEmail ? $contactRaw : null,
+                (!$isEmail && $contactRaw !== '') ? $contactRaw : null,
+                $order->customer_name,
+                'store_order'
+            );
+        });
+    }
+
+    public function contact()
+    {
+        return $this->belongsTo(Contact::class);
     }
 
     public function menu()

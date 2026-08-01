@@ -119,10 +119,18 @@ class ContactController extends Controller
             }
         }
 
+        // Unified contact activity counts (Task #6501) for the visible page —
+        // one grouped query per capture table against the contact_id indexes.
+        $activityCounts = [];
+        try {
+            $activityCounts = app(\App\Modules\User\Services\Contacts\ContactActivityService::class)
+                ->countsFor((int) $user->id, $contacts->pluck('id')->all());
+        } catch (\Throwable) {}
+
         // Live as-you-type search / tab switch / pagination fetch just the list
         // body so the page never reloads. The full page is returned otherwise.
         if ($request->ajax()) {
-            return view('user.contacts._list', compact('contacts', 'tab', 'search', 'tag', 'sharedContacts', 'currentWorkspace'));
+            return view('user.contacts._list', compact('contacts', 'tab', 'search', 'tag', 'sharedContacts', 'currentWorkspace', 'activityCounts'));
         }
 
         // Duplicate count for the banner — best-effort, never blocks the page
@@ -131,7 +139,7 @@ class ContactController extends Controller
             $duplicateCount = $this->detector->count($user->id);
         } catch (\Throwable) {}
 
-        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'tag', 'googleAccount', 'stats', 'usage', 'activeImport', 'sharedContacts', 'currentWorkspace', 'duplicateCount'));
+        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'tag', 'googleAccount', 'stats', 'usage', 'activeImport', 'sharedContacts', 'currentWorkspace', 'duplicateCount', 'activityCounts'));
     }
 
     /**
@@ -217,7 +225,13 @@ class ContactController extends Controller
         // Workspace sharing context for the share/unshare UI panel.
         $shareContext = $this->buildShareContext($contact, $user);
 
-        return view('user.contacts.show', compact('contact', 'biolinkPreview', 'shareContext'));
+        // Unified contact activity (Task #6501): grouped cross-feature
+        // history + read-side follower bridge.
+        $activityService = app(\App\Modules\User\Services\Contacts\ContactActivityService::class);
+        $activityGroups = $activityService->timeline($contact);
+        $followerBridge = $activityService->followerBridge($contact);
+
+        return view('user.contacts.show', compact('contact', 'biolinkPreview', 'shareContext', 'activityGroups', 'followerBridge'));
     }
 
     public function edit(Request $request, Contact $contact)

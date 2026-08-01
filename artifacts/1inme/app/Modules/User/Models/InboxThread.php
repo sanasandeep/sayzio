@@ -86,6 +86,28 @@ class InboxThread extends Model
         'spam'        => null,
     ];
 
+    /**
+     * Unified contact linking (Task #6501): resolve the thread's sender to
+     * the owner's Contact by email so one person's conversations hang off
+     * their contact record.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (InboxThread $thread): void {
+            if (!$thread->user_id) {
+                return;
+            }
+            \App\Jobs\LinkCaptureToContactJob::forRecord(
+                $thread, (int) $thread->user_id, $thread->sender_email, null, $thread->sender_name, 'inbox'
+            );
+        });
+    }
+
+    public function contact()
+    {
+        return $this->belongsTo(Contact::class);
+    }
+
     public function messages(): HasMany
     {
         return $this->hasMany(InboxMessage::class, 'thread_id')->orderBy('sent_at');

@@ -303,6 +303,55 @@
         </div>
     </div>
 
+    {{-- ── Activity across Sayzio (Task #6501) ──────────────────────────── --}}
+    <div class="mt-4 pt-4" style="border-top:1px solid rgba(255,255,255,.06);">
+        <div class="flex items-center gap-2 mb-3 flex-wrap">
+            <h3 class="text-[10px] font-bold uppercase tracking-wider" style="color:var(--text-faint);">Activity across Sayzio</h3>
+            @if($contact->is_auto_captured)
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold" title="This contact was created automatically from a customer capture" style="background:rgba(34,211,238,.12);color:#22d3ee;border:1px solid rgba(34,211,238,.20)">Auto-captured</span>
+            @endif
+            @if(!empty($followerBridge['is_follower']))
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold" title="This contact's Sayzio account follows you" style="background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.20)"><i class="fas fa-user-check mr-0.5"></i> Follows you</span>
+            @endif
+        </div>
+        @if(empty($activityGroups))
+            <p class="text-xs" style="color:var(--text-muted);">No linked activity yet. Subscriptions, orders, bookings, RSVPs, reviews and conversations from this person will show up here automatically.</p>
+        @else
+            <div class="space-y-3">
+                @foreach($activityGroups as $group)
+                    <div class="rounded-xl p-3" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-semibold" style="color:var(--text-primary);">{{ $group['label'] }}</span>
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold" style="background:rgba(61,107,255,.12);color:#90acff;">{{ $group['count'] }}</span>
+                        </div>
+                        <div class="space-y-1.5">
+                            @foreach($group['items'] as $item)
+                                <div class="flex items-center justify-between gap-2 text-xs">
+                                    <div class="min-w-0 flex-1">
+                                        @if(!empty($item['url']))
+                                            <a href="{{ $item['url'] }}" class="truncate block font-medium" style="color:#90acff;">{{ $item['title'] }}</a>
+                                        @else
+                                            <span class="truncate block" style="color:var(--text-primary);">{{ $item['title'] }}</span>
+                                        @endif
+                                        @if(!empty($item['subtitle']))
+                                            <span class="text-[10px]" style="color:var(--text-muted);">{{ $item['subtitle'] }}</span>
+                                        @endif
+                                    </div>
+                                    @if(!empty($item['date']))
+                                        <span class="text-[10px] flex-shrink-0" style="color:var(--text-faint);">{{ \Illuminate\Support\Carbon::parse($item['date'])->diffForHumans() }}</span>
+                                    @endif
+                                </div>
+                            @endforeach
+                            @if($group['count'] > count($group['items']))
+                                <p class="text-[10px]" style="color:var(--text-faint);">+ {{ $group['count'] - count($group['items']) }} more</p>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </div>
+
     {{-- ── Workspace sharing panel ──────────────────────────────────────── --}}
     @if($shareContext['is_shared_contact'])
     <div class="mt-4 p-4 rounded-xl" style="background:linear-gradient(135deg,rgba(61,107,255,.07),rgba(34,211,238,.07));border:1px solid rgba(61,107,255,.18);">

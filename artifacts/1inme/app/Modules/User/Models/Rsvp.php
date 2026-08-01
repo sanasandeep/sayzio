@@ -33,6 +33,22 @@ class Rsvp extends Model
             if (empty($r->status)) $r->status = 'confirmed';
             if (empty($r->manage_token)) $r->manage_token = Str::random(40);
         });
+
+        // Unified contact linking (Task #6501): tie the RSVP to the event
+        // owner's Contact by guest email/phone, off the hot path.
+        static::created(function (self $r): void {
+            $ownerId = $r->link_id
+                ? Link::withoutGlobalScope('workspace')->whereKey($r->link_id)->value('user_id')
+                : null;
+            \App\Jobs\LinkCaptureToContactJob::forRecord(
+                $r, $ownerId ? (int) $ownerId : null, $r->email, $r->phone, $r->name, 'rsvp'
+            );
+        });
+    }
+
+    public function contact()
+    {
+        return $this->belongsTo(Contact::class);
     }
 
     public function link()

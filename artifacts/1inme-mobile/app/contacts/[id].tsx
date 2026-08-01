@@ -18,6 +18,7 @@ import { useColors } from "@/hooks/useColors";
 import {
   clearFollowUp,
   getContact,
+  getContactActivity,
   listContactTags,
   setFollowUp,
   updateContactNotes,
@@ -39,6 +40,13 @@ export default function ContactDetailScreen() {
   const tagsQ = useQuery({
     queryKey: ["contact-tags"],
     queryFn: listContactTags,
+    staleTime: 60_000,
+  });
+
+  const activityQ = useQuery({
+    queryKey: ["contact-activity", numId],
+    queryFn: () => getContactActivity(numId),
+    enabled: numId > 0,
     staleTime: 60_000,
   });
 
@@ -334,6 +342,113 @@ export default function ContactDetailScreen() {
                   {notesMut.isPending ? "Saving…" : "Save"}
                 </Text>
               </Pressable>
+            </View>
+          )}
+        </Section>
+
+        {/* Activity across Sayzio (unified contact linking) */}
+        <Section title="Activity across Sayzio" colors={colors}>
+          {(activityQ.data?.is_auto_captured || activityQ.data?.follower_bridge?.is_follower) && (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+              {activityQ.data?.is_auto_captured && (
+                <View style={[styles.tagChip, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={{ fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 10, color: colors.primary }}>
+                    Auto-captured
+                  </Text>
+                </View>
+              )}
+              {activityQ.data?.follower_bridge?.is_follower && (
+                <View style={[styles.tagChip, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={{ fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 10, color: "#22c55e" }}>
+                    Follows you
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+          {activityQ.isLoading ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : !activityQ.data || activityQ.data.groups.length === 0 ? (
+            <Text style={{ fontFamily: "SpaceGrotesk_400Regular", fontSize: 13, color: colors.mutedForeground }}>
+              No linked activity yet. Subscriptions, orders, bookings, RSVPs, reviews and conversations from this
+              person will show up here automatically.
+            </Text>
+          ) : (
+            <View style={{ gap: 12 }}>
+              {activityQ.data.groups.map((g) => (
+                <View key={g.key}>
+                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+                    <Feather name={g.icon as never} size={13} color={colors.mutedForeground} />
+                    <Text
+                      style={{
+                        fontFamily: "SpaceGrotesk_600SemiBold",
+                        fontSize: 12,
+                        color: colors.foreground,
+                        marginLeft: 6,
+                        flex: 1,
+                      }}
+                    >
+                      {g.label}
+                    </Text>
+                    <Text style={{ fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 11, color: colors.primary }}>
+                      {g.count}
+                    </Text>
+                  </View>
+                  {g.items.map((item, idx) => (
+                    <View key={idx} style={{ marginBottom: 6, paddingLeft: 19 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <Text
+                          numberOfLines={1}
+                          style={{
+                            fontFamily: "SpaceGrotesk_500Medium",
+                            fontSize: 13,
+                            color: colors.foreground,
+                            flex: 1,
+                          }}
+                        >
+                          {item.title}
+                        </Text>
+                        {item.date && (
+                          <Text
+                            style={{
+                              fontFamily: "SpaceGrotesk_400Regular",
+                              fontSize: 10,
+                              color: colors.mutedForeground,
+                              marginLeft: 8,
+                            }}
+                          >
+                            {new Date(item.date).toLocaleDateString()}
+                          </Text>
+                        )}
+                      </View>
+                      {item.subtitle ? (
+                        <Text
+                          numberOfLines={1}
+                          style={{
+                            fontFamily: "SpaceGrotesk_400Regular",
+                            fontSize: 11,
+                            color: colors.mutedForeground,
+                          }}
+                        >
+                          {item.subtitle}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ))}
+                  {g.count > g.items.length && (
+                    <Text
+                      style={{
+                        fontFamily: "SpaceGrotesk_400Regular",
+                        fontSize: 10,
+                        color: colors.mutedForeground,
+                        paddingLeft: 19,
+                      }}
+                    >
+                      + {g.count - g.items.length} more
+                    </Text>
+                  )}
+                </View>
+              ))}
             </View>
           )}
         </Section>
