@@ -95,8 +95,10 @@ export async function listContacts(opts?: {
 
 /** Fetch a single contact by ID. */
 export async function getContact(id: number): Promise<Contact> {
-  const res = await apiFetch<{ data: Contact }>(`/contacts/${id}`);
-  return res.data;
+  // The show endpoint wraps its payload as { data: { contact } } (unlike
+  // notes/tags PATCHes which return the contact directly under data).
+  const res = await apiFetch<{ data: { contact: Contact } }>(`/contacts/${id}`);
+  return res.data.contact;
 }
 
 export type ContactActivityItem = {
@@ -238,19 +240,27 @@ export async function setFollowUp(
   follow_up_note?: string | null,
   follow_up_tz?: string | null,
 ): Promise<Contact> {
-  const res = await apiFetch<{ data: Contact }>(`/contacts/${id}/follow-up`, {
-    method: "POST",
-    body: JSON.stringify({ follow_up_at, follow_up_note, follow_up_tz }),
-  });
-  return res.data;
+  // Follow-up endpoints wrap the payload as { data: { contact } }.
+  const res = await apiFetch<{ data: { contact: Contact } }>(
+    `/contacts/${id}/follow-up`,
+    {
+      method: "POST",
+      body: JSON.stringify({ follow_up_at, follow_up_note, follow_up_tz }),
+    },
+  );
+  return res.data.contact;
 }
 
 /** Clear a scheduled follow-up for a contact. */
 export async function clearFollowUp(id: number): Promise<Contact> {
-  const res = await apiFetch<{ data: Contact }>(`/contacts/${id}/follow-up`, {
-    method: "DELETE",
-  });
-  return res.data;
+  // Follow-up endpoints wrap the payload as { data: { contact } }.
+  const res = await apiFetch<{ data: { contact: Contact } }>(
+    `/contacts/${id}/follow-up`,
+    {
+      method: "DELETE",
+    },
+  );
+  return res.data.contact;
 }
 
 /** Best-effort primary email for a contact (falls back to the first on file). */
