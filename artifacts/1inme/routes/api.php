@@ -1055,6 +1055,8 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/contacts/duplicates/dismiss',   [ContactController::class, 'duplicatesDismiss'])->middleware('throttle:60,1');
         Route::post  ('/contacts/duplicates/merge-all', [ContactController::class, 'mergeAllDuplicates'])->middleware('throttle:6,1');
         Route::post  ('/contacts/{id}/merge-duplicate', [ContactController::class, 'mergeContacts'])->whereNumber('id')->middleware('throttle:30,1');
+        Route::get   ('/contacts/merges/undoable',      [ContactController::class, 'undoableMerges']);
+        Route::post  ('/contacts/merges/{audit}/undo',  [ContactController::class, 'undoMerge'])->whereNumber('audit')->middleware('throttle:30,1');
         Route::get   ('/contacts/{id}/merge-candidates', [ContactController::class, 'mergeCandidates'])->whereNumber('id')->middleware('throttle:60,1');
         Route::get   ('/contacts/follow-ups',       [ContactController::class, 'followUps']);
         Route::get   ('/contacts/follow-ups/count', [ContactController::class, 'followUpsCount']);

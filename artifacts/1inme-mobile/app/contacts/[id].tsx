@@ -25,8 +25,11 @@ import {
   getContactActivity,
   listContactTags,
   listMergeCandidates,
+  listUndoableMerges,
   mergeContacts,
   setFollowUp,
+  undoContactMerge,
+  type UndoableMerge,
   updateContactNotes,
   updateContactTags,
   type MergeCandidate,
@@ -82,6 +85,44 @@ export default function ContactDetailScreen() {
     queryFn: () => listMergeCandidates(numId, mergeSearch),
     enabled: numId > 0 && mergeOpen,
   });
+
+  // Recent merges into this contact that can still be undone (web parity).
+  const undoableQ = useQuery({
+    queryKey: ["undoable-merges", numId],
+    queryFn: () => listUndoableMerges(numId),
+    enabled: numId > 0,
+    staleTime: 30_000,
+  });
+
+  const undoMut = useMutation({
+    mutationFn: (auditId: number) => undoContactMerge(auditId),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["contacts"] });
+      qc.invalidateQueries({ queryKey: ["contact", numId] });
+      qc.invalidateQueries({ queryKey: ["contact-activity", numId] });
+      qc.invalidateQueries({ queryKey: ["undoable-merges"] });
+      qc.setQueryData(["contact", res.contact.id], res.contact);
+      // Land on the restored contact, mirroring the web redirect.
+      router.push(`/contacts/${res.contact.id}` as any);
+    },
+    onError: (e: any) => {
+      const msg = e?.message ?? "Could not undo the merge.";
+      if (Platform.OS === "web") window.alert(msg);
+      else Alert.alert("Undo failed", msg);
+    },
+  });
+
+  function confirmUndoMerge(m: UndoableMerge) {
+    const prompt = `Undo this merge? "${m.source_name}" will be restored as its own contact with its phones, emails and activity.`;
+    if (Platform.OS === "web") {
+      if (window.confirm(prompt)) undoMut.mutate(m.id);
+    } else {
+      Alert.alert("Undo merge", prompt, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Undo merge", onPress: () => undoMut.mutate(m.id) },
+      ]);
+    }
+  }
 
   const mergeMut = useMutation({
     // This contact is absorbed INTO the target: the target survives with
@@ -246,6 +287,42 @@ export default function ContactDetailScreen() {
             ) : null}
           </View>
         )}
+
+        {/* Recently merged into this contact — undoable (web parity) */}
+        {(undoableQ.data?.merges ?? []).map((m) => (
+          <View
+            key={m.id}
+            style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: 16 }]}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <Feather name="rotate-ccw" size={14} color={colors.primary} />
+              <Text style={{ fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13, color: colors.foreground, flex: 1 }}>
+                “{m.source_name}” was merged into this contact
+                {m.merged_at ? ` on ${new Date(m.merged_at).toLocaleDateString()}` : ""}
+              </Text>
+            </View>
+            <Text style={{ fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, color: colors.mutedForeground, marginBottom: 10 }}>
+              Merged by mistake? You can undo a merge for {undoableQ.data?.undo_window_days ?? 30} days.
+            </Text>
+            <Pressable
+              onPress={() => confirmUndoMerge(m)}
+              disabled={undoMut.isPending}
+              style={({ pressed }) => [
+                styles.mergeBtn,
+                { borderColor: colors.border, backgroundColor: colors.background, opacity: pressed || undoMut.isPending ? 0.6 : 1 },
+              ]}
+            >
+              {undoMut.isPending && undoMut.variables === m.id ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Feather name="rotate-ccw" size={15} color={colors.primary} />
+              )}
+              <Text style={{ fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13, color: colors.primary }}>
+                Undo merge
+              </Text>
+            </Pressable>
+          </View>
+        ))}
 
         {/* Phones */}
         {c.phones.length > 0 && (

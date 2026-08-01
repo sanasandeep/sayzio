@@ -476,6 +476,43 @@ export async function listMergeCandidates(
   return res.data.candidates;
 }
 
+// ── Merge undo (30-day window, web parity) ────────────────────────
+export type UndoableMerge = {
+  id: number;
+  primary_contact_id: number;
+  /** Display name of the merged-away contact (from the audit snapshot). */
+  source_name: string;
+  merged_at: string | null;
+};
+
+/**
+ * List recent merges that can still be undone. Pass `contactId` to narrow
+ * to merges whose surviving primary is that contact (detail screen).
+ */
+export async function listUndoableMerges(contactId?: number): Promise<{
+  merges: UndoableMerge[];
+  undo_window_days: number;
+}> {
+  const qs = contactId ? `?contact_id=${contactId}` : "";
+  const res = await apiFetch<{
+    data: { merges: UndoableMerge[]; undo_window_days: number };
+  }>(`/contacts/merges/undoable${qs}`);
+  return res.data;
+}
+
+/**
+ * Undo a recorded merge: the merged-away contact is recreated from the
+ * audit snapshot with its phones/emails/activity. Returns the restored
+ * contact.
+ */
+export async function undoContactMerge(auditId: number): Promise<{ contact: Contact }> {
+  const res = await apiFetch<{ data: { contact: Contact } }>(
+    `/contacts/merges/${auditId}/undo`,
+    { method: "POST" },
+  );
+  return res.data;
+}
+
 /**
  * Persist the owner's manual Dialer additions (channels / socials /
  * location) for a contact, kept distinct from auto-pulled biolink data.

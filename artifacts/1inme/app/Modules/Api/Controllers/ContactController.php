@@ -417,6 +417,73 @@ class ContactController extends Controller
     }
 
     /**
+     * List the caller's recent merges that can still be undone (mobile
+     * parity with the web contact page / duplicates page undo banners).
+     *
+     * GET /api/v1/contacts/merges/undoable
+     * Optional ?contact_id= narrows to merges whose surviving primary is
+     * that contact (used by the mobile contact detail screen).
+     */
+    public function undoableMerges(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $merges = collect();
+        try {
+            $q = \App\Modules\User\Models\ContactMergeAudit::query()
+                ->where('user_id', $userId)
+                ->undoable()
+                ->orderByDesc('id')
+                ->limit(10);
+            if ($cid = (int) $request->query('contact_id', 0)) {
+                $q->where('primary_contact_id', $cid);
+            }
+            $merges = $q->get();
+        } catch (\Throwable $e) {
+            \Log::warning('API undoableMerges failed', ['err' => $e->getMessage()]);
+        }
+
+        return $this->ok([
+            'merges' => $merges->map(fn ($a) => [
+                'id'                  => $a->id,
+                'primary_contact_id'  => $a->primary_contact_id,
+                'source_name'         => $a->sourceName(),
+                'merged_at'           => optional($a->created_at)->toIso8601String(),
+            ])->values(),
+            'undo_window_days' => \App\Modules\User\Models\ContactMergeAudit::UNDO_WINDOW_DAYS,
+        ]);
+    }
+
+    /**
+     * Undo a recent contact merge: recreates the merged-away contact from
+     * the audit snapshot and repoints the recorded rows back to it
+     * (mobile parity with the web undo route — owner-safe, idempotent,
+     * time-limited by ContactMergeAudit::UNDO_WINDOW_DAYS).
+     *
+     * POST /api/v1/contacts/merges/{audit}/undo
+     * Returns the restored contact.
+     */
+    public function undoMerge(Request $request, int $audit)
+    {
+        $row = \App\Modules\User\Models\ContactMergeAudit::query()
+            ->whereKey($audit)
+            ->where('user_id', $request->user()->id)
+            ->first();
+        if (!$row) return $this->notFound('Merge record not found');
+
+        try {
+            $restored = app(\App\Modules\User\Services\Contacts\ContactMergeUndoService::class)->undo($row);
+        } catch (\Throwable $e) {
+            \Log::warning('API undoMerge failed', ['audit' => $row->id, 'err' => $e->getMessage()]);
+            return $this->fail('Could not undo the merge: ' . $e->getMessage(), 422, 'undo_failed');
+        }
+
+        return $this->ok([
+            'contact' => $this->transform($restored->fresh(['phones', 'emails'])),
+        ]);
+    }
+
+    /**
      * Bulk-merge every duplicate group in one call (mobile parity with the
      * web "Merge all" action).
      *

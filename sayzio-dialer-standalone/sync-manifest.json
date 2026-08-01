@@ -318,7 +318,7 @@
       "source": "lib/api/contacts.ts",
       "relation": "adapted",
       "note": "diverged API surfaces: main copy grew its own helpers (getContact/updateContactNotes/updateContactTags/duplicate + google-sync helpers, opts-object listContacts) while the standalone keeps the original CRUD/import surface. Manual-profile types + updateContactManualProfile now exist in both.",
-      "sourceSha256": "b1dbfca14da473f035b4cebcc105d370e8a03392eb211dcb38927b49de652d47"
+      "sourceSha256": "4fc6e74c2551d45506454b31b4ffed225b6da2a84e745976b098b1b2a82daabd"
     },
     {
       "standalone": "components/ChannelActions.tsx",
