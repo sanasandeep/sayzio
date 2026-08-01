@@ -1333,6 +1333,9 @@ export class TabManager {
   /** Inserted-CSS keys for the pane-dim overlay, per native view. */
   private paneDimKeys = new Map<WebContentsView, string>();
 
+  /** Monotonic id so each pending dim insertion has a UNIQUE sentinel. */
+  private paneDimSeq = 0;
+
   /**
    * Apply/remove the dim overlay so only the UNFOCUSED pane of a
    * Website+Website split is dimmed. Inserted CSS does not survive
@@ -1350,19 +1353,26 @@ export class TabManager {
       const shouldDim = tab.mode === 'browser+browser' && tab.focusedPane !== pane;
       const existingKey = this.paneDimKeys.get(view);
       if (shouldDim && !existingKey) {
-        this.paneDimKeys.set(view, 'pending');
+        // A UNIQUE sentinel per insertion: focus flips and dom-ready refreshes
+        // can overlap around one navigation, and a shared 'pending' marker let
+        // one resolution adopt another insertion's slot (storing a key for CSS
+        // that lived on a torn-down document while removing the live overlay).
+        const pending = `pending:${++this.paneDimSeq}`;
+        this.paneDimKeys.set(view, pending);
         wc.insertCSS(TabManager.PANE_DIM_CSS)
           .then((key) => {
-            if (this.paneDimKeys.get(view) === 'pending') {
+            if (this.paneDimKeys.get(view) === pending) {
               this.paneDimKeys.set(view, key);
             } else {
               wc.removeInsertedCSS(key).catch(() => { });
             }
           })
-          .catch(() => { this.paneDimKeys.delete(view); });
+          .catch(() => {
+            if (this.paneDimKeys.get(view) === pending) this.paneDimKeys.delete(view);
+          });
       } else if (!shouldDim && existingKey) {
         this.paneDimKeys.delete(view);
-        if (existingKey !== 'pending') {
+        if (!existingKey.startsWith('pending')) {
           wc.removeInsertedCSS(existingKey).catch(() => { });
         }
       }
