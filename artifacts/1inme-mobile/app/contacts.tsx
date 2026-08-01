@@ -47,10 +47,18 @@ export default function ContactsScreen() {
 
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  // "Most active" sort — surfaces contacts with the highest linked-activity
+  // counts first (server-side bulk count, mirrors the web list toggle).
+  const [sortByActivity, setSortByActivity] = useState(false);
 
   const contactsQ = useQuery({
-    queryKey: ["contacts", search, activeTag],
-    queryFn: () => listContacts({ q: search || undefined, tag: activeTag ?? undefined }),
+    queryKey: ["contacts", search, activeTag, sortByActivity],
+    queryFn: () =>
+      listContacts({
+        q: search || undefined,
+        tag: activeTag ?? undefined,
+        sort: sortByActivity ? "activity" : undefined,
+      }),
     staleTime: 30_000,
   });
 
@@ -481,6 +489,29 @@ export default function ContactsScreen() {
             </Pressable>
           )}
         </View>
+        <Pressable
+          onPress={() => setSortByActivity((v) => !v)}
+          testID="contacts-sort-activity"
+          style={[
+            styles.tagChip,
+            {
+              backgroundColor: sortByActivity ? colors.primary + "20" : colors.card,
+              borderColor: sortByActivity ? colors.primary + "50" : colors.border,
+            },
+          ]}
+        >
+          <Feather name="zap" size={12} color={sortByActivity ? colors.primary : colors.mutedForeground} />
+          <Text
+            style={{
+              fontFamily: "SpaceGrotesk_500Medium",
+              fontSize: 12,
+              color: sortByActivity ? colors.primary : colors.mutedForeground,
+              marginLeft: 4,
+            }}
+          >
+            Most active
+          </Text>
+        </Pressable>
       </View>
 
       {tags.length > 0 && (
@@ -686,8 +717,12 @@ const styles = StyleSheet.create({
   searchRow: {
     paddingHorizontal: 16,
     paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   searchBox: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,

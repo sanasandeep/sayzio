@@ -54,6 +54,7 @@ class ContactController extends Controller
         // finder and the Sanctum/mobile API), so opt out of the workspace
         // global scope; the user_id predicate still scopes to the owner.
         $tag  = trim((string) $request->query('tag', ''));
+        $sort = $request->query('sort') === 'activity' ? 'activity' : 'name';
 
         $query = Contact::withoutGlobalScope('workspace')
             ->where('user_id', $user->id)
@@ -77,7 +78,26 @@ class ContactController extends Controller
             });
         }
 
-        $contacts = $query->orderBy('display_name')->paginate(40)->withQueryString();
+        // "Most active" sort (Task #6510): one bulk UNION-ALL count pass over
+        // the capture tables joined in as a derived table — never per-contact
+        // subqueries. Falls back to alphabetical if the join fails.
+        if ($sort === 'activity') {
+            try {
+                $totals = app(\App\Modules\User\Services\Contacts\ContactActivityService::class)
+                    ->activityTotalsQuery((int) $user->id);
+                $query->leftJoinSub($totals, 'contact_activity', 'contact_activity.contact_id', '=', 'contacts.id')
+                    ->select('contacts.*')
+                    ->orderByRaw('COALESCE(contact_activity.activity_total, 0) DESC')
+                    ->orderBy('display_name');
+            } catch (\Throwable) {
+                $sort = 'name';
+                $query->orderBy('display_name');
+            }
+        } else {
+            $query->orderBy('display_name');
+        }
+
+        $contacts = $query->paginate(40)->withQueryString();
         $googleAccount = GoogleContactsAccount::where('user_id', $user->id)->first();
 
         $totalContacts = Contact::withoutGlobalScope('workspace')->where('user_id', $user->id)->count();
@@ -130,7 +150,7 @@ class ContactController extends Controller
         // Live as-you-type search / tab switch / pagination fetch just the list
         // body so the page never reloads. The full page is returned otherwise.
         if ($request->ajax()) {
-            return view('user.contacts._list', compact('contacts', 'tab', 'search', 'tag', 'sharedContacts', 'currentWorkspace', 'activityCounts'));
+            return view('user.contacts._list', compact('contacts', 'tab', 'search', 'tag', 'sort', 'sharedContacts', 'currentWorkspace', 'activityCounts'));
         }
 
         // Duplicate count for the banner — best-effort, never blocks the page
@@ -139,7 +159,7 @@ class ContactController extends Controller
             $duplicateCount = $this->detector->count($user->id);
         } catch (\Throwable) {}
 
-        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'tag', 'googleAccount', 'stats', 'usage', 'activeImport', 'sharedContacts', 'currentWorkspace', 'duplicateCount', 'activityCounts'));
+        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'tag', 'sort', 'googleAccount', 'stats', 'usage', 'activeImport', 'sharedContacts', 'currentWorkspace', 'duplicateCount', 'activityCounts'));
     }
 
     /**

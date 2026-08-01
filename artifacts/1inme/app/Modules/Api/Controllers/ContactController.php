@@ -108,6 +108,26 @@ class ContactController extends Controller
             $q->where('contact_type', $ct);
         }
 
+        // "Most active" sort / activity filter (Task #6510): a single bulk
+        // UNION-ALL count pass over the caller's capture tables joined as a
+        // derived table — no per-contact queries. Shared contacts owned by
+        // other members have no rows in the join and sort/read as 0.
+        $sort = $request->string('sort')->toString() === 'activity' ? 'activity' : 'name';
+        $hasActivity = $request->boolean('has_activity');
+        if ($sort === 'activity' || $hasActivity) {
+            $totals = app(\App\Modules\User\Services\Contacts\ContactActivityService::class)
+                ->activityTotalsQuery((int) $user->id);
+            $q->leftJoinSub($totals, 'contact_activity', 'contact_activity.contact_id', '=', 'contacts.id')
+                ->select('contacts.*');
+            if ($hasActivity) {
+                $q->whereRaw('COALESCE(contact_activity.activity_total, 0) > 0');
+            }
+        }
+
+        if ($sort === 'activity') {
+            $q->orderByRaw('COALESCE(contact_activity.activity_total, 0) DESC');
+        }
+
         $page = $q->orderBy('display_name')
             ->paginate(min(200, max(1, (int) $request->input('per_page', 50))));
 

@@ -78,11 +78,14 @@ export async function listContacts(opts?: {
   tag?: string;
   per_page?: number;
   contact_type?: "personal" | "brand";
+  /** "activity" surfaces the most-engaged contacts first (linked-activity count). */
+  sort?: "name" | "activity";
 }): Promise<Contact[]> {
   const params = new URLSearchParams();
   if (opts?.q?.trim()) params.set("q", opts.q.trim());
   if (opts?.tag?.trim()) params.set("tag", opts.tag.trim());
   if (opts?.contact_type) params.set("contact_type", opts.contact_type);
+  if (opts?.sort === "activity") params.set("sort", "activity");
   params.set("per_page", String(opts?.per_page ?? 100));
   const res = await apiFetch<{ data: { items: Contact[] } }>(
     `/contacts?${params.toString()}`,

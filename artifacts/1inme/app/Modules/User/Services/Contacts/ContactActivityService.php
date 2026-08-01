@@ -267,6 +267,51 @@ class ContactActivityService
         return $totals;
     }
 
+    /**
+     * Derived-table builder for sorting/filtering the contacts index by
+     * linked activity: one UNION ALL pass over the same capture tables as
+     * countsFor(), grouped by contact_id, then summed. Meant for
+     * leftJoinSub() against contacts — a single bulk query, never per-row
+     * correlated subqueries.
+     *
+     * Returns a query builder yielding (contact_id, activity_total) rows
+     * for the owner's contacts that have at least one linked record.
+     */
+    public function activityTotalsQuery(int $ownerUserId): \Illuminate\Database\Query\Builder
+    {
+        $linkIds = $this->ownerLinkIds($ownerUserId);
+
+        $parts = [
+            Subscriber::withoutGlobalScope('workspace')->where('user_id', $ownerUserId),
+            FormSubmission::withoutGlobalScope('workspace')->whereIn('form_id', function ($sub) use ($ownerUserId) {
+                $sub->select('id')->from('forms')->where('user_id', $ownerUserId);
+            }),
+            RestaurantOrder::withoutGlobalScope('workspace')->whereIn('link_id', clone $linkIds),
+            StoreOrder::withoutGlobalScope('workspace')->whereIn('link_id', clone $linkIds),
+            ServiceBookingRequest::withoutGlobalScope('workspace')->whereIn('link_id', clone $linkIds),
+            Rsvp::withoutGlobalScope('workspace')->whereIn('link_id', clone $linkIds),
+            EventTicket::withoutGlobalScope('workspace')->whereIn('link_id', clone $linkIds),
+            ProductOrder::query()->where('creator_user_id', $ownerUserId),
+            Review::withoutGlobalScope('workspace')->where('user_id', $ownerUserId),
+            InboxThread::withoutGlobalScope('workspace')->where('user_id', $ownerUserId),
+            Invoice::withoutGlobalScope('workspace')->where('user_id', $ownerUserId),
+        ];
+
+        $union = null;
+        foreach ($parts as $part) {
+            $q = $part->whereNotNull('contact_id')
+                ->selectRaw('contact_id, COUNT(*) as c')
+                ->groupBy('contact_id')
+                ->toBase();
+            $union = $union ? $union->unionAll($q) : $q;
+        }
+
+        return \Illuminate\Support\Facades\DB::query()
+            ->fromSub($union, 'contact_activity_union')
+            ->selectRaw('contact_id, SUM(c) as activity_total')
+            ->groupBy('contact_id');
+    }
+
     /** Subquery of the owner's link ids (account-wide, workspace-agnostic). */
     protected function ownerLinkIds(int $ownerUserId)
     {
