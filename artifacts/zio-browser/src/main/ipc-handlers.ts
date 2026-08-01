@@ -119,6 +119,7 @@ import {
   getTrackerStats,
   installTrackerHooks,
 } from './tracker-blocker';
+import { isAdBlockingEnabled, setAdBlockingEnabled } from './ad-blocker';
 import { setDoNotTrack, setBlockThirdPartyCookies, installPrivacyHooks } from './privacy';
 import { SEARCH_ENGINES } from '../shared/omnibox';
 import { buildAutofillScript } from '../shared/form-autofill';
@@ -1612,6 +1613,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       const c = patch.contentBlockers;
       if (c === null || typeof c === 'boolean') clean.contentBlockers = c;
     }
+    if ('adBlockers' in patch) {
+      const a = patch.adBlockers;
+      if (a === null || typeof a === 'boolean') clean.adBlockers = a;
+    }
     try {
       setSiteSettings(origin, clean);
       invalidateSiteSettingsCache(origin);
@@ -1693,6 +1698,14 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     return true;
   });
   ipcMain.handle('tracker:get-count', (_, tabId: string) => getBlockedCount(tabId));
+
+  // ── Ad blocking (EasyList/EasyPrivacy filter engine) ─────────────────────
+  ipcMain.handle('adblock:is-enabled', () => isAdBlockingEnabled());
+  ipcMain.handle('adblock:set-enabled', (_, enabled: boolean) => {
+    setAdBlockingEnabled(enabled === true);
+    setPreference(PREFERENCE_KEYS.AD_BLOCKING_ENABLED, enabled === true ? '1' : '0');
+    return true;
+  });
   ipcMain.handle('tracker:reset-count', (_, tabId: string) => {
     resetBlockedCount(tabId);
     return true;

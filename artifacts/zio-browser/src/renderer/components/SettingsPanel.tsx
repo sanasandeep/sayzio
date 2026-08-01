@@ -579,6 +579,7 @@ interface SafetyResult {
 
 function PrivacySection() {
   const [trackerEnabled, setTrackerEnabled] = useState<boolean | null>(null);
+  const [adBlockEnabled, setAdBlockEnabled] = useState<boolean | null>(null);
   const [dnt, setDnt] = useState<boolean | null>(null);
   const [block3p, setBlock3p] = useState<boolean | null>(null);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
@@ -592,6 +593,7 @@ function PrivacySection() {
   useEffect(() => {
     void window.zio.prefs.get('history_days_retention').then((v) => setRetentionDays(v && parseInt(v, 10) > 0 ? v : '0')).catch(() => setRetentionDays('0'));
     void window.zio.tracker.isEnabled().then((v: boolean) => setTrackerEnabled(v)).catch(() => setTrackerEnabled(null));
+    void window.zio.adblock.isEnabled().then((v: boolean) => setAdBlockEnabled(v)).catch(() => setAdBlockEnabled(null));
     void window.zio.prefs.get('do_not_track').then((v) => setDnt(v === '1')).catch(() => setDnt(false));
     void window.zio.prefs.get('block_third_party_cookies').then((v) => setBlock3p(v === '1')).catch(() => setBlock3p(false));
     void window.zio.privacy.trackerStats().then(setStats).catch(() => setStats(null));
@@ -603,6 +605,13 @@ function PrivacySection() {
     setTrackerEnabled(next);
     try { await window.zio.tracker.setEnabled(next); } catch { setTrackerEnabled(!next); }
   }, [trackerEnabled]);
+
+  const toggleAdBlock = useCallback(async () => {
+    if (adBlockEnabled === null) return;
+    const next = !adBlockEnabled;
+    setAdBlockEnabled(next);
+    try { await window.zio.adblock.setEnabled(next); } catch { setAdBlockEnabled(!next); }
+  }, [adBlockEnabled]);
 
   const toggleDnt = useCallback(async () => {
     if (dnt === null) return;
@@ -660,8 +669,14 @@ function PrivacySection() {
   return (
     <div style={sectionBodyStyle}>
       {trackerEnabled !== null && (
-        <SettingRow title="Tracker blocking" description="Block known trackers and ads while you browse.">
+        <SettingRow title="Tracker blocking" description="Block requests to known tracker domains while you browse.">
           <Toggle checked={trackerEnabled} onChange={() => void toggleTracker()} />
+        </SettingRow>
+      )}
+
+      {adBlockEnabled !== null && (
+        <SettingRow title="Ad blocking" description="Block ads using the EasyList and EasyPrivacy filter lists, including hiding ad elements on pages. Lists update automatically.">
+          <Toggle checked={adBlockEnabled} onChange={() => void toggleAdBlock()} />
         </SettingRow>
       )}
 
@@ -697,13 +712,13 @@ function PrivacySection() {
       <div style={cardStyle}>
         <div style={cardTitleStyle}>📊 Privacy Dashboard</div>
         {stats === null ? (
-          <div style={mutedTextStyle}>No tracker activity recorded yet.</div>
+          <div style={mutedTextStyle}>No blocked trackers or ads recorded yet.</div>
         ) : (
           <>
             <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 700 }}>{stats.weekTotal}</div>
-                <div style={mutedTextStyle}>blocked this week</div>
+                <div style={mutedTextStyle}>trackers &amp; ads blocked this week</div>
               </div>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 700 }}>{stats.todayTotal}</div>
@@ -725,7 +740,7 @@ function PrivacySection() {
             )}
             {stats.topTrackers.length > 0 && (
               <div>
-                <div style={{ ...mutedTextStyle, marginBottom: 4 }}>Most-blocked trackers</div>
+                <div style={{ ...mutedTextStyle, marginBottom: 4 }}>Most-blocked domains</div>
                 {stats.topTrackers.slice(0, 5).map(t => (
                   <div key={t.host} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, padding: '2px 0' }}>
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.host}</span>

@@ -6,6 +6,7 @@
 import type { Session, BrowserWindow } from 'electron';
 import { getPreference, setPreference, isDbInitialized } from './db';
 import { PREFERENCE_KEYS } from '../shared/db-schema';
+import { matchAdRequest, isAdBlockingEffectiveForWc, isAdBlockEngineReady } from './ad-blocker';
 
 /**
  * Compact, bundled blocklist of well-known tracker and ad-network hostnames.
@@ -204,6 +205,9 @@ export function installTrackerHooks(sess: Session): void {
   if (_installedSessions.has(sess)) return;
   _installedSessions.add(sess);
 
+  // Single dispatcher per session: this is the ONLY onBeforeRequest listener.
+  // It enforces both the tracker blocklist and (when enabled) the full ad
+  // blocker filter engine — never install a second listener for ads.
   sess.webRequest.onBeforeRequest((details, callback) => {
     let effectiveEnabled = _enabled;
     if (_siteOverrideResolver && details.webContentsId !== undefined) {
@@ -214,31 +218,44 @@ export function installTrackerHooks(sess: Session): void {
         // Per-site override is best-effort; fall back to the global flag.
       }
     }
-    if (!effectiveEnabled) {
+    const adBlockEnabled = isAdBlockEngineReady() && isAdBlockingEffectiveForWc(details.webContentsId);
+    if (!effectiveEnabled && !adBlockEnabled) {
       callback({ cancel: false });
       return;
     }
 
     let blocked = false;
-    try {
-      const parsed = new URL(details.url);
-      // Strip leading "www." for matching
-      const raw = parsed.hostname;
-      const host = raw.startsWith('www.') ? raw.slice(4) : raw;
+    if (effectiveEnabled) {
+      try {
+        const parsed = new URL(details.url);
+        // Strip leading "www." for matching
+        const raw = parsed.hostname;
+        const host = raw.startsWith('www.') ? raw.slice(4) : raw;
 
-      // Exact hostname match, or the request hostname is a subdomain of a listed domain
-      if (TRACKER_DOMAINS.has(host) || TRACKER_DOMAINS.has(raw)) {
-        blocked = true;
-      } else {
-        for (const domain of TRACKER_DOMAINS) {
-          if (host.endsWith(`.${domain}`)) {
-            blocked = true;
-            break;
+        // Exact hostname match, or the request hostname is a subdomain of a listed domain
+        if (TRACKER_DOMAINS.has(host) || TRACKER_DOMAINS.has(raw)) {
+          blocked = true;
+        } else {
+          for (const domain of TRACKER_DOMAINS) {
+            if (host.endsWith(`.${domain}`)) {
+              blocked = true;
+              break;
+            }
           }
         }
+      } catch {
+        blocked = false;
       }
-    } catch {
-      blocked = false;
+    }
+
+    // Full ad-blocker engine (EasyList/EasyPrivacy) — consulted only when the
+    // cheap tracker blocklist did not already block the request.
+    if (!blocked && adBlockEnabled) {
+      blocked = matchAdRequest({
+        url: details.url,
+        resourceType: details.resourceType,
+        referrer: details.referrer,
+      });
     }
 
     if (blocked) {

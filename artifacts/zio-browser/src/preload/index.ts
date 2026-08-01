@@ -367,6 +367,7 @@ const api = {
         autoplay: string | null;
         popups: string | null;
         content_blockers: number | null;
+        ad_blockers: number | null;
         updated_at: string;
       } | null>,
     /** Merge-patch settings for an origin; null values revert to the default. */
@@ -375,6 +376,7 @@ const api = {
       autoplay?: string | null;
       popups?: string | null;
       contentBlockers?: boolean | null;
+      adBlockers?: boolean | null;
     }) => ipcRenderer.invoke('site-settings:set', origin, patch) as Promise<boolean>,
   },
 
@@ -410,6 +412,12 @@ const api = {
     setEnabled: (enabled: boolean) => ipcRenderer.invoke('tracker:set-enabled', enabled),
     getCount: (tabId: string) => ipcRenderer.invoke('tracker:get-count', tabId),
     resetCount: (tabId: string) => ipcRenderer.invoke('tracker:reset-count', tabId),
+  },
+
+  // ── Ad blocking (EasyList/EasyPrivacy filter engine) ─────────────────────
+  adblock: {
+    isEnabled: () => ipcRenderer.invoke('adblock:is-enabled') as Promise<boolean>,
+    setEnabled: (enabled: boolean) => ipcRenderer.invoke('adblock:set-enabled', enabled) as Promise<boolean>,
   },
 
   // ── Events (from main → renderer) ────────────────────────────────────────

@@ -5,7 +5,7 @@ import path from 'path';
 import { app, BrowserWindow, Menu, session, nativeTheme, dialog, webContents } from 'electron';
 import type { BaseWindow } from 'electron';
 import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, setDomainMuted, pruneHistoryOlderThan, setSiteSettings, addBookmark, isBookmarked, getAllBookmarks, getRecentHistory } from './db';
-import { resolveSiteSettingsForUrl, contentBlockerOverrideForOrigin, invalidateSiteSettingsCache } from './site-settings';
+import { resolveSiteSettingsForUrl, contentBlockerOverrideForOrigin, adBlockOverrideForOrigin, invalidateSiteSettingsCache } from './site-settings';
 import { PREFERENCE_KEYS, type PreferenceKey } from '../shared/db-schema';
 import { VK_PREF_KEYS } from '../shared/virtual-keyboard';
 import { hostForMutePolicy } from '../shared/mute-policy';
@@ -27,6 +27,7 @@ import { setupDownloadManager } from './download-manager';
 import { getPrivateSession, registerPrivateWindow } from './private-session';
 import { setupPermissionHandlers } from './permission-handler';
 import { setupTrackerBlocking, resetBlockedCount, installTrackerHooks, setSiteOverrideResolver } from './tracker-blocker';
+import { initAdBlocker, setAdBlockSiteOverrideResolver, isAdBlockingEffectiveForWc, getCosmeticStylesForUrl } from './ad-blocker';
 import { setupPrivacyControls, installPrivacyHooks } from './privacy';
 import type { WindowMode } from '../shared/window-mode';
 import { ZIO_PANEL_DIVIDER_WIDTH } from '../shared/window-mode';
@@ -343,6 +344,26 @@ export function createWindow(): BrowserWindow {
     }
   });
 
+  // Full ad blocker (EasyList/EasyPrivacy engine) — separate toggle, off by
+  // default. Shares the tracker-blocker webRequest dispatcher; per-site "Ads"
+  // override mirrors the content-blockers pattern (private windows always
+  // fall back to the global flag).
+  initAdBlocker((safeGetPreference(PREFERENCE_KEYS.AD_BLOCKING_ENABLED) ?? '0') === '1');
+  setAdBlockSiteOverrideResolver((wcId) => {
+    try {
+      const wc = webContents.fromId(wcId);
+      if (!wc || wc.isDestroyed()) return null;
+      if (!wc.session.isPersistent()) return null;
+      const url = wc.getURL();
+      if (!url) return null;
+      const origin = new URL(url).origin;
+      if (!origin.startsWith('http')) return null;
+      return adBlockOverrideForOrigin(origin);
+    } catch {
+      return null;
+    }
+  });
+
   // Setup privacy controls (Do Not Track header, third-party cookie blocking)
   setupPrivacyControls(
     session.defaultSession,
@@ -490,6 +511,12 @@ export function createWindow(): BrowserWindow {
 
 export function createPrivateWindow(startUrl?: string): BrowserWindow {
   const privateSession = getPrivateSession();
+
+  // Private-window tabs run in an isolated in-memory session, so the tracker
+  // + ad-blocking dispatcher must be installed on it too (idempotent). The
+  // per-site override resolvers skip non-persistent sessions, so private
+  // windows always follow the global toggles only.
+  installTrackerHooks(privateSession);
 
   const win = new BrowserWindow({
     width: 1280,
@@ -1125,6 +1152,21 @@ app.on('before-quit', () => {
 app.on('web-contents-created', (_, contents) => {
   contents.on('will-attach-webview', (event) => {
     event.preventDefault();
+  });
+
+  // Cosmetic (element-hiding) ad filtering: inject the EasyList element-hiding
+  // CSS on every http(s) document once the DOM is ready. Covers tabs in all
+  // profile sessions and private windows; a fresh document per navigation
+  // means no cleanup is needed.
+  contents.on('dom-ready', () => {
+    try {
+      if (contents.isDestroyed()) return;
+      if (!isAdBlockingEffectiveForWc(contents.id)) return;
+      const styles = getCosmeticStylesForUrl(contents.getURL());
+      if (styles) void contents.insertCSS(styles, { cssOrigin: 'user' }).catch(() => { /* page may be gone */ });
+    } catch {
+      // Cosmetics are best-effort — never break page load.
+    }
   });
 });
 
