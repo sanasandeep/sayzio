@@ -85,6 +85,8 @@ class CheckZioBrowserReleaseFreshnessTest extends TestCase
                         ['name' => 'SayZio.Browser-9.9.9-arm64.dmg', 'browser_download_url' => 'https://x/a.dmg'],
                         ['name' => 'SayZio.Browser-9.9.9.dmg', 'browser_download_url' => 'https://x/b.dmg'],
                         ['name' => 'SayZio.Browser.Setup.9.9.9.exe', 'browser_download_url' => 'https://x/c.exe'],
+                        ['name' => 'Zio-Browser-9.9.9-x64.AppImage', 'browser_download_url' => 'https://x/d.AppImage'],
+                        ['name' => 'zio-browser_9.9.9_amd64.deb', 'browser_download_url' => 'https://x/e.deb'],
                     ],
                 ]], 200),
         ]);

@@ -96,16 +96,17 @@ class ZioBrowserDownloadPageTest extends TestCase
         $response->assertSee($base . 'zio-browser_9.9.9_amd64.deb');
     }
 
-    public function test_release_without_linux_assets_still_renders_mac_and_windows(): void
+    public function test_pre_linux_release_without_linux_assets_still_renders_mac_and_windows(): void
     {
-        // Old releases predate the Linux build — the optional keys must not
-        // break the page or leave a broken Linux card.
+        // Releases below the LINUX_REQUIRED_SINCE floor predate the Linux
+        // build — the optional keys must not break the page or leave a
+        // broken Linux card, and the refresh must still succeed.
         Http::fake([
             self::RELEASES_URL => Http::response([
-                $this->githubRelease('zio-browser-v9.9.9', [
-                    $this->asset('SayZio.Browser-9.9.9-arm64.dmg'),
-                    $this->asset('SayZio.Browser-9.9.9.dmg'),
-                    $this->asset('SayZio.Browser.Setup.9.9.9.exe'),
+                $this->githubRelease('zio-browser-v0.3.0', [
+                    $this->asset('SayZio.Browser-0.3.0-arm64.dmg'),
+                    $this->asset('SayZio.Browser-0.3.0.dmg'),
+                    $this->asset('SayZio.Browser.Setup.0.3.0.exe'),
                 ]),
             ]),
         ]);
@@ -113,20 +114,20 @@ class ZioBrowserDownloadPageTest extends TestCase
 
         $response = $this->get('/download');
         $response->assertOk();
-        $response->assertSee('v9.9.9');
+        $response->assertSee('v0.3.0');
         $response->assertDontSee('.AppImage');
         $response->assertDontSee('Download .deb');
     }
 
-    public function test_deb_only_release_promotes_deb_to_primary_linux_link(): void
+    public function test_deb_only_pre_floor_release_promotes_deb_to_primary_linux_link(): void
     {
         Http::fake([
             self::RELEASES_URL => Http::response([
-                $this->githubRelease('zio-browser-v9.9.9', [
-                    $this->asset('SayZio.Browser-9.9.9-arm64.dmg'),
-                    $this->asset('SayZio.Browser-9.9.9.dmg'),
-                    $this->asset('SayZio.Browser.Setup.9.9.9.exe'),
-                    $this->asset('zio-browser_9.9.9_amd64.deb'),
+                $this->githubRelease('zio-browser-v0.3.0', [
+                    $this->asset('SayZio.Browser-0.3.0-arm64.dmg'),
+                    $this->asset('SayZio.Browser-0.3.0.dmg'),
+                    $this->asset('SayZio.Browser.Setup.0.3.0.exe'),
+                    $this->asset('zio-browser_0.3.0_amd64.deb'),
                 ]),
             ]),
         ]);
@@ -134,8 +135,64 @@ class ZioBrowserDownloadPageTest extends TestCase
 
         $response = $this->get('/download');
         $response->assertOk();
-        $response->assertSee('zio-browser_9.9.9_amd64.deb');
+        $response->assertSee('zio-browser_0.3.0_amd64.deb');
         $response->assertSee('Download .deb (Ubuntu/Debian)');
+    }
+
+    public function test_release_at_or_after_linux_floor_missing_linux_assets_is_not_trusted(): void
+    {
+        // From LINUX_REQUIRED_SINCE onward a release missing the Linux
+        // installers must fail refresh with a specific missing-asset error —
+        // never silently strip the Linux card from /download.
+        Http::fake([
+            self::RELEASES_URL => Http::response([
+                $this->githubRelease('zio-browser-v9.9.9', [
+                    $this->asset('SayZio.Browser-9.9.9-arm64.dmg'),
+                    $this->asset('SayZio.Browser-9.9.9.dmg'),
+                    $this->asset('SayZio.Browser.Setup.9.9.9.exe'),
+                    // Linux job's upload failed: no AppImage, no .deb.
+                ]),
+            ]),
+        ]);
+
+        $this->assertFalse(ZioBrowserRelease::refresh());
+        $this->assertFalse(Cache::has(ZioBrowserRelease::CACHE_KEY));
+
+        $error = ZioBrowserRelease::lastRefreshError();
+        $this->assertNotNull($error);
+        $this->assertStringContainsString('zio-browser-v9.9.9', $error);
+        $this->assertStringContainsString('linux_appimage', $error);
+        $this->assertStringContainsString('linux_deb', $error);
+
+        $state = \App\Modules\Admin\Models\AppSetting::get(ZioBrowserRelease::HEALTH_KEY, []);
+        $this->assertIsArray($state);
+        $this->assertStringContainsString('linux_appimage', $state['last_error'] ?? '',
+            'Health state must record the missing Linux assets so admins can see it');
+    }
+
+    public function test_release_at_floor_missing_only_deb_is_not_trusted(): void
+    {
+        // Exactly at the floor version, a partial Linux upload (AppImage
+        // present but .deb missing) must still fail the refresh.
+        $v = ZioBrowserRelease::LINUX_REQUIRED_SINCE;
+        Http::fake([
+            self::RELEASES_URL => Http::response([
+                $this->githubRelease('zio-browser-v' . $v, [
+                    $this->asset("SayZio.Browser-{$v}-arm64.dmg"),
+                    $this->asset("SayZio.Browser-{$v}.dmg"),
+                    $this->asset("SayZio.Browser.Setup.{$v}.exe"),
+                    $this->asset("Zio-Browser-{$v}-x64.AppImage"),
+                    // .deb upload failed
+                ]),
+            ]),
+        ]);
+
+        $this->assertFalse(ZioBrowserRelease::refresh());
+
+        $error = ZioBrowserRelease::lastRefreshError();
+        $this->assertNotNull($error);
+        $this->assertStringContainsString('linux_deb', $error);
+        $this->assertStringNotContainsString('linux_appimage', $error);
     }
 
     public function test_cache_miss_renders_fallback_instantly_and_self_heals_after_response(): void
@@ -268,6 +325,8 @@ class ZioBrowserDownloadPageTest extends TestCase
                     $this->asset('SayZio.Browser-2.0.0.dmg.blockmap'),
                     $this->asset('SayZio.Browser-2.0.0.dmg'),
                     $this->asset('SayZio.Browser-2.0.0-arm64-mac.zip'),
+                    $this->asset('Zio-Browser-2.0.0-x64.AppImage'),
+                    $this->asset('zio-browser_2.0.0_amd64.deb'),
                     $this->asset('source.zip'), // zip without "mac" — ignored
                 ]),
             ]),
@@ -283,6 +342,8 @@ class ZioBrowserDownloadPageTest extends TestCase
         $this->assertSame($base . 'SayZio.Browser.Setup.2.0.0.exe', $release['windows_exe']);
         $this->assertSame($base . 'SayZio.Browser-2.0.0-arm64-mac.zip', $release['mac_arm64_zip']);
         $this->assertSame($base . 'SayZio.Browser-2.0.0-mac.zip', $release['mac_x64_zip']);
+        $this->assertSame($base . 'Zio-Browser-2.0.0-x64.AppImage', $release['linux_appimage']);
+        $this->assertSame($base . 'zio-browser_2.0.0_amd64.deb', $release['linux_deb']);
     }
 
     public function test_skips_drafts_prereleases_and_foreign_tags(): void
@@ -306,6 +367,8 @@ class ZioBrowserDownloadPageTest extends TestCase
                     $this->asset('SayZio.Browser-2.8.0-arm64.dmg'),
                     $this->asset('SayZio.Browser-2.8.0.dmg'),
                     $this->asset('SayZio.Browser.Setup.2.8.0.exe'),
+                    $this->asset('Zio-Browser-2.8.0-x64.AppImage'),
+                    $this->asset('zio-browser_2.8.0_amd64.deb'),
                 ]),
             ]),
         ]);
