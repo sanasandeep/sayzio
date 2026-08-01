@@ -15,6 +15,11 @@
  *  - Ctrl+Alt+Left / Ctrl+Alt+Right switch the focused pane
  *  - Dragging the divider changes the persisted split ratio and re-positions
  *    the focus frames
+ *  - Swapping the panes (TabManager.swapPanes) exchanges the content's sides,
+ *    the focused-pane badge follows the content, the dim overlay stays on the
+ *    unfocused pane, and a second swap round-trips back
+ *  - The swap is REFUSED on tabs anchored to renderer-drawn primary surfaces
+ *    (New Tab / about pages)
  *  - Leaving the split restores primary focus, removes frames and the dim
  *
  * Run:  xvfb-run -a node artifacts/zio-browser/tests/e2e-split-view/run.cjs
@@ -308,6 +313,38 @@ async function tabState(page, tabId) {
     }, 'focused frame tracks the dragged divider', 8000);
     ok(true, 'focused (right) frame re-positioned to the dragged divider');
 
+    console.log('\n── Pane swap ──');
+
+    // 19-23. The right pane (/d) is focused. swapPanes exchanges the panes:
+    // the content swaps sides, the toolbar keeps controlling the SAME page
+    // (/d) so the focused-pane badge follows the content to the LEFT.
+    await page.evaluate((id) => window.zio.tabs.swapPanes(id), tabId);
+    await waitFor(() => page.getByText('Address bar · Left pane').count(), 'left-pane badge after swap', 8000);
+    ok(true, 'focused-pane badge follows the content to the left after swap');
+    const stSwap = await tabState(page, tabId);
+    ok(String(stSwap?.url ?? '').includes('/d'), 'toolbar still controls the same page (/d) after swap');
+    // The pane URLs exchanged sides: the focused (/d) frame now sits LEFT of
+    // the divider.
+    await waitFor(async () => {
+      const frameLeft = await page.locator('div[title="Address bar controls this pane"]').evaluate(el => el.getBoundingClientRect().left);
+      const dividerLeft = (await divider.boundingBox()).x;
+      return frameLeft < dividerLeft;
+    }, 'focused frame on the left side after swap', 8000);
+    ok(true, 'pane URLs exchanged sides — focused (/d) frame sits left of the divider');
+    // Dim stays on the UNFOCUSED pane, which is /a — now on the right.
+    await waitDim(app, '/a', true, '/a dimmed after swap');
+    ok(true, 'dim overlay stays on the unfocused pane (/a, now right)');
+    await waitDim(app, '/d', false, '/d undimmed after swap');
+    ok(true, 'focused pane (/d, now left) is undimmed');
+
+    // 24-25. Swap again — the round trip restores the original sides.
+    await page.evaluate((id) => window.zio.tabs.swapPanes(id), tabId);
+    await waitFor(() => page.getByText('Address bar · Right pane').count(), 'right-pane badge after swap-back', 8000);
+    const stSwapBack = await tabState(page, tabId);
+    ok(String(stSwapBack?.url ?? '').includes('/d'), 'swap round-trip: toolbar still controls /d, back on the right');
+    await waitDim(app, '/a', true, '/a dimmed after swap-back');
+    ok(true, 'swap round-trip restores the dim to the left (/a) pane');
+
     console.log('\n── Leaving the split ──');
 
     // 19. Back to a single Website tab: frames + dim gone, primary URL back.
@@ -318,6 +355,35 @@ async function tabState(page, tabId) {
     ok(String(stFinal?.url ?? '').includes('/a'), 'toolbar controls the primary pane again after leaving the split');
     await waitDim(app, '/a', false, 'primary dim removed');
     ok(true, 'dim overlay removed from the primary pane after leaving the split');
+
+    console.log('\n── Swap refused on renderer-drawn primary (New Tab) ──');
+
+    // A fresh tab's primary surface is the renderer-drawn New Tab page —
+    // swapping the native views underneath would desync, so swapPanes must
+    // refuse.
+    const ntId = await page.evaluate(() => window.zio.tabs.create());
+    ok(!!ntId, 'created a fresh New Tab tab');
+    await page.evaluate((id) => window.zio.tabs.setMode(id, 'browser+browser'), ntId);
+    await waitFor(async () => (await tabState(page, ntId))?.mode === 'browser+browser', 'New Tab tab in split mode', 10000);
+    // Point the second pane at an identifiable fixture page.
+    await page.evaluate(({ id, url }) => window.zio.tabs.navigatePane(id, 'second', url), { id: ntId, url: `${base}/e` });
+    await panePage(app, '/e');
+    // Pin focus to the primary (New Tab) pane so the pre-swap state is known.
+    await waitFor(async () => {
+      await page.evaluate((id) => window.zio.tabs.focusPane(id, 'primary'), ntId);
+      await new Promise(r => setTimeout(r, 300));
+      return (await page.getByText('Address bar · Left pane').count()) === 1;
+    }, 'primary pinned on the New Tab split', 10000);
+
+    await page.evaluate((id) => window.zio.tabs.swapPanes(id), ntId);
+    // The refusal is a silent no-op — give a wrongful swap time to surface.
+    await new Promise(r => setTimeout(r, 1000));
+    const stNt = await tabState(page, ntId);
+    ok(!String(stNt?.url ?? '').includes('/e'), 'swap refused: toolbar still controls the New Tab primary, not /e');
+    ok((await page.getByText('Address bar · Left pane').count()) === 1, 'swap refused: focused-pane badge stays on the left pane');
+    await waitDim(app, '/e', true, 'second pane still dimmed after refused swap');
+    ok(true, 'swap refused: dim overlay stays on the unfocused right pane');
+    await page.evaluate((id) => window.zio.tabs.close(id), ntId);
   } finally {
     await app.close().catch(() => {});
     server.close();
