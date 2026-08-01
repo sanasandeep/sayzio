@@ -1,8 +1,9 @@
 {
   "name": "@workspace/zio-browser",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "private": true,
-  "description": "Zio Browser — AI-powered companion browser for Mac and Windows",
+  "description": "Zio Browser — AI-powered companion browser for Mac, Windows, and Linux",
+  "homepage": "https://sayz.io",
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "concurrently \"pnpm run dev:renderer\" \"pnpm run dev:main\"",
