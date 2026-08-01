@@ -14,18 +14,29 @@
     /* ---------- Reveal on scroll ---------- */
     var revealEls = document.querySelectorAll('[data-anim]');
     if (revealEls.length) {
+        // Idempotent reveal — safe to call multiple times per element.
+        var applyReveal = function (el) { el.classList.add('in-view'); };
         if (prefersReduced || !('IntersectionObserver' in window)) {
-            revealEls.forEach(function (el) { el.classList.add('in-view'); });
+            revealEls.forEach(applyReveal);
         } else {
             var io = new IntersectionObserver(function (entries) {
                 entries.forEach(function (e) {
                     if (e.isIntersecting) {
-                        e.target.classList.add('in-view');
+                        applyReveal(e.target);
                         if (e.target.dataset.animOnce !== 'false') io.unobserve(e.target);
                     }
                 });
             }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
             revealEls.forEach(function (el) { io.observe(el); });
+            // Failsafe backstop: if the observer never fires (Safari quirks,
+            // an earlier script error, bfcache restores…) content must NEVER
+            // stay stuck at opacity 0. After a short grace period reveal
+            // everything unconditionally — revealed elements are unaffected.
+            var revealAll = function () { revealEls.forEach(applyReveal); };
+            setTimeout(revealAll, 2200);
+            window.addEventListener('pageshow', function (e) {
+                if (e.persisted) revealAll();
+            });
         }
     }
 

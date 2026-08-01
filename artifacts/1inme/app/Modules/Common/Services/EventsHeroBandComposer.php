@@ -57,6 +57,15 @@ class EventsHeroBandComposer
     protected function featuredEvents()
     {
         try {
+            // Admin kill switch (Admin → Marketing settings). Default ON.
+            if (!\App\Modules\Admin\Models\AppSetting::get('marketing_events_band_enabled', true)) {
+                return collect();
+            }
+        } catch (\Throwable $e) {
+            // Settings table unavailable — fall through to the normal path.
+        }
+
+        try {
             $rows = Cache::remember(self::CACHE_KEY, 300, fn () => $this->buildRows());
         } catch (\Throwable $e) {
             // Events tables not migrated yet — the band simply hides.

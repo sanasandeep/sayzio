@@ -235,6 +235,10 @@
                         const fd = new FormData();
                         fd.append('file', file);
                         fd.append('folder', 'site-pages');
+                        // These uploads are shown on public pages (share/OG
+                        // images, about photos), so anonymous visitors and
+                        // social crawlers must be able to fetch them.
+                        fd.append('is_public', '1');
                         const url = await new Promise((resolve, reject) => {
                             const xhr = new XMLHttpRequest();
                             xhr.open('POST', @json(route('admin.assets.upload')));

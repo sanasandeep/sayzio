@@ -48,6 +48,19 @@
         @csrf
         @method('PUT')
 
+        {{-- Events promo band --}}
+        <div class="glass rounded-2xl p-6 space-y-4">
+            <div>
+                <h2 class="ak-strong text-lg font-semibold text-white">Events promo band</h2>
+                <p class="ak-muted text-xs text-white/50">The "Happening soon" featured-events strip shown at the top of public marketing pages. When off, the strip is hidden everywhere (the /events directory itself stays available).</p>
+            </div>
+            <label class="flex items-center gap-3 cursor-pointer select-none">
+                <input type="checkbox" name="events_band_enabled" value="1" @checked(old('events_band_enabled', $events_band_enabled))
+                       class="w-4 h-4 rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">
+                <span class="ak-strong text-sm text-white">Show the events band on marketing pages</span>
+            </label>
+        </div>
+
         {{-- Tracking & share image --}}
         <div class="glass rounded-2xl p-6 space-y-5">
             <div>
