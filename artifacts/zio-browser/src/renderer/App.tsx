@@ -23,8 +23,8 @@ import type { PendingPermission } from './components/PermissionPrompt';
 import { SiteSettingsPanel } from './components/SiteSettingsPanel';
 import { ReadingListPanel } from './components/ReadingListPanel';
 import { SettingsPanel } from './components/SettingsPanel';
+import { PaneFocusFrames } from './components/PaneFocusFrames';
 import { VirtualKeyboard } from './components/VirtualKeyboard';
-import { SplitUrlBars } from './components/SplitUrlBars';
 import { useChromeOverlay } from './hooks/use-chrome-overlay';
 import { useTabStore } from './store/tab-store';
 import { useAuthStore } from './store/auth-store';
@@ -45,7 +45,7 @@ import {
   MIN_TAB_SPLIT_RATIO,
   MAX_TAB_SPLIT_RATIO,
   TAB_SPLIT_DIVIDER_WIDTH,
-  SPLIT_URL_BAR_HEIGHT,
+  TAB_SPLIT_FOCUS_FRAME,
 } from '../shared/window-mode';
 
 import {
@@ -343,6 +343,21 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [reopenClosedTab]);
+
+  // Ctrl/Cmd+Alt+Left/Right → switch the focused pane of a Website+Website split
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || !e.altKey) return;
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      if (!activeTabId) return;
+      const tab = tabs[activeTabId];
+      if (normalizeTabMode(tab?.mode) !== 'browser+browser') return;
+      e.preventDefault();
+      void window.zio.tabs.focusPane(activeTabId, e.key === 'ArrowLeft' ? 'primary' : 'second');
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTabId, tabs]);
 
   // Listen for main-process tab:search-open event (sent from menu shortcut)
   useEffect(() => {
@@ -829,12 +844,13 @@ export default function App() {
           )}
         </div>
 
-        {/* ── Dual address bars for Website + Website (one per pane) ────── */}
+        {/* ── Focus frames for Website + Website (one per pane) ───────────
+            See PaneFocusFrames — the focused pane gets the accent frame and
+            the "Address bar · …" tag; clicking a frame moves pane focus. */}
         {activeTabMode === 'browser+browser' && activeTab && activeTabId && !settingsOpen && (
-          <SplitUrlBars
+          <PaneFocusFrames
             tabId={activeTabId}
-            primaryUrl={activeTab.primaryUrl ?? activeTab.url ?? ''}
-            secondUrl={activeTab.secondUrl ?? ''}
+            focusedPane={activeTab.focusedPane ?? 'primary'}
             splitRatio={activeTabSplitRatio}
           />
         )}
@@ -847,7 +863,7 @@ export default function App() {
             onMouseDown={handleTabSplitDividerMouseDown}
             style={{
               position: 'absolute',
-              top: activeTabMode === 'browser+browser' ? SPLIT_URL_BAR_HEIGHT : 0,
+              top: 0,
               bottom: 0,
               left: `calc(${activeTabSplitRatio * 100}% - ${Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2)}px)`,
               width: TAB_SPLIT_DIVIDER_WIDTH,

@@ -796,6 +796,7 @@ export interface SiteSettingsRow {
   autoplay: string | null;
   popups: string | null;
   content_blockers: number | null;
+  ad_blockers: number | null;
   updated_at: string;
 }
 
@@ -804,6 +805,7 @@ export interface SiteSettingsPatch {
   autoplay?: string | null;
   popups?: string | null;
   contentBlockers?: boolean | null;
+  adBlockers?: boolean | null;
 }
 
 export function getSiteSettings(origin: string): SiteSettingsRow | null {
@@ -825,23 +827,27 @@ export function setSiteSettings(origin: string, patch: SiteSettingsPatch): SiteS
   const contentBlockers = patch.contentBlockers !== undefined
     ? (patch.contentBlockers === null ? null : (patch.contentBlockers ? 1 : 0))
     : existing?.content_blockers ?? null;
+  const adBlockers = patch.adBlockers !== undefined
+    ? (patch.adBlockers === null ? null : (patch.adBlockers ? 1 : 0))
+    : existing?.ad_blockers ?? null;
   const updatedAt = new Date().toISOString();
-  if (zoom === null && autoplay === null && popups === null && contentBlockers === null) {
+  if (zoom === null && autoplay === null && popups === null && contentBlockers === null && adBlockers === null) {
     // Everything reverted to defaults — drop the row entirely.
     db.prepare('DELETE FROM site_settings WHERE origin = ?').run(origin);
-    return { origin, zoom, autoplay, popups, content_blockers: contentBlockers, updated_at: updatedAt };
+    return { origin, zoom, autoplay, popups, content_blockers: contentBlockers, ad_blockers: adBlockers, updated_at: updatedAt };
   }
   db.prepare(`
-    INSERT INTO site_settings(origin, zoom, autoplay, popups, content_blockers, updated_at)
-    VALUES(?, ?, ?, ?, ?, ?)
+    INSERT INTO site_settings(origin, zoom, autoplay, popups, content_blockers, ad_blockers, updated_at)
+    VALUES(?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(origin) DO UPDATE SET
       zoom = excluded.zoom,
       autoplay = excluded.autoplay,
       popups = excluded.popups,
       content_blockers = excluded.content_blockers,
+      ad_blockers = excluded.ad_blockers,
       updated_at = excluded.updated_at
-  `).run(origin, zoom, autoplay, popups, contentBlockers, updatedAt);
-  return { origin, zoom, autoplay, popups, content_blockers: contentBlockers, updated_at: updatedAt };
+  `).run(origin, zoom, autoplay, popups, contentBlockers, adBlockers, updatedAt);
+  return { origin, zoom, autoplay, popups, content_blockers: contentBlockers, ad_blockers: adBlockers, updated_at: updatedAt };
 }
 
 export function getAllSiteSettings(): SiteSettingsRow[] {

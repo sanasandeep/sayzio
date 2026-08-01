@@ -7,8 +7,11 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useTabStore } from '../store/tab-store';
 import { useAuthStore } from '../store/auth-store';
 import { ShortenPopover } from './ShortenPopover';
+import { SharePopover } from './SharePopover';
+import { TabOverview, type TabOverviewHandle } from './TabOverview';
 import { ClipboardPopover } from './ClipboardPopover';
 import { SiteSettingsPopover } from './SiteSettingsPopover';
+import { AdBlockShieldPopover } from './AdBlockShieldPopover';
 import { CreateLinkPopover } from './CreateLinkPopover';
 import { TabModeSwitcher } from './TabModeSwitcher';
 import { normalizeTabMode } from '../../shared/window-mode';
@@ -65,6 +68,25 @@ interface Props {
 }
 
 const BASE_URL = 'https://sayzio.app';
+
+/** Icon button style for the Safari-style far-right toolbar cluster. */
+function clusterBtnStyle(active: boolean): React.CSSProperties {
+  return {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    background: active ? 'var(--color-primary)' : 'transparent',
+    color: active ? '#fff' : 'var(--color-text-muted)',
+    border: '1px solid transparent',
+    cursor: 'pointer',
+    flexShrink: 0,
+    transition: 'all 0.12s',
+  };
+}
 
 /**
  * Context-menu "Fill form with my Sayzio card": fetch the signed-in profile
@@ -436,8 +458,27 @@ export function ChromeBar({
   const [overflowOpen, setOverflowOpen] = useState(false);
   // Safari-style "Settings for this website" popover (per-site settings).
   const [sitePopoverOpen, setSitePopoverOpen] = useState(false);
+  const [adblockPopoverOpen, setAdblockPopoverOpen] = useState(false);
+  const [adblockActive, setAdblockActive] = useState(false);
+  const [adblockLocked, setAdblockLocked] = useState(false);
   const overflowBtnRef = useRef<HTMLButtonElement>(null);
-  useChromeOverlay(shortenOpen || createOpen || clipboardOpen || overflowOpen || sitePopoverOpen);
+  // Safari-style far-right cluster: Share popover + full-window Tab Overview.
+  const [shareOpen, setShareOpen] = useState(false);
+  const shareBtnRef = useRef<HTMLButtonElement>(null);
+  const [tabOverviewOpen, setTabOverviewOpen] = useState(false);
+  const tabOverviewRef = useRef<TabOverviewHandle>(null);
+  // Toggle helper: closing goes through the overview's animated dismiss so
+  // the toolbar button / keyboard shortcut never hard-unmounts it.
+  const toggleTabOverview = useCallback(() => {
+    setTabOverviewOpen((open) => {
+      if (open) {
+        tabOverviewRef.current?.dismiss();
+        return open; // dismiss() calls onClose after the exit animation
+      }
+      return true;
+    });
+  }, []);
+  useChromeOverlay(shortenOpen || createOpen || clipboardOpen || overflowOpen || sitePopoverOpen || adblockPopoverOpen || shareOpen || tabOverviewOpen);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [pendingSyncByProfile, setPendingSyncByProfile] = useState<SyncQueueProfileCount[]>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -762,6 +803,26 @@ export function ChromeBar({
     void window.zio.tracker.getCount(activeTabId).then((n: number) => setBlockedCount(n)).catch(() => setBlockedCount(0));
   }, [activeTabId]);
 
+  // Ad-block shield icon state — effective policy for the active tab.
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      if (!activeTabId) { setAdblockActive(false); setAdblockLocked(false); return; }
+      // Optional-chained: unit-test harnesses mock window.zio partially.
+      void window.zio.adblock?.getState?.(activeTabId)?.then(s => {
+        if (cancelled) return;
+        setAdblockActive(s.active);
+        setAdblockLocked(s.adminLocked);
+      }).catch(() => {});
+    };
+    refresh();
+    window.zio.on('adblock:state-changed', refresh);
+    return () => {
+      cancelled = true;
+      window.zio.off('adblock:state-changed', refresh);
+    };
+  }, [activeTabId, activeTab?.url]);
+
   // Sync omnibox with active tab URL (unless the user has uncommitted edits);
   // discard-on-navigation + tab-switch reset live in the shared hook so the
   // behavior is unit-testable (tests/omnibox-url-sync.test.tsx). The hook also
@@ -821,6 +882,19 @@ export function ChromeBar({
   }, [token]);
 
   const canShorten = !!(activeTab?.url && activeTab.url !== 'about:newtab' && activeTab.url !== '');
+
+  // Keyboard shortcut: Cmd/Ctrl+Shift+\ toggles the Tab Overview (Safari's
+  // Show All Tabs shortcut).
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === '\\' || e.key === '|')) {
+        e.preventDefault();
+        toggleTabOverview();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [toggleTabOverview]);
 
   // "On Sayzio" site detection — debounced, per-host cached public lookup.
   // The hook clears the badge the moment the window flips private or the
@@ -1164,12 +1238,11 @@ export function ChromeBar({
           title="Recently closed tabs & tab actions"
         >⋮</button>
 
-        {/* Account — avatar menu at the right edge of the tab row */}
-        {user && (
-          <div style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-            <AccountButton onOpenAuth={onOpenAuth} compact />
-          </div>
-        )}
+        {/* Account — avatar menu at the right edge of the tab row.
+            Rendered signed-out too so a "Sign in" affordance appears after logout. */}
+        <div style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+          <AccountButton onOpenAuth={onOpenAuth} compact />
+        </div>
       </div>
 
       {/* Address Bar Row */}
@@ -1227,6 +1300,15 @@ export function ChromeBar({
         )}
 
         {/* Omnibox */}
+        {(() => {
+          // In the Website+Website split the single address bar drives the
+          // focused pane; surface WHICH pane that is with a small badge so
+          // similar-looking sites can't be confused. Clicking it toggles the
+          // controlled pane.
+          const splitPane = activeTab?.mode === 'browser+browser'
+            ? (activeTab.focusedPane ?? 'primary')
+            : null;
+          return (
         <form onSubmit={handleOmniboxSubmit} style={{ flex: 1, position: 'relative' }}>
           <input
             ref={omniboxRef}
@@ -1248,8 +1330,89 @@ export function ChromeBar({
               outline: omniboxFocused ? '2px solid var(--color-primary)' : 'none',
               outlineOffset: 0,
               transition: 'all 0.15s',
+              ...(splitPane ? { paddingRight: 122 } : {}),
             }}
           />
+
+          {/* Split-pane controls — swap panes + which pane the address bar controls */}
+          {splitPane && (
+            <div
+              style={{
+                position: 'absolute',
+                right: 5,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              {/* Swap the two panes' contents (URL/history) in one click */}
+              <button
+                type="button"
+                // mousedown (with preventDefault) keeps omnibox focus intact
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  if (activeTabId) {
+                    void window.zio.tabs.swapPanes(activeTabId);
+                  }
+                }}
+                title="Swap panes — move the left site to the right and the right site to the left (Ctrl/Cmd+Shift+S)"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 22,
+                  height: 20,
+                  padding: 0,
+                  borderRadius: 10,
+                  border: '1px solid var(--color-border)',
+                  fontSize: 12,
+                  color: 'var(--color-text)',
+                  background: 'var(--color-bg)',
+                  cursor: 'pointer',
+                  lineHeight: 1,
+                }}
+              >
+                <span aria-hidden>⇄</span>
+              </button>
+              <button
+                type="button"
+                // mousedown (with preventDefault) keeps omnibox focus intact
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  if (activeTabId) {
+                    void window.zio.tabs.focusPane(
+                      activeTabId,
+                      splitPane === 'primary' ? 'second' : 'primary',
+                    );
+                  }
+                }}
+                title={`The address bar controls the ${splitPane === 'primary' ? 'left' : 'right'} pane. Click to switch to the ${splitPane === 'primary' ? 'right' : 'left'} pane.`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  height: 20,
+                  padding: '0 8px',
+                  borderRadius: 10,
+                  border: 'none',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: 0.3,
+                  textTransform: 'uppercase',
+                  whiteSpace: 'nowrap',
+                  color: '#fff',
+                  background: 'var(--color-primary)',
+                  cursor: 'pointer',
+                  lineHeight: 1,
+                }}
+              >
+                <span aria-hidden style={{ fontSize: 11 }}>{splitPane === 'primary' ? '◧' : '◨'}</span>
+                {splitPane === 'primary' ? 'Left pane' : 'Right pane'}
+              </button>
+            </div>
+          )}
 
           {/* Suggestions dropdown */}
           {suggestionsOpen && (
@@ -1332,6 +1495,8 @@ export function ChromeBar({
             </div>
           )}
         </form>
+          );
+        })()}
 
         {/* ── Link tool buttons ─────────────────────────────────────────────── */}
 
@@ -1459,12 +1624,14 @@ export function ChromeBar({
           );
         })()}
 
-        {/* Shield / site settings button with tracker badge */}
+        {/* Shield button — ad-block quick controls popover, with tracker badge */}
         <button
-          onClick={() => onOpenSiteSettings?.()}
-          title={trackerEnabled
-            ? `Privacy settings — ${blockedCount} tracker${blockedCount === 1 ? '' : 's'} blocked on this page`
-            : 'Site settings & permissions'}
+          onClick={() => setAdblockPopoverOpen(o => !o)}
+          title={adblockLocked
+            ? 'Ad blocking — Managed by Sayzio'
+            : adblockActive
+              ? `Ad blocking on — ${blockedCount} blocked on this page`
+              : 'Ad blocking off or paused'}
           style={{
             position: 'relative',
             display: 'flex',
@@ -1473,15 +1640,15 @@ export function ChromeBar({
             width: 28,
             height: 28,
             borderRadius: 8,
-            background: 'var(--color-bg-elevated)',
+            background: adblockPopoverOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
             border: `1px solid ${blockedCount > 0 ? 'var(--color-success)' : 'var(--color-border)'}`,
             fontSize: 14,
-            opacity: trackerEnabled || blockedCount > 0 ? 1 : 0.65,
+            opacity: adblockActive || trackerEnabled || blockedCount > 0 ? 1 : 0.65,
             transition: 'all 0.15s',
             flexShrink: 0,
           } as React.CSSProperties}
         >
-          🛡️
+          {adblockLocked ? '🔒' : adblockActive ? '🛡️' : '🛡'}
           {trackerEnabled && blockedCount > 0 && (
             <span style={{
               position: 'absolute',
@@ -1504,6 +1671,14 @@ export function ChromeBar({
             </span>
           )}
         </button>
+        {adblockPopoverOpen && activeTabId && (
+          <AdBlockShieldPopover
+            tabId={activeTabId}
+            host={(() => { try { return new URL(activeTab?.url ?? '').hostname; } catch { return ''; } })()}
+            blockedCount={blockedCount}
+            onClose={() => setAdblockPopoverOpen(false)}
+          />
+        )}
 
         {/* Bookmark button (hidden in private windows — bookmarks are not saved there) */}
         {!isPrivate && (
@@ -1523,48 +1698,6 @@ export function ChromeBar({
         >
           {isBookmarked ? '★' : '☆'}
         </button>
-        )}
-
-        {/* Downloads button */}
-        {onToggleDownloads && (
-          <button
-            onClick={onToggleDownloads}
-            title="Downloads"
-            style={{
-              position: 'relative',
-              fontSize: 15,
-              padding: '2px 7px',
-              borderRadius: 8,
-              background: downloadsPanelOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
-              color: downloadsPanelOpen ? '#fff' : 'var(--color-text-muted)',
-              border: '1px solid var(--color-border)',
-              transition: 'all 0.12s',
-            }}
-          >
-            ⬇
-            {activeDownloadCount > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: -5,
-                right: -5,
-                minWidth: 16,
-                height: 16,
-                borderRadius: 8,
-                background: 'var(--gradient-primary)',
-                color: '#fff',
-                fontSize: 9,
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0 3px',
-                border: '1.5px solid var(--color-bg-surface)',
-                lineHeight: 1,
-              }}>
-                {activeDownloadCount}
-              </span>
-            )}
-          </button>
         )}
 
         {/* Zio AI button — hidden / disabled in private mode */}
@@ -1760,6 +1893,95 @@ export function ChromeBar({
             </span>
           )}
         </div>
+
+        {/* ── Safari-style far-right cluster: Downloads · Share · New Tab · Tab Overview ── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          marginLeft: 6,
+          paddingLeft: 8,
+          borderLeft: '1px solid var(--color-border)',
+          flexShrink: 0,
+        }}>
+          {/* Downloads (relocated — keeps its badge) */}
+          {onToggleDownloads && (
+            <button
+              onClick={onToggleDownloads}
+              title="Downloads"
+              data-testid="cluster-downloads"
+              style={clusterBtnStyle(downloadsPanelOpen)}
+            >
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 13h10" />
+              </svg>
+              {activeDownloadCount > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: -5,
+                  right: -5,
+                  minWidth: 16,
+                  height: 16,
+                  borderRadius: 8,
+                  background: 'var(--gradient-primary)',
+                  color: '#fff',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 3px',
+                  border: '1.5px solid var(--color-bg-surface)',
+                  lineHeight: 1,
+                }}>
+                  {activeDownloadCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* Share */}
+          <button
+            ref={shareBtnRef}
+            onClick={() => setShareOpen(o => !o)}
+            title="Share this page"
+            data-testid="cluster-share"
+            disabled={!activeTab?.url || activeTab.url === 'about:newtab'}
+            style={{
+              ...clusterBtnStyle(shareOpen),
+              opacity: !activeTab?.url || activeTab.url === 'about:newtab' ? 0.4 : 1,
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 1.5v8m0-8L5.5 4M8 1.5L10.5 4M4.5 7H3.5v7h9V7h-1" />
+            </svg>
+          </button>
+
+          {/* New tab */}
+          <button
+            onClick={() => void createTab()}
+            title="New tab (Cmd/Ctrl+T)"
+            data-testid="cluster-new-tab"
+            style={clusterBtnStyle(false)}
+          >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+              <path d="M8 3v10M3 8h10" />
+            </svg>
+          </button>
+
+          {/* Tab Overview — Safari-style overlapping squares */}
+          <button
+            onClick={toggleTabOverview}
+            title="Tab Overview (Cmd/Ctrl+Shift+\)"
+            data-testid="cluster-tab-overview"
+            style={clusterBtnStyle(tabOverviewOpen)}
+          >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
+              <rect x="2" y="5" width="9" height="9" rx="1.5" />
+              <path d="M5.5 3H12a2 2 0 0 1 2 2v6.5" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Overflow menu dropdown */}
@@ -1804,6 +2026,33 @@ export function ChromeBar({
               void window.zio.tabs.navigate(activeTabId, url);
             }
           }}
+        />
+      )}
+
+      {/* Share popover (far-right cluster) */}
+      {shareOpen && activeTab && (
+        <SharePopover
+          anchorRef={shareBtnRef}
+          pageUrl={activeTab.url}
+          pageTitle={activeTab.title ?? ''}
+          canShorten={canShorten}
+          onClose={() => setShareOpen(false)}
+          onShorten={() => setShortenOpen(true)}
+        />
+      )}
+
+      {/* Tab Overview — full-window exposé grid (far-right cluster) */}
+      {tabOverviewOpen && (
+        <TabOverview
+          ref={tabOverviewRef}
+          tabs={tabs}
+          tabOrder={tabOrder}
+          activeTabId={activeTabId}
+          isPrivate={isPrivate}
+          onClose={() => setTabOverviewOpen(false)}
+          onActivate={(id) => void activateTab(id)}
+          onCloseTab={(id) => void closeTab(id)}
+          onNewTab={() => void createTab()}
         />
       )}
 

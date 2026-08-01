@@ -52,6 +52,16 @@ export function contentBlockerOverrideForOrigin(origin: string): boolean | null 
   return row.content_blockers === 1;
 }
 
+/**
+ * Per-site ad-block override for an origin: true/false when the user chose
+ * an explicit override, null to use the global ad-blocking flag.
+ */
+export function adBlockOverrideForOrigin(origin: string): boolean | null {
+  const row = cachedRow(origin);
+  if (!row || row.ad_blockers === null || row.ad_blockers === undefined) return null;
+  return row.ad_blockers === 1;
+}
+
 /** Drop cached rows (one origin, or everything) after settings are edited. */
 export function invalidateSiteSettingsCache(origin?: string): void {
   if (origin) cache.delete(origin);

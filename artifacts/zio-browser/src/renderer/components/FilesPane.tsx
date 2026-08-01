@@ -11,7 +11,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuthStore } from '../store/auth-store';
 import { ApiClient, ApiClientError } from '../../shared/api-client';
-import type { ApiFile } from '../../shared/api-client';
+import type { ApiFile, ApiFileFolder } from '../../shared/api-client';
 
 const BASE_URL = 'https://sayzio.app';
 
@@ -64,6 +64,14 @@ export function FilesPane({ onOpenAuth }: Props) {
   const [uploads, setUploads] = useState<UploadEntry[]>([]);
   const [quotaMessage, setQuotaMessage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  // null = All files; 'root' = unfoldered only; number = a specific folder.
+  const [activeFolder, setActiveFolder] = useState<number | 'root' | null>(null);
+  const [folders, setFolders] = useState<ApiFileFolder[]>([]);
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [folderBusy, setFolderBusy] = useState(false);
+  const [movingId, setMovingId] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const dragDepthRef = useRef(0);
   const uploadingRef = useRef(false);
   const mountedRef = useRef(true);
@@ -78,27 +86,118 @@ export function FilesPane({ onOpenAuth }: Props) {
     return new ApiClient({ baseUrl: BASE_URL, token });
   }, [token]);
 
-  const loadFiles = useCallback(async () => {
+  // Monotonic sequence so a slower, older listFiles response can never
+  // overwrite the result of a newer one (e.g. rapid folder-chip switching).
+  const loadSeqRef = useRef(0);
+
+  const loadFiles = useCallback(async (folderOverride?: number | 'root' | null) => {
     const client = getClient();
     if (!client) return;
+    const filter = folderOverride !== undefined ? folderOverride : activeFolder;
+    const seq = ++loadSeqRef.current;
     setLoading(true);
     setError(null);
     try {
-      const page = await client.listFiles({ per_page: 100 });
-      if (mountedRef.current) setFiles(page.files);
+      const page = await client.listFiles({
+        per_page: 100,
+        ...(filter !== null ? { folder_id: filter } : {}),
+      });
+      if (mountedRef.current && seq === loadSeqRef.current) setFiles(page.files);
     } catch (err) {
-      if (mountedRef.current) {
+      if (mountedRef.current && seq === loadSeqRef.current) {
         setError(err instanceof Error ? err.message : 'Could not load your files');
       }
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && seq === loadSeqRef.current) setLoading(false);
     }
+  }, [getClient, activeFolder]);
+
+  const loadFolders = useCallback(async () => {
+    const client = getClient();
+    if (!client) return;
+    try {
+      const { folders } = await client.listFileFolders();
+      if (mountedRef.current) setFolders(folders);
+    } catch { /* folder strip is best-effort — the file list still works */ }
   }, [getClient]);
 
   useEffect(() => {
-    if (token) void loadFiles();
-    else setFiles([]);
-  }, [token, loadFiles]);
+    if (token) {
+      void loadFiles();
+      void loadFolders();
+    } else {
+      setFiles([]);
+      setFolders([]);
+      setActiveFolder(null);
+    }
+  }, [token, loadFiles, loadFolders]);
+
+  // ── Folder actions ──────────────────────────────────────────────────────────
+
+  const handleCreateFolder = useCallback(async () => {
+    const client = getClient();
+    const name = newFolderName.trim();
+    if (!client || !name || folderBusy) return;
+    setFolderBusy(true);
+    setError(null);
+    try {
+      const { folder } = await client.createFileFolder(name);
+      if (mountedRef.current) {
+        setFolders(prev => [...prev, folder].sort((a, b) => a.name.localeCompare(b.name)));
+        setNewFolderName('');
+        setCreatingFolder(false);
+        setActiveFolder(folder.id);
+      }
+    } catch (err) {
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Could not create the folder');
+      }
+    } finally {
+      if (mountedRef.current) setFolderBusy(false);
+    }
+  }, [getClient, newFolderName, folderBusy]);
+
+  const handleDeleteFolder = useCallback(async (folder: ApiFileFolder) => {
+    const client = getClient();
+    if (!client || folderBusy) return;
+    if (!window.confirm(`Delete the folder "${folder.name}"? Files inside it are kept and move back to All files.`)) return;
+    setFolderBusy(true);
+    setError(null);
+    try {
+      await client.deleteFileFolder(folder.id);
+      const nextFilter = activeFolder === folder.id ? null : activeFolder;
+      if (mountedRef.current) {
+        setFolders(prev => prev.filter(f => f.id !== folder.id));
+        setActiveFolder(nextFilter);
+      }
+      // Fetch with the post-delete filter explicitly — the closure-bound
+      // activeFolder may still point at the folder we just deleted.
+      await loadFiles(nextFilter);
+    } catch (err) {
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Could not delete the folder');
+      }
+    } finally {
+      if (mountedRef.current) setFolderBusy(false);
+    }
+  }, [getClient, folderBusy, loadFiles, activeFolder]);
+
+  const handleMove = useCallback(async (f: ApiFile, folderId: number | null) => {
+    const client = getClient();
+    if (!client || movingId !== null) return;
+    setMovingId(f.id);
+    setError(null);
+    try {
+      await client.moveFile(f.id, folderId);
+      await Promise.all([loadFiles(), loadFolders()]);
+    } catch (err) {
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Could not move the file');
+      }
+    } finally {
+      if (mountedRef.current) setMovingId(null);
+    }
+  }, [getClient, movingId, loadFiles, loadFolders]);
 
   // ── Per-file actions ────────────────────────────────────────────────────────
 
@@ -162,7 +261,8 @@ export function FilesPane({ onOpenAuth }: Props) {
         const file = dropped[i]!;
         const key = entries[i]!.key;
         try {
-          await client.uploadFile(file, file.name);
+          // Uploads land in the folder currently being viewed (if any).
+          await client.uploadFile(file, file.name, typeof activeFolder === 'number' ? activeFolder : null);
           anyUploaded = true;
           if (mountedRef.current) {
             setUploads(prev => prev.map(u => u.key === key ? { ...u, status: 'done' } : u));
@@ -186,14 +286,14 @@ export function FilesPane({ onOpenAuth }: Props) {
     if (quotaHit && mountedRef.current) {
       setQuotaMessage('Your file storage is full. Free up space by deleting files, or upgrade your plan for more storage.');
     }
-    if (anyUploaded) await loadFiles();
+    if (anyUploaded) await Promise.all([loadFiles(), loadFolders()]);
     // Keep the results visible briefly, then clear the finished list.
     window.setTimeout(() => {
       if (mountedRef.current && !uploadingRef.current) {
         setUploads(prev => prev.some(u => u.status === 'error') ? prev : []);
       }
     }, 4000);
-  }, [getClient, onOpenAuth, loadFiles]);
+  }, [getClient, onOpenAuth, loadFiles, loadFolders, activeFolder]);
 
   const dragHandlers = {
     onDragEnter: (e: React.DragEvent) => {
@@ -314,13 +414,113 @@ export function FilesPane({ onOpenAuth }: Props) {
           {loading ? 'Loading…' : `${files.length} file${files.length === 1 ? '' : 's'}`}
         </span>
         <button
-          onClick={() => void loadFiles()}
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadingRef.current}
+          title="Upload files from your computer"
+          style={{ ...actionButtonStyle, color: 'var(--color-primary)', fontWeight: 600 }}
+        >
+          ⬆ Upload
+        </button>
+        <button
+          onClick={() => { setCreatingFolder(v => !v); setNewFolderName(''); }}
+          title="Create a new folder"
+          style={actionButtonStyle}
+        >
+          + New folder
+        </button>
+        <button
+          onClick={() => { void loadFiles(); void loadFolders(); }}
           disabled={loading}
           title="Refresh"
           style={{ ...actionButtonStyle, opacity: loading ? 0.5 : 1 }}
         >
           ⟳ Refresh
         </button>
+        {/* Hidden picker backing the Upload button — reuses the drop path. */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const picked = Array.from(e.target.files ?? []);
+            e.target.value = '';
+            if (picked.length > 0) void handleDroppedFiles(picked);
+          }}
+        />
+      </div>
+
+      {/* New-folder inline form */}
+      {creatingFolder && (
+        <div style={{
+          display: 'flex', gap: 8, alignItems: 'center',
+          padding: '8px 14px', borderBottom: '1px solid var(--color-border)', flexShrink: 0,
+        }}>
+          <input
+            value={newFolderName}
+            onChange={e => setNewFolderName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') void handleCreateFolder(); if (e.key === 'Escape') setCreatingFolder(false); }}
+            placeholder="Folder name"
+            autoFocus
+            maxLength={100}
+            style={{
+              flex: 1, padding: '6px 10px', fontSize: 12.5, borderRadius: 7,
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-bg)', color: 'var(--color-text)',
+            }}
+          />
+          <button
+            onClick={() => void handleCreateFolder()}
+            disabled={folderBusy || newFolderName.trim() === ''}
+            style={{ ...actionButtonStyle, color: 'var(--color-primary)', fontWeight: 600, opacity: folderBusy || newFolderName.trim() === '' ? 0.5 : 1 }}
+          >
+            {folderBusy ? 'Creating…' : 'Create'}
+          </button>
+          <button onClick={() => setCreatingFolder(false)} style={actionButtonStyle}>Cancel</button>
+        </div>
+      )}
+
+      {/* Folder chips */}
+      <div style={{
+        display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap',
+        padding: '8px 14px', borderBottom: '1px solid var(--color-border)', flexShrink: 0,
+      }}>
+        <button
+          onClick={() => setActiveFolder(null)}
+          style={folderChipStyle(activeFolder === null)}
+        >
+          All files
+        </button>
+        <button
+          onClick={() => setActiveFolder('root')}
+          style={folderChipStyle(activeFolder === 'root')}
+          title="Files not in any folder"
+        >
+          Unfiled
+        </button>
+        {folders.map(folder => (
+          <span key={folder.id} style={{ display: 'inline-flex', alignItems: 'center' }}>
+            <button
+              onClick={() => setActiveFolder(folder.id)}
+              style={folderChipStyle(activeFolder === folder.id)}
+              title={`${folder.files_count} file${folder.files_count === 1 ? '' : 's'}`}
+            >
+              📁 {folder.name}{folder.files_count > 0 ? ` (${folder.files_count})` : ''}
+            </button>
+            {activeFolder === folder.id && (
+              <button
+                onClick={() => void handleDeleteFolder(folder)}
+                disabled={folderBusy}
+                title={`Delete the folder "${folder.name}" (files are kept)`}
+                style={{
+                  marginLeft: 2, padding: '2px 5px', fontSize: 11, borderRadius: 5,
+                  border: 'none', background: 'transparent',
+                  color: '#ef4444', cursor: 'pointer',
+                }}
+              >✕</button>
+            )}
+          </span>
+        ))}
       </div>
 
       {/* Upload progress strip */}
@@ -426,7 +626,31 @@ export function FilesPane({ onOpenAuth }: Props) {
                   {[f.size_human, f.type, formatDate(f.created_at)].filter(Boolean).join(' · ')}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+                {folders.length > 0 && (
+                  <select
+                    value=""
+                    disabled={movingId !== null}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '') return;
+                      void handleMove(f, v === 'root' ? null : Number(v));
+                    }}
+                    title="Move to folder"
+                    style={{
+                      ...actionButtonStyle,
+                      opacity: movingId === f.id ? 0.5 : 1,
+                      appearance: 'none',
+                      background: 'transparent',
+                    }}
+                  >
+                    <option value="" disabled>{movingId === f.id ? 'Moving…' : 'Move ▾'}</option>
+                    {f.folder_id != null && <option value="root">Out of folder</option>}
+                    {folders.filter(fo => fo.id !== f.folder_id).map(fo => (
+                      <option key={fo.id} value={fo.id}>{fo.name}</option>
+                    ))}
+                  </select>
+                )}
                 <button onClick={() => handleOpen(f)} title="Open in a new tab" style={actionButtonStyle}>
                   Open
                 </button>
@@ -472,4 +696,19 @@ export function FilesPane({ onOpenAuth }: Props) {
       )}
     </div>
   );
+}
+
+/** Style for a folder filter chip; highlighted when it's the active view. */
+function folderChipStyle(active: boolean): React.CSSProperties {
+  return {
+    padding: '4px 10px',
+    borderRadius: 999,
+    border: `1px solid ${active ? 'var(--color-primary, #6366f1)' : 'var(--color-border)'}`,
+    background: active ? 'rgba(99,102,241,0.12)' : 'transparent',
+    color: active ? 'var(--color-primary, #6366f1)' : 'var(--color-text-muted)',
+    fontSize: 11.5,
+    fontWeight: active ? 600 : 400,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  };
 }

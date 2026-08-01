@@ -13,7 +13,7 @@ import { randomUUID } from 'crypto';
 import { pathToFileURL } from 'url';
 import { isMarkdownDownload, renderMarkdownDocument } from '../shared/markdown';
 import { isCsvDownload, buildCsvViewerHtml, CSV_VIEWER_MAX_FILE_BYTES } from '../shared/csv-viewer';
-import type { TabManager } from './tab-manager';
+import type { TabManager, SessionTabLayout } from './tab-manager';
 import type { TabMode } from '../shared/window-mode';
 import type { WindowModeManager } from './window-mode-manager';
 import { SyncRetryRunner } from './sync-retry';
@@ -119,6 +119,24 @@ import {
   getTrackerStats,
   installTrackerHooks,
 } from './tracker-blocker';
+import { setAdBlockingEnabled } from './ad-blocker';
+import {
+  getStateForWc as getAdBlockStateForWc,
+  getPauseInfo,
+  getStrength as getAdBlockStrength,
+  setStrength as setAdBlockStrength,
+  isGlobalAdBlockEnabled,
+  setGlobalAdBlockEnabled,
+  getUserLists,
+  addUserListDomain,
+  removeUserListDomain,
+  getAdminPolicyInfo,
+  refreshAdminPolicy,
+  pausePage,
+  pauseTimed,
+  resumeAdBlocking,
+  isHostAdminControlled,
+} from './adblock-policy';
 import { setDoNotTrack, setBlockThirdPartyCookies, installPrivacyHooks } from './privacy';
 import { SEARCH_ENGINES } from '../shared/omnibox';
 import { buildAutofillScript } from '../shared/form-autofill';
@@ -386,6 +404,14 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     resolveTabManager(event)?.navigatePane(id, pane === 'second' ? 'second' : 'primary', input);
     return true;
   });
+  ipcMain.handle('tabs:focus-pane', (event, id: string, pane: string) => {
+    resolveTabManager(event)?.focusPane(id, pane === 'second' ? 'second' : 'primary');
+    return true;
+  });
+  ipcMain.handle('tabs:swap-panes', (event, id: string) => {
+    resolveTabManager(event)?.swapPanes(id);
+    return true;
+  });
   ipcMain.handle('tabs:back', (event, id: string) => { resolveTabManager(event)?.goBack(id); return true; });
   ipcMain.handle('tabs:forward', (event, id: string) => { resolveTabManager(event)?.goForward(id); return true; });
   ipcMain.handle('tabs:reload', (event, id: string, force?: boolean) => { resolveTabManager(event)?.reload(id, force); return true; });
@@ -596,6 +622,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   });
   // Restore the last saved browsing session (non-pinned tabs from the
   // previous run). Returns the number of tabs restored.
+  // Tab Overview: downscaled per-tab thumbnails (active captured fresh,
+  // background tabs served from the last-visible-frame cache).
+  ipcMain.handle('tabs:capture-thumbnails', async (event) => {
+    const tm = resolveTabManager(event);
+    if (!tm) return {};
+    return tm.captureThumbnails();
+  });
   ipcMain.handle('tabs:hide-all', (event) => {
     resolveTabManager(event)?.hideAllTabs();
     // Return keyboard focus to the chrome renderer — a tab WebContentsView may
@@ -604,18 +637,32 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     try { event.sender.focus(); } catch { }
     return true;
   });
+  // Filter a parsed session snapshot down to valid URL strings while keeping
+  // the per-tab layout entries (split mode/ratio/second pane) index-aligned.
+  const filterSnapshotUrls = (snap: { urls?: unknown; layouts?: unknown }): { urls: string[]; layouts?: (SessionTabLayout | null)[] } => {
+    if (!Array.isArray(snap?.urls)) return { urls: [] };
+    const rawLayouts = Array.isArray(snap?.layouts) ? (snap.layouts as unknown[]) : null;
+    const urls: string[] = [];
+    const layouts: (SessionTabLayout | null)[] = [];
+    snap.urls.forEach((u, i) => {
+      if (typeof u === 'string' && u.length > 0) {
+        urls.push(u);
+        const l = rawLayouts?.[i];
+        layouts.push(l && typeof l === 'object' && typeof (l as SessionTabLayout).mode === 'string' ? (l as SessionTabLayout) : null);
+      }
+    });
+    return rawLayouts ? { urls, layouts } : { urls };
+  };
   ipcMain.handle('tabs:restore-session', (event) => {
     const tm = resolveTabManager(event);
     if (!tm || tm.isPrivate) return 0;
     try {
       const raw = getPreference(PREFERENCE_KEYS.SESSION_TABS);
       if (!raw) return 0;
-      const snap = JSON.parse(raw) as { urls?: unknown; activeIndex?: unknown };
-      const urls = Array.isArray(snap?.urls)
-        ? snap.urls.filter((u): u is string => typeof u === 'string' && u.length > 0)
-        : [];
+      const snap = JSON.parse(raw) as { urls?: unknown; activeIndex?: unknown; layouts?: unknown };
+      const { urls, layouts } = filterSnapshotUrls(snap);
       if (urls.length === 0) return 0;
-      tm.restoreSessionTabs(urls, typeof snap?.activeIndex === 'number' ? snap.activeIndex : -1);
+      tm.restoreSessionTabs(urls, typeof snap?.activeIndex === 'number' ? snap.activeIndex : -1, layouts);
       return urls.length;
     } catch {
       return 0;
@@ -1583,6 +1630,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       const c = patch.contentBlockers;
       if (c === null || typeof c === 'boolean') clean.contentBlockers = c;
     }
+    if ('adBlockers' in patch) {
+      const a = patch.adBlockers;
+      if (a === null || typeof a === 'boolean') clean.adBlockers = a;
+    }
     try {
       setSiteSettings(origin, clean);
       invalidateSiteSettingsCache(origin);
@@ -1637,12 +1688,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     }
     if (!row) return false;
     try {
-      const snap = JSON.parse(row.snapshot) as { urls?: unknown; activeIndex?: unknown };
-      const urls = Array.isArray(snap?.urls)
-        ? snap.urls.filter((u): u is string => typeof u === 'string' && u.length > 0)
-        : [];
+      const snap = JSON.parse(row.snapshot) as { urls?: unknown; activeIndex?: unknown; layouts?: unknown };
+      const { urls, layouts } = filterSnapshotUrls(snap);
       if (urls.length === 0) return false;
-      tm.restoreSessionTabs(urls, typeof snap?.activeIndex === 'number' ? snap.activeIndex : -1);
+      tm.restoreSessionTabs(urls, typeof snap?.activeIndex === 'number' ? snap.activeIndex : -1, layouts);
       return true;
     } catch {
       return false;
@@ -1666,6 +1715,72 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     return true;
   });
   ipcMain.handle('tracker:get-count', (_, tabId: string) => getBlockedCount(tabId));
+
+  // ── Ad blocking (EasyList/EasyPrivacy filter engine) ─────────────────────
+  ipcMain.handle('adblock:is-enabled', () => isGlobalAdBlockEnabled());
+  ipcMain.handle('adblock:set-enabled', (_, enabled: boolean) => {
+    // Keep the ad-blocker fallback flag in sync, then let the policy module
+    // own persistence + renderer broadcast.
+    setAdBlockingEnabled(enabled === true);
+    setGlobalAdBlockEnabled(enabled === true);
+    return true;
+  });
+
+  // ── Ad-block policy (strength, pauses, user lists, admin policy) ─────────
+  ipcMain.handle('adblock:get-state', (event, tabId?: string) => {
+    const wcId = typeof tabId === 'string'
+      ? resolveTabManager(event)?.getWebContents(tabId)?.id
+      : undefined;
+    const state = getAdBlockStateForWc(wcId);
+    const pause = getPauseInfo();
+    return {
+      ...state,
+      strength: getAdBlockStrength(),
+      globalEnabled: isGlobalAdBlockEnabled(),
+      timedPauseUntil: pause.timedPauseUntil,
+      pausedUntilRestart: pause.pausedUntilRestart,
+    };
+  });
+  ipcMain.handle('adblock:pause-page', (event, tabId: string) => {
+    const wcId = typeof tabId === 'string'
+      ? resolveTabManager(event)?.getWebContents(tabId)?.id
+      : undefined;
+    if (wcId === undefined) return false;
+    // Admin-mandated sites cannot be paused.
+    if (getAdBlockStateForWc(wcId).adminLocked) return false;
+    return pausePage(wcId);
+  });
+  ipcMain.handle('adblock:pause-timed', (_, minutes: number | null) => {
+    pauseTimed(typeof minutes === 'number' ? minutes : null);
+    return true;
+  });
+  ipcMain.handle('adblock:resume', () => {
+    resumeAdBlocking();
+    return true;
+  });
+  ipcMain.handle('adblock:get-strength', () => getAdBlockStrength());
+  ipcMain.handle('adblock:set-strength', (_, strength: string) => {
+    setAdBlockStrength(strength === 'strict' ? 'strict' : 'balanced');
+    return true;
+  });
+  ipcMain.handle('adblock:get-lists', () => getUserLists());
+  ipcMain.handle('adblock:add-list-domain', (_, kind: 'allow' | 'block', domain: string) => {
+    if (kind !== 'allow' && kind !== 'block') return null;
+    // Admin-controlled domains cannot be overridden by user lists.
+    if (typeof domain === 'string' && isHostAdminControlled(domain.trim().toLowerCase())) return null;
+    return addUserListDomain(kind, String(domain ?? ''));
+  });
+  ipcMain.handle('adblock:remove-list-domain', (_, kind: 'allow' | 'block', domain: string) => {
+    if (kind !== 'allow' && kind !== 'block') return false;
+    return removeUserListDomain(kind, String(domain ?? ''));
+  });
+  ipcMain.handle('adblock:get-admin-policy', () => getAdminPolicyInfo());
+  ipcMain.handle('adblock:refresh-admin-policy', async () => {
+    await refreshAdminPolicy();
+    return getAdminPolicyInfo();
+  });
+  ipcMain.handle('adblock:is-host-admin-controlled', (_, host: string) =>
+    isHostAdminControlled(typeof host === 'string' ? host : null));
   ipcMain.handle('tracker:reset-count', (_, tabId: string) => {
     resetBlockedCount(tabId);
     return true;

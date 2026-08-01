@@ -8,8 +8,12 @@
  * WebContentsViews, so we use the chrome-overlay mechanism (hide all native
  * views while open, restore on close) — same pattern as ModeSwitcher.
  */
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../store/auth-store';
+import { ProfileSettingsModal } from './ProfileSettingsModal';
+import { computeMenuPos, useMenuReanchor, type MenuPos } from '../lib/menu-position';
+
+const MENU_WIDTH = 220;
 
 interface Props {
   onOpenAuth: () => void;
@@ -20,8 +24,18 @@ interface Props {
 export function AccountButton({ onOpenAuth, compact = false }: Props) {
   const { user, clearAuth } = useAuthStore();
   const [open, setOpen] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  // Viewport coordinates for the fixed-position menu. The button can live
+  // inside a scrollable tab strip (browser mode) whose overflow clips
+  // absolutely-positioned children — `position: fixed` escapes that.
+  const [menuPos, setMenuPos] = useState<MenuPos | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
+  const close = useCallback(() => setOpen(false), []);
+
+  // Keep the menu anchored (and on screen) if the window resizes while open.
+  useMenuReanchor(open, triggerRef, MENU_WIDTH, setMenuPos, close);
 
   useEffect(() => {
     if (open) {
@@ -76,7 +90,11 @@ export function AccountButton({ onOpenAuth, compact = false }: Props) {
   return (
     <div ref={ref} style={{ position: 'relative', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
       <button
-        onClick={() => setOpen(prev => !prev)}
+        ref={triggerRef}
+        onClick={(e) => {
+          setMenuPos(computeMenuPos(e.currentTarget.getBoundingClientRect(), MENU_WIDTH));
+          setOpen(prev => !prev);
+        }}
         title={user.name ?? 'Account'}
         style={{
           width: size,
@@ -114,12 +132,14 @@ export function AccountButton({ onOpenAuth, compact = false }: Props) {
         </span>
       </button>
 
-      {open && (
+      {open && menuPos && (
         <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 6px)',
-          right: 0,
-          width: 220,
+          position: 'fixed',
+          top: menuPos.top,
+          right: menuPos.right,
+          width: MENU_WIDTH,
+          maxHeight: menuPos.maxHeight,
+          overflowY: 'auto',
           background: 'var(--color-bg-surface)',
           border: '1px solid var(--color-border)',
           borderRadius: 12,
@@ -148,6 +168,25 @@ export function AccountButton({ onOpenAuth, compact = false }: Props) {
             )}
           </div>
           <button
+            onClick={() => { setOpen(false); setShowProfile(true); }}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '10px 14px',
+              background: 'transparent',
+              color: 'var(--color-text)',
+              cursor: 'pointer',
+              textAlign: 'left',
+              fontSize: 13,
+              borderBottom: '1px solid var(--color-border)',
+            }}
+          >
+            <span style={{ fontSize: 14 }}>👤</span>
+            Profile settings
+          </button>
+          <button
             onClick={() => { setOpen(false); void clearAuth(); }}
             style={{
               width: '100%',
@@ -167,6 +206,8 @@ export function AccountButton({ onOpenAuth, compact = false }: Props) {
           </button>
         </div>
       )}
+
+      {showProfile && <ProfileSettingsModal onClose={() => setShowProfile(false)} />}
     </div>
   );
 }

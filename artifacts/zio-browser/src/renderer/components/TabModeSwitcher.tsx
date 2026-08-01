@@ -5,7 +5,8 @@
  * Uses the chrome-overlay pattern (native views sit above the DOM and would
  * swallow clicks on the dropdown).
  */
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { computeMenuPos, useMenuReanchor, type MenuPos } from '../lib/menu-position';
 import type { TabMode } from '../../shared/window-mode';
 import {
   TAB_MODES,
@@ -13,6 +14,8 @@ import {
   TAB_MODE_DESCRIPTIONS,
   TAB_MODE_ICONS,
 } from '../../shared/window-mode';
+
+const MENU_WIDTH = 250;
 
 const SINGLE_MODES = TAB_MODES.filter(m => !m.includes('+'));
 const SPLIT_MODES = TAB_MODES.filter(m => m.includes('+'));
@@ -24,8 +27,18 @@ interface Props {
 
 export function TabModeSwitcher({ currentMode, onSetMode }: Props) {
   const [open, setOpen] = useState(false);
+  // Viewport coordinates for the fixed-position menu. The trigger can live
+  // inside a scrollable tab strip (browser mode) whose overflow clips
+  // absolutely-positioned children — `position: fixed` escapes that
+  // (same pattern as AccountButton).
+  const [menuPos, setMenuPos] = useState<MenuPos | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
+  const close = useCallback(() => setOpen(false), []);
+
+  // Keep the menu anchored (and on screen) if the window resizes while open.
+  useMenuReanchor(open, triggerRef, MENU_WIDTH, setMenuPos, close);
 
   // Detach native views while the menu is open so it can receive clicks.
   // Unlike the window ModeSwitcher, tab-mode picks go through tabs:set-mode
@@ -71,7 +84,11 @@ export function TabModeSwitcher({ currentMode, onSetMode }: Props) {
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button
-        onClick={() => setOpen(prev => !prev)}
+        ref={triggerRef}
+        onClick={(e) => {
+          setMenuPos(computeMenuPos(e.currentTarget.getBoundingClientRect(), MENU_WIDTH));
+          setOpen(prev => !prev);
+        }}
         title={`Tab view: ${TAB_MODE_LABELS[currentMode]}`}
         style={{
           display: 'flex',
@@ -94,18 +111,18 @@ export function TabModeSwitcher({ currentMode, onSetMode }: Props) {
         <span style={{ fontSize: 10, opacity: 0.5 }}>▼</span>
       </button>
 
-      {open && (
+      {open && menuPos && (
         <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 6px)',
-          right: 0,
-          width: 250,
+          position: 'fixed',
+          top: menuPos.top,
+          right: menuPos.right,
+          width: MENU_WIDTH,
           background: 'var(--color-bg-surface)',
           border: '1px solid var(--color-border)',
           borderRadius: 12,
           boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
           zIndex: 1000,
-          maxHeight: 'min(480px, calc(100vh - 120px))',
+          maxHeight: Math.min(480, menuPos.maxHeight),
           overflowY: 'auto',
         }}>
           <div style={{

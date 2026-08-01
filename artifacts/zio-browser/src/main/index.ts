@@ -5,7 +5,7 @@ import path from 'path';
 import { app, BrowserWindow, Menu, session, nativeTheme, dialog, webContents } from 'electron';
 import type { BaseWindow } from 'electron';
 import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, setDomainMuted, pruneHistoryOlderThan, setSiteSettings, addBookmark, isBookmarked, getAllBookmarks, getRecentHistory } from './db';
-import { resolveSiteSettingsForUrl, contentBlockerOverrideForOrigin, invalidateSiteSettingsCache } from './site-settings';
+import { resolveSiteSettingsForUrl, contentBlockerOverrideForOrigin, adBlockOverrideForOrigin, invalidateSiteSettingsCache } from './site-settings';
 import { PREFERENCE_KEYS, type PreferenceKey } from '../shared/db-schema';
 import { VK_PREF_KEYS } from '../shared/virtual-keyboard';
 import { hostForMutePolicy } from '../shared/mute-policy';
@@ -27,12 +27,15 @@ import { setupDownloadManager } from './download-manager';
 import { getPrivateSession, registerPrivateWindow } from './private-session';
 import { setupPermissionHandlers } from './permission-handler';
 import { setupTrackerBlocking, resetBlockedCount, installTrackerHooks, setSiteOverrideResolver } from './tracker-blocker';
+import { initAdBlocker, setAdBlockPolicyResolver, isAdBlockingEffectiveForWc, getCosmeticStylesForUrl } from './ad-blocker';
+import { initAdBlockPolicy, startAdminPolicySync, isAdBlockActiveForWc, overrideForRequestHost, getStrength } from './adblock-policy';
+import { setRequestHostOverrideResolver } from './tracker-blocker';
 import { setupPrivacyControls, installPrivacyHooks } from './privacy';
 import type { WindowMode } from '../shared/window-mode';
 import { ZIO_PANEL_DIVIDER_WIDTH } from '../shared/window-mode';
 import { setupAutoUpdater } from './auto-updater';
 import { loadStoredExtensions, loadBuiltinExtension } from './extension-manager';
-import type { RecentlyClosedEntry } from './tab-manager';
+import type { RecentlyClosedEntry, SessionTabLayout } from './tab-manager';
 
 const isDev = process.env['NODE_ENV'] === 'development';
 
@@ -343,6 +346,19 @@ export function createWindow(): BrowserWindow {
     }
   });
 
+  // Full ad blocker (EasyList/EasyPrivacy engine) — separate toggle, off by
+  // default. Shares the tracker-blocker webRequest dispatcher. The layered
+  // policy resolver (admin policy → pauses → per-site "Ads" override → user
+  // lists → global toggle/strength) owns the effective on/off decision, and
+  // the request-host override enforces admin/user domain lists in every
+  // session (private windows included), even when the global toggle is off.
+  const adBlockInitialEnabled = (safeGetPreference(PREFERENCE_KEYS.AD_BLOCKING_ENABLED) ?? '0') === '1';
+  initAdBlocker(adBlockInitialEnabled);
+  initAdBlockPolicy(adBlockInitialEnabled);
+  setAdBlockPolicyResolver((wcId) => isAdBlockActiveForWc(wcId));
+  setRequestHostOverrideResolver((host) => overrideForRequestHost(host));
+  startAdminPolicySync();
+
   // Setup privacy controls (Do Not Track header, third-party cookie blocking)
   setupPrivacyControls(
     session.defaultSession,
@@ -367,6 +383,11 @@ export function createWindow(): BrowserWindow {
 
   win.once('ready-to-show', () => {
     clearTimeout(showFailsafe);
+    // The startup mode pick can recreate the window and destroy this one
+    // while this callback is still queued — restoring the session into a
+    // destroyed window throws mid-restore and strands the whole launch.
+    // The replacement window runs its own ready-to-show restore.
+    if (win.isDestroyed()) return;
     closeSplash();
     win.show();
     modeManager.setMode(savedMode);
@@ -398,10 +419,21 @@ export function createWindow(): BrowserWindow {
       let sessionUrls: string[] = [];
       let sessionActiveIndex = -1;
       let sessionActivePinnedIndex = -1;
+      let sessionLayouts: (SessionTabLayout | null)[] | undefined;
       try {
-        const snap = JSON.parse(savedSessionJson) as { urls?: unknown; activeIndex?: unknown; activePinnedIndex?: unknown };
+        const snap = JSON.parse(savedSessionJson) as { urls?: unknown; activeIndex?: unknown; activePinnedIndex?: unknown; layouts?: unknown };
         if (Array.isArray(snap?.urls)) {
-          sessionUrls = snap.urls.filter((u): u is string => typeof u === 'string' && u.length > 0);
+          // Keep layouts index-aligned with the filtered URL list.
+          const rawLayouts = Array.isArray(snap?.layouts) ? (snap.layouts as unknown[]) : null;
+          const filteredLayouts: (SessionTabLayout | null)[] = [];
+          snap.urls.forEach((u, i) => {
+            if (typeof u === 'string' && u.length > 0) {
+              sessionUrls.push(u);
+              const l = rawLayouts?.[i];
+              filteredLayouts.push(l && typeof l === 'object' && typeof (l as SessionTabLayout).mode === 'string' ? (l as SessionTabLayout) : null);
+            }
+          });
+          if (rawLayouts) sessionLayouts = filteredLayouts;
         }
         if (typeof snap?.activeIndex === 'number') {
           sessionActiveIndex = snap.activeIndex;
@@ -414,7 +446,7 @@ export function createWindow(): BrowserWindow {
       }
 
       if (sessionUrls.length > 0 || (sessionActivePinnedIndex >= 0 && pinnedIds.length > 0)) {
-        tabManager.restoreSessionTabs(sessionUrls, sessionActiveIndex);
+        tabManager.restoreSessionTabs(sessionUrls, sessionActiveIndex, sessionLayouts);
         // If the previously active tab was a pinned tab, re-activate it now
         // (restoreSessionTabs only handles the non-pinned active case).
         if (sessionActiveIndex === -1 && sessionActivePinnedIndex >= 0) {
@@ -479,6 +511,12 @@ export function createWindow(): BrowserWindow {
 
 export function createPrivateWindow(startUrl?: string): BrowserWindow {
   const privateSession = getPrivateSession();
+
+  // Private-window tabs run in an isolated in-memory session, so the tracker
+  // + ad-blocking dispatcher must be installed on it too (idempotent). The
+  // per-site override resolvers skip non-persistent sessions, so private
+  // windows always follow the global toggles only.
+  installTrackerHooks(privateSession);
 
   const win = new BrowserWindow({
     width: 1280,
@@ -818,6 +856,18 @@ function buildMenu(): void {
           },
         },
         { type: 'separator' as const },
+        {
+          label: 'Swap Split Panes',
+          accelerator: 'CmdOrCtrl+Shift+S',
+          click: (_item, bw) => {
+            const browserWin = asBrowserWin(bw);
+            if (!browserWin) return;
+            const tm = getTabManagerForWindow(browserWin);
+            const id = tm?.getActiveTabId();
+            if (id) tm?.swapPanes(id);
+          },
+        },
+        { type: 'separator' as const },
         { label: 'Zoom In', accelerator: 'CmdOrCtrl+=', click: (_item, bw) => {
           const browserWin = asBrowserWin(bw);
           if (!browserWin) return;
@@ -1102,6 +1152,24 @@ app.on('before-quit', () => {
 app.on('web-contents-created', (_, contents) => {
   contents.on('will-attach-webview', (event) => {
     event.preventDefault();
+  });
+
+  // Cosmetic (element-hiding) ad filtering: inject the EasyList element-hiding
+  // CSS on every http(s) document once the DOM is ready. Covers tabs in all
+  // profile sessions and private windows; a fresh document per navigation
+  // means no cleanup is needed.
+  contents.on('dom-ready', () => {
+    try {
+      if (contents.isDestroyed()) return;
+      if (!isAdBlockingEffectiveForWc(contents.id)) return;
+      // Cosmetic element-hiding is the Strict extra; Balanced (default) does
+      // network blocking only to minimize page breakage.
+      if (getStrength() !== 'strict') return;
+      const styles = getCosmeticStylesForUrl(contents.getURL());
+      if (styles) void contents.insertCSS(styles, { cssOrigin: 'user' }).catch(() => { /* page may be gone */ });
+    } catch {
+      // Cosmetics are best-effort — never break page load.
+    }
   });
 });
 

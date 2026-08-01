@@ -76,6 +76,30 @@ args = "e2e-slides-block-edit-modal"
 task = "workflow.run"
 args = "e2e-sidebar-findbar"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-zio-split-view"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-zio-split-view-run"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-zio-split-view-swap-history"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-zio-split-view-modes"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-split-view-suite"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "zio-split-restore"
+
 [[workflows.workflow]]
 name = "e2e-block-defaults"
 author = "agent"
@@ -237,6 +261,72 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && VALIDATION_PORT=5178 bash tests/Browser/run-validation.sh sidebar-findbar.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-zio-split-view"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/zio-browser/tests/e2e-split-view/run-validation.sh"
+
+[[workflows.workflow]]
+name = "e2e-zio-split-view-run"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/zio-browser/tests/e2e-split-view/run-validation.sh run.cjs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-zio-split-view-swap-history"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "VALIDATION_PORT=5074 bash artifacts/zio-browser/tests/e2e-split-view/run-validation.sh run.cjs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-zio-split-view-modes"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/zio-browser/tests/e2e-split-view/run-validation.sh run-modes.cjs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-split-view-suite"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/zio-browser/tests/e2e-split-view/run-validation.sh"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "zio-split-restore"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/zio-browser/tests/e2e-split-view/run-validation.sh run-restore.cjs"
 
 [workflows.workflow.metadata]
 isValidation = true

@@ -577,8 +577,131 @@ interface SafetyResult {
   doNotTrack: boolean;
 }
 
+/**
+ * User allow/block domain lists + admin-mandated policy view for ad blocking.
+ * User lists apply across all profiles and private windows (subdomains match).
+ * Admin-policy domains are locked ("Managed by Sayzio") and unbypassable.
+ */
+function AdBlockListsEditor() {
+  const [lists, setLists] = useState<{ allow: string[]; block: string[] }>({ allow: [], block: [] });
+  const [adminPolicy, setAdminPolicy] = useState<{ version: number; allow: string[]; block: string[] } | null>(null);
+  const [allowInput, setAllowInput] = useState('');
+  const [blockInput, setBlockInput] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+
+  const refresh = useCallback(() => {
+    void window.zio.adblock.getLists().then(setLists).catch(() => {});
+    void window.zio.adblock.getAdminPolicy().then(p => setAdminPolicy(p.policy)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    const listener = () => refresh();
+    window.zio.on('adblock:state-changed', listener);
+    return () => window.zio.off('adblock:state-changed', listener);
+  }, [refresh]);
+
+  const add = useCallback(async (kind: 'allow' | 'block', raw: string, clear: () => void) => {
+    const value = raw.trim();
+    if (!value) return;
+    setNote(null);
+    try {
+      const added = await window.zio.adblock.addListDomain(kind, value);
+      if (added === null) {
+        setNote('That domain can\u2019t be added — it may be invalid or managed by Sayzio policy.');
+        return;
+      }
+      clear();
+      refresh();
+    } catch {
+      setNote('Could not add that domain.');
+    }
+  }, [refresh]);
+
+  const remove = useCallback(async (kind: 'allow' | 'block', domain: string) => {
+    try { await window.zio.adblock.removeListDomain(kind, domain); refresh(); } catch { /* noop */ }
+  }, [refresh]);
+
+  const chipStyle: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', gap: 5,
+    fontSize: 12, padding: '2px 8px', borderRadius: 999,
+    border: '1px solid var(--color-border)', background: 'var(--color-bg-elevated)',
+    color: 'var(--color-text)',
+  };
+  const inputStyle: React.CSSProperties = {
+    fontSize: 12, padding: '5px 8px', borderRadius: 8, flex: 1, minWidth: 0,
+    border: '1px solid var(--color-border)', background: 'var(--color-bg-elevated)',
+    color: 'var(--color-text)',
+  };
+  const addBtnStyle: React.CSSProperties = {
+    fontSize: 12, padding: '5px 10px', borderRadius: 8,
+    border: '1px solid var(--color-border)', background: 'var(--color-bg-elevated)',
+    color: 'var(--color-text)', cursor: 'pointer', flexShrink: 0,
+  };
+
+  const listBlock = (kind: 'allow' | 'block', title: string, desc: string, input: string, setInput: (v: string) => void) => (
+    <div style={{ padding: '8px 0' }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>{title}</div>
+      <div style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '2px 0 6px' }}>{desc}</div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+        <input
+          style={inputStyle}
+          placeholder="example.com"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') void add(kind, input, () => setInput('')); }}
+        />
+        <button style={addBtnStyle} onClick={() => void add(kind, input, () => setInput(''))}>Add</button>
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+        {lists[kind].length === 0 && (
+          <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>No domains yet.</span>
+        )}
+        {lists[kind].map(d => (
+          <span key={d} style={chipStyle}>
+            {d}
+            <button
+              onClick={() => void remove(kind, d)}
+              title={`Remove ${d}`}
+              style={{ color: 'var(--color-text-muted)', fontSize: 12, cursor: 'pointer' }}
+            >✕</button>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+
+  const adminDomains = adminPolicy ? [...adminPolicy.block, ...adminPolicy.allow] : [];
+
+  return (
+    <div>
+      {listBlock('allow', 'Always allow ads on', 'Ads are never blocked on these sites (includes subdomains). Applies to all profiles and private windows.', allowInput, setAllowInput)}
+      {listBlock('block', 'Always block ads on', 'Ads are always blocked on these sites (includes subdomains), even when ad blocking is off.', blockInput, setBlockInput)}
+      {note && <div style={{ fontSize: 12, color: 'var(--color-warning, #e5a50a)', paddingBottom: 6 }}>{note}</div>}
+      {adminDomains.length > 0 && adminPolicy && (
+        <div style={{ padding: '8px 0' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>🔒 Managed by Sayzio</div>
+          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '2px 0 6px' }}>
+            These sites are set by Sayzio policy and can't be changed here.
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            {adminPolicy.block.map(d => (
+              <span key={`b-${d}`} style={{ ...chipStyle, opacity: 0.85 }} title="Ad blocking required by policy">🚫 {d}</span>
+            ))}
+            {adminPolicy.allow.map(d => (
+              <span key={`a-${d}`} style={{ ...chipStyle, opacity: 0.85 }} title="Ads allowed by policy">✓ {d}</span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PrivacySection() {
   const [trackerEnabled, setTrackerEnabled] = useState<boolean | null>(null);
+  const [adBlockEnabled, setAdBlockEnabled] = useState<boolean | null>(null);
+  const [adBlockStrength, setAdBlockStrength] = useState<'strict' | 'balanced' | null>(null);
   const [dnt, setDnt] = useState<boolean | null>(null);
   const [block3p, setBlock3p] = useState<boolean | null>(null);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
@@ -592,6 +715,8 @@ function PrivacySection() {
   useEffect(() => {
     void window.zio.prefs.get('history_days_retention').then((v) => setRetentionDays(v && parseInt(v, 10) > 0 ? v : '0')).catch(() => setRetentionDays('0'));
     void window.zio.tracker.isEnabled().then((v: boolean) => setTrackerEnabled(v)).catch(() => setTrackerEnabled(null));
+    void window.zio.adblock.isEnabled().then((v: boolean) => setAdBlockEnabled(v)).catch(() => setAdBlockEnabled(null));
+    void window.zio.adblock.getStrength().then(setAdBlockStrength).catch(() => setAdBlockStrength(null));
     void window.zio.prefs.get('do_not_track').then((v) => setDnt(v === '1')).catch(() => setDnt(false));
     void window.zio.prefs.get('block_third_party_cookies').then((v) => setBlock3p(v === '1')).catch(() => setBlock3p(false));
     void window.zio.privacy.trackerStats().then(setStats).catch(() => setStats(null));
@@ -603,6 +728,19 @@ function PrivacySection() {
     setTrackerEnabled(next);
     try { await window.zio.tracker.setEnabled(next); } catch { setTrackerEnabled(!next); }
   }, [trackerEnabled]);
+
+  const toggleAdBlock = useCallback(async () => {
+    if (adBlockEnabled === null) return;
+    const next = !adBlockEnabled;
+    setAdBlockEnabled(next);
+    try { await window.zio.adblock.setEnabled(next); } catch { setAdBlockEnabled(!next); }
+  }, [adBlockEnabled]);
+
+  const changeStrength = useCallback(async (value: 'strict' | 'balanced') => {
+    const prev = adBlockStrength;
+    setAdBlockStrength(value);
+    try { await window.zio.adblock.setStrength(value); } catch { setAdBlockStrength(prev); }
+  }, [adBlockStrength]);
 
   const toggleDnt = useCallback(async () => {
     if (dnt === null) return;
@@ -660,10 +798,32 @@ function PrivacySection() {
   return (
     <div style={sectionBodyStyle}>
       {trackerEnabled !== null && (
-        <SettingRow title="Tracker blocking" description="Block known trackers and ads while you browse.">
+        <SettingRow title="Tracker blocking" description="Block requests to known tracker domains while you browse.">
           <Toggle checked={trackerEnabled} onChange={() => void toggleTracker()} />
         </SettingRow>
       )}
+
+      {adBlockEnabled !== null && (
+        <SettingRow title="Ad blocking" description="Block ads using the EasyList and EasyPrivacy filter lists. Lists update automatically.">
+          <Toggle checked={adBlockEnabled} onChange={() => void toggleAdBlock()} />
+        </SettingRow>
+      )}
+
+      {adBlockEnabled && (
+        <SettingRow title="Ad-blocking strength" description="Balanced blocks ad requests only. Strict also hides ad elements on pages (may break some sites).">
+          <select
+            style={selectStyle}
+            value={adBlockStrength ?? 'balanced'}
+            disabled={adBlockStrength === null}
+            onChange={(e) => void changeStrength(e.target.value === 'strict' ? 'strict' : 'balanced')}
+          >
+            <option value="balanced">Balanced (recommended)</option>
+            <option value="strict">Strict</option>
+          </select>
+        </SettingRow>
+      )}
+
+      <AdBlockListsEditor />
 
       <SettingRow title="Send “Do Not Track”" description="Ask websites not to track you. Sites decide whether to honor it.">
         <Toggle checked={dnt === true} disabled={dnt === null} onChange={() => void toggleDnt()} />
@@ -697,13 +857,13 @@ function PrivacySection() {
       <div style={cardStyle}>
         <div style={cardTitleStyle}>📊 Privacy Dashboard</div>
         {stats === null ? (
-          <div style={mutedTextStyle}>No tracker activity recorded yet.</div>
+          <div style={mutedTextStyle}>No blocked trackers or ads recorded yet.</div>
         ) : (
           <>
             <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 700 }}>{stats.weekTotal}</div>
-                <div style={mutedTextStyle}>blocked this week</div>
+                <div style={mutedTextStyle}>trackers &amp; ads blocked this week</div>
               </div>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 700 }}>{stats.todayTotal}</div>
@@ -725,7 +885,7 @@ function PrivacySection() {
             )}
             {stats.topTrackers.length > 0 && (
               <div>
-                <div style={{ ...mutedTextStyle, marginBottom: 4 }}>Most-blocked trackers</div>
+                <div style={{ ...mutedTextStyle, marginBottom: 4 }}>Most-blocked domains</div>
                 {stats.topTrackers.slice(0, 5).map(t => (
                   <div key={t.host} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, padding: '2px 0' }}>
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.host}</span>

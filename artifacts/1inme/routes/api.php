@@ -111,6 +111,11 @@ Route::prefix('v1')->group(function () {
     Route::get('/resolve/site', [\App\Modules\Api\Controllers\SiteResolveController::class, 'site'])
         ->middleware('throttle:60,1');
 
+    // Zio Browser admin-mandated ad-block policy (PUBLIC, versioned + ETag).
+    // Browsers fetch on launch and every 6h; 304 when unchanged.
+    Route::get('/zio-browser/adblock-policy', [\App\Modules\Api\Controllers\ZioBrowserAdblockPolicyController::class, 'show'])
+        ->middleware('throttle:60,1');
+
     // ── Public, visibility-aware (optional bearer token) ────────────
     Route::middleware('api.optional_auth')->group(function () {
         Route::get('/biolinks/{alias}',            [BiolinkController::class, 'show']);
@@ -1172,6 +1177,12 @@ Route::prefix('v1')->group(function () {
         Route::get ('/me/files',        [\App\Modules\Api\Controllers\FilesController::class, 'index']);
         Route::post('/me/files/upload', [\App\Modules\Api\Controllers\FilesController::class, 'upload'])->middleware('throttle:30,1');
         Route::delete('/me/files/{file}', [\App\Modules\Api\Controllers\FilesController::class, 'destroy'])->whereNumber('file');
+        // Vault folders (Zio Browser Files pane): single-level folders,
+        // deleting a folder returns its files to the root (never deletes them).
+        Route::get   ('/me/files/folders',          [\App\Modules\Api\Controllers\FilesController::class, 'folders']);
+        Route::post  ('/me/files/folders',          [\App\Modules\Api\Controllers\FilesController::class, 'createFolder'])->middleware('throttle:30,1');
+        Route::delete('/me/files/folders/{folder}', [\App\Modules\Api\Controllers\FilesController::class, 'destroyFolder'])->whereNumber('folder');
+        Route::patch ('/me/files/{file}/move',      [\App\Modules\Api\Controllers\FilesController::class, 'move'])->whereNumber('file');
         // Task #6028 — server-side import of a curated platform asset
         // (key allow-listed to assets/<folder>/ prefixes); needed because
         // the asset CDN has no CORS headers, so Expo WEB can't fetch the

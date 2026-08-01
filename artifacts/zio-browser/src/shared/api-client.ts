@@ -269,6 +269,14 @@ export class ApiClient {
     return this.get('/profile');
   }
 
+  /**
+   * Update the caller's profile (name, bio, handle, phone, …). Mirrors the
+   * mobile app's PATCH /profile — only sends the provided fields.
+   */
+  async updateProfile(data: UpdateProfilePayload): Promise<{ user: ApiUserProfile }> {
+    return this.patch('/profile', data as Record<string, unknown>);
+  }
+
   /** Public "is this site on Sayzio?" resolver — no auth required. */
   async resolveSite(host: string): Promise<SiteResolveResult> {
     return this.get(`/resolve/site?host=${encodeURIComponent(host)}`);
@@ -592,7 +600,7 @@ export class ApiClient {
    * Upload any file (as a Blob) to the user's Sayzio file storage.
    * Throws ApiClientError('quota_exceeded') when the storage limit is hit.
    */
-  async uploadFile(blob: Blob, filename: string): Promise<ApiFile> {
+  async uploadFile(blob: Blob, filename: string, folderId?: number | null): Promise<ApiFile> {
     const url = `${this.baseUrl}/api/v1/me/files/upload`;
     const headers: Record<string, string> = {
       'Accept': 'application/json',
@@ -603,6 +611,7 @@ export class ApiClient {
 
     const formData = new FormData();
     formData.append('file', blob, filename);
+    if (folderId != null) formData.append('folder_id', String(folderId));
 
     const response = await fetch(url, { method: 'POST', headers, body: formData });
 
@@ -625,10 +634,11 @@ export class ApiClient {
   }
 
   /** List the user's Sayzio Files vault (newest first). */
-  async listFiles(params?: { page?: number; per_page?: number }): Promise<ApiFilesPage> {
+  async listFiles(params?: { page?: number; per_page?: number; folder_id?: number | 'root' }): Promise<ApiFilesPage> {
     const qs = new URLSearchParams();
     if (params?.page) qs.set('page', String(params.page));
     if (params?.per_page) qs.set('per_page', String(params.per_page));
+    if (params?.folder_id != null) qs.set('folder_id', String(params.folder_id));
     const query = qs.toString() ? `?${qs.toString()}` : '';
     return this.get<ApiFilesPage>(`/me/files${query}`);
   }
@@ -636,6 +646,26 @@ export class ApiClient {
   /** Delete a file from the user's Sayzio Files vault. */
   async deleteFile(id: number): Promise<void> {
     await this.delete(`/me/files/${id}`);
+  }
+
+  // ── File folders (vault, single level) ─────────────────────────────────────
+
+  async listFileFolders(): Promise<{ folders: ApiFileFolder[] }> {
+    return this.get('/me/files/folders');
+  }
+
+  async createFileFolder(name: string): Promise<{ folder: ApiFileFolder }> {
+    return this.post('/me/files/folders', { name });
+  }
+
+  /** Delete a folder — its files return to the root, they are not deleted. */
+  async deleteFileFolder(id: number): Promise<void> {
+    await this.delete(`/me/files/folders/${id}`);
+  }
+
+  /** Move a file into a folder (null = back to root). */
+  async moveFile(id: number, folderId: number | null): Promise<{ file: ApiFile }> {
+    return this.patch(`/me/files/${id}/move`, { folder_id: folderId });
   }
 }
 
@@ -654,6 +684,23 @@ export interface ApiFile {
   /** Human-readable size string from the API (e.g. "1.2 MB"). */
   size_human?: string;
   url_path?: string;
+  /** Vault folder the file lives in (null/absent = root). */
+  folder_id?: number | null;
+}
+
+export interface ApiFileFolder {
+  id: number;
+  name: string;
+  files_count: number;
+  created_at: string | null;
+}
+
+/** Editable profile fields for PATCH /profile. */
+export interface UpdateProfilePayload {
+  name?: string;
+  bio?: string | null;
+  handle?: string | null;
+  phone?: string | null;
 }
 
 export interface ApiFilesPage {

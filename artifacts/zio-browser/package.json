@@ -1,6 +1,6 @@
 {
   "name": "@workspace/zio-browser",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "private": true,
   "description": "Zio Browser — AI-powered companion browser for Mac and Windows",
   "main": "dist/main/index.js",
@@ -21,10 +21,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@ghostery/adblocker": "^2.18.1",
     "better-sqlite3": "^11.10.0",
     "bindings": "^1.5.0",
     "electron-updater": "^6.1.8",
-    "file-uri-to-path": "^1.0.0"
+    "file-uri-to-path": "^1.0.0",
+    "tldts-experimental": "^7.4.10"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

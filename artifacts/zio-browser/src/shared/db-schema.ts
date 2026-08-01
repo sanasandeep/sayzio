@@ -6,7 +6,7 @@
  * importing better-sqlite3 (which requires native bindings).
  */
 
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 
 export const CREATE_TABLES_SQL = `
 PRAGMA journal_mode = WAL;
@@ -202,6 +202,7 @@ CREATE TABLE IF NOT EXISTS site_settings (
   autoplay         TEXT,
   popups           TEXT,
   content_blockers INTEGER,
+  ad_blockers      INTEGER,
   updated_at       TEXT NOT NULL
 );
 `;
@@ -259,6 +260,9 @@ export const MIGRATION_SQL: Record<number, string> = {
       updated_at       TEXT NOT NULL
     );
   `,
+  11: `
+    ALTER TABLE site_settings ADD COLUMN ad_blockers INTEGER;
+  `,
 };
 
 // ── Per-site settings (Safari-style "Settings for this website") ────────────
@@ -306,6 +310,12 @@ export const PREFERENCE_KEYS = {
   PINNED_TABS: 'pinned_tabs',
   SESSION_TABS: 'session_tabs',
   TRACKER_BLOCKING_ENABLED: 'tracker_blocking_enabled',
+  AD_BLOCKING_ENABLED: 'ad_blocking_enabled',
+  ADBLOCK_LISTS_UPDATED_AT: 'adblock_lists_updated_at',
+  ADBLOCK_STRENGTH: 'adblock_strength',
+  ADBLOCK_USER_ALLOW: 'adblock_user_allow',
+  ADBLOCK_USER_BLOCK: 'adblock_user_block',
+  ADBLOCK_ADMIN_POLICY: 'adblock_admin_policy',
   MUTED_DOMAINS: 'muted_domains',
   MUTE_ALL_TABS: 'mute_all_tabs',
   SPELLCHECK_ENABLED: 'spellcheck_enabled',

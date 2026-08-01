@@ -27,7 +27,7 @@ import {
   MIN_TAB_SPLIT_RATIO,
   MAX_TAB_SPLIT_RATIO,
   TAB_SPLIT_DIVIDER_WIDTH,
-  SPLIT_URL_BAR_HEIGHT,
+  TAB_SPLIT_FOCUS_FRAME,
 } from '../shared/window-mode';
 
 /** Background color applied to all native views to avoid white/blank flashes. */
@@ -53,12 +53,27 @@ export interface TabState {
   primaryUrl?: string;
   /** Current URL of the second (right) pane in a Website+Website split. */
   secondUrl?: string;
+  /** Which pane the shared toolbar controls in a Website+Website split. */
+  focusedPane?: 'primary' | 'second';
 }
 
 export interface RecentlyClosedEntry {
   url: string;
   title: string;
   favicon: string | null;
+}
+
+/**
+ * Per-tab layout info persisted alongside the URL list (parallel array).
+ * `null` for a plain single-pane Website tab.
+ */
+export interface SessionTabLayout {
+  /** The tab's view mode (any non-'browser' mode is persisted). */
+  mode: string;
+  /** Left-pane share of the tab area (0.2–0.8). */
+  splitRatio?: number;
+  /** URL of the second (right) pane in a Website+Website split. */
+  secondUrl?: string;
 }
 
 export interface SessionSnapshot {
@@ -71,6 +86,11 @@ export interface SessionSnapshot {
    * section (matching the persisted pinned-URL order). -1 otherwise.
    */
   activePinnedIndex: number;
+  /**
+   * Per-tab layout entries parallel to `urls` (same index). Optional so
+   * snapshots written by older versions still restore.
+   */
+  layouts?: (SessionTabLayout | null)[];
 }
 
 export interface FindResult {
@@ -202,6 +222,12 @@ export class TabManager {
   private resolveVkEnabled?: () => boolean;
   /** A tab page reported which kind of editable field is focused. */
   private onVkFocus?: (payload: VkFocusPayload) => void;
+  /**
+   * Cached tab thumbnails for the Tab Overview grid. Background tabs cannot
+   * be captured while detached (their views are not painted), so the last
+   * visible frame is snapshotted just before a tab deactivates.
+   */
+  private thumbnailCache = new Map<TabId, { dataUrl: string; at: number }>();
 
   constructor(win: BrowserWindow, options: TabManagerOptions = {}) {
     this.win = win;
@@ -448,29 +474,51 @@ export class TabManager {
     const [w, h] = this.win.getContentSize();
     view.setBounds({ x: 0, y: 72, width: w, height: h - 72 });
 
+    // Which pane of the tab this view currently serves. Normally 'primary',
+    // but swapPanes() exchanges the tab's view references, so the role must
+    // be resolved at event time rather than baked into the closures.
+    const paneRole = (): 'primary' | 'second' =>
+      this.tabs.get(id)?.secondView === view ? 'second' : 'primary';
+
     // Wire up events
     wc.on('did-navigate', (_, navUrl) => {
-      // First real navigation ends the New Tab page state — attach the view.
       const navigatedTab = this.tabs.get(id);
-      if (navigatedTab?.isNewTabPage && navUrl && navUrl !== 'about:blank' && navUrl !== 'about:newtab') {
-        navigatedTab.isNewTabPage = false;
-        if (this.activeTabId === id) this.layoutActiveTab();
-      }
-      // A real navigation ends any renderer-drawn internal page.
-      if (navigatedTab?.internalUrl && navUrl && navUrl !== 'about:blank') {
-        navigatedTab.internalUrl = null;
+      const role = paneRole();
+      if (role === 'primary') {
+        // First real navigation ends the New Tab page state — attach the view.
+        if (navigatedTab?.isNewTabPage && navUrl && navUrl !== 'about:blank' && navUrl !== 'about:newtab') {
+          navigatedTab.isNewTabPage = false;
+          if (this.activeTabId === id) this.layoutActiveTab();
+        }
+        // A real navigation ends any renderer-drawn internal page.
+        if (navigatedTab?.internalUrl && navUrl && navUrl !== 'about:blank') {
+          navigatedTab.internalUrl = null;
+        }
       }
       if (isAlive(wc)) {
         wc.stopFindInPage('clearSelection');
       }
       this.onFindResult?.({ tabId: id, activeMatchOrdinal: 0, matches: 0, finalUpdate: true });
-      this.onTabStateChange?.(id, {
-        url: navUrl,
-        primaryUrl: navUrl,
-        canGoBack: wc.canGoBack(),
-        canGoForward: wc.canGoForward(),
-        isLoading: false,
-      });
+      if (role === 'primary') {
+        this.onTabStateChange?.(id, {
+          url: navUrl,
+          primaryUrl: navUrl,
+          canGoBack: wc.canGoBack(),
+          canGoForward: wc.canGoForward(),
+          isLoading: false,
+        });
+      } else {
+        this.onTabStateChange?.(id, { secondUrl: navUrl });
+        if (navigatedTab?.focusedPane === 'second') {
+          this.onTabStateChange?.(id, {
+            url: navUrl,
+            displayUrl: navUrl,
+            canGoBack: wc.canGoBack(),
+            canGoForward: wc.canGoForward(),
+            isLoading: false,
+          });
+        }
+      }
       // Auto-mute from domain memory / global policy — unless the user made an
       // explicit choice for this tab in this session.
       const tab = this.tabs.get(id);
@@ -508,11 +556,22 @@ export class TabManager {
     });
 
     wc.on('did-navigate-in-page', (_, navUrl) => {
-      this.onTabStateChange?.(id, { url: navUrl, primaryUrl: navUrl });
+      if (paneRole() === 'primary') {
+        this.onTabStateChange?.(id, { url: navUrl, primaryUrl: navUrl });
+      } else {
+        this.onTabStateChange?.(id, { secondUrl: navUrl });
+        if (this.tabs.get(id)?.focusedPane === 'second') {
+          this.onTabStateChange?.(id, { url: navUrl, displayUrl: navUrl });
+        }
+      }
     });
 
     wc.on('page-title-updated', (_, title) => {
-      this.onTabStateChange?.(id, { title });
+      // As the second (unfocused) pane, this view must not clobber the
+      // shared toolbar title of the focused pane.
+      if (paneRole() === 'primary' || this.tabs.get(id)?.focusedPane === 'second') {
+        this.onTabStateChange?.(id, { title });
+      }
       if (isAlive(wc)) {
         this.onNavigate?.(id, wc.getURL(), title);
       }
@@ -526,15 +585,19 @@ export class TabManager {
     });
 
     wc.on('did-start-loading', () => {
-      this.onTabStateChange?.(id, { isLoading: true });
+      if (paneRole() === 'primary' || this.tabs.get(id)?.focusedPane === 'second') {
+        this.onTabStateChange?.(id, { isLoading: true });
+      }
     });
 
     wc.on('did-stop-loading', () => {
-      this.onTabStateChange?.(id, {
-        isLoading: false,
-        canGoBack: wc.canGoBack(),
-        canGoForward: wc.canGoForward(),
-      });
+      if (paneRole() === 'primary' || this.tabs.get(id)?.focusedPane === 'second') {
+        this.onTabStateChange?.(id, {
+          isLoading: false,
+          canGoBack: wc.canGoBack(),
+          canGoForward: wc.canGoForward(),
+        });
+      }
     });
 
     wc.on('zoom-changed', (_, direction) => {
@@ -800,8 +863,17 @@ export class TabManager {
     // In a Website+Website split the toolbar follows the last-focused pane.
     wc.on('focus', () => {
       const t = this.tabs.get(id);
-      if (t && t.mode === 'browser+browser' && t.focusedPane !== 'primary') {
-        this.setFocusedPane(t, 'primary');
+      const role = paneRole();
+      if (t && t.mode === 'browser+browser' && t.focusedPane !== role) {
+        this.setFocusedPane(t, role);
+      }
+    });
+    // Inserted CSS (unfocused-pane dim) does not survive navigation.
+    wc.on('dom-ready', () => {
+      const t = this.tabs.get(id);
+      if (t && t.mode === 'browser+browser') {
+        this.paneDimKeys.delete(view);
+        this.refreshPaneDim(t);
       }
     });
 
@@ -873,9 +945,22 @@ export class TabManager {
     const wasActive = this.activeTabId === id;
     const idx = this.tabOrder.indexOf(id);
 
-    if (!tab.view.webContents.isDestroyed()) {
-      tab.view.webContents.close();
-    }
+    // webContents.close() is a polite window.close(): a view whose document
+    // never committed (blank second pane) or is still mid-load (dashboard
+    // pane on a closed-while-inactive tab) ignores it, leaking the
+    // WebContentsView as an orphaned window. Force-destroy shortly after if
+    // the contents are still alive.
+    const closeThenDestroy = (wc: Electron.WebContents): void => {
+      if (wc.isDestroyed()) return;
+      wc.close();
+      setTimeout(() => {
+        if (!wc.isDestroyed()) {
+          (wc as unknown as { destroy?: () => void }).destroy?.();
+        }
+      }, 250);
+    };
+
+    closeThenDestroy(tab.view.webContents);
 
     try {
       this.win.contentView.removeChildView(tab.view);
@@ -886,14 +971,13 @@ export class TabManager {
     for (const extra of [tab.dashboardView, tab.secondView]) {
       if (!extra) continue;
       try { this.win.contentView.removeChildView(extra); } catch { }
-      if (!extra.webContents.isDestroyed()) {
-        extra.webContents.close();
-      }
+      closeThenDestroy(extra.webContents);
     }
     tab.dashboardView = null;
     tab.secondView = null;
 
     this.pinnedTabs.delete(id);
+    this.thumbnailCache.delete(id);
     this.tabs.delete(id);
     this.tabOrder.splice(idx, 1);
     this.onTabClosed?.(id);
@@ -1046,12 +1130,14 @@ export class TabManager {
    */
   getSessionSnapshot(): SessionSnapshot {
     const urls: string[] = [];
+    const layouts: (SessionTabLayout | null)[] = [];
     let activeIndex = -1;
     let activePinnedIndex = -1;
     let pinnedIdx = 0;
     for (const id of this.tabOrder) {
-      const wc = this.tabs.get(id)?.view.webContents;
-      if (!wc || !isAlive(wc)) continue;
+      const tab = this.tabs.get(id);
+      const wc = tab?.view.webContents;
+      if (!tab || !wc || !isAlive(wc)) continue;
       const url = wc.getURL();
       if (this.pinnedTabs.has(id)) {
         // Mirror getPinnedUrls(): only persistable pinned tabs count toward
@@ -1065,18 +1151,68 @@ export class TabManager {
       if (!url || url === 'about:newtab' || url === 'about:blank') continue;
       if (id === this.activeTabId) activeIndex = urls.length;
       urls.push(url);
+      // Persist any non-default view mode (mode + divider ratio) so the next
+      // launch can rebuild the split. The second pane's URL only exists for
+      // the Website+Website split — other right panes (My Files, Ask Zio,
+      // Dashboard) are app surfaces recreated from the mode alone.
+      let layout: SessionTabLayout | null = null;
+      if (tab.mode !== 'browser') {
+        const secondWc = tab.secondView?.webContents;
+        const secondUrl =
+          tab.mode === 'browser+browser' && secondWc && isAlive(secondWc) ? secondWc.getURL() : '';
+        layout = {
+          mode: tab.mode,
+          splitRatio: tab.splitRatio,
+          ...(secondUrl && secondUrl !== 'about:blank' ? { secondUrl } : {}),
+        };
+      }
+      layouts.push(layout);
     }
-    return { urls, activeIndex, activePinnedIndex };
+    return { urls, activeIndex, activePinnedIndex, layouts };
   }
 
   /**
    * Restore a previous session's non-pinned tabs (in order) and activate the
    * saved active tab. Call after pinned tabs have been restored.
+   * `layouts` (parallel to `urls`) rebuilds split/pane tabs — mode, divider
+   * ratio, and (for Website+Website only) the second pane's URL.
    */
-  restoreSessionTabs(urls: string[], activeIndex = -1): void {
+  restoreSessionTabs(urls: string[], activeIndex = -1, layouts?: (SessionTabLayout | null)[]): void {
     const ids: TabId[] = [];
-    for (const url of urls) {
-      if (url) ids.push(this.createTab(url, true));
+    for (let i = 0; i < urls.length; i++) {
+      const url = urls[i];
+      if (!url) continue;
+      const id = this.createTab(url, true);
+      ids.push(id);
+      const layout = layouts?.[i];
+      const mode = layout ? normalizeTabMode(layout.mode) : null;
+      if (layout && mode && mode !== 'browser') {
+        this.setTabMode(id, mode);
+        if (typeof layout.splitRatio === 'number') {
+          this.setTabSplitRatio(id, layout.splitRatio);
+        }
+        // Only the Website+Website split has a persisted second-pane URL —
+        // other right panes are app surfaces recreated by setTabMode alone.
+        if (mode === 'browser+browser' && typeof layout.secondUrl === 'string' && layout.secondUrl) {
+          this.navigatePane(id, 'second', layout.secondUrl);
+          // Loading/attaching the second pane can grab keyboard focus, which
+          // the focus-follows handler translates into toolbar control. A
+          // freshly restored split should control the PRIMARY pane (the
+          // focused pane isn't persisted) — snap it back once the pane's
+          // initial load settles.
+          const sWc = this.tabs.get(id)?.secondView?.webContents;
+          if (sWc && isAlive(sWc)) {
+            sWc.once('did-stop-loading', () => {
+              const t = this.tabs.get(id);
+              if (!t || t.mode !== 'browser+browser') return;
+              if (t.focusedPane !== 'primary') this.setFocusedPane(t, 'primary');
+              if (this.activeTabId === id && isAlive(t.view.webContents)) {
+                t.view.webContents.focus();
+              }
+            });
+          }
+        }
+      }
     }
     if (ids.length === 0) return;
     const target = ids[activeIndex] ?? ids[ids.length - 1];
@@ -1088,6 +1224,12 @@ export class TabManager {
     if (!tab) return;
 
     const prevId = this.activeTabId;
+
+    // Snapshot the outgoing tab's last visible frame for the Tab Overview
+    // grid — once detached, its view no longer paints and can't be captured.
+    if (prevId && prevId !== id) {
+      void this.snapshotThumbnail(prevId);
+    }
 
     // Attach the new tab's views FIRST (they render on top), then detach the
     // previous tab's views — avoids a blank flash between tabs.
@@ -1142,11 +1284,13 @@ export class TabManager {
       tab.secondView = this.createSecondBrowserView(tab);
     }
     // Entering the Website+Website split: publish a snapshot of both pane
-    // URLs so the dual address bars render current values immediately.
+    // URLs plus the focused pane so the smart address bar and focus frame
+    // render current values immediately.
     if (mode === 'browser+browser') {
       const primaryWc = tab.view.webContents;
       const secondWc = tab.secondView?.webContents;
       this.onTabStateChange?.(id, {
+        focusedPane: tab.focusedPane,
         primaryUrl: tab.internalUrl ?? (isAlive(primaryWc) ? primaryWc.getURL() : ''),
         ...(secondWc && isAlive(secondWc) ? { secondUrl: secondWc.getURL() } : {}),
       });
@@ -1156,6 +1300,8 @@ export class TabManager {
     if (mode !== 'browser+browser' && tab.focusedPane !== 'primary') {
       this.setFocusedPane(tab, 'primary');
     }
+    // Keep the unfocused-pane dim overlay in sync with the new mode.
+    this.refreshPaneDim(tab);
 
     // Hide the embedded site chatbot inside Sayzio panes whenever this tab
     // also shows the Ask Zio pane (two assistants at once is confusing).
@@ -1194,16 +1340,50 @@ export class TabManager {
   }
 
   /**
+   * Exchange the two panes of a Website+Website split: the left (primary)
+   * view becomes the right (second) view and vice versa, preserving each
+   * pane's URL, history and loading state. The toolbar keeps controlling the
+   * SAME page — the focused-pane flag flips with its view, so the omnibox
+   * Left/Right badge and the focus frame follow the content to its new side.
+   */
+  swapPanes(id: TabId): void {
+    const tab = this.tabs.get(id);
+    if (!tab || tab.mode !== 'browser+browser' || !tab.secondView) return;
+    // Renderer-drawn primary surfaces (New Tab / about pages) are anchored to
+    // the primary slot — swapping the native views underneath would desync.
+    if (tab.isNewTabPage || tab.internalUrl) return;
+    const oldPrimary = tab.view;
+    tab.view = tab.secondView;
+    tab.secondView = oldPrimary;
+    // Focus follows the content to its new side.
+    tab.focusedPane = tab.focusedPane === 'primary' ? 'second' : 'primary';
+    this.refreshPaneDim(tab);
+    if (id === this.activeTabId) this.layoutActiveTab();
+    const pWc = tab.view.webContents;
+    const sWc = tab.secondView.webContents;
+    this.onTabStateChange?.(id, {
+      focusedPane: tab.focusedPane,
+      primaryUrl: isAlive(pWc) ? pWc.getURL() : '',
+      secondUrl: isAlive(sWc) ? sWc.getURL() : '',
+    });
+  }
+
+  /**
    * Switch which browser pane the toolbar controls in 'browser+browser' mode
    * and publish the newly-focused pane's navigation state.
    */
   private setFocusedPane(tab: ManagedTab, pane: 'primary' | 'second'): void {
     if (tab.focusedPane === pane) return;
     tab.focusedPane = pane;
+    this.refreshPaneDim(tab);
     const wc = this.focusedWebContents(tab);
-    if (!isAlive(wc)) return;
+    if (!isAlive(wc)) {
+      this.onTabStateChange?.(tab.id, { focusedPane: pane });
+      return;
+    }
     const url = pane === 'primary' ? (tab.internalUrl ?? wc.getURL()) : wc.getURL();
     this.onTabStateChange?.(tab.id, {
+      focusedPane: pane,
       url,
       displayUrl: url,
       title: pane === 'primary' && tab.internalUrl ? internalPageTitle(tab.internalUrl) : wc.getTitle(),
@@ -1211,6 +1391,73 @@ export class TabManager {
       canGoBack: wc.canGoBack(),
       canGoForward: wc.canGoForward(),
     });
+  }
+
+  /**
+   * Renderer-driven pane focus switch (focus frame click / keyboard shortcut)
+   * for a Website+Website split. Also moves real keyboard focus into the pane
+   * so subsequent typing lands there.
+   */
+  focusPane(id: TabId, pane: 'primary' | 'second'): void {
+    const tab = this.tabs.get(id);
+    if (!tab || tab.mode !== 'browser+browser') return;
+    if (pane === 'second' && !tab.secondView) return;
+    this.setFocusedPane(tab, pane);
+    const wc = this.focusedWebContents(tab);
+    if (isAlive(wc)) wc.focus();
+  }
+
+  /** CSS overlay that visually dims the UNFOCUSED pane of a Website+Website split. */
+  private static readonly PANE_DIM_CSS =
+    'html::before{content:"";position:fixed;inset:0;background:rgba(0,0,0,0.25);z-index:2147483647;pointer-events:none}';
+
+  /** Inserted-CSS keys for the pane-dim overlay, per native view. */
+  private paneDimKeys = new Map<WebContentsView, string>();
+
+  /** Monotonic id so each pending dim insertion has a UNIQUE sentinel. */
+  private paneDimSeq = 0;
+
+  /**
+   * Apply/remove the dim overlay so only the UNFOCUSED pane of a
+   * Website+Website split is dimmed. Inserted CSS does not survive
+   * navigation, so this is also re-run on each pane's dom-ready.
+   */
+  private refreshPaneDim(tab: ManagedTab): void {
+    const panes: Array<{ view: WebContentsView | null; pane: 'primary' | 'second' }> = [
+      { view: tab.view, pane: 'primary' },
+      { view: tab.secondView, pane: 'second' },
+    ];
+    for (const { view, pane } of panes) {
+      if (!view) continue;
+      const wc = view.webContents;
+      if (!isAlive(wc)) continue;
+      const shouldDim = tab.mode === 'browser+browser' && tab.focusedPane !== pane;
+      const existingKey = this.paneDimKeys.get(view);
+      if (shouldDim && !existingKey) {
+        // A UNIQUE sentinel per insertion: focus flips and dom-ready refreshes
+        // can overlap around one navigation, and a shared 'pending' marker let
+        // one resolution adopt another insertion's slot (storing a key for CSS
+        // that lived on a torn-down document while removing the live overlay).
+        const pending = `pending:${++this.paneDimSeq}`;
+        this.paneDimKeys.set(view, pending);
+        wc.insertCSS(TabManager.PANE_DIM_CSS)
+          .then((key) => {
+            if (this.paneDimKeys.get(view) === pending) {
+              this.paneDimKeys.set(view, key);
+            } else {
+              wc.removeInsertedCSS(key).catch(() => { });
+            }
+          })
+          .catch(() => {
+            if (this.paneDimKeys.get(view) === pending) this.paneDimKeys.delete(view);
+          });
+      } else if (!shouldDim && existingKey) {
+        this.paneDimKeys.delete(view);
+        if (!existingKey.startsWith('pending')) {
+          wc.removeInsertedCSS(existingKey).catch(() => { });
+        }
+      }
+    }
   }
 
   /**
@@ -1242,17 +1489,28 @@ export class TabManager {
     view.setBackgroundColor(VIEW_BG_COLOR);
     const wc = view.webContents;
     const id = tab.id;
+    // Which pane of the tab this view currently serves. Normally 'second',
+    // but swapPanes() exchanges the tab's view references, so the role must
+    // be resolved at event time rather than baked into the closures.
+    const paneRole = (): 'primary' | 'second' =>
+      this.tabs.get(id)?.view === view ? 'primary' : 'second';
     const emitIfFocused = (state: Partial<TabState>) => {
       const t = this.tabs.get(id);
-      if (t && t.mode === 'browser+browser' && t.focusedPane === 'second') {
+      if (t && t.mode === 'browser+browser' && t.focusedPane === paneRole()) {
         this.onTabStateChange?.(id, state);
       }
     };
+    // The pane's own URL is always published (feeds the split's dedicated
+    // per-pane address state); the shared toolbar state only when focused.
+    const emitPaneUrl = (navUrl: string) => {
+      this.onTabStateChange?.(
+        id,
+        paneRole() === 'primary' ? { primaryUrl: navUrl } : { secondUrl: navUrl },
+      );
+    };
 
     wc.on('did-navigate', (_, navUrl) => {
-      // The pane's own URL is always published (feeds the split's dedicated
-      // right-pane address bar); the shared toolbar state only when focused.
-      this.onTabStateChange?.(id, { secondUrl: navUrl });
+      emitPaneUrl(navUrl);
       emitIfFocused({
         url: navUrl,
         displayUrl: navUrl,
@@ -1262,7 +1520,7 @@ export class TabManager {
       });
     });
     wc.on('did-navigate-in-page', (_, navUrl) => {
-      this.onTabStateChange?.(id, { secondUrl: navUrl });
+      emitPaneUrl(navUrl);
       emitIfFocused({ url: navUrl, displayUrl: navUrl });
     });
     wc.on('page-title-updated', (_, title) => {
@@ -1280,8 +1538,17 @@ export class TabManager {
     });
     wc.on('focus', () => {
       const t = this.tabs.get(id);
-      if (t && t.mode === 'browser+browser' && t.focusedPane !== 'second') {
-        this.setFocusedPane(t, 'second');
+      const role = paneRole();
+      if (t && t.mode === 'browser+browser' && t.focusedPane !== role) {
+        this.setFocusedPane(t, role);
+      }
+    });
+    // Inserted CSS (unfocused-pane dim) does not survive navigation.
+    wc.on('dom-ready', () => {
+      const t = this.tabs.get(id);
+      if (t && (t.secondView === view || t.view === view) && t.mode === 'browser+browser') {
+        this.paneDimKeys.delete(view);
+        this.refreshPaneDim(t);
       }
     });
 
@@ -1332,20 +1599,17 @@ export class TabManager {
     // silently swallow its clicks. The overlay release re-runs the layout.
     if (this.overlaySuppressed) return;
     if (!this.activeTabId) return;
+    // The window can be destroyed between a queued layout trigger and its
+    // execution (e.g. the startup mode-pick recreates the window while the
+    // old window's deferred restore/activate callbacks are still pending).
+    // Laying out against a destroyed window throws "Object has been
+    // destroyed" — a destroyed window simply has no layout to do.
+    if (this.win.isDestroyed()) return;
     const tab = this.tabs.get(this.activeTabId);
     if (!tab) return;
 
     const [w, h] = this.win.getContentSize();
     let area = this.contentBounds ?? { x: 0, y: 72, width: w, height: Math.max(0, h - 72) };
-    // Website + Website split: reserve a strip above both panes for the
-    // renderer-drawn per-pane address bars.
-    if (tab.mode === 'browser+browser') {
-      area = {
-        ...area,
-        y: area.y + SPLIT_URL_BAR_HEIGHT,
-        height: Math.max(0, area.height - SPLIT_URL_BAR_HEIGHT),
-      };
-    }
 
     // When the renderer is drawing the docked Ask Zio panel (toggle-open or
     // zio-split tab mode), reserve its strip on the right for EVERY layout
@@ -1405,11 +1669,20 @@ export class TabManager {
       const leftWidth = Math.max(0, Math.floor(area.width * ratio) - Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2));
       const rightX = area.x + leftWidth + TAB_SPLIT_DIVIDER_WIDTH;
       const rightWidth = Math.max(0, area.x + area.width - rightX);
+      // Website+Website: inset both panes so the renderer can draw a
+      // clickable focus frame around each pane.
+      const inset = tab.mode === 'browser+browser' ? TAB_SPLIT_FOCUS_FRAME : 0;
+      const insetBounds = (b: Electron.Rectangle): Electron.Rectangle => ({
+        x: b.x + inset,
+        y: b.y + inset,
+        width: Math.max(0, b.width - inset * 2),
+        height: Math.max(0, b.height - inset * 2),
+      });
       if (leftView) {
-        placements.push({ view: leftView, bounds: { x: area.x, y: area.y, width: leftWidth, height: area.height } });
+        placements.push({ view: leftView, bounds: insetBounds({ x: area.x, y: area.y, width: leftWidth, height: area.height }) });
       }
       if (rightView) {
-        placements.push({ view: rightView, bounds: { x: rightX, y: area.y, width: rightWidth, height: area.height } });
+        placements.push({ view: rightView, bounds: insetBounds({ x: rightX, y: area.y, width: rightWidth, height: area.height }) });
       }
     } else if (leftView) {
       // Single native pane fills the whole area. (mode 'zio' has no native
@@ -1830,6 +2103,46 @@ export class TabManager {
         try { this.win.contentView.removeChildView(v); } catch { }
       }
     }
+  }
+
+  /**
+   * Snapshot a tab's currently painted frame into the thumbnail cache
+   * (downscaled). Only works while the tab's view is attached/painting —
+   * callers invoke this for the active tab or a tab about to be detached.
+   */
+  async snapshotThumbnail(id: TabId): Promise<string | null> {
+    const tab = this.tabs.get(id);
+    if (!tab || tab.isNewTabPage) return null;
+    const wc = tab.view.webContents;
+    if (!isAlive(wc)) return null;
+    try {
+      const image = await wc.capturePage();
+      if (image.isEmpty()) return null;
+      const size = image.getSize();
+      const scaled = size.width > 640 ? image.resize({ width: 640 }) : image;
+      const dataUrl = scaled.toDataURL();
+      this.thumbnailCache.set(id, { dataUrl, at: Date.now() });
+      return dataUrl;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Thumbnails for the Tab Overview grid: capture the active tab fresh
+   * (it's the only one currently painting), and return cached snapshots for
+   * background tabs. Missing entries are null — the grid falls back to a
+   * favicon/title placeholder card.
+   */
+  async captureThumbnails(): Promise<Record<string, string | null>> {
+    if (this.activeTabId) {
+      await this.snapshotThumbnail(this.activeTabId);
+    }
+    const out: Record<string, string | null> = {};
+    for (const id of this.tabOrder) {
+      out[id] = this.thumbnailCache.get(id)?.dataUrl ?? null;
+    }
+    return out;
   }
 
   /**

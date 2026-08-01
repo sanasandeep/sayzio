@@ -80,6 +80,22 @@ function formatEventTime(iso: string | null): string {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+/** Classic T9 keypad layout — digit + its letter group. */
+const DIALPAD_KEYS: Array<[string, string]> = [
+  ['1', ''],
+  ['2', 'ABC'],
+  ['3', 'DEF'],
+  ['4', 'GHI'],
+  ['5', 'JKL'],
+  ['6', 'MNO'],
+  ['7', 'PQRS'],
+  ['8', 'TUV'],
+  ['9', 'WXYZ'],
+  ['*', ''],
+  ['0', '+'],
+  ['#', ''],
+];
+
 const STATUS_LABEL: Record<DialerCallEvent['status'], string> = {
   ringing: 'Ringing on your phone',
   answered: 'Answered',
@@ -97,6 +113,7 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
   // proactive download offer / enable-notifications hint.
   const [deviceLinked, setDeviceLinked] = useState<boolean | null>(null);
   const [pushAvailable, setPushAvailable] = useState<boolean | null>(null);
+  const [showKeypad, setShowKeypad] = useState(false);
 
   const getClient = useCallback((): ApiClient | null => {
     if (!token) return null;
@@ -338,9 +355,74 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
                 background: 'var(--color-bg)', color: 'var(--color-text)',
               }}
             />
-            <div style={{ fontSize: 11, marginTop: 4, color: 'var(--color-text-secondary)' }}>
-              Tip: digits work like T9 — "742" finds "Sia".
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>
+                Tip: digits work like T9 — "742" finds "Sia".
+              </div>
+              <button
+                onClick={() => setShowKeypad(v => !v)}
+                title={showKeypad ? 'Hide dialpad' : 'Show dialpad'}
+                style={{
+                  fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6,
+                  border: '1px solid var(--color-border)',
+                  background: showKeypad ? 'var(--color-bg-elevated)' : 'transparent',
+                  color: showKeypad ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                  cursor: 'pointer', flexShrink: 0, marginLeft: 8,
+                }}
+              >
+                ⌨ Dialpad
+              </button>
             </div>
+
+            {showKeypad && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                  {DIALPAD_KEYS.map(([digit, letters]) => (
+                    <button
+                      key={digit}
+                      onClick={() => setQuery(q => q + digit)}
+                      style={{
+                        padding: '8px 0', borderRadius: 8,
+                        border: '1px solid var(--color-border)',
+                        background: 'var(--color-bg)', color: 'var(--color-text)',
+                        cursor: 'pointer', textAlign: 'center', lineHeight: 1.15,
+                      }}
+                    >
+                      <div style={{ fontSize: 16, fontWeight: 600 }}>{digit}</div>
+                      <div style={{ fontSize: 8.5, letterSpacing: 1, color: 'var(--color-text-secondary)', minHeight: 10 }}>
+                        {letters}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                  <button
+                    onClick={() => setQuery(q => q.slice(0, -1))}
+                    disabled={query.length === 0}
+                    title="Backspace"
+                    style={{
+                      flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 14,
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-bg)', color: 'var(--color-text)',
+                      cursor: query.length === 0 ? 'default' : 'pointer',
+                      opacity: query.length === 0 ? 0.4 : 1,
+                    }}
+                  >⌫</button>
+                  <button
+                    onClick={() => { if (dialableQuery) void handleCall(dialableQuery); }}
+                    disabled={!dialableQuery}
+                    title={dialableQuery ? `Call ${dialableQuery} on your phone` : 'Type a phone number to call'}
+                    style={{
+                      flex: 2, padding: '8px 0', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                      border: 'none',
+                      background: dialableQuery ? 'var(--gradient-primary, var(--color-primary))' : 'var(--color-bg-elevated)',
+                      color: dialableQuery ? '#fff' : 'var(--color-text-secondary)',
+                      cursor: dialableQuery ? 'pointer' : 'default',
+                    }}
+                  >📱 Call</button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Active call banner — answered on the phone, not yet ended */}

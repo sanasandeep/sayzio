@@ -6,7 +6,7 @@
  * Electron is mocked: fake WebContentsView instances carry just enough
  * WebContents behavior (loadURL/getURL/getTitle/close) for the tab lifecycle.
  */
-import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
 
 // ── Fake electron ────────────────────────────────────────────────────────────
 // vi.mock factories are hoisted, so the fake classes must be created via
@@ -52,6 +52,8 @@ class FakeWebContents extends MiniEmitter {
   setZoomFactor(z: number): void { this.zoom = z; }
   focus(): void {}
   stopFindInPage(): void {}
+  async insertCSS(): Promise<string> { return 'css-key'; }
+  async removeInsertedCSS(): Promise<void> {}
   windowOpenHandler: ((details: { url: string }) => { action: string }) | null = null;
   setWindowOpenHandler(handler: (details: { url: string }) => { action: string }): void {
     this.windowOpenHandler = handler;
@@ -74,6 +76,7 @@ type FakeWebContents = InstanceType<typeof FakeWebContents>;
 function makeFakeWindow() {
   return {
     getContentSize: () => [1200, 800],
+    isDestroyed: () => false,
     contentView: {
       addChildView: vi.fn(),
       removeChildView: vi.fn(),
@@ -527,5 +530,265 @@ describe('TabManager per-site pop-up policy', () => {
     expect(res.action).toBe('deny');
     expect(tm.getTabOrder().length).toBe(before);
     expect(blocked).toEqual([{ pageUrl: 'https://site.test/', popupUrl: 'https://popup.test' }]);
+  });
+});
+
+describe('Website+Website swapPanes', () => {
+  function makeSplit() {
+    const { tm } = makeManager();
+    const emitted: Array<Record<string, unknown>> = [];
+    tm.setCallbacks({
+      onTabStateChange: (_id, state) => emitted.push(state as Record<string, unknown>),
+    } as Parameters<TabManager['setCallbacks']>[0]);
+    const id = tm.createTab('https://left.test');
+    setPage(tm, id, 'https://left.test/', 'Left Site');
+    tm.setTabMode(id, 'browser+browser');
+    return { tm, id, emitted };
+  }
+
+  it('exchanges pane contents and flips focus with the content', () => {
+    const { tm, id, emitted } = makeSplit();
+    // Point the second pane at a distinct page.
+    tm.navigatePane(id, 'second', 'https://right.test');
+    emitted.length = 0;
+
+    tm.swapPanes(id);
+
+    const last = emitted[emitted.length - 1]!;
+    expect(last.primaryUrl).toBe('https://right.test');
+    expect(last.secondUrl).toBe('https://left.test/');
+    // Focus started on the primary pane; after the swap it follows the
+    // original content to the second slot.
+    expect(last.focusedPane).toBe('second');
+    // The toolbar (focused wc) still reflects the same page as before.
+    expect(tm.getTabState(id)!.url).toBe('https://left.test/');
+  });
+
+  it('swapping twice restores the original arrangement', () => {
+    const { tm, id, emitted } = makeSplit();
+    tm.navigatePane(id, 'second', 'https://right.test');
+    tm.swapPanes(id);
+    emitted.length = 0;
+    tm.swapPanes(id);
+    const last = emitted[emitted.length - 1]!;
+    expect(last.primaryUrl).toBe('https://left.test/');
+    expect(last.secondUrl).toBe('https://right.test');
+    expect(last.focusedPane).toBe('primary');
+  });
+
+  it('no-ops outside browser+browser mode', () => {
+    const { tm } = makeManager();
+    const emitted: Array<Record<string, unknown>> = [];
+    tm.setCallbacks({
+      onTabStateChange: (_id, state) => emitted.push(state as Record<string, unknown>),
+    } as Parameters<TabManager['setCallbacks']>[0]);
+    const id = tm.createTab('https://solo.test');
+    setPage(tm, id, 'https://solo.test/');
+    emitted.length = 0;
+    tm.swapPanes(id);
+    expect(emitted).toHaveLength(0);
+    expect(tm.getTabState(id)!.url).toBe('https://solo.test/');
+  });
+
+  it('no-ops while the primary pane shows a renderer-drawn internal page', () => {
+    const { tm, id, emitted } = makeSplit();
+    tm.navigate(id, 'about:zio');
+    emitted.length = 0;
+    tm.swapPanes(id);
+    expect(emitted).toHaveLength(0);
+    expect(tm.getTabState(id)!.url).toBe('about:zio');
+  });
+});
+
+describe('Website+Website pane-dim bookkeeping (refreshPaneDim)', () => {
+  /**
+   * Instrumented CSS tracking for one pane: insertCSS calls stay pending
+   * until the test resolves them (in any order), and every inserted /
+   * removed key is recorded so "active dim overlays" can be computed.
+   */
+  type DimHarness = {
+    /** Resolve the i-th insertCSS call (0-based) with its unique key. */
+    resolveInsert: (i: number) => Promise<void>;
+    /** Keys inserted so far (resolved insertCSS calls). */
+    inserted: string[];
+    /** Keys removed so far. */
+    removed: string[];
+    /** Number of insertCSS calls issued so far. */
+    insertCalls: () => number;
+    /** Inserted keys with no matching removal = visible dim overlays. */
+    activeOverlays: () => string[];
+  };
+
+  // Prototype-level interception so the very FIRST insertCSS (issued while
+  // entering split mode, before the test can touch the second pane's
+  // webContents) is captured too. Harnesses are created lazily per instance.
+  const harnesses = new Map<object, DimHarness>();
+  let harnessSeq = 0;
+
+  function harnessFor(wc: object): DimHarness {
+    let h = harnesses.get(wc);
+    if (h) return h;
+    const label = `pane${++harnessSeq}`;
+    const pending: Array<() => void> = [];
+    const inserted: string[] = [];
+    const removed: string[] = [];
+    let seq = 0;
+    const internal = {
+      insert(): Promise<string> {
+        return new Promise<string>((resolve) => {
+          const key = `${label}-key-${++seq}`;
+          pending.push(() => { inserted.push(key); resolve(key); });
+        });
+      },
+      remove(k: string): void { removed.push(k); },
+    };
+    h = {
+      resolveInsert: async (i: number) => {
+        const r = pending[i];
+        if (!r) throw new Error(`no pending insertCSS #${i} on ${label}`);
+        r();
+        // Let the .then() bookkeeping in refreshPaneDim run.
+        await Promise.resolve();
+        await Promise.resolve();
+      },
+      inserted,
+      removed,
+      insertCalls: () => pending.length,
+      activeOverlays: () => inserted.filter((k) => !removed.includes(k)),
+    };
+    Object.assign(h, { __internal: internal });
+    harnesses.set(wc, h);
+    return h;
+  }
+
+  type ProtoShape = {
+    insertCSS: (this: object) => Promise<string>;
+    removeInsertedCSS: (this: object, k: string) => Promise<void>;
+  };
+  const proto = FakeWebContents.prototype as unknown as ProtoShape;
+  let origInsert: ProtoShape['insertCSS'];
+  let origRemove: ProtoShape['removeInsertedCSS'];
+
+  beforeEach(() => {
+    harnesses.clear();
+    harnessSeq = 0;
+    origInsert = proto.insertCSS;
+    origRemove = proto.removeInsertedCSS;
+    proto.insertCSS = function (this: object) {
+      const h = harnessFor(this) as unknown as { __internal: { insert: () => Promise<string> } };
+      return h.__internal.insert();
+    };
+    proto.removeInsertedCSS = async function (this: object, k: string) {
+      const h = harnessFor(this) as unknown as { __internal: { remove: (k: string) => void } };
+      h.__internal.remove(k);
+    };
+  });
+
+  afterEach(() => {
+    proto.insertCSS = origInsert;
+    proto.removeInsertedCSS = origRemove;
+  });
+
+  function makeSplitWithDimTracking() {
+    const { tm } = makeManager();
+    const id = tm.createTab('https://left.test');
+    setPage(tm, id, 'https://left.test/', 'Left Site');
+    tm.setTabMode(id, 'browser+browser');
+    // Reach into the managed tab for both native views' webContents.
+    const tab = (tm as unknown as {
+      tabs: Map<string, { view: { webContents: FakeWebContents }; secondView: { webContents: FakeWebContents } }>;
+    }).tabs.get(id)!;
+    const primary = harnessFor(tab.view.webContents);
+    const second = harnessFor(tab.secondView.webContents);
+    return { tm, id, primary, second };
+  }
+
+  /** Exactly one pane (the unfocused one) shows a dim overlay; the other shows none. */
+  function expectExactlyOneDimmed(
+    primary: DimHarness,
+    second: DimHarness,
+    dimmed: 'primary' | 'second',
+  ): void {
+    const [dim, clear] = dimmed === 'primary' ? [primary, second] : [second, primary];
+    expect(dim.activeOverlays()).toHaveLength(1);
+    expect(clear.activeOverlays()).toHaveLength(0);
+  }
+
+  it('dims exactly the unfocused pane in the steady state', async () => {
+    const { tm, id, primary, second } = makeSplitWithDimTracking();
+    // Entering split mode dims the second (unfocused) pane.
+    expect(second.insertCalls()).toBe(1);
+    await second.resolveInsert(0);
+    expectExactlyOneDimmed(primary, second, 'second');
+
+    tm.focusPane(id, 'second');
+    await primary.resolveInsert(0);
+    expectExactlyOneDimmed(primary, second, 'primary');
+  });
+
+  it('rapid focus flips with out-of-order insertCSS resolutions leave exactly one pane dimmed', async () => {
+    const { tm, id, primary, second } = makeSplitWithDimTracking();
+    // Spam alternating focus while every insertCSS is still pending. Each
+    // flip that finds no existing key issues a new insertion with its own
+    // unique pending sentinel.
+    tm.focusPane(id, 'second');   // wants primary dimmed
+    tm.focusPane(id, 'primary');  // wants second dimmed (2nd insert on second)
+    tm.focusPane(id, 'second');   // wants primary dimmed (2nd insert on primary)
+    tm.focusPane(id, 'primary');  // final state: second dimmed
+
+    // At least two overlapping insertions exist per pane.
+    expect(primary.insertCalls()).toBeGreaterThanOrEqual(2);
+    expect(second.insertCalls()).toBeGreaterThanOrEqual(2);
+
+    // Resolve everything OUT OF ORDER: newest first, then the stale ones.
+    for (const h of [primary, second]) {
+      for (let i = h.insertCalls() - 1; i >= 0; i--) {
+        await h.resolveInsert(i);
+      }
+    }
+
+    // Every stale insertion must have been removed again; final focus is
+    // 'primary', so exactly the second pane keeps one dim overlay.
+    expectExactlyOneDimmed(primary, second, 'second');
+    // No leaked overlays on the focused pane even though it had insertions.
+    expect(primary.inserted.length).toBe(primary.removed.length);
+  });
+
+  it('a stale resolution never adopts a newer insertion slot (regression: shared pending sentinel)', async () => {
+    const { tm, id, primary, second } = makeSplitWithDimTracking();
+    // Insertion #0 on second pane is pending (from entering split mode).
+    tm.focusPane(id, 'second');   // undims second (deletes its pending slot)
+    tm.focusPane(id, 'primary');  // re-dims second -> insertion #1, new sentinel
+
+    expect(second.insertCalls()).toBe(2);
+
+    // Resolve the STALE insertion first. With a shared 'pending' marker it
+    // would have claimed insertion #1's slot; unique sentinels force it to
+    // self-remove instead.
+    await second.resolveInsert(0);
+    expect(second.removed).toContain(second.inserted[0]);
+
+    // Now the live insertion resolves and stays as the single overlay.
+    await second.resolveInsert(1);
+    expectExactlyOneDimmed(primary, second, 'second');
+
+    // And the pane can still be undimmed later (not permanently stuck).
+    tm.focusPane(id, 'second');
+    expect(second.activeOverlays()).toHaveLength(0);
+  });
+
+  it('leaving split mode removes all dim overlays after pending insertions settle', async () => {
+    const { tm, id, primary, second } = makeSplitWithDimTracking();
+    tm.focusPane(id, 'second');
+    tm.focusPane(id, 'primary');
+    tm.setTabMode(id, 'browser');
+
+    for (const h of [primary, second]) {
+      for (let i = 0; i < h.insertCalls(); i++) {
+        await h.resolveInsert(i);
+      }
+    }
+    expect(primary.activeOverlays()).toHaveLength(0);
+    expect(second.activeOverlays()).toHaveLength(0);
   });
 });

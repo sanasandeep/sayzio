@@ -47,7 +47,7 @@ class UserFile extends Model
 
     protected $fillable = [
         'user_id', 'original_name', 'filename', 'mime_type',
-        'size_bytes', 'type', 'context', 'disk', 'path',
+        'size_bytes', 'type', 'context', 'disk', 'path', 'folder_id',
         'scan_status', 'scan_reason', 'scan_meta',
         'scanned_at', 'quarantined_at', 'scan_admin_reviewed',
     ];

@@ -51,6 +51,10 @@ const api = {
     navigate: (id: string, input: string) => ipcRenderer.invoke('tabs:navigate', id, input),
     navigatePane: (id: string, pane: 'primary' | 'second', input: string) =>
       ipcRenderer.invoke('tabs:navigate-pane', id, pane, input),
+    focusPane: (id: string, pane: 'primary' | 'second') =>
+      ipcRenderer.invoke('tabs:focus-pane', id, pane),
+    /** Website+Website split: exchange the left and right panes (URL/history/view). */
+    swapPanes: (id: string) => ipcRenderer.invoke('tabs:swap-panes', id),
     back: (id: string) => ipcRenderer.invoke('tabs:back', id),
     forward: (id: string) => ipcRenderer.invoke('tabs:forward', id),
     reload: (id: string, force?: boolean) => ipcRenderer.invoke('tabs:reload', id, force),
@@ -82,6 +86,9 @@ const api = {
     reopenFromRecent: (url: string) => ipcRenderer.invoke('tabs:reopen-from-recent', url),
     restoreSession: () => ipcRenderer.invoke('tabs:restore-session'),
     hideAll: () => ipcRenderer.invoke('tabs:hide-all'),
+    /** Tab Overview: per-tab thumbnail data URLs (null = no capture available). */
+    captureThumbnails: () =>
+      ipcRenderer.invoke('tabs:capture-thumbnails') as Promise<Record<string, string | null>>,
   },
 
   // ── Window mode ───────────────────────────────────────────────────────────
@@ -360,6 +367,7 @@ const api = {
         autoplay: string | null;
         popups: string | null;
         content_blockers: number | null;
+        ad_blockers: number | null;
         updated_at: string;
       } | null>,
     /** Merge-patch settings for an origin; null values revert to the default. */
@@ -368,6 +376,7 @@ const api = {
       autoplay?: string | null;
       popups?: string | null;
       contentBlockers?: boolean | null;
+      adBlockers?: boolean | null;
     }) => ipcRenderer.invoke('site-settings:set', origin, patch) as Promise<boolean>,
   },
 
@@ -403,6 +412,44 @@ const api = {
     setEnabled: (enabled: boolean) => ipcRenderer.invoke('tracker:set-enabled', enabled),
     getCount: (tabId: string) => ipcRenderer.invoke('tracker:get-count', tabId),
     resetCount: (tabId: string) => ipcRenderer.invoke('tracker:reset-count', tabId),
+  },
+
+  // ── Ad blocking (EasyList/EasyPrivacy filter engine) ─────────────────────
+  adblock: {
+    isEnabled: () => ipcRenderer.invoke('adblock:is-enabled') as Promise<boolean>,
+    setEnabled: (enabled: boolean) => ipcRenderer.invoke('adblock:set-enabled', enabled) as Promise<boolean>,
+    /** Effective layered state for a tab (omit tabId for global-only info). */
+    getState: (tabId?: string) => ipcRenderer.invoke('adblock:get-state', tabId) as Promise<{
+      active: boolean;
+      reason: string;
+      adminLocked: boolean;
+      strength: 'strict' | 'balanced';
+      globalEnabled: boolean;
+      timedPauseUntil: number | null;
+      pausedUntilRestart: boolean;
+    }>,
+    pausePage: (tabId: string) => ipcRenderer.invoke('adblock:pause-page', tabId) as Promise<boolean>,
+    /** Pause for N minutes, or until restart when null. */
+    pauseTimed: (minutes: number | null) => ipcRenderer.invoke('adblock:pause-timed', minutes) as Promise<boolean>,
+    resume: () => ipcRenderer.invoke('adblock:resume') as Promise<boolean>,
+    getStrength: () => ipcRenderer.invoke('adblock:get-strength') as Promise<'strict' | 'balanced'>,
+    setStrength: (strength: 'strict' | 'balanced') =>
+      ipcRenderer.invoke('adblock:set-strength', strength) as Promise<boolean>,
+    getLists: () => ipcRenderer.invoke('adblock:get-lists') as Promise<{ allow: string[]; block: string[] }>,
+    addListDomain: (kind: 'allow' | 'block', domain: string) =>
+      ipcRenderer.invoke('adblock:add-list-domain', kind, domain) as Promise<string | null>,
+    removeListDomain: (kind: 'allow' | 'block', domain: string) =>
+      ipcRenderer.invoke('adblock:remove-list-domain', kind, domain) as Promise<boolean>,
+    getAdminPolicy: () => ipcRenderer.invoke('adblock:get-admin-policy') as Promise<{
+      policy: { version: number; allow: string[]; block: string[] };
+      fetchedAt: string | null;
+    }>,
+    refreshAdminPolicy: () => ipcRenderer.invoke('adblock:refresh-admin-policy') as Promise<{
+      policy: { version: number; allow: string[]; block: string[] };
+      fetchedAt: string | null;
+    }>,
+    isHostAdminControlled: (host: string) =>
+      ipcRenderer.invoke('adblock:is-host-admin-controlled', host) as Promise<boolean>,
   },
 
   // ── Events (from main → renderer) ────────────────────────────────────────
@@ -450,6 +497,8 @@ const api = {
       'bookmarks:changed',
       // Permission prompts
       'permission:request',
+      // Ad-block policy changed (strength, lists, pauses, admin policy)
+      'adblock:state-changed',
       // Tracker blocking count updates
       'tracker:blocked-count',
       // Generic message toast (e.g. "Reader mode isn't available")

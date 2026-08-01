@@ -55,7 +55,10 @@ export function SiteSettingsPopover({ origin, onClose }: Props) {
   const [autoplay, setAutoplay] = useState<'allow' | 'stop-with-sound' | 'never'>('allow');
   const [popups, setPopups] = useState<'block-notify' | 'block' | 'allow'>('allow');
   const [contentBlockers, setContentBlockers] = useState<'default' | 'on' | 'off'>('default');
+  const [adBlockers, setAdBlockers] = useState<'default' | 'on' | 'off'>('default');
   const [globalTracker, setGlobalTracker] = useState(false);
+  const [globalAdBlock, setGlobalAdBlock] = useState(false);
+  const [adminControlled, setAdminControlled] = useState(false);
   const [perms, setPerms] = useState<Record<string, PermValue>>({});
   const [loaded, setLoaded] = useState(false);
 
@@ -63,19 +66,26 @@ export function SiteSettingsPopover({ origin, onClose }: Props) {
     let cancelled = false;
     void (async () => {
       try {
-        const [row, allPerms, trackerOn] = await Promise.all([
+        const host = (() => { try { return new URL(origin).hostname; } catch { return origin; } })();
+        const [row, allPerms, trackerOn, adBlockOn, adminLocked] = await Promise.all([
           window.zio.siteSettings.get(origin),
           window.zio.permissions.getAll() as Promise<Array<{ origin: string; permission: string; decision: 'allow' | 'block' }>>,
           window.zio.tracker.isEnabled() as Promise<boolean>,
+          window.zio.adblock.isEnabled() as Promise<boolean>,
+          window.zio.adblock.isHostAdminControlled(host),
         ]);
         if (cancelled) return;
         setGlobalTracker(trackerOn);
+        setGlobalAdBlock(adBlockOn);
+        setAdminControlled(adminLocked === true);
         if (row) {
           if (typeof row.zoom === 'number') setZoom(row.zoom);
           if (row.autoplay === 'stop-with-sound' || row.autoplay === 'never') setAutoplay(row.autoplay);
           if (row.popups === 'block' || row.popups === 'block-notify') setPopups(row.popups);
           if (row.content_blockers === 1) setContentBlockers('on');
           else if (row.content_blockers === 0) setContentBlockers('off');
+          if (row.ad_blockers === 1) setAdBlockers('on');
+          else if (row.ad_blockers === 0) setAdBlockers('off');
         }
         const mine: Record<string, PermValue> = {};
         for (const p of allPerms) {
@@ -124,6 +134,13 @@ export function SiteSettingsPopover({ origin, onClose }: Props) {
     });
   }, [origin]);
 
+  const handleAdBlockers = useCallback((value: 'default' | 'on' | 'off') => {
+    setAdBlockers(value);
+    void window.zio.siteSettings.set(origin, {
+      adBlockers: value === 'default' ? null : value === 'on',
+    });
+  }, [origin]);
+
   const handlePerm = useCallback((permission: string, value: PermValue) => {
     setPerms(prev => ({ ...prev, [permission]: value }));
     if (value === 'ask') void window.zio.permissions.revoke(origin, permission);
@@ -142,10 +159,11 @@ export function SiteSettingsPopover({ origin, onClose }: Props) {
         aria-label={`Settings for ${hostname}`}
         style={{
           position: 'fixed',
-          top: 86,
-          right: 130,
+          top: 'max(8px, min(86px, calc(100vh - 140px)))',
+          right: 'max(8px, min(130px, calc(100vw - 336px)))',
           width: 320,
-          maxHeight: 'calc(100vh - 120px)',
+          maxWidth: 'calc(100vw - 16px)',
+          maxHeight: 'min(calc(100vh - 16px), max(132px, calc(100vh - 94px)))',
           overflowY: 'auto',
           background: 'var(--color-bg-surface)',
           border: '1px solid var(--color-border)',
@@ -187,6 +205,28 @@ export function SiteSettingsPopover({ origin, onClose }: Props) {
                 <option value="on">On for this site</option>
                 <option value="off">Off for this site</option>
               </select>
+            </div>
+
+            <div style={rowStyle}>
+              <span style={labelStyle}>🧹 Ads</span>
+              {adminControlled ? (
+                <span
+                  title="This site's ad-blocking setting is set by policy and can't be changed."
+                  style={{ ...selectStyle, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'not-allowed', opacity: 0.8 }}
+                >
+                  🔒 Managed by Sayzio
+                </span>
+              ) : (
+                <select
+                  style={selectStyle}
+                  value={adBlockers}
+                  onChange={e => handleAdBlockers(e.target.value as 'default' | 'on' | 'off')}
+                >
+                  <option value="default">Default ({globalAdBlock ? 'Blocked' : 'Allowed'})</option>
+                  <option value="on">Block on this site</option>
+                  <option value="off">Allow on this site</option>
+                </select>
+              )}
             </div>
 
             <div style={rowStyle}>

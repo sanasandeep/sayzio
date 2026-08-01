@@ -8,7 +8,7 @@ import { SCHEMA_VERSION, CREATE_TABLES_SQL, MIGRATION_SQL } from '../src/shared/
 
 describe('db-schema: sayzio_links cache', () => {
   it('schema version is current', () => {
-    expect(SCHEMA_VERSION).toBe(10);
+    expect(SCHEMA_VERSION).toBe(11);
   });
 
   it('fresh installs create the sayzio_links table', () => {

@@ -59,6 +59,8 @@ const config = {
   // target) — shipped next to the app and auto-loaded as a built-in extension.
   extraResources: [
     { from: 'build-resources/zio-extension', to: 'zio-extension' },
+    // Offline EasyList/EasyPrivacy snapshots for the built-in ad blocker.
+    { from: 'build-resources/adblock', to: 'adblock' },
   ],
 
   // Native modules (better-sqlite3) CANNOT be loaded from inside app.asar.

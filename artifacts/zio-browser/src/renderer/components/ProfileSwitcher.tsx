@@ -8,6 +8,9 @@ import { useProfileStore } from '../store/profile-store';
 import { useTabStore } from '../store/tab-store';
 import { useChromeOverlay } from '../hooks/use-chrome-overlay';
 import type { BrowserProfile } from '../../shared/profile-store';
+import { computeMenuPos, useMenuReanchor, type MenuPos } from '../lib/menu-position';
+
+const MENU_WIDTH = 200;
 
 interface Props {
   /** Show sign-in prompt instead of workspace list when user is not authenticated. */
@@ -20,7 +23,17 @@ export function ProfileSwitcher({ isAuthenticated, onOpenAuth }: Props) {
   const { createTab } = useTabStore();
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
+  // Viewport coordinates for the fixed-position menu. The trigger chip can
+  // live inside a scrollable tab strip (browser mode) whose overflow clips
+  // absolutely-positioned children — `position: fixed` escapes that
+  // (same pattern as AccountButton).
+  const [menuPos, setMenuPos] = useState<MenuPos | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+
+  // Keep the menu anchored (and on screen) if the window resizes while open.
+  useMenuReanchor(open, triggerRef, MENU_WIDTH, setMenuPos, close);
 
   // The dropdown extends below the chrome bar into the region covered by
   // native WebContentsViews — hold the chrome overlay while open so the menu
@@ -59,8 +72,10 @@ export function ProfileSwitcher({ isAuthenticated, onOpenAuth }: Props) {
     <div ref={containerRef} style={{ position: 'relative', flexShrink: 0 }}>
       {/* Trigger button */}
       <button
-        onClick={() => {
+        ref={triggerRef}
+        onClick={(e) => {
           if (!isAuthenticated) { onOpenAuth(); return; }
+          setMenuPos(computeMenuPos(e.currentTarget.getBoundingClientRect(), MENU_WIDTH));
           setOpen(prev => !prev);
         }}
         title={activeProfile ? `Profile: ${activeProfile.name}` : 'Switch profile'}
@@ -104,12 +119,14 @@ export function ProfileSwitcher({ isAuthenticated, onOpenAuth }: Props) {
       </button>
 
       {/* Dropdown */}
-      {open && (
+      {open && menuPos && (
         <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 6px)',
-          right: 0,
-          minWidth: 200,
+          position: 'fixed',
+          top: menuPos.top,
+          right: menuPos.right,
+          minWidth: MENU_WIDTH,
+          maxHeight: menuPos.maxHeight,
+          overflowY: 'auto',
           background: 'var(--color-bg-surface)',
           border: '1px solid var(--color-border)',
           borderRadius: 10,
