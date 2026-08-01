@@ -24,6 +24,11 @@ interface Props {
 
 export function TabModeSwitcher({ currentMode, onSetMode }: Props) {
   const [open, setOpen] = useState(false);
+  // Viewport coordinates for the fixed-position menu. The trigger can live
+  // inside a scrollable tab strip (browser mode) whose overflow clips
+  // absolutely-positioned children — `position: fixed` escapes that
+  // (same pattern as AccountButton).
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const wasOpen = useRef(false);
 
@@ -71,7 +76,11 @@ export function TabModeSwitcher({ currentMode, onSetMode }: Props) {
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button
-        onClick={() => setOpen(prev => !prev)}
+        onClick={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          setMenuPos({ top: rect.bottom + 6, right: Math.max(8, window.innerWidth - rect.right) });
+          setOpen(prev => !prev);
+        }}
         title={`Tab view: ${TAB_MODE_LABELS[currentMode]}`}
         style={{
           display: 'flex',
@@ -94,11 +103,11 @@ export function TabModeSwitcher({ currentMode, onSetMode }: Props) {
         <span style={{ fontSize: 10, opacity: 0.5 }}>▼</span>
       </button>
 
-      {open && (
+      {open && menuPos && (
         <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 6px)',
-          right: 0,
+          position: 'fixed',
+          top: menuPos.top,
+          right: menuPos.right,
           width: 250,
           background: 'var(--color-bg-surface)',
           border: '1px solid var(--color-border)',

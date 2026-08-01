@@ -20,6 +20,11 @@ export function ProfileSwitcher({ isAuthenticated, onOpenAuth }: Props) {
   const { createTab } = useTabStore();
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
+  // Viewport coordinates for the fixed-position menu. The trigger chip can
+  // live inside a scrollable tab strip (browser mode) whose overflow clips
+  // absolutely-positioned children — `position: fixed` escapes that
+  // (same pattern as AccountButton).
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // The dropdown extends below the chrome bar into the region covered by
@@ -59,8 +64,10 @@ export function ProfileSwitcher({ isAuthenticated, onOpenAuth }: Props) {
     <div ref={containerRef} style={{ position: 'relative', flexShrink: 0 }}>
       {/* Trigger button */}
       <button
-        onClick={() => {
+        onClick={(e) => {
           if (!isAuthenticated) { onOpenAuth(); return; }
+          const rect = e.currentTarget.getBoundingClientRect();
+          setMenuPos({ top: rect.bottom + 6, right: Math.max(8, window.innerWidth - rect.right) });
           setOpen(prev => !prev);
         }}
         title={activeProfile ? `Profile: ${activeProfile.name}` : 'Switch profile'}
@@ -104,11 +111,11 @@ export function ProfileSwitcher({ isAuthenticated, onOpenAuth }: Props) {
       </button>
 
       {/* Dropdown */}
-      {open && (
+      {open && menuPos && (
         <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 6px)',
-          right: 0,
+          position: 'fixed',
+          top: menuPos.top,
+          right: menuPos.right,
           minWidth: 200,
           background: 'var(--color-bg-surface)',
           border: '1px solid var(--color-border)',
