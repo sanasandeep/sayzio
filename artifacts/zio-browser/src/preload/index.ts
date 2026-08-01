@@ -53,6 +53,8 @@ const api = {
       ipcRenderer.invoke('tabs:navigate-pane', id, pane, input),
     focusPane: (id: string, pane: 'primary' | 'second') =>
       ipcRenderer.invoke('tabs:focus-pane', id, pane),
+    /** Website+Website split: exchange the left and right panes (URL/history/view). */
+    swapPanes: (id: string) => ipcRenderer.invoke('tabs:swap-panes', id),
     back: (id: string) => ipcRenderer.invoke('tabs:back', id),
     forward: (id: string) => ipcRenderer.invoke('tabs:forward', id),
     reload: (id: string, force?: boolean) => ipcRenderer.invoke('tabs:reload', id, force),

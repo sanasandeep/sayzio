@@ -52,6 +52,8 @@ class FakeWebContents extends MiniEmitter {
   setZoomFactor(z: number): void { this.zoom = z; }
   focus(): void {}
   stopFindInPage(): void {}
+  async insertCSS(): Promise<string> { return 'css-key'; }
+  async removeInsertedCSS(): Promise<void> {}
   windowOpenHandler: ((details: { url: string }) => { action: string }) | null = null;
   setWindowOpenHandler(handler: (details: { url: string }) => { action: string }): void {
     this.windowOpenHandler = handler;
@@ -527,5 +529,72 @@ describe('TabManager per-site pop-up policy', () => {
     expect(res.action).toBe('deny');
     expect(tm.getTabOrder().length).toBe(before);
     expect(blocked).toEqual([{ pageUrl: 'https://site.test/', popupUrl: 'https://popup.test' }]);
+  });
+});
+
+describe('Website+Website swapPanes', () => {
+  function makeSplit() {
+    const { tm } = makeManager();
+    const emitted: Array<Record<string, unknown>> = [];
+    tm.setCallbacks({
+      onTabStateChange: (_id, state) => emitted.push(state as Record<string, unknown>),
+    } as Parameters<TabManager['setCallbacks']>[0]);
+    const id = tm.createTab('https://left.test');
+    setPage(tm, id, 'https://left.test/', 'Left Site');
+    tm.setTabMode(id, 'browser+browser');
+    return { tm, id, emitted };
+  }
+
+  it('exchanges pane contents and flips focus with the content', () => {
+    const { tm, id, emitted } = makeSplit();
+    // Point the second pane at a distinct page.
+    tm.navigatePane(id, 'second', 'https://right.test');
+    emitted.length = 0;
+
+    tm.swapPanes(id);
+
+    const last = emitted[emitted.length - 1]!;
+    expect(last.primaryUrl).toBe('https://right.test');
+    expect(last.secondUrl).toBe('https://left.test/');
+    // Focus started on the primary pane; after the swap it follows the
+    // original content to the second slot.
+    expect(last.focusedPane).toBe('second');
+    // The toolbar (focused wc) still reflects the same page as before.
+    expect(tm.getTabState(id)!.url).toBe('https://left.test/');
+  });
+
+  it('swapping twice restores the original arrangement', () => {
+    const { tm, id, emitted } = makeSplit();
+    tm.navigatePane(id, 'second', 'https://right.test');
+    tm.swapPanes(id);
+    emitted.length = 0;
+    tm.swapPanes(id);
+    const last = emitted[emitted.length - 1]!;
+    expect(last.primaryUrl).toBe('https://left.test/');
+    expect(last.secondUrl).toBe('https://right.test');
+    expect(last.focusedPane).toBe('primary');
+  });
+
+  it('no-ops outside browser+browser mode', () => {
+    const { tm } = makeManager();
+    const emitted: Array<Record<string, unknown>> = [];
+    tm.setCallbacks({
+      onTabStateChange: (_id, state) => emitted.push(state as Record<string, unknown>),
+    } as Parameters<TabManager['setCallbacks']>[0]);
+    const id = tm.createTab('https://solo.test');
+    setPage(tm, id, 'https://solo.test/');
+    emitted.length = 0;
+    tm.swapPanes(id);
+    expect(emitted).toHaveLength(0);
+    expect(tm.getTabState(id)!.url).toBe('https://solo.test/');
+  });
+
+  it('no-ops while the primary pane shows a renderer-drawn internal page', () => {
+    const { tm, id, emitted } = makeSplit();
+    tm.navigate(id, 'about:zio');
+    emitted.length = 0;
+    tm.swapPanes(id);
+    expect(emitted).toHaveLength(0);
+    expect(tm.getTabState(id)!.url).toBe('about:zio');
   });
 });

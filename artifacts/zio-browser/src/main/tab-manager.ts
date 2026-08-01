@@ -456,29 +456,51 @@ export class TabManager {
     const [w, h] = this.win.getContentSize();
     view.setBounds({ x: 0, y: 72, width: w, height: h - 72 });
 
+    // Which pane of the tab this view currently serves. Normally 'primary',
+    // but swapPanes() exchanges the tab's view references, so the role must
+    // be resolved at event time rather than baked into the closures.
+    const paneRole = (): 'primary' | 'second' =>
+      this.tabs.get(id)?.secondView === view ? 'second' : 'primary';
+
     // Wire up events
     wc.on('did-navigate', (_, navUrl) => {
-      // First real navigation ends the New Tab page state — attach the view.
       const navigatedTab = this.tabs.get(id);
-      if (navigatedTab?.isNewTabPage && navUrl && navUrl !== 'about:blank' && navUrl !== 'about:newtab') {
-        navigatedTab.isNewTabPage = false;
-        if (this.activeTabId === id) this.layoutActiveTab();
-      }
-      // A real navigation ends any renderer-drawn internal page.
-      if (navigatedTab?.internalUrl && navUrl && navUrl !== 'about:blank') {
-        navigatedTab.internalUrl = null;
+      const role = paneRole();
+      if (role === 'primary') {
+        // First real navigation ends the New Tab page state — attach the view.
+        if (navigatedTab?.isNewTabPage && navUrl && navUrl !== 'about:blank' && navUrl !== 'about:newtab') {
+          navigatedTab.isNewTabPage = false;
+          if (this.activeTabId === id) this.layoutActiveTab();
+        }
+        // A real navigation ends any renderer-drawn internal page.
+        if (navigatedTab?.internalUrl && navUrl && navUrl !== 'about:blank') {
+          navigatedTab.internalUrl = null;
+        }
       }
       if (isAlive(wc)) {
         wc.stopFindInPage('clearSelection');
       }
       this.onFindResult?.({ tabId: id, activeMatchOrdinal: 0, matches: 0, finalUpdate: true });
-      this.onTabStateChange?.(id, {
-        url: navUrl,
-        primaryUrl: navUrl,
-        canGoBack: wc.canGoBack(),
-        canGoForward: wc.canGoForward(),
-        isLoading: false,
-      });
+      if (role === 'primary') {
+        this.onTabStateChange?.(id, {
+          url: navUrl,
+          primaryUrl: navUrl,
+          canGoBack: wc.canGoBack(),
+          canGoForward: wc.canGoForward(),
+          isLoading: false,
+        });
+      } else {
+        this.onTabStateChange?.(id, { secondUrl: navUrl });
+        if (navigatedTab?.focusedPane === 'second') {
+          this.onTabStateChange?.(id, {
+            url: navUrl,
+            displayUrl: navUrl,
+            canGoBack: wc.canGoBack(),
+            canGoForward: wc.canGoForward(),
+            isLoading: false,
+          });
+        }
+      }
       // Auto-mute from domain memory / global policy — unless the user made an
       // explicit choice for this tab in this session.
       const tab = this.tabs.get(id);
@@ -516,11 +538,22 @@ export class TabManager {
     });
 
     wc.on('did-navigate-in-page', (_, navUrl) => {
-      this.onTabStateChange?.(id, { url: navUrl, primaryUrl: navUrl });
+      if (paneRole() === 'primary') {
+        this.onTabStateChange?.(id, { url: navUrl, primaryUrl: navUrl });
+      } else {
+        this.onTabStateChange?.(id, { secondUrl: navUrl });
+        if (this.tabs.get(id)?.focusedPane === 'second') {
+          this.onTabStateChange?.(id, { url: navUrl, displayUrl: navUrl });
+        }
+      }
     });
 
     wc.on('page-title-updated', (_, title) => {
-      this.onTabStateChange?.(id, { title });
+      // As the second (unfocused) pane, this view must not clobber the
+      // shared toolbar title of the focused pane.
+      if (paneRole() === 'primary' || this.tabs.get(id)?.focusedPane === 'second') {
+        this.onTabStateChange?.(id, { title });
+      }
       if (isAlive(wc)) {
         this.onNavigate?.(id, wc.getURL(), title);
       }
@@ -534,15 +567,19 @@ export class TabManager {
     });
 
     wc.on('did-start-loading', () => {
-      this.onTabStateChange?.(id, { isLoading: true });
+      if (paneRole() === 'primary' || this.tabs.get(id)?.focusedPane === 'second') {
+        this.onTabStateChange?.(id, { isLoading: true });
+      }
     });
 
     wc.on('did-stop-loading', () => {
-      this.onTabStateChange?.(id, {
-        isLoading: false,
-        canGoBack: wc.canGoBack(),
-        canGoForward: wc.canGoForward(),
-      });
+      if (paneRole() === 'primary' || this.tabs.get(id)?.focusedPane === 'second') {
+        this.onTabStateChange?.(id, {
+          isLoading: false,
+          canGoBack: wc.canGoBack(),
+          canGoForward: wc.canGoForward(),
+        });
+      }
     });
 
     wc.on('zoom-changed', (_, direction) => {
@@ -808,15 +845,16 @@ export class TabManager {
     // In a Website+Website split the toolbar follows the last-focused pane.
     wc.on('focus', () => {
       const t = this.tabs.get(id);
-      if (t && t.mode === 'browser+browser' && t.focusedPane !== 'primary') {
-        this.setFocusedPane(t, 'primary');
+      const role = paneRole();
+      if (t && t.mode === 'browser+browser' && t.focusedPane !== role) {
+        this.setFocusedPane(t, role);
       }
     });
     // Inserted CSS (unfocused-pane dim) does not survive navigation.
     wc.on('dom-ready', () => {
       const t = this.tabs.get(id);
       if (t && t.mode === 'browser+browser') {
-        this.paneDimKeys.delete(t.view);
+        this.paneDimKeys.delete(view);
         this.refreshPaneDim(t);
       }
     });
@@ -1221,6 +1259,35 @@ export class TabManager {
   }
 
   /**
+   * Exchange the two panes of a Website+Website split: the left (primary)
+   * view becomes the right (second) view and vice versa, preserving each
+   * pane's URL, history and loading state. The toolbar keeps controlling the
+   * SAME page — the focused-pane flag flips with its view, so the omnibox
+   * Left/Right badge and the focus frame follow the content to its new side.
+   */
+  swapPanes(id: TabId): void {
+    const tab = this.tabs.get(id);
+    if (!tab || tab.mode !== 'browser+browser' || !tab.secondView) return;
+    // Renderer-drawn primary surfaces (New Tab / about pages) are anchored to
+    // the primary slot — swapping the native views underneath would desync.
+    if (tab.isNewTabPage || tab.internalUrl) return;
+    const oldPrimary = tab.view;
+    tab.view = tab.secondView;
+    tab.secondView = oldPrimary;
+    // Focus follows the content to its new side.
+    tab.focusedPane = tab.focusedPane === 'primary' ? 'second' : 'primary';
+    this.refreshPaneDim(tab);
+    if (id === this.activeTabId) this.layoutActiveTab();
+    const pWc = tab.view.webContents;
+    const sWc = tab.secondView.webContents;
+    this.onTabStateChange?.(id, {
+      focusedPane: tab.focusedPane,
+      primaryUrl: isAlive(pWc) ? pWc.getURL() : '',
+      secondUrl: isAlive(sWc) ? sWc.getURL() : '',
+    });
+  }
+
+  /**
    * Switch which browser pane the toolbar controls in 'browser+browser' mode
    * and publish the newly-focused pane's navigation state.
    */
@@ -1331,17 +1398,28 @@ export class TabManager {
     view.setBackgroundColor(VIEW_BG_COLOR);
     const wc = view.webContents;
     const id = tab.id;
+    // Which pane of the tab this view currently serves. Normally 'second',
+    // but swapPanes() exchanges the tab's view references, so the role must
+    // be resolved at event time rather than baked into the closures.
+    const paneRole = (): 'primary' | 'second' =>
+      this.tabs.get(id)?.view === view ? 'primary' : 'second';
     const emitIfFocused = (state: Partial<TabState>) => {
       const t = this.tabs.get(id);
-      if (t && t.mode === 'browser+browser' && t.focusedPane === 'second') {
+      if (t && t.mode === 'browser+browser' && t.focusedPane === paneRole()) {
         this.onTabStateChange?.(id, state);
       }
     };
+    // The pane's own URL is always published (feeds the split's dedicated
+    // per-pane address state); the shared toolbar state only when focused.
+    const emitPaneUrl = (navUrl: string) => {
+      this.onTabStateChange?.(
+        id,
+        paneRole() === 'primary' ? { primaryUrl: navUrl } : { secondUrl: navUrl },
+      );
+    };
 
     wc.on('did-navigate', (_, navUrl) => {
-      // The pane's own URL is always published (feeds the split's dedicated
-      // right-pane address bar); the shared toolbar state only when focused.
-      this.onTabStateChange?.(id, { secondUrl: navUrl });
+      emitPaneUrl(navUrl);
       emitIfFocused({
         url: navUrl,
         displayUrl: navUrl,
@@ -1351,7 +1429,7 @@ export class TabManager {
       });
     });
     wc.on('did-navigate-in-page', (_, navUrl) => {
-      this.onTabStateChange?.(id, { secondUrl: navUrl });
+      emitPaneUrl(navUrl);
       emitIfFocused({ url: navUrl, displayUrl: navUrl });
     });
     wc.on('page-title-updated', (_, title) => {
@@ -1369,14 +1447,15 @@ export class TabManager {
     });
     wc.on('focus', () => {
       const t = this.tabs.get(id);
-      if (t && t.mode === 'browser+browser' && t.focusedPane !== 'second') {
-        this.setFocusedPane(t, 'second');
+      const role = paneRole();
+      if (t && t.mode === 'browser+browser' && t.focusedPane !== role) {
+        this.setFocusedPane(t, role);
       }
     });
     // Inserted CSS (unfocused-pane dim) does not survive navigation.
     wc.on('dom-ready', () => {
       const t = this.tabs.get(id);
-      if (t && t.secondView === view && t.mode === 'browser+browser') {
+      if (t && (t.secondView === view || t.view === view) && t.mode === 'browser+browser') {
         this.paneDimKeys.delete(view);
         this.refreshPaneDim(t);
       }

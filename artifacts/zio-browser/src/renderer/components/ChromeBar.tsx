@@ -1307,25 +1307,13 @@ export function ChromeBar({
               outline: omniboxFocused ? '2px solid var(--color-primary)' : 'none',
               outlineOffset: 0,
               transition: 'all 0.15s',
-              ...(splitPane ? { paddingRight: 96 } : {}),
+              ...(splitPane ? { paddingRight: 122 } : {}),
             }}
           />
 
-          {/* Split-pane target badge — which pane the address bar controls */}
+          {/* Split-pane controls — swap panes + which pane the address bar controls */}
           {splitPane && (
-            <button
-              type="button"
-              // mousedown (with preventDefault) keeps omnibox focus intact
-              onMouseDown={(e) => {
-                e.preventDefault();
-                if (activeTabId) {
-                  void window.zio.tabs.focusPane(
-                    activeTabId,
-                    splitPane === 'primary' ? 'second' : 'primary',
-                  );
-                }
-              }}
-              title={`The address bar controls the ${splitPane === 'primary' ? 'left' : 'right'} pane. Click to switch to the ${splitPane === 'primary' ? 'right' : 'left'} pane.`}
+            <div
               style={{
                 position: 'absolute',
                 right: 5,
@@ -1334,24 +1322,73 @@ export function ChromeBar({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 4,
-                height: 20,
-                padding: '0 8px',
-                borderRadius: 10,
-                border: 'none',
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: 0.3,
-                textTransform: 'uppercase',
-                whiteSpace: 'nowrap',
-                color: '#fff',
-                background: 'var(--color-primary)',
-                cursor: 'pointer',
-                lineHeight: 1,
               }}
             >
-              <span aria-hidden style={{ fontSize: 11 }}>{splitPane === 'primary' ? '◧' : '◨'}</span>
-              {splitPane === 'primary' ? 'Left pane' : 'Right pane'}
-            </button>
+              {/* Swap the two panes' contents (URL/history) in one click */}
+              <button
+                type="button"
+                // mousedown (with preventDefault) keeps omnibox focus intact
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  if (activeTabId) {
+                    void window.zio.tabs.swapPanes(activeTabId);
+                  }
+                }}
+                title="Swap panes — move the left site to the right and the right site to the left"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 22,
+                  height: 20,
+                  padding: 0,
+                  borderRadius: 10,
+                  border: '1px solid var(--color-border)',
+                  fontSize: 12,
+                  color: 'var(--color-text)',
+                  background: 'var(--color-bg)',
+                  cursor: 'pointer',
+                  lineHeight: 1,
+                }}
+              >
+                <span aria-hidden>⇄</span>
+              </button>
+              <button
+                type="button"
+                // mousedown (with preventDefault) keeps omnibox focus intact
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  if (activeTabId) {
+                    void window.zio.tabs.focusPane(
+                      activeTabId,
+                      splitPane === 'primary' ? 'second' : 'primary',
+                    );
+                  }
+                }}
+                title={`The address bar controls the ${splitPane === 'primary' ? 'left' : 'right'} pane. Click to switch to the ${splitPane === 'primary' ? 'right' : 'left'} pane.`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  height: 20,
+                  padding: '0 8px',
+                  borderRadius: 10,
+                  border: 'none',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: 0.3,
+                  textTransform: 'uppercase',
+                  whiteSpace: 'nowrap',
+                  color: '#fff',
+                  background: 'var(--color-primary)',
+                  cursor: 'pointer',
+                  lineHeight: 1,
+                }}
+              >
+                <span aria-hidden style={{ fontSize: 11 }}>{splitPane === 'primary' ? '◧' : '◨'}</span>
+                {splitPane === 'primary' ? 'Left pane' : 'Right pane'}
+              </button>
+            </div>
           )}
 
           {/* Suggestions dropdown */}
