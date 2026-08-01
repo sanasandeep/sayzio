@@ -6,9 +6,11 @@
 #   3. Ensures better-sqlite3 has a Node-ABI build (source of the restore copy),
 #      then swaps in an Electron-ABI build for the live-Electron run.
 #   4. Runs the harnesses under xvfb:
-#        run.cjs       — Website+Website split (focus/dim/divider deep checks)
-#        run-modes.cjs — every OTHER TabModeSwitcher mode (entry/exit +
-#                        toolbar routing)
+#        run.cjs         — Website+Website split (focus/dim/divider deep checks)
+#        run-modes.cjs   — every OTHER TabModeSwitcher mode (entry/exit +
+#                          toolbar routing)
+#        run-restore.cjs — split-tab session-restore across a full app
+#                          restart (same user-data dir, two launches)
 #   5. ALWAYS restores the Node-ABI better-sqlite3 binary afterwards (trap),
 #      so vitest/node consumers keep working.
 #
@@ -69,7 +71,7 @@ fi
 
 HARNESSES=("$@")
 if [ ${#HARNESSES[@]} -eq 0 ]; then
-  HARNESSES=(run.cjs run-modes.cjs)
+  HARNESSES=(run.cjs run-modes.cjs run-restore.cjs)
 fi
 
 for harness in "${HARNESSES[@]}"; do
