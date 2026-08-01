@@ -89,7 +89,7 @@ class ContactActivityService
                 'title'    => 'Order #' . $o->id,
                 'subtitle' => ucfirst((string) $o->status),
                 'date'     => optional($o->created_at)->toIso8601String(),
-                'url'      => $o->link_id ? route('user.links.restaurant.orders', $o->link_id) : null,
+                'url'      => $o->link_id ? route('user.links.restaurant.orders', $o->link_id) . '?highlight=' . $o->id : null,
                 'refs'     => (object) array_filter(['link_id' => (int) $o->link_id, 'order_id' => (int) $o->id]),
             ])->all());
 
@@ -102,7 +102,7 @@ class ContactActivityService
                 'title'    => 'Order request #' . $o->id,
                 'subtitle' => ucfirst((string) $o->status),
                 'date'     => optional($o->created_at)->toIso8601String(),
-                'url'      => $o->link_id ? route('user.links.store.orders', $o->link_id) : null,
+                'url'      => $o->link_id ? route('user.links.store.orders', $o->link_id) . '?highlight=' . $o->id : null,
                 'refs'     => (object) array_filter(['link_id' => (int) $o->link_id, 'order_id' => (int) $o->id]),
             ])->all());
 
@@ -115,7 +115,7 @@ class ContactActivityService
                 'title'    => 'Booking #' . $b->id,
                 'subtitle' => ucfirst((string) $b->status),
                 'date'     => optional($b->created_at)->toIso8601String(),
-                'url'      => $b->link_id ? route('user.links.service-booking.bookings', $b->link_id) : null,
+                'url'      => $b->link_id ? route('user.links.service-booking.bookings', $b->link_id) . '?highlight=' . $b->id : null,
                 'refs'     => (object) array_filter(['link_id' => (int) $b->link_id, 'booking_id' => (int) $b->id]),
             ])->all());
 
@@ -128,7 +128,7 @@ class ContactActivityService
                 'title'    => $r->link?->title ?: 'RSVP',
                 'subtitle' => ucfirst((string) $r->status),
                 'date'     => optional($r->created_at)->toIso8601String(),
-                'url'      => $r->link_id ? route('user.links.rsvps.index', $r->link_id) : null,
+                'url'      => $r->link_id ? route('user.links.rsvps.index', $r->link_id) . '?highlight=' . $r->id : null,
                 'refs'     => (object) array_filter([
                     'link_id' => (int) $r->link_id,
                     'alias'   => (string) ($r->link?->alias ?? ''),
@@ -148,7 +148,7 @@ class ContactActivityService
                 'title'    => $t->link?->title ?: 'Event ticket',
                 'subtitle' => $t->code ? ('Ticket ' . $t->code) : null,
                 'date'     => optional($t->created_at)->toIso8601String(),
-                'url'      => $t->link_id ? route('user.links.ics.tickets', $t->link_id) : null,
+                'url'      => $t->link_id ? route('user.links.ics.tickets', $t->link_id) . '?highlight=' . $t->id : null,
                 'refs'     => (object) array_filter([
                     'link_id'   => (int) $t->link_id,
                     'alias'     => (string) ($t->link?->alias ?? ''),

@@ -124,7 +124,7 @@
                             [$slabel, $scolor] = $smap[$r->status] ?? ['Confirmed', '#10b981'];
                             $hasExpand = !empty($r->occurrences) || !empty($r->answers) || $r->company || $r->role;
                         @endphp
-                        <tr style="border-top: 1px solid rgba(255,255,255,0.06);" x-data="{ open: false }">
+                        <tr id="rsvp-{{ $r->id }}" style="border-top: 1px solid rgba(255,255,255,0.06); {{ (int) request()->query('highlight') === (int) $r->id ? 'outline: 2px solid #5c83ff; outline-offset: -2px; background: rgba(92,131,255,0.08);' : '' }}" x-data="{ open: false }">
                             <td class="py-3 pl-5">
                                 <div class="font-semibold" style="color: var(--text-primary);">{{ $r->name ?: '—' }}</div>
                                 @if($r->message)
@@ -216,4 +216,12 @@
         <div class="mt-4">{{ $rsvps->links() }}</div>
     @endif
 </div>
+@if(request()->query('highlight'))
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var el = document.getElementById('rsvp-{{ (int) request()->query('highlight') }}');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+</script>
+@endif
 @endsection

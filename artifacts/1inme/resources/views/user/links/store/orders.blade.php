@@ -22,6 +22,7 @@
     .ro-live { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }
     .ro-dot { width:8px; height:8px; border-radius:50%; background:#10b981; animation:ropulse 1.6s infinite; }
     @keyframes ropulse { 0%,100%{opacity:1}50%{opacity:.3} }
+    .ro-card.ro-highlight { border-color:#5c83ff; box-shadow:0 0 0 2px rgba(92,131,255,.45); }
 </style>
 
 <div class="max-w-4xl mx-auto" x-data="ordersBoard()" x-init="init()">
@@ -43,7 +44,7 @@
     </template>
 
     <template x-for="o in visible()" :key="o.id">
-        <div class="ro-card">
+        <div class="ro-card" :id="'order-' + o.id" :class="o.id === highlight ? 'ro-highlight' : ''">
             <div class="ro-head">
                 <div>
                     <div class="ro-table" x-text="o.customer_name ? o.customer_name : 'Order request'"></div>
@@ -81,14 +82,16 @@ function ordersBoard() {
         orders: @json($ordersData),
         projectBase: @json(route('user.delivery-projects.create')),
         openCount: {{ $orders->whereIn('status', \App\Modules\User\Models\StoreOrder::OPEN_STATUSES)->count() }},
-        filter: 'open',
+        highlight: {{ (int) request()->query('highlight') ?: 'null' }},
+        filter: @json(request()->query('highlight') ? 'all' : 'open'),
         statusUrlBase: @json(rtrim(route('user.links.store.orders', $link), '/')),
         pollUrl: @json(route('user.links.store.orders.poll', $link)),
         csrf: @json(csrf_token()),
         cursor: @json(now()->toIso8601String()),
         OPEN: ['new','accepted','packing','ready'],
         LABELS: { new:'New', accepted:'Accepted', packing:'Packing', ready:'Ready', completed:'Completed', cancelled:'Cancelled' },
-        init(){ this.poll(); setInterval(()=>this.poll(), 5000); },
+        init(){ this.poll(); setInterval(()=>this.poll(), 5000); this.scrollToHighlight(); },
+        scrollToHighlight(){ if (!this.highlight) return; this.$nextTick(()=>{ const el = document.getElementById('order-' + this.highlight); if (el) el.scrollIntoView({ behavior:'smooth', block:'center' }); }); },
         visible(){ const o = this.orders.slice().sort((a,b)=>b.id-a.id); return this.filter==='open' ? o.filter(x=>this.OPEN.includes(x.status)) : o; },
         statusLabel(s){ return this.LABELS[s] || s; },
         nextStatuses(s){

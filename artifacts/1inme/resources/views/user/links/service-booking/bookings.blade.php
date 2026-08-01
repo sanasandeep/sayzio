@@ -23,6 +23,7 @@
     .sb-live { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }
     .sb-dot { width:8px; height:8px; border-radius:50%; background:#10b981; animation:sbpulse 1.6s infinite; }
     @keyframes sbpulse { 0%,100%{opacity:1}50%{opacity:.3} }
+    .sb-card.sb-highlight { border-color:#5c83ff; box-shadow:0 0 0 2px rgba(92,131,255,.45); }
     .sb-contact { font-size:12.5px; color:var(--text-muted); margin-top:6px; }
     .sb-contact a { color:#5c83ff; }
 </style>
@@ -46,7 +47,7 @@
     </template>
 
     <template x-for="b in visible()" :key="b.id">
-        <div class="sb-card">
+        <div class="sb-card" :id="'booking-' + b.id" :class="b.id === highlight ? 'sb-highlight' : ''">
             <div class="sb-head">
                 <div>
                     <div class="sb-when" x-text="slotLabel(b.slot_start)"></div>
@@ -94,14 +95,16 @@ function bookingsBoard() {
     return {
         bookings: @json($bookingsData),
         openCount: {{ $bookings->whereIn('status', \App\Modules\User\Models\ServiceBookingRequest::OPEN_STATUSES)->count() }},
-        filter: 'open',
+        highlight: {{ (int) request()->query('highlight') ?: 'null' }},
+        filter: @json(request()->query('highlight') ? 'all' : 'open'),
         statusUrlBase: @json(rtrim(route('user.links.service-booking.bookings', $link), '/')),
         pollUrl: @json(route('user.links.service-booking.bookings.poll', $link)),
         csrf: @json(csrf_token()),
         cursor: @json(now()->toIso8601String()),
         OPEN: ['pending','confirmed'],
         LABELS: { pending:'Pending', confirmed:'Confirmed', completed:'Completed', cancelled:'Cancelled', declined:'Declined' },
-        init(){ this.poll(); setInterval(()=>this.poll(), 5000); },
+        init(){ this.poll(); setInterval(()=>this.poll(), 5000); this.scrollToHighlight(); },
+        scrollToHighlight(){ if (!this.highlight) return; this.$nextTick(()=>{ const el = document.getElementById('booking-' + this.highlight); if (el) el.scrollIntoView({ behavior:'smooth', block:'center' }); }); },
         visible(){ const b = this.bookings.slice().sort((a,b)=>b.id-a.id); return this.filter==='open' ? b.filter(x=>this.OPEN.includes(x.status)) : b; },
         statusLabel(s){ return this.LABELS[s] || s; },
         nextStatuses(s){

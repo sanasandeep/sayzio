@@ -142,7 +142,7 @@
                 </thead>
                 <tbody>
                 @forelse($tickets as $t)
-                    <tr style="border-top: 1px solid rgba(255,255,255,0.06);">
+                    <tr id="ticket-{{ $t->id }}" style="border-top: 1px solid rgba(255,255,255,0.06); {{ (int) request()->query('highlight') === (int) $t->id ? 'outline: 2px solid #5c83ff; outline-offset: -2px; background: rgba(92,131,255,0.08);' : '' }}">
                         <td class="py-2" style="color: var(--text-primary);">{{ $t->attendee_name }}<div class="text-xs" style="color: var(--text-muted);">{{ $t->attendee_email }}</div></td>
                         <td class="py-2" style="color: var(--text-secondary);">{{ $t->tier?->name ?? '—' }}</td>
                         <td class="py-2" style="color: var(--text-secondary);">{{ $t->quantity }}</td>
@@ -171,4 +171,12 @@
         <div class="mt-4">{{ $tickets->links() }}</div>
     </div>
 </div>
+@if(request()->query('highlight'))
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var el = document.getElementById('ticket-{{ (int) request()->query('highlight') }}');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+</script>
+@endif
 @endsection
