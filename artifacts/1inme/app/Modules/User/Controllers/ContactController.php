@@ -691,6 +691,95 @@ class ContactController extends Controller
         return [$mergedGroups, $removedContacts, $failed];
     }
 
+    /**
+     * JSON candidate list for the "Merge into…" picker on the contact page.
+     *
+     * GET /contacts/{contact}/merge-candidates?q=…
+     * Returns up to 20 of the owner's other contacts matching the query
+     * (name, organization, email or phone), never the contact itself.
+     */
+    public function mergeCandidates(Request $request, Contact $contact): \Illuminate\Http\JsonResponse
+    {
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
+
+        $search = trim((string) $request->query('q', ''));
+
+        $query = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', workspace_owner_id())
+            ->where('id', '!=', $contact->id)
+            ->with(['phones', 'emails']);
+
+        if ($search !== '') {
+            $needle = '%' . $search . '%';
+            $phoneNeedle = '%' . ContactPhone::normalize($search) . '%';
+            $query->where(function ($q) use ($needle, $phoneNeedle) {
+                $q->where('display_name', 'ilike', $needle)
+                  ->orWhere('given_name', 'ilike', $needle)
+                  ->orWhere('family_name', 'ilike', $needle)
+                  ->orWhere('organization', 'ilike', $needle)
+                  ->orWhereHas('phones', fn ($q2) => $q2->where('value_e164', 'ilike', $phoneNeedle))
+                  ->orWhereHas('emails', fn ($q2) => $q2->where('value', 'ilike', $needle));
+            });
+        }
+
+        $candidates = $query->orderBy('display_name')->limit(20)->get()->map(fn ($c) => [
+            'id'               => $c->id,
+            'display_name'     => $c->nameForDisplay(),
+            'organization'     => $c->organization,
+            'photo_url'        => $c->photoUrl(),
+            'is_auto_captured' => (bool) $c->is_auto_captured,
+            'email'            => optional($c->emails->first())->value,
+            'phone'            => optional($c->phones->first())->value,
+        ])->values();
+
+        return response()->json(['data' => ['candidates' => $candidates]]);
+    }
+
+    /**
+     * Merge {contact} INTO another contact picked by the user — the inverse
+     * direction of mergeContacts(). {contact} is the duplicate that gets
+     * absorbed and deleted; target_id is the contact that survives with all
+     * emails/phones and repointed capture rows (subscribers, form
+     * submissions, orders, bookings, RSVPs, tickets, reviews, threads).
+     *
+     * POST /contacts/{contact}/merge-into
+     * Body: target_id — the surviving contact's id.
+     */
+    public function mergeInto(Request $request, Contact $contact)
+    {
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
+
+        $request->validate([
+            'target_id' => 'required|integer',
+        ]);
+
+        $targetId = (int) $request->input('target_id');
+        if ($targetId === $contact->id) {
+            return redirect()->route('user.contacts.show', $contact)
+                ->with('error', 'A contact cannot be merged into itself.');
+        }
+
+        $target = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', workspace_owner_id())
+            ->find($targetId);
+
+        if (!$target) {
+            return redirect()->route('user.contacts.show', $contact)
+                ->with('error', 'Could not find the contact to merge into.');
+        }
+
+        try {
+            $this->mergeService->merge($target, [$contact]);
+        } catch (\Throwable $e) {
+            \Log::warning('ContactController::mergeInto failed', ['err' => $e->getMessage()]);
+            return redirect()->route('user.contacts.show', $contact)
+                ->with('error', 'Merge failed: ' . $e->getMessage());
+        }
+
+        return redirect()->route('user.contacts.show', $target)
+            ->with('success', 'Merged "' . ($contact->nameForDisplay() ?: 'contact') . '" into this contact — no data was lost.');
+    }
+
     // ---- bulk import ------------------------------------------------------
 
     public function importForm(Request $request)

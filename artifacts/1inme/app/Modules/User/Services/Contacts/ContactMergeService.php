@@ -34,6 +34,24 @@ use Illuminate\Support\Facades\Storage;
 class ContactMergeService
 {
     /**
+     * Customer-capture tables (unified contact linking) that carry a
+     * nullable, FK-less contact_id. Merges must repoint these so capture
+     * history follows the surviving contact.
+     */
+    public const CAPTURE_TABLES = [
+        'subscribers',
+        'form_submissions',
+        'restaurant_orders',
+        'store_orders',
+        'service_booking_requests',
+        'rsvps',
+        'event_tickets',
+        'product_orders',
+        'reviews',
+        'inbox_threads',
+    ];
+
+    /**
      * Merge $losers into $primary.
      *
      * @param  Contact   $primary   The contact that survives.
@@ -236,6 +254,30 @@ class ContactMergeService
         DB::table('conversation_sessions')
             ->where('contact_id', $fromId)
             ->update(['contact_id' => $toId]);
+
+        // Capture tables (subscribers, form_submissions, orders, bookings,
+        // RSVPs, tickets, reviews, inbox threads): contact_id is nullable
+        // with no FK constraint, so stale ids would silently orphan capture
+        // history. Repoint them all; guard per-table so a missing table in
+        // a partial schema never aborts the merge transaction spuriously.
+        foreach (self::CAPTURE_TABLES as $table) {
+            if (!$this->captureTableHasContactId($table)) {
+                continue;
+            }
+            DB::table($table)
+                ->where('contact_id', $fromId)
+                ->update(['contact_id' => $toId]);
+        }
+    }
+
+    /** @var array<string,bool> memoized schema checks (per request) */
+    protected array $captureColumnCache = [];
+
+    protected function captureTableHasContactId(string $table): bool
+    {
+        return $this->captureColumnCache[$table] ??=
+            \Illuminate\Support\Facades\Schema::hasTable($table)
+            && \Illuminate\Support\Facades\Schema::hasColumn($table, 'contact_id');
     }
 
     /**
