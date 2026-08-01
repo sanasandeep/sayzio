@@ -8,6 +8,50 @@ import type { HistoryEntry } from '../../main/db';
 import { ProfileBadge } from './ProfileBadge';
 import { resolveFavicon } from '../../shared/favicon';
 import { FaviconImg } from './FaviconImg';
+import { SayzioIcon, GmailIcon, GitHubIcon, LinkedInIcon, XIcon, YouTubeIcon } from './BrandIcons';
+
+/**
+ * Neutral fallback for favicons that can't be loaded: the site's first
+ * hostname letter in a rounded tile, or a globe glyph when no hostname
+ * can be derived. Keeps icon slots from looking like blank gray boxes.
+ */
+function FaviconFallback({ url, size }: { url: string | null | undefined; size: number }) {
+  let letter: string | null = null;
+  if (url) {
+    try {
+      const host = new URL(url).hostname.replace(/^www\./, '');
+      if (host) letter = host[0].toUpperCase();
+    } catch { /* not a parseable URL */ }
+  }
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size >= 16 ? 3 : 2,
+        background: 'var(--color-bg-elevated)',
+        border: '1px solid var(--color-border)',
+        color: 'var(--color-text-muted)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: Math.round(size * 0.62),
+        fontWeight: 600,
+        lineHeight: 1,
+        flexShrink: 0,
+        boxSizing: 'border-box',
+      }}
+      aria-hidden="true"
+    >
+      {letter ?? (
+        <svg width={Math.round(size * 0.75)} height={Math.round(size * 0.75)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20Z" />
+        </svg>
+      )}
+    </div>
+  );
+}
 
 interface Props {
   onNavigate: (url: string) => void;
@@ -145,12 +189,12 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
   ];
 
   const QUICK_LINKS = [
-    { title: 'Sayzio', url: 'https://sayzio.app', icon: '⚡' },
-    { title: 'Gmail', url: 'https://mail.google.com', icon: '📧' },
-    { title: 'GitHub', url: 'https://github.com', icon: '🐙' },
-    { title: 'LinkedIn', url: 'https://linkedin.com', icon: '💼' },
-    { title: 'Twitter/X', url: 'https://x.com', icon: '🐦' },
-    { title: 'YouTube', url: 'https://youtube.com', icon: '▶️' },
+    { title: 'Sayzio', url: 'https://sayzio.app', icon: <SayzioIcon size={24} /> },
+    { title: 'Gmail', url: 'https://mail.google.com', icon: <GmailIcon size={24} /> },
+    { title: 'GitHub', url: 'https://github.com', icon: <GitHubIcon size={24} /> },
+    { title: 'LinkedIn', url: 'https://linkedin.com', icon: <LinkedInIcon size={24} /> },
+    { title: 'Twitter/X', url: 'https://x.com', icon: <XIcon size={24} /> },
+    { title: 'YouTube', url: 'https://youtube.com', icon: <YouTubeIcon size={24} /> },
   ];
 
   return (
@@ -226,7 +270,7 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-elevated)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-surface)'; }}
           >
-            <span style={{ fontSize: 24 }}>{link.icon}</span>
+            <span style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{link.icon}</span>
             <span style={{ fontSize: 11, color: 'var(--color-text-muted)', textAlign: 'center' }}>{link.title}</span>
           </button>
         ))}
@@ -259,7 +303,7 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
                 <FaviconImg
                   src={resolveFavicon(entry.favicon_url, entry.url)}
                   size={16}
-                  fallback={<div style={{ width: 16, height: 16, borderRadius: 2, background: 'var(--color-border)', flexShrink: 0 }} />}
+                  fallback={<FaviconFallback url={entry.url} size={16} />}
                 />
                 <span style={{
                   fontSize: 12,
