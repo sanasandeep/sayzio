@@ -20,30 +20,29 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { ProfileSwitcher } from '../src/renderer/components/ProfileSwitcher';
 import { TabModeSwitcher } from '../src/renderer/components/TabModeSwitcher';
+import { buildZioMock, resolved } from './helpers/zio-mock';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
 let overlaySpy: ReturnType<typeof vi.fn>;
 
-function buildZioMock() {
+function makeZio() {
   overlaySpy = vi.fn(() => Promise.resolve());
-  return {
-    platform: 'linux',
-    on: vi.fn(),
-    off: vi.fn(),
-    window: {
-      setChromeOverlay: overlaySpy,
+  return buildZioMock({
+    overrides: {
+      on: vi.fn(),
+      off: vi.fn(),
+      window: {
+        setChromeOverlay: overlaySpy,
+      },
+      profiles: {
+        getActive: resolved('default'),
+      },
+      tabs: {
+        create: resolved('tab-1'),
+      },
     },
-    profiles: {
-      list: vi.fn(() => Promise.resolve([])),
-      getActive: vi.fn(() => Promise.resolve('default')),
-      switch: vi.fn(() => Promise.resolve()),
-      warmSession: vi.fn(() => Promise.resolve()),
-    },
-    tabs: {
-      create: vi.fn(() => Promise.resolve('tab-1')),
-    },
-  };
+  }).zio;
 }
 
 let container: HTMLDivElement;
@@ -74,7 +73,7 @@ function findByText(text: string): HTMLElement | null {
 }
 
 beforeEach(() => {
-  (window as unknown as { zio: unknown }).zio = buildZioMock();
+  (window as unknown as { zio: unknown }).zio = makeZio();
 });
 
 afterEach(async () => {
