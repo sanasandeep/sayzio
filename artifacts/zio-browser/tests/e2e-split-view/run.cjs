@@ -413,12 +413,12 @@ async function assertPaneMarker(app, urlPart, markerId, label) {
     ok(Math.abs((stDetached?.splitRatio ?? 0) - after.splitRatio) < 0.01, 'split ratio persists while the tab is detached');
 
     await page.evaluate((id) => window.zio.tabs.activate(id), tabId);
-    const stBack = await waitFor(async () => {
+    const stReactivated = await waitFor(async () => {
       const s = await tabState(page, tabId);
       return s?.mode === 'browser+browser' && (await page.evaluate(() => window.zio.tabs.getActive())) === tabId ? s : null;
     }, 'split tab reactivated', 10000);
-    ok(stBack.mode === 'browser+browser', 'tab restores browser+browser mode after switching back');
-    ok(Math.abs(stBack.splitRatio - after.splitRatio) < 0.01, 'dragged split ratio survives the tab round-trip');
+    ok(stReactivated.mode === 'browser+browser', 'tab restores browser+browser mode after switching back');
+    ok(Math.abs(stReactivated.splitRatio - after.splitRatio) < 0.01, 'dragged split ratio survives the tab round-trip');
     await waitFor(async () =>
       (await page.locator('div[title="Address bar controls this pane"]').count()) === 1 &&
       (await page.locator('div[title="Click to control this pane from the address bar"]').count()) === 1,

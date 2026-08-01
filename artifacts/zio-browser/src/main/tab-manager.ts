@@ -63,6 +63,19 @@ export interface RecentlyClosedEntry {
   favicon: string | null;
 }
 
+/**
+ * Per-tab layout info persisted alongside the URL list (parallel array).
+ * `null` for a plain single-pane Website tab.
+ */
+export interface SessionTabLayout {
+  /** The tab's view mode (currently only 'browser+browser' is persisted). */
+  mode: string;
+  /** Left-pane share of the tab area (0.2–0.8). */
+  splitRatio?: number;
+  /** URL of the second (right) pane in a Website+Website split. */
+  secondUrl?: string;
+}
+
 export interface SessionSnapshot {
   /** URLs of the non-pinned tabs, in tab-strip order. */
   urls: string[];
@@ -73,6 +86,11 @@ export interface SessionSnapshot {
    * section (matching the persisted pinned-URL order). -1 otherwise.
    */
   activePinnedIndex: number;
+  /**
+   * Per-tab layout entries parallel to `urls` (same index). Optional so
+   * snapshots written by older versions still restore.
+   */
+  layouts?: (SessionTabLayout | null)[];
 }
 
 export interface FindResult {
@@ -1112,12 +1130,14 @@ export class TabManager {
    */
   getSessionSnapshot(): SessionSnapshot {
     const urls: string[] = [];
+    const layouts: (SessionTabLayout | null)[] = [];
     let activeIndex = -1;
     let activePinnedIndex = -1;
     let pinnedIdx = 0;
     for (const id of this.tabOrder) {
-      const wc = this.tabs.get(id)?.view.webContents;
-      if (!wc || !isAlive(wc)) continue;
+      const tab = this.tabs.get(id);
+      const wc = tab?.view.webContents;
+      if (!tab || !wc || !isAlive(wc)) continue;
       const url = wc.getURL();
       if (this.pinnedTabs.has(id)) {
         // Mirror getPinnedUrls(): only persistable pinned tabs count toward
@@ -1131,18 +1151,62 @@ export class TabManager {
       if (!url || url === 'about:newtab' || url === 'about:blank') continue;
       if (id === this.activeTabId) activeIndex = urls.length;
       urls.push(url);
+      // Persist the Website+Website split layout (mode, divider ratio and the
+      // second pane's URL) so the next launch can rebuild it.
+      let layout: SessionTabLayout | null = null;
+      if (tab.mode === 'browser+browser') {
+        const secondWc = tab.secondView?.webContents;
+        const secondUrl = secondWc && isAlive(secondWc) ? secondWc.getURL() : '';
+        layout = {
+          mode: 'browser+browser',
+          splitRatio: tab.splitRatio,
+          ...(secondUrl && secondUrl !== 'about:blank' ? { secondUrl } : {}),
+        };
+      }
+      layouts.push(layout);
     }
-    return { urls, activeIndex, activePinnedIndex };
+    return { urls, activeIndex, activePinnedIndex, layouts };
   }
 
   /**
    * Restore a previous session's non-pinned tabs (in order) and activate the
    * saved active tab. Call after pinned tabs have been restored.
+   * `layouts` (parallel to `urls`) rebuilds Website+Website split tabs —
+   * mode, divider ratio and the second pane's URL.
    */
-  restoreSessionTabs(urls: string[], activeIndex = -1): void {
+  restoreSessionTabs(urls: string[], activeIndex = -1, layouts?: (SessionTabLayout | null)[]): void {
     const ids: TabId[] = [];
-    for (const url of urls) {
-      if (url) ids.push(this.createTab(url, true));
+    for (let i = 0; i < urls.length; i++) {
+      const url = urls[i];
+      if (!url) continue;
+      const id = this.createTab(url, true);
+      ids.push(id);
+      const layout = layouts?.[i];
+      if (layout && layout.mode === 'browser+browser') {
+        this.setTabMode(id, 'browser+browser');
+        if (typeof layout.splitRatio === 'number') {
+          this.setTabSplitRatio(id, layout.splitRatio);
+        }
+        if (typeof layout.secondUrl === 'string' && layout.secondUrl) {
+          this.navigatePane(id, 'second', layout.secondUrl);
+          // Loading/attaching the second pane can grab keyboard focus, which
+          // the focus-follows handler translates into toolbar control. A
+          // freshly restored split should control the PRIMARY pane (the
+          // focused pane isn't persisted) — snap it back once the pane's
+          // initial load settles.
+          const sWc = this.tabs.get(id)?.secondView?.webContents;
+          if (sWc && isAlive(sWc)) {
+            sWc.once('did-stop-loading', () => {
+              const t = this.tabs.get(id);
+              if (!t || t.mode !== 'browser+browser') return;
+              if (t.focusedPane !== 'primary') this.setFocusedPane(t, 'primary');
+              if (this.activeTabId === id && isAlive(t.view.webContents)) {
+                t.view.webContents.focus();
+              }
+            });
+          }
+        }
+      }
     }
     if (ids.length === 0) return;
     const target = ids[activeIndex] ?? ids[ids.length - 1];

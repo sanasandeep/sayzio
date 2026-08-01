@@ -13,7 +13,7 @@ import { randomUUID } from 'crypto';
 import { pathToFileURL } from 'url';
 import { isMarkdownDownload, renderMarkdownDocument } from '../shared/markdown';
 import { isCsvDownload, buildCsvViewerHtml, CSV_VIEWER_MAX_FILE_BYTES } from '../shared/csv-viewer';
-import type { TabManager } from './tab-manager';
+import type { TabManager, SessionTabLayout } from './tab-manager';
 import type { TabMode } from '../shared/window-mode';
 import type { WindowModeManager } from './window-mode-manager';
 import { SyncRetryRunner } from './sync-retry';
@@ -619,18 +619,32 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     try { event.sender.focus(); } catch { }
     return true;
   });
+  // Filter a parsed session snapshot down to valid URL strings while keeping
+  // the per-tab layout entries (split mode/ratio/second pane) index-aligned.
+  const filterSnapshotUrls = (snap: { urls?: unknown; layouts?: unknown }): { urls: string[]; layouts?: (SessionTabLayout | null)[] } => {
+    if (!Array.isArray(snap?.urls)) return { urls: [] };
+    const rawLayouts = Array.isArray(snap?.layouts) ? (snap.layouts as unknown[]) : null;
+    const urls: string[] = [];
+    const layouts: (SessionTabLayout | null)[] = [];
+    snap.urls.forEach((u, i) => {
+      if (typeof u === 'string' && u.length > 0) {
+        urls.push(u);
+        const l = rawLayouts?.[i];
+        layouts.push(l && typeof l === 'object' && typeof (l as SessionTabLayout).mode === 'string' ? (l as SessionTabLayout) : null);
+      }
+    });
+    return rawLayouts ? { urls, layouts } : { urls };
+  };
   ipcMain.handle('tabs:restore-session', (event) => {
     const tm = resolveTabManager(event);
     if (!tm || tm.isPrivate) return 0;
     try {
       const raw = getPreference(PREFERENCE_KEYS.SESSION_TABS);
       if (!raw) return 0;
-      const snap = JSON.parse(raw) as { urls?: unknown; activeIndex?: unknown };
-      const urls = Array.isArray(snap?.urls)
-        ? snap.urls.filter((u): u is string => typeof u === 'string' && u.length > 0)
-        : [];
+      const snap = JSON.parse(raw) as { urls?: unknown; activeIndex?: unknown; layouts?: unknown };
+      const { urls, layouts } = filterSnapshotUrls(snap);
       if (urls.length === 0) return 0;
-      tm.restoreSessionTabs(urls, typeof snap?.activeIndex === 'number' ? snap.activeIndex : -1);
+      tm.restoreSessionTabs(urls, typeof snap?.activeIndex === 'number' ? snap.activeIndex : -1, layouts);
       return urls.length;
     } catch {
       return 0;
@@ -1652,12 +1666,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     }
     if (!row) return false;
     try {
-      const snap = JSON.parse(row.snapshot) as { urls?: unknown; activeIndex?: unknown };
-      const urls = Array.isArray(snap?.urls)
-        ? snap.urls.filter((u): u is string => typeof u === 'string' && u.length > 0)
-        : [];
+      const snap = JSON.parse(row.snapshot) as { urls?: unknown; activeIndex?: unknown; layouts?: unknown };
+      const { urls, layouts } = filterSnapshotUrls(snap);
       if (urls.length === 0) return false;
-      tm.restoreSessionTabs(urls, typeof snap?.activeIndex === 'number' ? snap.activeIndex : -1);
+      tm.restoreSessionTabs(urls, typeof snap?.activeIndex === 'number' ? snap.activeIndex : -1, layouts);
       return true;
     } catch {
       return false;

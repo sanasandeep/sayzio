@@ -32,7 +32,7 @@ import type { WindowMode } from '../shared/window-mode';
 import { ZIO_PANEL_DIVIDER_WIDTH } from '../shared/window-mode';
 import { setupAutoUpdater } from './auto-updater';
 import { loadStoredExtensions, loadBuiltinExtension } from './extension-manager';
-import type { RecentlyClosedEntry } from './tab-manager';
+import type { RecentlyClosedEntry, SessionTabLayout } from './tab-manager';
 
 const isDev = process.env['NODE_ENV'] === 'development';
 
@@ -398,10 +398,21 @@ export function createWindow(): BrowserWindow {
       let sessionUrls: string[] = [];
       let sessionActiveIndex = -1;
       let sessionActivePinnedIndex = -1;
+      let sessionLayouts: (SessionTabLayout | null)[] | undefined;
       try {
-        const snap = JSON.parse(savedSessionJson) as { urls?: unknown; activeIndex?: unknown; activePinnedIndex?: unknown };
+        const snap = JSON.parse(savedSessionJson) as { urls?: unknown; activeIndex?: unknown; activePinnedIndex?: unknown; layouts?: unknown };
         if (Array.isArray(snap?.urls)) {
-          sessionUrls = snap.urls.filter((u): u is string => typeof u === 'string' && u.length > 0);
+          // Keep layouts index-aligned with the filtered URL list.
+          const rawLayouts = Array.isArray(snap?.layouts) ? (snap.layouts as unknown[]) : null;
+          const filteredLayouts: (SessionTabLayout | null)[] = [];
+          snap.urls.forEach((u, i) => {
+            if (typeof u === 'string' && u.length > 0) {
+              sessionUrls.push(u);
+              const l = rawLayouts?.[i];
+              filteredLayouts.push(l && typeof l === 'object' && typeof (l as SessionTabLayout).mode === 'string' ? (l as SessionTabLayout) : null);
+            }
+          });
+          if (rawLayouts) sessionLayouts = filteredLayouts;
         }
         if (typeof snap?.activeIndex === 'number') {
           sessionActiveIndex = snap.activeIndex;
@@ -414,7 +425,7 @@ export function createWindow(): BrowserWindow {
       }
 
       if (sessionUrls.length > 0 || (sessionActivePinnedIndex >= 0 && pinnedIds.length > 0)) {
-        tabManager.restoreSessionTabs(sessionUrls, sessionActiveIndex);
+        tabManager.restoreSessionTabs(sessionUrls, sessionActiveIndex, sessionLayouts);
         // If the previously active tab was a pinned tab, re-activate it now
         // (restoreSessionTabs only handles the non-pinned active case).
         if (sessionActiveIndex === -1 && sessionActivePinnedIndex >= 0) {
