@@ -197,6 +197,7 @@ export const KEYBOARD_SHORTCUTS: ShortcutEntry[] = [
   { category: 'View', label: 'Zoom Out', keys: ['Ctrl/Cmd', '−'] },
   { category: 'View', label: 'Reset Zoom', keys: ['Ctrl/Cmd', '0'] },
   { category: 'View', label: 'Reader Mode', keys: ['Ctrl/Cmd', 'Alt', 'R'] },
+  { category: 'View', label: 'Swap Split Panes', keys: ['Ctrl/Cmd', 'Shift', 'S'] },
   // Window modes
   { category: 'Modes', label: 'Dashboard mode', keys: ['Ctrl/Cmd', 'Shift', '1'] },
   { category: 'Modes', label: 'Split mode', keys: ['Ctrl/Cmd', 'Shift', '2'] },

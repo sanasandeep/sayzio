@@ -1334,7 +1334,7 @@ export function ChromeBar({
                     void window.zio.tabs.swapPanes(activeTabId);
                   }
                 }}
-                title="Swap panes — move the left site to the right and the right site to the left"
+                title="Swap panes — move the left site to the right and the right site to the left (Ctrl/Cmd+Shift+S)"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',

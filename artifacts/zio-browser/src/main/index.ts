@@ -818,6 +818,18 @@ function buildMenu(): void {
           },
         },
         { type: 'separator' as const },
+        {
+          label: 'Swap Split Panes',
+          accelerator: 'CmdOrCtrl+Shift+S',
+          click: (_item, bw) => {
+            const browserWin = asBrowserWin(bw);
+            if (!browserWin) return;
+            const tm = getTabManagerForWindow(browserWin);
+            const id = tm?.getActiveTabId();
+            if (id) tm?.swapPanes(id);
+          },
+        },
+        { type: 'separator' as const },
         { label: 'Zoom In', accelerator: 'CmdOrCtrl+=', click: (_item, bw) => {
           const browserWin = asBrowserWin(bw);
           if (!browserWin) return;
