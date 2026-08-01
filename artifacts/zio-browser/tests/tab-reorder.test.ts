@@ -52,6 +52,7 @@ import { TabManager } from '../src/main/tab-manager';
 function makeFakeWindow() {
   return {
     getContentSize: () => [1024, 768] as [number, number],
+    isDestroyed: () => false,
     contentView: {
       addChildView: vi.fn(),
       removeChildView: vi.fn(),

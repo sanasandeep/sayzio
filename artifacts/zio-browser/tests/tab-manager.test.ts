@@ -76,6 +76,7 @@ type FakeWebContents = InstanceType<typeof FakeWebContents>;
 function makeFakeWindow() {
   return {
     getContentSize: () => [1200, 800],
+    isDestroyed: () => false,
     contentView: {
       addChildView: vi.fn(),
       removeChildView: vi.fn(),
