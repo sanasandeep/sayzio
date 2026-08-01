@@ -5,6 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
+  Image,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -20,9 +23,12 @@ import {
   getContact,
   getContactActivity,
   listContactTags,
+  listMergeCandidates,
+  mergeContacts,
   setFollowUp,
   updateContactNotes,
   updateContactTags,
+  type MergeCandidate,
 } from "@/lib/api/contacts";
 
 export default function ContactDetailScreen() {
@@ -67,6 +73,46 @@ export default function ContactDetailScreen() {
   const [notesDraft, setNotesDraft] = useState("");
   const [editingTags, setEditingTags] = useState(false);
   const [newTag, setNewTag] = useState("");
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [mergeSearch, setMergeSearch] = useState("");
+
+  const candidatesQ = useQuery({
+    queryKey: ["merge-candidates", numId, mergeSearch],
+    queryFn: () => listMergeCandidates(numId, mergeSearch),
+    enabled: numId > 0 && mergeOpen,
+  });
+
+  const mergeMut = useMutation({
+    // This contact is absorbed INTO the target: the target survives with
+    // all emails/phones/activity, this record is deleted (web parity).
+    mutationFn: (targetId: number) => mergeContacts(targetId, [numId]),
+    onSuccess: (res) => {
+      setMergeOpen(false);
+      qc.invalidateQueries({ queryKey: ["contacts"] });
+      qc.invalidateQueries({ queryKey: ["contact-duplicates"] });
+      qc.removeQueries({ queryKey: ["contact", numId] });
+      qc.setQueryData(["contact", res.contact.id], res.contact);
+      router.replace(`/contacts/${res.contact.id}` as any);
+    },
+    onError: (e: any) => {
+      const msg = e?.message ?? "Merge failed. Please try again.";
+      if (Platform.OS === "web") window.alert(msg);
+      else Alert.alert("Merge failed", msg);
+    },
+  });
+
+  function confirmMerge(target: MergeCandidate) {
+    const name = contactQ.data?.display_name ?? "this contact";
+    const prompt = `Merge "${name}" into "${target.display_name}"? All emails, phones and captured activity move over, and "${name}" will be deleted. No data is lost.`;
+    if (Platform.OS === "web") {
+      if (window.confirm(prompt)) mergeMut.mutate(target.id);
+    } else {
+      Alert.alert("Merge contacts", prompt, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Merge", style: "destructive", onPress: () => mergeMut.mutate(target.id) },
+      ]);
+    }
+  }
 
   const notesMut = useMutation({
     mutationFn: (notes: string | null) => updateContactNotes(numId, notes),
@@ -473,7 +519,109 @@ export default function ContactDetailScreen() {
         </Section>
         </View>
 
+        {/* Merge into another contact (web parity) */}
+        <Section title="Duplicate?" colors={colors}>
+          <Text style={{ fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, color: colors.mutedForeground, marginBottom: 10 }}>
+            If this is a duplicate, merge it into another contact. All emails, phones and captured activity move over — no data is lost.
+          </Text>
+          <Pressable
+            onPress={() => { setMergeSearch(""); setMergeOpen(true); }}
+            style={({ pressed }) => [
+              styles.mergeBtn,
+              { borderColor: colors.border, backgroundColor: colors.background, opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <Feather name="git-merge" size={15} color={colors.primary} />
+            <Text style={{ fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13, color: colors.primary }}>
+              Merge into…
+            </Text>
+          </Pressable>
+        </Section>
+
       </ScrollView>
+
+      {/* Merge-into picker modal */}
+      <Modal visible={mergeOpen} transparent animationType="slide" onRequestClose={() => setMergeOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+              <Text style={{ fontFamily: "SpaceGrotesk_700Bold", fontSize: 16, color: colors.foreground, flex: 1 }}>
+                Merge into…
+              </Text>
+              <Pressable onPress={() => setMergeOpen(false)} hitSlop={10}>
+                <Feather name="x" size={20} color={colors.mutedForeground} />
+              </Pressable>
+            </View>
+            <Text style={{ fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, color: colors.mutedForeground, marginBottom: 10 }}>
+              Pick the contact that should survive. “{c.display_name}” will be merged into it and removed.
+            </Text>
+            <View style={[styles.inputRow, { backgroundColor: colors.background, borderColor: colors.border, marginBottom: 10 }]}>
+              <Feather name="search" size={15} color={colors.mutedForeground} />
+              <TextInput
+                value={mergeSearch}
+                onChangeText={setMergeSearch}
+                placeholder="Search by name, company, email or phone…"
+                placeholderTextColor={colors.mutedForeground}
+                style={[styles.tagInput, { color: colors.foreground, fontFamily: "SpaceGrotesk_400Regular" }]}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+            {candidatesQ.isLoading || mergeMut.isPending ? (
+              <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                <ActivityIndicator color={colors.primary} />
+                {mergeMut.isPending && (
+                  <Text style={{ fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, color: colors.mutedForeground, marginTop: 8 }}>
+                    Merging…
+                  </Text>
+                )}
+              </View>
+            ) : (candidatesQ.data ?? []).length === 0 ? (
+              <Text style={{ fontFamily: "SpaceGrotesk_400Regular", fontSize: 13, color: colors.mutedForeground, paddingVertical: 16, textAlign: "center" }}>
+                {mergeSearch.trim() ? "No matching contacts." : "No other contacts to merge into."}
+              </Text>
+            ) : (
+              <FlatList
+                data={candidatesQ.data ?? []}
+                keyExtractor={(item) => String(item.id)}
+                keyboardShouldPersistTaps="handled"
+                style={{ maxHeight: 360 }}
+                renderItem={({ item }) => (
+                  <Pressable
+                    onPress={() => confirmMerge(item)}
+                    disabled={mergeMut.isPending}
+                    style={({ pressed }) => [
+                      styles.candidateRow,
+                      { borderColor: colors.border, backgroundColor: pressed ? colors.background : "transparent" },
+                    ]}
+                  >
+                    {item.photo_url ? (
+                      <Image source={{ uri: item.photo_url }} style={styles.candidateAvatar} />
+                    ) : (
+                      <View style={[styles.candidateAvatar, { backgroundColor: colors.primary + "22", alignItems: "center", justifyContent: "center" }]}>
+                        <Text style={{ fontFamily: "SpaceGrotesk_700Bold", fontSize: 13, color: colors.primary }}>
+                          {initials(item.display_name)}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                      <Text numberOfLines={1} style={{ fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14, color: colors.foreground }}>
+                        {item.display_name}
+                      </Text>
+                      {(item.organization || item.email || item.phone) && (
+                        <Text numberOfLines={1} style={{ fontFamily: "SpaceGrotesk_400Regular", fontSize: 11, color: colors.mutedForeground }}>
+                          {[item.organization, item.email ?? item.phone].filter(Boolean).join(" · ")}
+                        </Text>
+                      )}
+                    </View>
+                    <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+                  </Pressable>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -579,5 +727,39 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: "center",
+  },
+  mergeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 1,
+    padding: 16,
+    paddingBottom: 30,
+    maxHeight: "80%",
+  },
+  candidateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  candidateAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
 });

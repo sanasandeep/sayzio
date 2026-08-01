@@ -387,6 +387,34 @@ export async function mergeContacts(
   return res.data;
 }
 
+export type MergeCandidate = {
+  id: number;
+  display_name: string;
+  organization: string | null;
+  photo_url: string | null;
+  is_auto_captured: boolean;
+  email: string | null;
+  phone: string | null;
+};
+
+/**
+ * Search the owner's other contacts as targets for the "Merge into…"
+ * picker (same candidate rules as the web contact page: same owner,
+ * never the contact itself). Up to 20 results.
+ */
+export async function listMergeCandidates(
+  id: number,
+  q?: string,
+): Promise<MergeCandidate[]> {
+  const params = new URLSearchParams();
+  if (q?.trim()) params.set("q", q.trim());
+  const qs = params.toString();
+  const res = await apiFetch<{ data: { candidates: MergeCandidate[] } }>(
+    `/contacts/${id}/merge-candidates${qs ? `?${qs}` : ""}`,
+  );
+  return res.data.candidates;
+}
+
 /**
  * Persist the owner's manual Dialer additions (channels / socials /
  * location) for a contact, kept distinct from auto-pulled biolink data.

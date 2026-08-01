@@ -295,6 +295,54 @@ class ContactController extends Controller
     }
 
     /**
+     * Candidate list for the mobile "Merge into…" picker (parity with the
+     * web contact page's picker). Returns up to 20 of the caller's OTHER
+     * contacts matching ?q= by name, organization, email or phone —
+     * never the contact itself.
+     *
+     * GET /api/v1/contacts/{id}/merge-candidates?q=…
+     */
+    public function mergeCandidates(Request $request, int $id)
+    {
+        $userId = $request->user()->id;
+
+        $contact = Contact::where('user_id', $userId)->find($id);
+        if (!$contact) return $this->notFound('Contact not found');
+
+        $search = trim((string) $request->query('q', ''));
+
+        $query = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', $userId)
+            ->where('id', '!=', $contact->id)
+            ->with(['phones', 'emails']);
+
+        if ($search !== '') {
+            $needle = '%' . $search . '%';
+            $phoneNeedle = '%' . ContactPhone::normalize($search) . '%';
+            $query->where(function ($q) use ($needle, $phoneNeedle) {
+                $q->where('display_name', 'ilike', $needle)
+                  ->orWhere('given_name', 'ilike', $needle)
+                  ->orWhere('family_name', 'ilike', $needle)
+                  ->orWhere('organization', 'ilike', $needle)
+                  ->orWhereHas('phones', fn ($q2) => $q2->where('value_e164', 'ilike', $phoneNeedle))
+                  ->orWhereHas('emails', fn ($q2) => $q2->where('value', 'ilike', $needle));
+            });
+        }
+
+        $candidates = $query->orderBy('display_name')->limit(20)->get()->map(fn ($c) => [
+            'id'               => $c->id,
+            'display_name'     => $c->nameForDisplay(),
+            'organization'     => $c->organization,
+            'photo_url'        => $c->photoUrl(),
+            'is_auto_captured' => (bool) $c->is_auto_captured,
+            'email'            => optional($c->emails->first())->value,
+            'phone'            => optional($c->phones->first())->value,
+        ])->values();
+
+        return $this->ok(['candidates' => $candidates]);
+    }
+
+    /**
      * Merge loser contacts into the designated primary.
      *
      * POST /api/v1/contacts/{id}/merge-duplicate
