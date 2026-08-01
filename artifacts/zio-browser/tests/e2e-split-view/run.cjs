@@ -153,6 +153,24 @@ async function tabState(page, tabId) {
   return page.evaluate((id) => window.zio.tabs.getState(id), tabId);
 }
 
+// Assert the pane at urlPart still holds its fixture document (not blank),
+// re-resolving the window handle on every poll — held Page handles for
+// WebContentsView panes go stale across detach/reattach cycles.
+async function assertPaneMarker(app, urlPart, markerId, label) {
+  const start = Date.now();
+  let last = null;
+  while (Date.now() - start < 10000) {
+    for (const p of app.windows()) {
+      if (!p.url().includes(urlPart)) continue;
+      last = await p.evaluate((id) => !!document.getElementById(id), markerId)
+        .catch((e) => ({ evalError: String(e && e.message || e).slice(0, 120) }));
+      if (last === true) { ok(true, label); return; }
+    }
+    await new Promise(r => setTimeout(r, 300));
+  }
+  ok(false, `${label} (last=${JSON.stringify(last)})`);
+}
+
 (async () => {
   const { server, base } = await startFixtureServer();
   log(`fixture server at ${base}`);
@@ -344,6 +362,56 @@ async function tabState(page, tabId) {
     ok(String(stSwapBack?.url ?? '').includes('/d'), 'swap round-trip: toolbar still controls /d, back on the right');
     await waitDim(app, '/a', true, '/a dimmed after swap-back');
     ok(true, 'swap round-trip restores the dim to the left (/a) pane');
+
+    console.log('\n── Tab switch survival ──');
+
+    // 18b. Open a second (plain browser) tab, switch away and back, and
+    // assert the whole split layout — mode, frames, divider, ratio, focus and
+    // dim — is restored when the tab's views are reattached.
+    const sideTab = await page.evaluate((url) => window.zio.tabs.create(url), `${base}/side`);
+    await waitFor(async () => (await page.evaluate(() => window.zio.tabs.getActive())) === sideTab,
+      'side tab active', 10000);
+    await waitFor(async () =>
+      (await page.locator('div[title="Address bar controls this pane"]').count()) === 0 &&
+      (await page.locator('div[title="Drag to resize split"]').count()) === 0,
+      'frames + divider hidden while the side tab is active', 10000);
+    ok(true, 'focus frames and divider hidden while a plain browser tab is active');
+    const stDetached = await tabState(page, tabId);
+    ok(stDetached?.mode === 'browser+browser', 'inactive tab keeps browser+browser mode while detached');
+    ok(Math.abs((stDetached?.splitRatio ?? 0) - after.splitRatio) < 0.01, 'split ratio persists while the tab is detached');
+
+    await page.evaluate((id) => window.zio.tabs.activate(id), tabId);
+    const stBack = await waitFor(async () => {
+      const s = await tabState(page, tabId);
+      return s?.mode === 'browser+browser' && (await page.evaluate(() => window.zio.tabs.getActive())) === tabId ? s : null;
+    }, 'split tab reactivated', 10000);
+    ok(stBack.mode === 'browser+browser', 'tab restores browser+browser mode after switching back');
+    ok(Math.abs(stBack.splitRatio - after.splitRatio) < 0.01, 'dragged split ratio survives the tab round-trip');
+    await waitFor(async () =>
+      (await page.locator('div[title="Address bar controls this pane"]').count()) === 1 &&
+      (await page.locator('div[title="Click to control this pane from the address bar"]').count()) === 1,
+      'both pane frames restored', 10000);
+    ok(true, 'exactly one focused + one unfocused frame after the tab round-trip');
+    ok(await divider.count() === 1, 'split divider restored after the tab round-trip');
+    // Reattached panes must still hold their documents (not blank).
+    await assertPaneMarker(app, '/a', 'marker-a', 'left pane content intact after reattach');
+    await assertPaneMarker(app, '/d', 'marker-d', 'right pane content intact after reattach');
+    // Focus after reattach is window-manager timing dependent (activateTab
+    // focuses the primary view); pin the right pane — the one focused before
+    // the switch — and assert the pin lands, then the dim follows it.
+    await waitFor(async () => {
+      await page.evaluate((id) => window.zio.tabs.focusPane(id, 'second'), tabId);
+      await new Promise(r => setTimeout(r, 300));
+      return (await page.getByText('Address bar · Right pane').count()) === 1;
+    }, 'right pane re-pinned after tab switch', 10000);
+    ok(true, 'pane focus controllable again after the tab round-trip');
+    await waitDim(app, '/a', true, 'left pane dimmed after tab round-trip');
+    ok(true, 'dim overlay restored on the unfocused pane after reattach');
+    await waitDim(app, '/d', false, 'right pane undimmed after tab round-trip');
+    ok(true, 'focused pane undimmed after reattach');
+    const stRouted = await tabState(page, tabId);
+    ok(String(stRouted?.url ?? '').includes('/d'), 'toolbar follows the focused (right) pane after the round-trip');
+    await page.evaluate((id) => window.zio.tabs.close(id), sideTab);
 
     console.log('\n── Leaving the split ──');
 

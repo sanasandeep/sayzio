@@ -151,6 +151,24 @@ async function tabState(page, tabId) {
   return page.evaluate((id) => window.zio.tabs.getState(id), tabId);
 }
 
+// Assert the pane at urlPart still holds its fixture document (not blank),
+// re-resolving the window handle on every poll — held Page handles for
+// WebContentsView panes go stale across detach/reattach cycles.
+async function assertPaneMarker(app, urlPart, markerId, label) {
+  const start = Date.now();
+  let last = null;
+  while (Date.now() - start < 10000) {
+    for (const p of app.windows()) {
+      if (!p.url().includes(urlPart)) continue;
+      last = await p.evaluate((id) => !!document.getElementById(id), markerId)
+        .catch((e) => ({ evalError: String(e && e.message || e).slice(0, 120) }));
+      if (last === true) { ok(true, label); return; }
+    }
+    await new Promise(r => setTimeout(r, 300));
+  }
+  ok(false, `${label} (last=${JSON.stringify(last)})`);
+}
+
 // Enter a tab mode through the REAL TabModeSwitcher dropdown by its label.
 async function enterModeViaDropdown(page, label, expectedMode, tabId) {
   await page.locator('button[title^="Tab view:"]').click();
@@ -225,6 +243,33 @@ const FOCUS_FRAME = 'div[title="Address bar controls this pane"]';
     ok(true, 'omnibox submit navigates the website pane while the Zio split is open');
     await panePage(app, '/b');
     ok(await page.locator(ZIO_INPUT).count() > 0, 'Ask Zio panel survives the website-pane navigation');
+
+    // Tab-switch survival: open a second (plain browser) tab, switch away and
+    // back, and assert the split layout is fully restored on return.
+    const sideTabZio = await page.evaluate((url) => window.zio.tabs.create(url), `${base}/side`);
+    await waitFor(async () => (await page.evaluate(() => window.zio.tabs.getActive())) === sideTabZio,
+      'second tab active (browser+zio survival)', 10000);
+    await waitFor(async () => (await page.locator(ZIO_INPUT).count()) === 0,
+      'Zio panel hidden while the other tab is active', 10000);
+    ok(true, 'Ask Zio panel hidden while a plain browser tab is active');
+    st = await tabState(page, tabId);
+    ok(st?.mode === 'browser+zio', 'inactive tab keeps its browser+zio mode while detached');
+    await page.evaluate((id) => window.zio.tabs.activate(id), tabId);
+    st = await waitFor(async () => {
+      const s = await tabState(page, tabId);
+      return s?.mode === 'browser+zio' && (await page.evaluate(() => window.zio.tabs.getActive())) === tabId ? s : null;
+    }, 'first tab reactivated in browser+zio', 10000);
+    ok(st.mode === 'browser+zio', 'tab restores browser+zio mode after switching back');
+    await waitFor(() => page.locator(ZIO_INPUT).count(), 'Ask Zio panel restored after tab switch', 10000);
+    ok(true, 'Ask Zio companion panel restored after switching away and back');
+    ok(await page.locator(DIVIDER).count() === 0, 'still no native divider after the tab round-trip');
+    ok(await page.locator(FOCUS_FRAME).count() === 0, 'still no focus frames after the tab round-trip');
+    // The reattached website pane must actually paint its document (not blank).
+    await assertPaneMarker(app, '/b', 'marker-b', 'website pane content intact after reattach (browser+zio)');
+    ok(String(st?.url ?? '').includes('/b'), 'toolbar still shows the website pane URL after the round-trip');
+    await assertUndimmed(app, '/b', 'website pane undimmed after the tab round-trip (browser+zio)');
+    await page.evaluate((id) => window.zio.tabs.close(id), sideTabZio);
+
     await exitToBrowser(page, tabId);
     ok(await page.locator(ZIO_INPUT).count() === 0, 'Ask Zio panel removed after leaving the split');
     st = await tabState(page, tabId);
@@ -259,6 +304,32 @@ const FOCUS_FRAME = 'div[title="Address bar controls this pane"]';
     await panePage(app, '/c');
     ok(await page.locator(FILES_TEXT).count() > 0, 'My Files pane survives the website-pane navigation');
     await assertUndimmed(app, '/c', 'website pane undimmed in browser+files');
+
+    // Tab-switch survival for a divider-bearing split: switch away and back,
+    // then assert mode, Files pane, divider and pane content all restore.
+    const sideTabFiles = await page.evaluate((url) => window.zio.tabs.create(url), `${base}/side`);
+    await waitFor(async () => (await page.evaluate(() => window.zio.tabs.getActive())) === sideTabFiles,
+      'second tab active (browser+files survival)', 10000);
+    await waitFor(async () => (await page.locator(FILES_TEXT).count()) === 0,
+      'Files pane hidden while the other tab is active', 10000);
+    ok(true, 'My Files pane hidden while a plain browser tab is active');
+    st = await tabState(page, tabId);
+    ok(st?.mode === 'browser+files', 'inactive tab keeps its browser+files mode while detached');
+    await page.evaluate((id) => window.zio.tabs.activate(id), tabId);
+    st = await waitFor(async () => {
+      const s = await tabState(page, tabId);
+      return s?.mode === 'browser+files' && (await page.evaluate(() => window.zio.tabs.getActive())) === tabId ? s : null;
+    }, 'first tab reactivated in browser+files', 10000);
+    ok(st.mode === 'browser+files', 'tab restores browser+files mode after switching back');
+    await waitFor(() => page.locator(FILES_TEXT).count(), 'My Files pane restored after tab switch', 10000);
+    ok(true, 'My Files pane restored after switching away and back');
+    ok(await page.locator(DIVIDER).count() === 1, 'split divider restored after the tab round-trip');
+    ok(await page.locator(FOCUS_FRAME).count() === 0, 'still no focus frames after the tab round-trip (browser+files)');
+    await assertPaneMarker(app, '/c', 'marker-c', 'website pane content intact after reattach (browser+files)');
+    ok(String(st?.url ?? '').includes('/c'), 'toolbar still shows the website pane URL after the round-trip (browser+files)');
+    await assertUndimmed(app, '/c', 'website pane undimmed after the tab round-trip (browser+files)');
+    await page.evaluate((id) => window.zio.tabs.close(id), sideTabFiles);
+
     await exitToBrowser(page, tabId);
     ok(await page.locator(FILES_TEXT).count() === 0, 'My Files pane removed after leaving the split');
 
@@ -277,6 +348,7 @@ const FOCUS_FRAME = 'div[title="Address bar controls this pane"]';
 
     st = await enterModeViaDropdown(page, 'Dashboard + Website', 'dashboard+browser', tabId);
     ok(st.mode === 'dashboard+browser', 'TabModeSwitcher enters Dashboard + Website');
+    await waitFor(() => page.locator(DIVIDER).count(), 'divider for dashboard+browser', 10000);
     ok(await page.locator(DIVIDER).count() === 1, 'split divider rendered for dashboard+browser');
     ok(await page.locator(FOCUS_FRAME).count() === 0, 'no focus frames in dashboard+browser');
     // Toolbar routing: the omnibox drives the WEBSITE pane, not the dashboard.
@@ -315,6 +387,7 @@ const FOCUS_FRAME = 'div[title="Address bar controls this pane"]';
     ok(st.mode === 'dashboard+files', 'TabModeSwitcher enters Dashboard + My Files');
     await waitFor(() => page.locator(FILES_TEXT).count(), 'My Files pane in dashboard+files', 10000);
     ok(true, 'My Files pane renders next to the dashboard');
+    await waitFor(() => page.locator(DIVIDER).count(), 'divider for dashboard+files', 10000);
     ok(await page.locator(DIVIDER).count() === 1, 'split divider rendered for dashboard+files');
     await exitToBrowser(page, tabId);
     ok(await page.locator(FILES_TEXT).count() === 0, 'My Files pane removed after leaving dashboard+files');

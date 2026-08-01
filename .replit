@@ -253,12 +253,12 @@ isValidation = true
 name = "e2e-zio-split-view"
 author = "agent"
 
+[workflows.workflow.metadata]
+isValidation = true
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/zio-browser/tests/e2e-split-view/run-validation.sh"
-
-[workflows.workflow.metadata]
-isValidation = true
 
 [[workflows.workflow]]
 name = "e2e-zio-split-view-run"
