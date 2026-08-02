@@ -9,6 +9,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Services\Calendar\CalendarProviderRegistry;
 use App\Modules\User\Services\Calendar\CalendarSyncService;
 use App\Modules\User\Services\Calendar\GoogleCalendarProvider;
+use App\Modules\User\Services\Calendar\MicrosoftCalendarProvider;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -26,14 +27,24 @@ class CalendarAccountController extends Controller
         $accounts = CalendarAccount::where('user_id', workspace_owner_id())
             ->orderByDesc('id')->get();
 
-        $googleConfigured = (new GoogleCalendarProvider())->isConfigured();
+        $googleConfigured    = (new GoogleCalendarProvider())->isConfigured();
+        $microsoftConfigured = (new MicrosoftCalendarProvider())->isConfigured();
         $owner = workspace_owner();
         $autoSyncAccountId = $owner?->auto_sync_calendar_account_id;
 
+        // Apple Calendar subscribe URL — derived from the owner's tokenised
+        // "My Calendar" ICS feed. webcal:// makes Apple/Outlook auto-subscribe.
+        $feedToken   = $owner?->myCalendarFeedToken();
+        $feedHttpUrl = $feedToken ? route('public.calendars.mine.feed', ['token' => $feedToken]) : null;
+        $webcalUrl   = $feedHttpUrl ? preg_replace('#^https?://#i', 'webcal://', $feedHttpUrl) : null;
+
         return view('user.settings.calendar', [
-            'accounts'          => $accounts,
-            'googleConfigured'  => $googleConfigured,
-            'autoSyncAccountId' => $autoSyncAccountId,
+            'accounts'            => $accounts,
+            'googleConfigured'    => $googleConfigured,
+            'microsoftConfigured' => $microsoftConfigured,
+            'autoSyncAccountId'   => $autoSyncAccountId,
+            'appleFeedUrl'        => $feedHttpUrl,
+            'appleWebcalUrl'      => $webcalUrl,
         ]);
     }
 
@@ -160,14 +171,20 @@ class CalendarAccountController extends Controller
 
     public function connect(Request $request, string $provider)
     {
-        if ($provider === 'microsoft' || $provider === 'caldav') {
-            return back()->with('error', ucfirst($provider) . ' integration is coming soon.');
+        if ($provider === 'caldav') {
+            return back()->with('error', 'CalDAV integration is coming soon.');
         }
 
         try {
             $driver = $this->registry->get($provider);
         } catch (\Throwable $e) {
             return back()->with('error', 'Unknown provider.');
+        }
+
+        // Graceful unconfigured state — never attempt an OAuth redirect with
+        // missing client credentials (which would 500 building the URL).
+        if (method_exists($driver, 'isConfigured') && !$driver->isConfigured()) {
+            return back()->with('error', ucfirst($provider) . ' Calendar is not configured yet. Ask an administrator to add the OAuth credentials.');
         }
 
         $state = Str::random(40);

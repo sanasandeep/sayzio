@@ -243,6 +243,15 @@ Route::prefix('v1')->group(function () {
         // My events calendar (dialer app): ticketed + interested, past & future.
         Route::get ('/me/events',                          [\App\Modules\Api\Controllers\EventTicketApiController::class, 'myEvents']);
 
+        // Organizer event create/edit (mobile). Mirrors the web
+        // IcsLinkController essentials (title, start/end, timezone, location,
+        // description, capacity, RSVP on/off); advanced settings stay web-only.
+        Route::post ('/events',                            [\App\Modules\Api\Controllers\EventApiController::class, 'store'])->middleware('throttle:30,1');
+        Route::get  ('/links/{link}/event',                [\App\Modules\Api\Controllers\EventApiController::class, 'show'])->whereNumber('link');
+        Route::patch('/links/{link}/event',                [\App\Modules\Api\Controllers\EventApiController::class, 'update'])->whereNumber('link')->middleware('throttle:60,1');
+        Route::post ('/links/{link}/event/cancel',         [\App\Modules\Api\Controllers\EventApiController::class, 'cancel'])->whereNumber('link')->middleware('throttle:30,1');
+        Route::post ('/links/{link}/event/reactivate',     [\App\Modules\Api\Controllers\EventApiController::class, 'reactivate'])->whereNumber('link')->middleware('throttle:30,1');
+
         // Task #5008 — Event contact exchange: "My card" QR + opt-in people list.
         Route::get ('/me/event-card',                      [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'myCard']);
         Route::get ('/events/{alias}/discoverability',     [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'getDiscoverability']);
@@ -264,6 +273,9 @@ Route::prefix('v1')->group(function () {
         Route::get ('/links/{link}/event-checkin/progress', [\App\Modules\Api\Controllers\EventTicketApiController::class, 'checkinProgress'])->whereNumber('link');
         Route::get ('/links/{link}/event-tickets',          [\App\Modules\Api\Controllers\EventTicketApiController::class, 'ownerTickets'])->whereNumber('link');
         Route::post('/links/{link}/event-tickets/{ticket}/refund', [\App\Modules\Api\Controllers\EventTicketApiController::class, 'refundTicket'])->whereNumber('link')->whereNumber('ticket');
+        // Message guests: organizer → guest broadcast (venue moved, time changed, cancellation).
+        Route::get ('/links/{link}/broadcasts', [\App\Modules\Api\Controllers\EventBroadcastApiController::class, 'index'])->whereNumber('link');
+        Route::post('/links/{link}/broadcasts', [\App\Modules\Api\Controllers\EventBroadcastApiController::class, 'store'])->whereNumber('link')->middleware('throttle:30,1');
     });
 
     Route::post('/biolinks/{alias}/subscribe', [BiolinkController::class, 'subscribe'])

@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -161,6 +161,24 @@ export default function OwnerTiersScreen() {
 
   return (
     <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.wrap}>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push(`/events/edit/${id}`)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Edit event details"
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
+              <Feather name="edit-2" size={16} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                Edit details
+              </Text>
+            </Pressable>
+          ),
+        }}
+      />
       {totals ? (
         <View style={[styles.statsRow]}>
           <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -186,6 +204,14 @@ export default function OwnerTiersScreen() {
       >
         <Feather name="camera" size={16} color={colors.primaryForeground} />
         <Text style={{ color: colors.primaryForeground, fontWeight: "700" }}>Open door scanner</Text>
+      </Pressable>
+
+      <Pressable
+        onPress={() => router.push(`/events/broadcast/${id}`)}
+        style={[styles.checkinBtn, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}
+      >
+        <Feather name="send" size={16} color={colors.foreground} />
+        <Text style={{ color: colors.foreground, fontWeight: "700" }}>Message guests</Text>
       </Pressable>
 
       <Text style={[styles.section, { color: colors.foreground }]}>Ticket tiers</Text>

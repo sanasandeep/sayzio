@@ -300,6 +300,14 @@ class IcsData extends Model
         if ($rrule) {
             $out .= "RRULE:{$rrule}\r\n";
         }
+        // Reflect an organizer cancellation so calendar apps grey the event
+        // out / offer to remove it (Sayzio events cancel flow).
+        $cancelled = $this->relationLoaded('link')
+            ? (bool) $this->link?->isEventCancelled()
+            : (bool) optional($this->link()->first())?->isEventCancelled();
+        if ($cancelled) {
+            $out .= "STATUS:CANCELLED\r\n";
+        }
         $out .= "END:VEVENT\r\n";
         return $out;
     }

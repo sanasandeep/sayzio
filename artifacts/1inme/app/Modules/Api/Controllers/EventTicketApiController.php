@@ -137,6 +137,11 @@ class EventTicketApiController extends Controller
         if (empty(($link->settings ?? [])['ticketing_enabled'])) {
             return $this->fail('This event does not sell tickets.', 422);
         }
+        // Cancelled events don't sell tickets — shared gate with the web
+        // buy flow (EventTicketPublicController) so the two can't drift.
+        if ($link->eventTicketSalesClosedReason() !== null) {
+            return $this->fail($link->eventTicketSalesClosedReason(), 422);
+        }
 
         // Badge-gated events (Task #3593): mirrors RedirectController::rsvpSubmit.
         $requiredBadgeId = $link->icsData?->required_badge_id;
@@ -340,12 +345,24 @@ class EventTicketApiController extends Controller
         $data = $this->validateTier($request);
         // If the owner raises capacity, clear the capacity-alert stamps so a
         // subsequent re-fill re-alerts (Task #3623).
-        if (array_key_exists('capacity', $data) && $data['capacity'] !== null
-            && $tier->capacity !== null && (int) $data['capacity'] > (int) $tier->capacity) {
+        $capacityRaised = array_key_exists('capacity', $data) && $data['capacity'] !== null
+            && $tier->capacity !== null && (int) $data['capacity'] > (int) $tier->capacity;
+        if ($capacityRaised) {
             $data['capacity_alerted_near_at'] = null;
             $data['capacity_alerted_full_at'] = null;
         }
         $tier->update($data);
+
+        // Raising capacity may free seats for waitlisted guests. Free tiers
+        // auto-promote; paid tiers get a "spot opened" purchase invite.
+        if ($capacityRaised) {
+            try {
+                app(\App\Modules\User\Services\WaitlistPromotionService::class)
+                    ->promoteForTier($link, $tier->fresh());
+            } catch (\Throwable $e) {
+                \Log::warning('Waitlist promotion (API tier capacity raise) failed: ' . $e->getMessage());
+            }
+        }
 
         return $this->ok($this->tierShape($tier));
     }
@@ -634,6 +651,10 @@ class EventTicketApiController extends Controller
             'location'    => $ics?->location,
             'start_date'  => optional($ics?->start_date)->toIso8601String(),
             'end_date'    => optional($ics?->end_date)->toIso8601String(),
+            // Organizer timezone so mobile can render a "your time" line only
+            // when the viewer's device timezone differs, and pass `ctz` to the
+            // Google Calendar deep link.
+            'timezone'    => $ics?->timezone ?: 'UTC',
             'latitude'    => $ics?->latitude,
             'longitude'   => $ics?->longitude,
             'category'    => $category,
@@ -642,6 +663,10 @@ class EventTicketApiController extends Controller
             'category_label' => $categoryLabel,
             'category_icon'  => $categoryIcon,
             'ticketing_enabled' => (bool) (($link->settings ?? [])['ticketing_enabled'] ?? false),
+            // Event cancellation (Sayzio events): mobile mirrors the web
+            // "cancelled" banner + blocked RSVP/ticket flows.
+            'cancelled'    => $link->isEventCancelled(),
+            'cancelled_at' => optional($link->eventCancelledAt())->toIso8601String(),
             // Task #3674: RSVP is now available by default for any free
             // (non-ticketed) event unless the organizer explicitly opted out.
             'rsvp_available' => \App\Modules\Common\Controllers\RedirectController::isRsvpAvailable($link, $activeTiers),

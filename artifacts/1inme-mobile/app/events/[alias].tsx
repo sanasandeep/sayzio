@@ -54,6 +54,61 @@ export default function EventDetailScreen() {
     return `${webBase}/${event.alias}/rsvp`;
   }, [event]);
 
+  // Guest-local time: render the start in the device's own timezone, but only
+  // when it differs from the organizer's timezone (otherwise the line above
+  // already covers it). start_date is ISO8601 with an offset, so Date parses
+  // it correctly and toLocaleString renders in the device zone.
+  const localTimeLabel = useMemo(() => {
+    if (!event?.start_date) return null;
+    try {
+      const viewerTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (viewerTz && event.timezone && viewerTz === event.timezone) return null;
+      const d = new Date(event.start_date);
+      if (isNaN(d.getTime())) return null;
+      return d.toLocaleString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZoneName: "short",
+      });
+    } catch {
+      return null;
+    }
+  }, [event]);
+
+  // Add-to-calendar targets. Google expects UTC dates in "Ymd'T'His'Z'" form;
+  // the .ics download reuses the existing public `?ics=1` endpoint (proper
+  // DTSTART;TZID emitted server-side by IcsData::toIcs). The OS handles both.
+  const calendarUrls = useMemo(() => {
+    if (!event?.start_date) return null;
+    const webBase = getBaseUrl().replace(/\/?api\/?$/, "").replace(/\/+$/, "");
+    const icsUrl = `${webBase}/${event.alias}?ics=1`;
+    const toUtc = (iso: string) => {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return null;
+      return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    };
+    const gStart = toUtc(event.start_date);
+    const endIso = event.end_date ?? new Date(new Date(event.start_date).getTime() + 3600000).toISOString();
+    const gEnd = toUtc(endIso);
+    let googleUrl: string | null = null;
+    if (gStart && gEnd) {
+      const params = new URLSearchParams({
+        action: "TEMPLATE",
+        text: event.title,
+        dates: `${gStart}/${gEnd}`,
+        ctz: event.timezone ?? "UTC",
+        details: event.description ?? "",
+        location: event.location ?? "",
+      });
+      googleUrl = `https://calendar.google.com/calendar/render?${params.toString()}`;
+    }
+    return { icsUrl, googleUrl };
+  }, [event]);
+
   useEffect(() => {
     if (!alias) return;
     getEvent(alias)
@@ -152,8 +207,36 @@ export default function EventDetailScreen() {
           {new Date(event.start_date).toLocaleString()}
         </Text>
       ) : null}
+      {localTimeLabel ? (
+        <Text style={{ color: colors.mutedForeground, marginTop: 2 }}>🕒 Your time: {localTimeLabel}</Text>
+      ) : null}
       {event.location ? (
         <Text style={{ color: colors.mutedForeground, marginTop: 2 }}>📍 {event.location}</Text>
+      ) : null}
+
+      {calendarUrls ? (
+        <View style={styles.calRow}>
+          {calendarUrls.googleUrl ? (
+            <Pressable
+              onPress={() => Linking.openURL(calendarUrls.googleUrl!)}
+              style={[styles.calBtn, { borderColor: colors.border }]}
+            >
+              <Feather name="calendar" size={14} color={colors.primary} />
+              <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>
+                Google Calendar
+              </Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            onPress={() => Linking.openURL(calendarUrls.icsUrl)}
+            style={[styles.calBtn, { borderColor: colors.border }]}
+          >
+            <Feather name="download" size={14} color={colors.primary} />
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>
+              .ics download
+            </Text>
+          </Pressable>
+        </View>
       ) : null}
 
       {/* Task #3736: map thumbnail when the event has geocoded coordinates.
@@ -596,6 +679,16 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: "800" },
   section: { fontSize: 16, fontWeight: "700" },
   mapWrap: { marginTop: 12, borderRadius: 12, overflow: "hidden" },
+  calRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
+  calBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
   organizerCard: {
     marginTop: 12,
     padding: 10,

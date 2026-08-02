@@ -166,6 +166,40 @@ class IntegrationsController extends Controller
     }
 
     // ═════════════════════════════════════════════════════════════
+    // Microsoft Outlook / 365 Calendar OAuth (Graph two-way sync)
+    // ═════════════════════════════════════════════════════════════
+
+    public function editMicrosoftCalendar()
+    {
+        return view('admin.integrations.microsoft-calendar', [
+            'status'       => PlatformServiceSettings::microsoftCalendarStatus(),
+            'clientId'     => PlatformServiceSettings::microsoftCalendarClientId(),
+            'hasSecret'    => PlatformServiceSettings::microsoftCalendarClientSecret() !== null,
+            'maskedSecret' => PlatformServiceSettings::maskedMicrosoftCalendarClientSecret(),
+        ]);
+    }
+
+    public function updateMicrosoftCalendar(Request $request)
+    {
+        $data = $request->validate([
+            'client_id'           => 'nullable|string|max:255',
+            'client_secret'       => 'nullable|string|max:255',
+            'clear_client_secret' => 'nullable|boolean',
+        ]);
+
+        PlatformServiceSettings::setMicrosoftCalendarClientId($data['client_id'] ?? null);
+
+        if ($request->boolean('clear_client_secret')) {
+            PlatformServiceSettings::setMicrosoftCalendarClientSecret(null);
+        } elseif (!empty($data['client_secret'])) {
+            PlatformServiceSettings::setMicrosoftCalendarClientSecret($data['client_secret']);
+        }
+
+        return redirect()->route('admin.integrations.microsoft-calendar.edit')
+            ->with('success', 'Microsoft Calendar OAuth settings saved.');
+    }
+
+    // ═════════════════════════════════════════════════════════════
     // Google Custom Search (AI builder image search)
     // ═════════════════════════════════════════════════════════════
 

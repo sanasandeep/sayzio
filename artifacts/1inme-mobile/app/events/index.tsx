@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { Image } from "expo-image";
-import { router } from "expo-router";
+import { Stack, router } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -124,6 +124,24 @@ export default function EventsDirectoryScreen() {
 
   return (
     <View style={[styles.wrap, { backgroundColor: colors.background }]}>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push("/events/create")}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Create event"
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
+              <Feather name="plus" size={18} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                Create
+              </Text>
+            </Pressable>
+          ),
+        }}
+      />
       <View style={styles.searchRow}>
         <View
           style={[
@@ -241,9 +259,30 @@ export default function EventsDirectoryScreen() {
                   contentFit="cover"
                 />
               ) : null}
-              <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-                {item.title}
-              </Text>
+              <View style={styles.titleRow}>
+                <Text
+                  style={[styles.cardTitle, { color: colors.foreground, flex: 1 }]}
+                >
+                  {item.title}
+                </Text>
+                {item.cancelled ? (
+                  <View
+                    style={[
+                      styles.cancelledBadge,
+                      { backgroundColor: colors.destructive },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.cancelledBadgeText,
+                        { color: colors.destructiveForeground },
+                      ]}
+                    >
+                      Cancelled
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
               {item.category_label ? (
                 <View style={styles.categoryRow}>
                   <AppIcon
@@ -364,6 +403,20 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 16,
+    fontWeight: "700",
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  cancelledBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  cancelledBadgeText: {
+    fontSize: 11,
     fontWeight: "700",
   },
   categoryRow: {

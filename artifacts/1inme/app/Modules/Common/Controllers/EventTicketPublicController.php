@@ -23,6 +23,11 @@ class EventTicketPublicController extends Controller
     {
         $link = Link::where('alias', $alias)->where('type', 'ics')->firstOrFail();
         abort_unless((bool) (($link->settings ?? [])['ticketing_enabled'] ?? false), 404);
+        // Cancelled events don't sell tickets (Sayzio events cancel flow).
+        // Shared gate with the API buy flow so the two can't drift.
+        if (($reason = $link->eventTicketSalesClosedReason()) !== null) {
+            return back()->with('error', $reason);
+        }
 
         $data = $request->validate([
             'tier_id'  => ['required', 'integer'],

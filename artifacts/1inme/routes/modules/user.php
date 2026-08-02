@@ -872,6 +872,11 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links-ics', [IcsLinkController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links', CheckPlanLimit::class . ':events'])->name('links.ics.store');
         Route::get('links-ics/{link}/edit', [IcsLinkController::class, 'edit'])->middleware('workspace.can:links.edit')->name('links.ics.edit');
         Route::put('links-ics/{link}', [IcsLinkController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.ics.update');
+        // ===== Cancel / reactivate an event (Sayzio events). Confirm screen with
+        // an optional "notify all guests" step; state lives in the link settings JSON.
+        Route::get ('links-ics/{link}/cancel', [IcsLinkController::class, 'cancelConfirm'])->middleware('workspace.can:links.edit')->name('links.ics.cancel');
+        Route::post('links-ics/{link}/cancel', [IcsLinkController::class, 'cancel'])->middleware('workspace.can:links.edit')->name('links.ics.cancel.confirm');
+        Route::post('links-ics/{link}/reactivate', [IcsLinkController::class, 'reactivate'])->middleware('workspace.can:links.edit')->name('links.ics.reactivate');
 
         // ===== Event ticketing (Task #3589): tier CRUD + sales dashboard + door check-in.
         Route::get('links-ics/{link}/tickets', [\App\Modules\User\Controllers\EventTicketTierController::class, 'index'])->middleware('workspace.can:links.view')->name('links.ics.tickets');
@@ -881,6 +886,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links-ics/{link}/checkin', [\App\Modules\User\Controllers\EventCheckinController::class, 'scanner'])->middleware('workspace.can:links.view')->name('links.ics.checkin');
         Route::post('links-ics/{link}/checkin/scan', [\App\Modules\User\Controllers\EventCheckinController::class, 'scan'])->middleware('workspace.can:links.edit')->name('links.ics.checkin.scan');
         Route::get('links-ics/{link}/checkin/progress', [\App\Modules\User\Controllers\EventCheckinController::class, 'progress'])->middleware('workspace.can:links.view')->name('links.ics.checkin.progress');
+        // ===== Message guests: organizer → guest broadcast (venue moved, time changed, cancellation).
+        Route::get ('links-ics/{link}/broadcast', [\App\Modules\User\Controllers\EventBroadcastController::class, 'index'])->middleware('workspace.can:links.view')->name('links.ics.broadcast');
+        Route::get ('links-ics/{link}/broadcast/count', [\App\Modules\User\Controllers\EventBroadcastController::class, 'count'])->middleware('workspace.can:links.view')->name('links.ics.broadcast.count');
+        Route::post('links-ics/{link}/broadcast', [\App\Modules\User\Controllers\EventBroadcastController::class, 'send'])->middleware(['workspace.can:links.edit', 'throttle:30,1'])->name('links.ics.broadcast.send');
         Route::get('links-ics/{link}/people', [\App\Modules\User\Controllers\EventPeopleController::class, 'dashboard'])->middleware('workspace.can:links.view')->name('links.ics.people');
         Route::get('links-ics/{link}/people/stats', [\App\Modules\User\Controllers\EventPeopleController::class, 'stats'])->middleware('workspace.can:links.view')->name('links.ics.people.stats');
         // Task #5052 — attendee "My swaps" per event: JSON list + withdraw,

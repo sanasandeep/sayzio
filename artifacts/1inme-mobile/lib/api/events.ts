@@ -89,6 +89,8 @@ export type EventItem = {
   location: string | null;
   start_date: string | null;
   end_date: string | null;
+  /** Organizer timezone (IANA); used to render a guest-local time line and the Google Calendar ctz. */
+  timezone: string | null;
   latitude: number | null;
   longitude: number | null;
   category: string | null;
@@ -101,6 +103,12 @@ export type EventItem = {
   category_label: string | null;
   category_icon: string | null;
   ticketing_enabled: boolean;
+  /**
+   * Event cancellation (Sayzio events): mirrors the web "cancelled" banner.
+   * `cancelled_at` is an ISO8601 string, or null when the event is live.
+   */
+  cancelled: boolean;
+  cancelled_at: string | null;
   /**
    * Task #3674: true for any free (non-ticketed) event unless the organizer
    * explicitly opted out — RSVP is on by default now, not opt-in.
@@ -374,6 +382,114 @@ export async function getEventTicket(
   return ticket;
 }
 
+// ── Owner: event create / edit (essentials) ────────────────────────
+
+/**
+ * The read-only advanced-settings summary shown on the mobile edit screen.
+ * These are editable on the web only (recurrence, RSVP questions, calendar
+ * sync) — mobile shows a summary + an "edit on the web" note.
+ */
+export type EventAdvancedSummary = {
+  recurrence: string;
+  rsvp_question_count: number;
+  calendar_sync_mode: string;
+  ticketing_enabled: boolean;
+};
+
+/** Full editable payload for an organizer-owned event (essentials only). */
+export type OwnerEvent = {
+  id: number;
+  alias: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  timezone: string;
+  visibility: string;
+  capacity: number | null;
+  rsvp_enabled: boolean;
+  /** Event cancellation state (Sayzio events). */
+  cancelled: boolean;
+  cancelled_at: string | null;
+  web_edit_url: string;
+  advanced: EventAdvancedSummary;
+};
+
+/**
+ * The cancel response: the refreshed OwnerEvent plus notification outcome.
+ * When `notify_guests` was requested and the broadcast hit its rate limit,
+ * `broadcast_skipped` is true and `broadcast_message` carries the reason so
+ * the app can point the organizer at the broadcast screen. `notified_count`
+ * is the number of guests emailed (null when no notify was requested).
+ */
+export type CancelEventResult = OwnerEvent & {
+  notified_count: number | null;
+  broadcast_skipped: boolean;
+  broadcast_message: string | null;
+};
+
+export type EventInput = {
+  title: string;
+  description?: string | null;
+  location?: string | null;
+  start_date: string;
+  end_date: string;
+  timezone: string;
+  capacity?: number | null;
+  rsvp_enabled?: boolean;
+  visibility?: string;
+};
+
+export async function createEvent(input: EventInput): Promise<OwnerEvent> {
+  const res = await apiFetch<{ data: OwnerEvent }>("/events", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return res.data;
+}
+
+export async function getOwnerEvent(linkId: number): Promise<OwnerEvent> {
+  const res = await apiFetch<{ data: OwnerEvent }>(`/links/${linkId}/event`);
+  return res.data;
+}
+
+export async function updateEvent(
+  linkId: number,
+  input: EventInput,
+): Promise<OwnerEvent> {
+  const res = await apiFetch<{ data: OwnerEvent }>(`/links/${linkId}/event`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  return res.data;
+}
+
+/**
+ * Officially cancel an event. When `notifyGuests` is true the server also
+ * fires the cancellation broadcast to all RSVPs; if that hits the rate limit
+ * the event is STILL cancelled and the result carries `broadcast_skipped`.
+ */
+export async function cancelEvent(
+  linkId: number,
+  notifyGuests: boolean,
+): Promise<CancelEventResult> {
+  const res = await apiFetch<{ data: CancelEventResult }>(
+    `/links/${linkId}/event/cancel`,
+    { method: "POST", body: JSON.stringify({ notify_guests: notifyGuests }) },
+  );
+  return res.data;
+}
+
+/** Reactivate a previously-cancelled event. */
+export async function reactivateEvent(linkId: number): Promise<OwnerEvent> {
+  const res = await apiFetch<{ data: OwnerEvent }>(
+    `/links/${linkId}/event/reactivate`,
+    { method: "POST" },
+  );
+  return res.data;
+}
+
 // ── Owner: tier management + door check-in ─────────────────────────
 
 export type OwnerTicketingTotals = {
@@ -632,4 +748,47 @@ export async function cancelContactExchange(
   await apiFetch(`/me/contact-exchanges/${exchangeId}/cancel`, {
     method: "POST",
   });
+}
+
+// ── Message guests: organizer → guest broadcast ─────────────────────
+
+export type BroadcastAudience =
+  | "going"
+  | "waitlist"
+  | "all_rsvps"
+  | "ticket_holders";
+
+export type EventBroadcast = {
+  id: number;
+  audience: BroadcastAudience;
+  audience_label: string;
+  subject: string;
+  message: string;
+  recipients_count: number;
+  created_at: string | null;
+};
+
+export type BroadcastOverview = {
+  counts: Record<BroadcastAudience, number>;
+  broadcasts: EventBroadcast[];
+};
+
+export async function getEventBroadcasts(
+  linkId: number,
+): Promise<BroadcastOverview> {
+  const res = await apiFetch<{ data: BroadcastOverview }>(
+    `/links/${linkId}/broadcasts`,
+  );
+  return res.data;
+}
+
+export async function sendEventBroadcast(
+  linkId: number,
+  input: { audience: BroadcastAudience; subject: string; message: string },
+): Promise<EventBroadcast> {
+  const res = await apiFetch<{ data: EventBroadcast }>(
+    `/links/${linkId}/broadcasts`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return res.data;
 }

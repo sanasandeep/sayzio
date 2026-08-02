@@ -38,6 +38,10 @@ class PlatformServiceSettings
     public const KEY_GOOGLE_CALENDAR_CLIENT_ID      = 'google_calendar.client_id';
     public const KEY_GOOGLE_CALENDAR_CLIENT_SEC_ENC = 'google_calendar.client_secret_enc';
 
+    // ── Microsoft Outlook / 365 Calendar OAuth (Graph two-way sync) ─
+    public const KEY_MICROSOFT_CALENDAR_CLIENT_ID      = 'microsoft_calendar.client_id';
+    public const KEY_MICROSOFT_CALENDAR_CLIENT_SEC_ENC = 'microsoft_calendar.client_secret_enc';
+
     // ── S3 / CloudFront user-content storage ──────────────────────
     // KEY_S3_ENABLED is intentionally retired: S3 is now mandatory for user
     // content, there is no admin-facing "disable S3" switch. The constant is
@@ -249,6 +253,67 @@ class PlatformServiceSettings
             return ['key' => 'configured', 'label' => 'Configured', 'tone' => 'green'];
         }
         if (self::googleCalendarConfigured()) {
+            return ['key' => 'env', 'label' => 'Using env fallback', 'tone' => 'amber'];
+        }
+        return ['key' => 'preview', 'label' => 'Not configured', 'tone' => 'slate'];
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Microsoft Outlook / 365 Calendar OAuth (Graph two-way sync)
+    // ═════════════════════════════════════════════════════════════
+
+    public static function microsoftCalendarClientId(): ?string
+    {
+        $admin = AppSetting::get(self::KEY_MICROSOFT_CALENDAR_CLIENT_ID);
+        if (is_string($admin) && trim($admin) !== '') return trim($admin);
+        $cfg = (string) (config('services.microsoft_calendar.client_id') ?: env('MICROSOFT_CALENDAR_CLIENT_ID', ''));
+        return $cfg !== '' ? $cfg : null;
+    }
+
+    public static function microsoftCalendarClientSecret(): ?string
+    {
+        $admin = self::decrypt(self::KEY_MICROSOFT_CALENDAR_CLIENT_SEC_ENC);
+        if ($admin !== null && $admin !== '') return $admin;
+        $cfg = (string) (config('services.microsoft_calendar.client_secret') ?: env('MICROSOFT_CALENDAR_CLIENT_SECRET', ''));
+        return $cfg !== '' ? $cfg : null;
+    }
+
+    public static function setMicrosoftCalendarClientId(?string $v): void
+    {
+        AppSetting::put(self::KEY_MICROSOFT_CALENDAR_CLIENT_ID, self::cleanScalar($v));
+    }
+
+    public static function setMicrosoftCalendarClientSecret(?string $v): void
+    {
+        self::storeSecret(self::KEY_MICROSOFT_CALENDAR_CLIENT_SEC_ENC, $v);
+    }
+
+    public static function maskedMicrosoftCalendarClientSecret(): ?string
+    {
+        return self::maskSecret(self::microsoftCalendarClientSecret());
+    }
+
+    public static function microsoftCalendarHasAdminValue(): bool
+    {
+        $id  = AppSetting::get(self::KEY_MICROSOFT_CALENDAR_CLIENT_ID);
+        $sec = self::decrypt(self::KEY_MICROSOFT_CALENDAR_CLIENT_SEC_ENC);
+        return (is_string($id) && trim($id) !== '') || ($sec !== null && $sec !== '');
+    }
+
+    public static function microsoftCalendarConfigured(): bool
+    {
+        return self::microsoftCalendarClientId() !== null && self::microsoftCalendarClientSecret() !== null;
+    }
+
+    public static function microsoftCalendarStatus(): array
+    {
+        if (self::microsoftCalendarHasAdminValue()) {
+            if (!self::microsoftCalendarConfigured()) {
+                return ['key' => 'incomplete', 'label' => 'Incomplete (need both)', 'tone' => 'amber'];
+            }
+            return ['key' => 'configured', 'label' => 'Configured', 'tone' => 'green'];
+        }
+        if (self::microsoftCalendarConfigured()) {
             return ['key' => 'env', 'label' => 'Using env fallback', 'tone' => 'amber'];
         }
         return ['key' => 'preview', 'label' => 'Not configured', 'tone' => 'slate'];
@@ -807,6 +872,12 @@ class PlatformServiceSettings
             config([
                 'services.google_calendar.client_id'     => self::googleCalendarClientId(),
                 'services.google_calendar.client_secret' => self::googleCalendarClientSecret(),
+            ]);
+        }
+        if (self::microsoftCalendarHasAdminValue()) {
+            config([
+                'services.microsoft_calendar.client_id'     => self::microsoftCalendarClientId(),
+                'services.microsoft_calendar.client_secret' => self::microsoftCalendarClientSecret(),
             ]);
         }
 

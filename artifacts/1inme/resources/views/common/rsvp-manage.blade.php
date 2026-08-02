@@ -92,6 +92,9 @@
         <h1 class="h4 fw-bold mb-1">{{ $link->title ?: $link->alias }}</h1>
         <div class="small">
             <span class="pill pill-{{ $rsvp->status }}">{{ $rsvp->status }}</span>
+            @if($rsvp->status === 'waitlist' && !empty($waitlistPosition))
+                <span class="ms-2"><i class="fas fa-list-ol me-1"></i>#{{ $waitlistPosition }} in line</span>
+            @endif
             @if($link->icsData?->start_date)
                 <span class="ms-2"><i class="far fa-clock me-1"></i>
                     {{ $link->icsData->start_date->setTimezone(new \DateTimeZone($link->icsData->timezone ?: 'UTC'))->format('D, M j · g:i A') }}

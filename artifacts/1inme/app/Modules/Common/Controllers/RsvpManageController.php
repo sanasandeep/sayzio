@@ -18,7 +18,22 @@ class RsvpManageController extends Controller
     public function show(Request $request, string $alias, string $token)
     {
         [$link, $rsvp] = $this->resolve($alias, $token);
-        return view('common.rsvp-manage', compact('link', 'rsvp'));
+
+        // Show waitlisted guests their place in line (1-based, oldest first).
+        $waitlistPosition = null;
+        if ($rsvp->status === 'waitlist') {
+            $waitlistPosition = 1 + (int) Rsvp::where('link_id', $link->id)
+                ->where('status', 'waitlist')
+                ->where(function ($q) use ($rsvp) {
+                    $q->where('created_at', '<', $rsvp->created_at)
+                      ->orWhere(function ($q2) use ($rsvp) {
+                          $q2->where('created_at', $rsvp->created_at)->where('id', '<', $rsvp->id);
+                      });
+                })
+                ->count();
+        }
+
+        return view('common.rsvp-manage', compact('link', 'rsvp', 'waitlistPosition'));
     }
 
     public function update(Request $request, string $alias, string $token)
@@ -27,6 +42,7 @@ class RsvpManageController extends Controller
         $s = (array) ($link->settings ?? []);
         $rsvpSettings = (array) ($s['rsvp_settings'] ?? []);
         $allowPlusOnes = !empty($s['rsvp_allow_plus_ones']);
+        $seatsBefore = $rsvp->seatsConsumed();
 
         $rules = [
             'name'      => ['required', 'string', 'max:120'],
@@ -66,15 +82,37 @@ class RsvpManageController extends Controller
         // (possibly just-changed) response/status.
         \App\Services\Events\RsvpTicketService::sync($rsvp);
 
+        // If this edit freed seats (dropped to "no"/cancelled or fewer
+        // plus-ones), auto-promote the oldest waitlisted guest that now fits.
+        if ($rsvp->fresh()->seatsConsumed() < $seatsBefore) {
+            try {
+                app(\App\Modules\User\Services\WaitlistPromotionService::class)->promoteForLink($link);
+            } catch (\Throwable $e) {
+                logger()->warning('Waitlist promotion (guest update) failed: ' . $e->getMessage());
+            }
+        }
+
         return redirect()->route('redirect.rsvp.manage', [$alias, $token])
             ->with('success', 'Your RSVP was updated.');
     }
 
     public function cancel(Request $request, string $alias, string $token)
     {
-        [, $rsvp] = $this->resolve($alias, $token);
+        [$link, $rsvp] = $this->resolve($alias, $token);
+        $wasConfirmed = $rsvp->status === 'confirmed';
         $rsvp->update(['status' => 'cancelled', 'response' => 'no']);
         \App\Services\Events\RsvpTicketService::sync($rsvp);
+
+        // A confirmed guest cancelling frees a seat — auto-promote the oldest
+        // waitlisted guest that fits (free RSVPs only), race-safe.
+        if ($wasConfirmed) {
+            try {
+                app(\App\Modules\User\Services\WaitlistPromotionService::class)->promoteForLink($link);
+            } catch (\Throwable $e) {
+                logger()->warning('Waitlist promotion (guest cancel) failed: ' . $e->getMessage());
+            }
+        }
+
         return redirect()->route('redirect.rsvp.manage', [$alias, $token])
             ->with('success', 'Your RSVP has been cancelled.');
     }

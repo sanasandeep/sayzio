@@ -47,12 +47,19 @@
                     <span><i class="fab fa-google mr-2 text-pink-400"></i> Google Calendar</span>
                     <i class="fas fa-arrow-right text-xs opacity-50"></i>
                 </a>
+                @if(!empty($microsoftConfigured))
                 <a href="{{ route('user.calendar.connect', 'microsoft') }}" class="flex items-center justify-between w-full px-4 py-3 mb-2 rounded-xl text-sm font-medium transition" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--text-primary);" onmouseover="this.style.background='rgba(61,107,255,0.12)'; this.style.borderColor='rgba(61,107,255,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'; this.style.borderColor='rgba(255,255,255,0.08)'">
-                    <span><i class="fab fa-microsoft mr-2 text-blue-400"></i> Microsoft 365 / Outlook
-                        <span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(245,158,11,.18);color:#f59e0b">Beta</span>
-                    </span>
+                    <span><i class="fab fa-microsoft mr-2 text-blue-400"></i> Microsoft 365 / Outlook</span>
                     <i class="fas fa-arrow-right text-xs opacity-50"></i>
                 </a>
+                @else
+                <div class="flex items-center justify-between w-full px-4 py-3 mb-2 rounded-xl text-sm font-medium" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); color: var(--text-muted); cursor: not-allowed;" title="Microsoft Calendar OAuth is not configured yet.">
+                    <span><i class="fab fa-microsoft mr-2 text-blue-400 opacity-60"></i> Microsoft 365 / Outlook
+                        <span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(148,163,184,.18);color:#94a3b8">Unavailable</span>
+                    </span>
+                    <i class="fas fa-lock text-xs opacity-40"></i>
+                </div>
+                @endif
                 <a href="{{ route('user.calendar.connect', 'caldav') }}" class="flex items-center justify-between w-full px-4 py-3 rounded-xl text-sm font-medium transition" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--text-primary);" onmouseover="this.style.background='rgba(61,107,255,0.12)'; this.style.borderColor='rgba(61,107,255,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'; this.style.borderColor='rgba(255,255,255,0.08)'">
                     <span><i class="fas fa-server mr-2 text-emerald-400"></i> CalDAV (iCloud, Fastmail…)
                         <span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(245,158,11,.18);color:#f59e0b">Beta</span>
@@ -60,6 +67,41 @@
                     <i class="fas fa-arrow-right text-xs opacity-50"></i>
                 </a>
             </div>
+
+            {{-- Apple Calendar (ICS / webcal subscribe) --}}
+            @if(!empty($appleWebcalUrl))
+            <div class="card-premium p-5 mt-5">
+                <h3 class="text-base font-bold mb-1" style="color: var(--text-primary);"><i class="fab fa-apple mr-1.5" style="color:#e5e7eb"></i> Apple Calendar</h3>
+                <p class="text-xs mb-3" style="color: var(--text-muted);">Subscribe on iPhone, iPad or Mac to see every event you own and follow. It refreshes automatically — no sign-in needed.</p>
+
+                <a href="{{ $appleWebcalUrl }}" class="flex items-center justify-center gap-2 w-full px-4 py-2.5 mb-3 rounded-xl text-sm font-semibold transition" style="background: rgba(61,107,255,0.15); border: 1px solid rgba(61,107,255,0.35); color: #90acff;" onmouseover="this.style.background='rgba(61,107,255,0.25)'" onmouseout="this.style.background='rgba(61,107,255,0.15)'">
+                    <i class="fas fa-calendar-plus"></i> Subscribe in Apple Calendar
+                </a>
+
+                <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1" style="color: var(--text-faint);">Feed URL (for other apps)</label>
+                <div class="flex items-stretch gap-2">
+                    <input id="apple-feed-url" type="text" readonly value="{{ $appleFeedUrl }}"
+                           class="flex-1 min-w-0 px-3 py-2 rounded-lg text-xs font-mono truncate"
+                           style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-muted);"
+                           onclick="this.select()">
+                    <button type="button" onclick="copyAppleFeedUrl(this)"
+                            class="shrink-0 inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium transition"
+                            style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);"
+                            onmouseover="this.style.background='rgba(61,107,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">
+                        <i class="fas fa-copy text-[10px]"></i> <span>Copy</span>
+                    </button>
+                </div>
+
+                <details class="mt-3 text-xs" style="color: var(--text-muted);">
+                    <summary class="cursor-pointer font-medium" style="color: var(--text-primary);">Manual setup instructions</summary>
+                    <ol class="list-decimal ml-4 mt-2 space-y-1">
+                        <li><b>iPhone / iPad:</b> Settings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar, then paste the feed URL above.</li>
+                        <li><b>Mac:</b> Calendar app → File → New Calendar Subscription, then paste the feed URL.</li>
+                        <li>Tapping “Subscribe in Apple Calendar” opens the <code>webcal://</code> link directly on Apple devices.</li>
+                    </ol>
+                </details>
+            </div>
+            @endif
 
             {{-- Workspace-owner-only auto-sync default. --}}
             @if($accounts->where('push_enabled', true)->isNotEmpty())
@@ -172,3 +214,26 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+function copyAppleFeedUrl(btn) {
+    var input = document.getElementById('apple-feed-url');
+    if (!input) return;
+    var value = input.value;
+    var done = function () {
+        var label = btn.querySelector('span');
+        var prev = label ? label.textContent : null;
+        if (label) label.textContent = 'Copied!';
+        setTimeout(function () { if (label && prev !== null) label.textContent = prev; }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(done).catch(function () {
+            input.select(); document.execCommand('copy'); done();
+        });
+    } else {
+        input.select(); document.execCommand('copy'); done();
+    }
+}
+</script>
+@endpush

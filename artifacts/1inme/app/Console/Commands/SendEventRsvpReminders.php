@@ -38,6 +38,8 @@ class SendEventRsvpReminders extends Command
 
         foreach ($links as $link) {
             $s = (array) ($link->settings ?? []);
+            // Cancelled events get no reminders (Sayzio events cancel flow).
+            if ($link->isEventCancelled()) continue;
             // Task #3674: RSVP is available by default now, so reminders must
             // key off the same isRsvpAvailable() gate, not the legacy toggle.
             if (!\App\Modules\Common\Controllers\RedirectController::isRsvpAvailable($link)) continue;

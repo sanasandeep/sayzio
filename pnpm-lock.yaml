@@ -69,15 +69,16 @@ catalogs:
 
 overrides:
   tar: 7.5.22
-  brace-expansion: 5.0.8
-  minimatch@<4>brace-expansion: 1.1.12
+  brace-expansion: 5.0.9
+  minimatch@<4>brace-expansion: 1.1.18
   js-yaml: 5.2.2
   picomatch: 2.3.2
   path-to-regexp: 8.4.2
   shell-quote: 1.9.0
   linkify-it: 5.0.2
   lodash: 4.18.1
-  fast-uri: 4.1.0
+  fast-uri: 4.1.2
+  postcss: 8.5.25
   form-data: 4.0.6
   '@expo/cli>undici': 6.27.0
   '@expo/cli>ws': 8.21.0
@@ -743,8 +744,8 @@ importers:
         specifier: ^8.2.2
         version: 8.2.2
       electron:
-        specifier: ^36.0.0
-        version: 36.9.5
+        specifier: ^37.0.0
+        version: 37.10.3
       electron-builder:
         specifier: ^26.0.0
         version: 26.15.3
@@ -3483,11 +3484,11 @@ packages:
     resolution: {integrity: sha512-apC2+fspHGI3mMKj+dGevkGo/tCqVB8jMb6i+OX+E29p0Iposz07fABkRIfVUPNd5A5VbuOz1bZbnmkKLYF+wQ==}
     engines: {node: '>= 5.10.0'}
 
-  brace-expansion@1.1.12:
-    resolution: {integrity: sha512-9T9UjW3r0UW5c1Q7GTwllptXwhvYmEzFhzMfZ9H7FQWt+uZePjZPjBP/W1ZEyZ1twGWom5/56TF4lPcqjnDHcg==}
+  brace-expansion@1.1.18:
+    resolution: {integrity: sha512-Edep/X9fGqVNmzKBVsDYIOtD+z1tuezV70LBjdCst9Tqu76lsnvRiZ6oTic1n+/BIwX6QDGAO94PN4N2SADvtw==}
 
-  brace-expansion@5.0.8:
-    resolution: {integrity: sha512-JZyDyq3D4AUifKTPOB7DELf6XsB3WdPuNxCtob1vFXPsSXhdAiHBWJ/tJ8HAc9aH84BK+5JFZLNkJKx3G9kzQg==}
+  brace-expansion@5.0.9:
+    resolution: {integrity: sha512-ScQ4IuvIEF1TMlP7Zt+vjJ//9zlPb2SDcxWxM3bk8s6t6GGdJ7KO1dCcTidOPJKePW30LE/2cT7wCyPho9/Wxg==}
     engines: {node: 20 || >=22}
 
   braces@3.0.3:
@@ -4138,8 +4139,8 @@ packages:
   electron-updater@6.8.9:
     resolution: {integrity: sha512-ZhVxM9iGONUpZGI1FxdMRgJjUFXi7AYGVa5PwKlO1tV1/4zDxQmfKpXOHVztKrd6L9rLcFjERvi1Mf2vxyTkig==}
 
-  electron@36.9.5:
-    resolution: {integrity: sha512-1UCss2IqxqujSzg/2jkRjuiT3G+EEXgd6UKB5kUekwQW1LJ6d4QCr8YItfC3Rr9VIGRDJ29eOERmnRNO1Eh+NA==}
+  electron@37.10.3:
+    resolution: {integrity: sha512-3IjCGSjQmH50IbW2PFveaTzK+KwcFX9PEhE7KXb9v5IT8cLAiryAN7qezm/XzODhDRlLu0xKG1j8xWBtZ/bx/g==}
     engines: {node: '>= 12.20.55'}
     hasBin: true
 
@@ -4637,8 +4638,8 @@ packages:
   fast-safe-stringify@2.1.1:
     resolution: {integrity: sha512-W+KJc2dmILlPplD/H4K9l9LcAHAfPtP6BY84uVLXQ6Evcz9Lcg33Y2z1IVblT6xdY54PXYVHEv+0Wpq8Io6zkA==}
 
-  fast-uri@4.1.0:
-    resolution: {integrity: sha512-ZodJ2cRiLVWGi9IgPb3mbgSqM4CD3LexCHkuv0FfBXHJI1ADfucTD06m6clO2Cy5RZYsw/SiCVl/dyrFI/SYWA==}
+  fast-uri@4.1.2:
+    resolution: {integrity: sha512-TyGmBcbDTZXcb2cj5MV89DrF42DKvb3y5DDUNh95iO+IMeAzMkVSxK1PZRrRIpc9yg8U2GhGdbofNa0LS/a4Bw==}
 
   fastq@1.20.1:
     resolution: {integrity: sha512-GGToxJ/w1x32s/D2EKND7kTil4n8OVk/9mycTc4VDza13lOvpUZTGX3mFSCtV9ksdGBVzvsyAVLM6mHFThxXxw==}
@@ -5591,6 +5592,11 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
+  nanoid@3.3.16:
+    resolution: {integrity: sha512-bzlKTyNJ7+LdGIIwy8ijFpIqEQIvafahV7eYykJ8Cvh42EdJeODoJ6gUJXpQJvej1BddH8OqTXZNE/KfbWAu8Q==}
+    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
+    hasBin: true
+
   napi-build-utils@2.0.0:
     resolution: {integrity: sha512-GEbrYkbfF7MoNaoh2iGG84Mnf/WZfB0GdGEsM8wz7Expx/LlWf5U8t9nvJKXSp3qr5IsEbK04cBGhol/KwOsWA==}
 
@@ -5938,12 +5944,8 @@ packages:
   postcss-value-parser@4.2.0:
     resolution: {integrity: sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==}
 
-  postcss@8.4.49:
-    resolution: {integrity: sha512-OCVPnIObs4N29kxTjzLfUryOkvZEq+pf8jTF0lg8E7uETuWHA+v7j3c/xJmiqpX450191LlmZfUKkXxkTry7nA==}
-    engines: {node: ^10 || ^12 || >=14}
-
-  postcss@8.5.16:
-    resolution: {integrity: sha512-vuwillviilfKZsg0VGj5R/YwwcHx4SLsIOI/7K6mQkWx+l5cUHTjj5g0AasTBcyXsbfTgrwsUNmVUb5xVwyPwg==}
+  postcss@8.5.25:
+    resolution: {integrity: sha512-DTPx3RWSSnWyzLxQnlH0rJP+EW5ekl16ZU4/psbIhA0e53kJfdgaN5vKM+xP7yJtXVu+nfdVFmlgFDEKAe4Pyw==}
     engines: {node: ^10 || ^12 || >=14}
 
   postgres-array@2.0.0:
@@ -8630,7 +8632,7 @@ snapshots:
       jsc-safe-url: 0.2.4
       lightningcss: 1.32.0
       minimatch: 9.0.9
-      postcss: 8.4.49
+      postcss: 8.5.25
       resolve-from: 5.0.0
     optionalDependencies:
       expo: 54.0.36(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.24)(react-native-webview@13.15.0(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
@@ -8660,7 +8662,7 @@ snapshots:
       jsc-safe-url: 0.2.4
       lightningcss: 1.32.0
       picomatch: 2.3.2
-      postcss: 8.4.49
+      postcss: 8.5.25
       resolve-from: 5.0.0
     optionalDependencies:
       expo: 54.0.36(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.24)(react-native-webview@13.15.0(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
@@ -10795,7 +10797,7 @@ snapshots:
   ajv@8.18.0:
     dependencies:
       fast-deep-equal: 3.1.3
-      fast-uri: 4.1.0
+      fast-uri: 4.1.2
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
@@ -11190,12 +11192,12 @@ snapshots:
     dependencies:
       big-integer: 1.6.52
 
-  brace-expansion@1.1.12:
+  brace-expansion@1.1.18:
     dependencies:
       balanced-match: 1.0.2
       concat-map: 0.0.1
 
-  brace-expansion@5.0.8:
+  brace-expansion@5.0.9:
     dependencies:
       balanced-match: 4.0.4
 
@@ -11816,7 +11818,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  electron@36.9.5:
+  electron@37.10.3:
     dependencies:
       '@electron/get': 2.0.3
       '@types/node': 22.20.1
@@ -12363,7 +12365,7 @@ snapshots:
 
   fast-safe-stringify@2.1.1: {}
 
-  fast-uri@4.1.0: {}
+  fast-uri@4.1.2: {}
 
   fastq@1.20.1:
     dependencies:
@@ -13379,19 +13381,19 @@ snapshots:
 
   minimatch@10.2.5:
     dependencies:
-      brace-expansion: 5.0.8
+      brace-expansion: 5.0.9
 
   minimatch@3.1.5:
     dependencies:
-      brace-expansion: 1.1.12
+      brace-expansion: 1.1.18
 
   minimatch@5.1.9:
     dependencies:
-      brace-expansion: 5.0.8
+      brace-expansion: 5.0.9
 
   minimatch@9.0.9:
     dependencies:
-      brace-expansion: 5.0.8
+      brace-expansion: 5.0.9
 
   minimist@1.2.8: {}
 
@@ -13426,6 +13428,8 @@ snapshots:
   nanoid@3.3.11: {}
 
   nanoid@3.3.15: {}
+
+  nanoid@3.3.16: {}
 
   napi-build-utils@2.0.0: {}
 
@@ -13794,15 +13798,9 @@ snapshots:
 
   postcss-value-parser@4.2.0: {}
 
-  postcss@8.4.49:
+  postcss@8.5.25:
     dependencies:
-      nanoid: 3.3.15
-      picocolors: 1.1.1
-      source-map-js: 1.2.1
-
-  postcss@8.5.16:
-    dependencies:
-      nanoid: 3.3.15
+      nanoid: 3.3.16
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
@@ -15124,7 +15122,7 @@ snapshots:
       esbuild: 0.27.3
       fdir: 6.5.0(picomatch@2.3.2)
       picomatch: 2.3.2
-      postcss: 8.5.16
+      postcss: 8.5.25
       rollup: 4.59.0
       tinyglobby: 0.2.17
     optionalDependencies:
@@ -15141,7 +15139,7 @@ snapshots:
       esbuild: 0.27.3
       fdir: 6.5.0(picomatch@2.3.2)
       picomatch: 2.3.2
-      postcss: 8.5.16
+      postcss: 8.5.25
       rollup: 4.59.0
       tinyglobby: 0.2.17
     optionalDependencies:
@@ -15157,7 +15155,7 @@ snapshots:
     dependencies:
       lightningcss: 1.32.0
       picomatch: 2.3.2
-      postcss: 8.5.16
+      postcss: 8.5.25
       rolldown: 1.1.5
       tinyglobby: 0.2.17
     optionalDependencies:

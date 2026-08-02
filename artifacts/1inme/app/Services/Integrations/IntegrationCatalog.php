@@ -172,6 +172,15 @@ class IntegrationCatalog
                         'route'    => route('admin.integrations.google-calendar.edit'),
                         'external' => false,
                     ],
+                    [
+                        'key'      => 'microsoft-calendar',
+                        'label'    => 'Microsoft Calendar OAuth',
+                        'desc'     => 'OAuth client powering two-way Microsoft Outlook / 365 calendar sync via Microsoft Graph (event mirror + push).',
+                        'icon'     => 'fab fa-microsoft',
+                        'status'   => PlatformServiceSettings::microsoftCalendarStatus(),
+                        'route'    => route('admin.integrations.microsoft-calendar.edit'),
+                        'external' => false,
+                    ],
                 ],
             ],
             [

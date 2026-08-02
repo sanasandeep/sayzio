@@ -656,6 +656,7 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs" style="color: var(--text-secondary);">
                         <label class="flex items-center gap-2"><input type="hidden" name="rsvp_waitlist_enabled" value="0"><input type="checkbox" name="rsvp_waitlist_enabled" value="1" {{ old('rsvp_waitlist_enabled', !empty($rsvpSettings['waitlist_enabled'])) ? 'checked':'' }}> Auto-waitlist when full</label>
+                        <label class="flex items-center gap-2"><input type="hidden" name="rsvp_waitlist_auto_promote" value="0"><input type="checkbox" name="rsvp_waitlist_auto_promote" value="1" {{ old('rsvp_waitlist_auto_promote', ($rsvpSettings['waitlist_auto_promote'] ?? true) !== false) ? 'checked':'' }}> Auto-promote waitlist when a spot opens</label>
                         <label class="flex items-center gap-2"><input type="hidden" name="rsvp_send_confirmation" value="0"><input type="checkbox" name="rsvp_send_confirmation" value="1" {{ old('rsvp_send_confirmation', $rsvpSettings['send_confirmation'] ?? true) ? 'checked':'' }}> Email guests a confirmation</label>
                         <label class="flex items-center gap-2"><input type="hidden" name="rsvp_notify_owner" value="0"><input type="checkbox" name="rsvp_notify_owner" value="1" {{ old('rsvp_notify_owner', $rsvpSettings['notify_owner'] ?? true) ? 'checked':'' }}> Email me on each RSVP</label>
                     </div>
@@ -748,6 +749,49 @@
             </button>
         </div>
     </form>
+
+    {{-- Cancel / reactivate event (Sayzio events). Kept out of the main form
+         so it's an explicit, deliberate action with its own confirm step. --}}
+    <div class="mt-8 rounded-xl p-5" style="background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.22);">
+        @if($link->isEventCancelled())
+            <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(239,68,68,0.15); color: #ef4444;">
+                    <i class="fas fa-ban"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="text-sm font-semibold text-red-300">This event is cancelled</div>
+                    <div class="text-xs mt-0.5 text-red-300/70">
+                        Cancelled {{ optional($link->eventCancelledAt())->diffForHumans() }}. The public page shows a cancellation banner and RSVPs / ticket sales are closed.
+                    </div>
+                    <form method="POST" action="{{ route('user.links.ics.reactivate', $link) }}" class="mt-3"
+                          onsubmit="return window.themedConfirmSubmit(this, {title: 'Reactivate this event?', message: 'The event will go live again and start accepting RSVPs / ticket sales.', confirmText: 'Reactivate', confirmIcon: 'fa-rotate-left', iconClass: 'fa-rotate-left'})">
+                        @csrf
+                        <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-1.5"
+                                style="background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); color: #34d399;">
+                            <i class="fas fa-rotate-left"></i> Reactivate event
+                        </button>
+                    </form>
+                </div>
+            </div>
+        @else
+            <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(239,68,68,0.15); color: #ef4444;">
+                    <i class="fas fa-triangle-exclamation"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="text-sm font-semibold text-red-300">Cancel this event</div>
+                    <div class="text-xs mt-0.5 text-red-300/70">
+                        Call off the event and (optionally) notify every guest. You can reactivate it later — nothing is deleted.
+                    </div>
+                    <a href="{{ route('user.links.ics.cancel', $link) }}"
+                       class="mt-3 px-4 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-1.5"
+                       style="background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #ef4444;">
+                        <i class="fas fa-ban"></i> Cancel event…
+                    </a>
+                </div>
+            </div>
+        @endif
+    </div>
 
     @include('user.links.partials.embed-panel', ['link' => $link])
 </div>

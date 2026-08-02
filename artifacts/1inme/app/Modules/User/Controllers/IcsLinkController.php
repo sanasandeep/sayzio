@@ -105,6 +105,10 @@ class IcsLinkController extends Controller
 
         $validated = $this->validateRequest($request, $link);
 
+        // Capture the pre-edit RSVP capacity so a raise can auto-promote
+        // waitlisted guests after the settings are saved (Task waitlist).
+        $oldRsvpCapacity = (int) (((array) $link->settings)['rsvp_settings']['capacity'] ?? 0);
+
         $newSettings = (array) $link->settings;
 
         // These keys are only present on the full edit form. A settings-only
@@ -196,8 +200,93 @@ class IcsLinkController extends Controller
 
         $this->syncToCalendar($link->fresh('icsData'), 'updated');
 
+        // Raising the RSVP capacity may free seats for waitlisted guests —
+        // auto-promote the oldest that fit (free RSVPs only), race-safe.
+        $newRsvpCapacity = (int) ($newSettings['rsvp_settings']['capacity'] ?? 0);
+        if ($newRsvpCapacity > $oldRsvpCapacity) {
+            try {
+                app(\App\Modules\User\Services\WaitlistPromotionService::class)
+                    ->promoteForLink($link->fresh());
+            } catch (\Throwable $e) {
+                logger()->warning('Waitlist promotion (rsvp capacity raise) failed: ' . $e->getMessage());
+            }
+        }
+
         return redirect()->route('user.links.show', $link)
             ->with('success', 'Event updated successfully.');
+    }
+
+    /**
+     * Cancel-event confirmation screen. Offers an optional "notify all
+     * guests" checkbox that, when checked, fires the cancellation broadcast
+     * to `all_rsvps` on submit (see cancel()).
+     */
+    public function cancelConfirm(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== workspace_owner_id(), 403);
+        abort_if($link->type !== 'ics', 404);
+
+        $recipientCount = app(\App\Modules\User\Services\EventBroadcastService::class)
+            ->recipientCount($link, 'all_rsvps');
+
+        return view('user.links.cancel-event', compact('link', 'recipientCount'));
+    }
+
+    /**
+     * Mark an event as cancelled. Additive settings-only change (no
+     * migration): stores `event_cancelled` + `event_cancelled_at`. When the
+     * organizer opts in, also fires the cancellation broadcast to every
+     * RSVP; if the broadcast hits its rate limit we STILL cancel the event
+     * and surface a notice pointing at the broadcast page.
+     */
+    public function cancel(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== workspace_owner_id(), 403);
+        abort_if($link->type !== 'ics', 404);
+
+        // Shared cancel logic (settings state + calendar sync) lives in the
+        // service so the mobile API cancel flow can't drift.
+        app(\App\Modules\User\Services\EventCancellationService::class)->cancel($link);
+
+        $notify = $request->boolean('notify_guests');
+        if ($notify) {
+            $subject = 'Cancelled: ' . ($link->title ?: 'our event');
+            $message = "We're sorry to share that this event has been cancelled. "
+                . "We apologise for any inconvenience. If you have any questions, please reply to this email.";
+            try {
+                $broadcast = app(\App\Modules\User\Services\EventBroadcastService::class)
+                    ->send($link, (int) workspace_owner_id(), 'all_rsvps', $subject, $message);
+
+                $msg = $broadcast->recipients_count > 0
+                    ? "Event cancelled. Notified {$broadcast->recipients_count} guest(s)."
+                    : 'Event cancelled. No guests matched — no notification was sent.';
+
+                return redirect()->route('user.links.show', $link)->with('success', $msg);
+            } catch (\App\Modules\User\Services\EventBroadcastLimitException $e) {
+                // The event is already cancelled; the guest notice just
+                // couldn't go out right now. Point them at the broadcast page.
+                return redirect()->route('user.links.ics.broadcast', $link)
+                    ->with('error', 'Event cancelled, but guests were not notified: ' . $e->getMessage()
+                        . ' You can send the cancellation notice below.');
+            }
+        }
+
+        // No auto-notify: hand off to the broadcast page with the
+        // cancellation preset ready so the organizer can notify everyone.
+        return redirect()->route('user.links.ics.broadcast', ['link' => $link, 'preset' => 'cancellation'])
+            ->with('success', 'Event cancelled. You can notify your guests below.');
+    }
+
+    /** Reactivate a previously-cancelled event (organizers make mistakes). */
+    public function reactivate(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== workspace_owner_id(), 403);
+        abort_if($link->type !== 'ics', 404);
+
+        app(\App\Modules\User\Services\EventCancellationService::class)->reactivate($link);
+
+        return redirect()->route('user.links.show', $link)
+            ->with('success', 'Event reactivated. It is live again.');
     }
 
     private function validateRequest(Request $request, ?Link $link): array
@@ -463,6 +552,9 @@ class IcsLinkController extends Controller
         return array_filter([
             'capacity'              => $capacity !== null && $capacity !== '' ? max(0, (int) $capacity) : null,
             'waitlist_enabled'      => $request->boolean('rsvp_waitlist_enabled'),
+            // Auto-promote the oldest waitlisted guest when a seat frees up.
+            // Defaults ON; the hidden field ensures an unchecked box stores false.
+            'waitlist_auto_promote' => $request->boolean('rsvp_waitlist_auto_promote', true),
             'deadline'              => $deadline ?: null,
             'send_confirmation'     => $request->boolean('rsvp_send_confirmation', true),
             'notify_owner'          => $request->boolean('rsvp_notify_owner', true),

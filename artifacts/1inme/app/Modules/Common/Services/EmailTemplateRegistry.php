@@ -591,6 +591,22 @@ class EmailTemplateRegistry
             // ----------------------------------------------------------------
             // Digests
             // ----------------------------------------------------------------
+            'social.special_date_wish' => [
+                'category' => 'digests',
+                'label' => 'Special-date wish',
+                'description' => "Tells followers it's a creator's birthday / anniversary / release day so they can send wishes.",
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => "It's {{creator_name}}'s {{occasion}} today!",
+                'pref_type' => 'special_date_wish',
+                'body' => "Today is {{creator_name}}'s (@{{handle}}) {{occasion}} — send your wishes!\n\nVisit their profile: {{profile_url}}",
+                'variables' => [
+                    'creator_name' => ['label' => 'Creator display name', 'sample' => 'Jane Doe'],
+                    'handle' => ['label' => 'Creator handle', 'sample' => 'jane'],
+                    'occasion' => ['label' => 'Occasion', 'sample' => 'birthday'],
+                    'profile_url' => ['label' => 'Creator profile URL', 'sample' => 'https://sayz.io/@jane'],
+                ],
+            ],
             'digests.follower' => [
                 'category' => 'digests',
                 'label' => 'Follower daily digest',
@@ -762,6 +778,43 @@ class EmailTemplateRegistry
                 'view' => 'emails.event-rsvp-reminder-text',
                 'subject' => 'Reminder: {{title}}',
                 'variables' => [
+                    'title' => ['label' => 'Event title', 'sample' => 'Launch Party'],
+                ],
+            ],
+            'events.waitlist_promoted' => [
+                'category' => 'events',
+                'label' => 'Waitlist — you\'re in',
+                'description' => 'Tells a free-RSVP guest they were auto-promoted off the waitlist to confirmed.',
+                'format' => 'html',
+                'body_type' => 'mailable',
+                'view' => 'emails.event-waitlist-promoted-text',
+                'subject' => 'You\'re in: {{title}}',
+                'variables' => [
+                    'title' => ['label' => 'Event title', 'sample' => 'Launch Party'],
+                ],
+            ],
+            'events.waitlist_spot_opened' => [
+                'category' => 'events',
+                'label' => 'Waitlist — a spot opened (paid)',
+                'description' => 'Invites the next waitlisted guest of a paid tier to purchase a ticket now that a spot has opened.',
+                'format' => 'html',
+                'body_type' => 'mailable',
+                'view' => 'emails.event-waitlist-promoted-text',
+                'subject' => 'A spot opened up: {{title}}',
+                'variables' => [
+                    'title' => ['label' => 'Event title', 'sample' => 'Launch Party'],
+                ],
+            ],
+            'events.guest_broadcast' => [
+                'category' => 'events',
+                'label' => 'Guest broadcast',
+                'description' => 'A free-form message an organizer sends to their event guests (venue moved, time changed, cancellation).',
+                'format' => 'html',
+                'body_type' => 'mailable',
+                'view' => 'emails.event-guest-broadcast-text',
+                'subject' => '{{subject}}',
+                'variables' => [
+                    'subject' => ['label' => 'Message subject', 'sample' => 'Venue has changed'],
                     'title' => ['label' => 'Event title', 'sample' => 'Launch Party'],
                 ],
             ],

@@ -30,6 +30,11 @@ return [
         'cadence'     => ['hourlyAt', 0],
     ],
     [
+        'key'         => 'special-dates:send-wishes',
+        'description' => "Fan out follower wish notifications for creators' special dates happening today (9 AM in each creator's own timezone; deduped per occurrence).",
+        'cadence'     => ['hourlyAt', 5],
+    ],
+    [
         'key'         => 'events:send-new-alerts',
         'description' => 'Alert opted-in users about new public events created near their saved location (instant, or batched at 9 AM local for daily-digest users).',
         'cadence'     => ['hourly'],

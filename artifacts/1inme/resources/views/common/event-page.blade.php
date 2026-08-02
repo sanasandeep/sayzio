@@ -5,6 +5,7 @@
     $eventCategory = ($link->settings ?? [])['event_category'] ?? '';
     $isOnline = !empty(($link->settings ?? [])['is_online']);
     $rsvpEnabled = $rsvpAvailable ?? !empty(($link->settings ?? [])['rsvp_enabled']);
+    $eventCancelled = $link->isEventCancelled();
     $hasTicketTiers = isset($tiers) && $tiers->isNotEmpty();
     $categoryGradient = \App\Modules\User\Support\EventCategories::gradient($eventCategory ?: '');
     $hasPin = !$isOnline && $ics && $ics->latitude !== null && $ics->longitude !== null;
@@ -12,6 +13,33 @@
         ? 'https://www.google.com/maps/dir/?api=1&destination=' . rawurlencode($ics->latitude . ',' . $ics->longitude)
         : null;
     $metaDescription = \Illuminate\Support\Str::limit($ics->description ?? $link->title, 180);
+
+    // Guest-local time + add-to-calendar data (Google deep link expects UTC
+    // dates in the compact "Ymd\THis\Z" form). $eventTz is the organizer's
+    // timezone; the small inline JS below compares it against the viewer's
+    // own Intl timezone and only shows the "in your timezone" line when they
+    // differ. The .ics download reuses the existing `?ics=1` endpoint, which
+    // already emits per-event VEVENTs with a proper DTSTART;TZID (IcsData::toIcs).
+    $eventTz = $ics && $ics->timezone ? $ics->timezone : 'UTC';
+    $googleCalUrl = null;
+    $startIso = null;
+    $endIso = null;
+    if ($ics && $ics->start_date) {
+        $startTz = $ics->start_date->copy()->setTimezone(new \DateTimeZone($eventTz));
+        $endTz = ($ics->end_date ?: $ics->start_date->copy()->addHour())->copy()->setTimezone(new \DateTimeZone($eventTz));
+        $startIso = $startTz->toIso8601String();
+        $endIso = $endTz->toIso8601String();
+        $gStart = $startTz->copy()->setTimezone('UTC')->format('Ymd\THis\Z');
+        $gEnd = $endTz->copy()->setTimezone('UTC')->format('Ymd\THis\Z');
+        $googleCalUrl = 'https://calendar.google.com/calendar/render?' . http_build_query([
+            'action'   => 'TEMPLATE',
+            'text'     => $link->title,
+            'dates'    => $gStart . '/' . $gEnd,
+            'ctz'      => $eventTz,
+            'details'  => (string) ($ics->description ?? ''),
+            'location' => (string) ($ics->location ?? ''),
+        ]);
+    }
 
     // Host/organizer card is rendered in the right column below (Task #3731);
     // compute it here so it's available outside event-rich-content, which is
@@ -168,6 +196,22 @@
             </div>
         @endif
 
+        @if($eventCancelled)
+            <div class="mb-5 px-4 py-4 rounded-xl text-sm font-medium flex items-start gap-3"
+                 style="background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: #ef4444;">
+                <i class="fas fa-ban mt-0.5"></i>
+                <div>
+                    <div class="font-bold text-base">This event has been cancelled</div>
+                    <div class="mt-1" style="color: rgba(239,68,68,0.9);">
+                        The organizer has called off this event. RSVPs and ticket sales are closed.
+                        @if($hasTicketTiers)
+                            If you purchased a ticket, please contact the organizer about a refund.
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <div class="ev-card overflow-hidden">
             <div class="p-6 sm:p-8 lg:p-10">
                 <div class="grid lg:grid-cols-3 gap-8 lg:gap-10">
@@ -208,7 +252,15 @@
                                     @if($ics && $ics->start_date)
                                         <div class="ev-meta-chip inline-flex items-center gap-2 text-sm font-medium px-3 py-1.5">
                                             <i class="far fa-clock ev-accent-text"></i>
-                                            {{ $ics->start_date->setTimezone(new \DateTimeZone($ics->timezone ?: 'UTC'))->format('D, M j Y · g:i A') }}
+                                            {{ $ics->start_date->setTimezone(new \DateTimeZone($eventTz))->format('D, M j Y · g:i A') }}
+                                        </div>
+                                        {{-- Guest-local time (Task): rendered client-side from the
+                                             ISO8601 start emitted below; hidden entirely when the
+                                             viewer's timezone matches the event timezone. --}}
+                                        <div id="ev-local-time" class="ev-meta-chip inline-flex items-center gap-2 text-sm font-medium px-3 py-1.5"
+                                             data-start="{{ $startIso }}" data-event-tz="{{ $eventTz }}" hidden>
+                                            <i class="far fa-user-clock ev-accent-text"></i>
+                                            <span data-local-label></span>
                                         </div>
                                     @endif
                                     @if($ics && $ics->location)
@@ -235,7 +287,15 @@
                     {{-- Sticky CTA column --}}
                     <div class="lg:col-span-1">
                         <div class="lg:sticky lg:top-24">
-                            @if($hasTicketTiers)
+                            @if($eventCancelled)
+                                <div class="ev-card p-5 text-center">
+                                    <span class="ev-accent-icon-badge w-10 h-10 rounded-lg inline-flex items-center justify-center mb-3" style="background: rgba(239,68,68,0.16); border-color: rgba(239,68,68,0.3); color:#ef4444;">
+                                        <i class="fas fa-ban"></i>
+                                    </span>
+                                    <p class="text-sm ev-strong font-semibold">Event cancelled</p>
+                                    <p class="text-xs ev-muted mt-1">RSVPs and ticket sales are closed for this event.</p>
+                                </div>
+                            @elseif($hasTicketTiers)
                                 <form method="POST" action="{{ route('redirect.event.buy', $link->alias) }}" id="ticket-form" class="ev-card p-5">
                                     @csrf
                                     <div class="flex items-center gap-2.5 mb-4">
@@ -306,10 +366,21 @@
                                 </div>
                             @endif
 
+                            @if($ics && $ics->start_date)
+                                <div class="flex flex-wrap items-center justify-center gap-3 mt-4 text-sm">
+                                    @if($googleCalUrl)
+                                        <a href="{{ $googleCalUrl }}" target="_blank" rel="noopener"
+                                           class="inline-flex items-center gap-1.5 ev-chip px-4 py-2 rounded-xl hover:opacity-80 transition">
+                                            <i class="fab fa-google"></i> Google Calendar
+                                        </a>
+                                    @endif
+                                    <a href="{{ url('/' . $link->alias . '?ics=1') }}"
+                                       class="inline-flex items-center gap-1.5 ev-chip px-4 py-2 rounded-xl hover:opacity-80 transition">
+                                        <i class="fas fa-calendar-plus"></i> .ics download
+                                    </a>
+                                </div>
+                            @endif
                             <div class="flex flex-wrap items-center justify-center gap-3 mt-4 text-sm">
-                                <a href="{{ url('/' . $link->alias . '?ics=1') }}" class="inline-flex items-center gap-1.5 ev-chip px-4 py-2 rounded-xl hover:opacity-80 transition">
-                                    <i class="fas fa-calendar-plus"></i> Add to calendar
-                                </a>
                                 <a href="{{ auth('web')->check() ? route('user.links.create') : (route('user.login') . '?redirect=' . urlencode(route('user.links.create'))) }}"
                                    class="inline-flex items-center gap-1.5 ev-chip px-4 py-2 rounded-xl hover:opacity-80 transition">
                                     <i class="fas fa-plus"></i> Create your own event
@@ -371,6 +442,34 @@
     </div>
 </section>
 @endsection
+
+@push('scripts')
+<script>
+// Guest-local event time: render the start in the viewer's own timezone via
+// Intl.DateTimeFormat, but only when it differs from the organizer's timezone
+// (otherwise the organizer line already covers it). Vanilla JS to match this
+// page's conventions; theme-agnostic since it reuses the .ev-meta-chip styling.
+(function () {
+    var el = document.getElementById('ev-local-time');
+    if (!el) return;
+    var iso = el.dataset.start;
+    var eventTz = el.dataset.eventTz;
+    if (!iso) return;
+    try {
+        var viewerTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (viewerTz && eventTz && viewerTz === eventTz) return;
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return;
+        var fmt = new Intl.DateTimeFormat(undefined, {
+            weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+            hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+        });
+        el.querySelector('[data-local-label]').textContent = 'Your time: ' + fmt.format(d);
+        el.hidden = false;
+    } catch (e) { /* Intl unsupported — leave the line hidden */ }
+})();
+</script>
+@endpush
 
 @if($hasPin)
 @push('scripts')

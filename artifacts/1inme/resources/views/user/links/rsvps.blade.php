@@ -13,6 +13,7 @@
             ['icon' => 'fa-users text-emerald-400', 'text' => $counts['total'] . ' responses'],
         ],
         'actions' => [
+            ['label' => 'Message guests', 'url' => route('user.links.ics.broadcast', $link), 'icon' => 'fa-paper-plane', 'class' => 'btn-secondary'],
             ['label' => 'Export CSV', 'url' => route('user.links.rsvps.export', $link), 'icon' => 'fa-download', 'class' => 'btn-primary'],
         ],
     ])
@@ -147,6 +148,9 @@
                                 <span class="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider" style="background: {{ $scolor }}1f; color: {{ $scolor }}">
                                     {{ $slabel }}
                                 </span>
+                                @if($r->status === 'waitlist' && !empty($waitlistPositions[$r->id]))
+                                    <div class="text-[10px] mt-1" style="color: var(--text-muted);">#{{ $waitlistPositions[$r->id] }} in line</div>
+                                @endif
                             </td>
                             <td class="py-3" style="color: var(--text-primary);">{{ $r->plus_ones }}</td>
                             <td class="py-3 text-xs capitalize" style="color: var(--text-muted);">{{ str_replace('_',' ', $r->source) }}</td>

@@ -53,7 +53,18 @@ class RsvpController extends Controller
         $s = (array) ($link->settings ?? []);
         $rsvpSettings = (array) ($s['rsvp_settings'] ?? []);
 
-        return view('user.links.rsvps', compact('link', 'rsvps', 'counts', 'rsvpSettings'));
+        // Waitlist position map (1-based, oldest first) so the guest list can
+        // show each waitlisted guest their place in line.
+        $waitlistPositions = $link->rsvps()
+            ->where('status', 'waitlist')
+            ->orderBy('created_at')->orderBy('id')
+            ->pluck('id')
+            ->values()
+            ->flip()
+            ->map(fn ($i) => $i + 1)
+            ->all();
+
+        return view('user.links.rsvps', compact('link', 'rsvps', 'counts', 'rsvpSettings', 'waitlistPositions'));
     }
 
     public function export(Request $request, Link $link): StreamedResponse
@@ -97,7 +108,19 @@ class RsvpController extends Controller
     {
         abort_if($link->user_id !== workspace_owner_id(), 403);
         abort_if($rsvp->link_id !== $link->id, 404);
+        $freedSeat = $rsvp->status === 'confirmed';
         $rsvp->delete();
+
+        // Removing a confirmed guest frees a seat — auto-promote the oldest
+        // waitlisted guest that fits (free RSVPs only), race-safe.
+        if ($freedSeat) {
+            try {
+                app(\App\Modules\User\Services\WaitlistPromotionService::class)->promoteForLink($link);
+            } catch (\Throwable $e) {
+                Log::warning('Waitlist promotion (organizer remove) failed: ' . $e->getMessage());
+            }
+        }
+
         return back()->with('success', 'RSVP removed.');
     }
 

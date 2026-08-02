@@ -538,6 +538,25 @@
             </section>
         @endif
 
+        {{-- ── Special dates (Task #6551) ──────────────────────── --}}
+        @if(($sectionsVisible['special_dates'] ?? true) && !empty($specialDates))
+            <section class="cp-card mt-3 p-5" data-cpd="m">
+                <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Special dates</h2>
+                <div class="flex flex-wrap gap-2">
+                    @foreach($specialDates as $sd)
+                        <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100">
+                            <i class="{{ $sd['icon'] }} text-slate-400 text-sm"></i>
+                            <span class="text-sm font-semibold text-slate-700">{{ $sd['title'] }}</span>
+                            <span class="text-xs text-slate-500">— {{ $sd['next_label'] }}</span>
+                            @if($sd['is_today'])
+                                <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Today</span>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
         {{-- ── Socials ─────────────────────────────────────────── --}}
         @if(($sectionsVisible['socials'] ?? true) && is_array($creator->socials) && count($creator->socials))
             <section class="cp-card mt-3 p-5" data-cpd="m">
