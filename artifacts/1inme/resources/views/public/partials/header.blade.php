@@ -106,7 +106,7 @@
           and bring it back the instant the visitor scrolls up. Always visible
           near the very top. Open menus force-show via the :class binding. --}}
      @scroll.window.passive="let y = window.scrollY; scrolled = y > 8; let d = y - navLastY; if (y <= 96) { navHidden = false; navAccum = 0; } else if (d > 0) { navAccum += d; if (navAccum > 24) navHidden = true; } else if (d < 0) { navAccum = 0; navHidden = false; } navLastY = y"
-     x-effect="document.body.style.overflow = (mobileOpen{{ $useModal ? ' || authOpen' : '' }}) ? 'hidden' : ''"
+     x-effect="document.body.style.overflow = (mobileOpen{{ $useModal ? ' || authOpen' : '' }}) ? 'hidden' : ''; document.documentElement.classList.toggle('mega-menu-open', openMenu !== null)"
      @keydown.escape.window="openMenu=null; mobileOpen=false; mobileGroup=null"{!! $useModal ? ' @open-auth.window="authTab = ($event.detail && $event.detail.tab) || \'register\'; authHandle = ($event.detail && $event.detail.handle) || \'\'; authOpen = true; mobileOpen = false"' : '' !!}>
 <nav class="{{ $fixed ? 'fixed' : 'sticky' }} top-0 inset-x-0 {{ $fixed ? 'z-50' : 'z-40' }} mkt-nav-autohide"
      :class="{ 'mkt-nav-hidden': navHidden && openMenu === null && !mobileOpen, 'mkt-nav-drawer-open': mobileOpen }"

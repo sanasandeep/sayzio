@@ -183,11 +183,34 @@
         z-index: 1;
     }
 
-    .glass {
-        background: var(--bg-glass);
-        border: 1px solid var(--border-glass);
-        box-shadow: var(--card-shadow);
-        border-radius: var(--radius-card);
+    .glass, .card-premium, .stat-card {
+        background: rgba(255, 255, 255, 0.04) !important;
+        border: 1px solid transparent !important;
+        border-radius: 1.5rem !important;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 12px 32px rgba(0, 0, 0, 0.4) !important;
+    }
+    @supports (backdrop-filter: blur(8px)) {
+        html:not(.light-mode) .glass,
+        html:not(.light-mode) .card-premium,
+        html:not(.light-mode) .stat-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.01) 100%) !important;
+            backdrop-filter: blur(6px) saturate(180%) brightness(1.1) !important;
+            -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.1) !important;
+        }
+    }
+    html.light-mode .glass, html.light-mode .card-premium, html.light-mode .stat-card {
+        background: rgba(255, 255, 255, 0.15) !important;
+        border: 1px solid transparent !important;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 12px 32px rgba(0, 0, 0, 0.08) !important;
+    }
+    @supports (backdrop-filter: blur(8px)) {
+        html.light-mode .glass,
+        html.light-mode .card-premium,
+        html.light-mode .stat-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%) !important;
+            backdrop-filter: blur(6px) saturate(180%) brightness(1.05) !important;
+            -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.05) !important;
+        }
     }
     .glass-light {
         background: var(--bg-glass-light);
@@ -199,10 +222,6 @@
     /* ===== CARD SYSTEM (Metronic demo1 — flat, 1.5px border, micro shadow) ===== */
     .card-premium {
         position: relative;
-        background: var(--bg-card);
-        border: 1.5px solid var(--border-glass);
-        border-radius: var(--radius-card);
-        box-shadow: var(--card-shadow);
         transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         overflow: hidden;
     }
@@ -223,8 +242,10 @@
     .card-premium > .py-6 { padding-top: 2.25rem;   padding-bottom: 2.25rem; }
     .card-premium::before { display: none; }
     .card-premium:hover {
-        border-color: var(--border-glass-light);
-        box-shadow: var(--card-shadow-hover);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 20px 45px rgba(0, 0, 0, 0.6) !important;
+    }
+    html.light-mode .card-premium:hover {
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 20px 45px rgba(0, 0, 0, 0.12) !important;
     }
 
     /* Card decorations disabled in Metronic flat style */
@@ -265,11 +286,7 @@
     .stat-card {
         position: relative;
         overflow: hidden;
-        background: var(--bg-card);
-        border: 1.5px solid var(--border-glass);
-        border-radius: var(--radius-card);
         padding: 1.875rem 1.875rem 2rem;
-        box-shadow: var(--card-shadow);
         transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.2s ease;
     }
     /* Animated SVG decorative wave — drifting in the background of every stat card */
@@ -302,9 +319,11 @@
     .stat-card > * { position: relative; z-index: 1; }
     .stat-card::before, .stat-card::after { display: none !important; }
     .stat-card:hover {
-        border-color: var(--border-glass-light);
-        box-shadow: var(--card-shadow-hover);
         transform: translateY(-2px);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 20px 45px rgba(0, 0, 0, 0.6) !important;
+    }
+    html.light-mode .stat-card:hover {
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 20px 45px rgba(0, 0, 0, 0.12) !important;
     }
     /* Subtle colored top accent — reuses the per-tile --stat-accent gradient set
        inline in markup; adds quiet brand-colored depth without heavy chrome.
@@ -327,23 +346,15 @@
     @media (prefers-reduced-motion: reduce) {
         .stat-card:hover { transform: none; }
     }
-    html.light-mode .stat-card.tint-primary,
-    html.light-mode .stat-card.tint-success,
-    html.light-mode .stat-card.tint-info,
-    html.light-mode .stat-card.tint-warning,
-    html.light-mode .stat-card.tint-danger,
-    html.light-mode .stat-card.tint-pink,
-    html.light-mode .stat-card.tint-indigo,
-    html.light-mode .stat-card.tint-teal { background: var(--bg-card) !important; }
-    /* Multi-color stat card variants — smooth gradient + tinted SVG/orb */
-    .stat-card.tint-primary  { background: linear-gradient(135deg, var(--c-primary-soft), transparent 110%); --stat-tint: var(--c-primary); --stat-tint-soft: var(--c-primary-soft); }
-    .stat-card.tint-success  { background: linear-gradient(135deg, var(--c-success-soft), transparent 110%); --stat-tint: var(--c-success); --stat-tint-soft: var(--c-success-soft); }
-    .stat-card.tint-info     { background: linear-gradient(135deg, var(--c-info-soft),    transparent 110%); --stat-tint: var(--c-info);    --stat-tint-soft: var(--c-info-soft); }
-    .stat-card.tint-warning  { background: linear-gradient(135deg, var(--c-warning-soft), transparent 110%); --stat-tint: var(--c-warning); --stat-tint-soft: var(--c-warning-soft); }
-    .stat-card.tint-danger   { background: linear-gradient(135deg, var(--c-danger-soft),  transparent 110%); --stat-tint: var(--c-danger);  --stat-tint-soft: var(--c-danger-soft); }
-    .stat-card.tint-pink     { background: linear-gradient(135deg, var(--c-pink-soft),    transparent 110%); --stat-tint: var(--c-pink);    --stat-tint-soft: var(--c-pink-soft); }
-    .stat-card.tint-indigo   { background: linear-gradient(135deg, var(--c-indigo-soft),  transparent 110%); --stat-tint: var(--c-indigo);  --stat-tint-soft: var(--c-indigo-soft); }
-    .stat-card.tint-teal     { background: linear-gradient(135deg, var(--c-teal-soft),    transparent 110%); --stat-tint: var(--c-teal);    --stat-tint-soft: var(--c-teal-soft); }
+    /* Multi-color stat card variants — tinted SVG/orb */
+    .stat-card.tint-primary  { --stat-tint: var(--c-primary); --stat-tint-soft: var(--c-primary-soft); }
+    .stat-card.tint-success  { --stat-tint: var(--c-success); --stat-tint-soft: var(--c-success-soft); }
+    .stat-card.tint-info     { --stat-tint: var(--c-info);    --stat-tint-soft: var(--c-info-soft); }
+    .stat-card.tint-warning  { --stat-tint: var(--c-warning); --stat-tint-soft: var(--c-warning-soft); }
+    .stat-card.tint-danger   { --stat-tint: var(--c-danger);  --stat-tint-soft: var(--c-danger-soft); }
+    .stat-card.tint-pink     { --stat-tint: var(--c-pink);    --stat-tint-soft: var(--c-pink-soft); }
+    .stat-card.tint-indigo   { --stat-tint: var(--c-indigo);  --stat-tint-soft: var(--c-indigo-soft); }
+    .stat-card.tint-teal     { --stat-tint: var(--c-teal);    --stat-tint-soft: var(--c-teal-soft); }
 
     /* ===== Sidebar nav scrollbar (thin, subtle) ===== */
     .sidebar-nav-scroll {
@@ -533,13 +544,6 @@
     html.light-mode .bg-mesh > .bloom { display: none; }
 
     /* ===== Frosted-glass treatment (dark mode only) ===== */
-    html:not(.light-mode) .glass,
-    html:not(.light-mode) .glass-light,
-    html:not(.light-mode) .card-premium,
-    html:not(.light-mode) .stat-card {
-        backdrop-filter: blur(24px) saturate(140%);
-        -webkit-backdrop-filter: blur(24px) saturate(140%);
-    }
     html:not(.light-mode) .gradient-border {
         backdrop-filter: blur(24px) saturate(140%);
         -webkit-backdrop-filter: blur(24px) saturate(140%);
@@ -555,7 +559,7 @@
         color: white;
         font-size: 0.8125rem;
         font-weight: 600;
-        border-radius: 0.5rem;
+        border-radius: 9999px;
         transition: background 0.15s ease, box-shadow 0.2s ease, transform 0.15s ease;
         box-shadow: 0 1px 2px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.12);
         letter-spacing: -0.005em;
@@ -617,7 +621,7 @@
         color: var(--text-secondary);
         font-size: 0.8125rem;
         font-weight: 500;
-        border-radius: 0.5rem;
+        border-radius: 9999px;
         border: 1px solid var(--border-glass);
         transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
@@ -1138,10 +1142,6 @@
         html.light-mode input::placeholder,
         html.light-mode textarea::placeholder {
             color: var(--text-dimmed) !important;
-        }
-        html.light-mode .glass {
-            background: var(--bg-glass) !important;
-            border-color: var(--border-glass) !important;
         }
         html.light-mode .divide-white\\/5 > * + * {
             border-color: var(--border-subtle) !important;

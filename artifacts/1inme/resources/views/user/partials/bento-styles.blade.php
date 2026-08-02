@@ -77,23 +77,36 @@
         .b-4-tall { grid-column: span 4; grid-row: span 2; }
     }
 
-    /* Layered glass tile — frosted surface, depth shadow, inner highlight, hover lift. */
+    /* Layered liquid glass tile */
     .bento-tile {
         position: relative;
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        background: var(--bg-card);
-        border: 1.5px solid var(--border-glass);
-        border-radius: 1.25rem;
-        box-shadow: var(--card-shadow);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid transparent;
+        border-radius: 1.5rem;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 12px 32px rgba(0, 0, 0, 0.4);
         transition: transform .25s cubic-bezier(.4,0,.2,1), border-color .25s ease, box-shadow .25s ease, background .25s ease;
     }
-    html:not(.light-mode) .bento-tile {
-        background: linear-gradient(160deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018));
-        backdrop-filter: blur(26px) saturate(150%);
-        -webkit-backdrop-filter: blur(26px) saturate(150%);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px -12px rgba(0,0,0,0.55);
+    @supports (backdrop-filter: blur(8px)) {
+        html:not(.light-mode) .bento-tile {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.01) 100%);
+            backdrop-filter: blur(6px) saturate(180%) brightness(1.1);
+            -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.1);
+        }
+    }
+    html.light-mode .bento-tile {
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid transparent;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 12px 32px rgba(0, 0, 0, 0.08);
+    }
+    @supports (backdrop-filter: blur(8px)) {
+        html.light-mode .bento-tile {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%);
+            backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
+            -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
+        }
     }
     .bento-tile::after {
         content: '';
@@ -102,20 +115,19 @@
         border-radius: inherit;
         pointer-events: none;
         background: linear-gradient(180deg, rgba(255,255,255,0.06), transparent 42%);
-        opacity: 0.7;
+        opacity: 0.3;
     }
     html.light-mode .bento-tile::after {
-        opacity: 0.5;
-        background: linear-gradient(180deg, rgba(255,255,255,0.85), transparent 48%);
+        opacity: 0.3;
+        background: linear-gradient(180deg, rgba(255,255,255,0.4), transparent 48%);
     }
     .bento-tile > * { position: relative; z-index: 1; }
     .bento-tile:hover {
         transform: translateY(-4px);
-        border-color: var(--border-glass-light);
-        box-shadow: var(--card-shadow-hover);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 20px 45px rgba(0, 0, 0, 0.6);
     }
-    html:not(.light-mode) .bento-tile:hover {
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 22px 52px -14px rgba(0,0,0,0.7), 0 0 0 1px var(--border-glass-light);
+    html.light-mode .bento-tile:hover {
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 20px 45px rgba(0, 0, 0, 0.12);
     }
     /* Colored top accent bar (metric tiles) */
     .bento-tile.accent::before {
