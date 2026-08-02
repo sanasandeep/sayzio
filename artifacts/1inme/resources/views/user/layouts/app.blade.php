@@ -23,6 +23,20 @@
            and device-preview height calcs — should reference this variable so a
            future header-height change keeps everything in lockstep. */
         :root { --app-header-h: 4rem; }
+        /* Dashboard ambient wash (very soft blue/cyan, low alpha, no heavy blur aurora) */
+        .dashboard-wash {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background: radial-gradient(circle at 15% 20%, rgba(34, 211, 238, 0.03) 0%, transparent 60%),
+                        radial-gradient(circle at 85% 75%, rgba(61, 107, 255, 0.04) 0%, transparent 60%);
+        }
+        html.light-mode .dashboard-wash {
+            background: radial-gradient(circle at 15% 20%, rgba(34, 211, 238, 0.05) 0%, transparent 60%),
+                        radial-gradient(circle at 85% 75%, rgba(61, 107, 255, 0.06) 0%, transparent 60%);
+        }
+
         .sidebar-v2 {
             transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -86,13 +100,38 @@
         }
 
         /* Sidebar shell: visible right border in both modes */
+        /* Dashboard liquid glass utility (sidebar, header, mobile nav) */
+        .dash-glass {
+            background: rgba(255, 255, 255, 0.04) !important;
+            border-color: transparent !important;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 12px 32px rgba(0, 0, 0, 0.4) !important;
+        }
+        @supports (backdrop-filter: blur(8px)) {
+            .dash-glass {
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.01) 100%) !important;
+                backdrop-filter: blur(6px) saturate(180%) brightness(1.1) !important;
+                -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.1) !important;
+            }
+        }
+        html.light-mode .dash-glass {
+            background: rgba(255, 255, 255, 0.15) !important;
+            border-color: transparent !important;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 12px 32px rgba(0, 0, 0, 0.08) !important;
+        }
+        @supports (backdrop-filter: blur(8px)) {
+            html.light-mode .dash-glass {
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%) !important;
+                backdrop-filter: blur(6px) saturate(180%) brightness(1.05) !important;
+                -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.05) !important;
+            }
+        }
+
         .sidebar-shell {
-            border-right: 1px solid var(--border-strong);
-            box-shadow: 1px 0 0 rgba(0,0,0,.10);
+            border-right: none;
+            border-radius: 0 1.5rem 1.5rem 0;
         }
         html.light-mode .sidebar-shell {
-            border-right: 1px solid #cbd5e1;
-            box-shadow: 1px 0 0 rgba(15,23,42,.04);
+            border-right: none;
         }
 
         /* Edge-mounted collapse handle — sits 50% in / 50% out of sidebar */
@@ -436,7 +475,7 @@
     @stack('styles')
 </head>
 <body class="min-h-screen" data-app-layout style="color: var(--text-primary);">
-    <div class="bg-mesh"><span class="bloom bloom-pink"></span></div>
+    <div class="dashboard-wash"></div>
     <div class="particles" id="particles"></div>
 
     <div class="flex h-screen relative z-10 overflow-hidden"
@@ -466,10 +505,9 @@
             }
          }">
 
-        <aside class="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 sidebar-v2 sidebar-shell"
+        <aside class="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 sidebar-v2 sidebar-shell dash-glass"
                :class="sidebarMode === 'icons' ? 'collapsed' : ''"
-               :style="'width:' + sidebarWidth + 'px; transform: translateX(' + (sidebarMode === 'hidden' ? '-100%' : '0') + '); pointer-events:' + (sidebarMode === 'hidden' ? 'none' : 'auto')"
-               style="background: var(--bg-sidebar); backdrop-filter: none; -webkit-backdrop-filter: none;">
+               :style="'width:' + sidebarWidth + 'px; transform: translateX(' + (sidebarMode === 'hidden' ? '-100%' : '0') + '); pointer-events:' + (sidebarMode === 'hidden' ? 'none' : 'auto')">
 
             {{-- Edge-mounted collapse handle (sits 50% in / 50% out of sidebar) --}}
             <button @click="setSidebar(sidebarMode === 'icons' ? 'full' : 'icons')"
@@ -1231,8 +1269,8 @@
         <div class="flex-1 flex flex-col min-w-0 min-h-0 main-content-v2"
              :style="'margin-left:' + (isDesktop ? sidebarWidth : 0) + 'px'">
 
-            <header class="flex-shrink-0 flex items-center justify-between px-4 lg:px-6 z-20 header-v2 relative"
-                    style="height: var(--app-header-h); background: var(--bg-header); backdrop-filter: none; -webkit-backdrop-filter: none; border-bottom: 1px solid var(--border-subtle);">
+            <header class="flex-shrink-0 flex items-center justify-between px-4 lg:px-6 z-20 header-v2 relative dash-glass !rounded-none"
+                    style="height: var(--app-header-h);">
                 <div class="header-glow"></div>
 
                 <div class="flex items-center gap-3 min-w-0">
@@ -1436,7 +1474,7 @@
 
             <div x-show="mobileMenu" x-cloak
                  class="lg:hidden fixed inset-0 z-50 backdrop-blur-sm" @click.self="mobileMenu = false" style="background: var(--overlay-bg);">
-                <div class="w-full h-full flex flex-col" style="background: var(--bg-sidebar-mobile); backdrop-filter: none;">
+                <div class="w-full h-full flex flex-col dash-glass">
                     <div class="h-[64px] flex items-center justify-between px-5" style="border-bottom: 1px solid var(--border-subtle);">
                         <div class="flex items-center gap-2.5">
                             @include('common.partials.brand-logo', ['height' => 'h-7'])
