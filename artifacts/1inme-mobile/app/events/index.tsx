@@ -259,9 +259,30 @@ export default function EventsDirectoryScreen() {
                   contentFit="cover"
                 />
               ) : null}
-              <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-                {item.title}
-              </Text>
+              <View style={styles.titleRow}>
+                <Text
+                  style={[styles.cardTitle, { color: colors.foreground, flex: 1 }]}
+                >
+                  {item.title}
+                </Text>
+                {item.cancelled ? (
+                  <View
+                    style={[
+                      styles.cancelledBadge,
+                      { backgroundColor: colors.destructive },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.cancelledBadgeText,
+                        { color: colors.destructiveForeground },
+                      ]}
+                    >
+                      Cancelled
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
               {item.category_label ? (
                 <View style={styles.categoryRow}>
                   <AppIcon
@@ -382,6 +403,20 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 16,
+    fontWeight: "700",
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  cancelledBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  cancelledBadgeText: {
+    fontSize: 11,
     fontWeight: "700",
   },
   categoryRow: {

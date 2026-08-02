@@ -3,10 +3,16 @@
 namespace Tests\Feature;
 
 use App\Modules\Admin\Models\Plan;
+use App\Modules\User\Models\EventBroadcast;
 use App\Modules\User\Models\IcsData;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\Rsvp;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\Workspace;
+use App\Modules\User\Models\WorkspaceMember;
+use App\Modules\User\Services\EventBroadcastService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -244,5 +250,216 @@ class EventApiCreateUpdateTest extends TestCase
             'end_date'   => '2030-01-01T20:00',
             'timezone'   => 'UTC',
         ])->assertStatus(404);
+    }
+
+    // ─── Cancel / reactivate (mobile mirror of IcsLinkController) ────
+
+    private function rsvp(Link $link, array $attrs): Rsvp
+    {
+        return Rsvp::create(array_merge([
+            'link_id'  => $link->id,
+            'name'     => 'Guest',
+            'response' => 'yes',
+            'status'   => 'confirmed',
+        ], $attrs));
+    }
+
+    public function test_cancel_sets_settings_state_and_reports_in_shape(): void
+    {
+        $user = $this->makeUser();
+        $this->auth($user);
+        $link = $this->makeEvent($user);
+
+        $resp = $this->postJson("/api/v1/links/{$link->id}/event/cancel", [
+            'notify_guests' => false,
+        ]);
+
+        $resp->assertStatus(200);
+        $resp->assertJsonPath('data.cancelled', true);
+        $this->assertNotNull($resp->json('data.cancelled_at'));
+        // No notify requested → no broadcast, no skip flag.
+        $resp->assertJsonPath('data.broadcast_skipped', false);
+        $resp->assertJsonPath('data.notified_count', null);
+
+        $link->refresh();
+        $this->assertTrue($link->isEventCancelled());
+        $this->assertNotNull($link->eventCancelledAt());
+        $this->assertDatabaseCount('event_broadcasts', 0);
+    }
+
+    public function test_cancel_with_notify_broadcasts_to_all_rsvps(): void
+    {
+        Mail::fake();
+        $user = $this->makeUser();
+        $this->auth($user);
+        $link = $this->makeEvent($user);
+
+        $this->rsvp($link, ['email' => 'going@example.com', 'status' => 'confirmed']);
+        $this->rsvp($link, ['email' => 'wait@example.com', 'status' => 'waitlist']);
+        $this->rsvp($link, ['email' => 'gone@example.com', 'status' => 'cancelled']);
+
+        $resp = $this->postJson("/api/v1/links/{$link->id}/event/cancel", [
+            'notify_guests' => true,
+        ]);
+
+        $resp->assertStatus(200);
+        $resp->assertJsonPath('data.cancelled', true);
+        $resp->assertJsonPath('data.broadcast_skipped', false);
+        // 2 non-cancelled guests emailed.
+        $resp->assertJsonPath('data.notified_count', 2);
+
+        $broadcast = EventBroadcast::where('link_id', $link->id)->first();
+        $this->assertNotNull($broadcast);
+        $this->assertSame('all_rsvps', $broadcast->audience);
+        $this->assertSame(2, $broadcast->recipients_count);
+    }
+
+    public function test_cancel_still_cancels_when_broadcast_limited(): void
+    {
+        Mail::fake();
+        $user = $this->makeUser();
+        $this->auth($user);
+        $link = $this->makeEvent($user);
+        $this->rsvp($link, ['email' => 'g@example.com', 'status' => 'confirmed']);
+
+        // Seed the daily cap so the cancellation broadcast is refused.
+        for ($i = 0; $i < EventBroadcastService::DAILY_CAP; $i++) {
+            EventBroadcast::create([
+                'link_id'          => $link->id,
+                'user_id'          => $user->id,
+                'audience'         => 'all_rsvps',
+                'subject'          => "Prior {$i}",
+                'message'          => 'x',
+                'recipients_count' => 1,
+                'created_at'       => now()->subHours(2),
+                'updated_at'       => now()->subHours(2),
+            ]);
+        }
+
+        $resp = $this->postJson("/api/v1/links/{$link->id}/event/cancel", [
+            'notify_guests' => true,
+        ]);
+
+        // Event IS cancelled; only the notice couldn't go out.
+        $resp->assertStatus(200);
+        $resp->assertJsonPath('data.cancelled', true);
+        $resp->assertJsonPath('data.broadcast_skipped', true);
+        $this->assertNotEmpty($resp->json('data.broadcast_message'));
+
+        $this->assertTrue($link->fresh()->isEventCancelled());
+        // No NEW broadcast row was added beyond the seeded cap.
+        $this->assertSame(
+            EventBroadcastService::DAILY_CAP,
+            EventBroadcast::where('link_id', $link->id)->count()
+        );
+    }
+
+    public function test_reactivate_clears_cancelled_state(): void
+    {
+        $user = $this->makeUser();
+        $this->auth($user);
+        $link = $this->makeEvent($user, [
+            'settings' => [
+                'event_cancelled'    => true,
+                'event_cancelled_at' => now()->toIso8601String(),
+            ],
+        ]);
+
+        $resp = $this->postJson("/api/v1/links/{$link->id}/event/reactivate");
+
+        $resp->assertStatus(200);
+        $resp->assertJsonPath('data.cancelled', false);
+        $this->assertNull($resp->json('data.cancelled_at'));
+
+        $link->refresh();
+        $this->assertFalse($link->isEventCancelled());
+        $this->assertNull($link->eventCancelledAt());
+    }
+
+    public function test_cancel_forbidden_for_non_owner(): void
+    {
+        $owner = $this->makeUser();
+        $link  = $this->makeEvent($owner);
+
+        $intruder = $this->makeUser();
+        $this->auth($intruder);
+
+        // A different user hits the workspace-scoped lookup 404 (or the
+        // ownership 403) — either way the event must NOT be cancelled.
+        $status = $this->postJson("/api/v1/links/{$link->id}/event/cancel", [
+            'notify_guests' => false,
+        ])->baseResponse->getStatusCode();
+
+        $this->assertContains($status, [403, 404]);
+        $this->assertFalse($link->fresh()->isEventCancelled());
+    }
+
+    public function test_reactivate_forbidden_for_non_owner(): void
+    {
+        $owner = $this->makeUser();
+        $link  = $this->makeEvent($owner, [
+            'settings' => [
+                'event_cancelled'    => true,
+                'event_cancelled_at' => now()->toIso8601String(),
+            ],
+        ]);
+
+        $intruder = $this->makeUser();
+        $this->auth($intruder);
+
+        $status = $this->postJson("/api/v1/links/{$link->id}/event/reactivate")
+            ->baseResponse->getStatusCode();
+
+        $this->assertContains($status, [403, 404]);
+        // Still cancelled — the intruder couldn't reactivate it.
+        $this->assertTrue($link->fresh()->isEventCancelled());
+    }
+
+    /**
+     * A workspace collaborator holding links.edit CAN edit the event (existing
+     * behavior) but must NOT be able to cancel/reactivate it — that
+     * destructive action is owner-only, matching the web IcsLinkController
+     * policy (link->user_id === workspace_owner_id()).
+     */
+    public function test_collaborator_can_edit_but_not_cancel_or_reactivate(): void
+    {
+        $owner = $this->makeUser();
+        $ws    = $owner->ownedWorkspaces()->first();
+        $link  = $this->makeEvent($owner);
+
+        // Editor role grants links.edit across the workspace.
+        $editor = $this->makeUser();
+        WorkspaceMember::create([
+            'workspace_id' => $ws->id,
+            'user_id'      => $editor->id,
+            'role'         => 'editor',
+        ]);
+        $this->auth($editor);
+
+        // 1) Collaborator CAN PATCH the event (unchanged behavior).
+        $this->patchJson("/api/v1/links/{$link->id}/event", [
+            'title'      => 'Edited By Collaborator',
+            'start_date' => '2030-01-01T18:00',
+            'end_date'   => '2030-01-01T20:00',
+            'timezone'   => 'UTC',
+        ])->assertStatus(200)
+          ->assertJsonPath('data.title', 'Edited By Collaborator');
+
+        // 2) But cancel is refused (owner-only) and the event stays live.
+        $this->postJson("/api/v1/links/{$link->id}/event/cancel", [
+            'notify_guests' => false,
+        ])->assertStatus(403);
+        $this->assertFalse($link->fresh()->isEventCancelled());
+
+        // 3) Reactivate is likewise refused. Cancel it as the owner first so
+        //    there's a cancelled state the collaborator is trying to clear.
+        app(\App\Modules\User\Services\EventCancellationService::class)
+            ->cancel($link->fresh('icsData'));
+        $this->assertTrue($link->fresh()->isEventCancelled());
+
+        $this->postJson("/api/v1/links/{$link->id}/event/reactivate")
+            ->assertStatus(403);
+        // Collaborator couldn't reactivate — still cancelled.
+        $this->assertTrue($link->fresh()->isEventCancelled());
     }
 }

@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -64,6 +64,12 @@ export type EventFormProps = {
   saving?: boolean;
   submitLabel: string;
   onSubmit: (payload: EventInput) => void;
+  /**
+   * Optional extra content rendered at the bottom of the form's scroll view
+   * (below the advanced summary) — used by the edit screen for the cancel /
+   * reactivate danger section.
+   */
+  footer?: ReactNode;
 };
 
 /**
@@ -72,7 +78,7 @@ export type EventFormProps = {
  * are web-only — when editing we render a read-only summary of them below the
  * form with an "edit on the web" affordance.
  */
-export function EventForm({ initial, saving, submitLabel, onSubmit }: EventFormProps) {
+export function EventForm({ initial, saving, submitLabel, onSubmit, footer }: EventFormProps) {
   const colors = useColors();
 
   const tz = initial?.timezone || "UTC";
@@ -337,6 +343,8 @@ export function EventForm({ initial, saving, submitLabel, onSubmit }: EventFormP
           </Pressable>
         </View>
       ) : null}
+
+      {footer}
     </ScrollView>
   );
 }

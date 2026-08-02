@@ -104,6 +104,12 @@ export type EventItem = {
   category_icon: string | null;
   ticketing_enabled: boolean;
   /**
+   * Event cancellation (Sayzio events): mirrors the web "cancelled" banner.
+   * `cancelled_at` is an ISO8601 string, or null when the event is live.
+   */
+  cancelled: boolean;
+  cancelled_at: string | null;
+  /**
    * Task #3674: true for any free (non-ticketed) event unless the organizer
    * explicitly opted out — RSVP is on by default now, not opt-in.
    */
@@ -403,8 +409,24 @@ export type OwnerEvent = {
   visibility: string;
   capacity: number | null;
   rsvp_enabled: boolean;
+  /** Event cancellation state (Sayzio events). */
+  cancelled: boolean;
+  cancelled_at: string | null;
   web_edit_url: string;
   advanced: EventAdvancedSummary;
+};
+
+/**
+ * The cancel response: the refreshed OwnerEvent plus notification outcome.
+ * When `notify_guests` was requested and the broadcast hit its rate limit,
+ * `broadcast_skipped` is true and `broadcast_message` carries the reason so
+ * the app can point the organizer at the broadcast screen. `notified_count`
+ * is the number of guests emailed (null when no notify was requested).
+ */
+export type CancelEventResult = OwnerEvent & {
+  notified_count: number | null;
+  broadcast_skipped: boolean;
+  broadcast_message: string | null;
 };
 
 export type EventInput = {
@@ -440,6 +462,31 @@ export async function updateEvent(
     method: "PATCH",
     body: JSON.stringify(input),
   });
+  return res.data;
+}
+
+/**
+ * Officially cancel an event. When `notifyGuests` is true the server also
+ * fires the cancellation broadcast to all RSVPs; if that hits the rate limit
+ * the event is STILL cancelled and the result carries `broadcast_skipped`.
+ */
+export async function cancelEvent(
+  linkId: number,
+  notifyGuests: boolean,
+): Promise<CancelEventResult> {
+  const res = await apiFetch<{ data: CancelEventResult }>(
+    `/links/${linkId}/event/cancel`,
+    { method: "POST", body: JSON.stringify({ notify_guests: notifyGuests }) },
+  );
+  return res.data;
+}
+
+/** Reactivate a previously-cancelled event. */
+export async function reactivateEvent(linkId: number): Promise<OwnerEvent> {
+  const res = await apiFetch<{ data: OwnerEvent }>(
+    `/links/${linkId}/event/reactivate`,
+    { method: "POST" },
+  );
   return res.data;
 }
 

@@ -244,14 +244,9 @@ class IcsLinkController extends Controller
         abort_if($link->user_id !== workspace_owner_id(), 403);
         abort_if($link->type !== 'ics', 404);
 
-        $settings = (array) ($link->settings ?? []);
-        $settings['event_cancelled']    = true;
-        $settings['event_cancelled_at'] = now()->toIso8601String();
-        $link->update(['settings' => $settings]);
-
-        // Keep any bound calendar in sync so the STATUS:CANCELLED VEVENT
-        // propagates to subscribers where sync is enabled.
-        $this->syncToCalendar($link->fresh('icsData'), 'cancelled');
+        // Shared cancel logic (settings state + calendar sync) lives in the
+        // service so the mobile API cancel flow can't drift.
+        app(\App\Modules\User\Services\EventCancellationService::class)->cancel($link);
 
         $notify = $request->boolean('notify_guests');
         if ($notify) {
@@ -288,11 +283,7 @@ class IcsLinkController extends Controller
         abort_if($link->user_id !== workspace_owner_id(), 403);
         abort_if($link->type !== 'ics', 404);
 
-        $settings = (array) ($link->settings ?? []);
-        unset($settings['event_cancelled'], $settings['event_cancelled_at']);
-        $link->update(['settings' => $settings ?: null]);
-
-        $this->syncToCalendar($link->fresh('icsData'), 'reactivated');
+        app(\App\Modules\User\Services\EventCancellationService::class)->reactivate($link);
 
         return redirect()->route('user.links.show', $link)
             ->with('success', 'Event reactivated. It is live again.');

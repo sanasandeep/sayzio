@@ -130,6 +130,76 @@ class EventApiController extends Controller
         return $this->ok($this->shape($link->fresh('icsData')));
     }
 
+    /**
+     * Cancel an event — mobile mirror of {@see IcsLinkController::cancel}.
+     *
+     * The settings-state + calendar-sync logic is shared via
+     * {@see \App\Modules\User\Services\EventCancellationService} (no
+     * copy-paste). When `notify_guests` is set we ALSO fire the cancellation
+     * broadcast to `all_rsvps`; if that hits the per-event rate limit the
+     * event STAYS cancelled and we surface a `broadcast_skipped` flag +
+     * message so the app can point the organizer at the broadcast screen.
+     */
+    public function cancel(Request $request, int $linkId)
+    {
+        $user = $request->user();
+        if (!$user) return $this->unauthorized();
+
+        $link = $this->findEventLink($request, $linkId);
+        if (!$link) return $this->notFound();
+        // Owner-only for this destructive action — parity with the web
+        // IcsLinkController::cancel (link->user_id === workspace_owner_id()).
+        // Workspace collaborators with links.edit can PATCH the event but must
+        // NOT be able to cancel it.
+        if (!$this->isEventOwner($request, $link)) return $this->forbidden();
+
+        app(\App\Modules\User\Services\EventCancellationService::class)->cancel($link);
+        $link = $link->fresh('icsData');
+
+        $notified = null;
+        $broadcastSkipped = false;
+        $broadcastMessage = null;
+
+        if ($request->boolean('notify_guests')) {
+            $subject = 'Cancelled: ' . ($link->title ?: 'our event');
+            $message = "We're sorry to share that this event has been cancelled. "
+                . "We apologise for any inconvenience. If you have any questions, please reply to this email.";
+            try {
+                $broadcast = app(\App\Modules\User\Services\EventBroadcastService::class)
+                    ->send($link, (int) $link->user_id, 'all_rsvps', $subject, $message);
+                $notified = (int) $broadcast->recipients_count;
+            } catch (\App\Modules\User\Services\EventBroadcastLimitException $e) {
+                // The event is already cancelled; only the notice couldn't go
+                // out. Surface the limit message so the app can hand off to the
+                // broadcast screen.
+                $broadcastSkipped = true;
+                $broadcastMessage = $e->getMessage();
+            }
+        }
+
+        return $this->ok($this->shape($link) + [
+            'notified_count'    => $notified,
+            'broadcast_skipped' => $broadcastSkipped,
+            'broadcast_message' => $broadcastMessage,
+        ]);
+    }
+
+    /** Reactivate a previously-cancelled event (mirror of IcsLinkController::reactivate). */
+    public function reactivate(Request $request, int $linkId)
+    {
+        $user = $request->user();
+        if (!$user) return $this->unauthorized();
+
+        $link = $this->findEventLink($request, $linkId);
+        if (!$link) return $this->notFound();
+        // Owner-only — parity with IcsLinkController::reactivate. See cancel().
+        if (!$this->isEventOwner($request, $link)) return $this->forbidden();
+
+        app(\App\Modules\User\Services\EventCancellationService::class)->reactivate($link);
+
+        return $this->ok($this->shape($link->fresh('icsData')));
+    }
+
     // ─── Plan limits (mirror CheckPlanLimit middleware) ─────────────
 
     /**
@@ -317,6 +387,11 @@ class EventApiController extends Controller
             'visibility'  => $link->visibility,
             'capacity'    => isset($rsvpSettings['capacity']) ? (int) $rsvpSettings['capacity'] : null,
             'rsvp_enabled' => \App\Modules\Common\Controllers\RedirectController::isRsvpAvailable($link, $activeTiers),
+            // Event cancellation state (Sayzio events). Mirrors the flags
+            // EventTicketApiController exposes so mobile can render a
+            // "Cancelled" state + reactivate affordance.
+            'cancelled'    => $link->isEventCancelled(),
+            'cancelled_at' => optional($link->eventCancelledAt())->toIso8601String(),
             'web_edit_url' => url('/user/links/' . $link->id . '/edit-ics'),
             // Read-only advanced summary — everything below is web-only to edit.
             'advanced'    => [
@@ -359,6 +434,33 @@ class EventApiController extends Controller
         if (empty($workspaceIds)) return null;
 
         return Link::where('type', 'ics')->whereIn('workspace_id', $workspaceIds)->find($id);
+    }
+
+    /**
+     * Owner-only gate for destructive event actions (cancel/reactivate),
+     * mirroring the web IcsLinkController's `link->user_id === workspace_owner_id()`.
+     *
+     * Events (`ics` links) are always created with `user_id = workspace_owner_id`,
+     * so the link owner IS the workspace owner. A workspace collaborator (who may
+     * hold links.edit and can therefore PATCH the event) is NOT the owner and is
+     * refused here — matching the web policy for this destructive action.
+     */
+    protected function isEventOwner(Request $request, Link $link): bool
+    {
+        $user = $request->user();
+
+        if ((int) $link->user_id === (int) $user->id) return true;
+
+        // Belt-and-suspenders: if the link is workspace-scoped, the workspace
+        // owner is also the owner even if user_id ever diverged.
+        if (!empty($link->workspace_id)) {
+            $workspace = Workspace::find($link->workspace_id);
+            if ($workspace && (int) $workspace->owner_user_id === (int) $user->id) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function canAct(Request $request, Link $link, string $permission): bool

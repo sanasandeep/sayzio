@@ -249,6 +249,8 @@ Route::prefix('v1')->group(function () {
         Route::post ('/events',                            [\App\Modules\Api\Controllers\EventApiController::class, 'store'])->middleware('throttle:30,1');
         Route::get  ('/links/{link}/event',                [\App\Modules\Api\Controllers\EventApiController::class, 'show'])->whereNumber('link');
         Route::patch('/links/{link}/event',                [\App\Modules\Api\Controllers\EventApiController::class, 'update'])->whereNumber('link')->middleware('throttle:60,1');
+        Route::post ('/links/{link}/event/cancel',         [\App\Modules\Api\Controllers\EventApiController::class, 'cancel'])->whereNumber('link')->middleware('throttle:30,1');
+        Route::post ('/links/{link}/event/reactivate',     [\App\Modules\Api\Controllers\EventApiController::class, 'reactivate'])->whereNumber('link')->middleware('throttle:30,1');
 
         // Task #5008 — Event contact exchange: "My card" QR + opt-in people list.
         Route::get ('/me/event-card',                      [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'myCard']);
