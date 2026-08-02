@@ -13,14 +13,16 @@ class Rsvp extends Model
         'link_id', 'name', 'email', 'phone', 'response', 'plus_ones',
         'message', 'source', 'source_block_id', 'ip_address', 'user_agent',
         'status', 'occurrences', 'answers', 'company', 'role', 'manage_token',
+        'waitlist_invited_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'plus_ones'   => 'integer',
-            'occurrences' => 'array',
-            'answers'     => 'array',
+            'plus_ones'           => 'integer',
+            'occurrences'         => 'array',
+            'answers'             => 'array',
+            'waitlist_invited_at' => 'datetime',
         ];
     }
 

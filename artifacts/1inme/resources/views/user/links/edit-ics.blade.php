@@ -656,6 +656,7 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs" style="color: var(--text-secondary);">
                         <label class="flex items-center gap-2"><input type="hidden" name="rsvp_waitlist_enabled" value="0"><input type="checkbox" name="rsvp_waitlist_enabled" value="1" {{ old('rsvp_waitlist_enabled', !empty($rsvpSettings['waitlist_enabled'])) ? 'checked':'' }}> Auto-waitlist when full</label>
+                        <label class="flex items-center gap-2"><input type="hidden" name="rsvp_waitlist_auto_promote" value="0"><input type="checkbox" name="rsvp_waitlist_auto_promote" value="1" {{ old('rsvp_waitlist_auto_promote', ($rsvpSettings['waitlist_auto_promote'] ?? true) !== false) ? 'checked':'' }}> Auto-promote waitlist when a spot opens</label>
                         <label class="flex items-center gap-2"><input type="hidden" name="rsvp_send_confirmation" value="0"><input type="checkbox" name="rsvp_send_confirmation" value="1" {{ old('rsvp_send_confirmation', $rsvpSettings['send_confirmation'] ?? true) ? 'checked':'' }}> Email guests a confirmation</label>
                         <label class="flex items-center gap-2"><input type="hidden" name="rsvp_notify_owner" value="0"><input type="checkbox" name="rsvp_notify_owner" value="1" {{ old('rsvp_notify_owner', $rsvpSettings['notify_owner'] ?? true) ? 'checked':'' }}> Email me on each RSVP</label>
                     </div>

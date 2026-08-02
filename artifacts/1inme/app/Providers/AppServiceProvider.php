@@ -9,6 +9,7 @@ use App\Modules\User\Models\Project;
 use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\Calendar\CalendarProviderRegistry;
 use App\Modules\User\Services\Calendar\GoogleCalendarProvider;
+use App\Modules\User\Services\Calendar\MicrosoftCalendarProvider;
 use App\Services\PlanRecommender;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -23,7 +24,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(CalendarProviderRegistry::class, function () {
             $r = new CalendarProviderRegistry();
             $r->register('google', fn () => new GoogleCalendarProvider());
-            // Microsoft + CalDAV drivers will register here once implemented.
+            $r->register('microsoft', fn () => new MicrosoftCalendarProvider());
+            // CalDAV driver will register here once implemented.
             return $r;
         });
 

@@ -164,6 +164,8 @@ function RootLayoutNav() {
       <Stack.Screen name="events/my-tickets" options={{ title: "My tickets" }} />
       <Stack.Screen name="events/ticket/[alias]/[code]" options={{ title: "Ticket" }} />
       <Stack.Screen name="events/tiers/[linkId]" options={{ title: "Ticketing" }} />
+      <Stack.Screen name="events/create" options={{ title: "Create event" }} />
+      <Stack.Screen name="events/edit/[linkId]" options={{ title: "Edit details" }} />
       <Stack.Screen
         name="events/checkin/[linkId]"
         options={{ title: "Door check-in", headerShown: false }}

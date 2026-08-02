@@ -89,6 +89,8 @@ export type EventItem = {
   location: string | null;
   start_date: string | null;
   end_date: string | null;
+  /** Organizer timezone (IANA); used to render a guest-local time line and the Google Calendar ctz. */
+  timezone: string | null;
   latitude: number | null;
   longitude: number | null;
   category: string | null;
@@ -374,6 +376,73 @@ export async function getEventTicket(
   return ticket;
 }
 
+// ── Owner: event create / edit (essentials) ────────────────────────
+
+/**
+ * The read-only advanced-settings summary shown on the mobile edit screen.
+ * These are editable on the web only (recurrence, RSVP questions, calendar
+ * sync) — mobile shows a summary + an "edit on the web" note.
+ */
+export type EventAdvancedSummary = {
+  recurrence: string;
+  rsvp_question_count: number;
+  calendar_sync_mode: string;
+  ticketing_enabled: boolean;
+};
+
+/** Full editable payload for an organizer-owned event (essentials only). */
+export type OwnerEvent = {
+  id: number;
+  alias: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  timezone: string;
+  visibility: string;
+  capacity: number | null;
+  rsvp_enabled: boolean;
+  web_edit_url: string;
+  advanced: EventAdvancedSummary;
+};
+
+export type EventInput = {
+  title: string;
+  description?: string | null;
+  location?: string | null;
+  start_date: string;
+  end_date: string;
+  timezone: string;
+  capacity?: number | null;
+  rsvp_enabled?: boolean;
+  visibility?: string;
+};
+
+export async function createEvent(input: EventInput): Promise<OwnerEvent> {
+  const res = await apiFetch<{ data: OwnerEvent }>("/events", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return res.data;
+}
+
+export async function getOwnerEvent(linkId: number): Promise<OwnerEvent> {
+  const res = await apiFetch<{ data: OwnerEvent }>(`/links/${linkId}/event`);
+  return res.data;
+}
+
+export async function updateEvent(
+  linkId: number,
+  input: EventInput,
+): Promise<OwnerEvent> {
+  const res = await apiFetch<{ data: OwnerEvent }>(`/links/${linkId}/event`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  return res.data;
+}
+
 // ── Owner: tier management + door check-in ─────────────────────────
 
 export type OwnerTicketingTotals = {
@@ -632,4 +701,47 @@ export async function cancelContactExchange(
   await apiFetch(`/me/contact-exchanges/${exchangeId}/cancel`, {
     method: "POST",
   });
+}
+
+// ── Message guests: organizer → guest broadcast ─────────────────────
+
+export type BroadcastAudience =
+  | "going"
+  | "waitlist"
+  | "all_rsvps"
+  | "ticket_holders";
+
+export type EventBroadcast = {
+  id: number;
+  audience: BroadcastAudience;
+  audience_label: string;
+  subject: string;
+  message: string;
+  recipients_count: number;
+  created_at: string | null;
+};
+
+export type BroadcastOverview = {
+  counts: Record<BroadcastAudience, number>;
+  broadcasts: EventBroadcast[];
+};
+
+export async function getEventBroadcasts(
+  linkId: number,
+): Promise<BroadcastOverview> {
+  const res = await apiFetch<{ data: BroadcastOverview }>(
+    `/links/${linkId}/broadcasts`,
+  );
+  return res.data;
+}
+
+export async function sendEventBroadcast(
+  linkId: number,
+  input: { audience: BroadcastAudience; subject: string; message: string },
+): Promise<EventBroadcast> {
+  const res = await apiFetch<{ data: EventBroadcast }>(
+    `/links/${linkId}/broadcasts`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return res.data;
 }

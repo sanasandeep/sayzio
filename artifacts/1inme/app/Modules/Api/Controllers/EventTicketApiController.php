@@ -340,12 +340,24 @@ class EventTicketApiController extends Controller
         $data = $this->validateTier($request);
         // If the owner raises capacity, clear the capacity-alert stamps so a
         // subsequent re-fill re-alerts (Task #3623).
-        if (array_key_exists('capacity', $data) && $data['capacity'] !== null
-            && $tier->capacity !== null && (int) $data['capacity'] > (int) $tier->capacity) {
+        $capacityRaised = array_key_exists('capacity', $data) && $data['capacity'] !== null
+            && $tier->capacity !== null && (int) $data['capacity'] > (int) $tier->capacity;
+        if ($capacityRaised) {
             $data['capacity_alerted_near_at'] = null;
             $data['capacity_alerted_full_at'] = null;
         }
         $tier->update($data);
+
+        // Raising capacity may free seats for waitlisted guests. Free tiers
+        // auto-promote; paid tiers get a "spot opened" purchase invite.
+        if ($capacityRaised) {
+            try {
+                app(\App\Modules\User\Services\WaitlistPromotionService::class)
+                    ->promoteForTier($link, $tier->fresh());
+            } catch (\Throwable $e) {
+                \Log::warning('Waitlist promotion (API tier capacity raise) failed: ' . $e->getMessage());
+            }
+        }
 
         return $this->ok($this->tierShape($tier));
     }
@@ -634,6 +646,10 @@ class EventTicketApiController extends Controller
             'location'    => $ics?->location,
             'start_date'  => optional($ics?->start_date)->toIso8601String(),
             'end_date'    => optional($ics?->end_date)->toIso8601String(),
+            // Organizer timezone so mobile can render a "your time" line only
+            // when the viewer's device timezone differs, and pass `ctz` to the
+            // Google Calendar deep link.
+            'timezone'    => $ics?->timezone ?: 'UTC',
             'latitude'    => $ics?->latitude,
             'longitude'   => $ics?->longitude,
             'category'    => $category,

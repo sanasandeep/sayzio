@@ -81,12 +81,24 @@ class EventTicketTierController extends Controller
         $data = $this->validateTier($request);
         // If the owner raises capacity, clear the capacity-alert stamps so a
         // subsequent re-fill re-alerts (Task #3623).
-        if (array_key_exists('capacity', $data) && $data['capacity'] !== null
-            && $tier->capacity !== null && (int) $data['capacity'] > (int) $tier->capacity) {
+        $capacityRaised = array_key_exists('capacity', $data) && $data['capacity'] !== null
+            && $tier->capacity !== null && (int) $data['capacity'] > (int) $tier->capacity;
+        if ($capacityRaised) {
             $data['capacity_alerted_near_at'] = null;
             $data['capacity_alerted_full_at'] = null;
         }
         $tier->update($data);
+
+        // Raising capacity may free seats for waitlisted guests. Free tiers
+        // auto-promote; paid tiers get a "spot opened" purchase invite.
+        if ($capacityRaised) {
+            try {
+                app(\App\Modules\User\Services\WaitlistPromotionService::class)
+                    ->promoteForTier($link, $tier->fresh());
+            } catch (\Throwable $e) {
+                \Log::warning('Waitlist promotion (tier capacity raise) failed: ' . $e->getMessage());
+            }
+        }
 
         return back()->with('success', 'Ticket tier updated.');
     }

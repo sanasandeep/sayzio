@@ -105,6 +105,10 @@ class IcsLinkController extends Controller
 
         $validated = $this->validateRequest($request, $link);
 
+        // Capture the pre-edit RSVP capacity so a raise can auto-promote
+        // waitlisted guests after the settings are saved (Task waitlist).
+        $oldRsvpCapacity = (int) (((array) $link->settings)['rsvp_settings']['capacity'] ?? 0);
+
         $newSettings = (array) $link->settings;
 
         // These keys are only present on the full edit form. A settings-only
@@ -195,6 +199,18 @@ class IcsLinkController extends Controller
         }
 
         $this->syncToCalendar($link->fresh('icsData'), 'updated');
+
+        // Raising the RSVP capacity may free seats for waitlisted guests —
+        // auto-promote the oldest that fit (free RSVPs only), race-safe.
+        $newRsvpCapacity = (int) ($newSettings['rsvp_settings']['capacity'] ?? 0);
+        if ($newRsvpCapacity > $oldRsvpCapacity) {
+            try {
+                app(\App\Modules\User\Services\WaitlistPromotionService::class)
+                    ->promoteForLink($link->fresh());
+            } catch (\Throwable $e) {
+                logger()->warning('Waitlist promotion (rsvp capacity raise) failed: ' . $e->getMessage());
+            }
+        }
 
         return redirect()->route('user.links.show', $link)
             ->with('success', 'Event updated successfully.');
@@ -463,6 +479,9 @@ class IcsLinkController extends Controller
         return array_filter([
             'capacity'              => $capacity !== null && $capacity !== '' ? max(0, (int) $capacity) : null,
             'waitlist_enabled'      => $request->boolean('rsvp_waitlist_enabled'),
+            // Auto-promote the oldest waitlisted guest when a seat frees up.
+            // Defaults ON; the hidden field ensures an unchecked box stores false.
+            'waitlist_auto_promote' => $request->boolean('rsvp_waitlist_auto_promote', true),
             'deadline'              => $deadline ?: null,
             'send_confirmation'     => $request->boolean('rsvp_send_confirmation', true),
             'notify_owner'          => $request->boolean('rsvp_notify_owner', true),

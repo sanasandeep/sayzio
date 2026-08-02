@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { Image } from "expo-image";
-import { router } from "expo-router";
+import { Stack, router } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -124,6 +124,24 @@ export default function EventsDirectoryScreen() {
 
   return (
     <View style={[styles.wrap, { backgroundColor: colors.background }]}>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push("/events/create")}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Create event"
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
+              <Feather name="plus" size={18} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                Create
+              </Text>
+            </Pressable>
+          ),
+        }}
+      />
       <View style={styles.searchRow}>
         <View
           style={[
