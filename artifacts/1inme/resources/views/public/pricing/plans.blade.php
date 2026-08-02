@@ -214,22 +214,29 @@
        ribbons. */
     .plan-card {
         overflow: hidden;
-        background:
-            radial-gradient(140% 80% at 50% -10%, rgba(255,255,255,.05), transparent 60%),
-            rgba(255,255,255,.02);
-        box-shadow: 0 18px 40px -30px rgba(0,0,0,.8);
+        border: 1px solid transparent;
+        background: rgba(255,255,255,0.04);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), inset 1.5px 2px 0 -1px rgba(255,255,255,0.4), inset -1.5px -1.5px 0 -1px rgba(255,255,255,0.2), inset -3px -8px 1px -6px rgba(255,255,255,0.15), inset 0 0 8px 1px rgba(0,0,0,0.2), 0 12px 32px rgba(0,0,0,0.4);
+        border-radius: 1.75rem;
         transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease;
     }
-    .plan-card:hover { box-shadow: 0 34px 80px -34px rgba(61,107,255,.6); }
+    @supports (backdrop-filter: blur(8px)) {
+        .plan-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.01) 100%);
+            backdrop-filter: blur(6px) saturate(180%) brightness(1.1);
+            -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.1);
+        }
+    }
+    .plan-card:hover { box-shadow: 0 34px 80px -34px rgba(61,107,255,.6), inset 0 0 0 1px rgba(255,255,255,0.06), inset 1.5px 2px 0 -1px rgba(255,255,255,0.4), inset -1.5px -1.5px 0 -1px rgba(255,255,255,0.2), inset -3px -8px 1px -6px rgba(255,255,255,0.15); }
     /* Accent (recommended / most-popular) tier — lifted, glowier, and a
        half-step larger so the hero card clearly leads the rail. */
     .plan-card.is-accent {
-        box-shadow: 0 40px 90px -34px rgba(61,107,255,.6), 0 0 0 1px rgba(144,172,255,.18) inset;
+        box-shadow: 0 40px 90px -34px rgba(61,107,255,.6), inset 0 0 0 1px rgba(144,172,255,.18), inset 1.5px 2px 0 -1px rgba(255,255,255,0.4), inset -1.5px -1.5px 0 -1px rgba(255,255,255,0.2), inset -3px -8px 1px -6px rgba(255,255,255,0.15);
         transform: translateY(-6px);
     }
-    .plan-card.is-accent:hover { box-shadow: 0 50px 110px -34px rgba(61,107,255,.7), 0 0 0 1px rgba(144,172,255,.28) inset; }
+    .plan-card.is-accent:hover { box-shadow: 0 50px 110px -34px rgba(61,107,255,.7), inset 0 0 0 1px rgba(144,172,255,.28), inset 1.5px 2px 0 -1px rgba(255,255,255,0.4), inset -1.5px -1.5px 0 -1px rgba(255,255,255,0.2), inset -3px -8px 1px -6px rgba(255,255,255,0.15); }
     .plan-card.is-current {
-        box-shadow: 0 34px 80px -34px rgba(16,185,129,.5), 0 0 0 1px rgba(52,211,153,.18) inset;
+        box-shadow: 0 34px 80px -34px rgba(16,185,129,.5), inset 0 0 0 1px rgba(52,211,153,.18), inset 1.5px 2px 0 -1px rgba(255,255,255,0.4), inset -1.5px -1.5px 0 -1px rgba(255,255,255,0.2), inset -3px -8px 1px -6px rgba(255,255,255,0.15);
     }
 
     /* Header band: a subtle tinted strip; accent/current get a richer
@@ -282,22 +289,26 @@
 
     /* Light-mode counterparts (dark is the default; the global
        marketing-anim.css doesn't know these custom classes). */
-    html.light-mode .plan-card { background: rgba(255,255,255,0.7); box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.9), 0 18px 40px -30px rgba(15,23,42,.35); }
-    @supports (backdrop-filter: blur(24px)) {
+    html.light-mode .plan-card { 
+        background: rgba(255,255,255,0.15); 
+        border: 1px solid transparent; 
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4), inset 1.8px 3px 0 -2px rgba(255,255,255,0.9), inset -2px -2px 0 -2px rgba(255,255,255,0.8), inset -3px -8px 1px -6px rgba(255,255,255,0.6), inset -0.3px -1px 4px 0 rgba(0,0,0,0.05), inset 0 0 8px 1px rgba(0,0,0,0.02), 0 12px 32px rgba(0,0,0,0.08); 
+    }
+    @supports (backdrop-filter: blur(8px)) {
         html.light-mode .plan-card {
-            background: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.2) 100%);
-            backdrop-filter: blur(24px) saturate(140%);
-            -webkit-backdrop-filter: blur(24px) saturate(140%);
+            background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 100%);
+            backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
+            -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
         }
     }
-    html.light-mode .plan-card:hover { box-shadow: 0 30px 70px -34px rgba(61,107,255,.4); }
+    html.light-mode .plan-card:hover { box-shadow: 0 30px 70px -34px rgba(61,107,255,.4), inset 0 0 0 1px rgba(255,255,255,0.4), inset 1.8px 3px 0 -2px rgba(255,255,255,0.9), inset -2px -2px 0 -2px rgba(255,255,255,0.8), inset -3px -8px 1px -6px rgba(255,255,255,0.6); }
     html.light-mode .plan-band { background: linear-gradient(180deg, rgba(15,23,42,.05), rgba(15,23,42,.01)); border-bottom-color: rgba(15,23,42,.08); }
-    html.light-mode .plan-band.is-accent  { background: linear-gradient(135deg, rgba(61,107,255,.16), rgba(110,97,255,.05)); border-bottom-color: rgba(61,107,255,.25); }
+    html.light-mode .plan-band.is-accent  { background: linear-gradient(135deg, rgba(61,107,255,.16), rgba(34,211,238,.05)); border-bottom-color: rgba(61,107,255,.25); }
     html.light-mode .plan-band.is-current { background: linear-gradient(135deg, rgba(16,185,129,.16), rgba(52,211,153,.05)); border-bottom-color: rgba(16,185,129,.25); }
-    html.light-mode .plan-card.is-accent  { background: rgba(250,248,255,0.7); }
-    @supports (backdrop-filter: blur(24px)) {
+    html.light-mode .plan-card.is-accent  { background: rgba(240,249,255,0.2); }
+    @supports (backdrop-filter: blur(8px)) {
         html.light-mode .plan-card.is-accent {
-            background: linear-gradient(135deg, rgba(250,248,255,0.6) 0%, rgba(250,248,255,0.3) 100%);
+            background: linear-gradient(135deg, rgba(240,249,255,0.3) 0%, rgba(240,249,255,0.1) 100%);
         }
     }
     html.light-mode .plan-card.is-current { background: #f3fcf8; }

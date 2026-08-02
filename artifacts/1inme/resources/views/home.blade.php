@@ -1412,13 +1412,18 @@
         .sticker { position: absolute; pointer-events: none; }
 
         /* ============ Card glass ============ */
-        .glass { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); box-shadow: inset 0 1px 0 0 rgba(255,255,255,.15), 0 8px 32px -8px rgba(0,0,0,.5); }
-        @supports (backdrop-filter: blur(24px)) {
-            .glass { background: linear-gradient(135deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.02) 100%); backdrop-filter: blur(24px) saturate(140%); -webkit-backdrop-filter: blur(24px) saturate(140%); }
+        /* Liquid Glass (Dark Mode) */
+        .glass, .glass-2 { 
+            background: rgba(255, 255, 255, 0.04); 
+            border: 1px solid transparent; 
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), inset 1.5px 2px 0 -1px rgba(255,255,255,0.4), inset -1.5px -1.5px 0 -1px rgba(255,255,255,0.2), inset -3px -8px 1px -6px rgba(255,255,255,0.15), inset 0 0 8px 1px rgba(0,0,0,0.2), 0 12px 32px rgba(0,0,0,0.4); 
         }
-        .glass-2 { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.15); box-shadow: inset 0 1px 0 0 rgba(255,255,255,.2), 0 8px 32px -8px rgba(0,0,0,.5); }
-        @supports (backdrop-filter: blur(24px)) {
-            .glass-2 { background: linear-gradient(135deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,.04) 100%); backdrop-filter: blur(24px) saturate(150%); -webkit-backdrop-filter: blur(24px) saturate(150%); }
+        @supports (backdrop-filter: blur(8px)) {
+            .glass, .glass-2 { 
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.01) 100%); 
+                backdrop-filter: blur(6px) saturate(180%) brightness(1.1); 
+                -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.1); 
+            }
         }
 
         /* ============ FAQ ============ */
@@ -2522,23 +2527,23 @@
         html.light-mode h3:not(.grad-text),
         html.light-mode h4:not(.grad-text) { color: #0f172a; }
 
-        /* Cards built from translucent white surfaces — give a real glass look */
+        /* Cards built from translucent white surfaces — give a real liquid glass look */
         html.light-mode .glass-card,
         html.light-mode .feature-card,
         html.light-mode .pricing-card,
         html.light-mode .step-card {
-            background: linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(219,234,254,0.6) 55%, rgba(186,230,253,0.45) 100%);
-            border: 1px solid rgba(148,163,184,0.4);
-            box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.95), inset 0 -18px 40px -24px rgba(59,130,246,0.25), 0 12px 40px -12px rgba(37,99,235,0.15);
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid transparent;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4), inset 1.8px 3px 0 -2px rgba(255,255,255,0.9), inset -2px -2px 0 -2px rgba(255,255,255,0.8), inset -3px -8px 1px -6px rgba(255,255,255,0.6), inset -0.3px -1px 4px 0 rgba(0,0,0,0.05), inset 0 0 8px 1px rgba(0,0,0,0.02), 0 12px 32px rgba(0,0,0,0.08);
         }
-        @supports (backdrop-filter: blur(24px)) {
+        @supports (backdrop-filter: blur(8px)) {
             html.light-mode .glass-card,
             html.light-mode .feature-card,
             html.light-mode .pricing-card,
             html.light-mode .step-card {
-                background: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(219,234,254,0.42) 55%, rgba(186,230,253,0.3) 100%);
-                backdrop-filter: blur(24px) saturate(140%);
-                -webkit-backdrop-filter: blur(24px) saturate(140%);
+                background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 100%);
+                backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
+                -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
             }
         }
 
@@ -2601,16 +2606,16 @@
         /* Glass card surfaces (.glass-card handled earlier; add bare .glass/.glass-2) */
         html.light-mode .glass,
         html.light-mode .glass-2 {
-            background: linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(219,234,254,0.6) 55%, rgba(186,230,253,0.45) 100%);
-            border: 1px solid rgba(148,163,184,0.4);
-            box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.95), inset 0 -18px 40px -24px rgba(59,130,246,0.25), 0 12px 40px -12px rgba(37,99,235,0.15);
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid transparent;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4), inset 1.8px 3px 0 -2px rgba(255,255,255,0.9), inset -2px -2px 0 -2px rgba(255,255,255,0.8), inset -3px -8px 1px -6px rgba(255,255,255,0.6), inset -0.3px -1px 4px 0 rgba(0,0,0,0.05), inset 0 0 8px 1px rgba(0,0,0,0.02), 0 12px 32px rgba(0,0,0,0.08);
         }
-        @supports (backdrop-filter: blur(24px)) {
+        @supports (backdrop-filter: blur(8px)) {
             html.light-mode .glass,
             html.light-mode .glass-2 {
-                background: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(219,234,254,0.42) 55%, rgba(186,230,253,0.3) 100%);
-                backdrop-filter: blur(24px) saturate(140%);
-                -webkit-backdrop-filter: blur(24px) saturate(140%);
+                background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 100%);
+                backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
+                -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
             }
         }
 
@@ -2625,7 +2630,7 @@
             inset: -20%;
             z-index: -1;
             pointer-events: none;
-            background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.15) 0%, rgba(129, 140, 248, 0.08) 40%, transparent 70%);
+            background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.35) 0%, rgba(129, 140, 248, 0.2) 40%, transparent 70%);
             filter: blur(60px);
         }
 
