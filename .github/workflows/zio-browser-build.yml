@@ -265,12 +265,53 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  # ── Release decision ─────────────────────────────────────────────────────────
+  # Decides whether this run should publish a GitHub Release:
+  #   - workflow_dispatch: honor the `release` input (manual path, unchanged).
+  #   - push to main: publish automatically when the version in
+  #     artifacts/zio-browser/package.json has no zio-browser-vX.Y.Z tag or
+  #     release yet (i.e. a version bump landed). Pushes without a version
+  #     change find the tag already published and skip the release job.
+  # Keying on tag absence rather than a diff of package.json also self-heals:
+  # if a bump's build failed, the next push retries the publish.
+  check-release:
+    name: Detect version bump
+    runs-on: ubuntu-latest
+    needs: test
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    outputs:
+      publish: ${{ steps.decide.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide whether to publish
+        id: decide
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            PUBLISH="${{ inputs.release && 'true' || 'false' }}"
+            echo "workflow_dispatch: release input → publish=${PUBLISH}"
+          else
+            VERSION=$(node -p "require('./package.json').version")
+            TAG="zio-browser-v${VERSION}"
+            if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+               || git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+              PUBLISH="false"
+              echo "push: $TAG already published → publish=false"
+            else
+              PUBLISH="true"
+              echo "push: $TAG not published yet → publish=true"
+            fi
+          fi
+          echo "publish=${PUBLISH}" >> "$GITHUB_OUTPUT"
+
   # ── GitHub Release (auto-update feed) ────────────────────────────────────────
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [build-mac, build-windows, build-linux]
-    if: github.event_name == 'workflow_dispatch' && inputs.release
+    needs: [build-mac, build-windows, build-linux, check-release]
+    if: needs.check-release.outputs.publish == 'true'
     permissions:
       contents: write
     steps:
