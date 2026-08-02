@@ -8,7 +8,7 @@
         'title' => 'Message guests',
         'subtitle' => $link->title,
         'icon' => 'fa-paper-plane',
-        'back' => route('user.links.rsvps', $link),
+        'back' => route('user.links.rsvps.index', $link),
     ])
 
     @if(session('success'))
@@ -34,7 +34,8 @@
                 this.message = {{ \Illuminate\Support\Js::from('We\'re sorry to share that this event has been cancelled. We apologise for any inconvenience. If you have any questions, please reply to this email.') }};
                 this.audience = 'all_rsvps';
             }
-         }">
+         }"
+         @if(request()->query('preset') === 'cancellation') x-init="preset()" @endif>
         <form method="POST" action="{{ route('user.links.ics.broadcast.send', $link) }}"
               @submit="if (count === 0) { $event.preventDefault(); return false; }"
               onsubmit="return window.themedConfirmSubmit(this, {title: 'Send this message to your guests?', message: 'This emails every guest in the selected audience. This cannot be undone.', confirmText: 'Send message', confirmIcon: 'fa-paper-plane', iconClass: 'fa-paper-plane'})">

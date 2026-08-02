@@ -444,6 +444,44 @@ protected $fillable = [
         return false;
     }
 
+    /**
+     * Event cancellation (Sayzio events). An organizer can officially call
+     * off an `ics` event; the flag + timestamp live in the link's settings
+     * JSON (`event_cancelled` / `event_cancelled_at`) so no migration is
+     * needed. Public surfaces show a "cancelled" banner, RSVP/ticket flows
+     * are blocked, reminders + waitlist promotion skip the event.
+     */
+    public function isEventCancelled(): bool
+    {
+        return !empty(($this->settings ?? [])['event_cancelled']);
+    }
+
+    /** When the event was cancelled (Carbon), or null. */
+    public function eventCancelledAt(): ?\Carbon\Carbon
+    {
+        $at = ($this->settings ?? [])['event_cancelled_at'] ?? null;
+        if (!$at) return null;
+        try {
+            return \Carbon\Carbon::parse($at);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Single source of truth for whether an event's ticket checkout is
+     * closed, and the user-facing reason. Shared by the web
+     * (EventTicketPublicController) and API (EventTicketApiController) buy
+     * flows so they can't drift. Returns null when purchases are allowed.
+     */
+    public function eventTicketSalesClosedReason(): ?string
+    {
+        if ($this->isEventCancelled()) {
+            return 'This event has been cancelled — ticket sales are closed.';
+        }
+        return null;
+    }
+
     public function isScheduledFuture(): bool
     {
         $s = $this->settings ?? [];

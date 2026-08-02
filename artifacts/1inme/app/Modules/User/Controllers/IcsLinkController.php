@@ -216,6 +216,88 @@ class IcsLinkController extends Controller
             ->with('success', 'Event updated successfully.');
     }
 
+    /**
+     * Cancel-event confirmation screen. Offers an optional "notify all
+     * guests" checkbox that, when checked, fires the cancellation broadcast
+     * to `all_rsvps` on submit (see cancel()).
+     */
+    public function cancelConfirm(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== workspace_owner_id(), 403);
+        abort_if($link->type !== 'ics', 404);
+
+        $recipientCount = app(\App\Modules\User\Services\EventBroadcastService::class)
+            ->recipientCount($link, 'all_rsvps');
+
+        return view('user.links.cancel-event', compact('link', 'recipientCount'));
+    }
+
+    /**
+     * Mark an event as cancelled. Additive settings-only change (no
+     * migration): stores `event_cancelled` + `event_cancelled_at`. When the
+     * organizer opts in, also fires the cancellation broadcast to every
+     * RSVP; if the broadcast hits its rate limit we STILL cancel the event
+     * and surface a notice pointing at the broadcast page.
+     */
+    public function cancel(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== workspace_owner_id(), 403);
+        abort_if($link->type !== 'ics', 404);
+
+        $settings = (array) ($link->settings ?? []);
+        $settings['event_cancelled']    = true;
+        $settings['event_cancelled_at'] = now()->toIso8601String();
+        $link->update(['settings' => $settings]);
+
+        // Keep any bound calendar in sync so the STATUS:CANCELLED VEVENT
+        // propagates to subscribers where sync is enabled.
+        $this->syncToCalendar($link->fresh('icsData'), 'cancelled');
+
+        $notify = $request->boolean('notify_guests');
+        if ($notify) {
+            $subject = 'Cancelled: ' . ($link->title ?: 'our event');
+            $message = "We're sorry to share that this event has been cancelled. "
+                . "We apologise for any inconvenience. If you have any questions, please reply to this email.";
+            try {
+                $broadcast = app(\App\Modules\User\Services\EventBroadcastService::class)
+                    ->send($link, (int) workspace_owner_id(), 'all_rsvps', $subject, $message);
+
+                $msg = $broadcast->recipients_count > 0
+                    ? "Event cancelled. Notified {$broadcast->recipients_count} guest(s)."
+                    : 'Event cancelled. No guests matched — no notification was sent.';
+
+                return redirect()->route('user.links.show', $link)->with('success', $msg);
+            } catch (\App\Modules\User\Services\EventBroadcastLimitException $e) {
+                // The event is already cancelled; the guest notice just
+                // couldn't go out right now. Point them at the broadcast page.
+                return redirect()->route('user.links.ics.broadcast', $link)
+                    ->with('error', 'Event cancelled, but guests were not notified: ' . $e->getMessage()
+                        . ' You can send the cancellation notice below.');
+            }
+        }
+
+        // No auto-notify: hand off to the broadcast page with the
+        // cancellation preset ready so the organizer can notify everyone.
+        return redirect()->route('user.links.ics.broadcast', ['link' => $link, 'preset' => 'cancellation'])
+            ->with('success', 'Event cancelled. You can notify your guests below.');
+    }
+
+    /** Reactivate a previously-cancelled event (organizers make mistakes). */
+    public function reactivate(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== workspace_owner_id(), 403);
+        abort_if($link->type !== 'ics', 404);
+
+        $settings = (array) ($link->settings ?? []);
+        unset($settings['event_cancelled'], $settings['event_cancelled_at']);
+        $link->update(['settings' => $settings ?: null]);
+
+        $this->syncToCalendar($link->fresh('icsData'), 'reactivated');
+
+        return redirect()->route('user.links.show', $link)
+            ->with('success', 'Event reactivated. It is live again.');
+    }
+
     private function validateRequest(Request $request, ?Link $link): array
     {
         $aliasLimits = workspace_owner()->getAliasLengthLimits();

@@ -5,6 +5,7 @@
     $eventCategory = ($link->settings ?? [])['event_category'] ?? '';
     $isOnline = !empty(($link->settings ?? [])['is_online']);
     $rsvpEnabled = $rsvpAvailable ?? !empty(($link->settings ?? [])['rsvp_enabled']);
+    $eventCancelled = $link->isEventCancelled();
     $hasTicketTiers = isset($tiers) && $tiers->isNotEmpty();
     $categoryGradient = \App\Modules\User\Support\EventCategories::gradient($eventCategory ?: '');
     $hasPin = !$isOnline && $ics && $ics->latitude !== null && $ics->longitude !== null;
@@ -195,6 +196,22 @@
             </div>
         @endif
 
+        @if($eventCancelled)
+            <div class="mb-5 px-4 py-4 rounded-xl text-sm font-medium flex items-start gap-3"
+                 style="background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: #ef4444;">
+                <i class="fas fa-ban mt-0.5"></i>
+                <div>
+                    <div class="font-bold text-base">This event has been cancelled</div>
+                    <div class="mt-1" style="color: rgba(239,68,68,0.9);">
+                        The organizer has called off this event. RSVPs and ticket sales are closed.
+                        @if($hasTicketTiers)
+                            If you purchased a ticket, please contact the organizer about a refund.
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <div class="ev-card overflow-hidden">
             <div class="p-6 sm:p-8 lg:p-10">
                 <div class="grid lg:grid-cols-3 gap-8 lg:gap-10">
@@ -270,7 +287,15 @@
                     {{-- Sticky CTA column --}}
                     <div class="lg:col-span-1">
                         <div class="lg:sticky lg:top-24">
-                            @if($hasTicketTiers)
+                            @if($eventCancelled)
+                                <div class="ev-card p-5 text-center">
+                                    <span class="ev-accent-icon-badge w-10 h-10 rounded-lg inline-flex items-center justify-center mb-3" style="background: rgba(239,68,68,0.16); border-color: rgba(239,68,68,0.3); color:#ef4444;">
+                                        <i class="fas fa-ban"></i>
+                                    </span>
+                                    <p class="text-sm ev-strong font-semibold">Event cancelled</p>
+                                    <p class="text-xs ev-muted mt-1">RSVPs and ticket sales are closed for this event.</p>
+                                </div>
+                            @elseif($hasTicketTiers)
                                 <form method="POST" action="{{ route('redirect.event.buy', $link->alias) }}" id="ticket-form" class="ev-card p-5">
                                     @csrf
                                     <div class="flex items-center gap-2.5 mb-4">

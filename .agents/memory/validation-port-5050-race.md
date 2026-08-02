@@ -7,3 +7,5 @@ Every 1inme Browser spec validation runs `tests/Browser/run-validation.sh`, whic
 **Symptoms:** TimeoutError on an element, then `net::ERR_CONNECTION_REFUSED` on retry, ENOENT Playwright trace files; each spec passes when run alone.
 
 **Fix:** give each registered Browser-spec validation command a distinct `VALIDATION_PORT` (5051/5052/5053…) via `setValidationCommand`; direct `.replit` edits are blocked.
+
+Also: Chromium blocks certain ports as ERR_UNSAFE_PORT (e.g. 5060/5061 — SIP ports); 5055 is safe. And parallel validation commands each spawn concurrent `php artisan tinker` seeds against the shared RDS — combine specs into ONE command (workers=1) to serialize seeding.

@@ -1202,6 +1202,8 @@ class RedirectController extends Controller
     public static function isRsvpAvailable(Link $link, ?\Illuminate\Support\Collection $tiers = null): bool
     {
         $s = (array) ($link->settings ?? []);
+        // A cancelled event never accepts RSVPs (Sayzio events cancel flow).
+        if (!empty($s['event_cancelled'])) return false;
         if (!empty($s['ticketing_enabled'])) return false;
 
         $tiers ??= $link->eventTicketTiers()->where('is_active', true)->get();

@@ -24,6 +24,10 @@ args = "e2e-contact-jump-to-record"
 task = "workflow.run"
 args = "eas-apk-build"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-event-features"
+
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
 author = "agent"
@@ -45,6 +49,17 @@ args = "cd /home/runner/workspace/artifacts/1inme-mobile && EAS_NO_VCS=1 npx -y 
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-event-features"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5055 bash tests/Browser/run-validation.sh event-guest-broadcast.spec.ts event-waitlist-promotion.spec.ts event-public-page-calendar.spec.ts calendar-settings-apple-microsoft.spec.ts"
 
 
   [agent]

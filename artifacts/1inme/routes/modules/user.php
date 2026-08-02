@@ -872,6 +872,11 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links-ics', [IcsLinkController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links', CheckPlanLimit::class . ':events'])->name('links.ics.store');
         Route::get('links-ics/{link}/edit', [IcsLinkController::class, 'edit'])->middleware('workspace.can:links.edit')->name('links.ics.edit');
         Route::put('links-ics/{link}', [IcsLinkController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.ics.update');
+        // ===== Cancel / reactivate an event (Sayzio events). Confirm screen with
+        // an optional "notify all guests" step; state lives in the link settings JSON.
+        Route::get ('links-ics/{link}/cancel', [IcsLinkController::class, 'cancelConfirm'])->middleware('workspace.can:links.edit')->name('links.ics.cancel');
+        Route::post('links-ics/{link}/cancel', [IcsLinkController::class, 'cancel'])->middleware('workspace.can:links.edit')->name('links.ics.cancel.confirm');
+        Route::post('links-ics/{link}/reactivate', [IcsLinkController::class, 'reactivate'])->middleware('workspace.can:links.edit')->name('links.ics.reactivate');
 
         // ===== Event ticketing (Task #3589): tier CRUD + sales dashboard + door check-in.
         Route::get('links-ics/{link}/tickets', [\App\Modules\User\Controllers\EventTicketTierController::class, 'index'])->middleware('workspace.can:links.view')->name('links.ics.tickets');

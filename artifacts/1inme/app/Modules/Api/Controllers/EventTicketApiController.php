@@ -137,6 +137,11 @@ class EventTicketApiController extends Controller
         if (empty(($link->settings ?? [])['ticketing_enabled'])) {
             return $this->fail('This event does not sell tickets.', 422);
         }
+        // Cancelled events don't sell tickets — shared gate with the web
+        // buy flow (EventTicketPublicController) so the two can't drift.
+        if ($link->eventTicketSalesClosedReason() !== null) {
+            return $this->fail($link->eventTicketSalesClosedReason(), 422);
+        }
 
         // Badge-gated events (Task #3593): mirrors RedirectController::rsvpSubmit.
         $requiredBadgeId = $link->icsData?->required_badge_id;
@@ -658,6 +663,10 @@ class EventTicketApiController extends Controller
             'category_label' => $categoryLabel,
             'category_icon'  => $categoryIcon,
             'ticketing_enabled' => (bool) (($link->settings ?? [])['ticketing_enabled'] ?? false),
+            // Event cancellation (Sayzio events): mobile mirrors the web
+            // "cancelled" banner + blocked RSVP/ticket flows.
+            'cancelled'    => $link->isEventCancelled(),
+            'cancelled_at' => optional($link->eventCancelledAt())->toIso8601String(),
             // Task #3674: RSVP is now available by default for any free
             // (non-ticketed) event unless the organizer explicitly opted out.
             'rsvp_available' => \App\Modules\Common\Controllers\RedirectController::isRsvpAvailable($link, $activeTiers),

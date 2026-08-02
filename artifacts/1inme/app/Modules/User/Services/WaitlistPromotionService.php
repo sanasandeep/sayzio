@@ -41,6 +41,9 @@ class WaitlistPromotionService
         $settings     = (array) ($link->settings ?? []);
         $rsvpSettings = (array) ($settings['rsvp_settings'] ?? []);
 
+        // A cancelled event has no seats to promote into (Sayzio events).
+        if (!empty($settings['event_cancelled'])) return 0;
+
         // Per-event toggle: defaults ON. Stored explicitly false when off.
         if (!self::autoPromoteEnabled($rsvpSettings)) return 0;
 
@@ -103,6 +106,8 @@ class WaitlistPromotionService
      */
     public function promoteForTier(Link $link, EventTicketTier $tier): int
     {
+        // A cancelled event has no seats to promote into (Sayzio events).
+        if (!empty(($link->settings ?? [])['event_cancelled'])) return 0;
         if (!self::autoPromoteEnabled((array) (($link->settings ?? [])['rsvp_settings'] ?? []))) return 0;
 
         // Unbounded tier: nothing to promote out of.
