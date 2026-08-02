@@ -20,6 +20,10 @@ author = "agent"
 task = "workflow.run"
 args = "e2e-contact-jump-to-record"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "eas-apk-build"
+
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
 author = "agent"
@@ -27,6 +31,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/1inme-mobile run test:contact-jump-to-record-real-api-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "eas-apk-build"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd /home/runner/workspace/artifacts/1inme-mobile && EAS_NO_VCS=1 npx -y eas-cli build --platform android --profile preview --non-interactive --no-wait 2>&1"
 
 [workflows.workflow.metadata]
 isValidation = true
