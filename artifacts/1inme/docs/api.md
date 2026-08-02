@@ -27,7 +27,7 @@ see [API usage metering](#api-usage-metering)).
 - [Biolinks (public)](#biolinks-public-visibility-aware) · [Blocks](#biolink-blocks-authoring) · [Block live limits & interactions](#block-live-limits--interactions) · [Biolink themes](#biolink-themes)
 - [Reviews (public)](#reviews-public) · [Reviews moderation (owner)](#reviews-moderation-owner)
 - [Feed](#feed) · [Follows](#follows) · [Subscribers](#subscribers) · [Discovery](#discovery-public) · [Creator profile](#creator-profile-public) · [Paid pages](#paid-pages-public) · [Creator monetization](#creator-monetization) · [Product storefront](#product-storefront) · [Posts](#posts-creator-feed) · [Paid DMs](#paid-dms)
-- [QR Studio](#qr-studio) · [Forms](#forms) · [Contacts & dialer](#contacts) · [Google Contacts sync](#google-contacts-sync) · [Connected apps](#connected-apps-crm-sync) · [Bulk import](#bulk-import-preview-workflow) · [Resume](#resume--portfolio) · [Projects](#projects)
+- [QR Studio](#qr-studio) · [Forms](#forms) · [Contacts & dialer](#contacts) · [Dialer notes](#dialer-notes) · [Google Contacts sync](#google-contacts-sync) · [Connected apps](#connected-apps-crm-sync) · [Bulk import](#bulk-import-preview-workflow) · [Resume](#resume--portfolio) · [Folders](#folders-projects)
 - [Wallet & coins](#wallet--coins) · [AI](#ai-coins-ai-minds-voice-account-assistant-chat-widgets) · [Competitor Biolink Teardown](#competitor-biolink-teardown) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans](#plans)
 - [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Restaurant menu](#restaurant-menu) · [Store menu](#store-menu) · [Service booking](#service-booking) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms) · [Spam settings](#spam-settings) · [Forwarding](#forwarding)
 - [Social connections & proofs](#social-connections--proofs) · [Integrations](#integrations) · [Calendar](#calendar) · [Verification](#verification)
@@ -159,11 +159,11 @@ handle and a first link.
 | ------ | ---------------- | ---- | ------------------------------------------------------------------------------------ |
 | GET    | `/links`         | yes  | Paginated list. Filters: `type`, `q`, `per_page`.                                    |
 | GET    | `/links/export.csv` | yes | CSV export of your links (same `type`/`q` filters as the list). Streamed; **not** plan-gated. Columns: `title,type,short_url,destination,project,status,total_clicks,created_at`. |
-| POST   | `/links`         | yes  | Body: `type` (short/biolink/file/qr/event/vcard/social/sms/wifi/pdf/ai_chat/text/…), `alias?`, `title?`, `long_url?`, `visibility?`. For `type=text` the pasted body is required under `settings.text.content` (max 20,000 chars); the public page shows it with a copy button. Plan gates: `module_text` toggle, `max_text_pages` cap. |
+| POST   | `/links`         | yes  | Body: `type` (short/biolink/file/qr/event/ics/vcard/social/sms/wifi/pdf/conversational/slides/ai_chat/resume/paid_page/brand_kit/text/restaurant_menu/store_menu/service_booking/calendar/reviews/updates), `alias?`, `title?`, `long_url?`, `visibility?`, `is_active?`, `domain_id?`, `workspace_id?`, `settings?`. For `type=text` the pasted body is required under `settings.text.content` (max 20,000 chars); the public page shows it with a copy button. Plan gates: `module_text` toggle, `max_text_pages` cap. The six page types added in the July 31 batch (`restaurant_menu`, `store_menu`, `service_booking`, `calendar`, `reviews`, `updates`) are each gated by their own plan module toggle + cap (e.g. `module_restaurant_menu` / `max_restaurant_menu`); the link is created with sensible defaults and finished in the matching builder. |
 | GET    | `/links/{id}`    | yes  | Show single link you own.                                                            |
 | PATCH  | `/links/{id}`    | yes  | Partial update.                                                                      |
 | DELETE | `/links/{id}`    | yes  | Delete link.                                                                         |
-| GET    | `/links/{id}/analytics` | yes | Click/visit analytics for a link.                                            |
+| GET    | `/links/{id}/analytics` | yes | Click/visit analytics for a link. For `type=text` links the payload also includes `txt_downloads` (count of `.txt` downloads, tracked as clicks with `source=txt_download`). |
 | GET    | `/links/{id}/analytics/blocks/{blockId}` | yes | Per-block analytics for a biolink.                          |
 | GET    | `/links/{id}/heatmap`      | yes | Aggregated click-origin coordinate points for the heatmap window (web parity). |
 | GET    | `/links/{id}/heatmap/live` | yes | Pollable "recent points since a cursor" feed: the first poll seeds the last few minutes, later polls return only newer points. |
@@ -223,6 +223,22 @@ validation/persistence helpers.
 | ------ | -------------------------------- | ---- | ----------------------------------- |
 | GET    | `/links/{id}/conversational`     | yes  | Load the conversational flow config. |
 | PUT    | `/links/{id}/conversational`     | yes  | Save the conversational flow config. |
+
+### Slide decks (Slides Mode)
+
+Full mobile parity for the web slides editor on biolink-family links
+(`biolink`, `conversational`, `slides`, `ai_chat`). The deck lives alongside
+the link's blocks; each slide references block ids and carries its own
+background and animation.
+
+| Method | Path                     | Auth | Description                          |
+| ------ | ------------------------ | ---- | ------------------------------------ |
+| GET    | `/links/{id}/slides`     | yes  | Load the deck: `settings` (incl. `auto_play`, `auto_play_interval` seconds), ordered `slides` (`block_ids`, `background`, `animation`), the link's block options for picking, and `creatable_types`. |
+| PUT    | `/links/{id}/slides`     | yes  | Replace the deck wholesale (settings + slide order), mirroring the web editor's persist. Per-slide `background` accepts `type` (`color` \| `image`) with `color` or `image_url`. |
+
+`creatable_types` is the curated in-slide block-creation subset (heading,
+paragraph, image, link, list, video, audio, socials, and friends), filtered by
+the caller's plan block allowlist, identical to the web editor's gating.
 
 ### Card templates
 
@@ -765,6 +781,23 @@ API surface of their own. All responses use the unified `{data}` / `{error}` env
 `dialer.callback_due` notification, swept every five minutes by the
 `dialer:send-callback-reminders` scheduled command.
 
+### Dialer notes
+
+Account-level unified notes shared across web (`/user/dialer/notes`), mobile,
+and Zio Browser (which shows a per-site note-count badge and caches notes for
+offline use). A note can be a free-form note or a checklist, optionally tied
+to phone numbers or a saved link/URL, with an optional reminder.
+
+| Method | Path                    | Auth | Description                          |
+| ------ | ----------------------- | ---- | ------------------------------------ |
+| GET    | `/dialer/notes`         | yes  | List notes (newest first).           |
+| POST   | `/dialer/notes`         | yes  | Create a note. Body: `title?`, `body?`, `kind` (`note` \| `checklist`), `checklist?` (array of `{text, done}`), `number?`, `share_phones?`, `attached_url?`, `attached_title?`, `remind_at?`, `color?`. |
+| PATCH  | `/dialer/notes/{id}`    | yes  | Partial update (same fields, plus `done`). |
+| DELETE | `/dialer/notes/{id}`    | yes  | Delete a note.                       |
+
+Note reminders (`remind_at`) can be mirrored onto My Calendar; see
+[My Calendar mirroring](#my-calendar).
+
 ```bash
 # Resolve a number to its caller-ID profile
 curl -X POST $BASE/dialer/lookup -H "Authorization: Bearer $TOKEN" \
@@ -857,14 +890,20 @@ Mobile parity for the web `/user/brand-studio` flow (bulk on-brand asset creator
 | PATCH  | `/brand-studio/presets/{preset}` | yes | Rename a saved combo. Body: `name` (≤60 chars). Errors: `422 invalid_name` (empty), `422 name_taken` (another combo already uses the name). Returns `{preset}`. |
 | DELETE | `/brand-studio/presets/{preset}` | yes | Delete a saved combo. Returns `{deleted: true}`. |
 
-## Projects
+## Folders (projects)
+
+Finder-style colored folders that group links. The UI says **Folders**; the
+API and database keep the historical `projects` naming for stability. Each
+folder has a `name`, a `color` (hex, from a preset palette; blue is the
+default), and an optional `description`. Folder colors also tint the link
+cards in the My Links grid view.
 
 | Method | Path               | Auth | Description           |
 | ------ | ------------------ | ---- | --------------------- |
-| GET    | `/projects`        | yes  | List projects.        |
-| POST   | `/projects`        | yes  | Create a project.     |
-| PATCH  | `/projects/{id}`   | yes  | Update a project.     |
-| DELETE | `/projects/{id}`   | yes  | Delete a project.     |
+| GET    | `/projects`        | yes  | List folders.         |
+| POST   | `/projects`        | yes  | Create a folder (`name`, `color?`, `description?`). |
+| PATCH  | `/projects/{id}`   | yes  | Update a folder.      |
+| DELETE | `/projects/{id}`   | yes  | Delete a folder (links inside are kept, just unfiled). |
 
 ---
 
@@ -1206,6 +1245,15 @@ for the `service_booking` link type. Open slots are computed by
 | DELETE | `/service-booking/links/{link}/config/availability/{rule}`       | yes      | Owner: delete an availability rule.                            |
 | POST   | `/service-booking/links/{link}/config/blocked-dates`             | yes      | Owner: block a specific date.                                   |
 | DELETE | `/service-booking/links/{link}/config/blocked-dates/{blockedDate}` | yes    | Owner: unblock a date.                                          |
+| POST   | `/service-booking/links/{link}/config/staff`                     | yes      | Owner: create a staff member (accepts an optional `email` for booking notifications). |
+| POST   | `/service-booking/links/{link}/config/staff/reorder`             | yes      | Owner: reorder staff.                                            |
+| PUT    | `/service-booking/links/{link}/config/staff/{staff}`             | yes      | Owner: update a staff member (incl. the optional notification `email`). |
+| DELETE | `/service-booking/links/{link}/config/staff/{staff}`             | yes      | Owner: delete a staff member.                                    |
+
+**Staff notification email.** Each staff member can carry an optional `email`.
+When set, that staff member is emailed automatically whenever a booking
+assigned to them is placed, rescheduled, or cancelled; for paid bookings the
+"placed" notification waits until payment is confirmed.
 
 **Paid bookings.** The `POST /service-booking/links/{link}/config/settings`
 endpoint accepts `payment_mode` (`none` | `deposit` | `full`), `deposit_type`
@@ -1347,6 +1395,25 @@ identifiers including the link-event types.
 Two-way calendar sync (mirroring a published `calendar` link's events to the
 owner's connected calendar) requires the `calendar_sync` plan feature; event
 links and visitor RSVP work without it.
+
+### My Calendar
+
+The owner's personal aggregated calendar (bookings, events, RSVPs, plus
+mirrored tasks and reminders).
+
+| Method | Path                                | Auth | Description                          |
+| ------ | ----------------------------------- | ---- | ------------------------------------ |
+| GET    | `/my-calendar`                      | yes  | Aggregated event feed for a date window. |
+| GET    | `/my-calendar/export`               | yes  | ICS export of the feed.              |
+| GET    | `/my-calendar/today`                | yes  | Today's agenda.                      |
+| GET    | `/my-calendar/mirror-preferences`   | yes  | Read the mirroring toggles: `task_due_dates`, `note_reminders` (booleans). |
+| PATCH  | `/my-calendar/mirror-preferences`   | yes  | Update either toggle.                |
+
+**Mirroring.** When `task_due_dates` is on, Task Board card due dates appear
+on My Calendar as all-day "Task: {title}" entries; when `note_reminders` is
+on, dialer-note reminders appear as timed "Reminder: {title}" entries. Both
+land in an automatically managed "Tasks & Reminders" calendar and update or
+disappear as the underlying task or note changes. Defaults are on.
 
 ## Verification
 

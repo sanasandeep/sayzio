@@ -63,6 +63,40 @@ class MyCalendarController extends Controller
         ]);
     }
 
+    /**
+     * Task #6477 — read the per-user mirror toggles (task due dates / note
+     * reminders → personal "Tasks & Reminders" calendar). Mobile parity for
+     * the web My Calendar preferences form.
+     */
+    public function mirrorPreferences(Request $request)
+    {
+        return $this->ok(
+            \App\Modules\User\Support\PersonalCalendarSync::preferences($request->user())
+        );
+    }
+
+    /** Task #6477 — update the mirror toggles (removes/backfills mirrored events). */
+    public function updateMirrorPreferences(Request $request)
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'task_due_dates' => ['sometimes', 'boolean'],
+            'note_reminders' => ['sometimes', 'boolean'],
+        ]);
+
+        $current = \App\Modules\User\Support\PersonalCalendarSync::preferences($user);
+
+        \App\Modules\User\Support\PersonalCalendarSync::applyPreferences(
+            $user,
+            (bool) ($data['task_due_dates'] ?? $current['task_due_dates']),
+            (bool) ($data['note_reminders'] ?? $current['note_reminders']),
+        );
+
+        return $this->ok(
+            \App\Modules\User\Support\PersonalCalendarSync::preferences($user->fresh())
+        );
+    }
+
     /** A single public (or owned) calendar with its upcoming events. */
     public function show(Request $request, int $calendar)
     {

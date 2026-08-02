@@ -5,7 +5,7 @@
 <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
     <div>
         <h1 class="text-2xl font-bold text-white">Folders</h1>
-        <p class="text-white/40 text-sm mt-1">Organize your links into folders — drop any link inside, click a folder to open it</p>
+        <p class="text-white/40 text-sm mt-1">Organize your links into folders, drop any link inside, click a folder to open it</p>
     </div>
     <div class="flex items-center gap-2">
         @php
@@ -27,7 +27,7 @@
             <input type="hidden" name="dir" value="{{ $dir }}">
             <button type="submit" name="dir" value="{{ $dir === 'asc' ? 'desc' : 'asc' }}"
                     class="p-2.5 rounded-xl border border-white/10 text-white/50 hover:text-white hover:bg-white/10"
-                    title="{{ $dir === 'asc' ? 'Ascending — click for descending' : 'Descending — click for ascending' }}">
+                    title="{{ $dir === 'asc' ? 'Ascending, click for descending' : 'Descending, click for ascending' }}">
                 <i class="fas {{ $dir === 'asc' ? 'fa-arrow-up-short-wide' : 'fa-arrow-down-wide-short' }} text-sm"></i>
             </button>
         </form>
@@ -43,7 +43,7 @@
         <i class="fas fa-folder text-blue-400 text-2xl"></i>
     </div>
     <h3 class="text-lg font-semibold text-white mb-2">No folders yet</h3>
-    <p class="text-white/40 mb-4">Create a folder to organize your links — just like files on your computer.</p>
+    <p class="text-white/40 mb-4">Create a folder to organize your links, just like files on your computer.</p>
     <a href="{{ route('user.projects.create') }}" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium">
         <i class="fas fa-folder-plus"></i> Create Folder
     </a>

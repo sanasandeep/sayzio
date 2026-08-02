@@ -248,7 +248,7 @@
       "standalone": "app/_layout.tsx",
       "source": "app/_layout.tsx",
       "relation": "adapted",
-      "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) \u2014 new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted; standalone additionally mounts DialerDeviceRegistrar (records the install via /dialer/device at sign-in/unlock, independent of push)",
+      "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) — new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted; standalone additionally mounts DialerDeviceRegistrar (records the install via /dialer/device at sign-in/unlock, independent of push)",
       "sourceSha256": "4bb1b301311e2488a09305c93d0a9d427776112ce6f95952066d0dab914aa714"
     },
     {
@@ -318,7 +318,7 @@
       "source": "lib/api/contacts.ts",
       "relation": "adapted",
       "note": "diverged API surfaces: main copy grew its own helpers (getContact/updateContactNotes/updateContactTags/duplicate + google-sync helpers, opts-object listContacts) while the standalone keeps the original CRUD/import surface. Manual-profile types + updateContactManualProfile now exist in both.",
-      "sourceSha256": "594f844dbb24bae8ca2d2f6993fb8b573a06779516a0e655f12a5320ade2049a"
+      "sourceSha256": "02b8d3731e31e4efd427de42926db51372063f7a7ef4b9d15fe48c3dc71fc345"
     },
     {
       "standalone": "components/ChannelActions.tsx",
@@ -361,7 +361,7 @@
     },
     {
       "path": "app/(tabs)/contacts.tsx",
-      "note": "contacts list screen; the main app removed its app/contacts/ screens \u2014 device import goes through lib/deviceContacts.ts"
+      "note": "contacts list screen; the main app removed its app/contacts/ screens — device import goes through lib/deviceContacts.ts"
     },
     {
       "path": "app/call/incoming.tsx",
@@ -397,7 +397,7 @@
     },
     {
       "path": "lib/eventsLocation.ts",
-      "note": "Single saved 'my location' anchoring Events near-me filtering + nearby-event alerts, set via device GPS or the shared MapPickerModal (the dialer's existing location-picker UI) \u2014 one location concept in this app, not a separate store; the main app has no equivalent single-location concept"
+      "note": "Single saved 'my location' anchoring Events near-me filtering + nearby-event alerts, set via device GPS or the shared MapPickerModal (the dialer's existing location-picker UI) — one location concept in this app, not a separate store; the main app has no equivalent single-location concept"
     },
     {
       "path": "app/(tabs)/events.tsx",
@@ -405,7 +405,7 @@
     },
     {
       "path": "app/events/[alias].tsx",
-      "note": "Event detail/RSVP/buy/interest screen adapted from the main app's app/events/[alias].tsx to this app's auth context field names (user.display_name) and colors; adds an in-app RsvpWebViewModal (embeds the existing public /{alias}/rsvp page) for non-ticketed events since there is no JSON RSVP API \u2014 otherwise the same hashtags/gallery/info-sections/interest UI"
+      "note": "Event detail/RSVP/buy/interest screen adapted from the main app's app/events/[alias].tsx to this app's auth context field names (user.display_name) and colors; adds an in-app RsvpWebViewModal (embeds the existing public /{alias}/rsvp page) for non-ticketed events since there is no JSON RSVP API — otherwise the same hashtags/gallery/info-sections/interest UI"
     },
     {
       "path": "hooks/useNearbyEventAlerts.ts",

@@ -19,9 +19,13 @@ import {
   contactPrimaryPhone,
   dismissDuplicates,
   fetchDuplicates,
+  listUndoableMerges,
   mergeAllDuplicates,
   mergeContacts,
+  undoContactMerge,
+  type UndoableMerge,
 } from "@/lib/api/contacts";
+import { router } from "expo-router";
 
 export default function ContactDuplicatesScreen() {
   const qc = useQueryClient();
@@ -32,13 +36,21 @@ export default function ContactDuplicatesScreen() {
   const [primaryIds, setPrimaryIds] = useState<Record<number, number>>({});
   const [busy, setBusy] = useState<Record<number, boolean>>({});
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [undoable, setUndoable] = useState<UndoableMerge[]>([]);
+  const [undoWindowDays, setUndoWindowDays] = useState(30);
+  const [undoBusy, setUndoBusy] = useState<Record<number, boolean>>({});
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
     setError(null);
     try {
-      const { groups: g } = await fetchDuplicates();
+      const [{ groups: g }, undoRes] = await Promise.all([
+        fetchDuplicates(),
+        listUndoableMerges().catch(() => ({ merges: [], undo_window_days: 30 })),
+      ]);
       setGroups(g);
+      setUndoable(undoRes.merges);
+      setUndoWindowDays(undoRes.undo_window_days ?? 30);
       const defaults: Record<number, number> = {};
       g.forEach((group, idx) => {
         if (group.contacts.length > 0) {
@@ -119,7 +131,7 @@ export default function ContactDuplicatesScreen() {
         .filter((c) => c.id !== primaryId)
         .map((c) => c.display_name)
         .join(", ");
-      const message = `Merge "${loserNames}" into "${primary?.display_name ?? "primary"}"? This cannot be undone.`;
+      const message = `Merge "${loserNames}" into "${primary?.display_name ?? "primary"}"? You can undo this from the contact page for 30 days.`;
 
       const confirm = () => {
         setBusy((b) => ({ ...b, [groupIdx]: true }));
@@ -152,10 +164,82 @@ export default function ContactDuplicatesScreen() {
     [primaryIds],
   );
 
+  const handleUndoMerge = useCallback(
+    (m: UndoableMerge) => {
+      const message = `Undo this merge? "${m.source_name}" will be restored as its own contact with its phones, emails and activity.`;
+      const confirm = () => {
+        setUndoBusy((b) => ({ ...b, [m.id]: true }));
+        undoContactMerge(m.id)
+          .then((res) => {
+            setUndoable((prev) => prev.filter((x) => x.id !== m.id));
+            qc.invalidateQueries({ queryKey: ["contacts"] });
+            qc.invalidateQueries({ queryKey: ["contact-duplicate-count"] });
+            router.push(`/contacts/${res.contact.id}` as any);
+          })
+          .catch((e: unknown) => {
+            Alert.alert(
+              "Undo failed",
+              e instanceof Error ? e.message : "Could not undo the merge.",
+            );
+          })
+          .finally(() => {
+            setUndoBusy((b) => ({ ...b, [m.id]: false }));
+          });
+      };
+
+      if (typeof window !== "undefined" && window.confirm) {
+        if (window.confirm(message)) confirm();
+      } else {
+        Alert.alert("Undo merge", message, [
+          { text: "Cancel", style: "cancel" },
+          { text: "Undo merge", onPress: confirm },
+        ]);
+      }
+    },
+    [qc],
+  );
+
+  const undoSection =
+    undoable.length > 0 ? (
+      <View style={styles.undoCard}>
+        <Text style={styles.undoTitle}>
+          Recently merged ({undoable.length})
+        </Text>
+        <Text style={styles.undoHint}>
+          Merged by mistake? You can undo a merge for {undoWindowDays} days.
+        </Text>
+        {undoable.map((m) => (
+          <View key={m.id} style={styles.undoRow}>
+            <View style={{ flex: 1, paddingRight: 10 }}>
+              <Text style={styles.undoName} numberOfLines={1}>
+                {m.source_name}
+              </Text>
+              {m.merged_at ? (
+                <Text style={styles.undoMeta}>
+                  Merged {new Date(m.merged_at).toLocaleDateString()}
+                </Text>
+              ) : null}
+            </View>
+            <Pressable
+              style={[styles.undoBtn, undoBusy[m.id] && styles.btnDisabled]}
+              onPress={() => handleUndoMerge(m)}
+              disabled={!!undoBusy[m.id]}
+            >
+              {undoBusy[m.id] ? (
+                <ActivityIndicator size="small" color={PRIMARY_COLOR} />
+              ) : (
+                <Text style={styles.undoBtnText}>Undo</Text>
+              )}
+            </Pressable>
+          </View>
+        ))}
+      </View>
+    ) : null;
+
   const handleMergeAll = useCallback(() => {
     const count = groups.length;
     if (count === 0 || bulkBusy) return;
-    const message = `Merge all ${count} duplicate ${count === 1 ? "group" : "groups"} at once? The first contact in each group keeps all data; the others are deleted. This cannot be undone.`;
+    const message = `Merge all ${count} duplicate ${count === 1 ? "group" : "groups"} at once? The first contact in each group keeps all data; the others are merged into it. You can undo individual merges for 30 days.`;
 
     const confirmAction = () => {
       setBulkBusy(true);
@@ -212,21 +296,22 @@ export default function ContactDuplicatesScreen() {
 
   if (groups.length === 0) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.emptyIcon}>✓</Text>
-        <Text style={styles.emptyTitle}>No duplicates found</Text>
-        <Text style={styles.emptySubtitle}>
-          Your address book looks clean! Pull down to re-check.
-        </Text>
-        <ScrollView
-          style={{ flex: 0 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
-          <View style={{ height: 1 }} />
-        </ScrollView>
-      </View>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, undoable.length === 0 && styles.emptyContent]}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {undoSection}
+        <View style={{ alignItems: "center", paddingVertical: 32 }}>
+          <Text style={styles.emptyIcon}>✓</Text>
+          <Text style={styles.emptyTitle}>No duplicates found</Text>
+          <Text style={styles.emptySubtitle}>
+            Your address book looks clean! Pull down to re-check.
+          </Text>
+        </View>
+      </ScrollView>
     );
   }
 
@@ -244,6 +329,8 @@ export default function ContactDuplicatesScreen() {
       <Text style={styles.subheader}>
         Select a primary contact in each group, then merge or dismiss.
       </Text>
+
+      {undoSection}
 
       <Pressable
         style={[styles.mergeAllBtn, bulkBusy && styles.btnDisabled]}
@@ -430,6 +517,61 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#94a3b8",
     marginBottom: 20,
+  },
+  emptyContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+  undoCard: {
+    backgroundColor: SURFACE,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#22345f",
+  },
+  undoTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#f8fafc",
+    marginBottom: 2,
+  },
+  undoHint: {
+    fontSize: 12,
+    color: "#94a3b8",
+    marginBottom: 10,
+  },
+  undoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#22345f",
+  },
+  undoName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#f8fafc",
+  },
+  undoMeta: {
+    fontSize: 11,
+    color: "#94a3b8",
+    marginTop: 2,
+  },
+  undoBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: PRIMARY_COLOR,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 64,
+  },
+  undoBtnText: {
+    color: PRIMARY_COLOR,
+    fontSize: 13,
+    fontWeight: "700",
   },
   mergeAllBtn: {
     paddingVertical: 12,

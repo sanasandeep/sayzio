@@ -21,6 +21,7 @@ import React, { act, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { ChromeBar } from '../src/renderer/components/ChromeBar';
 import { useTabStore } from '../src/renderer/store/tab-store';
+import { buildZioMock, resolved, type IpcHandlerMap } from './helpers/zio-mock';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -30,97 +31,34 @@ const BOOKMARK_URL = 'https://bookmark.example/saved';
 const HISTORY_URL = 'https://history.example/visited';
 
 let navigateSpy: ReturnType<typeof vi.fn>;
-let ipcHandlers: Map<string, Set<(...args: unknown[]) => void>>;
+let ipcHandlers: IpcHandlerMap;
 
-function buildZioMock() {
+function makeZio() {
   navigateSpy = vi.fn(() => Promise.resolve());
-  ipcHandlers = new Map();
-  const resolved = <T,>(v: T) => vi.fn(() => Promise.resolve(v));
-  return {
-    platform: 'linux',
-    on: (channel: string, fn: (...args: unknown[]) => void) => {
-      if (!ipcHandlers.has(channel)) ipcHandlers.set(channel, new Set());
-      ipcHandlers.get(channel)!.add(fn);
+  const mock = buildZioMock({
+    overrides: {
+      tabs: {
+        getOrder: resolved([TAB_ID]),
+        getActive: resolved(TAB_ID),
+        getState: resolved({
+          url: CURRENT_URL, title: 'Current Page', isLoading: false, pinned: false,
+        }),
+        navigate: navigateSpy,
+      },
+      history: {
+        search: vi.fn(() => Promise.resolve([
+          { url: HISTORY_URL, title: 'History Result' },
+        ])),
+      },
+      bookmarks: {
+        search: vi.fn(() => Promise.resolve([
+          { url: BOOKMARK_URL, title: 'Bookmark Result' },
+        ])),
+      },
     },
-    off: (channel: string, fn: (...args: unknown[]) => void) => {
-      ipcHandlers.get(channel)?.delete(fn);
-    },
-    tabs: {
-      getOrder: resolved([TAB_ID]),
-      getActive: resolved(TAB_ID),
-      getState: resolved({
-        url: CURRENT_URL, title: 'Current Page', isLoading: false, pinned: false,
-      }),
-      recentlyClosed: resolved([]),
-      navigate: navigateSpy,
-      create: resolved(null),
-      close: resolved(undefined),
-      activate: resolved(undefined),
-      back: resolved(undefined),
-      forward: resolved(undefined),
-      reload: resolved(undefined),
-      stop: resolved(undefined),
-      pin: resolved(undefined),
-      mute: resolved(undefined),
-      muteAll: resolved(undefined),
-      move: resolved(undefined),
-      duplicate: resolved(null),
-      closeOthers: resolved(undefined),
-      closeToRight: resolved(undefined),
-      setMode: resolved(undefined),
-      reopenClosed: resolved(null),
-      reopenFromRecent: resolved(null),
-    },
-    history: {
-      search: vi.fn(() => Promise.resolve([
-        { url: HISTORY_URL, title: 'History Result' },
-      ])),
-      record: resolved(undefined),
-    },
-    bookmarks: {
-      search: vi.fn(() => Promise.resolve([
-        { url: BOOKMARK_URL, title: 'Bookmark Result' },
-      ])),
-      isBookmarked: resolved(false),
-      add: resolved(undefined),
-      remove: resolved(undefined),
-    },
-    readingList: {
-      isSaved: resolved(false),
-      unreadCount: resolved(0),
-      add: resolved(undefined),
-    },
-    sync: {
-      pendingCount: resolved(0),
-      pendingByProfile: resolved([]),
-    },
-    tracker: {
-      isEnabled: resolved(false),
-      getCount: resolved(0),
-    },
-    audio: {
-      getMuteAll: resolved(false),
-    },
-    window: {
-      setChromeOverlay: resolved(undefined),
-      openPrivate: resolved(undefined),
-    },
-    prefs: {
-      get: resolved(null),
-      set: resolved(undefined),
-      all: resolved({}),
-    },
-    profiles: {
-      list: resolved([]),
-      getActive: resolved(null),
-      switch: resolved(undefined),
-      warmSession: resolved(undefined),
-    },
-    auth: {
-      getToken: resolved(null),
-      getUser: resolved(null),
-    },
-  };
+  });
+  ipcHandlers = mock.ipcHandlers;
+  return mock.zio;
 }
 
 /** Boots the singleton tab store (getOrder/getActive/getState) like App does. */
@@ -208,7 +146,7 @@ function keydown(key: string): void {
 
 beforeEach(async () => {
   vi.restoreAllMocks();
-  (window as unknown as Record<string, unknown>).zio = buildZioMock();
+  (window as unknown as Record<string, unknown>).zio = makeZio();
   container = document.createElement('div');
   document.body.appendChild(container);
   await act(async () => {

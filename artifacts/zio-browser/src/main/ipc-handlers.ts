@@ -11,6 +11,15 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { pathToFileURL } from 'url';
+import {
+  listAccountNotes,
+  saveAccountNote,
+  deleteAccountNote,
+  flushNoteOps,
+  countNotesForHost,
+  migrateSavedLinkNotes,
+} from './notes-store';
+import type { DialerNoteInput } from '../shared/api-client';
 import { isMarkdownDownload, renderMarkdownDocument } from '../shared/markdown';
 import { isCsvDownload, buildCsvViewerHtml, CSV_VIEWER_MAX_FILE_BYTES } from '../shared/csv-viewer';
 import type { TabManager, SessionTabLayout } from './tab-manager';
@@ -1055,6 +1064,18 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     removeFromReadingList(id);
     return true;
   });
+
+  // ── Account notes (Dialer Notes API + offline cache/queue) ──────────────
+  ipcMain.handle('notes:list', async (_, filter?: { url?: string; domain?: string }) => {
+    // Opportunistic one-time import of legacy saved-link note text into
+    // account notes (idempotent; no-op when already done or signed out).
+    try { await migrateSavedLinkNotes(); } catch { /* retried on next list */ }
+    return listAccountNotes(filter);
+  });
+  ipcMain.handle('notes:save', (_, id: number | null, input: DialerNoteInput) => saveAccountNote(id, input));
+  ipcMain.handle('notes:delete', (_, id: number) => deleteAccountNote(id));
+  ipcMain.handle('notes:flush', () => flushNoteOps());
+  ipcMain.handle('notes:count-for-host', (_, host: string) => countNotesForHost(host));
 
   // ── Sync ─────────────────────────────────────────────────────────────────
   //

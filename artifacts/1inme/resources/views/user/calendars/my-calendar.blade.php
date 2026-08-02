@@ -92,6 +92,40 @@
                 </div>
             </div>
 
+            {{-- Task #6477 — task/reminder mirror toggles --}}
+            <div class="relative" x-data="{ open: false }" @keydown.escape.window="open = false" @click.outside="open = false">
+                <button @click="open = !open" type="button"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border border-white/10 text-white/70 hover:text-white hover:border-white/30 transition">
+                    <i class="fas fa-arrows-rotate text-xs"></i> Sync
+                    <i class="fas fa-chevron-down text-[10px] opacity-60" :class="open ? 'rotate-180' : ''" style="transition:transform .15s"></i>
+                </button>
+                <div x-show="open" x-transition
+                     class="absolute right-0 mt-1.5 w-80 rounded-xl border border-white/10 shadow-xl z-30 p-4"
+                     style="background: rgba(20,18,35,0.97); backdrop-filter: blur(12px);" x-cloak>
+                    <p class="text-sm font-semibold text-white">Tasks &amp; Reminders</p>
+                    <p class="text-xs text-white/50 mt-1 leading-relaxed">
+                        Show your task board due dates and note reminders here as calendar events.
+                        They flow into your subscription feed and exports too.
+                    </p>
+                    <form method="POST" action="{{ route('user.calendars.mine.mirror-preferences') }}" class="mt-3 space-y-2.5">
+                        @csrf
+                        <label class="flex items-center gap-2.5 text-sm text-white/70 cursor-pointer">
+                            <input type="checkbox" name="task_due_dates" value="1" @checked($mirrorPrefs['task_due_dates'] ?? true)
+                                   class="rounded text-blue-500 bg-black/30 border-white/20">
+                            Task due dates
+                        </label>
+                        <label class="flex items-center gap-2.5 text-sm text-white/70 cursor-pointer">
+                            <input type="checkbox" name="note_reminders" value="1" @checked($mirrorPrefs['note_reminders'] ?? true)
+                                   class="rounded text-blue-500 bg-black/30 border-white/20">
+                            Note &amp; checklist reminders
+                        </label>
+                        <button type="submit" class="w-full mt-1 h-9 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white transition">
+                            Save preferences
+                        </button>
+                    </form>
+                </div>
+            </div>
+
             {{-- Export dropdown --}}
             <div class="relative" x-data="{ open: false }" @keydown.escape.window="open = false" @click.outside="open = false">
                 <button @click="open = !open" type="button"

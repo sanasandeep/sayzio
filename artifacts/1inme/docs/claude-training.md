@@ -123,7 +123,7 @@ Every link is created via **Create Link → Step 1** (type + alias) **→ Step 2
 | Friendly name | `links.type` | Notes |
 |---|---|---|
 | Conversational | `conversational` | Scripted chat-style walk-through |
-| Slides | `slides` | Swipeable story deck |
+| Slides | `slides` | Swipeable story deck; Slides Mode editor has inline in-slide block editing, live device preview, per-slide backgrounds, auto-play, and plan-gated in-slide block creation from `SlideDeck::CREATABLE_TYPES`; REST via `GET/PUT /links/{id}/slides` ([api.md#slide-decks-slides-mode](./api.md#slide-decks-slides-mode)) |
 | AI Chatbot | `ai_chat` | Full-page AI companion (reuses AiCompanion, `placement=page`) |
 
 ### 3.5 Other surfaces (not in picker)
@@ -140,6 +140,15 @@ cap `max_resume`.
 two-way sync (rotatable `my_calendar_feed_token`; unknown token → empty-valid
 VCALENDAR never 404). Toggle `module_calendar`, caps `max_calendars` /
 `max_calendar_events`; sync needs `calendar_sync` feature.
+
+**My Calendar mirroring (`PersonalCalendarSync`)**: Task Board card due dates
+(all-day "Task: {title}") and dialer-note reminders (timed "Reminder: {title}")
+are mirrored into an auto-managed "Tasks & Reminders" calendar. Per-user
+toggles `task_due_dates` / `note_reminders` (both default **on** —
+`PersonalCalendarSync::enabledFor` defaults true); disabling removes mirrored
+events, re-enabling backfills. REST:
+`GET/PATCH /api/v1/my-calendar/mirror-preferences` plus feed/export/today
+endpoints ([api.md#my-calendar](./api.md#my-calendar)).
 
 ---
 
@@ -261,6 +270,10 @@ confirms or declines from a bookings dashboard.
   `deposit_value`. Payment via owner's connected payout provider.
 - **Appointment reminders:** `reminder_lead_minutes` array (e.g. `[1440, 60]`);
   dispatched by `service_booking:send-reminders` scheduled command.
+- **Staff notification email:** staff members carry an optional `email`; when
+  set, `ServiceBookingRequestService::notifyStaff` emails the assigned staff
+  member on booking placed / rescheduled / cancelled (for paid bookings the
+  "placed" email waits for payment confirmation).
 - **Mobile:** full native parity.
 
 ### 5.4 QR Studio Pro
@@ -293,6 +306,16 @@ SEO meta (title/desc/keywords), workspace names, and verification status — acr
 owned AND followed records (visibility-gated). Groups: Contacts, People, My Links,
 Followed, Workspaces. T9 smart-dial preserved. Web and mobile expose a T9 ↔
 alphanumeric keyboard toggle. REST at `/api/v1/dialer/search`.
+
+**Unified notes (`dialer_notes`):** one account-level notes/checklists store
+shared by web (`/user/dialer/notes`), mobile, and Zio Browser (per-site
+note-count badge + offline cache with queued-ops sync; one-time migration of
+its legacy per-install saved-link notes). Fields: `title`, `body`, `number`,
+`remind_at`, `done`, `color`, `kind` (`note` | `checklist`), `attached_url`,
+`attached_title`, `checklist[]`, `share_phones`. REST CRUD at
+`/api/v1/dialer/notes` ([api.md#dialer-notes](./api.md#dialer-notes)). Notes
+with `remind_at` are mirrored onto My Calendar by `PersonalCalendarSync` (see
+"My Calendar mirroring" in §3.5).
 
 > **Workspace scope:** `Follow` / `Contact` / `Subscriber` use `BelongsToWorkspace`,
 > so every account-level ID-set query in `DialerSearch` must
@@ -518,7 +541,14 @@ so API-created `BelongsToWorkspace` records land with `workspace_id = null` (sti
 returned by the API index; not shown in the web workspace-scoped list). Resolve
 across `accessibleWorkspaces`; gate per-action via `canInWorkspace`.
 
-**Projects.** Group links, files, and work within a workspace.
+**Folders (projects).** Colored, Finder-style folders that group links (UI says
+"Folders"; API/DB keep the `projects` naming — `ProjectController`, `projects`
+table, `/api/v1/projects`). Name + preset-palette color (blue default,
+`ProjectController::COLORS`) + optional description; folder colors tint link
+cards in the My Links grid view. New accounts get seeded demo folders
+(Marketing, Social, Docs, Partners). The My Links list/grid view toggle
+persists per device (`sayzio_links_view` key: localStorage on web, AsyncStorage
+on mobile). Full web + mobile + REST parity ([api.md#folders-projects](./api.md#folders-projects)).
 
 **Team & roles.** `WorkspaceMember` + `WorkspaceRolePermission` granular RBAC
 (Owner / Admin / Editor / Viewer). Owners can enforce 2FA for everyone and review a
@@ -723,6 +753,24 @@ Cross-platform Electron app (Windows / macOS / Linux); downloaded from `/downloa
   `X-Browser-Workspace-Id` header lets the server scope responses per profile.
 - **Device Lab** — CSS-scaled iframe grid for multi-device previews.
 - **Offline access** — links and dashboard readable without a connection.
+- **Ad blocker** — `@ghostery/adblocker` with EasyList + EasyPrivacy; per-user
+  prefs `ad_blocking_enabled` / `adblock_strength` + per-site allow/block
+  lists; admin-mandated `adblock_admin_policy` app setting fetched roughly
+  every 6 hours can force on/off platform-wide; main-frame documents are never
+  blocked.
+- **My Files pane** — sidebar file manager over the user's Sayzio storage
+  (folders, drag-and-drop upload, quota display).
+- **Unified notes badge** — per-site note count from the shared `dialer_notes`
+  store (§5.6); offline cache + queued-ops sync.
+- **Dialpad** — T9 dialpad panel with a Zio Dialer hand-off.
+- **Text-file viewers** — `.txt`, Markdown, JSON, CSV open in built-in viewers.
+- **Create popover** — quick-create tiles for the six newest page types
+  (AI Chat, Paid Page, Text Page, Restaurant Menu, Store, Booking).
+- **Linux packaging** — AppImage + `.deb` (x64) from v0.3.8; download links
+  admin-pinnable via `product_browser_linux_appimage_url` /
+  `product_browser_linux_deb_url` app settings, falling back to GitHub
+  releases assets.
+- **QoL** — password-field eye toggle; per-profile settings panel.
 
 ### 14.2 Browser extension (`artifacts/1inme-extension`)
 

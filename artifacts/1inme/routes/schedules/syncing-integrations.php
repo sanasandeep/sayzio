@@ -40,6 +40,15 @@ return [
         'cadence'     => ['dailyAt', '09:15'],
     ],
     [
+        // Nightly backstop for unified contact linking: captures that failed
+        // to link at write time (transient errors, plan cap reached then
+        // upgraded) get re-linked. Idempotent — already-linked rows skip.
+        'key'                 => 'contacts:link-captures',
+        'description'         => 'Re-link orphaned capture records (subscribers, orders, bookings, RSVPs, tickets, reviews, form submissions, inbox threads) to Contacts.',
+        'cadence'             => ['dailyAt', '02:45'],
+        'without_overlapping' => 120,
+    ],
+    [
         'key'         => 'contacts:reconcile-attachments',
         'description' => 'Clear caller-ID biolink attachments whose creator is no longer reachable to the contact owner (blocked/suspended/deleted).',
         'cadence'     => ['hourly'],

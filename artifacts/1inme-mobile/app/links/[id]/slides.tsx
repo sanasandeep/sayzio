@@ -713,7 +713,7 @@ export default function SlidesEditorScreen() {
                     ))}
               {pickerFor?.kind === "attach" && !(meta?.blocks ?? []).length ? (
                 <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-                  This page has no blocks yet — create one instead.
+                  This page has no blocks yet, create one instead.
                 </Text>
               ) : null}
             </ScrollView>
@@ -1082,7 +1082,7 @@ function BackgroundEditorModal({
                   <Text
                     style={[styles.hint, { color: colors.mutedForeground }]}
                   >
-                    No images in your files yet — upload one above.
+                    No images in your files yet, upload one above.
                   </Text>
                 )}
               </View>

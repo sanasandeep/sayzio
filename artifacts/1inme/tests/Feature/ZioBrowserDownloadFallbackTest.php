@@ -42,12 +42,18 @@ class ZioBrowserDownloadFallbackTest extends TestCase
     {
         $this->fakeGithubRelease('0.4.2');
 
-        $this->get('/download')->assertOk()->assertSee('0.4.2');
+        // The first visit serves the pinned fallback instantly; the fetch
+        // and persistence happen after the response is sent.
+        $this->get('/download')->assertOk()->assertSee('0.1.0');
 
+        // The after-response refresh has now persisted the live release …
         $stored = AppSetting::where('key', 'zio_browser_last_release')->first();
         $this->assertNotNull($stored);
         $this->assertSame('0.4.2', $stored->value['version']);
         $this->assertStringContainsString('zio-browser-v0.4.2', $stored->value['windows_exe']);
+
+        // … so the next visitor sees the freshly-fetched version.
+        $this->get('/download')->assertOk()->assertSee('0.4.2');
     }
 
     public function test_outage_serves_persisted_release_not_hardcoded_pin(): void

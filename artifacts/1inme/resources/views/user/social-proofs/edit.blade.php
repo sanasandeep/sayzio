@@ -663,7 +663,7 @@ function buzzEditor() {
                     '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px"><div class="tpl-t1">📱 Text alerts</div>'+
                     '<div style="display:flex;gap:4px"><div style="flex:1;height:18px;background:#f1f5f9;border-radius:4px"></div><div style="height:18px;padding:0 8px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center">Join</div></div></div>',
                 webinar_signup:
-                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px"><div class="tpl-t1">🎓 Live webinar</div><div class="tpl-t2">Thu 3pm — save your seat</div>'+
+                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px"><div class="tpl-t1">🎓 Live webinar</div><div class="tpl-t2">Thu 3pm, save your seat</div>'+
                     '<div style="height:16px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center;justify-content:center">Register</div></div>',
                 push_opt_in:
                     '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px"><div class="tpl-t1">🔔 Stay in the loop?</div>'+
@@ -932,13 +932,13 @@ function buzzEditor() {
                 case 'inline_informational':
                     return this.tpl([
                         this.row([this.text(n,'settings.icon','Icon (emoji)','💡'), this.text(n,'settings.text','Text')]),
-                        this.text(n,'settings.selector','Inline CSS selector (e.g. #reviews, .sidebar) — blank = floating card','#my-section'),
+                        this.text(n,'settings.selector','Inline CSS selector (e.g. #reviews, .sidebar), blank = floating card','#my-section'),
                     ]);
                 case 'inline_conversions':
                     return this.tpl([
                         this.text(n,'settings.text','Text','{count} people signed up this week'),
                         this.num(n,'settings.count','Count'),
-                        this.text(n,'settings.selector','Inline CSS selector (e.g. #reviews, .sidebar) — blank = floating card','#my-section'),
+                        this.text(n,'settings.selector','Inline CSS selector (e.g. #reviews, .sidebar), blank = floating card','#my-section'),
                     ]);
                 case 'informational_mini':
                     return this.tpl([

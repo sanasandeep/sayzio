@@ -69,7 +69,7 @@
                         </div>
                     @endforeach
                 </div>
-                <p class="mt-4 text-[11px] text-gray-500">Names masked, locations coarse — visitors can dismiss any popup.</p>
+                <p class="mt-4 text-[11px] text-gray-500">Names masked, locations coarse, visitors can dismiss any popup.</p>
             </div>
         </div>
     </div>
@@ -80,7 +80,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">How <span class="grad-text">Buzz</span> works</h2>
-            <p class="mt-3 text-gray-400 max-w-2xl mx-auto">Tasteful, real-time notifications that show visitors the room is busy — built into every Sayzio biolink.</p>
+            <p class="mt-3 text-gray-400 max-w-2xl mx-auto">Tasteful, real-time notifications that show visitors the room is busy, built into every Sayzio biolink.</p>
         </div>
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5" data-anim="fade-up" data-stagger>
             @foreach($sections as $i => $s)
@@ -105,7 +105,7 @@
                     <i class="fas fa-gauge-high"></i>
                 </div>
                 <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Fair, plan-metered views</h2>
-                <p class="mt-4 text-gray-400 leading-relaxed">Buzz views are included with your plan and metered monthly, so you always know what you're getting. When a month's allowance is used up, Buzz simply pauses until the next cycle — no surprise charges, and your page keeps working exactly as before.</p>
+                <p class="mt-4 text-gray-400 leading-relaxed">Buzz views are included with your plan and metered monthly, so you always know what you're getting. When a month's allowance is used up, Buzz simply pauses until the next cycle, no surprise charges, and your page keeps working exactly as before.</p>
                 <a href="{{ route('site.pricing') }}" class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-blue-300 hover:text-white">Compare plan allowances <i class="fas fa-arrow-right text-xs"></i></a>
             </div>
             <div data-anim="fade-left">
@@ -131,7 +131,7 @@
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Let visitors feel the momentum</h3>
-                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Turn on Buzz from your dashboard, pick the events you want to surface, and watch trust — and conversions — climb.</p>
+                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Turn on Buzz from your dashboard, pick the events you want to surface, and watch trust (and conversions) climb.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                     @guest
                         <a href="{{ $ctaUrl }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">{{ $ctaLabel }}</a>

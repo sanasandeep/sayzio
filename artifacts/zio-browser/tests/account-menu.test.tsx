@@ -17,6 +17,7 @@ import React, { act, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { AccountButton } from '../src/renderer/components/AccountButton';
 import { useAuthStore } from '../src/renderer/store/auth-store';
+import { buildZioMock } from './helpers/zio-mock';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -27,26 +28,25 @@ let clearSpy: ReturnType<typeof vi.fn>;
 let storedToken: string | null;
 let storedUser: Record<string, unknown> | null;
 
-function buildZioMock() {
+function makeZio() {
   overlaySpy = vi.fn(() => Promise.resolve());
   clearSpy = vi.fn(() => {
     storedToken = null;
     storedUser = null;
     return Promise.resolve(true);
   });
-  return {
-    platform: 'linux',
-    auth: {
-      getToken: vi.fn(() => Promise.resolve(storedToken)),
-      getUser: vi.fn(() => Promise.resolve(storedUser)),
-      storeToken: vi.fn(() => Promise.resolve(true)),
-      storeUser: vi.fn(() => Promise.resolve(true)),
-      clear: clearSpy,
+  return buildZioMock({
+    overrides: {
+      auth: {
+        getToken: vi.fn(() => Promise.resolve(storedToken)),
+        getUser: vi.fn(() => Promise.resolve(storedUser)),
+        clear: clearSpy,
+      },
+      window: {
+        setChromeOverlay: overlaySpy,
+      },
     },
-    window: {
-      setChromeOverlay: overlaySpy,
-    },
-  };
+  }).zio;
 }
 
 /** Mounts AccountButton after hydrating the auth store from the mock. */
@@ -87,7 +87,7 @@ function findByText(text: string): HTMLElement | null {
 beforeEach(() => {
   storedToken = 'test-token';
   storedUser = USER;
-  (window as unknown as { zio: unknown }).zio = buildZioMock();
+  (window as unknown as { zio: unknown }).zio = makeZio();
 });
 
 afterEach(async () => {

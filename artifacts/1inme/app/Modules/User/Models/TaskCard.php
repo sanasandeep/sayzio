@@ -14,7 +14,7 @@ class TaskCard extends Model
         'title', 'description', 'description_html', 'position',
         'due_date', 'priority', 'progress', 'completed_at', 'archived_at',
         'billable', 'rate_type', 'rate_amount_minor', 'client_invoice_id',
-        'roadmap_item_id',
+        'roadmap_item_id', 'calendar_event_id',
     ];
 
     public function roadmapItem() { return $this->belongsTo(RoadmapItem::class, 'roadmap_item_id'); }
@@ -36,6 +36,7 @@ class TaskCard extends Model
     public function attachments(){ return $this->hasMany(TaskAttachment::class, 'card_id')->orderByDesc('id'); }
     public function timeEntries(){ return $this->hasMany(TaskTimeEntry::class, 'card_id')->orderBy('started_at'); }
     public function clientInvoice(){ return $this->belongsTo(Invoice::class, 'client_invoice_id'); }
+    public function calendarEvent(){ return $this->belongsTo(CalendarEvent::class, 'calendar_event_id'); }
 
     /** Sum of un-invoiced minutes (for hourly billing previews). */
     public function unbilledMinutes(): int
@@ -63,8 +64,15 @@ class TaskCard extends Model
 
     protected static function booted(): void
     {
+        // Task #6477 — mirror the card's due date onto the owner's personal
+        // "Tasks & Reminders" calendar (and drop the event on delete).
+        static::saved(function (TaskCard $card) {
+            \App\Modules\User\Support\PersonalCalendarSync::syncTaskCard($card);
+        });
+
         static::deleting(function (TaskCard $card) {
             $card->cloudAttachments()->delete();
+            \App\Modules\User\Support\PersonalCalendarSync::deleteTaskCardEvent($card);
         });
     }
 

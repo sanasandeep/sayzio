@@ -23,10 +23,11 @@ import {
   PINNED_TOOLS_CHANGED_EVENT,
 } from '../src/shared/toolbar-pins';
 import type { PinnableTool } from '../src/shared/toolbar-pins';
+import { buildZioMock } from './helpers/zio-mock';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
-// ── window.zio.prefs mock backed by an in-memory store ──────────────────────
+// ── window.zio mock (shared helper) with prefs backed by an in-memory store ─
 let prefStore: Map<string, string>;
 let prefsSet: ReturnType<typeof vi.fn>;
 
@@ -36,12 +37,15 @@ beforeEach(() => {
     prefStore.set(key, value);
     return Promise.resolve();
   });
-  (window as unknown as Record<string, unknown>).zio = {
-    prefs: {
-      get: (key: string) => Promise.resolve(prefStore.get(key) ?? null),
-      set: prefsSet,
+  const { zio } = buildZioMock({
+    overrides: {
+      prefs: {
+        get: vi.fn((key: string) => Promise.resolve(prefStore.get(key) ?? null)),
+        set: prefsSet,
+      },
     },
-  };
+  });
+  (window as unknown as Record<string, unknown>).zio = zio;
 });
 
 /**

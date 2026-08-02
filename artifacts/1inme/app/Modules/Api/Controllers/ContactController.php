@@ -108,10 +108,50 @@ class ContactController extends Controller
             $q->where('contact_type', $ct);
         }
 
+        // "Most active" sort / activity filter (Task #6510): a single bulk
+        // UNION-ALL count pass over the caller's capture tables joined as a
+        // derived table — no per-contact queries. Shared contacts owned by
+        // other members have no rows in the join and sort/read as 0.
+        $sort = $request->string('sort')->toString() === 'activity' ? 'activity' : 'name';
+        $hasActivity = $request->boolean('has_activity');
+        if ($sort === 'activity' || $hasActivity) {
+            $totals = app(\App\Modules\User\Services\Contacts\ContactActivityService::class)
+                ->activityTotalsQuery((int) $user->id);
+            $q->leftJoinSub($totals, 'contact_activity', 'contact_activity.contact_id', '=', 'contacts.id')
+                ->select('contacts.*');
+            if ($hasActivity) {
+                $q->whereRaw('COALESCE(contact_activity.activity_total, 0) > 0');
+            }
+        }
+
+        if ($sort === 'activity') {
+            $q->orderByRaw('COALESCE(contact_activity.activity_total, 0) DESC');
+        }
+
         $page = $q->orderBy('display_name')
             ->paginate(min(200, max(1, (int) $request->input('per_page', 50))));
 
-        $items = collect($page->items())->map(fn ($c) => $this->transform($c, $sharedWsId))->all();
+        // Unified contact activity counts (mobile parity with the web list's
+        // ⚡ badges) — one grouped query per capture table for the visible
+        // page, never per contact. Counts are pinned to the caller's own
+        // records, so shared contacts owned by other members read 0 here.
+        $activityCounts = [];
+        try {
+            $ownIds = collect($page->items())
+                ->filter(fn ($c) => (int) $c->user_id === (int) $user->id)
+                ->pluck('id')->all();
+            if ($ownIds) {
+                $activityCounts = app(\App\Modules\User\Services\Contacts\ContactActivityService::class)
+                    ->countsFor((int) $user->id, $ownIds);
+            }
+        } catch (\Throwable) {}
+
+        $items = collect($page->items())->map(function ($c) use ($sharedWsId, $activityCounts) {
+            $row = $this->transform($c, $sharedWsId);
+            $row['activity_count'] = (int) ($activityCounts[$c->id] ?? 0);
+
+            return $row;
+        })->all();
 
         // Count only the caller's own contacts for the usage gauge; shared
         // contacts belong to another account's quota.
@@ -275,6 +315,54 @@ class ContactController extends Controller
     }
 
     /**
+     * Candidate list for the mobile "Merge into…" picker (parity with the
+     * web contact page's picker). Returns up to 20 of the caller's OTHER
+     * contacts matching ?q= by name, organization, email or phone —
+     * never the contact itself.
+     *
+     * GET /api/v1/contacts/{id}/merge-candidates?q=…
+     */
+    public function mergeCandidates(Request $request, int $id)
+    {
+        $userId = $request->user()->id;
+
+        $contact = Contact::where('user_id', $userId)->find($id);
+        if (!$contact) return $this->notFound('Contact not found');
+
+        $search = trim((string) $request->query('q', ''));
+
+        $query = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', $userId)
+            ->where('id', '!=', $contact->id)
+            ->with(['phones', 'emails']);
+
+        if ($search !== '') {
+            $needle = '%' . $search . '%';
+            $phoneNeedle = '%' . ContactPhone::normalize($search) . '%';
+            $query->where(function ($q) use ($needle, $phoneNeedle) {
+                $q->where('display_name', 'ilike', $needle)
+                  ->orWhere('given_name', 'ilike', $needle)
+                  ->orWhere('family_name', 'ilike', $needle)
+                  ->orWhere('organization', 'ilike', $needle)
+                  ->orWhereHas('phones', fn ($q2) => $q2->where('value_e164', 'ilike', $phoneNeedle))
+                  ->orWhereHas('emails', fn ($q2) => $q2->where('value', 'ilike', $needle));
+            });
+        }
+
+        $candidates = $query->orderBy('display_name')->limit(20)->get()->map(fn ($c) => [
+            'id'               => $c->id,
+            'display_name'     => $c->nameForDisplay(),
+            'organization'     => $c->organization,
+            'photo_url'        => $c->photoUrl(),
+            'is_auto_captured' => (bool) $c->is_auto_captured,
+            'email'            => optional($c->emails->first())->value,
+            'phone'            => optional($c->phones->first())->value,
+        ])->values();
+
+        return $this->ok(['candidates' => $candidates]);
+    }
+
+    /**
      * Merge loser contacts into the designated primary.
      *
      * POST /api/v1/contacts/{id}/merge-duplicate
@@ -325,6 +413,73 @@ class ContactController extends Controller
         return $this->ok([
             'contact' => $this->transform($updated->fresh(['phones', 'emails'])),
             'merged'  => count($losers),
+        ]);
+    }
+
+    /**
+     * List the caller's recent merges that can still be undone (mobile
+     * parity with the web contact page / duplicates page undo banners).
+     *
+     * GET /api/v1/contacts/merges/undoable
+     * Optional ?contact_id= narrows to merges whose surviving primary is
+     * that contact (used by the mobile contact detail screen).
+     */
+    public function undoableMerges(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $merges = collect();
+        try {
+            $q = \App\Modules\User\Models\ContactMergeAudit::query()
+                ->where('user_id', $userId)
+                ->undoable()
+                ->orderByDesc('id')
+                ->limit(10);
+            if ($cid = (int) $request->query('contact_id', 0)) {
+                $q->where('primary_contact_id', $cid);
+            }
+            $merges = $q->get();
+        } catch (\Throwable $e) {
+            \Log::warning('API undoableMerges failed', ['err' => $e->getMessage()]);
+        }
+
+        return $this->ok([
+            'merges' => $merges->map(fn ($a) => [
+                'id'                  => $a->id,
+                'primary_contact_id'  => $a->primary_contact_id,
+                'source_name'         => $a->sourceName(),
+                'merged_at'           => optional($a->created_at)->toIso8601String(),
+            ])->values(),
+            'undo_window_days' => \App\Modules\User\Models\ContactMergeAudit::UNDO_WINDOW_DAYS,
+        ]);
+    }
+
+    /**
+     * Undo a recent contact merge: recreates the merged-away contact from
+     * the audit snapshot and repoints the recorded rows back to it
+     * (mobile parity with the web undo route — owner-safe, idempotent,
+     * time-limited by ContactMergeAudit::UNDO_WINDOW_DAYS).
+     *
+     * POST /api/v1/contacts/merges/{audit}/undo
+     * Returns the restored contact.
+     */
+    public function undoMerge(Request $request, int $audit)
+    {
+        $row = \App\Modules\User\Models\ContactMergeAudit::query()
+            ->whereKey($audit)
+            ->where('user_id', $request->user()->id)
+            ->first();
+        if (!$row) return $this->notFound('Merge record not found');
+
+        try {
+            $restored = app(\App\Modules\User\Services\Contacts\ContactMergeUndoService::class)->undo($row);
+        } catch (\Throwable $e) {
+            \Log::warning('API undoMerge failed', ['audit' => $row->id, 'err' => $e->getMessage()]);
+            return $this->fail('Could not undo the merge: ' . $e->getMessage(), 422, 'undo_failed');
+        }
+
+        return $this->ok([
+            'contact' => $this->transform($restored->fresh(['phones', 'emails'])),
         ]);
     }
 
@@ -1063,6 +1218,28 @@ class ContactController extends Controller
             ->all();
 
         return $this->ok(['calls' => $calls]);
+    }
+
+    /**
+     * Unified contact activity (Task #6501): grouped cross-feature capture
+     * history plus the read-side follower bridge, for the mobile contact page.
+     *
+     * GET /contacts/{id}/activity
+     */
+    public function activity(Request $request, int $id)
+    {
+        $c = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', $request->user()->id)
+            ->find($id);
+        if (!$c) return $this->notFound('Contact not found');
+
+        $svc = app(\App\Modules\User\Services\Contacts\ContactActivityService::class);
+
+        return $this->ok([
+            'groups'           => array_values($svc->timeline($c)),
+            'follower_bridge'  => $svc->followerBridge($c),
+            'is_auto_captured' => (bool) $c->is_auto_captured,
+        ]);
     }
 
     /**

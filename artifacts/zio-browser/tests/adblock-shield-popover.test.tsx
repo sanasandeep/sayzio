@@ -18,6 +18,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { AdBlockShieldPopover } from '../src/renderer/components/AdBlockShieldPopover';
+import { buildZioMock, resolved } from './helpers/zio-mock';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -51,24 +52,21 @@ function baseState(overrides: Partial<MockState>): MockState {
   };
 }
 
-function buildZioMock() {
+function makeZio() {
   pauseTimedSpy = vi.fn(() => Promise.resolve());
   resumeSpy = vi.fn(() => Promise.resolve());
-  return {
-    on: vi.fn(),
-    off: vi.fn(),
-    adblock: {
-      getState: vi.fn(() => Promise.resolve(mockState)),
-      getLists: vi.fn(() => Promise.resolve({ allow: [], block: [] })),
-      pauseTimed: pauseTimedSpy,
-      pausePage: vi.fn(() => Promise.resolve()),
-      resume: resumeSpy,
-      addListDomain: vi.fn(() => Promise.resolve()),
-      removeListDomain: vi.fn(() => Promise.resolve()),
-      setEnabled: vi.fn(() => Promise.resolve()),
-      setStrength: vi.fn(() => Promise.resolve()),
+  return buildZioMock({
+    overrides: {
+      on: vi.fn(),
+      off: vi.fn(),
+      adblock: {
+        getState: vi.fn(() => Promise.resolve(mockState)),
+        getLists: resolved({ allow: [], block: [] }),
+        pauseTimed: pauseTimedSpy,
+        resume: resumeSpy,
+      },
     },
-  };
+  }).zio;
 }
 
 let container: HTMLDivElement;
@@ -89,7 +87,7 @@ function buttons(): string[] {
 }
 
 beforeEach(() => {
-  (window as unknown as Record<string, unknown>).zio = buildZioMock();
+  (window as unknown as Record<string, unknown>).zio = makeZio();
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);

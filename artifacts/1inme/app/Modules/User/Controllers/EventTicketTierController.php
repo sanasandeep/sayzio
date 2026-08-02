@@ -23,7 +23,29 @@ class EventTicketTierController extends Controller
             'tickets as sold' => fn ($q) => $q->whereIn('status', ['valid', 'checked_in']),
         ])->get();
 
-        $tickets = $link->eventTickets()->with('tier')->orderByDesc('created_at')->paginate(50);
+        // Deep-link support: when ?highlight={ticket id} is present and no explicit
+        // page was requested, resolve the page containing the highlighted record
+        // so it is always visible (contact activity links use this).
+        $page = null;
+        if (!$request->query('page') && ($highlightId = (int) $request->query('highlight'))) {
+            $target = $link->eventTickets()->whereKey($highlightId)->first();
+            if ($target) {
+                $position = $link->eventTickets()
+                    ->where(function ($q) use ($target) {
+                        $q->where('created_at', '>', $target->created_at)
+                          ->orWhere(function ($q2) use ($target) {
+                              $q2->where('created_at', $target->created_at)
+                                 ->where('id', '>', $target->id);
+                          });
+                    })
+                    ->count();
+                $page = intdiv($position, 50) + 1;
+            }
+        }
+
+        $tickets = $link->eventTickets()->with('tier')->orderByDesc('created_at')->orderByDesc('id')
+            ->paginate(50, ['*'], 'page', $page)
+            ->appends($request->query());
 
         $totals = [
             'gross_cents'  => (int) $link->eventTickets()->whereIn('status', ['valid', 'checked_in'])->sum('price_cents'),

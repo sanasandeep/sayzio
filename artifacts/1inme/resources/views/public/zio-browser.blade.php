@@ -173,7 +173,7 @@
             <span class="text-xs font-bold uppercase tracking-wider text-blue-300">A desktop browser with a job</span>
             <h2 class="mt-3 text-3xl sm:text-4xl font-bold text-white">Built for the people who build pages</h2>
             <p class="mt-4 text-gray-400 leading-relaxed">
-                Zio Browser is a full desktop browser — tabs, bookmarks, history, downloads — designed
+                Zio Browser is a full desktop browser (tabs, bookmarks, history, downloads) designed
                 around one workflow: making, checking and sharing your Sayzio pages. Your account rides
                 along, so opening your dashboard, your biolinks or a follower's page never starts with a
                 login screen.
@@ -187,7 +187,7 @@
                 @foreach([
                     'Signed-in session bridges to your Sayzio account across windows',
                     'Per-profile isolation keeps clients, brands and personal browsing apart',
-                    'Private windows carry a hard wall — no history, no leftover storage',
+                    'Private windows carry a hard wall, no history, no leftover storage',
                 ] as $point)
                     <li class="flex items-start gap-3 text-sm text-gray-300">
                         <i class="fas fa-circle-check text-blue-400 mt-0.5"></i> {{ $point }}
@@ -207,12 +207,18 @@
         </div>
         <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             @foreach([
-                ['fa-user-shield', 'Private profiles', 'Every profile gets its own cookies, logins and history — switch between work, personal and client accounts without leaks.'],
-                ['fa-mobile-screen', 'Built-in device lab', 'Preview any page across phone, tablet and desktop viewports side by side — perfect for checking your Link in Bio.'],
+                ['fa-user-shield', 'Private profiles', 'Every profile gets its own cookies, logins and history, switch between work, personal and client accounts without leaks.'],
+                ['fa-mobile-screen', 'Built-in device lab', 'Preview any page across phone, tablet and desktop viewports side by side, perfect for checking your Link in Bio.'],
                 ['fa-bolt', 'Fast & focused', 'A clean, distraction-free window with none of the toolbar clutter. Your pages, your work, nothing else.'],
-                ['fa-link', 'Sayzio built in', 'Jump to your links, biolinks, QR codes and analytics from anywhere with one click — no bookmarks needed.'],
-                ['fa-eye-slash', 'True private windows', 'Private windows keep zero traces and are walled off from every profile — by design, not by setting.'],
+                ['fa-link', 'Sayzio built in', 'Jump to your links, biolinks, QR codes and analytics from anywhere with one click, no bookmarks needed.'],
+                ['fa-eye-slash', 'True private windows', 'Private windows keep zero traces and are walled off from every profile, by design, not by setting.'],
                 ['fa-rotate', 'Auto-updates', 'New releases install themselves quietly in the background, so you\'re always on the latest version.'],
+                ['fa-shield-halved', 'Built-in ad blocker', 'Block ads and trackers out of the box, tune the strength, and keep per-site allow and block lists for the pages you trust.'],
+                ['fa-folder-open', 'My Files at hand', 'Browse your Sayzio storage from a sidebar pane: folders, drag-and-drop uploads and your quota, without opening the dashboard.'],
+                ['fa-note-sticky', 'Notes on every site', 'Your Sayzio notes ride along: a badge shows how many notes you have for the site you\'re on, synced with web and mobile and available offline.'],
+                ['fa-phone', 'Dialpad built in', 'A T9 dialpad panel hands off to the Zio Dialer app so a number found on any page becomes a call in two clicks.'],
+                ['fa-file-lines', 'Files open in place', 'Text, Markdown, JSON and CSV files open in clean built-in viewers instead of piling up in your downloads folder.'],
+                ['fa-wand-magic-sparkles', 'Create from anywhere', 'The Create popover includes quick tiles for the newest page types: AI Chat, Paid Page, Text Page, Restaurant Menu, Store and Booking.'],
             ] as [$icon, $title, $desc])
                 <div class="glass rounded-2xl p-6" data-anim="fade-up">
                     <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-300">
@@ -236,11 +242,11 @@
         <div class="mt-12 grid md:grid-cols-3 gap-6">
             @foreach([
                 ['images/marketing/browser/device-lab.webp', 'A designer comparing the same page on laptop, tablet and phone',
-                 'Check every screen at once', 'The built-in device lab renders your page at real phone, tablet and desktop sizes side by side — no resizing windows, no guessing how a block wraps on mobile.'],
+                 'Check every screen at once', 'The built-in device lab renders your page at real phone, tablet and desktop sizes side by side, no resizing windows, no guessing how a block wraps on mobile.'],
                 ['images/marketing/browser/profiles.webp', 'A freelancer switching between browser profiles at a cafe table',
                  'One window per client', 'Profiles keep logins, cookies and history fully separated. Manage a client\'s workspace in one profile and your own brand in another without ever logging out.'],
                 ['images/marketing/browser/focus.webp', 'A minimalist night-time workspace with a single clean page open',
-                 'Stay in the flow', 'A quiet, chrome-light interface and handle-aware address bar keep the path from "idea" to "published page" short — type the handle, see the page, make the change.'],
+                 'Stay in the flow', 'A quiet, chrome-light interface and handle-aware address bar keep the path from "idea" to "published page" short, type the handle, see the page, make the change.'],
             ] as [$img, $alt, $title, $desc])
                 <div class="glass rounded-2xl overflow-hidden" data-anim="fade-up">
                     <img src="{{ asset($img) }}" alt="{{ $alt }}" loading="lazy" decoding="async" class="w-full aspect-[4/3] object-cover">
@@ -263,9 +269,9 @@
         <div class="mt-10 space-y-3" x-data="{ open: null }">
             @foreach([
                 ['Which platforms are supported?', 'macOS (both Intel and Apple Silicon builds), Windows, and Linux (x64, as a portable AppImage or a .deb installer for Ubuntu/Debian). Grab the right installer above or from the downloads page.'],
-                ['Is it free?', 'Yes — Zio Browser is completely free to download and use. A Sayzio account unlocks the built-in link and analytics shortcuts.'],
+                ['Is it free?', 'Yes, Zio Browser is completely free to download and use. A Sayzio account unlocks the built-in link and analytics shortcuts.'],
                 ['How are profiles different from Chrome profiles?', 'Each Zio profile is a fully isolated session: separate cookies, storage and logins with zero sharing between them, so one browser can safely hold many identities.'],
-                ['What is the device lab?', 'A built-in preview mode that renders any URL across common phone, tablet and desktop viewports at once — ideal for testing biolinks and landing pages before you share them.'],
+                ['What is the device lab?', 'A built-in preview mode that renders any URL across common phone, tablet and desktop viewports at once, ideal for testing biolinks and landing pages before you share them.'],
                 ['Does it sync with my Sayzio account?', 'Sign in once and your links, pages and analytics are one click away in every window. Your browsing data itself stays on your machine.'],
             ] as $i => [$q, $a])
                 <div class="zbp-faq-card rounded-2xl overflow-hidden" data-anim="fade-up">

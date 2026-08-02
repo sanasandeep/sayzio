@@ -90,7 +90,7 @@
             <p class="mt-5 text-lg text-gray-400 leading-relaxed max-w-xl">
                 Zio Dialer replaces your stock phone app with T9 smart search, a caller-ID overlay
                 powered by Sayzio profiles, quick call / SMS / WhatsApp channels and two-way
-                Google Contacts sync — all in one beautiful, fast dialer.
+                Google Contacts sync, all in one beautiful, fast dialer.
             </p>
             <div class="mt-8 flex flex-wrap items-center gap-3">
                 @if($cta['play'] !== '')
@@ -109,7 +109,7 @@
                     <button type="button"
                             onclick="window.dispatchEvent(new CustomEvent('open-store-coming-soon',{detail:{store:'play'}}))"
                             class="inline-flex items-center gap-2.5 px-6 py-3 rounded-full text-sm font-bold text-white bg-[#3d6bff] hover:bg-[#2342c7] transition-colors">
-                        <i class="fab fa-google-play"></i> Coming soon — notify me
+                        <i class="fab fa-google-play"></i> Coming soon, notify me
                     </button>
                 @endif
             </div>
@@ -172,7 +172,7 @@
                 on screen before you pick up.
             </p>
             <p class="mt-4 text-gray-400 leading-relaxed">
-                It's a real replacement for your Android phone app — dial pad, call log, favourites — with
+                It's a real replacement for your Android phone app (dial pad, call log, favourites) with
                 your Sayzio address book behind it. Numbers that belong to Sayzio members resolve to their
                 biolink automatically, so a phone number becomes a whole profile.
             </p>
@@ -180,7 +180,7 @@
                 @foreach([
                     'Caller ID overlay works natively at ring time, even before the app opens',
                     'T9 smart dialing searches names, businesses and handles as you type digits',
-                    'Calls stay on your carrier — Sayzio never routes or records your calls',
+                    'Calls stay on your carrier, Sayzio never routes or records your calls',
                 ] as $point)
                     <li class="flex items-start gap-3 text-sm text-gray-300">
                         <i class="fas fa-circle-check text-blue-400 mt-0.5"></i> {{ $point }}
@@ -200,11 +200,11 @@
         </div>
         <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             @foreach([
-                ['fa-keyboard', 'T9 smart search', 'Type 5-4-5 and instantly match names, handles, biolinks — even people you follow on Sayzio. Toggle to a full keyboard any time.'],
+                ['fa-keyboard', 'T9 smart search', 'Type 5-4-5 and instantly match names, handles, biolinks, even people you follow on Sayzio. Toggle to a full keyboard any time.'],
                 ['fa-id-badge', 'Caller ID overlay', 'Incoming numbers resolve to full Sayzio profiles, so you see the name, photo and verified badge before you pick up.'],
-                ['fa-comments', 'Quick channels', 'Call, SMS or WhatsApp any contact from one row — the dialer remembers each person\'s preferred channel.'],
+                ['fa-comments', 'Quick channels', 'Call, SMS or WhatsApp any contact from one row, the dialer remembers each person\'s preferred channel.'],
                 ['fa-rotate', 'Google Contacts sync', 'Two-way, incremental sync with Google Contacts keeps your address book identical everywhere, automatically.'],
-                ['fa-magnifying-glass', 'Universal finder', 'One search across contacts, people, your links, followed creators and workspaces — grouped and ranked.'],
+                ['fa-magnifying-glass', 'Universal finder', 'One search across contacts, people, your links, followed creators and workspaces, grouped and ranked.'],
                 ['fa-link', 'Phone → biolink', 'Numbers silently attach to matching Sayzio pages, so a phone number becomes a full mini-website in your contacts.'],
             ] as [$icon, $title, $desc])
                 <div class="glass rounded-2xl p-6" data-anim="fade-up">
@@ -227,9 +227,9 @@
         </div>
         <div class="mt-12 grid sm:grid-cols-3 gap-5">
             @foreach([
-                ['1', 'Install & set default', 'Download Zio Dialer and set it as your default phone app — Android asks with one tap.'],
+                ['1', 'Install & set default', 'Download Zio Dialer and set it as your default phone app, Android asks with one tap.'],
                 ['2', 'Connect your accounts', 'Sign in with Sayzio and optionally link Google Contacts for automatic two-way sync.'],
-                ['3', 'Dial smarter', 'T9 search, caller ID and quick channels start working immediately — no configuration needed.'],
+                ['3', 'Dial smarter', 'T9 search, caller ID and quick channels start working immediately, no configuration needed.'],
             ] as [$step, $title, $desc])
                 <div class="glass rounded-2xl p-6 text-center" data-anim="fade-up">
                     <span class="inline-flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white" style="background: linear-gradient(135deg, #3d6bff, #6e61ff, #22d3ee);">{{ $step }}</span>
@@ -251,11 +251,11 @@
         <div class="mt-12 grid md:grid-cols-3 gap-6">
             @foreach([
                 ['images/marketing/dialer/keypad-hand.webp', 'A thumb dialing on the Zio Dialer keypad',
-                 'Find anyone with a few taps', 'The universal finder searches your contacts, followed creators, your own links and Sayzio profiles at once — grouped results, T9 digits or full keyboard, your choice.'],
+                 'Find anyone with a few taps', 'The universal finder searches your contacts, followed creators, your own links and Sayzio profiles at once, grouped results, T9 digits or full keyboard, your choice.'],
                 ['images/marketing/dialer/caller-id.webp', 'A shop owner answering a call with a rich caller card on screen',
                  'Rich caller cards at ring time', 'Incoming numbers resolve against your address book and the Sayzio network, so a bare number turns into a name, a photo and a biolink you can open right after the call.'],
                 ['images/marketing/dialer/sync-desk.webp', 'A phone and laptop side by side with matching synced contact lists',
-                 'Two-way Google Contacts sync', 'Link Google Contacts once and Zio Dialer keeps both address books in step automatically — edits on either side flow across in the background, roughly every half hour.'],
+                 'Two-way Google Contacts sync', 'Link Google Contacts once and Zio Dialer keeps both address books in step automatically, edits on either side flow across in the background, roughly every half hour.'],
             ] as [$img, $alt, $title, $desc])
                 <div class="glass rounded-2xl overflow-hidden" data-anim="fade-up">
                     <img src="{{ asset($img) }}" alt="{{ $alt }}" loading="lazy" decoding="async" class="w-full aspect-[4/3] object-cover">
@@ -268,7 +268,7 @@
         </div>
         <p class="mt-8 text-center text-sm text-gray-400 max-w-2xl mx-auto" data-anim="fade-up">
             Privacy first: Zio Dialer only ever launches standard <span class="text-gray-300 font-semibold">tel:</span> and
-            <span class="text-gray-300 font-semibold">mailto:</span> actions — your call log and messages never leave your device.
+            <span class="text-gray-300 font-semibold">mailto:</span> actions, your call log and messages never leave your device.
         </p>
     </div>
 </section>
@@ -282,10 +282,10 @@
         <div class="mt-10 space-y-3" x-data="{ open: null }">
             @foreach([
                 ['Is Zio Dialer free?', 'Yes. The dialer, T9 search, caller ID and quick channels are free. Some Sayzio-side features (like advanced contact caps) follow your Sayzio plan.'],
-                ['Does it work on iPhone?', 'Not yet — iOS doesn\'t allow full replacement dialers. iPhone users get the same contacts, universal finder and caller lookups inside the Sayzio mobile app.'],
+                ['Does it work on iPhone?', 'Not yet, iOS doesn\'t allow full replacement dialers. iPhone users get the same contacts, universal finder and caller lookups inside the Sayzio mobile app.'],
                 ['Do I need a Sayzio account?', 'You can dial and search contacts without one, but caller-ID profiles, phone-to-biolink matching and sync across devices need a free Sayzio account.'],
                 ['What data does caller ID use?', 'Lookups match the incoming number against your own contacts and public Sayzio profiles that listed that number. Nothing is uploaded from your call log.'],
-                ['How does Google Contacts sync work?', 'Connect once and Zio Dialer syncs incrementally in both directions roughly every 30 minutes — edits on either side show up on the other.'],
+                ['How does Google Contacts sync work?', 'Connect once and Zio Dialer syncs incrementally in both directions roughly every 30 minutes, edits on either side show up on the other.'],
             ] as $i => [$q, $a])
                 <div class="zdp-faq-card rounded-2xl overflow-hidden" data-anim="fade-up">
                     <button type="button" @click="open === {{ $i }} ? open = null : open = {{ $i }}"
@@ -326,7 +326,7 @@
                     <button type="button"
                             onclick="window.dispatchEvent(new CustomEvent('open-store-coming-soon',{detail:{store:'play'}}))"
                             class="inline-flex items-center gap-2.5 px-6 py-3 rounded-full text-sm font-bold text-white bg-[#3d6bff] hover:bg-[#2342c7] transition-colors">
-                        <i class="fab fa-google-play"></i> Coming soon — notify me
+                        <i class="fab fa-google-play"></i> Coming soon, notify me
                     </button>
                 @endif
                 <a href="{{ route('site.dialer-contacts') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-gray-300 hover:text-white transition-colors">

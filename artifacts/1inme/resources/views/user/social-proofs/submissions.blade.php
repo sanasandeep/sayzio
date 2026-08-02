@@ -1,12 +1,12 @@
 @extends('user.layouts.app')
-@section('title', 'Submissions — ' . $proof->name)
+@section('title', 'Submissions: ' . $proof->name)
 
 @section('content')
 <div class="bz-scope mb-5 flex items-center justify-between flex-wrap gap-3">
     <div>
         <a href="{{ route('user.social-proofs.edit', $proof) }}" class="text-white/50 hover:text-white text-xs"><i class="fas fa-arrow-left mr-1"></i> Back to campaign</a>
         <h1 class="text-2xl font-bold text-white mt-1">Submissions</h1>
-        <p class="text-white/40 text-xs mt-0.5">{{ $proof->name }} — data collected by collector &amp; feedback notifications.</p>
+        <p class="text-white/40 text-xs mt-0.5">{{ $proof->name }}, data collected by collector &amp; feedback notifications.</p>
     </div>
     <a href="{{ route('user.social-proofs.submissions.csv', $proof) }}"
        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium">

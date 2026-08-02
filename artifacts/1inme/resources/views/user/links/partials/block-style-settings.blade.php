@@ -1019,7 +1019,7 @@
                     </label>
                     @endforeach
                 </div>
-                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);" x-text="widthDevice === 'mobile' ? 'Width on phones (and everywhere unless Desktop overrides it)' : 'Width on large screens — \'Same\' keeps the mobile width'"></p>
+                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);" x-text="widthDevice === 'mobile' ? 'Width on phones (and everywhere unless Desktop overrides it)' : 'Width on large screens, \'Same\' keeps the mobile width'"></p>
             </div>
 
             {{-- Grid Height (row span) — per-device (Task #6123). Mirrors the
@@ -1059,7 +1059,7 @@
                     </label>
                     @endforeach
                 </div>
-                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);" x-text="heightDevice === 'mobile' ? 'Rows the block stretches across next to side-by-side blocks — \'Auto\' keeps natural height' : 'Rows on large screens — \'Same\' keeps the mobile setting'"></p>
+                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);" x-text="heightDevice === 'mobile' ? 'Rows the block stretches across next to side-by-side blocks, \'Auto\' keeps natural height' : 'Rows on large screens, \'Same\' keeps the mobile setting'"></p>
             </div>
 
             {{-- Padding --}}

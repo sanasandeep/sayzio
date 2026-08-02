@@ -186,7 +186,7 @@
                 @endif
             </div>
             <div class="card-premium p-5"
-                 x-data="contactsSearch({ index: '{{ route('user.contacts.index') }}', tab: '{{ $tab }}', q: @js($search), initTag: @js($tag ?? '') })">
+                 x-data="contactsSearch({ index: '{{ route('user.contacts.index') }}', tab: '{{ $tab }}', q: @js($search), initTag: @js($tag ?? ''), initSort: @js($sort ?? 'name') })">
                 <div class="flex flex-wrap items-center gap-3 mb-4">
                     <div class="inline-flex rounded-xl p-1" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);">
                         <button type="button" @click="setTab('all')"
@@ -211,6 +211,22 @@
                                    class="w-full pl-9 pr-9 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
                             <i x-show="loading" x-cloak class="fas fa-spinner fa-spin absolute right-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--text-faint);"></i>
                         </div>
+                    </div>
+
+                    {{-- Sort: alphabetical vs most active (linked-activity count) --}}
+                    <div class="inline-flex rounded-xl p-1" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);" data-testid="contacts-sort-toggle">
+                        <button type="button" @click="setSort('name')"
+                           class="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                           :class="sort === 'name' ? 'text-white' : ''"
+                           :style="sort === 'name' ? 'background:linear-gradient(135deg,#3d6bff,#ec4899);' : 'color:var(--text-muted);'">
+                            <i class="fas fa-arrow-down-a-z mr-1 opacity-70"></i>A–Z
+                        </button>
+                        <button type="button" @click="setSort('activity')"
+                           class="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                           :class="sort === 'activity' ? 'text-white' : ''"
+                           :style="sort === 'activity' ? 'background:linear-gradient(135deg,#3d6bff,#ec4899);' : 'color:var(--text-muted);'">
+                            <i class="fas fa-bolt mr-1 opacity-70"></i>Most active
+                        </button>
                     </div>
                 </div>
 
@@ -241,6 +257,7 @@ function contactsSearch(cfg) {
         tab: cfg.tab || 'all',
         q: cfg.q || '',
         tag: cfg.initTag || '',
+        sort: cfg.initSort || 'name',
         loading: false,
         _t: null,
         _seq: 0,
@@ -290,11 +307,18 @@ function contactsSearch(cfg) {
             this.reload('1');
         },
 
+        setSort(sort) {
+            if (this.sort === sort) return;
+            this.sort = sort;
+            this.reload('1');
+        },
+
         buildUrl(page) {
             const params = new URLSearchParams();
             params.set('tab', this.tab);
             if ((this.q || '').trim() !== '') params.set('q', this.q.trim());
             if ((this.tag || '').trim() !== '') params.set('tag', this.tag.trim());
+            if (this.sort && this.sort !== 'name') params.set('sort', this.sort);
             if (page && page !== '1') params.set('page', page);
             const qs = params.toString();
             return this.indexUrl + (qs ? ('?' + qs) : '');

@@ -22,6 +22,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { ChromeBar } from '../src/renderer/components/ChromeBar';
 import { PaneFocusFrames } from '../src/renderer/components/PaneFocusFrames';
 import { useTabStore } from '../src/renderer/store/tab-store';
+import { buildZioMock, resolved, type IpcHandlerMap } from './helpers/zio-mock';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -32,75 +33,26 @@ let focusPaneSpy: ReturnType<typeof vi.fn>;
 // The tab store wires its IPC listeners exactly ONCE per process (module-level
 // guard), against whatever window.zio exists at first mount — so this handler
 // map must persist across tests/mocks or later emits go nowhere.
-const ipcHandlers: Map<string, Set<(...args: unknown[]) => void>> = new Map();
+const ipcHandlers: IpcHandlerMap = new Map();
 let tabState: Record<string, unknown>;
 
 function emit(channel: string, ...args: unknown[]): void {
   ipcHandlers.get(channel)?.forEach(fn => fn(...args));
 }
 
-function buildZioMock() {
+function makeZio() {
   focusPaneSpy = vi.fn(() => Promise.resolve());
-  const resolved = <T,>(v: T) => vi.fn(() => Promise.resolve(v));
-  return {
-    platform: 'linux',
-    on: (channel: string, fn: (...args: unknown[]) => void) => {
-      if (!ipcHandlers.has(channel)) ipcHandlers.set(channel, new Set());
-      ipcHandlers.get(channel)!.add(fn);
+  return buildZioMock({
+    ipcHandlers,
+    overrides: {
+      tabs: {
+        getOrder: resolved([TAB_ID]),
+        getActive: resolved(TAB_ID),
+        getState: vi.fn(() => Promise.resolve(tabState)),
+        focusPane: focusPaneSpy,
+      },
     },
-    off: (channel: string, fn: (...args: unknown[]) => void) => {
-      ipcHandlers.get(channel)?.delete(fn);
-    },
-    tabs: {
-      getOrder: resolved([TAB_ID]),
-      getActive: resolved(TAB_ID),
-      getState: vi.fn(() => Promise.resolve(tabState)),
-      recentlyClosed: resolved([]),
-      navigate: resolved(undefined),
-      create: resolved(null),
-      close: resolved(undefined),
-      activate: resolved(undefined),
-      back: resolved(undefined),
-      forward: resolved(undefined),
-      reload: resolved(undefined),
-      stop: resolved(undefined),
-      pin: resolved(undefined),
-      mute: resolved(undefined),
-      muteAll: resolved(undefined),
-      move: resolved(undefined),
-      duplicate: resolved(null),
-      closeOthers: resolved(undefined),
-      closeToRight: resolved(undefined),
-      setMode: resolved(undefined),
-      reopenClosed: resolved(null),
-      reopenFromRecent: resolved(null),
-      focusPane: focusPaneSpy,
-    },
-    history: { search: resolved([]), record: resolved(undefined) },
-    bookmarks: {
-      search: resolved([]),
-      isBookmarked: resolved(false),
-      add: resolved(undefined),
-      remove: resolved(undefined),
-    },
-    readingList: {
-      isSaved: resolved(false),
-      unreadCount: resolved(0),
-      add: resolved(undefined),
-    },
-    sync: { pendingCount: resolved(0), pendingByProfile: resolved([]) },
-    tracker: { isEnabled: resolved(false), getCount: resolved(0) },
-    audio: { getMuteAll: resolved(false) },
-    window: { setChromeOverlay: resolved(undefined), openPrivate: resolved(undefined) },
-    prefs: { get: resolved(null), set: resolved(undefined), all: resolved({}) },
-    profiles: {
-      list: resolved([]),
-      getActive: resolved(null),
-      switch: resolved(undefined),
-      warmSession: resolved(undefined),
-    },
-    auth: { getToken: resolved(null), getUser: resolved(null) },
-  };
+  }).zio;
 }
 
 /** Boots the singleton tab store (getOrder/getActive/getState) like App does. */
@@ -166,7 +118,7 @@ beforeEach(() => {
     url: CURRENT_URL, title: 'Current Page', isLoading: false, pinned: false,
     mode: 'browser',
   };
-  (window as unknown as Record<string, unknown>).zio = buildZioMock();
+  (window as unknown as Record<string, unknown>).zio = makeZio();
 });
 
 describe('ChromeBar — split-pane omnibox badge', () => {

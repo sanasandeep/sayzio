@@ -349,6 +349,32 @@ export class ApiClient {
     return this.get(`/dialer/call-events${qs}`);
   }
 
+  // ── Notes (account-level Dialer Notes) ────────────────────────────────────
+
+  /**
+   * List account notes (own + shared-with-me). Optionally filter to notes
+   * attached to an exact URL or to a whole domain (www-insensitive host).
+   */
+  async listNotes(params?: { url?: string; domain?: string }): Promise<{ notes: ApiDialerNote[]; shared: ApiDialerNote[] }> {
+    const qs = new URLSearchParams();
+    if (params?.url) qs.set('url', params.url);
+    if (params?.domain) qs.set('domain', params.domain);
+    const query = qs.toString() ? `?${qs.toString()}` : '';
+    return this.get(`/dialer/notes${query}`);
+  }
+
+  async createNote(data: DialerNoteInput): Promise<ApiDialerNote> {
+    return this.post('/dialer/notes', data);
+  }
+
+  async updateNote(id: number, data: DialerNoteInput): Promise<ApiDialerNote> {
+    return this.patch(`/dialer/notes/${id}`, data);
+  }
+
+  async deleteNote(id: number): Promise<void> {
+    return this.delete(`/dialer/notes/${id}`);
+  }
+
   // ── AI / assistant (Ask Zio) ──────────────────────────────────────────────
   // The /assistant/* endpoints mirror the web Ask Zio widget and return RAW
   // JSON payloads (ok/visitor_token/messages/...), NOT the {data} envelope
@@ -792,6 +818,51 @@ export interface DialerCallEvent {
 export interface DialerCallEventsResult {
   events: DialerCallEvent[];
   cursor: number;
+}
+
+// ── Notes (account-level Dialer Notes) types ────────────────────────────────
+
+export interface ApiNoteChecklistItem {
+  text: string;
+  done: boolean;
+}
+
+/** Server payload for an account note (mirrors DialerNoteController::payload). */
+export interface ApiDialerNote {
+  id: number;
+  title: string | null;
+  body: string | null;
+  number: string | null;
+  remind_at: string | null;
+  done: boolean;
+  color: string | null;
+  kind: 'note' | 'checklist';
+  checklist: ApiNoteChecklistItem[];
+  attached_url: string | null;
+  attached_title: string | null;
+  attached_host: string | null;
+  source_type: string | null;
+  source_id: number | null;
+  own: boolean;
+  owner_name: string | null;
+  share_phones: string[];
+  updated_at: string | null;
+  created_at: string | null;
+}
+
+/** Create/update input for an account note. */
+export interface DialerNoteInput {
+  kind?: 'note' | 'checklist';
+  title?: string | null;
+  body?: string | null;
+  checklist?: ApiNoteChecklistItem[] | null;
+  number?: string | null;
+  remind_at?: string | null;
+  done?: boolean;
+  color?: string | null;
+  attached_url?: string | null;
+  attached_title?: string | null;
+  share_phones?: string[];
 }
 
 // ── Assistant (Ask Zio) types ────────────────────────────────────────────────

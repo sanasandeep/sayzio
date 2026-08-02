@@ -308,6 +308,7 @@ class CalendarController extends Controller
             ->take(40);
 
         return view('user.calendars.my-calendar', [
+            'mirrorPrefs'   => \App\Modules\User\Support\PersonalCalendarSync::preferences($user),
             'events'        => $events,
             'gridEvents'    => $gridEvents,
             'calendars'     => $calendars,
@@ -328,6 +329,29 @@ class CalendarController extends Controller
                 'past'     => $built['past'],
             ],
         ]);
+    }
+
+    /**
+     * Task #6477 — per-user toggles for mirroring task due dates and dialer
+     * note reminders onto the personal "Tasks & Reminders" calendar. Turning a
+     * source off removes its mirrored events; turning it back on re-backfills.
+     *
+     * Route: POST /user/my-calendar/mirror-preferences
+     */
+    public function updateMirrorPreferences(Request $request)
+    {
+        $data = $request->validate([
+            'task_due_dates' => ['nullable', 'boolean'],
+            'note_reminders' => ['nullable', 'boolean'],
+        ]);
+
+        \App\Modules\User\Support\PersonalCalendarSync::applyPreferences(
+            $request->user(),
+            (bool) ($data['task_due_dates'] ?? false),
+            (bool) ($data['note_reminders'] ?? false),
+        );
+
+        return back()->with('success', 'Calendar sync preferences saved.');
     }
 
     /**

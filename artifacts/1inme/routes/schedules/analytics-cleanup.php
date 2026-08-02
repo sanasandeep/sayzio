@@ -98,6 +98,11 @@ return [
         'cadence'     => ['dailyAt', '04:20'],
     ],
     [
+        'key'         => 'contacts:prune-merge-audits',
+        'description' => 'Delete contact merge-undo audit rows (full PII snapshots of merged-away contacts) once the 30-day undo window plus a 7-day grace period has passed.',
+        'cadence'     => ['dailyAt', '04:30'],
+    ],
+    [
         'key'         => 'email-logs:prune-history',
         'description' => 'Trim the email log: null heavy stored bodies past the body-retention window, then delete whole rows past the retention window.',
         'cadence'     => ['dailyAt', '04:25'],

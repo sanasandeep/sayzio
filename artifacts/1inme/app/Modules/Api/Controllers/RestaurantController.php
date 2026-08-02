@@ -796,6 +796,24 @@ class RestaurantController extends Controller
         ], $this->orderBreakdown($order));
     }
 
+    /**
+     * Snapshotted estimated-bill breakdown attached to guest + owner order
+     * payloads (mirrors PublicRestaurantController::serializeGuestOrder and
+     * the mobile `OrderBreakdown` type).
+     */
+    protected function orderBreakdown(RestaurantOrder $order): array
+    {
+        return [
+            'coupon_code'     => $order->coupon_code,
+            'discount_amount' => $order->discount_amount,
+            'tax_rate'        => $order->tax_rate,
+            'tax_inclusive'   => (bool) $order->tax_inclusive,
+            'tax_amount'      => $order->tax_amount,
+            'total'           => $order->total,
+            'is_estimate'     => true,
+        ];
+    }
+
     /** Menu-level estimated-tax config for the public + owner payloads. */
     protected function taxPayload(RestaurantMenu $menu): array
     {

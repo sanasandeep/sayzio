@@ -25,6 +25,26 @@
     </div>
     @endif
 
+    {{-- Recent merges into this contact that can still be undone (30-day window) --}}
+    @foreach(($undoableMerges ?? collect()) as $audit)
+    <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between gap-3 flex-wrap" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.25); color: var(--text-primary);">
+        <span style="color:var(--text-muted);">
+            <i class="fas fa-rotate-left mr-1.5" style="color:#3d6bff;"></i>
+            <span class="font-semibold" style="color:var(--text-primary);">{{ $audit->sourceName() }}</span>
+            was merged into this contact {{ $audit->created_at?->diffForHumans() }}.
+        </span>
+        <form method="POST" action="{{ route('user.contacts.merges.undo', $audit->id) }}">
+            @csrf
+            <button type="submit"
+                    onclick="return window.themedConfirmSubmit && window.themedConfirmSubmit(this.form, {title:'Undo this merge?',message:'“{{ str_replace("'", '', $audit->sourceName()) }}” will be restored as its own contact, and its activity will move back to it.',confirmText:'Undo merge',confirmIcon:'fa-rotate-left',iconClass:'fa-rotate-left'}) || confirm('Undo this merge? The merged contact will be restored.')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap"
+                    style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.30);">
+                <i class="fas fa-rotate-left mr-1"></i> Undo merge
+            </button>
+        </form>
+    </div>
+    @endforeach
+
     <div class="card-premium p-6">
         <div class="flex items-start gap-4 mb-5">
             <div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white flex-shrink-0" style="background: linear-gradient(135deg,#3d6bff,#ec4899);">
@@ -50,6 +70,11 @@
                 <a href="{{ route('user.contacts.edit', $contact) }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold" style="background:rgba(255,255,255,.06);color:var(--text-primary);border:1px solid rgba(255,255,255,.10)">
                     <i class="fas fa-pen mr-1"></i> Edit
                 </a>
+                @endif
+                @if($shareContext['is_owner'])
+                <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-merge-into'))" class="px-3 py-1.5 rounded-lg text-xs font-semibold" style="background:rgba(245,158,11,.10);color:#f59e0b;border:1px solid rgba(245,158,11,.25)">
+                    <i class="fas fa-code-merge mr-1"></i> Merge into&hellip;
+                </button>
                 @endif
             </div>
         </div>
@@ -303,6 +328,55 @@
         </div>
     </div>
 
+    {{-- ── Activity across Sayzio (Task #6501) ──────────────────────────── --}}
+    <div class="mt-4 pt-4" style="border-top:1px solid rgba(255,255,255,.06);">
+        <div class="flex items-center gap-2 mb-3 flex-wrap">
+            <h3 class="text-[10px] font-bold uppercase tracking-wider" style="color:var(--text-faint);">Activity across Sayzio</h3>
+            @if($contact->is_auto_captured)
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold" title="This contact was created automatically from a customer capture" style="background:rgba(34,211,238,.12);color:#22d3ee;border:1px solid rgba(34,211,238,.20)">Auto-captured</span>
+            @endif
+            @if(!empty($followerBridge['is_follower']))
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold" title="This contact's Sayzio account follows you" style="background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.20)"><i class="fas fa-user-check mr-0.5"></i> Follows you</span>
+            @endif
+        </div>
+        @if(empty($activityGroups))
+            <p class="text-xs" style="color:var(--text-muted);">No linked activity yet. Subscriptions, orders, bookings, RSVPs, reviews and conversations from this person will show up here automatically.</p>
+        @else
+            <div class="space-y-3">
+                @foreach($activityGroups as $group)
+                    <div class="rounded-xl p-3" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-semibold" style="color:var(--text-primary);">{{ $group['label'] }}</span>
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold" style="background:rgba(61,107,255,.12);color:#90acff;">{{ $group['count'] }}</span>
+                        </div>
+                        <div class="space-y-1.5">
+                            @foreach($group['items'] as $item)
+                                <div class="flex items-center justify-between gap-2 text-xs">
+                                    <div class="min-w-0 flex-1">
+                                        @if(!empty($item['url']))
+                                            <a href="{{ $item['url'] }}" class="truncate block font-medium" style="color:#90acff;">{{ $item['title'] }}</a>
+                                        @else
+                                            <span class="truncate block" style="color:var(--text-primary);">{{ $item['title'] }}</span>
+                                        @endif
+                                        @if(!empty($item['subtitle']))
+                                            <span class="text-[10px]" style="color:var(--text-muted);">{{ $item['subtitle'] }}</span>
+                                        @endif
+                                    </div>
+                                    @if(!empty($item['date']))
+                                        <span class="text-[10px] flex-shrink-0" style="color:var(--text-faint);">{{ \Illuminate\Support\Carbon::parse($item['date'])->diffForHumans() }}</span>
+                                    @endif
+                                </div>
+                            @endforeach
+                            @if($group['count'] > count($group['items']))
+                                <p class="text-[10px]" style="color:var(--text-faint);">+ {{ $group['count'] - count($group['items']) }} more</p>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </div>
+
     {{-- ── Workspace sharing panel ──────────────────────────────────────── --}}
     @if($shareContext['is_shared_contact'])
     <div class="mt-4 p-4 rounded-xl" style="background:linear-gradient(135deg,rgba(61,107,255,.07),rgba(34,211,238,.07));border:1px solid rgba(61,107,255,.18);">
@@ -358,6 +432,67 @@
     @endif
     </div>
 </div>
+
+@if($shareContext['is_owner'])
+{{-- "Merge into…" picker: absorb this contact into another one. --}}
+<div x-data="mergeIntoPicker({
+        candidatesUrl: '{{ route('user.contacts.merge-candidates', $contact) }}',
+        mergeUrl: '{{ route('user.contacts.merge-into', $contact) }}',
+        csrf: '{{ csrf_token() }}',
+        contactName: @js($contact->nameForDisplay()),
+     })"
+     x-on:open-merge-into.window="open()"
+     x-show="show" x-cloak
+     class="fixed inset-0 z-50 flex items-center justify-center p-4"
+     style="background:rgba(0,0,0,.60);backdrop-filter:blur(4px);">
+    <div class="w-full max-w-md rounded-2xl p-5 card-premium" style="max-height:80vh;display:flex;flex-direction:column;" @click.outside="close()">
+        <div class="flex items-center justify-between mb-1">
+            <h3 class="text-sm font-bold" style="color:var(--text-primary);"><i class="fas fa-code-merge mr-1.5" style="color:#f59e0b;"></i> Merge into another contact</h3>
+            <button type="button" @click="close()" class="w-7 h-7 rounded-lg" style="color:var(--text-muted);background:rgba(255,255,255,.05);"><i class="fas fa-times text-xs"></i></button>
+        </div>
+        <p class="text-xs mb-3" style="color:var(--text-muted);">
+            Pick the contact that should survive. All emails, phones and captured activity (subscribers, form entries, orders, bookings, RSVPs, tickets, reviews, conversations) from <span class="font-semibold" x-text="cfg.contactName"></span> move to it, then this duplicate is deleted.
+        </p>
+        <input type="text" x-model="query" x-ref="search" @input.debounce.300ms="search()"
+               placeholder="Search contacts by name, email or phone…"
+               class="w-full px-3 py-2 rounded-lg text-sm mb-3"
+               style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--text-primary);">
+        <div class="overflow-y-auto flex-1 -mx-1 px-1" style="min-height:120px;">
+            <template x-if="loading"><div class="py-6 text-center text-xs" style="color:var(--text-muted);">Searching…</div></template>
+            <template x-if="!loading && candidates.length === 0"><div class="py-6 text-center text-xs" style="color:var(--text-muted);">No other contacts found.</div></template>
+            <template x-for="c in candidates" :key="c.id">
+                <button type="button" @click="selectedId = c.id"
+                        class="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-left mb-1"
+                        :style="selectedId === c.id ? 'background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35)' : 'background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)'">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 overflow-hidden" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
+                        <template x-if="c.photo_url"><img :src="c.photo_url" class="w-full h-full object-cover"></template>
+                        <template x-if="!c.photo_url"><span x-text="(c.display_name || '?').slice(0,2).toUpperCase()"></span></template>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-sm font-semibold truncate" style="color:var(--text-primary);">
+                            <span x-text="c.display_name || 'Unnamed contact'"></span>
+                            <span x-show="c.is_auto_captured" class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(61,107,255,.15);color:#90acff;">Auto</span>
+                        </div>
+                        <div class="text-[11px] truncate" style="color:var(--text-faint);" x-text="[c.email, c.phone, c.organization].filter(Boolean).join(' · ')"></div>
+                    </div>
+                    <i class="fas fa-check text-xs" :style="selectedId === c.id ? 'color:#f59e0b' : 'color:transparent'"></i>
+                </button>
+            </template>
+        </div>
+        <form method="POST" :action="cfg.mergeUrl" class="mt-3 flex gap-2" @submit="submitting = true">
+            <input type="hidden" name="_token" :value="cfg.csrf">
+            <input type="hidden" name="target_id" :value="selectedId ?? ''">
+            <button type="button" @click="close()" class="flex-1 px-3 py-2 rounded-lg text-xs font-semibold" style="background:rgba(255,255,255,.06);color:var(--text-primary);border:1px solid rgba(255,255,255,.10)">Cancel</button>
+            <button type="submit" :disabled="!selectedId || submitting"
+                    class="flex-1 px-3 py-2 rounded-lg text-xs font-bold"
+                    :style="(!selectedId || submitting) ? 'background:rgba(245,158,11,.15);color:rgba(245,158,11,.5);cursor:not-allowed' : 'background:#f59e0b;color:#1a1408'">
+                <span x-show="!submitting">Merge &amp; delete duplicate</span>
+                <span x-show="submitting">Merging…</span>
+            </button>
+        </form>
+    </div>
+</div>
+@endif
 @push('scripts')
 <script>
 function contactTagsEditor(cfg) {
@@ -422,6 +557,49 @@ function contactTagsEditor(cfg) {
                 if (!r.ok) throw new Error('save failed');
             } catch (e) {
                 this.saveError = 'Could not save tags. Please try again.';
+            }
+        },
+    };
+}
+
+function mergeIntoPicker(cfg) {
+    return {
+        cfg: cfg,
+        show: false,
+        query: '',
+        candidates: [],
+        selectedId: null,
+        loading: false,
+        submitting: false,
+
+        open() {
+            this.show = true;
+            this.selectedId = null;
+            this.query = '';
+            this.search();
+            this.$nextTick(() => this.$refs.search && this.$refs.search.focus());
+        },
+
+        close() {
+            if (this.submitting) return;
+            this.show = false;
+        },
+
+        async search() {
+            this.loading = true;
+            try {
+                const url = cfg.candidatesUrl + (this.query.trim() ? ('?q=' + encodeURIComponent(this.query.trim())) : '');
+                const r = await fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+                if (!r.ok) throw new Error('search failed');
+                const d = await r.json();
+                this.candidates = (d.data && d.data.candidates) || [];
+                if (this.selectedId && !this.candidates.some(c => c.id === this.selectedId)) {
+                    this.selectedId = null;
+                }
+            } catch (e) {
+                this.candidates = [];
+            } finally {
+                this.loading = false;
             }
         },
     };

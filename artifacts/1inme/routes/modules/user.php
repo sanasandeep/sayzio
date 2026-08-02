@@ -918,6 +918,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get   ('calendars/create',               [\App\Modules\User\Controllers\CalendarController::class, 'create'])->middleware('workspace.can:links.create')->name('calendars.create');
         Route::get   ('my-calendar',                     [\App\Modules\User\Controllers\CalendarController::class, 'myCalendar'])->name('calendars.mine');
         Route::get   ('my-calendar/export',              [\App\Modules\User\Controllers\CalendarController::class, 'myCalendarExport'])->name('calendars.mine.export');
+        Route::post  ('my-calendar/mirror-preferences',  [\App\Modules\User\Controllers\CalendarController::class, 'updateMirrorPreferences'])->name('calendars.mine.mirror-preferences');
         Route::post  ('my-calendar/feed/reset',          [\App\Modules\User\Controllers\CalendarController::class, 'regenerateMyCalendarFeed'])->name('calendars.mine.feed.reset');
         Route::get   ('calendars/{link}/editor',         [\App\Modules\User\Controllers\CalendarController::class, 'editor'])->whereNumber('link')->middleware('workspace.can:links.view')->name('calendars.editor');
         Route::post  ('calendars/{link}/settings',       [\App\Modules\User\Controllers\CalendarController::class, 'updateSettings'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('calendars.settings');
@@ -1463,6 +1464,9 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('contacts/duplicates/dismiss',           [ContactController::class, 'duplicatesDismiss'])->middleware('workspace.can:settings.edit')->name('contacts.duplicates.dismiss');
         Route::post('contacts/duplicates/merge-all',         [ContactController::class, 'mergeAllDuplicates'])->middleware(['workspace.can:settings.edit', 'throttle:6,1'])->name('contacts.duplicates.merge-all');
         Route::post('contacts/{contact}/merge-duplicate',   [ContactController::class, 'mergeContacts'])->middleware('workspace.can:settings.edit')->name('contacts.merge-duplicate');
+        Route::get ('contacts/{contact}/merge-candidates',  [ContactController::class, 'mergeCandidates'])->whereNumber('contact')->middleware('workspace.can:settings.view')->name('contacts.merge-candidates');
+        Route::post('contacts/{contact}/merge-into',        [ContactController::class, 'mergeInto'])->whereNumber('contact')->middleware(['workspace.can:settings.edit', 'throttle:30,1'])->name('contacts.merge-into');
+        Route::post('contacts/merges/{audit}/undo',          [ContactController::class, 'undoMerge'])->whereNumber('audit')->middleware(['workspace.can:settings.edit', 'throttle:30,1'])->name('contacts.merges.undo');
         Route::get('contacts',                              [ContactController::class, 'index'])->middleware(['workspace.can:settings.view', 'contacts.sync-on-open'])->name('contacts.index');
         // Consolidated "everything I need to follow up on" list. Must be
         // registered before the contacts/{contact} wildcard below so the

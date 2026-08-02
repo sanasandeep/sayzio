@@ -54,6 +54,7 @@ class ContactController extends Controller
         // finder and the Sanctum/mobile API), so opt out of the workspace
         // global scope; the user_id predicate still scopes to the owner.
         $tag  = trim((string) $request->query('tag', ''));
+        $sort = $request->query('sort') === 'activity' ? 'activity' : 'name';
 
         $query = Contact::withoutGlobalScope('workspace')
             ->where('user_id', $user->id)
@@ -77,7 +78,26 @@ class ContactController extends Controller
             });
         }
 
-        $contacts = $query->orderBy('display_name')->paginate(40)->withQueryString();
+        // "Most active" sort (Task #6510): one bulk UNION-ALL count pass over
+        // the capture tables joined in as a derived table — never per-contact
+        // subqueries. Falls back to alphabetical if the join fails.
+        if ($sort === 'activity') {
+            try {
+                $totals = app(\App\Modules\User\Services\Contacts\ContactActivityService::class)
+                    ->activityTotalsQuery((int) $user->id);
+                $query->leftJoinSub($totals, 'contact_activity', 'contact_activity.contact_id', '=', 'contacts.id')
+                    ->select('contacts.*')
+                    ->orderByRaw('COALESCE(contact_activity.activity_total, 0) DESC')
+                    ->orderBy('display_name');
+            } catch (\Throwable) {
+                $sort = 'name';
+                $query->orderBy('display_name');
+            }
+        } else {
+            $query->orderBy('display_name');
+        }
+
+        $contacts = $query->paginate(40)->withQueryString();
         $googleAccount = GoogleContactsAccount::where('user_id', $user->id)->first();
 
         $totalContacts = Contact::withoutGlobalScope('workspace')->where('user_id', $user->id)->count();
@@ -119,10 +139,18 @@ class ContactController extends Controller
             }
         }
 
+        // Unified contact activity counts (Task #6501) for the visible page —
+        // one grouped query per capture table against the contact_id indexes.
+        $activityCounts = [];
+        try {
+            $activityCounts = app(\App\Modules\User\Services\Contacts\ContactActivityService::class)
+                ->countsFor((int) $user->id, $contacts->pluck('id')->all());
+        } catch (\Throwable) {}
+
         // Live as-you-type search / tab switch / pagination fetch just the list
         // body so the page never reloads. The full page is returned otherwise.
         if ($request->ajax()) {
-            return view('user.contacts._list', compact('contacts', 'tab', 'search', 'tag', 'sharedContacts', 'currentWorkspace'));
+            return view('user.contacts._list', compact('contacts', 'tab', 'search', 'tag', 'sort', 'sharedContacts', 'currentWorkspace', 'activityCounts'));
         }
 
         // Duplicate count for the banner — best-effort, never blocks the page
@@ -131,7 +159,7 @@ class ContactController extends Controller
             $duplicateCount = $this->detector->count($user->id);
         } catch (\Throwable) {}
 
-        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'tag', 'googleAccount', 'stats', 'usage', 'activeImport', 'sharedContacts', 'currentWorkspace', 'duplicateCount'));
+        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'tag', 'sort', 'googleAccount', 'stats', 'usage', 'activeImport', 'sharedContacts', 'currentWorkspace', 'duplicateCount', 'activityCounts'));
     }
 
     /**
@@ -217,7 +245,27 @@ class ContactController extends Controller
         // Workspace sharing context for the share/unshare UI panel.
         $shareContext = $this->buildShareContext($contact, $user);
 
-        return view('user.contacts.show', compact('contact', 'biolinkPreview', 'shareContext'));
+        // Unified contact activity (Task #6501): grouped cross-feature
+        // history + read-side follower bridge.
+        $activityService = app(\App\Modules\User\Services\Contacts\ContactActivityService::class);
+        $activityGroups = $activityService->timeline($contact);
+        $followerBridge = $activityService->followerBridge($contact);
+
+        // Recent merges into this contact that can still be undone.
+        $undoableMerges = collect();
+        if ($contact->user_id === workspace_owner_id()) {
+            try {
+                $undoableMerges = \App\Modules\User\Models\ContactMergeAudit::query()
+                    ->where('user_id', $contact->user_id)
+                    ->where('primary_contact_id', $contact->id)
+                    ->undoable()
+                    ->orderByDesc('id')
+                    ->limit(10)
+                    ->get();
+            } catch (\Throwable) {}
+        }
+
+        return view('user.contacts.show', compact('contact', 'biolinkPreview', 'shareContext', 'activityGroups', 'followerBridge', 'undoableMerges'));
     }
 
     public function edit(Request $request, Contact $contact)
@@ -477,7 +525,48 @@ class ContactController extends Controller
         }
 
         $groupCount = count($groups);
-        return view('user.contacts.duplicates', compact('groups', 'groupCount'));
+
+        // Recently merged contacts that can still be undone — surfaced here
+        // so an accidental merge can be reversed right where it happened.
+        $undoableMerges = collect();
+        try {
+            $undoableMerges = \App\Modules\User\Models\ContactMergeAudit::query()
+                ->where('user_id', $userId)
+                ->undoable()
+                ->orderByDesc('id')
+                ->limit(10)
+                ->get();
+        } catch (\Throwable) {}
+
+        return view('user.contacts.duplicates', compact('groups', 'groupCount', 'undoableMerges'));
+    }
+
+    /**
+     * Undo a recent contact merge: recreates the merged-away contact from
+     * the audit snapshot and repoints the recorded rows back to it.
+     *
+     * POST /contacts/merges/{audit}/undo
+     * Owner-safe (audit must belong to the workspace owner), idempotent
+     * (the undo service locks + stamps the audit row) and time-limited
+     * (ContactMergeAudit::UNDO_WINDOW_DAYS).
+     */
+    public function undoMerge(Request $request, int $audit)
+    {
+        $row = \App\Modules\User\Models\ContactMergeAudit::query()
+            ->whereKey($audit)
+            ->where('user_id', workspace_owner_id())
+            ->first();
+        abort_if(!$row, 404);
+
+        try {
+            $restored = app(\App\Modules\User\Services\Contacts\ContactMergeUndoService::class)->undo($row);
+        } catch (\Throwable $e) {
+            \Log::warning('ContactController::undoMerge failed', ['audit' => $row->id, 'err' => $e->getMessage()]);
+            return back()->with('error', 'Could not undo the merge: ' . $e->getMessage());
+        }
+
+        return redirect()->route('user.contacts.show', $restored)
+            ->with('success', 'Merge undone — "' . ($restored->nameForDisplay() ?: 'contact') . '" has been restored with its activity.');
     }
 
     /**
@@ -675,6 +764,95 @@ class ContactController extends Controller
         }
 
         return [$mergedGroups, $removedContacts, $failed];
+    }
+
+    /**
+     * JSON candidate list for the "Merge into…" picker on the contact page.
+     *
+     * GET /contacts/{contact}/merge-candidates?q=…
+     * Returns up to 20 of the owner's other contacts matching the query
+     * (name, organization, email or phone), never the contact itself.
+     */
+    public function mergeCandidates(Request $request, Contact $contact): \Illuminate\Http\JsonResponse
+    {
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
+
+        $search = trim((string) $request->query('q', ''));
+
+        $query = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', workspace_owner_id())
+            ->where('id', '!=', $contact->id)
+            ->with(['phones', 'emails']);
+
+        if ($search !== '') {
+            $needle = '%' . $search . '%';
+            $phoneNeedle = '%' . ContactPhone::normalize($search) . '%';
+            $query->where(function ($q) use ($needle, $phoneNeedle) {
+                $q->where('display_name', 'ilike', $needle)
+                  ->orWhere('given_name', 'ilike', $needle)
+                  ->orWhere('family_name', 'ilike', $needle)
+                  ->orWhere('organization', 'ilike', $needle)
+                  ->orWhereHas('phones', fn ($q2) => $q2->where('value_e164', 'ilike', $phoneNeedle))
+                  ->orWhereHas('emails', fn ($q2) => $q2->where('value', 'ilike', $needle));
+            });
+        }
+
+        $candidates = $query->orderBy('display_name')->limit(20)->get()->map(fn ($c) => [
+            'id'               => $c->id,
+            'display_name'     => $c->nameForDisplay(),
+            'organization'     => $c->organization,
+            'photo_url'        => $c->photoUrl(),
+            'is_auto_captured' => (bool) $c->is_auto_captured,
+            'email'            => optional($c->emails->first())->value,
+            'phone'            => optional($c->phones->first())->value,
+        ])->values();
+
+        return response()->json(['data' => ['candidates' => $candidates]]);
+    }
+
+    /**
+     * Merge {contact} INTO another contact picked by the user — the inverse
+     * direction of mergeContacts(). {contact} is the duplicate that gets
+     * absorbed and deleted; target_id is the contact that survives with all
+     * emails/phones and repointed capture rows (subscribers, form
+     * submissions, orders, bookings, RSVPs, tickets, reviews, threads).
+     *
+     * POST /contacts/{contact}/merge-into
+     * Body: target_id — the surviving contact's id.
+     */
+    public function mergeInto(Request $request, Contact $contact)
+    {
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
+
+        $request->validate([
+            'target_id' => 'required|integer',
+        ]);
+
+        $targetId = (int) $request->input('target_id');
+        if ($targetId === $contact->id) {
+            return redirect()->route('user.contacts.show', $contact)
+                ->with('error', 'A contact cannot be merged into itself.');
+        }
+
+        $target = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', workspace_owner_id())
+            ->find($targetId);
+
+        if (!$target) {
+            return redirect()->route('user.contacts.show', $contact)
+                ->with('error', 'Could not find the contact to merge into.');
+        }
+
+        try {
+            $this->mergeService->merge($target, [$contact]);
+        } catch (\Throwable $e) {
+            \Log::warning('ContactController::mergeInto failed', ['err' => $e->getMessage()]);
+            return redirect()->route('user.contacts.show', $contact)
+                ->with('error', 'Merge failed: ' . $e->getMessage());
+        }
+
+        return redirect()->route('user.contacts.show', $target)
+            ->with('success', 'Merged "' . ($contact->nameForDisplay() ?: 'contact') . '" into this contact — no data was lost.');
     }
 
     // ---- bulk import ------------------------------------------------------

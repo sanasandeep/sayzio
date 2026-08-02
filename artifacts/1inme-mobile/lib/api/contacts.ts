@@ -33,6 +33,8 @@ export type Contact = {
   follow_up_note: string | null;
   follow_up_tz: string | null;
   created_at: string | null;
+  /** Linked capture records (orders, forms, RSVPs…) — list endpoint only. */
+  activity_count?: number;
 };
 
 export type ManualChannel = { type: string; label: string; value: string };
@@ -76,11 +78,14 @@ export async function listContacts(opts?: {
   tag?: string;
   per_page?: number;
   contact_type?: "personal" | "brand";
+  /** "activity" surfaces the most-engaged contacts first (linked-activity count). */
+  sort?: "name" | "activity";
 }): Promise<Contact[]> {
   const params = new URLSearchParams();
   if (opts?.q?.trim()) params.set("q", opts.q.trim());
   if (opts?.tag?.trim()) params.set("tag", opts.tag.trim());
   if (opts?.contact_type) params.set("contact_type", opts.contact_type);
+  if (opts?.sort === "activity") params.set("sort", "activity");
   params.set("per_page", String(opts?.per_page ?? 100));
   const res = await apiFetch<{ data: { items: Contact[] } }>(
     `/contacts?${params.toString()}`,
@@ -90,7 +95,103 @@ export async function listContacts(opts?: {
 
 /** Fetch a single contact by ID. */
 export async function getContact(id: number): Promise<Contact> {
-  const res = await apiFetch<{ data: Contact }>(`/contacts/${id}`);
+  // The show endpoint wraps its payload as { data: { contact } } (unlike
+  // notes/tags PATCHes which return the contact directly under data).
+  const res = await apiFetch<{ data: { contact: Contact } }>(`/contacts/${id}`);
+  return res.data.contact;
+}
+
+export type ContactActivityItem = {
+  title: string;
+  subtitle: string | null;
+  date: string | null;
+  url: string | null;
+  /** Record identifiers (link_id, alias, form_id, thread_id, invoice_id…) for native deep-links. */
+  refs?: {
+    link_id?: number;
+    alias?: string;
+    form_id?: number;
+    thread_id?: number;
+    invoice_id?: number;
+    /** Per-record ids so destination screens can highlight the exact record. */
+    order_id?: number;
+    booking_id?: number;
+    rsvp_id?: number;
+    ticket_id?: number;
+    user_id?: number;
+  };
+};
+
+/**
+ * In-app destination for one activity item, keyed by its group. Returns null
+ * when no native screen exists for the record (item stays static).
+ */
+export function contactActivityHref(
+  groupKey: string,
+  item: ContactActivityItem,
+): string | null {
+  const refs = item.refs ?? {};
+  switch (groupKey) {
+    case "subscriptions":
+      return "/subscribers";
+    case "form_submissions":
+      return refs.form_id ? `/forms/${refs.form_id}` : null;
+    case "restaurant_orders":
+      return refs.link_id
+        ? `/links/${refs.link_id}/restaurant-orders${refs.order_id ? `?highlight=${refs.order_id}` : ""}`
+        : null;
+    case "store_orders":
+      return refs.link_id
+        ? `/links/${refs.link_id}/store-orders${refs.order_id ? `?highlight=${refs.order_id}` : ""}`
+        : null;
+    case "bookings":
+      return refs.link_id
+        ? `/links/${refs.link_id}/service-booking-dashboard${refs.booking_id ? `?highlight=${refs.booking_id}` : ""}`
+        : null;
+    case "rsvps":
+    case "event_tickets":
+      return refs.alias
+        ? `/events/people/${encodeURIComponent(refs.alias)}${refs.user_id ? `?highlight_user=${refs.user_id}` : ""}`
+        : null;
+    case "product_orders":
+      return "/orders";
+    case "reviews":
+      return "/reviews/manage";
+    case "conversations":
+      return refs.thread_id ? `/inbox/${refs.thread_id}` : null;
+    case "invoices":
+      return refs.invoice_id ? `/invoices/${refs.invoice_id}` : null;
+    default:
+      return null;
+  }
+}
+
+export type ContactActivityGroup = {
+  key: string;
+  label: string;
+  icon: string;
+  count: number;
+  items: ContactActivityItem[];
+};
+
+export type ContactFollowerBridge = {
+  is_follower: boolean;
+  followed_at?: string | null;
+};
+
+export type ContactActivity = {
+  groups: ContactActivityGroup[];
+  follower_bridge: ContactFollowerBridge;
+  is_auto_captured: boolean;
+};
+
+/** Unified cross-feature activity timeline for a contact. */
+export async function getContactActivity(
+  id: number,
+): Promise<ContactActivity> {
+  const res = await apiFetch<{ data: ContactActivity }>(
+    `/contacts/${id}/activity`,
+  );
   return res.data;
 }
 
@@ -139,19 +240,27 @@ export async function setFollowUp(
   follow_up_note?: string | null,
   follow_up_tz?: string | null,
 ): Promise<Contact> {
-  const res = await apiFetch<{ data: Contact }>(`/contacts/${id}/follow-up`, {
-    method: "POST",
-    body: JSON.stringify({ follow_up_at, follow_up_note, follow_up_tz }),
-  });
-  return res.data;
+  // Follow-up endpoints wrap the payload as { data: { contact } }.
+  const res = await apiFetch<{ data: { contact: Contact } }>(
+    `/contacts/${id}/follow-up`,
+    {
+      method: "POST",
+      body: JSON.stringify({ follow_up_at, follow_up_note, follow_up_tz }),
+    },
+  );
+  return res.data.contact;
 }
 
 /** Clear a scheduled follow-up for a contact. */
 export async function clearFollowUp(id: number): Promise<Contact> {
-  const res = await apiFetch<{ data: Contact }>(`/contacts/${id}/follow-up`, {
-    method: "DELETE",
-  });
-  return res.data;
+  // Follow-up endpoints wrap the payload as { data: { contact } }.
+  const res = await apiFetch<{ data: { contact: Contact } }>(
+    `/contacts/${id}/follow-up`,
+    {
+      method: "DELETE",
+    },
+  );
+  return res.data.contact;
 }
 
 /** Best-effort primary email for a contact (falls back to the first on file). */
@@ -345,6 +454,71 @@ export async function mergeContacts(
   const res = await apiFetch<{ data: { contact: Contact; merged: number } }>(
     `/contacts/${primaryId}/merge-duplicate`,
     { method: "POST", body: JSON.stringify({ loser_ids: loserIds }) },
+  );
+  return res.data;
+}
+
+export type MergeCandidate = {
+  id: number;
+  display_name: string;
+  organization: string | null;
+  photo_url: string | null;
+  is_auto_captured: boolean;
+  email: string | null;
+  phone: string | null;
+};
+
+/**
+ * Search the owner's other contacts as targets for the "Merge into…"
+ * picker (same candidate rules as the web contact page: same owner,
+ * never the contact itself). Up to 20 results.
+ */
+export async function listMergeCandidates(
+  id: number,
+  q?: string,
+): Promise<MergeCandidate[]> {
+  const params = new URLSearchParams();
+  if (q?.trim()) params.set("q", q.trim());
+  const qs = params.toString();
+  const res = await apiFetch<{ data: { candidates: MergeCandidate[] } }>(
+    `/contacts/${id}/merge-candidates${qs ? `?${qs}` : ""}`,
+  );
+  return res.data.candidates;
+}
+
+// ── Merge undo (30-day window, web parity) ────────────────────────
+export type UndoableMerge = {
+  id: number;
+  primary_contact_id: number;
+  /** Display name of the merged-away contact (from the audit snapshot). */
+  source_name: string;
+  merged_at: string | null;
+};
+
+/**
+ * List recent merges that can still be undone. Pass `contactId` to narrow
+ * to merges whose surviving primary is that contact (detail screen).
+ */
+export async function listUndoableMerges(contactId?: number): Promise<{
+  merges: UndoableMerge[];
+  undo_window_days: number;
+}> {
+  const qs = contactId ? `?contact_id=${contactId}` : "";
+  const res = await apiFetch<{
+    data: { merges: UndoableMerge[]; undo_window_days: number };
+  }>(`/contacts/merges/undoable${qs}`);
+  return res.data;
+}
+
+/**
+ * Undo a recorded merge: the merged-away contact is recreated from the
+ * audit snapshot with its phones/emails/activity. Returns the restored
+ * contact.
+ */
+export async function undoContactMerge(auditId: number): Promise<{ contact: Contact }> {
+  const res = await apiFetch<{ data: { contact: Contact } }>(
+    `/contacts/merges/${auditId}/undo`,
+    { method: "POST" },
   );
   return res.data;
 }

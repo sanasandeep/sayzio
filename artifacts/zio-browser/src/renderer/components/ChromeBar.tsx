@@ -54,6 +54,10 @@ interface Props {
   onOpenSiteSettings?: () => void;
   readingListOpen: boolean;
   onToggleReadingList: () => void;
+  /** Whether the account-notes panel is open (button highlight state). */
+  notesPanelOpen?: boolean;
+  /** Callback to toggle the account-notes panel; 'page' opens the per-page scope. */
+  onToggleNotes?: (scope?: 'page' | 'all') => void;
   /** Whether the Dialer pane is open (button highlight state). */
   dialerPanelOpen?: boolean;
   /** Callback to toggle the Dialer pane (call handoff to the phone). */
@@ -428,6 +432,8 @@ export function ChromeBar({
   onOpenSiteSettings,
   readingListOpen,
   onToggleReadingList,
+  notesPanelOpen = false,
+  onToggleNotes,
   dialerPanelOpen = false,
   onToggleDialer,
   onOpenSettings,
@@ -489,6 +495,7 @@ export function ChromeBar({
   const dragTabIdRef = useRef<string | null>(null);
   const [savedInReadingList, setSavedInReadingList] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [noteCount, setNoteCount] = useState(0);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const omniboxRef = useRef<HTMLInputElement>(null);
   const stripMenuBtnRef = useRef<HTMLButtonElement>(null);
@@ -708,6 +715,35 @@ export function ChromeBar({
     }).catch(() => { /* main not ready */ });
     return () => { cancelled = true; };
   }, [readingListOpen]);
+
+  // Per-site note count badge for the notes tool — cheap cache-only read on
+  // tab switch/navigation; refreshed when the notes panel closes (edits) and
+  // live via the main-process 'notes:changed' event (save/delete/offline sync).
+  useEffect(() => {
+    const url = activeTab?.url;
+    let host: string | null = null;
+    if (url && url !== 'about:newtab' && /^https?:/i.test(url)) {
+      try {
+        host = new URL(url).hostname.toLowerCase().replace(/^www\./, '') || null;
+      } catch { /* invalid URL */ }
+    }
+    if (!host || isPrivate) {
+      setNoteCount(0);
+      return;
+    }
+    let cancelled = false;
+    const refresh = () => {
+      void window.zio.notes.countForHost(host).then((n: number) => {
+        if (!cancelled) setNoteCount(n);
+      }).catch(() => { /* main not ready */ });
+    };
+    refresh();
+    window.zio.on('notes:changed', refresh);
+    return () => {
+      cancelled = true;
+      window.zio.off('notes:changed', refresh);
+    };
+  }, [activeTab?.url, isPrivate, notesPanelOpen]);
 
   // Track bookmark state for the active page
   useEffect(() => {
@@ -1775,6 +1811,24 @@ export function ChromeBar({
               </button>
             );
           }
+          if (tool === 'notes') {
+            if (isPrivate || !onToggleNotes) return null;
+            const hasPage = !!activeTab?.url && activeTab.url !== 'about:newtab' && /^https?:/i.test(activeTab.url);
+            return (
+              <button
+                key={tool}
+                onClick={() => onToggleNotes(hasPage ? 'page' : 'all')}
+                title={hasPage ? 'Notes for this page' : 'Notes'}
+                {...pinnedToolDragProps(tool)}
+                style={{ ...pinnedToolBtnStyle(notesPanelOpen), ...pinDropHighlight(tool) }}
+              >
+                📝
+                {noteCount > 0 && (
+                  <span style={pinnedToolBadgeStyle} data-testid="notes-count-badge">{noteCount > 99 ? '99+' : noteCount}</span>
+                )}
+              </button>
+            );
+          }
           if (tool === 'dialer') {
             if (isPrivate || !onToggleDialer) return null;
             return (
@@ -1997,6 +2051,15 @@ export function ChromeBar({
           dialerAvailable={!isPrivate && !!onToggleDialer}
           dialerPanelOpen={dialerPanelOpen}
           onToggleDialer={onToggleDialer}
+          notesAvailable={!isPrivate && !!onToggleNotes}
+          notesPanelOpen={notesPanelOpen}
+          noteCount={noteCount}
+          onToggleNotes={onToggleNotes
+            ? () => {
+                const hasPage = !!activeTab?.url && activeTab.url !== 'about:newtab' && /^https?:/i.test(activeTab.url);
+                onToggleNotes(hasPage ? 'page' : 'all');
+              }
+            : undefined}
           pinnedTools={pinnedTools}
           onTogglePin={handleTogglePin}
           savedInReadingList={savedInReadingList}
@@ -2131,6 +2194,11 @@ interface OverflowMenuProps {
   dialerAvailable: boolean;
   dialerPanelOpen: boolean;
   onToggleDialer?: () => void;
+  notesAvailable: boolean;
+  notesPanelOpen: boolean;
+  /** Count of notes attached to the active tab's host (badge). */
+  noteCount: number;
+  onToggleNotes?: () => void;
   savedInReadingList: boolean;
   unreadCount: number;
   onReadingList: () => void;
@@ -2145,6 +2213,7 @@ function OverflowMenu({
   canScreenshot, screenshotCapturing, onScreenshot,
   onOpenDeviceLab,
   dialerAvailable, dialerPanelOpen, onToggleDialer,
+  notesAvailable, notesPanelOpen, noteCount, onToggleNotes,
   savedInReadingList, unreadCount, onReadingList,
   pinnedTools, onTogglePin,
 }: OverflowMenuProps) {
@@ -2239,6 +2308,39 @@ function OverflowMenu({
         </button>
         {pinToggle('reading_list')}
       </div>
+
+      {/* Notes */}
+      {notesAvailable && onToggleNotes && (
+        <div style={menuRowStyle}>
+          <button onClick={action(onToggleNotes)} style={{
+            ...menuItemStyle,
+            flex: 1,
+            color: notesPanelOpen ? 'var(--color-primary)' : menuItemStyle.color,
+          }}>
+            <span>📝</span>
+            <span>Notes — synced with your account</span>
+            {noteCount > 0 && (
+              <span style={{
+                marginLeft: 'auto',
+                minWidth: 16,
+                height: 16,
+                borderRadius: 8,
+                background: 'var(--color-primary)',
+                color: '#fff',
+                fontSize: 10,
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0 4px',
+              }}>
+                {noteCount > 99 ? '99+' : noteCount}
+              </span>
+            )}
+          </button>
+          {pinToggle('notes')}
+        </div>
+      )}
 
       {/* Dialer */}
       {dialerAvailable && onToggleDialer && (

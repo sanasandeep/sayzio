@@ -32,6 +32,33 @@ protected $fillable = [
         ];
     }
 
+    /**
+     * Unified contact linking (Task #6501): sniff the submitter's identity
+     * out of the payload and tie the submission to the owner's Contact off
+     * the hot path. Spam submissions are never linked.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (FormSubmission $submission): void {
+            if ($submission->is_spam) {
+                return;
+            }
+            $ownerId = Form::withoutGlobalScope('workspace')->whereKey($submission->form_id)->value('user_id');
+            if (!$ownerId) {
+                return;
+            }
+            $identity = \App\Modules\User\Services\Contacts\ContactIdentityResolver::identityFromFormData((array) $submission->data);
+            \App\Jobs\LinkCaptureToContactJob::forRecord(
+                $submission, (int) $ownerId, $identity['email'], $identity['phone'], $identity['name'], 'form'
+            );
+        });
+    }
+
+    public function contact()
+    {
+        return $this->belongsTo(Contact::class);
+    }
+
     /** A paid-form submission whose charge has cleared. */
     public function isPaid(): bool
     {

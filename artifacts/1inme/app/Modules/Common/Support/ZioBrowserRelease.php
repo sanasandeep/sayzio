@@ -53,6 +53,15 @@ class ZioBrowserRelease
     public const HEALTH_KEY = 'zio_browser_refresh_health';
 
     /**
+     * First release that ships Linux installers (AppImage + .deb). From this
+     * version onward the Linux assets are REQUIRED before a release is
+     * trusted, so a failed Linux upload can never silently strip the Linux
+     * card from /download and /browser. Releases below this floor predate
+     * Linux builds and still parse with the Linux keys left null.
+     */
+    public const LINUX_REQUIRED_SINCE = '0.3.8';
+
+    /**
      * Last-resort bootstrap fallback (v0.1.0) used only when nothing is
      * cached AND no release has ever been persisted to app_settings. The
      * persisted last-good release (see self::LAST_RELEASE_SETTING)
@@ -217,8 +226,25 @@ class ZioBrowserRelease
                 }
             }
 
-            // Require the three headline installers before trusting the release.
-            if ($out['mac_arm64_dmg'] && $out['mac_x64_dmg'] && $out['windows_exe']) {
+            // Require the headline installers before trusting the release.
+            // Linux installers (AppImage + .deb) are required from
+            // LINUX_REQUIRED_SINCE onward — a failed Linux upload must fail
+            // the refresh loudly, not silently drop the Linux downloads.
+            $linuxRequired = version_compare($out['version'], self::LINUX_REQUIRED_SINCE, '>=');
+
+            $required = [
+                'mac_arm64_dmg' => !$out['mac_arm64_dmg'],
+                'mac_x64_dmg'   => !$out['mac_x64_dmg'],
+                'windows_exe'   => !$out['windows_exe'],
+            ];
+            if ($linuxRequired) {
+                $required['linux_appimage'] = !$out['linux_appimage'];
+                $required['linux_deb'] = !$out['linux_deb'];
+            }
+
+            $missing = array_keys(array_filter($required));
+
+            if ($missing === []) {
                 self::persistLastGoodRelease($out);
 
                 return ['release' => $out, 'error' => null];
@@ -227,11 +253,6 @@ class ZioBrowserRelease
             // First matching zio-browser tag found but it's missing required
             // installers. Record a specific error naming the release so ops
             // know it's a missing-asset issue, not an API or tag problem.
-            $missing = array_keys(array_filter([
-                'mac_arm64_dmg' => !$out['mac_arm64_dmg'],
-                'mac_x64_dmg'   => !$out['mac_x64_dmg'],
-                'windows_exe'   => !$out['windows_exe'],
-            ]));
 
             return [
                 'release' => null,

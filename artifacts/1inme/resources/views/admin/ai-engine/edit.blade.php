@@ -103,7 +103,7 @@
         </div>
         <p class="ak-note text-[11px] text-white/30 mt-3 pt-3 border-t border-white/10">
             These are the platform defaults. Paid users may additionally pick their own model per feature from their
-            Settings → AI Models tab — only <em>enabled chat</em> models from the catalog are offered, and their calls
+            Settings → AI Models tab; only <em>enabled chat</em> models from the catalog are offered, and their calls
             are charged at the chosen model's rates.
         </p>
     </div>
@@ -114,7 +114,7 @@
             <div class="flex items-start gap-3">
                 <span class="ak-blue shrink-0 w-7 h-7 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-200 flex items-center justify-center text-xs font-bold">1</span>
                 <div>
-                    <h3 class="ak-strong font-semibold text-white">Models &amp; rates <span class="ak-note text-white/30 font-normal text-xs ml-1">— the catalog</span></h3>
+                    <h3 class="ak-strong font-semibold text-white">Models &amp; rates <span class="ak-note text-white/30 font-normal text-xs ml-1">(the catalog)</span></h3>
                     <p class="ak-note text-xs text-white/40">Coins charged per 1 000 tokens (fractional allowed). Per-call cost is rounded up to whole coins. Disabled models can't be assigned or picked by users.</p>
                 </div>
             </div>
@@ -205,7 +205,7 @@
             <div class="flex items-start gap-3">
                 <span class="ak-blue shrink-0 w-7 h-7 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-200 flex items-center justify-center text-xs font-bold">2</span>
                 <div>
-                    <h3 class="ak-strong font-semibold text-white">Feature models <span class="ak-note text-white/30 font-normal text-xs ml-1">— the assignments</span></h3>
+                    <h3 class="ak-strong font-semibold text-white">Feature models <span class="ak-note text-white/30 font-normal text-xs ml-1">(the assignments)</span></h3>
                     <p class="ak-note text-xs text-white/40">
                         Choose which chat model from the catalog each AI feature uses. Falls back to
                         <span class="ak-amber font-mono text-amber-300">{{ $defaultFeatureModel }}</span> if unset.

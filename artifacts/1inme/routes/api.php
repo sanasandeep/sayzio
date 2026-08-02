@@ -1055,6 +1055,9 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/contacts/duplicates/dismiss',   [ContactController::class, 'duplicatesDismiss'])->middleware('throttle:60,1');
         Route::post  ('/contacts/duplicates/merge-all', [ContactController::class, 'mergeAllDuplicates'])->middleware('throttle:6,1');
         Route::post  ('/contacts/{id}/merge-duplicate', [ContactController::class, 'mergeContacts'])->whereNumber('id')->middleware('throttle:30,1');
+        Route::get   ('/contacts/merges/undoable',      [ContactController::class, 'undoableMerges']);
+        Route::post  ('/contacts/merges/{audit}/undo',  [ContactController::class, 'undoMerge'])->whereNumber('audit')->middleware('throttle:30,1');
+        Route::get   ('/contacts/{id}/merge-candidates', [ContactController::class, 'mergeCandidates'])->whereNumber('id')->middleware('throttle:60,1');
         Route::get   ('/contacts/follow-ups',       [ContactController::class, 'followUps']);
         Route::get   ('/contacts/follow-ups/count', [ContactController::class, 'followUpsCount']);
         Route::post  ('/contacts',                  [ContactController::class, 'store'])->middleware('throttle:120,1');
@@ -1066,6 +1069,7 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/contacts/{id}/merge',       [ContactController::class, 'merge'])->whereNumber('id')->middleware('throttle:60,1');
         Route::post  ('/contacts/{id}/sms-biolink', [ContactController::class, 'smsBiolink'])->whereNumber('id')->middleware('throttle:30,1');
         Route::get   ('/contacts/{id}/calls',       [ContactController::class, 'callLogs'])->whereNumber('id');
+        Route::get   ('/contacts/{id}/activity',    [ContactController::class, 'activity'])->whereNumber('id');
         Route::post  ('/contacts/{id}/calls',       [ContactController::class, 'logCalls'])->whereNumber('id')->middleware('throttle:60,1');
         Route::post  ('/contacts/{id}/follow-up',   [ContactController::class, 'setFollowUp'])->whereNumber('id');
         Route::delete('/contacts/{id}/follow-up',   [ContactController::class, 'clearFollowUp'])->whereNumber('id');
@@ -1396,6 +1400,8 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/my-calendar',                     [\App\Modules\Api\Controllers\MyCalendarController::class, 'feed']);
         Route::get   ('/my-calendar/export',              [\App\Modules\Api\Controllers\MyCalendarController::class, 'export']);
         Route::get   ('/my-calendar/today',               [\App\Modules\Api\Controllers\MyCalendarController::class, 'today']);
+        Route::get   ('/my-calendar/mirror-preferences',  [\App\Modules\Api\Controllers\MyCalendarController::class, 'mirrorPreferences']);
+        Route::patch ('/my-calendar/mirror-preferences',  [\App\Modules\Api\Controllers\MyCalendarController::class, 'updateMirrorPreferences']);
         Route::get   ('/calendars/{calendar}',            [\App\Modules\Api\Controllers\MyCalendarController::class, 'show'])->whereNumber('calendar');
         Route::post  ('/calendars/{calendar}/follow',     [\App\Modules\Api\Controllers\MyCalendarController::class, 'toggleFollow'])->whereNumber('calendar');
         // Server-side event-details detection for Add-to-Calendar (mirrors the

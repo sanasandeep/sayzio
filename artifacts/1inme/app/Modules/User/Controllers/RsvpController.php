@@ -17,7 +17,29 @@ class RsvpController extends Controller
         abort_if($link->user_id !== workspace_owner_id(), 403);
         abort_if($link->type !== 'ics', 404);
 
-        $rsvps = $link->rsvps()->orderByDesc('created_at')->paginate(50);
+        // Deep-link support: when ?highlight={rsvp id} is present and no explicit
+        // page was requested, resolve the page containing the highlighted record
+        // so it is always visible (contact activity links use this).
+        $page = null;
+        if (!$request->query('page') && ($highlightId = (int) $request->query('highlight'))) {
+            $target = $link->rsvps()->whereKey($highlightId)->first();
+            if ($target) {
+                $position = $link->rsvps()
+                    ->where(function ($q) use ($target) {
+                        $q->where('created_at', '>', $target->created_at)
+                          ->orWhere(function ($q2) use ($target) {
+                              $q2->where('created_at', $target->created_at)
+                                 ->where('id', '>', $target->id);
+                          });
+                    })
+                    ->count();
+                $page = intdiv($position, 50) + 1;
+            }
+        }
+
+        $rsvps = $link->rsvps()->orderByDesc('created_at')->orderByDesc('id')
+            ->paginate(50, ['*'], 'page', $page)
+            ->appends($request->query());
 
         $counts = [
             'yes'   => $link->rsvps()->where('response', 'yes')->where('status', '!=', 'cancelled')

@@ -149,6 +149,27 @@ class ServiceBookingRequest extends Model
                 $request->public_token = (string) Str::uuid();
             }
         });
+
+        // Unified contact linking (Task #6501): tie the booking to the
+        // owner's Contact by customer email/phone, off the hot path.
+        static::created(function (ServiceBookingRequest $request): void {
+            $ownerId = $request->link_id
+                ? Link::withoutGlobalScope('workspace')->whereKey($request->link_id)->value('user_id')
+                : null;
+            \App\Jobs\LinkCaptureToContactJob::forRecord(
+                $request,
+                $ownerId ? (int) $ownerId : null,
+                $request->customer_email,
+                $request->customer_phone,
+                $request->customer_name,
+                'booking'
+            );
+        });
+    }
+
+    public function contact()
+    {
+        return $this->belongsTo(Contact::class);
     }
 
     public function serviceBooking()

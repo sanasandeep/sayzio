@@ -56,7 +56,7 @@
 
         <template x-if="kind === 'text'">
             <p class="text-xs mb-3" style="color: var(--text-muted);">
-                We'll turn this into a shareable text page — visitors see the full text with a copy button.
+                We'll turn this into a shareable text page, visitors see the full text with a copy button.
             </p>
         </template>
 
@@ -162,21 +162,21 @@ function quickShorten() {
             this.error = ''; this.needPaste = false;
             if (!navigator.clipboard || !navigator.clipboard.readText) {
                 this.needPaste = true;
-                this.pasteHint = 'Your browser blocks clipboard reading here — paste the content below instead.';
+                this.pasteHint = 'Your browser blocks clipboard reading here, paste the content below instead.';
                 return;
             }
             try {
                 const text = (await navigator.clipboard.readText() || '').trim();
                 if (!text) {
                     this.needPaste = true;
-                    this.pasteHint = 'Your clipboard is empty — paste or type the content below.';
+                    this.pasteHint = 'Your clipboard is empty, paste or type the content below.';
                     return;
                 }
                 this.content = text.slice(0, 20000);
                 this.detect();
             } catch (e) {
                 this.needPaste = true;
-                this.pasteHint = 'Clipboard permission was denied — paste the content below instead.';
+                this.pasteHint = 'Clipboard permission was denied, paste the content below instead.';
             }
         },
         // Mirrors LinkController::normalizeQuickDestination (server re-validates).
@@ -224,7 +224,7 @@ function quickShorten() {
                 });
                 const d = await r.json().catch(() => ({}));
                 if (!r.ok) {
-                    this.error = d.error || (d.errors ? Object.values(d.errors).flat()[0] : '') || d.message || 'Something went wrong — try again.';
+                    this.error = d.error || (d.errors ? Object.values(d.errors).flat()[0] : '') || d.message || 'Something went wrong, try again.';
                     return;
                 }
                 // Copy the new short URL back to the clipboard.
@@ -243,7 +243,7 @@ function quickShorten() {
                 this.content = ''; this.kind = null; this.preview = '';
                 this.alias = ''; this.aliasStatus = null; this.aliasMessage = '';
             } catch (e) {
-                this.error = 'Network error — try again.';
+                this.error = 'Network error, try again.';
             } finally {
                 this.busy = false;
             }

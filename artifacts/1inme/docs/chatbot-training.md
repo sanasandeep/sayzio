@@ -220,7 +220,7 @@ or as biolink blocks.
 | **WiFi** | A tap-to-join link/QR that connects visitors to a WiFi network. |
 | **PDF** | Share a PDF behind a viewer/download page. |
 | **Conversational** | A guided, chat-style page that walks visitors through your links one message at a time on a fixed script. |
-| **Slides** | A swipeable, story-style deck served from a single link — great for presentations or portfolios. |
+| **Slides** | A swipeable, story-style deck served from a single link — great for presentations or portfolios. The editor supports inline in-slide block editing, a live device preview, per-slide background colors/images, and auto-play (web and mobile). |
 | **AI Chatbot** | A full-page AI assistant that answers visitors' questions about you, powered by your Chat Widget and AI Minds. |
 | **Restaurant Menu** | A digital menu with categories, items, prices, photos, and optional table-side ordering. |
 | **Resume / Portfolio** | A shareable, professional resume page with PDF download and AI tooling. |
@@ -767,6 +767,10 @@ resolution. Found under **Contacts** and **Dialer**.
    spam warning for numbers you've flagged. Calls are logged into the contact's
    history/timeline, and you can attach **notes and tasks with reminder alarms**
    and review them in **agenda views**.
+6. **Notes are unified** — your notes and checklists are one account-level store
+   shared across web, the mobile app, and **Zio Browser** (which shows a
+   per-site note-count badge and keeps notes available offline). Notes with a
+   reminder time can also appear on **My Calendar** automatically.
 
 ---
 
@@ -896,6 +900,11 @@ processed through your connected payout provider.
 **Appointment reminders.** Configure automatic reminders sent to visitors before
 their appointment — for example 24 hours ahead and again 1 hour before.
 
+**Staff notifications.** Staff members can each have an optional email address;
+when set, they're emailed automatically when a booking assigned to them is
+placed, rescheduled, or cancelled (for paid bookings, the "new booking" email
+waits for payment confirmation).
+
 **Visitor experience.** Visitors pick a service, choose an available slot on a
 calendar, enter their name and contact details, and submit the request. They see
 "request sent — awaiting confirmation" after submitting.
@@ -975,7 +984,13 @@ For teams and agencies, Sayzio scales beyond a single user:
 
 - **Workspaces** — separate environments for different brands/projects, each with
   its own branding and settings; you can belong to multiple workspaces.
-- **Projects** — group related links, files, and work together to stay organized.
+- **Folders** — group related links into colored, Finder-style folders
+  (formerly called "Projects"). Each folder has a name, a color from a preset
+  palette, and an optional description; in the My Links grid view the folder
+  color tints its link cards. New accounts start with demo folders (Marketing,
+  Social, Docs, Partners).
+- **List or grid view** — switch My Links between a detailed list and a card
+  grid; the choice is remembered per device on web and mobile.
 - **Team & roles** — invite members and assign roles/permissions (e.g. Owner,
   Admin, Editor, Viewer). Owners can enforce 2FA for everyone and review a
   sensitive-action **audit log**.
@@ -1430,8 +1445,13 @@ format, and manage which notifications you receive per channel under
 **Is there a desktop app?**
 Yes — the **Zio Browser** is a desktop app (Windows / macOS / Linux) you can
 download from the **/download** page. It supports workspace profiles (isolated
-sessions per workspace), a Device Lab for side-by-side device previews, and offline
-access to your links and dashboard.
+sessions per workspace), a Device Lab for side-by-side device previews, offline
+access to your links and dashboard, a built-in **ad blocker** (with strength
+setting and per-site allow/block lists), a **My Files** pane for your Sayzio
+storage, your unified **notes** (with a per-site badge and offline access), a
+T9 **dialpad**, built-in viewers for `.txt`/Markdown/JSON/CSV files, and
+quick-create tiles for the newest page types. On Linux it ships as an AppImage
+and a `.deb` package (x64).
 
 **Is there a mobile app?**
 Yes — most features have native parity, including links, the biolink editor, QR

@@ -24,6 +24,49 @@
     </div>
     @endif
 
+    {{-- Recent merges that can still be undone (30-day window) --}}
+    @if(($undoableMerges ?? collect())->isNotEmpty())
+    <div class="mb-6 card-premium p-4" x-data="{ open: false }">
+        <button type="button" class="w-full flex items-center justify-between gap-2 text-left" @click="open = !open">
+            <span class="text-sm font-bold" style="color:var(--text-primary);">
+                <i class="fas fa-rotate-left mr-1.5" style="color:#3d6bff;"></i>
+                Recently merged ({{ $undoableMerges->count() }})
+            </span>
+            <span class="text-xs" style="color:var(--text-muted);">
+                Merged by mistake? You can undo a merge for {{ \App\Modules\User\Models\ContactMergeAudit::UNDO_WINDOW_DAYS }} days.
+                <i class="fas fa-chevron-down ml-1.5 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+            </span>
+        </button>
+        <div x-show="open" x-cloak class="mt-3 divide-y" style="border-color:var(--border-subtle);">
+            @foreach($undoableMerges as $audit)
+            <div class="py-2.5 flex items-center justify-between gap-3 flex-wrap">
+                <div class="text-sm min-w-0">
+                    <span class="font-semibold" style="color:var(--text-primary);">{{ $audit->sourceName() }}</span>
+                    <span style="color:var(--text-muted);">
+                        was merged into
+                        @if($audit->primaryContact)
+                        <a href="{{ route('user.contacts.show', $audit->primary_contact_id) }}" class="underline">{{ $audit->primaryContact->nameForDisplay() }}</a>
+                        @else
+                        a contact that no longer exists
+                        @endif
+                        · {{ $audit->created_at?->diffForHumans() }}
+                    </span>
+                </div>
+                <form method="POST" action="{{ route('user.contacts.merges.undo', $audit->id) }}">
+                    @csrf
+                    <button type="submit"
+                            onclick="return window.themedConfirmSubmit && window.themedConfirmSubmit(this.form, {title:'Undo this merge?',message:'“{{ str_replace("'", '', $audit->sourceName()) }}” will be restored as its own contact, and its activity will move back to it.',confirmText:'Undo merge',confirmIcon:'fa-rotate-left',iconClass:'fa-rotate-left'}) || confirm('Undo this merge? The merged contact will be restored.')"
+                            class="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                            style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.30);">
+                        <i class="fas fa-rotate-left mr-1"></i> Undo
+                    </button>
+                </form>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
     @if($groupCount === 0)
     <div class="card-premium p-10 text-center">
         <div class="text-5xl mb-4" style="color:var(--text-faint);">✓</div>
@@ -44,7 +87,7 @@
         <form method="POST" action="{{ route('user.contacts.duplicates.merge-all') }}">
             @csrf
             <button type="submit"
-                    onclick="return window.themedConfirmSubmit && window.themedConfirmSubmit(this.form, {title:'Merge all duplicates?',message:'This will merge all {{ $groupCount }} group{{ $groupCount === 1 ? '' : 's' }} at once. The first contact in each group keeps all data; the others are deleted. This cannot be undone.',confirmText:'Merge all',confirmIcon:'fa-code-merge',iconClass:'fa-code-merge'}) || confirm('Merge all {{ $groupCount }} duplicate group{{ $groupCount === 1 ? '' : 's' }}? The first contact in each group keeps all data; the others are deleted.')"
+                    onclick="return window.themedConfirmSubmit && window.themedConfirmSubmit(this.form, {title:'Merge all duplicates?',message:'This will merge all {{ $groupCount }} group{{ $groupCount === 1 ? '' : 's' }} at once. The first contact in each group keeps all data; the others are merged into it. You can undo each merge from this page for 30 days.',confirmText:'Merge all',confirmIcon:'fa-code-merge',iconClass:'fa-code-merge'}) || confirm('Merge all {{ $groupCount }} duplicate group{{ $groupCount === 1 ? '' : 's' }}? The first contact in each group keeps all data; the others are merged into it. You can undo each merge for 30 days.')"
                     class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition"
                     style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
                 <i class="fas fa-code-merge text-xs"></i> Merge all
@@ -177,7 +220,7 @@
             @endforeach
             <div class="flex items-center gap-3 flex-wrap">
                 <button type="submit"
-                        onclick="return window.themedConfirmSubmit && window.themedConfirmSubmit(this.form, {title:'Merge contacts?',message:'The selected primary will keep all data from both contacts. The others will be deleted.',confirmText:'Merge',confirmIcon:'fa-merge',iconClass:'fa-merge'}) || confirm('Merge these contacts? The primary keeps all data; the others are deleted.')"
+                        onclick="return window.themedConfirmSubmit && window.themedConfirmSubmit(this.form, {title:'Merge contacts?',message:'The selected primary will keep all data from the merged contacts. You can undo each merge from this page for 30 days.',confirmText:'Merge',confirmIcon:'fa-merge',iconClass:'fa-merge'}) || confirm('Merge these contacts? The primary keeps all data. You can undo each merge for 30 days.')"
                         class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition"
                         style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
                     <i class="fas fa-code-merge text-xs"></i> Merge into primary

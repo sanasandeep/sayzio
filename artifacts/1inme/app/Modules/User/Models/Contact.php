@@ -20,12 +20,14 @@ protected $fillable = [
         'biolink_user_id', 'biolink_attached_at', 'detached_biolink_user_ids',
         'last_synced_at', 'locally_modified_at',
         'follow_up_at', 'follow_up_note', 'follow_up_tz', 'follow_up_notified_at',
+        'is_auto_captured',
     ];
 
     protected function casts(): array
     {
         return [
             'detached_biolink_user_ids' => 'array',
+            'is_auto_captured'          => 'boolean',
             'sources'                   => 'array',
             'tags'                      => 'array',
             'socials'                   => 'array',

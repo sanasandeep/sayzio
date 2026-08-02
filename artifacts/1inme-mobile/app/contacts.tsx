@@ -47,10 +47,18 @@ export default function ContactsScreen() {
 
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  // "Most active" sort — surfaces contacts with the highest linked-activity
+  // counts first (server-side bulk count, mirrors the web list toggle).
+  const [sortByActivity, setSortByActivity] = useState(false);
 
   const contactsQ = useQuery({
-    queryKey: ["contacts", search, activeTag],
-    queryFn: () => listContacts({ q: search || undefined, tag: activeTag ?? undefined }),
+    queryKey: ["contacts", search, activeTag, sortByActivity],
+    queryFn: () =>
+      listContacts({
+        q: search || undefined,
+        tag: activeTag ?? undefined,
+        sort: sortByActivity ? "activity" : undefined,
+      }),
     staleTime: 30_000,
   });
 
@@ -481,6 +489,29 @@ export default function ContactsScreen() {
             </Pressable>
           )}
         </View>
+        <Pressable
+          onPress={() => setSortByActivity((v) => !v)}
+          testID="contacts-sort-activity"
+          style={[
+            styles.tagChip,
+            {
+              backgroundColor: sortByActivity ? colors.primary + "20" : colors.card,
+              borderColor: sortByActivity ? colors.primary + "50" : colors.border,
+            },
+          ]}
+        >
+          <Feather name="zap" size={12} color={sortByActivity ? colors.primary : colors.mutedForeground} />
+          <Text
+            style={{
+              fontFamily: "SpaceGrotesk_500Medium",
+              fontSize: 12,
+              color: sortByActivity ? colors.primary : colors.mutedForeground,
+              marginLeft: 4,
+            }}
+          >
+            Most active
+          </Text>
+        </Pressable>
       </View>
 
       {tags.length > 0 && (
@@ -619,6 +650,21 @@ function ContactRow({
           </View>
         )}
       </View>
+      {(c.activity_count ?? 0) > 0 && (
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation?.();
+            router.push(`/contacts/${c.id}?focus=activity` as any);
+          }}
+          hitSlop={8}
+          style={({ pressed }) => [styles.activityBadge, { opacity: pressed ? 0.6 : 1 }]}
+        >
+          <Feather name="zap" size={10} color="#22d3ee" />
+          <Text style={{ fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 10, color: "#22d3ee" }}>
+            {c.activity_count}
+          </Text>
+        </Pressable>
+      )}
       {c.follow_up_at && (
         <View style={[styles.followUpBadge, { backgroundColor: colors.primary + "18" }]}>
           <Feather name="clock" size={11} color={colors.primary} />
@@ -671,8 +717,12 @@ const styles = StyleSheet.create({
   searchRow: {
     paddingHorizontal: 16,
     paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   searchBox: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -718,6 +768,18 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 15,
+  },
+  activityBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    backgroundColor: "rgba(34,211,238,0.12)",
+    borderColor: "rgba(34,211,238,0.20)",
+    marginLeft: 4,
   },
   followUpBadge: {
     width: 24,

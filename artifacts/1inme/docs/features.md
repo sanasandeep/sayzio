@@ -163,7 +163,13 @@ standalone builder and public renderer.
   and wizard. Detailed in [§4](#4-the-biolink-editor--blocks). *Web · REST · Mobile.*
 - **Slides (`slides`)** — swipeable story deck; shares the biolink editor/Step 2
   flow; subject to its own per-type plan toggle (`module_slides`) and cap
-  (`max_slides`). *Web · REST · Mobile.*
+  (`max_slides`). The Slides Mode editor supports **inline in-slide block
+  editing** (the shared edit-form modal opens right from the slide), a **live
+  device preview** that updates while typing, per-slide **background colors and
+  images** (editable on mobile too), **auto-play** (interval-based advance, with
+  mobile parity), and **plan-gated in-slide block creation** from a curated
+  block subset filtered by the user's plan allowlist. Full REST parity via
+  `GET/PUT /api/v1/links/{id}/slides`. *Web · REST · Mobile.*
 - **Restaurant Menu (`restaurant_menu`)** — uses its own dedicated builder (not
   the block editor); see [§5.10](#510-restaurant-menu--orders). Toggle
   `module_restaurant_menu`, cap `max_restaurant_menu`.
@@ -317,6 +323,15 @@ All applicable to short links and (where relevant) the broader link set.
   (`BulkBiolinkController` + `MailMergeSheet`). The batch is gated against **both**
   `max_links` and `max_biolinks`, and the locked starting template is chosen by
   plan tier. Entry points mirror the bulk-URL flow (the create hub + the index).
+- **Folders** — Finder-style colored folders that group links (rebranded from
+  "Projects"; the API/DB keep the `projects` naming). Each folder has a name,
+  a preset-palette color (blue default) and optional description; folder colors
+  tint the link cards in grid view. New accounts get seeded demo folders
+  (Marketing, Social, Docs, Partners). Full parity on web, mobile and REST
+  (`/api/v1/projects`).
+- **My Links list/grid view toggle** — switch the link list between a detailed
+  list and a colored card grid; the choice persists per device
+  (`sayzio_links_view` in localStorage on web, AsyncStorage on mobile).
 - **My Links list + CSV export** — the link list page paginates (per-page choices
   15/30/50/100 on web) with a "Showing X–Y of Z" count, and exports the current
   (filtered) list to CSV from web (`/user/links/export`), REST
@@ -625,6 +640,13 @@ A personal CRM plus an in-app dialer with identity resolution.
 - **Dialer** — number pad with **T9 smart-search** (keypad-spelled names), speed
   dial, recents/frequent; call logging with outcomes/notes. `DialerData` is the
   single read/transform source for web + API.
+- **Unified notes** — the dialer's notes and checklists (`dialer_notes`) are
+  one account-level store shared across web (`/user/dialer/notes`), mobile,
+  and **Zio Browser**, which shows a per-site note-count badge next to the
+  address bar and keeps an offline cache with a queued-ops sync. Notes can
+  carry reminders, colors, attached links/URLs, and phone-number associations;
+  Zio Browser migrated its old per-install saved-link notes into the shared
+  store one-time. REST: `/api/v1/dialer/notes` CRUD.
 - **Native calling (round 2)** — on the mobile apps the dialer places real
   device calls with **dual-SIM support** (per-call SIM picker + default-SIM
   setting), an optional **direct-call** setting (dial immediately instead of
@@ -768,6 +790,11 @@ editor) that turns a link into an appointment-request page.
   (`service_booking.new_request`; in-app + push + email); the visitor gets an
   immediate confirmation email, status-change emails, and an optional WhatsApp
   click-to-chat link.
+- **Staff notification email** — each staff member can carry an optional
+  `email`; when set, that staff member is emailed automatically when a booking
+  assigned to them is placed, rescheduled, or cancelled
+  (`ServiceBookingRequestService::notifyStaff`). For paid bookings the "placed"
+  email waits until payment is confirmed.
 - **Paid bookings** — each service can optionally require upfront payment with three
   `payment_mode` values: `none` (request only, no payment), `deposit` (partial
   amount collected at booking), or `full` (full service price collected). Deposit
@@ -886,8 +913,15 @@ sync with the owner's connected calendar (Google; Outlook where supported).
   RSVP responses for event links are viewable per link.
 - **Gating** — two-way sync requires the `calendar_sync` plan feature (off by
   default); event links and visitor RSVP remain available without it.
+- **My Calendar mirroring** — Task Board card **due dates** (all-day
+  "Task: {title}") and dialer-note **reminders** (timed "Reminder: {title}")
+  are mirrored onto My Calendar in an auto-managed "Tasks & Reminders"
+  calendar (`PersonalCalendarSync`). Two per-user toggles (`task_due_dates`,
+  `note_reminders`, both on by default) live in the My Calendar preferences on
+  web and mobile; turning one off removes its mirrored events, turning it back
+  on backfills them. REST: `GET/PATCH /api/v1/my-calendar/mirror-preferences`.
 
-*Web · REST (`/calendar/accounts`, `/links/{id}/rsvps`) · Mobile.*
+*Web · REST (`/calendar/accounts`, `/links/{id}/rsvps`, `/my-calendar/*`) · Mobile.*
 
 ### 5.16 Persona onboarding
 
@@ -1246,7 +1280,8 @@ Teardown).*
 
 - **Workspaces** — separate environments per brand/project with their own
   branding/settings; users belong to multiple workspaces with roles.
-- **Projects** — group links, files, and work within a workspace.
+- **Folders (projects)** — group links into colored folders within a workspace
+  (UI says "Folders"; API/DB keep the `projects` naming; see §3).
 - **Team & roles** — `WorkspaceMember` + `WorkspaceRolePermission` granular RBAC
   (e.g. Owner / Admin / Editor / Viewer); owners can enforce 2FA for everyone and
   review a sensitive-action **audit log**.
@@ -1308,7 +1343,9 @@ screen).*
   with an audit trail. Deploy policy keeps serving on `migrate --force` failure.
 - **Admin Integrations Hub** (`/admin/integrations`) — consolidates third-party
   credentials with status badges (`IntegrationCatalog`); `PlatformServiceSettings`
-  brings Google Places / Trustpilot keys, Google Contacts OAuth, and S3 user-
+  brings Google Places / Trustpilot keys, Google Contacts OAuth, **Google
+  Calendar OAuth** (Service Booking / calendar sync; `/admin/integrations/google-calendar`,
+  keys `google_calendar.client_id` / encrypted `client_secret`), and S3 user-
   content storage under admin control (encrypted secrets in `app_settings`, with
   admin→config→env fallback and `applyRuntimeConfig()` at boot so readers need no
   changes).
@@ -1463,7 +1500,11 @@ platform's own domain at `/android` (no store required).
 
 A cross-platform **Electron desktop app** built from the Sayzio web app,
 available for Windows, macOS, and Linux. Downloaded from the `/download` page
-(served by `ZioBrowserDownloadController`). The desktop app adds:
+(served by `ZioBrowserDownloadController`). Linux ships as **AppImage + .deb**
+(x64) from v0.3.8; admins can pin the Linux download links via the
+`product_browser_linux_appimage_url` / `product_browser_linux_deb_url`
+app settings, otherwise the page falls back to the GitHub releases assets.
+The desktop app adds:
 
 - **Workspace profiles** — isolated sessions per workspace (separate
   cookies/localStorage); profile scope is tracked by an `X-Browser-Workspace-Id`
@@ -1471,6 +1512,26 @@ available for Windows, macOS, and Linux. Downloaded from the `/download` page
 - **Device Lab** — side-by-side multi-device previews using CSS-scaled iframes.
 - **Offline access** — links and basic dashboard content accessible without a
   live connection.
+- **Ad blocker** — built on `@ghostery/adblocker` with EasyList + EasyPrivacy
+  lists; per-user preferences (`ad_blocking_enabled`, `adblock_strength`,
+  per-site allow/block lists) plus an admin-mandated policy
+  (`adblock_admin_policy` app setting, fetched roughly every six hours) that
+  can force the blocker on or off platform-wide. Main-frame documents are never
+  blocked.
+- **My Files pane** — a file manager for the user's Sayzio storage: folders,
+  drag-and-drop upload, and the account storage quota, right in the browser
+  sidebar.
+- **Unified notes badge** — a per-site note-count badge sourced from the shared
+  `dialer_notes` store (see §5.8), with offline cache and queued sync.
+- **Dialpad** — a T9 dialpad panel with a hand-off to the Zio Dialer companion
+  app.
+- **Text-file viewing** — `.txt`, Markdown, JSON and CSV files open in built-in
+  viewers instead of downloading.
+- **Create popover** — quick-create tiles for the six newest page types
+  (AI Chat, Paid Page, Text Page, Restaurant Menu, Store, Booking) alongside
+  the classic link kinds.
+- **Quality-of-life** — password fields get an eye (show/hide) toggle;
+  per-profile settings panel.
 
 *Web download page (`/download`) · Electron desktop.*
 

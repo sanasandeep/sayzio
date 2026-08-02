@@ -92,6 +92,29 @@ class RestaurantOrder extends Model
                 $order->public_token = (string) Str::uuid();
             }
         });
+
+        // Unified contact linking (Task #6501). Restaurant orders only
+        // capture a free-text name by default, so linking happens only when
+        // an email/phone reached us via meta (forRecord no-ops otherwise).
+        static::created(function (RestaurantOrder $order): void {
+            $ownerId = $order->link_id
+                ? Link::withoutGlobalScope('workspace')->whereKey($order->link_id)->value('user_id')
+                : null;
+            $meta = (array) $order->meta;
+            \App\Jobs\LinkCaptureToContactJob::forRecord(
+                $order,
+                $ownerId ? (int) $ownerId : null,
+                isset($meta['customer_email']) ? (string) $meta['customer_email'] : null,
+                isset($meta['customer_phone']) ? (string) $meta['customer_phone'] : null,
+                $order->customer_name,
+                'restaurant_order'
+            );
+        });
+    }
+
+    public function contact()
+    {
+        return $this->belongsTo(Contact::class);
     }
 
     public function menu()

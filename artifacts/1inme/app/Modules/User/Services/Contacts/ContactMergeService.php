@@ -4,6 +4,7 @@ namespace App\Modules\User\Services\Contacts;
 
 use App\Modules\User\Models\Contact;
 use App\Modules\User\Models\ContactEmail;
+use App\Modules\User\Models\ContactMergeAudit;
 use App\Modules\User\Models\ContactPhone;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -33,6 +34,24 @@ use Illuminate\Support\Facades\Storage;
  */
 class ContactMergeService
 {
+    /**
+     * Customer-capture tables (unified contact linking) that carry a
+     * nullable, FK-less contact_id. Merges must repoint these so capture
+     * history follows the surviving contact.
+     */
+    public const CAPTURE_TABLES = [
+        'subscribers',
+        'form_submissions',
+        'restaurant_orders',
+        'store_orders',
+        'service_booking_requests',
+        'rsvps',
+        'event_tickets',
+        'product_orders',
+        'reviews',
+        'inbox_threads',
+    ];
+
     /**
      * Merge $losers into $primary.
      *
@@ -67,6 +86,12 @@ class ContactMergeService
 
         $loser->loadMissing(['phones', 'emails']);
 
+        // 0. Snapshot the loser BEFORE any mutation so a later "Undo merge"
+        //    can faithfully recreate it. Row ids moved to the primary are
+        //    collected as we go and recorded on the same audit row.
+        $snapshot = $this->snapshotContact($loser);
+        $moved    = [];
+
         // 1. Move phones from loser → primary (skip duplicates)
         foreach ($loser->phones as $phone) {
             $norm = $phone->value_e164 ?: \App\Modules\User\Models\ContactPhone::normalize($phone->value);
@@ -76,13 +101,14 @@ class ContactMergeService
                       ->orWhere('value', $phone->value);
                 })->exists();
             if (!$alreadyExists) {
-                ContactPhone::create([
+                $created = ContactPhone::create([
                     'contact_id' => $primary->id,
                     'label'      => $phone->label,
                     'value'      => $phone->value,
                     'value_e164' => $phone->value_e164,
                     'is_primary' => false,
                 ]);
+                $moved['contact_phones'][] = $created->id;
             }
         }
 
@@ -93,12 +119,13 @@ class ContactMergeService
                 ->whereRaw('LOWER(TRIM(value)) = ?', [$norm])
                 ->exists();
             if (!$alreadyExists) {
-                ContactEmail::create([
+                $created = ContactEmail::create([
                     'contact_id' => $primary->id,
                     'label'      => $email->label,
                     'value'      => $email->value,
                     'is_primary' => false,
                 ]);
+                $moved['contact_emails'][] = $created->id;
             }
         }
 
@@ -170,7 +197,7 @@ class ContactMergeService
         $primary->save();
 
         // 10. Repoint referencing rows to the primary BEFORE deleting the loser
-        $this->repointReferences($loser->id, $primary->id);
+        $moved = array_merge($moved, $this->repointReferences($loser->id, $primary->id));
 
         // 11. Remove dismissed-pair records for the loser ↔ primary pair
         $a = min($primary->id, $loser->id);
@@ -196,7 +223,48 @@ class ContactMergeService
             }
         }
 
+        // 13. Record the merge audit so the merge can be undone (time-limited).
+        //     Same transaction as the merge itself, so an audit row exists
+        //     iff the merge committed.
+        try {
+            ContactMergeAudit::create([
+                'user_id'            => $primary->user_id,
+                'primary_contact_id' => $primary->id,
+                'source_contact_id'  => $loser->id,
+                'source_snapshot'    => $snapshot,
+                'moved'              => (object) $moved,
+            ]);
+        } catch (\Throwable $e) {
+            // Never let audit bookkeeping break the merge itself (e.g. a
+            // partial schema without the audits table yet).
+            Log::warning('ContactMergeService: could not record merge audit', ['err' => $e->getMessage()]);
+        }
+
         $loser->delete();
+    }
+
+    /**
+     * Full attribute snapshot of a contact (plus its phones/emails) taken
+     * before the merge mutates anything — the raw material for "Undo merge".
+     */
+    protected function snapshotContact(Contact $contact): array
+    {
+        $attrs = $contact->getAttributes();
+        unset($attrs['id']);
+
+        return array_merge($attrs, [
+            'phones' => $contact->phones->map(fn ($p) => [
+                'label'      => $p->label,
+                'value'      => $p->value,
+                'value_e164' => $p->value_e164,
+                'is_primary' => (bool) $p->is_primary,
+            ])->all(),
+            'emails' => $contact->emails->map(fn ($e) => [
+                'label'      => $e->label,
+                'value'      => $e->value,
+                'is_primary' => (bool) $e->is_primary,
+            ])->all(),
+        ]);
     }
 
     /**
@@ -204,38 +272,58 @@ class ContactMergeService
      * Tables: dialer_lookups, dialer_favorites, leads, card_scans, invoices,
      * conversation_sessions — each has its own FK semantics so we UPDATE
      * rather than relying on cascades.
+     *
+     * Returns a map of table => [row ids] that were actually repointed, so
+     * the merge audit can record exactly which rows to move back on undo.
      */
-    protected function repointReferences(int $fromId, int $toId): void
+    protected function repointReferences(int $fromId, int $toId): array
     {
-        // dialer_lookups: contact_id nullable nullOnDelete — repoint to primary
-        DB::table('dialer_lookups')
-            ->where('contact_id', $fromId)
-            ->update(['contact_id' => $toId]);
+        $moved = [];
 
-        // dialer_favorites: contact_id nullable
-        DB::table('dialer_favorites')
-            ->where('contact_id', $fromId)
-            ->update(['contact_id' => $toId]);
+        // Reference tables with their own FK semantics: dialer_lookups,
+        // dialer_favorites, leads, card_scans, invoices,
+        // conversation_sessions — contact_id nullable on all of them.
+        $referenceTables = [
+            'dialer_lookups', 'dialer_favorites', 'leads',
+            'card_scans', 'invoices', 'conversation_sessions',
+        ];
+        foreach ($referenceTables as $table) {
+            $ids = DB::table($table)->where('contact_id', $fromId)->pluck('id')->all();
+            if (empty($ids)) {
+                continue;
+            }
+            DB::table($table)->whereIn('id', $ids)->update(['contact_id' => $toId]);
+            $moved[$table] = $ids;
+        }
 
-        // leads: contact_id nullable nullOnDelete
-        DB::table('leads')
-            ->where('contact_id', $fromId)
-            ->update(['contact_id' => $toId]);
+        // Capture tables (subscribers, form_submissions, orders, bookings,
+        // RSVPs, tickets, reviews, inbox threads): contact_id is nullable
+        // with no FK constraint, so stale ids would silently orphan capture
+        // history. Repoint them all; guard per-table so a missing table in
+        // a partial schema never aborts the merge transaction spuriously.
+        foreach (self::CAPTURE_TABLES as $table) {
+            if (!$this->captureTableHasContactId($table)) {
+                continue;
+            }
+            $ids = DB::table($table)->where('contact_id', $fromId)->pluck('id')->all();
+            if (empty($ids)) {
+                continue;
+            }
+            DB::table($table)->whereIn('id', $ids)->update(['contact_id' => $toId]);
+            $moved[$table] = $ids;
+        }
 
-        // card_scans: contact_id nullable, no FK constraint (per migration)
-        DB::table('card_scans')
-            ->where('contact_id', $fromId)
-            ->update(['contact_id' => $toId]);
+        return $moved;
+    }
 
-        // invoices: contact_id nullable
-        DB::table('invoices')
-            ->where('contact_id', $fromId)
-            ->update(['contact_id' => $toId]);
+    /** @var array<string,bool> memoized schema checks (per request) */
+    protected array $captureColumnCache = [];
 
-        // conversation_sessions: contact_id nullable
-        DB::table('conversation_sessions')
-            ->where('contact_id', $fromId)
-            ->update(['contact_id' => $toId]);
+    protected function captureTableHasContactId(string $table): bool
+    {
+        return $this->captureColumnCache[$table] ??=
+            \Illuminate\Support\Facades\Schema::hasTable($table)
+            && \Illuminate\Support\Facades\Schema::hasColumn($table, 'contact_id');
     }
 
     /**

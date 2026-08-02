@@ -43,6 +43,11 @@ protected $fillable = [
                 return;
             }
             \App\Jobs\PushLeadToCrmJob::forUser((int) $sub->user_id, $sub->toCrmLead());
+            // Unified contact linking (Task #6501): tie the subscriber to
+            // the owner's Contact by email/phone off the hot path.
+            \App\Jobs\LinkCaptureToContactJob::forRecord(
+                $sub, (int) $sub->user_id, $sub->email, $sub->phone, $sub->name, 'subscriber'
+            );
         });
     }
 
@@ -83,6 +88,11 @@ protected $fillable = [
             return Link::withoutGlobalScope('workspace')->find($this->link_id);
         }
         return null;
+    }
+
+    public function contact()
+    {
+        return $this->belongsTo(Contact::class);
     }
 
     public function block()

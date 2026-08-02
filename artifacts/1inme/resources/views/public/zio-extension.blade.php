@@ -111,7 +111,7 @@
             </h1>
             <p class="mt-5 text-lg text-gray-400 leading-relaxed max-w-xl">
                 One click in your toolbar turns the page you're on into a branded short link,
-                a QR code, or a saved link in your Sayzio account — complete with UTM tags
+                a QR code, or a saved link in your Sayzio account, complete with UTM tags
                 and instant copy to clipboard.
             </p>
             <div class="mt-8 flex flex-wrap items-center gap-3">
@@ -168,14 +168,14 @@
             <span class="text-xs font-bold uppercase tracking-wider text-blue-300">Built for the middle of your day</span>
             <h2 class="mt-3 text-3xl sm:text-4xl font-bold text-white">Share the moment you find it</h2>
             <p class="mt-4 text-gray-400 leading-relaxed">
-                The best link to share is the page you're already reading — a product you love, an article
+                The best link to share is the page you're already reading, a product you love, an article
                 worth passing on, your own landing page fresh off a deploy. Zio Extension lives in your
                 toolbar so that moment never gets lost to a tab-switch: one click and the page becomes a
                 clean, branded short link with your default domain, already copied to your clipboard.
             </p>
             <p class="mt-4 text-gray-400 leading-relaxed">
                 Because every link is created inside your Sayzio account, it arrives with click analytics,
-                smart-routing options and A/B testing already attached — the extension even has a
+                smart-routing options and A/B testing already attached, the extension even has a
                 "Shorten as A/B test" mode for trying two destinations from a single short link.
             </p>
             <ul class="mt-6 space-y-3">
@@ -198,15 +198,15 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center max-w-2xl mx-auto" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl font-bold text-white">Your toolbar, upgraded</h2>
-            <p class="mt-3 text-gray-400">Everything the Sayzio dashboard does to a URL — right where you found it.</p>
+            <p class="mt-3 text-gray-400">Everything the Sayzio dashboard does to a URL, right where you found it.</p>
         </div>
         <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             @foreach([
                 ['fa-bolt', 'One-click shorten', 'Open the popup and the current page is already shortened with your default domain. Copy and go.'],
-                ['fa-qrcode', 'Instant QR codes', 'Generate a scannable QR code for the page you\'re on — download it or open it in QR Studio for full styling.'],
+                ['fa-qrcode', 'Instant QR codes', 'Generate a scannable QR code for the page you\'re on, download it or open it in QR Studio for full styling.'],
                 ['fa-floppy-disk', 'Save to your account', 'Every link you create lands in your Sayzio dashboard with full click analytics from the first visitor.'],
                 ['fa-tags', 'UTM builder', 'Add campaign, source and medium tags before shortening so your analytics stay clean without spreadsheets.'],
-                ['fa-globe', 'Branded domains', 'Shorten onto any of your verified custom domains, or the shared Sayzio domains — pick per link.'],
+                ['fa-globe', 'Branded domains', 'Shorten onto any of your verified custom domains, or the shared Sayzio domains, pick per link.'],
                 ['fa-chart-line', 'Stats at a glance', 'See clicks for links you\'ve already made on the site you\'re browsing, straight from the popup.'],
             ] as [$icon, $title, $desc])
                 <div class="glass rounded-2xl p-6" data-anim="fade-up">
@@ -233,9 +233,9 @@
                 ['images/marketing/extension/workflow.webp', 'Hands at a laptop with the extension popup open on the current page',
                  '1', 'Click the icon', 'Open the popup on any page and it\'s already shortened onto your default domain. Copy it, or keep going for more.'],
                 ['images/marketing/extension/campaign.webp', 'A campaign-planning desk with notes, laptop and phone laid out',
-                 '2', 'Tag the campaign', 'Add UTM source, medium and campaign right in the popup — no spreadsheets, no URL-builder tools, no typos in your analytics.'],
+                 '2', 'Tag the campaign', 'Add UTM source, medium and campaign right in the popup, no spreadsheets, no URL-builder tools, no typos in your analytics.'],
                 ['images/marketing/extension/qr-share.webp', 'Two colleagues sharing a QR code from a laptop screen',
-                 '3', 'Share it anywhere', 'Copy the short link, or generate a scannable QR code on the spot — then open it in QR Studio for full branding when you need print quality.'],
+                 '3', 'Share it anywhere', 'Copy the short link, or generate a scannable QR code on the spot, then open it in QR Studio for full branding when you need print quality.'],
             ] as [$img, $alt, $step, $title, $desc])
                 <div class="glass rounded-2xl overflow-hidden" data-anim="fade-up">
                     <img src="{{ asset($img) }}" alt="{{ $alt }}" loading="lazy" decoding="async" class="w-full aspect-[4/3] object-cover">
@@ -259,7 +259,7 @@
         <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             @foreach([
                 ['fa-bullhorn', 'Marketers', 'Tag every share with UTM parameters as you browse, and run quick A/B tests on landing pages without leaving the article you found them in.'],
-                ['fa-pen-nib', 'Creators', 'Turn anything you recommend into a branded link on your own domain, so every share builds your name — and every click shows up in your stats.'],
+                ['fa-pen-nib', 'Creators', 'Turn anything you recommend into a branded link on your own domain, so every share builds your name, and every click shows up in your stats.'],
                 ['fa-briefcase', 'Sales & founders', 'Save prospect pages and case studies to your account as you research, then send trackable links and see exactly when they get opened.'],
                 ['fa-users', 'Teams', 'Everyone shortens onto the same verified company domains, so links stay on-brand no matter who shares them.'],
             ] as [$icon, $title, $desc])
@@ -284,8 +284,8 @@
         <div class="mt-10 space-y-3" x-data="{ open: null }">
             @foreach([
                 ['Which browsers are supported?', 'Chrome and every Chromium-based browser (Edge, Brave, Opera), plus Firefox. Grab it from your browser\'s store above.'],
-                ['Is it free?', 'Yes. The extension itself is free — links you create count toward your Sayzio plan exactly like links made on the website.'],
-                ['Do I need a Sayzio account?', 'Yes — sign in once inside the popup and every shortened link is saved to your account with analytics.'],
+                ['Is it free?', 'Yes. The extension itself is free, links you create count toward your Sayzio plan exactly like links made on the website.'],
+                ['Do I need a Sayzio account?', 'Yes, sign in once inside the popup and every shortened link is saved to your account with analytics.'],
                 ['Can it read my browsing history?', 'No. The extension only sees the tab you invoke it on, at the moment you click the icon. It never tracks browsing in the background.'],
                 ['Can I use my own domain?', 'Absolutely. Any custom domain you\'ve verified in Sayzio shows up in the popup\'s domain picker.'],
             ] as $i => [$q, $a])

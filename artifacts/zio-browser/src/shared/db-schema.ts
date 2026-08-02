@@ -6,7 +6,7 @@
  * importing better-sqlite3 (which requires native bindings).
  */
 
-export const SCHEMA_VERSION = 11;
+export const SCHEMA_VERSION = 12;
 
 export const CREATE_TABLES_SQL = `
 PRAGMA journal_mode = WAL;
@@ -205,6 +205,32 @@ CREATE TABLE IF NOT EXISTS site_settings (
   ad_blockers      INTEGER,
   updated_at       TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS account_notes_cache (
+  id            INTEGER PRIMARY KEY NOT NULL,
+  own           INTEGER NOT NULL DEFAULT 1,
+  attached_host TEXT,
+  attached_url  TEXT,
+  payload       TEXT NOT NULL,
+  updated_at    TEXT,
+  cached_at     TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS account_notes_cache_host ON account_notes_cache(attached_host);
+
+CREATE TABLE IF NOT EXISTS notes_ops_queue (
+  id              TEXT PRIMARY KEY NOT NULL,
+  op              TEXT NOT NULL,
+  note_id         INTEGER,
+  local_id        INTEGER,
+  payload         TEXT,
+  attempts        INTEGER NOT NULL DEFAULT 0,
+  next_attempt_at TEXT NOT NULL,
+  last_error      TEXT,
+  created_at      TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS notes_ops_queue_due ON notes_ops_queue(next_attempt_at);
 `;
 
 /**
@@ -262,6 +288,30 @@ export const MIGRATION_SQL: Record<number, string> = {
   `,
   11: `
     ALTER TABLE site_settings ADD COLUMN ad_blockers INTEGER;
+  `,
+  12: `
+    CREATE TABLE IF NOT EXISTS account_notes_cache (
+      id            INTEGER PRIMARY KEY NOT NULL,
+      own           INTEGER NOT NULL DEFAULT 1,
+      attached_host TEXT,
+      attached_url  TEXT,
+      payload       TEXT NOT NULL,
+      updated_at    TEXT,
+      cached_at     TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS account_notes_cache_host ON account_notes_cache(attached_host);
+    CREATE TABLE IF NOT EXISTS notes_ops_queue (
+      id              TEXT PRIMARY KEY NOT NULL,
+      op              TEXT NOT NULL,
+      note_id         INTEGER,
+      local_id        INTEGER,
+      payload         TEXT,
+      attempts        INTEGER NOT NULL DEFAULT 0,
+      next_attempt_at TEXT NOT NULL,
+      last_error      TEXT,
+      created_at      TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS notes_ops_queue_due ON notes_ops_queue(next_attempt_at);
   `,
 };
 
@@ -338,6 +388,7 @@ export const PREFERENCE_KEYS = {
   VK_TYPING_HISTORY: 'vk_typing_history',
   VK_BIGRAMS: 'vk_bigrams',
   VK_STRIP_POS: 'vk_strip_pos',
+  SAVED_LINKS_NOTES_MIGRATED: 'saved_links_notes_migrated',
 } as const;
 
 export type PreferenceKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];
