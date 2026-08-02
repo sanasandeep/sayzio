@@ -115,6 +115,8 @@ class CreatorProfilePublicController extends Controller
             'viewer'          => $viewer,
             'isOwner'         => $isOwner,
             'relatedCreators' => $relatedCreators,
+            // Special dates (Task #6551).
+            'specialDates'    => \App\Modules\User\Support\SpecialDates::publicEntries($creator),
             'upcomingEvents'  => $upcomingEvents,
             'ageGateRequired' => $ageGateRequired,
             // Showcase data (Task #5431).

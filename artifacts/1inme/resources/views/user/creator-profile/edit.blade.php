@@ -279,6 +279,72 @@
             </div>
         </fieldset>
 
+        {{-- Special dates (Task #6551) --}}
+        <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+                  x-data="{
+                      kinds: @js((object) $specialDateKindsJs),
+                      rows: @js($specialDateRowsJs),
+                      hasSingle(kind) { return this.rows.some(r => r.kind === kind); },
+                      addRow() {
+                          if (this.rows.length >= 20) return;
+                          let kind = Object.keys(this.kinds).find(k => this.kinds[k].single && !this.hasSingle(k)) || 'product_release';
+                          this.rows.push({ id: '', kind, label: '', date: '', public: false, notify: false, sync: false });
+                      },
+                  }">
+            <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Special dates</legend>
+            <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Birthday, anniversaries and product release days. Public dates show on your profile; "Notify" lets followers wish you on the day; "Calendar" adds a yearly all-day event to your followable Special Dates calendar.</p>
+
+            <div class="space-y-3">
+                <template x-for="(row, i) in rows" :key="i">
+                    <div class="rounded-lg p-3 space-y-2" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft);">
+                        <input type="hidden" :name="`special_dates[${i}][id]`" :value="row.id">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <select :name="`special_dates[${i}][kind]`" x-model="row.kind"
+                                    class="px-2 py-1.5 rounded text-xs" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
+                                <template x-for="(k, key) in kinds" :key="key">
+                                    <option :value="key" x-text="k.label" :selected="row.kind === key"></option>
+                                </template>
+                            </select>
+                            <input type="text" :name="`special_dates[${i}][label]`" x-model="row.label"
+                                   x-show="row.kind === 'product_release'" placeholder="Product / release name" maxlength="120"
+                                   class="flex-1 min-w-[140px] px-2 py-1.5 rounded text-xs" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
+                            <input type="date" :name="`special_dates[${i}][date]`" x-model="row.date" required
+                                   class="px-2 py-1.5 rounded text-xs" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
+                            <button type="button" @click="rows.splice(i, 1)" class="ml-auto text-xs px-2 py-1 rounded" style="color: var(--text-dimmed); border: 1px solid var(--border-soft);" title="Remove">
+                                <i class="fas fa-trash-can"></i>
+                            </button>
+                        </div>
+                        <div class="flex flex-wrap gap-3">
+                            <label class="flex items-center gap-1.5 text-xs cursor-pointer" style="color: var(--text-primary);">
+                                <input type="hidden" :name="`special_dates[${i}][public]`" value="0">
+                                <input type="checkbox" :name="`special_dates[${i}][public]`" value="1" x-model="row.public" class="rounded"> Public
+                            </label>
+                            <label class="flex items-center gap-1.5 text-xs cursor-pointer" style="color: var(--text-primary);">
+                                <input type="hidden" :name="`special_dates[${i}][notify]`" value="0">
+                                <input type="checkbox" :name="`special_dates[${i}][notify]`" value="1" x-model="row.notify" class="rounded"> Notify followers
+                            </label>
+                            <label class="flex items-center gap-1.5 text-xs cursor-pointer" style="color: var(--text-primary);">
+                                <input type="hidden" :name="`special_dates[${i}][sync]`" value="0">
+                                <input type="checkbox" :name="`special_dates[${i}][sync]`" value="1" x-model="row.sync" class="rounded"> Calendar
+                            </label>
+                            <span class="text-[10px]" style="color: var(--text-dimmed);" x-show="row.notify && !row.public">Private dates never notify followers.</span>
+                        </div>
+                    </div>
+                </template>
+
+                {{-- Marker so a fully-emptied list still submits the key and clears entries.
+                     x-if (not x-show) so it never clobbers the row inputs when rows exist. --}}
+                <template x-if="rows.length === 0">
+                    <input type="hidden" name="special_dates" value="">
+                </template>
+
+                <button type="button" @click="addRow()" x-show="rows.length < 20"
+                        class="text-xs font-semibold px-3 py-1.5 rounded-lg" style="color: var(--text-primary); border: 1px dashed var(--border-soft);">
+                    <i class="fas fa-plus mr-1"></i> Add a special date
+                </button>
+            </div>
+        </fieldset>
+
         {{-- Organizer profile (Task #3699) — account-wide event organizer
              details shown on the public event detail page and on
              /@handle/events. Not per-event; there is one profile per

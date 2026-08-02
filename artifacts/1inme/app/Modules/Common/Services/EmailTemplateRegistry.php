@@ -591,6 +591,22 @@ class EmailTemplateRegistry
             // ----------------------------------------------------------------
             // Digests
             // ----------------------------------------------------------------
+            'social.special_date_wish' => [
+                'category' => 'digests',
+                'label' => 'Special-date wish',
+                'description' => "Tells followers it's a creator's birthday / anniversary / release day so they can send wishes.",
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => "It's {{creator_name}}'s {{occasion}} today!",
+                'pref_type' => 'special_date_wish',
+                'body' => "Today is {{creator_name}}'s (@{{handle}}) {{occasion}} — send your wishes!\n\nVisit their profile: {{profile_url}}",
+                'variables' => [
+                    'creator_name' => ['label' => 'Creator display name', 'sample' => 'Jane Doe'],
+                    'handle' => ['label' => 'Creator handle', 'sample' => 'jane'],
+                    'occasion' => ['label' => 'Occasion', 'sample' => 'birthday'],
+                    'profile_url' => ['label' => 'Creator profile URL', 'sample' => 'https://sayz.io/@jane'],
+                ],
+            ],
             'digests.follower' => [
                 'category' => 'digests',
                 'label' => 'Follower daily digest',

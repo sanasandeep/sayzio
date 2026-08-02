@@ -56,6 +56,13 @@ class NotificationService
                 'default_email'  => false,
                 'default_push'   => true,
             ],
+            'special_date_wish' => [
+                'label'          => 'Special-date wishes',
+                'description'    => "Birthday, anniversary and release-day reminders for creators you follow, so you can send your wishes.",
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
             'follower_update' => [
                 'label'          => 'Updates from creators you follow',
                 'description'    => 'New posts, links or Link in Bio changes from creators in your following list.',

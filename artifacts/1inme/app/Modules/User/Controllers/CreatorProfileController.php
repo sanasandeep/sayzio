@@ -128,6 +128,22 @@ class CreatorProfileController extends Controller
             'formsForCta'           => $formsForCta,
             'showcaseItemTypes'     => self::SHOWCASE_ITEM_TYPES,
             'ctaKinds'              => self::CTA_KINDS,
+            // Special dates (Task #6551). Pre-shaped for the Alpine repeater —
+            // Blade directive args must stay single simple variables.
+            'specialDateKindsJs'    => collect(\App\Modules\User\Support\SpecialDates::KINDS)
+                ->map(fn ($k) => ['label' => $k['label'], 'single' => $k['single']])
+                ->toArray(),
+            'specialDateRowsJs'     => collect(old('special_dates', \App\Modules\User\Support\SpecialDates::entries($user)))
+                ->filter(fn ($e) => is_array($e))
+                ->map(fn ($e) => [
+                    'id'     => (string) ($e['id'] ?? ''),
+                    'kind'   => (string) ($e['kind'] ?? 'birthday'),
+                    'label'  => (string) ($e['label'] ?? ''),
+                    'date'   => (string) ($e['date'] ?? ''),
+                    'public' => filter_var($e['public'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'notify' => filter_var($e['notify'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'sync'   => filter_var($e['sync'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                ])->values()->all(),
         ]);
     }
 
@@ -227,6 +243,15 @@ class CreatorProfileController extends Controller
     {
         $user = Auth::user();
 
+        // Special dates (Task #6551): the editor submits a hidden
+        // `special_dates=""` marker when the list is emptied so the key is
+        // still present (browser forms can't post an empty array). Normalize
+        // it to [] pre-validation so the array rule passes and applyInput
+        // clears the stored entries.
+        if ($request->input('special_dates') === '') {
+            $request->merge(['special_dates' => []]);
+        }
+
         $data = $request->validate([
             'tagline'             => 'nullable|string|max:200',
             'location'            => 'nullable|string|max:120',
@@ -289,6 +314,16 @@ class CreatorProfileController extends Controller
             'organizer_address'       => 'nullable|string|max:500',
             'organizer_socials'       => 'nullable|array',
             'organizer_socials.*'     => 'nullable|string|max:200',
+            // Special dates (Task #6551).
+            'special_dates'           => 'nullable|array|max:' . \App\Modules\User\Support\SpecialDates::MAX_ENTRIES,
+            'special_dates.*'         => 'array',
+            'special_dates.*.id'      => 'nullable|string|max:64',
+            'special_dates.*.kind'    => 'required_with:special_dates.*|string|in:birthday,anniversary,company_anniversary,product_release',
+            'special_dates.*.label'   => 'nullable|string|max:120',
+            'special_dates.*.date'    => 'required_with:special_dates.*|date_format:Y-m-d',
+            'special_dates.*.public'  => 'nullable|in:0,1,true,false',
+            'special_dates.*.notify'  => 'nullable|in:0,1,true,false',
+            'special_dates.*.sync'    => 'nullable|in:0,1,true,false',
         ]);
 
         // Core profile fields — shared with the onboarding creator-profile step.
@@ -371,7 +406,18 @@ class CreatorProfileController extends Controller
         // ── Task #5431: profile showcase ──────────────────────────────
         self::saveShowcaseFields($user, $data);
 
+        // ── Task #6551: special dates ────────────────────────────────
+        if (array_key_exists('special_dates', $data)) {
+            \App\Modules\User\Support\SpecialDates::applyInput($user, (array) ($data['special_dates'] ?? []));
+        }
+
         $user->save();
+
+        // Calendar lockstep after save so new entries persist their
+        // calendar_event_id back-references via saveQuietly.
+        if (array_key_exists('special_dates', $data)) {
+            \App\Modules\User\Support\SpecialDates::syncCalendarEvents($user);
+        }
 
         return redirect()->route('user.creator-profile.edit')
             ->with('success', 'Creator profile saved.');

@@ -208,6 +208,8 @@ class User extends Authenticatable
             'comp_plan_granted_by'          => 'integer',
             // Reusable event organizer profile (Task #3699).
             'organizer_profile'             => 'array',
+            // Special dates on the creator profile (Task #6551).
+            'special_dates'                 => 'array',
         ];
     }
 
@@ -378,6 +380,9 @@ class User extends Authenticatable
         'showcase'       => true,
         'highlights'     => true,
         'cta'            => true,
+        // Special dates (Task #6551). Opt-in: entries are private by default,
+        // so the section only renders when at least one date is public.
+        'special_dates'  => true,
     ];
 
     /**
