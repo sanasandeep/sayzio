@@ -1976,6 +1976,37 @@ class BiolinkBlockController extends Controller
             }
         }
 
+        // Countdown blocks (rich countdown redesign): normalise the new
+        // configurable settings — unit toggles, label style, expired
+        // behaviour, and an optional CTA. The CTA URL is sanitized through
+        // the shared sanitizeUrl() below (button_url is added to $urlFields).
+        if ($type === 'countdown') {
+            $settings['title']       = mb_substr(trim((string) ($settings['title'] ?? '')), 0, 200);
+            $settings['subtitle']    = mb_substr(trim((string) ($settings['subtitle'] ?? '')), 0, 300);
+            $settings['target_date'] = trim((string) ($settings['target_date'] ?? ''));
+
+            foreach (['show_days', 'show_hours', 'show_minutes', 'show_seconds'] as $tk) {
+                // Absent checkbox = unchecked; default to true only when the
+                // key was never submitted (e.g. programmatic/template create).
+                $settings[$tk] = array_key_exists($tk, $settings)
+                    ? (bool) $settings[$tk]
+                    : true;
+            }
+
+            $labelStyle = $settings['label_style'] ?? 'full';
+            $settings['label_style'] = in_array($labelStyle, ['full', 'short', 'hidden'], true) ? $labelStyle : 'full';
+
+            $settings['expired_message'] = mb_substr(trim((string) ($settings['expired_message'] ?? "Time's up!")), 0, 200);
+            if ($settings['expired_message'] === '') {
+                $settings['expired_message'] = "Time's up!";
+            }
+            $expiredAction = $settings['expired_action'] ?? 'message';
+            $settings['expired_action'] = in_array($expiredAction, ['message', 'hide_block'], true) ? $expiredAction : 'message';
+
+            $settings['button_text'] = mb_substr(trim((string) ($settings['button_text'] ?? '')), 0, 80);
+            // button_url is sanitized by the shared $urlFields loop below.
+        }
+
         // Card container backgrounds (Task #6044): the render partial
         // interpolates these straight into an inline style attribute, so
         // they must be constrained here. Invalid values are dropped
@@ -2056,7 +2087,7 @@ class BiolinkBlockController extends Controller
         $urlFields = ['url', 'link', 'thumbnail', 'image', 'image_url', 'video_url',
                        'audio_url', 'file_url', 'embed_url', 'logo_url', 'cover',
                        'website', 'avatar', 'post_url', 'buy_url',
-                       'destination_url', 'href', 'digital_file'];
+                       'destination_url', 'href', 'digital_file', 'button_url'];
         foreach ($urlFields as $field) {
             if (isset($settings[$field]) && $settings[$field] !== '') {
                 $settings[$field] = $this->sanitizeUrl($settings[$field]);

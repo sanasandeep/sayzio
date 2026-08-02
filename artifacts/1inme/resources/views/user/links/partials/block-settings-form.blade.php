@@ -1163,9 +1163,57 @@ if (typeof window.resetPollVotes !== 'function') {
 </div>
 
 @elseif($block->type === 'countdown')
+@php
+    $cdSt = $s['_style'] ?? [];
+    $cdLabelStyle = in_array(($s['label_style'] ?? 'full'), ['full','short','hidden'], true) ? $s['label_style'] : 'full';
+    $cdExpiredAction = in_array(($s['expired_action'] ?? 'message'), ['message','hide_block'], true) ? $s['expired_action'] : 'message';
+    $cdUnit = fn($k) => array_key_exists($k, $s) ? (bool) $s[$k] : true;
+@endphp
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Title</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Subtitle / Description</label><input type="text" name="settings[subtitle]" value="{{ $s['subtitle'] ?? '' }}" placeholder="Optional short text" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">Target Date</label><input type="datetime-local" name="settings[target_date]" value="{{ $s['target_date'] ?? '' }}" class="{{ $inputClass }}"></div>
+
+    <div>
+        <label class="{{ $labelClass }}">Show Units</label>
+        <div class="grid grid-cols-2 gap-2">
+            @foreach(['show_days'=>'Days','show_hours'=>'Hours','show_minutes'=>'Minutes','show_seconds'=>'Seconds'] as $cdKey => $cdLbl)
+            <label class="flex items-center gap-2 text-sm text-white/70">
+                <input type="hidden" name="settings[{{ $cdKey }}]" value="0">
+                <input type="checkbox" name="settings[{{ $cdKey }}]" value="1" @checked($cdUnit($cdKey)) class="rounded">
+                {{ $cdLbl }}
+            </label>
+            @endforeach
+        </div>
+    </div>
+
+    <div><label class="{{ $labelClass }}">Label Style</label>
+        <select name="settings[label_style]" class="{{ $selectClass }}">
+            <option value="full" @selected($cdLabelStyle==='full') style="background: var(--bg-body); color: var(--text-primary);">Full (Days / Hours)</option>
+            <option value="short" @selected($cdLabelStyle==='short') style="background: var(--bg-body); color: var(--text-primary);">Short (D / H / M / S)</option>
+            <option value="hidden" @selected($cdLabelStyle==='hidden') style="background: var(--bg-body); color: var(--text-primary);">Hidden</option>
+        </select>
+    </div>
+
+    <div><label class="{{ $labelClass }}">When Expired</label>
+        <select name="settings[expired_action]" class="{{ $selectClass }}">
+            <option value="message" @selected($cdExpiredAction==='message') style="background: var(--bg-body); color: var(--text-primary);">Show a message</option>
+            <option value="hide_block" @selected($cdExpiredAction==='hide_block') style="background: var(--bg-body); color: var(--text-primary);">Hide the block</option>
+        </select>
+    </div>
+    <div><label class="{{ $labelClass }}">Expired Message</label><input type="text" name="settings[expired_message]" value="{{ $s['expired_message'] ?? "Time's up!" }}" class="{{ $inputClass }}"></div>
+
+    <div class="grid grid-cols-2 gap-3">
+        <div><label class="{{ $labelClass }}">Button Text</label><input type="text" name="settings[button_text]" value="{{ $s['button_text'] ?? '' }}" placeholder="Optional CTA" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Button URL</label><input type="url" name="settings[button_url]" value="{{ $s['button_url'] ?? '' }}" class="{{ $inputClass }}"></div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-2">
+        <div><label class="{{ $labelClass }}">Digit Color</label><input type="color" name="style[_countdown_digit_color]" value="{{ $cdSt['_countdown_digit_color'] ?? '#ffffff' }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+        <div><label class="{{ $labelClass }}">Label Color</label><input type="color" name="style[_countdown_label_color]" value="{{ $cdSt['_countdown_label_color'] ?? '#a1a1aa' }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+        <div><label class="{{ $labelClass }}">Box Background</label><input type="color" name="style[_countdown_box_bg]" value="{{ $cdSt['_countdown_box_bg'] ?? '#18181b' }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+    </div>
+    <p class="text-[11px] text-white/40">Card background, borders, shadow &amp; fonts are set in the <strong>Design</strong> tab — pick a variant there for a full look.</p>
 </div>
 
 @elseif($block->type === 'progress')
