@@ -72,10 +72,10 @@
         filter: blur(60px); opacity: .35; pointer-events: none;
     }
     .bs-card--id::before    { top: -90px; left: -70px;  background: var(--c2); }
-    .bs-card--zio::before   { bottom: -110px; right: -70px; background: #6e61ff; }
+    .bs-card--zio::before   { bottom: -110px; right: -70px; background: #3d6bff; }
     html.light-mode .bs-card {
-        background: linear-gradient(180deg, #ffffff, #fbfbfe);
-        border-color: rgba(15,23,42,.09);
+        background: linear-gradient(135deg, rgba(255,255,255,.62) 0%, rgba(219,234,254,.45) 55%, rgba(186,230,253,.32) 100%);
+        border-color: rgba(148,163,184,.4);
         box-shadow:
             0 26px 64px -32px rgba(61,107,255,.35),
             0 8px 22px -16px rgba(15,23,42,.10),
@@ -188,11 +188,12 @@
         box-shadow: 0 18px 44px -22px rgba(61,107,255,.55), inset 0 1px 0 rgba(255,255,255,.10);
     }
     html.light-mode .bs-pillar {
-        background: linear-gradient(180deg, #ffffff, #fbfbfe);
-        border-color: rgba(15,23,42,.09);
-        box-shadow: 0 10px 22px -18px rgba(15,23,42,.12);
+        background: linear-gradient(135deg, rgba(255,255,255,.6) 0%, rgba(219,234,254,.42) 60%, rgba(186,230,253,.3) 100%);
+        backdrop-filter: blur(16px) saturate(150%); -webkit-backdrop-filter: blur(16px) saturate(150%);
+        border-color: rgba(148,163,184,.4);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 10px 22px -18px rgba(37,99,235,.18);
     }
-    html.light-mode .bs-pillar:hover { background: #ffffff; border-color: rgba(15,23,42,.14); box-shadow: 0 18px 44px -24px rgba(61,107,255,.30); }
+    html.light-mode .bs-pillar:hover { background: linear-gradient(135deg, rgba(255,255,255,.75), rgba(219,234,254,.5)); border-color: rgba(148,163,184,.5); box-shadow: 0 18px 44px -24px rgba(61,107,255,.30); }
     .bs-pillar-ico {
         flex-shrink: 0; width: 42px; height: 42px; border-radius: .85rem;
         display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
@@ -254,7 +255,7 @@
                 <div class="relative flex items-center gap-4 sm:gap-5">
                     <span class="bs-glyph float-a w-16 h-16 sm:w-20 sm:h-20">
                         <img src="{{ asset('branding/1inme-mark.png') }}" alt="1IN.ME logo" width="72" height="56"
-                             class="w-11 h-11 sm:w-14 sm:h-14 drop-shadow-[0_8px_22px_rgba(61,107,255,.45)]" loading="lazy" decoding="async">
+                             class="w-11 h-11 sm:w-14 sm:h-14 drop-shadow-[0_8px_22px_rgba(61,107,255,.45)]" decoding="async" fetchpriority="high">
                     </span>
                     <div class="min-w-0">
                         <div class="text-3xl sm:text-4xl font-black tracking-tight"><span class="bs-word bs-word--id">1IN.ME</span></div>
@@ -283,7 +284,7 @@
                     <span class="bs-glyph bs-glyph-zio w-16 h-16 sm:w-20 sm:h-20">
                         {{-- Static Sayzio icon (transparent PNG). --}}
                         <img src="{{ asset('branding/sayzio-card-icon.png') }}" alt="Zio, the Sayzio mascot" width="64" height="64"
-                             class="bs-mascot w-12 h-12 sm:w-14 sm:h-14 drop-shadow-[0_10px_26px_rgba(110,97,255,.55)]" loading="lazy" decoding="async">
+                             class="bs-mascot w-12 h-12 sm:w-14 sm:h-14 drop-shadow-[0_10px_26px_rgba(110,97,255,.55)]" decoding="async" fetchpriority="high">
                     </span>
                     <div class="min-w-0">
                         <div class="text-3xl sm:text-4xl font-black tracking-tight"><span class="bs-word bs-word--zio">Sayzio</span></div>
