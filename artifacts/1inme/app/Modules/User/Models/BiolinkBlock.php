@@ -550,6 +550,8 @@ class BiolinkBlock extends Model
         '_countdown_digit_color' => '',
         '_countdown_label_color' => '',
         '_countdown_box_bg' => '',
+        '_countdown_cta_bg' => '',
+        '_countdown_cta_text' => '',
     ];
 
     /** Max custom sticker overlays per image block (Task #5939). */

@@ -1294,7 +1294,7 @@ export function BlockView(props: { block: BiolinkBlock; alias: string; allBlocks
  * new configurable settings — unit toggles, label style, subtitle, expired
  * behaviour, optional CTA — plus the countdown-specific `_style` color
  * overrides (`_countdown_digit_color` / `_countdown_label_color` /
- * `_countdown_box_bg`). It's a standalone component so the 1s ticker can use
+ * `_countdown_box_bg` / `_countdown_cta_bg` / `_countdown_cta_text`). It's a standalone component so the 1s ticker can use
  * hooks without breaking the render function's hook order. Styles are
  * approximated (RN can't render CSS gradient strings); the component never
  * crashes on any variant. */
@@ -1374,16 +1374,107 @@ function CountdownBlock({
   const buttonUrl = pickStr(settings, "button_url");
   const hasCta = !!buttonText && !!buttonUrl && isSafeUrl(buttonUrl);
 
+  // CTA colors. Variants ship explicit high-contrast pairs
+  // (_countdown_cta_bg / _countdown_cta_text) so the button is never an
+  // invisible "white pill, white text" (glass/gradient variants). Fall back
+  // to the digit color + a luminance-picked ink when a variant omits them.
+  const ctaBg = isColor(st._countdown_cta_bg)
+    ? (st._countdown_cta_bg as string)
+    : isColor(digitColor)
+      ? digitColor
+      : colors.primary;
+  const ctaText = ((): string => {
+    if (isColor(st._countdown_cta_text)) return st._countdown_cta_text as string;
+    const hex = ctaBg.replace("#", "");
+    if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+      const lum =
+        0.299 * parseInt(hex.slice(0, 2), 16) +
+        0.587 * parseInt(hex.slice(2, 4), 16) +
+        0.114 * parseInt(hex.slice(4, 6), 16);
+      return lum > 150 ? "#111827" : "#ffffff";
+    }
+    return "#ffffff";
+  })();
+
+  // Card background from the variant's `_style.bg_color`. The outer BlockView
+  // wrapper only paints a gradient layer (and only for gradient strings), and
+  // this card sits on top of it — so we must draw the card bg ourselves or
+  // the variant would render on the default light card (invisible white
+  // digits on glass/gradient variants). Mirror the wrapper's gradient parse
+  // (color-stop regex) and, for gradients, paint our own LinearGradient layer.
+  const bgColorStr = typeof st.bg_color === "string" ? st.bg_color.trim() : "";
+  const isGradientBg = /^(linear|radial|conic)-gradient\(/i.test(bgColorStr);
+  const gradientStops = isGradientBg ? (bgColorStr.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)/g) ?? []) : [];
+  const hasGradient = gradientStops.length >= 2;
+  const solidCardBg =
+    !isGradientBg && bgColorStr !== "" && bgColorStr !== "transparent"
+      ? bgColorStr
+      : bgColorStr === "transparent"
+        ? "transparent"
+        : null;
+
+  // Radius / border from `_style` (parity with web + other mobile blocks).
+  const radiusNum = Number.parseFloat(String(st.border_radius ?? ""));
+  const cardRadius = Number.isFinite(radiusNum) ? Math.min(radiusNum, 40) : 14;
+  const borderWidthNum = Number.parseFloat(String(st.border_width ?? ""));
+  const hasBorder = (st.border_style ?? "") !== "none" && isColor(st.border_color) && Number.isFinite(borderWidthNum) && borderWidthNum > 0;
+
+  // Luminance of the digit color decides whether the card needs a dark or
+  // light backdrop (used to composite translucent card bgs).
+  const digitLum = ((): number => {
+    const hex = digitColor.replace("#", "");
+    if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+      return 0.299 * parseInt(hex.slice(0, 2), 16) + 0.587 * parseInt(hex.slice(2, 4), 16) + 0.114 * parseInt(hex.slice(4, 6), 16);
+    }
+    return 128;
+  })();
+
+  // A translucent solid card bg (e.g. glass_cards `rgba(255,255,255,0.08)`)
+  // would be near-invisible on the default light app card and hide light
+  // digits. Web composites glass over the page background; on mobile we back
+  // it with a solid base contrasting the digit color, then overlay the
+  // translucent tint, so the frosted panel always reads.
+  const isTranslucentSolid =
+    !isGradientBg && /^rgba?\(/i.test(solidCardBg ?? "") && /,\s*0?\.\d+\s*\)/.test(solidCardBg ?? "");
+  const translucentBase = digitLum > 150 ? "#1e293b" : "#ffffff";
+
+  // Base card style. Gradient => transparent (LinearGradient layer paints it).
+  // Translucent solid => a contrasting base with the tint overlaid.
+  // Opaque solid => used directly. Otherwise the theme card.
+  const cardBg = hasGradient
+    ? "transparent"
+    : isTranslucentSolid
+      ? translucentBase
+      : (solidCardBg ?? colors.card);
+
   return (
     <View
       style={[
         styles.cardContainer,
-        { backgroundColor: colors.card, borderColor: colors.border, alignItems: "center" },
+        {
+          backgroundColor: cardBg,
+          borderColor: hasBorder ? (st.border_color as string) : colors.border,
+          borderWidth: hasBorder ? borderWidthNum : solidCardBg || hasGradient ? 0 : StyleSheet.hairlineWidth,
+          borderRadius: cardRadius,
+          alignItems: "center",
+          overflow: "hidden",
+        },
       ]}
     >
+      {hasGradient ? (
+        <LinearGradient
+          colors={gradientStops as [string, string, ...string[]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
+      {isTranslucentSolid ? (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: solidCardBg as string }]} pointerEvents="none" />
+      ) : null}
       {title ? <Text style={[styles.btnLabel, { color: labelColor }]}>{title}</Text> : null}
       {subtitle ? (
-        <Text style={[styles.body, { color: colors.mutedForeground, fontSize: 12, marginTop: 2 }]}>{subtitle}</Text>
+        <Text style={[styles.body, { color: labelColor, opacity: 0.7, fontSize: 12, marginTop: 2 }]}>{subtitle}</Text>
       ) : null}
 
       {expired && expiredAction === "message" ? (
@@ -1440,13 +1531,13 @@ function CountdownBlock({
           onPress={() => openSafe(buttonUrl as string, router)}
           style={{
             marginTop: 14,
-            backgroundColor: digitColor,
+            backgroundColor: ctaBg,
             borderRadius: 10,
             paddingVertical: 10,
             paddingHorizontal: 22,
           }}
         >
-          <Text style={{ color: boxBg ?? colors.card, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 }}>
+          <Text style={{ color: ctaText, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 }}>
             {buttonText}
           </Text>
         </Pressable>

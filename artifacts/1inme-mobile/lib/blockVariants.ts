@@ -386,7 +386,7 @@ const TYPE_ONE_OFFS: Record<string, MobileVariant[]> = {
   countdown: [
     { key: "flip_clock",      name: "Flip Clock",     tags: ["retro", "three_d"],           preview: { bg: "#0a0a0a", text: "#fbbf24", radius: 8, border: "#27272a" } },
     { key: "pixel_clock",     name: "Pixel Clock",    tags: ["y2k", "retro", "playful"],    preview: { bg: "#0f172a", text: "#a5f3fc", radius: 4, border: "#22d3ee" } },
-    { key: "minimal_inline",  name: "Minimal Inline", tags: ["minimal", "clean"],           preview: { bg: "#ffffff", text: "#111827", radius: 0, border: "#e5e7eb" } },
+    { key: "minimal_inline",  name: "Minimal Inline", tags: ["minimal", "clean"],           preview: { bg: "#ffffff", text: "#6366f1", radius: 0, border: "#e5e7eb" } },
     { key: "glass_cards",     name: "Glass Cards",    tags: ["glass", "modern", "pro"],     preview: { bg: "#1e293b", text: "#ffffff", radius: 16, border: "#ffffff33" } },
     { key: "neon_glow",       name: "Neon Glow",      tags: ["neon", "dark", "bold"],       preview: { bg: "#09090b", text: "#f9a8d4", radius: 12, border: "#db2777" } },
     { key: "gradient_pop_cd", name: "Gradient Pop",   tags: ["vibrant", "gradient", "bold"], preview: { bg: "#db2777", text: "#ffffff", radius: 18, border: "#f97316" } },

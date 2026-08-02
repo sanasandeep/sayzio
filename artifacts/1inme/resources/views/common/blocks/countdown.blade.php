@@ -71,18 +71,32 @@
     $subtitleStyle   = "color:{$labelColor};opacity:0.7;";
     $unitLabelStyle  = "color:{$labelColor};opacity:0.6;";
 
-    // CTA button: the digit color paints the button, and the text on it
-    // should read as the surface behind the digits. Fall back to the box bg,
-    // then the card bg_color — but ONLY when that value is a real solid color.
-    // A gradient bg_color (gradient_pop_cd, etc.) would emit invalid CSS as a
-    // `color:` value, so guard it out and default to a safe dark ink.
+    // CTA button colors. Each variant SHOULD provide an explicit, tested
+    // pair (_countdown_cta_bg / _countdown_cta_text) so the button never
+    // depends on fragile derivation from the digit color (which is often
+    // white and previously produced an invisible "white pill, white text"
+    // button on glass/gradient variants). When a variant omits them we fall
+    // back to safe, high-contrast defaults.
     $isSolidColor = fn($v) => is_string($v) && $v !== '' && $v !== 'transparent' && !preg_match('/gradient\(/i', $v);
-    if ($isSolidColor($boxBg)) {
-        $ctaTextColor = $boxBg;
-    } elseif ($isSolidColor($style['bg_color'] ?? '')) {
-        $ctaTextColor = $style['bg_color'];
-    } else {
-        $ctaTextColor = '#111';
+
+    $ctaBg   = $style['_countdown_cta_bg']   ?? '';
+    $ctaText = $style['_countdown_cta_text'] ?? '';
+
+    // Fallback CTA background: prefer the (solid) digit color, else a solid
+    // card bg, else a neutral dark chip. Never a gradient string.
+    if (!$isSolidColor($ctaBg)) {
+        $ctaBg = $isSolidColor($digitColor) ? $digitColor
+            : ($isSolidColor($style['bg_color'] ?? '') ? $style['bg_color'] : '#111827');
+    }
+    // Fallback CTA text color: pick black/white for contrast against $ctaBg.
+    if (!$isSolidColor($ctaText)) {
+        $hex = ltrim((string) $ctaBg, '#');
+        if (preg_match('/^[0-9a-fA-F]{6}$/', $hex)) {
+            $lum = (0.299 * hexdec(substr($hex, 0, 2)) + 0.587 * hexdec(substr($hex, 2, 2)) + 0.114 * hexdec(substr($hex, 4, 2)));
+            $ctaText = $lum > 150 ? '#111827' : '#ffffff';
+        } else {
+            $ctaText = '#111827';
+        }
     }
 @endphp
 
@@ -115,7 +129,7 @@
     @if($hasCta)
         <a href="{{ $buttonUrl }}" target="_blank" rel="noopener"
            class="inline-block mt-3 text-center font-semibold transition-all duration-300 hover:-translate-y-0.5"
-           style="background:{{ $digitColor }};color:{{ $ctaTextColor }};padding:10px 22px;border-radius:10px;font-size:14px;">
+           style="background:{{ $ctaBg }};color:{{ $ctaText }};padding:10px 22px;border-radius:10px;font-size:14px;">
             {{ $buttonText }}
         </a>
     @endif

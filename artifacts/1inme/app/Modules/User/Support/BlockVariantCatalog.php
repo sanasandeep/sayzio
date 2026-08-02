@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 17;
+    public const VERSION = 18;
 
     /**
      * Effective catalog version (Task #6045): the hardcoded VERSION
@@ -3000,13 +3000,18 @@ class BlockVariantCatalog
                     'name' => 'Minimal Inline',
                     'tags' => ['minimal', 'clean'],
                     'style' => [
+                        // No card/box — sits directly on the page. Uses a vivid
+                        // accent for digits + a mid-gray label so it stays
+                        // legible on BOTH dark and light page themes, and an
+                        // explicit solid CTA (never derived from the page).
                         'display_mode' => 'content', 'bg_color' => 'transparent',
                         'border_style' => 'none', 'border_radius' => '0', 'shadow_type' => 'none',
-                        'text_color' => '#111827', 'padding' => '8', 'font_family' => 'Inter',
-                        '_countdown_digit_color' => '#111827', '_countdown_label_color' => '#6b7280',
+                        'text_color' => '#6366f1', 'padding' => '8', 'font_family' => 'Inter',
+                        '_countdown_digit_color' => '#6366f1', '_countdown_label_color' => '#94a3b8',
                         '_countdown_box_bg' => 'transparent',
+                        '_countdown_cta_bg' => '#6366f1', '_countdown_cta_text' => '#ffffff',
                     ],
-                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 0, 'border' => '#e5e7eb'],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#6366f1', 'radius' => 0, 'border' => '#e5e7eb'],
                 ],
                 [
                     'key' => 'glass_cards',
@@ -3020,6 +3025,9 @@ class BlockVariantCatalog
                         'text_color' => '#ffffff', 'padding' => '18', 'font_family' => 'Inter',
                         '_countdown_digit_color' => '#ffffff', '_countdown_label_color' => 'rgba(255,255,255,0.7)',
                         '_countdown_box_bg' => 'rgba(255,255,255,0.10)',
+                        // Solid white pill with dark text — reads clearly on the
+                        // glass card (digit color is white, so it can't be reused).
+                        '_countdown_cta_bg' => '#ffffff', '_countdown_cta_text' => '#0f172a',
                     ],
                     'preview' => ['bg' => '#1e293b', 'text' => '#ffffff', 'radius' => 16, 'border' => '#ffffff33'],
                 ],
@@ -3048,6 +3056,9 @@ class BlockVariantCatalog
                         'text_color' => '#ffffff', 'padding' => '18', 'font_family' => 'Poppins',
                         '_countdown_digit_color' => '#ffffff', '_countdown_label_color' => 'rgba(255,255,255,0.85)',
                         '_countdown_box_bg' => 'rgba(255,255,255,0.15)',
+                        // Solid white pill with magenta text — pops on the
+                        // orange→pink gradient (digit color is white).
+                        '_countdown_cta_bg' => '#ffffff', '_countdown_cta_text' => '#be185d',
                     ],
                     'preview' => ['bg' => '#db2777', 'text' => '#ffffff', 'radius' => 18, 'border' => '#f97316'],
                 ],

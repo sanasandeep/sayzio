@@ -119,6 +119,7 @@ class BlockStyleSanitizer
             '_heading_accent_color',
             // Countdown block color overrides (rich countdown redesign).
             '_countdown_digit_color', '_countdown_label_color', '_countdown_box_bg',
+            '_countdown_cta_bg', '_countdown_cta_text',
         ];
         $fontWeightKeys = ['font_weight'];
         $fontFamilyKeys = ['font_family'];

@@ -238,6 +238,39 @@ class CountdownBlockSettingsTest extends TestCase
                 $html,
                 "variant {$key} used a gradient as a CSS color value"
             );
+
+            // CTA button must be visible: bg and text color must differ, and
+            // neither may be a gradient. Regression for the "white pill,
+            // white text" invisible button on glass/gradient variants.
+            if (preg_match('/style="background:([^;]+);color:([^;]+);padding:10px 22px/', $html, $m)) {
+                $ctaBg = strtolower(trim($m[1]));
+                $ctaText = strtolower(trim($m[2]));
+                $this->assertNotSame($ctaBg, $ctaText, "variant {$key} CTA bg equals text color (invisible)");
+                $this->assertStringNotContainsString('gradient(', $ctaBg, "variant {$key} CTA bg is a gradient");
+                $this->assertStringNotContainsString('gradient(', $ctaText, "variant {$key} CTA text is a gradient");
+            } else {
+                $this->fail("variant {$key} did not render a CTA button");
+            }
+        }
+    }
+
+    /**
+     * Regression: glass/gradient variants previously derived the CTA from the
+     * (white) digit color + a near-white box bg, producing an invisible
+     * "white pill, white text" button. They now ship explicit CTA colors.
+     */
+    public function test_cta_colors_are_high_contrast_for_glass_and_gradient(): void
+    {
+        foreach (['glass_cards', 'gradient_pop_cd', 'minimal_inline'] as $key) {
+            $variant = BlockVariantCatalog::find('countdown', $key);
+            $this->assertNotNull($variant);
+            $this->assertArrayHasKey('_countdown_cta_bg', $variant['style'], "{$key} missing CTA bg");
+            $this->assertArrayHasKey('_countdown_cta_text', $variant['style'], "{$key} missing CTA text");
+            $this->assertNotSame(
+                strtolower($variant['style']['_countdown_cta_bg']),
+                strtolower($variant['style']['_countdown_cta_text']),
+                "{$key} CTA bg equals text"
+            );
         }
     }
 
