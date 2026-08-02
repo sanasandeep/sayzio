@@ -1,4 +1,4 @@
-<a href="{{ route('site.blogs.show', $post->slug) }}" class="group block bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden hover:border-blue-500/40 transition">
+<a href="{{ route('site.blogs.show', $post->slug) }}" class="group block glass-panel rounded-2xl hover:!border-blue-500/40 transition overflow-hidden">
     @if($post->cover_image)
         <div class="aspect-[16/9] bg-white/5 overflow-hidden">
             <img src="{{ \App\Support\PublicStorageUrl::resolve($post->cover_image) }}" alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy">

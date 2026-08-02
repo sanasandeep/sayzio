@@ -1289,6 +1289,263 @@ export function BlockView(props: { block: BiolinkBlock; alias: string; allBlocks
   );
 }
 
+/**
+ * Rich countdown block (mobile parity with the web renderer). Consumes the
+ * new configurable settings — unit toggles, label style, subtitle, expired
+ * behaviour, optional CTA — plus the countdown-specific `_style` color
+ * overrides (`_countdown_digit_color` / `_countdown_label_color` /
+ * `_countdown_box_bg` / `_countdown_cta_bg` / `_countdown_cta_text`). It's a standalone component so the 1s ticker can use
+ * hooks without breaking the render function's hook order. Styles are
+ * approximated (RN can't render CSS gradient strings); the component never
+ * crashes on any variant. */
+function CountdownBlock({
+  settings,
+  colors,
+  router,
+}: {
+  settings: Record<string, unknown>;
+  colors: PaletteColors;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  const st = ((settings._style as Record<string, unknown> | undefined) ?? {}) as Record<string, unknown>;
+
+  const target = pickStr(settings, "target_date", "date", "ends_at");
+  const tsMs = target ? Date.parse(target.replace(" ", "T")) : NaN;
+  const expiredAction = pickStr(settings, "expired_action") === "hide_block" ? "hide_block" : "message";
+  const remaining = Number.isFinite(tsMs) ? Math.max(0, tsMs - now) : 0;
+  const expired = Number.isFinite(tsMs) && remaining <= 0;
+
+  useEffect(() => {
+    if (expired) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [expired]);
+
+  // Hidden block once expired — render nothing.
+  if (expired && expiredAction === "hide_block") return null;
+
+  const title = pickContentStr(settings, "title", "text");
+  const subtitle = pickContentStr(settings, "subtitle", "description");
+  const expiredMessage = pickStr(settings, "expired_message") ?? "Time's up!";
+
+  const labelStyle = ((): "full" | "short" | "hidden" => {
+    const v = pickStr(settings, "label_style");
+    return v === "short" || v === "hidden" ? v : "full";
+  })();
+
+  const showDays = pickBool(settings, "show_days", true);
+  const showHours = pickBool(settings, "show_hours", true);
+  const showMinutes = pickBool(settings, "show_minutes", true);
+  const showSeconds = pickBool(settings, "show_seconds", true);
+
+  // Countdown-specific colors with graceful fallbacks to the palette.
+  const isColor = (v: unknown): v is string =>
+    typeof v === "string" && v.trim() !== "" && v.trim() !== "transparent" && !/gradient\(/i.test(v);
+  const digitColor = isColor(st._countdown_digit_color)
+    ? (st._countdown_digit_color as string)
+    : isColor(st.text_color)
+      ? (st.text_color as string)
+      : colors.primary;
+  const labelColor = isColor(st._countdown_label_color)
+    ? (st._countdown_label_color as string)
+    : colors.mutedForeground;
+  const boxBgRaw = st._countdown_box_bg;
+  const boxBg = isColor(boxBgRaw) ? (boxBgRaw as string) : null;
+  const isInline = st.display_mode === "content";
+
+  const s = Math.floor(remaining / 1000);
+  const parts: { key: string; val: number; full: string; short: string }[] = [];
+  if (showDays) parts.push({ key: "d", val: Math.floor(s / 86400), full: "Days", short: "D" });
+  if (showHours) parts.push({ key: "h", val: Math.floor((s % 86400) / 3600), full: "Hours", short: "H" });
+  if (showMinutes) parts.push({ key: "m", val: Math.floor((s % 3600) / 60), full: "Min", short: "M" });
+  if (showSeconds) parts.push({ key: "s", val: s % 60, full: "Sec", short: "S" });
+  if (parts.length === 0) {
+    parts.push(
+      { key: "d", val: Math.floor(s / 86400), full: "Days", short: "D" },
+      { key: "h", val: Math.floor((s % 86400) / 3600), full: "Hours", short: "H" },
+      { key: "m", val: Math.floor((s % 3600) / 60), full: "Min", short: "M" },
+      { key: "s", val: s % 60, full: "Sec", short: "S" },
+    );
+  }
+  const pad = (n: number) => (n < 10 ? `0${n}` : String(n));
+
+  const buttonText = pickStr(settings, "button_text");
+  const buttonUrl = pickStr(settings, "button_url");
+  const hasCta = !!buttonText && !!buttonUrl && isSafeUrl(buttonUrl);
+
+  // CTA colors. Variants ship explicit high-contrast pairs
+  // (_countdown_cta_bg / _countdown_cta_text) so the button is never an
+  // invisible "white pill, white text" (glass/gradient variants). Fall back
+  // to the digit color + a luminance-picked ink when a variant omits them.
+  const ctaBg = isColor(st._countdown_cta_bg)
+    ? (st._countdown_cta_bg as string)
+    : isColor(digitColor)
+      ? digitColor
+      : colors.primary;
+  const ctaText = ((): string => {
+    if (isColor(st._countdown_cta_text)) return st._countdown_cta_text as string;
+    const hex = ctaBg.replace("#", "");
+    if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+      const lum =
+        0.299 * parseInt(hex.slice(0, 2), 16) +
+        0.587 * parseInt(hex.slice(2, 4), 16) +
+        0.114 * parseInt(hex.slice(4, 6), 16);
+      return lum > 150 ? "#111827" : "#ffffff";
+    }
+    return "#ffffff";
+  })();
+
+  // Card background from the variant's `_style.bg_color`. The outer BlockView
+  // wrapper only paints a gradient layer (and only for gradient strings), and
+  // this card sits on top of it — so we must draw the card bg ourselves or
+  // the variant would render on the default light card (invisible white
+  // digits on glass/gradient variants). Mirror the wrapper's gradient parse
+  // (color-stop regex) and, for gradients, paint our own LinearGradient layer.
+  const bgColorStr = typeof st.bg_color === "string" ? st.bg_color.trim() : "";
+  const isGradientBg = /^(linear|radial|conic)-gradient\(/i.test(bgColorStr);
+  const gradientStops = isGradientBg ? (bgColorStr.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)/g) ?? []) : [];
+  const hasGradient = gradientStops.length >= 2;
+  const solidCardBg =
+    !isGradientBg && bgColorStr !== "" && bgColorStr !== "transparent"
+      ? bgColorStr
+      : bgColorStr === "transparent"
+        ? "transparent"
+        : null;
+
+  // Radius / border from `_style` (parity with web + other mobile blocks).
+  const radiusNum = Number.parseFloat(String(st.border_radius ?? ""));
+  const cardRadius = Number.isFinite(radiusNum) ? Math.min(radiusNum, 40) : 14;
+  const borderWidthNum = Number.parseFloat(String(st.border_width ?? ""));
+  const hasBorder = (st.border_style ?? "") !== "none" && isColor(st.border_color) && Number.isFinite(borderWidthNum) && borderWidthNum > 0;
+
+  // Luminance of the digit color decides whether the card needs a dark or
+  // light backdrop (used to composite translucent card bgs).
+  const digitLum = ((): number => {
+    const hex = digitColor.replace("#", "");
+    if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+      return 0.299 * parseInt(hex.slice(0, 2), 16) + 0.587 * parseInt(hex.slice(2, 4), 16) + 0.114 * parseInt(hex.slice(4, 6), 16);
+    }
+    return 128;
+  })();
+
+  // A translucent solid card bg (e.g. glass_cards `rgba(255,255,255,0.08)`)
+  // would be near-invisible on the default light app card and hide light
+  // digits. Web composites glass over the page background; on mobile we back
+  // it with a solid base contrasting the digit color, then overlay the
+  // translucent tint, so the frosted panel always reads.
+  const isTranslucentSolid =
+    !isGradientBg && /^rgba?\(/i.test(solidCardBg ?? "") && /,\s*0?\.\d+\s*\)/.test(solidCardBg ?? "");
+  const translucentBase = digitLum > 150 ? "#1e293b" : "#ffffff";
+
+  // Base card style. Gradient => transparent (LinearGradient layer paints it).
+  // Translucent solid => a contrasting base with the tint overlaid.
+  // Opaque solid => used directly. Otherwise the theme card.
+  const cardBg = hasGradient
+    ? "transparent"
+    : isTranslucentSolid
+      ? translucentBase
+      : (solidCardBg ?? colors.card);
+
+  return (
+    <View
+      style={[
+        styles.cardContainer,
+        {
+          backgroundColor: cardBg,
+          borderColor: hasBorder ? (st.border_color as string) : colors.border,
+          borderWidth: hasBorder ? borderWidthNum : solidCardBg || hasGradient ? 0 : StyleSheet.hairlineWidth,
+          borderRadius: cardRadius,
+          alignItems: "center",
+          overflow: "hidden",
+        },
+      ]}
+    >
+      {hasGradient ? (
+        <LinearGradient
+          colors={gradientStops as [string, string, ...string[]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
+      {isTranslucentSolid ? (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: solidCardBg as string }]} pointerEvents="none" />
+      ) : null}
+      {title ? <Text style={[styles.btnLabel, { color: labelColor }]}>{title}</Text> : null}
+      {subtitle ? (
+        <Text style={[styles.body, { color: labelColor, opacity: 0.7, fontSize: 12, marginTop: 2 }]}>{subtitle}</Text>
+      ) : null}
+
+      {expired && expiredAction === "message" ? (
+        <Text style={[styles.heading, { color: digitColor, fontSize: 18, marginTop: 6 }]}>{expiredMessage}</Text>
+      ) : (
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            alignItems: isInline ? "baseline" : "flex-start",
+            gap: isInline ? 4 : 10,
+            marginTop: 8,
+          }}
+        >
+          {parts.map((p, i) => (
+            <React.Fragment key={p.key}>
+              {isInline && i > 0 ? (
+                <Text style={{ color: digitColor, fontSize: 22, opacity: 0.5, fontFamily: "SpaceGrotesk_700Bold" }}>:</Text>
+              ) : null}
+              <View
+                style={{
+                  alignItems: "center",
+                  ...(boxBg && !isInline
+                    ? { backgroundColor: boxBg, borderRadius: 12, paddingVertical: 8, paddingHorizontal: 8, minWidth: 52 }
+                    : {}),
+                }}
+              >
+                <Text style={{ color: digitColor, fontSize: isInline ? 22 : 26, fontFamily: "SpaceGrotesk_700Bold" }}>
+                  {pad(p.val)}
+                </Text>
+                {labelStyle !== "hidden" ? (
+                  <Text
+                    style={{
+                      color: labelColor,
+                      fontSize: 10,
+                      marginTop: isInline ? 0 : 4,
+                      textTransform: "uppercase",
+                      letterSpacing: 1,
+                      fontFamily: "SpaceGrotesk_500Medium",
+                    }}
+                  >
+                    {labelStyle === "short" ? p.short : p.full}
+                  </Text>
+                ) : null}
+              </View>
+            </React.Fragment>
+          ))}
+        </View>
+      )}
+
+      {hasCta ? (
+        <Pressable
+          onPress={() => openSafe(buttonUrl as string, router)}
+          style={{
+            marginTop: 14,
+            backgroundColor: ctaBg,
+            borderRadius: 10,
+            paddingVertical: 10,
+            paddingHorizontal: 22,
+          }}
+        >
+          <Text style={{ color: ctaText, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 }}>
+            {buttonText}
+          </Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
   const colors = useColors();
   const router = useRouter();
@@ -2502,22 +2759,7 @@ function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: Biolink
   }
 
   if (t === "countdown") {
-    const target = pickStr(s, "target_date", "date", "ends_at");
-    const title = pickContentStr(s, "title", "text") ?? "Coming soon";
-    const tsMs = target ? Date.parse(target) : NaN;
-    const remaining = Number.isFinite(tsMs) ? Math.max(0, tsMs - Date.now()) : 0;
-    const days = Math.floor(remaining / 86400000);
-    const hours = Math.floor((remaining % 86400000) / 3600000);
-    return (
-      <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border, alignItems: "center" }]}>
-        <Text style={[styles.btnLabel, { color: colors.foreground }]}>{title}</Text>
-        {Number.isFinite(tsMs) ? (
-          <Text style={[styles.heading, { color: colors.primary, fontSize: 22, marginTop: 6 }]}>
-            {days}d {hours}h
-          </Text>
-        ) : null}
-      </View>
-    );
+    return <CountdownBlock settings={s as Record<string, unknown>} colors={colors} router={router} />;
   }
 
   if (t === "product" || t === "service") {

@@ -117,6 +117,9 @@ class BlockStyleSanitizer
             'border_top_color', 'border_right_color', 'border_bottom_color', 'border_left_color',
             '_photo_frame_color', '_photo_banner_bg', '_photo_banner_text_color', '_photo_accent_color',
             '_heading_accent_color',
+            // Countdown block color overrides (rich countdown redesign).
+            '_countdown_digit_color', '_countdown_label_color', '_countdown_box_bg',
+            '_countdown_cta_bg', '_countdown_cta_text',
         ];
         $fontWeightKeys = ['font_weight'];
         $fontFamilyKeys = ['font_family'];

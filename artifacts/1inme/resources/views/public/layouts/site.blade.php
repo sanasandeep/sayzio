@@ -82,7 +82,8 @@
         body { color:#fff; font-family:'Space Grotesk', sans-serif; }
         html.light-mode { --bg:#f8fafc; }
         html.light-mode, html.light-mode body { background:#f8fafc; color:#111827; }
-        html.light-mode .aurora { opacity: 0.18; }
+        html.light-mode .aurora { opacity: 0.25; filter: blur(120px); }
+        html.light-mode .aurora b { mix-blend-mode: multiply; opacity: 0.15; }
         [x-cloak]{display:none!important}
 
         /* Aurora background (mirrors the home page) — a fixed, full-viewport
@@ -90,9 +91,9 @@
            page scrolls. */
         .aurora { position: fixed; inset: -10%; z-index: -1; pointer-events: none; opacity: .6; filter: blur(80px); }
         .aurora b { position: absolute; border-radius: 50%; mix-blend-mode: screen; animation: aurora 22s ease-in-out infinite; }
-        .aurora b:nth-child(1) { top:-10%; left:-10%; width:60vw; height:60vw; background:#3d6bff; animation-delay:-2s; }
+        .aurora b:nth-child(1) { top:-10%; left:-10%; width:60vw; height:60vw; background:#1bd4d9; animation-delay:-2s; }
         .aurora b:nth-child(2) { bottom:-15%; right:-10%; width:55vw; height:55vw; background:#5c83ff; animation-delay:-8s; }
-        .aurora b:nth-child(3) { top:30%; left:40%; width:40vw; height:40vw; background:#6e61ff; animation-delay:-14s; }
+        .aurora b:nth-child(3) { top:30%; left:40%; width:40vw; height:40vw; background:#22d3ee; animation-delay:-14s; }
         .aurora b:nth-child(4) { top:60%; left:5%; width:35vw; height:35vw; background:#2342c7; opacity:.7; animation-delay:-18s; }
         @keyframes aurora {
             0%,100% { transform: translate(0,0) scale(1); }
@@ -144,7 +145,7 @@
     @include('common.partials.events-hero-band')
 @endunless
 
-<main class="flex-1 mkt-site-main">
+<main class="relative z-10 flex-1 mkt-site-main">
     @yield('content')
 </main>
 

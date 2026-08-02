@@ -82,7 +82,7 @@
         </div>
         <div class="grid md:grid-cols-2 gap-5">
             {{-- Where Sayzio wins --}}
-            <article class="glass rounded-3xl p-7" data-anim="fade-right">
+            <article class="glass-panel rounded-3xl p-7" data-anim="fade-right">
                 <div class="flex items-center gap-3 mb-5">
                     <span class="w-10 h-10 rounded-2xl flex items-center justify-center text-white"
                           style="background: var(--c1, #3d6bff);">
@@ -101,7 +101,7 @@
             </article>
 
             {{-- Where the rival wins --}}
-            <article class="glass rounded-3xl p-7" data-anim="fade-left">
+            <article class="glass-panel rounded-3xl p-7" data-anim="fade-left">
                 <div class="flex items-center gap-3 mb-5">
                     <span class="w-10 h-10 rounded-2xl flex items-center justify-center text-white"
                           style="background: {{ $accent }};">
@@ -171,7 +171,7 @@
         </div>
         <div class="space-y-3" data-anim="fade-up" data-stagger>
             @foreach($faqs as $faq)
-                <details class="group glass rounded-2xl p-5 open:pb-6" id="{{ ComparisonContent::anchor($faq['q'] ?? '') }}">
+                <details class="group glass-panel rounded-2xl p-5 open:pb-6" id="{{ ComparisonContent::anchor($faq['q'] ?? '') }}">
                     <summary class="flex items-center justify-between gap-4 cursor-pointer list-none">
                         <span class="text-base font-semibold text-white">{{ $faq['q'] ?? '' }}</span>
                         <span class="shrink-0 w-7 h-7 rounded-full border border-white/15 flex items-center justify-center text-gray-300 group-open:rotate-45 transition">
@@ -196,7 +196,7 @@
         </div>
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             @foreach($others as $o)
-                <a href="{{ route('site.compare.show', ['competitor' => $o['key']]) }}" class="group glass rounded-2xl p-5 lift block">
+                <a href="{{ route('site.compare.show', ['competitor' => $o['key']]) }}" class="group glass-panel rounded-2xl p-5 lift block">
                     <div class="flex items-center gap-3">
                         <span class="w-10 h-10 rounded-xl flex items-center justify-center text-white"
                               style="background: {{ $o['accent'] }};">

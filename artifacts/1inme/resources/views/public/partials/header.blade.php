@@ -172,8 +172,8 @@
                      x-transition:enter-start="opacity-0 -translate-y-1"
                      x-transition:enter-end="opacity-100 translate-y-0"
                      class="absolute left-0 right-0 mx-auto top-full w-[min(56rem,calc(100vw-2rem))] pt-3 z-[60]">
-                    <div class="rounded-2xl border border-white/10 bg-[#1e2330] shadow-2xl shadow-black/40 overflow-hidden">
-                        <span aria-hidden class="block h-1 w-full bg-gradient-to-r from-blue-500 via-fuchsia-500 to-blue-500"></span>
+                    <div class="rounded-2xl glass-dropdown overflow-hidden">
+                        <span aria-hidden class="block h-1 w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500"></span>
                         <div class="grid grid-cols-[1.9fr_1fr_minmax(12rem,0.95fr)] gap-5 p-5">
                             {{-- Core product (two-up) --}}
                             <div>
@@ -242,7 +242,7 @@
                                 </div>
                             </div>
                             {{-- Featured --}}
-                            <div class="mega-featured-card relative overflow-hidden rounded-xl border border-blue-400/30 bg-white/5 bg-gradient-to-br from-blue-600/20 via-fuchsia-500/10 to-transparent p-5 flex flex-col">
+                            <div class="mega-featured-card relative overflow-hidden rounded-xl border border-blue-400/30 bg-white/5 bg-gradient-to-br from-blue-600/20 via-cyan-500/10 to-transparent p-5 flex flex-col">
                                 <span aria-hidden class="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-blue-500/25 blur-2xl"></span>
                                 <span class="relative inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-blue-300">
                                     <i class="fas fa-sparkles"></i> What you can create
@@ -263,8 +263,8 @@
                      x-transition:enter-start="opacity-0 -translate-y-1"
                      x-transition:enter-end="opacity-100 translate-y-0"
                      class="absolute left-0 right-0 mx-auto top-full w-[min(56rem,calc(100vw-2rem))] pt-3 z-[60]">
-                    <div class="rounded-2xl border border-white/10 bg-[#1e2330] shadow-2xl shadow-black/40 overflow-hidden">
-                        <span aria-hidden class="block h-1 w-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-pink-500"></span>
+                    <div class="rounded-2xl glass-dropdown overflow-hidden">
+                        <span aria-hidden class="block h-1 w-full bg-gradient-to-r from-teal-500 via-cyan-500 to-teal-500"></span>
                         <div class="grid grid-cols-[1.9fr_1fr_minmax(12rem,0.95fr)] gap-5 p-5">
                             {{-- Explore (two-up) --}}
                             <div>
@@ -273,7 +273,7 @@
                                     @foreach($navSolutions as [$__href, $__icon, $__title, $__desc, $__routes])
                                         @php $__active = $routeIs($__routes); @endphp
                                         <a href="{{ $__href }}" @if($__active) aria-current="page" @endif class="group flex items-start gap-3 px-3 py-2.5 rounded-xl transition-colors {{ $__active ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}">
-                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pink-500/10 text-pink-300 transition-transform group-hover:scale-110 {{ $__active ? 'ring-2 ring-blue-400/60' : '' }}">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-500/10 text-teal-300 transition-transform group-hover:scale-110 {{ $__active ? 'ring-2 ring-blue-400/60' : '' }}">
                                                 <i class="fas {{ $__icon }} text-sm"></i>
                                             </span>
                                             <span class="min-w-0">
@@ -291,7 +291,7 @@
                                     @foreach($navUseCases as $__ucSlug => $__ucMeta)
                                         @php $__active = ($activeUseCase === $__ucSlug); @endphp
                                         <a href="{{ route('site.use-case', $__ucSlug) }}" @if($__active) aria-current="page" @endif class="group flex items-start gap-3 px-3 py-2.5 rounded-xl transition-colors {{ $__active ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}">
-                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pink-500/10 text-pink-300 transition-transform group-hover:scale-110 {{ $__active ? 'ring-2 ring-blue-400/60' : '' }}">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-500/10 text-teal-300 transition-transform group-hover:scale-110 {{ $__active ? 'ring-2 ring-blue-400/60' : '' }}">
                                                 <i class="fas {{ $__ucMeta['icon'] }} text-sm"></i>
                                             </span>
                                             <span class="min-w-0">
@@ -303,9 +303,9 @@
                                 </div>
                             </div>
                             {{-- Featured --}}
-                            <div class="mega-featured-card relative overflow-hidden rounded-xl border border-pink-400/30 bg-white/5 bg-gradient-to-br from-pink-600/20 via-fuchsia-500/10 to-transparent p-5 flex flex-col">
-                                <span aria-hidden class="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-pink-500/25 blur-2xl"></span>
-                                <span class="relative inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-pink-300">
+                            <div class="mega-featured-card relative overflow-hidden rounded-xl border border-teal-400/30 bg-white/5 bg-gradient-to-br from-teal-600/20 via-cyan-500/10 to-transparent p-5 flex flex-col">
+                                <span aria-hidden class="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-teal-500/25 blur-2xl"></span>
+                                <span class="relative inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-teal-300">
                                     <i class="fas fa-compass"></i> Not sure where to start?
                                 </span>
                                 <span class="mega-featured-title relative mt-2 block text-base font-bold leading-tight text-white">One link for every goal</span>
@@ -418,7 +418,7 @@
                     @foreach($navSolutions as [$__href, $__icon, $__title, $__desc, $__routes])
                         @php $__active = $routeIs($__routes); @endphp
                         <a href="{{ $__href }}" @click="mobileOpen=false" @if($__active) aria-current="page" @endif class="flex items-center gap-3 px-3 py-2 rounded-lg {{ $__active ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}">
-                            <i class="fas {{ $__icon }} w-4 text-center text-pink-300 text-sm"></i>
+                            <i class="fas {{ $__icon }} w-4 text-center text-teal-300 text-sm"></i>
                             <span class="text-sm {{ $__active ? 'text-blue-400 font-semibold' : 'text-gray-300' }}">{{ $__title }}</span>
                         </a>
                     @endforeach
@@ -426,7 +426,7 @@
                     @foreach($navUseCases as $__ucSlug => $__ucMeta)
                         @php $__active = ($activeUseCase === $__ucSlug); @endphp
                         <a href="{{ route('site.use-case', $__ucSlug) }}" @click="mobileOpen=false" @if($__active) aria-current="page" @endif class="flex items-center gap-3 px-3 py-2 rounded-lg {{ $__active ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}">
-                            <i class="fas {{ $__ucMeta['icon'] }} w-4 text-center text-pink-300 text-sm"></i>
+                            <i class="fas {{ $__ucMeta['icon'] }} w-4 text-center text-teal-300 text-sm"></i>
                             <span class="text-sm {{ $__active ? 'text-blue-400 font-semibold' : 'text-gray-300' }}">{{ $__ucMeta['eyebrow'] }}</span>
                         </a>
                     @endforeach

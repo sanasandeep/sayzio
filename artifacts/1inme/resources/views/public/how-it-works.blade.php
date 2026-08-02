@@ -160,7 +160,7 @@
                 </div>
             </div>
         </div>
-        <div class="glass rounded-3xl p-7 sm:p-8 relative overflow-hidden">
+        <div class="glass-ambient-wash glass rounded-3xl p-7 sm:p-8 relative overflow-hidden">
             <div class="text-xs font-bold uppercase tracking-[.2em] text-cyan-300 mb-2">
                 <i class="fas fa-link"></i> Friendly link types
             </div>

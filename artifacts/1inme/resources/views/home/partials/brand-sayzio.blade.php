@@ -42,47 +42,41 @@
     .bs-card {
         position: relative; overflow: hidden;
         border-radius: 1.75rem;
-        border: 1px solid rgba(255,255,255,.14);
-        background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
-        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-        box-shadow:
-            0 32px 80px -32px rgba(61,107,255,.55),
-            0 10px 30px -18px rgba(0,0,0,.45),
-            inset 0 1px 0 rgba(255,255,255,.12),
-            inset 0 0 0 1px rgba(255,255,255,.02);
+        border: 1px solid transparent;
+        background: rgba(255, 255, 255, 0.04);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 32px 80px -32px rgba(61, 107, 255, 0.55);
         transition: transform .4s cubic-bezier(.16,1,.3,1), box-shadow .4s, border-color .4s;
     }
-    .bs-card::after {
-        content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-        padding: 1px;
-        background: linear-gradient(155deg, rgba(255,255,255,.28), rgba(255,255,255,0) 30%, rgba(255,255,255,0) 70%, rgba(255,255,255,.10));
-        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-        -webkit-mask-composite: xor; mask-composite: exclude;
+    @supports (backdrop-filter: blur(8px)) {
+        .bs-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.01) 100%);
+            backdrop-filter: blur(6px) saturate(180%) brightness(1.1);
+            -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.1);
+        }
     }
     .bs-card:hover {
         transform: translateY(-7px);
-        border-color: rgba(255,255,255,.22);
-        box-shadow:
-            0 42px 100px -32px rgba(61,107,255,.7),
-            0 14px 36px -18px rgba(0,0,0,.5),
-            inset 0 1px 0 rgba(255,255,255,.16);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 42px 100px -32px rgba(61, 107, 255, 0.7);
     }
     .bs-card::before {
         content: ""; position: absolute; width: 240px; height: 240px; border-radius: 9999px;
         filter: blur(60px); opacity: .35; pointer-events: none;
     }
     .bs-card--id::before    { top: -90px; left: -70px;  background: var(--c2); }
-    .bs-card--zio::before   { bottom: -110px; right: -70px; background: #6e61ff; }
+    .bs-card--zio::before   { bottom: -110px; right: -70px; background: #3d6bff; }
     html.light-mode .bs-card {
-        background: linear-gradient(180deg, #ffffff, #fbfbfe);
-        border-color: rgba(15,23,42,.09);
-        box-shadow:
-            0 26px 64px -32px rgba(61,107,255,.35),
-            0 8px 22px -16px rgba(15,23,42,.10),
-            inset 0 1px 0 rgba(255,255,255,.9);
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid transparent;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 26px 64px -32px rgba(61, 107, 255, 0.35);
     }
-    html.light-mode .bs-card::after { background: linear-gradient(155deg, rgba(15,23,42,.06), rgba(15,23,42,0) 40%); }
-    html.light-mode .bs-card:hover { box-shadow: 0 34px 84px -32px rgba(61,107,255,.42), 0 10px 26px -16px rgba(15,23,42,.14); }
+    @supports (backdrop-filter: blur(8px)) {
+        html.light-mode .bs-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%);
+            backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
+            -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
+        }
+    }
+    html.light-mode .bs-card:hover { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), 0 34px 84px -32px rgba(61, 107, 255, 0.42); }
     html.light-mode .bs-card::before { opacity: .22; }
 
     /* Solid brand wordmarks — no gradient. White for 1IN.ME, black for Sayzio.
@@ -176,23 +170,35 @@
     .bs-pillar {
         display: flex; align-items: center; gap: .9rem;
         padding: 1.1rem 1.25rem; border-radius: 1.15rem;
-        border: 1px solid rgba(255,255,255,.10);
-        background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 14px 30px -26px rgba(0,0,0,.5);
+        border: 1px solid transparent;
+        background: rgba(255, 255, 255, 0.04);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 14px 30px -26px rgba(0, 0, 0, 0.5);
         transition: transform .3s ease, box-shadow .3s ease, background-color .3s ease, border-color .3s ease;
+    }
+    @supports (backdrop-filter: blur(8px)) {
+        .bs-pillar {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.01) 100%);
+            backdrop-filter: blur(6px) saturate(180%) brightness(1.1);
+            -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.1);
+        }
     }
     .bs-pillar:hover {
         transform: translateY(-4px);
-        background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
-        border-color: rgba(255,255,255,.18);
-        box-shadow: 0 18px 44px -22px rgba(61,107,255,.55), inset 0 1px 0 rgba(255,255,255,.10);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 18px 44px -22px rgba(61, 107, 255, 0.55);
     }
     html.light-mode .bs-pillar {
-        background: linear-gradient(180deg, #ffffff, #fbfbfe);
-        border-color: rgba(15,23,42,.09);
-        box-shadow: 0 10px 22px -18px rgba(15,23,42,.12);
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid transparent;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 10px 22px -18px rgba(37, 99, 235, 0.18);
     }
-    html.light-mode .bs-pillar:hover { background: #ffffff; border-color: rgba(15,23,42,.14); box-shadow: 0 18px 44px -24px rgba(61,107,255,.30); }
+    @supports (backdrop-filter: blur(8px)) {
+        html.light-mode .bs-pillar {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%);
+            backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
+            -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
+        }
+    }
+    html.light-mode .bs-pillar:hover { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), 0 18px 44px -24px rgba(61, 107, 255, 0.3); }
     .bs-pillar-ico {
         flex-shrink: 0; width: 42px; height: 42px; border-radius: .85rem;
         display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
@@ -254,7 +260,7 @@
                 <div class="relative flex items-center gap-4 sm:gap-5">
                     <span class="bs-glyph float-a w-16 h-16 sm:w-20 sm:h-20">
                         <img src="{{ asset('branding/1inme-mark.png') }}" alt="1IN.ME logo" width="72" height="56"
-                             class="w-11 h-11 sm:w-14 sm:h-14 drop-shadow-[0_8px_22px_rgba(61,107,255,.45)]" loading="lazy" decoding="async">
+                             class="w-11 h-11 sm:w-14 sm:h-14 drop-shadow-[0_8px_22px_rgba(61,107,255,.45)]" decoding="async" fetchpriority="high">
                     </span>
                     <div class="min-w-0">
                         <div class="text-3xl sm:text-4xl font-black tracking-tight"><span class="bs-word bs-word--id">1IN.ME</span></div>
@@ -283,7 +289,7 @@
                     <span class="bs-glyph bs-glyph-zio w-16 h-16 sm:w-20 sm:h-20">
                         {{-- Static Sayzio icon (transparent PNG). --}}
                         <img src="{{ asset('branding/sayzio-card-icon.png') }}" alt="Zio, the Sayzio mascot" width="64" height="64"
-                             class="bs-mascot w-12 h-12 sm:w-14 sm:h-14 drop-shadow-[0_10px_26px_rgba(110,97,255,.55)]" loading="lazy" decoding="async">
+                             class="bs-mascot w-12 h-12 sm:w-14 sm:h-14 drop-shadow-[0_10px_26px_rgba(110,97,255,.55)]" decoding="async" fetchpriority="high">
                     </span>
                     <div class="min-w-0">
                         <div class="text-3xl sm:text-4xl font-black tracking-tight"><span class="bs-word bs-word--zio">Sayzio</span></div>

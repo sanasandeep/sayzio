@@ -203,13 +203,12 @@ html.light-mode footer.bg-\[\#08020f\] .text-gray-700 {
 .mkt-navbar-bar {
     width: 92%;
     margin: 0.85rem auto 0;
-    border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 1rem;
-    background-color: rgba(30,35,48,0.45);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
-    backdrop-filter: blur(20px) saturate(160%);
-    box-shadow: 0 20px 45px -18px rgba(0,0,0,0.55),
-                inset 0 1px 0 rgba(255,255,255,0.08);
+    border: 1px solid transparent;
+    border-radius: 1.75rem;
+    background-color: rgba(255,255,255,0.04);
+    -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.1);
+    backdrop-filter: blur(6px) saturate(180%) brightness(1.1);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 20px 45px -18px rgba(0,0,0,0.55);
     transition: width .35s ease, margin .35s ease, background-color .35s ease,
                 border-radius .35s ease, border-color .35s ease, box-shadow .35s ease;
 }
@@ -222,24 +221,25 @@ html.light-mode footer.bg-\[\#08020f\] .text-gray-700 {
     margin-top: 0;
     border-radius: 0;
     border-color: transparent;
-    border-bottom-color: rgba(255,255,255,0.10);
-    background-color: rgba(30,35,48,0.62);
-    -webkit-backdrop-filter: blur(22px) saturate(160%);
-    backdrop-filter: blur(22px) saturate(160%);
-    box-shadow: 0 12px 30px -20px rgba(0,0,0,0.6);
+    background-color: rgba(255,255,255,0.06);
+    -webkit-backdrop-filter: blur(8px) saturate(180%) brightness(1.1);
+    backdrop-filter: blur(8px) saturate(180%) brightness(1.1);
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,0.1), 0 12px 30px -20px rgba(0,0,0,0.6);
 }
 
 html.light-mode .mkt-navbar-bar {
-    background-color: rgba(255,255,255,0.45);
-    border-color: rgba(15,23,42,0.10);
-    box-shadow: 0 20px 45px -18px rgba(15,23,42,0.18),
-                inset 0 1px 0 rgba(255,255,255,0.55);
+    background-color: rgba(255,255,255,0.15);
+    border-color: transparent;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 20px 45px -18px rgba(15,23,42,0.18);
+    -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
+    backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
 }
 html.light-mode .mkt-navbar-bar.is-stuck {
-    background-color: rgba(255,255,255,0.62);
+    background-color: rgba(255,255,255,0.25);
     border-color: transparent;
-    border-bottom-color: rgba(15,23,42,0.10);
-    box-shadow: 0 12px 30px -20px rgba(15,23,42,0.16);
+    box-shadow: inset 0 -1px 0 rgba(148,163,184,0.4), 0 12px 30px -20px rgba(15,23,42,0.16);
+    -webkit-backdrop-filter: blur(8px) saturate(180%) brightness(1.05);
+    backdrop-filter: blur(8px) saturate(180%) brightness(1.05);
 }
 
 /* Graceful fallback where backdrop-filter is unsupported: lean on a more
@@ -1194,6 +1194,7 @@ html.light-mode .why2-chip { color: #475569; background: rgba(15,23,42,.04); bor
 .btn-cta {
     background: linear-gradient(115deg, #2342c7 0%, #3d6bff 28%, #6e61ff 58%, #22d3ee 100%);
     color: #fff !important;
+    border-radius: 9999px !important;
     transition: filter .25s, box-shadow .25s, transform .22s;
     box-shadow: 0 8px 24px -10px rgba(34, 211, 238, .45);
 }

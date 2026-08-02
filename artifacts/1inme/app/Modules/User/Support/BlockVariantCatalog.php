@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 16;
+    public const VERSION = 18;
 
     /**
      * Effective catalog version (Task #6045): the hardcoded VERSION
@@ -2975,6 +2975,8 @@ class BlockVariantCatalog
                         'border_radius' => '8', 'shadow_type' => 'hard',
                         'shadow_color' => '#000', 'shadow_y' => 4, 'shadow_blur' => 0,
                         'text_color' => '#fbbf24', 'padding' => '16', 'font_family' => 'JetBrains Mono',
+                        '_countdown_digit_color' => '#fbbf24', '_countdown_label_color' => '#a1a1aa',
+                        '_countdown_box_bg' => '#18181b',
                     ],
                     'preview' => ['bg' => '#0a0a0a', 'text' => '#fbbf24', 'radius' => 8, 'border' => '#27272a'],
                 ],
@@ -2988,8 +2990,134 @@ class BlockVariantCatalog
                         'border_radius' => '4', 'shadow_type' => 'neon',
                         'shadow_color' => '#22d3ee99', 'shadow_blur' => 18,
                         'text_color' => '#a5f3fc', 'padding' => '14', 'font_family' => 'JetBrains Mono',
+                        '_countdown_digit_color' => '#a5f3fc', '_countdown_label_color' => '#67e8f9',
+                        '_countdown_box_bg' => '#082f49',
                     ],
                     'preview' => ['bg' => '#0f172a', 'text' => '#a5f3fc', 'radius' => 4, 'border' => '#22d3ee'],
+                ],
+                [
+                    'key' => 'minimal_inline',
+                    'name' => 'Minimal Inline',
+                    'tags' => ['minimal', 'clean'],
+                    'style' => [
+                        // No card/box — sits directly on the page. Uses a vivid
+                        // accent for digits + a mid-gray label so it stays
+                        // legible on BOTH dark and light page themes, and an
+                        // explicit solid CTA (never derived from the page).
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0', 'shadow_type' => 'none',
+                        'text_color' => '#6366f1', 'padding' => '8', 'font_family' => 'Inter',
+                        '_countdown_digit_color' => '#6366f1', '_countdown_label_color' => '#94a3b8',
+                        '_countdown_box_bg' => 'transparent',
+                        '_countdown_cta_bg' => '#6366f1', '_countdown_cta_text' => '#ffffff',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#6366f1', 'radius' => 0, 'border' => '#e5e7eb'],
+                ],
+                [
+                    'key' => 'glass_cards',
+                    'name' => 'Glass Cards',
+                    'tags' => ['glass', 'modern', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'rgba(255,255,255,0.08)',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => 'rgba(255,255,255,0.18)',
+                        'border_radius' => '16', 'shadow_type' => 'soft', 'shadow_color' => '#00000033',
+                        'shadow_blur' => 24, 'glass_preset' => 'light',
+                        'text_color' => '#ffffff', 'padding' => '18', 'font_family' => 'Inter',
+                        '_countdown_digit_color' => '#ffffff', '_countdown_label_color' => 'rgba(255,255,255,0.7)',
+                        '_countdown_box_bg' => 'rgba(255,255,255,0.10)',
+                        // Solid white pill with dark text — reads clearly on the
+                        // glass card (digit color is white, so it can't be reused).
+                        '_countdown_cta_bg' => '#ffffff', '_countdown_cta_text' => '#0f172a',
+                    ],
+                    'preview' => ['bg' => '#1e293b', 'text' => '#ffffff', 'radius' => 16, 'border' => '#ffffff33'],
+                ],
+                [
+                    'key' => 'neon_glow',
+                    'name' => 'Neon Glow',
+                    'tags' => ['neon', 'dark', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#09090b',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#db2777',
+                        'border_radius' => '12', 'shadow_type' => 'neon', 'shadow_color' => '#db277799',
+                        'shadow_blur' => 22, 'text_color' => '#f9a8d4', 'padding' => '16', 'font_family' => 'Orbitron',
+                        '_countdown_digit_color' => '#f9a8d4', '_countdown_label_color' => '#db2777',
+                        '_countdown_box_bg' => '#18181b',
+                    ],
+                    'preview' => ['bg' => '#09090b', 'text' => '#f9a8d4', 'radius' => 12, 'border' => '#db2777'],
+                ],
+                [
+                    'key' => 'gradient_pop_cd',
+                    'name' => 'Gradient Pop',
+                    'tags' => ['vibrant', 'gradient', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'linear-gradient(135deg,#f97316,#db2777)',
+                        'border_style' => 'none', 'border_radius' => '18', 'shadow_type' => 'soft',
+                        'shadow_color' => '#db277755', 'shadow_blur' => 20,
+                        'text_color' => '#ffffff', 'padding' => '18', 'font_family' => 'Poppins',
+                        '_countdown_digit_color' => '#ffffff', '_countdown_label_color' => 'rgba(255,255,255,0.85)',
+                        '_countdown_box_bg' => 'rgba(255,255,255,0.15)',
+                        // Solid white pill with magenta text — pops on the
+                        // orange→pink gradient (digit color is white).
+                        '_countdown_cta_bg' => '#ffffff', '_countdown_cta_text' => '#be185d',
+                    ],
+                    'preview' => ['bg' => '#db2777', 'text' => '#ffffff', 'radius' => 18, 'border' => '#f97316'],
+                ],
+                [
+                    'key' => 'soft_pastel_cd',
+                    'name' => 'Soft Pastel',
+                    'tags' => ['pastel', 'soft', 'cute'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#fdf2f8',
+                        'border_style' => 'none', 'border_radius' => '20', 'shadow_type' => 'soft',
+                        'shadow_color' => '#f9a8d433', 'shadow_blur' => 18,
+                        'text_color' => '#9d174d', 'padding' => '18', 'font_family' => 'Quicksand',
+                        '_countdown_digit_color' => '#be185d', '_countdown_label_color' => '#db2777',
+                        '_countdown_box_bg' => '#fce7f3',
+                    ],
+                    'preview' => ['bg' => '#fdf2f8', 'text' => '#9d174d', 'radius' => 20, 'border' => '#fbcfe8'],
+                ],
+                [
+                    'key' => 'bold_blocks',
+                    'name' => 'Bold Blocks',
+                    'tags' => ['bold', 'brutal', 'three_d'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#facc15',
+                        'border_style' => 'solid', 'border_width' => '3', 'border_color' => '#000000',
+                        'border_radius' => '4', 'shadow_type' => 'hard', 'shadow_color' => '#000000',
+                        'shadow_x' => 4, 'shadow_y' => 4, 'shadow_blur' => 0,
+                        'text_color' => '#000000', 'padding' => '18', 'font_family' => 'Archivo', 'font_weight' => '800',
+                        '_countdown_digit_color' => '#000000', '_countdown_label_color' => '#000000',
+                        '_countdown_box_bg' => '#ffffff',
+                    ],
+                    'preview' => ['bg' => '#facc15', 'text' => '#000000', 'radius' => 4, 'border' => '#000000'],
+                ],
+                [
+                    'key' => 'outline_ring',
+                    'name' => 'Outline Ring',
+                    'tags' => ['minimal', 'outline', 'clean'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#111827',
+                        'border_radius' => '999', 'shadow_type' => 'none',
+                        'text_color' => '#111827', 'padding' => '16', 'font_family' => 'Inter',
+                        '_countdown_digit_color' => '#111827', '_countdown_label_color' => '#6b7280',
+                        '_countdown_box_bg' => 'transparent',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 999, 'border' => '#111827'],
+                ],
+                [
+                    'key' => 'elegant_serif',
+                    'name' => 'Elegant Serif',
+                    'tags' => ['elegant', 'serif', 'luxury', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#1c1917',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#a8874f',
+                        'border_radius' => '6', 'shadow_type' => 'soft', 'shadow_color' => '#00000055',
+                        'shadow_blur' => 16, 'text_color' => '#d6b978', 'padding' => '20', 'font_family' => 'Playfair Display',
+                        '_countdown_digit_color' => '#e9d8a6', '_countdown_label_color' => '#a8874f',
+                        '_countdown_box_bg' => '#292524',
+                    ],
+                    'preview' => ['bg' => '#1c1917', 'text' => '#d6b978', 'radius' => 6, 'border' => '#a8874f'],
                 ],
             ],
             'cta_button' => [

@@ -114,7 +114,6 @@
             --ink:  #111827;
         }
         html.light-mode body { background: #f8fafc; color: #111827; }
-        html.light-mode .aurora { opacity: 0.18; }
 
         /* ============ Aurora background ============ */
         .aurora { position: fixed; inset: -10%; z-index: -1; pointer-events: none; opacity: .6; filter: blur(80px); }
@@ -124,7 +123,7 @@
         }
         .aurora b:nth-child(1) { top:-10%; left:-10%; width:60vw; height:60vw; background: var(--c2); animation-delay: -2s; }
         .aurora b:nth-child(2) { bottom:-15%; right:-10%; width:55vw; height:55vw; background: #5c83ff; animation-delay: -8s; }
-        .aurora b:nth-child(3) { top:30%; left:40%; width:40vw; height:40vw; background: #6e61ff; animation-delay: -14s; }
+        .aurora b:nth-child(3) { top:30%; left:40%; width:40vw; height:40vw; background: #22d3ee; animation-delay: -14s; }
         .aurora b:nth-child(4) { top:60%; left:5%; width:35vw; height:35vw; background: #2342c7; opacity:.7; animation-delay: -18s; }
         @keyframes aurora {
             0%,100% { transform: translate(0,0) scale(1); }
@@ -194,7 +193,7 @@
         .btn-glow { position: relative; }
         .btn-glow::after {
             content:""; position: absolute; inset: -4px; border-radius: inherit; z-index: -1;
-            background: conic-gradient(from 0deg, #3d6bff, #6e61ff, #22d3ee, #3d6bff);
+            background: conic-gradient(from 0deg, #3d6bff, #1bd4d9, #22d3ee, #3d6bff);
             opacity: 0; filter: blur(12px); transition: opacity .35s; animation: spinSlow 8s linear infinite;
         }
         .btn-glow:hover::after { opacity: .85; }
@@ -273,7 +272,7 @@
 
         /* ============ Logo gradient bar ============ */
         .grad-bar {
-            background: linear-gradient(95deg, #3d6bff, #6e61ff, #22d3ee);
+            background: linear-gradient(95deg, #3d6bff, #1bd4d9, #22d3ee);
         }
 
         /* ============ Confetti shapes (drifting) ============ */
@@ -322,16 +321,21 @@
             position: relative;
             background: rgba(255,255,255,.07);
             border: 1px solid rgba(255,255,255,.14);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
             border-radius: 20px;
             padding: 12px 14px;
             display: flex; align-items: center; gap: 12px;
             color: #fff;
-            box-shadow: 0 22px 48px -22px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.04), inset 0 1px 0 rgba(255,255,255,.08);
+            box-shadow: 0 22px 48px -22px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.04), inset 0 1px 0 rgba(255,255,255,.15);
             opacity: 0;
             animation: cardIn .7s cubic-bezier(.34,1.56,.64,1) forwards;
             animation-delay: var(--d, 0ms);
+        }
+        @supports (backdrop-filter: blur(20px)) {
+            .stack-card {
+                background: linear-gradient(135deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,.03) 100%);
+                backdrop-filter: blur(24px) saturate(140%);
+                -webkit-backdrop-filter: blur(24px) saturate(140%);
+            }
         }
         .stack-card.is-profile {
             padding: 16px;
@@ -524,7 +528,7 @@
             position: relative;
             width: 100%; height: 100%;
             border-radius: 36px; overflow: hidden;
-            background: var(--phone-bg, linear-gradient(140deg,#3d6bff,#6e61ff,#22d3ee));
+            background: var(--phone-bg, linear-gradient(140deg,#3d6bff,#1bd4d9,#22d3ee));
             transition: background 1.2s ease;
         }
         .hero-phone-screen::before {
@@ -563,13 +567,18 @@
             z-index: 5;
         }
         .hero-phone-content .stack-card {
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
             background: rgba(255,255,255,.18);
             border-color: rgba(255,255,255,.28);
             border-radius: 16px;
             padding: 9px 11px;
             gap: 10px;
+        }
+        @supports (backdrop-filter: blur(14px)) {
+            .hero-phone-content .stack-card {
+                background: linear-gradient(135deg, rgba(255,255,255,.25) 0%, rgba(255,255,255,.1) 100%);
+                backdrop-filter: blur(20px) saturate(150%);
+                -webkit-backdrop-filter: blur(20px) saturate(150%);
+            }
         }
         .hero-phone-content .stack-card.is-profile { padding: 12px; gap: 8px; }
         .hero-phone-content .stack-card .card-title { font-size: 12px; }
@@ -619,13 +628,18 @@
             position: absolute;
             background: rgba(255,255,255,.06);
             border: 1px solid rgba(255,255,255,.12);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
             border-radius: 16px;
             padding: 10px 12px;
-            box-shadow: 0 18px 40px -16px rgba(0,0,0,.55);
+            box-shadow: 0 18px 40px -16px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.15);
             z-index: 11;
             color: #fff;
+        }
+        @supports (backdrop-filter: blur(18px)) {
+            .float-card {
+                background: linear-gradient(135deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,.03) 100%);
+                backdrop-filter: blur(24px) saturate(150%);
+                -webkit-backdrop-filter: blur(24px) saturate(150%);
+            }
         }
         .float-card-label {
             display: block;
@@ -665,8 +679,14 @@
             border-radius: 14px;
             background: rgba(255,255,255,.06);
             border: 1px solid rgba(255,255,255,.12);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
+        }
+        @supports (backdrop-filter: blur(14px)) {
+            .hero-mstat {
+                background: linear-gradient(135deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,.03) 100%);
+                backdrop-filter: blur(20px) saturate(140%);
+                -webkit-backdrop-filter: blur(20px) saturate(140%);
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.15);
+            }
         }
         .hero-mstat .lbl {
             font-size: 9px; font-weight: 800; letter-spacing: .1em;
@@ -684,7 +704,14 @@
             display: flex; align-items: center; gap: 9px;
             padding: 8px 10px; border-radius: 14px;
             background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.28);
-            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+        }
+        @supports (backdrop-filter: blur(14px)) {
+            .hp-profile-mini {
+                background: linear-gradient(135deg, rgba(255,255,255,.2) 0%, rgba(255,255,255,.05) 100%);
+                backdrop-filter: blur(20px) saturate(140%);
+                -webkit-backdrop-filter: blur(20px) saturate(140%);
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.15);
+            }
         }
         .hp-profile-mini img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,.35); flex-shrink: 0; }
         .hp-profile-mini .hpm-h { font-size: 12px; font-weight: 700; line-height: 1.1; }
@@ -698,8 +725,15 @@
             padding: 10px 11px;
             background: rgba(255,255,255,.18);
             border: 1px solid rgba(255,255,255,.28);
-            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
             overflow: hidden;
+        }
+        @supports (backdrop-filter: blur(14px)) {
+            .hp-prof {
+                background: linear-gradient(135deg, rgba(255,255,255,.2) 0%, rgba(255,255,255,.05) 100%);
+                backdrop-filter: blur(20px) saturate(140%);
+                -webkit-backdrop-filter: blur(20px) saturate(140%);
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.15);
+            }
         }
         .hp-prof .prow { display:flex; align-items:center; gap: 10px; }
         .hp-prof .pav { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,.4); flex-shrink: 0; }
@@ -1329,14 +1363,20 @@
             border-radius: 999px;
             background: rgba(255,255,255,.06);
             border: 1px solid rgba(255,255,255,.12);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
             font-size: 11px; font-weight: 700;
             color: #fff;
             animation: blockFloat var(--bdur, 5s) ease-in-out infinite;
             animation-delay: var(--bdel, 0s);
             transition: transform .25s, background .25s, border-color .25s;
             will-change: transform;
+        }
+        @supports (backdrop-filter: blur(14px)) {
+            .hero-block-chip {
+                background: linear-gradient(135deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,.03) 100%);
+                backdrop-filter: blur(20px) saturate(140%);
+                -webkit-backdrop-filter: blur(20px) saturate(140%);
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.15);
+            }
         }
         .hero-block-chip:hover {
             transform: translateY(-3px) scale(1.05);
@@ -1372,8 +1412,19 @@
         .sticker { position: absolute; pointer-events: none; }
 
         /* ============ Card glass ============ */
-        .glass { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); backdrop-filter: blur(18px); }
-        .glass-2 { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(18px); }
+        /* Liquid Glass (Dark Mode) */
+        .glass, .glass-2 { 
+            background: rgba(255, 255, 255, 0.04); 
+            border: 1px solid transparent; 
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), inset 1.5px 2px 0 -1px rgba(255,255,255,0.4), inset -1.5px -1.5px 0 -1px rgba(255,255,255,0.2), inset -3px -8px 1px -6px rgba(255,255,255,0.15), inset 0 0 8px 1px rgba(0,0,0,0.2), 0 12px 32px rgba(0,0,0,0.4); 
+        }
+        @supports (backdrop-filter: blur(8px)) {
+            .glass, .glass-2 { 
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.01) 100%); 
+                backdrop-filter: blur(6px) saturate(180%) brightness(1.1); 
+                -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.1); 
+            }
+        }
 
         /* ============ FAQ ============ */
         .faq-item summary { list-style: none; cursor: pointer; }
@@ -2059,8 +2110,6 @@
         .geo-ticker {
             position: absolute; top: 12px; left: 12px; right: 12px;
             background: rgba(10,10,20,.78);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,.08);
             border-radius: 10px;
             padding: 7px 10px;
@@ -2068,6 +2117,14 @@
             color: #e5e7eb;
             display: flex; align-items: center; gap: 8px;
             max-width: 320px;
+        }
+        @supports (backdrop-filter: blur(10px)) {
+            .geo-ticker {
+                background: linear-gradient(135deg, rgba(10,10,20,.6) 0%, rgba(10,10,20,.3) 100%);
+                backdrop-filter: blur(20px) saturate(140%);
+                -webkit-backdrop-filter: blur(20px) saturate(140%);
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.1);
+            }
         }
         .geo-ticker .live {
             color: var(--c1); font-weight: 800; font-size: 9px;
@@ -2267,12 +2324,18 @@
             border: 1px solid rgba(255,255,255,.1);
             border-radius: 18px;
             padding: 12px 14px;
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
             transition: transform .25s ease, box-shadow .25s ease;
             opacity: 0;
             transform: translateY(8px);
             animation: buzzIn .55s cubic-bezier(.16,1,.3,1) forwards;
+        }
+        @supports (backdrop-filter: blur(14px)) {
+            .buzz-card {
+                background: linear-gradient(135deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,.03) 100%);
+                backdrop-filter: blur(20px) saturate(140%);
+                -webkit-backdrop-filter: blur(20px) saturate(140%);
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.15);
+            }
         }
         @keyframes buzzIn { to { opacity: 1; transform: none; } }
         .buzz-card:hover { transform: translateY(-2px); box-shadow: 0 14px 30px -14px rgba(0,0,0,.5); }
@@ -2404,8 +2467,9 @@
         }
         html.light-mode body { background: var(--bg); color: #0f172a; }
 
-        /* Aurora softened to a faint pastel wash */
-        html.light-mode .aurora { opacity: .22; filter: blur(110px); }
+        /* Aurora strengthened for visible glass translucency */
+        html.light-mode .aurora { opacity: 0.25; filter: blur(120px); }
+        html.light-mode .aurora b { mix-blend-mode: multiply; opacity: 0.15; }
 
         /* ---- Generic dark utilities → light equivalents ---- */
         html.light-mode .text-white                       { color: #0f172a; }
@@ -2463,14 +2527,24 @@
         html.light-mode h3:not(.grad-text),
         html.light-mode h4:not(.grad-text) { color: #0f172a; }
 
-        /* Cards built from translucent white surfaces — give a real card look */
+        /* Cards built from translucent white surfaces — give a real liquid glass look */
         html.light-mode .glass-card,
         html.light-mode .feature-card,
         html.light-mode .pricing-card,
         html.light-mode .step-card {
-            background: #ffffff;
-            border-color: #e2e8f0;
-            box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 14px -8px rgba(15,23,42,.10);
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid transparent;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4), inset 1.8px 3px 0 -2px rgba(255,255,255,0.9), inset -2px -2px 0 -2px rgba(255,255,255,0.8), inset -3px -8px 1px -6px rgba(255,255,255,0.6), inset -0.3px -1px 4px 0 rgba(0,0,0,0.05), inset 0 0 8px 1px rgba(0,0,0,0.02), 0 12px 32px rgba(0,0,0,0.08);
+        }
+        @supports (backdrop-filter: blur(8px)) {
+            html.light-mode .glass-card,
+            html.light-mode .feature-card,
+            html.light-mode .pricing-card,
+            html.light-mode .step-card {
+                background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 100%);
+                backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
+                -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
+            }
         }
 
         /* Inputs / placeholders */
@@ -2532,9 +2606,32 @@
         /* Glass card surfaces (.glass-card handled earlier; add bare .glass/.glass-2) */
         html.light-mode .glass,
         html.light-mode .glass-2 {
-            background: #ffffff;
-            border-color: #e2e8f0;
-            box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 14px -8px rgba(15,23,42,.10);
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid transparent;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4), inset 1.8px 3px 0 -2px rgba(255,255,255,0.9), inset -2px -2px 0 -2px rgba(255,255,255,0.8), inset -3px -8px 1px -6px rgba(255,255,255,0.6), inset -0.3px -1px 4px 0 rgba(0,0,0,0.05), inset 0 0 8px 1px rgba(0,0,0,0.02), 0 12px 32px rgba(0,0,0,0.08);
+        }
+        @supports (backdrop-filter: blur(8px)) {
+            html.light-mode .glass,
+            html.light-mode .glass-2 {
+                background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 100%);
+                backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
+                -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.05);
+            }
+        }
+
+        /* Ambient washes behind glass grids in light mode */
+        html.light-mode .glass-ambient-wash {
+            position: relative;
+            isolation: isolate;
+        }
+        html.light-mode .glass-ambient-wash::before {
+            content: "";
+            position: absolute;
+            inset: -20%;
+            z-index: -1;
+            pointer-events: none;
+            background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.35) 0%, rgba(129, 140, 248, 0.2) 40%, transparent 70%);
+            filter: blur(60px);
         }
 
         /* In light mode the two #features product-preview panels render as
@@ -3413,7 +3510,7 @@
             <p class="reveal rd-2 text-lg text-gray-400">Branded short links and dynamic QR codes you can repoint at any time. Add your link to bios, posters, business cards, packaging — anywhere. Save links from any browser tab with the Zio Extension, or share straight from any mobile app into Sayzio.</p>
         </div>
 
-        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 glass-ambient-wash">
             {{-- 1 · Branded short links --}}
             <div class="reveal rd-1 glass rounded-3xl p-7 tilt share-card">
                 <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c1)"></div>
@@ -3582,7 +3679,7 @@
             </p>
         </div>
 
-        <div class="grid md:grid-cols-3 gap-6">
+        <div class="grid md:grid-cols-3 gap-6 glass-ambient-wash">
             {{-- 1 · Multiple global domains --}}
             <div class="reveal rd-1 glass rounded-3xl p-7 tilt relative overflow-hidden">
                 <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c1)"></div>
@@ -3879,7 +3976,7 @@
 
         <div class="grid lg:grid-cols-2 gap-10 items-center">
             <div class="reveal rd-2">
-                <div class="grid sm:grid-cols-2 gap-4">
+                <div class="grid sm:grid-cols-2 gap-4 glass-ambient-wash">
                     @foreach([
                         ['fa-layer-group','#1bd4d9','Multiple workspaces','One per brand, client or side project — fully isolated.'],
                         ['fa-user-plus','#3d6bff','Invite teammates','Add members by email. They get their own login.'],
@@ -4265,7 +4362,7 @@
             </div>
 
             <div class="reveal rd-2 order-1 lg:order-2">
-                <div class="grid sm:grid-cols-2 gap-4">
+                <div class="grid sm:grid-cols-2 gap-4 glass-ambient-wash">
                     @foreach([
                         ['fa-bolt','#ffc845','Real-time activity','Live signups, visits, purchases &amp; form fills.'],
                         ['fa-toggle-on','#1bd4d9','Zero setup','Already integrated with your Link in Bio — flip it on.'],
@@ -4576,7 +4673,7 @@
         </div>
 
         {{-- Snap-scroll carousel on mobile, 3-up grid from md+. --}}
-        <div class="-mx-4 sm:mx-0 px-4 sm:px-0 flex sm:grid sm:grid-cols-2 md:grid-cols-3 gap-6 overflow-x-auto sm:overflow-visible snap-x snap-mandatory scroll-smooth pb-4 sm:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div class="-mx-4 sm:mx-0 px-4 sm:px-0 flex sm:grid sm:grid-cols-2 md:grid-cols-3 gap-6 glass-ambient-wash overflow-x-auto sm:overflow-visible snap-x snap-mandatory scroll-smooth pb-4 sm:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             @foreach($featuredBlogPosts as $post)
                 <a href="{{ route('site.blogs.show', $post->slug) }}"
                    class="group shrink-0 w-[85%] sm:w-auto snap-start block bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden hover:border-blue-500/40 transition reveal rd-{{ $loop->iteration + 1 }}">

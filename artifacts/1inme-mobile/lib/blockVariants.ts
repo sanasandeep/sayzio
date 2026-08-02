@@ -384,8 +384,16 @@ const TYPE_ONE_OFFS: Record<string, MobileVariant[]> = {
     { key: "corporate_qa", name: "Corporate Q&A", tags: ["corporate", "minimal", "pro"], preview: { bg: "#ffffff", text: "#111827", radius: 6, border: "#d1d5db" } },
   ],
   countdown: [
-    { key: "flip_clock",  name: "Flip Clock",  tags: ["retro", "three_d"],       preview: { bg: "#0a0a0a", text: "#fbbf24", radius: 8, border: "#27272a" } },
-    { key: "pixel_clock", name: "Pixel Clock", tags: ["y2k", "retro", "playful"], preview: { bg: "#0f172a", text: "#a5f3fc", radius: 4, border: "#22d3ee" } },
+    { key: "flip_clock",      name: "Flip Clock",     tags: ["retro", "three_d"],           preview: { bg: "#0a0a0a", text: "#fbbf24", radius: 8, border: "#27272a" } },
+    { key: "pixel_clock",     name: "Pixel Clock",    tags: ["y2k", "retro", "playful"],    preview: { bg: "#0f172a", text: "#a5f3fc", radius: 4, border: "#22d3ee" } },
+    { key: "minimal_inline",  name: "Minimal Inline", tags: ["minimal", "clean"],           preview: { bg: "#ffffff", text: "#6366f1", radius: 0, border: "#e5e7eb" } },
+    { key: "glass_cards",     name: "Glass Cards",    tags: ["glass", "modern", "pro"],     preview: { bg: "#1e293b", text: "#ffffff", radius: 16, border: "#ffffff33" } },
+    { key: "neon_glow",       name: "Neon Glow",      tags: ["neon", "dark", "bold"],       preview: { bg: "#09090b", text: "#f9a8d4", radius: 12, border: "#db2777" } },
+    { key: "gradient_pop_cd", name: "Gradient Pop",   tags: ["vibrant", "gradient", "bold"], preview: { bg: "#db2777", text: "#ffffff", radius: 18, border: "#f97316" } },
+    { key: "soft_pastel_cd",  name: "Soft Pastel",    tags: ["pastel", "soft", "cute"],     preview: { bg: "#fdf2f8", text: "#9d174d", radius: 20, border: "#fbcfe8" } },
+    { key: "bold_blocks",     name: "Bold Blocks",    tags: ["bold", "brutal", "three_d"],  preview: { bg: "#facc15", text: "#000000", radius: 4, border: "#000000" } },
+    { key: "outline_ring",    name: "Outline Ring",   tags: ["minimal", "outline", "clean"], preview: { bg: "#ffffff", text: "#111827", radius: 999, border: "#111827" } },
+    { key: "elegant_serif",   name: "Elegant Serif",  tags: ["elegant", "serif", "luxury", "pro"], preview: { bg: "#1c1917", text: "#d6b978", radius: 6, border: "#a8874f", serif: true } },
   ],
   cta_button: [
     { key: "big_action", name: "Big Action", tags: ["bold", "three_d"], preview: { bg: "#ef4444", text: "#fff", radius: 14 } },

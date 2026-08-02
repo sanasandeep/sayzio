@@ -118,7 +118,7 @@
 {{-- SHOWCASE STRIP --}}
 <section class="pb-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid md:grid-cols-3 gap-5" data-anim="fade-up" data-stagger>
+        <div class="grid md:grid-cols-3 gap-5 glass-ambient-wash" data-anim="fade-up" data-stagger>
             @foreach($showcase as $s)
                 <div class="group relative" data-tilt="4">
                     <div class="img-frame img-tilt aspect-[4/3]">
@@ -205,7 +205,7 @@
             {{-- Main column: feature category cards. --}}
             <div class="min-w-0 space-y-10">
                 @foreach($categories as $i => $cat)
-                    <section id="cat-{{ $cat['id'] }}" data-spy-target class="feature-cat-card bg-white/[0.03] border border-white/10 rounded-2xl p-6 sm:p-10 scroll-mt-24" data-anim="fade-up">
+                    <section id="cat-{{ $cat['id'] }}" data-spy-target class="feature-cat-card glass-panel rounded-2xl p-6 sm:p-10 scroll-mt-24" data-anim="fade-up">
                         <div class="flex items-start gap-4 mb-6">
                             <div class="shrink-0 w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center">
                                 <i class="fas {{ $cat['icon'] }} text-blue-300 text-lg"></i>

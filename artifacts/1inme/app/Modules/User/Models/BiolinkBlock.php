@@ -542,6 +542,16 @@ class BiolinkBlock extends Model
         // dispatches on it to reposition avatar/cover/text/socials. Empty =
         // fall back to the block-type's default layout (classic/cover/...).
         '_profile_layout' => '',   // classic_creator, glass, cover_hero, ...
+        // Countdown block color overrides (rich countdown redesign). All
+        // three are plain colors sanitized like other `_style` colors;
+        // curated countdown variants carry them so a single click restyles
+        // the digits/labels/unit boxes. Empty = fall back to the block's
+        // text_color / theme accent at render time.
+        '_countdown_digit_color' => '',
+        '_countdown_label_color' => '',
+        '_countdown_box_bg' => '',
+        '_countdown_cta_bg' => '',
+        '_countdown_cta_text' => '',
     ];
 
     /** Max custom sticker overlays per image block (Task #5939). */
