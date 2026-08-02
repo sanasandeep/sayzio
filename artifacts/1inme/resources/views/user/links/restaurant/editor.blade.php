@@ -320,16 +320,18 @@
     $menuItems = $menu->items->map(fn($i)=>['id'=>$i->id,'category_id'=>$i->category_id,'name'=>$i->name,'description'=>$i->description,'price'=>$i->price,'photo_url'=>$i->photo_url,'is_sold_out'=>$i->is_sold_out])->values();
     $menuTables = $menu->tables->map(fn($t)=>['id'=>$t->id,'label'=>$t->label,'code'=>$t->code])->values();
     $menuCoupons = $menu->coupons->map(fn($c)=>['id'=>$c->id,'code'=>$c->code,'discount_type'=>$c->discount_type,'discount_value'=>$c->discount_value,'min_subtotal'=>$c->min_subtotal,'is_active'=>$c->is_active])->values();
+    $menuData = ['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color, 'whatsapp_number' => $menu->settings['whatsapp_number'] ?? ''];
+    $menuTax = [
+        'enabled'   => $menu->taxEnabled(),
+        'rate'      => $menu->taxRate(),
+        'inclusive' => $menu->taxInclusive(),
+        'label'     => $menu->taxLabel(),
+    ];
 @endphp
 function restaurantEditor() {
     return {
-        menu: @json(['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color, 'whatsapp_number' => $menu->settings['whatsapp_number'] ?? '']),
-        tax: @json([
-            'enabled'   => $menu->taxEnabled(),
-            'rate'      => $menu->taxRate(),
-            'inclusive' => $menu->taxInclusive(),
-            'label'     => $menu->taxLabel(),
-        ]),
+        menu: @json($menuData),
+        tax: @json($menuTax),
         categories: @json($menuCategories),
         items: @json($menuItems),
         tables: @json($menuTables),

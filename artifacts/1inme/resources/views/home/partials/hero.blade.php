@@ -11,7 +11,7 @@
      prefers-reduced-motion. CTAs keep the existing open-auth +
      trackMarketingEvent behaviour.
 --}}
-<section class="relative overflow-hidden pt-28 pb-16 sm:pt-32 lg:pt-24 lg:pb-24 lg:min-h-[100svh] lg:flex lg:items-center" aria-labelledby="hero-h">
+<section class="relative z-10 overflow-hidden pt-28 pb-16 sm:pt-32 lg:pt-24 lg:pb-24 lg:min-h-[100svh] lg:flex lg:items-center" aria-labelledby="hero-h">
     {{-- Drifting confetti --}}
     <div class="confetti drift-a" style="left:10%; bottom:-22vh;"><div class="w-3 h-3 rounded-sm" style="background:var(--c1)"></div></div>
     <div class="confetti drift-b" style="left:86%; bottom:-28vh; animation-delay:-6s"><div class="w-2 h-6 rounded-full" style="background:var(--c2)"></div></div>

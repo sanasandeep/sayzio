@@ -1333,7 +1333,7 @@
                 <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Compare features at a glance</h2>
                 <p class="text-gray-400 mt-2">Every plan, every important feature, laid out so you can spot the deltas in seconds.</p>
             </div>
-            <div class="rounded-3xl border border-white/10 bg-white/[0.02] overflow-hidden">
+            <div class="glass-panel rounded-3xl overflow-hidden">
                 <div class="feat-matrix-scroll">
                     <div class="feat-matrix grid" style="grid-template-columns: {{ $colTpl }};">
                         {{-- Header row --}}
@@ -1404,7 +1404,7 @@
                  below (kept as the single source of truth), so we don't repeat
                  those feature names here. ── --}}
             <div class="max-w-4xl mx-auto mb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 flex flex-col">
+                <div class="glass-panel rounded-2xl p-5 flex flex-col">
                     <div class="w-10 h-10 rounded-xl bg-amber-400/15 ring-1 ring-amber-400/30 flex items-center justify-center mb-3">
                         <i class="fas fa-gauge-high text-amber-300"></i>
                     </div>
@@ -1415,7 +1415,7 @@
                     </p>
                     <p class="text-[11px] text-amber-300/80 mt-2">e.g. a viral week that doubles your traffic.</p>
                 </div>
-                <div class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 flex flex-col">
+                <div class="glass-panel rounded-2xl p-5 flex flex-col">
                     <div class="w-10 h-10 rounded-xl bg-amber-400/15 ring-1 ring-amber-400/30 flex items-center justify-center mb-3">
                         <i class="fas fa-puzzle-piece text-amber-300"></i>
                     </div>
@@ -1425,7 +1425,7 @@
                     </p>
                     <p class="text-[11px] text-amber-300/80 mt-2">e.g. a single ad campaign or a batch of NFC tags.</p>
                 </div>
-                <div class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 flex flex-col">
+                <div class="glass-panel rounded-2xl p-5 flex flex-col">
                     <div class="w-10 h-10 rounded-xl bg-blue-500/15 ring-1 ring-blue-400/30 flex items-center justify-center mb-3">
                         <i class="fas fa-wand-magic-sparkles text-blue-300"></i>
                     </div>
@@ -1445,7 +1445,7 @@
                     Coin top-ups aren't enabled on this site yet. Check back soon.
                 </div>
             @elseif($packages->isEmpty())
-                <div class="max-w-2xl mx-auto rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-gray-400 text-center">
+                <div class="max-w-2xl mx-auto glass-panel rounded-2xl p-6 text-gray-400 text-center">
                     No coin packages are available right now.
                 </div>
             @else
@@ -1468,7 +1468,7 @@
                     @foreach($packages as $row)
                         @php $pkg = $row['model']; $isFeat = $pkg->bonus_coins > 0; @endphp
                         <div x-data='{ prices: @json($row['prices']) }'
-                             class="grad-glow {{ $isFeat ? 'is-popular' : '' }} relative rounded-2xl border {{ $isFeat ? 'border-amber-400/40' : 'border-white/10' }} bg-white/[0.02] coin-bg p-6 flex flex-col">
+                             class="grad-glow {{ $isFeat ? 'is-popular' : '' }} relative glass-panel rounded-2xl coin-bg p-6 flex flex-col {{ $isFeat ? '!border-amber-400/40' : '' }}">
                             {{-- Background glow lives in its own clipped layer so it stays
                                  contained inside the rounded card, while the "+X bonus"
                                  badge below can render fully outside the card bounds

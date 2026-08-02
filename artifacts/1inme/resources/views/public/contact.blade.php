@@ -149,7 +149,7 @@
 <section class="pb-8">
     <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         @foreach($sections as $section)
-            <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 mb-6">
+            <div class="glass-panel rounded-2xl p-6 mb-6">
                 @if(!empty($section['heading']))<h2 class="text-lg font-bold mb-2">{{ $section['heading'] }}</h2>@endif
                 <div class="text-gray-300 text-sm leading-relaxed">{!! nl2br(e($section['body'] ?? '')) !!}</div>
             </div>
@@ -159,7 +159,7 @@
 
 <section class="pb-12">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-2 gap-6" data-anim="fade-up" data-stagger>
-        <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 space-y-5">
+        <div class="glass-panel rounded-2xl p-6 space-y-5">
             @if($detailsHeading !== '')<h2 class="text-lg font-bold text-white">{{ $detailsHeading }}</h2>@endif
             @if($address !== '')
                 <div>
@@ -251,7 +251,7 @@
                 $cTitle = trim((string)($card['title'] ?? ''));
                 $cDesc  = trim((string)($card['desc']  ?? ''));
             @endphp
-            <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 hover:border-blue-400/40 transition">
+            <div class="glass-panel rounded-2xl p-5 transition hover:!border-blue-400/40">
                 <div class="w-10 h-10 rounded-lg bg-blue-500/15 border border-blue-400/30 flex items-center justify-center text-blue-300 mb-3"><i class="fas {{ $cIcon !== '' ? $cIcon : 'fa-circle-dot' }}"></i></div>
                 @if($cTitle !== '')<div class="text-sm font-bold text-white">{{ $cTitle }}</div>@endif
                 @if($cDesc !== '')<div class="text-xs text-gray-400 mt-1">{{ $cDesc }}</div>@endif
@@ -283,7 +283,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('site.contact.submit') }}" class="space-y-4 bg-white/[0.03] border border-white/10 rounded-2xl p-6">
+        <form method="POST" action="{{ route('site.contact.submit') }}" class="space-y-4 glass-panel rounded-2xl p-6">
             @csrf
             {{-- honeypot --}}
             <input type="text" name="website" value="" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true">
@@ -344,7 +344,7 @@
 
 <section class="pb-16">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8" data-anim="fade-up">
-        <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 sm:p-8">
+        <div class="glass-panel rounded-2xl p-6 sm:p-8">
             <div class="flex items-center gap-2 text-[11px] uppercase tracking-wider text-emerald-300 font-semibold mb-2">
                 <i class="fas fa-user-shield"></i> Your privacy
             </div>

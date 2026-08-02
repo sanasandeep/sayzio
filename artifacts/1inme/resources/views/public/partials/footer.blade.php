@@ -1,4 +1,4 @@
-<footer class="bg-[#08020f] text-white pt-16 pb-8 border-t border-white/5">
+<footer class="glass-footer text-white pt-16 pb-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid md:grid-cols-6 gap-8 mb-12">
             <div class="md:col-span-2">

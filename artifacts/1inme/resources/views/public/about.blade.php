@@ -254,7 +254,7 @@
         @endif
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5" data-anim="fade-up" data-stagger>
             @foreach($valueCards as $v)
-                <div class="bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 hover:border-blue-400/40 rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1">
+                <div class="glass-panel rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 hover:!border-blue-400/40 hover:bg-white/[0.05]">
                     <div class="w-11 h-11 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-200 mb-4">
                         <i class="fas {{ $v['icon'] ?? 'fa-circle-dot' }}"></i>
                     </div>
@@ -280,7 +280,7 @@
                 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-[1.1fr_1fr] gap-10 items-start">
                     <div class="space-y-6">
                         @foreach($story as $s)
-                            <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 sm:p-8" data-anim="fade-up">
+                            <div class="glass-panel rounded-2xl p-6 sm:p-8" data-anim="fade-up">
                                 @if(!empty($s['heading']))
                                     <h2 class="text-xl sm:text-2xl font-bold mb-3 text-white">{{ $s['heading'] }}</h2>
                                 @endif
@@ -357,7 +357,7 @@
         @case('eefind')
             <section class="pb-16">
                 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8" data-anim="fade-up">
-                    <div class="bg-white/[0.03] border border-white/10 rounded-3xl p-6 sm:p-10">
+                    <div class="glass-panel rounded-3xl p-6 sm:p-10">
                         @if($eefindEyebrow !== '')
                             <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-xs text-blue-300 uppercase tracking-wider font-semibold">
                                 <i class="fas fa-building text-[10px]"></i> {{ $eefindEyebrow }}
@@ -373,7 +373,7 @@
                         @if(!empty($eefindVisibleStats))
                             <div class="mt-7 grid grid-cols-3 gap-4 max-w-xl">
                                 @foreach($eefindVisibleStats as $s)
-                                    <div class="bg-white/[0.04] border border-white/10 rounded-2xl p-4 text-center">
+                                    <div class="glass-panel rounded-2xl p-4 text-center">
                                         <div class="text-2xl sm:text-3xl font-bold text-white">
                                             @if(is_numeric($s['value']))
                                                 <span data-count="{{ $s['value'] }}"@if($s['suffix'] !== '') data-count-suffix="{{ $s['suffix'] }}"@endif></span>
