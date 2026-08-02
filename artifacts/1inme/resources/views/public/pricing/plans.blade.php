@@ -13,9 +13,9 @@
 <script type="application/ld+json">{!! json_encode(\App\Modules\Common\Support\MarketingSchema::graph($__pricingProducts), JSON_UNESCAPED_UNICODE) !!}</script>
 @endif
 <style>
-    .grad-bar { background: linear-gradient(135deg,#3d6bff 0%,#2b54eb 50%,#c026d3 100%); }
+    .grad-bar { background: linear-gradient(135deg,#3d6bff 0%,#2b54eb 50%,#22d3ee 100%); }
     .grad-text {
-        background: linear-gradient(120deg,#bccfff 0%,#6e61ff 38%,#3d6bff 66%,#c026d3 100%);
+        background: linear-gradient(120deg,#bccfff 0%,#3d6bff 38%,#2b54eb 66%,#1bd4d9 100%);
         -webkit-background-clip: text; background-clip: text;
         -webkit-text-fill-color: transparent; color: transparent;
     }
@@ -24,7 +24,7 @@
     .grad-glow { position: relative; }
     .grad-glow::before {
         content: ""; position: absolute; inset: -1px; border-radius: 1.1rem; padding: 1px;
-        background: linear-gradient(135deg,#6e61ff 0%,#3d6bff 50%,#c026d3 100%);
+        background: linear-gradient(135deg,#3d6bff 0%,#2b54eb 50%,#22d3ee 100%);
         -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
         -webkit-mask-composite: xor; mask-composite: exclude;
         opacity: 0; transition: opacity .35s ease;
@@ -246,7 +246,7 @@
     .plan-band.is-current::before {
         content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px;
     }
-    .plan-band.is-accent::before  { background: linear-gradient(90deg,#3d6bff,#6e61ff,#ec4899); }
+    .plan-band.is-accent::before  { background: linear-gradient(90deg,#3d6bff,#2b54eb,#22d3ee); }
     .plan-band.is-current::before { background: linear-gradient(90deg,#10b981,#34d399); }
     .plan-card.is-accent  { background: radial-gradient(140% 80% at 50% -10%, rgba(61,107,255,.14), transparent 60%), rgba(61,107,255,.06); }
     .plan-card.is-current { background: radial-gradient(140% 80% at 50% -10%, rgba(16,185,129,.12), transparent 60%), rgba(16,185,129,.05); }
@@ -263,7 +263,7 @@
         box-shadow: 0 10px 22px -10px rgba(61,107,255,.8), inset 0 1px 0 rgba(255,255,255,.28);
     }
     .plan-band-ico.is-current { background: linear-gradient(135deg,#10b981,#34d399); box-shadow: 0 10px 22px -10px rgba(16,185,129,.8), inset 0 1px 0 rgba(255,255,255,.3); }
-    .plan-band-ico.is-accent  { background: linear-gradient(135deg,#3d6bff,#c026d3); box-shadow: 0 12px 26px -10px rgba(192,38,211,.75), inset 0 1px 0 rgba(255,255,255,.32); }
+    .plan-band-ico.is-accent  { background: linear-gradient(135deg,#3d6bff,#22d3ee); box-shadow: 0 12px 26px -10px rgba(34,211,238,.75), inset 0 1px 0 rgba(255,255,255,.32); }
     .plan-band-name { color: #fff; font-weight: 800; letter-spacing: -.01em; }
     html.light-mode .plan-band-name { color: #0f172a !important; }
 
@@ -282,12 +282,24 @@
 
     /* Light-mode counterparts (dark is the default; the global
        marketing-anim.css doesn't know these custom classes). */
-    html.light-mode .plan-card { background: #ffffff; box-shadow: 0 18px 40px -30px rgba(15,23,42,.35); }
+    html.light-mode .plan-card { background: rgba(255,255,255,0.7); box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.9), 0 18px 40px -30px rgba(15,23,42,.35); }
+    @supports (backdrop-filter: blur(24px)) {
+        html.light-mode .plan-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.2) 100%);
+            backdrop-filter: blur(24px) saturate(140%);
+            -webkit-backdrop-filter: blur(24px) saturate(140%);
+        }
+    }
     html.light-mode .plan-card:hover { box-shadow: 0 30px 70px -34px rgba(61,107,255,.4); }
     html.light-mode .plan-band { background: linear-gradient(180deg, rgba(15,23,42,.05), rgba(15,23,42,.01)); border-bottom-color: rgba(15,23,42,.08); }
     html.light-mode .plan-band.is-accent  { background: linear-gradient(135deg, rgba(61,107,255,.16), rgba(110,97,255,.05)); border-bottom-color: rgba(61,107,255,.25); }
     html.light-mode .plan-band.is-current { background: linear-gradient(135deg, rgba(16,185,129,.16), rgba(52,211,153,.05)); border-bottom-color: rgba(16,185,129,.25); }
-    html.light-mode .plan-card.is-accent  { background: #faf8ff; }
+    html.light-mode .plan-card.is-accent  { background: rgba(250,248,255,0.7); }
+    @supports (backdrop-filter: blur(24px)) {
+        html.light-mode .plan-card.is-accent {
+            background: linear-gradient(135deg, rgba(250,248,255,0.6) 0%, rgba(250,248,255,0.3) 100%);
+        }
+    }
     html.light-mode .plan-card.is-current { background: #f3fcf8; }
     html.light-mode .plan-price { background: rgba(15,23,42,.03); border-color: rgba(15,23,42,.08); }
     html.light-mode .plan-card.is-accent .plan-price { background: rgba(61,107,255,.07); border-color: rgba(61,107,255,.2); }
@@ -337,45 +349,43 @@
     .plans-row { display: flex; gap: 1.25rem; align-items: stretch; }
     .plans-row > .plan-card { flex: 1 0 290px; min-width: 290px; max-width: 360px; scroll-snap-align: start; }
 
-    /* Keep the violet gradient CTA legible in light mode — the global
+    /* Keep the gradient CTA legible in light mode — the global
        override would otherwise darken `.text-white` sitting on it. */
     html.light-mode .grad-bar.text-white,
     html.light-mode .grad-bar .text-white { color: #fff !important; }
 
     /* ── Cycle toggle (Monthly/Annual) ──────────────────────────────────
-       The knob is a violet gradient layer that slides under the active
+       The knob is a blue-cyan gradient layer that slides under the active
        label. In light mode the track collapses to a near-white tint, so the
-       knob gets a firmer surface + a violet ring & drop-shadow to stay
+       knob gets a firmer surface + a blue ring & drop-shadow to stay
        unmistakable. Label colours live on the custom .cycle-seg/.cycle-on
        classes below so the global light-mode `.text-white` remap never
-       touches them.
-       Knob — deepen the gradient end-stop (the old magenta #c026d3 was light
-       enough that bold white text washed out on it). */
+       touches them. */
     .cycle-knob {
-        background: linear-gradient(135deg,#2342c7 0%,#3d6bff 50%,#a21caf 100%);
+        background: linear-gradient(135deg,#2342c7 0%,#3d6bff 50%,#22d3ee 100%);
         box-shadow: 0 8px 22px -8px rgba(61,107,255,.7);
     }
     /* Labels are driven entirely by these custom classes so the global
        light-mode `.text-white` remap can't touch them. Inactive labels keep a
        comfortable contrast against the track and brighten on hover; the active
-       label (`.cycle-on`) rides the violet knob in both modes with a soft
-       shadow so white stays crisp on the lighter magenta stop. */
+       label (`.cycle-on`) rides the blue knob in both modes with a soft
+       shadow so white stays crisp on the lighter cyan stop. */
     .cycle-seg { color: #cbd5e1; transition: color .2s ease, text-shadow .2s ease; }
     .cycle-seg:hover { color: #fff; }
-    .cycle-seg.cycle-on { color: #fff; font-weight: 700; text-shadow: 0 1px 8px rgba(76,29,149,.6); }
+    .cycle-seg.cycle-on { color: #fff; font-weight: 700; text-shadow: 0 1px 8px rgba(34,211,238,.6); }
     html.light-mode .cycle-track {
         background-color: rgba(15,23,42,.06) !important;
         border-color: rgba(15,23,42,.12) !important;
     }
     html.light-mode .cycle-knob {
-        background: linear-gradient(135deg,#2342c7 0%,#3d6bff 50%,#a21caf 100%) !important;
+        background: linear-gradient(135deg,#2342c7 0%,#3d6bff 50%,#22d3ee 100%) !important;
         box-shadow: 0 8px 22px -6px rgba(61,107,255,.85), 0 0 0 1.5px rgba(61,107,255,.6) !important;
     }
     html.light-mode .cycle-seg { color: #334155; }
     html.light-mode .cycle-seg:hover { color: #111827; }
-    /* Active (on-knob) label: white on the blue→purple gradient; double shadow
-       gives crisp contrast even on the lighter magenta end of the gradient. */
-    html.light-mode .cycle-seg.cycle-on { color: #fff !important; text-shadow: 0 1px 3px rgba(0,0,0,.45), 0 0 14px rgba(76,29,149,.65); }
+    /* Active (on-knob) label: white on the blue→cyan gradient; double shadow
+       gives crisp contrast even on the lighter cyan end of the gradient. */
+    html.light-mode .cycle-seg.cycle-on { color: #fff !important; text-shadow: 0 1px 3px rgba(0,0,0,.45), 0 0 14px rgba(34,211,238,.65); }
     html.light-mode .seg:not(.seg-active):hover { color: #111827 !important; }
 
     /* ── Arbitrary white-opacity utilities the global remap misses ──
@@ -402,14 +412,14 @@
     html.light-mode .smart-banner [class*="text-white/"] { color: rgba(248,250,252,.7) !important; }
     html.light-mode .smart-banner .text-blue-200,
     html.light-mode .smart-banner .text-blue-300 { color: #bccfff !important; }
-    html.light-mode .smart-banner .text-pink-300    { color: #f9a8d4 !important; }
+    html.light-mode .smart-banner .text-cyan-300    { color: #22d3ee !important; }
     html.light-mode .smart-banner .text-amber-300   { color: #fcd34d !important; }
     html.light-mode .smart-banner .text-emerald-300 { color: #6ee7b7 !important; }
     html.light-mode .smart-banner .bg-white\/10     { background-color: rgba(255,255,255,.12) !important; }
     html.light-mode .smart-banner .border-white\/10 { border-color: rgba(255,255,255,.14) !important; }
 
     /* ── Referral teaser icon — gradient chip, white glyph in both modes ── */
-    .ref-icon { background: linear-gradient(135deg,#3d6bff,#c026d3); color: #fff; }
+    .ref-icon { background: linear-gradient(135deg,#3d6bff,#22d3ee); color: #fff; }
     html.light-mode .ref-icon { color: #fff !important; }
 
     /* The smart banner keeps a dark surface in both modes, so its emerald
@@ -602,7 +612,7 @@
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center max-w-3xl mx-auto space-y-5" data-anim="fade-up">
-            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-500/15 via-fuchsia-500/10 to-blue-500/15 border border-blue-400/25 backdrop-blur-sm text-xs font-bold uppercase tracking-[.2em] text-blue-100 shadow-lg shadow-blue-900/25">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-500/15 via-cyan-400/15 to-blue-500/15 border border-blue-400/25 backdrop-blur-sm text-xs font-bold uppercase tracking-[.2em] text-blue-100 shadow-lg shadow-blue-900/25">
                 <span class="relative flex h-2 w-2">
                     <span class="absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75 animate-ping motion-reduce:hidden"></span>
                     <span class="relative inline-flex h-2 w-2 rounded-full bg-blue-300"></span>
@@ -612,7 +622,7 @@
             <h1 class="hero-title text-4xl sm:text-5xl lg:text-[3.65rem] font-bold tracking-tight leading-[1.05]">
                 Pricing that <span class="grad-text">scales with you.</span>
             </h1>
-            <p class="text-lg text-gray-300/90 max-w-xl mx-auto">
+            <p class="text-lg text-gray-300 opacity-90 max-w-xl mx-auto">
                 Start free, upgrade only when you outgrow it. Powerful features, transparent pricing, cancel anytime.
             </p>
             <div class="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-2 pt-1 pb-4 text-xs">
@@ -673,7 +683,7 @@
                             <a href="{{ route('user.upgrade', ['cycle' => $cycle]) }}"
                                class="group block rounded-2xl border border-blue-400/40 p-5 bg-blue-600/15 hover:bg-blue-600/25 transition relative overflow-hidden">
                                 <div class="absolute -right-10 -top-10 w-32 h-32 rounded-full bg-blue-500/20 blur-2xl pointer-events-none"></div>
-                                <div class="text-[11px] font-bold uppercase tracking-[.18em] text-pink-300 mb-1">
+                                <div class="text-[11px] font-bold uppercase tracking-[.18em] text-cyan-300 mb-1">
                                     <i class="fas fa-wand-magic-sparkles"></i> Recommended for you
                                 </div>
                                 <div class="flex items-baseline justify-between gap-3 mt-1">
@@ -681,7 +691,7 @@
                                         <div class="text-2xl font-bold text-white">Upgrade to {{ $recPlan->name }}</div>
                                         <div class="text-sm text-gray-300 mt-1">{{ $rec['reason'] }}</div>
                                     </div>
-                                    <i class="fas fa-arrow-right text-pink-300 group-hover:translate-x-1 transition"></i>
+                                    <i class="fas fa-arrow-right text-cyan-300 group-hover:translate-x-1 transition"></i>
                                 </div>
                                 <div class="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 text-xs font-semibold text-white">
                                     See plans &amp; checkout <i class="fas fa-chevron-right text-[10px]"></i>
@@ -940,7 +950,7 @@
                     $borderClasses = $isCurrent
                         ? 'border-emerald-400/50'
                         : ($isRecommended
-                            ? 'border-pink-400/50'
+                            ? 'border-cyan-400/50'
                             : ($isPopular
                                 ? 'border-blue-500/50'
                                 : 'border-white/10'));
@@ -1342,7 +1352,7 @@
                             @php $p = $row['model']; @endphp
                             <div class="feat-cell feat-head text-center {{ $p->is_popular ? 'feat-popular-col' : '' }}">
                                 <span class="text-white text-sm font-semibold normal-case tracking-normal">
-                                    @if($p->is_popular)<i class="fas fa-star text-pink-400 text-[10px]"></i>@endif
+                                    @if($p->is_popular)<i class="fas fa-star text-cyan-400 text-[10px]"></i>@endif
                                     {{ $p->name }}
                                 </span>
                             </div>

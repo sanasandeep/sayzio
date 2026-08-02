@@ -114,7 +114,6 @@
             --ink:  #111827;
         }
         html.light-mode body { background: #f8fafc; color: #111827; }
-        html.light-mode .aurora { opacity: 0.18; }
 
         /* ============ Aurora background ============ */
         .aurora { position: fixed; inset: -10%; z-index: -1; pointer-events: none; opacity: .6; filter: blur(80px); }
@@ -2463,8 +2462,9 @@
         }
         html.light-mode body { background: var(--bg); color: #0f172a; }
 
-        /* Aurora softened to a faint pastel wash */
-        html.light-mode .aurora { opacity: .22; filter: blur(110px); }
+        /* Aurora strengthened for visible glass translucency */
+        html.light-mode .aurora { opacity: 0.25; filter: blur(120px); }
+        html.light-mode .aurora b { mix-blend-mode: multiply; opacity: 0.15; }
 
         /* ---- Generic dark utilities → light equivalents ---- */
         html.light-mode .text-white                       { color: #0f172a; }
@@ -2522,21 +2522,21 @@
         html.light-mode h3:not(.grad-text),
         html.light-mode h4:not(.grad-text) { color: #0f172a; }
 
-        /* Cards built from translucent white surfaces — give a real card look */
+        /* Cards built from translucent white surfaces — give a real glass look */
         html.light-mode .glass-card,
         html.light-mode .feature-card,
         html.light-mode .pricing-card,
         html.light-mode .step-card {
-            background: rgba(255,255,255,0.85);
-            border-color: rgba(255,255,255,0.8);
-            box-shadow: inset 0 1px 0 0 #ffffff, 0 8px 32px -8px rgba(0,0,0,0.08);
+            background: linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(219,234,254,0.6) 55%, rgba(186,230,253,0.45) 100%);
+            border: 1px solid rgba(148,163,184,0.4);
+            box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.95), inset 0 -18px 40px -24px rgba(59,130,246,0.25), 0 12px 40px -12px rgba(37,99,235,0.15);
         }
         @supports (backdrop-filter: blur(24px)) {
             html.light-mode .glass-card,
             html.light-mode .feature-card,
             html.light-mode .pricing-card,
             html.light-mode .step-card {
-                background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.5) 100%);
+                background: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(219,234,254,0.42) 55%, rgba(186,230,253,0.3) 100%);
                 backdrop-filter: blur(24px) saturate(140%);
                 -webkit-backdrop-filter: blur(24px) saturate(140%);
             }
@@ -2601,17 +2601,32 @@
         /* Glass card surfaces (.glass-card handled earlier; add bare .glass/.glass-2) */
         html.light-mode .glass,
         html.light-mode .glass-2 {
-            background: rgba(255,255,255,0.85);
-            border-color: rgba(255,255,255,0.8);
-            box-shadow: inset 0 1px 0 0 #ffffff, 0 8px 32px -8px rgba(0,0,0,0.08);
+            background: linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(219,234,254,0.6) 55%, rgba(186,230,253,0.45) 100%);
+            border: 1px solid rgba(148,163,184,0.4);
+            box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.95), inset 0 -18px 40px -24px rgba(59,130,246,0.25), 0 12px 40px -12px rgba(37,99,235,0.15);
         }
         @supports (backdrop-filter: blur(24px)) {
             html.light-mode .glass,
             html.light-mode .glass-2 {
-                background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.5) 100%);
+                background: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(219,234,254,0.42) 55%, rgba(186,230,253,0.3) 100%);
                 backdrop-filter: blur(24px) saturate(140%);
                 -webkit-backdrop-filter: blur(24px) saturate(140%);
             }
+        }
+
+        /* Ambient washes behind glass grids in light mode */
+        html.light-mode .glass-ambient-wash {
+            position: relative;
+            isolation: isolate;
+        }
+        html.light-mode .glass-ambient-wash::before {
+            content: "";
+            position: absolute;
+            inset: -20%;
+            z-index: -1;
+            pointer-events: none;
+            background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.15) 0%, rgba(129, 140, 248, 0.08) 40%, transparent 70%);
+            filter: blur(60px);
         }
 
         /* In light mode the two #features product-preview panels render as
@@ -3490,7 +3505,7 @@
             <p class="reveal rd-2 text-lg text-gray-400">Branded short links and dynamic QR codes you can repoint at any time. Add your link to bios, posters, business cards, packaging — anywhere. Save links from any browser tab with the Zio Extension, or share straight from any mobile app into Sayzio.</p>
         </div>
 
-        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 glass-ambient-wash">
             {{-- 1 · Branded short links --}}
             <div class="reveal rd-1 glass rounded-3xl p-7 tilt share-card">
                 <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c1)"></div>
@@ -3659,7 +3674,7 @@
             </p>
         </div>
 
-        <div class="grid md:grid-cols-3 gap-6">
+        <div class="grid md:grid-cols-3 gap-6 glass-ambient-wash">
             {{-- 1 · Multiple global domains --}}
             <div class="reveal rd-1 glass rounded-3xl p-7 tilt relative overflow-hidden">
                 <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c1)"></div>
@@ -3956,7 +3971,7 @@
 
         <div class="grid lg:grid-cols-2 gap-10 items-center">
             <div class="reveal rd-2">
-                <div class="grid sm:grid-cols-2 gap-4">
+                <div class="grid sm:grid-cols-2 gap-4 glass-ambient-wash">
                     @foreach([
                         ['fa-layer-group','#1bd4d9','Multiple workspaces','One per brand, client or side project — fully isolated.'],
                         ['fa-user-plus','#3d6bff','Invite teammates','Add members by email. They get their own login.'],
@@ -4342,7 +4357,7 @@
             </div>
 
             <div class="reveal rd-2 order-1 lg:order-2">
-                <div class="grid sm:grid-cols-2 gap-4">
+                <div class="grid sm:grid-cols-2 gap-4 glass-ambient-wash">
                     @foreach([
                         ['fa-bolt','#ffc845','Real-time activity','Live signups, visits, purchases &amp; form fills.'],
                         ['fa-toggle-on','#1bd4d9','Zero setup','Already integrated with your Link in Bio — flip it on.'],
@@ -4653,7 +4668,7 @@
         </div>
 
         {{-- Snap-scroll carousel on mobile, 3-up grid from md+. --}}
-        <div class="-mx-4 sm:mx-0 px-4 sm:px-0 flex sm:grid sm:grid-cols-2 md:grid-cols-3 gap-6 overflow-x-auto sm:overflow-visible snap-x snap-mandatory scroll-smooth pb-4 sm:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div class="-mx-4 sm:mx-0 px-4 sm:px-0 flex sm:grid sm:grid-cols-2 md:grid-cols-3 gap-6 glass-ambient-wash overflow-x-auto sm:overflow-visible snap-x snap-mandatory scroll-smooth pb-4 sm:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             @foreach($featuredBlogPosts as $post)
                 <a href="{{ route('site.blogs.show', $post->slug) }}"
                    class="group shrink-0 w-[85%] sm:w-auto snap-start block bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden hover:border-blue-500/40 transition reveal rd-{{ $loop->iteration + 1 }}">

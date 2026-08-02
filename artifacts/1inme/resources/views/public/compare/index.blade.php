@@ -39,10 +39,10 @@
 {{-- ─────────────  COMPETITOR CARDS  ───────────── --}}
 <section class="relative pb-10">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4" data-anim="fade-up" data-stagger>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 glass-ambient-wash" data-anim="fade-up" data-stagger>
             @foreach($competitors as $c)
                 <a href="{{ route('site.compare.show', ['competitor' => $c['key']]) }}"
-                   class="group glass rounded-3xl p-6 lift block relative overflow-hidden">
+                   class="group glass-panel rounded-3xl p-6 lift block relative overflow-hidden">
                     <div class="absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-20" aria-hidden="true"
                          style="background: {{ $c['accent'] }};"></div>
                     <div class="relative flex items-center gap-3 mb-4">
