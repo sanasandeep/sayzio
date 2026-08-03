@@ -73,23 +73,18 @@
                 </div>
 
                 <div x-data="{ method: '{{ $defaultMethod }}' }">
-                    @if($methodCount > 1)
+                    {{-- Two simple tabs: Email (password or one-time code) and
+                         WhatsApp. The password/code choice lives INSIDE the
+                         Email tab as a small switch link so first-time
+                         visitors only ever see two options. --}}
+                    @if($mobileLoginEnabled && ($emailPasswordEnabled || $emailOtpEnabled))
                     <div class="flex gap-2 mb-4">
-                        @if($emailPasswordEnabled)
-                        <button type="button" @click="method = 'password'" :class="method === 'password' ? 'border-blue-500/40 text-blue-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="method !== 'password' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(61,107,255,0.08)'">
-                            <i class="fas fa-key mr-1"></i> Password
+                        <button type="button" @click="method = '{{ $emailPasswordEnabled ? 'password' : 'email_otp' }}'" :class="method !== 'mobile' ? 'border-blue-500/40 text-blue-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="method === 'mobile' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(61,107,255,0.08)'">
+                            <i class="fas fa-envelope mr-1"></i> Email
                         </button>
-                        @endif
-                        @if($emailOtpEnabled)
-                        <button type="button" @click="method = 'email_otp'" :class="method === 'email_otp' ? 'border-blue-500/40 text-blue-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="method !== 'email_otp' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(61,107,255,0.08)'">
-                            <i class="fas fa-envelope mr-1"></i> Email code
-                        </button>
-                        @endif
-                        @if($mobileLoginEnabled)
                         <button type="button" @click="method = 'mobile'" :class="method === 'mobile' ? 'border-blue-500/40 text-blue-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="method !== 'mobile' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(61,107,255,0.08)'">
                             <i class="fab fa-whatsapp mr-1"></i> WhatsApp
                         </button>
-                        @endif
                     </div>
                     @endif
 
@@ -116,6 +111,11 @@
                             <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
                                 <i class="fas fa-arrow-right-to-bracket text-xs"></i> Sign In
                             </button>
+                            @if($emailOtpEnabled)
+                            <p class="text-center text-xs" style="color: var(--text-dimmed);">
+                                Prefer no password? <button type="button" @click="method = 'email_otp'" class="text-blue-400 hover:text-blue-300 font-semibold transition-colors">Email me a code</button>
+                            </p>
+                            @endif
                         </div>
                     </form>
                     @endif
@@ -136,6 +136,11 @@
                             <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
                                 <i class="fas fa-paper-plane text-xs"></i> Send 6-digit Code
                             </button>
+                            @if($emailPasswordEnabled)
+                            <p class="text-center text-xs" style="color: var(--text-dimmed);">
+                                <button type="button" @click="method = 'password'" class="text-blue-400 hover:text-blue-300 font-semibold transition-colors">Use my password instead</button>
+                            </p>
+                            @endif
                         </div>
                     </form>
                     @endif

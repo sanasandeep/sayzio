@@ -56,6 +56,25 @@
                     {{ session('status') }}
                 </div>
 
+                {{-- Initial tab survives a validation round-trip: a failed
+                     WhatsApp signup (type=mobile, intent=signup) reopens on
+                     the WhatsApp tab so its errors stay visible. --}}
+                <div x-data="{ reg: '{{ old('type') === 'mobile' && old('intent') === 'signup' ? 'mobile' : 'email' }}' }">
+                    {{-- Two simple tabs, mirroring the login page: Email and
+                         WhatsApp. WhatsApp signup creates the account and
+                         sends a 6-digit code — no password, no long form. --}}
+                    @if($mobileLoginEnabled ?? false)
+                    <div class="flex gap-2 mb-4">
+                        <button type="button" @click="reg = 'email'" :class="reg === 'email' ? 'border-blue-500/40 text-blue-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="reg !== 'email' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(61,107,255,0.08)'">
+                            <i class="fas fa-envelope mr-1"></i> Email
+                        </button>
+                        <button type="button" @click="reg = 'mobile'" :class="reg === 'mobile' ? 'border-blue-500/40 text-blue-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="reg !== 'mobile' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(61,107,255,0.08)'">
+                            <i class="fab fa-whatsapp mr-1"></i> WhatsApp
+                        </button>
+                    </div>
+                    @endif
+
+                    <div x-show="reg === 'email'">
                 <form method="POST" action="{{ route('user.register.submit') }}" autocomplete="off" data-ajax>
                     @csrf
                     {{-- Honeypot: visually hidden, off the tab order, off
@@ -159,6 +178,33 @@
                             <span>Sign up with LinkedIn</span>
                         </a>
                     </div>
+                </div>
+                    </div>
+
+                    @if($mobileLoginEnabled ?? false)
+                    <div x-show="reg === 'mobile'" x-cloak>
+                        <form method="POST" action="{{ route('user.otp.send') }}" data-ajax>
+                            @csrf
+                            <input type="hidden" name="type" value="mobile">
+                            <input type="hidden" name="intent" value="signup">
+                            <input type="hidden" name="desired_handle" value="{{ old('desired_handle', $prefilledHandle ?? '') }}">
+                            <div data-general-err class="mb-3 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" hidden></div>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">WhatsApp Number</label>
+                                    <input type="text" name="identifier" value="{{ old('identifier') }}" required placeholder="+1234567890" class="theme-input w-full">
+                                    <p class="mt-1 text-xs text-red-400" data-err="identifier" @if(!$errors->has('identifier')) hidden @endif>{{ $errors->first('identifier') }}</p>
+                                    <p class="mt-1.5 text-[10px]" style="color: var(--text-faint);">
+                                        <i class="fab fa-whatsapp mr-0.5"></i> We'll create your account and send a 6-digit code over WhatsApp. Supported country codes: {{ implode(', ', $allowedCountryCodes ?? []) }}.
+                                    </p>
+                                </div>
+                                <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
+                                    <i class="fab fa-whatsapp"></i> Sign up with WhatsApp
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    @endif
                 </div>
 
                 <script>
