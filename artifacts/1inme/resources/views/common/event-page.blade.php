@@ -235,6 +235,15 @@
     html.light-mode .ev-rich .btn-outline-success { color:#059669; border-color: rgba(5,150,105,0.5); }
     html.light-mode .ev-rich .btn-outline-success:hover { background: rgba(5,150,105,0.1); color:#047857; }
 
+    /* Organizer "Scan to connect" QR reveal */
+    .ev-qr-toggle { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:#e8eaf0; cursor:pointer; }
+    .ev-qr-toggle:hover { background:rgba(255,255,255,0.07); border-color:rgba(61,107,255,0.4); }
+    .ev-qr-panel { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); }
+    .ev-qr-frame { background:#ffffff; box-shadow:0 0 0 1px rgba(61,107,255,0.35), 0 0 0 5px rgba(61,107,255,0.12), 0 18px 40px -18px rgba(61,107,255,0.55); }
+    html.light-mode .ev-qr-toggle { background:rgba(15,23,42,0.04); border-color:rgba(15,23,42,0.1); color:#111827; }
+    html.light-mode .ev-qr-toggle:hover { background:rgba(15,23,42,0.07); border-color:rgba(61,107,255,0.4); }
+    html.light-mode .ev-qr-panel { background:#f8fafc; border-color:rgba(15,23,42,0.08); }
+
     /* Light-mode pairing for the inline RSVP form */
     html.light-mode .ev-rsvp { color:#111827; }
     html.light-mode .ev-rsvp .form-label { color:rgba(15,23,42,0.6); }
@@ -499,6 +508,37 @@
                                         <span class="text-[11px] font-bold uppercase tracking-wide ev-section-label">Organizer</span>
                                     </div>
                                     @include('common.partials.event-host-card', ['host' => $host, 'organizer' => $organizer])
+
+                                    @if($host->handle && $host->profile_published)
+                                        {{-- "Scan to connect" — the organizer has a public
+                                             creator profile, so surface it as a scannable QR
+                                             (avatar centered; EC level H tolerates the overlay). --}}
+                                        @php $hostProfileUrl = route('creator-profile.show', $host->handle); @endphp
+                                        <div x-data="{ qrOpen: false }" class="mt-3">
+                                            <button type="button" @click="qrOpen = !qrOpen"
+                                                    class="ev-qr-toggle w-full flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition">
+                                                <span class="flex items-center gap-2"><i class="fas fa-qrcode ev-accent-text"></i> Scan to connect</span>
+                                                <i class="fas fa-chevron-down text-xs transition-transform duration-200" :class="qrOpen ? 'rotate-180' : ''"></i>
+                                            </button>
+                                            <div x-show="qrOpen" style="display:none">
+                                                <div class="ev-qr-panel mt-2 rounded-2xl p-5 text-center">
+                                                    <div class="ev-qr-frame relative inline-block rounded-2xl p-3">
+                                                        <img src="{{ route('qr.public.render', ['url' => $hostProfileUrl, 'size' => 400, 'error_correction' => 'H']) }}"
+                                                             alt="QR code for {{ '@' . $host->handle }}'s profile"
+                                                             class="block rounded-lg" style="width:180px;height:180px;" loading="lazy">
+                                                        <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full p-1 bg-white shadow-lg">
+                                                            <img src="{{ $host->avatar ? \App\Support\PublicStorageUrl::resolve($host->avatar) : asset('images/events/host-avatar-placeholder.svg') }}"
+                                                                 alt="" class="w-9 h-9 rounded-full object-cover">
+                                                        </span>
+                                                    </div>
+                                                    <p class="mt-3 text-xs ev-muted">Point your camera to see everything<br><span class="font-semibold ev-strong">{{ '@' . $host->handle }}</span> is up to</p>
+                                                    <a href="{{ $hostProfileUrl }}" class="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold ev-accent-text hover:opacity-80 transition">
+                                                        Open profile <i class="fas fa-arrow-right text-[10px]"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
                             @endif
 

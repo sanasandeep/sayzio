@@ -23,17 +23,20 @@
         html.light-mode {
             color-scheme: light;
             --bg-body: #f4f6fa;
-            --bg-card: #ffffff;
-            --border-glass: #dbdfe9;
+            --bg-card: rgba(255,255,255,0.62);
+            --border-glass: rgba(15,23,42,0.09);
             --text-primary: #071437;
             --text-muted: #4b5675;
             --bg-input: #f8fafc;
         }
+        .auth-orb { position:absolute; border-radius:9999px; pointer-events:none; }
     </style>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen flex items-center justify-center p-4" style="background: var(--bg-body, #0a0a0f);">
-    <div class="max-w-md w-full rounded-xl shadow p-8" style="background: var(--bg-card); border: 1px solid var(--border-glass);">
+<body class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style="background: var(--bg-body, #0a0a0f);">
+    <div class="auth-orb -top-32 -left-32 w-[520px] h-[520px]" style="background: radial-gradient(circle, rgba(61,107,255,0.16) 0%, transparent 70%);"></div>
+    <div class="auth-orb -bottom-32 -right-32 w-[460px] h-[460px]" style="background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);"></div>
+    <div class="max-w-md w-full rounded-3xl p-8 relative" style="background: var(--bg-card); border: 1px solid var(--border-glass); backdrop-filter: blur(26px) saturate(1.4); -webkit-backdrop-filter: blur(26px) saturate(1.4); box-shadow: 0 30px 70px -40px rgba(0,0,0,0.55);">
         <div class="text-2xl font-bold text-blue-600 mb-6">Sayzio</div>
         <h1 class="text-xl font-semibold mb-2" style="color: var(--text-primary);">Forgot your password?</h1>
         <p class="text-sm leading-relaxed mb-6" style="color: var(--text-muted);">

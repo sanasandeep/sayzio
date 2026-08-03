@@ -5,7 +5,8 @@
      @keydown.escape.window="authOpen=false"
      role="dialog" aria-modal="true" aria-label="Sign in or create an account">
     <div class="min-h-full flex items-center justify-center p-4" @click.self="authOpen=false">
-    <div class="relative w-full max-w-3xl my-8 bg-[#1e2330] rounded-2xl shadow-2xl overflow-hidden border border-white/10">
+    <div class="relative w-full max-w-3xl my-8 rounded-2xl shadow-2xl overflow-hidden border border-white/10"
+         style="background: rgba(22,26,40,0.72); backdrop-filter: blur(30px) saturate(1.5); -webkit-backdrop-filter: blur(30px) saturate(1.5);">
         <button type="button" @click="authOpen=false"
                 class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
                 aria-label="Close">
