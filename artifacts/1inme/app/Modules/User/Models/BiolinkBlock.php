@@ -466,6 +466,11 @@ class BiolinkBlock extends Model
         // accent color at render time.
         '_avatar_frame' => '',
         '_avatar_frame_color' => '',
+        // Retro OS/browser window chrome (Task #6568). Slug token — when
+        // non-empty the public renderer wraps heading/link blocks in a
+        // title-bar + control-dots window frame with a thick border and
+        // hard offset shadow. Empty = no chrome (default).
+        '_window_chrome' => '',
         // Per-block layout switch for link-family blocks (link / link_big /
         // cta_button / featured_pin). Empty = existing button rendering.
         // 'plain_text'  = pure underlined inline link, no card chrome.

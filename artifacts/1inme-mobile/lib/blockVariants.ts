@@ -22,6 +22,9 @@ export type MobileVariant = {
     border?: string;
     dashed?: boolean;
     serif?: boolean;
+    // Retro browser-window variants (Task #6568): the gallery thumbnail
+    // draws a mini title bar with three window-control dots.
+    window?: boolean;
   };
   // Profile-card identity designs carry a structural `_profile_layout`
   // token (mirrors the web `profile_identity` bundle). When present, the
@@ -57,11 +60,13 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "corporate_row", name: "Corporate Row", tags: ["corporate", "minimal", "pro"], preview: { bg: "#ffffff", text: "#111827", radius: 6, border: "#e5e7eb" } },
     { key: "cta_glow",      name: "CTA Glow",      tags: ["neon", "bold"],                preview: { bg: "#0f172a", text: "#67e8f9", radius: 14, border: "#22d3ee" } },
     { key: "y2k_chrome",    name: "Y2K Chrome",    tags: ["y2k", "retro", "three_d"],     preview: { bg: "#c0c0d8", text: "#1e1b4b", radius: 999, border: "#7280a8" } },
+    { key: "browser_window", name: "Browser Window", tags: ["retro", "brutalist", "bold"], preview: { bg: "#f6f4ef", text: "#1f2937", radius: 0, border: "#111111", window: true } },
   ],
   headings: [
     { key: "magazine_title", name: "Magazine Title", tags: ["editorial", "pro"],   preview: { bg: "transparent", text: "#fff", radius: 0 } },
     { key: "underline_band", name: "Underline Band", tags: ["minimal", "editorial"], preview: { bg: "transparent", text: "#fff", radius: 0, border: "#a78bfa" } },
     { key: "spotlight_band", name: "Spotlight Band", tags: ["bold", "three_d"],   preview: { bg: "#1e1b4b", text: "#fff", radius: 4 } },
+    { key: "browser_window", name: "Browser Window", tags: ["retro", "brutalist", "bold"], preview: { bg: "#f6f4ef", text: "#1f2937", radius: 0, border: "#111111", window: true } },
   ],
   body_text: [
     { key: "manuscript",  name: "Manuscript",  tags: ["editorial", "minimal"],   preview: { bg: "transparent", text: "#e5e7eb", radius: 0 } },

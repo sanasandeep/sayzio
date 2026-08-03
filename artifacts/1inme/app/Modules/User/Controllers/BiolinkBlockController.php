@@ -849,6 +849,9 @@ class BiolinkBlockController extends Controller
                 // heading / divider blocks all rendered as a tiny text
                 // chip and looked broken on the dark modal.
                 'shape_kind' => BlockVariantCatalog::shapeKindFor($block->type, $v['shape'] ?? null),
+                // Retro browser-window chrome (Task #6568): the gallery JS
+                // wraps the sketch in a mini title-bar frame when set.
+                'window_chrome' => !empty($v['style']['_window_chrome']),
             ];
         }
 

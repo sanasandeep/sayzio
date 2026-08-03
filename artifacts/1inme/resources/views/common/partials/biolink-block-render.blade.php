@@ -92,8 +92,38 @@
     ];
     $__partial = $__blockPartials[$block->type] ?? null;
     $btnInline = $btnInline ?? '';
+
+    // ── Retro browser-window chrome (Task #6568) ─────────────────────
+    // When `_style._window_chrome` is set on a heading or link-family
+    // block, wrap the rendered block in a retro OS window frame: title
+    // bar with three decorative control dots (⊗ ⊕ ⊖), thick border,
+    // hard offset shadow, sharp corners. Colors come from the block's
+    // own _style where sensible (bg/border/text) so a re-colored block
+    // keeps a coherent window. Any other block type carrying the token
+    // (hand-edited payloads) is ignored gracefully.
+    $__wcSt = is_array($s['_style'] ?? null) ? $s['_style'] : [];
+    $__wcTypes = ['heading', 'heading_logo', 'link', 'link_big', 'cta_button', 'button', 'featured_pin'];
+    $__wcOn = !empty($__wcSt['_window_chrome']) && in_array($block->type, $__wcTypes, true);
+    if ($__wcOn) {
+        $__wcHex = fn ($v) => is_string($v) && preg_match('/^#[0-9a-fA-F]{3,8}$/', $v) ? $v : null;
+        $__wcBg = $__wcSt['bg_color'] ?? '';
+        $__wcBg = (is_string($__wcBg) && $__wcBg !== '' && $__wcBg !== 'transparent') ? $__wcBg : '#f6f4ef';
+        $__wcBorder = $__wcHex($__wcSt['border_color'] ?? null) ?? '#111111';
+        $__wcText = $__wcHex($__wcSt['text_color'] ?? null) ?? '#1f2937';
+    }
 @endphp
 
+@if($__wcOn)
+    <div class="mb-3 biolink-window-chrome" data-window-chrome="{{ $__wcSt['_window_chrome'] }}"
+         style="background: {{ $__wcBg }}; border: 3px solid {{ $__wcBorder }}; box-shadow: 6px 6px 0 {{ $__wcBorder }}; border-radius: 0; color: {{ $__wcText }};">
+        <div aria-hidden="true" class="flex items-center gap-1.5"
+             style="padding: 7px 12px; border-bottom: 3px solid {{ $__wcBorder }};">
+            @foreach(['×', '+', '−'] as $__wcDot)
+                <span style="width: 15px; height: 15px; border: 1.5px solid {{ $__wcBorder }}; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; font-weight: 700; color: {{ $__wcBorder }};">{{ $__wcDot }}</span>
+            @endforeach
+        </div>
+        <div class="biolink-window-chrome-body" style="padding: 14px 16px;">
+@endif
 @if($__partial)
     @include($__partial, ['link' => $link, 'block' => $block, 's' => $s, 'fontColor' => $fontColor, 'btnInline' => $btnInline])
 @else
@@ -956,6 +986,10 @@
             <p class="text-xs text-white/40">{{ \App\Modules\User\Models\BiolinkBlock::TYPES[$block->type]['label'] ?? ucfirst(str_replace('_', ' ', $block->type)) }}</p>
         </div>
     @endif
+@endif
+@if($__wcOn)
+        </div>
+    </div>
 @endif
 
 

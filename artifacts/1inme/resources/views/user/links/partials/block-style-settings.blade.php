@@ -333,6 +333,10 @@
                     $thumbShadow = $pv['shadow'] ?? '';
                     $isDashed = !empty($pv['dashed']);
                     $isSerif = !empty($pv['serif']);
+                    // Browser-window variants (Task #6568) get a mini title
+                    // bar with three control dots in the thumbnail so the
+                    // gallery card actually looks like the retro window.
+                    $isWindow = !empty($pv['window']);
                 @endphp
                 <button type="button"
                         data-variant-key="{{ $v['key'] }}"
@@ -391,11 +395,19 @@
                          differences (pill vs square vs full-image) are
                          visible at a glance instead of squinting. --}}
                     <div data-variant-preview="{{ $v['key'] }}"
-                         class="h-20 rounded-lg flex items-center justify-center mt-3 mb-2 overflow-hidden p-2"
+                         class="h-20 rounded-lg mt-3 mb-2 overflow-hidden {{ $isWindow ? 'flex flex-col' : 'flex items-center justify-center p-2' }}"
                          style="background: {{ $thumbBg }};
                                 border-radius: {{ min($thumbRadius, 24) }}px;
-                                {{ $thumbBorder ? 'border:' . ($isDashed ? '2px dashed ' : '1px solid ') . $thumbBorder . ';' : '' }}
+                                {{ $thumbBorder ? 'border:' . ($isDashed ? '2px dashed ' : ($isWindow ? '2px solid ' : '1px solid ')) . $thumbBorder . ';' : '' }}
                                 {{ $thumbShadow ? 'box-shadow:' . $thumbShadow . ';' : '' }}">
+                        @if($isWindow)
+                            <div class="flex items-center gap-1 shrink-0" aria-hidden="true"
+                                 style="padding: 3px 6px; border-bottom: 2px solid {{ $thumbBorder ?: '#111111' }};">
+                                @foreach(['×', '+', '−'] as $wcDot)
+                                    <span style="width: 9px; height: 9px; border: 1px solid {{ $thumbBorder ?: '#111111' }}; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 6px; line-height: 1; color: {{ $thumbBorder ?: '#111111' }};">{{ $wcDot }}</span>
+                                @endforeach
+                            </div>
+                            <div class="flex-1 flex items-center justify-center p-1">
                         @if($shapeKind === 'button')
                             <div class="px-3 py-1.5 text-[9px] font-bold"
                                  style="background: {{ $thumbText }}; color: {{ $thumbBg === 'transparent' ? '#000' : $thumbBg }}; border-radius: {{ min($thumbRadius, 999) }}px;">
@@ -429,6 +441,9 @@
                                 <div class="text-[8px] font-bold leading-tight">Aa Bb Cc</div>
                                 <div style="height: 2px; background: {{ $thumbText }}; opacity: 0.4; margin-top: 3px; width: 80%;"></div>
                                 <div style="height: 2px; background: {{ $thumbText }}; opacity: 0.4; margin-top: 2px; width: 60%;"></div>
+                            </div>
+                        @endif
+                        @if($isWindow)
                             </div>
                         @endif
                     </div>
@@ -1351,6 +1366,17 @@ window.blockDesignsGallery = function(opts) {
             var color = p.text_color || '#ffffff';
             var safe = String(rawLabel || '').replace(/[<>&"]/g, '').slice(0, 18);
             var label = safe || p.name || 'Preview';
+            // Retro browser-window variants (Task #6568): wrap the sketch
+            // in a mini window frame — title bar with three control dots,
+            // thick border, hard offset shadow — matching the public
+            // renderer's chrome so the preview is honest.
+            if (p.window_chrome) {
+                var dot = function(g) { return '<span style="width:10px;height:10px;border:1px solid #111;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-size:7px;line-height:1;color:#111;">' + g + '</span>'; };
+                return '<div style="background:#f6f4ef;border:2px solid #111;box-shadow:4px 4px 0 #111;max-width:92%;color:' + color + ';">'
+                    + '<div style="display:flex;align-items:center;gap:3px;padding:3px 7px;border-bottom:2px solid #111;">' + dot('×') + dot('+') + dot('−') + '</div>'
+                    + '<div style="padding:7px 10px;font-size:10px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</div>'
+                    + '</div>';
+            }
             switch (p.shape_kind) {
                 case 'button':
                 case 'button_outline':

@@ -430,6 +430,28 @@ class BlockVariantCatalog
                     ],
                     'preview' => ['bg' => 'linear-gradient(180deg,#e0e7ff,#94a3b8)', 'text' => '#1e1b4b', 'radius' => 999, 'border' => '#7280a8'],
                 ],
+                // Retro OS/browser window (Task #6568): neobrutalist card
+                // with a title-bar strip + three decorative window-control
+                // dots rendered by the public renderer when
+                // `_style._window_chrome` is set. The style payload itself
+                // stays flat (no border/shadow) — the chrome wrapper owns
+                // the thick border and hard offset shadow so they aren't
+                // double-applied on the inner button/heading element.
+                [
+                    'key' => 'browser_window',
+                    'name' => 'Browser Window',
+                    'tags' => ['retro', 'brutalist', 'bold'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#f6f4ef',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => '#111111',
+                        'border_radius' => '0', 'shadow_preset' => 'none', 'shadow_type' => 'none',
+                        'text_color' => '#1f2937', 'padding' => '18', 'font_weight' => '700',
+                        'link_layout' => '',
+                        '_window_chrome' => 'retro',
+                    ],
+                    'preview' => ['bg' => '#f6f4ef', 'text' => '#1f2937', 'radius' => 0, 'border' => '#111111', 'shadow' => '5px 5px 0 #111111', 'window' => true],
+                ],
 
                 // ── New shape-first variants ──────────────────────────────
                 // Filled pill — the most "instagram bio link" look.
@@ -569,6 +591,24 @@ class BlockVariantCatalog
                         'padding' => '14', 'font_weight' => '800',
                     ],
                     'preview' => ['bg' => '#1e1b4b', 'text' => '#fff', 'radius' => 4],
+                ],
+                // Retro OS/browser window (Task #6568). Same chrome contract
+                // as the link_actions entry: the `_window_chrome` token
+                // makes the public renderer draw the title bar + control
+                // dots + thick border/hard shadow, so the style payload
+                // itself stays flat.
+                [
+                    'key' => 'browser_window',
+                    'name' => 'Browser Window',
+                    'tags' => ['retro', 'brutalist', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#f6f4ef',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => '#111111',
+                        'border_radius' => '0', 'shadow_preset' => 'none', 'shadow_type' => 'none',
+                        'text_color' => '#1f2937', 'padding' => '18', 'font_weight' => '800',
+                        '_window_chrome' => 'retro',
+                    ],
+                    'preview' => ['bg' => '#f6f4ef', 'text' => '#1f2937', 'radius' => 0, 'border' => '#111111', 'shadow' => '5px 5px 0 #111111', 'window' => true],
                 ],
             ],
 

@@ -1193,6 +1193,73 @@ export function blockWrapMargins(block: BiolinkBlock): ViewStyle {
   };
 }
 
+// ── Retro browser-window chrome (Task #6568) ──────────────────────────
+// Mirrors the web renderer: when `_style._window_chrome` is set on a
+// heading/link-family block, the block renders inside a retro OS window —
+// title bar with three decorative control dots (× + −), thick border,
+// sharp corners, and a hard offset shadow (drawn as an offset backing
+// View so it stays hard-edged on Android too). Other block types carrying
+// the token are ignored gracefully.
+const WINDOW_CHROME_TYPES = new Set([
+  "heading",
+  "heading_logo",
+  "link",
+  "link_big",
+  "cta_button",
+  "button",
+  "featured_pin",
+]);
+
+function WindowChromeFrame(props: { st: Record<string, unknown>; children: React.ReactNode }) {
+  const { st } = props;
+  const rawBg = typeof st.bg_color === "string" ? st.bg_color.trim() : "";
+  const bg =
+    rawBg !== "" && rawBg !== "transparent" && !/gradient\(/i.test(rawBg) ? rawBg : "#f6f4ef";
+  const rawBorder = typeof st.border_color === "string" ? st.border_color.trim() : "";
+  const border = /^#[0-9a-fA-F]{3,8}$/.test(rawBorder) ? rawBorder : "#111111";
+  return (
+    <View style={{ marginBottom: 6, marginRight: 6 }}>
+      {/* Hard offset shadow layer */}
+      <View
+        pointerEvents="none"
+        style={{ position: "absolute", top: 6, left: 6, right: -6, bottom: -6, backgroundColor: border }}
+      />
+      <View style={{ backgroundColor: bg, borderWidth: 3, borderColor: border, borderRadius: 0 }}>
+        <View
+          accessibilityElementsHidden
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            paddingVertical: 6,
+            paddingHorizontal: 12,
+            borderBottomWidth: 3,
+            borderBottomColor: border,
+          }}
+        >
+          {["×", "+", "−"].map((g) => (
+            <View
+              key={g}
+              style={{
+                width: 15,
+                height: 15,
+                borderRadius: 999,
+                borderWidth: 1.5,
+                borderColor: border,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ fontSize: 9, lineHeight: 12, fontWeight: "700", color: border }}>{g}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={{ paddingVertical: 12, paddingHorizontal: 14 }}>{props.children}</View>
+      </View>
+    </View>
+  );
+}
+
 export function BlockView(props: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
   const st = (props.block.settings?._style as Record<string, unknown> | undefined) ?? {};
   const presetKey = typeof st.bg_preset_key === "string" ? st.bg_preset_key.trim() : "";
@@ -1233,6 +1300,15 @@ export function BlockView(props: { block: BiolinkBlock; alias: string; allBlocks
     : "";
 
   const inner = <BlockViewInner {...props} />;
+
+  // Retro browser-window chrome (Task #6568): the frame owns the block's
+  // background/border/shadow, so it takes precedence over the generic
+  // preset/gradient/image background layers below.
+  const wcToken = typeof st._window_chrome === "string" ? st._window_chrome.trim() : "";
+  if (wcToken !== "" && WINDOW_CHROME_TYPES.has(props.block.type)) {
+    return <WindowChromeFrame st={st}>{inner}</WindowChromeFrame>;
+  }
+
   if (!preset && gradientColors.length < 2 && !bgImageUri) return inner;
 
   let layer: React.ReactNode = null;

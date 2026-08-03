@@ -234,7 +234,7 @@ class BlockStyleSanitizer
                 // dropped silently.
                 $clean = self::sanitizePhotoTextStickers($val);
                 if ($clean !== []) $result[$key] = $clean;
-            } elseif (in_array($key, ['_animation', '_gallery_layout', '_social_set', '_profile_layout'], true)) {
+            } elseif (in_array($key, ['_animation', '_gallery_layout', '_social_set', '_profile_layout', '_window_chrome'], true)) {
                 // Opaque slug-shaped variant metadata hooks (Task #1041).
                 // The renderer is free to ignore unknown values; we only
                 // bound the character set + length so they're safe to
