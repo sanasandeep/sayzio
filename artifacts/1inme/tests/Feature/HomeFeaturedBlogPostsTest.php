@@ -49,7 +49,7 @@ class HomeFeaturedBlogPostsTest extends TestCase
         $category = BlogCategory::create(['name' => 'Playbooks', 'slug' => 'playbooks', 'color' => '#3d6bff']);
         $post = $this->makeFeaturedPost(['title' => 'AI Playbook Alpha', 'category_id' => $category->id]);
 
-        $resp = $this->get('/');
+        $resp = $this->get(route('home.sections'));
         $resp->assertOk();
         $resp->assertSee('blog-featured', false);
         $resp->assertSee('AI Playbook Alpha');
@@ -65,7 +65,7 @@ class HomeFeaturedBlogPostsTest extends TestCase
         $post = $this->makeFeaturedPost(['title' => 'Creator Deep Dive Beta', 'category_id' => $category->id]);
 
         // First render primes the cache.
-        $this->get('/')->assertOk();
+        $this->get(route('home.sections'))->assertOk();
 
         // The cache must hold plain nested arrays (file-cache safe), never
         // Eloquent objects.
@@ -85,7 +85,7 @@ class HomeFeaturedBlogPostsTest extends TestCase
         });
         $category->delete();
 
-        $resp = $this->get('/');
+        $resp = $this->get(route('home.sections'));
         $resp->assertOk();
         $resp->assertSee('Creator Deep Dive Beta');
         $resp->assertSee('Deep Dives');
@@ -96,7 +96,7 @@ class HomeFeaturedBlogPostsTest extends TestCase
     {
         Cache::forget(HomeController::FEATURED_CACHE_KEY);
         $this->makeFeaturedPost(['title' => 'First Featured Post']);
-        $this->get('/')->assertOk();
+        $this->get(route('home.sections'))->assertOk();
         $this->assertNotNull(Cache::get(HomeController::FEATURED_CACHE_KEY));
 
         // A new featured post must appear on the very next render — the saved
@@ -104,7 +104,7 @@ class HomeFeaturedBlogPostsTest extends TestCase
         $this->makeFeaturedPost(['title' => 'Second Featured Post']);
         $this->assertNull(Cache::get(HomeController::FEATURED_CACHE_KEY));
 
-        $resp = $this->get('/');
+        $resp = $this->get(route('home.sections'));
         $resp->assertOk();
         $resp->assertSee('First Featured Post');
         $resp->assertSee('Second Featured Post');
@@ -115,7 +115,7 @@ class HomeFeaturedBlogPostsTest extends TestCase
         Cache::forget(HomeController::FEATURED_CACHE_KEY);
         BlogPost::query()->delete();
 
-        $resp = $this->get('/');
+        $resp = $this->get(route('home.sections'));
         $resp->assertOk();
         $resp->assertDontSee('id="blog-featured"', false);
     }

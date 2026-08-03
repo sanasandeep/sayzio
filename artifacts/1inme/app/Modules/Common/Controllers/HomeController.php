@@ -28,11 +28,29 @@ class HomeController extends Controller
             return redirect()->away('https://' . PlatformHosts::primaryBrandDomain() . '/', 301);
         }
 
-        // Resolve the visitor via the WEB guard explicitly: this is a public
-        // web route, but when an admin-guard session is active (admin browsing
-        // the marketing site, or actingAs(admin) in tests) the default guard
-        // returns an Admin model — which PricingResolver::currencyForUser()
-        // (?User typed) rejects with a TypeError, 500ing the home page.
+        // The initial response is intentionally lean: header + hero + primary
+        // CTA only. Everything below the fold (plan teaser, link-types
+        // showcase, AI demos, featured posts…) is rendered by sections()
+        // and fetched by the homepage loader right after first paint, so the
+        // initial render needs NO plan/link-type/blog queries at all.
+        return view('home');
+    }
+
+    /**
+     * Deferred below-the-fold home sections. Fetched by the homepage loader
+     * (see the placeholder + script in home.blade.php) as an HTML fragment.
+     *
+     * Everyone — anonymous AND logged-in — renders from the warmed
+     * per-currency payload cache: the plan teaser only varies by currency
+     * (both currencies' prices are embedded for the client-side switcher),
+     * so logged-in visitors no longer pay the dozen-plus plan/link-type
+     * queries against the cross-region RDS per request. The only per-user
+     * overlay is the tax line, computed on top of the cached amounts for
+     * users with a billing address (a single small jurisdiction lookup).
+     */
+    public function sections(Request $request)
+    {
+        // WEB guard explicitly — see index() for why (admin sessions).
         $user = $request->user('web');
         $currency = PricingResolver::currencyForUser($user);
         $currencySource = PricingResolver::currencySourceForUser($user);
@@ -40,40 +58,12 @@ class HomeController extends Controller
         $billing = $user ? BillingAddress::where('user_id', $user->id)->first() : null;
         $hasAddress = $billing && !empty($billing->country);
 
-        // The plan teaser + link-types showcase issue a dozen-plus queries, and
-        // over the cross-region RDS that is ~8-9s per render. For anonymous
-        // visitors — every signed-out human plus the platform readiness probe —
-        // that payload only varies by resolved currency, so cache it for 5
-        // minutes (mirrors the AppSetting cache TTL) to keep the home page and
-        // the health check fast. Authenticated users always compute fresh
-        // because pricing/tax is per-user. Only plain-array data is cached here:
-        // featured blog posts are Eloquent models (which don't survive the file
-        // cache — "incomplete object" on unserialize) so they load fresh below.
-        // The scheduled `home:warm-caches` job (HomePageCache::warm()) rebuilds
-        // these same keys proactively so this miss path is a cold-boot /
-        // dev-only fallback, not something real visitors normally hit.
-        if ($user) {
-            $payload = HomePageCache::buildPayload($user, $billing, $hasAddress, $currency);
-        } else {
-            // Cache as JSON (not PHP serialize) so the stored value is a plain
-            // nested array — no Eloquent collections or other objects that fail
-            // to rebuild from the file cache. The pricing partial wraps $plans
-            // in collect(...) so a plain array is rendered identically to the
-            // live Collection returned on the cache-miss path.
-            $key = HomePageCache::anonPayloadKey($currency);
-            $json = Cache::get($key);
-            if (is_string($json) && ($decoded = json_decode($json, true)) !== null) {
-                $payload = $decoded;
-            } else {
-                $payload = HomePageCache::buildPayload(null, null, false, $currency);
-                $encoded = json_encode($payload);
-                if ($encoded !== false) {
-                    Cache::put($key, $encoded, HomePageCache::TTL);
-                }
-            }
-        }
+        $payload = $this->cachedPayload($currency);
 
         $plans = $payload['plans'];
+        if ($hasAddress) {
+            $plans = HomePageCache::applyTaxOverlay($plans, $billing, $currency);
+        }
         $linkTypes = $payload['linkTypes'];
         $featuredBlogPosts = $this->featuredBlogPosts();
 
@@ -94,7 +84,37 @@ class HomeController extends Controller
         // AiHeroExamples.
         $aiStrategistExamples = AiStrategistExamples::all();
 
-        return view('home', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'linkTypes', 'aiHeroExamples', 'resumePersonas', 'aiStrategistExamples'));
+        return view('home.deferred-sections', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'linkTypes', 'aiHeroExamples', 'resumePersonas', 'aiStrategistExamples'));
+    }
+
+    /**
+     * The per-currency cached home payload (plan teaser + link types),
+     * shared by every visitor. Cached as JSON (not PHP serialize) so the
+     * stored value is a plain nested array — no Eloquent collections or
+     * other objects that fail to rebuild from the file cache. The pricing
+     * partial wraps $plans in collect(...) so a plain array renders
+     * identically to the live Collection built on a cache miss. The
+     * scheduled `home:warm-caches` job (HomePageCache::warm()) rebuilds
+     * these same keys proactively so this miss path is a cold-boot /
+     * dev-only fallback, not something real visitors normally hit.
+     *
+     * @return array{plans:mixed,linkTypes:array}
+     */
+    private function cachedPayload(string $currency): array
+    {
+        $key = HomePageCache::anonPayloadKey($currency);
+        $json = Cache::get($key);
+        if (is_string($json) && ($decoded = json_decode($json, true)) !== null) {
+            return $decoded;
+        }
+
+        $payload = HomePageCache::buildPayload(null, null, false, $currency);
+        $encoded = json_encode($payload);
+        if ($encoded !== false) {
+            Cache::put($key, $encoded, HomePageCache::TTL);
+        }
+
+        return $payload;
     }
 
     /**

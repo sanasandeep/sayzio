@@ -56,7 +56,7 @@ class HomeLinkTypesEditorTest extends TestCase
         // must fall back to the shared SitePagesContent defaults.
         $this->makeHomePage([]);
 
-        $resp = $this->get('/');
+        $resp = $this->get(route('home.sections'));
         $resp->assertOk();
 
         $defaults = SitePagesContent::homeLinkTypesDefault();
@@ -79,7 +79,7 @@ class HomeLinkTypesEditorTest extends TestCase
         // also fall back to the defaults rather than render an empty grid.
         $this->makeHomePage(['link_types' => []]);
 
-        $resp = $this->get('/');
+        $resp = $this->get(route('home.sections'));
         $resp->assertOk();
         $resp->assertSee(SitePagesContent::homeLinkTypesDefault()[0]['desc'], false);
     }
@@ -158,7 +158,7 @@ class HomeLinkTypesEditorTest extends TestCase
 
         // Public home reflects the edits, in order, and no longer shows the
         // default first-card description.
-        $publicResp = $this->get('/');
+        $publicResp = $this->get(route('home.sections'));
         $publicResp->assertOk();
         $publicResp->assertSee('Zebra Link', false);
         $publicResp->assertSee('Apple Link', false);
@@ -259,7 +259,7 @@ class HomeLinkTypesEditorTest extends TestCase
         $this->assertFalse($stored[0]['featured']);
         $this->assertTrue($stored[6]['featured']);
 
-        $publicResp = $this->get('/');
+        $publicResp = $this->get(route('home.sections'));
         $publicResp->assertOk();
         $html = $publicResp->getContent();
 
@@ -342,7 +342,7 @@ class HomeLinkTypesEditorTest extends TestCase
         );
         $this->assertSame(['Split Type 1', 'Split Type 8', 'Split Type 9'], $expectedMore);
 
-        $publicResp = $this->get('/');
+        $publicResp = $this->get(route('home.sections'));
         $publicResp->assertOk();
         $html = $publicResp->getContent();
 

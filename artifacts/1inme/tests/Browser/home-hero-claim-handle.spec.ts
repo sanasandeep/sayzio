@@ -74,10 +74,15 @@ async function submitClaim(page: Page, handle: string): Promise<void> {
  * The register form's hidden desired_handle field — scoped INSIDE the modal so
  * it's never confused with the hero pill input (which also carries
  * name="desired_handle"). This is the input that actually rides along in the
- * register POST.
+ * register POST. Both register forms (email and WhatsApp) carry the same
+ * hidden field with the same bound value, so scope to the email form to
+ * avoid a strict-mode violation.
  */
 function modalDesiredHandle(page: Page): Locator {
-  return modal(page).locator('input[name="desired_handle"]');
+  return modal(page)
+    .locator('form[action*="register"]')
+    .first()
+    .locator('input[name="desired_handle"]');
 }
 
 test.describe("home hero claim-your-link → in-modal signup handoff", () => {
@@ -101,7 +106,10 @@ test.describe("home hero claim-your-link → in-modal signup handoff", () => {
     await expect(modalDesiredHandle(page)).toHaveValue("janedoe");
 
     // The "Claiming @handle" banner confirms it to the visitor.
-    const banner = modal(page).locator("text=Claiming");
+    const banner = modal(page)
+      .locator('form[action*="register"]')
+      .first()
+      .locator("text=Claiming");
     await expect(banner).toBeVisible();
     await expect(banner).toContainText("@janedoe");
   });
@@ -116,7 +124,9 @@ test.describe("home hero claim-your-link → in-modal signup handoff", () => {
     await submitClaim(page, "  @JaneDoe ");
 
     await expect(modalDesiredHandle(page)).toHaveValue("janedoe");
-    await expect(modal(page).locator("text=Claiming")).toContainText(
+    await expect(
+      modal(page).locator('form[action*="register"]').first().locator("text=Claiming"),
+    ).toContainText(
       "@janedoe",
     );
   });
@@ -132,7 +142,9 @@ test.describe("home hero claim-your-link → in-modal signup handoff", () => {
     await expect(modal(page).locator('input[name="name"]')).toBeVisible();
     // …but with an empty desired_handle and the "Claiming" banner hidden.
     await expect(modalDesiredHandle(page)).toHaveValue("");
-    await expect(modal(page).locator("text=Claiming")).toBeHidden();
+    await expect(
+      modal(page).locator('form[action*="register"]').first().locator("text=Claiming"),
+    ).toBeHidden();
   });
 
   test("the claimed handle is actually sent in the register POST body", async ({
@@ -147,10 +159,16 @@ test.describe("home hero claim-your-link → in-modal signup handoff", () => {
     // submit, then intercept the POST and read back the form body. We abort the
     // request (status 0) so nothing is actually persisted and no navigation
     // happens — we only care that the browser put desired_handle on the wire.
-    await modal(page).locator('input[name="name"]').fill("Creator Ninety-Nine");
-    await modal(page)
-      .locator('input[name="email"]')
-      .fill("creator99@example.com");
+    const emailForm = modal(page).locator('form[action*="register"]').first();
+    await emailForm.locator('input[name="name"]').fill("Creator Ninety-Nine");
+    await emailForm.locator('input[name="email"]').fill("creator99@example.com");
+    // When password signup is enabled the form also renders required
+    // password fields — fill them or HTML5 validation silently blocks the
+    // submit (no POST ever hits the wire).
+    const pw = emailForm.locator('input[type="password"]');
+    for (let i = 0; i < (await pw.count()); i++) {
+      await pw.nth(i).fill("S3cretPass!word");
+    }
 
     let postBody: string | null = null;
     await page.route("**/user/register", async (route) => {
