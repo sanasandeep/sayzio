@@ -208,20 +208,28 @@ class PlansAndAddonsSeeder extends Seeder
      *   the per-entity row cap bounds how many bookmarks / collections /
      *   history entries / reading-list items one account can store per data
      *   type (-1 = unlimited, still hard-capped server-side).
+     * - `max_service_booking_staff` (Task #6652) — staff members per service
+     *   booking page. Previously unseeded, so every plan fell back to the
+     *   call-site default. Tiers mirror `max_service_booking` (0 = staff
+     *   feature hidden, -1 = unlimited).
+     * - `max_brand_asset_versions` (Task #6652) — generations/regenerations
+     *   per Brand Kit visual asset. Previously unseeded, so plans silently
+     *   fell back to the legacy default. 0 on free (which has
+     *   `brand_kit_assets` off anyway); -1 = unlimited.
      *
      * @return array<string, array<string, int|bool>>
      */
     public static function gatingSyncFeatureDefaults(): array
     {
         return [
-            'free'           => ['special_dates' => true, 'max_smart_rules' => 3,  'browser_sync' => true, 'max_browser_sync_items' => 2000],
-            'creator'        => ['special_dates' => true, 'max_smart_rules' => 10, 'browser_sync' => true, 'max_browser_sync_items' => 10000],
-            'professional'   => ['special_dates' => true, 'max_smart_rules' => 25, 'browser_sync' => true, 'max_browser_sync_items' => 25000],
-            'business'       => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1],
-            'agency'         => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1],
-            'developer'      => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => 25000],
-            'enterprise-api' => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1],
-            'unlimited'      => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1],
+            'free'           => ['special_dates' => true, 'max_smart_rules' => 3,  'browser_sync' => true, 'max_browser_sync_items' => 2000,  'max_service_booking_staff' => 1,  'max_brand_asset_versions' => 0],
+            'creator'        => ['special_dates' => true, 'max_smart_rules' => 10, 'browser_sync' => true, 'max_browser_sync_items' => 10000, 'max_service_booking_staff' => 3,  'max_brand_asset_versions' => 5],
+            'professional'   => ['special_dates' => true, 'max_smart_rules' => 25, 'browser_sync' => true, 'max_browser_sync_items' => 25000, 'max_service_booking_staff' => 10, 'max_brand_asset_versions' => 20],
+            'business'       => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1,    'max_service_booking_staff' => -1, 'max_brand_asset_versions' => -1],
+            'agency'         => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1,    'max_service_booking_staff' => -1, 'max_brand_asset_versions' => -1],
+            'developer'      => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => 25000, 'max_service_booking_staff' => 10, 'max_brand_asset_versions' => 20],
+            'enterprise-api' => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1,    'max_service_booking_staff' => -1, 'max_brand_asset_versions' => -1],
+            'unlimited'      => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1,    'max_service_booking_staff' => -1, 'max_brand_asset_versions' => -1],
         ];
     }
 
