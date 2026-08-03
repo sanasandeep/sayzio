@@ -209,7 +209,16 @@ class OtpController extends Controller
             'password' => Hash::make(Str::random(48)),
             'plan_id'  => $freePlan?->id,
             'status'   => 'active',
-            'country'  => isset($data['country']) ? strtoupper($data['country']) : null,
+            // Explicit country wins; otherwise infer from the WhatsApp
+            // number's dialling code (+91 => IN) or the request IP so
+            // billing currency resolves correctly (IN => ₹) now that the
+            // sign-up UIs no longer ask for a country.
+            'country'  => isset($data['country'])
+                ? strtoupper($data['country'])
+                : \App\Modules\Common\Support\SignupCountry::infer(
+                    $data['type'] === 'mobile' ? $data['identifier'] : null,
+                    $request->ip(),
+                ),
         ]);
         if (method_exists($user, 'ensureDefaultWorkspace')) {
             $user->ensureDefaultWorkspace();
