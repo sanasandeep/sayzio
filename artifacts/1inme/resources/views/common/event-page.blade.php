@@ -129,6 +129,51 @@
     .ev-rich .row.g-2 > .col-4 { width: 33.3333%; }
     .ev-rich .h-100 { height: auto !important; }
 
+    /* Structural fallbacks for the Bootstrap utility classes the shared
+       event partials rely on — this marketing layout is Tailwind-only, so
+       without these the recommendation cards collapse (images at natural
+       size, no 2-up grid, unstyled buttons). Scoped to .ev-rich; the RSVP
+       page loads real Bootstrap and is unaffected. */
+    .ev-rich .d-block { display:block; }
+    .ev-rich .d-flex { display:flex; }
+    .ev-rich .flex-column { flex-direction:column; }
+    .ev-rich .align-items-center { align-items:center; }
+    .ev-rich .justify-content-between { justify-content:space-between; }
+    .ev-rich .flex-grow-1 { flex-grow:1; }
+    .ev-rich .flex-shrink-0 { flex-shrink:0; }
+    .ev-rich .min-width-0 { min-width:0; }
+    .ev-rich .flex-1 { flex:1 1 0%; min-width:0; }
+    .ev-rich .gap-2 { gap:.5rem; }
+    .ev-rich .gap-3 { gap:.85rem; }
+    .ev-rich .text-decoration-none { text-decoration:none; }
+    .ev-rich .text-truncate { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ev-rich .text-uppercase { text-transform:uppercase; }
+    .ev-rich .small { font-size:.85rem; }
+    .ev-rich .badge { display:inline-block; line-height:1.1; }
+    .ev-rich .rounded-2 { border-radius:.5rem; }
+    .ev-rich .rounded-3 { border-radius:.75rem; }
+    .ev-rich .me-1 { margin-right:.3rem; }
+    .ev-rich .ms-1 { margin-left:.3rem; }
+    .ev-rich .m-2 { margin:.5rem; }
+    .ev-rich .w-100 { width:100%; }
+    .ev-rich .position-relative { position:relative; }
+    .ev-rich .position-absolute { position:absolute; }
+    .ev-rich .top-0 { top:0; }
+    .ev-rich .end-0 { right:0; }
+    .ev-rich .row { display:flex; flex-wrap:wrap; }
+    .ev-rich .row.g-3 { margin:0 -.5rem; }
+    .ev-rich .row.g-3 > [class^="col-"] { padding:0 .5rem; margin-bottom:1rem; box-sizing:border-box; }
+    .ev-rich .col-6 { width:50%; }
+    .ev-rich .col-4 { width:33.3333%; }
+    .ev-rich .ratio { position:relative; width:100%; }
+    .ev-rich .ratio.ratio-16x9::before { content:""; display:block; padding-top:56.25%; }
+    .ev-rich .ratio > img, .ev-rich .ratio > video, .ev-rich .ratio > iframe { position:absolute; inset:0; width:100% !important; height:100% !important; }
+    .ev-rich .ev-rec-card-list-thumb img { width:100%; height:100% !important; object-fit:cover; }
+    .ev-rich .btn { display:inline-flex; align-items:center; gap:.3rem; font-size:.8rem; font-weight:600; padding:.45rem .9rem; border-radius:.6rem; border:1px solid transparent; cursor:pointer; background:transparent; transition:background .15s ease, color .15s ease, border-color .15s ease; }
+    @media (max-width: 560px) {
+        .ev-rich .row.g-3 > .col-6 { width:100%; }
+    }
+
     /* Task #3794 — recommendation cards (event-page-recommendations.blade.php)
        repaint their theme-agnostic surface for this dark page. */
     .ev-rich .ev-rec-heading { color: rgba(232,234,240,0.85); }
