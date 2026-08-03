@@ -36,6 +36,10 @@ args = "e2e-home-fast-lean"
 task = "workflow.run"
 args = "e2e-auth-modal-error-tab-restore"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-payouts-nav-placement"
+
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
 author = "agent"
@@ -87,6 +91,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && VALIDATION_PORT=5063 bash tests/Browser/run-validation.sh auth-modal-error-tab-restore.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-payouts-nav-placement"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5071 bash tests/Browser/run-validation.sh payouts-nav-placement.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true

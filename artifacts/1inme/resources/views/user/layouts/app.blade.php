@@ -641,7 +641,7 @@
 
                 {{-- ========== LINKS & PAGES (collapsible) ========== --}}
                 @if($__can['links_view'] || $__can['inbox_view'] || $__can['files_view'])
-                @php $grpLinksActive = request()->routeIs('user.qr-codes.*') || request()->routeIs('user.qrcode*') || request()->routeIs('user.forms.*') || request()->routeIs('user.backlinks.*') || request()->routeIs('user.splash-pages.*') || request()->routeIs('user.resume.*') || request()->routeIs('user.projects.*') || request()->routeIs('user.files.*') || request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*'); @endphp
+                @php $grpLinksActive = request()->routeIs('user.qr-codes.*') || request()->routeIs('user.qrcode*') || request()->routeIs('user.forms.*') || request()->routeIs('user.backlinks.*') || request()->routeIs('user.splash-pages.*') || request()->routeIs('user.resume.*') || request()->routeIs('user.projects.*') || request()->routeIs('user.files.*') || request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*') || request()->routeIs('user.payouts.*') || request()->routeIs('user.adult-content.*'); @endphp
                 <div x-data="{ open: {{ $grpLinksActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -743,6 +743,16 @@
                             <span class="sidebar-tooltip">Files, your vault &amp; cloud library</span>
                         </a>
                         @endif
+                        @if($__can['posts_view'])
+                        <a href="{{ route('user.payouts.show') }}"
+                           class="sidebar-link {{ request()->routeIs('user.payouts.*') || request()->routeIs('user.adult-content.*') ? 'active' : '' }}"
+                           style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-sack-dollar"></i></div>
+                            <span class="nav-label">Earnings & Payouts</span>
+                            @include('common.partials.soon-badge', ['feature' => 'payouts'])
+                            <span class="sidebar-tooltip">Earnings & Payouts</span>
+                        </a>
+                        @endif
                     </div>
                 </div>
                 @endif
@@ -829,7 +839,7 @@
 
                 {{-- ========== MONETIZATION (collapsible) ========== --}}
                 @if($__can['posts_view'])
-                @php $grpMonetActive = request()->routeIs('user.payouts.*') || request()->routeIs('user.adult-content.*') || request()->routeIs('user.monetization.*'); @endphp
+                @php $grpMonetActive = request()->routeIs('user.monetization.*'); @endphp
                 <div x-data="{ open: {{ $grpMonetActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -837,14 +847,6 @@
                         <i class="fas fa-chevron-down grp-chevron"></i>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
-                        <a href="{{ route('user.payouts.show') }}"
-                           class="sidebar-link {{ request()->routeIs('user.payouts.*') || request()->routeIs('user.adult-content.*') ? 'active' : '' }}"
-                           style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-sack-dollar"></i></div>
-                            <span class="nav-label">Earnings & Payouts</span>
-                            @include('common.partials.soon-badge', ['feature' => 'payouts'])
-                            <span class="sidebar-tooltip">Earnings & Payouts</span>
-                        </a>
                         <a href="{{ route('user.monetization.earnings') }}"
                            class="sidebar-link {{ request()->routeIs('user.monetization.*') ? 'active' : '' }}"
                            style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
@@ -1541,7 +1543,7 @@
 
                         {{-- ========== LINKS & PAGES (collapsible) ========== --}}
                         @if($__can['links_view'] || $__can['inbox_view'] || $__can['files_view'])
-                        @php $mGrpLinksActive = request()->routeIs('user.qr-codes.*') || request()->routeIs('user.qrcode*') || request()->routeIs('user.forms.*') || request()->routeIs('user.backlinks.*') || request()->routeIs('user.splash-pages.*') || request()->routeIs('user.resume.*') || request()->routeIs('user.projects.*') || request()->routeIs('user.files.*') || request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*'); @endphp
+                        @php $mGrpLinksActive = request()->routeIs('user.qr-codes.*') || request()->routeIs('user.qrcode*') || request()->routeIs('user.forms.*') || request()->routeIs('user.backlinks.*') || request()->routeIs('user.splash-pages.*') || request()->routeIs('user.resume.*') || request()->routeIs('user.projects.*') || request()->routeIs('user.files.*') || request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*') || request()->routeIs('user.payouts.*') || request()->routeIs('user.adult-content.*'); @endphp
                         <div x-data="{ open: {{ $mGrpLinksActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1596,6 +1598,9 @@
                                 @endphp
                                 <a href="{{ $filesHref }}" class="sidebar-link {{ request()->routeIs('user.files.*') || request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder-open"></i></div> <span>Files</span></a>
                                 @endif
+                                @if($__can['posts_view'])
+                                <a href="{{ route('user.payouts.show') }}" class="sidebar-link {{ request()->routeIs('user.payouts.*') || request()->routeIs('user.adult-content.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-sack-dollar"></i></div> <span>Earnings &amp; Payouts</span>@include('common.partials.soon-badge', ['feature' => 'payouts'])</a>
+                                @endif
                             </div>
                         </div>
                         @endif
@@ -1632,7 +1637,7 @@
 
                         {{-- ========== MONETIZATION (collapsible) ========== --}}
                         @if($__can['posts_view'])
-                        @php $mGrpMonetActive = request()->routeIs('user.payouts.*') || request()->routeIs('user.adult-content.*') || request()->routeIs('user.monetization.*'); @endphp
+                        @php $mGrpMonetActive = request()->routeIs('user.monetization.*'); @endphp
                         <div x-data="{ open: {{ $mGrpMonetActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1640,7 +1645,6 @@
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
-                                <a href="{{ route('user.payouts.show') }}" class="sidebar-link {{ request()->routeIs('user.payouts.*') || request()->routeIs('user.adult-content.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-sack-dollar"></i></div> <span>Earnings &amp; Payouts</span>@include('common.partials.soon-badge', ['feature' => 'payouts'])</a>
                                 <a href="{{ route('user.monetization.earnings') }}" class="sidebar-link {{ request()->routeIs('user.monetization.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gem"></i></div> <span>Monetization</span>@include('common.partials.soon-badge', ['feature' => 'monetization'])</a>
                             </div>
                         </div>
