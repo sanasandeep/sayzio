@@ -169,6 +169,42 @@
     .ev-rich .ratio.ratio-16x9::before { content:""; display:block; padding-top:56.25%; }
     .ev-rich .ratio > img, .ev-rich .ratio > video, .ev-rich .ratio > iframe { position:absolute; inset:0; width:100% !important; height:100% !important; }
     .ev-rich .ev-rec-card-list-thumb img { width:100%; height:100% !important; object-fit:cover; }
+
+    /* Inline RSVP form (shared rsvp-form-fields partial) — Bootstrap form
+       fallbacks scoped to .ev-rsvp. Dark theme first, light-mode paired
+       below with the other .ev-rich overrides. */
+    .ev-rsvp { color:#e8eaf0; }
+    .ev-rsvp .mb-1 { margin-bottom:.25rem; }
+    .ev-rsvp .mb-3 { margin-bottom:1rem; }
+    .ev-rsvp .p-2 { padding:.5rem; }
+    .ev-rsvp .py-1 { padding-top:.25rem; padding-bottom:.25rem; }
+    .ev-rsvp .py-2 { padding-top:.55rem; padding-bottom:.55rem; }
+    .ev-rsvp .flex-wrap { flex-wrap:wrap; }
+    .ev-rsvp .gap-1 { gap:.25rem; }
+    .ev-rsvp .rounded { border-radius:.5rem; }
+    .ev-rsvp .form-label { display:block; font-weight:600; font-size:.8rem; color:rgba(232,234,240,0.7); margin-bottom:.35rem; }
+    .ev-rsvp .form-control, .ev-rsvp .form-select {
+        display:block; width:100%; box-sizing:border-box; font-size:.875rem; line-height:1.4;
+        padding:.55rem .75rem; border-radius:.6rem; border:1px solid rgba(255,255,255,0.14);
+        background:rgba(255,255,255,0.05); color:#e8eaf0; outline:none; transition:border-color .15s, box-shadow .15s;
+    }
+    .ev-rsvp .form-control::placeholder { color:rgba(232,234,240,0.35); }
+    .ev-rsvp .form-control:focus, .ev-rsvp .form-select:focus { border-color:rgba(61,107,255,0.6); box-shadow:0 0 0 3px rgba(61,107,255,0.18); }
+    .ev-rsvp select.form-select option { color:#111827; }
+    .ev-rsvp textarea.form-control { resize:vertical; min-height:3.2rem; }
+    .ev-rsvp .response-pill { cursor:pointer; border:2px solid rgba(255,255,255,0.12); border-radius:14px; padding:12px 6px; text-align:center; font-weight:600; transition:all .15s; background:rgba(255,255,255,0.04); color:#e8eaf0; }
+    .ev-rsvp .response-pill input { display:none; }
+    .ev-rsvp .response-pill.is-yes:has(input:checked) { border-color:#10b981; background:rgba(16,185,129,0.15); color:#34d399; }
+    .ev-rsvp .response-pill.is-maybe:has(input:checked) { border-color:#f59e0b; background:rgba(245,158,11,0.15); color:#fbbf24; }
+    .ev-rsvp .response-pill.is-no:has(input:checked) { border-color:rgba(255,255,255,0.25); background:rgba(255,255,255,0.06); color:#94a3b8; }
+    .ev-rsvp .btn.btn-purple { display:inline-flex; align-items:center; justify-content:center; gap:.4rem; border:none; cursor:pointer; font-size:.875rem; border-radius:.75rem; transition:opacity .15s; background:#3d6bff !important; color:#fff !important; padding-top:.7rem; padding-bottom:.7rem; }
+    .ev-rsvp .btn.btn-purple:hover { opacity:.9; }
+    .ev-rsvp .alert { border-radius:.6rem; padding:.6rem .8rem; margin-bottom:1rem; font-size:.82rem; }
+    .ev-rsvp .alert-danger { background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); color:#f87171; }
+    .ev-rsvp .alert-warning, .ev-rsvp .badge.bg-warning { background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3); color:#fbbf24; }
+    .ev-rsvp .badge.bg-warning { display:inline-block; border-radius:.4rem; padding:.15rem .45rem; font-size:.7rem; }
+    .ev-rsvp .badge.bg-danger { display:inline-block; border-radius:.4rem; padding:.15rem .45rem; font-size:.7rem; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#f87171; }
+    .ev-rsvp .border.rounded.p-2 { background:rgba(255,255,255,0.03) !important; }
     .ev-rich .btn { display:inline-flex; align-items:center; gap:.3rem; font-size:.8rem; font-weight:600; padding:.45rem .9rem; border-radius:.6rem; border:1px solid transparent; cursor:pointer; background:transparent; transition:background .15s ease, color .15s ease, border-color .15s ease; }
     @media (max-width: 560px) {
         .ev-rich .row.g-3 > .col-6 { width:100%; }
@@ -198,6 +234,21 @@
     html.light-mode .ev-rich .btn-outline-secondary:hover { background: rgba(15,23,42,0.06); color:#111827; }
     html.light-mode .ev-rich .btn-outline-success { color:#059669; border-color: rgba(5,150,105,0.5); }
     html.light-mode .ev-rich .btn-outline-success:hover { background: rgba(5,150,105,0.1); color:#047857; }
+
+    /* Light-mode pairing for the inline RSVP form */
+    html.light-mode .ev-rsvp { color:#111827; }
+    html.light-mode .ev-rsvp .form-label { color:rgba(15,23,42,0.6); }
+    html.light-mode .ev-rsvp .form-control, html.light-mode .ev-rsvp .form-select { background:#f8fafc; border-color:rgba(15,23,42,0.14); color:#111827; }
+    html.light-mode .ev-rsvp .form-control::placeholder { color:rgba(15,23,42,0.35); }
+    html.light-mode .ev-rsvp .form-control:focus, html.light-mode .ev-rsvp .form-select:focus { border-color:rgba(61,107,255,0.6); box-shadow:0 0 0 3px rgba(61,107,255,0.15); background:#fff; }
+    html.light-mode .ev-rsvp .response-pill { border-color:#e5e7eb; background:#fff; color:#111827; }
+    html.light-mode .ev-rsvp .response-pill.is-yes:has(input:checked) { border-color:#10b981; background:#ecfdf5; color:#047857; }
+    html.light-mode .ev-rsvp .response-pill.is-maybe:has(input:checked) { border-color:#f59e0b; background:#fffbeb; color:#b45309; }
+    html.light-mode .ev-rsvp .response-pill.is-no:has(input:checked) { border-color:#9ca3af; background:#f3f4f6; color:#374151; }
+    html.light-mode .ev-rsvp .alert-danger { background:rgba(239,68,68,0.06); border-color:rgba(239,68,68,0.25); color:#b91c1c; }
+    html.light-mode .ev-rsvp .alert-warning, html.light-mode .ev-rsvp .badge.bg-warning { background:#fffbeb; border-color:rgba(245,158,11,0.35); color:#b45309; }
+    html.light-mode .ev-rsvp .badge.bg-danger { background:rgba(239,68,68,0.08); border-color:rgba(239,68,68,0.3); color:#b91c1c; }
+    html.light-mode .ev-rsvp .border.rounded.p-2 { background:#fafafa !important; }
 
     /* Light-mode overrides for the "10x your connections" tips and the
        "Perfect pairings" cross-promo — both partials bake their colors as
@@ -398,12 +449,21 @@
                                 <div class="ev-card p-5">
                                     <div class="flex items-center gap-2.5 mb-4">
                                         <span class="ev-accent-icon-badge w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-calendar-check text-sm"></i></span>
-                                        <h2 class="text-sm font-bold uppercase tracking-wide ev-section-label">Join this event</h2>
+                                        <h2 class="text-sm font-bold uppercase tracking-wide ev-section-label">RSVP</h2>
                                     </div>
-                                    <a href="{{ route('redirect.rsvp.form', $link->alias) }}"
-                                       class="ev-accent-bg ev-cta-btn w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white hover:opacity-90 transition">
-                                        <i class="fas fa-calendar-check"></i> RSVP now
-                                    </a>
+                                    @if(session()->get('rsvp_submitted_' . $link->id) && !session('success'))
+                                        <div class="mb-3 px-3 py-2 rounded-lg text-xs font-medium" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.2); color: #6b93ff;">
+                                            <i class="fas fa-check-circle mr-1"></i> You've already responded. Submit again to update your RSVP.
+                                        </div>
+                                    @endif
+                                    {{-- Same shared form partial the standalone /rsvp page uses,
+                                         embedded inline (Task: RSVP on the event page itself).
+                                         .ev-rsvp supplies Tailwind-layout fallbacks for the
+                                         partial's Bootstrap form classes; never restyle the
+                                         partial itself — the RSVP page still uses it too. --}}
+                                    <div class="ev-rich ev-rsvp">
+                                        @include('common.partials.rsvp-form-fields', ['link' => $link, 'action' => route('redirect.rsvp.submit', $link->alias), 'sourceTag' => 'event_page'])
+                                    </div>
                                 </div>
                             @else
                                 <div class="ev-card p-5 text-center">

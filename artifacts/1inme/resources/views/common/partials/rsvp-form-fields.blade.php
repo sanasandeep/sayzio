@@ -62,11 +62,11 @@
 
     <label class="form-label small fw-semibold">Will you attend?</label>
     <div class="row g-2 mb-3">
-        <div class="col-4"><label class="response-pill is-yes d-block"><input type="radio" name="response" value="yes" required>
+        <div class="col-4"><label class="response-pill is-yes d-block"><input type="radio" name="response" value="yes" required @checked(old('response') === 'yes')>
             <i class="fas fa-check-circle d-block mb-1"></i><span class="small">Going</span></label></div>
-        <div class="col-4"><label class="response-pill is-maybe d-block"><input type="radio" name="response" value="maybe">
+        <div class="col-4"><label class="response-pill is-maybe d-block"><input type="radio" name="response" value="maybe" @checked(old('response') === 'maybe')>
             <i class="fas fa-question-circle d-block mb-1"></i><span class="small">Maybe</span></label></div>
-        <div class="col-4"><label class="response-pill is-no d-block"><input type="radio" name="response" value="no">
+        <div class="col-4"><label class="response-pill is-no d-block"><input type="radio" name="response" value="no" @checked(old('response') === 'no')>
             <i class="fas fa-times-circle d-block mb-1"></i><span class="small">Can't make it</span></label></div>
     </div>
 
@@ -113,7 +113,7 @@
             <div class="border rounded p-2" style="max-height:180px; overflow-y:auto; background:#fafafa;">
                 @foreach($occurrences as $occ)
                     <label class="d-flex align-items-center gap-2 small py-1">
-                        <input type="checkbox" name="occurrences[]" value="{{ $occ['key'] }}">
+                        <input type="checkbox" name="occurrences[]" value="{{ $occ['key'] }}" @checked(in_array($occ['key'], (array) old('occurrences', []), true))>
                         <span>{{ $occ['start']->format('D, M j · g:i A') }}@if($occ['label']), {{ $occ['label'] }}@endif</span>
                     </label>
                 @endforeach
@@ -134,18 +134,18 @@
             @if($type === 'select')
                 <select name="answers[{{ $label }}]" class="form-select" @if($req) required @endif>
                     <option value="">pick one</option>
-                    @foreach($opts as $o)<option value="{{ $o }}">{{ $o }}</option>@endforeach
+                    @foreach($opts as $o)<option value="{{ $o }}" @selected(old("answers.$label") === $o)>{{ $o }}</option>@endforeach
                 </select>
             @elseif($type === 'checkbox')
                 <div class="d-flex flex-wrap gap-2">
                     @foreach($opts as $o)
                         <label class="small d-flex align-items-center gap-1">
-                            <input type="checkbox" name="answers[{{ $label }}][]" value="{{ $o }}"> {{ $o }}
+                            <input type="checkbox" name="answers[{{ $label }}][]" value="{{ $o }}" @checked(in_array($o, (array) old("answers.$label", []), true))> {{ $o }}
                         </label>
                     @endforeach
                 </div>
             @else
-                <input type="text" name="answers[{{ $label }}]" class="form-control" maxlength="500" @if($req) required @endif>
+                <input type="text" name="answers[{{ $label }}]" class="form-control" maxlength="500" value="{{ old("answers.$label") }}" @if($req) required @endif>
             @endif
         </div>
     @endforeach
