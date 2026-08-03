@@ -1614,6 +1614,24 @@ class BlockVariantCatalog
                     ],
                     'preview' => ['bg' => '#ffffff', 'text' => '#1e1b4b', 'radius' => 0],
                 ],
+                // Task #6580: rounded variant of the arrow banner — same
+                // hexagonal silhouette with softly rounded points/corners
+                // (yellow "PORTFOLIO" reference). Rendering rounds via a
+                // CSS shape() clip; falls back to the sharp polygon.
+                [
+                    'key' => 'arrow_hex_round',
+                    'name' => 'Rounded Arrow Banner',
+                    'tags' => ['bold', 'corporate'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#d9b944',
+                        'border_style' => 'none', 'border_width' => '0',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#1f2937', 'padding' => '16', 'font_weight' => '800',
+                        'link_layout' => 'arrow_hex_round',
+                    ],
+                    'preview' => ['bg' => '#d9b944', 'text' => '#1f2937', 'radius' => 10],
+                ],
                 // Numbered editorial list: plain text link with a small
                 // right-aligned auto-incrementing index (01, 02, …) — the
                 // blue "About … 01" reference. Index is computed at render

@@ -33,7 +33,7 @@ class BlockStyleSanitizer
         'image_icon_rounded', 'image_icon_square', 'image_icon_circle',
         'title_desc_row', 'image_cover_square',
         'taped_note',
-        'arrow_hex', 'numbered_list', 'side_accent_tab',
+        'arrow_hex', 'arrow_hex_round', 'numbered_list', 'side_accent_tab',
         'icon_top', 'offset_frame', 'torn_tape',
         'arrow_chip_left',
     ];

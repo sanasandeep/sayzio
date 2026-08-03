@@ -169,6 +169,7 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "title_desc_row",     name: "Title + Description Row", tags: ["minimal", "pro", "editorial"], preview: { bg: "#ffffff", text: "#111827", radius: 14 } },
     { key: "image_cover_square", name: "Square Image Cover",   tags: ["bold", "editorial", "maximalist"], preview: { bg: "linear-gradient(135deg,#3d6bff,#1a1a2e)", text: "#fff", radius: 20 } },
     { key: "arrow_hex",          name: "Arrow Banner",         tags: ["bold", "corporate"],   preview: { bg: "#ffffff", text: "#1e1b4b", radius: 0 } },
+    { key: "arrow_hex_round",    name: "Rounded Arrow Banner", tags: ["bold", "corporate"],   preview: { bg: "#d9b944", text: "#1f2937", radius: 10 } },
     { key: "numbered_editorial", name: "Numbered List",        tags: ["editorial", "minimal"],preview: { bg: "#1e40cf", text: "#dbe4ff", radius: 0 } },
     { key: "side_accent_tab",    name: "Side Accent Tab",      tags: ["editorial", "pro", "corporate"], preview: { bg: "#35595a", text: "#fdf6ec", radius: 0, border: "#ddb387" } },
     { key: "icon_top_stack",     name: "Icon Above Label",     tags: ["minimal", "pro"],      preview: { bg: "#12351f", text: "#fff", radius: 12 } },

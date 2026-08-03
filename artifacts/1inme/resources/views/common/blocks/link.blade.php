@@ -295,6 +295,50 @@
                 @if($_icon)<i class="{{ $_icon }} text-[0.85em]"></i>@endif<span>{{ $_txt }}</span>
             </div>
         </a>
+    @elseif($_lnkLayout === 'arrow_hex_round')
+        {{-- Rounded arrow banner (Task #6580): same hexagonal banner as
+             `arrow_hex` but with softly rounded points and corners (yellow
+             "PORTFOLIO" reference). Sharp polygon clip-paths can't round
+             corners, so we clip with CSS `shape()` (smooth quadratic curves
+             at every vertex) and fall back to the sharp polygon on browsers
+             without shape() support. The clip lives on the inner bio-btn
+             panel so per-block colors/gradients apply normally; box shadows
+             are intentionally clipped away by the shape. --}}
+        @once('bio-arrow-hex-round-style')
+        <style>
+            .bio-arrow-hex-round {
+                clip-path: polygon(26px 0%, calc(100% - 26px) 0%, 100% 50%, calc(100% - 26px) 100%, 26px 100%, 0% 50%);
+                border-radius: 0;
+            }
+            @supports (clip-path: shape(from 0 0, line to 100% 0, line to 100% 100%, close)) {
+                .bio-arrow-hex-round {
+                    clip-path: shape(
+                        from 38px 0,
+                        line to calc(100% - 38px) 0,
+                        curve to calc(100% - 19px) 14% with calc(100% - 26px) 0,
+                        line to calc(100% - 6px) 39%,
+                        curve to calc(100% - 6px) 61% with 100% 50%,
+                        line to calc(100% - 19px) 86%,
+                        curve to calc(100% - 38px) 100% with calc(100% - 26px) 100%,
+                        line to 38px 100%,
+                        curve to 19px 86% with 26px 100%,
+                        line to 6px 61%,
+                        curve to 6px 39% with 0 50%,
+                        line to 19px 14%,
+                        curve to 38px 0 with 26px 0,
+                        close
+                    );
+                }
+            }
+        </style>
+        @endonce
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 transition-all duration-300 hover:-translate-y-0.5">
+            <div class="bio-btn bio-arrow-hex-round w-full px-10 py-3.5 text-center font-bold uppercase tracking-wide flex items-center justify-center gap-2"
+                 @if($btnInline) style="{{ $btnInline }}" @endif>
+                @if($_icon)<i class="{{ $_icon }} text-[0.85em]"></i>@endif<span>{{ $_txt }}</span>
+            </div>
+        </a>
     @elseif($_lnkLayout === 'numbered_list')
         {{-- Numbered editorial list: big left-aligned text link with a small
              right-aligned index (01, 02, …). The index auto-increments per
