@@ -439,6 +439,12 @@ class CreatorProfileController extends Controller
         self::saveShowcaseFields($user, $data, $profile);
 
         // ── Task #6551: special dates ────────────────────────────────
+        // Plan-gated (Task #6646): `special_dates` defaults ON for legacy
+        // plans that predate the key, so behaviour only changes when an
+        // admin explicitly switches it off for a plan.
+        if (! $user->getPlanFeature('special_dates', true)) {
+            unset($data['special_dates']);
+        }
         if (array_key_exists('special_dates', $data)) {
             \App\Modules\User\Support\SpecialDates::applyInput($user, (array) ($data['special_dates'] ?? []));
         }

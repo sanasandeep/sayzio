@@ -94,8 +94,12 @@ class PlansAndAddonsSeeder extends Seeder
         // the overlay-fill path below pick them up. Existing per-tier keys
         // (e.g. ai_widget / ai_voice_assistant) win over these defaults.
         $aiLimits = self::aiFeatureLimits();
+        $gatingSync = self::gatingSyncFeatureDefaults();
         foreach ($defs as &$def) {
-            $extra = $aiLimits[$def['slug']] ?? [];
+            $extra = array_merge(
+                $aiLimits[$def['slug']] ?? [],
+                $gatingSync[$def['slug']] ?? [],
+            );
             $def['features'] = array_merge($extra, $def['features']);
         }
         unset($def);
@@ -186,6 +190,35 @@ class PlansAndAddonsSeeder extends Seeder
      *
      * @return array<string, array<string, int|bool>>
      */
+    /**
+     * Per-plan defaults for the plan-gating sync sweep (Task #6646): feature
+     * keys that were already enforced in code (or previously ungated) but
+     * missing from the seeded plan rows. Merged into every tier alongside
+     * aiFeatureLimits() and reused verbatim by the additive backfill
+     * migration so both share one source of truth.
+     *
+     * - `special_dates` was previously ungated — default ON everywhere so
+     *   behaviour does not change; admins can now switch it off per plan.
+     * - `max_smart_rules` was an invisible cap falling back to the hard
+     *   ceiling (25); tiers now carry an explicit value (-1 = unlimited,
+     *   still hard-capped at 25 by the sanitizer).
+     *
+     * @return array<string, array<string, int|bool>>
+     */
+    public static function gatingSyncFeatureDefaults(): array
+    {
+        return [
+            'free'           => ['special_dates' => true, 'max_smart_rules' => 3],
+            'creator'        => ['special_dates' => true, 'max_smart_rules' => 10],
+            'professional'   => ['special_dates' => true, 'max_smart_rules' => 25],
+            'business'       => ['special_dates' => true, 'max_smart_rules' => -1],
+            'agency'         => ['special_dates' => true, 'max_smart_rules' => -1],
+            'developer'      => ['special_dates' => true, 'max_smart_rules' => -1],
+            'enterprise-api' => ['special_dates' => true, 'max_smart_rules' => -1],
+            'unlimited'      => ['special_dates' => true, 'max_smart_rules' => -1],
+        ];
+    }
+
     public static function aiFeatureLimits(): array
     {
         return [
@@ -204,6 +237,8 @@ class PlansAndAddonsSeeder extends Seeder
                 'qr_art'               => false,
                 'whatsapp_agent'       => false,
                 'marketing_strategist' => false,
+                'competitor_teardown'  => false,
+                'audience_type_estimation' => false,
             ],
             'creator' => [
                 'brand_studio'          => true,
@@ -220,6 +255,8 @@ class PlansAndAddonsSeeder extends Seeder
                 'qr_art'               => true,
                 'whatsapp_agent'       => false,
                 'marketing_strategist' => false,
+                'competitor_teardown'  => true,
+                'audience_type_estimation' => true,
             ],
             'professional' => [
                 'brand_studio'          => true,
@@ -236,6 +273,8 @@ class PlansAndAddonsSeeder extends Seeder
                 'qr_art'               => true,
                 'whatsapp_agent'       => true,
                 'marketing_strategist' => true,
+                'competitor_teardown'  => true,
+                'audience_type_estimation' => true,
             ],
             'business' => [
                 'brand_studio'          => true,
@@ -252,6 +291,8 @@ class PlansAndAddonsSeeder extends Seeder
                 'qr_art'               => true,
                 'whatsapp_agent'       => true,
                 'marketing_strategist' => true,
+                'competitor_teardown'  => true,
+                'audience_type_estimation' => true,
             ],
             'agency' => [
                 'brand_studio'          => true,
@@ -268,6 +309,8 @@ class PlansAndAddonsSeeder extends Seeder
                 'qr_art'               => true,
                 'whatsapp_agent'       => true,
                 'marketing_strategist' => true,
+                'competitor_teardown'  => true,
+                'audience_type_estimation' => true,
             ],
             'developer' => [
                 'brand_studio'          => true,
@@ -284,6 +327,8 @@ class PlansAndAddonsSeeder extends Seeder
                 'qr_art'               => true,
                 'whatsapp_agent'       => true,
                 'marketing_strategist' => true,
+                'competitor_teardown'  => true,
+                'audience_type_estimation' => true,
             ],
             'enterprise-api' => [
                 'brand_studio'          => true,
@@ -300,6 +345,8 @@ class PlansAndAddonsSeeder extends Seeder
                 'qr_art'               => true,
                 'whatsapp_agent'       => true,
                 'marketing_strategist' => true,
+                'competitor_teardown'  => true,
+                'audience_type_estimation' => true,
             ],
             'unlimited' => [
                 'brand_studio'          => true,
@@ -316,6 +363,8 @@ class PlansAndAddonsSeeder extends Seeder
                 'qr_art'               => true,
                 'whatsapp_agent'       => true,
                 'marketing_strategist' => true,
+                'competitor_teardown'  => true,
+                'audience_type_estimation' => true,
             ],
         ];
     }

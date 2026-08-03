@@ -1219,8 +1219,14 @@ Teardown).*
 - **Plans** (`Plan` model) — name, monthly/annual price (prices live in the
   `prices` table), and a JSON `features` blob holding feature toggles + numeric
   caps (links, biolinks, projects, storage, contacts, files; per-type modules &
-  caps; block-type allowlist; advanced link-setting gates; custom domain/CSS-JS/
-  branding flags; `ecommerce`). **Internal (admin-only) plans** are excluded from
+  caps; block-type allowlist; advanced link-setting gates — including
+  `ab_tests`, per-link `max_smart_rules` and profile `special_dates`; AI-suite
+  toggles such as `competitor_teardown` and `audience_type_estimation`; custom
+  domain/CSS-JS/branding flags; `ecommerce`; referral reward knobs
+  `signup_bonus_days` / `referrer_free_days` / `referred_free_days`).
+  Every plan-form knob is documented in `PremiumFeatures::catalogue()` — a
+  drift test keeps the admin form, public pricing grid and mobile feature
+  highlights in lockstep. **Internal (admin-only) plans** are excluded from
   self-serve surfaces via `Plan::scopePublic()`. Super-admins bypass plan limits.
 - **Pricing surfaces** — public `/pricing` + in-app `/user/upgrade` share
   `PlanRecommender`, which reads 6 usage gauges and recommends a plan via a

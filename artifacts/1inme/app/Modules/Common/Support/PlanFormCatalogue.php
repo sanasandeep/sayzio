@@ -83,6 +83,7 @@ class PlanFormCatalogue
             ['key' => 'max_aliases_per_link', 'label' => 'Extra aliases per link',  'default' => 0,   'module' => 'module_short_links', 'hint' => 'Global fallback for additional aliases beyond the primary one. Override per link type below. -1 = unlimited.'],
             ['key' => 'min_alias_length',     'label' => 'Min alias length',        'default' => 4,   'module' => 'module_short_links', 'hint' => 'Minimum length for the visitor-facing alias. Free/entry plans should keep the largest minimum; paid tiers can step down.', 'max' => 191],
             ['key' => 'max_alias_length',     'label' => 'Max alias length',        'default' => 50,  'module' => 'module_short_links', 'hint' => 'Hard cap is 191 characters.', 'max' => 191],
+            ['key' => 'max_smart_rules',      'label' => 'Max smart rules / link',  'default' => 25,  'module' => 'module_short_links', 'hint' => 'Targeting rules a single smart link can stack. Hard cap is 25; -1 = unlimited (still capped at 25).'],
             ['key' => 'max_forms',            'label' => 'Max forms',               'default' => 1,   'module' => 'module_forms',       'hint' => 'Custom form definitions a user can publish.'],
             ['key' => 'max_minds',            'label' => 'Max AI Minds',  'default' => 1,   'module' => 'module_ai_suite',    'hint' => 'How many AI Minds (Minds) a user can create. -1 = unlimited.'],
             ['key' => 'max_personas',         'label' => 'Max AI Agents',           'default' => 1,   'module' => 'module_ai_suite',    'hint' => 'How many configurable AI Agent personas a user can create. -1 = unlimited.'],
@@ -203,6 +204,8 @@ class PlanFormCatalogue
             ['key' => 'link_deep_link',       'type' => 'bool',   'module' => 'module_short_links'],
             ['key' => 'link_smart_rules',     'type' => 'bool',   'module' => 'module_short_links'],
             ['key' => 'link_active_window',   'type' => 'bool',   'module' => 'module_short_links'],
+            ['key' => 'ab_tests',             'type' => 'bool',   'module' => 'module_short_links'],
+            ['key' => 'special_dates',        'type' => 'bool',   'module' => null],
             ['key' => 'analytics',            'type' => 'select', 'module' => null,
              'options' => ['basic' => 'Basic — clicks, top countries', 'advanced' => 'Advanced — geo, device, referrer, cohorts'],
              'default' => 'basic'],
@@ -227,6 +230,8 @@ class PlanFormCatalogue
             ['key' => 'brand_kit_assets',     'module' => 'module_branding'],
             ['key' => 'card_scan',            'module' => 'module_ai_suite'],
             ['key' => 'ai_resume_tools',      'module' => 'module_ai_suite'],
+            ['key' => 'competitor_teardown',  'module' => 'module_ai_suite'],
+            ['key' => 'audience_type_estimation', 'module' => 'module_ai_suite'],
         ];
     }
 

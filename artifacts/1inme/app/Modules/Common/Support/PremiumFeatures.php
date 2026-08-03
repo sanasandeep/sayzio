@@ -82,6 +82,7 @@ class PremiumFeatures
             ['key' => 'social_proof_popup', 'group' => 'Audience growth', 'name' => 'Social proof pop-ups', 'description' => 'Live "X people just signed up / bought" style notifications on your Link in Bio pages to build trust and urgency.'],
             ['key' => 'events_rsvps', 'group' => 'Audience growth', 'name' => 'Events & RSVPs', 'description' => 'Run launches, drops and meet-ups inside your Link in Bio with countdown blocks, RSVP capture, reminder emails, capacity caps and add-to-calendar (.ics) downloads.'],
             ['key' => 'referrals', 'group' => 'Audience growth', 'name' => 'Referral program', 'description' => 'Give every creator a personal /r/<code> share link, custom referral codes and live tracking of who joined through them — turn happy users into your biggest growth channel.'],
+            ['key' => 'special_dates', 'group' => 'Audience growth', 'name' => 'Special dates', 'description' => 'Birthdays, anniversaries and product-release dates on your profile — shown publicly if you want, with automatic wish emails to followers who opt in.'],
 
             // ---- Domains & SEO ----
             ['key' => 'custom_domains', 'group' => 'Domains & SEO', 'name' => 'Custom domains', 'description' => 'Connect your own domain (yourbrand.com) so short links and Link in Bio pages live under your URL instead of 1inme.co.'],
@@ -97,6 +98,8 @@ class PremiumFeatures
             ['key' => 'link_deep_link', 'group' => 'Security & control', 'name' => 'Deep links', 'description' => 'Open native mobile apps directly when a link is tapped, with a web fallback when the app is not installed.'],
             ['key' => 'link_smart_rules', 'group' => 'Security & control', 'name' => 'Smart redirect rules', 'description' => 'Compose multiple targeting rules with priority and fallback so one link routes everyone to exactly the right place.'],
             ['key' => 'link_active_window', 'group' => 'Security & control', 'name' => 'Active windows', 'description' => 'Only let a link redirect during the specific days and times you choose.'],
+            ['key' => 'max_smart_rules', 'group' => 'Security & control', 'name' => 'Smart rules per link', 'description' => 'How many targeting rules a single smart link can stack (hard cap 25).', 'unit' => 'rules / link'],
+            ['key' => 'ab_tests', 'group' => 'Security & control', 'name' => 'A/B testing', 'description' => 'Split traffic between multiple destinations per short link with sticky weighted assignment, per-variant click counters and a one-tap winner.'],
             ['key' => 'qr_customization', 'group' => 'Security & control', 'name' => 'Custom QR codes', 'description' => 'Style the QR codes generated for each link — colors, logo in the centre, dot shape and frame.'],
 
             // ---- Forms & lead capture ----
@@ -178,6 +181,7 @@ class PremiumFeatures
             ['key' => 'brand_studio', 'group' => 'AI suite', 'name' => 'AI Brand Studio', 'description' => 'Turn one plain-language brief into a whole on-brand asset kit — Link in Bio page, short links, QR codes, a form and a digital card — reviewed before anything is created.'],
             ['key' => 'max_brand_studio_bulk', 'group' => 'AI suite', 'name' => 'AI Brand Studio bulk variations', 'description' => 'How many on-brand variants one AI Brand Studio bulk run can generate at once (e.g. 20 personalized QR codes or short links).', 'unit' => 'variants / run'],
             ['key' => 'competitor_teardown', 'group' => 'AI suite', 'name' => 'Competitor Biolink Teardown', 'description' => 'Paste any competitor\'s link-in-bio URL and get an AI-scored teardown — strengths, weaknesses, missing elements and CTA quality — then build a better version with one click.'],
+            ['key' => 'audience_type_estimation', 'group' => 'AI suite', 'name' => 'Audience Type AI Estimation', 'description' => 'On-demand AI analysis of your click data that estimates who your audience actually is — segments, interests and how to speak to them.'],
         ];
     }
 

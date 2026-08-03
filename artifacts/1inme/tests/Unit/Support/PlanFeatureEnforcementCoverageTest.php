@@ -138,12 +138,8 @@ class PlanFeatureEnforcementCoverageTest extends TestCase
         'n' => "Bug: MarketingSuggestionApplier passes the literal 'n' instead of 'max_links' to getPlanFeature(); flagged here as a known issue rather than silently ignored. Fixing the call site is out of this audit's scope (report only).",
 
         // --- (4) Known real gaps: enforced today, not yet in the plan form ---
-        'max_smart_rules' => 'TODO: register in quantityLimits(). Enforced via the link_smart_rules feature flag + CheckPlanLimit(link_smart_rules); not yet in the admin plan form.',
-        'ab_tests' => 'TODO: register in featureFlags(). Enforced in LinkController::planAllowsAbTests(); not yet in the admin plan form.',
         'ab_max_variants' => 'TODO: register in quantityLimits(). Enforced in LinkController::planMaxAbVariants(); not yet in the admin plan form.',
         'ask_coach' => 'TODO: register in aiSuite(). Enforced via AiPlanAccess::featureAllowed(); not yet in the admin plan form (see AiPlanAccess::legacyAvailabilityFallback()).',
-        'audience_type_estimation' => 'TODO: register in aiSuite(). Enforced via AudienceTypeEstimationService::FEATURE_KEY + AiPlanAccess::featureAllowed(); not yet in the admin plan form.',
-        'competitor_teardown' => 'TODO: register in aiSuite(). Enforced via AiPlanAccess::featureAllowed(); not yet in the admin plan form.',
         'dashboard_designer' => 'TODO: register in aiSuite(). Enforced via DashboardAiDesignerService::FEATURE + AiPlanAccess::featureAllowed(); not yet in the admin plan form.',
         'ai_staff_billing' => 'TODO: register in aiSuite(). Enforced via AiStaff::featureKey() ("ai_staff_" . domain) + AiPlanAccess::featureAllowed(); not yet in the admin plan form.',
         'ai_staff_contacts' => 'TODO: register in aiSuite(). See ai_staff_billing.',
