@@ -151,6 +151,41 @@ class SpecialDatesPlanGateTest extends TestCase
         $this->assertCount(1, SpecialDates::entries($user->refresh()));
     }
 
+    // ── Editor render (Task #6651) ─────────────────────────────────────────
+
+    private function editor(User $user): \Illuminate\Testing\TestResponse
+    {
+        $this->bind($user);
+
+        return $this->actingAs($user)->get(route('user.creator-profile.edit'));
+    }
+
+    public function test_gated_plan_editor_hides_repeater_and_shows_upgrade_hint(): void
+    {
+        $user = $this->makeUser($this->plan(['special_dates' => false]));
+
+        $this->editor($user)->assertOk()
+            ->assertSee('special-dates-upgrade-hint')
+            ->assertSee('Upgrade plan')
+            ->assertDontSee('Add a special date');
+    }
+
+    public function test_plan_without_key_editor_still_shows_repeater(): void
+    {
+        $user = $this->makeUser($this->plan(['max_links' => 100]));
+
+        $this->editor($user)->assertOk()
+            ->assertSee('Add a special date')
+            ->assertDontSee('special-dates-upgrade-hint');
+    }
+
+    public function test_planless_user_editor_still_shows_repeater(): void
+    {
+        $this->editor($this->makeUser(null))->assertOk()
+            ->assertSee('Add a special date')
+            ->assertDontSee('special-dates-upgrade-hint');
+    }
+
     // ── Wish command ───────────────────────────────────────────────────────
 
     /** A creator with today's notify-enabled birthday and one follower. */
