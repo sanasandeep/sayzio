@@ -1285,6 +1285,265 @@ function WindowChromeFrame(props: { st: Record<string, unknown>; children: React
   );
 }
 
+// --- Structural link_layout renderers (Task #6605) -----------------------
+// Native mirrors of the four web link.blade.php branches added in Task
+// #6602: sparkle_pill, notched_bar, speech_bubble, riveted_plaque. Each
+// reads the same `_style` keys as the web renderer and falls back to the
+// same reference colors. Unknown tokens still fall through to the plain
+// button path in BlockViewInner.
+
+type LlStyle = Record<string, unknown> | null;
+const llStr = (st: LlStyle, k: string): string =>
+  typeof st?.[k] === "string" ? (st[k] as string) : "";
+// Mirrors Blade's `intval(...) ?: fallback` — 0/blank/invalid → fallback.
+const llInt = (st: LlStyle, k: string, fallback: number): number => {
+  const n = parseInt(String(st?.[k] ?? ""), 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+};
+const llColor = (st: LlStyle, k: string, fallback: string): string => {
+  const v = llStr(st, k);
+  return v !== "" && v !== "transparent" ? v : fallback;
+};
+const LL_SERIF = Platform.select({
+  ios: "Georgia",
+  android: "serif",
+  default: "Georgia, 'Times New Roman', serif",
+});
+// Four-point sparkle glyph (same path as the web renderer's inline SVG).
+const LL_SPARKLE_D =
+  "M12 0 C13.2 7.4 16.6 10.8 24 12 C16.6 13.2 13.2 16.6 12 24 C10.8 16.6 7.4 13.2 0 12 C7.4 10.8 10.8 7.4 12 0 Z";
+
+function SparklePillLink({ st, label, onPress }: { st: LlStyle; label: string; onPress: () => void }) {
+  const ink = llStr(st, "text_color") !== "" ? llStr(st, "text_color") : "#2c2a26";
+  const line = llColor(st, "border_color", ink);
+  const bgPick = llStr(st, "bg_color");
+  const bg = bgPick !== "" ? bgPick : "transparent";
+  return (
+    <Pressable onPress={onPress} style={{ width: "100%", paddingVertical: 9, paddingHorizontal: 12 }}>
+      <View
+        style={{
+          width: "100%",
+          backgroundColor: bg,
+          borderWidth: llInt(st, "border_width", 1),
+          borderColor: line,
+          borderRadius: 999,
+          paddingVertical: llInt(st, "padding", 14),
+          paddingHorizontal: 24,
+        }}
+      >
+        <Text
+          style={{
+            color: ink,
+            textAlign: "center",
+            fontSize: llInt(st, "font_size", 18),
+            fontWeight: (llStr(st, "font_weight") || "500") as "500",
+            letterSpacing: 1,
+            fontFamily: LL_SERIF,
+          }}
+          numberOfLines={2}
+        >
+          {label}
+        </Text>
+      </View>
+      <Svg
+        pointerEvents="none"
+        viewBox="0 0 24 24"
+        width={19}
+        height={19}
+        style={{ position: "absolute", top: 0, right: "6%" }}
+      >
+        <Path d={LL_SPARKLE_D} fill={line} />
+      </Svg>
+      <Svg
+        pointerEvents="none"
+        viewBox="0 0 24 24"
+        width={15}
+        height={15}
+        style={{ position: "absolute", bottom: 0, left: "8%" }}
+      >
+        <Path d={LL_SPARKLE_D} fill={line} />
+      </Svg>
+    </Pressable>
+  );
+}
+
+function NotchedBarLink({ st, label, onPress }: { st: LlStyle; label: string; onPress: () => void }) {
+  // The bar's silhouette (45°-clipped corners) is drawn as an SVG polygon
+  // sized from the measured layout, so the notches stay a fixed 16px at
+  // any width (RN has no CSS clip-path).
+  const [dims, setDims] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+  const bg = llColor(st, "bg_color", "#191512");
+  const ink = llStr(st, "text_color") !== "" ? llStr(st, "text_color") : "#ffffff";
+  const { w, h } = dims;
+  const notch = 16;
+  const points =
+    w > 0 && h > 0
+      ? `${notch},0 ${w - notch},0 ${w},${0.34 * h} ${w},${0.66 * h} ${w - notch},${h} ${notch},${h} 0,${0.66 * h} 0,${0.34 * h}`
+      : "";
+  return (
+    <Pressable
+      onPress={onPress}
+      onLayout={(e) =>
+        setDims({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })
+      }
+      style={{ width: "100%", marginBottom: 4 }}
+    >
+      {points !== "" ? (
+        <Svg
+          pointerEvents="none"
+          width={w}
+          height={h}
+          viewBox={`0 0 ${w} ${h}`}
+          style={StyleSheet.absoluteFill}
+        >
+          <Polygon points={points} fill={bg} />
+        </Svg>
+      ) : null}
+      <View style={{ paddingVertical: 16, paddingHorizontal: 32 }}>
+        <Text
+          style={{
+            color: ink,
+            textAlign: "center",
+            textTransform: "uppercase",
+            fontWeight: "700",
+            fontSize: llInt(st, "font_size", 16),
+            letterSpacing: 1.3,
+          }}
+          numberOfLines={2}
+        >
+          {label}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function SpeechBubbleLink({ st, label, onPress }: { st: LlStyle; label: string; onPress: () => void }) {
+  const bg = llColor(st, "bg_color", "#6b4a2f");
+  const ink = llStr(st, "text_color") !== "" ? llStr(st, "text_color") : "#f7ead3";
+  const borderStyle = llStr(st, "border_style") || "none";
+  const borderW = borderStyle !== "none" ? llInt(st, "border_width", 0) : 0;
+  const borderColor = borderW > 0 ? llColor(st, "border_color", ink) : "transparent";
+  return (
+    <Pressable onPress={onPress} style={{ width: "100%", paddingBottom: 12, marginBottom: 4 }}>
+      <View
+        style={{
+          width: "100%",
+          backgroundColor: bg,
+          borderRadius: llInt(st, "border_radius", 26),
+          borderWidth: borderW,
+          borderColor,
+          paddingVertical: llInt(st, "padding", 22),
+          paddingHorizontal: 28,
+        }}
+      >
+        <Text
+          style={{
+            color: ink,
+            textAlign: "left",
+            textTransform: "uppercase",
+            fontWeight: (llStr(st, "font_weight") || "800") as "800",
+            fontSize: llInt(st, "font_size", 19),
+            letterSpacing: 0.8,
+          }}
+          numberOfLines={2}
+        >
+          {label}
+        </Text>
+      </View>
+      {/* Tail poking out of the bottom-right corner, same silhouette as the
+          web renderer's clip-path polygon(0 0, 100% 0, 100% 100%, 55% 30%). */}
+      <Svg
+        pointerEvents="none"
+        width={26}
+        height={16}
+        viewBox="0 0 26 16"
+        style={{ position: "absolute", bottom: 0, right: 22 }}
+      >
+        <Polygon points="0,0 26,0 26,16 14.3,4.8" fill={bg} />
+      </Svg>
+    </Pressable>
+  );
+}
+
+function RivetedPlaqueLink({ st, label, onPress }: { st: LlStyle; label: string; onPress: () => void }) {
+  const bg = llColor(st, "bg_color", "#17161a");
+  const ink = llStr(st, "text_color") !== "" ? llStr(st, "text_color") : "#f3ede0";
+  const metal = llColor(st, "border_color", "#c9a35c");
+  const radius = llInt(st, "border_radius", 10);
+  const rivets: Array<Record<string, number>> = [
+    { top: 4, left: 4 },
+    { top: 4, right: 4 },
+    { bottom: 4, left: 4 },
+    { bottom: 4, right: 4 },
+  ];
+  return (
+    <Pressable onPress={onPress} style={{ width: "100%", marginBottom: 4 }}>
+      <View
+        style={{
+          width: "100%",
+          backgroundColor: bg,
+          borderWidth: llInt(st, "border_width", 2),
+          borderColor: metal,
+          borderRadius: radius,
+          paddingVertical: llInt(st, "padding", 18),
+          paddingHorizontal: 24,
+          shadowColor: "#000",
+          shadowOpacity: 0.35,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 4,
+        }}
+      >
+        {/* Inner metallic frame inset inside the outer border. */}
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 9,
+            left: 9,
+            right: 9,
+            bottom: 9,
+            borderWidth: 1,
+            borderColor: metal,
+            borderRadius: Math.max(radius - 6, 2),
+          }}
+        />
+        {rivets.map((pos, i) => (
+          <View
+            key={`rivet-${i}`}
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              width: 5,
+              height: 5,
+              borderRadius: 999,
+              backgroundColor: metal,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderColor: "rgba(255,255,255,0.7)",
+              ...pos,
+            }}
+          />
+        ))}
+        <Text
+          style={{
+            color: ink,
+            textAlign: "center",
+            fontWeight: (llStr(st, "font_weight") || "500") as "500",
+            fontSize: llInt(st, "font_size", 17),
+            letterSpacing: 0.9,
+            fontFamily: LL_SERIF,
+          }}
+          numberOfLines={2}
+        >
+          {label}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
 export function BlockView(props: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
   const st = (props.block.settings?._style as Record<string, unknown> | undefined) ?? {};
   const presetKey = typeof st.bg_preset_key === "string" ? st.bg_preset_key.trim() : "";
@@ -1941,6 +2200,22 @@ function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: Biolink
           />
         </Pressable>
       );
+    }
+    // Structural button layouts from Task #6602 (web link.blade.php):
+    // rendered natively so the mobile page matches the web page instead
+    // of degrading to the plain colored button. Unknown/other tokens
+    // still fall through to the plain button below.
+    if (!featured && _linkLayout === "sparkle_pill") {
+      return <SparklePillLink st={_st} label={label} onPress={() => handleTap(url)} />;
+    }
+    if (!featured && _linkLayout === "notched_bar") {
+      return <NotchedBarLink st={_st} label={label} onPress={() => handleTap(url)} />;
+    }
+    if (!featured && _linkLayout === "speech_bubble") {
+      return <SpeechBubbleLink st={_st} label={label} onPress={() => handleTap(url)} />;
+    }
+    if (!featured && _linkLayout === "riveted_plaque") {
+      return <RivetedPlaqueLink st={_st} label={label} onPress={() => handleTap(url)} />;
     }
     if (featured) {
       return (
