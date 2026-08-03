@@ -183,6 +183,15 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "double_border",      name: "Double Border",        tags: ["editorial", "minimal", "retro"], preview: { bg: "#f6efe3", text: "#42351f", radius: 12, border: "#42351f" } },
     { key: "double_border_noir", name: "Double Border · Noir", tags: ["dark", "pro", "editorial"],   preview: { bg: "#141210", text: "#e9dcc0", radius: 12, border: "#d4af6a" } },
     { key: "offset_frame_sand",  name: "Offset Frame · Sand",  tags: ["editorial", "minimal", "retro"], preview: { bg: "#b08d63", text: "#faf5ec", radius: 0, border: "#b08d63", serif: true } },
+    // Task #6602 — four more screenshot-inspired styles (colors-only on mobile).
+    { key: "sparkle_pill",          name: "Sparkle Pill",           tags: ["editorial", "minimal", "playful"], preview: { bg: "transparent", text: "#2c2a26", radius: 999, border: "#2c2a26", serif: true } },
+    { key: "sparkle_pill_ivory",    name: "Sparkle Pill · Ivory",   tags: ["dark", "editorial", "playful"],    preview: { bg: "transparent", text: "#f2ead9", radius: 999, border: "#f2ead9", serif: true } },
+    { key: "notched_bar",           name: "Notched Bar",            tags: ["bold", "brutalist", "dark"],       preview: { bg: "#191512", text: "#ffffff", radius: 0 } },
+    { key: "notched_bar_crimson",   name: "Notched Bar · Crimson",  tags: ["bold", "maximalist"],              preview: { bg: "#8c2f2b", text: "#fdf3e4", radius: 0 } },
+    { key: "speech_bubble",         name: "Speech Bubble",          tags: ["playful", "bold", "retro"],        preview: { bg: "#6b4a2f", text: "#f7ead3", radius: 26 } },
+    { key: "speech_bubble_pink",    name: "Speech Bubble · Pink",   tags: ["playful", "y2k"],                  preview: { bg: "#f472b6", text: "#4a044e", radius: 26 } },
+    { key: "riveted_plaque",        name: "Riveted Plaque",         tags: ["dark", "pro", "retro"],            preview: { bg: "#17161a", text: "#f3ede0", radius: 10, border: "#c9a35c", serif: true } },
+    { key: "riveted_plaque_silver", name: "Riveted Plaque · Silver", tags: ["dark", "pro", "corporate"],       preview: { bg: "#101726", text: "#eef2f6", radius: 10, border: "#b8c1cc", serif: true } },
   ],
   heading_styles: [
     { key: "oversize_serif", name: "Oversize Serif", tags: ["editorial", "pro"],     preview: { bg: "transparent", text: "#fff", radius: 0 } },

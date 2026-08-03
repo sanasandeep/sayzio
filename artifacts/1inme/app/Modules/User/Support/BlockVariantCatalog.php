@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 21;
+    public const VERSION = 22;
 
     /**
      * Effective catalog version (Task #6045): the hardcoded VERSION
@@ -1822,6 +1822,142 @@ class BlockVariantCatalog
                         'link_layout' => 'offset_frame',
                     ],
                     'preview' => ['bg' => '#b08d63', 'text' => '#faf5ec', 'radius' => 0, 'border' => '#b08d63', 'serif' => true],
+                ],
+
+                // ── Task #6602: four more screenshot-inspired styles ─────
+                // Sparkle pill: thin-outline pill with four-point sparkle
+                // glyphs near opposite corners, centered serif label
+                // (cream "WEBSITE" reference).
+                [
+                    'key' => 'sparkle_pill',
+                    'name' => 'Sparkle Pill',
+                    'tags' => ['editorial', 'minimal', 'playful'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#2c2a26',
+                        'border_radius' => '999', 'shadow_preset' => 'none',
+                        'text_color' => '#2c2a26', 'padding' => '14', 'font_weight' => '500',
+                        'font_family' => 'Playfair Display',
+                        'link_layout' => 'sparkle_pill',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#2c2a26', 'radius' => 999, 'border' => '#2c2a26', 'serif' => true],
+                ],
+                // Ivory-on-dark color variation of the sparkle pill.
+                [
+                    'key' => 'sparkle_pill_ivory',
+                    'name' => 'Sparkle Pill · Ivory',
+                    'tags' => ['dark', 'editorial', 'playful'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#f2ead9',
+                        'border_radius' => '999', 'shadow_preset' => 'none',
+                        'text_color' => '#f2ead9', 'padding' => '14', 'font_weight' => '500',
+                        'font_family' => 'Playfair Display',
+                        'link_layout' => 'sparkle_pill',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#f2ead9', 'radius' => 999, 'border' => '#f2ead9', 'serif' => true],
+                ],
+                // Notched bar: solid bar with 45°-clipped corners on all
+                // four corners, bold uppercase label (black "OUR MENU"
+                // reference).
+                [
+                    'key' => 'notched_bar',
+                    'name' => 'Notched Bar',
+                    'tags' => ['bold', 'brutalist', 'dark'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#191512',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => 'transparent',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#ffffff', 'padding' => '16', 'font_weight' => '800',
+                        'link_layout' => 'notched_bar',
+                    ],
+                    'preview' => ['bg' => '#191512', 'text' => '#ffffff', 'radius' => 0],
+                ],
+                // Crimson color variation of the notched bar.
+                [
+                    'key' => 'notched_bar_crimson',
+                    'name' => 'Notched Bar · Crimson',
+                    'tags' => ['bold', 'maximalist'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#8c2f2b',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => 'transparent',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#fdf3e4', 'padding' => '16', 'font_weight' => '800',
+                        'link_layout' => 'notched_bar',
+                    ],
+                    'preview' => ['bg' => '#8c2f2b', 'text' => '#fdf3e4', 'radius' => 0],
+                ],
+                // Speech bubble: chunky rounded bubble with a tail out the
+                // bottom-right and left-aligned bold rounded text (brown
+                // "MY WORK" on mustard reference).
+                [
+                    'key' => 'speech_bubble',
+                    'name' => 'Speech Bubble',
+                    'tags' => ['playful', 'bold', 'retro'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#6b4a2f',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => 'transparent',
+                        'border_radius' => '26', 'shadow_preset' => 'none',
+                        'text_color' => '#f7ead3', 'padding' => '22', 'font_weight' => '800',
+                        'font_family' => 'Baloo 2',
+                        'link_layout' => 'speech_bubble',
+                    ],
+                    'preview' => ['bg' => '#6b4a2f', 'text' => '#f7ead3', 'radius' => 26],
+                ],
+                // Bubblegum color variation of the speech bubble.
+                [
+                    'key' => 'speech_bubble_pink',
+                    'name' => 'Speech Bubble · Pink',
+                    'tags' => ['playful', 'y2k'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#f472b6',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => 'transparent',
+                        'border_radius' => '26', 'shadow_preset' => 'none',
+                        'text_color' => '#4a044e', 'padding' => '22', 'font_weight' => '800',
+                        'font_family' => 'Baloo 2',
+                        'link_layout' => 'speech_bubble',
+                    ],
+                    'preview' => ['bg' => '#f472b6', 'text' => '#4a044e', 'radius' => 26],
+                ],
+                // Riveted plaque: the double-border framed look dressed as
+                // a dark plaque — metallic gold outer + inner frame with
+                // rivet studs in the corners ("About Us" reference).
+                [
+                    'key' => 'riveted_plaque',
+                    'name' => 'Riveted Plaque',
+                    'tags' => ['dark', 'pro', 'retro'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#17161a',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#c9a35c',
+                        'border_radius' => '10', 'shadow_preset' => 'none',
+                        'text_color' => '#f3ede0', 'padding' => '18', 'font_weight' => '500',
+                        'font_family' => 'Playfair Display',
+                        'link_layout' => 'riveted_plaque',
+                    ],
+                    'preview' => ['bg' => '#17161a', 'text' => '#f3ede0', 'radius' => 10, 'border' => '#c9a35c', 'serif' => true],
+                ],
+                // Silver-on-navy color variation of the riveted plaque.
+                [
+                    'key' => 'riveted_plaque_silver',
+                    'name' => 'Riveted Plaque · Silver',
+                    'tags' => ['dark', 'pro', 'corporate'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#101726',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#b8c1cc',
+                        'border_radius' => '10', 'shadow_preset' => 'none',
+                        'text_color' => '#eef2f6', 'padding' => '18', 'font_weight' => '500',
+                        'font_family' => 'Playfair Display',
+                        'link_layout' => 'riveted_plaque',
+                    ],
+                    'preview' => ['bg' => '#101726', 'text' => '#eef2f6', 'radius' => 10, 'border' => '#b8c1cc', 'serif' => true],
                 ],
             ],
 

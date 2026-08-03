@@ -38,6 +38,8 @@ class BlockStyleSanitizer
         'arrow_chip_left',
         // Task #6588 — screenshot-inspired styles.
         'edge_bleed_bar', 'double_border',
+        // Task #6602 — four more screenshot-inspired styles.
+        'sparkle_pill', 'notched_bar', 'speech_bubble', 'riveted_plaque',
     ];
 
     public static function sanitize(array $input): array
