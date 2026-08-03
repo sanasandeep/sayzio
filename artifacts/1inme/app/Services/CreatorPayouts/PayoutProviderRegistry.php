@@ -15,6 +15,9 @@ use App\Modules\User\Models\User;
  *   - stripe   — Stripe Connect (default for SFW)
  *   - paypal   — PayPal Commerce Platform / payouts
  *   - razorpay — Razorpay Route (India)
+ *   - phonepe  — PhonePe Payment Gateway (India)
+ *   - ccavenue — CCAvenue (India)
+ *   - paytm    — Paytm Payment Gateway (India)
  *   - ccbill   — CCBill (adult-friendly)
  *   - segpay   — Segpay (adult-friendly)
  *
@@ -63,6 +66,45 @@ class PayoutProviderRegistry
             'adult_friendly'  => false,
             'env_keys'        => ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET'],
             'docs_url'        => 'https://razorpay.com/route/',
+        ],
+        'phonepe' => [
+            'slug'            => 'phonepe',
+            'name'            => 'PhonePe',
+            'icon'            => 'fas fa-mobile-screen-button',
+            'tint'            => '#5f259f',
+            'short'           => 'UPI-first payments for India-based creators via PhonePe Payment Gateway.',
+            'countries'       => 'India only',
+            'payout_speed'    => 'T+1 settlement to Indian bank accounts',
+            'fees'            => '0% on UPI, ~2% on cards (varies by method)',
+            'adult_friendly'  => false,
+            'env_keys'        => ['PHONEPE_MERCHANT_ID', 'PHONEPE_SALT_KEY'],
+            'docs_url'        => 'https://developer.phonepe.com/payment-gateway',
+        ],
+        'ccavenue' => [
+            'slug'            => 'ccavenue',
+            'name'            => 'CCAvenue',
+            'icon'            => 'fas fa-building-columns',
+            'tint'            => '#0f4c81',
+            'short'           => '200+ payment options for India-based creators — cards, UPI, netbanking, wallets.',
+            'countries'       => 'India (plus UAE & Saudi Arabia entities)',
+            'payout_speed'    => 'T+2 settlement to Indian bank accounts',
+            'fees'            => '~2% + GST per transaction (plan-dependent)',
+            'adult_friendly'  => false,
+            'env_keys'        => ['CCAVENUE_MERCHANT_ID', 'CCAVENUE_ACCESS_CODE', 'CCAVENUE_WORKING_KEY'],
+            'docs_url'        => 'https://www.ccavenue.com/',
+        ],
+        'paytm' => [
+            'slug'            => 'paytm',
+            'name'            => 'Paytm',
+            'icon'            => 'fas fa-wallet',
+            'tint'            => '#00b9f1',
+            'short'           => 'Paytm Payment Gateway — UPI, wallet, cards, and netbanking for India-based creators.',
+            'countries'       => 'India only',
+            'payout_speed'    => 'T+1 settlement to Indian bank accounts',
+            'fees'            => '0% on UPI, ~1.99% on cards & netbanking',
+            'adult_friendly'  => false,
+            'env_keys'        => ['PAYTM_MERCHANT_ID', 'PAYTM_MERCHANT_KEY'],
+            'docs_url'        => 'https://business.paytm.com/payment-gateway',
         ],
         'ccbill' => [
             'slug'            => 'ccbill',
@@ -138,6 +180,9 @@ class PayoutProviderRegistry
             'stripe'   => new Adapters\StripeConnectAdapter($provider),
             'paypal'   => new Adapters\PaypalPayoutAdapter($provider),
             'razorpay' => new Adapters\RazorpayRouteAdapter($provider),
+            'phonepe'  => new Adapters\PhonepeAdapter($provider),
+            'ccavenue' => new Adapters\CcavenueAdapter($provider),
+            'paytm'    => new Adapters\PaytmAdapter($provider),
             'ccbill'   => new Adapters\CcbillAdapter($provider),
             'segpay'   => new Adapters\SegpayAdapter($provider),
         };

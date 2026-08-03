@@ -36,7 +36,8 @@
             <div>
                 Your profile has <strong>adult content (18+)</strong> enabled, so your default payout
                 must use an <strong>adult-friendly processor</strong> (CCBill or Segpay). Stripe,
-                PayPal, and Razorpay won't accept adult merchant accounts.
+                PayPal, and the India gateways (Razorpay, PhonePe, CCAvenue, Paytm) won't accept
+                adult merchant accounts.
             </div>
         </div>
     @endif
