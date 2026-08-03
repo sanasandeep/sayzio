@@ -37,6 +37,14 @@ Route::get('/webhooks/whatsapp', [\App\Modules\Common\Controllers\WhatsAppWebhoo
 Route::post('/webhooks/whatsapp', [\App\Modules\Common\Controllers\WhatsAppWebhookController::class, 'ingest'])
     ->name('webhooks.whatsapp.ingest');
 
+// Razorpay Route (creator payouts, Task #6642). Distinct from the
+// plan-billing `razorpay` gateway below — this endpoint settles fan
+// checkouts (payment.captured) and syncs linked-account status
+// (account.*). Signature-verified in the controller. Declared BEFORE
+// the generic catch-all so `razorpay-route` isn't swallowed by it.
+Route::post('/webhooks/razorpay-route', [\App\Http\Controllers\RazorpayRouteWebhookController::class, 'handle'])
+    ->name('webhooks.razorpay-route');
+
 Route::post('/webhooks/{gateway}', [WebhookController::class, 'handle'])
     ->where('gateway', '[a-z0-9_-]+')
     ->name('webhooks.handle');

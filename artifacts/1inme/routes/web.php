@@ -700,6 +700,9 @@ Route::post  ('/@{handle}/manage-subscription/resume', [\App\Modules\Common\Cont
 Route::get ('/checkout/preview', [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'preview'])->name('checkout.preview');
 Route::post('/checkout/preview/confirm', [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'confirmPreview'])->name('checkout.preview.confirm');
 Route::get ('/checkout/return',  [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'returnHandler'])->name('checkout.return');
+// Live Razorpay hosted checkout (Task #6642) — signed URL minted by
+// RazorpayRouteAdapter after the order + Route transfer are created.
+Route::get ('/checkout/razorpay', [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'razorpay'])->name('checkout.razorpay');
 
 // In-page biolink storefront (Task #1761). Multi-segment paths so they
 // never collide with the single-segment `/{alias}` catch-all below. Cart
