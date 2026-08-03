@@ -2849,6 +2849,70 @@ class BlockVariantCatalog
                     ],
                     'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 12],
                 ],
+
+                // Task #6589 — screenshot-inspired list styles. The renderer
+                // dispatches on `_style._ltg_layout`; bg_color/text_color
+                // (when set) retint the layout's built-in palette.
+                [
+                    'key' => 'ltg_outline_pills',
+                    'name' => 'Outlined Pills',
+                    'tags' => ['minimal', 'dark', 'pro'],
+                    'style' => [
+                        '_ltg_layout' => 'outline_pills',
+                        'bg_color' => 'transparent', 'border_style' => 'none', 'text_color' => '#f5f2ec',
+                    ],
+                    'preview' => ['bg' => '#211d18', 'text' => '#f5f2ec', 'radius' => 999, 'border' => '#f5f2ec70'],
+                ],
+                [
+                    'key' => 'ltg_outline_pills_ink',
+                    'name' => 'Outlined Pills · Ink',
+                    'tags' => ['minimal', 'editorial'],
+                    'style' => [
+                        '_ltg_layout' => 'outline_pills',
+                        'bg_color' => 'transparent', 'border_style' => 'none', 'text_color' => '#1f2937',
+                    ],
+                    'preview' => ['bg' => '#f5f2ec', 'text' => '#1f2937', 'radius' => 999, 'border' => '#1f293770'],
+                ],
+                [
+                    'key' => 'ltg_washi_tape',
+                    'name' => 'Washi Tape',
+                    'tags' => ['handwritten', 'playful', 'retro'],
+                    'style' => [
+                        '_ltg_layout' => 'washi_tape',
+                        'bg_color' => 'transparent', 'border_style' => 'none',
+                    ],
+                    'preview' => ['bg' => '#f7e9ed', 'text' => '#6d4c3d', 'radius' => 0, 'serif' => true],
+                ],
+                [
+                    'key' => 'ltg_washi_tape_sage',
+                    'name' => 'Washi Tape · Sage',
+                    'tags' => ['handwritten', 'playful', 'minimal'],
+                    'style' => [
+                        '_ltg_layout' => 'washi_tape',
+                        'bg_color' => '#dde6dc', 'text_color' => '#3c4a3a', 'border_style' => 'none',
+                    ],
+                    'preview' => ['bg' => '#dde6dc', 'text' => '#3c4a3a', 'radius' => 0, 'serif' => true],
+                ],
+                [
+                    'key' => 'ltg_tile_grid_alt',
+                    'name' => 'Alternating Tiles',
+                    'tags' => ['editorial', 'pro'],
+                    'style' => [
+                        '_ltg_layout' => 'tile_grid_alt',
+                        'bg_color' => '#f4efe6', 'text_color' => '#2c2820', 'border_style' => 'none',
+                    ],
+                    'preview' => ['bg' => '#f4efe6', 'text' => '#2c2820', 'radius' => 0, 'border' => '#2c282030', 'serif' => true],
+                ],
+                [
+                    'key' => 'ltg_tile_grid_alt_dark',
+                    'name' => 'Alternating Tiles · Dark',
+                    'tags' => ['editorial', 'dark'],
+                    'style' => [
+                        '_ltg_layout' => 'tile_grid_alt',
+                        'bg_color' => '#26221c', 'text_color' => '#efe9dd', 'border_style' => 'none',
+                    ],
+                    'preview' => ['bg' => '#26221c', 'text' => '#efe9dd', 'radius' => 0, 'border' => '#efe9dd30', 'serif' => true],
+                ],
             ],
             // Divider looks (Task #6581). Unlike every other type these
             // variants carry a `settings` payload: dividers render entirely

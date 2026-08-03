@@ -1102,6 +1102,18 @@ if (typeof window.resetPollVotes !== 'function') {
 
 @elseif($block->type === 'link_tree_group')
 @php
+    // Task #6589 — per-item click counts for the creator. Grouped in one
+    // query per open form; blocks saved before per-item tracking existed
+    // simply have no rows and every item shows 0 gracefully.
+    $ltgClickCounts = $block->exists
+        ? \App\Modules\User\Models\LinkClick::query()
+            ->where('block_id', $block->id)
+            ->whereNotNull('block_item_id')
+            ->where('is_bot', false)
+            ->groupBy('block_item_id')
+            ->selectRaw('block_item_id, COUNT(*) as c')
+            ->pluck('c', 'block_item_id')
+        : collect();
     $ltgItems = collect(is_array($s['items'] ?? null) ? $s['items'] : [])
         ->map(fn($it) => [
             'id'          => is_array($it) ? (string) ($it['id'] ?? '') : '',
@@ -1109,6 +1121,7 @@ if (typeof window.resetPollVotes !== 'function') {
             'url'         => is_array($it) ? (string) ($it['url'] ?? '') : '',
             'icon'        => is_array($it) ? (string) ($it['icon'] ?? '') : '',
             'description' => is_array($it) ? (string) ($it['description'] ?? '') : '',
+            'clicks'      => is_array($it) ? (int) ($ltgClickCounts[(string) ($it['id'] ?? '')] ?? 0) : 0,
         ])->values()->all();
 @endphp
 <div class="space-y-3" x-data='{ items: @json($ltgItems), layout: @json($s['layout'] ?? 'list') }'>
@@ -1140,6 +1153,9 @@ if (typeof window.resetPollVotes !== 'function') {
         <template x-for="(item, i) in items" :key="i">
             <div class="glass rounded-lg p-3 mb-2 space-y-2">
                 <input type="hidden" :name="'settings[items]['+i+'][id]'" x-model="items[i].id">
+                <div class="flex items-center justify-end -mb-1" x-show="items[i].id">
+                    <span class="text-[11px] text-white/40" x-text="(items[i].clicks || 0) + (items[i].clicks === 1 ? ' click' : ' clicks')"></span>
+                </div>
                 <input type="text" x-model="items[i].text" :name="'settings[items]['+i+'][text]'" placeholder="Label (e.g. Portfolio)" class="{{ $inputClass }}">
                 <input type="url" x-model="items[i].url" :name="'settings[items]['+i+'][url]'" placeholder="https://…" class="{{ $inputClass }}">
                 <div class="flex gap-2" x-show="layout !== 'text_divider'">
@@ -1149,7 +1165,7 @@ if (typeof window.resetPollVotes !== 'function') {
                 <button type="button" @click="items.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400"><i class="fas fa-times mr-1"></i>Remove</button>
             </div>
         </template>
-        <button type="button" @click="items.push({id:'',text:'',url:'',icon:'',description:''})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Link</button>
+        <button type="button" @click="items.push({id:'',text:'',url:'',icon:'',description:'',clicks:0})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Link</button>
     </div>
     <p class="text-[11px] text-white/40">Every link click is tracked in your analytics automatically.</p>
 </div>

@@ -265,4 +265,86 @@ class LinkTreeGroupBlockTest extends TestCase
         $this->assertSame('text_divider', $v['style']['_ltg_layout'] ?? null);
         $this->assertSame('right', $v['style']['_ltg_align'] ?? null);
     }
+
+    // ── Task #6589 — three new curated styles ─────────────────────────
+
+    public function test_variant_catalog_lists_task_6589_styles(): void
+    {
+        $keys = BlockVariantCatalog::validKeys('link_tree_group');
+        $expected = [
+            'ltg_outline_pills'     => 'outline_pills',
+            'ltg_outline_pills_ink' => 'outline_pills',
+            'ltg_washi_tape'        => 'washi_tape',
+            'ltg_washi_tape_sage'   => 'washi_tape',
+            'ltg_tile_grid_alt'     => 'tile_grid_alt',
+            'ltg_tile_grid_alt_dark'=> 'tile_grid_alt',
+        ];
+        foreach ($expected as $key => $layout) {
+            $this->assertContains($key, $keys);
+            $v = BlockVariantCatalog::find('link_tree_group', $key);
+            $this->assertSame($layout, $v['style']['_ltg_layout'] ?? null, $key);
+            // Sanitizer must round-trip the layout hook, not strip it.
+            $clean = BlockStyleSanitizer::sanitize($v['style']);
+            $this->assertSame($layout, $clean['_ltg_layout'] ?? null, $key);
+        }
+    }
+
+    public function test_new_layouts_render_on_public_page(): void
+    {
+        $user = User::factory()->create();
+        $bio  = $this->makeBiolink($user);
+        $items = [
+            ['id' => 'aaaa1111', 'text' => 'Shop', 'url' => 'https://example.com/shop'],
+            ['id' => 'bbbb2222', 'text' => 'About', 'url' => 'https://example.com/about'],
+            ['id' => 'cccc3333', 'text' => 'Contact', 'url' => 'https://example.com/contact'],
+        ];
+
+        foreach (['outline_pills', 'washi_tape', 'tile_grid_alt'] as $layout) {
+            $block = $this->makeGroupBlock($bio, [
+                'items'  => $items,
+                '_style' => ['_ltg_layout' => $layout],
+            ]);
+            app()->forgetInstance('current_workspace');
+            app()->forgetInstance('workspace_owner');
+            $resp = $this->get('/' . $bio->alias);
+            $resp->assertStatus(200);
+            $resp->assertSee('data-ltg-layout="' . $layout . '"', false);
+            // Every item routes through the tracked redirect with its id.
+            $resp->assertSee('item=aaaa1111', false);
+            $resp->assertSee('item=cccc3333', false);
+            $block->delete();
+        }
+    }
+
+    public function test_editor_form_surfaces_per_item_click_counts(): void
+    {
+        $user = User::factory()->create();
+        $bio  = $this->makeBiolink($user);
+        $block = $this->makeGroupBlock($bio, [
+            'items' => [
+                ['id' => 'aaaa1111', 'text' => 'Shop', 'url' => 'https://example.com/shop'],
+                ['id' => 'bbbb2222', 'text' => 'About', 'url' => 'https://example.com/about'],
+            ],
+        ]);
+        foreach (['aaaa1111', 'aaaa1111', 'bbbb2222'] as $itemId) {
+            LinkClick::create([
+                'link_id'       => $bio->id,
+                'alias'         => $bio->alias,
+                'block_id'      => $block->id,
+                'block_type'    => 'link_tree_group',
+                'block_item_id' => $itemId,
+                'is_bot'        => false,
+                'clicked_at'    => now(),
+            ]);
+        }
+
+        $html = view('user.links.partials.block-settings-form', [
+            'block' => $block,
+            'link'  => $bio,
+        ])->render();
+
+        // The Alpine items payload carries the per-item counts.
+        $this->assertStringContainsString('"clicks":2', $html);
+        $this->assertStringContainsString('"clicks":1', $html);
+    }
 }

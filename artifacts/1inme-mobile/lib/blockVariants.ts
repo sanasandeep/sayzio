@@ -363,6 +363,14 @@ const TYPE_ONE_OFFS: Record<string, MobileVariant[]> = {
     { key: "ltg_text_divider_left",   name: "Text · Dividers · Left",   tags: ["minimal", "editorial"], preview: { bg: "transparent", text: "#ffffff", radius: 0 } },
     { key: "ltg_text_divider_center", name: "Text · Dividers · Center", tags: ["minimal", "editorial"], preview: { bg: "transparent", text: "#ffffff", radius: 0 } },
     { key: "ltg_grid_tiles",          name: "Grid Tiles",               tags: ["bold", "pro"],          preview: { bg: "transparent", text: "#ffffff", radius: 12 } },
+    // Task #6589 — screenshot-inspired list styles. Structural layout
+    // travels in `_style._ltg_layout`; mobile mirrors keys/metadata only.
+    { key: "ltg_outline_pills",       name: "Outlined Pills",           tags: ["minimal", "dark", "pro"],          preview: { bg: "#211d18", text: "#f5f2ec", radius: 999, border: "#f5f2ec70" } },
+    { key: "ltg_outline_pills_ink",   name: "Outlined Pills · Ink",     tags: ["minimal", "editorial"],            preview: { bg: "#f5f2ec", text: "#1f2937", radius: 999, border: "#1f293770" } },
+    { key: "ltg_washi_tape",          name: "Washi Tape",               tags: ["handwritten", "playful", "retro"], preview: { bg: "#f7e9ed", text: "#6d4c3d", radius: 0, serif: true } },
+    { key: "ltg_washi_tape_sage",     name: "Washi Tape · Sage",        tags: ["handwritten", "playful", "minimal"], preview: { bg: "#dde6dc", text: "#3c4a3a", radius: 0, serif: true } },
+    { key: "ltg_tile_grid_alt",       name: "Alternating Tiles",        tags: ["editorial", "pro"],                preview: { bg: "#f4efe6", text: "#2c2820", radius: 0, border: "#2c282030", serif: true } },
+    { key: "ltg_tile_grid_alt_dark",  name: "Alternating Tiles · Dark", tags: ["editorial", "dark"],               preview: { bg: "#26221c", text: "#efe9dd", radius: 0, border: "#efe9dd30", serif: true } },
   ],
   image: [
     { key: "polaroid",         name: "Polaroid",         tags: ["retro", "playful"],              preview: { bg: "#fff", text: "#000", radius: 6 } },
