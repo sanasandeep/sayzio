@@ -144,7 +144,9 @@ async function planStatus(page) {
     // Settings → Sync UI shows the upgrade hint.
     await page.locator('button[title="Settings"]').click();
     await page.locator('input[placeholder="Search settings"]').waitFor({ timeout: 10000 });
-    await page.locator('button:has-text("Sync")').first().click();
+    // Exact-match the settings nav item: the toolbar's "Sync paused — upgrade
+    // to resume" pill also substring-matches "Sync" and precedes it in the DOM.
+    await page.locator('button:has(span:text-is("Sync"))').first().click();
     await page.locator('text=Sync is paused').waitFor({ timeout: 15000 });
     ok(true, 'Settings → Sync shows "Sync is paused"');
     ok(await page.locator("text=Your current plan doesn't include browser sync").count() > 0,
