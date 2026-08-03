@@ -7,7 +7,9 @@
         'title'    => 'Add ' . $kindMeta['label'] . ' configuration',
         'subtitle' => 'Save credentials once, pick this configuration anywhere it is needed.',
         'icon'     => $kindMeta['icon'],
-        'back'     => route('user.integrations.index', ['tab' => $kind]),
+        'back'     => request('return_to') === 'connections' && $kind === 'email'
+                        ? route('user.email-connections.index')
+                        : route('user.integrations.index', ['tab' => $kind]),
     ])
 
     @if(! $provider)
@@ -17,7 +19,7 @@
             <p class="text-xs mb-4" style="color: var(--text-muted);">You can add as many configurations as you want, different accounts, modes, or environments.</p>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 @foreach($providers as $pKey => $pSchema)
-                    <a href="{{ route('user.integrations.create', ['kind' => $kind, 'provider' => $pKey]) }}"
+                    <a href="{{ route('user.integrations.create', array_filter(['kind' => $kind, 'provider' => $pKey, 'return_to' => request('return_to')])) }}"
                        class="flex items-center gap-3 p-4 rounded-xl border transition hover:scale-[1.02]"
                        style="background: var(--bg-glass-input); border-color: var(--border-glass);">
                         <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -38,6 +40,7 @@
         <form method="POST" action="{{ route('user.integrations.store', $kind) }}" class="space-y-4">
             @csrf
             <input type="hidden" name="provider" value="{{ $provider }}">
+            @if(request('return_to'))<input type="hidden" name="return_to" value="{{ request('return_to') }}">@endif
 
             <div class="card-premium p-6">
                 <div class="flex items-center gap-3 mb-5">
@@ -49,7 +52,7 @@
                         <h3 class="text-base font-bold" style="color: var(--text-primary);">{{ $providerSchema['label'] }} configuration</h3>
                         <p class="text-[11px]" style="color: var(--text-muted);">Credentials are encrypted at rest.</p>
                     </div>
-                    <a href="{{ route('user.integrations.create', ['kind' => $kind]) }}"
+                    <a href="{{ route('user.integrations.create', array_filter(['kind' => $kind, 'return_to' => request('return_to')])) }}"
                        class="ml-auto text-xs underline" style="color: var(--text-muted);">Change provider</a>
                 </div>
 
@@ -81,7 +84,7 @@
             </div>
 
             <div class="flex items-center gap-3 justify-end">
-                <a href="{{ route('user.integrations.index', ['tab' => $kind]) }}"
+                <a href="{{ request('return_to') === 'connections' && $kind === 'email' ? route('user.email-connections.index') : route('user.integrations.index', ['tab' => $kind]) }}"
                    class="px-4 py-2 text-sm font-semibold rounded-lg"
                    style="background: var(--bg-glass-input); color: var(--text-primary);">Cancel</a>
                 <button type="submit" class="px-5 py-2 text-sm font-semibold rounded-lg"

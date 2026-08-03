@@ -600,7 +600,8 @@ class FormController extends Controller
         $resolveConfigId = function (?string $raw, string $kind) use ($request): ?int {
             if ($raw === null || $raw === '') return null;
             if (! ctype_digit($raw)) return null;
-            $found = \App\Modules\User\Models\IntegrationConfig::where('id', (int) $raw)
+            $found = \App\Modules\User\Models\IntegrationConfig::withoutGlobalScope('workspace')
+                ->where('id', (int) $raw)
                 ->where('user_id', workspace_owner_id())
                 ->kind($kind)
                 ->value('id');
@@ -2278,19 +2279,16 @@ class FormController extends Controller
     }
 
     /**
-     * Send an email through the user-selected mailer configuration. When no
-     * config_id is provided, falls back to the application's default mailer.
-     * Supports SMTP-shaped providers (smtp, sendgrid) end-to-end; other
-     * providers (mailgun, postmark, ses) require their respective transport
-     * packages and will log a warning until those are wired in.
+     * Send an email through the user-selected email connection. Delegates to
+     * the shared {@see \App\Modules\User\Services\EmailConnectionMailer} so
+     * forms, subscriber broadcasts, and any future surface share the same
+     * transport wiring and safety rule: no / unusable connection → platform
+     * default mailer (never a dropped send).
      *
      * @param  array<int, string> $to
      */
     protected function sendEmailViaConfig(int $userId, ?int $configId, array $to, string $subject, string $body, ?string $replyTo): void
     {
-        $to = array_values(array_filter($to, fn ($e) => filter_var($e, FILTER_VALIDATE_EMAIL)));
-        if (empty($to)) return;
-
         $opts = [
             'subject' => $subject,
             'body'    => $body,
@@ -2299,75 +2297,7 @@ class FormController extends Controller
         ];
         if ($replyTo) $opts['reply_to'] = $replyTo;
 
-        if (! $configId) {
-            // No config selected → use application default mailer.
-            foreach ($to as $recipient) {
-                \App\Modules\Common\Services\Emailer::send('form.notification', $recipient, [], $opts);
-            }
-            return;
-        }
-
-        $config = \App\Modules\User\Models\IntegrationConfig::where('user_id', $userId)
-            ->where('id', $configId)->kind('email')->active()->first();
-        if (! $config) {
-            logger()->warning("Form email skipped: integration config #{$configId} not found / inactive.");
-            return;
-        }
-
-        $cred = (array) $config->credentials;
-        $meta = (array) $config->meta;
-        $mailerKey = 'integ_' . $config->id;
-
-        // Only smtp + sendgrid are wired today (both go through SMTP transport).
-        $smtpConfig = match ($config->provider) {
-            'smtp' => [
-                'transport'  => 'smtp',
-                'host'       => $meta['host'] ?? null,
-                'port'       => (int) ($meta['port'] ?? 587),
-                'encryption' => $meta['encryption'] ?? null,
-                'username'   => $meta['username'] ?? null,
-                'password'   => $cred['password'] ?? null,
-                'timeout'    => 10,
-            ],
-            'sendgrid' => [
-                'transport'  => 'smtp',
-                'host'       => 'smtp.sendgrid.net',
-                'port'       => 587,
-                'encryption' => 'tls',
-                'username'   => 'apikey',
-                'password'   => $cred['api_key'] ?? null,
-                'timeout'    => 10,
-            ],
-            default => null,
-        };
-
-        if (! $smtpConfig) {
-            logger()->warning("Form email skipped: provider '{$config->provider}' transport not yet wired.");
-            return;
-        }
-
-        $fromEmail = $meta['from_email'] ?? config('mail.from.address');
-        $fromName  = $meta['from_name']  ?? config('mail.from.name');
-
-        $opts['mailer'] = $mailerKey;
-        $opts['mailer_config'] = $smtpConfig;
-        if ($fromEmail) {
-            $opts['from'] = ['address' => $fromEmail, 'name' => $fromName ?? ''];
-        }
-
-        try {
-            foreach ($to as $recipient) {
-                \App\Modules\Common\Services\Emailer::send('form.notification', $recipient, [], $opts);
-            }
-        } finally {
-            // Purge the runtime mailer config so the next request / queue job in
-            // a long-running worker does not see leaked credentials. Also forget
-            // the resolved mailer instance from the MailManager cache.
-            $mailers = (array) config('mail.mailers');
-            unset($mailers[$mailerKey]);
-            config(['mail.mailers' => $mailers]);
-            try { app('mail.manager')->forgetMailers(); } catch (\Throwable $e) { /* older Laravel */ }
-        }
+        \App\Modules\User\Services\EmailConnectionMailer::send('form.notification', $userId, $configId, $to, $opts);
     }
 
     /**

@@ -236,6 +236,26 @@
                 </div>
             @endif
 
+            {{-- Task #6632 — reuse a saved email connection instead of retyping
+                 SMTP details per company. Picking one copies its settings into
+                 the per-company fields on save (they stay the source of truth,
+                 so the fully-configured-only fallback rule keeps working). --}}
+            <div class="mt-3 p-3 rounded-lg border" style="border-color: var(--border-soft); background: var(--bg-glass-input);">
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <span class="text-xs font-semibold" style="color: var(--text-primary);"><i class="fas fa-plug mr-1" style="color: #818cf8;"></i>Fill from a saved connection</span>
+                    <a href="{{ route('user.email-connections.index') }}" class="text-[11px] underline" style="color: var(--accent);">Manage connections</a>
+                </div>
+                @include('common.partials.integration-picker', [
+                    'name'       => 'smtp_connection_id',
+                    'kind'       => 'email',
+                    'value'      => old('smtp_connection_id'),
+                    'providers'  => ['smtp', 'sendgrid'],
+                    'emptyLabel' => 'Keep the settings below',
+                ])
+                @error('smtp_connection_id') <p class="text-[11px] mt-1 text-rose-500">{{ $message }}</p> @enderror
+                <p class="text-[11px] mt-1" style="color: var(--text-muted);">On save, the selected connection's host, credentials, and from-address replace the fields below and enable SMTP for this company.</p>
+            </div>
+
             <label class="flex items-center gap-2 mt-3 mb-1 text-sm" style="color: var(--text-primary);">
                 <input type="hidden" name="smtp_enabled" value="0">
                 <input type="checkbox" name="smtp_enabled" value="1" x-model="enabled" @checked(old('smtp_enabled', $company->smtp_enabled))>

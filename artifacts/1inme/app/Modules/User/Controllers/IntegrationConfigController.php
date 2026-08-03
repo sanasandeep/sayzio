@@ -16,7 +16,9 @@ class IntegrationConfigController extends Controller
     {
         $userId = $request->user()->id;
 
-        $configs = IntegrationConfig::where('user_id', $userId)
+        // Account-level, not workspace-level: show all of the user's configs
+        // regardless of which workspace is currently active.
+        $configs = IntegrationConfig::withoutGlobalScope('workspace')->where('user_id', $userId)
             ->orderByDesc('is_default')
             ->orderBy('kind')
             ->orderBy('provider')
@@ -66,7 +68,7 @@ class IntegrationConfigController extends Controller
             ]);
 
             // Auto-default if it's the user's first config of this kind.
-            $count = IntegrationConfig::where('user_id', $userId)->kind($kind)->count();
+            $count = IntegrationConfig::withoutGlobalScope('workspace')->where('user_id', $userId)->kind($kind)->count();
             if ($count === 1) {
                 $config->is_default = true;
                 $config->save();
@@ -80,7 +82,7 @@ class IntegrationConfigController extends Controller
         });
 
         return redirect()
-            ->route('user.integrations.index', ['tab' => $kind])
+            ->to($this->afterUrl($request, $kind))
             ->with('success', "{$schema['label']} configuration saved.");
     }
 
@@ -135,7 +137,7 @@ class IntegrationConfigController extends Controller
         });
 
         return redirect()
-            ->route('user.integrations.index', ['tab' => $integrationConfig->kind])
+            ->to($this->afterUrl($request, $integrationConfig->kind))
             ->with('success', 'Configuration updated.');
     }
 
@@ -146,7 +148,7 @@ class IntegrationConfigController extends Controller
         $integrationConfig->delete();
 
         return redirect()
-            ->route('user.integrations.index', ['tab' => $kind])
+            ->to($this->afterUrl($request, $kind))
             ->with('success', 'Configuration deleted.');
     }
 
@@ -169,6 +171,19 @@ class IntegrationConfigController extends Controller
     }
 
     // ---------- helpers ----------
+
+    /**
+     * Where to land after a mutation: the dedicated SMTP Connections page when
+     * the flow started there (`return_to=connections`, email kind only),
+     * otherwise the classic Settings → Integrations tab.
+     */
+    private function afterUrl(Request $request, string $kind): string
+    {
+        if ($kind === 'email' && $request->input('return_to') === 'connections') {
+            return route('user.email-connections.index');
+        }
+        return route('user.integrations.index', ['tab' => $kind]);
+    }
     private function ensureKind(string $kind): void
     {
         abort_unless(in_array($kind, ['payment', 'sms', 'email'], true), 404);
@@ -181,7 +196,7 @@ class IntegrationConfigController extends Controller
 
     private function clearOtherDefaults(int $userId, string $kind, int $keepId): void
     {
-        IntegrationConfig::where('user_id', $userId)
+        IntegrationConfig::withoutGlobalScope('workspace')->where('user_id', $userId)
             ->kind($kind)
             ->where('id', '!=', $keepId)
             ->update(['is_default' => false]);

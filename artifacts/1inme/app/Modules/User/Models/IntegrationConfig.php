@@ -28,6 +28,26 @@ protected $fillable = [
 
     public function user() { return $this->belongsTo(User::class); }
 
+    /**
+     * Integration configs are ACCOUNT-level, not workspace-level: a user's
+     * saved connections (email SMTP, SMS, payment) must stay visible and
+     * manageable from any of their workspaces. Route-model binding therefore
+     * bypasses the workspace global scope and instead pins the row to the
+     * signed-in user (ownership), so foreign configs still 404 while a
+     * multi-workspace owner never loses access to their own.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        $query = $this->newQueryWithoutScope('workspace')
+            ->where($field ?? $this->getRouteKeyName(), $value);
+
+        if (auth()->check()) {
+            $query->where('user_id', auth()->id());
+        }
+
+        return $query->first();
+    }
+
     public function scopeKind($q, string $kind)         { return $q->where('kind', $kind); }
     public function scopeProvider($q, string $provider) { return $q->where('provider', $provider); }
     public function scopeActive($q)                     { return $q->where('is_active', true); }

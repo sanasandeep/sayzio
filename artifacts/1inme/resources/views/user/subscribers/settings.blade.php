@@ -51,16 +51,45 @@
 
         <div class="glass rounded-2xl p-6 mb-6">
             <div class="flex items-center gap-3 mb-5">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(99,102,241,0.15);">
+                    <i class="fas fa-server" style="color: #818cf8;"></i>
+                </div>
+                <div class="flex-1">
+                    <h2 class="font-semibold" style="color: var(--text-primary);">Email Connection</h2>
+                    <p class="text-xs" style="color: var(--text-muted);">Send broadcasts through one of your saved SMTP connections</p>
+                </div>
+                <a href="{{ route('user.email-connections.index') }}" class="text-xs font-semibold underline flex-shrink-0" style="color: var(--accent);">
+                    Manage connections
+                </a>
+            </div>
+
+            @include('common.partials.integration-picker', [
+                'name'       => 'email_connection_id',
+                'kind'       => 'email',
+                'value'      => $subscription['email_connection_id'] ?? null,
+                'emptyLabel' => 'Platform default (or legacy SMTP below)',
+            ])
+            @error('email_connection_id') <p class="text-[11px] mt-1 text-red-400">{{ $message }}</p> @enderror
+            <p class="text-[11px] mt-2" style="color: var(--text-faint);">
+                When a connection is selected it takes priority over the legacy SMTP fields below. If it's ever disabled or incomplete, sending falls back to the platform mailer so your broadcasts still go out.
+            </p>
+        </div>
+
+        <div class="glass rounded-2xl p-6 mb-6" x-data="{ legacyOpen: {{ !empty($subscription['smtp_host']) ? 'true' : 'false' }} }">
+            <div class="flex items-center gap-3 {{ !empty($subscription['smtp_host']) ? 'mb-5' : '' }}">
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(234,179,8,0.15);">
                     <i class="fas fa-server text-yellow-400"></i>
                 </div>
-                <div>
-                    <h2 class="font-semibold" style="color: var(--text-primary);">Custom SMTP</h2>
-                    <p class="text-xs" style="color: var(--text-muted);">Use your own mail server (optional)</p>
+                <div class="flex-1">
+                    <h2 class="font-semibold" style="color: var(--text-primary);">Custom SMTP <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-md align-middle" style="background: rgba(234,179,8,0.15); color: #eab308;">LEGACY</span></h2>
+                    <p class="text-xs" style="color: var(--text-muted);">Inline mail-server settings — still honored, but only when no connection is selected above. Prefer a saved connection so it can be reused everywhere.</p>
                 </div>
+                <button type="button" @click="legacyOpen = !legacyOpen" class="text-xs font-semibold underline flex-shrink-0" style="color: var(--text-muted);">
+                    <span x-text="legacyOpen ? 'Hide' : 'Show'"></span>
+                </button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" x-show="legacyOpen" x-cloak :class="legacyOpen ? 'mt-0' : ''">
                 <div>
                     <label class="text-xs font-medium mb-1.5 block" style="color: var(--text-muted);">SMTP Host</label>
                     <input type="text" name="smtp_host" value="{{ $subscription['smtp_host'] ?? '' }}" placeholder="smtp.gmail.com" class="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">

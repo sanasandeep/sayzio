@@ -19,12 +19,21 @@
     $emptyLabel = $emptyLabel ?? 'Use account default';
     $providers  = $providers ?? null;
 
-    $query = IntegrationConfig::where('user_id', auth()->id())->kind($kind)->active()
+    // Configs are account-level: list them regardless of the active workspace
+    // (the workspace global scope would otherwise hide connections created
+    // while a different workspace was active).
+    $query = IntegrationConfig::withoutGlobalScope('workspace')
+        ->where('user_id', auth()->id())->kind($kind)->active()
         ->orderByDesc('is_default')->orderBy('provider')->orderBy('name');
     if ($providers) $query->whereIn('provider', $providers);
     $options = $query->get();
 
-    $createUrl = route('user.integrations.create', ['kind' => $kind]);
+    // Email configs have a first-class management page ("SMTP Connections",
+    // Task #6632) — send users there instead of the generic create form so
+    // they can also test, default, and reuse connections in one place.
+    $createUrl = $kind === 'email'
+        ? route('user.email-connections.index')
+        : route('user.integrations.create', ['kind' => $kind]);
     $kindMeta  = IntegrationConfigRegistry::kinds()[$kind];
 @endphp
 
@@ -53,7 +62,7 @@
         <a href="{{ $createUrl }}" target="_blank"
            class="px-3 py-2 rounded-lg text-xs font-semibold flex-shrink-0"
            style="background: var(--bg-glass-input); color: var(--text-primary);"
-           title="Add another configuration">
+           title="{{ $kind === 'email' ? 'Manage your email connections' : 'Add another configuration' }}">
             <i class="fas fa-plus"></i>
         </a>
     </div>

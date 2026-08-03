@@ -7,11 +7,14 @@
         'title'    => $config->name,
         'subtitle' => $providerSchema['label'] . ' · ' . $kindMeta['label'] . ' configuration',
         'icon'     => $providerSchema['icon'],
-        'back'     => route('user.integrations.index', ['tab' => $kind]),
+        'back'     => request('return_to') === 'connections' && $kind === 'email'
+                        ? route('user.email-connections.index')
+                        : route('user.integrations.index', ['tab' => $kind]),
     ])
 
     <form method="POST" action="{{ route('user.integrations.update', $config) }}" class="space-y-4">
         @csrf @method('PUT')
+        @if(request('return_to'))<input type="hidden" name="return_to" value="{{ request('return_to') }}">@endif
 
         <div class="card-premium p-6">
             <div class="flex items-center gap-3 mb-5">
@@ -50,7 +53,7 @@
         </div>
 
         <div class="flex items-center gap-3 justify-end">
-            <a href="{{ route('user.integrations.index', ['tab' => $kind]) }}"
+            <a href="{{ request('return_to') === 'connections' && $kind === 'email' ? route('user.email-connections.index') : route('user.integrations.index', ['tab' => $kind]) }}"
                class="px-4 py-2 text-sm font-semibold rounded-lg"
                style="background: var(--bg-glass-input); color: var(--text-primary);">Cancel</a>
             <button type="submit" class="px-5 py-2 text-sm font-semibold rounded-lg"

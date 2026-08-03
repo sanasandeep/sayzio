@@ -125,6 +125,7 @@ class SubscriberController
     {
         $user = $request->user();
         $validated = $request->validate([
+            'email_connection_id' => 'nullable|integer',
             'email_from_name' => 'nullable|string|max:100',
             'email_from_address' => 'nullable|email|max:200',
             'email_reply_to' => 'nullable|email|max:200',
@@ -141,6 +142,14 @@ class SubscriberController
             'welcome_email_subject' => 'nullable|string|max:200',
             'welcome_email_body' => 'nullable|string|max:5000',
         ]);
+
+        // A picked connection must be one of the user's own active email
+        // connections — anything else is rejected up front rather than
+        // silently falling back at send time.
+        if (!empty($validated['email_connection_id'])
+            && !\App\Modules\User\Services\EmailConnectionMailer::resolve($user->id, (int) $validated['email_connection_id'])) {
+            return back()->withErrors(['email_connection_id' => 'Pick one of your own active email connections.'])->withInput();
+        }
 
         $settings = $user->settings ?? [];
         $settings['subscription'] = $validated;
@@ -208,7 +217,26 @@ class SubscriberController
                     continue;
                 }
                 try {
-                    if (!empty($subSettings['smtp_host'])) {
+                    if (!empty($subSettings['email_connection_id'])) {
+                        // Saved reusable connection (Task #6632): route through
+                        // the shared helper — it falls back to the platform
+                        // mailer when the connection is inactive / unusable, so
+                        // a broadcast never silently drops.
+                        \App\Modules\User\Services\EmailConnectionMailer::send(
+                            'subscriber.broadcast',
+                            $user->id,
+                            (int) $subSettings['email_connection_id'],
+                            [$sub->email],
+                            [
+                                'subject'          => $validated['subject'] ?? 'Update',
+                                'body'             => nl2br(e($validated['body'])),
+                                'format'           => 'html',
+                                'from'             => ['address' => $fromAddress, 'name' => $fromName],
+                                'user'             => $user,
+                                'throw_on_failure' => true,
+                            ]
+                        );
+                    } elseif (!empty($subSettings['smtp_host'])) {
                         $transport = new \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport(
                             $subSettings['smtp_host'],
                             (int)($subSettings['smtp_port'] ?? 587),

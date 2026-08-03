@@ -1144,6 +1144,13 @@
                             <span class="nav-label">Settings</span>
                             <span class="sidebar-tooltip">Settings</span>
                         </a>
+                        <a href="{{ route('user.email-connections.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.email-connections.*') ? 'active' : '' }}"
+                           style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-server"></i></div>
+                            <span class="nav-label">SMTP Connections</span>
+                            <span class="sidebar-tooltip">SMTP Connections — your reusable email senders</span>
+                        </a>
                         <a href="{{ route('user.emails.index') }}"
                            class="sidebar-link {{ request()->routeIs('user.emails.*') ? 'active' : '' }}"
                            style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
@@ -1762,6 +1769,7 @@
                                      / API keys, all now tabs inside the hub. --}}
                                 <a href="{{ route('user.profile.edit') }}" class="sidebar-link {{ \App\Modules\User\Support\SettingsTabs::activeKey() !== null ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-sliders"></i></div> <span>Settings</span></a>
                                 <a href="{{ route('user.identifiers.index') }}" class="sidebar-link {{ request()->routeIs('user.identifiers.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-link"></i></div> <span>Linked identifiers</span></a>
+                                <a href="{{ route('user.email-connections.index') }}" class="sidebar-link {{ request()->routeIs('user.email-connections.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-server"></i></div> <span>SMTP Connections</span></a>
                                 <a href="{{ route('user.emails.index') }}" class="sidebar-link {{ request()->routeIs('user.emails.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-envelope-open-text"></i></div> <span>Email history</span></a>
                             </div>
                         </div>

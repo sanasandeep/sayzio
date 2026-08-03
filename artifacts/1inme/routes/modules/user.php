@@ -1439,6 +1439,13 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('cancel',     [\App\Modules\User\Controllers\AccountMergeController::class, 'cancel'])->name('cancel');
         });
 
+        // Dedicated "SMTP Connections" management area (Task #6632) — a
+        // first-class page over the email-kind IntegrationConfig rows, with a
+        // send-test-email action. Linked from the sidebar; the create/edit
+        // forms reuse the integrations CRUD below (return_to=connections).
+        Route::get('email-connections',                          [\App\Modules\User\Controllers\EmailConnectionController::class, 'index'])->middleware('workspace.can:settings.view')->name('email-connections.index');
+        Route::post('email-connections/{integrationConfig}/test', [\App\Modules\User\Controllers\EmailConnectionController::class, 'test'])->middleware('workspace.can:settings.edit')->name('email-connections.test');
+
         Route::get('settings/integrations',              [\App\Modules\User\Controllers\IntegrationConfigController::class, 'index'])->middleware('workspace.can:settings.view')->name('integrations.index');
         Route::get('integrations/{kind}/create',         [\App\Modules\User\Controllers\IntegrationConfigController::class, 'create'])->middleware('workspace.can:settings.edit')->name('integrations.create')->where('kind', 'payment|sms|email');
         Route::post('integrations/{kind}',               [\App\Modules\User\Controllers\IntegrationConfigController::class, 'store'])->middleware('workspace.can:settings.edit')->name('integrations.store')->where('kind', 'payment|sms|email');
