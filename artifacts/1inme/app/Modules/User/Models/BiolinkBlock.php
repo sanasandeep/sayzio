@@ -549,6 +549,14 @@ class BiolinkBlock extends Model
         // dispatches on it to reposition avatar/cover/text/socials. Empty =
         // fall back to the block-type's default layout (classic/cover/...).
         '_profile_layout' => '',   // classic_creator, glass, cover_hero, ...
+        // Cover-image effects for the profile_card family (Task #6585).
+        // Blur softens the cover photo (px, clamped 0..40); the overlay
+        // tints it with a color at 0..100 opacity. All empty by default so
+        // existing pages and curated variants keep today's exact look —
+        // layouts with built-in overlays treat these as overrides.
+        '_cover_blur' => '',
+        '_cover_overlay_color' => '',
+        '_cover_overlay_opacity' => '',
         // Countdown block color overrides (rich countdown redesign). All
         // three are plain colors sanitized like other `_style` colors;
         // curated countdown variants carry them so a single click restyles

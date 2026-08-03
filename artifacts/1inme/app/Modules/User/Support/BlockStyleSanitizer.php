@@ -109,6 +109,12 @@ class BlockStyleSanitizer
         // Text-block tilt in degrees (Task #5954) — clamped so a tilted
         // heading/paragraph can never rotate off the page.
         $numericBounds['_tilt'] = [BiolinkBlock::TILT_MIN, BiolinkBlock::TILT_MAX];
+        // Profile-card cover effects (Task #6585). Blur in px; overlay
+        // opacity in percent. Like `_tilt`, the editor's range inputs
+        // always submit a value, so 0 is dropped below instead of being
+        // stamped onto every profile-card save.
+        $numericBounds['_cover_blur'] = [0, 40];
+        $numericBounds['_cover_overlay_opacity'] = [0, 100];
         // Heading shape accents (Task #5938) — strict enums; the shape
         // token list shares the accent branch below with `_photo_accents`.
         $enums['_heading_accent_placement'] = AccentShapeCatalog::HEADING_PLACEMENTS;
@@ -117,7 +123,7 @@ class BlockStyleSanitizer
             'text_color', 'bg_color', 'border_color', 'shadow_color', '_avatar_frame_color',
             'border_top_color', 'border_right_color', 'border_bottom_color', 'border_left_color',
             '_photo_frame_color', '_photo_banner_bg', '_photo_banner_text_color', '_photo_accent_color',
-            '_heading_accent_color',
+            '_heading_accent_color', '_cover_overlay_color',
             // Countdown block color overrides (rich countdown redesign).
             '_countdown_digit_color', '_countdown_label_color', '_countdown_box_bg',
             '_countdown_cta_bg', '_countdown_cta_text',
@@ -139,7 +145,7 @@ class BlockStyleSanitizer
                     // 0° tilt means "level" — the range input always submits
                     // a value, so drop the default instead of stamping
                     // `_tilt: 0` onto every heading/paragraph save.
-                    if ($key === '_tilt' && (float) $val === 0.0) continue;
+                    if (in_array($key, ['_tilt', '_cover_blur', '_cover_overlay_opacity'], true) && (float) $val === 0.0) continue;
                     $result[$key] = max($numericBounds[$key][0], min($numericBounds[$key][1], (float) $val));
                 }
             } elseif (in_array($key, $colorKeys, true)) {

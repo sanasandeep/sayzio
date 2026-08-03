@@ -95,6 +95,24 @@
     $cardStyle = trim($blockInline);
 
     $initial = strtoupper(mb_substr($name !== '' ? $name : 'U', 0, 1));
+
+    // Cover-image effects (Task #6585). `_cover_blur` softens the cover
+    // photo; `_cover_overlay_color` + `_cover_overlay_opacity` tint it.
+    // The blur is paired with a slight scale-up so the softened edges
+    // never reveal the layer beneath — every cover sits inside an
+    // overflow-hidden wrapper that clips the overshoot. The tint layer
+    // renders directly over the cover and UNDER arch/avatar/text.
+    $cvBlur  = max(0, min(40, (int) ($s['_style']['_cover_blur'] ?? 0)));
+    $cvColor = (string) ($s['_style']['_cover_overlay_color'] ?? '');
+    $cvOp    = max(0, min(100, (float) ($s['_style']['_cover_overlay_opacity'] ?? 0)));
+    $cvHasTint = $cvColor !== '' && $cvOp > 0;
+    $cvHasFx   = $cvBlur > 0 || $cvHasTint;
+    $cvBlurCss = $cvBlur > 0
+        ? 'filter:blur(' . $cvBlur . 'px);transform:scale(' . (1 + min(0.2, 0.02 + $cvBlur * 0.005)) . ');'
+        : '';
+    $cvTintDiv = $cvHasTint
+        ? '<div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="background:' . e($cvColor) . ';opacity:' . ($cvOp / 100) . '"></div>'
+        : '';
 @endphp
 
 @php
@@ -123,7 +141,7 @@
 {{-- ───────────────────────────── CLASSIC CREATOR ───────────────────── --}}
 @elseif($layout === 'classic_creator')
     <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
-        @if($cover)<div class="h-28 bg-cover bg-center" style="background-image:url('{{ $cover }}')"></div>@endif
+        @if($cover)<div class="relative overflow-hidden"><div class="h-28 bg-cover bg-center" style="background-image:url('{{ $cover }}');{{ $cvBlurCss }}"></div>{!! $cvTintDiv !!}</div>@endif
         <div class="px-5 pb-6 text-center {{ $cover ? '-mt-12' : 'pt-6' }}">
             <div class="flex justify-center">
                 {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-24 h-24 rounded-full object-cover" style="border:4px solid #ffffff;box-shadow:0 6px 18px rgba(0,0,0,0.18)" alt="">
@@ -139,8 +157,9 @@
 @elseif($layout === 'glass')
     <div class="mb-4 overflow-hidden rounded-2xl relative {{ $baseClass }}" style="{{ $cardStyle }}">
         @if($cover)
-            <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('{{ $cover }}');opacity:.30"></div>
-            <div class="absolute inset-0" style="background:linear-gradient(160deg,rgba(61,107,255,0.40),rgba(236,72,153,0.28))"></div>
+            <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('{{ $cover }}');opacity:.30;{{ $cvBlurCss }}"></div>
+            {{-- Built-in blue/pink wash; a user overlay overrides it (Task #6585) --}}
+            @if($cvHasTint){!! $cvTintDiv !!}@else<div class="absolute inset-0" style="background:linear-gradient(160deg,rgba(61,107,255,0.40),rgba(236,72,153,0.28))"></div>@endif
         @endif
         <div class="relative px-5 py-7 text-center text-white">
             <div class="flex justify-center">
@@ -157,7 +176,10 @@
 {{-- ───────────────────────────── COVER OVERLAY HERO ────────────────── --}}
 @elseif($layout === 'cover_hero')
     <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
-        <div class="relative" style="min-height:300px;@if($cover)background-image:url('{{ $cover }}');background-size:cover;background-position:center;@else background:#0b0b0f;@endif">
+        <div class="relative overflow-hidden" style="min-height:300px;@if($cover && !$cvHasFx)background-image:url('{{ $cover }}');background-size:cover;background-position:center;@elseif(!$cover) background:#0b0b0f;@endif">
+            {{-- With effects active the cover moves to its own layer so the
+                 blur/tint sit under the legibility gradient (Task #6585). --}}
+            @if($cover && $cvHasFx)<div class="absolute inset-0 bg-cover bg-center" aria-hidden="true" style="background-image:url('{{ $cover }}');{{ $cvBlurCss }}"></div>{!! $cvTintDiv !!}@endif
             <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,0.88) 5%,rgba(0,0,0,0.15))"></div>
             <div class="absolute bottom-0 left-0 right-0 p-5 text-white">
                 <div class="flex items-end gap-3">
@@ -181,7 +203,8 @@
      avatar when no avatar. --}}
 @elseif($layout === 'portrait_poster')
     <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
-        <div class="relative flex flex-col items-center" style="min-height:420px;@if($cover)background-image:url('{{ $cover }}');background-size:cover;background-position:center;@else background:linear-gradient(160deg,#64748b,#334155 60%,#1e293b);@endif">
+        <div class="relative flex flex-col items-center overflow-hidden" style="min-height:420px;@if($cover && !$cvHasFx)background-image:url('{{ $cover }}');background-size:cover;background-position:center;@elseif(!$cover) background:linear-gradient(160deg,#64748b,#334155 60%,#1e293b);@endif">
+            @if($cover && $cvHasFx)<div class="absolute inset-0 bg-cover bg-center" aria-hidden="true" style="background-image:url('{{ $cover }}');{{ $cvBlurCss }}"></div>{!! $cvTintDiv !!}@endif
             <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,0.82) 0%,rgba(0,0,0,0.35) 34%,rgba(0,0,0,0.05) 60%)"></div>
             <div class="relative flex justify-center w-full" style="margin-top:88px">
                 {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-32 h-32 rounded-full object-cover" style="border:4px solid rgba(255,255,255,0.85);box-shadow:0 8px 28px rgba(0,0,0,0.35)" alt="">
@@ -216,7 +239,7 @@
 @elseif($layout === 'floating')
     <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
         @if($cover)
-            <div class="h-24 bg-cover bg-center" style="background-image:url('{{ $cover }}')"></div>
+            <div class="relative overflow-hidden"><div class="h-24 bg-cover bg-center" style="background-image:url('{{ $cover }}');{{ $cvBlurCss }}"></div>{!! $cvTintDiv !!}</div>
         @else
             <div class="h-24" style="background:linear-gradient(135deg,#3d6bff,#d946ef)"></div>
         @endif
@@ -249,7 +272,10 @@
     @endphp
     <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
         <div class="relative">
-            <div class="h-44 bg-cover bg-center" style="@if($cover)background-image:url('{{ $cover }}');@else background:linear-gradient(135deg,#e7dccf,#cdb9a0);@endif"></div>
+            <div class="relative overflow-hidden">
+                <div class="h-44 bg-cover bg-center" style="@if($cover)background-image:url('{{ $cover }}');{{ $cvBlurCss }}@else background:linear-gradient(135deg,#e7dccf,#cdb9a0);@endif"></div>
+                @if($cover){!! $cvTintDiv !!}@endif
+            </div>
             {{-- Thin rule along the cover's bottom edge, same band color --}}
             <div class="absolute left-0 right-0" style="bottom:0;height:3px;background:{{ $abColor }}" aria-hidden="true"></div>
             {{-- Filled semi-circular arch band, bottom-aligned with the cover --}}
@@ -276,7 +302,10 @@
 @elseif($layout === 'overlap_hero')
     <div class="mb-4" style="{{ $cardStyle }}">
         <div class="relative">
-            <div class="h-44 rounded-2xl bg-cover bg-center" style="@if($cover)background-image:url('{{ $cover }}');@else background:linear-gradient(135deg,#3d6bff,#6ea8ff);@endif"></div>
+            <div class="relative overflow-hidden rounded-2xl">
+                <div class="h-44 bg-cover bg-center" style="@if($cover)background-image:url('{{ $cover }}');{{ $cvBlurCss }}@else background:linear-gradient(135deg,#3d6bff,#6ea8ff);@endif"></div>
+                @if($cover){!! $cvTintDiv !!}@endif
+            </div>
             <div class="relative mx-4 -mt-14 rounded-3xl px-5 pb-6 text-center" style="background:#ffffff;box-shadow:0 14px 34px rgba(15,23,42,0.16);padding-top:3.75rem">
                 <div class="absolute left-1/2 -translate-x-1/2" style="top:-3rem">
                     {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-24 h-24 rounded-full object-cover" style="border:4px solid #ffffff;box-shadow:0 8px 22px rgba(0,0,0,0.22)" alt="">
@@ -338,8 +367,9 @@
 @elseif($layout === 'founder')
     <div class="mb-4 overflow-hidden rounded-2xl relative {{ $baseClass }}" style="{{ $cardStyle }}">
         @if($cover)
-            <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('{{ $cover }}');opacity:.35"></div>
-            <div class="absolute inset-0" style="background:linear-gradient(160deg,rgba(0,0,0,0.75),rgba(0,0,0,0.92))"></div>
+            <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('{{ $cover }}');opacity:.35;{{ $cvBlurCss }}"></div>
+            {{-- Built-in dark wash; a user overlay overrides it (Task #6585) --}}
+            @if($cvHasTint){!! $cvTintDiv !!}@else<div class="absolute inset-0" style="background:linear-gradient(160deg,rgba(0,0,0,0.75),rgba(0,0,0,0.92))"></div>@endif
         @endif
         <div class="relative px-5 py-7 text-center text-white">
             <div class="flex justify-center">
@@ -381,7 +411,7 @@
 {{-- ───────────────────────────── MAGAZINE LAYOUT ───────────────────── --}}
 @elseif($layout === 'magazine')
     <div class="mb-4 overflow-hidden rounded-xl {{ $baseClass }}" style="{{ $cardStyle }}">
-        @if($cover)<div class="h-32 bg-cover bg-center" style="background-image:url('{{ $cover }}')"></div>@endif
+        @if($cover)<div class="relative overflow-hidden"><div class="h-32 bg-cover bg-center" style="background-image:url('{{ $cover }}');{{ $cvBlurCss }}"></div>{!! $cvTintDiv !!}</div>@endif
         <div class="p-5">
             <div class="flex items-center gap-3">
                 {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-14 h-14 rounded-full object-cover shrink-0" alt="">
@@ -399,7 +429,7 @@
 @elseif($layout === 'social_profile')
     <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
         @if($cover)
-            <div class="h-24 bg-cover bg-center" style="background-image:url('{{ $cover }}')"></div>
+            <div class="relative overflow-hidden"><div class="h-24 bg-cover bg-center" style="background-image:url('{{ $cover }}');{{ $cvBlurCss }}"></div>{!! $cvTintDiv !!}</div>
         @else
             <div class="h-24" style="background:linear-gradient(135deg,#3b82f6,#06b6d4)"></div>
         @endif
@@ -731,7 +761,8 @@
             : ($name !== '' ? '@' . \Illuminate\Support\Str::slug($name, '') : '');
     @endphp
     <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
-        <div class="relative flex flex-col" style="min-height:460px;@if($cover)background-image:url('{{ $cover }}');background-size:cover;background-position:center;@else background:linear-gradient(165deg,#a39a8b,#7c7466 55%,#5f594e);@endif">
+        <div class="relative flex flex-col overflow-hidden" style="min-height:460px;@if($cover && !$cvHasFx)background-image:url('{{ $cover }}');background-size:cover;background-position:center;@elseif(!$cover) background:linear-gradient(165deg,#a39a8b,#7c7466 55%,#5f594e);@endif">
+            @if($cover && $cvHasFx)<div class="absolute inset-0 bg-cover bg-center" aria-hidden="true" style="background-image:url('{{ $cover }}');{{ $cvBlurCss }}"></div>{!! $cvTintDiv !!}@endif
             <div class="absolute inset-0" aria-hidden="true" style="background:linear-gradient(to bottom,rgba(0,0,0,0.18),rgba(0,0,0,0.02) 40%)"></div>
             @if($bcHandle !== '')
                 <div class="relative flex justify-center pt-5">

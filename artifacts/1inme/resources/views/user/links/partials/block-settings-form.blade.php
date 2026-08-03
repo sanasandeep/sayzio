@@ -1567,6 +1567,46 @@ if (typeof window.resetPollVotes !== 'function') {
             <span x-show="fc === ''" class="text-xs text-white/30">Auto: uses the design accent</span>
         </div>
     </div>
+
+    {{-- Cover effects (Task #6585) — blur + color overlay for the cover
+         photo, shown only for cover-based layouts. Stored in
+         _style._cover_blur / _cover_overlay_color / _cover_overlay_opacity;
+         the sanitizer clamps bounds and drops 0 values so unset keys never
+         stamp saved blocks. Opacity 0 = no overlay (keeps the design's
+         built-in look). --}}
+    @php
+        $pcLayoutSel = $s['_style']['_profile_layout'] ?? '';
+        if ($pcLayoutSel === '') {
+            $pcLayoutSel = match($block->type) {
+                'profile_card_v2' => 'cover_hero',
+                'profile_card_v3' => 'stats',
+                'profile_card_v4' => 'badges',
+                default           => 'classic_creator',
+            };
+        }
+        $pcCoverLayouts = ['classic_creator', 'floating', 'magazine', 'social_profile', 'overlap_hero', 'badge_card', 'arch_band', 'cover_hero', 'portrait_poster', 'glass', 'founder'];
+        $pcCvBlur  = (int) ($s['_style']['_cover_blur'] ?? 0);
+        $pcCvColor = (string) ($s['_style']['_cover_overlay_color'] ?? '');
+        $pcCvOp    = (int) ($s['_style']['_cover_overlay_opacity'] ?? 0);
+    @endphp
+    @if(in_array($pcLayoutSel, $pcCoverLayouts, true))
+    <div class="pt-3 border-t border-white/10" x-data='{ cvb: {{ $pcCvBlur }}, cvc: {{ json_encode($pcCvColor) }}, cvo: {{ $pcCvOp }} }'>
+        <label class="{{ $labelClass }}">Cover Effects</label>
+        <div class="flex items-center gap-3 mt-1">
+            <span class="text-xs text-white/40 w-14 shrink-0">Blur</span>
+            <input type="range" name="style[_cover_blur]" x-model.number="cvb" min="0" max="40" step="1" class="flex-1 accent-blue-500">
+            <span class="text-xs text-white/60 w-10 text-right" x-text="cvb > 0 ? cvb + 'px' : 'Off'"></span>
+        </div>
+        <div class="flex items-center gap-3 mt-2">
+            <span class="text-xs text-white/40 w-14 shrink-0">Overlay</span>
+            <input type="hidden" name="style[_cover_overlay_color]" :value="cvo > 0 ? (cvc || '#000000') : cvc">
+            <input type="color" :value="cvc || '#000000'" @input="cvc = $event.target.value" class="h-8 w-10 rounded cursor-pointer border border-white/10 bg-transparent p-0.5 shrink-0">
+            <input type="range" name="style[_cover_overlay_opacity]" x-model.number="cvo" min="0" max="100" step="5" class="flex-1 accent-blue-500">
+            <span class="text-xs text-white/60 w-10 text-right" x-text="cvo > 0 ? cvo + '%' : 'Off'"></span>
+        </div>
+        <p class="mt-1.5 text-xs text-white/30">Blur softens the cover photo; the overlay tints it. Opacity 0 keeps this design's default look.</p>
+    </div>
+    @endif
 </div>
 
 @elseif($block->type === 'qr_code')

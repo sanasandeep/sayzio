@@ -3599,6 +3599,24 @@ function ProfileCardView({
   const initial = (name !== "" ? name : "U").charAt(0).toUpperCase();
   const hasCover = cover !== "" && isSafeUrl(cover);
 
+  // Cover-image effects (Task #6585) — blur via the native Image
+  // blurRadius prop, tint via an absolute overlay layered over the cover
+  // and UNDER arch/avatar/text (mirrors the web renderer's blur+tint
+  // layers). Unset keys = 0/empty so existing pages keep today's look.
+  const cvBlurRaw = Number(pcStyle._cover_blur);
+  const coverBlur = Number.isFinite(cvBlurRaw) ? Math.max(0, Math.min(40, cvBlurRaw)) : 0;
+  const cvOpRaw = Number(pcStyle._cover_overlay_opacity);
+  const cvOp = Number.isFinite(cvOpRaw) ? Math.max(0, Math.min(100, cvOpRaw)) : 0;
+  const cvColor =
+    typeof pcStyle._cover_overlay_color === "string" ? pcStyle._cover_overlay_color : "";
+  const hasCoverTint = cvColor !== "" && cvOp > 0;
+  const coverTintView = hasCoverTint ? (
+    <View
+      pointerEvents="none"
+      style={[StyleSheet.absoluteFillObject, { backgroundColor: cvColor, opacity: cvOp / 100 }]}
+    />
+  ) : null;
+
   // Outer card surface. The design's bg/border/radius arrive via cardOverlay;
   // with no design we keep the page's translucent card look.
   const surface: ViewStyle = {
@@ -3615,7 +3633,10 @@ function ProfileCardView({
     return (
       <View style={surface}>
         {hasCover ? (
-          <Image source={{ uri: cover }} style={{ height: 112, width: "100%" }} />
+          <View style={{ position: "relative" }}>
+            <Image source={{ uri: cover }} blurRadius={coverBlur} style={{ height: 112, width: "100%" }} />
+            {coverTintView}
+          </View>
         ) : null}
         <View
           style={{
@@ -3659,22 +3680,28 @@ function ProfileCardView({
         {hasCover ? (
           <Image
             source={{ uri: cover }}
+            blurRadius={coverBlur}
             style={{ ...StyleSheet.absoluteFillObject, opacity: 0.3 }}
           />
         ) : null}
         {/* Translucent tint over a cover; an opaque brand gradient when there's
             no cover, so the white glass text stays legible on any page theme
-            (mirrors the floating/social_profile fallback). */}
-        <LinearGradient
-          colors={
-            hasCover
-              ? ["rgba(61,107,255,0.40)", "rgba(236,72,153,0.28)"]
-              : ["#3d6bff", "#d76dff"]
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
-        />
+            (mirrors the floating/social_profile fallback). A user cover
+            overlay (Task #6585) overrides the built-in wash. */}
+        {hasCover && hasCoverTint ? (
+          coverTintView
+        ) : (
+          <LinearGradient
+            colors={
+              hasCover
+                ? ["rgba(61,107,255,0.40)", "rgba(236,72,153,0.28)"]
+                : ["#3d6bff", "#d76dff"]
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+        )}
         <View style={{ paddingHorizontal: 20, paddingVertical: 28, alignItems: "center" }}>
           <ProfileAvatar frame={pcFrame}
             avatar={avatar}
@@ -3703,6 +3730,7 @@ function ProfileCardView({
   if (layout === "cover_hero") {
     const inner = (
       <View style={{ minHeight: 300, justifyContent: "flex-end" }}>
+        {hasCover ? coverTintView : null}
         <LinearGradient
           colors={["rgba(0,0,0,0.15)", "rgba(0,0,0,0.88)"]}
           style={StyleSheet.absoluteFillObject}
@@ -3733,7 +3761,7 @@ function ProfileCardView({
     return (
       <View style={surface}>
         {hasCover ? (
-          <ImageBackground source={{ uri: cover }} style={{ width: "100%" }}>
+          <ImageBackground source={{ uri: cover }} blurRadius={coverBlur} style={{ width: "100%" }}>
             {inner}
           </ImageBackground>
         ) : (
@@ -3770,6 +3798,7 @@ function ProfileCardView({
   if (layout === "portrait_poster") {
     const inner = (
       <View style={{ minHeight: 420, alignItems: "center" }}>
+        {hasCover ? coverTintView : null}
         <LinearGradient
           colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.82)"]}
           locations={[0.4, 0.66, 1]}
@@ -3839,7 +3868,7 @@ function ProfileCardView({
     return (
       <View style={surface}>
         {hasCover ? (
-          <ImageBackground source={{ uri: cover }} style={{ width: "100%" }}>
+          <ImageBackground source={{ uri: cover }} blurRadius={coverBlur} style={{ width: "100%" }}>
             {inner}
           </ImageBackground>
         ) : (
@@ -3884,7 +3913,10 @@ function ProfileCardView({
     return (
       <View style={surface}>
         {hasCover ? (
-          <Image source={{ uri: cover }} style={{ height: 96, width: "100%" }} />
+          <View style={{ position: "relative" }}>
+            <Image source={{ uri: cover }} blurRadius={coverBlur} style={{ height: 96, width: "100%" }} />
+            {coverTintView}
+          </View>
         ) : (
           <LinearGradient
             colors={["#3d6bff", "#d76dff"]}
@@ -3944,7 +3976,10 @@ function ProfileCardView({
       <View style={[surface, { backgroundColor: "#ffffff" }]}>
         <View style={{ position: "relative" }}>
           {hasCover ? (
-            <Image source={{ uri: cover }} style={{ height: 176, width: "100%" }} />
+            <View style={{ position: "relative" }}>
+              <Image source={{ uri: cover }} blurRadius={coverBlur} style={{ height: 176, width: "100%" }} />
+              {coverTintView}
+            </View>
           ) : (
             <LinearGradient
               colors={["#e7dccf", "#cdb9a0"]}
@@ -4035,10 +4070,14 @@ function ProfileCardView({
     return (
       <View style={{ marginBottom: 16 }}>
         {hasCover ? (
-          <Image
-            source={{ uri: cover }}
-            style={{ height: 176, width: "100%", borderRadius: 16 }}
-          />
+          <View style={{ position: "relative", borderRadius: 16, overflow: "hidden" }}>
+            <Image
+              source={{ uri: cover }}
+              blurRadius={coverBlur}
+              style={{ height: 176, width: "100%" }}
+            />
+            {coverTintView}
+          </View>
         ) : (
           <LinearGradient
             colors={["#3d6bff", "#6ea8ff"]}
@@ -4182,11 +4221,16 @@ function ProfileCardView({
     return (
       <View style={surface}>
         {hasCover ? (
-          <ImageBackground source={{ uri: cover }} imageStyle={{ opacity: 0.35 }}>
-            <LinearGradient
-              colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0.92)"]}
-              style={StyleSheet.absoluteFillObject}
-            />
+          <ImageBackground source={{ uri: cover }} blurRadius={coverBlur} imageStyle={{ opacity: 0.35 }}>
+            {/* Built-in dark wash; a user cover overlay overrides it (Task #6585) */}
+            {hasCoverTint ? (
+              coverTintView
+            ) : (
+              <LinearGradient
+                colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0.92)"]}
+                style={StyleSheet.absoluteFillObject}
+              />
+            )}
             {inner}
           </ImageBackground>
         ) : (
@@ -4228,7 +4272,12 @@ function ProfileCardView({
   if (layout === "magazine") {
     return (
       <View style={[surface, { borderRadius: 12 }]}>
-        {hasCover ? <Image source={{ uri: cover }} style={{ height: 128, width: "100%" }} /> : null}
+        {hasCover ? (
+          <View style={{ position: "relative" }}>
+            <Image source={{ uri: cover }} blurRadius={coverBlur} style={{ height: 128, width: "100%" }} />
+            {coverTintView}
+          </View>
+        ) : null}
         <View style={{ padding: 20 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <ProfileAvatar frame={pcFrame} avatar={avatar} initial={initial} size={56} />
@@ -4267,7 +4316,10 @@ function ProfileCardView({
     return (
       <View style={surface}>
         {hasCover ? (
-          <Image source={{ uri: cover }} style={{ height: 96, width: "100%" }} />
+          <View style={{ position: "relative" }}>
+            <Image source={{ uri: cover }} blurRadius={coverBlur} style={{ height: 96, width: "100%" }} />
+            {coverTintView}
+          </View>
         ) : (
           <LinearGradient
             colors={["#3b82f6", "#06b6d4"]}
@@ -5280,10 +5332,14 @@ function ProfileCardView({
       <View style={surface}>
         <View style={{ position: "relative", minHeight: 440 }}>
           {hasCover ? (
-            <Image
-              source={{ uri: cover }}
-              style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
-            />
+            <>
+              <Image
+                source={{ uri: cover }}
+                blurRadius={coverBlur}
+                style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
+              />
+              {coverTintView}
+            </>
           ) : (
             <LinearGradient
               colors={["#a39a8b", "#7c7466", "#5f594e"]}
