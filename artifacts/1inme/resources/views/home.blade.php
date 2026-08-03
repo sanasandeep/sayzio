@@ -4165,12 +4165,16 @@
             radial-gradient(ellipse 70% 52% at 88% 68%, rgba(92,131,255,.06), transparent 55%),
             linear-gradient(180deg, transparent, rgba(61,107,255,.03) 16%, rgba(61,107,255,.03) 84%, transparent);
     }
+    /* Pre-softened radial gradients instead of a live filter: blur() so
+       low-end/mobile GPUs never composite a continuously-animated blur
+       (matches the aurora background fix). Sized up slightly so the
+       gradient falloff reads like the old 120px blur halo. */
     .ai-zone-aura {
-        position: absolute; z-index: -1; width: 520px; height: 520px; border-radius: 9999px;
-        filter: blur(120px); opacity: .18; pointer-events: none; will-change: transform;
+        position: absolute; z-index: -1; width: 720px; height: 720px; border-radius: 9999px;
+        opacity: .18; pointer-events: none; will-change: transform;
     }
-    .ai-zone-aura-a { top: 4%; left: -9%; background: #3d6bff; animation: aiZoneA 28s ease-in-out infinite; }
-    .ai-zone-aura-b { bottom: 6%; right: -7%; background: #1bd4d9; opacity: .13; animation: aiZoneB 34s ease-in-out infinite; }
+    .ai-zone-aura-a { top: 4%; left: -9%; background: radial-gradient(closest-side, #3d6bff 0%, rgba(61,107,255,.45) 45%, transparent 72%); animation: aiZoneA 28s ease-in-out infinite; }
+    .ai-zone-aura-b { bottom: 6%; right: -7%; background: radial-gradient(closest-side, #1bd4d9 0%, rgba(27,212,217,.45) 45%, transparent 72%); opacity: .13; animation: aiZoneB 34s ease-in-out infinite; }
     @keyframes aiZoneA { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(70px,50px,0) scale(1.12); } }
     @keyframes aiZoneB { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(-60px,-46px,0) scale(1.1); } }
     html.light-mode .ai-zone-aura { opacity: .08; }
