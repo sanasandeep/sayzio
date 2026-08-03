@@ -21,7 +21,7 @@ class FeedController extends Controller
 
     public function byCreator(Request $request, string $handle)
     {
-        $creator = User::where('handle', $handle)->first();
+        $creator = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle);
         if (!$creator) return $this->notFound('Creator not found');
         return $this->paginate($request, $this->buildQuery($request, $creator->id));
     }

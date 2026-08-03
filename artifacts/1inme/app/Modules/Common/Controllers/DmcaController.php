@@ -83,7 +83,7 @@ class DmcaController extends Controller
         if (str_starts_with($path, '@')) {
             $segments = explode('/', $path);
             $handle = ltrim($segments[0] ?? '', '@');
-            $creator = $handle ? User::where('handle', strtolower($handle))->first() : null;
+            $creator = $handle ? \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle) : null;
             $postId  = null;
             if ($creator && ($segments[1] ?? null) === 'p' && isset($segments[2])) {
                 $postId = is_numeric($segments[2]) ? (int) $segments[2] : null;

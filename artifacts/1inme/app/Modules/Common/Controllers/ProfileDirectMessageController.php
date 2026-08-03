@@ -69,7 +69,7 @@ class ProfileDirectMessageController
      */
     public function access(Request $request, string $handle): JsonResponse
     {
-        $creator = User::where('handle', $handle)->first()
+        $creator = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle)
                 ?? User::where('id', (int) $handle)->first();
         if (!$creator) return response()->json(['ok' => false, 'reason' => 'not_found'], 404);
 
@@ -282,7 +282,7 @@ class ProfileDirectMessageController
 
     protected function resolveCreator(string $handle): ?User
     {
-        return User::where('handle', $handle)->first()
+        return \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle)
             ?? User::where('id', (int) $handle)->first();
     }
 

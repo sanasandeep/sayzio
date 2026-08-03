@@ -615,6 +615,9 @@ class OnboardingController extends Controller
     public function creatorProfileStep()
     {
         $user  = Auth::user();
+        // Task #6618 — onboarding edits the active (personal) workspace's
+        // creator profile; overlay it so the blade reads current values.
+        \App\Modules\User\Models\CreatorProfile::forWorkspace($user->ensureDefaultWorkspace())->applyToUser($user);
         $steps = OnboardingSteps::forUser($user);
 
         return view('user.onboarding.creator-profile', [
@@ -651,8 +654,12 @@ class OnboardingController extends Controller
             'sections.*'      => 'nullable|in:0,1,true,false',
         ]);
 
-        \App\Modules\User\Controllers\CreatorProfileController::saveCoreProfileFields($user, $data, $request);
+        // Task #6618 — write to the personal workspace's creator profile.
+        $profile = \App\Modules\User\Models\CreatorProfile::forWorkspace($user->ensureDefaultWorkspace());
+        \App\Modules\User\Controllers\CreatorProfileController::saveCoreProfileFields($user, $data, $request, $profile);
+        $profile->save();
         $user->save();
+        $profile->mirrorToOwner();
 
         $this->markCreatorProfileStepShown($user);
 

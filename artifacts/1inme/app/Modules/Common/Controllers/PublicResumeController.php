@@ -28,7 +28,7 @@ class PublicResumeController extends Controller
 {
     public function show(Request $request, string $handle, ?string $slug = null)
     {
-        $user = User::where('handle', $handle)->first();
+        $user = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle);
         if (!$user) {
             // Fallback to "user{id}" when the row never claimed a handle —
             // matches User::publicHandle() so saved/shared URLs keep working.
@@ -96,7 +96,7 @@ class PublicResumeController extends Controller
      */
     public function unlock(Request $request, string $handle, ?string $slug = null)
     {
-        $user = User::where('handle', $handle)->first();
+        $user = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle);
         abort_unless($user, 404);
         $resume = $this->resolveVersion($user, $slug);
         abort_unless($resume && $resume->is_public, 404);

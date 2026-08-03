@@ -82,6 +82,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         queryClient.invalidateQueries({ queryKey: ["workspaces-list"] }),
         queryClient.invalidateQueries({ queryKey: ["links"] }),
         queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        // Task #6618 — creator profiles are workspace-scoped: refresh the
+        // profile view/editor surfaces when the active workspace changes.
+        queryClient.invalidateQueries({ queryKey: ["profile"] }),
+        queryClient.invalidateQueries({ queryKey: ["auth-me"] }),
+        queryClient.invalidateQueries({ queryKey: ["creator-profile-settings"] }),
+        queryClient.invalidateQueries({ queryKey: ["cp-preview-url"] }),
       ]);
     },
     [queryClient],

@@ -11,7 +11,7 @@ class Follow extends Model
     
     use BelongsToWorkspace;
 public $timestamps = false;
-    protected $fillable = ['follower_id', 'creator_id', 'created_at'];
+    protected $fillable = ['follower_id', 'creator_id', 'creator_profile_id', 'created_at'];
     protected $casts = ['created_at' => 'datetime'];
 
     public function follower() { return $this->belongsTo(User::class, 'follower_id'); }

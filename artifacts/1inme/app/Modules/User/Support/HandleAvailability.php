@@ -87,14 +87,17 @@ class HandleAvailability
     }
 
     /**
-     * Case-insensitive uniqueness against users.handle, matching how the
-     * handle is stored (always lowercased) and the Rule::unique check.
+     * Case-insensitive uniqueness against the workspace-scoped
+     * creator_profiles.handle store (Task #6618), matching how the handle
+     * is stored (always lowercased) and the LOWER(handle) unique index.
+     * Legacy users.handle rows are checked too as a belt-and-braces guard
+     * for environments where the profile backfill hasn't run yet.
      */
     private static function isTaken(string $handle): bool
     {
-        return DB::table('users')
-            ->whereRaw('LOWER(handle) = ?', [mb_strtolower($handle)])
-            ->exists();
+        $lower = mb_strtolower($handle);
+        return DB::table('creator_profiles')->whereRaw('LOWER(handle) = ?', [$lower])->exists()
+            || DB::table('users')->whereRaw('LOWER(handle) = ?', [$lower])->exists();
     }
 
     /**

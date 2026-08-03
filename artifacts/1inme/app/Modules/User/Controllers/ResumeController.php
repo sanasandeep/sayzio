@@ -647,7 +647,7 @@ class ResumeController extends Controller
      */
     public function downloadByHandle(Request $request, string $handle, ResumePdfRenderer $renderer, ?string $slug = null): Response
     {
-        $owner = User::where('handle', $handle)->first();
+        $owner = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle);
         if (!$owner) abort(404);
 
         // Bare /{handle}/resume.pdf still serves the default version;

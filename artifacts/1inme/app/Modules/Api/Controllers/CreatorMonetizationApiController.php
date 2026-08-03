@@ -328,8 +328,7 @@ class CreatorMonetizationApiController extends Controller
     // ─── helpers ───────────────────────────────────────────────────
     protected function creatorOr404(string $handle): User
     {
-        $h = ltrim($handle, '@');
-        $u = User::query()->whereRaw('LOWER(handle) = ?', [strtolower($h)])->first();
+        $u = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle);
         if (!$u) abort(404);
         return $u;
     }

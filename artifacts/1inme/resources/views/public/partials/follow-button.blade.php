@@ -16,7 +16,9 @@
                 if (this.busy) return;
                 this.busy = true;
                 try {
-                    const res = await fetch('{{ route('viewer.follow.toggle', ['creator' => $creator->id]) }}', {
+                    {{-- Task #6618 — pass the page handle so the follow is
+                         keyed to THIS workspace profile, not the default. --}}
+                    const res = await fetch('{{ route('viewer.follow.toggle', ['creator' => $creator->id, 'handle' => $creator->handle]) }}', {
                         method: 'POST',
                         headers: {'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept':'application/json'}
                     });

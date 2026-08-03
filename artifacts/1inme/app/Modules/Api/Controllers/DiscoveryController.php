@@ -37,7 +37,8 @@ class DiscoveryController extends Controller
 
     public function creator(Request $request, string $handle)
     {
-        $u = User::where('handle', $handle)->where('status', 'active')->first();
+        $u = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle);
+        if ($u && $u->status !== 'active') $u = null;
         if (!$u || !$u->discoverable) return $this->notFound('Creator not found');
         return $this->ok(['user' => UserResource::toArray($u)]);
     }

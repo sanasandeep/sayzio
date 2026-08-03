@@ -52,9 +52,7 @@ class RedirectController extends Controller
             return null;
         }
 
-        $exists = \App\Modules\User\Models\User::query()
-            ->whereRaw('LOWER(handle) = ?', [strtolower($handle)])
-            ->exists();
+        $exists = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle) !== null;
         if (!$exists) {
             return null;
         }

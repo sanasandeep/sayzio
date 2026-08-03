@@ -14,7 +14,21 @@ class ProfileController extends Controller
 
     public function show(Request $request)
     {
-        return $this->ok(['user' => UserResource::toArray($request->user(), self: true)]);
+        // Task #6618 — overlay the ACTIVE workspace's creator profile so
+        // the mobile app sees the workspace-scoped handle/bio/publish state.
+        $user = $request->user();
+        $this->activeCreatorProfile($user)->applyToUser($user);
+
+        return $this->ok(['user' => UserResource::toArray($user, self: true)]);
+    }
+
+    /** The authed user's active-workspace creator profile (Task #6618). */
+    private function activeCreatorProfile(\App\Modules\User\Models\User $user): \App\Modules\User\Models\CreatorProfile
+    {
+        $ws = app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($user)
+            ?? $user->ensureDefaultWorkspace();
+
+        return \App\Modules\User\Models\CreatorProfile::forWorkspace($ws);
     }
 
     public function update(Request $request)
@@ -23,7 +37,9 @@ class ProfileController extends Controller
         $data = $request->validate([
             'name'             => ['sometimes', 'string', 'max:120'],
             'bio'              => ['sometimes', 'nullable', 'string', 'max:500'],
-            'handle'           => ['sometimes', 'nullable', 'string', 'max:60', 'regex:/^[a-z0-9_]+$/i', Rule::unique('users', 'handle')->ignore($user->id), new \App\Modules\Admin\Rules\NotBannedName()],
+            // Task #6618 — the handle lives on the ACTIVE workspace's
+            // creator profile; uniqueness is enforced across all profiles.
+            'handle'           => ['sometimes', 'nullable', 'string', 'max:60', 'regex:/^[a-z0-9_]+$/i', \App\Modules\User\Models\CreatorProfile::uniqueHandleRule($this->activeCreatorProfile($user)->id, $user->id), new \App\Modules\Admin\Rules\NotBannedName()],
             'avatar'           => ['sometimes', 'nullable', 'string', 'max:500'],
             // Creator-profile avatar override (Task #5494). Null clears the
             // override so public creator surfaces fall back to the account
@@ -98,8 +114,28 @@ class ProfileController extends Controller
             unset($data['dmca_email']);
         }
 
+        // Task #6618 — handle (and bio, which is a profile field) write to
+        // the ACTIVE workspace's creator profile. users.handle/bio stay in
+        // sync via the personal-workspace mirror only.
+        $profile = null;
+        if (array_key_exists('handle', $data) || array_key_exists('bio', $data)) {
+            $profile = $this->activeCreatorProfile($user);
+            if (array_key_exists('handle', $data)) {
+                $profile->handle = $data['handle'] !== null ? strtolower(trim((string) $data['handle'])) : null;
+                unset($data['handle']);
+            }
+            if (array_key_exists('bio', $data)) {
+                $profile->bio = $data['bio'];
+            }
+        }
+
         $previousName = $user->getOriginal('name');
         $user->fill($data)->save();
+        if ($profile) {
+            $profile->save();
+            $profile->mirrorToOwner();
+            $user->refresh();
+        }
 
         // Propagate a rename to every denormalized copy of the display name
         // (personal workspace, linked admin, comments/rosters/fan points/

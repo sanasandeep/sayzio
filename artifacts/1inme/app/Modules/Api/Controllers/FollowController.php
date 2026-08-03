@@ -27,18 +27,29 @@ class FollowController extends Controller
             return $this->forbidden('This user does not accept followers');
         }
 
+        // Task #6618 — follows are keyed to the workspace creator profile.
+        // An optional `handle` pins the exact profile; default = personal.
+        $profile = ($h = trim((string) $request->input('handle', '')))
+            ? \App\Modules\User\Models\CreatorProfile::resolveByHandle($h)
+            : null;
+        $profile = ($profile && (int) $profile->user_id === (int) $creator->id)
+            ? $profile
+            : \App\Modules\User\Models\CreatorProfile::personalForUser((int) $creator->id);
+
         $created = false;
-        DB::transaction(function () use ($viewer, $creator, &$created) {
+        DB::transaction(function () use ($viewer, $creator, $profile, &$created) {
             $exists = Follow::where('follower_id', $viewer->id)->where('creator_id', $creator->id)->exists();
             if (!$exists) {
                 $f = new Follow([
-                    'follower_id' => $viewer->id,
-                    'creator_id'  => $creator->id,
-                    'created_at'  => now(),
+                    'follower_id'        => $viewer->id,
+                    'creator_id'         => $creator->id,
+                    'creator_profile_id' => $profile?->id,
+                    'created_at'         => now(),
                 ]);
                 $f->workspace_id = $this->activeWorkspaceId($viewer);
                 $f->save();
                 $creator->increment('followers_count');
+                $profile?->increment('followers_count');
                 $created = true;
             }
         });
@@ -65,9 +76,18 @@ class FollowController extends Controller
         if (!$creator) return $this->notFound('User not found');
 
         DB::transaction(function () use ($viewer, $creator) {
-            $deleted = Follow::where('follower_id', $viewer->id)->where('creator_id', $creator->id)->delete();
-            if ($deleted > 0 && (int) $creator->followers_count > 0) {
-                $creator->decrement('followers_count');
+            $row = Follow::where('follower_id', $viewer->id)->where('creator_id', $creator->id)->first();
+            if ($row) {
+                // Task #6618 — keep the workspace profile's counter in sync.
+                if ($row->creator_profile_id) {
+                    \App\Modules\User\Models\CreatorProfile::whereKey($row->creator_profile_id)
+                        ->where('followers_count', '>', 0)
+                        ->decrement('followers_count');
+                }
+                $row->delete();
+                if ((int) $creator->followers_count > 0) {
+                    $creator->decrement('followers_count');
+                }
             }
         });
 

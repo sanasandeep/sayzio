@@ -39,7 +39,7 @@ final class ClaimedHandle
             'handle' => [
                 'string', 'min:3', 'max:30',
                 'regex:/^[a-z0-9_]+$/i',
-                Rule::unique('users', 'handle'),
+                \App\Modules\User\Models\CreatorProfile::uniqueHandleRule(),
                 new NotBannedName(),
             ],
         ]);
@@ -48,6 +48,12 @@ final class ClaimedHandle
             return $handle;
         }
 
+        // Task #6618 — handles live on the workspace-scoped creator profile.
+        // A claimed sign-up handle lands on the new user's PERSONAL
+        // workspace profile (mirrored onto users.handle for legacy readers).
+        $profile = \App\Modules\User\Models\CreatorProfile::forWorkspace($user->ensureDefaultWorkspace());
+        $profile->handle = $handle;
+        $profile->save();
         $user->forceFill(['handle' => $handle])->save();
 
         return null;
