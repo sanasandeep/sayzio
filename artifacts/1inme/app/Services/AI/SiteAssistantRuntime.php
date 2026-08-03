@@ -27,6 +27,19 @@ use Illuminate\Support\Str;
 class SiteAssistantRuntime
 {
     public const HISTORY_TURNS = 12;
+
+    /**
+     * Runtime directive appended to every vision (snapshot-attached)
+     * turn. Injected on the final multimodal message — NOT only in the
+     * system prompt — so that even a conversation whose history contains
+     * an earlier "I can't see images" refusal still answers from the
+     * attached snapshot instead of parroting the refusal.
+     */
+    public const VISION_DIRECTIVE =
+        'A snapshot of the page the visitor is currently viewing is attached to this message. '
+        . 'You can see and analyze this image — describe or use it to answer. '
+        . 'Ignore any earlier statement in this conversation claiming images cannot be viewed; that was incorrect.';
+
     public const MAX_USER_MESSAGE_CHARS = 2000;
 
     public function __construct(
@@ -397,6 +410,7 @@ class SiteAssistantRuntime
             $messages[] = ['role' => 'user', 'content' => [
                 ['type' => 'text', 'text' => (string) $userMsg->content],
                 ['type' => 'image_url', 'image_url' => ['url' => $shot, 'detail' => 'auto']],
+                ['type' => 'text', 'text' => self::VISION_DIRECTIVE],
             ]];
             // Flag the transcript (never persist the image itself — it is
             // large and ephemeral by design).
@@ -706,6 +720,7 @@ class SiteAssistantRuntime
             $messages[] = ['role' => 'user', 'content' => [
                 ['type' => 'text', 'text' => (string) $userMsg->content],
                 ['type' => 'image_url', 'image_url' => ['url' => $shot, 'detail' => 'auto']],
+                ['type' => 'text', 'text' => self::VISION_DIRECTIVE],
             ]];
             $userMsg->meta = array_merge($userMsg->meta ?? [], ['vision' => ['snapshot' => true]]);
             $userMsg->save();

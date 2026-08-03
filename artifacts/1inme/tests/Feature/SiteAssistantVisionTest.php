@@ -113,6 +113,11 @@ class SiteAssistantVisionTest extends TestCase
         $this->assertSame('image_url', $last['content'][1]['type']);
         $this->assertSame($shot, $last['content'][1]['image_url']['url']);
 
+        // The runtime appends the vision directive to the multimodal
+        // message so a prior in-history refusal can't poison this turn.
+        $this->assertSame('text', $last['content'][2]['type']);
+        $this->assertSame(\App\Services\AI\SiteAssistantRuntime::VISION_DIRECTIVE, $last['content'][2]['text']);
+
         // A vision-capable model was selected.
         $this->assertTrue(AiEngineSettings::modelSupportsVision($this->capturedModel));
 
