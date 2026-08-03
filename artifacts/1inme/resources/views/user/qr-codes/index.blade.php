@@ -7,7 +7,10 @@
         'title'    => 'QR Codes',
         'subtitle' => '16 types · custom styles · branded frames',
         'icon'     => 'fa-qrcode',
-        'chips'    => [['icon' => 'fa-layer-group', 'text' => $qrCodes->total() . ' total']],
+        'chips'    => array_values(array_filter([
+            ['icon' => 'fa-layer-group', 'text' => $qrCodes->total() . ' total'],
+            ($savedQrCap ?? -1) >= 0 ? ['icon' => 'fa-gauge-high', 'text' => $savedQrCount . ' of ' . $savedQrCap . ' saved'] : null,
+        ])),
         'actions'  => [
             ['url' => route('user.qr-codes.create'), 'label' => 'New QR Code', 'icon' => 'fa-plus', 'class' => 'btn-primary'],
         ],

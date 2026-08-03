@@ -103,6 +103,7 @@ class PremiumFeatures
             ['key' => 'max_smart_rules', 'group' => 'Security & control', 'name' => 'Smart rules per link', 'description' => 'How many targeting rules a single smart link can stack (hard cap 25).', 'unit' => 'rules / link'],
             ['key' => 'ab_tests', 'group' => 'Security & control', 'name' => 'A/B testing', 'description' => 'Split traffic between multiple destinations per short link with sticky weighted assignment, per-variant click counters and a one-tap winner.'],
             ['key' => 'qr_customization', 'group' => 'Security & control', 'name' => 'Custom QR codes', 'description' => 'Style the QR codes generated for each link — colors, logo in the centre, dot shape and frame.'],
+            ['key' => 'max_qr_codes', 'group' => 'Limits', 'name' => 'Saved QR codes', 'description' => 'How many QR codes you can keep saved in the QR Studio library.', 'unit' => 'QR codes'],
 
             // ---- Forms & lead capture ----
             ['key' => 'custom_forms', 'group' => 'Forms & lead capture', 'name' => 'Custom forms', 'description' => 'Build branded lead-capture forms inside your Link in Bio pages, route submissions to your inbox or a webhook, and export them.'],
@@ -178,6 +179,7 @@ class PremiumFeatures
             ['key' => 'inbox_agent', 'group' => 'AI suite', 'name' => 'AI Inbox Agent', 'description' => 'AI that triages your unified inbox, drafts on-brand replies and can run on autopilot — staging anything sensitive for your review.'],
             ['key' => 'brand_consistency', 'group' => 'AI suite', 'name' => 'Brand Consistency AI', 'description' => 'A live Brand Consistency Score plus on-brand prompt injection so every AI-generated page, reply and asset stays true to your brand kit.'],
             ['key' => 'qr_art', 'group' => 'AI suite', 'name' => 'AI Artistic QR', 'description' => 'Generate eye-catching, on-brand artistic QR codes with AI that still scan reliably.'],
+            ['key' => 'max_qr_art_monthly', 'group' => 'AI suite', 'name' => 'AI QR art generations', 'description' => 'How many AI Artistic QR images you can generate each month (coin charges still apply).', 'unit' => 'generations / mo'],
             ['key' => 'whatsapp_agent', 'group' => 'AI suite', 'name' => 'WhatsApp AI Agent', 'description' => 'An AI responder for inbound WhatsApp messages that answers questions and captures leads in your voice, around the clock.'],
             ['key' => 'marketing_strategist', 'group' => 'AI suite', 'name' => 'AI Marketing Strategist', 'description' => 'An AI strategist that analyses your account and audience to build saved, actionable marketing plans and campaign ideas.'],
             ['key' => 'brand_studio', 'group' => 'AI suite', 'name' => 'AI Brand Studio', 'description' => 'Turn one plain-language brief into a whole on-brand asset kit — Link in Bio page, short links, QR codes, a form and a digital card — reviewed before anything is created.'],
