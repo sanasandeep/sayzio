@@ -386,6 +386,48 @@
             </span>
             <span aria-hidden="true" class="shrink-0" style="width: 26px; background: {{ $_satAccent }}; border-radius: {{ $_satRadius }}px;"></span>
         </a>
+    @elseif($_lnkLayout === 'edge_bleed_bar')
+        {{-- Edge-bleed bar: a full-width bar that bleeds to the page edge
+             (the curated variant sets margin_left/right to 0 on the wrap),
+             label right-aligned, with a small contrasting accent strip
+             hugging the opposite page edge (teal + tan reference). The
+             outer corners stay square so the bleed reads as intentional;
+             border_radius (if any) only softens the inner-facing corners.
+             Accent = border_color. --}}
+        @php
+            $_ebBg = (($_st['bg_color'] ?? '') !== '' && ($_st['bg_color'] ?? '') !== 'transparent') ? $_st['bg_color'] : '#3c5f5c';
+            $_ebInk = ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : '#f7efe2';
+            $_ebAccent = ($_st['border_color'] ?? '') !== '' && ($_st['border_color'] ?? '') !== 'transparent' ? $_st['border_color'] : '#dcb489';
+            $_ebRadius = intval($_st['border_radius'] ?? 0);
+        @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="w-full mb-3 flex items-stretch gap-3 transition-opacity duration-200 hover:opacity-85">
+            <span class="flex-1 flex items-center justify-end pr-6 pl-5 py-4 min-w-0"
+                  style="background: {{ $_ebBg }}; color: {{ $_ebInk }}; border-radius: 0 {{ $_ebRadius }}px {{ $_ebRadius }}px 0; font-weight: {{ $_st['font_weight'] ?? '600' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 16 }}px;@if(!empty($_st['font_family'])) font-family: '{{ str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) }}', sans-serif;@endif">
+                @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif<span class="truncate">{{ $_txt }}</span>
+            </span>
+            <span aria-hidden="true" class="shrink-0" style="width: 20px; background: {{ $_ebAccent }}; border-radius: {{ $_ebRadius }}px 0 0 {{ $_ebRadius }}px;"></span>
+        </a>
+    @elseif($_lnkLayout === 'double_border')
+        {{-- Double-border button: an inner ring inset inside the outer
+             border for the framed "menu card" look (cream WEBSITE
+             reference). Outer border derives from border_color/width;
+             the inner ring is a thinner line 4px inside, drawn on an
+             absolutely-positioned overlay so bg/gradients apply normally. --}}
+        @php
+            $_dbBg = (($_st['bg_color'] ?? '') !== '' && ($_st['bg_color'] ?? '') !== 'transparent') ? $_st['bg_color'] : '#f6efe3';
+            $_dbInk = ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : '#42351f';
+            $_dbLine = ($_st['border_color'] ?? '') !== '' && ($_st['border_color'] ?? '') !== 'transparent' ? $_st['border_color'] : $_dbInk;
+            $_dbW = intval($_st['border_width'] ?? 0) ?: 2;
+            $_dbRadius = intval($_st['border_radius'] ?? 0) ?: 12;
+        @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="relative block w-full mb-3 text-center transition-all duration-300 hover:-translate-y-0.5"
+           style="background: {{ $_dbBg }}; color: {{ $_dbInk }}; border: {{ $_dbW }}px solid {{ $_dbLine }}; border-radius: {{ $_dbRadius }}px; padding: {{ intval($_st['padding'] ?? 0) ?: 16 }}px 20px; font-weight: {{ $_st['font_weight'] ?? '600' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 16 }}px; letter-spacing: 0.06em;@if(!empty($_st['font_family'])) font-family: '{{ str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) }}', sans-serif;@endif">
+            <span aria-hidden="true" class="absolute pointer-events-none"
+                  style="inset: 4px; border: 1px solid {{ $_dbLine }}; border-radius: {{ max($_dbRadius - 4, 0) }}px;"></span>
+            <span class="relative uppercase">@if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}</span>
+        </a>
     @elseif($_lnkLayout === 'icon_top')
         {{-- Icon above label: chromeless stacked icon + small label, built
              for grid-span multi-column use (green Printers/Monitors

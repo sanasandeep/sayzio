@@ -176,6 +176,13 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "offset_frame",       name: "Offset Frame",         tags: ["editorial", "minimal", "retro"], preview: { bg: "#a98a7d", text: "#f9f2ec", radius: 0, border: "#a98a7d", serif: true } },
     { key: "torn_tape",          name: "Torn Tape",            tags: ["handwritten", "playful", "retro"], preview: { bg: "#a17c5b", text: "#fdf8f2", radius: 0, serif: true } },
     { key: "arrow_chip_left",    name: "Arrow Chip",           tags: ["playful", "bold", "minimal"], preview: { bg: "#f2e069", text: "#1f2937", radius: 999, border: "#1f2937" } },
+    // Task #6588 — screenshot-inspired styles. Mobile degrades these to
+    // colors-only rendering; keys mirrored so selected-state stays in sync.
+    { key: "edge_bleed_bar",     name: "Edge Bleed Bar",       tags: ["editorial", "bold", "pro"],   preview: { bg: "#3c5f5c", text: "#f7efe2", radius: 0, border: "#dcb489" } },
+    { key: "edge_bleed_bar_ink", name: "Edge Bleed · Ink",     tags: ["dark", "bold", "editorial"],  preview: { bg: "#1c1c22", text: "#f5f2ea", radius: 0, border: "#f97362" } },
+    { key: "double_border",      name: "Double Border",        tags: ["editorial", "minimal", "retro"], preview: { bg: "#f6efe3", text: "#42351f", radius: 12, border: "#42351f" } },
+    { key: "double_border_noir", name: "Double Border · Noir", tags: ["dark", "pro", "editorial"],   preview: { bg: "#141210", text: "#e9dcc0", radius: 12, border: "#d4af6a" } },
+    { key: "offset_frame_sand",  name: "Offset Frame · Sand",  tags: ["editorial", "minimal", "retro"], preview: { bg: "#b08d63", text: "#faf5ec", radius: 0, border: "#b08d63", serif: true } },
   ],
   heading_styles: [
     { key: "oversize_serif", name: "Oversize Serif", tags: ["editorial", "pro"],     preview: { bg: "transparent", text: "#fff", radius: 0 } },

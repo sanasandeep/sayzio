@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 20;
+    public const VERSION = 21;
 
     /**
      * Effective catalog version (Task #6045): the hardcoded VERSION
@@ -1735,6 +1735,93 @@ class BlockVariantCatalog
                         'link_layout' => 'arrow_chip_left',
                     ],
                     'preview' => ['bg' => '#f2e069', 'text' => '#1f2937', 'radius' => 999, 'border' => '#1f2937'],
+                ],
+
+                // ── Task #6588: screenshot-inspired styles ───────────────
+                // Edge-bleed bar: full-width bar bleeding to the page edge
+                // with a right-aligned label and a contrasting accent strip
+                // hugging the opposite edge (teal + tan reference).
+                // margin_left/right = 0 makes the wrap edge-to-edge; the
+                // accent strip = border_color.
+                [
+                    'key' => 'edge_bleed_bar',
+                    'name' => 'Edge Bleed Bar',
+                    'tags' => ['editorial', 'bold', 'pro'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#3c5f5c',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => '#dcb489',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#f7efe2', 'padding' => '18', 'font_weight' => '600',
+                        'margin_left' => '0', 'margin_right' => '0',
+                        'link_layout' => 'edge_bleed_bar',
+                    ],
+                    'preview' => ['bg' => '#3c5f5c', 'text' => '#f7efe2', 'radius' => 0, 'border' => '#dcb489'],
+                ],
+                // Ink-and-coral color variation of the same bleed layout.
+                [
+                    'key' => 'edge_bleed_bar_ink',
+                    'name' => 'Edge Bleed · Ink',
+                    'tags' => ['dark', 'bold', 'editorial'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#1c1c22',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => '#f97362',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#f5f2ea', 'padding' => '18', 'font_weight' => '600',
+                        'margin_left' => '0', 'margin_right' => '0',
+                        'link_layout' => 'edge_bleed_bar',
+                    ],
+                    'preview' => ['bg' => '#1c1c22', 'text' => '#f5f2ea', 'radius' => 0, 'border' => '#f97362'],
+                ],
+                // Double border: inner ring inset inside the outer border —
+                // framed "menu card" look (cream WEBSITE reference).
+                [
+                    'key' => 'double_border',
+                    'name' => 'Double Border',
+                    'tags' => ['editorial', 'minimal', 'retro'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#f6efe3',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#42351f',
+                        'border_radius' => '12', 'shadow_preset' => 'none',
+                        'text_color' => '#42351f', 'padding' => '16', 'font_weight' => '600',
+                        'link_layout' => 'double_border',
+                    ],
+                    'preview' => ['bg' => '#f6efe3', 'text' => '#42351f', 'radius' => 12, 'border' => '#42351f'],
+                ],
+                // Dark/gold color variation of the double-border frame.
+                [
+                    'key' => 'double_border_noir',
+                    'name' => 'Double Border · Noir',
+                    'tags' => ['dark', 'pro', 'editorial'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#141210',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#d4af6a',
+                        'border_radius' => '12', 'shadow_preset' => 'none',
+                        'text_color' => '#e9dcc0', 'padding' => '16', 'font_weight' => '600',
+                        'link_layout' => 'double_border',
+                    ],
+                    'preview' => ['bg' => '#141210', 'text' => '#e9dcc0', 'radius' => 12, 'border' => '#d4af6a'],
+                ],
+                // Sand-toned variation of the existing offset_frame layout —
+                // matches the tan bar + thin offset outline reference with a
+                // centered serif label.
+                [
+                    'key' => 'offset_frame_sand',
+                    'name' => 'Offset Frame · Sand',
+                    'tags' => ['editorial', 'minimal', 'retro'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#b08d63',
+                        'border_style' => 'none', 'border_width' => '1', 'border_color' => '#b08d63',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#faf5ec', 'padding' => '18', 'font_weight' => '400',
+                        'font_family' => 'Cormorant Garamond',
+                        'link_layout' => 'offset_frame',
+                    ],
+                    'preview' => ['bg' => '#b08d63', 'text' => '#faf5ec', 'radius' => 0, 'border' => '#b08d63', 'serif' => true],
                 ],
             ],
 
