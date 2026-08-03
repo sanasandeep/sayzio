@@ -182,6 +182,11 @@ class PremiumFeatures
             ['key' => 'max_brand_studio_bulk', 'group' => 'AI suite', 'name' => 'AI Brand Studio bulk variations', 'description' => 'How many on-brand variants one AI Brand Studio bulk run can generate at once (e.g. 20 personalized QR codes or short links).', 'unit' => 'variants / run'],
             ['key' => 'competitor_teardown', 'group' => 'AI suite', 'name' => 'Competitor Biolink Teardown', 'description' => 'Paste any competitor\'s link-in-bio URL and get an AI-scored teardown — strengths, weaknesses, missing elements and CTA quality — then build a better version with one click.'],
             ['key' => 'audience_type_estimation', 'group' => 'AI suite', 'name' => 'Audience Type AI Estimation', 'description' => 'On-demand AI analysis of your click data that estimates who your audience actually is — segments, interests and how to speak to them.'],
+            ['key' => 'dashboard_designer', 'group' => 'AI suite', 'name' => 'AI Dashboard Designer', 'description' => 'Describe the dashboard you want in plain language and AI arranges your widgets, layouts and metrics into a ready-to-use dashboard.'],
+            ['key' => 'ai_staff_billing', 'group' => 'AI suite', 'name' => 'AI Staff — Billing', 'description' => 'A configurable AI billing assistant that drafts invoice reminders, payment follow-ups and billing communication for your review.'],
+            ['key' => 'ai_staff_contacts', 'group' => 'AI suite', 'name' => 'AI Staff — Contacts', 'description' => 'A configurable AI contacts assistant that researches, enriches and organises your CRM contacts on request.'],
+            ['key' => 'ai_staff_inbox', 'group' => 'AI suite', 'name' => 'AI Staff — Inbox', 'description' => 'A configurable AI inbox assistant that reads your unified inbox and helps triage, summarise and draft responses.'],
+            ['key' => 'ai_staff_general', 'group' => 'AI suite', 'name' => 'AI Staff — General Assistant', 'description' => 'A configurable general-purpose AI assistant that answers questions and completes tasks using your account\'s data.'],
         ];
     }
 

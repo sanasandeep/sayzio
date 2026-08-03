@@ -232,6 +232,11 @@ class PlanFormCatalogue
             ['key' => 'ai_resume_tools',      'module' => 'module_ai_suite'],
             ['key' => 'competitor_teardown',  'module' => 'module_ai_suite'],
             ['key' => 'audience_type_estimation', 'module' => 'module_ai_suite'],
+            ['key' => 'dashboard_designer',   'module' => 'module_ai_suite'],
+            ['key' => 'ai_staff_billing',     'module' => 'module_ai_suite'],
+            ['key' => 'ai_staff_contacts',    'module' => 'module_ai_suite'],
+            ['key' => 'ai_staff_inbox',       'module' => 'module_ai_suite'],
+            ['key' => 'ai_staff_general',     'module' => 'module_ai_suite'],
         ];
     }
 
@@ -407,7 +412,9 @@ class PlanFormCatalogue
             'module_paid_page'    => ['max_paid_page'],
             'module_ai_suite'     => ['ai_chatbot', 'ai_agent', 'ai_widget', 'ai_voice_assistant',
                                       'inbox_agent', 'brand_consistency', 'qr_art', 'whatsapp_agent', 'marketing_strategist',
-                                      'brand_studio', 'max_brand_studio_bulk'],
+                                      'brand_studio', 'max_brand_studio_bulk',
+                                      'dashboard_designer', 'ai_staff_billing', 'ai_staff_contacts',
+                                      'ai_staff_inbox', 'ai_staff_general'],
             'module_branding'     => ['custom_branding', 'remove_branding', 'custom_favicon', 'custom_code',
                                       'brand_kit_assets', 'max_brand_asset_versions'],
             'module_domains'      => ['custom_domains', 'max_custom_domains'],
