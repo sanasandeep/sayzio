@@ -82,19 +82,21 @@
         body { color:#fff; font-family:'Space Grotesk', sans-serif; }
         html.light-mode { --bg:#f8fafc; }
         html.light-mode, html.light-mode body { background:#f8fafc; color:#111827; }
-        html.light-mode .aurora { opacity: 0.25; filter: blur(120px); }
+        html.light-mode .aurora { opacity: 0.25; }
         html.light-mode .aurora b { mix-blend-mode: multiply; opacity: 0.15; }
         [x-cloak]{display:none!important}
 
         /* Aurora background (mirrors the home page) — a fixed, full-viewport
            glow that stays seamless from the header through to the footer as the
-           page scrolls. */
-        .aurora { position: fixed; inset: -10%; z-index: -1; pointer-events: none; opacity: .6; filter: blur(80px); }
-        .aurora b { position: absolute; border-radius: 50%; mix-blend-mode: screen; animation: aurora 22s ease-in-out infinite; }
-        .aurora b:nth-child(1) { top:-10%; left:-10%; width:60vw; height:60vw; background:#1bd4d9; animation-delay:-2s; }
-        .aurora b:nth-child(2) { bottom:-15%; right:-10%; width:55vw; height:55vw; background:#5c83ff; animation-delay:-8s; }
-        .aurora b:nth-child(3) { top:30%; left:40%; width:40vw; height:40vw; background:#22d3ee; animation-delay:-14s; }
-        .aurora b:nth-child(4) { top:60%; left:5%; width:35vw; height:35vw; background:#2342c7; opacity:.7; animation-delay:-18s; }
+           page scrolls. Blobs are pre-softened radial gradients instead of a
+           live filter: blur() so low-end/mobile GPUs (and headless screenshot
+           tooling) never have to composite a viewport-sized blur. */
+        .aurora { position: fixed; inset: -10%; z-index: -1; pointer-events: none; opacity: .6; }
+        .aurora b { position: absolute; border-radius: 50%; mix-blend-mode: screen; animation: aurora 22s ease-in-out infinite; will-change: transform; }
+        .aurora b:nth-child(1) { top:-10%; left:-10%; width:60vw; height:60vw; background:radial-gradient(closest-side, #1bd4d9 0%, rgba(27,212,217,.45) 45%, transparent 72%); animation-delay:-2s; }
+        .aurora b:nth-child(2) { bottom:-15%; right:-10%; width:55vw; height:55vw; background:radial-gradient(closest-side, #5c83ff 0%, rgba(92,131,255,.45) 45%, transparent 72%); animation-delay:-8s; }
+        .aurora b:nth-child(3) { top:30%; left:40%; width:40vw; height:40vw; background:radial-gradient(closest-side, #22d3ee 0%, rgba(34,211,238,.45) 45%, transparent 72%); animation-delay:-14s; }
+        .aurora b:nth-child(4) { top:60%; left:5%; width:35vw; height:35vw; background:radial-gradient(closest-side, #2342c7 0%, rgba(35,66,199,.45) 45%, transparent 72%); opacity:.7; animation-delay:-18s; }
         @keyframes aurora {
             0%,100% { transform: translate(0,0) scale(1); }
             33%     { transform: translate(6%,-4%) scale(1.15); }
