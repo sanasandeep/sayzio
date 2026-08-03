@@ -43,3 +43,6 @@ machinery rather than introducing a parallel sync stack.
 ## Route names (easy to get wrong)
 - Connected-accounts page: `user.calendar.index` (settings-prefixed), NOT `user.calendar.accounts`.
 - Upgrade page: `user.upgrade`.
+
+## Biolink embedding (event_list calendar source)
+`event_list` blocks can point at a calendar link via `settings['calendar_link_id']`. Resolution is shared through `EventListCalendarSource` (web Blade + mobile API `decorateEventListBlock`), which fails closed on foreign/inactive/deleted links and falls back to the block's manual events. **Why:** mobile renders from raw block settings, so live calendar events must be injected server-side in the API payload or the native renderer shows stale/manual data.

@@ -3681,6 +3681,85 @@ function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: Biolink
     );
   }
 
+  // Event list (Task #6615 — Smart Calendar biolink block). Renders the
+  // block's events natively — for calendar-sourced blocks the API has
+  // already resolved live upcoming events plus calendar/subscribe URLs
+  // (Api\BiolinkController::decorateEventListBlock); manual blocks carry
+  // their hand-entered events array. Without this branch the block would
+  // silently degrade to the generic "Open on web" fallback.
+  if (t === "event_list") {
+    const rawEvents = Array.isArray(s?.events) ? (s!.events as unknown[]) : (Array.isArray(s?.items) ? (s!.items as unknown[]) : []);
+    const events = rawEvents
+      .filter((e): e is Record<string, unknown> => !!e && typeof e === "object")
+      .slice(0, 20);
+    const accent = pickStr(s, "accent_color") ?? "#3d6bff";
+    const evTitle = pickContentStr(s, "title") ?? pickStr(s, "calendar_title");
+    const calendarUrl = pickStr(s, "calendar_url");
+    const subscribeUrl = pickStr(s, "subscribe_url");
+    const showSubscribe = pickBool(s ?? {}, "show_subscribe", true) && !!calendarUrl;
+    const fmtDate = (v: unknown): string | null => {
+      if (typeof v !== "string" || !v) return null;
+      const d = new Date(v);
+      if (isNaN(d.getTime())) return v;
+      return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })
+        + (v.length > 10 ? ` · ${d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}` : "");
+    };
+    return (
+      <View style={[styles.cardContainer, blockCardStyle(block, colors)]}>
+        {evTitle ? (
+          <Text style={[styles.heading, { color: colors.foreground, fontSize: 15, textAlign: "left", marginBottom: 6 }]}>{evTitle}</Text>
+        ) : null}
+        {events.length === 0 ? (
+          <Text style={[styles.body, { color: colors.mutedForeground, fontSize: 12, textAlign: "center", paddingVertical: 10 }]}>
+            {calendarUrl ? "No upcoming events" : "No events yet"}
+          </Text>
+        ) : (
+          events.map((ev, i) => {
+            const evUrl = pickStr(ev, "url", "link");
+            const dateLabel = fmtDate(ev.date ?? ev.start_at ?? ev.starts_at);
+            const location = pickStr(ev, "location");
+            const inner = (
+              <View style={{ flexDirection: "row", gap: 10, paddingVertical: 7, borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
+                <View style={{ width: 3, borderRadius: 2, backgroundColor: accent }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left", fontSize: 13 }]} numberOfLines={2}>
+                    {pickStr(ev, "title", "name") ?? "Event"}
+                  </Text>
+                  {dateLabel ? (
+                    <Text style={[styles.body, { color: accent, textAlign: "left", fontSize: 11, marginTop: 1 }]}>{dateLabel}</Text>
+                  ) : null}
+                  {location ? (
+                    <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 11, marginTop: 1 }]} numberOfLines={1}>{location}</Text>
+                  ) : null}
+                </View>
+              </View>
+            );
+            return evUrl && isSafeUrl(evUrl) ? (
+              <Pressable key={i} onPress={() => handleTap(evUrl)}>{inner}</Pressable>
+            ) : (
+              <View key={i}>{inner}</View>
+            );
+          })
+        )}
+        {showSubscribe ? (
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
+            <Pressable onPress={() => handleTap(calendarUrl!)}>
+              <Text style={[styles.body, { color: accent, fontSize: 12, fontWeight: "600" }]}>View full calendar</Text>
+            </Pressable>
+            {subscribeUrl ? (
+              <Pressable
+                onPress={() => handleTap(subscribeUrl)}
+                style={{ backgroundColor: `${accent}22`, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}
+              >
+                <Text style={[styles.body, { color: accent, fontSize: 12, fontWeight: "600" }]}>Subscribe</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
   // Profile / identity card family (profile_card_v1..v4). Dispatches on the
   // `_profile_layout` token carried in _style (set when a curated
   // `profile_identity` design is applied), falling back to the historical

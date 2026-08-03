@@ -27,12 +27,31 @@
             ];
         }
     }
-    $events = !empty($pickedEvents)
-        ? $pickedEvents
-        : (is_array($s['events'] ?? null) ? $s['events'] : (is_array($s['items'] ?? null) ? $s['items'] : []));
+    // Task #6615: Smart Calendar source — when the block points at one of
+    // the owner's followable `calendar` links, upcoming events come LIVE
+    // from that calendar (fail closed on deleted/foreign/inactive links,
+    // falling back to the picked/manual payload below).
+    $calSrc = null;
+    if (!empty($s['calendar_link_id'])) {
+        try {
+            $calSrc = \App\Modules\User\Support\EventListCalendarSource::resolve($link, $s);
+        } catch (\Throwable $e) {
+            $calSrc = null;
+        }
+    }
+
+    $events = $calSrc !== null
+        ? $calSrc['events']
+        : (!empty($pickedEvents)
+            ? $pickedEvents
+            : (is_array($s['events'] ?? null) ? $s['events'] : (is_array($s['items'] ?? null) ? $s['items'] : [])));
     $layout = $s['layout'] ?? ($s['_registry']['layout'] ?? 'compact');
     $accent = $s['accent_color'] ?? '#3d6bff';
     $title  = trim($s['title'] ?? '');
+    if ($title === '' && $calSrc !== null) {
+        $title = $calSrc['calendar_title'];
+    }
+    $showSubscribe = $calSrc !== null && ($s['show_subscribe'] ?? true);
 
     $fmtDate = static function ($v) {
         if (! $v) return null;
@@ -46,7 +65,7 @@
     @endif
 
     @if(empty($events))
-        <p class="text-xs opacity-50 text-center py-4" style="color: {{ $fontColor }};">No events yet</p>
+        <p class="text-xs opacity-50 text-center py-4" style="color: {{ $fontColor }};">{{ $calSrc !== null ? 'No upcoming events' : 'No events yet' }}</p>
     @elseif($layout === 'cards')
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             @foreach($events as $e)
@@ -99,6 +118,18 @@
                     @if(!empty($e['url']))<i class="fas fa-arrow-right text-xs opacity-40"></i>@endif
                 </a>
             @endforeach
+        </div>
+    @endif
+
+    @if($showSubscribe)
+        <div class="mt-3 pt-3 flex items-center justify-between gap-2" style="border-top: 1px solid {{ $fontColor }}1a;">
+            <a href="{{ $calSrc['calendar_url'] }}" class="text-xs font-semibold inline-flex items-center gap-1.5 hover:underline" style="color: {{ $accent }};">
+                <i class="fas fa-calendar-days"></i> View full calendar
+            </a>
+            <a href="{{ $calSrc['subscribe_url'] }}" class="text-xs font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full transition hover:opacity-80"
+               style="background: {{ $accent }}1a; color: {{ $accent }};">
+                <i class="fas fa-rss"></i> Subscribe
+            </a>
         </div>
     @endif
 </div>
