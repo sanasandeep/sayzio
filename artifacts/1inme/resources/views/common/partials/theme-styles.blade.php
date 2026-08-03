@@ -868,13 +868,35 @@
     }
     html.light-mode .gsm-backdrop { background: var(--overlay-bg); }
 
-    .gsm-panel {
-        background: linear-gradient(180deg, rgba(20,20,32,0.96), rgba(13,13,20,0.98));
-        border: 1px solid var(--border-glass);
+    /* Shared Liquid Glass modal surface — mirrors the marketing site's
+       .glass-dropdown (near-opaque so modal content stays legible, with the
+       same inset highlight stack + backdrop blur). Paired html.light-mode
+       rules below; blue accents only per the brand-color guard. */
+    .glass-modal, .gsm-panel {
+        background: rgba(24, 28, 40, 0.96);
+        border: 1px solid transparent;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 16px 48px rgba(0, 0, 0, 0.6);
     }
-    html.light-mode .gsm-panel {
-        background: var(--bg-card);
-        box-shadow: var(--card-shadow-hover);
+    @supports (backdrop-filter: blur(8px)) {
+        html:not(.light-mode) .glass-modal,
+        html:not(.light-mode) .gsm-panel {
+            background: linear-gradient(135deg, rgba(30, 35, 48, 0.985) 0%, rgba(20, 24, 34, 0.975) 100%);
+            backdrop-filter: blur(24px) saturate(160%);
+            -webkit-backdrop-filter: blur(24px) saturate(160%);
+        }
+    }
+    html.light-mode .glass-modal, html.light-mode .gsm-panel {
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid transparent;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 16px 48px rgba(0, 0, 0, 0.12);
+    }
+    @supports (backdrop-filter: blur(8px)) {
+        html.light-mode .glass-modal,
+        html.light-mode .gsm-panel {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.99) 0%, rgba(240, 247, 255, 0.97) 100%);
+            backdrop-filter: blur(24px) saturate(160%);
+            -webkit-backdrop-filter: blur(24px) saturate(160%);
+        }
     }
 
     .gsm-divider { border-color: var(--border-glass); }

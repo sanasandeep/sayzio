@@ -18,14 +18,9 @@
     .dcm-backdrop { background: rgba(8,10,20,0.72); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
     html.light-mode .dcm-backdrop { background: var(--overlay-bg); }
 
-    .dcm-card {
-        background: linear-gradient(180deg, rgba(20,20,32,0.96), rgba(13,13,20,0.98));
-        box-shadow: 0 24px 64px -12px rgba(0,0,0,0.55);
-    }
-    html.light-mode .dcm-card {
-        background: var(--bg-card);
-        box-shadow: var(--card-shadow-hover);
-    }
+    /* Surface now comes from the shared Liquid Glass `.glass-modal` utility
+       (theme-styles.blade.php) so the modal matches the marketing site's
+       glass panels in both themes. */
 </style>
 <div x-data="dashboardCustomizer()"
      x-show="open"
@@ -34,7 +29,7 @@
      @keydown.escape.window="close()"
      class="dcm-backdrop fixed inset-0 z-[999] flex items-center justify-center p-4">
     <div @click.outside="close()"
-         class="dcm-card w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-2xl"
+         class="dcm-card glass-modal w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-2xl"
          style="border: 1px solid var(--border-glass);">
 
         {{-- Header --}}
