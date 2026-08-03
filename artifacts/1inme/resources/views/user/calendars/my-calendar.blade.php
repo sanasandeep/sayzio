@@ -50,7 +50,13 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
             <h1 class="text-2xl font-bold text-white">My Calendar</h1>
-            <p class="text-xs text-white/40 mt-0.5">Everything from the calendars you own and follow, in one place.</p>
+            <p class="text-xs text-white/40 mt-0.5">
+                @if(($filters['ws'] ?? '') === 'all')
+                    Everything from the calendars you own and follow, across all workspaces.
+                @else
+                    Calendars from your active workspace, plus everything you follow.
+                @endif
+            </p>
         </div>
         <div class="flex items-center gap-2">
             {{-- Subscribe (live ICS feed) --}}
@@ -234,8 +240,12 @@
             <label class="flex items-center gap-2 text-xs text-white/50 cursor-pointer">
                 <input type="checkbox" name="past" value="1" {{ $filters['past'] ? 'checked' : '' }} class="rounded text-blue-500"> Include past events
             </label>
+            {{-- Task #6619 — default = active workspace only; toggle restores the cross-workspace aggregate. --}}
+            <label class="flex items-center gap-2 text-xs text-white/50 cursor-pointer" title="Show calendars from every workspace, not just the active one">
+                <input type="checkbox" name="ws" value="all" {{ ($filters['ws'] ?? '') === 'all' ? 'checked' : '' }} class="rounded text-blue-500"> All workspaces
+            </label>
             <div class="ml-auto flex gap-2">
-                <a href="{{ route('user.calendars.mine', ['view' => $view]) }}" class="px-4 py-2 rounded-xl text-sm text-white/60 hover:text-white transition">Reset</a>
+                <a href="{{ route('user.calendars.mine', array_filter(['view' => $view, 'ws' => $filters['ws'] ?? ''])) }}" class="px-4 py-2 rounded-xl text-sm text-white/60 hover:text-white transition">Reset</a>
                 <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white transition">Apply</button>
             </div>
         </div>

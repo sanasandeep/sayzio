@@ -52,6 +52,50 @@ class Calendar extends Model
         return $this->belongsTo(User::class);
     }
 
+    /** Task #6619 — the workspace this calendar belongs to. */
+    public function workspace()
+    {
+        return $this->belongsTo(Workspace::class);
+    }
+
+    /**
+     * Task #6619 — assign every user-owned calendar that predates workspace
+     * scoping to its owner's Personal workspace. Shared by the data migration
+     * and tests. Delivery-project calendars already carry a workspace_id.
+     *
+     * @return int number of calendars updated
+     */
+    public static function backfillMissingWorkspaces(): int
+    {
+        $updated = 0;
+
+        static::query()
+            ->whereNull('workspace_id')
+            ->whereNotNull('user_id')
+            ->orderBy('id')
+            ->chunkById(200, function ($calendars) use (&$updated) {
+                // Cache the personal-workspace lookup per owner within a chunk.
+                $wsByUser = [];
+                foreach ($calendars as $calendar) {
+                    $uid = (int) $calendar->user_id;
+                    if (!array_key_exists($uid, $wsByUser)) {
+                        $owner = User::find($uid);
+                        try {
+                            $wsByUser[$uid] = $owner?->ensureDefaultWorkspace()?->id;
+                        } catch (\Throwable) {
+                            $wsByUser[$uid] = null; // orphaned owner — leave unscoped
+                        }
+                    }
+                    if ($wsByUser[$uid]) {
+                        $calendar->forceFill(['workspace_id' => $wsByUser[$uid]])->saveQuietly();
+                        $updated++;
+                    }
+                }
+            });
+
+        return $updated;
+    }
+
     public function events()
     {
         return $this->hasMany(CalendarEvent::class)

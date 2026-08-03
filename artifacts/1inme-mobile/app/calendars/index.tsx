@@ -127,6 +127,9 @@ export default function CalendarsScreen() {
   const [range, setRange] = useState<RangeKey>("upcoming");
   const [search, setSearch] = useState("");
   const [tag, setTag] = useState<string | null>(null);
+  // Task #6619 — default = active workspace only; toggle restores the
+  // cross-workspace aggregate (applies to agenda, today and browse tabs).
+  const [allWorkspaces, setAllWorkspaces] = useState(false);
 
   const profileQ = useQuery({ queryKey: ["profile"], queryFn: getProfile });
   const caps = profileQ.data?.capabilities;
@@ -137,9 +140,10 @@ export default function CalendarsScreen() {
       ...rangeToFilter(range),
       q: search.trim() || null,
       tag,
+      allWorkspaces,
       perPage: 100,
     }),
-    [source, range, search, tag],
+    [source, range, search, tag, allWorkspaces],
   );
 
   const agendaQ = useQuery({
@@ -201,14 +205,14 @@ export default function CalendarsScreen() {
   }, [exporting, runExport]);
 
   const todayQ = useQuery({
-    queryKey: ["my-calendar-today"],
-    queryFn: getTodayEvents,
+    queryKey: ["my-calendar-today", allWorkspaces],
+    queryFn: () => getTodayEvents({ allWorkspaces }),
     enabled: tab === "today",
   });
 
   const calendarsQ = useQuery({
-    queryKey: ["calendars"],
-    queryFn: listCalendars,
+    queryKey: ["calendars", allWorkspaces],
+    queryFn: () => listCalendars({ allWorkspaces }),
     enabled: tab === "browse",
   });
 
@@ -304,6 +308,21 @@ export default function CalendarsScreen() {
             </Pressable>
           );
         })}
+      </View>
+
+      {/* Task #6619 — workspace scope toggle (applies to every tab). */}
+      <View style={styles.wsRow}>
+        <Chip
+          label={allWorkspaces ? "All workspaces" : "Active workspace"}
+          active={allWorkspaces}
+          colors={colors}
+          onPress={() => setAllWorkspaces(!allWorkspaces)}
+        />
+        <Text style={[styles.wsHint, { color: colors.mutedForeground }]}>
+          {allWorkspaces
+            ? "Showing calendars from every workspace"
+            : "Tap to include every workspace"}
+        </Text>
       </View>
 
       {tab === "agenda" && (
@@ -854,6 +873,14 @@ const styles = StyleSheet.create({
     borderBottomColor: "transparent",
   },
   tabLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
+  wsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
+  wsHint: { fontSize: 12, flexShrink: 1 },
   searchRow: { flexDirection: "row" },
   searchBox: {
     flex: 1,
