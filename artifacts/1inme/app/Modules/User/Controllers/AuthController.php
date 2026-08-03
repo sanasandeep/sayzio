@@ -49,6 +49,8 @@ class AuthController extends Controller
             // hero) so the chosen @handle is reserved on the new account.
             'prefilledHandle'      => (string) $request->query('handle', ''),
             'emailPasswordEnabled' => AuthMethods::emailPasswordEnabled(),
+            'mobileLoginEnabled'   => AuthMethods::mobileLoginEnabled(),
+            'allowedCountryCodes'  => AuthMethods::allowedCountryCodes(),
         ]);
     }
 

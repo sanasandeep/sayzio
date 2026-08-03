@@ -1,14 +1,35 @@
 {{-- Two-panel login/register modal. Mounted only on the home page. Forms post to the existing user auth endpoints. --}}
+{{-- Light-mode pairing: the card is dark glass by default; when the site is in
+     light mode the card flips to light glass and the hardcoded dark-theme text
+     utilities inside it are remapped (scoped to .auth-modal-card only). --}}
+<style>
+    html.light-mode .auth-modal-card { background: rgba(255,255,255,0.85) !important; border-color: rgba(15,23,42,0.10) !important; }
+    html.light-mode .auth-modal-card .text-white { color: #071437; }
+    html.light-mode .auth-modal-card .text-gray-400 { color: #4b5675; }
+    html.light-mode .auth-modal-card .text-gray-500, html.light-mode .auth-modal-card .text-gray-600 { color: #6b7280; }
+    html.light-mode .auth-modal-card .text-blue-200, html.light-mode .auth-modal-card .text-blue-300 { color: #1d4ed8; }
+    html.light-mode .auth-modal-card input, html.light-mode .auth-modal-card select {
+        background: #ffffff !important; border-color: #dbdfe9 !important; color: #071437 !important;
+    }
+    html.light-mode .auth-modal-card input::placeholder { color: #9aa3b5 !important; }
+    html.light-mode .auth-modal-card .bg-white\/5 { background: rgba(7,20,55,0.05); }
+    html.light-mode .auth-modal-card .bg-white\/10 { background: rgba(7,20,55,0.08); }
+    html.light-mode .auth-modal-card .border-white\/10 { border-color: rgba(7,20,55,0.12); }
+    html.light-mode .auth-modal-card .auth-modal-close { background: rgba(7,20,55,0.08); color: #071437; }
+    html.light-mode .auth-modal-card .auth-modal-close:hover { background: rgba(7,20,55,0.15); }
+    {{-- Keep the tab pills readable: active pill stays solid blue with white text --}}
+    html.light-mode .auth-modal-card .bg-blue-600, html.light-mode .auth-modal-card .bg-blue-600 * { color: #ffffff !important; }
+</style>
 <div x-show="authOpen" x-cloak
      class="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-black/70 backdrop-blur-sm"
      @click.self="authOpen=false"
      @keydown.escape.window="authOpen=false"
      role="dialog" aria-modal="true" aria-label="Sign in or create an account">
     <div class="min-h-full flex items-center justify-center p-4" @click.self="authOpen=false">
-    <div class="relative w-full max-w-3xl my-8 rounded-2xl shadow-2xl overflow-hidden border border-white/10"
+    <div class="auth-modal-card relative w-full max-w-3xl my-8 rounded-2xl shadow-2xl overflow-hidden border border-white/10"
          style="background: rgba(22,26,40,0.72); backdrop-filter: blur(30px) saturate(1.5); -webkit-backdrop-filter: blur(30px) saturate(1.5);">
         <button type="button" @click="authOpen=false"
-                class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
+                class="auth-modal-close absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
                 aria-label="Close">
             <i class="fas fa-times text-sm"></i>
         </button>
@@ -150,10 +171,45 @@
                     @if(!$emailPasswordEnabled && !$emailOtpEnabled && !$mobileLoginEnabled)
                     <p class="text-center text-xs text-gray-500 py-4">Login is currently unavailable.</p>
                     @endif
+
+                    {{-- Social sign-in, same providers as the full-page login --}}
+                    <div class="flex items-center gap-3 my-4">
+                        <div class="flex-1 h-px bg-white/10"></div>
+                        <span class="text-[10px] uppercase tracking-wider font-bold text-gray-500">or sign in with</span>
+                        <div class="flex-1 h-px bg-white/10"></div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <a href="{{ route('user.social-oauth.login', 'google') }}"
+                           class="w-full py-2.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-semibold text-white flex items-center justify-center gap-2">
+                            <i class="fab fa-google text-[13px]"></i> Log in with Google
+                        </a>
+                        <a href="{{ route('user.social-oauth.login', 'linkedin') }}"
+                           class="w-full py-2.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-semibold text-white flex items-center justify-center gap-2">
+                            <i class="fab fa-linkedin text-[13px]"></i> Log in with LinkedIn
+                        </a>
+                    </div>
                 </div>
 
-                {{-- Register form --}}
-                <form x-show="authTab==='register'" x-cloak method="POST" action="{{ route('user.register.submit') }}"
+                {{-- Register: two simple tabs mirroring the login tab — Email
+                     and WhatsApp — instead of both forms stacked. --}}
+                <div x-show="authTab==='register'" x-cloak x-data="{ reg: '{{ old('intent') === 'signup' ? 'mobile' : 'email' }}' }">
+
+                @if($mobileLoginEnabled)
+                <div class="flex gap-2 mb-4">
+                    <button type="button" @click="reg='email'"
+                            :class="reg==='email' ? 'border-blue-500 text-blue-300 bg-blue-500/10' : 'border-white/10 text-gray-400'"
+                            class="flex-1 py-2 text-xs font-medium rounded-lg border">
+                        <i class="fas fa-envelope mr-1"></i> Email
+                    </button>
+                    <button type="button" @click="reg='mobile'"
+                            :class="reg==='mobile' ? 'border-blue-500 text-blue-300 bg-blue-500/10' : 'border-white/10 text-gray-400'"
+                            class="flex-1 py-2 text-xs font-medium rounded-lg border">
+                        <i class="fab fa-whatsapp mr-1"></i> WhatsApp
+                    </button>
+                </div>
+                @endif
+
+                <form x-show="reg==='email'" method="POST" action="{{ route('user.register.submit') }}"
                       class="space-y-3">
                     @csrf
                     {{-- Carries the handle typed into the homepage hero "claim your
@@ -218,12 +274,7 @@
                      handle claimed on the homepage hero through to it. Only shown
                      when an admin has enabled WhatsApp (mobile) login. --}}
                 @if($mobileLoginEnabled)
-                <div x-show="authTab==='register'" x-cloak class="mt-4">
-                    <div class="flex items-center gap-3 my-4">
-                        <div class="flex-1 h-px bg-white/10"></div>
-                        <span class="text-[10px] uppercase tracking-wider font-bold text-gray-500">or</span>
-                        <div class="flex-1 h-px bg-white/10"></div>
-                    </div>
+                <div x-show="reg==='mobile'" x-cloak>
                     <form method="POST" action="{{ route('user.otp.send') }}" class="space-y-3">
                         @csrf
                         <input type="hidden" name="type" value="mobile">
@@ -250,6 +301,24 @@
                 </div>
                 @endif
 
+                {{-- Social sign-up, same providers as the full-page register --}}
+                <div class="flex items-center gap-3 my-4">
+                    <div class="flex-1 h-px bg-white/10"></div>
+                    <span class="text-[10px] uppercase tracking-wider font-bold text-gray-500">or sign up with</span>
+                    <div class="flex-1 h-px bg-white/10"></div>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <a href="{{ route('user.social-oauth.login', 'google') }}"
+                       class="w-full py-2.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-semibold text-white flex items-center justify-center gap-2">
+                        <i class="fab fa-google text-[13px]"></i> Sign up with Google
+                    </a>
+                    <a href="{{ route('user.social-oauth.login', 'linkedin') }}"
+                       class="w-full py-2.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-semibold text-white flex items-center justify-center gap-2">
+                        <i class="fab fa-linkedin text-[13px]"></i> Sign up with LinkedIn
+                    </a>
+                </div>
+                </div>{{-- /register tab wrapper --}}
+
                 @if($errors->any())
                     <div class="mt-3 rounded-lg px-3 py-2 text-xs bg-red-500/10 border border-red-500/30 text-red-300">
                         @foreach($errors->all() as $err)<div>{{ $err }}</div>@endforeach
@@ -261,6 +330,9 @@
     </div>
     </div>
 </div>
-@if($errors->any() || old('name') || old('email'))
-    <script>document.addEventListener('alpine:init',()=>{});window.addEventListener('DOMContentLoaded',()=>{const root=document.querySelector('[x-data*="authOpen"]');if(root&&root._x_dataStack){root._x_dataStack[0].authOpen=true;}});</script>
+@if($errors->any() || old('name') || old('email') || old('intent') === 'signup')
+    {{-- Reopen the modal after a validation round-trip, on the tab the user
+         was actually on: a register attempt (name field or WhatsApp signup
+         intent) reopens the Sign up tab; anything else reopens Login. --}}
+    <script>document.addEventListener('alpine:init',()=>{});window.addEventListener('DOMContentLoaded',()=>{const root=document.querySelector('[x-data*="authOpen"]');if(root&&root._x_dataStack){root._x_dataStack[0].authOpen=true;@if(old('name') !== null || old('intent') === 'signup')root._x_dataStack[0].authTab='register';@endif}});</script>
 @endif
