@@ -726,6 +726,15 @@ export function markSyncQueueFailure(id: string, error: string): void {
     .run(attempts, nextAttemptAt(attempts), error, id);
 }
 
+/**
+ * Rewrite a queue item's payload in place (used when the server accepts part
+ * of a push but rejects over-cap rows — only the rejected rows stay queued).
+ */
+export function updateSyncQueuePayload(id: string, payload: string): void {
+  const db = getDb();
+  db.prepare('UPDATE sync_queue SET payload = ? WHERE id = ?').run(payload, id);
+}
+
 export function removeSyncQueueItem(id: string): void {
   const db = getDb();
   db.prepare('DELETE FROM sync_queue WHERE id = ?').run(id);

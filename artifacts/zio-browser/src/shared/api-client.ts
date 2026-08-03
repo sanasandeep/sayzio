@@ -754,6 +754,13 @@ export interface SyncItem {
 export interface SyncResponse {
   accepted: string[];
   conflicts: string[];
+  /**
+   * Local ids of NEW rows the server refused because the account is at its
+   * `max_browser_sync_items` cap. Updates/tombstones always go through.
+   */
+  rejected?: string[];
+  /** Effective per-entity item limit for the plan (-1 = unlimited). */
+  limit?: number;
   server_time: string;
 }
 

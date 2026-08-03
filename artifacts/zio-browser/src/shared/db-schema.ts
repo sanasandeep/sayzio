@@ -345,6 +345,10 @@ export const PREFERENCE_KEYS = {
   CLOUD_SYNC_HISTORY: 'cloud_sync_history',
   CLOUD_SYNC_READING_LIST: 'cloud_sync_reading_list',
   SAYZIO_API_BASE_URL: 'sayzio_api_base_url',
+  /** JSON-serialized SyncPlanGate — set when sync is 402-blocked by the plan. */
+  SYNC_PLAN_GATE: 'sync_plan_gate',
+  /** JSON-serialized SyncRejectedNotice — last over-cap push rejection. */
+  SYNC_REJECTED_NOTICE: 'sync_rejected_notice',
   THEME: 'theme',
   DEVICE_ID: 'device_id',
   HISTORY_DAYS_RETENTION: 'history_days_retention',

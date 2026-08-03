@@ -228,6 +228,7 @@ function buildDefaults(ipcHandlers: IpcHandlerMap): Record<string, unknown> {
       state: resolved(null),
       queuePush: resolved(undefined),
       flush: resolved(undefined),
+      planStatus: resolved({ gate: { blocked: false, feature: null, recommended_plan: null, blocked_at: null }, rejected: null }),
     },
     screenshot: {
       capture: resolved(null),

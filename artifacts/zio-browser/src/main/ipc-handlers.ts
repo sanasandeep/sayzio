@@ -25,7 +25,7 @@ import { isCsvDownload, buildCsvViewerHtml, CSV_VIEWER_MAX_FILE_BYTES } from '..
 import type { TabManager, SessionTabLayout } from './tab-manager';
 import type { TabMode } from '../shared/window-mode';
 import type { WindowModeManager } from './window-mode-manager';
-import { SyncRetryRunner } from './sync-retry';
+import { SyncRetryRunner, getSyncPlanStatus } from './sync-retry';
 import { detectBrowsers, readBrowserData, parseBookmarksHtml } from './browser-import';
 import type { SyncEntityKind } from '../shared/sync-engine';
 import { isSyncDue, SYNC_INTERVALS } from '../shared/sync-engine';
@@ -323,6 +323,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   const syncRetryRunner = new SyncRetryRunner({
     onQueueChanged: (pendingCount) => {
       mainWindow.webContents.send('sync:queue-changed', pendingCount, countSyncQueueByProfile());
+    },
+    onPlanStatusChanged: (status) => {
+      mainWindow.webContents.send('sync:plan-status-changed', status);
     },
   });
   // Only run the background sync loop when the local database is available —
@@ -1094,6 +1097,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     const item = enqueueSyncPush(entity, payloadJson, error ?? null);
     syncRetryRunner.notify();
     return item.id;
+  });
+  ipcMain.handle('sync:plan-status', () => {
+    try { return getSyncPlanStatus(); } catch { return null; }
   });
   ipcMain.handle('sync:pending-count', (event) => senderIsPrivate(event) ? 0 : countSyncQueue());
   ipcMain.handle('sync:pending-by-profile', (event) => senderIsPrivate(event) ? [] : countSyncQueueByProfile());

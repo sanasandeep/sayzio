@@ -287,6 +287,8 @@ const api = {
     pendingCount: () => ipcRenderer.invoke('sync:pending-count'),
     pendingByProfile: () => ipcRenderer.invoke('sync:pending-by-profile'),
     flush: () => ipcRenderer.invoke('sync:flush'),
+    /** Plan gate + over-cap rejection notice for the sync settings UI. */
+    planStatus: () => ipcRenderer.invoke('sync:plan-status'),
   },
 
   // ── Screenshot ────────────────────────────────────────────────────────────
@@ -488,6 +490,8 @@ const api = {
       'device-lab:preview-url',
       'window:mode-changed',
       'sync:queue-changed',
+      // Sync plan gate / over-cap rejection notice changed (upgrade prompts)
+      'sync:plan-status-changed',
       // Downloads panel
       'download:paused',
       'download:resumed',

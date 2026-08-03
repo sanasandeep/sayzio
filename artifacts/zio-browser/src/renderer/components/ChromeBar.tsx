@@ -487,6 +487,7 @@ export function ChromeBar({
   useChromeOverlay(shortenOpen || createOpen || clipboardOpen || overflowOpen || sitePopoverOpen || adblockPopoverOpen || shareOpen || tabOverviewOpen);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [pendingSyncByProfile, setPendingSyncByProfile] = useState<SyncQueueProfileCount[]>([]);
+  const [syncPlanBlocked, setSyncPlanBlocked] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [stripMenuOpen, setStripMenuOpen] = useState(false);
   const [blockedCount, setBlockedCount] = useState(0);
@@ -811,9 +812,20 @@ export function ChromeBar({
       if (Array.isArray(byProfile)) setPendingSyncByProfile(byProfile as SyncQueueProfileCount[]);
     };
     window.zio.on('sync:queue-changed', listener);
+    // Plan gate — when the server 402-blocks sync for this plan, swap the
+    // pending pill's copy to a friendly "paused, upgrade to resume" hint.
+    void window.zio.sync.planStatus().then((s: { gate?: { blocked?: boolean } } | null) => {
+      if (!cancelled) setSyncPlanBlocked(s?.gate?.blocked === true);
+    }).catch(() => { /* main not ready yet — event listener will update */ });
+    const planListener = (...args: unknown[]) => {
+      const s = args[0] as { gate?: { blocked?: boolean } } | undefined;
+      setSyncPlanBlocked(s?.gate?.blocked === true);
+    };
+    window.zio.on('sync:plan-status-changed', planListener);
     return () => {
       cancelled = true;
       window.zio.off('sync:queue-changed', listener);
+      window.zio.off('sync:plan-status-changed', planListener);
     };
   }, []);
 
@@ -1588,7 +1600,9 @@ export function ChromeBar({
         {pendingSyncCount > 0 && (
           <div
             title={
-              pendingSyncByProfile.length > 0
+              syncPlanBlocked
+                ? 'Sync is paused — your current plan doesn\'t include browser sync. Changes stay on this device and sync automatically after you upgrade (see Settings → Sync).'
+                : pendingSyncByProfile.length > 0
                 ? `Waiting to sync — will retry automatically: ${pendingSyncByProfile
                     .map(p => `${p.count} pending for ${p.profileName}`)
                     .join(', ')}`
@@ -1615,7 +1629,7 @@ export function ChromeBar({
               background: '#f0a020',
               flexShrink: 0,
             }} />
-            Sync pending
+            {syncPlanBlocked ? 'Sync paused — upgrade to resume' : 'Sync pending'}
           </div>
         )}
 

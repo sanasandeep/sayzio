@@ -74,6 +74,7 @@ function buildZioMock() {
     sync: {
       pendingCount: vi.fn(() => Promise.resolve(0)),
       pendingByProfile: vi.fn(() => Promise.resolve([])),
+      planStatus: vi.fn(() => Promise.resolve({ gate: { blocked: false, feature: null, recommended_plan: null, blocked_at: null }, rejected: null })),
     },
     tracker: {
       isEnabled: vi.fn(() => Promise.resolve(false)),
