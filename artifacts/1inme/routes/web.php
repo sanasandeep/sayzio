@@ -703,6 +703,9 @@ Route::get ('/checkout/return',  [\App\Modules\Common\Controllers\MonetizationCh
 // Live Razorpay hosted checkout (Task #6642) — signed URL minted by
 // RazorpayRouteAdapter after the order + Route transfer are created.
 Route::get ('/checkout/razorpay', [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'razorpay'])->name('checkout.razorpay');
+// Live Cashfree hosted checkout (Task #6643) — signed URL minted by the
+// CreatorPayouts CashfreeAdapter after the order + Easy Split are created.
+Route::get ('/checkout/cashfree-payout', [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'cashfreePayout'])->name('checkout.cashfree-payout');
 
 // In-page biolink storefront (Task #1761). Multi-segment paths so they
 // never collide with the single-segment `/{alias}` catch-all below. Cart

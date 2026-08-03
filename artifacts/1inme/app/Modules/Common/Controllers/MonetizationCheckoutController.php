@@ -110,6 +110,41 @@ class MonetizationCheckoutController extends Controller
         ]));
     }
 
+    /**
+     * Hosted Cashfree checkout page (creator payouts, Task #6643). The
+     * CreatorPayouts CashfreeAdapter created the order (with a 100%
+     * Easy Split to the creator's vendor) server-side and signs this
+     * URL; the page mounts Cashfree's JS SDK against the
+     * payment_session_id and redirects the fan to checkout.return
+     * afterwards. Actual settlement is done by the signature-verified
+     * webhook, never by this page.
+     */
+    public function cashfreePayout(Request $request)
+    {
+        if (!$request->hasValidSignature()) {
+            abort(403, 'Invalid or tampered checkout link.');
+        }
+
+        $data = $request->validate([
+            'order_id'   => 'required|string|max:64',
+            'session_id' => 'required|string|max:2048',
+            'kind'       => 'required|in:subscription,ppv,tip,one_time,dm_msg,dm_att,product,form,event_ticket,booking',
+            'reference'  => 'required|string|max:191',
+            'token'      => 'required|string|max:64',
+            'amount'     => 'required|integer|min:1',
+            'currency'   => 'required|string|max:8',
+        ]);
+
+        return view('public.monetization.cashfree-checkout', array_merge($data, [
+            'mode'      => strtolower((string) env('CASHFREE_ENV', 'live')) === 'sandbox' ? 'sandbox' : 'production',
+            'returnUrl' => route('checkout.return', [
+                'kind'      => $data['kind'] === 'one_time' ? 'tip' : $data['kind'],
+                'reference' => $data['reference'],
+                'token'     => $data['token'],
+            ]),
+        ]));
+    }
+
     public function returnHandler(Request $request)
     {
         $data = $request->validate([

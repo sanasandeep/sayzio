@@ -45,6 +45,14 @@ Route::post('/webhooks/whatsapp', [\App\Modules\Common\Controllers\WhatsAppWebho
 Route::post('/webhooks/razorpay-route', [\App\Http\Controllers\RazorpayRouteWebhookController::class, 'handle'])
     ->name('webhooks.razorpay-route');
 
+// Cashfree Easy Split (creator payouts, Task #6643). Distinct from the
+// plan-billing `cashfree` gateway below — this endpoint settles fan
+// checkouts (PAYMENT_SUCCESS_WEBHOOK) and syncs vendor status.
+// Signature-verified in the controller. Declared BEFORE the generic
+// catch-all so `cashfree-payouts` isn't swallowed by it.
+Route::post('/webhooks/cashfree-payouts', [\App\Http\Controllers\CashfreePayoutWebhookController::class, 'handle'])
+    ->name('webhooks.cashfree-payouts');
+
 Route::post('/webhooks/{gateway}', [WebhookController::class, 'handle'])
     ->where('gateway', '[a-z0-9_-]+')
     ->name('webhooks.handle');

@@ -18,6 +18,7 @@ use App\Modules\User\Models\User;
  *   - phonepe  — PhonePe Payment Gateway (India)
  *   - ccavenue — CCAvenue (India)
  *   - paytm    — Paytm Payment Gateway (India)
+ *   - cashfree — Cashfree Easy Split (India)
  *   - ccbill   — CCBill (adult-friendly)
  *   - segpay   — Segpay (adult-friendly)
  *
@@ -106,6 +107,19 @@ class PayoutProviderRegistry
             'env_keys'        => ['PAYTM_MERCHANT_ID', 'PAYTM_MERCHANT_KEY'],
             'docs_url'        => 'https://business.paytm.com/payment-gateway',
         ],
+        'cashfree' => [
+            'slug'            => 'cashfree',
+            'name'            => 'Cashfree',
+            'icon'            => 'fas fa-money-bill-transfer',
+            'tint'            => '#6933d3',
+            'short'           => 'Easy Split vendor payouts in INR for India-based creators — UPI, cards, netbanking.',
+            'countries'       => 'India only',
+            'payout_speed'    => 'T+1 settlement to Indian bank accounts',
+            'fees'            => '~1.95% per transaction (0% on UPI intro plans)',
+            'adult_friendly'  => false,
+            'env_keys'        => ['CASHFREE_APP_ID', 'CASHFREE_SECRET_KEY'],
+            'docs_url'        => 'https://www.cashfree.com/easy-split/',
+        ],
         'ccbill' => [
             'slug'            => 'ccbill',
             'name'            => 'CCBill',
@@ -183,6 +197,7 @@ class PayoutProviderRegistry
             'phonepe'  => new Adapters\PhonepeAdapter($provider),
             'ccavenue' => new Adapters\CcavenueAdapter($provider),
             'paytm'    => new Adapters\PaytmAdapter($provider),
+            'cashfree' => new Adapters\CashfreeAdapter($provider),
             'ccbill'   => new Adapters\CcbillAdapter($provider),
             'segpay'   => new Adapters\SegpayAdapter($provider),
         };
