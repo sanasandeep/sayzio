@@ -128,7 +128,9 @@
 
         .sidebar-shell {
             border-right: none;
-            border-radius: 0 1.5rem 1.5rem 0;
+            /* Square top corner so the sidebar meets the header seamlessly;
+               keep the soft rounding at the bottom only. */
+            border-radius: 0 0 1.5rem 0;
         }
         html.light-mode .sidebar-shell {
             border-right: none;
@@ -137,18 +139,20 @@
         /* Edge-mounted collapse handle — sits 50% in / 50% out of sidebar */
         .sidebar-edge-toggle {
             position: absolute;
-            top: 20px;
-            right: -14px;
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
+            /* Vertically centered on the header bar so the pill sits cleanly
+               on the sidebar/header seam instead of floating in a notch. */
+            top: calc(var(--app-header-h) / 2 - 13px);
+            right: -13px;
+            width: 26px;
+            height: 26px;
+            border-radius: 9999px;
             background: var(--bg-card, #1f1f23);
             border: 1px solid var(--border-strong);
             color: var(--text-primary);
             display: flex; align-items: center; justify-content: center;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,.30);
-            font-size: 11px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.25);
+            font-size: 10px;
             z-index: 60;
             transition: all .2s ease;
         }
