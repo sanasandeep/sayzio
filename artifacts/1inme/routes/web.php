@@ -260,6 +260,9 @@ Route::get('/f/{slug}',          [\App\Modules\User\Controllers\FormController::
 Route::get('/f/{slug}/iframe',   [\App\Modules\User\Controllers\FormController::class, 'publicIframe'])->name('forms.public.iframe')->where('slug', '[a-z0-9-]+');
 Route::get('/f/{slug}/embed.js', [\App\Modules\User\Controllers\FormController::class, 'publicEmbedJs'])->name('forms.public.embed')->where('slug', '[a-z0-9-]+');
 Route::post('/f/{slug}',         [\App\Modules\User\Controllers\FormController::class, 'publicSubmit'])->name('forms.public.submit')->where('slug', '[a-z0-9-]+')->middleware('throttle:10,1');
+// Signed, time-limited delivery-file unlock (Task #6624) — the signature is
+// minted per successful submission; the controller re-checks payment status.
+Route::get('/f/{slug}/delivery/{submission}', [\App\Modules\User\Controllers\FormController::class, 'deliveryDownload'])->name('forms.public.delivery')->where('slug', '[a-z0-9-]+')->whereNumber('submission');
 
 // ---- Embeddable Link Codes (task #2617): card / iframe / loader, CORS-open ----
 // Multi-segment under the reserved `embed` prefix so they never collide with the

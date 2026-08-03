@@ -1183,6 +1183,16 @@ class MonetizationCheckout
             ? $settings['success_redirect']
             : $form->getPublicUrl() . '?paid=1';
 
+        // Deliver-a-file (Task #6624): when the paid form lands back on its
+        // own success state, carry the signed download link along so the
+        // paying submitter sees the download button. The link is only handed
+        // out via this server-held success URL after the gateway return, and
+        // the download route independently rejects still-pending submissions.
+        if ((($settings['success_action'] ?? 'message') !== 'redirect' || empty($settings['success_redirect']))
+            && ($dl = $form->deliverySignedUrl($submission, now()->addHours(24)))) {
+            $successUrl .= '&dl=' . urlencode($dl);
+        }
+
         $token     = Str::random(32);
         $reference = 'form_' . $submission->id;
         cache()->put($this->cacheKey('form', $submission->id, $token), [

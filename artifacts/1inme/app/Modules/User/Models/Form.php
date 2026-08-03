@@ -132,6 +132,15 @@ protected $fillable = [
             'require_login' => false,
             'close_after' => null, // ISO date or null
             'submission_limit' => null,
+            // Deliver-a-file after submit (Task #6624): when enabled, a real
+            // successful submission unlocks a time-limited signed download of
+            // this file (a vault file's /f/{id}/{filename} path or an
+            // external URL). One file per form.
+            'delivery_file' => [
+                'enabled' => false,
+                'url'     => null,
+                'label'   => null, // optional button label ("Download your guide")
+            ],
             // Paid forms (Task #2319). Opt-in charge to submit, collected
             // through the OWNER's connected payment gateway (0% platform fee).
             // Stored as a structured map so per-field / variable pricing can
@@ -145,6 +154,47 @@ protected $fillable = [
                 'label'        => null,     // optional override for the pay button
             ],
         ];
+    }
+
+    /** Delivery-file settings merged over the defaults (Task #6624). */
+    public function deliveryFileConfig(): array
+    {
+        $defaults = static::defaultSettings()['delivery_file'];
+        $settings = $this->settings ?? [];
+        return array_merge($defaults, (array) ($settings['delivery_file'] ?? []));
+    }
+
+    /** The configured delivery-file URL, or null when disabled / unset. */
+    public function deliveryFileUrl(): ?string
+    {
+        $cfg = $this->deliveryFileConfig();
+        $url = trim((string) ($cfg['url'] ?? ''));
+        return (!empty($cfg['enabled']) && $url !== '') ? $url : null;
+    }
+
+    /** Visible label for the download button (falls back to a default). */
+    public function deliveryFileLabel(): string
+    {
+        $label = trim((string) ($this->deliveryFileConfig()['label'] ?? ''));
+        return $label !== '' ? $label : 'Download your file';
+    }
+
+    /**
+     * Time-limited signed URL that unlocks the delivery file for one specific
+     * submission (Task #6624). Null when no delivery file is configured. The
+     * download route re-checks the signature, the submission's form linkage,
+     * spam flag and (for paid forms) that the charge cleared — so a link
+     * minted for a still-pending paid submission only starts working once the
+     * payment confirms.
+     */
+    public function deliverySignedUrl(FormSubmission $submission, ?\DateTimeInterface $expires = null): ?string
+    {
+        if (!$this->deliveryFileUrl()) return null;
+        return \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'forms.public.delivery',
+            $expires ?? now()->addHours(24),
+            ['slug' => $this->slug, 'submission' => $submission->id]
+        );
     }
 
     /** Payment settings merged over the defaults. */

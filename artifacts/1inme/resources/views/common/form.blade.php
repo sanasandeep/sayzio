@@ -417,6 +417,22 @@
                         <div class="form-success-icon"><i class="fas fa-check-circle"></i></div>
                         <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0 0 0.5rem;">All done!</h2>
                         <p style="opacity: 0.75; margin: 0;">{{ session('form_success') ?: (request('paid') ? (session('success') ?: 'Payment received, your response has been recorded. Thank you!') : '') }}</p>
+                        @php
+                            // Deliver-a-file (Task #6624): the signed unlock link comes
+                            // from the flashed session (free forms) or the paid-return
+                            // `dl` query param. Only render a dl param that points at
+                            // THIS form's own delivery route — never an arbitrary URL.
+                            $deliveryHref = session('form_delivery_url');
+                            if (!$deliveryHref && request('paid') && is_string(request('dl'))
+                                && str_starts_with(request('dl'), url('/f/' . $form->slug . '/delivery/'))) {
+                                $deliveryHref = request('dl');
+                            }
+                        @endphp
+                        @if($deliveryHref)
+                            <a href="{{ $deliveryHref }}" class="form-button" style="margin-top: 1.5rem; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;" rel="noopener">
+                                <i class="fas fa-download text-xs"></i> {{ $form->deliveryFileLabel() }}
+                            </a>
+                        @endif
                         @if(($settings['allow_multiple'] ?? true))
                             <button type="button" onclick="window.location.reload()" class="form-button" style="margin-top: 1.5rem;">
                                 <i class="fas fa-redo text-xs"></i> Submit another response
