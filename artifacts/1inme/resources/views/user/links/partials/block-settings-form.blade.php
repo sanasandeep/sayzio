@@ -342,13 +342,67 @@ function linkBlockEditor(cfg) {
 <div><label class="{{ $labelClass }}">Rich Text HTML</label><textarea name="settings[html]" rows="5" class="{{ $inputClass }}">{{ $s['html'] ?? '' }}</textarea></div>
 
 @elseif($block->type === 'divider')
+@php
+    $dvStyles = ['solid' => 'Solid', 'dashed' => 'Dashed', 'dotted' => 'Dotted', 'double' => 'Double Line', 'gradient' => 'Gradient Fade', 'dots' => 'Dots Row', 'zigzag' => 'Zigzag', 'wave' => 'Wave'];
+    $dvCur = in_array(($s['style'] ?? 'solid'), array_keys($dvStyles), true) ? $s['style'] : 'solid';
+    $dvColorVal = $s['color'] ?? 'rgba(255,255,255,0.1)';
+    $dvColorHex = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $dvColorVal) ? $dvColorVal : '#8899aa';
+    $dvOrnVal = $s['ornament_color'] ?? '';
+    $dvOrnHex = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $dvOrnVal) ? $dvOrnVal : '#ffffff';
+@endphp
 <div class="space-y-3">
-    <div><label class="{{ $labelClass }}">Style</label><select name="settings[style]" class="{{ $selectClass }}"><option value="solid" {{ ($s['style'] ?? '') === 'solid' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Solid</option><option value="dashed" {{ ($s['style'] ?? '') === 'dashed' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Dashed</option><option value="dotted" {{ ($s['style'] ?? '') === 'dotted' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Dotted</option></select></div>
-    <div><label class="{{ $labelClass }}">Color</label><input type="text" name="settings[color]" value="{{ $s['color'] ?? 'rgba(255,255,255,0.1)' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Line Style</label><select name="settings[style]" class="{{ $selectClass }}">
+        @foreach($dvStyles as $dvKey => $dvLabel)
+        <option value="{{ $dvKey }}" {{ $dvCur === $dvKey ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">{{ $dvLabel }}</option>
+        @endforeach
+    </select></div>
+    <div class="grid grid-cols-2 gap-3">
+        <div><label class="{{ $labelClass }}">Thickness (<span>{{ (int) ($s['thickness'] ?? 1) }}px</span>)</label>
+            <input type="range" name="settings[thickness]" min="1" max="12" step="1" value="{{ (int) ($s['thickness'] ?? 1) }}" class="w-full accent-blue-500"
+                   oninput="this.closest('div').querySelector('label span').textContent = this.value + 'px'"></div>
+        <div><label class="{{ $labelClass }}">Width (<span>{{ (int) ($s['width'] ?? 100) }}%</span>)</label>
+            <input type="range" name="settings[width]" min="10" max="100" step="5" value="{{ (int) ($s['width'] ?? 100) }}" class="w-full accent-blue-500"
+                   oninput="this.closest('div').querySelector('label span').textContent = this.value + '%'"></div>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+        <div><label class="{{ $labelClass }}">Alignment</label><select name="settings[align]" class="{{ $selectClass }}">
+            @foreach(['center' => 'Center', 'left' => 'Left', 'right' => 'Right'] as $dvKey => $dvLabel)
+            <option value="{{ $dvKey }}" {{ ($s['align'] ?? 'center') === $dvKey ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">{{ $dvLabel }}</option>
+            @endforeach
+        </select></div>
+        <div><label class="{{ $labelClass }}">Color</label>
+            <div class="flex gap-2 items-center">
+                <input type="color" value="{{ $dvColorHex }}" class="h-9 w-10 shrink-0 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"
+                       oninput="const t = this.nextElementSibling; t.value = this.value; t.dispatchEvent(new Event('input', { bubbles: true }));">
+                <input type="text" name="settings[color]" value="{{ $dvColorVal }}" class="{{ $inputClass }}" placeholder="rgba(255,255,255,0.1)">
+            </div>
+        </div>
+    </div>
+    <div class="pt-2" style="border-top: 1px solid var(--border-subtle);">
+        <p class="{{ $labelClass }} mb-2">Center Ornament <span style="color: var(--text-faint);">(optional — icon wins over text)</span></p>
+        <div class="space-y-3">
+            @include('user.links.partials.icon-picker', ['fieldName' => 'settings[ornament_icon]', 'currentValue' => $s['ornament_icon'] ?? '', 'labelText' => 'Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
+            <div><label class="{{ $labelClass }}">Text label</label><input type="text" name="settings[ornament_text]" value="{{ $s['ornament_text'] ?? '' }}" maxlength="30" class="{{ $inputClass }}" placeholder="e.g. ✦ or a short word"></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div><label class="{{ $labelClass }}">Ornament Color</label>
+                    <div class="flex gap-2 items-center">
+                        <input type="color" value="{{ $dvOrnHex }}" class="h-9 w-10 shrink-0 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"
+                               oninput="const t = this.nextElementSibling; t.value = this.value; t.dispatchEvent(new Event('input', { bubbles: true }));">
+                        <input type="text" name="settings[ornament_color]" value="{{ $dvOrnVal }}" class="{{ $inputClass }}" placeholder="Same as line">
+                    </div>
+                </div>
+                <div><label class="{{ $labelClass }}">Ornament Size (<span>{{ (int) ($s['ornament_size'] ?? 16) }}px</span>)</label>
+                    <input type="range" name="settings[ornament_size]" min="10" max="40" step="1" value="{{ (int) ($s['ornament_size'] ?? 16) }}" class="w-full accent-blue-500"
+                           oninput="this.closest('div').querySelector('label span').textContent = this.value + 'px'"></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @elseif($block->type === 'spacer')
-<div><label class="{{ $labelClass }}">Height (px)</label><input type="number" name="settings[height]" value="{{ $s['height'] ?? 20 }}" min="4" max="200" class="{{ $inputClass }}"></div>
+<div><label class="{{ $labelClass }}">Height (<span>{{ (int) ($s['height'] ?? 20) }}px</span>)</label>
+    <input type="range" name="settings[height]" min="4" max="200" step="2" value="{{ (int) ($s['height'] ?? 20) }}" class="w-full accent-blue-500"
+           oninput="this.closest('div').querySelector('label span').textContent = this.value + 'px'"></div>
 
 @elseif(in_array($block->type, ['list', 'list_numbered']))
 @php

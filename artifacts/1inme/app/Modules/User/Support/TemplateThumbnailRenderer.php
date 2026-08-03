@@ -285,7 +285,18 @@ class TemplateThumbnailRenderer
                 return [$out, 30];
 
             case $type === 'divider':
-                return ['<rect x="' . ($x + 60) . '" y="' . ($y + 4) . '" width="' . ($w - 120) . '" height="3" rx="1.5" fill="' . self::rgba($ink, 0.2) . '"/>', 24];
+                // Honor the richer divider knobs (Task #6581): width %,
+                // alignment and thickness shape the silhouette; anything
+                // fancier (dots/zigzag/ornament) still reads fine as a bar.
+                $dvFrac = max(10, min(100, (int) ($settings['width'] ?? 80))) / 100;
+                $dvW = (int) ($w * $dvFrac * 0.9);
+                $dvH = max(3, min(8, (int) ($settings['thickness'] ?? 3)));
+                $dvX = match ($settings['align'] ?? 'center') {
+                    'left'  => $x,
+                    'right' => $x + $w - $dvW,
+                    default => $x + (int) (($w - $dvW) / 2),
+                };
+                return ['<rect x="' . $dvX . '" y="' . ($y + 4) . '" width="' . $dvW . '" height="' . $dvH . '" rx="' . (int) ($dvH / 2) . '" fill="' . self::rgba($ink, 0.2) . '"/>', 24];
 
             // Imagery: grid/slider = 3 tiles, single image/video = one wide tile.
             case in_array($type, ['image_grid', 'image_slider', 'gallery'], true):

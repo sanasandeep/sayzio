@@ -2577,15 +2577,131 @@ function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: Biolink
     return imageEl;
   }
 
-  if (t === "spacer" || t === "divider") {
+  if (t === "spacer") {
+    // Match web: an empty gap, not a colored band.
+    const h = Math.max(4, Math.min(200, pickNum(s, "height") ?? 12));
+    return <View style={{ height: h }} />;
+  }
+
+  if (t === "divider") {
+    // Richer divider (Task #6581) — mirrors the web renderer's knobs:
+    // line style presets, thickness, width %, alignment and an optional
+    // centered icon/text ornament. Untouched legacy blocks fall through
+    // to the plain hairline they always had.
+    const dvStyleRaw = pickStr(s, "style") ?? "solid";
+    const dvStyle = ["solid", "dashed", "dotted", "double", "gradient", "dots", "zigzag", "wave"].includes(dvStyleRaw)
+      ? dvStyleRaw
+      : "solid";
+    const thick = Math.max(1, Math.min(12, pickNum(s, "thickness") ?? 1));
+    const widthPct = Math.max(10, Math.min(100, pickNum(s, "width") ?? 100));
+    const alignRaw = pickStr(s, "align") ?? "center";
+    const alignSelf = alignRaw === "left" ? "flex-start" : alignRaw === "right" ? "flex-end" : "center";
+    const dvColor = pickStr(s, "color") ?? colors.border;
+    const ornIcon = (pickStr(s, "ornament_icon") ?? "").trim();
+    const ornText = (pickStr(s, "ornament_text") ?? "").trim();
+    const hasOrn = ornIcon !== "" || ornText !== "";
+    const ornColor = pickStr(s, "ornament_color") ?? dvColor;
+    const ornSize = Math.max(10, Math.min(40, pickNum(s, "ornament_size") ?? 16));
+    // Feather has no FontAwesome catalog — map the common ornament icons
+    // to glyphs so web and mobile pages still match visually.
+    const ornGlyph = (() => {
+      const k = ornIcon.toLowerCase();
+      if (k.includes("star")) return "★";
+      if (k.includes("heart")) return "♥";
+      if (k.includes("circle")) return "●";
+      if (k.includes("diamond") || k.includes("gem")) return "◆";
+      if (k.includes("bolt")) return "⚡";
+      if (k.includes("moon")) return "☾";
+      if (k.includes("sun")) return "☀";
+      if (k.includes("music")) return "♪";
+      if (k.includes("leaf")) return "❧";
+      return "✦";
+    })();
+
+    const seg = (key: string) => {
+      const flex = { flex: 1, minWidth: 0 } as const;
+      switch (dvStyle) {
+        case "gradient":
+          return (
+            <LinearGradient
+              key={key}
+              colors={["transparent", dvColor, "transparent"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={[flex, { height: thick }]}
+            />
+          );
+        case "dots": {
+          const d = Math.max(4, thick * 3);
+          return (
+            <View key={key} style={[flex, { flexDirection: "row", justifyContent: "space-between", overflow: "hidden", height: d, alignItems: "center" }]}>
+              {Array.from({ length: 40 }).map((_, i) => (
+                <View key={i} style={{ width: d, height: d, borderRadius: d / 2, backgroundColor: dvColor, marginRight: d * 2 }} />
+              ))}
+            </View>
+          );
+        }
+        case "zigzag": {
+          const h = Math.max(6, thick * 3);
+          const segs: string[] = [`M0 ${h}`];
+          for (let x = 0; x < 240; x += h * 2) segs.push(`L${x + h} 0 L${x + h * 2} ${h}`);
+          return (
+            <View key={key} style={[flex, { height: h }]}>
+              <Svg width="100%" height={h} viewBox={`0 0 240 ${h}`} preserveAspectRatio="none">
+                <Path d={segs.join(" ")} fill="none" stroke={dvColor} strokeWidth={thick} />
+              </Svg>
+            </View>
+          );
+        }
+        case "wave": {
+          const h = thick + 8;
+          const mid = h / 2;
+          const parts: string[] = [`M0 ${mid}`, `Q6 0 12 ${mid}`];
+          for (let x = 24; x <= 240; x += 12) parts.push(`T${x} ${mid}`);
+          return (
+            <View key={key} style={[flex, { height: h }]}>
+              <Svg width="100%" height={h} viewBox={`0 0 240 ${h}`} preserveAspectRatio="none">
+                <Path d={parts.join(" ")} fill="none" stroke={dvColor} strokeWidth={thick} />
+              </Svg>
+            </View>
+          );
+        }
+        case "double": {
+          const bw = Math.max(1, Math.round(thick / 3));
+          return (
+            <View key={key} style={flex}>
+              <View style={{ height: bw, backgroundColor: dvColor }} />
+              <View style={{ height: bw, marginTop: bw, backgroundColor: dvColor }} />
+            </View>
+          );
+        }
+        case "dashed":
+        case "dotted":
+          return (
+            <View
+              key={key}
+              style={[flex, { height: 0, borderTopWidth: thick, borderColor: dvColor, borderStyle: dvStyle }]}
+            />
+          );
+        default:
+          return <View key={key} style={[flex, { height: thick, backgroundColor: dvColor }]} />;
+      }
+    };
+
     return (
-      <View
-        style={{
-          height: t === "spacer" ? (pickNum(s, "height") ?? 12) : 1,
-          backgroundColor: colors.border,
-          marginVertical: 6,
-        }}
-      />
+      <View style={{ marginVertical: 6, width: `${widthPct}%`, alignSelf }}>
+        {hasOrn ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            {seg("l")}
+            <Text style={{ color: ornColor, fontSize: ornSize, lineHeight: ornSize + 2 }} numberOfLines={1}>
+              {ornIcon !== "" ? ornGlyph : ornText.slice(0, 30)}
+            </Text>
+            {seg("r")}
+          </View>
+        ) : (
+          seg("full")
+        )}
+      </View>
     );
   }
 

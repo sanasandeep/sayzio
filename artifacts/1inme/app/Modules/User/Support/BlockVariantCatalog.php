@@ -2850,6 +2850,79 @@ class BlockVariantCatalog
                     'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 12],
                 ],
             ],
+            // Divider looks (Task #6581). Unlike every other type these
+            // variants carry a `settings` payload: dividers render entirely
+            // from their content settings (line style / thickness / width /
+            // ornament), so applyVariant merges `settings` through
+            // sanitizeSettings on top of stamping the minimal `_style`.
+            // Dividers also skip commonVariants() in forType() — card skins
+            // have nothing to bite into on a bare line.
+            'divider' => [
+                [
+                    'key' => 'dv_hairline',
+                    'name' => 'Hairline',
+                    'tags' => ['minimal'],
+                    'style' => ['display_mode' => 'content', 'padding' => '0'],
+                    'settings' => ['style' => 'solid', 'thickness' => 1, 'width' => 100, 'ornament_icon' => '', 'ornament_text' => ''],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff40', 'radius' => 0, 'divider' => 'solid'],
+                ],
+                [
+                    'key' => 'dv_gradient_fade',
+                    'name' => 'Gradient Fade',
+                    'tags' => ['minimal', 'pro'],
+                    'style' => ['display_mode' => 'content', 'padding' => '0'],
+                    'settings' => ['style' => 'gradient', 'thickness' => 2, 'width' => 100, 'color' => 'rgba(255,255,255,0.45)', 'ornament_icon' => '', 'ornament_text' => ''],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'divider' => 'gradient'],
+                ],
+                [
+                    'key' => 'dv_dots_row',
+                    'name' => 'Dots Row',
+                    'tags' => ['playful', 'minimal'],
+                    'style' => ['display_mode' => 'content', 'padding' => '0'],
+                    'settings' => ['style' => 'dots', 'thickness' => 2, 'width' => 60, 'color' => 'rgba(255,255,255,0.5)', 'ornament_icon' => '', 'ornament_text' => ''],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'divider' => 'dots'],
+                ],
+                [
+                    'key' => 'dv_zigzag',
+                    'name' => 'Zigzag',
+                    'tags' => ['playful', 'retro'],
+                    'style' => ['display_mode' => 'content', 'padding' => '0'],
+                    'settings' => ['style' => 'zigzag', 'thickness' => 2, 'width' => 70, 'color' => 'rgba(255,255,255,0.4)', 'ornament_icon' => '', 'ornament_text' => ''],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'divider' => 'zigzag'],
+                ],
+                [
+                    'key' => 'dv_wave',
+                    'name' => 'Wave',
+                    'tags' => ['playful', 'handwritten'],
+                    'style' => ['display_mode' => 'content', 'padding' => '0'],
+                    'settings' => ['style' => 'wave', 'thickness' => 2, 'width' => 70, 'color' => 'rgba(255,255,255,0.4)', 'ornament_icon' => '', 'ornament_text' => ''],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'divider' => 'wave'],
+                ],
+                [
+                    'key' => 'dv_double_line',
+                    'name' => 'Double Line',
+                    'tags' => ['editorial', 'pro'],
+                    'style' => ['display_mode' => 'content', 'padding' => '0'],
+                    'settings' => ['style' => 'double', 'thickness' => 3, 'width' => 100, 'color' => 'rgba(255,255,255,0.35)', 'ornament_icon' => '', 'ornament_text' => ''],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'divider' => 'double'],
+                ],
+                [
+                    'key' => 'dv_star_center',
+                    'name' => 'Star Ornament',
+                    'tags' => ['editorial', 'playful'],
+                    'style' => ['display_mode' => 'content', 'padding' => '0'],
+                    'settings' => ['style' => 'solid', 'thickness' => 1, 'width' => 80, 'color' => 'rgba(255,255,255,0.35)', 'ornament_icon' => 'fa-star', 'ornament_text' => '', 'ornament_size' => 14],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'divider' => 'ornament'],
+                ],
+                [
+                    'key' => 'dv_sparkle_text',
+                    'name' => 'Sparkle Mark',
+                    'tags' => ['handwritten', 'minimal'],
+                    'style' => ['display_mode' => 'content', 'padding' => '0'],
+                    'settings' => ['style' => 'solid', 'thickness' => 1, 'width' => 60, 'color' => 'rgba(255,255,255,0.3)', 'ornament_icon' => '', 'ornament_text' => '✦', 'ornament_size' => 16],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'divider' => 'ornament'],
+                ],
+            ],
             'image' => [
                 [
                     'key' => 'polaroid',
@@ -3459,7 +3532,10 @@ class BlockVariantCatalog
      */
     public static function forType(string $type, bool $forGallery = true): array
     {
-        $variants = self::commonVariants();
+        // Dividers only get their curated one-offs (Task #6581): the common
+        // card skins (backgrounds, borders, shadows) have nothing to style
+        // on a bare line and would just be noise in the gallery.
+        $variants = $type === 'divider' ? [] : self::commonVariants();
 
         $bundles = self::bundles();
         $bundleIds = self::typeBundleMap()[$type] ?? [];

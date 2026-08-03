@@ -20,7 +20,12 @@
     // visible result is either decided entirely by the embedded provider
     // (iframe_embed, custom_html) or has nothing for typography/colours
     // to bite into (spacer, divider).
-    $noStyleBlocks = ['spacer', 'divider', 'iframe_embed', 'custom_html'];
+    $noStyleBlocks = ['spacer', 'iframe_embed', 'custom_html'];
+    // Divider (Task #6581): shows ONLY the Designs gallery — its curated
+    // line looks. Typography/Look/Layout still make no sense on a bare
+    // line, so those tabs stay hidden and the block stays out of the
+    // unified _style chrome panel.
+    $designsOnly = $block->type === 'divider';
     $noTextBlocks = [
         'avatar', 'image', 'image_grid', 'image_slider', 'image_slider_v2',
         'video', 'header_video', 'audio', 'spacer', 'divider',
@@ -122,6 +127,7 @@
                 <i class="fas fa-font mr-1"></i>Text
             </button>
             @endif
+            @if(!$designsOnly)
             <button type="button" @click="activeStyleTab = 'appearance'"
                     :class="activeStyleTab === 'appearance' ? 'text-white shadow-sm' : ''"
                     :style="activeStyleTab === 'appearance' ? 'background: linear-gradient(135deg, #5c83ff, #3d6bff);' : 'color: var(--text-faint);'"
@@ -134,6 +140,7 @@
                     class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
                 <i class="fas fa-arrows-alt mr-1"></i>Layout
             </button>
+            @endif
         </div>
 
         {{-- DESIGNS TAB --}}
@@ -408,6 +415,7 @@
                                 @endforeach
                             </div>
                             <div class="flex-1 flex items-center justify-center p-1">
+                        @endif
                         @if($shapeKind === 'button')
                             <div class="px-3 py-1.5 text-[9px] font-bold"
                                  style="background: {{ $thumbText }}; color: {{ $thumbBg === 'transparent' ? '#000' : $thumbBg }}; border-radius: {{ min($thumbRadius, 999) }}px;">
@@ -435,7 +443,26 @@
                         @elseif($shapeKind === 'heading')
                             <div class="text-[12px] font-bold" style="color: {{ $thumbText }}; {{ $isSerif ? "font-family: 'Playfair Display', serif;" : '' }}">Heading</div>
                         @elseif($shapeKind === 'divider')
-                            <div style="width: 80%; height: 2px; background: {{ $thumbText }}; opacity: 0.6;"></div>
+                            @php $dvHint = $pv['divider'] ?? 'solid'; @endphp
+                            @if($dvHint === 'gradient')
+                                <div style="width: 85%; height: 3px; background: linear-gradient(90deg, transparent, {{ $thumbText }}, transparent); opacity: 0.7;"></div>
+                            @elseif($dvHint === 'dots')
+                                <div style="width: 70%; height: 6px; background-image: radial-gradient(circle, {{ $thumbText }} 2px, transparent 3px); background-size: 14px 6px; background-position: center; background-repeat: repeat-x; opacity: 0.7;"></div>
+                            @elseif($dvHint === 'zigzag')
+                                <div style="width: 75%; height: 8px; background: linear-gradient(135deg, {{ $thumbText }} 25%, transparent 25%) 0 0/8px 8px repeat-x, linear-gradient(225deg, {{ $thumbText }} 25%, transparent 25%) 0 0/8px 8px repeat-x; opacity: 0.6;"></div>
+                            @elseif($dvHint === 'wave')
+                                <svg style="width: 75%; opacity: 0.7;" height="8"><path d="M0 4 Q4 0 8 4 T16 4 T24 4 T32 4 T40 4 T48 4 T56 4 T64 4 T72 4 T80 4 T88 4 T96 4" fill="none" stroke="{{ $thumbText }}" stroke-width="2"/></svg>
+                            @elseif($dvHint === 'double')
+                                <div style="width: 85%; height: 0; border-top: 3px double {{ $thumbText }}; opacity: 0.7;"></div>
+                            @elseif($dvHint === 'ornament')
+                                <div style="width: 80%; display: flex; align-items: center; gap: 5px; opacity: 0.75;">
+                                    <div style="flex: 1 1 0%; height: 1px; background: {{ $thumbText }};"></div>
+                                    <span style="color: {{ $thumbText }}; font-size: 10px; line-height: 1;">✦</span>
+                                    <div style="flex: 1 1 0%; height: 1px; background: {{ $thumbText }};"></div>
+                                </div>
+                            @else
+                                <div style="width: 80%; height: 2px; background: {{ $thumbText }}; opacity: 0.6;"></div>
+                            @endif
                         @else
                             <div class="w-full" style="color: {{ $thumbText }}; {{ $isSerif ? "font-family: 'Playfair Display', serif;" : '' }}">
                                 <div class="text-[8px] font-bold leading-tight">Aa Bb Cc</div>
@@ -1391,8 +1418,36 @@ window.blockDesignsGallery = function(opts) {
                     return '<div style="' + inline + 'width:48px;height:48px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:' + color + ';font-weight:700;font-size:14px;">' + (label.charAt(0).toUpperCase() || 'A') + '</div>';
                 case 'heading':
                     return '<div style="' + inline + 'padding:6px 10px;font-size:13px;font-weight:700;color:' + color + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:96%;line-height:1.2;">' + (label || 'Heading') + '</div>';
-                case 'divider':
-                    return '<div style="' + inline + 'width:80%;height:3px;"></div>';
+                case 'divider': {
+                    // Sketch the actual divider preset (Task #6581) from
+                    // the variant's content-settings payload.
+                    var ds = p.divider_settings || {};
+                    var dc = ds.color || 'rgba(255,255,255,0.55)';
+                    var dt = Math.max(1, Math.min(6, parseInt(ds.thickness, 10) || 1));
+                    var dw = Math.max(30, Math.min(100, parseInt(ds.width, 10) || 100));
+                    var seg;
+                    switch (ds.style) {
+                        case 'gradient':
+                            seg = '<div style="flex:1 1 0%;height:' + dt + 'px;background:linear-gradient(90deg,transparent,' + dc + ',transparent);"></div>'; break;
+                        case 'dots':
+                            seg = '<div style="flex:1 1 0%;height:' + (dt * 3) + 'px;background-image:radial-gradient(circle,' + dc + ' ' + dt + 'px,transparent ' + (dt + 1) + 'px);background-size:' + (dt * 9) + 'px ' + (dt * 3) + 'px;background-position:center;background-repeat:repeat-x;"></div>'; break;
+                        case 'zigzag':
+                            seg = '<div style="flex:1 1 0%;height:8px;background:linear-gradient(135deg,' + dc + ' 25%,transparent 25%) 0 0/8px 8px repeat-x,linear-gradient(225deg,' + dc + ' 25%,transparent 25%) 0 0/8px 8px repeat-x;"></div>'; break;
+                        case 'wave':
+                            seg = '<svg style="flex:1 1 0%;display:block;" height="8" width="100%"><path d="M0 4 Q4 0 8 4 T16 4 T24 4 T32 4 T40 4 T48 4 T56 4 T64 4 T72 4 T80 4 T88 4 T96 4 T104 4 T112 4 T120 4" fill="none" stroke="' + dc + '" stroke-width="' + dt + '"/></svg>'; break;
+                        case 'double':
+                            seg = '<div style="flex:1 1 0%;height:0;border-top:3px double ' + dc + ';"></div>'; break;
+                        case 'dashed':
+                        case 'dotted':
+                            seg = '<div style="flex:1 1 0%;height:0;border-top:' + dt + 'px ' + ds.style + ' ' + dc + ';"></div>'; break;
+                        default:
+                            seg = '<div style="flex:1 1 0%;height:' + dt + 'px;background:' + dc + ';"></div>';
+                    }
+                    var orn = '';
+                    if (ds.ornament_icon) orn = '<span style="flex:0 0 auto;color:' + dc + ';font-size:11px;">★</span>';
+                    else if (ds.ornament_text) orn = '<span style="flex:0 0 auto;color:' + dc + ';font-size:11px;">' + String(ds.ornament_text).slice(0, 4) + '</span>';
+                    return '<div style="width:' + dw + '%;display:flex;align-items:center;gap:6px;">' + (orn ? seg + orn + seg : seg) + '</div>';
+                }
                 case 'text':
                 default:
                     return '<div style="' + inline + 'padding:6px 10px;color:' + color + ';font-size:10px;line-height:1.3;max-width:96%;overflow:hidden;"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</div><div style="opacity:0.6;font-size:9px;margin-top:2px;">Lorem ipsum dolor sit amet</div></div>';
