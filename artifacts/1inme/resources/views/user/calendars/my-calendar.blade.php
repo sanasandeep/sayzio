@@ -62,8 +62,7 @@
                     <i class="fas fa-chevron-down text-[10px] opacity-60" :class="open ? 'rotate-180' : ''" style="transition:transform .15s"></i>
                 </button>
                 <div x-show="open" x-transition
-                     class="absolute right-0 mt-1.5 w-80 rounded-xl border border-white/10 shadow-xl z-30 p-4"
-                     style="background: rgba(20,18,35,0.97); backdrop-filter: blur(12px);" x-cloak>
+                     class="cal-pop absolute right-0 mt-1.5 w-80 rounded-xl border border-white/10 shadow-xl z-30 p-4" x-cloak>
                     <p class="text-sm font-semibold text-white">Subscribe to your calendar</p>
                     <p class="text-xs text-white/50 mt-1 leading-relaxed">
                         Paste this link into Google Calendar, Apple Calendar, or Outlook to keep it in
@@ -100,8 +99,7 @@
                     <i class="fas fa-chevron-down text-[10px] opacity-60" :class="open ? 'rotate-180' : ''" style="transition:transform .15s"></i>
                 </button>
                 <div x-show="open" x-transition
-                     class="absolute right-0 mt-1.5 w-80 rounded-xl border border-white/10 shadow-xl z-30 p-4"
-                     style="background: rgba(20,18,35,0.97); backdrop-filter: blur(12px);" x-cloak>
+                     class="cal-pop absolute right-0 mt-1.5 w-80 rounded-xl border border-white/10 shadow-xl z-30 p-4" x-cloak>
                     <p class="text-sm font-semibold text-white">Tasks &amp; Reminders</p>
                     <p class="text-xs text-white/50 mt-1 leading-relaxed">
                         Show your task board due dates and note reminders here as calendar events.
@@ -134,8 +132,7 @@
                     <i class="fas fa-chevron-down text-[10px] opacity-60" :class="open ? 'rotate-180' : ''" style="transition:transform .15s"></i>
                 </button>
                 <div x-show="open" x-transition
-                     class="absolute right-0 mt-1.5 w-44 rounded-xl border border-white/10 shadow-xl z-30"
-                     style="background: rgba(20,18,35,0.97); backdrop-filter: blur(12px);">
+                     class="cal-pop absolute right-0 mt-1.5 w-44 rounded-xl border border-white/10 shadow-xl z-30">
                     <a href="{{ $exportIcsUrl }}"
                        class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-t-xl transition">
                         <i class="far fa-calendar-alt w-4 text-center text-blue-400"></i>
@@ -179,6 +176,23 @@
     <style>
         /* Native date pickers default to the dark glass theme, but follow the
            light theme when the dashboard is toggled to light mode. */
+        /* Header popovers (Subscribe / Sync / Export): dark glass by default,
+           paired light-mode overrides so they never render dark-on-light. */
+        .cal-pop { background: rgba(20,18,35,0.97); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        html.light-mode .cal-pop { background: rgba(255,255,255,0.98); border-color: rgba(15,23,42,.12); box-shadow: 0 12px 32px rgba(15,23,42,.14); }
+        html.light-mode .cal-pop .text-white { color: #0f172a; }
+        /* Primary (blue) buttons keep white labels in light mode. */
+        html.light-mode .cal-pop .bg-blue-600, html.light-mode .cal-pop .bg-blue-600 * { color: #ffffff; }
+        html.light-mode .cal-pop .text-white\/80 { color: #1e293b; }
+        html.light-mode .cal-pop .text-white\/70 { color: #334155; }
+        html.light-mode .cal-pop .text-white\/50 { color: #64748b; }
+        html.light-mode .cal-pop .text-white\/30 { color: #94a3b8; }
+        html.light-mode .cal-pop .hover\:text-white:hover { color: #0f172a; }
+        html.light-mode .cal-pop .hover\:text-red-300:hover { color: #dc2626; }
+        html.light-mode .cal-pop .bg-black\/30 { background: rgba(15,23,42,.04); }
+        html.light-mode .cal-pop .border-white\/10, html.light-mode .cal-pop .border-white\/20 { border-color: rgba(15,23,42,.15); }
+        html.light-mode .cal-pop .border-white\/5 { border-color: rgba(15,23,42,.08); }
+        html.light-mode .cal-pop .hover\:bg-white\/5:hover { background: rgba(15,23,42,.05); }
         .mycal-filters input, .mycal-filters select { color-scheme: dark; }
         html.light-mode .mycal-filters input, html.light-mode .mycal-filters select { color-scheme: light; }
     </style>

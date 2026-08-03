@@ -2,7 +2,13 @@
 @section('title', 'Create Calendar')
 
 @section('content')
-<div class="max-w-2xl mx-auto">
+<style>
+    /* Native select popups follow the active dashboard theme, otherwise the
+       OS renders light-on-light (or dark-on-dark) unreadable option lists. */
+    .cal-create select, .cal-create input { color-scheme: dark; }
+    html.light-mode .cal-create select, html.light-mode .cal-create input { color-scheme: light; }
+</style>
+<div class="max-w-2xl mx-auto cal-create">
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-white/30 hover:text-white/50" title="Choose a different type"><i class="fas fa-arrow-left"></i></a>
         <div>
@@ -66,9 +72,11 @@
                 <label class="block text-sm font-medium text-white/60 mb-1">Domain</label>
                 <select name="domain_id" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40">
                     @foreach($domains as $domain)
-                        <option value="{{ $domain->id }}" @selected(old('domain_id', $defaultDomainId ?? null) == $domain->id)>{{ $domain->host }}</option>
+                        <option value="{{ $domain->id }}" @selected(old('domain_id', $defaultDomainId ?? null) == $domain->id)>{{ $domain->domain }}{{ (string) ($defaultDomainId ?? '') === (string) $domain->id ? ' (default)' : '' }}</option>
                     @endforeach
                 </select>
+                <p class="text-xs text-white/30 mt-1">Your calendar link will live on this domain.</p>
+                @error('domain_id') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
             @endif
         </div>
