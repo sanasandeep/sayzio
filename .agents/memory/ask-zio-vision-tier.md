@@ -1,0 +1,14 @@
+---
+name: Ask Zio vision tier
+description: How page-screenshot vision works across Zio Browser, SiteAssistantRuntime, and OpenAiService, and its lockstep surfaces.
+---
+
+# Ask Zio vision tier
+
+- Screenshot flows client→server as a `data:image/(png|jpeg|webp);base64,...` string in the `screenshot` field of `/assistant/message` and `/assistant/stream` (web + `/api/v1` mirrors share the controller). It is NEVER persisted — only `meta.vision.snapshot=true` on the user message.
+- `SiteAssistantRuntime::resolveVisionAttachment()` is the single gate: regex/mime check (malformed = silent drop), decoded-size cap 1.5MB (notice), plan gate `AiPlanAccess::featureAllowed($user,'site_assistant_vision')` (paid-only via legacyAvailabilityFallback — the default match arm is `true`, so any new paid-only feature key MUST be added there or free users get it), then `AiEngineSettings::visionChatModel()`.
+- Refusals degrade to text-only and surface `vision: {used, notice}` in turn() return / stream `done` — both turn() and turnStream() must stay in lockstep.
+- `AiEngineSettings` model rows carry `supports_vision` (stored flag wins; legacy rows infer by name prefix gpt-4o/gpt-4.1/gpt-5, chat kind only). Rate keys are `in_coins_per_1k`/`out_coins_per_1k` — tests using the old `*_credits_per_1k` names silently compute cost 0 (OpenAiServiceChatStreamTest fails at HEAD for exactly this).
+- `OpenAiService` prices image parts at a FLAT `IMAGE_PROMPT_TOKENS` (1100) per `image_url` part — never json_encode multimodal content into the estimate (base64 would explode the prepay). `guardVision()` throws before HTTP if image parts hit a non-vision model.
+- Zio Browser side: capture guard logic lives in pure `context-extractor.ts` helpers (`isCapturableUrl`, `looksVisualQuestion`, `buildMediaBlock`, SCREENSHOT_* caps) so vitest covers it; `TabManager.captureWebsitePaneForAi` captures ONLY `tab.view.webContents` (never second/dashboard panes), refuses `internalUrl`/`isNewTabPage`, downscales to 1280w JPEG with quality fallback under the byte cap.
+- Text tier: the extract-context inline script emits labeled `media` lines (Image/Figure/Video) that `trimPageContext` appends as a capped `[Visual media on this page]` block.

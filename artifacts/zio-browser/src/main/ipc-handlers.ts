@@ -702,13 +702,55 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
           const emailPattern = /[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}/g;
           const phones = [...new Set((text.match(phonePattern) || []))].slice(0, 20);
           const emails = [...new Set((text.match(emailPattern) || []).map(e => e.toLowerCase()))].slice(0, 20);
-          return { url, title, description: desc, text: text.slice(0, 50000), selection, lang, author, publishedAt: null, phones, emails };
+          // Visual media summary: alt text, figure captions, video titles /
+          // poster / nearby metadata — labeled lines the trimmer caps and
+          // appends to the excerpt so the AI knows visuals exist even
+          // without a screenshot.
+          const media = [];
+          const clean = (s) => String(s || '').replace(/\\s+/g, ' ').trim();
+          document.querySelectorAll('figure').forEach(fig => {
+            if (media.length >= 24) return;
+            const cap = clean(fig.querySelector('figcaption')?.innerText);
+            const alt = clean(fig.querySelector('img')?.getAttribute('alt'));
+            if (cap) media.push('Figure: "' + cap.slice(0, 200) + '"' + (alt && alt !== cap ? ' (image alt: "' + alt.slice(0, 120) + '")' : ''));
+            else if (alt) media.push('Image: "' + alt.slice(0, 200) + '"');
+          });
+          document.querySelectorAll('img[alt]').forEach(img => {
+            if (media.length >= 24) return;
+            if (img.closest('figure')) return; // already covered
+            const alt = clean(img.getAttribute('alt'));
+            const r = img.getBoundingClientRect ? img.getBoundingClientRect() : { width: 100, height: 100 };
+            if (alt && alt.length > 2 && r.width >= 48 && r.height >= 48) media.push('Image: "' + alt.slice(0, 200) + '"');
+          });
+          document.querySelectorAll('video').forEach(v => {
+            if (media.length >= 24) return;
+            const t = clean(v.getAttribute('title') || v.getAttribute('aria-label'));
+            const poster = v.getAttribute('poster') || '';
+            let posterName = '';
+            try { posterName = poster ? decodeURIComponent(poster.split('/').pop().split('?')[0]) : ''; } catch {}
+            const near = clean(v.closest('figure')?.querySelector('figcaption')?.innerText
+              || v.parentElement?.querySelector('h1,h2,h3,h4')?.innerText);
+            const label = t || near || posterName;
+            media.push('Video: ' + (label ? '"' + label.slice(0, 200) + '"' : '(untitled video)'));
+          });
+          return { url, title, description: desc, text: text.slice(0, 50000), selection, lang, author, publishedAt: null, phones, emails, media: media.slice(0, 24) };
         })()
       `);
       return result;
     } catch {
       return null;
     }
+  });
+
+  // Ask Zio vision tier: capture the active tab's primary website pane as a
+  // size-capped JPEG data URL. Refuses internal pages (guard lives in
+  // TabManager.captureWebsitePaneForAi).
+  ipcMain.handle('tabs:capture-website-pane', async (event, id?: string) => {
+    const tm = resolveTabManager(event);
+    if (!tm) return null;
+    const tabId = id || tm.getActiveTabId();
+    if (!tabId) return null;
+    return tm.captureWebsitePaneForAi(tabId);
   });
 
   // ── Window mode ──────────────────────────────────────────────────────────

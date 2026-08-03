@@ -566,9 +566,59 @@ PROMPT;
                 'enabled'           => (bool) ($m['enabled'] ?? true),
                 'in_coins_per_1k'   => max(0.0, (float) ($m['in_coins_per_1k'] ?? 0)),
                 'out_coins_per_1k'  => max(0.0, (float) ($m['out_coins_per_1k'] ?? 0)),
+                // Vision capability: stored flag wins; rows saved before the
+                // flag existed fall back to a name-based inference so the
+                // known multimodal OpenAI families keep working untouched.
+                'supports_vision'   => array_key_exists('supports_vision', $m)
+                    ? (bool) $m['supports_vision']
+                    : self::inferVisionByName((string) $m['name'], (string) ($m['kind'] ?? 'chat')),
             ];
         }
         return $out ?: self::defaultModels();
+    }
+
+    /**
+     * Name-based vision inference for model rows saved before the
+     * `supports_vision` flag existed. All current GPT-4o / GPT-4.1 /
+     * GPT-5 family chat snapshots accept image_url content parts.
+     */
+    protected static function inferVisionByName(string $name, string $kind): bool
+    {
+        if ($kind !== 'chat') return false;
+        $n = strtolower($name);
+        foreach (['gpt-4o', 'gpt-4.1', 'gpt-5'] as $prefix) {
+            if (str_starts_with($n, $prefix)) return true;
+        }
+        return false;
+    }
+
+    /** True when the named model accepts image_url content parts. */
+    public static function modelSupportsVision(string $name): bool
+    {
+        $m = self::model($name);
+        return (bool) ($m['supports_vision'] ?? false);
+    }
+
+    /**
+     * Resolve a vision-capable chat model for a multimodal call:
+     * the preferred model when it already supports vision, otherwise
+     * the first enabled vision-capable chat model, or null when the
+     * admin has none configured (callers degrade to text-only).
+     */
+    public static function visionChatModel(?string $preferred = null): ?string
+    {
+        if ($preferred !== null) {
+            $m = self::model($preferred);
+            if ($m && ($m['enabled'] ?? false) && ($m['kind'] ?? '') === 'chat' && ($m['supports_vision'] ?? false)) {
+                return $m['name'];
+            }
+        }
+        foreach (self::models() as $m) {
+            if (($m['enabled'] ?? false) && ($m['kind'] ?? '') === 'chat' && ($m['supports_vision'] ?? false)) {
+                return $m['name'];
+            }
+        }
+        return null;
     }
 
     /**
@@ -595,17 +645,17 @@ PROMPT;
     public static function defaultModels(): array
     {
         return [
-            ['name' => 'gpt-5.6-sol',             'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 10.0, 'out_coins_per_1k' => 60.0],
-            ['name' => 'gpt-5.6-terra',           'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 5.0,  'out_coins_per_1k' => 30.0],
-            ['name' => 'gpt-5.6-luna',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 2.0,  'out_coins_per_1k' => 12.0],
-            ['name' => 'gpt-5',                   'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 2.5,  'out_coins_per_1k' => 20.0],
-            ['name' => 'gpt-5-mini',              'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.5,  'out_coins_per_1k' => 4.0],
-            ['name' => 'gpt-5-nano',              'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.1,  'out_coins_per_1k' => 0.8],
-            ['name' => 'gpt-4.1',                 'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 4.0,  'out_coins_per_1k' => 16.0],
-            ['name' => 'gpt-4.1-mini',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.8,  'out_coins_per_1k' => 3.2],
-            ['name' => 'gpt-4.1-nano',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.2,  'out_coins_per_1k' => 0.8],
-            ['name' => 'gpt-4o',                  'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 5.0,  'out_coins_per_1k' => 20.0],
-            ['name' => 'gpt-4o-mini',             'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.3,  'out_coins_per_1k' => 1.2],
+            ['name' => 'gpt-5.6-sol',             'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 10.0, 'out_coins_per_1k' => 60.0, 'supports_vision' => true],
+            ['name' => 'gpt-5.6-terra',           'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 5.0,  'out_coins_per_1k' => 30.0, 'supports_vision' => true],
+            ['name' => 'gpt-5.6-luna',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 2.0,  'out_coins_per_1k' => 12.0, 'supports_vision' => true],
+            ['name' => 'gpt-5',                   'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 2.5,  'out_coins_per_1k' => 20.0, 'supports_vision' => true],
+            ['name' => 'gpt-5-mini',              'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.5,  'out_coins_per_1k' => 4.0, 'supports_vision' => true],
+            ['name' => 'gpt-5-nano',              'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.1,  'out_coins_per_1k' => 0.8, 'supports_vision' => true],
+            ['name' => 'gpt-4.1',                 'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 4.0,  'out_coins_per_1k' => 16.0, 'supports_vision' => true],
+            ['name' => 'gpt-4.1-mini',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.8,  'out_coins_per_1k' => 3.2, 'supports_vision' => true],
+            ['name' => 'gpt-4.1-nano',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.2,  'out_coins_per_1k' => 0.8, 'supports_vision' => true],
+            ['name' => 'gpt-4o',                  'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 5.0,  'out_coins_per_1k' => 20.0, 'supports_vision' => true],
+            ['name' => 'gpt-4o-mini',             'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.3,  'out_coins_per_1k' => 1.2, 'supports_vision' => true],
             ['name' => 'text-embedding-3-small',  'kind' => 'embedding', 'enabled' => true,  'in_coins_per_1k' => 0.04, 'out_coins_per_1k' => 0.0],
         ];
     }
@@ -621,6 +671,9 @@ PROMPT;
                 'enabled'           => (bool) ($m['enabled'] ?? false),
                 'in_coins_per_1k'   => round(max(0.0, (float) ($m['in_coins_per_1k'] ?? 0)), 4),
                 'out_coins_per_1k'  => round(max(0.0, (float) ($m['out_coins_per_1k'] ?? 0)), 4),
+                'supports_vision'   => array_key_exists('supports_vision', $m)
+                    ? (bool) $m['supports_vision']
+                    : self::inferVisionByName((string) $m['name'], (string) ($m['kind'] ?? 'chat')),
             ];
         }
         AppSetting::put(self::KEY_MODELS, $clean);

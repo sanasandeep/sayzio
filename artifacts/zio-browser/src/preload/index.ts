@@ -69,6 +69,9 @@ const api = {
     getOrder: () => ipcRenderer.invoke('tabs:get-order'),
     getActive: () => ipcRenderer.invoke('tabs:get-active'),
     extractContext: (id: string) => ipcRenderer.invoke('tabs:extract-context', id),
+    /** Ask Zio vision: JPEG data URL of the active tab's primary website pane (null = refused/failed). */
+    captureWebsitePane: (id?: string) =>
+      ipcRenderer.invoke('tabs:capture-website-pane', id) as Promise<string | null>,
     autofillForm: (id: string, card: Record<string, string | undefined>) =>
       ipcRenderer.invoke('tabs:autofill-form', id, card),
     injectPasswordDetector: (id: string) => ipcRenderer.invoke('tabs:inject-password-detector', id),

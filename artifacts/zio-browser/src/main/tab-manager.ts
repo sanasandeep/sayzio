@@ -9,6 +9,7 @@ import { BrowserWindow, WebContentsView, Menu, clipboard, dialog, session, type 
 import { parseOmniboxInput, type SearchEngineConfig, DEFAULT_SEARCH_ENGINE } from '../shared/omnibox';
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import { isInternalPageUrl, internalPageTitle } from '../shared/internal-pages';
+import { isCapturableUrl, SCREENSHOT_MAX_WIDTH, SCREENSHOT_MAX_BYTES } from '../shared/context-extractor';
 import {
   buildVkFocusReporterScript,
   parseVkFocusMessage,
@@ -2183,6 +2184,45 @@ export class TabManager {
       tab.view.setBounds(origBounds);
 
       return image.toPNG();
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Ask Zio vision tier: capture ONLY the active tab's primary website
+   * pane (never the Zio panel, dashboard, or a second split pane) as a
+   * size-capped JPEG data URL for the assistant's vision request.
+   *
+   * Refuses internal/renderer-drawn pages and non-http(s) URLs. Downscales
+   * to SCREENSHOT_MAX_WIDTH and re-compresses until the decoded payload is
+   * under SCREENSHOT_MAX_BYTES; returns null when it can't fit or capture.
+   */
+  async captureWebsitePaneForAi(id: TabId): Promise<string | null> {
+    const tab = this.tabs.get(id);
+    if (!tab) return null;
+    // Internal pages are never captured — they may show private UI.
+    if (tab.internalUrl || tab.isNewTabPage) return null;
+    const wc = tab.view.webContents;
+    if (!isAlive(wc)) return null;
+    const url = wc.getURL();
+    if (!isCapturableUrl(url)) return null;
+
+    try {
+      const image = await wc.capturePage();
+      if (image.isEmpty()) return null;
+      let img = image;
+      const { width } = img.getSize();
+      if (width > SCREENSHOT_MAX_WIDTH) {
+        img = img.resize({ width: SCREENSHOT_MAX_WIDTH });
+      }
+      for (const quality of [70, 50, 35]) {
+        const jpeg = img.toJPEG(quality);
+        if (jpeg.length <= SCREENSHOT_MAX_BYTES) {
+          return `data:image/jpeg;base64,${jpeg.toString('base64')}`;
+        }
+      }
+      return null;
     } catch {
       return null;
     }

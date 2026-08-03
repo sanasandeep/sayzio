@@ -103,6 +103,7 @@ function buildDefaults(ipcHandlers: IpcHandlerMap): Record<string, unknown> {
       focusPane: resolved(undefined),
       swapPanes: resolved(undefined),
       extractContext: resolved(null),
+      captureWebsitePane: resolved(null),
       autofillForm: resolved(undefined),
       injectPasswordDetector: resolved(undefined),
       popPendingCredential: resolved(null),

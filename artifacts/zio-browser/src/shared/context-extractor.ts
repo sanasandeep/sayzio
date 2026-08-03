@@ -28,6 +28,14 @@ export interface PageContext {
   phones: string[];
   /** List of visible email addresses found on the page */
   emails: string[];
+  /**
+   * Labeled one-line summaries of visual media on the page (optional —
+   * older extractors don't send it). Examples:
+   *   `Image: "Golden Gate Bridge at sunset"`
+   *   `Figure: "Fig 3 — revenue by quarter"`
+   *   `Video: "Product demo (2:31)"`
+   */
+  media?: string[];
 }
 
 export interface TrimmedContext {
@@ -47,6 +55,9 @@ export interface TrimmedContext {
 const MAX_EXCERPT_CHARS = 6000;
 /** Maximum characters for the selection */
 const MAX_SELECTION_CHARS = 3000;
+/** Caps for the labeled media block appended to the excerpt */
+export const MAX_MEDIA_LINES = 12;
+export const MAX_MEDIA_LINE_CHARS = 160;
 
 /**
  * Trim and rank a raw PageContext down to a short excerpt suitable for
@@ -69,6 +80,12 @@ export function trimPageContext(ctx: PageContext, task?: string): TrimmedContext
     // Use the readable text, trimmed intelligently
     excerpt = smartTruncate(ctx.text, MAX_EXCERPT_CHARS, task);
   }
+
+  // Append a clearly labeled, capped summary of visual media so the AI at
+  // least knows an image/video exists (and its alt/caption/title) even when
+  // no screenshot accompanies the question.
+  const mediaBlock = buildMediaBlock(ctx.media);
+  if (mediaBlock) excerpt = excerpt ? `${excerpt}\n\n${mediaBlock}` : mediaBlock;
 
   return {
     url: ctx.url,
@@ -114,6 +131,51 @@ export function smartTruncate(text: string, maxChars: number, _task?: string): s
   }
 
   return truncated + '…';
+}
+
+/**
+ * Build the labeled `[Visual media on this page]` block from raw media
+ * lines. Pure: dedupes, trims each line to MAX_MEDIA_LINE_CHARS, and caps
+ * the count at MAX_MEDIA_LINES. Returns '' when there is nothing to say.
+ */
+export function buildMediaBlock(media: string[] | undefined): string {
+  if (!media || media.length === 0) return '';
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  for (const raw of media) {
+    const line = String(raw ?? '').replace(/\s+/g, ' ').trim();
+    if (!line || seen.has(line)) continue;
+    seen.add(line);
+    lines.push(line.length > MAX_MEDIA_LINE_CHARS ? line.slice(0, MAX_MEDIA_LINE_CHARS - 1) + '…' : line);
+    if (lines.length >= MAX_MEDIA_LINES) break;
+  }
+  if (lines.length === 0) return '';
+  return '[Visual media on this page]:\n' + lines.map(l => `- ${l}`).join('\n');
+}
+
+/**
+ * True when the user's question is likely about visual content on the
+ * page (drives auto-attaching a page snapshot for the vision tier).
+ */
+export function looksVisualQuestion(text: string): boolean {
+  return /\b(image|images|photo|photos|picture|pictures|pic|screenshot|chart|graph|diagram|infographic|figure|logo|icon|video|videos|thumbnail|banner|illustration|drawing|map)\b|\blook(s)? like\b|\bwhat does (this|it|that) show\b/i.test(text);
+}
+
+/** Screenshot payload caps shared by the capture IPC and the panel. */
+export const SCREENSHOT_MAX_WIDTH = 1280;
+export const SCREENSHOT_MAX_BYTES = 1_200_000; // decoded bytes, < server 1.5MB cap
+
+/**
+ * True when a page URL is eligible for AI screenshot capture. Refuses
+ * internal/renderer-drawn pages and anything that is not plain http(s).
+ */
+export function isCapturableUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const u = url.trim().toLowerCase();
+  if (!u || u.startsWith('about:') || u.startsWith('chrome') || u.startsWith('devtools:') || u.startsWith('file:') || u.startsWith('data:') || u.startsWith('view-source:')) {
+    return false;
+  }
+  return u.startsWith('http://') || u.startsWith('https://');
 }
 
 /**

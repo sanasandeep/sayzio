@@ -430,12 +430,13 @@ export class ApiClient {
     });
   }
 
-  async assistantMessage(visitorToken: string, message: string, page?: AssistantPage): Promise<AssistantTurn> {
+  async assistantMessage(visitorToken: string, message: string, page?: AssistantPage, screenshot?: string): Promise<AssistantTurn> {
     return this.rawRequest<AssistantTurn>('POST', '/assistant/message', {
       visitor_token: visitorToken,
       surface: 'app',
       message,
       page,
+      screenshot: screenshot || undefined,
     });
   }
 
@@ -450,6 +451,7 @@ export class ApiClient {
     page: AssistantPage | undefined,
     handlers: AssistantStreamHandlers,
     signal?: AbortSignal,
+    screenshot?: string,
   ): Promise<void> {
     const url = `${this.baseUrl}/api/v1/assistant/stream`;
     const headers: Record<string, string> = {
@@ -463,7 +465,7 @@ export class ApiClient {
     const response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ visitor_token: visitorToken, surface: 'app', message, page }),
+      body: JSON.stringify({ visitor_token: visitorToken, surface: 'app', message, page, screenshot: screenshot || undefined }),
       signal,
     });
 
@@ -920,12 +922,19 @@ export interface AssistantTurn {
   user_message?: AssistantMessagePayload;
   assistant_message?: AssistantMessagePayload;
   handed_off?: boolean;
+  vision?: AssistantVisionInfo;
 }
 
+/** Vision-tier outcome for a turn that carried a page screenshot. */
+export interface AssistantVisionInfo {
+  used?: boolean;
+  notice?: string | null;
+}
 export interface AssistantStreamDone {
   assistant_message?: AssistantMessagePayload;
   handed_off?: boolean;
   conversation_id?: number;
+  vision?: AssistantVisionInfo;
 }
 
 export interface AssistantStreamHandlers {
