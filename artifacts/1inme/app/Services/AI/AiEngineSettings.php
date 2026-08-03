@@ -560,6 +560,19 @@ PROMPT;
         $out = [];
         foreach ($stored as $m) {
             if (!is_array($m) || empty($m['name'])) continue;
+            // Stored rows written before the credits→coins rename (or by a
+            // buggy import) may still carry *_credits_per_1k. Reading them
+            // as coin rates of 0 would make the model silently free, so
+            // shout in the logs — the data migration should have converted
+            // these, and setModels() refuses to write new ones.
+            foreach (self::LEGACY_RATE_KEYS as $legacy) {
+                if (array_key_exists($legacy, $m)) {
+                    \Illuminate\Support\Facades\Log::warning(
+                        "AiEngineSettings::models(): stored model '{$m['name']}' still has legacy rate key '{$legacy}'; "
+                        . 'its coin rate reads as 0 (free usage). Re-run the ai credits→coins migration or re-save the model rates.'
+                    );
+                }
+            }
             $out[] = [
                 'name'              => (string) $m['name'],
                 'kind'              => (string) ($m['kind'] ?? 'chat'),
@@ -660,11 +673,31 @@ PROMPT;
         ];
     }
 
+    /**
+     * Rate keys retired by the credits→coins rename. Anything still
+     * supplying these would silently price the model at 0 coins (free
+     * usage), so setModels() rejects them loudly instead.
+     */
+    public const LEGACY_RATE_KEYS = ['in_credits_per_1k', 'out_credits_per_1k'];
+
+    /**
+     * @throws \InvalidArgumentException when a model row still carries a
+     *         legacy *_credits_per_1k rate key from before the coin rename.
+     */
     public static function setModels(array $models): void
     {
         $clean = [];
         foreach ($models as $m) {
             if (!is_array($m) || empty($m['name'])) continue;
+            foreach (self::LEGACY_RATE_KEYS as $legacy) {
+                if (array_key_exists($legacy, $m)) {
+                    throw new \InvalidArgumentException(
+                        "AiEngineSettings::setModels(): model '{$m['name']}' uses the retired rate key '{$legacy}'. "
+                        . "Rates were renamed to in_coins_per_1k/out_coins_per_1k in the credits→coins migration; "
+                        . 'passing the old key would silently price the model at 0 coins.'
+                    );
+                }
+            }
             $clean[] = [
                 'name'              => trim((string) $m['name']),
                 'kind'              => in_array(($m['kind'] ?? 'chat'), ['chat','embedding'], true) ? $m['kind'] : 'chat',
