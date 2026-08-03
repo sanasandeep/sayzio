@@ -256,6 +256,30 @@ test.describe("auth popup reopens on the tab the failed submit came from", () =>
     await expect(passwordLoginForm(page)).toBeHidden();
   });
 
+  test("modal forms are classic full-page submits (no AJAX layer)", async ({
+    page,
+  }) => {
+    // The tab-restore contract above relies on the failed submit round-tripping
+    // through the server so old() / $errors drive the reopen script. The
+    // fetch-based enhancement layer (resources/js/auth-ajax.js) is opt-in via a
+    // data-ajax attribute and is only used on the standalone auth pages (covered
+    // by auth-ajax-flows.spec.ts) — it renders errors client-side with no old()
+    // state, which would silently bypass tab restore. Pin that no modal form
+    // opts in; if someone adds data-ajax here, they must also port tab memory
+    // to the client side and extend these specs.
+    await page.getByRole("button", { name: "Login", exact: true }).first().click();
+    await expect(modal(page)).toBeVisible();
+    const forms = modal(page).locator("form");
+    const count = await forms.count();
+    expect(count).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) {
+      const form = forms.nth(i);
+      await expect(form).not.toHaveAttribute("data-ajax", /.*/);
+      // Classic POST submits, not javascript: or fetch-driven placeholders.
+      await expect(form).toHaveAttribute("method", /post/i);
+    }
+  });
+
   test("failed login stays on the Login tab", async ({ page }) => {
     await page
       .getByRole("button", { name: "Login", exact: true })
