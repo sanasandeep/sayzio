@@ -35,6 +35,7 @@ class BlockStyleSanitizer
         'taped_note',
         'arrow_hex', 'numbered_list', 'side_accent_tab',
         'icon_top', 'offset_frame', 'torn_tape',
+        'arrow_chip_left',
     ];
 
     public static function sanitize(array $input): array

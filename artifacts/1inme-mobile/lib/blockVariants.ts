@@ -169,6 +169,7 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "icon_top_stack",     name: "Icon Above Label",     tags: ["minimal", "pro"],      preview: { bg: "#12351f", text: "#fff", radius: 12 } },
     { key: "offset_frame",       name: "Offset Frame",         tags: ["editorial", "minimal", "retro"], preview: { bg: "#a98a7d", text: "#f9f2ec", radius: 0, border: "#a98a7d", serif: true } },
     { key: "torn_tape",          name: "Torn Tape",            tags: ["handwritten", "playful", "retro"], preview: { bg: "#a17c5b", text: "#fdf8f2", radius: 0, serif: true } },
+    { key: "arrow_chip_left",    name: "Arrow Chip",           tags: ["playful", "bold", "minimal"], preview: { bg: "#f2e069", text: "#1f2937", radius: 999, border: "#1f2937" } },
   ],
   heading_styles: [
     { key: "oversize_serif", name: "Oversize Serif", tags: ["editorial", "pro"],     preview: { bg: "transparent", text: "#fff", radius: 0 } },

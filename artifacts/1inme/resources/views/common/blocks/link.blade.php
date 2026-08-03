@@ -242,6 +242,31 @@
             <span aria-hidden="true" class="absolute left-1/2 pointer-events-none"
                   style="top: 0; width: 86px; height: 24px; transform: translateX(-50%) rotate({{ $_tnTilt }}); background: rgba(235,227,208,0.82); border-left: 1px dashed rgba(120,105,85,0.28); border-right: 1px dashed rgba(120,105,85,0.28); box-shadow: 0 1px 3px rgba(76,60,50,0.18);"></span>
         </a>
+    @elseif($_lnkLayout === 'arrow_chip_left')
+        {{-- Arrow chip: a detached white/outlined rounded chip holding the
+             block icon (right-arrow fallback) overlaps the left end of a
+             colored pill that carries the label (yellow "Website"
+             reference). The pill is the bio-btn so per-block
+             colors/gradients/borders apply normally; the chip derives its
+             outline + icon color from border_color → text_color with a
+             dark-ink fallback so it stays legible on light pills. --}}
+        @php
+            $_acInk = ($_st['border_color'] ?? '') !== '' && ($_st['border_color'] ?? '') !== 'transparent'
+                ? $_st['border_color']
+                : (($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : '#1f2937');
+        @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="relative block w-full mb-3 transition-all duration-300 hover:-translate-y-0.5"
+           style="padding-left: 26px;">
+            <div class="bio-btn w-full py-3.5 pr-6 font-medium flex items-center justify-center"
+                 style="{{ $btnInline ? rtrim($btnInline, '; ') . '; ' : '' }}padding-left: 64px; border-radius: {{ intval($_st['border_radius'] ?? 0) ?: 999 }}px;">
+                <span>{{ $_txt }}</span>
+            </div>
+            <span class="absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center"
+                  style="width: 68px; height: calc(100% + 8px); background: #ffffff; border: 1.5px solid {{ $_acInk }}; border-radius: {{ intval($_st['border_radius'] ?? 0) ?: 999 }}px; box-shadow: 0 1px 4px rgba(0,0,0,0.10);">
+                <i class="{{ $_icon ?: 'fas fa-arrow-right' }} text-lg" style="color: {{ $_acInk }};"></i>
+            </span>
+        </a>
     @elseif($_lnkLayout === 'image_top')
         <a href="{{ $_url }}" target="_blank" rel="noopener"
            class="bio-btn block w-full mb-3 overflow-hidden transition-all duration-300"

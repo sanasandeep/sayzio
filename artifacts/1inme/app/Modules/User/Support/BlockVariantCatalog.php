@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 18;
+    public const VERSION = 19;
 
     /**
      * Effective catalog version (Task #6045): the hardcoded VERSION
@@ -1660,6 +1660,23 @@ class BlockVariantCatalog
                         'link_layout' => 'torn_tape',
                     ],
                     'preview' => ['bg' => '#a17c5b', 'text' => '#fdf8f2', 'radius' => 0, 'serif' => true],
+                ],
+                // Arrow chip: white outlined chip with a right-arrow icon
+                // overlapping the left end of a yellow pill (reference
+                // screenshot). Chip outline/icon derive from border_color.
+                [
+                    'key' => 'arrow_chip_left',
+                    'name' => 'Arrow Chip',
+                    'tags' => ['playful', 'bold', 'minimal'],
+                    'shape' => 'pill',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#f2e069',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => '#1f2937',
+                        'border_radius' => '999', 'shadow_preset' => 'none',
+                        'text_color' => '#1f2937', 'padding' => '14', 'font_weight' => '600',
+                        'link_layout' => 'arrow_chip_left',
+                    ],
+                    'preview' => ['bg' => '#f2e069', 'text' => '#1f2937', 'radius' => 999, 'border' => '#1f2937'],
                 ],
             ],
 
