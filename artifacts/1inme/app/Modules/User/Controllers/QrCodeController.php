@@ -71,7 +71,11 @@ class QrCodeController extends Controller
         $prefillLinkId = null;
         $prefillName   = null;
         if (!($qrCode && $qrCode->exists) && $request->filled('link_id')) {
-            $prefillLink = Link::where('id', (int) $request->query('link_id'))
+            // Owner-keyed lookup: bypass the workspace global scope so links
+            // from another of the owner's workspaces (or legacy NULL-workspace
+            // links) still prefill — ownership is enforced by user_id below.
+            $prefillLink = Link::withoutGlobalScope('workspace')
+                ->where('id', (int) $request->query('link_id'))
                 ->where('user_id', workspace_owner_id())
                 ->first(['id', 'alias', 'title']);
             if ($prefillLink) {
