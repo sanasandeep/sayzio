@@ -255,9 +255,10 @@
                     </div>
                     @endif
                     <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Mobile <span class="text-gray-600 normal-case">(optional)</span></label>
-                        <input type="text" name="mobile" value="{{ old('mobile') }}" placeholder="+1234567890"
+                        <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Referral code <span class="text-gray-600 normal-case">(optional)</span></label>
+                        <input type="text" name="referral_code" value="{{ old('referral_code', $prefilledRef ?? request()->cookie('ref_code')) }}" maxlength="32" placeholder="friend's code" autocomplete="off"
                                class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none">
+                        <p class="mt-1 text-[10px] text-gray-500">If a friend referred you, paste their code to give them credit.</p>
                     </div>
                     <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-bold text-white">
                         Create account <i class="fas fa-arrow-right ml-1 text-xs"></i>
