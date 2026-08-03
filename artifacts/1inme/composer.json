@@ -92,6 +92,9 @@
         "check:hardcoded-row-ids": [
             "@php scripts/check-hardcoded-row-ids.php"
         ],
+        "check:marketing-heavy-blur": [
+            "@php scripts/check-marketing-heavy-blur.php"
+        ],
         "check:plan-features-reads": [
             "@php scripts/check-plan-features-reads.php"
         ],
