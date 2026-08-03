@@ -27,7 +27,7 @@
                 </div>
 
                 <h1 id="hero-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.08] tracking-tight mb-6">
-                    One AI runs your whole <span class="grad-text">universe</span>
+                    Your link, now it <span class="grad-text">talks back</span>.
                 </h1>
 
                 <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-9 leading-relaxed">
