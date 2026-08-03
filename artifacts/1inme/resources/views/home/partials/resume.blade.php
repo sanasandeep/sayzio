@@ -4,8 +4,8 @@
     .rb-wrap { position: relative; }
     .rb-mesh::before {
         content:""; position:absolute; inset:-20%;
-        background: rgba(61,107,255,.06);
-        filter: blur(40px); pointer-events:none; z-index:0;
+        background: radial-gradient(ellipse 75% 75% at 50% 50%, rgba(61,107,255,.08), transparent 78%);
+        pointer-events:none; z-index:0;
         animation: rbMesh 14s ease-in-out infinite alternate;
     }
     @keyframes rbMesh { 0% { transform: translate3d(0,0,0) scale(1); } 100% { transform: translate3d(2%,-2%,0) scale(1.06); } }

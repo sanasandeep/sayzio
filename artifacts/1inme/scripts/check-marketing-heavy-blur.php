@@ -75,20 +75,7 @@ const ALLOWLIST = [
  * fails if a baseline entry no longer matches anything, so stale entries
  * cannot linger.
  */
-const BASELINE = [
-    'public/css/marketing-anim.css' => ['.mesh-bg::before', '.mesh-bg::after', '.why2-bg-orb'],
-    'resources/views/home/partials/dialer-contacts.blade.php' => ['.dc-mesh::before'],
-    'resources/views/home/partials/forms.blade.php' => ['.fb-mesh::before'],
-    'resources/views/home/partials/notifications.blade.php' => ['.nf-mesh::before'],
-    'resources/views/home/partials/resume.blade.php' => ['.rb-mesh::before'],
-    'resources/views/public/dialer-contacts.blade.php' => ['.dcp-mesh::before'],
-    'resources/views/public/paid-page.blade.php' => [
-        '.pp-pattern-orbs::before', '.pp-pattern-orbs::after',
-        '.pp-pattern-blobs::before', '.pp-pattern-blobs::after',
-        '.pp-pattern-mesh', '.pp-pattern-aurora::before',
-    ],
-    'resources/views/public/resume-builder.blade.php' => ['.rbp-mesh::before'],
-];
+const BASELINE = [];
 
 // ---------------------------------------------------------------------------
 
