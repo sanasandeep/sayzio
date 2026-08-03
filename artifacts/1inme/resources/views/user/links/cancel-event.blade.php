@@ -22,7 +22,7 @@
                     Cancelling marks the event as called off. Your public event page will show a
                     "cancelled" banner, and new RSVPs and ticket sales will be blocked. Reminders and
                     automatic waitlist promotion stop too. You can reactivate the event later if you
-                    change your mind — nothing is deleted.
+                    change your mind; nothing is deleted.
                     <span class="block mt-1.5">Ticket refunds are not automatic. You can issue refunds from the RSVPs / ticket tools if needed.</span>
                 </div>
             </div>

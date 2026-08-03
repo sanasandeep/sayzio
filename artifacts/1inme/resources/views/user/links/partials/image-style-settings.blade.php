@@ -84,7 +84,7 @@
             <p class="text-[10px] mt-1 flex items-center gap-1" style="color: var(--text-dimmed);" data-testid="mask-link-hint">
                 <i class="fas fa-link text-blue-400"></i>
                 @if($imgLinkHintUrl !== '')
-                    <span>This image links to <span class="font-semibold" style="color: var(--text-muted);">{{ \Illuminate\Support\Str::limit($imgLinkHintUrl, 42) }}</span> — the whole shape stays tappable.</span>
+                    <span>This image links to <span class="font-semibold" style="color: var(--text-muted);">{{ \Illuminate\Support\Str::limit($imgLinkHintUrl, 42) }}</span>; the whole shape stays tappable.</span>
                 @else
                     <span>Tip: add a URL in the <span class="font-semibold" style="color: var(--text-muted);">Link</span> section below to make the masked image tappable.</span>
                 @endif

@@ -23,15 +23,15 @@
             <div class="zio-hero-copy text-center lg:text-left lg:max-w-[600px]">
                 <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-8">
                     <i class="fas fa-wand-magic-sparkles text-[11px]" style="color:var(--c2)"></i>
-                    <span class="grad-text">Short links · Bio pages · QR codes</span>
+                    <span class="grad-text">One Platform. Endless Conversations.</span>
                 </div>
 
                 <h1 id="hero-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.08] tracking-tight mb-6">
-                    Every link, page and QR code you need — <span class="grad-text">one place</span>
+                    One AI runs your whole <span class="grad-text">universe</span>
                 </h1>
 
                 <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-9 leading-relaxed">
-                    Create short links, bio pages and QR codes in seconds — then let <strong class="text-white">Zio</strong>, your built-in AI, build, grow and run them <strong class="text-white">24/7. Free forever</strong>, no card required.
+                    Meet <strong class="text-white">Zio</strong>, the AI behind Sayzio. It builds your Link in Bio pages, short links and QR codes, answers your visitors and picks up your calls, <strong class="text-white">24/7, free forever</strong>, no card required.
                 </p>
 
                 @guest

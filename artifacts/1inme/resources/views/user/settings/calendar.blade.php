@@ -72,7 +72,7 @@
             @if(!empty($appleWebcalUrl))
             <div class="card-premium p-5 mt-5">
                 <h3 class="text-base font-bold mb-1" style="color: var(--text-primary);"><i class="fab fa-apple mr-1.5" style="color:#e5e7eb"></i> Apple Calendar</h3>
-                <p class="text-xs mb-3" style="color: var(--text-muted);">Subscribe on iPhone, iPad or Mac to see every event you own and follow. It refreshes automatically — no sign-in needed.</p>
+                <p class="text-xs mb-3" style="color: var(--text-muted);">Subscribe on iPhone, iPad or Mac to see every event you own and follow. It refreshes automatically, no sign-in needed.</p>
 
                 <a href="{{ $appleWebcalUrl }}" class="flex items-center justify-center gap-2 w-full px-4 py-2.5 mb-3 rounded-xl text-sm font-semibold transition" style="background: rgba(61,107,255,0.15); border: 1px solid rgba(61,107,255,0.35); color: #90acff;" onmouseover="this.style.background='rgba(61,107,255,0.25)'" onmouseout="this.style.background='rgba(61,107,255,0.15)'">
                     <i class="fas fa-calendar-plus"></i> Subscribe in Apple Calendar

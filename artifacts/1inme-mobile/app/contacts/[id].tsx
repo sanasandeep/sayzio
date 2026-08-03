@@ -631,7 +631,7 @@ export default function ContactDetailScreen() {
         {/* Merge into another contact (web parity) */}
         <Section title="Duplicate?" colors={colors}>
           <Text style={{ fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, color: colors.mutedForeground, marginBottom: 10 }}>
-            If this is a duplicate, merge it into another contact. All emails, phones and captured activity move over — no data is lost.
+            If this is a duplicate, merge it into another contact. All emails, phones and captured activity move over; no data is lost.
           </Text>
           <Pressable
             onPress={() => { setMergeSearch(""); setMergeOpen(true); }}

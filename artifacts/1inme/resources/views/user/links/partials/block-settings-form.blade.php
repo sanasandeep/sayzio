@@ -1267,7 +1267,7 @@ if (typeof window.resetPollVotes !== 'function') {
         <div><label class="{{ $labelClass }}">Label Color</label><input type="color" name="style[_countdown_label_color]" value="{{ $cdSt['_countdown_label_color'] ?? '#a1a1aa' }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
         <div><label class="{{ $labelClass }}">Box Background</label><input type="color" name="style[_countdown_box_bg]" value="{{ $cdSt['_countdown_box_bg'] ?? '#18181b' }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
     </div>
-    <p class="text-[11px] text-white/40">Card background, borders, shadow &amp; fonts are set in the <strong>Design</strong> tab — pick a variant there for a full look.</p>
+    <p class="text-[11px] text-white/40">Card background, borders, shadow &amp; fonts are set in the <strong>Design</strong> tab; pick a variant there for a full look.</p>
 </div>
 
 @elseif($block->type === 'progress')

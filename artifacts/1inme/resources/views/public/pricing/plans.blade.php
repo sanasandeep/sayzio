@@ -684,7 +684,7 @@
                                     @endforeach
                                 </div>
                             @else
-                                <p class="mt-3 text-sm text-gray-400">Start adding links and bio pages to see how much room your plan has.</p>
+                                <p class="mt-3 text-sm text-gray-400">Start adding links and Link in Bio pages to see how much room your plan has.</p>
                             @endif
                         </div>
 

@@ -547,7 +547,7 @@
                         <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100">
                             <i class="{{ $sd['icon'] }} text-slate-400 text-sm"></i>
                             <span class="text-sm font-semibold text-slate-700">{{ $sd['title'] }}</span>
-                            <span class="text-xs text-slate-500">— {{ $sd['next_label'] }}</span>
+                            <span class="text-xs text-slate-500">{{ $sd['next_label'] }}</span>
                             @if($sd['is_today'])
                                 <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Today</span>
                             @endif
