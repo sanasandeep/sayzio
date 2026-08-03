@@ -12,6 +12,7 @@
     <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
     <style>[x-cloak]{display:none !important}</style>
     @include('common.partials.theme-styles')
+    @include('common.partials.auth-glass-style')
 </head>
 <body class="min-h-screen relative overflow-x-hidden" style="background: var(--bg-body);">
     <div class="bg-mesh"></div>
@@ -40,7 +41,7 @@
         <div class="flex-1 lg:flex-none lg:w-[480px] flex p-6 lg:p-12 relative">
             <div class="hidden lg:block absolute inset-y-0 left-0 w-px" style="background: linear-gradient(180deg, transparent, var(--border-glass), transparent);"></div>
 
-            <div class="w-full max-w-sm m-auto">
+            <div class="w-full max-w-sm m-auto auth-glass-card">
                 <div class="text-center mb-7 lg:hidden">
                     <a href="{{ route('home') }}" class="inline-flex items-center justify-center">
                         @include('common.partials.brand-logo', ['height' => 'h-10'])
