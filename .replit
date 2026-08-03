@@ -40,6 +40,10 @@ args = "e2e-auth-modal-error-tab-restore"
 task = "workflow.run"
 args = "e2e-payouts-nav-placement"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-zio-sync-plan-gate"
+
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
 author = "agent"
@@ -102,6 +106,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && VALIDATION_PORT=5071 bash tests/Browser/run-validation.sh payouts-nav-placement.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-zio-sync-plan-gate"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/zio-browser/tests/e2e-sync-plan-gate/run.sh"
 
 [workflows.workflow.metadata]
 isValidation = true
