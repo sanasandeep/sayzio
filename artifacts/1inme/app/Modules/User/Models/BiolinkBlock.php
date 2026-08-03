@@ -487,6 +487,8 @@ class BiolinkBlock extends Model
         '_animation' => '',        // heading animation hint (shimmer, glitch, ...)
         '_gallery_layout' => '',   // gallery layout (grid_2, masonry, ...)
         '_social_set' => '',       // social icon style set (mono_line, glassy, ...)
+        '_ltg_layout' => '',       // link_tree_group layout override (list, grid, text_divider)
+        '_ltg_align' => '',        // link_tree_group text alignment (left, center, right)
         // Hero-photo decorations for image blocks (Task #5922). All keys
         // live in _style so curated variants can carry them and the
         // Designs gallery can apply each look in one click.

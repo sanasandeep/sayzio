@@ -163,7 +163,7 @@ final class BlockTypeRegistry
             'label'    => 'Link Group',
             'icon'     => 'fa-list-tree',
             'category' => 'basic',
-            'meta'     => ['layouts' => ['list', 'grid'], 'default' => ['layout' => 'list']],
+            'meta'     => ['layouts' => ['list', 'grid', 'text_divider'], 'default' => ['layout' => 'list']],
         ],
         'tabs' => [
             'label'    => 'Tabs',

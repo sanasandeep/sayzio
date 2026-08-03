@@ -1046,6 +1046,60 @@ if (typeof window.resetPollVotes !== 'function') {
     <label class="flex items-center gap-2 text-sm text-white/70"><input type="hidden" name="settings[collect_email]" value="0"><input type="checkbox" name="settings[collect_email]" value="1" @checked($s['collect_email'] ?? true) class="rounded">Collect reviewer email (private)</label>
 </div>
 
+@elseif($block->type === 'link_tree_group')
+@php
+    $ltgItems = collect(is_array($s['items'] ?? null) ? $s['items'] : [])
+        ->map(fn($it) => [
+            'id'          => is_array($it) ? (string) ($it['id'] ?? '') : '',
+            'text'        => is_array($it) ? (string) ($it['text'] ?? '') : '',
+            'url'         => is_array($it) ? (string) ($it['url'] ?? '') : '',
+            'icon'        => is_array($it) ? (string) ($it['icon'] ?? '') : '',
+            'description' => is_array($it) ? (string) ($it['description'] ?? '') : '',
+        ])->values()->all();
+@endphp
+<div class="space-y-3" x-data='{ items: @json($ltgItems), layout: @json($s['layout'] ?? 'list') }'>
+    <div><label class="{{ $labelClass }}">Title (optional)</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div class="grid grid-cols-2 gap-3">
+        <div>
+            <label class="{{ $labelClass }}">Layout</label>
+            <select name="settings[layout]" x-model="layout" class="{{ $selectClass }}">
+                @foreach(['list' => 'List', 'grid' => 'Grid', 'text_divider' => 'Text + Dividers'] as $v => $l)
+                <option value="{{ $v }}" @selected(($s['layout'] ?? 'list') === $v) style="background: var(--bg-body); color: var(--text-primary);">{{ $l }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div x-show="layout === 'text_divider'">
+            <label class="{{ $labelClass }}">Text alignment</label>
+            <select name="settings[align]" class="{{ $selectClass }}">
+                @foreach(['left' => 'Left', 'center' => 'Center', 'right' => 'Right'] as $v => $l)
+                <option value="{{ $v }}" @selected(($s['align'] ?? 'left') === $v) style="background: var(--bg-body); color: var(--text-primary);">{{ $l }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div x-show="layout !== 'text_divider'">
+            <label class="{{ $labelClass }}">Accent color</label>
+            <input type="color" name="settings[accent_color]" value="{{ $s['accent_color'] ?? '#3d6bff' }}" class="{{ $inputClass }}" style="height:38px;padding:4px;">
+        </div>
+    </div>
+    <div>
+        <label class="{{ $labelClass }}">Links</label>
+        <template x-for="(item, i) in items" :key="i">
+            <div class="glass rounded-lg p-3 mb-2 space-y-2">
+                <input type="hidden" :name="'settings[items]['+i+'][id]'" x-model="items[i].id">
+                <input type="text" x-model="items[i].text" :name="'settings[items]['+i+'][text]'" placeholder="Label (e.g. Portfolio)" class="{{ $inputClass }}">
+                <input type="url" x-model="items[i].url" :name="'settings[items]['+i+'][url]'" placeholder="https://…" class="{{ $inputClass }}">
+                <div class="flex gap-2" x-show="layout !== 'text_divider'">
+                    <input type="text" x-model="items[i].icon" :name="'settings[items]['+i+'][icon]'" placeholder="fa-globe (optional)" class="{{ $inputClass }} flex-1">
+                    <input type="text" x-model="items[i].description" :name="'settings[items]['+i+'][description]'" placeholder="Description (optional)" class="{{ $inputClass }} flex-1">
+                </div>
+                <button type="button" @click="items.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400"><i class="fas fa-times mr-1"></i>Remove</button>
+            </div>
+        </template>
+        <button type="button" @click="items.push({id:'',text:'',url:'',icon:'',description:''})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Link</button>
+    </div>
+    <p class="text-[11px] text-white/40">Every link click is tracked in your analytics automatically.</p>
+</div>
+
 @elseif(in_array($block->type, ['timeline', 'timeline_staged']))
 <div x-data="{ items: {{ json_encode($s['items'] ?? [['title'=>'','description'=>'']]) }} }">
     <label class="{{ $labelClass }}">Timeline Items</label>

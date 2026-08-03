@@ -2699,6 +2699,52 @@ class BlockVariantCatalog
     private static function typeOneOffs(): array
     {
         return [
+            // Task #6576 — Link Group layout variants. The structural
+            // layout/alignment travels in the opaque `_style._ltg_layout` /
+            // `_style._ltg_align` hooks; the renderer reads those before
+            // the block's own content-level `layout` setting.
+            'link_tree_group' => [
+                [
+                    'key' => 'ltg_text_divider_right',
+                    'name' => 'Text · Dividers · Right',
+                    'tags' => ['minimal', 'editorial'],
+                    'style' => [
+                        '_ltg_layout' => 'text_divider', '_ltg_align' => 'right',
+                        'display_mode' => 'plain', 'bg_color' => 'transparent', 'border_style' => 'none',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'ltg_text_divider_left',
+                    'name' => 'Text · Dividers · Left',
+                    'tags' => ['minimal', 'editorial'],
+                    'style' => [
+                        '_ltg_layout' => 'text_divider', '_ltg_align' => 'left',
+                        'display_mode' => 'plain', 'bg_color' => 'transparent', 'border_style' => 'none',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'ltg_text_divider_center',
+                    'name' => 'Text · Dividers · Center',
+                    'tags' => ['minimal', 'editorial'],
+                    'style' => [
+                        '_ltg_layout' => 'text_divider', '_ltg_align' => 'center',
+                        'display_mode' => 'plain', 'bg_color' => 'transparent', 'border_style' => 'none',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'ltg_grid_tiles',
+                    'name' => 'Grid Tiles',
+                    'tags' => ['bold', 'pro'],
+                    'style' => [
+                        '_ltg_layout' => 'grid',
+                        'display_mode' => 'plain', 'bg_color' => 'transparent', 'border_style' => 'none',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 12],
+                ],
+            ],
             'image' => [
                 [
                     'key' => 'polaroid',

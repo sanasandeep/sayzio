@@ -3134,6 +3134,162 @@ function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: Biolink
     );
   }
 
+  // Link Group (link_tree_group) — Task #6576. Mirrors the web renderer's
+  // three layouts (list, grid, text_divider) with per-item tap tracking.
+  // Layout can come from a curated variant (stamped into the opaque
+  // `_style._ltg_layout` hook) or the block's own `layout` setting.
+  if (t === "link_tree_group") {
+    const items = (Array.isArray((s as Record<string, unknown>).items)
+      ? ((s as Record<string, unknown>).items as unknown[])
+      : []
+    ).filter((it): it is Record<string, unknown> => !!it && typeof it === "object");
+    const ltgStyle = ((s as Record<string, unknown>)._style &&
+    typeof (s as Record<string, unknown>)._style === "object"
+      ? (s as Record<string, unknown>)._style
+      : {}) as Record<string, unknown>;
+    const rawLayout =
+      (typeof ltgStyle._ltg_layout === "string" && ltgStyle._ltg_layout) ||
+      pickStr(s, "layout") ||
+      "list";
+    const layout = ["list", "grid", "text_divider"].includes(rawLayout) ? rawLayout : "list";
+    const rawAlign =
+      (typeof ltgStyle._ltg_align === "string" && ltgStyle._ltg_align) ||
+      pickStr(s, "align") ||
+      "left";
+    const align = (["left", "center", "right"].includes(rawAlign) ? rawAlign : "left") as
+      | "left"
+      | "center"
+      | "right";
+    const title = pickContentStr(s, "title");
+    const txtColor = blockTextColor(block, colors.foreground);
+    const itemLabel = (it: Record<string, unknown>) =>
+      typeof it.text === "string" && it.text.trim() !== "" ? it.text : "Link";
+    const itemUrl = (it: Record<string, unknown>) =>
+      typeof it.url === "string" ? it.url : "";
+    const tapItem = (it: Record<string, unknown>) => {
+      const url = itemUrl(it);
+      if (!url) return;
+      // Per-item attribution: pass the stable item id so the tap row can be
+      // told apart from siblings even when they share a destination URL.
+      const itemId = typeof it.id === "string" && it.id !== "" ? it.id : undefined;
+      trackBiolinkBlockTap(alias, block.id, url, itemId);
+      openSafe(url, router);
+    };
+
+    if (layout === "text_divider") {
+      return (
+        <View style={{ width: "100%" }}>
+          {title ? (
+            <Text
+              style={[
+                styles.btnLabel,
+                { color: txtColor, textAlign: align, marginBottom: 6 },
+              ]}
+            >
+              {title}
+            </Text>
+          ) : null}
+          {items.map((it, i) => (
+            <Pressable
+              key={typeof it.id === "string" && it.id ? it.id : String(i)}
+              onPress={() => tapItem(it)}
+              style={{
+                width: "100%",
+                paddingVertical: 14,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                borderBottomColor: `${txtColor}40`,
+              }}
+            >
+              <Text
+                style={{
+                  color: txtColor,
+                  fontSize: 15,
+                  fontWeight: "500",
+                  textAlign: align,
+                }}
+              >
+                {itemLabel(it)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      );
+    }
+
+    if (layout === "grid") {
+      return (
+        <View style={{ width: "100%" }}>
+          {title ? (
+            <Text style={[styles.btnLabel, { color: txtColor, marginBottom: 6 }]}>{title}</Text>
+          ) : null}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {items.map((it, i) => (
+              <Pressable
+                key={typeof it.id === "string" && it.id ? it.id : String(i)}
+                onPress={() => tapItem(it)}
+                style={[
+                  {
+                    flexBasis: "48%",
+                    flexGrow: 1,
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    paddingHorizontal: 10,
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: `${txtColor}30`,
+                    backgroundColor: `${txtColor}10`,
+                  },
+                ]}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={{ color: txtColor, fontSize: 14, fontWeight: "500", textAlign: "center" }}
+                >
+                  {itemLabel(it)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View style={{ width: "100%" }}>
+        {title ? (
+          <Text style={[styles.btnLabel, { color: txtColor, marginBottom: 6 }]}>{title}</Text>
+        ) : null}
+        {items.map((it, i) => (
+          <Pressable
+            key={typeof it.id === "string" && it.id ? it.id : String(i)}
+            onPress={() => tapItem(it)}
+            style={{
+              width: "100%",
+              borderRadius: 12,
+              paddingVertical: 12,
+              paddingHorizontal: 14,
+              marginBottom: 8,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: `${txtColor}30`,
+              backgroundColor: `${txtColor}10`,
+            }}
+          >
+            <Text numberOfLines={1} style={{ color: txtColor, fontSize: 14, fontWeight: "500" }}>
+              {itemLabel(it)}
+            </Text>
+            {typeof it.description === "string" && it.description.trim() !== "" ? (
+              <Text
+                numberOfLines={1}
+                style={{ color: txtColor, opacity: 0.6, fontSize: 12, marginTop: 2 }}
+              >
+                {it.description}
+              </Text>
+            ) : null}
+          </Pressable>
+        ))}
+      </View>
+    );
+  }
+
   // Profile / identity card family (profile_card_v1..v4). Dispatches on the
   // `_profile_layout` token carried in _style (set when a curated
   // `profile_identity` design is applied), falling back to the historical

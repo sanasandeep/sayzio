@@ -348,6 +348,14 @@ const TYPE_BUNDLES: Record<string, string[]> = {
  * Card" on the web sees the same key marked as selected on mobile.
  */
 const TYPE_ONE_OFFS: Record<string, MobileVariant[]> = {
+  // Task #6576 — Link Group layout variants. The structural layout travels
+  // in `_style._ltg_layout` / `_style._ltg_align` (see PHP typeOneOffs()).
+  link_tree_group: [
+    { key: "ltg_text_divider_right",  name: "Text · Dividers · Right",  tags: ["minimal", "editorial"], preview: { bg: "transparent", text: "#ffffff", radius: 0 } },
+    { key: "ltg_text_divider_left",   name: "Text · Dividers · Left",   tags: ["minimal", "editorial"], preview: { bg: "transparent", text: "#ffffff", radius: 0 } },
+    { key: "ltg_text_divider_center", name: "Text · Dividers · Center", tags: ["minimal", "editorial"], preview: { bg: "transparent", text: "#ffffff", radius: 0 } },
+    { key: "ltg_grid_tiles",          name: "Grid Tiles",               tags: ["bold", "pro"],          preview: { bg: "transparent", text: "#ffffff", radius: 12 } },
+  ],
   image: [
     { key: "polaroid",         name: "Polaroid",         tags: ["retro", "playful"],              preview: { bg: "#fff", text: "#000", radius: 6 } },
     { key: "magazine_cutout",  name: "Magazine Cutout",  tags: ["maximalist", "editorial", "playful"], preview: { bg: "#ffffff", text: "#000", radius: 0, border: "#facc15" } },

@@ -168,7 +168,7 @@ class LinkTrackingService
         return substr($lang, 0, 2);
     }
 
-    public function trackBlockClick(Link $link, BiolinkBlock $block, string $destinationUrl, Request $request, ?string $usedAlias = null, ?string $source = null): ?PendingClick
+    public function trackBlockClick(Link $link, BiolinkBlock $block, string $destinationUrl, Request $request, ?string $usedAlias = null, ?string $source = null, ?string $blockItemId = null): ?PendingClick
     {
         $userAgent = $this->resolveUserAgent($request);
         $detector = app(BotDetector::class);
@@ -244,6 +244,7 @@ class LinkTrackingService
             'viewer_user_id' => \App\Modules\Common\Services\ViewerSession::id() ?? auth()->id(),
             'block_id' => $block->id,
             'block_type' => $block->type,
+            'block_item_id' => $blockItemId !== null ? substr($blockItemId, 0, 32) : null,
             'destination_url' => substr($destinationUrl, 0, 2048),
             'ip_address' => $request->ip(),
             'browser' => $this->detectBrowser($userAgent),

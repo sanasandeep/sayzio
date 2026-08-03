@@ -56,7 +56,7 @@ class PersistLinkClicksJob implements ShouldQueue
 
     /** Columns that actually exist on link_clicks (others are dropped before insert). */
     private const CLICK_COLUMNS = [
-        'event_id', 'link_id', 'alias', 'viewer_user_id', 'block_id', 'block_type',
+        'event_id', 'link_id', 'alias', 'viewer_user_id', 'block_id', 'block_type', 'block_item_id',
         'destination_url', 'ip_address', 'country_code', 'city', 'latitude', 'longitude',
         'browser', 'os', 'device_type', 'referrer', 'source', 'user_agent', 'channel',
         'is_bot', 'is_throttled', 'language', 'utm_params', 'matched_rule_id', 'clicked_at',

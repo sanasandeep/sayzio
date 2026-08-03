@@ -1979,6 +1979,30 @@ class BiolinkBlockController extends Controller
             }
         }
 
+        // Link Group blocks (Task #6576): validate layout/alignment and
+        // give every item a stable id so per-item clicks can be attributed
+        // through the block-redirect tracking pipeline. Existing ids are
+        // preserved across saves; new/duplicate ids are re-minted.
+        if ($type === 'link_tree_group') {
+            $layout = $settings['layout'] ?? 'list';
+            $settings['layout'] = in_array($layout, ['list', 'grid', 'text_divider'], true) ? $layout : 'list';
+            $align = $settings['align'] ?? 'left';
+            $settings['align'] = in_array($align, ['left', 'center', 'right'], true) ? $align : 'left';
+            if (isset($settings['items']) && is_array($settings['items'])) {
+                $seenIds = [];
+                foreach ($settings['items'] as &$ltgItem) {
+                    if (!is_array($ltgItem)) continue;
+                    $id = (string) ($ltgItem['id'] ?? '');
+                    if (!preg_match('/^[a-z0-9]{6,16}$/', $id) || isset($seenIds[$id])) {
+                        $id = substr(bin2hex(random_bytes(6)), 0, 8);
+                    }
+                    $seenIds[$id] = true;
+                    $ltgItem['id'] = $id;
+                }
+                unset($ltgItem);
+            }
+        }
+
         // Countdown blocks (rich countdown redesign): normalise the new
         // configurable settings — unit toggles, label style, expired
         // behaviour, and an optional CTA. The CTA URL is sanitized through
