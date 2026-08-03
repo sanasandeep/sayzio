@@ -2454,7 +2454,7 @@ class BiolinkBlockController extends Controller
     private function sanitizeImageStyle(array $input): array
     {
         $enums = [
-            'mask_shape' => ['none', 'rounded', 'circle', 'square', 'diamond', 'hexagon', 'octagon', 'star', 'blob', 'arch', 'heart', 'torn'],
+            'mask_shape' => ['none', 'rounded', 'circle', 'square', 'diamond', 'hexagon', 'octagon', 'star', 'blob', 'arch', 'heart', 'torn', 'oval', 'pill', 'triangle', 'pentagon', 'semicircle', 'wave', 'shield', 'scallop', 'cross'],
             'object_fit' => ['cover', 'contain', 'fill', 'none'],
             'border_style' => ['none', 'solid', 'dashed', 'dotted', 'double'],
             'shadow_type' => ['none', 'soft', 'hard', 'glow', 'neon', 'drop'],

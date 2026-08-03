@@ -361,6 +361,16 @@ const TYPE_ONE_OFFS: Record<string, MobileVariant[]> = {
     { key: "mask_star",        name: "Mask · Star",      tags: ["playful", "bold"],               preview: { bg: "transparent", text: "#fbbf24", radius: 8 } },
     { key: "mask_heart",       name: "Mask · Heart",     tags: ["playful", "bold"],               preview: { bg: "transparent", text: "#ec4899", radius: 0 } },
     { key: "mask_torn",        name: "Mask · Torn Edge", tags: ["editorial", "maximalist"],       preview: { bg: "transparent", text: "#fff", radius: 0 } },
+    // Task #6575: expanded mask shape library (mirror of the PHP catalog).
+    { key: "mask_oval",        name: "Mask · Oval",      tags: ["minimal", "editorial"],          preview: { bg: "transparent", text: "#fff", radius: 999 } },
+    { key: "mask_pill",        name: "Mask · Pill",      tags: ["minimal", "pro"],                preview: { bg: "transparent", text: "#fff", radius: 999 } },
+    { key: "mask_triangle",    name: "Mask · Triangle",  tags: ["bold", "brutalist"],             preview: { bg: "transparent", text: "#fff", radius: 0 } },
+    { key: "mask_pentagon",    name: "Mask · Pentagon",  tags: ["bold", "three_d"],               preview: { bg: "transparent", text: "#fff", radius: 8 } },
+    { key: "mask_semicircle",  name: "Mask · Dome",      tags: ["editorial", "pro"],              preview: { bg: "transparent", text: "#fff", radius: 40 } },
+    { key: "mask_wave",        name: "Mask · Wave",      tags: ["playful", "editorial"],          preview: { bg: "transparent", text: "#fff", radius: 0 } },
+    { key: "mask_shield",      name: "Mask · Shield",    tags: ["pro", "corporate"],              preview: { bg: "transparent", text: "#fff", radius: 8 } },
+    { key: "mask_scallop",     name: "Mask · Scallop",   tags: ["playful", "maximalist"],         preview: { bg: "transparent", text: "#fbbf24", radius: 60 } },
+    { key: "mask_cross",       name: "Mask · Cross",     tags: ["bold", "minimal"],               preview: { bg: "transparent", text: "#fff", radius: 0 } },
     // Task #5922 hero-photo decoration presets (mirror of PHP catalog).
     { key: "arch_concentric",  name: "Concentric Arch",  tags: ["editorial", "minimal", "pro"],   preview: { bg: "transparent", text: "#57534e", radius: 999, border: "#57534e" } },
     { key: "banner_overlap",   name: "Title Banner",     tags: ["editorial", "bold"],             preview: { bg: "#2a201c", text: "#ffffff", radius: 0 } },

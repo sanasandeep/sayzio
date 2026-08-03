@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 19;
+    public const VERSION = 20;
 
     /**
      * Effective catalog version (Task #6045): the hardcoded VERSION
@@ -2821,6 +2821,109 @@ class BlockVariantCatalog
                         'border_style' => 'none', 'border_radius' => '0',
                         'shadow_type' => 'soft', 'shadow_color' => '#00000040', 'shadow_y' => 6, 'shadow_blur' => 14,
                         'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 0],
+                ],
+                // ── Task #6575: mask presets for the expanded shape
+                //    library. Same chrome-only contract as the presets
+                //    above: the mask itself comes from
+                //    `_image_style.mask_shape`, picked in the image form.
+                [
+                    'key' => 'mask_oval',
+                    'name' => 'Mask · Oval',
+                    'tags' => ['minimal', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '999',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 999],
+                ],
+                [
+                    'key' => 'mask_pill',
+                    'name' => 'Mask · Pill',
+                    'tags' => ['minimal', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '999',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 999],
+                ],
+                [
+                    'key' => 'mask_triangle',
+                    'name' => 'Mask · Triangle',
+                    'tags' => ['bold', 'brutalist'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'mask_pentagon',
+                    'name' => 'Mask · Pentagon',
+                    'tags' => ['bold', 'three_d'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '8',
+                        'shadow_preset' => 'none', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 8],
+                ],
+                [
+                    'key' => 'mask_semicircle',
+                    'name' => 'Mask · Dome',
+                    'tags' => ['editorial', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 40],
+                ],
+                [
+                    'key' => 'mask_wave',
+                    'name' => 'Mask · Wave',
+                    'tags' => ['playful', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'mask_shield',
+                    'name' => 'Mask · Shield',
+                    'tags' => ['pro', 'corporate'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '8',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 8],
+                ],
+                [
+                    'key' => 'mask_scallop',
+                    'name' => 'Mask · Scallop',
+                    'tags' => ['playful', 'maximalist'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '60',
+                        'shadow_preset' => 'none', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fbbf24', 'radius' => 60],
+                ],
+                [
+                    'key' => 'mask_cross',
+                    'name' => 'Mask · Cross',
+                    'tags' => ['bold', 'minimal'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '0',
                     ],
                     'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 0],
                 ],

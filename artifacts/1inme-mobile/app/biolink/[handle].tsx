@@ -1,7 +1,15 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, {
+  Circle,
+  ClipPath,
+  Defs,
+  Ellipse,
+  Image as SvgImage,
+  Path,
+  Polygon,
+} from "react-native-svg";
 import * as Linking from "expo-linking";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -360,6 +368,23 @@ function StickerOverlay({
   );
 }
 
+const MASK_POLYGONS: Record<string, [number, number][]> = {
+  diamond: [[50, 0], [100, 50], [50, 100], [0, 50]],
+  hexagon: [[25, 0], [75, 0], [100, 50], [75, 100], [25, 100], [0, 50]],
+  octagon: [[29.3, 0], [70.7, 0], [100, 29.3], [100, 70.7], [70.7, 100], [29.3, 100], [0, 70.7], [0, 29.3]],
+  star: [[50, 0], [61, 35], [98, 35], [68, 57], [79, 91], [50, 70], [21, 91], [32, 57], [2, 35], [39, 35]],
+  blob: [[30, 0], [70, 0], [100, 30], [100, 70], [70, 100], [30, 100], [0, 70], [0, 30]],
+  arch: [[0, 100], [0, 30], [5, 15], [15, 5], [30, 0], [70, 0], [85, 5], [95, 15], [100, 30], [100, 100]],
+  heart: [[50, 100], [8, 60], [0, 35], [5, 18], [18, 8], [32, 8], [42, 18], [50, 28], [58, 18], [68, 8], [82, 8], [95, 18], [100, 35], [92, 60]],
+  torn: [[0, 4], [5, 0], [12, 5], [20, 1], [28, 6], [38, 0], [48, 4], [58, 0], [68, 5], [78, 1], [88, 5], [95, 0], [100, 4], [100, 96], [95, 100], [88, 95], [78, 99], [68, 95], [58, 100], [48, 96], [38, 100], [28, 94], [20, 99], [12, 95], [5, 100], [0, 96]],
+  triangle: [[50, 0], [100, 100], [0, 100]],
+  pentagon: [[50, 0], [100, 38], [81, 100], [19, 100], [0, 38]],
+  semicircle: [[0, 0], [100, 0], [100, 70], [95, 85], [85, 95], [70, 100], [30, 100], [15, 95], [5, 85], [0, 70]],
+  wave: [[0, 0], [100, 0], [100, 88], [88, 95], [75, 88], [62, 95], [50, 88], [38, 95], [25, 88], [12, 95], [0, 88]],
+  shield: [[0, 0], [100, 0], [100, 65], [92, 80], [75, 92], [50, 100], [25, 92], [8, 80], [0, 65]],
+  scallop: [[50, 0], [61.4, 7.5], [75, 6.7], [81.1, 18.9], [93.3, 25], [92.5, 38.6], [100, 50], [92.5, 61.4], [93.3, 75], [81.1, 81.1], [75, 93.3], [61.4, 92.5], [50, 100], [38.6, 92.5], [25, 93.3], [18.9, 81.1], [6.7, 75], [7.5, 61.4], [0, 50], [7.5, 38.6], [6.7, 25], [18.9, 18.9], [25, 6.7], [38.6, 7.5]],
+  cross: [[35, 0], [65, 0], [65, 35], [100, 35], [100, 65], [65, 65], [65, 100], [35, 100], [35, 65], [0, 65], [0, 35], [35, 35]],
+};
 function pickStr(s: Record<string, unknown> | null, ...keys: string[]): string | null {
   if (!s) return null;
   for (const k of keys) {
@@ -2486,18 +2511,70 @@ function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: Biolink
       );
     }
 
-    return (
-      <Image
-        source={{ uri: url }}
-        style={[
-          styles.image,
-          isAvatar
-            ? { width: 96, height: 96, aspectRatio: undefined, borderRadius: pickBool(s, "rounded", true) ? 999 : 16 }
-            : null,
-        ]}
-        resizeMode="cover"
-      />
-    );
+    // ── Mask shapes + tappable link (Task #6575) ────────────────────
+    // Web parity: `_image_style.mask_shape` clips the image and a `_link`
+    // URL makes the whole shape tappable. circle/rounded/square/pill map
+    // to border-radius; the polygon/oval shapes go through the SVG clip.
+    const imgStyleObj = (s._image_style && typeof s._image_style === "object"
+      ? s._image_style
+      : {}) as Record<string, unknown>;
+    const maskShape =
+      !isAvatar && typeof imgStyleObj.mask_shape === "string" ? imgStyleObj.mask_shape : "none";
+    const linkObj = (s._link && typeof s._link === "object" ? s._link : {}) as Record<
+      string,
+      unknown
+    >;
+    const imgLinkUrl = !isAvatar ? (pickStr(linkObj, "url") ?? pickStr(s, "link")) : null;
+
+    let imageEl: React.ReactElement;
+    if (isAvatar) {
+      imageEl = (
+        <Image
+          source={{ uri: url }}
+          style={[
+            styles.image,
+            { width: 96, height: 96, aspectRatio: undefined, borderRadius: pickBool(s, "rounded", true) ? 999 : 16 },
+          ]}
+          resizeMode="cover"
+        />
+      );
+    } else if (maskShape === "circle") {
+      imageEl = (
+        <Image
+          source={{ uri: url }}
+          style={{ width: "100%", aspectRatio: 1, borderRadius: 9999 }}
+          resizeMode="cover"
+        />
+      );
+    } else if (maskShape === "rounded" || maskShape === "square" || maskShape === "pill") {
+      imageEl = (
+        <Image
+          source={{ uri: url }}
+          style={[
+            styles.image,
+            { borderRadius: maskShape === "square" ? 0 : maskShape === "pill" ? 9999 : 20 },
+          ]}
+          resizeMode="cover"
+        />
+      );
+    } else if (maskShape === "oval" || MASK_POLYGONS[maskShape]) {
+      imageEl = <MaskedBlockImage uri={url} shape={maskShape} />;
+    } else {
+      imageEl = <Image source={{ uri: url }} style={styles.image} resizeMode="cover" />;
+    }
+
+    if (imgLinkUrl && isSafeUrl(imgLinkUrl)) {
+      return (
+        <Pressable
+          onPress={() => handleTap(imgLinkUrl)}
+          accessibilityRole="link"
+          style={({ pressed }) => ({ width: "100%", opacity: pressed ? 0.85 : 1 })}
+        >
+          {imageEl}
+        </Pressable>
+      );
+    }
+    return imageEl;
   }
 
   if (t === "spacer" || t === "divider") {
@@ -6235,3 +6312,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
+
+function maskAspectRatio(shape: string): number {
+  if (shape === "arch" || shape === "semicircle") return 3 / 4;
+  if (shape === "torn" || shape === "wave") return 4 / 5;
+  return 1;
+}
+
+function MaskedBlockImage({ uri, shape }: { uri: string; shape: string }) {
+  const [w, setW] = useState(0);
+  const clipId = useRef(`blkmask${++__maskClipSeq}`).current;
+  const ratio = maskAspectRatio(shape);
+  const h = w / ratio;
+  const pts = MASK_POLYGONS[shape];
+  return (
+    <View
+      style={{ width: "100%", aspectRatio: ratio }}
+      onLayout={(e) => setW(e.nativeEvent.layout.width)}
+    >
+      {w > 0 ? (
+        <Svg width={w} height={h}>
+          <Defs>
+            <ClipPath id={clipId}>
+              {shape === "oval" || !pts ? (
+                <Ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} />
+              ) : (
+                <Polygon
+                  points={pts.map(([x, y]) => `${(x / 100) * w},${(y / 100) * h}`).join(" ")}
+                />
+              )}
+            </ClipPath>
+          </Defs>
+          <SvgImage
+            href={{ uri }}
+            x={0}
+            y={0}
+            width={w}
+            height={h}
+            preserveAspectRatio="xMidYMid slice"
+            clipPath={`url(#${clipId})`}
+          />
+        </Svg>
+      ) : null}
+    </View>
+  );
+}
+
+let __maskClipSeq = 0;
