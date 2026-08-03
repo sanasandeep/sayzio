@@ -25,6 +25,8 @@ import {
 
 interface Props {
   onClose: () => void;
+  /** Section to show when the panel opens (defaults to General). */
+  initialSection?: SectionId;
 }
 
 type SectionId =
@@ -79,8 +81,8 @@ const SECTIONS: Array<{ id: SectionId; icon: string; label: string; keywords: st
   { id: 'shortcuts', icon: '⌨️', label: 'Shortcuts', keywords: 'keyboard shortcuts hotkeys command palette keys tabs windows navigation view modes bookmarks privacy developer reader mode zoom print clear browsing data' },
 ];
 
-export function SettingsPanel({ onClose }: Props) {
-  const [section, setSection] = useState<SectionId>('general');
+export function SettingsPanel({ onClose, initialSection }: Props) {
+  const [section, setSection] = useState<SectionId>(initialSection ?? 'general');
   const [query, setQuery] = useState('');
 
   const visibleSections = useMemo(() => {

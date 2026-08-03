@@ -70,6 +70,9 @@ export default function App() {
   const [notesPanelScope, setNotesPanelScope] = useState<'page' | 'all'>('all');
   const [dialerPanelOpen, setDialerPanelOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // When set, the settings panel opens directly on this section (e.g. the
+  // sync-paused pill jumps straight to Settings → Sync).
+  const [settingsInitialSection, setSettingsInitialSection] = useState<'sync' | undefined>(undefined);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [showModePicker, setShowModePicker] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
@@ -808,7 +811,14 @@ export default function App() {
         onToggleNotes={handleToggleNotes}
         dialerPanelOpen={dialerPanelOpen}
         onToggleDialer={handleToggleDialer}
-        onOpenSettings={() => setSettingsOpen(prev => !prev)}
+        onOpenSettings={() => {
+          setSettingsInitialSection(undefined);
+          setSettingsOpen(prev => !prev);
+        }}
+        onOpenSyncSettings={() => {
+          setSettingsInitialSection('sync');
+          setSettingsOpen(true);
+        }}
         settingsOpen={settingsOpen}
         vkEnabled={vkSettings.enabled}
         vkOpen={vkOpen}
@@ -991,7 +1001,7 @@ export default function App() {
         )}
 
         {settingsOpen && (
-          <SettingsPanel onClose={() => setSettingsOpen(false)} />
+          <SettingsPanel initialSection={settingsInitialSection} onClose={() => setSettingsOpen(false)} />
         )}
 
         {readingListOpen && (

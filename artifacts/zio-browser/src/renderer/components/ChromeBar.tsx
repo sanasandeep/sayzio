@@ -64,6 +64,8 @@ interface Props {
   onToggleDialer?: () => void;
   /** Callback to open the browser settings panel. */
   onOpenSettings?: () => void;
+  /** Opens the settings panel directly on the Sync section (sync pill click). */
+  onOpenSyncSettings?: () => void;
   settingsOpen?: boolean;
   /** Virtual keyboard — toolbar toggle (shown only when the feature is enabled). */
   vkEnabled?: boolean;
@@ -437,6 +439,7 @@ export function ChromeBar({
   dialerPanelOpen = false,
   onToggleDialer,
   onOpenSettings,
+  onOpenSyncSettings,
   settingsOpen = false,
   vkEnabled = false,
   vkOpen = false,
@@ -1596,12 +1599,14 @@ export function ChromeBar({
           >📋</button>
         )}
 
-        {/* Sync pending indicator */}
-        {pendingSyncCount > 0 && (
-          <div
+        {/* Sync pending indicator — also shown (with 0 queued items) whenever
+            the plan gate blocks sync, so the paused state is never invisible. */}
+        {(pendingSyncCount > 0 || syncPlanBlocked) && (
+          <button
+            onClick={() => onOpenSyncSettings?.()}
             title={
               syncPlanBlocked
-                ? 'Sync is paused — your current plan doesn\'t include browser sync. Changes stay on this device and sync automatically after you upgrade (see Settings → Sync).'
+                ? 'Sync is paused — your current plan doesn\'t include browser sync. Changes stay on this device and sync automatically after you upgrade. Click to open Settings → Sync.'
                 : pendingSyncByProfile.length > 0
                 ? `Waiting to sync — will retry automatically: ${pendingSyncByProfile
                     .map(p => `${p.count} pending for ${p.profileName}`)
@@ -1620,6 +1625,7 @@ export function ChromeBar({
               color: 'var(--color-text-muted)',
               whiteSpace: 'nowrap',
               flexShrink: 0,
+              cursor: 'pointer',
             }}
           >
             <span style={{
@@ -1630,7 +1636,7 @@ export function ChromeBar({
               flexShrink: 0,
             }} />
             {syncPlanBlocked ? 'Sync paused — upgrade to resume' : 'Sync pending'}
-          </div>
+          </button>
         )}
 
         {/* "Settings for this website" popover button (per-site settings). */}
