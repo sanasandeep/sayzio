@@ -41,7 +41,7 @@ class OpenAiServiceChatStreamTest extends TestCase
         // ledger entry was written from the parsed usage frame.
         AiEngineSettings::setModels([
             ['name' => 'gpt-test', 'kind' => 'chat', 'enabled' => true,
-             'in_credits_per_1k' => 1000, 'out_credits_per_1k' => 1000],
+             'in_coins_per_1k' => 1000, 'out_coins_per_1k' => 1000],
         ]);
     }
 
