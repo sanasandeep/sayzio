@@ -171,6 +171,23 @@
                     @if(!$emailPasswordEnabled && !$emailOtpEnabled && !$mobileLoginEnabled)
                     <p class="text-center text-xs text-gray-500 py-4">Login is currently unavailable.</p>
                     @endif
+
+                    {{-- Social sign-in, same providers as the full-page login --}}
+                    <div class="flex items-center gap-3 my-4">
+                        <div class="flex-1 h-px bg-white/10"></div>
+                        <span class="text-[10px] uppercase tracking-wider font-bold text-gray-500">or sign in with</span>
+                        <div class="flex-1 h-px bg-white/10"></div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <a href="{{ route('user.social-oauth.login', 'google') }}"
+                           class="w-full py-2.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-semibold text-white flex items-center justify-center gap-2">
+                            <i class="fab fa-google text-[13px]"></i> Log in with Google
+                        </a>
+                        <a href="{{ route('user.social-oauth.login', 'linkedin') }}"
+                           class="w-full py-2.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-semibold text-white flex items-center justify-center gap-2">
+                            <i class="fab fa-linkedin text-[13px]"></i> Log in with LinkedIn
+                        </a>
+                    </div>
                 </div>
 
                 {{-- Register: two simple tabs mirroring the login tab — Email
@@ -283,6 +300,24 @@
                     </form>
                 </div>
                 @endif
+
+                {{-- Social sign-up, same providers as the full-page register --}}
+                <div class="flex items-center gap-3 my-4">
+                    <div class="flex-1 h-px bg-white/10"></div>
+                    <span class="text-[10px] uppercase tracking-wider font-bold text-gray-500">or sign up with</span>
+                    <div class="flex-1 h-px bg-white/10"></div>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <a href="{{ route('user.social-oauth.login', 'google') }}"
+                       class="w-full py-2.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-semibold text-white flex items-center justify-center gap-2">
+                        <i class="fab fa-google text-[13px]"></i> Sign up with Google
+                    </a>
+                    <a href="{{ route('user.social-oauth.login', 'linkedin') }}"
+                       class="w-full py-2.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-semibold text-white flex items-center justify-center gap-2">
+                        <i class="fab fa-linkedin text-[13px]"></i> Sign up with LinkedIn
+                    </a>
+                </div>
+                </div>{{-- /register tab wrapper --}}
 
                 @if($errors->any())
                     <div class="mt-3 rounded-lg px-3 py-2 text-xs bg-red-500/10 border border-red-500/30 text-red-300">
