@@ -1413,9 +1413,15 @@
                 // directly on their own .card-container-render div inside
                 // the render partial — wrapping them here would double-apply
                 // the background/border/shadow chrome.
+                // Browser-window chrome (Task #6568): the render partial
+                // draws the full window frame (bg, border, hard shadow)
+                // itself, so the generic styled wrapper must not
+                // double-apply the block's card chrome around it.
+                $hasWindowChrome = !empty($s['_style']['_window_chrome']);
                 $skipWrap = in_array($block->type, ['avatar', 'divider', 'spacer', 'social_icons', 'card'])
                     || str_starts_with($block->type, 'profile_card')
-                    || $isBtnLike;
+                    || $isBtnLike
+                    || $hasWindowChrome;
                 $btnInline = ($isBtnLike && $hasCustomStyle) ? $blockInline : '';
                 // Catalog preset background layer (Task #5970): painted on an
                 // absolutely-positioned layer behind the block content at the

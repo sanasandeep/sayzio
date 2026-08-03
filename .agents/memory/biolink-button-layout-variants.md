@@ -33,3 +33,5 @@ scanning the page's `$blocks` collection (in scope inside the block partial via
 Blade's include-shares-parent-vars) for siblings with the same `link_layout`,
 counting up to the current block id; guard `isset($blocks)` and fall back to 1
 for standalone/editor single-block renders. No DB query, no static counters.
+
+**Rounded clipped shapes:** sharp polygon clip-paths can't round corners. Pattern: a shared class in a `@once`-keyed inline `<style>` with the sharp `polygon()` as fallback and an `@supports (clip-path: shape(...))` override using `shape()` quadratic `curve to ... with <vertex>` at each corner (mixed px/% calc works). Verified rendering headless — note Chromium refuses ports 5060/5061 (ERR_UNSAFE_PORT); serve test pages on e.g. 5070. Playwright is importable from `scripts/` node_modules (script must live under that dir for ESM resolution).

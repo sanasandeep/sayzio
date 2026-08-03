@@ -269,7 +269,7 @@
                 </div>
                 <div class="relative mt-7 pt-7 border-t border-white/10">
                     <div class="text-xs font-bold uppercase tracking-[.18em] mb-1.5" style="color:var(--c2)">All-in-one platform</div>
-                    <p class="text-sm text-gray-400 leading-relaxed">One link for everything: bio pages, short links, QR codes, forms and more, all under your handle.</p>
+                    <p class="text-sm text-gray-400 leading-relaxed">One link for everything: Link in Bio pages, short links, QR codes, forms and more, all under your handle.</p>
                 </div>
             </div>
 

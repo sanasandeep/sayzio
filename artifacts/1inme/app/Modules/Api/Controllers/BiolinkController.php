@@ -396,6 +396,10 @@ class BiolinkController extends Controller
 
         $data = $request->validate([
             'destination_url' => ['nullable', 'string', 'max:2048'],
+            // Task #6576 — stable per-item id for multi-link blocks
+            // (link_tree_group), so analytics can attribute the tap even
+            // when items share a destination URL.
+            'item_id' => ['nullable', 'string', 'regex:/^[a-z0-9]{1,32}$/'],
         ]);
 
         $destination = $data['destination_url'] ?? '';
@@ -412,7 +416,7 @@ class BiolinkController extends Controller
         // Race-safe gate: trackBlockClick returns null when the
         // atomic cap-reservation UPDATE didn't fire (cap reached) or
         // the schedule expired between our pre-check and the call.
-        $tracked = $this->trackingService->trackBlockClick($link, $block, $destination, $request, $alias, 'mobile_app');
+        $tracked = $this->trackingService->trackBlockClick($link, $block, $destination, $request, $alias, 'mobile_app', $data['item_id'] ?? null);
         if ($tracked === null) {
             return $this->fail('This block is no longer available.', 410, 'block_expired');
         }

@@ -292,10 +292,12 @@ export function trackBiolinkBlockTap(
   alias: string,
   blockId: number,
   destinationUrl?: string | null,
+  itemId?: string | null,
 ): void {
   if (!alias || !Number.isFinite(blockId)) return;
   const body: Record<string, unknown> = {};
   if (destinationUrl) body.destination_url = destinationUrl;
+  if (itemId) body.item_id = itemId;
   void (async () => {
     const headers = await visitorHeaders();
     return apiFetch(

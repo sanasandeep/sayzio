@@ -103,6 +103,16 @@ class AuthController extends Controller
         $validated['email'] = strtolower($validated['email']);
         if (!empty($validated['country'])) {
             $validated['country'] = strtoupper($validated['country']);
+        } else {
+            // The sign-up form no longer asks for a country, but country
+            // drives billing currency (IN => ₹). Infer one from the phone
+            // number's dialling code (if given) or the request IP so Indian
+            // creators still get INR pricing. Best-effort: null is fine —
+            // the user can set it later on Profile → Billing country.
+            $validated['country'] = \App\Modules\Common\Support\SignupCountry::infer(
+                $validated['mobile'] ?? null,
+                $request->ip(),
+            );
         }
 
         // If a referral code was submitted, ensure it resolves to a real user;
@@ -604,6 +614,15 @@ class AuthController extends Controller
         $country = (is_string($country) && preg_match('/^[A-Za-z]{2}$/', $country))
             ? strtoupper($country)
             : null;
+        // No country submitted (the OTP/WhatsApp form has no picker): infer
+        // one from the phone number's dialling code (+91 => IN) or the
+        // request IP so billing currency resolves correctly (IN => ₹).
+        if ($country === null) {
+            $country = \App\Modules\Common\Support\SignupCountry::infer(
+                $type === 'mobile' ? $identifier : null,
+                $request->ip(),
+            );
+        }
 
         $freePlan = Plan::defaultPlan();
         $user = User::create([

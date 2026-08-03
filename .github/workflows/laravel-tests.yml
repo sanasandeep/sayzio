@@ -399,6 +399,37 @@ jobs:
       - name: Scan scripts, seeders and data migrations for hardcoded row ids
         run: php scripts/check-hardcoded-row-ids.php
 
+  marketing-heavy-blur-guard:
+    name: Marketing heavy animated blur guard (no database)
+    needs: changes
+    if: needs.changes.outputs.onein == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    # Fail when a marketing Blade view (home, pricing, features, ...) or
+    # marketing-anim.css reintroduces a large live `filter: blur()` on an
+    # infinitely-animated element. Live large-radius blurs are re-composited
+    # every frame and slow scrolling to a crawl on older phone GPUs; the
+    # aurora / AI-zone glows were converted to pre-softened radial gradients.
+    # Small hover-only glows (.btn-glow) stay allowed. Pure PHP static scan —
+    # no Composer install, no database.
+
+    defaults:
+      run:
+        working-directory: artifacts/1inme
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Scan marketing views for heavy animated blur glows
+        run: php scripts/check-marketing-heavy-blur.php
+
   em-dash-guard:
     name: Em-dash copy guard (no database)
     needs: changes

@@ -104,13 +104,14 @@
     }
 
     /* ── Pattern base styles (render statically for reduced-motion too) ── */
-    .pp-pattern-orbs::before,.pp-pattern-orbs::after{content:"";position:absolute;border-radius:50%;filter:blur(70px);opacity:.5;}
-    .pp-pattern-orbs::before{width:60vw;height:60vw;left:-12vw;top:-12vh;background:radial-gradient(circle,var(--accent),transparent 68%);}
-    .pp-pattern-orbs::after{width:55vw;height:55vw;right:-14vw;top:24vh;background:radial-gradient(circle,rgba(255,255,255,.28),transparent 68%);}
+    /* Pre-softened gradients (no live blur — cheap to composite every frame). */
+    .pp-pattern-orbs::before,.pp-pattern-orbs::after{content:"";position:absolute;border-radius:50%;opacity:.5;}
+    .pp-pattern-orbs::before{width:60vw;height:60vw;left:-12vw;top:-12vh;background:radial-gradient(circle,var(--accent),color-mix(in srgb, var(--accent) 40%, transparent) 40%,transparent 74%);}
+    .pp-pattern-orbs::after{width:55vw;height:55vw;right:-14vw;top:24vh;background:radial-gradient(circle,rgba(255,255,255,.28),rgba(255,255,255,.12) 40%,transparent 74%);}
 
-    .pp-pattern-blobs::before,.pp-pattern-blobs::after{content:"";position:absolute;width:48vw;height:48vw;filter:blur(60px);opacity:.5;}
-    .pp-pattern-blobs::before{left:-8vw;top:-6vh;background:radial-gradient(circle,var(--accent),transparent 70%);border-radius:42% 58% 60% 40%/45% 45% 55% 55%;}
-    .pp-pattern-blobs::after{right:-8vw;bottom:-8vh;background:radial-gradient(circle,rgba(255,255,255,.25),transparent 70%);border-radius:60% 40% 35% 65%/55% 60% 40% 45%;}
+    .pp-pattern-blobs::before,.pp-pattern-blobs::after{content:"";position:absolute;width:48vw;height:48vw;opacity:.5;}
+    .pp-pattern-blobs::before{left:-8vw;top:-6vh;background:radial-gradient(circle,var(--accent),color-mix(in srgb, var(--accent) 40%, transparent) 42%,transparent 74%);border-radius:42% 58% 60% 40%/45% 45% 55% 55%;}
+    .pp-pattern-blobs::after{right:-8vw;bottom:-8vh;background:radial-gradient(circle,rgba(255,255,255,.25),rgba(255,255,255,.1) 42%,transparent 74%);border-radius:60% 40% 35% 65%/55% 60% 40% 45%;}
 
     .pp-pattern-spotlight::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 50% at 50% -5%, var(--pp-accent-soft), transparent 60%);opacity:.85;}
 
@@ -118,9 +119,9 @@
 
     .pp-pattern-grid::before{content:"";position:absolute;inset:-25%;background-image:linear-gradient(var(--pp-accent-soft) 1px,transparent 1px),linear-gradient(90deg,var(--pp-accent-soft) 1px,transparent 1px);background-size:46px 46px;opacity:.5;-webkit-mask-image:radial-gradient(70% 70% at 50% 30%,#000,transparent 75%);mask-image:radial-gradient(70% 70% at 50% 30%,#000,transparent 75%);}
 
-    .pp-pattern-mesh{background-image:radial-gradient(40% 40% at 20% 20%, var(--accent), transparent 60%),radial-gradient(40% 40% at 80% 25%, rgba(255,255,255,.18), transparent 60%),radial-gradient(45% 45% at 50% 95%, var(--pp-accent-soft), transparent 60%);opacity:.55;filter:blur(30px);}
+    .pp-pattern-mesh{background-image:radial-gradient(46% 46% at 20% 20%, var(--accent), color-mix(in srgb, var(--accent) 40%, transparent) 38%, transparent 72%),radial-gradient(46% 46% at 80% 25%, rgba(255,255,255,.18), rgba(255,255,255,.08) 38%, transparent 72%),radial-gradient(50% 50% at 50% 95%, var(--pp-accent-soft), transparent 72%);opacity:.55;}
 
-    .pp-pattern-aurora::before{content:"";position:absolute;left:-20%;top:-12%;width:140%;height:80%;background:linear-gradient(115deg, transparent 0%, var(--accent) 30%, rgba(255,255,255,.25) 50%, var(--pp-accent-soft) 70%, transparent 100%);filter:blur(60px);opacity:.55;}
+    .pp-pattern-aurora::before{content:"";position:absolute;left:-20%;top:-12%;width:140%;height:80%;background:linear-gradient(115deg, transparent 0%, var(--accent) 30%, rgba(255,255,255,.25) 50%, var(--pp-accent-soft) 70%, transparent 100%);-webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 22%, #000 78%, transparent 100%);mask-image:linear-gradient(180deg, transparent 0%, #000 22%, #000 78%, transparent 100%);opacity:.55;}
 
     .pp-pattern-waves::before,.pp-pattern-waves::after{content:"";position:absolute;left:-10%;width:140%;height:60vh;opacity:.4;background-repeat:repeat-x;-webkit-mask-image:linear-gradient(transparent,#000);mask-image:linear-gradient(transparent,#000);}
     .pp-pattern-waves::before{bottom:0;background-image:radial-gradient(120px 40px at 60px 60px, var(--accent) 40%, transparent 42%);background-size:120px 80px;}

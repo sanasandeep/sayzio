@@ -4,8 +4,8 @@
     .dc-wrap { position: relative; }
     .dc-mesh::before {
         content:""; position:absolute; inset:-20%;
-        background: rgba(27,212,217,.06);
-        filter: blur(40px); pointer-events:none; z-index:0;
+        background: radial-gradient(ellipse 75% 75% at 50% 50%, rgba(27,212,217,.08), transparent 78%);
+        pointer-events:none; z-index:0;
         animation: dcMesh 15s ease-in-out infinite alternate;
     }
     @keyframes dcMesh { 0% { transform: translate3d(0,0,0) scale(1); } 100% { transform: translate3d(-2%,2%,0) scale(1.06); } }

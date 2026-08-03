@@ -1,7 +1,15 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, {
+  Circle,
+  ClipPath,
+  Defs,
+  Ellipse,
+  Image as SvgImage,
+  Path,
+  Polygon,
+} from "react-native-svg";
 import * as Linking from "expo-linking";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -360,6 +368,23 @@ function StickerOverlay({
   );
 }
 
+const MASK_POLYGONS: Record<string, [number, number][]> = {
+  diamond: [[50, 0], [100, 50], [50, 100], [0, 50]],
+  hexagon: [[25, 0], [75, 0], [100, 50], [75, 100], [25, 100], [0, 50]],
+  octagon: [[29.3, 0], [70.7, 0], [100, 29.3], [100, 70.7], [70.7, 100], [29.3, 100], [0, 70.7], [0, 29.3]],
+  star: [[50, 0], [61, 35], [98, 35], [68, 57], [79, 91], [50, 70], [21, 91], [32, 57], [2, 35], [39, 35]],
+  blob: [[30, 0], [70, 0], [100, 30], [100, 70], [70, 100], [30, 100], [0, 70], [0, 30]],
+  arch: [[0, 100], [0, 30], [5, 15], [15, 5], [30, 0], [70, 0], [85, 5], [95, 15], [100, 30], [100, 100]],
+  heart: [[50, 100], [8, 60], [0, 35], [5, 18], [18, 8], [32, 8], [42, 18], [50, 28], [58, 18], [68, 8], [82, 8], [95, 18], [100, 35], [92, 60]],
+  torn: [[0, 4], [5, 0], [12, 5], [20, 1], [28, 6], [38, 0], [48, 4], [58, 0], [68, 5], [78, 1], [88, 5], [95, 0], [100, 4], [100, 96], [95, 100], [88, 95], [78, 99], [68, 95], [58, 100], [48, 96], [38, 100], [28, 94], [20, 99], [12, 95], [5, 100], [0, 96]],
+  triangle: [[50, 0], [100, 100], [0, 100]],
+  pentagon: [[50, 0], [100, 38], [81, 100], [19, 100], [0, 38]],
+  semicircle: [[0, 0], [100, 0], [100, 70], [95, 85], [85, 95], [70, 100], [30, 100], [15, 95], [5, 85], [0, 70]],
+  wave: [[0, 0], [100, 0], [100, 88], [88, 95], [75, 88], [62, 95], [50, 88], [38, 95], [25, 88], [12, 95], [0, 88]],
+  shield: [[0, 0], [100, 0], [100, 65], [92, 80], [75, 92], [50, 100], [25, 92], [8, 80], [0, 65]],
+  scallop: [[50, 0], [61.4, 7.5], [75, 6.7], [81.1, 18.9], [93.3, 25], [92.5, 38.6], [100, 50], [92.5, 61.4], [93.3, 75], [81.1, 81.1], [75, 93.3], [61.4, 92.5], [50, 100], [38.6, 92.5], [25, 93.3], [18.9, 81.1], [6.7, 75], [7.5, 61.4], [0, 50], [7.5, 38.6], [6.7, 25], [18.9, 18.9], [25, 6.7], [38.6, 7.5]],
+  cross: [[35, 0], [65, 0], [65, 35], [100, 35], [100, 65], [65, 65], [65, 100], [35, 100], [35, 65], [0, 65], [0, 35], [35, 35]],
+};
 function pickStr(s: Record<string, unknown> | null, ...keys: string[]): string | null {
   if (!s) return null;
   for (const k of keys) {
@@ -1193,6 +1218,332 @@ export function blockWrapMargins(block: BiolinkBlock): ViewStyle {
   };
 }
 
+// ── Retro browser-window chrome (Task #6568) ──────────────────────────
+// Mirrors the web renderer: when `_style._window_chrome` is set on a
+// heading/link-family block, the block renders inside a retro OS window —
+// title bar with three decorative control dots (× + −), thick border,
+// sharp corners, and a hard offset shadow (drawn as an offset backing
+// View so it stays hard-edged on Android too). Other block types carrying
+// the token are ignored gracefully.
+const WINDOW_CHROME_TYPES = new Set([
+  "heading",
+  "heading_logo",
+  "link",
+  "link_big",
+  "cta_button",
+  "button",
+  "featured_pin",
+]);
+
+function WindowChromeFrame(props: { st: Record<string, unknown>; children: React.ReactNode }) {
+  const { st } = props;
+  const rawBg = typeof st.bg_color === "string" ? st.bg_color.trim() : "";
+  const bg =
+    rawBg !== "" && rawBg !== "transparent" && !/gradient\(/i.test(rawBg) ? rawBg : "#f6f4ef";
+  const rawBorder = typeof st.border_color === "string" ? st.border_color.trim() : "";
+  const border = /^#[0-9a-fA-F]{3,8}$/.test(rawBorder) ? rawBorder : "#111111";
+  return (
+    <View style={{ marginBottom: 6, marginRight: 6 }}>
+      {/* Hard offset shadow layer */}
+      <View
+        pointerEvents="none"
+        style={{ position: "absolute", top: 6, left: 6, right: -6, bottom: -6, backgroundColor: border }}
+      />
+      <View style={{ backgroundColor: bg, borderWidth: 3, borderColor: border, borderRadius: 0 }}>
+        <View
+          accessibilityElementsHidden
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            paddingVertical: 6,
+            paddingHorizontal: 12,
+            borderBottomWidth: 3,
+            borderBottomColor: border,
+          }}
+        >
+          {["×", "+", "−"].map((g) => (
+            <View
+              key={g}
+              style={{
+                width: 15,
+                height: 15,
+                borderRadius: 999,
+                borderWidth: 1.5,
+                borderColor: border,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ fontSize: 9, lineHeight: 12, fontWeight: "700", color: border }}>{g}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={{ paddingVertical: 12, paddingHorizontal: 14 }}>{props.children}</View>
+      </View>
+    </View>
+  );
+}
+
+// --- Structural link_layout renderers (Task #6605) -----------------------
+// Native mirrors of the four web link.blade.php branches added in Task
+// #6602: sparkle_pill, notched_bar, speech_bubble, riveted_plaque. Each
+// reads the same `_style` keys as the web renderer and falls back to the
+// same reference colors. Unknown tokens still fall through to the plain
+// button path in BlockViewInner.
+
+type LlStyle = Record<string, unknown> | null;
+const llStr = (st: LlStyle, k: string): string =>
+  typeof st?.[k] === "string" ? (st[k] as string) : "";
+// Mirrors Blade's `intval(...) ?: fallback` — 0/blank/invalid → fallback.
+const llInt = (st: LlStyle, k: string, fallback: number): number => {
+  const n = parseInt(String(st?.[k] ?? ""), 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+};
+const llColor = (st: LlStyle, k: string, fallback: string): string => {
+  const v = llStr(st, k);
+  return v !== "" && v !== "transparent" ? v : fallback;
+};
+const LL_SERIF = Platform.select({
+  ios: "Georgia",
+  android: "serif",
+  default: "Georgia, 'Times New Roman', serif",
+});
+// Four-point sparkle glyph (same path as the web renderer's inline SVG).
+const LL_SPARKLE_D =
+  "M12 0 C13.2 7.4 16.6 10.8 24 12 C16.6 13.2 13.2 16.6 12 24 C10.8 16.6 7.4 13.2 0 12 C7.4 10.8 10.8 7.4 12 0 Z";
+
+function SparklePillLink({ st, label, onPress }: { st: LlStyle; label: string; onPress: () => void }) {
+  const ink = llStr(st, "text_color") !== "" ? llStr(st, "text_color") : "#2c2a26";
+  const line = llColor(st, "border_color", ink);
+  const bgPick = llStr(st, "bg_color");
+  const bg = bgPick !== "" ? bgPick : "transparent";
+  return (
+    <Pressable onPress={onPress} style={{ width: "100%", paddingVertical: 9, paddingHorizontal: 12 }}>
+      <View
+        style={{
+          width: "100%",
+          backgroundColor: bg,
+          borderWidth: llInt(st, "border_width", 1),
+          borderColor: line,
+          borderRadius: 999,
+          paddingVertical: llInt(st, "padding", 14),
+          paddingHorizontal: 24,
+        }}
+      >
+        <Text
+          style={{
+            color: ink,
+            textAlign: "center",
+            fontSize: llInt(st, "font_size", 18),
+            fontWeight: (llStr(st, "font_weight") || "500") as "500",
+            letterSpacing: 1,
+            fontFamily: LL_SERIF,
+          }}
+          numberOfLines={2}
+        >
+          {label}
+        </Text>
+      </View>
+      <Svg
+        pointerEvents="none"
+        viewBox="0 0 24 24"
+        width={19}
+        height={19}
+        style={{ position: "absolute", top: 0, right: "6%" }}
+      >
+        <Path d={LL_SPARKLE_D} fill={line} />
+      </Svg>
+      <Svg
+        pointerEvents="none"
+        viewBox="0 0 24 24"
+        width={15}
+        height={15}
+        style={{ position: "absolute", bottom: 0, left: "8%" }}
+      >
+        <Path d={LL_SPARKLE_D} fill={line} />
+      </Svg>
+    </Pressable>
+  );
+}
+
+function NotchedBarLink({ st, label, onPress }: { st: LlStyle; label: string; onPress: () => void }) {
+  // The bar's silhouette (45°-clipped corners) is drawn as an SVG polygon
+  // sized from the measured layout, so the notches stay a fixed 16px at
+  // any width (RN has no CSS clip-path).
+  const [dims, setDims] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+  const bg = llColor(st, "bg_color", "#191512");
+  const ink = llStr(st, "text_color") !== "" ? llStr(st, "text_color") : "#ffffff";
+  const { w, h } = dims;
+  const notch = 16;
+  const points =
+    w > 0 && h > 0
+      ? `${notch},0 ${w - notch},0 ${w},${0.34 * h} ${w},${0.66 * h} ${w - notch},${h} ${notch},${h} 0,${0.66 * h} 0,${0.34 * h}`
+      : "";
+  return (
+    <Pressable
+      onPress={onPress}
+      onLayout={(e) =>
+        setDims({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })
+      }
+      style={{ width: "100%", marginBottom: 4 }}
+    >
+      {points !== "" ? (
+        <Svg
+          pointerEvents="none"
+          width={w}
+          height={h}
+          viewBox={`0 0 ${w} ${h}`}
+          style={StyleSheet.absoluteFill}
+        >
+          <Polygon points={points} fill={bg} />
+        </Svg>
+      ) : null}
+      <View style={{ paddingVertical: 16, paddingHorizontal: 32 }}>
+        <Text
+          style={{
+            color: ink,
+            textAlign: "center",
+            textTransform: "uppercase",
+            fontWeight: "700",
+            fontSize: llInt(st, "font_size", 16),
+            letterSpacing: 1.3,
+          }}
+          numberOfLines={2}
+        >
+          {label}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function SpeechBubbleLink({ st, label, onPress }: { st: LlStyle; label: string; onPress: () => void }) {
+  const bg = llColor(st, "bg_color", "#6b4a2f");
+  const ink = llStr(st, "text_color") !== "" ? llStr(st, "text_color") : "#f7ead3";
+  const borderStyle = llStr(st, "border_style") || "none";
+  const borderW = borderStyle !== "none" ? llInt(st, "border_width", 0) : 0;
+  const borderColor = borderW > 0 ? llColor(st, "border_color", ink) : "transparent";
+  return (
+    <Pressable onPress={onPress} style={{ width: "100%", paddingBottom: 12, marginBottom: 4 }}>
+      <View
+        style={{
+          width: "100%",
+          backgroundColor: bg,
+          borderRadius: llInt(st, "border_radius", 26),
+          borderWidth: borderW,
+          borderColor,
+          paddingVertical: llInt(st, "padding", 22),
+          paddingHorizontal: 28,
+        }}
+      >
+        <Text
+          style={{
+            color: ink,
+            textAlign: "left",
+            textTransform: "uppercase",
+            fontWeight: (llStr(st, "font_weight") || "800") as "800",
+            fontSize: llInt(st, "font_size", 19),
+            letterSpacing: 0.8,
+          }}
+          numberOfLines={2}
+        >
+          {label}
+        </Text>
+      </View>
+      {/* Tail poking out of the bottom-right corner, same silhouette as the
+          web renderer's clip-path polygon(0 0, 100% 0, 100% 100%, 55% 30%). */}
+      <Svg
+        pointerEvents="none"
+        width={26}
+        height={16}
+        viewBox="0 0 26 16"
+        style={{ position: "absolute", bottom: 0, right: 22 }}
+      >
+        <Polygon points="0,0 26,0 26,16 14.3,4.8" fill={bg} />
+      </Svg>
+    </Pressable>
+  );
+}
+
+function RivetedPlaqueLink({ st, label, onPress }: { st: LlStyle; label: string; onPress: () => void }) {
+  const bg = llColor(st, "bg_color", "#17161a");
+  const ink = llStr(st, "text_color") !== "" ? llStr(st, "text_color") : "#f3ede0";
+  const metal = llColor(st, "border_color", "#c9a35c");
+  const radius = llInt(st, "border_radius", 10);
+  const rivets: Array<Record<string, number>> = [
+    { top: 4, left: 4 },
+    { top: 4, right: 4 },
+    { bottom: 4, left: 4 },
+    { bottom: 4, right: 4 },
+  ];
+  return (
+    <Pressable onPress={onPress} style={{ width: "100%", marginBottom: 4 }}>
+      <View
+        style={{
+          width: "100%",
+          backgroundColor: bg,
+          borderWidth: llInt(st, "border_width", 2),
+          borderColor: metal,
+          borderRadius: radius,
+          paddingVertical: llInt(st, "padding", 18),
+          paddingHorizontal: 24,
+          shadowColor: "#000",
+          shadowOpacity: 0.35,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 4,
+        }}
+      >
+        {/* Inner metallic frame inset inside the outer border. */}
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 9,
+            left: 9,
+            right: 9,
+            bottom: 9,
+            borderWidth: 1,
+            borderColor: metal,
+            borderRadius: Math.max(radius - 6, 2),
+          }}
+        />
+        {rivets.map((pos, i) => (
+          <View
+            key={`rivet-${i}`}
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              width: 5,
+              height: 5,
+              borderRadius: 999,
+              backgroundColor: metal,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderColor: "rgba(255,255,255,0.7)",
+              ...pos,
+            }}
+          />
+        ))}
+        <Text
+          style={{
+            color: ink,
+            textAlign: "center",
+            fontWeight: (llStr(st, "font_weight") || "500") as "500",
+            fontSize: llInt(st, "font_size", 17),
+            letterSpacing: 0.9,
+            fontFamily: LL_SERIF,
+          }}
+          numberOfLines={2}
+        >
+          {label}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
 export function BlockView(props: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
   const st = (props.block.settings?._style as Record<string, unknown> | undefined) ?? {};
   const presetKey = typeof st.bg_preset_key === "string" ? st.bg_preset_key.trim() : "";
@@ -1233,6 +1584,15 @@ export function BlockView(props: { block: BiolinkBlock; alias: string; allBlocks
     : "";
 
   const inner = <BlockViewInner {...props} />;
+
+  // Retro browser-window chrome (Task #6568): the frame owns the block's
+  // background/border/shadow, so it takes precedence over the generic
+  // preset/gradient/image background layers below.
+  const wcToken = typeof st._window_chrome === "string" ? st._window_chrome.trim() : "";
+  if (wcToken !== "" && WINDOW_CHROME_TYPES.has(props.block.type)) {
+    return <WindowChromeFrame st={st}>{inner}</WindowChromeFrame>;
+  }
+
   if (!preset && gradientColors.length < 2 && !bgImageUri) return inner;
 
   let layer: React.ReactNode = null;
@@ -1841,6 +2201,22 @@ function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: Biolink
         </Pressable>
       );
     }
+    // Structural button layouts from Task #6602 (web link.blade.php):
+    // rendered natively so the mobile page matches the web page instead
+    // of degrading to the plain colored button. Unknown/other tokens
+    // still fall through to the plain button below.
+    if (!featured && _linkLayout === "sparkle_pill") {
+      return <SparklePillLink st={_st} label={label} onPress={() => handleTap(url)} />;
+    }
+    if (!featured && _linkLayout === "notched_bar") {
+      return <NotchedBarLink st={_st} label={label} onPress={() => handleTap(url)} />;
+    }
+    if (!featured && _linkLayout === "speech_bubble") {
+      return <SpeechBubbleLink st={_st} label={label} onPress={() => handleTap(url)} />;
+    }
+    if (!featured && _linkLayout === "riveted_plaque") {
+      return <RivetedPlaqueLink st={_st} label={label} onPress={() => handleTap(url)} />;
+    }
     if (featured) {
       return (
         <Pressable
@@ -2410,29 +2786,197 @@ function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: Biolink
       );
     }
 
-    return (
-      <Image
-        source={{ uri: url }}
-        style={[
-          styles.image,
-          isAvatar
-            ? { width: 96, height: 96, aspectRatio: undefined, borderRadius: pickBool(s, "rounded", true) ? 999 : 16 }
-            : null,
-        ]}
-        resizeMode="cover"
-      />
-    );
+    // ── Mask shapes + tappable link (Task #6575) ────────────────────
+    // Web parity: `_image_style.mask_shape` clips the image and a `_link`
+    // URL makes the whole shape tappable. circle/rounded/square/pill map
+    // to border-radius; the polygon/oval shapes go through the SVG clip.
+    const imgStyleObj = (s._image_style && typeof s._image_style === "object"
+      ? s._image_style
+      : {}) as Record<string, unknown>;
+    const maskShape =
+      !isAvatar && typeof imgStyleObj.mask_shape === "string" ? imgStyleObj.mask_shape : "none";
+    const linkObj = (s._link && typeof s._link === "object" ? s._link : {}) as Record<
+      string,
+      unknown
+    >;
+    const imgLinkUrl = !isAvatar ? (pickStr(linkObj, "url") ?? pickStr(s, "link")) : null;
+
+    let imageEl: React.ReactElement;
+    if (isAvatar) {
+      imageEl = (
+        <Image
+          source={{ uri: url }}
+          style={[
+            styles.image,
+            { width: 96, height: 96, aspectRatio: undefined, borderRadius: pickBool(s, "rounded", true) ? 999 : 16 },
+          ]}
+          resizeMode="cover"
+        />
+      );
+    } else if (maskShape === "circle") {
+      imageEl = (
+        <Image
+          source={{ uri: url }}
+          style={{ width: "100%", aspectRatio: 1, borderRadius: 9999 }}
+          resizeMode="cover"
+        />
+      );
+    } else if (maskShape === "rounded" || maskShape === "square" || maskShape === "pill") {
+      imageEl = (
+        <Image
+          source={{ uri: url }}
+          style={[
+            styles.image,
+            { borderRadius: maskShape === "square" ? 0 : maskShape === "pill" ? 9999 : 20 },
+          ]}
+          resizeMode="cover"
+        />
+      );
+    } else if (maskShape === "oval" || MASK_POLYGONS[maskShape]) {
+      imageEl = <MaskedBlockImage uri={url} shape={maskShape} />;
+    } else {
+      imageEl = <Image source={{ uri: url }} style={styles.image} resizeMode="cover" />;
+    }
+
+    if (imgLinkUrl && isSafeUrl(imgLinkUrl)) {
+      return (
+        <Pressable
+          onPress={() => handleTap(imgLinkUrl)}
+          accessibilityRole="link"
+          style={({ pressed }) => ({ width: "100%", opacity: pressed ? 0.85 : 1 })}
+        >
+          {imageEl}
+        </Pressable>
+      );
+    }
+    return imageEl;
   }
 
-  if (t === "spacer" || t === "divider") {
+  if (t === "spacer") {
+    // Match web: an empty gap, not a colored band.
+    const h = Math.max(4, Math.min(200, pickNum(s, "height") ?? 12));
+    return <View style={{ height: h }} />;
+  }
+
+  if (t === "divider") {
+    // Richer divider (Task #6581) — mirrors the web renderer's knobs:
+    // line style presets, thickness, width %, alignment and an optional
+    // centered icon/text ornament. Untouched legacy blocks fall through
+    // to the plain hairline they always had.
+    const dvStyleRaw = pickStr(s, "style") ?? "solid";
+    const dvStyle = ["solid", "dashed", "dotted", "double", "gradient", "dots", "zigzag", "wave"].includes(dvStyleRaw)
+      ? dvStyleRaw
+      : "solid";
+    const thick = Math.max(1, Math.min(12, pickNum(s, "thickness") ?? 1));
+    const widthPct = Math.max(10, Math.min(100, pickNum(s, "width") ?? 100));
+    const alignRaw = pickStr(s, "align") ?? "center";
+    const alignSelf = alignRaw === "left" ? "flex-start" : alignRaw === "right" ? "flex-end" : "center";
+    const dvColor = pickStr(s, "color") ?? colors.border;
+    const ornIcon = (pickStr(s, "ornament_icon") ?? "").trim();
+    const ornText = (pickStr(s, "ornament_text") ?? "").trim();
+    const hasOrn = ornIcon !== "" || ornText !== "";
+    const ornColor = pickStr(s, "ornament_color") ?? dvColor;
+    const ornSize = Math.max(10, Math.min(40, pickNum(s, "ornament_size") ?? 16));
+    // Feather has no FontAwesome catalog — map the common ornament icons
+    // to glyphs so web and mobile pages still match visually.
+    const ornGlyph = (() => {
+      const k = ornIcon.toLowerCase();
+      if (k.includes("star")) return "★";
+      if (k.includes("heart")) return "♥";
+      if (k.includes("circle")) return "●";
+      if (k.includes("diamond") || k.includes("gem")) return "◆";
+      if (k.includes("bolt")) return "⚡";
+      if (k.includes("moon")) return "☾";
+      if (k.includes("sun")) return "☀";
+      if (k.includes("music")) return "♪";
+      if (k.includes("leaf")) return "❧";
+      return "✦";
+    })();
+
+    const seg = (key: string) => {
+      const flex = { flex: 1, minWidth: 0 } as const;
+      switch (dvStyle) {
+        case "gradient":
+          return (
+            <LinearGradient
+              key={key}
+              colors={["transparent", dvColor, "transparent"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={[flex, { height: thick }]}
+            />
+          );
+        case "dots": {
+          const d = Math.max(4, thick * 3);
+          return (
+            <View key={key} style={[flex, { flexDirection: "row", justifyContent: "space-between", overflow: "hidden", height: d, alignItems: "center" }]}>
+              {Array.from({ length: 40 }).map((_, i) => (
+                <View key={i} style={{ width: d, height: d, borderRadius: d / 2, backgroundColor: dvColor, marginRight: d * 2 }} />
+              ))}
+            </View>
+          );
+        }
+        case "zigzag": {
+          const h = Math.max(6, thick * 3);
+          const segs: string[] = [`M0 ${h}`];
+          for (let x = 0; x < 240; x += h * 2) segs.push(`L${x + h} 0 L${x + h * 2} ${h}`);
+          return (
+            <View key={key} style={[flex, { height: h }]}>
+              <Svg width="100%" height={h} viewBox={`0 0 240 ${h}`} preserveAspectRatio="none">
+                <Path d={segs.join(" ")} fill="none" stroke={dvColor} strokeWidth={thick} />
+              </Svg>
+            </View>
+          );
+        }
+        case "wave": {
+          const h = thick + 8;
+          const mid = h / 2;
+          const parts: string[] = [`M0 ${mid}`, `Q6 0 12 ${mid}`];
+          for (let x = 24; x <= 240; x += 12) parts.push(`T${x} ${mid}`);
+          return (
+            <View key={key} style={[flex, { height: h }]}>
+              <Svg width="100%" height={h} viewBox={`0 0 240 ${h}`} preserveAspectRatio="none">
+                <Path d={parts.join(" ")} fill="none" stroke={dvColor} strokeWidth={thick} />
+              </Svg>
+            </View>
+          );
+        }
+        case "double": {
+          const bw = Math.max(1, Math.round(thick / 3));
+          return (
+            <View key={key} style={flex}>
+              <View style={{ height: bw, backgroundColor: dvColor }} />
+              <View style={{ height: bw, marginTop: bw, backgroundColor: dvColor }} />
+            </View>
+          );
+        }
+        case "dashed":
+        case "dotted":
+          return (
+            <View
+              key={key}
+              style={[flex, { height: 0, borderTopWidth: thick, borderColor: dvColor, borderStyle: dvStyle }]}
+            />
+          );
+        default:
+          return <View key={key} style={[flex, { height: thick, backgroundColor: dvColor }]} />;
+      }
+    };
+
     return (
-      <View
-        style={{
-          height: t === "spacer" ? (pickNum(s, "height") ?? 12) : 1,
-          backgroundColor: colors.border,
-          marginVertical: 6,
-        }}
-      />
+      <View style={{ marginVertical: 6, width: `${widthPct}%`, alignSelf }}>
+        {hasOrn ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            {seg("l")}
+            <Text style={{ color: ornColor, fontSize: ornSize, lineHeight: ornSize + 2 }} numberOfLines={1}>
+              {ornIcon !== "" ? ornGlyph : ornText.slice(0, 30)}
+            </Text>
+            {seg("r")}
+          </View>
+        ) : (
+          seg("full")
+        )}
+      </View>
     );
   }
 
@@ -2981,6 +3525,162 @@ function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: Biolink
     );
   }
 
+  // Link Group (link_tree_group) — Task #6576. Mirrors the web renderer's
+  // three layouts (list, grid, text_divider) with per-item tap tracking.
+  // Layout can come from a curated variant (stamped into the opaque
+  // `_style._ltg_layout` hook) or the block's own `layout` setting.
+  if (t === "link_tree_group") {
+    const items = (Array.isArray((s as Record<string, unknown>).items)
+      ? ((s as Record<string, unknown>).items as unknown[])
+      : []
+    ).filter((it): it is Record<string, unknown> => !!it && typeof it === "object");
+    const ltgStyle = ((s as Record<string, unknown>)._style &&
+    typeof (s as Record<string, unknown>)._style === "object"
+      ? (s as Record<string, unknown>)._style
+      : {}) as Record<string, unknown>;
+    const rawLayout =
+      (typeof ltgStyle._ltg_layout === "string" && ltgStyle._ltg_layout) ||
+      pickStr(s, "layout") ||
+      "list";
+    const layout = ["list", "grid", "text_divider"].includes(rawLayout) ? rawLayout : "list";
+    const rawAlign =
+      (typeof ltgStyle._ltg_align === "string" && ltgStyle._ltg_align) ||
+      pickStr(s, "align") ||
+      "left";
+    const align = (["left", "center", "right"].includes(rawAlign) ? rawAlign : "left") as
+      | "left"
+      | "center"
+      | "right";
+    const title = pickContentStr(s, "title");
+    const txtColor = blockTextColor(block, colors.foreground);
+    const itemLabel = (it: Record<string, unknown>) =>
+      typeof it.text === "string" && it.text.trim() !== "" ? it.text : "Link";
+    const itemUrl = (it: Record<string, unknown>) =>
+      typeof it.url === "string" ? it.url : "";
+    const tapItem = (it: Record<string, unknown>) => {
+      const url = itemUrl(it);
+      if (!url) return;
+      // Per-item attribution: pass the stable item id so the tap row can be
+      // told apart from siblings even when they share a destination URL.
+      const itemId = typeof it.id === "string" && it.id !== "" ? it.id : undefined;
+      trackBiolinkBlockTap(alias, block.id, url, itemId);
+      openSafe(url, router);
+    };
+
+    if (layout === "text_divider") {
+      return (
+        <View style={{ width: "100%" }}>
+          {title ? (
+            <Text
+              style={[
+                styles.btnLabel,
+                { color: txtColor, textAlign: align, marginBottom: 6 },
+              ]}
+            >
+              {title}
+            </Text>
+          ) : null}
+          {items.map((it, i) => (
+            <Pressable
+              key={typeof it.id === "string" && it.id ? it.id : String(i)}
+              onPress={() => tapItem(it)}
+              style={{
+                width: "100%",
+                paddingVertical: 14,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                borderBottomColor: `${txtColor}40`,
+              }}
+            >
+              <Text
+                style={{
+                  color: txtColor,
+                  fontSize: 15,
+                  fontWeight: "500",
+                  textAlign: align,
+                }}
+              >
+                {itemLabel(it)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      );
+    }
+
+    if (layout === "grid") {
+      return (
+        <View style={{ width: "100%" }}>
+          {title ? (
+            <Text style={[styles.btnLabel, { color: txtColor, marginBottom: 6 }]}>{title}</Text>
+          ) : null}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {items.map((it, i) => (
+              <Pressable
+                key={typeof it.id === "string" && it.id ? it.id : String(i)}
+                onPress={() => tapItem(it)}
+                style={[
+                  {
+                    flexBasis: "48%",
+                    flexGrow: 1,
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    paddingHorizontal: 10,
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: `${txtColor}30`,
+                    backgroundColor: `${txtColor}10`,
+                  },
+                ]}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={{ color: txtColor, fontSize: 14, fontWeight: "500", textAlign: "center" }}
+                >
+                  {itemLabel(it)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View style={{ width: "100%" }}>
+        {title ? (
+          <Text style={[styles.btnLabel, { color: txtColor, marginBottom: 6 }]}>{title}</Text>
+        ) : null}
+        {items.map((it, i) => (
+          <Pressable
+            key={typeof it.id === "string" && it.id ? it.id : String(i)}
+            onPress={() => tapItem(it)}
+            style={{
+              width: "100%",
+              borderRadius: 12,
+              paddingVertical: 12,
+              paddingHorizontal: 14,
+              marginBottom: 8,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: `${txtColor}30`,
+              backgroundColor: `${txtColor}10`,
+            }}
+          >
+            <Text numberOfLines={1} style={{ color: txtColor, fontSize: 14, fontWeight: "500" }}>
+              {itemLabel(it)}
+            </Text>
+            {typeof it.description === "string" && it.description.trim() !== "" ? (
+              <Text
+                numberOfLines={1}
+                style={{ color: txtColor, opacity: 0.6, fontSize: 12, marginTop: 2 }}
+              >
+                {it.description}
+              </Text>
+            ) : null}
+          </Pressable>
+        ))}
+      </View>
+    );
+  }
+
   // Profile / identity card family (profile_card_v1..v4). Dispatches on the
   // `_profile_layout` token carried in _style (set when a curated
   // `profile_identity` design is applied), falling back to the historical
@@ -3290,6 +3990,24 @@ function ProfileCardView({
   const initial = (name !== "" ? name : "U").charAt(0).toUpperCase();
   const hasCover = cover !== "" && isSafeUrl(cover);
 
+  // Cover-image effects (Task #6585) — blur via the native Image
+  // blurRadius prop, tint via an absolute overlay layered over the cover
+  // and UNDER arch/avatar/text (mirrors the web renderer's blur+tint
+  // layers). Unset keys = 0/empty so existing pages keep today's look.
+  const cvBlurRaw = Number(pcStyle._cover_blur);
+  const coverBlur = Number.isFinite(cvBlurRaw) ? Math.max(0, Math.min(40, cvBlurRaw)) : 0;
+  const cvOpRaw = Number(pcStyle._cover_overlay_opacity);
+  const cvOp = Number.isFinite(cvOpRaw) ? Math.max(0, Math.min(100, cvOpRaw)) : 0;
+  const cvColor =
+    typeof pcStyle._cover_overlay_color === "string" ? pcStyle._cover_overlay_color : "";
+  const hasCoverTint = cvColor !== "" && cvOp > 0;
+  const coverTintView = hasCoverTint ? (
+    <View
+      pointerEvents="none"
+      style={[StyleSheet.absoluteFillObject, { backgroundColor: cvColor, opacity: cvOp / 100 }]}
+    />
+  ) : null;
+
   // Outer card surface. The design's bg/border/radius arrive via cardOverlay;
   // with no design we keep the page's translucent card look.
   const surface: ViewStyle = {
@@ -3306,7 +4024,10 @@ function ProfileCardView({
     return (
       <View style={surface}>
         {hasCover ? (
-          <Image source={{ uri: cover }} style={{ height: 112, width: "100%" }} />
+          <View style={{ position: "relative" }}>
+            <Image source={{ uri: cover }} blurRadius={coverBlur} style={{ height: 112, width: "100%" }} />
+            {coverTintView}
+          </View>
         ) : null}
         <View
           style={{
@@ -3350,22 +4071,28 @@ function ProfileCardView({
         {hasCover ? (
           <Image
             source={{ uri: cover }}
+            blurRadius={coverBlur}
             style={{ ...StyleSheet.absoluteFillObject, opacity: 0.3 }}
           />
         ) : null}
         {/* Translucent tint over a cover; an opaque brand gradient when there's
             no cover, so the white glass text stays legible on any page theme
-            (mirrors the floating/social_profile fallback). */}
-        <LinearGradient
-          colors={
-            hasCover
-              ? ["rgba(61,107,255,0.40)", "rgba(236,72,153,0.28)"]
-              : ["#3d6bff", "#d76dff"]
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
-        />
+            (mirrors the floating/social_profile fallback). A user cover
+            overlay (Task #6585) overrides the built-in wash. */}
+        {hasCover && hasCoverTint ? (
+          coverTintView
+        ) : (
+          <LinearGradient
+            colors={
+              hasCover
+                ? ["rgba(61,107,255,0.40)", "rgba(236,72,153,0.28)"]
+                : ["#3d6bff", "#d76dff"]
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+        )}
         <View style={{ paddingHorizontal: 20, paddingVertical: 28, alignItems: "center" }}>
           <ProfileAvatar frame={pcFrame}
             avatar={avatar}
@@ -3394,6 +4121,7 @@ function ProfileCardView({
   if (layout === "cover_hero") {
     const inner = (
       <View style={{ minHeight: 300, justifyContent: "flex-end" }}>
+        {hasCover ? coverTintView : null}
         <LinearGradient
           colors={["rgba(0,0,0,0.15)", "rgba(0,0,0,0.88)"]}
           style={StyleSheet.absoluteFillObject}
@@ -3424,7 +4152,7 @@ function ProfileCardView({
     return (
       <View style={surface}>
         {hasCover ? (
-          <ImageBackground source={{ uri: cover }} style={{ width: "100%" }}>
+          <ImageBackground source={{ uri: cover }} blurRadius={coverBlur} style={{ width: "100%" }}>
             {inner}
           </ImageBackground>
         ) : (
@@ -3461,6 +4189,7 @@ function ProfileCardView({
   if (layout === "portrait_poster") {
     const inner = (
       <View style={{ minHeight: 420, alignItems: "center" }}>
+        {hasCover ? coverTintView : null}
         <LinearGradient
           colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.82)"]}
           locations={[0.4, 0.66, 1]}
@@ -3530,7 +4259,7 @@ function ProfileCardView({
     return (
       <View style={surface}>
         {hasCover ? (
-          <ImageBackground source={{ uri: cover }} style={{ width: "100%" }}>
+          <ImageBackground source={{ uri: cover }} blurRadius={coverBlur} style={{ width: "100%" }}>
             {inner}
           </ImageBackground>
         ) : (
@@ -3575,7 +4304,10 @@ function ProfileCardView({
     return (
       <View style={surface}>
         {hasCover ? (
-          <Image source={{ uri: cover }} style={{ height: 96, width: "100%" }} />
+          <View style={{ position: "relative" }}>
+            <Image source={{ uri: cover }} blurRadius={coverBlur} style={{ height: 96, width: "100%" }} />
+            {coverTintView}
+          </View>
         ) : (
           <LinearGradient
             colors={["#3d6bff", "#d76dff"]}
@@ -3635,7 +4367,10 @@ function ProfileCardView({
       <View style={[surface, { backgroundColor: "#ffffff" }]}>
         <View style={{ position: "relative" }}>
           {hasCover ? (
-            <Image source={{ uri: cover }} style={{ height: 176, width: "100%" }} />
+            <View style={{ position: "relative" }}>
+              <Image source={{ uri: cover }} blurRadius={coverBlur} style={{ height: 176, width: "100%" }} />
+              {coverTintView}
+            </View>
           ) : (
             <LinearGradient
               colors={["#e7dccf", "#cdb9a0"]}
@@ -3726,10 +4461,14 @@ function ProfileCardView({
     return (
       <View style={{ marginBottom: 16 }}>
         {hasCover ? (
-          <Image
-            source={{ uri: cover }}
-            style={{ height: 176, width: "100%", borderRadius: 16 }}
-          />
+          <View style={{ position: "relative", borderRadius: 16, overflow: "hidden" }}>
+            <Image
+              source={{ uri: cover }}
+              blurRadius={coverBlur}
+              style={{ height: 176, width: "100%" }}
+            />
+            {coverTintView}
+          </View>
         ) : (
           <LinearGradient
             colors={["#3d6bff", "#6ea8ff"]}
@@ -3873,11 +4612,16 @@ function ProfileCardView({
     return (
       <View style={surface}>
         {hasCover ? (
-          <ImageBackground source={{ uri: cover }} imageStyle={{ opacity: 0.35 }}>
-            <LinearGradient
-              colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0.92)"]}
-              style={StyleSheet.absoluteFillObject}
-            />
+          <ImageBackground source={{ uri: cover }} blurRadius={coverBlur} imageStyle={{ opacity: 0.35 }}>
+            {/* Built-in dark wash; a user cover overlay overrides it (Task #6585) */}
+            {hasCoverTint ? (
+              coverTintView
+            ) : (
+              <LinearGradient
+                colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0.92)"]}
+                style={StyleSheet.absoluteFillObject}
+              />
+            )}
             {inner}
           </ImageBackground>
         ) : (
@@ -3919,7 +4663,12 @@ function ProfileCardView({
   if (layout === "magazine") {
     return (
       <View style={[surface, { borderRadius: 12 }]}>
-        {hasCover ? <Image source={{ uri: cover }} style={{ height: 128, width: "100%" }} /> : null}
+        {hasCover ? (
+          <View style={{ position: "relative" }}>
+            <Image source={{ uri: cover }} blurRadius={coverBlur} style={{ height: 128, width: "100%" }} />
+            {coverTintView}
+          </View>
+        ) : null}
         <View style={{ padding: 20 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <ProfileAvatar frame={pcFrame} avatar={avatar} initial={initial} size={56} />
@@ -3958,7 +4707,10 @@ function ProfileCardView({
     return (
       <View style={surface}>
         {hasCover ? (
-          <Image source={{ uri: cover }} style={{ height: 96, width: "100%" }} />
+          <View style={{ position: "relative" }}>
+            <Image source={{ uri: cover }} blurRadius={coverBlur} style={{ height: 96, width: "100%" }} />
+            {coverTintView}
+          </View>
         ) : (
           <LinearGradient
             colors={["#3b82f6", "#06b6d4"]}
@@ -4971,10 +5723,14 @@ function ProfileCardView({
       <View style={surface}>
         <View style={{ position: "relative", minHeight: 440 }}>
           {hasCover ? (
-            <Image
-              source={{ uri: cover }}
-              style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
-            />
+            <>
+              <Image
+                source={{ uri: cover }}
+                blurRadius={coverBlur}
+                style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
+              />
+              {coverTintView}
+            </>
           ) : (
             <LinearGradient
               colors={["#a39a8b", "#7c7466", "#5f594e"]}
@@ -6159,3 +6915,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
+
+function maskAspectRatio(shape: string): number {
+  if (shape === "arch" || shape === "semicircle") return 3 / 4;
+  if (shape === "torn" || shape === "wave") return 4 / 5;
+  return 1;
+}
+
+function MaskedBlockImage({ uri, shape }: { uri: string; shape: string }) {
+  const [w, setW] = useState(0);
+  const clipId = useRef(`blkmask${++__maskClipSeq}`).current;
+  const ratio = maskAspectRatio(shape);
+  const h = w / ratio;
+  const pts = MASK_POLYGONS[shape];
+  return (
+    <View
+      style={{ width: "100%", aspectRatio: ratio }}
+      onLayout={(e) => setW(e.nativeEvent.layout.width)}
+    >
+      {w > 0 ? (
+        <Svg width={w} height={h}>
+          <Defs>
+            <ClipPath id={clipId}>
+              {shape === "oval" || !pts ? (
+                <Ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} />
+              ) : (
+                <Polygon
+                  points={pts.map(([x, y]) => `${(x / 100) * w},${(y / 100) * h}`).join(" ")}
+                />
+              )}
+            </ClipPath>
+          </Defs>
+          <SvgImage
+            href={{ uri }}
+            x={0}
+            y={0}
+            width={w}
+            height={h}
+            preserveAspectRatio="xMidYMid slice"
+            clipPath={`url(#${clipId})`}
+          />
+        </Svg>
+      ) : null}
+    </View>
+  );
+}
+
+let __maskClipSeq = 0;

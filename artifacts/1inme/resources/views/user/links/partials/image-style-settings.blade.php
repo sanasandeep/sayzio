@@ -13,6 +13,16 @@
         'arch' => 'Arch',
         'heart' => 'Heart',
         'torn' => 'Torn Edge',
+        // Task #6575: expanded shape library.
+        'oval' => 'Oval',
+        'pill' => 'Pill / Squircle',
+        'triangle' => 'Triangle',
+        'pentagon' => 'Pentagon',
+        'semicircle' => 'Semicircle / Dome',
+        'wave' => 'Wave Bottom',
+        'shield' => 'Shield',
+        'scallop' => 'Scallop / Flower',
+        'cross' => 'Cross',
     ];
     // Hero-photo decorations (Task #5922) live in _style so curated
     // variants can carry them; this form just exposes the same keys.
@@ -67,6 +77,18 @@
                 @endforeach
             </select>
             <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Clips the image into a specific shape</p>
+            @php $imgLinkHintUrl = trim((string) (($s['_link']['url'] ?? '') ?: ($s['link'] ?? ''))); @endphp
+            {{-- Task #6575: make the "masked image as link" pairing obvious
+                 right where the mask is chosen. The actual URL field lives
+                 in the Link settings section just below this one. --}}
+            <p class="text-[10px] mt-1 flex items-center gap-1" style="color: var(--text-dimmed);" data-testid="mask-link-hint">
+                <i class="fas fa-link text-blue-400"></i>
+                @if($imgLinkHintUrl !== '')
+                    <span>This image links to <span class="font-semibold" style="color: var(--text-muted);">{{ \Illuminate\Support\Str::limit($imgLinkHintUrl, 42) }}</span>; the whole shape stays tappable.</span>
+                @else
+                    <span>Tip: add a URL in the <span class="font-semibold" style="color: var(--text-muted);">Link</span> section below to make the masked image tappable.</span>
+                @endif
+            </p>
         </div>
 
         <div class="grid grid-cols-2 gap-3">

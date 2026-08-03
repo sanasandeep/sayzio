@@ -466,6 +466,11 @@ class BiolinkBlock extends Model
         // accent color at render time.
         '_avatar_frame' => '',
         '_avatar_frame_color' => '',
+        // Retro OS/browser window chrome (Task #6568). Slug token — when
+        // non-empty the public renderer wraps heading/link blocks in a
+        // title-bar + control-dots window frame with a thick border and
+        // hard offset shadow. Empty = no chrome (default).
+        '_window_chrome' => '',
         // Per-block layout switch for link-family blocks (link / link_big /
         // cta_button / featured_pin). Empty = existing button rendering.
         // 'plain_text'  = pure underlined inline link, no card chrome.
@@ -482,6 +487,8 @@ class BiolinkBlock extends Model
         '_animation' => '',        // heading animation hint (shimmer, glitch, ...)
         '_gallery_layout' => '',   // gallery layout (grid_2, masonry, ...)
         '_social_set' => '',       // social icon style set (mono_line, glassy, ...)
+        '_ltg_layout' => '',       // link_tree_group layout override (list, grid, text_divider)
+        '_ltg_align' => '',        // link_tree_group text alignment (left, center, right)
         // Hero-photo decorations for image blocks (Task #5922). All keys
         // live in _style so curated variants can carry them and the
         // Designs gallery can apply each look in one click.
@@ -542,6 +549,14 @@ class BiolinkBlock extends Model
         // dispatches on it to reposition avatar/cover/text/socials. Empty =
         // fall back to the block-type's default layout (classic/cover/...).
         '_profile_layout' => '',   // classic_creator, glass, cover_hero, ...
+        // Cover-image effects for the profile_card family (Task #6585).
+        // Blur softens the cover photo (px, clamped 0..40); the overlay
+        // tints it with a color at 0..100 opacity. All empty by default so
+        // existing pages and curated variants keep today's exact look —
+        // layouts with built-in overlays treat these as overrides.
+        '_cover_blur' => '',
+        '_cover_overlay_color' => '',
+        '_cover_overlay_opacity' => '',
         // Countdown block color overrides (rich countdown redesign). All
         // three are plain colors sanitized like other `_style` colors;
         // curated countdown variants carry them so a single click restyles
@@ -993,6 +1008,21 @@ class BiolinkBlock extends Model
         // gate). Visually close enough to a stylised heart silhouette.
         'heart' => 'polygon(50% 100%, 8% 60%, 0% 35%, 5% 18%, 18% 8%, 32% 8%, 42% 18%, 50% 28%, 58% 18%, 68% 8%, 82% 8%, 95% 18%, 100% 35%, 92% 60%)',
         'torn' => 'polygon(0% 4%, 5% 0%, 12% 5%, 20% 1%, 28% 6%, 38% 0%, 48% 4%, 58% 0%, 68% 5%, 78% 1%, 88% 5%, 95% 0%, 100% 4%, 100% 96%, 95% 100%, 88% 95%, 78% 99%, 68% 95%, 58% 100%, 48% 96%, 38% 100%, 28% 94%, 20% 99%, 12% 95%, 5% 100%, 0% 96%)',
+        // Task #6575: expanded shape library. Same rules as `heart`/`torn`
+        // above: polygon (or basic-shape ellipse) approximations only so
+        // every clip works wherever `clip-path` works at all. `pill` is
+        // handled in buildImageInlineStyle via border-radius (no clip).
+        'oval' => 'ellipse(50% 50% at 50% 50%)',
+        'triangle' => 'polygon(50% 0%, 100% 100%, 0% 100%)',
+        'pentagon' => 'polygon(50% 0%, 100% 38%, 81% 100%, 19% 100%, 0% 38%)',
+        // Semicircle / dome — the arch flipped: flat top, rounded bottom.
+        'semicircle' => 'polygon(0% 0%, 100% 0%, 100% 70%, 95% 85%, 85% 95%, 70% 100%, 30% 100%, 15% 95%, 5% 85%, 0% 70%)',
+        // Wavy bottom edge (flat everywhere else).
+        'wave' => 'polygon(0% 0%, 100% 0%, 100% 88%, 88% 95%, 75% 88%, 62% 95%, 50% 88%, 38% 95%, 25% 88%, 12% 95%, 0% 88%)',
+        'shield' => 'polygon(0% 0%, 100% 0%, 100% 65%, 92% 80%, 75% 92%, 50% 100%, 25% 92%, 8% 80%, 0% 65%)',
+        // Scallop / flower — 12 shallow petals around the center.
+        'scallop' => 'polygon(50% 0%, 61.4% 7.5%, 75% 6.7%, 81.1% 18.9%, 93.3% 25%, 92.5% 38.6%, 100% 50%, 92.5% 61.4%, 93.3% 75%, 81.1% 81.1%, 75% 93.3%, 61.4% 92.5%, 50% 100%, 38.6% 92.5%, 25% 93.3%, 18.9% 81.1%, 6.7% 75%, 7.5% 61.4%, 0% 50%, 7.5% 38.6%, 6.7% 25%, 18.9% 18.9%, 25% 6.7%, 38.6% 7.5%)',
+        'cross' => 'polygon(35% 0%, 65% 0%, 65% 35%, 100% 35%, 100% 65%, 65% 65%, 65% 100%, 35% 100%, 35% 65%, 0% 65%, 0% 35%, 35% 35%)',
     ];
 
     public static function buildImageInlineStyle(array $imgStyle): string
@@ -1007,6 +1037,10 @@ class BiolinkBlock extends Model
             $css[] = 'border-radius:20px';
         } elseif ($shape === 'square') {
             $css[] = 'border-radius:0';
+        } elseif ($shape === 'pill') {
+            // Pill / squircle (Task #6575): pure border-radius so the
+            // shape adapts to the image's aspect ratio without clipping.
+            $css[] = 'border-radius:999px';
         } elseif (isset(self::MASK_CLIP_PATHS[$shape])) {
             $css[] = 'clip-path:' . self::MASK_CLIP_PATHS[$shape];
         }

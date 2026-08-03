@@ -70,7 +70,7 @@
             $paidPlans = collect($plans)->reject(fn($p) => !empty($p['is_free']))->values();
             $cheapestPaid = $paidPlans->sortBy(fn($p) => (int) ($p['monthly']['amount_minor'] ?? PHP_INT_MAX))->first();
             $premiumHighlights = [
-                ['fa-infinity',          'Unlimited links & bio pages'],
+                ['fa-infinity',          'Unlimited links & Link in Bio pages'],
                 ['fa-chart-line',        'Advanced analytics & A/B tests'],
                 ['fa-users',             'Team seats & roles'],
                 ['fa-globe',             'Custom domains'],
@@ -159,7 +159,7 @@
 
                     {{-- Feature blocks (richer than plain bullets) --}}
                     <div class="space-y-2 mb-5">
-                        @foreach(['max_links' => ['fa-link', 'links'], 'max_biolinks' => ['fa-id-card', 'bio pages'], 'storage_limit_mb' => ['fa-database', 'MB storage'], 'contacts_max' => ['fa-address-book', 'contacts']] as $key => $meta)
+                        @foreach(['max_links' => ['fa-link', 'links'], 'max_biolinks' => ['fa-id-card', 'Link in Bio pages'], 'storage_limit_mb' => ['fa-database', 'MB storage'], 'contacts_max' => ['fa-address-book', 'contacts']] as $key => $meta)
                             @if(isset($f[$key]))
                                 <div class="free-row flex items-center gap-3 p-2.5 rounded-xl bg-white/[.04] border border-white/5 hover:border-white/15 hover:bg-white/[.06] transition group/row">
                                     <span class="w-9 h-9 rounded-lg flex items-center justify-center grad-bar shrink-0 group-hover/row:scale-110 transition" style="box-shadow: 0 8px 20px -8px rgba(61,107,255,.6);">

@@ -11,7 +11,7 @@ class LinkClick extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'link_id', 'alias', 'viewer_user_id', 'block_id', 'block_type', 'destination_url',
+        'link_id', 'alias', 'viewer_user_id', 'block_id', 'block_type', 'block_item_id', 'destination_url',
         'ip_address', 'country_code', 'city', 'latitude', 'longitude',
         'browser', 'os', 'device_type', 'referrer', 'source', 'user_agent', 'channel', 'is_bot',
         'is_throttled',

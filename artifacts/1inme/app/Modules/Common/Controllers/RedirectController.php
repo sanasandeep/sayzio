@@ -1132,12 +1132,19 @@ class RedirectController extends Controller
         $rawSource = (string) $request->query('source', '');
         $sourceTag = preg_match('/^[a-z0-9_-]{1,32}$/', $rawSource) ? $rawSource : 'web';
 
+        // Task #6576 — stable per-item id for multi-link blocks
+        // (link_tree_group). Carried as ?item=<id> on the redirect URL and
+        // persisted on the click row so analytics can attribute the click
+        // even when two items share a destination URL.
+        $rawItem = (string) $request->query('item', '');
+        $itemId = preg_match('/^[a-z0-9]{1,32}$/', $rawItem) ? $rawItem : null;
+
         // trackBlockClick now returns null when the block has hit its
         // cap or end_date — that's the authoritative concurrent gate
         // (a single conditional UPDATE inside the service). The
         // pre-check above is just a fast path; this covers the race
         // between two simultaneous clicks at click_count = cap - 1.
-        $tracked = $this->trackingService->trackBlockClick($link, $block, $destinationUrl, $request, $alias, $sourceTag);
+        $tracked = $this->trackingService->trackBlockClick($link, $block, $destinationUrl, $request, $alias, $sourceTag, $itemId);
         if ($tracked === null && !app(\App\Modules\Common\Services\BotDetector::class)->isBot($request->userAgent() ?? '')) {
             if ($redirect = $link->getExpiryRedirectUrl()) {
                 return redirect()->away($redirect, 302);

@@ -704,6 +704,13 @@ class BiolinkBlockController extends Controller
                 BiolinkBlock::STYLE_DEFAULTS,
                 $variantStyle
             ));
+            // Some variants (e.g. divider looks, Task #6581) carry a
+            // content-settings payload too — merge it through the same
+            // sanitizer as the editor form so applying a variant really
+            // applies its knobs, on web AND mobile (which read settings).
+            if (!empty($variant['settings']) && is_array($variant['settings'])) {
+                $settings = $this->sanitizeSettings($b->type, array_merge($settings, $variant['settings']));
+            }
             $b->update(['settings' => $settings]);
             $count++;
         }
@@ -753,6 +760,12 @@ class BiolinkBlockController extends Controller
                 '_variant_version' => BlockVariantCatalog::version(),
             ]
         ));
+
+        // Content-settings payload (e.g. divider looks, Task #6581):
+        // merged through the same sanitizer as the editor form save.
+        if (!empty($variant['settings']) && is_array($variant['settings'])) {
+            $settings = $this->sanitizeSettings($block->type, array_merge($settings, $variant['settings']));
+        }
 
         $block->update(['settings' => $settings]);
         return response()->json(['success' => true, 'block' => $block->fresh()]);
@@ -849,6 +862,13 @@ class BiolinkBlockController extends Controller
                 // heading / divider blocks all rendered as a tiny text
                 // chip and looked broken on the dark modal.
                 'shape_kind' => BlockVariantCatalog::shapeKindFor($block->type, $v['shape'] ?? null),
+                // Retro browser-window chrome (Task #6568): the gallery JS
+                // wraps the sketch in a mini title-bar frame when set.
+                'window_chrome' => !empty($v['style']['_window_chrome']),
+                // Divider variants (Task #6581) carry their look in a
+                // content-settings payload; hand the gallery enough to
+                // sketch the actual line style instead of a generic bar.
+                'divider_settings' => $block->type === 'divider' ? ($v['settings'] ?? []) : null,
             ];
         }
 
@@ -1939,6 +1959,56 @@ class BiolinkBlockController extends Controller
 
     public function sanitizeSettings(string $type, array $settings): array
     {
+        // Richer divider (Task #6581): clamp/allowlist every knob so a bad
+        // value can never reach the public page. Empty optional keys are
+        // dropped so untouched legacy blocks keep their minimal payload.
+        if ($type === 'divider') {
+            $st = (string) ($settings['style'] ?? 'solid');
+            $settings['style'] = in_array($st, ['solid', 'dashed', 'dotted', 'double', 'gradient', 'dots', 'zigzag', 'wave'], true) ? $st : 'solid';
+
+            $colorRe = '/^(#[0-9a-fA-F]{3,8}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*[\d.]+\s*)?\)|[a-zA-Z]{3,25})$/';
+            foreach (['color', 'ornament_color'] as $ck) {
+                $cv = trim((string) ($settings[$ck] ?? ''));
+                if ($cv === '' || !preg_match($colorRe, $cv)) {
+                    unset($settings[$ck]);
+                } else {
+                    $settings[$ck] = $cv;
+                }
+            }
+
+            foreach ([
+                'thickness'     => [1, 12, 1],
+                'width'         => [10, 100, 100],
+                'ornament_size' => [10, 40, 16],
+            ] as $nk => [$lo, $hi, $def]) {
+                $nv = $settings[$nk] ?? '';
+                if ($nv === '' || $nv === null || !is_numeric($nv)) {
+                    unset($settings[$nk]);
+                } else {
+                    $nv = max($lo, min($hi, (int) $nv));
+                    if ($nv === $def) unset($settings[$nk]); else $settings[$nk] = $nv;
+                }
+            }
+
+            $al = (string) ($settings['align'] ?? '');
+            if (in_array($al, ['left', 'right'], true)) {
+                $settings['align'] = $al;
+            } else {
+                unset($settings['align']); // center is the default
+            }
+
+            $icon = preg_replace('/[^a-z0-9 \-]/i', '', substr((string) ($settings['ornament_icon'] ?? ''), 0, 60));
+            if (trim((string) $icon) === '') unset($settings['ornament_icon']); else $settings['ornament_icon'] = trim($icon);
+
+            $txt = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($settings['ornament_text'] ?? ''))) ?? '');
+            if ($txt === '') unset($settings['ornament_text']); else $settings['ornament_text'] = mb_substr($txt, 0, 30);
+        }
+
+        // Spacer height: same 4–200px envelope the editor slider offers.
+        if ($type === 'spacer') {
+            $settings['height'] = max(4, min(200, (int) ($settings['height'] ?? 20)));
+        }
+
         if ($type === 'roadmap') {
             $settings['title']             = trim((string) ($settings['title'] ?? 'Roadmap'));
             $settings['subtitle']          = trim((string) ($settings['subtitle'] ?? ''));
@@ -1973,6 +2043,30 @@ class BiolinkBlockController extends Controller
                         (array) ($settings[$arrKey] ?? [])
                     )));
                 }
+            }
+        }
+
+        // Link Group blocks (Task #6576): validate layout/alignment and
+        // give every item a stable id so per-item clicks can be attributed
+        // through the block-redirect tracking pipeline. Existing ids are
+        // preserved across saves; new/duplicate ids are re-minted.
+        if ($type === 'link_tree_group') {
+            $layout = $settings['layout'] ?? 'list';
+            $settings['layout'] = in_array($layout, ['list', 'grid', 'text_divider'], true) ? $layout : 'list';
+            $align = $settings['align'] ?? 'left';
+            $settings['align'] = in_array($align, ['left', 'center', 'right'], true) ? $align : 'left';
+            if (isset($settings['items']) && is_array($settings['items'])) {
+                $seenIds = [];
+                foreach ($settings['items'] as &$ltgItem) {
+                    if (!is_array($ltgItem)) continue;
+                    $id = (string) ($ltgItem['id'] ?? '');
+                    if (!preg_match('/^[a-z0-9]{6,16}$/', $id) || isset($seenIds[$id])) {
+                        $id = substr(bin2hex(random_bytes(6)), 0, 8);
+                    }
+                    $seenIds[$id] = true;
+                    $ltgItem['id'] = $id;
+                }
+                unset($ltgItem);
             }
         }
 
@@ -2451,7 +2545,7 @@ class BiolinkBlockController extends Controller
     private function sanitizeImageStyle(array $input): array
     {
         $enums = [
-            'mask_shape' => ['none', 'rounded', 'circle', 'square', 'diamond', 'hexagon', 'octagon', 'star', 'blob', 'arch', 'heart', 'torn'],
+            'mask_shape' => ['none', 'rounded', 'circle', 'square', 'diamond', 'hexagon', 'octagon', 'star', 'blob', 'arch', 'heart', 'torn', 'oval', 'pill', 'triangle', 'pentagon', 'semicircle', 'wave', 'shield', 'scallop', 'cross'],
             'object_fit' => ['cover', 'contain', 'fill', 'none'],
             'border_style' => ['none', 'solid', 'dashed', 'dotted', 'double'],
             'shadow_type' => ['none', 'soft', 'hard', 'glow', 'neon', 'drop'],

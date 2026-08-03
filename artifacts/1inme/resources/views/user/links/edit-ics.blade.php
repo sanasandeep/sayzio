@@ -781,7 +781,7 @@
                 <div class="flex-1">
                     <div class="text-sm font-semibold text-red-300">Cancel this event</div>
                     <div class="text-xs mt-0.5 text-red-300/70">
-                        Call off the event and (optionally) notify every guest. You can reactivate it later — nothing is deleted.
+                        Call off the event and (optionally) notify every guest. You can reactivate it later; nothing is deleted.
                     </div>
                     <a href="{{ route('user.links.ics.cancel', $link) }}"
                        class="mt-3 px-4 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-1.5"

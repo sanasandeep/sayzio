@@ -23,15 +23,15 @@
             <div class="zio-hero-copy text-center lg:text-left lg:max-w-[600px]">
                 <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-8">
                     <i class="fas fa-wand-magic-sparkles text-[11px]" style="color:var(--c2)"></i>
-                    <span class="grad-text">Short links · Bio pages · QR codes</span>
+                    <span class="grad-text">One Platform. Endless Conversations.</span>
                 </div>
 
                 <h1 id="hero-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.08] tracking-tight mb-6">
-                    Every link, page and QR code you need — <span class="grad-text">one place</span>
+                    One AI runs your whole <span class="grad-text">universe</span>
                 </h1>
 
                 <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-9 leading-relaxed">
-                    Create short links, bio pages and QR codes in seconds — then let <strong class="text-white">Zio</strong>, your built-in AI, build, grow and run them <strong class="text-white">24/7. Free forever</strong>, no card required.
+                    Meet <strong class="text-white">Zio</strong>, the AI behind Sayzio. It builds your Link in Bio pages, short links and QR codes, answers your visitors and picks up your calls, <strong class="text-white">24/7, free forever</strong>, no card required.
                 </p>
 
                 @guest
@@ -194,13 +194,19 @@
                              (shown while loading or if the video can't play). Under
                              prefers-reduced-motion the video is hidden and the static
                              .zio-mascot-fallback image is shown instead (see <style>). --}}
+                        {{-- The 1.3 MB WebM never blocks or bloats the initial
+                             load: the poster paints immediately and the clip's
+                             src lives in data-src, attached by the lazy loader
+                             below only after window load / first interaction
+                             (and never under prefers-reduced-motion, where the
+                             CSS hides the video entirely). --}}
                         <video class="zio-mascot zio-mascot-video"
                                aria-label="Zio, the Sayzio AI mascot"
                                width="220" height="220"
-                               autoplay loop muted playsinline disablepictureinpicture
-                               preload="metadata"
+                               loop muted playsinline disablepictureinpicture
+                               preload="none"
+                               data-src="{{ asset('branding/sayzio-mascot.webm') }}"
                                poster="{{ asset('branding/sayzio-mascot-still.png') }}">
-                            <source src="{{ asset('branding/sayzio-mascot.webm') }}" type="video/webm">
                         </video>
                         <img src="{{ asset('branding/sayzio-mascot-still.png') }}" alt="Zio, the Sayzio AI mascot" class="zio-mascot zio-mascot-fallback" width="220" height="220" loading="eager" decoding="async">
                         {{-- Animated transparent WebP, revealed by the alpha guard for
@@ -804,6 +810,39 @@
         // Covers the hero mascot clip (.zio-mascot-video), paired with its
         // transparent still (*-fallback) sibling. (The "1IN.ME is Sayzio"
         // section now uses a static icon, so only the hero clip is guarded.)
+        // Lazy mascot-clip loader: the WebM's URL sits in data-src so the
+        // browser fetches NOTHING for the clip up front (the poster paints
+        // instantly). Attach + play after window load or the first
+        // interaction, whichever comes first. Skipped under reduced motion —
+        // the CSS already hides the video and shows the static still there.
+        (function () {
+            var started = false;
+            function startMascot() {
+                if (started) { return; }
+                started = true;
+                if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
+                var videos = document.querySelectorAll('.zio-mascot-video[data-src]');
+                Array.prototype.forEach.call(videos, function (video) {
+                    var src = video.getAttribute('data-src');
+                    if (!src) { return; }
+                    video.removeAttribute('data-src');
+                    var source = document.createElement('source');
+                    source.src = src;
+                    source.type = 'video/webm';
+                    video.appendChild(source);
+                    video.load();
+                    var p = video.play();
+                    if (p && p.catch) { p.catch(function () { /* autoplay blocked — poster stays */ }); }
+                });
+            }
+            ['scroll', 'pointerdown', 'keydown', 'touchstart'].forEach(function (ev) {
+                window.addEventListener(ev, startMascot, { once: true, passive: true });
+            });
+            if (document.readyState === 'complete') { setTimeout(startMascot, 30); }
+            else { window.addEventListener('load', function () { setTimeout(startMascot, 30); }); }
+            setTimeout(startMascot, 4000);
+        })();
+
         (function () {
             function initMascotAlphaGuard() {
             var videos = document.querySelectorAll('.zio-mascot-video');

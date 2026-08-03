@@ -34,6 +34,11 @@ use App\Modules\User\Controllers\UserAccessController;
 
 Route::get('/', [\App\Modules\Common\Controllers\HomeController::class, 'index'])->middleware('brand.primary')->name('home');
 
+// Deferred below-the-fold home sections, fetched by the homepage loader
+// right after first paint. Two-segment path keeps it clear of the
+// single-segment /{alias} catch-all.
+Route::get('/home/sections', [\App\Modules\Common\Controllers\HomeController::class, 'sections'])->name('home.sections');
+
 // Public SVG placeholders generated for the biolink creation wizard.
 // Referenced as the default avatar / cover image on pages built by the
 // wizard, so this route must remain auth-free.

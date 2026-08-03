@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 18;
+    public const VERSION = 22;
 
     /**
      * Effective catalog version (Task #6045): the hardcoded VERSION
@@ -430,6 +430,28 @@ class BlockVariantCatalog
                     ],
                     'preview' => ['bg' => 'linear-gradient(180deg,#e0e7ff,#94a3b8)', 'text' => '#1e1b4b', 'radius' => 999, 'border' => '#7280a8'],
                 ],
+                // Retro OS/browser window (Task #6568): neobrutalist card
+                // with a title-bar strip + three decorative window-control
+                // dots rendered by the public renderer when
+                // `_style._window_chrome` is set. The style payload itself
+                // stays flat (no border/shadow) — the chrome wrapper owns
+                // the thick border and hard offset shadow so they aren't
+                // double-applied on the inner button/heading element.
+                [
+                    'key' => 'browser_window',
+                    'name' => 'Browser Window',
+                    'tags' => ['retro', 'brutalist', 'bold'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#f6f4ef',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => '#111111',
+                        'border_radius' => '0', 'shadow_preset' => 'none', 'shadow_type' => 'none',
+                        'text_color' => '#1f2937', 'padding' => '18', 'font_weight' => '700',
+                        'link_layout' => '',
+                        '_window_chrome' => 'retro',
+                    ],
+                    'preview' => ['bg' => '#f6f4ef', 'text' => '#1f2937', 'radius' => 0, 'border' => '#111111', 'shadow' => '5px 5px 0 #111111', 'window' => true],
+                ],
 
                 // ── New shape-first variants ──────────────────────────────
                 // Filled pill — the most "instagram bio link" look.
@@ -569,6 +591,24 @@ class BlockVariantCatalog
                         'padding' => '14', 'font_weight' => '800',
                     ],
                     'preview' => ['bg' => '#1e1b4b', 'text' => '#fff', 'radius' => 4],
+                ],
+                // Retro OS/browser window (Task #6568). Same chrome contract
+                // as the link_actions entry: the `_window_chrome` token
+                // makes the public renderer draw the title bar + control
+                // dots + thick border/hard shadow, so the style payload
+                // itself stays flat.
+                [
+                    'key' => 'browser_window',
+                    'name' => 'Browser Window',
+                    'tags' => ['retro', 'brutalist', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#f6f4ef',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => '#111111',
+                        'border_radius' => '0', 'shadow_preset' => 'none', 'shadow_type' => 'none',
+                        'text_color' => '#1f2937', 'padding' => '18', 'font_weight' => '800',
+                        '_window_chrome' => 'retro',
+                    ],
+                    'preview' => ['bg' => '#f6f4ef', 'text' => '#1f2937', 'radius' => 0, 'border' => '#111111', 'shadow' => '5px 5px 0 #111111', 'window' => true],
                 ],
             ],
 
@@ -1574,6 +1614,24 @@ class BlockVariantCatalog
                     ],
                     'preview' => ['bg' => '#ffffff', 'text' => '#1e1b4b', 'radius' => 0],
                 ],
+                // Task #6580: rounded variant of the arrow banner — same
+                // hexagonal silhouette with softly rounded points/corners
+                // (yellow "PORTFOLIO" reference). Rendering rounds via a
+                // CSS shape() clip; falls back to the sharp polygon.
+                [
+                    'key' => 'arrow_hex_round',
+                    'name' => 'Rounded Arrow Banner',
+                    'tags' => ['bold', 'corporate'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#d9b944',
+                        'border_style' => 'none', 'border_width' => '0',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#1f2937', 'padding' => '16', 'font_weight' => '800',
+                        'link_layout' => 'arrow_hex_round',
+                    ],
+                    'preview' => ['bg' => '#d9b944', 'text' => '#1f2937', 'radius' => 10],
+                ],
                 // Numbered editorial list: plain text link with a small
                 // right-aligned auto-incrementing index (01, 02, …) — the
                 // blue "About … 01" reference. Index is computed at render
@@ -1660,6 +1718,246 @@ class BlockVariantCatalog
                         'link_layout' => 'torn_tape',
                     ],
                     'preview' => ['bg' => '#a17c5b', 'text' => '#fdf8f2', 'radius' => 0, 'serif' => true],
+                ],
+                // Arrow chip: white outlined chip with a right-arrow icon
+                // overlapping the left end of a yellow pill (reference
+                // screenshot). Chip outline/icon derive from border_color.
+                [
+                    'key' => 'arrow_chip_left',
+                    'name' => 'Arrow Chip',
+                    'tags' => ['playful', 'bold', 'minimal'],
+                    'shape' => 'pill',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#f2e069',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => '#1f2937',
+                        'border_radius' => '999', 'shadow_preset' => 'none',
+                        'text_color' => '#1f2937', 'padding' => '14', 'font_weight' => '600',
+                        'link_layout' => 'arrow_chip_left',
+                    ],
+                    'preview' => ['bg' => '#f2e069', 'text' => '#1f2937', 'radius' => 999, 'border' => '#1f2937'],
+                ],
+
+                // ── Task #6588: screenshot-inspired styles ───────────────
+                // Edge-bleed bar: full-width bar bleeding to the page edge
+                // with a right-aligned label and a contrasting accent strip
+                // hugging the opposite edge (teal + tan reference).
+                // margin_left/right = 0 makes the wrap edge-to-edge; the
+                // accent strip = border_color.
+                [
+                    'key' => 'edge_bleed_bar',
+                    'name' => 'Edge Bleed Bar',
+                    'tags' => ['editorial', 'bold', 'pro'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#3c5f5c',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => '#dcb489',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#f7efe2', 'padding' => '18', 'font_weight' => '600',
+                        'margin_left' => '0', 'margin_right' => '0',
+                        'link_layout' => 'edge_bleed_bar',
+                    ],
+                    'preview' => ['bg' => '#3c5f5c', 'text' => '#f7efe2', 'radius' => 0, 'border' => '#dcb489'],
+                ],
+                // Ink-and-coral color variation of the same bleed layout.
+                [
+                    'key' => 'edge_bleed_bar_ink',
+                    'name' => 'Edge Bleed · Ink',
+                    'tags' => ['dark', 'bold', 'editorial'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#1c1c22',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => '#f97362',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#f5f2ea', 'padding' => '18', 'font_weight' => '600',
+                        'margin_left' => '0', 'margin_right' => '0',
+                        'link_layout' => 'edge_bleed_bar',
+                    ],
+                    'preview' => ['bg' => '#1c1c22', 'text' => '#f5f2ea', 'radius' => 0, 'border' => '#f97362'],
+                ],
+                // Double border: inner ring inset inside the outer border —
+                // framed "menu card" look (cream WEBSITE reference).
+                [
+                    'key' => 'double_border',
+                    'name' => 'Double Border',
+                    'tags' => ['editorial', 'minimal', 'retro'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#f6efe3',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#42351f',
+                        'border_radius' => '12', 'shadow_preset' => 'none',
+                        'text_color' => '#42351f', 'padding' => '16', 'font_weight' => '600',
+                        'link_layout' => 'double_border',
+                    ],
+                    'preview' => ['bg' => '#f6efe3', 'text' => '#42351f', 'radius' => 12, 'border' => '#42351f'],
+                ],
+                // Dark/gold color variation of the double-border frame.
+                [
+                    'key' => 'double_border_noir',
+                    'name' => 'Double Border · Noir',
+                    'tags' => ['dark', 'pro', 'editorial'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#141210',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#d4af6a',
+                        'border_radius' => '12', 'shadow_preset' => 'none',
+                        'text_color' => '#e9dcc0', 'padding' => '16', 'font_weight' => '600',
+                        'link_layout' => 'double_border',
+                    ],
+                    'preview' => ['bg' => '#141210', 'text' => '#e9dcc0', 'radius' => 12, 'border' => '#d4af6a'],
+                ],
+                // Sand-toned variation of the existing offset_frame layout —
+                // matches the tan bar + thin offset outline reference with a
+                // centered serif label.
+                [
+                    'key' => 'offset_frame_sand',
+                    'name' => 'Offset Frame · Sand',
+                    'tags' => ['editorial', 'minimal', 'retro'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#b08d63',
+                        'border_style' => 'none', 'border_width' => '1', 'border_color' => '#b08d63',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#faf5ec', 'padding' => '18', 'font_weight' => '400',
+                        'font_family' => 'Cormorant Garamond',
+                        'link_layout' => 'offset_frame',
+                    ],
+                    'preview' => ['bg' => '#b08d63', 'text' => '#faf5ec', 'radius' => 0, 'border' => '#b08d63', 'serif' => true],
+                ],
+
+                // ── Task #6602: four more screenshot-inspired styles ─────
+                // Sparkle pill: thin-outline pill with four-point sparkle
+                // glyphs near opposite corners, centered serif label
+                // (cream "WEBSITE" reference).
+                [
+                    'key' => 'sparkle_pill',
+                    'name' => 'Sparkle Pill',
+                    'tags' => ['editorial', 'minimal', 'playful'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#2c2a26',
+                        'border_radius' => '999', 'shadow_preset' => 'none',
+                        'text_color' => '#2c2a26', 'padding' => '14', 'font_weight' => '500',
+                        'font_family' => 'Playfair Display',
+                        'link_layout' => 'sparkle_pill',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#2c2a26', 'radius' => 999, 'border' => '#2c2a26', 'serif' => true],
+                ],
+                // Ivory-on-dark color variation of the sparkle pill.
+                [
+                    'key' => 'sparkle_pill_ivory',
+                    'name' => 'Sparkle Pill · Ivory',
+                    'tags' => ['dark', 'editorial', 'playful'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#f2ead9',
+                        'border_radius' => '999', 'shadow_preset' => 'none',
+                        'text_color' => '#f2ead9', 'padding' => '14', 'font_weight' => '500',
+                        'font_family' => 'Playfair Display',
+                        'link_layout' => 'sparkle_pill',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#f2ead9', 'radius' => 999, 'border' => '#f2ead9', 'serif' => true],
+                ],
+                // Notched bar: solid bar with 45°-clipped corners on all
+                // four corners, bold uppercase label (black "OUR MENU"
+                // reference).
+                [
+                    'key' => 'notched_bar',
+                    'name' => 'Notched Bar',
+                    'tags' => ['bold', 'brutalist', 'dark'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#191512',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => 'transparent',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#ffffff', 'padding' => '16', 'font_weight' => '800',
+                        'link_layout' => 'notched_bar',
+                    ],
+                    'preview' => ['bg' => '#191512', 'text' => '#ffffff', 'radius' => 0],
+                ],
+                // Crimson color variation of the notched bar.
+                [
+                    'key' => 'notched_bar_crimson',
+                    'name' => 'Notched Bar · Crimson',
+                    'tags' => ['bold', 'maximalist'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#8c2f2b',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => 'transparent',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#fdf3e4', 'padding' => '16', 'font_weight' => '800',
+                        'link_layout' => 'notched_bar',
+                    ],
+                    'preview' => ['bg' => '#8c2f2b', 'text' => '#fdf3e4', 'radius' => 0],
+                ],
+                // Speech bubble: chunky rounded bubble with a tail out the
+                // bottom-right and left-aligned bold rounded text (brown
+                // "MY WORK" on mustard reference).
+                [
+                    'key' => 'speech_bubble',
+                    'name' => 'Speech Bubble',
+                    'tags' => ['playful', 'bold', 'retro'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#6b4a2f',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => 'transparent',
+                        'border_radius' => '26', 'shadow_preset' => 'none',
+                        'text_color' => '#f7ead3', 'padding' => '22', 'font_weight' => '800',
+                        'font_family' => 'Baloo 2',
+                        'link_layout' => 'speech_bubble',
+                    ],
+                    'preview' => ['bg' => '#6b4a2f', 'text' => '#f7ead3', 'radius' => 26],
+                ],
+                // Bubblegum color variation of the speech bubble.
+                [
+                    'key' => 'speech_bubble_pink',
+                    'name' => 'Speech Bubble · Pink',
+                    'tags' => ['playful', 'y2k'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#f472b6',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => 'transparent',
+                        'border_radius' => '26', 'shadow_preset' => 'none',
+                        'text_color' => '#4a044e', 'padding' => '22', 'font_weight' => '800',
+                        'font_family' => 'Baloo 2',
+                        'link_layout' => 'speech_bubble',
+                    ],
+                    'preview' => ['bg' => '#f472b6', 'text' => '#4a044e', 'radius' => 26],
+                ],
+                // Riveted plaque: the double-border framed look dressed as
+                // a dark plaque — metallic gold outer + inner frame with
+                // rivet studs in the corners ("About Us" reference).
+                [
+                    'key' => 'riveted_plaque',
+                    'name' => 'Riveted Plaque',
+                    'tags' => ['dark', 'pro', 'retro'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#17161a',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#c9a35c',
+                        'border_radius' => '10', 'shadow_preset' => 'none',
+                        'text_color' => '#f3ede0', 'padding' => '18', 'font_weight' => '500',
+                        'font_family' => 'Playfair Display',
+                        'link_layout' => 'riveted_plaque',
+                    ],
+                    'preview' => ['bg' => '#17161a', 'text' => '#f3ede0', 'radius' => 10, 'border' => '#c9a35c', 'serif' => true],
+                ],
+                // Silver-on-navy color variation of the riveted plaque.
+                [
+                    'key' => 'riveted_plaque_silver',
+                    'name' => 'Riveted Plaque · Silver',
+                    'tags' => ['dark', 'pro', 'corporate'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#101726',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#b8c1cc',
+                        'border_radius' => '10', 'shadow_preset' => 'none',
+                        'text_color' => '#eef2f6', 'padding' => '18', 'font_weight' => '500',
+                        'font_family' => 'Playfair Display',
+                        'link_layout' => 'riveted_plaque',
+                    ],
+                    'preview' => ['bg' => '#101726', 'text' => '#eef2f6', 'radius' => 10, 'border' => '#b8c1cc', 'serif' => true],
                 ],
             ],
 
@@ -2642,6 +2940,189 @@ class BlockVariantCatalog
     private static function typeOneOffs(): array
     {
         return [
+            // Task #6576 — Link Group layout variants. The structural
+            // layout/alignment travels in the opaque `_style._ltg_layout` /
+            // `_style._ltg_align` hooks; the renderer reads those before
+            // the block's own content-level `layout` setting.
+            'link_tree_group' => [
+                [
+                    'key' => 'ltg_text_divider_right',
+                    'name' => 'Text · Dividers · Right',
+                    'tags' => ['minimal', 'editorial'],
+                    'style' => [
+                        '_ltg_layout' => 'text_divider', '_ltg_align' => 'right',
+                        'display_mode' => 'plain', 'bg_color' => 'transparent', 'border_style' => 'none',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'ltg_text_divider_left',
+                    'name' => 'Text · Dividers · Left',
+                    'tags' => ['minimal', 'editorial'],
+                    'style' => [
+                        '_ltg_layout' => 'text_divider', '_ltg_align' => 'left',
+                        'display_mode' => 'plain', 'bg_color' => 'transparent', 'border_style' => 'none',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'ltg_text_divider_center',
+                    'name' => 'Text · Dividers · Center',
+                    'tags' => ['minimal', 'editorial'],
+                    'style' => [
+                        '_ltg_layout' => 'text_divider', '_ltg_align' => 'center',
+                        'display_mode' => 'plain', 'bg_color' => 'transparent', 'border_style' => 'none',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'ltg_grid_tiles',
+                    'name' => 'Grid Tiles',
+                    'tags' => ['bold', 'pro'],
+                    'style' => [
+                        '_ltg_layout' => 'grid',
+                        'display_mode' => 'plain', 'bg_color' => 'transparent', 'border_style' => 'none',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 12],
+                ],
+
+                // Task #6589 — screenshot-inspired list styles. The renderer
+                // dispatches on `_style._ltg_layout`; bg_color/text_color
+                // (when set) retint the layout's built-in palette.
+                [
+                    'key' => 'ltg_outline_pills',
+                    'name' => 'Outlined Pills',
+                    'tags' => ['minimal', 'dark', 'pro'],
+                    'style' => [
+                        '_ltg_layout' => 'outline_pills',
+                        'bg_color' => 'transparent', 'border_style' => 'none', 'text_color' => '#f5f2ec',
+                    ],
+                    'preview' => ['bg' => '#211d18', 'text' => '#f5f2ec', 'radius' => 999, 'border' => '#f5f2ec70'],
+                ],
+                [
+                    'key' => 'ltg_outline_pills_ink',
+                    'name' => 'Outlined Pills · Ink',
+                    'tags' => ['minimal', 'editorial'],
+                    'style' => [
+                        '_ltg_layout' => 'outline_pills',
+                        'bg_color' => 'transparent', 'border_style' => 'none', 'text_color' => '#1f2937',
+                    ],
+                    'preview' => ['bg' => '#f5f2ec', 'text' => '#1f2937', 'radius' => 999, 'border' => '#1f293770'],
+                ],
+                [
+                    'key' => 'ltg_washi_tape',
+                    'name' => 'Washi Tape',
+                    'tags' => ['handwritten', 'playful', 'retro'],
+                    'style' => [
+                        '_ltg_layout' => 'washi_tape',
+                        'bg_color' => 'transparent', 'border_style' => 'none',
+                    ],
+                    'preview' => ['bg' => '#f7e9ed', 'text' => '#6d4c3d', 'radius' => 0, 'serif' => true],
+                ],
+                [
+                    'key' => 'ltg_washi_tape_sage',
+                    'name' => 'Washi Tape · Sage',
+                    'tags' => ['handwritten', 'playful', 'minimal'],
+                    'style' => [
+                        '_ltg_layout' => 'washi_tape',
+                        'bg_color' => '#dde6dc', 'text_color' => '#3c4a3a', 'border_style' => 'none',
+                    ],
+                    'preview' => ['bg' => '#dde6dc', 'text' => '#3c4a3a', 'radius' => 0, 'serif' => true],
+                ],
+                [
+                    'key' => 'ltg_tile_grid_alt',
+                    'name' => 'Alternating Tiles',
+                    'tags' => ['editorial', 'pro'],
+                    'style' => [
+                        '_ltg_layout' => 'tile_grid_alt',
+                        'bg_color' => '#f4efe6', 'text_color' => '#2c2820', 'border_style' => 'none',
+                    ],
+                    'preview' => ['bg' => '#f4efe6', 'text' => '#2c2820', 'radius' => 0, 'border' => '#2c282030', 'serif' => true],
+                ],
+                [
+                    'key' => 'ltg_tile_grid_alt_dark',
+                    'name' => 'Alternating Tiles · Dark',
+                    'tags' => ['editorial', 'dark'],
+                    'style' => [
+                        '_ltg_layout' => 'tile_grid_alt',
+                        'bg_color' => '#26221c', 'text_color' => '#efe9dd', 'border_style' => 'none',
+                    ],
+                    'preview' => ['bg' => '#26221c', 'text' => '#efe9dd', 'radius' => 0, 'border' => '#efe9dd30', 'serif' => true],
+                ],
+            ],
+            // Divider looks (Task #6581). Unlike every other type these
+            // variants carry a `settings` payload: dividers render entirely
+            // from their content settings (line style / thickness / width /
+            // ornament), so applyVariant merges `settings` through
+            // sanitizeSettings on top of stamping the minimal `_style`.
+            // Dividers also skip commonVariants() in forType() — card skins
+            // have nothing to bite into on a bare line.
+            'divider' => [
+                [
+                    'key' => 'dv_hairline',
+                    'name' => 'Hairline',
+                    'tags' => ['minimal'],
+                    'style' => ['display_mode' => 'content', 'padding' => '0'],
+                    'settings' => ['style' => 'solid', 'thickness' => 1, 'width' => 100, 'ornament_icon' => '', 'ornament_text' => ''],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff40', 'radius' => 0, 'divider' => 'solid'],
+                ],
+                [
+                    'key' => 'dv_gradient_fade',
+                    'name' => 'Gradient Fade',
+                    'tags' => ['minimal', 'pro'],
+                    'style' => ['display_mode' => 'content', 'padding' => '0'],
+                    'settings' => ['style' => 'gradient', 'thickness' => 2, 'width' => 100, 'color' => 'rgba(255,255,255,0.45)', 'ornament_icon' => '', 'ornament_text' => ''],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'divider' => 'gradient'],
+                ],
+                [
+                    'key' => 'dv_dots_row',
+                    'name' => 'Dots Row',
+                    'tags' => ['playful', 'minimal'],
+                    'style' => ['display_mode' => 'content', 'padding' => '0'],
+                    'settings' => ['style' => 'dots', 'thickness' => 2, 'width' => 60, 'color' => 'rgba(255,255,255,0.5)', 'ornament_icon' => '', 'ornament_text' => ''],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'divider' => 'dots'],
+                ],
+                [
+                    'key' => 'dv_zigzag',
+                    'name' => 'Zigzag',
+                    'tags' => ['playful', 'retro'],
+                    'style' => ['display_mode' => 'content', 'padding' => '0'],
+                    'settings' => ['style' => 'zigzag', 'thickness' => 2, 'width' => 70, 'color' => 'rgba(255,255,255,0.4)', 'ornament_icon' => '', 'ornament_text' => ''],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'divider' => 'zigzag'],
+                ],
+                [
+                    'key' => 'dv_wave',
+                    'name' => 'Wave',
+                    'tags' => ['playful', 'handwritten'],
+                    'style' => ['display_mode' => 'content', 'padding' => '0'],
+                    'settings' => ['style' => 'wave', 'thickness' => 2, 'width' => 70, 'color' => 'rgba(255,255,255,0.4)', 'ornament_icon' => '', 'ornament_text' => ''],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'divider' => 'wave'],
+                ],
+                [
+                    'key' => 'dv_double_line',
+                    'name' => 'Double Line',
+                    'tags' => ['editorial', 'pro'],
+                    'style' => ['display_mode' => 'content', 'padding' => '0'],
+                    'settings' => ['style' => 'double', 'thickness' => 3, 'width' => 100, 'color' => 'rgba(255,255,255,0.35)', 'ornament_icon' => '', 'ornament_text' => ''],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'divider' => 'double'],
+                ],
+                [
+                    'key' => 'dv_star_center',
+                    'name' => 'Star Ornament',
+                    'tags' => ['editorial', 'playful'],
+                    'style' => ['display_mode' => 'content', 'padding' => '0'],
+                    'settings' => ['style' => 'solid', 'thickness' => 1, 'width' => 80, 'color' => 'rgba(255,255,255,0.35)', 'ornament_icon' => 'fa-star', 'ornament_text' => '', 'ornament_size' => 14],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'divider' => 'ornament'],
+                ],
+                [
+                    'key' => 'dv_sparkle_text',
+                    'name' => 'Sparkle Mark',
+                    'tags' => ['handwritten', 'minimal'],
+                    'style' => ['display_mode' => 'content', 'padding' => '0'],
+                    'settings' => ['style' => 'solid', 'thickness' => 1, 'width' => 60, 'color' => 'rgba(255,255,255,0.3)', 'ornament_icon' => '', 'ornament_text' => '✦', 'ornament_size' => 16],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'divider' => 'ornament'],
+                ],
+            ],
             'image' => [
                 [
                     'key' => 'polaroid',
@@ -2764,6 +3245,109 @@ class BlockVariantCatalog
                         'border_style' => 'none', 'border_radius' => '0',
                         'shadow_type' => 'soft', 'shadow_color' => '#00000040', 'shadow_y' => 6, 'shadow_blur' => 14,
                         'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 0],
+                ],
+                // ── Task #6575: mask presets for the expanded shape
+                //    library. Same chrome-only contract as the presets
+                //    above: the mask itself comes from
+                //    `_image_style.mask_shape`, picked in the image form.
+                [
+                    'key' => 'mask_oval',
+                    'name' => 'Mask · Oval',
+                    'tags' => ['minimal', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '999',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 999],
+                ],
+                [
+                    'key' => 'mask_pill',
+                    'name' => 'Mask · Pill',
+                    'tags' => ['minimal', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '999',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 999],
+                ],
+                [
+                    'key' => 'mask_triangle',
+                    'name' => 'Mask · Triangle',
+                    'tags' => ['bold', 'brutalist'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'mask_pentagon',
+                    'name' => 'Mask · Pentagon',
+                    'tags' => ['bold', 'three_d'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '8',
+                        'shadow_preset' => 'none', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 8],
+                ],
+                [
+                    'key' => 'mask_semicircle',
+                    'name' => 'Mask · Dome',
+                    'tags' => ['editorial', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 40],
+                ],
+                [
+                    'key' => 'mask_wave',
+                    'name' => 'Mask · Wave',
+                    'tags' => ['playful', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'mask_shield',
+                    'name' => 'Mask · Shield',
+                    'tags' => ['pro', 'corporate'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '8',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 8],
+                ],
+                [
+                    'key' => 'mask_scallop',
+                    'name' => 'Mask · Scallop',
+                    'tags' => ['playful', 'maximalist'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '60',
+                        'shadow_preset' => 'none', 'padding' => '0',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#fbbf24', 'radius' => 60],
+                ],
+                [
+                    'key' => 'mask_cross',
+                    'name' => 'Mask · Cross',
+                    'tags' => ['bold', 'minimal'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '0',
                     ],
                     'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 0],
                 ],
@@ -3148,7 +3732,10 @@ class BlockVariantCatalog
      */
     public static function forType(string $type, bool $forGallery = true): array
     {
-        $variants = self::commonVariants();
+        // Dividers only get their curated one-offs (Task #6581): the common
+        // card skins (backgrounds, borders, shadows) have nothing to style
+        // on a bare line and would just be noise in the gallery.
+        $variants = $type === 'divider' ? [] : self::commonVariants();
 
         $bundles = self::bundles();
         $bundleIds = self::typeBundleMap()[$type] ?? [];

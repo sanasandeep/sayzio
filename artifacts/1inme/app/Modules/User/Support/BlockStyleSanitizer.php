@@ -33,8 +33,13 @@ class BlockStyleSanitizer
         'image_icon_rounded', 'image_icon_square', 'image_icon_circle',
         'title_desc_row', 'image_cover_square',
         'taped_note',
-        'arrow_hex', 'numbered_list', 'side_accent_tab',
+        'arrow_hex', 'arrow_hex_round', 'numbered_list', 'side_accent_tab',
         'icon_top', 'offset_frame', 'torn_tape',
+        'arrow_chip_left',
+        // Task #6588 — screenshot-inspired styles.
+        'edge_bleed_bar', 'double_border',
+        // Task #6602 — four more screenshot-inspired styles.
+        'sparkle_pill', 'notched_bar', 'speech_bubble', 'riveted_plaque',
     ];
 
     public static function sanitize(array $input): array
@@ -108,6 +113,12 @@ class BlockStyleSanitizer
         // Text-block tilt in degrees (Task #5954) — clamped so a tilted
         // heading/paragraph can never rotate off the page.
         $numericBounds['_tilt'] = [BiolinkBlock::TILT_MIN, BiolinkBlock::TILT_MAX];
+        // Profile-card cover effects (Task #6585). Blur in px; overlay
+        // opacity in percent. Like `_tilt`, the editor's range inputs
+        // always submit a value, so 0 is dropped below instead of being
+        // stamped onto every profile-card save.
+        $numericBounds['_cover_blur'] = [0, 40];
+        $numericBounds['_cover_overlay_opacity'] = [0, 100];
         // Heading shape accents (Task #5938) — strict enums; the shape
         // token list shares the accent branch below with `_photo_accents`.
         $enums['_heading_accent_placement'] = AccentShapeCatalog::HEADING_PLACEMENTS;
@@ -116,7 +127,7 @@ class BlockStyleSanitizer
             'text_color', 'bg_color', 'border_color', 'shadow_color', '_avatar_frame_color',
             'border_top_color', 'border_right_color', 'border_bottom_color', 'border_left_color',
             '_photo_frame_color', '_photo_banner_bg', '_photo_banner_text_color', '_photo_accent_color',
-            '_heading_accent_color',
+            '_heading_accent_color', '_cover_overlay_color',
             // Countdown block color overrides (rich countdown redesign).
             '_countdown_digit_color', '_countdown_label_color', '_countdown_box_bg',
             '_countdown_cta_bg', '_countdown_cta_text',
@@ -138,7 +149,7 @@ class BlockStyleSanitizer
                     // 0° tilt means "level" — the range input always submits
                     // a value, so drop the default instead of stamping
                     // `_tilt: 0` onto every heading/paragraph save.
-                    if ($key === '_tilt' && (float) $val === 0.0) continue;
+                    if (in_array($key, ['_tilt', '_cover_blur', '_cover_overlay_opacity'], true) && (float) $val === 0.0) continue;
                     $result[$key] = max($numericBounds[$key][0], min($numericBounds[$key][1], (float) $val));
                 }
             } elseif (in_array($key, $colorKeys, true)) {
@@ -233,7 +244,7 @@ class BlockStyleSanitizer
                 // dropped silently.
                 $clean = self::sanitizePhotoTextStickers($val);
                 if ($clean !== []) $result[$key] = $clean;
-            } elseif (in_array($key, ['_animation', '_gallery_layout', '_social_set', '_profile_layout'], true)) {
+            } elseif (in_array($key, ['_animation', '_gallery_layout', '_social_set', '_profile_layout', '_window_chrome', '_ltg_layout', '_ltg_align'], true)) {
                 // Opaque slug-shaped variant metadata hooks (Task #1041).
                 // The renderer is free to ignore unknown values; we only
                 // bound the character set + length so they're safe to

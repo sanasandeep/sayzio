@@ -22,6 +22,9 @@ export type MobileVariant = {
     border?: string;
     dashed?: boolean;
     serif?: boolean;
+    // Retro browser-window variants (Task #6568): the gallery thumbnail
+    // draws a mini title bar with three window-control dots.
+    window?: boolean;
   };
   // Profile-card identity designs carry a structural `_profile_layout`
   // token (mirrors the web `profile_identity` bundle). When present, the
@@ -57,11 +60,13 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "corporate_row", name: "Corporate Row", tags: ["corporate", "minimal", "pro"], preview: { bg: "#ffffff", text: "#111827", radius: 6, border: "#e5e7eb" } },
     { key: "cta_glow",      name: "CTA Glow",      tags: ["neon", "bold"],                preview: { bg: "#0f172a", text: "#67e8f9", radius: 14, border: "#22d3ee" } },
     { key: "y2k_chrome",    name: "Y2K Chrome",    tags: ["y2k", "retro", "three_d"],     preview: { bg: "#c0c0d8", text: "#1e1b4b", radius: 999, border: "#7280a8" } },
+    { key: "browser_window", name: "Browser Window", tags: ["retro", "brutalist", "bold"], preview: { bg: "#f6f4ef", text: "#1f2937", radius: 0, border: "#111111", window: true } },
   ],
   headings: [
     { key: "magazine_title", name: "Magazine Title", tags: ["editorial", "pro"],   preview: { bg: "transparent", text: "#fff", radius: 0 } },
     { key: "underline_band", name: "Underline Band", tags: ["minimal", "editorial"], preview: { bg: "transparent", text: "#fff", radius: 0, border: "#a78bfa" } },
     { key: "spotlight_band", name: "Spotlight Band", tags: ["bold", "three_d"],   preview: { bg: "#1e1b4b", text: "#fff", radius: 4 } },
+    { key: "browser_window", name: "Browser Window", tags: ["retro", "brutalist", "bold"], preview: { bg: "#f6f4ef", text: "#1f2937", radius: 0, border: "#111111", window: true } },
   ],
   body_text: [
     { key: "manuscript",  name: "Manuscript",  tags: ["editorial", "minimal"],   preview: { bg: "transparent", text: "#e5e7eb", radius: 0 } },
@@ -164,11 +169,29 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "title_desc_row",     name: "Title + Description Row", tags: ["minimal", "pro", "editorial"], preview: { bg: "#ffffff", text: "#111827", radius: 14 } },
     { key: "image_cover_square", name: "Square Image Cover",   tags: ["bold", "editorial", "maximalist"], preview: { bg: "linear-gradient(135deg,#3d6bff,#1a1a2e)", text: "#fff", radius: 20 } },
     { key: "arrow_hex",          name: "Arrow Banner",         tags: ["bold", "corporate"],   preview: { bg: "#ffffff", text: "#1e1b4b", radius: 0 } },
+    { key: "arrow_hex_round",    name: "Rounded Arrow Banner", tags: ["bold", "corporate"],   preview: { bg: "#d9b944", text: "#1f2937", radius: 10 } },
     { key: "numbered_editorial", name: "Numbered List",        tags: ["editorial", "minimal"],preview: { bg: "#1e40cf", text: "#dbe4ff", radius: 0 } },
     { key: "side_accent_tab",    name: "Side Accent Tab",      tags: ["editorial", "pro", "corporate"], preview: { bg: "#35595a", text: "#fdf6ec", radius: 0, border: "#ddb387" } },
     { key: "icon_top_stack",     name: "Icon Above Label",     tags: ["minimal", "pro"],      preview: { bg: "#12351f", text: "#fff", radius: 12 } },
     { key: "offset_frame",       name: "Offset Frame",         tags: ["editorial", "minimal", "retro"], preview: { bg: "#a98a7d", text: "#f9f2ec", radius: 0, border: "#a98a7d", serif: true } },
     { key: "torn_tape",          name: "Torn Tape",            tags: ["handwritten", "playful", "retro"], preview: { bg: "#a17c5b", text: "#fdf8f2", radius: 0, serif: true } },
+    { key: "arrow_chip_left",    name: "Arrow Chip",           tags: ["playful", "bold", "minimal"], preview: { bg: "#f2e069", text: "#1f2937", radius: 999, border: "#1f2937" } },
+    // Task #6588 — screenshot-inspired styles. Mobile degrades these to
+    // colors-only rendering; keys mirrored so selected-state stays in sync.
+    { key: "edge_bleed_bar",     name: "Edge Bleed Bar",       tags: ["editorial", "bold", "pro"],   preview: { bg: "#3c5f5c", text: "#f7efe2", radius: 0, border: "#dcb489" } },
+    { key: "edge_bleed_bar_ink", name: "Edge Bleed · Ink",     tags: ["dark", "bold", "editorial"],  preview: { bg: "#1c1c22", text: "#f5f2ea", radius: 0, border: "#f97362" } },
+    { key: "double_border",      name: "Double Border",        tags: ["editorial", "minimal", "retro"], preview: { bg: "#f6efe3", text: "#42351f", radius: 12, border: "#42351f" } },
+    { key: "double_border_noir", name: "Double Border · Noir", tags: ["dark", "pro", "editorial"],   preview: { bg: "#141210", text: "#e9dcc0", radius: 12, border: "#d4af6a" } },
+    { key: "offset_frame_sand",  name: "Offset Frame · Sand",  tags: ["editorial", "minimal", "retro"], preview: { bg: "#b08d63", text: "#faf5ec", radius: 0, border: "#b08d63", serif: true } },
+    // Task #6602 — four more screenshot-inspired styles (colors-only on mobile).
+    { key: "sparkle_pill",          name: "Sparkle Pill",           tags: ["editorial", "minimal", "playful"], preview: { bg: "transparent", text: "#2c2a26", radius: 999, border: "#2c2a26", serif: true } },
+    { key: "sparkle_pill_ivory",    name: "Sparkle Pill · Ivory",   tags: ["dark", "editorial", "playful"],    preview: { bg: "transparent", text: "#f2ead9", radius: 999, border: "#f2ead9", serif: true } },
+    { key: "notched_bar",           name: "Notched Bar",            tags: ["bold", "brutalist", "dark"],       preview: { bg: "#191512", text: "#ffffff", radius: 0 } },
+    { key: "notched_bar_crimson",   name: "Notched Bar · Crimson",  tags: ["bold", "maximalist"],              preview: { bg: "#8c2f2b", text: "#fdf3e4", radius: 0 } },
+    { key: "speech_bubble",         name: "Speech Bubble",          tags: ["playful", "bold", "retro"],        preview: { bg: "#6b4a2f", text: "#f7ead3", radius: 26 } },
+    { key: "speech_bubble_pink",    name: "Speech Bubble · Pink",   tags: ["playful", "y2k"],                  preview: { bg: "#f472b6", text: "#4a044e", radius: 26 } },
+    { key: "riveted_plaque",        name: "Riveted Plaque",         tags: ["dark", "pro", "retro"],            preview: { bg: "#17161a", text: "#f3ede0", radius: 10, border: "#c9a35c", serif: true } },
+    { key: "riveted_plaque_silver", name: "Riveted Plaque · Silver", tags: ["dark", "pro", "corporate"],       preview: { bg: "#101726", text: "#eef2f6", radius: 10, border: "#b8c1cc", serif: true } },
   ],
   heading_styles: [
     { key: "oversize_serif", name: "Oversize Serif", tags: ["editorial", "pro"],     preview: { bg: "transparent", text: "#fff", radius: 0 } },
@@ -342,6 +365,22 @@ const TYPE_BUNDLES: Record<string, string[]> = {
  * Card" on the web sees the same key marked as selected on mobile.
  */
 const TYPE_ONE_OFFS: Record<string, MobileVariant[]> = {
+  // Task #6576 — Link Group layout variants. The structural layout travels
+  // in `_style._ltg_layout` / `_style._ltg_align` (see PHP typeOneOffs()).
+  link_tree_group: [
+    { key: "ltg_text_divider_right",  name: "Text · Dividers · Right",  tags: ["minimal", "editorial"], preview: { bg: "transparent", text: "#ffffff", radius: 0 } },
+    { key: "ltg_text_divider_left",   name: "Text · Dividers · Left",   tags: ["minimal", "editorial"], preview: { bg: "transparent", text: "#ffffff", radius: 0 } },
+    { key: "ltg_text_divider_center", name: "Text · Dividers · Center", tags: ["minimal", "editorial"], preview: { bg: "transparent", text: "#ffffff", radius: 0 } },
+    { key: "ltg_grid_tiles",          name: "Grid Tiles",               tags: ["bold", "pro"],          preview: { bg: "transparent", text: "#ffffff", radius: 12 } },
+    // Task #6589 — screenshot-inspired list styles. Structural layout
+    // travels in `_style._ltg_layout`; mobile mirrors keys/metadata only.
+    { key: "ltg_outline_pills",       name: "Outlined Pills",           tags: ["minimal", "dark", "pro"],          preview: { bg: "#211d18", text: "#f5f2ec", radius: 999, border: "#f5f2ec70" } },
+    { key: "ltg_outline_pills_ink",   name: "Outlined Pills · Ink",     tags: ["minimal", "editorial"],            preview: { bg: "#f5f2ec", text: "#1f2937", radius: 999, border: "#1f293770" } },
+    { key: "ltg_washi_tape",          name: "Washi Tape",               tags: ["handwritten", "playful", "retro"], preview: { bg: "#f7e9ed", text: "#6d4c3d", radius: 0, serif: true } },
+    { key: "ltg_washi_tape_sage",     name: "Washi Tape · Sage",        tags: ["handwritten", "playful", "minimal"], preview: { bg: "#dde6dc", text: "#3c4a3a", radius: 0, serif: true } },
+    { key: "ltg_tile_grid_alt",       name: "Alternating Tiles",        tags: ["editorial", "pro"],                preview: { bg: "#f4efe6", text: "#2c2820", radius: 0, border: "#2c282030", serif: true } },
+    { key: "ltg_tile_grid_alt_dark",  name: "Alternating Tiles · Dark", tags: ["editorial", "dark"],               preview: { bg: "#26221c", text: "#efe9dd", radius: 0, border: "#efe9dd30", serif: true } },
+  ],
   image: [
     { key: "polaroid",         name: "Polaroid",         tags: ["retro", "playful"],              preview: { bg: "#fff", text: "#000", radius: 6 } },
     { key: "magazine_cutout",  name: "Magazine Cutout",  tags: ["maximalist", "editorial", "playful"], preview: { bg: "#ffffff", text: "#000", radius: 0, border: "#facc15" } },
@@ -355,6 +394,16 @@ const TYPE_ONE_OFFS: Record<string, MobileVariant[]> = {
     { key: "mask_star",        name: "Mask · Star",      tags: ["playful", "bold"],               preview: { bg: "transparent", text: "#fbbf24", radius: 8 } },
     { key: "mask_heart",       name: "Mask · Heart",     tags: ["playful", "bold"],               preview: { bg: "transparent", text: "#ec4899", radius: 0 } },
     { key: "mask_torn",        name: "Mask · Torn Edge", tags: ["editorial", "maximalist"],       preview: { bg: "transparent", text: "#fff", radius: 0 } },
+    // Task #6575: expanded mask shape library (mirror of the PHP catalog).
+    { key: "mask_oval",        name: "Mask · Oval",      tags: ["minimal", "editorial"],          preview: { bg: "transparent", text: "#fff", radius: 999 } },
+    { key: "mask_pill",        name: "Mask · Pill",      tags: ["minimal", "pro"],                preview: { bg: "transparent", text: "#fff", radius: 999 } },
+    { key: "mask_triangle",    name: "Mask · Triangle",  tags: ["bold", "brutalist"],             preview: { bg: "transparent", text: "#fff", radius: 0 } },
+    { key: "mask_pentagon",    name: "Mask · Pentagon",  tags: ["bold", "three_d"],               preview: { bg: "transparent", text: "#fff", radius: 8 } },
+    { key: "mask_semicircle",  name: "Mask · Dome",      tags: ["editorial", "pro"],              preview: { bg: "transparent", text: "#fff", radius: 40 } },
+    { key: "mask_wave",        name: "Mask · Wave",      tags: ["playful", "editorial"],          preview: { bg: "transparent", text: "#fff", radius: 0 } },
+    { key: "mask_shield",      name: "Mask · Shield",    tags: ["pro", "corporate"],              preview: { bg: "transparent", text: "#fff", radius: 8 } },
+    { key: "mask_scallop",     name: "Mask · Scallop",   tags: ["playful", "maximalist"],         preview: { bg: "transparent", text: "#fbbf24", radius: 60 } },
+    { key: "mask_cross",       name: "Mask · Cross",     tags: ["bold", "minimal"],               preview: { bg: "transparent", text: "#fff", radius: 0 } },
     // Task #5922 hero-photo decoration presets (mirror of PHP catalog).
     { key: "arch_concentric",  name: "Concentric Arch",  tags: ["editorial", "minimal", "pro"],   preview: { bg: "transparent", text: "#57534e", radius: 999, border: "#57534e" } },
     { key: "banner_overlap",   name: "Title Banner",     tags: ["editorial", "bold"],             preview: { bg: "#2a201c", text: "#ffffff", radius: 0 } },

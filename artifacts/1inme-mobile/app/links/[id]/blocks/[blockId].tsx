@@ -2279,18 +2279,54 @@ export function BlockSettingsEditor({
                       height: 44,
                       borderRadius: Math.min(v.preview.radius, 16),
                       backgroundColor: v.preview.bg === "transparent" ? "transparent" : v.preview.bg,
-                      borderWidth: v.preview.border ? 1 : 0,
+                      borderWidth: v.preview.border ? (v.preview.window ? 2 : 1) : 0,
                       borderColor: v.preview.border ?? "transparent",
                       borderStyle: v.preview.dashed ? "dashed" : "solid",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      alignItems: v.preview.window ? "stretch" : "center",
+                      justifyContent: v.preview.window ? "flex-start" : "center",
                       marginTop: 12,
                       marginBottom: 6,
+                      overflow: "hidden",
                     }}
                   >
-                    <Text style={{ color: v.preview.text, fontWeight: "700", fontSize: 11 }} numberOfLines={1}>
-                      {v.name.slice(0, 8)}
-                    </Text>
+                    {v.preview.window ? (
+                      // Retro browser-window thumbnail (Task #6568): mini
+                      // title bar with three window-control dots above the
+                      // label, mirroring the web gallery card.
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 3,
+                          paddingHorizontal: 5,
+                          paddingVertical: 3,
+                          borderBottomWidth: 2,
+                          borderBottomColor: v.preview.border ?? "#111111",
+                        }}
+                      >
+                        {["×", "+", "−"].map((g) => (
+                          <View
+                            key={g}
+                            style={{
+                              width: 9,
+                              height: 9,
+                              borderRadius: 999,
+                              borderWidth: 1,
+                              borderColor: v.preview.border ?? "#111111",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Text style={{ fontSize: 5, lineHeight: 7, color: v.preview.border ?? "#111111" }}>{g}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+                    <View style={v.preview.window ? { flex: 1, alignItems: "center", justifyContent: "center" } : undefined}>
+                      <Text style={{ color: v.preview.text, fontWeight: "700", fontSize: 11 }} numberOfLines={1}>
+                        {v.name.slice(0, 8)}
+                      </Text>
+                    </View>
                   </View>
                   <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 11, fontWeight: "600" }}>
                     {v.name}

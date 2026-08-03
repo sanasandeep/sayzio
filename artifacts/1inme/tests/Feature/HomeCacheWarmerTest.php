@@ -157,7 +157,7 @@ class HomeCacheWarmerTest extends TestCase
         });
         $category->delete();
 
-        $resp = $this->get('/');
+        $resp = $this->get(route('home.sections'));
         $resp->assertOk();
         $resp->assertSee('Served From Warm Cache');
         $resp->assertSee('Warm Reads');

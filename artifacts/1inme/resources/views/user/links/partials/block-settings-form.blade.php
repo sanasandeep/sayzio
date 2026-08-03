@@ -342,13 +342,67 @@ function linkBlockEditor(cfg) {
 <div><label class="{{ $labelClass }}">Rich Text HTML</label><textarea name="settings[html]" rows="5" class="{{ $inputClass }}">{{ $s['html'] ?? '' }}</textarea></div>
 
 @elseif($block->type === 'divider')
+@php
+    $dvStyles = ['solid' => 'Solid', 'dashed' => 'Dashed', 'dotted' => 'Dotted', 'double' => 'Double Line', 'gradient' => 'Gradient Fade', 'dots' => 'Dots Row', 'zigzag' => 'Zigzag', 'wave' => 'Wave'];
+    $dvCur = in_array(($s['style'] ?? 'solid'), array_keys($dvStyles), true) ? $s['style'] : 'solid';
+    $dvColorVal = $s['color'] ?? 'rgba(255,255,255,0.1)';
+    $dvColorHex = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $dvColorVal) ? $dvColorVal : '#8899aa';
+    $dvOrnVal = $s['ornament_color'] ?? '';
+    $dvOrnHex = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $dvOrnVal) ? $dvOrnVal : '#ffffff';
+@endphp
 <div class="space-y-3">
-    <div><label class="{{ $labelClass }}">Style</label><select name="settings[style]" class="{{ $selectClass }}"><option value="solid" {{ ($s['style'] ?? '') === 'solid' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Solid</option><option value="dashed" {{ ($s['style'] ?? '') === 'dashed' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Dashed</option><option value="dotted" {{ ($s['style'] ?? '') === 'dotted' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Dotted</option></select></div>
-    <div><label class="{{ $labelClass }}">Color</label><input type="text" name="settings[color]" value="{{ $s['color'] ?? 'rgba(255,255,255,0.1)' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Line Style</label><select name="settings[style]" class="{{ $selectClass }}">
+        @foreach($dvStyles as $dvKey => $dvLabel)
+        <option value="{{ $dvKey }}" {{ $dvCur === $dvKey ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">{{ $dvLabel }}</option>
+        @endforeach
+    </select></div>
+    <div class="grid grid-cols-2 gap-3">
+        <div><label class="{{ $labelClass }}">Thickness (<span>{{ (int) ($s['thickness'] ?? 1) }}px</span>)</label>
+            <input type="range" name="settings[thickness]" min="1" max="12" step="1" value="{{ (int) ($s['thickness'] ?? 1) }}" class="w-full accent-blue-500"
+                   oninput="this.closest('div').querySelector('label span').textContent = this.value + 'px'"></div>
+        <div><label class="{{ $labelClass }}">Width (<span>{{ (int) ($s['width'] ?? 100) }}%</span>)</label>
+            <input type="range" name="settings[width]" min="10" max="100" step="5" value="{{ (int) ($s['width'] ?? 100) }}" class="w-full accent-blue-500"
+                   oninput="this.closest('div').querySelector('label span').textContent = this.value + '%'"></div>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+        <div><label class="{{ $labelClass }}">Alignment</label><select name="settings[align]" class="{{ $selectClass }}">
+            @foreach(['center' => 'Center', 'left' => 'Left', 'right' => 'Right'] as $dvKey => $dvLabel)
+            <option value="{{ $dvKey }}" {{ ($s['align'] ?? 'center') === $dvKey ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">{{ $dvLabel }}</option>
+            @endforeach
+        </select></div>
+        <div><label class="{{ $labelClass }}">Color</label>
+            <div class="flex gap-2 items-center">
+                <input type="color" value="{{ $dvColorHex }}" class="h-9 w-10 shrink-0 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"
+                       oninput="const t = this.nextElementSibling; t.value = this.value; t.dispatchEvent(new Event('input', { bubbles: true }));">
+                <input type="text" name="settings[color]" value="{{ $dvColorVal }}" class="{{ $inputClass }}" placeholder="rgba(255,255,255,0.1)">
+            </div>
+        </div>
+    </div>
+    <div class="pt-2" style="border-top: 1px solid var(--border-subtle);">
+        <p class="{{ $labelClass }} mb-2">Center Ornament <span style="color: var(--text-faint);">(optional — icon wins over text)</span></p>
+        <div class="space-y-3">
+            @include('user.links.partials.icon-picker', ['fieldName' => 'settings[ornament_icon]', 'currentValue' => $s['ornament_icon'] ?? '', 'labelText' => 'Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
+            <div><label class="{{ $labelClass }}">Text label</label><input type="text" name="settings[ornament_text]" value="{{ $s['ornament_text'] ?? '' }}" maxlength="30" class="{{ $inputClass }}" placeholder="e.g. ✦ or a short word"></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div><label class="{{ $labelClass }}">Ornament Color</label>
+                    <div class="flex gap-2 items-center">
+                        <input type="color" value="{{ $dvOrnHex }}" class="h-9 w-10 shrink-0 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"
+                               oninput="const t = this.nextElementSibling; t.value = this.value; t.dispatchEvent(new Event('input', { bubbles: true }));">
+                        <input type="text" name="settings[ornament_color]" value="{{ $dvOrnVal }}" class="{{ $inputClass }}" placeholder="Same as line">
+                    </div>
+                </div>
+                <div><label class="{{ $labelClass }}">Ornament Size (<span>{{ (int) ($s['ornament_size'] ?? 16) }}px</span>)</label>
+                    <input type="range" name="settings[ornament_size]" min="10" max="40" step="1" value="{{ (int) ($s['ornament_size'] ?? 16) }}" class="w-full accent-blue-500"
+                           oninput="this.closest('div').querySelector('label span').textContent = this.value + 'px'"></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @elseif($block->type === 'spacer')
-<div><label class="{{ $labelClass }}">Height (px)</label><input type="number" name="settings[height]" value="{{ $s['height'] ?? 20 }}" min="4" max="200" class="{{ $inputClass }}"></div>
+<div><label class="{{ $labelClass }}">Height (<span>{{ (int) ($s['height'] ?? 20) }}px</span>)</label>
+    <input type="range" name="settings[height]" min="4" max="200" step="2" value="{{ (int) ($s['height'] ?? 20) }}" class="w-full accent-blue-500"
+           oninput="this.closest('div').querySelector('label span').textContent = this.value + 'px'"></div>
 
 @elseif(in_array($block->type, ['list', 'list_numbered']))
 @php
@@ -1046,6 +1100,76 @@ if (typeof window.resetPollVotes !== 'function') {
     <label class="flex items-center gap-2 text-sm text-white/70"><input type="hidden" name="settings[collect_email]" value="0"><input type="checkbox" name="settings[collect_email]" value="1" @checked($s['collect_email'] ?? true) class="rounded">Collect reviewer email (private)</label>
 </div>
 
+@elseif($block->type === 'link_tree_group')
+@php
+    // Task #6589 — per-item click counts for the creator. Grouped in one
+    // query per open form; blocks saved before per-item tracking existed
+    // simply have no rows and every item shows 0 gracefully.
+    $ltgClickCounts = $block->exists
+        ? \App\Modules\User\Models\LinkClick::query()
+            ->where('block_id', $block->id)
+            ->whereNotNull('block_item_id')
+            ->where('is_bot', false)
+            ->groupBy('block_item_id')
+            ->selectRaw('block_item_id, COUNT(*) as c')
+            ->pluck('c', 'block_item_id')
+        : collect();
+    $ltgItems = collect(is_array($s['items'] ?? null) ? $s['items'] : [])
+        ->map(fn($it) => [
+            'id'          => is_array($it) ? (string) ($it['id'] ?? '') : '',
+            'text'        => is_array($it) ? (string) ($it['text'] ?? '') : '',
+            'url'         => is_array($it) ? (string) ($it['url'] ?? '') : '',
+            'icon'        => is_array($it) ? (string) ($it['icon'] ?? '') : '',
+            'description' => is_array($it) ? (string) ($it['description'] ?? '') : '',
+            'clicks'      => is_array($it) ? (int) ($ltgClickCounts[(string) ($it['id'] ?? '')] ?? 0) : 0,
+        ])->values()->all();
+@endphp
+<div class="space-y-3" x-data='{ items: @json($ltgItems), layout: @json($s['layout'] ?? 'list') }'>
+    <div><label class="{{ $labelClass }}">Title (optional)</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div class="grid grid-cols-2 gap-3">
+        <div>
+            <label class="{{ $labelClass }}">Layout</label>
+            <select name="settings[layout]" x-model="layout" class="{{ $selectClass }}">
+                @foreach(['list' => 'List', 'grid' => 'Grid', 'text_divider' => 'Text + Dividers'] as $v => $l)
+                <option value="{{ $v }}" @selected(($s['layout'] ?? 'list') === $v) style="background: var(--bg-body); color: var(--text-primary);">{{ $l }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div x-show="layout === 'text_divider'">
+            <label class="{{ $labelClass }}">Text alignment</label>
+            <select name="settings[align]" class="{{ $selectClass }}">
+                @foreach(['left' => 'Left', 'center' => 'Center', 'right' => 'Right'] as $v => $l)
+                <option value="{{ $v }}" @selected(($s['align'] ?? 'left') === $v) style="background: var(--bg-body); color: var(--text-primary);">{{ $l }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div x-show="layout !== 'text_divider'">
+            <label class="{{ $labelClass }}">Accent color</label>
+            <input type="color" name="settings[accent_color]" value="{{ $s['accent_color'] ?? '#3d6bff' }}" class="{{ $inputClass }}" style="height:38px;padding:4px;">
+        </div>
+    </div>
+    <div>
+        <label class="{{ $labelClass }}">Links</label>
+        <template x-for="(item, i) in items" :key="i">
+            <div class="glass rounded-lg p-3 mb-2 space-y-2">
+                <input type="hidden" :name="'settings[items]['+i+'][id]'" x-model="items[i].id">
+                <div class="flex items-center justify-end -mb-1" x-show="items[i].id">
+                    <span class="text-[11px] text-white/40" x-text="(items[i].clicks || 0) + (items[i].clicks === 1 ? ' click' : ' clicks')"></span>
+                </div>
+                <input type="text" x-model="items[i].text" :name="'settings[items]['+i+'][text]'" placeholder="Label (e.g. Portfolio)" class="{{ $inputClass }}">
+                <input type="url" x-model="items[i].url" :name="'settings[items]['+i+'][url]'" placeholder="https://…" class="{{ $inputClass }}">
+                <div class="flex gap-2" x-show="layout !== 'text_divider'">
+                    <input type="text" x-model="items[i].icon" :name="'settings[items]['+i+'][icon]'" placeholder="fa-globe (optional)" class="{{ $inputClass }} flex-1">
+                    <input type="text" x-model="items[i].description" :name="'settings[items]['+i+'][description]'" placeholder="Description (optional)" class="{{ $inputClass }} flex-1">
+                </div>
+                <button type="button" @click="items.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400"><i class="fas fa-times mr-1"></i>Remove</button>
+            </div>
+        </template>
+        <button type="button" @click="items.push({id:'',text:'',url:'',icon:'',description:'',clicks:0})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Link</button>
+    </div>
+    <p class="text-[11px] text-white/40">Every link click is tracked in your analytics automatically.</p>
+</div>
+
 @elseif(in_array($block->type, ['timeline', 'timeline_staged']))
 <div x-data="{ items: {{ json_encode($s['items'] ?? [['title'=>'','description'=>'']]) }} }">
     <label class="{{ $labelClass }}">Timeline Items</label>
@@ -1213,7 +1337,7 @@ if (typeof window.resetPollVotes !== 'function') {
         <div><label class="{{ $labelClass }}">Label Color</label><input type="color" name="style[_countdown_label_color]" value="{{ $cdSt['_countdown_label_color'] ?? '#a1a1aa' }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
         <div><label class="{{ $labelClass }}">Box Background</label><input type="color" name="style[_countdown_box_bg]" value="{{ $cdSt['_countdown_box_bg'] ?? '#18181b' }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
     </div>
-    <p class="text-[11px] text-white/40">Card background, borders, shadow &amp; fonts are set in the <strong>Design</strong> tab — pick a variant there for a full look.</p>
+    <p class="text-[11px] text-white/40">Card background, borders, shadow &amp; fonts are set in the <strong>Design</strong> tab; pick a variant there for a full look.</p>
 </div>
 
 @elseif($block->type === 'progress')
@@ -1513,6 +1637,46 @@ if (typeof window.resetPollVotes !== 'function') {
             <span x-show="fc === ''" class="text-xs text-white/30">Auto: uses the design accent</span>
         </div>
     </div>
+
+    {{-- Cover effects (Task #6585) — blur + color overlay for the cover
+         photo, shown only for cover-based layouts. Stored in
+         _style._cover_blur / _cover_overlay_color / _cover_overlay_opacity;
+         the sanitizer clamps bounds and drops 0 values so unset keys never
+         stamp saved blocks. Opacity 0 = no overlay (keeps the design's
+         built-in look). --}}
+    @php
+        $pcLayoutSel = $s['_style']['_profile_layout'] ?? '';
+        if ($pcLayoutSel === '') {
+            $pcLayoutSel = match($block->type) {
+                'profile_card_v2' => 'cover_hero',
+                'profile_card_v3' => 'stats',
+                'profile_card_v4' => 'badges',
+                default           => 'classic_creator',
+            };
+        }
+        $pcCoverLayouts = ['classic_creator', 'floating', 'magazine', 'social_profile', 'overlap_hero', 'badge_card', 'arch_band', 'cover_hero', 'portrait_poster', 'glass', 'founder'];
+        $pcCvBlur  = (int) ($s['_style']['_cover_blur'] ?? 0);
+        $pcCvColor = (string) ($s['_style']['_cover_overlay_color'] ?? '');
+        $pcCvOp    = (int) ($s['_style']['_cover_overlay_opacity'] ?? 0);
+    @endphp
+    @if(in_array($pcLayoutSel, $pcCoverLayouts, true))
+    <div class="pt-3 border-t border-white/10" x-data='{ cvb: {{ $pcCvBlur }}, cvc: {{ json_encode($pcCvColor) }}, cvo: {{ $pcCvOp }} }'>
+        <label class="{{ $labelClass }}">Cover Effects</label>
+        <div class="flex items-center gap-3 mt-1">
+            <span class="text-xs text-white/40 w-14 shrink-0">Blur</span>
+            <input type="range" name="style[_cover_blur]" x-model.number="cvb" min="0" max="40" step="1" class="flex-1 accent-blue-500">
+            <span class="text-xs text-white/60 w-10 text-right" x-text="cvb > 0 ? cvb + 'px' : 'Off'"></span>
+        </div>
+        <div class="flex items-center gap-3 mt-2">
+            <span class="text-xs text-white/40 w-14 shrink-0">Overlay</span>
+            <input type="hidden" name="style[_cover_overlay_color]" :value="cvo > 0 ? (cvc || '#000000') : cvc">
+            <input type="color" :value="cvc || '#000000'" @input="cvc = $event.target.value" class="h-8 w-10 rounded cursor-pointer border border-white/10 bg-transparent p-0.5 shrink-0">
+            <input type="range" name="style[_cover_overlay_opacity]" x-model.number="cvo" min="0" max="100" step="5" class="flex-1 accent-blue-500">
+            <span class="text-xs text-white/60 w-10 text-right" x-text="cvo > 0 ? cvo + '%' : 'Off'"></span>
+        </div>
+        <p class="mt-1.5 text-xs text-white/30">Blur softens the cover photo; the overlay tints it. Opacity 0 keeps this design's default look.</p>
+    </div>
+    @endif
 </div>
 
 @elseif($block->type === 'qr_code')

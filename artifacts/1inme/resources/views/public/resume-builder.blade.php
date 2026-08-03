@@ -19,8 +19,8 @@
 <style>
     .rbp-mesh::before {
         content:""; position:absolute; inset:-15%;
-        background: rgba(61,107,255,.06);
-        filter: blur(40px); pointer-events:none;
+        background: radial-gradient(ellipse 75% 75% at 50% 50%, rgba(61,107,255,.08), transparent 78%);
+        pointer-events:none;
         animation: rbpMesh 14s ease-in-out infinite alternate;
     }
     @keyframes rbpMesh { 0% { transform: translate3d(0,0,0); } 100% { transform: translate3d(2%,-2%,0) scale(1.05); } }

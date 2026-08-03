@@ -352,6 +352,44 @@ class HomePageCache
     }
 
     /**
+     * Overlay per-user tax lines onto a CACHED plans payload without
+     * re-querying plans: recomputes only the `tax` entry for paid plans
+     * from the cached monthly amount and the visitor's billing address
+     * (a single small jurisdiction lookup). Keeps logged-in visitors on
+     * the shared per-currency cache path.
+     *
+     * @param  iterable<int,array<string,mixed>>  $plans  cached plan cards
+     * @param  \App\Modules\User\Models\BillingAddress  $billing
+     * @return array<int,array<string,mixed>>
+     */
+    public static function applyTaxOverlay($plans, $billing, string $currency): array
+    {
+        $out = [];
+        foreach ($plans as $plan) {
+            $monthlyMinor = (int) data_get($plan, 'monthly.amount_minor', 0);
+            if ($monthlyMinor > 0) {
+                try {
+                    $plan['tax'] = TaxCalculator::calculate(
+                        [['label' => 'Plan', 'amount_minor' => $monthlyMinor]],
+                        [
+                            'country'     => $billing->country,
+                            'region'      => $billing->region,
+                            'tax_id'      => $billing->tax_id,
+                            'tax_id_kind' => $billing->tax_id_kind,
+                        ],
+                        $currency,
+                    );
+                } catch (\Throwable $e) {
+                    // Tax lookup unavailable — render without the tax line.
+                }
+            }
+            $out[] = $plan;
+        }
+
+        return $out;
+    }
+
+    /**
      * Fetch the featured-post rows from the DB as PLAIN ATTRIBUTE ARRAYS
      * (post + category + author) — the cacheable representation. Rehydrate
      * with {@see hydrateFeaturedRows()} on read.

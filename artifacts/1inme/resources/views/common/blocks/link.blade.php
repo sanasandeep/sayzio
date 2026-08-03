@@ -242,6 +242,31 @@
             <span aria-hidden="true" class="absolute left-1/2 pointer-events-none"
                   style="top: 0; width: 86px; height: 24px; transform: translateX(-50%) rotate({{ $_tnTilt }}); background: rgba(235,227,208,0.82); border-left: 1px dashed rgba(120,105,85,0.28); border-right: 1px dashed rgba(120,105,85,0.28); box-shadow: 0 1px 3px rgba(76,60,50,0.18);"></span>
         </a>
+    @elseif($_lnkLayout === 'arrow_chip_left')
+        {{-- Arrow chip: a detached white/outlined rounded chip holding the
+             block icon (right-arrow fallback) overlaps the left end of a
+             colored pill that carries the label (yellow "Website"
+             reference). The pill is the bio-btn so per-block
+             colors/gradients/borders apply normally; the chip derives its
+             outline + icon color from border_color → text_color with a
+             dark-ink fallback so it stays legible on light pills. --}}
+        @php
+            $_acInk = ($_st['border_color'] ?? '') !== '' && ($_st['border_color'] ?? '') !== 'transparent'
+                ? $_st['border_color']
+                : (($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : '#1f2937');
+        @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="relative block w-full mb-3 transition-all duration-300 hover:-translate-y-0.5"
+           style="padding-left: 26px;">
+            <div class="bio-btn w-full py-3.5 pr-6 font-medium flex items-center justify-center"
+                 style="{{ $btnInline ? rtrim($btnInline, '; ') . '; ' : '' }}padding-left: 64px; border-radius: {{ intval($_st['border_radius'] ?? 0) ?: 999 }}px;">
+                <span>{{ $_txt }}</span>
+            </div>
+            <span class="absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center"
+                  style="width: 68px; height: calc(100% + 8px); background: #ffffff; border: 1.5px solid {{ $_acInk }}; border-radius: {{ intval($_st['border_radius'] ?? 0) ?: 999 }}px; box-shadow: 0 1px 4px rgba(0,0,0,0.10);">
+                <i class="{{ $_icon ?: 'fas fa-arrow-right' }} text-lg" style="color: {{ $_acInk }};"></i>
+            </span>
+        </a>
     @elseif($_lnkLayout === 'image_top')
         <a href="{{ $_url }}" target="_blank" rel="noopener"
            class="bio-btn block w-full mb-3 overflow-hidden transition-all duration-300"
@@ -267,6 +292,50 @@
            class="block w-full mb-3 transition-all duration-300 hover:-translate-y-0.5">
             <div class="bio-btn w-full px-10 py-3.5 text-center font-bold uppercase tracking-wide flex items-center justify-center gap-2"
                  style="{{ $btnInline ? rtrim($btnInline, '; ') . '; ' : '' }}clip-path: polygon(26px 0%, calc(100% - 26px) 0%, 100% 50%, calc(100% - 26px) 100%, 26px 100%, 0% 50%); border-radius: 0;">
+                @if($_icon)<i class="{{ $_icon }} text-[0.85em]"></i>@endif<span>{{ $_txt }}</span>
+            </div>
+        </a>
+    @elseif($_lnkLayout === 'arrow_hex_round')
+        {{-- Rounded arrow banner (Task #6580): same hexagonal banner as
+             `arrow_hex` but with softly rounded points and corners (yellow
+             "PORTFOLIO" reference). Sharp polygon clip-paths can't round
+             corners, so we clip with CSS `shape()` (smooth quadratic curves
+             at every vertex) and fall back to the sharp polygon on browsers
+             without shape() support. The clip lives on the inner bio-btn
+             panel so per-block colors/gradients apply normally; box shadows
+             are intentionally clipped away by the shape. --}}
+        @once('bio-arrow-hex-round-style')
+        <style>
+            .bio-arrow-hex-round {
+                clip-path: polygon(26px 0%, calc(100% - 26px) 0%, 100% 50%, calc(100% - 26px) 100%, 26px 100%, 0% 50%);
+                border-radius: 0;
+            }
+            @supports (clip-path: shape(from 0 0, line to 100% 0, line to 100% 100%, close)) {
+                .bio-arrow-hex-round {
+                    clip-path: shape(
+                        from 38px 0,
+                        line to calc(100% - 38px) 0,
+                        curve to calc(100% - 19px) 14% with calc(100% - 26px) 0,
+                        line to calc(100% - 6px) 39%,
+                        curve to calc(100% - 6px) 61% with 100% 50%,
+                        line to calc(100% - 19px) 86%,
+                        curve to calc(100% - 38px) 100% with calc(100% - 26px) 100%,
+                        line to 38px 100%,
+                        curve to 19px 86% with 26px 100%,
+                        line to 6px 61%,
+                        curve to 6px 39% with 0 50%,
+                        line to 19px 14%,
+                        curve to 38px 0 with 26px 0,
+                        close
+                    );
+                }
+            }
+        </style>
+        @endonce
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 transition-all duration-300 hover:-translate-y-0.5">
+            <div class="bio-btn bio-arrow-hex-round w-full px-10 py-3.5 text-center font-bold uppercase tracking-wide flex items-center justify-center gap-2"
+                 @if($btnInline) style="{{ $btnInline }}" @endif>
                 @if($_icon)<i class="{{ $_icon }} text-[0.85em]"></i>@endif<span>{{ $_txt }}</span>
             </div>
         </a>
@@ -316,6 +385,181 @@
                 @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif<span class="truncate">{{ $_txt }}</span>
             </span>
             <span aria-hidden="true" class="shrink-0" style="width: 26px; background: {{ $_satAccent }}; border-radius: {{ $_satRadius }}px;"></span>
+        </a>
+    @elseif($_lnkLayout === 'edge_bleed_bar')
+        {{-- Edge-bleed bar: a full-width bar that bleeds to the page edge
+             (the curated variant sets margin_left/right to 0 on the wrap),
+             label right-aligned, with a small contrasting accent strip
+             hugging the opposite page edge (teal + tan reference). The
+             outer corners stay square so the bleed reads as intentional;
+             border_radius (if any) only softens the inner-facing corners.
+             Accent = border_color. --}}
+        @php
+            $_ebBg = (($_st['bg_color'] ?? '') !== '' && ($_st['bg_color'] ?? '') !== 'transparent') ? $_st['bg_color'] : '#3c5f5c';
+            $_ebInk = ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : '#f7efe2';
+            $_ebAccent = ($_st['border_color'] ?? '') !== '' && ($_st['border_color'] ?? '') !== 'transparent' ? $_st['border_color'] : '#dcb489';
+            $_ebRadius = intval($_st['border_radius'] ?? 0);
+        @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="w-full mb-3 flex items-stretch gap-3 transition-opacity duration-200 hover:opacity-85">
+            <span class="flex-1 flex items-center justify-end pr-6 pl-5 py-4 min-w-0"
+                  style="background: {{ $_ebBg }}; color: {{ $_ebInk }}; border-radius: 0 {{ $_ebRadius }}px {{ $_ebRadius }}px 0; font-weight: {{ $_st['font_weight'] ?? '600' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 16 }}px;@if(!empty($_st['font_family'])) font-family: '{{ str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) }}', sans-serif;@endif">
+                @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif<span class="truncate">{{ $_txt }}</span>
+            </span>
+            <span aria-hidden="true" class="shrink-0" style="width: 20px; background: {{ $_ebAccent }}; border-radius: {{ $_ebRadius }}px 0 0 {{ $_ebRadius }}px;"></span>
+        </a>
+    @elseif($_lnkLayout === 'double_border')
+        {{-- Double-border button: an inner ring inset inside the outer
+             border for the framed "menu card" look (cream WEBSITE
+             reference). Outer border derives from border_color/width;
+             the inner ring is a thinner line 4px inside, drawn on an
+             absolutely-positioned overlay so bg/gradients apply normally. --}}
+        @php
+            $_dbBg = (($_st['bg_color'] ?? '') !== '' && ($_st['bg_color'] ?? '') !== 'transparent') ? $_st['bg_color'] : '#f6efe3';
+            $_dbInk = ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : '#42351f';
+            $_dbLine = ($_st['border_color'] ?? '') !== '' && ($_st['border_color'] ?? '') !== 'transparent' ? $_st['border_color'] : $_dbInk;
+            $_dbW = intval($_st['border_width'] ?? 0) ?: 2;
+            $_dbRadius = intval($_st['border_radius'] ?? 0) ?: 12;
+        @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="relative block w-full mb-3 text-center transition-all duration-300 hover:-translate-y-0.5"
+           style="background: {{ $_dbBg }}; color: {{ $_dbInk }}; border: {{ $_dbW }}px solid {{ $_dbLine }}; border-radius: {{ $_dbRadius }}px; padding: {{ intval($_st['padding'] ?? 0) ?: 16 }}px 20px; font-weight: {{ $_st['font_weight'] ?? '600' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 16 }}px; letter-spacing: 0.06em;@if(!empty($_st['font_family'])) font-family: '{{ str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) }}', sans-serif;@endif">
+            <span aria-hidden="true" class="absolute pointer-events-none"
+                  style="inset: 4px; border: 1px solid {{ $_dbLine }}; border-radius: {{ max($_dbRadius - 4, 0) }}px;"></span>
+            <span class="relative uppercase">@if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}</span>
+        </a>
+    @elseif($_lnkLayout === 'riveted_plaque')
+        {{-- Riveted plaque (Task #6602): the double-border framed look
+             dressed as a dark plaque — metallic outer + inner frame and
+             four small rivet/stud dots in the corners between the two
+             frames ("About Us" gold-on-black reference). Frame color =
+             border_color; rivets pick up the same metal tone with a
+             radial highlight so they read as raised studs. Pure CSS —
+             no external assets. --}}
+        @php
+            $_rpBg = (($_st['bg_color'] ?? '') !== '' && ($_st['bg_color'] ?? '') !== 'transparent') ? $_st['bg_color'] : '#17161a';
+            $_rpInk = ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : '#f3ede0';
+            $_rpMetal = ($_st['border_color'] ?? '') !== '' && ($_st['border_color'] ?? '') !== 'transparent' ? $_st['border_color'] : '#c9a35c';
+            $_rpW = intval($_st['border_width'] ?? 0) ?: 2;
+            $_rpRadius = intval($_st['border_radius'] ?? 0) ?: 10;
+            $_rpFont = !empty($_st['font_family'])
+                ? "'" . str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) . "', Georgia, serif"
+                : "'Playfair Display', Georgia, serif";
+        @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="relative block w-full mb-3 text-center transition-all duration-300 hover:-translate-y-0.5"
+           style="background: {{ $_rpBg }}; color: {{ $_rpInk }}; border: {{ $_rpW }}px solid {{ $_rpMetal }}; border-radius: {{ $_rpRadius }}px; padding: {{ intval($_st['padding'] ?? 0) ?: 18 }}px 24px; font-family: {{ $_rpFont }}; font-weight: {{ $_st['font_weight'] ?? '500' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 17 }}px; letter-spacing: 0.05em; box-shadow: inset 0 0 0 1px color-mix(in srgb, {{ $_rpMetal }} 35%, transparent), 0 4px 14px rgba(0,0,0,0.35);">
+            <span aria-hidden="true" class="absolute pointer-events-none"
+                  style="inset: 9px; border: 1px solid {{ $_rpMetal }}; border-radius: {{ max($_rpRadius - 6, 2) }}px;"></span>
+            @foreach ([['top:4px;left:4px;'], ['top:4px;right:4px;'], ['bottom:4px;left:4px;'], ['bottom:4px;right:4px;']] as $_rpPos)
+                <span aria-hidden="true" class="absolute pointer-events-none rounded-full"
+                      style="{{ $_rpPos[0] }} width: 5px; height: 5px; background: radial-gradient(circle at 32% 30%, #ffffffcc, {{ $_rpMetal }} 55%, color-mix(in srgb, {{ $_rpMetal }} 55%, #000) 100%);"></span>
+            @endforeach
+            <span class="relative">@if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}</span>
+        </a>
+    @elseif($_lnkLayout === 'sparkle_pill')
+        {{-- Sparkle pill (Task #6602): thin-outline pill with small
+             decorative four-point sparkle glyphs anchored just past the
+             top-right and bottom-left of the pill; centered serif label
+             ("WEBSITE" cream reference). Sparkles are inline SVG in
+             currentColor — no external assets. Outline/sparkle color =
+             border_color → text_color. --}}
+        @php
+            $_spInk = ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : '#2c2a26';
+            $_spLine = ($_st['border_color'] ?? '') !== '' && ($_st['border_color'] ?? '') !== 'transparent' ? $_st['border_color'] : $_spInk;
+            $_spBg = (($_st['bg_color'] ?? '') !== '' ) ? $_st['bg_color'] : 'transparent';
+            $_spW = intval($_st['border_width'] ?? 0) ?: 1;
+            $_spFont = !empty($_st['font_family'])
+                ? "'" . str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) . "', Georgia, serif"
+                : "'Playfair Display', Georgia, 'Times New Roman', serif";
+            $_spSparkle = 'M12 0 C13.2 7.4 16.6 10.8 24 12 C16.6 13.2 13.2 16.6 12 24 C10.8 16.6 7.4 13.2 0 12 C7.4 10.8 10.8 7.4 12 0 Z';
+        @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="relative block w-full mb-3 transition-all duration-300 hover:-translate-y-0.5"
+           style="padding: 9px 12px;">
+            <span class="block w-full text-center"
+                  style="background: {{ $_spBg }}; color: {{ $_spInk }}; border: {{ $_spW }}px solid {{ $_spLine }}; border-radius: 999px; padding: {{ intval($_st['padding'] ?? 0) ?: 14 }}px 24px; font-family: {{ $_spFont }}; font-weight: {{ $_st['font_weight'] ?? '500' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 18 }}px; letter-spacing: 0.06em;">
+                @if($_icon)<i class="{{ $_icon }} mr-1.5 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}
+            </span>
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="absolute pointer-events-none" style="top: 0; right: 6%; width: 19px; height: 19px; color: {{ $_spLine }};" fill="currentColor"><path d="{{ $_spSparkle }}"/></svg>
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="absolute pointer-events-none" style="bottom: 0; left: 8%; width: 15px; height: 15px; color: {{ $_spLine }};" fill="currentColor"><path d="{{ $_spSparkle }}"/></svg>
+        </a>
+    @elseif($_lnkLayout === 'notched_bar')
+        {{-- Notched bar (Task #6602): solid full-width bar with clipped
+             45° corners on all four corners (elongated-octagon "OUR
+             MENU" black reference), bold uppercase centered label.
+             Sharp polygon fallback everywhere; browsers with CSS
+             shape() get gently rounded notch vertices (same pattern as
+             arrow_hex_round). Clip lives on the inner bio-btn panel so
+             per-block colors/gradients apply normally; shadows are
+             intentionally clipped away. --}}
+        @once('bio-notched-bar-style')
+        <style>
+            .bio-notched-bar {
+                clip-path: polygon(16px 0%, calc(100% - 16px) 0%, 100% 34%, 100% 66%, calc(100% - 16px) 100%, 16px 100%, 0% 66%, 0% 34%);
+                border-radius: 0;
+            }
+            @supports (clip-path: shape(from 0 0, line to 100% 0, line to 100% 100%, close)) {
+                .bio-notched-bar {
+                    clip-path: shape(
+                        from 20px 0,
+                        line to calc(100% - 20px) 0,
+                        curve to calc(100% - 13px) 8% with calc(100% - 16px) 0,
+                        line to calc(100% - 2px) 28%,
+                        curve to 100% 38% with 100% 32%,
+                        line to 100% 62%,
+                        curve to calc(100% - 2px) 72% with 100% 68%,
+                        line to calc(100% - 13px) 92%,
+                        curve to calc(100% - 20px) 100% with calc(100% - 16px) 100%,
+                        line to 20px 100%,
+                        curve to 13px 92% with 16px 100%,
+                        line to 2px 72%,
+                        curve to 0 62% with 0 68%,
+                        line to 0 38%,
+                        curve to 2px 28% with 0 32%,
+                        line to 13px 8%,
+                        curve to 20px 0 with 16px 0,
+                        close
+                    );
+                }
+            }
+        </style>
+        @endonce
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 transition-all duration-300 hover:-translate-y-0.5">
+            <div class="bio-btn bio-notched-bar w-full px-8 py-4 text-center font-bold uppercase tracking-[0.08em] flex items-center justify-center gap-2"
+                 @if($btnInline) style="{{ $btnInline }}" @endif>
+                @if($_icon)<i class="{{ $_icon }} text-[0.85em]"></i>@endif<span>{{ $_txt }}</span>
+            </div>
+        </a>
+    @elseif($_lnkLayout === 'speech_bubble')
+        {{-- Speech bubble (Task #6602): chunky rounded-rectangle bubble
+             with a small tail poking out of the bottom-right corner and
+             a left-aligned bold rounded label ("MY WORK" brown/mustard
+             reference). The tail is a CSS-clipped span sharing the
+             bubble's background (so gradients work too) — no external
+             assets. Wrapper padding reserves the tail room inside the
+             block box. --}}
+        @php
+            $_sbBg = (($_st['bg_color'] ?? '') !== '' && ($_st['bg_color'] ?? '') !== 'transparent') ? $_st['bg_color'] : '#6b4a2f';
+            $_sbInk = ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : '#f7ead3';
+            $_sbRadius = intval($_st['border_radius'] ?? 0) ?: 26;
+            $_sbBorder = (($_st['border_style'] ?? 'none') !== 'none' && intval($_st['border_width'] ?? 0) > 0)
+                ? (intval($_st['border_width']) . 'px ' . $_st['border_style'] . ' ' . (($_st['border_color'] ?? '') !== '' ? $_st['border_color'] : $_sbInk))
+                : 'none';
+            $_sbFont = !empty($_st['font_family'])
+                ? "'" . str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) . "', sans-serif"
+                : "'Baloo 2', 'Nunito', sans-serif";
+        @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="relative block w-full mb-3 transition-all duration-300 hover:-translate-y-0.5"
+           style="padding-bottom: 12px;">
+            <span class="block w-full text-left uppercase"
+                  style="background: {{ $_sbBg }}; color: {{ $_sbInk }}; border: {{ $_sbBorder }}; border-radius: {{ $_sbRadius }}px; padding: {{ intval($_st['padding'] ?? 0) ?: 22 }}px 28px; font-family: {{ $_sbFont }}; font-weight: {{ $_st['font_weight'] ?? '800' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 19 }}px; letter-spacing: 0.04em;">
+                @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.9em]"></i>@endif{{ $_txt }}
+            </span>
+            <span aria-hidden="true" class="absolute pointer-events-none"
+                  style="bottom: 0; right: 22px; width: 26px; height: 16px; background: {{ $_sbBg }}; clip-path: polygon(0 0, 100% 0, 100% 100%, 55% 30%);"></span>
         </a>
     @elseif($_lnkLayout === 'icon_top')
         {{-- Icon above label: chromeless stacked icon + small label, built

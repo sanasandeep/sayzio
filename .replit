@@ -28,6 +28,14 @@ args = "eas-apk-build"
 task = "workflow.run"
 args = "e2e-event-features"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-home-fast-lean"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-auth-modal-error-tab-restore"
+
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
 author = "agent"
@@ -60,6 +68,28 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && VALIDATION_PORT=5055 bash tests/Browser/run-validation.sh event-guest-broadcast.spec.ts event-waitlist-promotion.spec.ts event-public-page-calendar.spec.ts calendar-settings-apple-microsoft.spec.ts"
+
+[[workflows.workflow]]
+name = "e2e-home-fast-lean"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5062 bash tests/Browser/run-validation.sh home-hero-claim-handle.spec.ts"
+
+[[workflows.workflow]]
+name = "e2e-auth-modal-error-tab-restore"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5063 bash tests/Browser/run-validation.sh auth-modal-error-tab-restore.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 
   [agent]

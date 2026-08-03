@@ -37,8 +37,7 @@
             <div class="w-full max-w-2xl mx-auto px-4">
 
                 {{-- Input card --}}
-                <div class="flex items-center gap-3 rounded-2xl px-4 py-3"
-                     style="background: var(--bg-sidebar); border: 1.5px solid var(--border-strong); box-shadow: 0 24px 64px rgba(0,0,0,0.45);">
+                <div class="glass-modal flex items-center gap-3 rounded-2xl px-4 py-3">
 
                     <div class="flex-shrink-0 w-[18px] flex items-center justify-center">
                         <div x-show="!loading">
@@ -93,8 +92,7 @@
              x-ref="results"
              class="pointer-events-auto flex-1 overflow-y-auto overscroll-contain px-4 pb-10"
              style="-webkit-overflow-scrolling: touch;">
-            <div class="max-w-2xl mx-auto rounded-2xl px-2 pt-2 pb-4"
-                 style="background: var(--bg-sidebar); border: 1.5px solid var(--border-strong); box-shadow: 0 24px 64px rgba(0,0,0,0.45);">
+            <div class="glass-modal max-w-2xl mx-auto rounded-2xl px-2 pt-2 pb-4">
 
                 {{-- Loading skeleton --}}
                 <template x-if="loading && groups.length === 0">

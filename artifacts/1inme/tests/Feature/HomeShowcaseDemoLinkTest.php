@@ -101,7 +101,7 @@ class HomeShowcaseDemoLinkTest extends TestCase
         Cache::flush();
         $this->makeDemoLink('demo-type-short-link', 'Short Link, explained');
 
-        $resp = $this->get('/');
+        $resp = $this->get(route('home.sections'));
         $resp->assertOk();
         // The card deep-links to the live explainer with the demo label…
         $resp->assertSee('See the live Short Link demo');
@@ -115,7 +115,7 @@ class HomeShowcaseDemoLinkTest extends TestCase
         Cache::flush();
         // No demo-type-* links exist at all.
 
-        $resp = $this->get('/');
+        $resp = $this->get(route('home.sections'));
         $resp->assertOk();
         // No card claims a live demo…
         $resp->assertDontSee('See the live Short Link demo');
@@ -146,7 +146,7 @@ class HomeShowcaseDemoLinkTest extends TestCase
             ->andReturnUsing(fn ($key, $ttl, $callback) => $callback());
         Cache::swap($mock);
 
-        $resp = $this->get('/');
+        $resp = $this->get(route('home.sections'));
         $resp->assertOk();
         $resp->assertDontSee('See the live Short Link demo');
         $resp->assertSee(route('site.features') . '#cat-link-types', false);
