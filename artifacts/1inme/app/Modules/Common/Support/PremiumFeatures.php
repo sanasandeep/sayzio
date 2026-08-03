@@ -83,6 +83,8 @@ class PremiumFeatures
             ['key' => 'events_rsvps', 'group' => 'Audience growth', 'name' => 'Events & RSVPs', 'description' => 'Run launches, drops and meet-ups inside your Link in Bio with countdown blocks, RSVP capture, reminder emails, capacity caps and add-to-calendar (.ics) downloads.'],
             ['key' => 'referrals', 'group' => 'Audience growth', 'name' => 'Referral program', 'description' => 'Give every creator a personal /r/<code> share link, custom referral codes and live tracking of who joined through them — turn happy users into your biggest growth channel.'],
             ['key' => 'special_dates', 'group' => 'Audience growth', 'name' => 'Special dates', 'description' => 'Birthdays, anniversaries and product-release dates on your profile — shown publicly if you want, with automatic wish emails to followers who opt in.'],
+            ['key' => 'browser_sync', 'group' => 'Tools & extras', 'name' => 'Zio Browser sync', 'description' => 'Sync your Zio Browser bookmarks, collections, browsing history and reading list to the cloud across all your devices.'],
+            ['key' => 'max_browser_sync_items', 'group' => 'Tools & extras', 'name' => 'Browser sync items', 'description' => 'How many Zio Browser items of each type (bookmarks, collections, history entries, reading-list items) you can keep synced in the cloud.', 'unit' => 'items / type'],
 
             // ---- Domains & SEO ----
             ['key' => 'custom_domains', 'group' => 'Domains & SEO', 'name' => 'Custom domains', 'description' => 'Connect your own domain (yourbrand.com) so short links and Link in Bio pages live under your URL instead of 1inme.co.'],

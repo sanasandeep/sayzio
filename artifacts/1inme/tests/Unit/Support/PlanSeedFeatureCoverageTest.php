@@ -44,12 +44,16 @@ class PlanSeedFeatureCoverageTest extends TestCase
         $method->setAccessible(true);
         $defs = $method->invoke(new PlansAndAddonsSeeder());
 
-        $aiLimits = PlansAndAddonsSeeder::aiFeatureLimits();
+        $aiLimits   = PlansAndAddonsSeeder::aiFeatureLimits();
+        $gatingSync = PlansAndAddonsSeeder::gatingSyncFeatureDefaults();
 
         $bySlug = [];
         foreach ($defs as $def) {
             $slug = $def['slug'];
-            $extra = $aiLimits[$slug] ?? [];
+            $extra = array_merge(
+                $aiLimits[$slug] ?? [],
+                $gatingSync[$slug] ?? [],
+            );
             // Per-tier features win over the shared AI limits — identical to
             // the array_merge order in seedPlans().
             $bySlug[$slug] = array_merge($extra, $def['features'] ?? []);

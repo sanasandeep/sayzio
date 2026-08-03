@@ -202,20 +202,26 @@ class PlansAndAddonsSeeder extends Seeder
      * - `max_smart_rules` was an invisible cap falling back to the hard
      *   ceiling (25); tiers now carry an explicit value (-1 = unlimited,
      *   still hard-capped at 25 by the sanitizer).
+     * - `browser_sync` / `max_browser_sync_items` (Task #6647) — Zio Browser
+     *   device sync was previously ungated. The boolean defaults ON on every
+     *   tier (legacy-safe: behaviour unchanged, admins can switch it off);
+     *   the per-entity row cap bounds how many bookmarks / collections /
+     *   history entries / reading-list items one account can store per data
+     *   type (-1 = unlimited, still hard-capped server-side).
      *
      * @return array<string, array<string, int|bool>>
      */
     public static function gatingSyncFeatureDefaults(): array
     {
         return [
-            'free'           => ['special_dates' => true, 'max_smart_rules' => 3],
-            'creator'        => ['special_dates' => true, 'max_smart_rules' => 10],
-            'professional'   => ['special_dates' => true, 'max_smart_rules' => 25],
-            'business'       => ['special_dates' => true, 'max_smart_rules' => -1],
-            'agency'         => ['special_dates' => true, 'max_smart_rules' => -1],
-            'developer'      => ['special_dates' => true, 'max_smart_rules' => -1],
-            'enterprise-api' => ['special_dates' => true, 'max_smart_rules' => -1],
-            'unlimited'      => ['special_dates' => true, 'max_smart_rules' => -1],
+            'free'           => ['special_dates' => true, 'max_smart_rules' => 3,  'browser_sync' => true, 'max_browser_sync_items' => 2000],
+            'creator'        => ['special_dates' => true, 'max_smart_rules' => 10, 'browser_sync' => true, 'max_browser_sync_items' => 10000],
+            'professional'   => ['special_dates' => true, 'max_smart_rules' => 25, 'browser_sync' => true, 'max_browser_sync_items' => 25000],
+            'business'       => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1],
+            'agency'         => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1],
+            'developer'      => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => 25000],
+            'enterprise-api' => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1],
+            'unlimited'      => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1],
         ];
     }
 

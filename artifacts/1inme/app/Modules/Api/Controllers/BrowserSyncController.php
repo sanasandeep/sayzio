@@ -22,6 +22,54 @@ use Illuminate\Support\Facades\DB;
  */
 class BrowserSyncController extends Controller
 {
+    use \App\Modules\Api\Controllers\Concerns\ApiResponses;
+
+    /**
+     * Hard ceiling for the per-entity row cap. `max_browser_sync_items = -1`
+     * ("unlimited") is still clamped to this so no single account can grow a
+     * sync table without bound.
+     */
+    private const HARD_ITEM_CAP = 100000;
+
+    /**
+     * Plan gate for the whole sync surface (Task #6647).
+     *
+     * `browser_sync` is a plan-feature boolean, legacy-safe default ON so
+     * plans whose rows predate the key keep working until the backfill
+     * migration / seeder stamps explicit values. Returns the 402 response to
+     * send, or null when the caller may proceed.
+     *
+     * `purgeHistory` is deliberately NOT gated — deleting server rows must
+     * always be allowed (it reduces storage and honours the user's privacy).
+     */
+    private function browserSyncGate(Request $request): ?JsonResponse
+    {
+        if ($request->user()->getPlanFeature('browser_sync', true)) {
+            return null;
+        }
+
+        return $this->planGate(
+            'Browser sync is not included in your plan. Upgrade to sync bookmarks, collections, history and your reading list across devices.',
+            'browser_sync',
+            $request->user(),
+        );
+    }
+
+    /**
+     * Effective per-entity row cap for this user (rows per sync table).
+     * -1 / missing = unlimited (still clamped to HARD_ITEM_CAP).
+     */
+    private function itemCap(Request $request): int
+    {
+        $cap = (int) $request->user()->getPlanFeature('max_browser_sync_items', -1);
+
+        if ($cap < 0 || $cap > self::HARD_ITEM_CAP) {
+            return self::HARD_ITEM_CAP;
+        }
+
+        return $cap;
+    }
+
     // ── Device ────────────────────────────────────────────────────────────────
 
     /**
@@ -30,6 +78,10 @@ class BrowserSyncController extends Controller
      */
     public function registerDevice(Request $request): JsonResponse
     {
+        if ($gate = $this->browserSyncGate($request)) {
+            return $gate;
+        }
+
         $validated = $request->validate([
             'label'       => ['required', 'string', 'max:120'],
             'platform'    => ['required', 'in:mac,windows,linux'],
@@ -249,6 +301,10 @@ class BrowserSyncController extends Controller
      */
     public function pullSync(Request $request, string $deviceId): JsonResponse
     {
+        if ($gate = $this->browserSyncGate($request)) {
+            return $gate;
+        }
+
         $this->validateDevice($request, $deviceId);
 
         $userId      = $request->user()->id;
@@ -325,6 +381,10 @@ class BrowserSyncController extends Controller
         array $rules,
         callable $mapper,
     ): JsonResponse {
+        if ($gate = $this->browserSyncGate($request)) {
+            return $gate;
+        }
+
         $this->validateDevice($request, $deviceId);
 
         $validated   = $request->validate($rules);
@@ -332,7 +392,19 @@ class BrowserSyncController extends Controller
         $workspaceId = $this->resolveWorkspaceId($request);
         $accepted    = [];
         $conflicts   = [];
+        $rejected    = [];
         $now         = now();
+
+        // Per-entity storage cap (Task #6647): count this user's live (non-
+        // tombstoned) rows in the table across ALL profiles once up front,
+        // then budget new inserts against it. Updates and tombstones of
+        // existing rows are always allowed — only NEW rows can be rejected —
+        // so clients can still edit and delete when over the cap.
+        $cap       = $this->itemCap($request);
+        $liveCount = DB::table($table)
+            ->where('user_id', $userId)
+            ->where('deleted', false)
+            ->count();
 
         foreach ($validated['items'] as $item) {
             $localId         = $item['local_id'];
@@ -350,21 +422,54 @@ class BrowserSyncController extends Controller
                 $clientTs = strtotime($clientUpdatedAt);
 
                 if ($clientTs >= $serverTs) {
+                    $wasLive = ! (bool) $existing->deleted;
+                    $isLive  = ! (bool) ($item['deleted'] ?? false);
+
+                    // A tombstone → live "resurrection" grows the live-row
+                    // count exactly like a fresh insert, so it must pay the
+                    // same cap check — otherwise clients could park rows as
+                    // tombstones and revive them past the plan limit.
+                    if (! $wasLive && $isLive && $liveCount >= $cap) {
+                        $rejected[] = $localId;
+                        continue;
+                    }
+
                     $row = $mapper($userId, $item, $workspaceId);
                     DB::table($table)
                         ->where('id', $existing->id)
                         ->update(array_merge($row, ['updated_at' => $now]));
+
+                    // Keep in-request accounting consistent across deleted-
+                    // state transitions within one batch.
+                    if ($wasLive && ! $isLive) {
+                        $liveCount--;
+                    } elseif (! $wasLive && $isLive) {
+                        $liveCount++;
+                    }
+
                     $accepted[] = $localId;
                 } else {
                     // Server version is newer — client is out of date
                     $conflicts[] = $localId;
                 }
             } else {
+                $isTombstone = (bool) ($item['deleted'] ?? false);
+                if (! $isTombstone && $liveCount >= $cap) {
+                    // Over the plan's row cap — reject the NEW row (the
+                    // client keeps it locally and can retry after an
+                    // upgrade or a cleanup).
+                    $rejected[] = $localId;
+                    continue;
+                }
+
                 $row = $mapper($userId, $item, $workspaceId);
                 DB::table($table)->insert(array_merge($row, [
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]));
+                if (! $isTombstone) {
+                    $liveCount++;
+                }
                 $accepted[] = $localId;
             }
         }
@@ -373,6 +478,8 @@ class BrowserSyncController extends Controller
             'data' => [
                 'accepted'     => $accepted,
                 'conflicts'    => $conflicts,
+                'rejected'     => $rejected,
+                'limit'        => $cap,
                 'server_time'  => $now->toIso8601String(),
                 'workspace_id' => $workspaceId,
             ],

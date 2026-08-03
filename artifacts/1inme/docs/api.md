@@ -1587,6 +1587,17 @@ browsing history and the reading list. All routes require a bearer token
   workspace must belong to the authenticated user or it falls back to the
   personal bucket.
 
+**Plan gating.** The whole surface (register, pushes, pull) is gated by the
+`browser_sync` plan-feature boolean (legacy-safe default ON): plans with it
+switched off get **402** `plan_upgrade_required` with `details.feature =
+"browser_sync"` (plus the usual `recommended_plan` hint). Each entity table is
+also capped per user by `max_browser_sync_items` (rows per data type;
+-1 = unlimited, still hard-capped server-side): once at the cap, pushes of
+**new** rows are refused and their `local_id`s come back in a `rejected` array
+(the response also carries the effective `limit`); updates and tombstones of
+existing rows always go through, and `POST /browser/history/purge` is never
+gated so users can always clean up.
+
 | Method | Path                                        | Auth | Description |
 | ------ | ------------------------------------------- | ---- | ----------- |
 | POST   | `/browser/devices`                          | yes  | Register (or refresh) this device. Body: `label` (≤120), `platform` (`mac`\|`windows`\|`linux`), `app_version?` (≤32). Returns `{data: {device_id}}` — echo it back as `X-Browser-Device-Id`. |
@@ -1598,8 +1609,9 @@ browsing history and the reading list. All routes require a bearer token
 | POST   | `/browser/history/purge`                    | yes  | Soft-delete history rows for this user (all profiles). Body: `since?` (ISO-8601 — only entries last visited at/after it). Returns `{data: {deleted: <count>}}`. Throttle: 10/min. |
 
 **Conflict model.** Sync is last-write-wins on `item_updated_at`: every push
-returns `{data: {accepted: [local_id…], conflicts: [local_id…], server_time,
-workspace_id}}` — a `conflict` means the server copy was newer, so the client
+returns `{data: {accepted: [local_id…], conflicts: [local_id…], rejected:
+[local_id…], limit, server_time, workspace_id}}` — a `conflict` means the
+server copy was newer, so the client
 should adopt it on the next pull. Deletions are tombstones (`deleted: true`),
 never hard deletes, so they replicate to the other devices.
 
