@@ -52,6 +52,10 @@ args = "e2e-assistant-page-snapshot"
 task = "workflow.run"
 args = "e2e-topbar-autohide"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-connect-qr-prompt"
+
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
 author = "agent"
@@ -198,6 +202,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/1inme-mobile run test:topbar-autohide-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-connect-qr-prompt"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5074 bash tests/Browser/run-validation.sh event-connect-qr-prompt.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
