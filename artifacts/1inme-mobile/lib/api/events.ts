@@ -799,6 +799,14 @@ export async function sendEventBroadcast(
 
 export type EventConnectQr = {
   link: { id: number; alias: string; title: string | null };
+  // Event details from ics_data for the printable poster (Task #6693).
+  event: {
+    name: string;
+    start_date: string | null;
+    all_day: boolean;
+    timezone: string | null;
+    location: string | null;
+  };
   connect_url: string;
   qr_svg: string;
   // Best-effort: null when the server can't render PNG (no imagick backend);

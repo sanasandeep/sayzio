@@ -51,6 +51,117 @@ export default function EventConnectQrScreen() {
     }
   };
 
+  const [printing, setPrinting] = useState(false);
+
+  // Format the event date line for the poster from the API's ISO string.
+  // Formatting happens IN THE EVENT'S TIMEZONE (not the device's) so the
+  // printed time matches the venue clock the label claims; if the zone id
+  // is unknown to the runtime we fall back to device-local WITHOUT the
+  // misleading zone label.
+  // [extract:posterDateLine:start]
+  const posterDateLine = (): string | null => {
+    if (!data?.event?.start_date) return null;
+    const d = new Date(data.event.start_date);
+    if (Number.isNaN(d.getTime())) return null;
+    const tz = data.event.timezone || undefined;
+    const fmt = (opts: Intl.DateTimeFormatOptions, timeZone?: string) =>
+      new Intl.DateTimeFormat(undefined, { ...opts, timeZone }).format(d);
+    const dateOpts: Intl.DateTimeFormatOptions = {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    };
+    const timeOpts: Intl.DateTimeFormatOptions = {
+      hour: "numeric",
+      minute: "2-digit",
+    };
+    try {
+      const dateStr = fmt(dateOpts, tz);
+      if (data.event.all_day) return dateStr;
+      const timeStr = fmt(timeOpts, tz);
+      return `${dateStr} at ${timeStr}${tz ? ` (${tz})` : ""}`;
+    } catch {
+      // Unknown/invalid IANA zone: device-local rendering, no zone label.
+      const dateStr = fmt(dateOpts);
+      return data.event.all_day ? dateStr : `${dateStr} at ${fmt(timeOpts)}`;
+    }
+  };
+  // [extract:posterDateLine:end]
+
+  // Print-ready A4/Letter poster HTML (Task #6693): event name, date/venue,
+  // the SVG QR and a scan instruction. SVG-only — no server PNG needed.
+  const posterHtml = (): string => {
+    const esc = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const name = esc(data!.event?.name || data!.link.title || data!.link.alias);
+    const dateLine = posterDateLine();
+    const location = data!.event?.location;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      @page{size:A4 portrait;margin:0}
+      body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#111827;background:#fff}
+      .poster{width:210mm;min-height:297mm;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center;padding:22mm 18mm}
+      .kicker{font-size:13pt;letter-spacing:.35em;text-transform:uppercase;color:#2563eb;font-weight:700;margin-bottom:8mm}
+      h1{font-size:34pt;line-height:1.15;font-weight:800;margin-bottom:6mm;overflow-wrap:anywhere}
+      .meta{font-size:15pt;color:#374151;margin-bottom:3mm}
+      .qr{margin:10mm auto;padding:8mm;border:1.2mm solid #111827;border-radius:8mm;display:inline-block}
+      .qr svg{display:block;width:120mm;height:120mm}
+      .instruction{font-size:20pt;font-weight:800;margin-bottom:3mm}
+      .sub{font-size:12pt;color:#4b5563;max-width:150mm;line-height:1.5}
+      .url{margin-top:8mm;font-family:monospace;font-size:11pt;color:#2563eb;overflow-wrap:anywhere}
+    </style></head><body><div class="poster">
+      <div class="kicker">You're invited</div>
+      <h1>${name}</h1>
+      ${dateLine ? `<div class="meta"><strong>${esc(dateLine)}</strong></div>` : ""}
+      ${location ? `<div class="meta">${esc(location)}</div>` : ""}
+      <div class="qr">${data!.qr_svg}</div>
+      <div class="instruction">Scan to RSVP &amp; connect</div>
+      <p class="sub">Point your phone's camera at the code. One quick verification code signs you in, saves your "Going" RSVP and connects you with the host.</p>
+      <div class="url">${esc(data!.connect_url)}</div>
+    </div></body></html>`;
+  };
+
+  const printPoster = async () => {
+    if (!data || printing) return;
+    setPrinting(true);
+    try {
+      const html = posterHtml();
+      if (Platform.OS === "web") {
+        // Open the poster in a new window and trigger the browser's print
+        // dialog (print or save-as-PDF), matching the web app's flow.
+        const w = window.open("", "_blank");
+        if (!w) throw new Error("Allow pop-ups to print the poster.");
+        w.document.write(html);
+        w.document.close();
+        w.focus();
+        setTimeout(() => w.print(), 300);
+      } else {
+        // Native: render to PDF and hand it to the share sheet so the host
+        // can print (AirPrint / Android print service) or save/send it.
+        const Print = await import("expo-print");
+        const Sharing = await import("expo-sharing");
+        const { uri } = await Print.printToFileAsync({ html });
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri, {
+            mimeType: "application/pdf",
+            dialogTitle: "Print or share the poster",
+            UTI: "com.adobe.pdf",
+          });
+        } else {
+          await Print.printAsync({ html });
+        }
+      }
+    } catch (e) {
+      showAlert(
+        "Couldn't prepare the poster",
+        (e as { message?: string })?.message ?? "Please try again.",
+      );
+    } finally {
+      setPrinting(false);
+    }
+  };
+
   const savePng = async () => {
     if (!data || saving) return;
     setSaving(true);
@@ -193,6 +304,15 @@ export default function EventConnectQrScreen() {
             <Button label="Share the link" onPress={shareUrl} leading={
               <Feather name="share-2" size={16} color={colors.primaryForeground} />
             } />
+            <Button
+              label={printing ? "Preparing poster…" : "Print poster"}
+              variant="outline"
+              loading={printing}
+              onPress={printPoster}
+              leading={
+                <Feather name="printer" size={16} color={colors.foreground} />
+              }
+            />
             <Button
               label={saving ? "Preparing…" : "Download QR image"}
               variant="outline"

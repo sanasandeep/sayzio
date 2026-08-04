@@ -62,11 +62,22 @@ class EventConnectQrApiController extends Controller
             \Log::info('Connect QR PNG render unavailable: ' . $e->getMessage());
         }
 
+        // Event details for the printable poster (Task #6693): name, date and
+        // venue from ics_data so the app can compose the poster locally.
+        $ics = $link->icsData;
+
         return $this->ok([
             'link'           => [
                 'id'    => (int) $link->id,
                 'alias' => $link->alias,
                 'title' => $link->title,
+            ],
+            'event'          => [
+                'name'       => $ics?->event_name ?: ($link->title ?: $link->alias),
+                'start_date' => $ics?->start_date?->toIso8601String(),
+                'all_day'    => (bool) ($ics?->all_day ?? false),
+                'timezone'   => $ics?->timezone,
+                'location'   => $ics?->location,
             ],
             'connect_url'    => $connectUrl,
             'qr_svg'         => (string) $qrSvg,

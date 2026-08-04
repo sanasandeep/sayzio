@@ -425,6 +425,20 @@ class QrCodeController extends Controller
                 ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
         }
 
+        // Print-ready poster (Task #6693): a standalone A4/Letter page with
+        // the event name, date/venue from ics_data, the QR and a scan
+        // instruction. SVG-based so it works without imagick; the page
+        // auto-opens the browser print dialog (print-to-PDF friendly).
+        if ($download === 'poster') {
+            $qrSvg = QrCode::format('svg')
+                ->size(520)
+                ->errorCorrection('M')
+                ->margin(1)
+                ->generate($connectUrl);
+            $ics = $link->icsData;
+            return view('user.links.connect-qr-poster', compact('link', 'connectUrl', 'qrSvg', 'ics'));
+        }
+
         $qrSvg = QrCode::format('svg')
             ->size(280)
             ->errorCorrection('M')

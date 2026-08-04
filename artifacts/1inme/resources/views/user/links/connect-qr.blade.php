@@ -31,6 +31,10 @@
             <div class="bg-white rounded-2xl p-4 mb-5">
                 {!! $qrSvg !!}
             </div>
+            <a href="{{ route('user.links.connect-qr', [$link, 'download' => 'poster']) }}" target="_blank"
+               class="w-full text-center px-4 py-2.5 rounded-xl text-sm font-bold bg-white text-gray-900 hover:bg-white/90 mb-3">
+                <i class="fas fa-print mr-1.5"></i> Print poster
+            </a>
             <div class="flex gap-3 w-full">
                 <a href="{{ route('user.links.connect-qr', [$link, 'download' => 'png']) }}"
                    class="flex-1 text-center px-4 py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white">

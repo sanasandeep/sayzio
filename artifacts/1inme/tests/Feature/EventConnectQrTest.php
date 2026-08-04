@@ -378,6 +378,28 @@ class EventConnectQrTest extends TestCase
         $this->assertSame(2, $apiByDay[$today]['connects']);
     }
 
+    // ---------------- printable poster (Task #6693) ----------------
+
+    public function test_web_poster_renders_event_details_and_qr(): void
+    {
+        $host = $this->makeHost();
+        $link = $this->makeEvent($host, ['location' => 'The Warehouse, Berlin']);
+
+        $ws = app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($host);
+        app()->instance('current_workspace', $ws);
+        app()->instance('workspace_owner', $host);
+
+        $res = $this->actingAs($host)->get(
+            route('user.links.connect-qr', [$link, 'download' => 'poster'])
+        );
+        $res->assertOk()
+            ->assertSee('Connect Party')
+            ->assertSee('The Warehouse, Berlin')
+            ->assertSee('Scan to RSVP')
+            ->assertSee('<svg', false)
+            ->assertSee('?src=connect_qr');
+    }
+
     // ---------------- mobile API (Task #6687) ----------------
 
     public function test_api_connect_qr_payload_for_host(): void
@@ -398,6 +420,11 @@ class EventConnectQrTest extends TestCase
         if ($data['qr_png_base64'] !== null) {
             $this->assertNotFalse(base64_decode($data['qr_png_base64'], true));
         }
+
+        // Poster fields (Task #6693): name/date/venue from ics_data.
+        $this->assertSame('Connect Party', $data['event']['name']);
+        $this->assertNotNull($data['event']['start_date']);
+        $this->assertSame('UTC', $data['event']['timezone']);
 
         // Someone else's link → 404, never a leak.
         $stranger = User::factory()->create();
