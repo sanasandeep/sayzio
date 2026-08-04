@@ -63,7 +63,7 @@
                 <label class="block text-sm font-medium text-white/60 mb-1">Domain</label>
                 <select name="domain_id" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40">
                     @foreach($domains as $domain)
-                        <option value="{{ $domain->id }}" @selected(old('domain_id', $defaultDomainId ?? null) == $domain->id)>{{ $domain->host }}</option>
+                        <option value="{{ $domain->id }}" @selected(old('domain_id', $defaultDomainId ?? null) == $domain->id)>{{ $domain->domain }}</option>
                     @endforeach
                 </select>
             </div>
