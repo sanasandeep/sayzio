@@ -72,6 +72,10 @@
                     {{ session('status') }}
                 </div>
 
+                @if($errors->has('turnstile'))
+                    <div class="mb-3 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);">{{ $errors->first('turnstile') }}</div>
+                @endif
+
                 <div x-data="{ method: '{{ $defaultMethod }}' }">
                     {{-- Two simple tabs: Email (password or one-time code) and
                          WhatsApp. The password/code choice lives INSIDE the
@@ -133,6 +137,7 @@
                                 <input type="email" name="identifier" value="{{ old('identifier') }}" required placeholder="you@example.com" class="theme-input w-full">
                                 <p class="mt-1 text-xs text-red-400" data-err="identifier" @if(!$errors->has('identifier')) hidden @endif>{{ $errors->first('identifier') }}</p>
                             </div>
+                            @include('common.partials.turnstile-widget')
                             <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
                                 <i class="fas fa-paper-plane text-xs"></i> Send 6-digit Code
                             </button>
@@ -161,6 +166,7 @@
                                     <i class="fab fa-whatsapp mr-0.5"></i> We'll send your code over WhatsApp. Supported country codes: {{ implode(', ', $allowedCountryCodes ?? []) }}.
                                 </p>
                             </div>
+                            @include('common.partials.turnstile-widget')
                             <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
                                 <i class="fas fa-paper-plane text-xs"></i> Send 6-digit Code
                             </button>

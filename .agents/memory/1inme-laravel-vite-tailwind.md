@@ -27,3 +27,8 @@ with NO `public/build/manifest.json`, and every page 500s with
 artisan steps so the manifest exists in production. The 1inme `package.json` has **no `name`**,
 so filter by directory (`pnpm --dir artifacts/1inme`), not `--filter @workspace/...`.
 **Why:** without this the deployed app would 500 on the missing Vite manifest.
+
+**Browser e2e runs the COMPILED bundle:** run-validation.sh only builds when
+`public/build/manifest.json` is missing — after editing anything under
+`resources/js/`, run `pnpm run build` first or the spec exercises the stale
+bundle (symptom: page behaves like your JS change never happened).

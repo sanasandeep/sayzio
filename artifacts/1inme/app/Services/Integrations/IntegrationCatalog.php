@@ -125,6 +125,22 @@ class IntegrationCatalog
                 ],
             ],
             [
+                'key'   => 'security',
+                'label' => 'Security & Anti-abuse',
+                'icon'  => 'fas fa-shield-halved',
+                'items' => [
+                    [
+                        'key'      => 'turnstile',
+                        'label'    => 'Cloudflare Turnstile (captcha)',
+                        'desc'     => 'Invisible captcha on the web sign-up and OTP-send flows. Unconfigured or toggled off ⇒ flows behave exactly as before.',
+                        'icon'     => 'fas fa-shield-halved',
+                        'status'   => TurnstileSettings::status(),
+                        'route'    => route('admin.integrations.turnstile.edit'),
+                        'external' => false,
+                    ],
+                ],
+            ],
+            [
                 'key'   => 'reviews',
                 'label' => 'Reviews',
                 'icon'  => 'fas fa-star',

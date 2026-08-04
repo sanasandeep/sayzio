@@ -374,6 +374,50 @@ class IntegrationsController extends Controller
     }
 
     // ═════════════════════════════════════════════════════════════
+    // Cloudflare Turnstile (invisible captcha on sign-up & OTP)
+    // ═════════════════════════════════════════════════════════════
+
+    public function editTurnstile()
+    {
+        return view('admin.integrations.turnstile', [
+            'status'       => \App\Services\Integrations\TurnstileSettings::status(),
+            'siteKey'      => \App\Services\Integrations\TurnstileSettings::siteKey(),
+            'hasSecret'    => \App\Services\Integrations\TurnstileSettings::secretKey() !== null,
+            'maskedSecret' => \App\Services\Integrations\TurnstileSettings::maskedSecretKey(),
+            'toggleOn'     => \App\Services\Integrations\TurnstileSettings::toggleOn(),
+            'enforcing'    => \App\Services\Integrations\TurnstileSettings::enabled(),
+        ]);
+    }
+
+    public function updateTurnstile(Request $request)
+    {
+        $data = $request->validate([
+            'site_key'          => 'nullable|string|max:255',
+            'secret_key'        => 'nullable|string|max:255',
+            'clear_secret_key'  => 'nullable|boolean',
+            'clear_site_key'    => 'nullable|boolean',
+            'enabled'           => 'nullable|boolean',
+        ]);
+
+        if ($request->boolean('clear_site_key')) {
+            \App\Services\Integrations\TurnstileSettings::setSiteKey(null);
+        } elseif (!empty($data['site_key'])) {
+            \App\Services\Integrations\TurnstileSettings::setSiteKey($data['site_key']);
+        }
+
+        if ($request->boolean('clear_secret_key')) {
+            \App\Services\Integrations\TurnstileSettings::setSecretKey(null);
+        } elseif (!empty($data['secret_key'])) {
+            \App\Services\Integrations\TurnstileSettings::setSecretKey($data['secret_key']);
+        }
+
+        \App\Services\Integrations\TurnstileSettings::setEnabled($request->boolean('enabled'));
+
+        return redirect()->route('admin.integrations.turnstile.edit')
+            ->with('success', 'Turnstile settings saved.');
+    }
+
+    // ═════════════════════════════════════════════════════════════
     // S3 / CloudFront storage
     // ═════════════════════════════════════════════════════════════
 

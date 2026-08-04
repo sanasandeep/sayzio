@@ -667,6 +667,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('github', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'updateGitHub'])->middleware(CheckPermission::class . ':settings.manage')->name('github.update');
             Route::post('github/test', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'testGitHub'])->middleware(CheckPermission::class . ':settings.manage')->name('github.test');
 
+            Route::get('turnstile', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'editTurnstile'])->middleware(CheckPermission::class . ':settings.manage')->name('turnstile.edit');
+            Route::put('turnstile', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'updateTurnstile'])->middleware(CheckPermission::class . ':settings.manage')->name('turnstile.update');
+
             Route::get('storage', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'editStorage'])->middleware(CheckPermission::class . ':settings.manage')->name('storage.edit');
             Route::put('storage', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'updateStorage'])->middleware(CheckPermission::class . ':settings.manage')->name('storage.update');
             Route::post('storage/test', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'testStorage'])->middleware(CheckPermission::class . ':settings.manage')->name('storage.test');
