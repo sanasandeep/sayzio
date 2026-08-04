@@ -69,6 +69,8 @@ jobs:
             expolink:
               - 'artifacts/1inme-mobile/app.json'
               - 'artifacts/1inme-mobile/scripts/check-expo-project-link.mjs'
+              - 'sayzio-dialer-standalone/app.json'
+              - 'sayzio-dialer-standalone/scripts/check-expo-project-link.mjs'
               - '.github/workflows/laravel-tests.yml'
 
   phpunit-postgres:
@@ -462,8 +464,11 @@ jobs:
         with:
           node-version: 24
 
-      - name: Validate app.json Expo project linkage
+      - name: Validate app.json Expo project linkage (main app)
         run: node artifacts/1inme-mobile/scripts/check-expo-project-link.mjs
+
+      - name: Validate app.json Expo project linkage (standalone dialer)
+        run: node sayzio-dialer-standalone/scripts/check-expo-project-link.mjs
 
   # Passthrough companion so the required check never deadlocks on PRs that
   # don't touch the mobile app config or the guard script.

@@ -16,7 +16,8 @@
     "test:identified-call-drain": "node scripts/test-identified-call-drain.mjs",
     "test:push-action": "node scripts/test-push-action.mjs",
     "test:note-alarms": "node scripts/test-note-alarms.mjs",
-    "test:2fa-login-e2e": "node scripts/test-2fa-login-e2e.mjs"
+    "test:2fa-login-e2e": "node scripts/test-2fa-login-e2e.mjs",
+    "test:expo-project-link": "node scripts/check-expo-project-link.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/space-grotesk": "^0.4.1",

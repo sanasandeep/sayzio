@@ -240,9 +240,9 @@ isValidation = true
 name = "expo-project-link-guard"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/1inme-mobile run test:expo-project-link"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:expo-project-link && node sayzio-dialer-standalone/scripts/check-expo-project-link.mjs"
