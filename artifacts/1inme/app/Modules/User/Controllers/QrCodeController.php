@@ -186,7 +186,14 @@ class QrCodeController extends Controller
             'payload'   => 'nullable|array',
         ]);
         if ($request->filled('link_id')) {
-            $link = Link::find($request->input('link_id'));
+            // Owner-keyed lookup mirroring builder(): bypass the workspace
+            // global scope so links from another of the owner's workspaces
+            // (or legacy NULL-workspace links) still resolve — ownership is
+            // enforced by user_id, matching the exists-rule above.
+            $link = Link::withoutGlobalScope('workspace')
+                ->where('id', (int) $request->input('link_id'))
+                ->where('user_id', workspace_owner_id())
+                ->first();
             return response()->json(['encoded' => $link ? $link->getShortUrl() : '']);
         }
         $type = $request->input('type');
