@@ -830,6 +830,12 @@ Route::get('/{alias}/download.txt', [RedirectController::class, 'textDownload'])
 Route::get('/{alias}/raw', [RedirectController::class, 'textRaw'])->name('redirect.text.raw')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$');
 Route::get('/{alias}/rsvp',  [RedirectController::class, 'rsvpForm'])->name('redirect.rsvp.form')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
 Route::post('/{alias}/rsvp', [RedirectController::class, 'rsvpSubmit'])->name('redirect.rsvp.submit')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:10,1');
+// Event Connect QR (Task #6685): the one-flow "RSVP & Connect" endpoints
+// used by the `?src=connect_qr` prompt on the public event page. Multi-
+// segment paths keep them clear of the single-segment /{alias} catch-all.
+Route::post('/{alias}/connect-qr/send',    [\App\Modules\Common\Controllers\EventConnectQrController::class, 'send'])->name('events.connect-qr.send')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:5,1');
+Route::post('/{alias}/connect-qr/verify',  [\App\Modules\Common\Controllers\EventConnectQrController::class, 'verify'])->name('events.connect-qr.verify')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:10,1');
+Route::post('/{alias}/connect-qr/confirm', [\App\Modules\Common\Controllers\EventConnectQrController::class, 'confirm'])->name('events.connect-qr.confirm')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');
 Route::post('/{alias}/interest', [\App\Modules\Common\Controllers\EventInterestController::class, 'toggle'])->name('events.interest.toggle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:30,1');
 // Task #3769: lazily-fetched "similar events" / "more from this host"
 // recommendation fragment for the RSVP + ticketed event pages — kept off

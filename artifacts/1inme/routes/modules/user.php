@@ -1472,6 +1472,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/qrcode', [QrCodeController::class, 'show'])->middleware('workspace.can:links.view')->name('links.qrcode');
         Route::post('links/{link}/qrcode', [QrCodeController::class, 'generate'])->middleware('workspace.can:links.edit')->name('links.qrcode.download');
         Route::get('links/{link}/qrcode/preview', [QrCodeController::class, 'preview'])->middleware('workspace.can:links.view')->name('links.qrcode.preview');
+        // Event Connect QR (Task #6685): view + download the scan-to-connect QR for event links.
+        Route::get('links/{link}/connect-qr', [QrCodeController::class, 'connectQr'])->middleware('workspace.can:links.view')->name('links.connect-qr');
 
         Route::get('qrcode', [QrCodeController::class, 'standalone'])->middleware('workspace.can:links.view')->name('qrcode');
 

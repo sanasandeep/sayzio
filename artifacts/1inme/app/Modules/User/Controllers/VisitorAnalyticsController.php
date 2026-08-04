@@ -223,6 +223,32 @@ class VisitorAnalyticsController extends Controller
             ->where('clicked_at', '>=', $since)
             ->where('clicked_at', '<=', $until)
             ->count();
+        // QR Connect stats (Task #6685) — event links only. Scans come from
+        // the click pipeline (source = 'connect_qr', counted even when the
+        // visitor never signs in); completions/new-signups/RSVPs/follows
+        // come from the event_qr_connects attribution rows. All respect the
+        // selected date range.
+        $qrConnect = null;
+        if ($link->type === 'ics') {
+            $connects = \App\Modules\User\Models\EventQrConnect::where('link_id', $link->id)
+                ->where('created_at', '>=', $since)
+                ->where('created_at', '<=', $until)
+                ->get(['was_new_user', 'rsvp_id', 'followed']);
+            $qrConnect = [
+                'scans'     => LinkClick::where('link_id', $link->id)
+                    ->where('source', 'connect_qr')
+                    ->where('is_bot', false)
+                    ->whereNull('block_id')
+                    ->where('clicked_at', '>=', $since)
+                    ->where('clicked_at', '<=', $until)
+                    ->count(),
+                'connected' => $connects->count(),
+                'new_users' => $connects->where('was_new_user', true)->count(),
+                'existing'  => $connects->where('was_new_user', false)->count(),
+                'rsvps'     => $connects->whereNotNull('rsvp_id')->count(),
+                'follows'   => $connects->where('followed', true)->count(),
+            ];
+        }
         $sourceBreakdown = LinkClick::where('link_id', $link->id)
             ->where('is_bot', false)
             ->where('clicked_at', '>=', $since)
@@ -249,6 +275,7 @@ class VisitorAnalyticsController extends Controller
             'arSessions'       => $arSessions,
             'arClicks'         => $arClicks,
             'sourceBreakdown'  => $sourceBreakdown,
+            'qrConnect'        => $qrConnect,
         ];
     }
 

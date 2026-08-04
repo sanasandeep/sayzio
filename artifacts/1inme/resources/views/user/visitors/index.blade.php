@@ -118,6 +118,42 @@
         @endif
     </div>
 
+    @if(!empty($qrConnect))
+        {{-- QR Connect panel (Task #6685) — event links only. Scan-to-connect
+             funnel attributed to the event's Connect QR, within the range. --}}
+        <div class="rounded-2xl border p-5 mb-6" style="background: var(--bg-card); border-color: var(--border-soft); box-shadow: var(--card-shadow);">
+            <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <div>
+                    <h2 class="font-bold" style="color: var(--text-primary);"><i class="fas fa-qrcode mr-1.5 text-blue-500"></i> QR Connect</h2>
+                    <p class="text-xs mt-0.5" style="color: var(--text-muted);">Scans of your Connect QR and what they turned into.</p>
+                </div>
+                <a href="{{ route('user.links.connect-qr', $link) }}" class="text-sm px-3 py-1.5 rounded-lg border font-semibold" style="border-color: var(--border-soft); color: var(--text-primary);">Get the Connect QR →</a>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div class="rounded-xl p-4 border" style="border-color: var(--border-soft);">
+                    <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">Scans</p>
+                    <p class="text-2xl font-extrabold mt-1" style="color: var(--text-primary);">{{ number_format($qrConnect['scans']) }}</p>
+                </div>
+                <div class="rounded-xl p-4 border" style="border-color: var(--border-soft);">
+                    <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">New signups</p>
+                    <p class="text-2xl font-extrabold mt-1 text-emerald-600">{{ number_format($qrConnect['new_users']) }}</p>
+                </div>
+                <div class="rounded-xl p-4 border" style="border-color: var(--border-soft);">
+                    <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">Existing users</p>
+                    <p class="text-2xl font-extrabold mt-1 text-blue-600">{{ number_format($qrConnect['existing']) }}</p>
+                </div>
+                <div class="rounded-xl p-4 border" style="border-color: var(--border-soft);">
+                    <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">RSVPs</p>
+                    <p class="text-2xl font-extrabold mt-1" style="color: var(--text-primary);">{{ number_format($qrConnect['rsvps']) }}</p>
+                </div>
+                <div class="rounded-xl p-4 border" style="border-color: var(--border-soft);">
+                    <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">New followers</p>
+                    <p class="text-2xl font-extrabold mt-1 text-amber-600">{{ number_format($qrConnect['follows']) }}</p>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="grid grid-cols-3 gap-3 mb-6">
         <div class="rounded-xl p-4 border" style="background: var(--bg-card); border-color: var(--border-soft); box-shadow: var(--card-shadow);">
             <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">Unique visitors</p>

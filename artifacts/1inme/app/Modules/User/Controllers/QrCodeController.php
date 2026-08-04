@@ -397,6 +397,43 @@ class QrCodeController extends Controller
         return view('user.links.qrcode', compact('link'));
     }
 
+    /**
+     * Event Connect QR (Task #6685) — a special QR for event (`ics`) links
+     * that encodes the event URL tagged with the `src=connect_qr` scan
+     * source. Scanners land on the event page's "RSVP & Connect" prompt;
+     * scans/signups/RSVPs/follows are attributed on the Visitor Insights
+     * page. `?download=png|svg` streams the file; otherwise renders the
+     * page with the inline QR + download buttons.
+     */
+    public function connectQr(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== workspace_owner_id(), 403);
+        abort_unless($link->type === 'ics', 404);
+
+        $connectUrl = $link->getShortUrl() . '?src=connect_qr';
+
+        $download = $request->query('download');
+        if (in_array($download, ['png', 'svg'], true)) {
+            $qr = QrCode::format($download)
+                ->size(600)
+                ->errorCorrection('M')
+                ->margin(1)
+                ->generate($connectUrl);
+            $filename = 'connect-qr-' . ($link->alias ?: $link->id) . '.' . $download;
+            return response($qr)
+                ->header('Content-Type', $download === 'svg' ? 'image/svg+xml' : 'image/png')
+                ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
+        }
+
+        $qrSvg = QrCode::format('svg')
+            ->size(280)
+            ->errorCorrection('M')
+            ->margin(1)
+            ->generate($connectUrl);
+
+        return view('user.links.connect-qr', compact('link', 'connectUrl', 'qrSvg'));
+    }
+
     public function standalone()
     {
         return view('user.links.qrcode-standalone');

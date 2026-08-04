@@ -488,6 +488,9 @@
         $heroActions[] = ['label' => 'Upgrade to export', 'url' => route('user.upgrade'), 'icon' => 'fa-lock', 'class' => 'btn-ghost', 'title' => 'CSV export is a paid feature, upgrade your plan to download stats.'];
     }
     $heroActions[] = ['label' => 'QR', 'url' => route('user.qr-codes.create', ['link_id' => $link->id]), 'icon' => 'fa-qrcode', 'class' => 'btn-ghost'];
+    if ($link->type === 'ics') {
+        $heroActions[] = ['label' => 'Connect QR', 'url' => route('user.links.connect-qr', $link), 'icon' => 'fa-user-plus', 'class' => 'btn-ghost', 'title' => 'A special QR that signs scanners in, RSVPs them, and connects them to you.'];
+    }
     if ($link->type === 'biolink') {
         $heroActions[] = ['label' => 'Edit Blocks', 'url' => route('user.links.blocks.editor', $link), 'icon' => 'fa-th-large', 'class' => 'btn-primary'];
     }
