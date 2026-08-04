@@ -256,7 +256,7 @@ Or just open the EAS download URL on the phone's browser and tap **Install**.
 
 ### Incrementing the build number
 
-`versionCode` in `app.json → expo.android.versionCode` must be a strictly increasing integer. Bump it before each new build (1 → 2 → 3 …). With `"appVersionSource": "remote"` in `eas.json`, EAS can also manage this automatically via `eas build --auto-submit` once remote version tracking is enabled on your project dashboard.
+The Android `versionCode` is managed remotely by EAS (`"appVersionSource": "remote"` in `eas.json`, with `autoIncrement: true` on the preview profile), so it is intentionally not set in `app.json` — EAS bumps it automatically on each build. Check the current remote value with `eas build:version:get`.
 
 ---
 

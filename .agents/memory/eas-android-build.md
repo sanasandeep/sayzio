@@ -24,3 +24,4 @@ description: How to run eas-cli builds for artifacts/1inme-mobile from the Repli
 - **CI Node version for zio-browser tests**: jsdom@30/undici@8.9 need Node >=22 (`webidl.util.markAsUncloneable`); GitHub workflow setup-node must be 24, not 20, or vitest's forks worker dies while all tests "pass".
 
 - **Free-plan monthly build quota (Aug 2026):** `eas-cli build` fails with a generic "Error: build command failed." AFTER upload/fingerprint when the account has used its free Android builds for the month (quota line appears just above). Deterministic until the monthly reset — not a code issue; do not retry-loop.
+- **Validation retries burn quota:** the `eas-apk-build` validation command queues a REAL build on every completion-validation attempt — a retry loop against flaky e2e suites can exhaust the monthly free-plan quota mid-task. If only e2e flakes remain, wait out contention instead of re-running the full battery repeatedly.
