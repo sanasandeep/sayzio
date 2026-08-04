@@ -992,10 +992,12 @@ protected $fillable = [
      * ≈ 17px, plus the card's 8px vertical margins; both text rows are
      * nowrap/ellipsis so height is content-length independent. A ~12px
      * buffer absorbs host-page font-metric differences. The gated /
-     * unavailable fallback states add a footnote row (≈ +24px) the static
-     * snippet doesn't anticipate — the `<script>` snippet auto-resizes via
-     * the card's `1inme-embed-resize` postMessage and is the recommended
-     * embed; the iframe snippet is the JS-free best effort.
+     * unavailable fallback states are deliberately kept WITHIN these
+     * heights (task #6714): they render no footnote row and no badge row,
+     * so a link that later becomes private/unavailable still fits the
+     * height copied here. (The `<script>` snippet additionally auto-resizes
+     * via the card's `1inme-embed-resize` postMessage and stays the
+     * recommended embed.)
      */
     public function embedCardIframeHeight(): int
     {

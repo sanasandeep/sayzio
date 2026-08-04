@@ -105,7 +105,10 @@ class PublicEmbedController extends Controller
                 'state'    => 'gated',
                 'alias'    => $link->alias,
                 'title'    => $link->title ?: $link->type_label,
-                'subtitle' => 'This link is private.',
+                // Single explanation line — the card renders NO extra footnote
+                // row for fallback states (task #6714) so the layout fits the
+                // height the static no-JS iframe snippet was copied with.
+                'subtitle' => 'Private link — open to view if you have access.',
                 'favicon'  => $this->favicon($link),
                 'action'   => ['label' => 'View on site', 'icon' => 'open'],
                 'url'      => $shortUrl,

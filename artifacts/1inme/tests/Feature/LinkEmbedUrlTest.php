@@ -202,4 +202,56 @@ class LinkEmbedUrlTest extends TestCase
             ->assertOk()
             ->assertSee('View text');
     }
+
+    /**
+     * The static no-JS iframe snippet is sized at copy time and can't grow,
+     * so the gated / unavailable fallback card layouts must fit WITHIN that
+     * height (task #6714): the explanation lives on the single subtitle
+     * line, and neither a footnote row nor the badge row renders.
+     */
+    public function test_gated_and_unavailable_cards_fit_static_snippet_height(): void
+    {
+        $this->forcePlatformHost(self::BRAND_HOST);
+
+        $user = $this->makeUser();
+
+        // Gated: link later switched to a non-public visibility.
+        $gated = Link::create([
+            'user_id'    => $user->id,
+            'type'       => 'url',
+            'alias'      => 'embed-gated-' . Str::random(6),
+            'long_url'   => 'https://dest.example.com/x',
+            'title'      => 'Now private',
+            'is_active'  => true,
+            'visibility' => 'followers',
+        ]);
+
+        $res = $this->get('/embed/link/' . $gated->alias . '/card')->assertOk();
+        $res->assertSee('Private link — open to view if you have access.');
+        $res->assertSee('View on site');
+        // No extra footnote row and no badge row → fallback fits the copied height.
+        $res->assertDontSee('class="footnote"', false);
+        $res->assertDontSee('class="badge"', false);
+
+        // Unavailable: link later deactivated.
+        $off = Link::create([
+            'user_id'   => $user->id,
+            'type'      => 'url',
+            'alias'     => 'embed-off-' . Str::random(6),
+            'long_url'  => 'https://dest.example.com/x',
+            'title'     => 'Now off',
+            'is_active' => false,
+        ]);
+
+        $res = $this->get('/embed/link/' . $off->alias . '/card')->assertOk();
+        $res->assertSee('This link is not available right now.');
+        $res->assertDontSee('class="footnote"', false);
+        $res->assertDontSee('class="badge"', false);
+
+        // Happy path still renders the badge row.
+        $ok = $this->makeLink($user, null, 'embed-ok-' . Str::random(6));
+        $this->get('/embed/link/' . $ok->alias . '/card')
+            ->assertOk()
+            ->assertSee('class="badge"', false);
+    }
 }

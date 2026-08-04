@@ -127,7 +127,12 @@
                 @if ($subtitle)
                     <p class="subtitle">{{ $subtitle }}</p>
                 @endif
-                @if ($badge)
+                {{-- The badge row only renders on the happy path. The gated /
+                     unavailable fallback states drop it so their layouts stay
+                     within the height the static no-JS iframe snippet was
+                     copied with (task #6714) — the subtitle line already
+                     carries the fallback explanation. --}}
+                @if ($badge && $state === 'ok')
                     <span class="badge">{{ $badge }}</span>
                 @endif
             </div>
@@ -140,11 +145,10 @@
             </a>
         @endif
 
-        @if ($state === 'gated')
-            <p class="footnote">Private link, open to view if you have access.</p>
-        @elseif ($state === 'unavailable')
-            <p class="footnote">This link is currently unavailable.</p>
-        @endif
+        {{-- No extra footnote row for gated/unavailable (task #6714): the
+             static no-JS iframe snippet is sized at copy time and can't grow,
+             so the fallback explanation lives entirely in the subtitle above.
+             (The `<script>` snippet auto-resizes and never needed this.) --}}
     </div>
 
     <script>

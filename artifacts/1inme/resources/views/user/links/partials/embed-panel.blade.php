@@ -101,7 +101,7 @@
                     </button>
                 </div>
                 <pre class="text-[11px] leading-relaxed embp-pre rounded-xl p-3 overflow-x-auto whitespace-pre-wrap break-all"><code>{{ $iframeSnippet }}</code></pre>
-                <p class="text-[11px] mt-1" style="color: var(--text-muted);">Paste straight into your page&rsquo;s HTML.</p>
+                <p class="text-[11px] mt-1" style="color: var(--text-muted);">Paste straight into your page&rsquo;s HTML. Fixed height &mdash; prefer the auto-render script if you can run JavaScript.</p>
             </div>
         </div>
 
