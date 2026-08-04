@@ -171,12 +171,12 @@
     },
     "extra": {
       "eas": {
-        "projectId": "683bf9a8-d1b5-4b71-8356-283c8efc32bc"
+        "projectId": "7d456b75-3a4b-4f59-95b1-369f0cb1ba77"
       },
       "router": {
         "origin": "https://sayzio.app/"
       }
     },
-    "owner": "sanasandeep-personals-team"
+    "owner": "eefind"
   }
 }
