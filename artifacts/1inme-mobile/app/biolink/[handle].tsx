@@ -58,7 +58,8 @@ import { LinkTypePairings } from "@/components/LinkTypePairings";
 import { ReviewsWall } from "@/components/ReviewsWall";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
-import { getBaseUrl } from "@/lib/api";
+import { errorStatus, getBaseUrl } from "@/lib/api";
+import { getEvent } from "@/lib/api/events";
 import { getBgPresets } from "@/lib/api/bgPresets";
 import { buyProduct, checkoutCart } from "@/lib/api/store";
 import { variantOverlay } from "@/lib/blockVariants";
@@ -6585,9 +6586,10 @@ export default function BiolinkViewer() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { handle, t } = useLocalSearchParams<{ handle: string; t?: string }>();
+  const { handle, t, src } = useLocalSearchParams<{ handle: string; t?: string; src?: string }>();
   const alias = String(handle ?? "");
   const tableCode = t ? String(t) : "";
+  const srcTag = src ? String(src) : "";
   const webTop = Platform.OS === "web" ? 0 : 0;
 
   const [embed, setEmbed] = useState<{ url: string; title?: string; sandboxed?: boolean } | null>(null);
@@ -6634,6 +6636,28 @@ export default function BiolinkViewer() {
       router.replace(`/service-booking/${alias}` as any);
     }
   }, [q.data, alias, tableCode, router]);
+
+  // Task #6687: event (ics) links are NOT biolink-family, so the biolink
+  // payload 404s for them. When that happens, try resolving the alias as a
+  // public event and hand off to the native event screen — preserving the
+  // Connect QR attribution tag (?src=connect_qr) so the one-tap
+  // "RSVP & Connect" prompt shows there.
+  useEffect(() => {
+    if (!q.isError || !alias || redirectedRef.current) return;
+    if (errorStatus(q.error) !== 404) return;
+    let stale = false;
+    getEvent(alias)
+      .then(() => {
+        if (stale || redirectedRef.current) return;
+        redirectedRef.current = true;
+        const suffix = srcTag ? `?src=${encodeURIComponent(srcTag)}` : "";
+        router.replace(`/events/${alias}${suffix}` as any);
+      })
+      .catch(() => {});
+    return () => {
+      stale = true;
+    };
+  }, [q.isError, q.error, alias, srcTag, router]);
 
   return (
     <StoreCartProvider alias={alias}>

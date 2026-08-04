@@ -252,6 +252,12 @@ Route::prefix('v1')->group(function () {
         Route::post ('/links/{link}/event/cancel',         [\App\Modules\Api\Controllers\EventApiController::class, 'cancel'])->whereNumber('link')->middleware('throttle:30,1');
         Route::post ('/links/{link}/event/reactivate',     [\App\Modules\Api\Controllers\EventApiController::class, 'reactivate'])->whereNumber('link')->middleware('throttle:30,1');
 
+        // Task #6687 — Event Connect QR on mobile: the host's QR payload
+        // (view/share/download) and the guest's one-tap RSVP & Connect for
+        // `?src=connect_qr` event URLs opened in the app.
+        Route::get ('/links/{link}/connect-qr',            [\App\Modules\Api\Controllers\EventConnectQrApiController::class, 'qr'])->whereNumber('link');
+        Route::post('/events/{alias}/connect',             [\App\Modules\Api\Controllers\EventConnectQrApiController::class, 'connect'])->middleware('throttle:20,1');
+
         // Task #5008 — Event contact exchange: "My card" QR + opt-in people list.
         Route::get ('/me/event-card',                      [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'myCard']);
         Route::get ('/events/{alias}/discoverability',     [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'getDiscoverability']);

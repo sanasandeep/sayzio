@@ -71,6 +71,16 @@ export type LinkVisitors = {
   ar_sessions: number;
   ar_clicks: number;
   source_breakdown: VisitorSourceBreakdown[];
+  // Event links only (Task #6687): the QR Connect funnel — scans, connects
+  // split new vs existing, RSVPs and follows. `null` for non-event links.
+  qr_connect: {
+    scans: number;
+    connected: number;
+    new_users: number;
+    existing: number;
+    rsvps: number;
+    follows: number;
+  } | null;
 };
 
 export async function getAccountVisitors(opts?: {

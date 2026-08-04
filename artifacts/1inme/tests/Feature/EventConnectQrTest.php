@@ -351,5 +351,76 @@ class EventConnectQrTest extends TestCase
         $this->assertSame(0, $byDay[$yesterday]->connects);
         $this->assertSame(0, $byDay[$today]->scans);
         $this->assertSame(2, $byDay[$today]->connects);
+
+        // Mobile parity (Task #6687): the per-link visitors API surfaces the
+        // same qr_connect block with identical numbers.
+        $token = $host->createToken('test')->plainTextToken;
+        $api = $this->withToken($token)->getJson('/api/v1/links/' . $link->id . '/visitors?period=30d');
+        $api->assertOk();
+        $apiQr = $api->json('data.qr_connect');
+        $this->assertNotNull($apiQr);
+        $this->assertSame(2, $apiQr['scans']);
+        $this->assertSame(2, $apiQr['connected']);
+        $this->assertSame(1, $apiQr['new_users']);
+        $this->assertSame(1, $apiQr['existing']);
+        $this->assertSame(1, $apiQr['rsvps']);
+        $this->assertSame(2, $apiQr['follows']);
+    }
+
+    // ---------------- mobile API (Task #6687) ----------------
+
+    public function test_api_connect_qr_payload_for_host(): void
+    {
+        $host = $this->makeHost();
+        $link = $this->makeEvent($host);
+
+        $token = $host->createToken('test')->plainTextToken;
+        $res = $this->withToken($token)->getJson('/api/v1/links/' . $link->id . '/connect-qr');
+        $res->assertOk();
+
+        $data = $res->json('data');
+        $this->assertSame($link->id, $data['link']['id']);
+        $this->assertStringContainsString('?src=connect_qr', $data['connect_url']);
+        $this->assertStringContainsString('<svg', $data['qr_svg']);
+        // PNG is best-effort (needs imagick); when present it must be valid
+        // base64. The SVG above is the guaranteed payload.
+        if ($data['qr_png_base64'] !== null) {
+            $this->assertNotFalse(base64_decode($data['qr_png_base64'], true));
+        }
+
+        // Someone else's link → 404, never a leak.
+        $stranger = User::factory()->create();
+        $otherToken = $stranger->createToken('test')->plainTextToken;
+        $this->withToken($otherToken)->getJson('/api/v1/links/' . $link->id . '/connect-qr')->assertNotFound();
+    }
+
+    public function test_api_guest_connect_rsvps_and_follows(): void
+    {
+        $host  = $this->makeHost();
+        $link  = $this->makeEvent($host);
+        $guest = User::factory()->create()->fresh();
+
+        $token = $guest->createToken('test')->plainTextToken;
+        $res = $this->withToken($token)->postJson('/api/v1/events/' . $link->alias . '/connect');
+        $res->assertOk()->assertJsonPath('success', true);
+
+        $rsvp = Rsvp::where('link_id', $link->id)->where('email', $guest->email)->first();
+        $this->assertNotNull($rsvp);
+        $this->assertSame('yes', $rsvp->response);
+        $this->assertSame('connect_qr', $rsvp->source);
+
+        $this->assertTrue(
+            Follow::where('follower_id', $guest->id)->where('creator_id', $host->id)->exists()
+        );
+
+        $connect = EventQrConnect::where('link_id', $link->id)->where('user_id', $guest->id)->first();
+        $this->assertNotNull($connect);
+        $this->assertFalse((bool) $connect->was_new_user);
+        $this->assertSame($rsvp->id, $connect->rsvp_id);
+
+        // Repeat call stays idempotent.
+        $this->withToken($token)->postJson('/api/v1/events/' . $link->alias . '/connect')->assertOk();
+        $this->assertSame(1, Rsvp::where('link_id', $link->id)->where('email', $guest->email)->count());
+        $this->assertSame(1, EventQrConnect::where('link_id', $link->id)->where('user_id', $guest->id)->count());
     }
 }

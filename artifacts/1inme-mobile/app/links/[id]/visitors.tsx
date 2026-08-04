@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -178,6 +178,60 @@ export default function LinkVisitorsScreen() {
                     ))}
                   </View>
                 ) : null}
+              </Section>
+            ) : null}
+
+            {data.qr_connect ? (
+              <Section title="QR Connect" colors={colors} icon="user-plus">
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 12,
+                    fontFamily: "SpaceGrotesk_400Regular",
+                  }}
+                >
+                  Guests who scanned your Connect QR — one code signs them in,
+                  RSVPs them "yes" and connects them with you.
+                </Text>
+                <View style={styles.tileRow}>
+                  <StatTile
+                    label="Scans"
+                    value={data.qr_connect.scans.toLocaleString()}
+                    icon="maximize"
+                  />
+                  <StatTile
+                    label="New signups"
+                    value={data.qr_connect.new_users.toLocaleString()}
+                    icon="user-plus"
+                  />
+                  <StatTile
+                    label="Existing"
+                    value={data.qr_connect.existing.toLocaleString()}
+                    icon="user-check"
+                  />
+                </View>
+                <View style={styles.tileRow}>
+                  <StatTile
+                    label="RSVPs"
+                    value={data.qr_connect.rsvps.toLocaleString()}
+                    icon="calendar"
+                  />
+                  <StatTile
+                    label="New follows"
+                    value={data.qr_connect.follows.toLocaleString()}
+                    icon="heart"
+                  />
+                </View>
+                <Button
+                  label="Get the Connect QR"
+                  variant="outline"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/events/connect-qr/[linkId]",
+                      params: { linkId: String(id) },
+                    })
+                  }
+                />
               </Section>
             ) : null}
 

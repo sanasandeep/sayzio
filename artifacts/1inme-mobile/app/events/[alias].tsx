@@ -24,6 +24,7 @@ import {
   type EventInterestStatus,
   type EventItem,
   type EventTier,
+  eventConnect,
   getEvent,
   setEventInterest,
 } from "@/lib/api/events";
@@ -32,7 +33,8 @@ import { getProfile } from "@/lib/api/profile";
 import { showAlert } from "@/lib/webAlert";
 
 export default function EventDetailScreen() {
-  const { alias } = useLocalSearchParams<{ alias: string }>();
+  const { alias, src } = useLocalSearchParams<{ alias: string; src?: string }>();
+  const srcTag = src ? String(src) : "";
   const colors = useColors();
   const router = useRouter();
   const [event, setEvent] = useState<EventItem | null>(null);
@@ -44,6 +46,34 @@ export default function EventDetailScreen() {
   const [myInterest, setMyInterest] = useState<EventInterestStatus | null>(null);
   const [interestBusy, setInterestBusy] = useState(false);
   const [rsvpModalUrl, setRsvpModalUrl] = useState<string | null>(null);
+  const [connectBusy, setConnectBusy] = useState(false);
+  const [connectDone, setConnectDone] = useState(false);
+  const [connectMessage, setConnectMessage] = useState("");
+  const [connectError, setConnectError] = useState<string | null>(null);
+
+  // Task #6687 — one-tap RSVP & Connect for guests arriving via the host's
+  // Connect QR (?src=connect_qr). App users are always signed in, so this
+  // is the mobile mirror of the web prompt's signed-in confirm step.
+  const doConnect = useCallback(async () => {
+    if (!event || connectBusy) return;
+    setConnectBusy(true);
+    setConnectError(null);
+    try {
+      const res = await eventConnect(event.alias);
+      if (res.success) {
+        setConnectDone(true);
+        setConnectMessage(res.message ?? "You're going! We've saved your RSVP and connected you with the host.");
+      } else {
+        setConnectError(res.message ?? "Could not complete — please try again.");
+      }
+    } catch (e) {
+      setConnectError(
+        (e as { message?: string })?.message ?? "Could not complete — please try again.",
+      );
+    } finally {
+      setConnectBusy(false);
+    }
+  }, [event, connectBusy]);
 
   // Task #3674: free events have no RSVP JSON API (session/CSRF form only),
   // so mobile embeds the existing public RSVP page in a WebView rather than
@@ -556,6 +586,58 @@ export default function EventDetailScreen() {
         </View>
       ) : null}
 
+      {/* Task #6687 — Connect QR one-tap prompt: shown when the event URL
+          carried ?src=connect_qr (guest scanned the host's Connect QR) and
+          RSVPs are open. Mirrors the web prompt's signed-in "confirm" step:
+          one tap RSVPs "yes" and follows the host. */}
+      {srcTag === "connect_qr" &&
+      !(event.ticketing_enabled && event.tiers.length > 0) &&
+      event.rsvp_available ? (
+        <View
+          style={[
+            styles.connectCard,
+            { borderColor: colors.primary, backgroundColor: colors.card },
+          ]}
+        >
+          {connectDone ? (
+            <>
+              <Feather name="check-circle" size={22} color={colors.primary} />
+              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15 }}>
+                You're connected!
+              </Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 13, lineHeight: 19 }}>
+                {connectMessage}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15 }}>
+                RSVP & Connect
+              </Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 13, lineHeight: 19 }}>
+                You scanned the host's Connect QR. One tap RSVPs you "yes" and
+                connects you with the host.
+              </Text>
+              {connectError ? (
+                <Text style={{ color: colors.destructive, fontSize: 13 }}>{connectError}</Text>
+              ) : null}
+              <Pressable
+                onPress={doConnect}
+                disabled={connectBusy}
+                style={[
+                  styles.buyBtn,
+                  { backgroundColor: colors.primary, opacity: connectBusy ? 0.6 : 1 },
+                ]}
+              >
+                <Text style={{ color: colors.primaryForeground, fontWeight: "700" }}>
+                  {connectBusy ? "Connecting…" : "RSVP & Connect"}
+                </Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+      ) : null}
+
       {event.ticketing_enabled && event.tiers.length > 0 ? (
         <View style={{ marginTop: 20, gap: 10 }}>
           <Text style={[styles.section, { color: colors.foreground }]}>Tickets</Text>
@@ -778,6 +860,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 46,
     fontSize: 15,
+  },
+  connectCard: {
+    marginTop: 20,
+    borderWidth: 1.5,
+    borderRadius: 14,
+    padding: 16,
+    gap: 8,
   },
   buyBtn: {
     height: 50,
