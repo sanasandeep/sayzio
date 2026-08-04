@@ -73,6 +73,8 @@ export type LinkVisitors = {
   source_breakdown: VisitorSourceBreakdown[];
   // Event links only (Task #6687): the QR Connect funnel — scans, connects
   // split new vs existing, RSVPs and follows. `null` for non-event links.
+  // Task #6694 adds the daily scans-vs-connects series and range conversion
+  // % to match the web Visitor Insights panel.
   qr_connect: {
     scans: number;
     connected: number;
@@ -80,6 +82,8 @@ export type LinkVisitors = {
     existing: number;
     rsvps: number;
     follows: number;
+    daily: { d: string; scans: number; connects: number }[];
+    conversion_pct: number | null;
   } | null;
 };
 

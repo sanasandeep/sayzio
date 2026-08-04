@@ -365,6 +365,17 @@ class EventConnectQrTest extends TestCase
         $this->assertSame(1, $apiQr['existing']);
         $this->assertSame(1, $apiQr['rsvps']);
         $this->assertSame(2, $apiQr['follows']);
+
+        // Daily funnel + conversion parity (Task #6694): the API mirrors the
+        // web panel's per-day scans-vs-connects series and range conversion.
+        // JSON round-trips 100.0 as int 100, so compare loosely.
+        $this->assertEquals(100.0, $apiQr['conversion_pct']);
+        $this->assertCount(2, $apiQr['daily']);
+        $apiByDay = collect($apiQr['daily'])->keyBy('d');
+        $this->assertSame(2, $apiByDay[$yesterday]['scans']);
+        $this->assertSame(0, $apiByDay[$yesterday]['connects']);
+        $this->assertSame(0, $apiByDay[$today]['scans']);
+        $this->assertSame(2, $apiByDay[$today]['connects']);
     }
 
     // ---------------- mobile API (Task #6687) ----------------
