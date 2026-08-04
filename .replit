@@ -63,6 +63,10 @@ args = "e2e-connect-qr"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "expo-project-link-guard"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "eas-lockfile-registry-guard"
     
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
@@ -246,3 +250,14 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/1inme-mobile run test:expo-project-link && node sayzio-dialer-standalone/scripts/check-expo-project-link.mjs"
+
+[[workflows.workflow]]
+name = "eas-lockfile-registry-guard"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node artifacts/1inme-mobile/scripts/check-eas-lockfile-registry.mjs"
+
+[workflows.workflow.metadata]
+isValidation = true

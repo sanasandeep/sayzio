@@ -71,6 +71,11 @@ jobs:
               - 'artifacts/1inme-mobile/scripts/check-expo-project-link.mjs'
               - 'sayzio-dialer-standalone/app.json'
               - 'sayzio-dialer-standalone/scripts/check-expo-project-link.mjs'
+              - 'artifacts/1inme-mobile/scripts/check-eas-lockfile-registry.mjs'
+              - 'artifacts/1inme-mobile/package-lock.json'
+              - 'sayzio-dialer-standalone/package-lock.json'
+              - 'package-lock.json'
+              - 'pnpm-lock.yaml'
               - '.github/workflows/laravel-tests.yml'
 
   phpunit-postgres:
@@ -469,6 +474,9 @@ jobs:
 
       - name: Validate app.json Expo project linkage (standalone dialer)
         run: node sayzio-dialer-standalone/scripts/check-expo-project-link.mjs
+
+      - name: Block package-firewall URLs in EAS-shipped lockfiles
+        run: node artifacts/1inme-mobile/scripts/check-eas-lockfile-registry.mjs
 
   # Passthrough companion so the required check never deadlocks on PRs that
   # don't touch the mobile app config or the guard script.
