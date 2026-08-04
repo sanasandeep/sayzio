@@ -74,6 +74,29 @@ class VisitorAnalyticsController extends Controller
             }
             fputcsv($out, []);
 
+            // QR Connect funnel (event links only) — mirrors the on-page panel:
+            // totals + the per-day scans-vs-connects table.
+            if ($data['qrConnect'] !== null) {
+                $qr = $data['qrConnect'];
+                fputcsv($out, ['QR Connect']);
+                fputcsv($out, ['Metric', 'Count']);
+                fputcsv($out, ['Scans', $qr['scans']]);
+                fputcsv($out, ['Connects', $qr['connected']]);
+                fputcsv($out, ['New users', $qr['new_users']]);
+                fputcsv($out, ['Existing users', $qr['existing']]);
+                fputcsv($out, ['RSVPs', $qr['rsvps']]);
+                fputcsv($out, ['Follows', $qr['follows']]);
+                fputcsv($out, ['Conversion %', $qr['conversion_pct'] !== null ? $qr['conversion_pct'] : '—']);
+                fputcsv($out, []);
+
+                fputcsv($out, ['QR Connect daily']);
+                fputcsv($out, ['Date', 'Scans', 'Connects']);
+                foreach ($qr['daily'] as $row) {
+                    fputcsv($out, [$row->d, $row->scans, $row->connects]);
+                }
+                fputcsv($out, []);
+            }
+
             fputcsv($out, ['Identified visitors']);
             fputcsv($out, ['Name', 'Email', 'Visits', 'First seen', 'Last seen', 'Follower']);
             foreach ($data['identified'] as $row) {
