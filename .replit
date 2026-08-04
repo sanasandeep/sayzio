@@ -67,6 +67,10 @@ args = "expo-project-link-guard"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "eas-lockfile-registry-guard"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-embed-panel-text-card"
     
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
@@ -258,6 +262,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node artifacts/1inme-mobile/scripts/check-eas-lockfile-registry.mjs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-embed-panel-text-card"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5079 bash tests/Browser/run-validation.sh embed-panel-text-card.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true

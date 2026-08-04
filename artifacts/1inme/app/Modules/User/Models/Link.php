@@ -910,7 +910,7 @@ protected $fillable = [
      * ------------------------------------------------------------------ */
 
     /** Link types that embed as a compact action card (not a full-page iframe). */
-    public const EMBED_CARD_TYPES = ['url', 'file', 'pdf', 'ics', 'vcf'];
+    public const EMBED_CARD_TYPES = ['url', 'file', 'pdf', 'ics', 'vcf', 'text'];
 
     /** Whether this link embeds as a compact card (vs a full-page iframe). */
     public function isEmbedCard(): bool
@@ -937,6 +937,7 @@ protected $fillable = [
             'ics'         => ['label' => 'Add to calendar', 'icon' => 'calendar'],
             'vcf'         => ['label' => 'Save contact',    'icon' => 'contact'],
             'url'         => ['label' => 'Open',            'icon' => 'open'],
+            'text'        => ['label' => 'View text',       'icon' => 'text'],
             default       => ['label' => 'View',            'icon' => 'open'],
         };
     }

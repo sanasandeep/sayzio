@@ -25,3 +25,6 @@ description: How to run eas-cli builds for artifacts/1inme-mobile from the Repli
 
 - **Free-plan monthly build quota (Aug 2026):** `eas-cli build` fails with a generic "Error: build command failed." AFTER upload/fingerprint when the account has used its free Android builds for the month (quota line appears just above). Deterministic until the monthly reset — not a code issue; do not retry-loop.
 - **Validation retries burn quota:** the `eas-apk-build` validation command queues a REAL build on every completion-validation attempt — a retry loop against flaky e2e suites can exhaust the monthly free-plan quota mid-task. If only e2e flakes remain, wait out contention instead of re-running the full battery repeatedly.
+
+## Free-plan build quota exhaustion blocks validation
+The `eas-apk-build` validation command fails deterministically once the Expo account's Free-plan Android build quota for the month is used up ("This account has used its Android builds from the Free plan this month ... Error: build command failed" AFTER a successful upload). No code change fixes it; it resets on the 1st. Treat as an external blocker (audited skip_validation_reason), not a regression — the build config is fine if compress/upload/fingerprint all succeed.

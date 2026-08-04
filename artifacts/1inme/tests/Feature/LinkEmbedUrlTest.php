@@ -141,4 +141,58 @@ class LinkEmbedUrlTest extends TestCase
         $this->assertStringContainsString('https://links.example.com/embed/link/', $link->embedScriptSnippet());
         $this->assertStringContainsString('https://links.example.com/embed/link/', $link->embedIframeSnippet());
     }
+
+    /**
+     * Text links embed as a compact card, not a tall full-page iframe
+     * (task #6712) — otherwise the editor preview and copyable snippet
+     * leave a huge blank area under a few lines of text.
+     */
+    public function test_text_links_embed_as_compact_card(): void
+    {
+        $this->forcePlatformHost(self::BRAND_HOST);
+
+        $user = $this->makeUser();
+        $link = Link::create([
+            'user_id'   => $user->id,
+            'type'      => 'text',
+            'alias'     => 'embed-txt-' . Str::random(6),
+            'is_active' => true,
+            'settings'  => ['text_content' => 'Hello world'],
+        ]);
+
+        $this->assertTrue($link->isEmbedCard());
+        $this->assertSame('card', $link->embedKind());
+        $this->assertSame('View text', $link->embedAction()['label']);
+
+        // Compact card iframe snippet — never the 80vh/560px full-page one.
+        $snippet = $link->embedIframeSnippet();
+        $this->assertStringContainsString('height:188px', $snippet);
+        $this->assertStringNotContainsString('80vh', $snippet);
+        $this->assertStringNotContainsString('min-height:560px', $snippet);
+    }
+
+    public function test_text_link_card_endpoint_renders_title_and_action(): void
+    {
+        $this->forcePlatformHost(self::BRAND_HOST);
+
+        $user = $this->makeUser();
+        $link = Link::create([
+            'user_id'   => $user->id,
+            'type'      => 'text',
+            'alias'     => 'embed-txt-' . Str::random(6),
+            'title'     => 'My shared note',
+            'is_active' => true,
+            'settings'  => ['text_content' => 'Hello world'],
+        ]);
+
+        $this->get('/embed/link/' . $link->alias . '/card')
+            ->assertOk()
+            ->assertSee('My shared note')
+            ->assertSee('View text');
+
+        // The canonical iframe target for a card-style link is the card doc too.
+        $this->get('/embed/link/' . $link->alias . '/iframe')
+            ->assertOk()
+            ->assertSee('View text');
+    }
 }
