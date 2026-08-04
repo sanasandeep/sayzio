@@ -72,6 +72,21 @@
     .ics-pill > .ics-pill-suffix { display: flex; align-items: center; padding: 0 1rem; font-size: 0.875rem; color: var(--text-muted); border-left: 1px solid var(--border-glass); background-color: var(--bg-glass); }
     .sync-tile { border:1px solid var(--border-glass); border-radius:0.75rem; padding:0.85rem; cursor:pointer; transition:all .15s; }
     .sync-tile.is-on { border-color:#5c83ff; background:rgba(92,131,255,0.1); }
+    /* Danger zone (cancel/reactivate event) — theme-aware colors (task #6684).
+       Dark keeps the original red-300-on-tinted-red look; light pairs each
+       element with a darker, legible red/emerald. */
+    .dz-card { background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.22); }
+    html.light-mode .dz-card { background: rgba(239,68,68,0.05); border-color: rgba(220,38,38,0.25); }
+    .dz-icon { background: rgba(239,68,68,0.15); color: #ef4444; }
+    html.light-mode .dz-icon { color: #dc2626; }
+    .dz-title { color: #fca5a5; }
+    html.light-mode .dz-title { color: #b91c1c; }
+    .dz-sub { color: rgba(252,165,165,0.70); }
+    html.light-mode .dz-sub { color: rgba(185,28,28,0.80); }
+    .dz-btn-danger { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.30); color: #ef4444; }
+    html.light-mode .dz-btn-danger { color: #b91c1c; border-color: rgba(185,28,28,0.35); }
+    .dz-btn-ok { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.30); color: #34d399; }
+    html.light-mode .dz-btn-ok { color: #047857; border-color: rgba(4,120,87,0.35); }
 </style>
 
 <div class="max-w-3xl mx-auto pb-12">
@@ -752,22 +767,21 @@
 
     {{-- Cancel / reactivate event (Sayzio events). Kept out of the main form
          so it's an explicit, deliberate action with its own confirm step. --}}
-    <div class="mt-8 rounded-xl p-5" style="background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.22);">
+    <div class="mt-6 mb-6 rounded-xl p-5 dz-card">
         @if($link->isEventCancelled())
             <div class="flex items-start gap-3">
-                <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(239,68,68,0.15); color: #ef4444;">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 dz-icon">
                     <i class="fas fa-ban"></i>
                 </div>
                 <div class="flex-1">
-                    <div class="text-sm font-semibold text-red-300">This event is cancelled</div>
-                    <div class="text-xs mt-0.5 text-red-300/70">
+                    <div class="text-sm font-semibold dz-title">This event is cancelled</div>
+                    <div class="text-xs mt-0.5 dz-sub">
                         Cancelled {{ optional($link->eventCancelledAt())->diffForHumans() }}. The public page shows a cancellation banner and RSVPs / ticket sales are closed.
                     </div>
                     <form method="POST" action="{{ route('user.links.ics.reactivate', $link) }}" class="mt-3"
                           onsubmit="return window.themedConfirmSubmit(this, {title: 'Reactivate this event?', message: 'The event will go live again and start accepting RSVPs / ticket sales.', confirmText: 'Reactivate', confirmIcon: 'fa-rotate-left', iconClass: 'fa-rotate-left'})">
                         @csrf
-                        <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-1.5"
-                                style="background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); color: #34d399;">
+                        <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-1.5 dz-btn-ok">
                             <i class="fas fa-rotate-left"></i> Reactivate event
                         </button>
                     </form>
@@ -775,17 +789,16 @@
             </div>
         @else
             <div class="flex items-start gap-3">
-                <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(239,68,68,0.15); color: #ef4444;">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 dz-icon">
                     <i class="fas fa-triangle-exclamation"></i>
                 </div>
                 <div class="flex-1">
-                    <div class="text-sm font-semibold text-red-300">Cancel this event</div>
-                    <div class="text-xs mt-0.5 text-red-300/70">
+                    <div class="text-sm font-semibold dz-title">Cancel this event</div>
+                    <div class="text-xs mt-0.5 dz-sub">
                         Call off the event and (optionally) notify every guest. You can reactivate it later; nothing is deleted.
                     </div>
                     <a href="{{ route('user.links.ics.cancel', $link) }}"
-                       class="mt-3 px-4 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-1.5"
-                       style="background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #ef4444;">
+                       class="mt-3 px-4 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-1.5 dz-btn-danger">
                         <i class="fas fa-ban"></i> Cancel event…
                     </a>
                 </div>
