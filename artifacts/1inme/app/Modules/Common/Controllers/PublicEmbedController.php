@@ -157,16 +157,10 @@ class PublicEmbedController extends Controller
 
     protected function subtitle(Link $link): ?string
     {
-        if ($link->seo_description) {
-            return \Illuminate\Support\Str::limit($link->seo_description, 120);
-        }
-
-        if ($link->type === 'url' && $link->long_url) {
-            $host = parse_url($link->long_url, PHP_URL_HOST);
-            return $host ?: null;
-        }
-
-        return null;
+        // Delegates to the model so the static iframe snippet's height
+        // (Link::embedCardIframeHeight) stays in lockstep with what the
+        // card actually renders.
+        return $link->embedCardSubtitle();
     }
 
     protected function favicon(Link $link): ?string

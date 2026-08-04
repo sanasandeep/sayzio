@@ -165,10 +165,17 @@ class LinkEmbedUrlTest extends TestCase
         $this->assertSame('View text', $link->embedAction()['label']);
 
         // Compact card iframe snippet — never the 80vh/560px full-page one.
+        // No subtitle (no seo_description) → the shorter card height.
         $snippet = $link->embedIframeSnippet();
-        $this->assertStringContainsString('height:188px', $snippet);
+        $this->assertStringContainsString('height:148px', $snippet);
         $this->assertStringNotContainsString('80vh', $snippet);
         $this->assertStringNotContainsString('min-height:560px', $snippet);
+
+        // Adding a description makes the card render a subtitle row, so the
+        // static snippet grows to fit (task #6713).
+        $link->seo_description = 'A short description shown as the card subtitle';
+        $this->assertSame('A short description shown as the card subtitle', $link->embedCardSubtitle());
+        $this->assertStringContainsString('height:164px', $link->embedIframeSnippet());
     }
 
     public function test_text_link_card_endpoint_renders_title_and_action(): void

@@ -15,7 +15,8 @@ import { loginAsDemo } from "./login-as-demo";
 /**
  * Embed panel whitespace fix (task #6712).
  *
- * - `text` links are card embeds: compact snippet (188px, no 80vh/560px) and
+ * - `text` links are card embeds: compact variant-aware snippet (148px
+ *   without a subtitle, no 80vh/560px) and
  *   a preview iframe that auto-fits to the card's posted height instead of
  *   leaving a large blank area.
  * - Full-page links (biolink) keep the tall responsive preview + snippet.
@@ -146,7 +147,9 @@ for (const mode of ["light", "dark"] as const) {
       .locator("pre code")
       .nth(1)
       .textContent();
-    expect(snippet).toContain("height:188px");
+    // No seo_description on the fixture → no subtitle row → the shorter
+    // variant-aware card height (task #6713).
+    expect(snippet).toContain("height:148px");
     expect(snippet).not.toContain("80vh");
     expect(snippet).not.toContain("min-height:560px");
 
