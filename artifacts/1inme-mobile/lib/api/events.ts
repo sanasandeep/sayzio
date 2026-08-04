@@ -792,3 +792,53 @@ export async function sendEventBroadcast(
   );
   return res.data;
 }
+
+// ─── Event Connect QR (Task #6687, web flow from Task #6685) ────────────
+// The host's scan-to-connect QR: scanning lands guests on the tagged event
+// page where one confirmation RSVPs them "yes" and follows the host.
+
+export type EventConnectQr = {
+  link: { id: number; alias: string; title: string | null };
+  // Event details from ics_data for the printable poster (Task #6693).
+  event: {
+    name: string;
+    start_date: string | null;
+    all_day: boolean;
+    timezone: string | null;
+    location: string | null;
+  };
+  connect_url: string;
+  qr_svg: string;
+  // Best-effort: null when the server can't render PNG (no imagick backend);
+  // fall back to saving the SVG in that case.
+  qr_png_base64: string | null;
+};
+
+export async function getEventConnectQr(
+  linkId: number,
+): Promise<EventConnectQr> {
+  const res = await apiFetch<{ data: EventConnectQr }>(
+    `/links/${linkId}/connect-qr`,
+  );
+  return res.data;
+}
+
+export type EventConnectResult = {
+  success: boolean;
+  status?: "confirmed" | "waitlist" | string | null;
+  followed?: boolean;
+  manage_url?: string | null;
+  message?: string;
+  code?: string;
+};
+
+/**
+ * Guest side: one-tap "RSVP & Connect" for a signed-in app user who opened
+ * a `?src=connect_qr` event URL. Mirrors the web prompt's confirm step.
+ */
+export async function eventConnect(alias: string): Promise<EventConnectResult> {
+  return apiFetch<EventConnectResult>(
+    `/events/${encodeURIComponent(alias)}/connect`,
+    { method: "POST", body: JSON.stringify({}) },
+  );
+}

@@ -153,6 +153,10 @@ class SiteAssistantController extends Controller
             'surface'       => 'nullable|in:marketing,app',
             'message'       => 'required|string|max:4000',
             'page'          => 'array',
+            // Optional page screenshot (data URL) for the vision tier.
+            // ~1.5MB decoded ≈ 2MB base64; the runtime enforces the
+            // decoded-size cap + mime allow-list + plan gating.
+            'screenshot'    => 'nullable|string|max:2200000',
         ]);
         if ($gate = $this->authGate($request)) {
             return response()->json($gate, 401);
@@ -160,7 +164,8 @@ class SiteAssistantController extends Controller
         $surface = $this->detectSurface($request);
         return response()->json($this->runtime->turn(
             $data['visitor_token'], $this->currentUser($request), $surface,
-            (array) ($data['page'] ?? []), $data['message'], [], $this->visitorMeta($request)
+            (array) ($data['page'] ?? []), $data['message'], [], $this->visitorMeta($request),
+            isset($data['screenshot']) ? (string) $data['screenshot'] : null
         ));
     }
 
@@ -178,6 +183,8 @@ class SiteAssistantController extends Controller
             'message'              => 'required|string|max:4000',
             'page'                 => 'array',
             'retry_of_message_id'  => 'nullable|integer',
+            // See message(): optional vision-tier page screenshot.
+            'screenshot'           => 'nullable|string|max:2200000',
         ]);
         if ($gate = $this->authGate($request)) {
             return response()->json($gate, 401);
@@ -189,9 +196,10 @@ class SiteAssistantController extends Controller
         $message = $data['message'];
         $meta = $this->visitorMeta($request);
         $retryOf = isset($data['retry_of_message_id']) ? (int) $data['retry_of_message_id'] : null;
+        $screenshot = isset($data['screenshot']) ? (string) $data['screenshot'] : null;
 
         $runtime = $this->runtime;
-        $response = response()->stream(function () use ($runtime, $token, $user, $surface, $page, $message, $meta, $retryOf) {
+        $response = response()->stream(function () use ($runtime, $token, $user, $surface, $page, $message, $meta, $retryOf, $screenshot) {
             $emit = function (string $event, array $payload) {
                 echo "event: {$event}\n";
                 echo 'data: ' . json_encode($payload) . "\n\n";
@@ -199,7 +207,7 @@ class SiteAssistantController extends Controller
                 @flush();
             };
             try {
-                $runtime->turnStream($token, $user, $surface, $page, $message, $meta, $emit, $retryOf);
+                $runtime->turnStream($token, $user, $surface, $page, $message, $meta, $emit, $retryOf, $screenshot);
             } catch (\Throwable $e) {
                 report($e);
                 $emit('error', ['error' => 'The assistant could not respond right now.']);

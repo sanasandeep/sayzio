@@ -27,6 +27,9 @@ const PLAN_LOCK_CODES = new Set<string>([
   "api_quota_exceeded",
   "api_access_disabled",
   "insufficient_credits",
+  // Monthly AI allowance used up (e.g. AI Artistic QR generations) — the
+  // action succeeds on a plan with a higher (or unlimited) monthly cap.
+  "allowance_exhausted",
 ]);
 
 function asApiError(error: unknown): Partial<ApiError> | null {

@@ -40,6 +40,11 @@ export type QrArtAvailability = {
   balance: number;
   recommended_plan: { slug: string; name: string } | null;
   presets: QrArtPreset[];
+  /** Per-plan monthly generation allowance; -1 = unlimited. */
+  monthly_allowance: number;
+  monthly_used: number;
+  /** Generations left this month; -1 = unlimited. */
+  monthly_remaining: number;
 };
 
 export type QrArtResult = {

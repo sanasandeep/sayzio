@@ -37,6 +37,14 @@ class OpenAiService
     /** Rough chars-per-token used when caller didn't pre-tokenize. */
     protected const CHARS_PER_TOKEN = 4;
 
+    /**
+     * Flat prompt-token estimate per image content part. OpenAI bills a
+     * low-detail image at ~85 tokens and high-detail tiles at ~170 each;
+     * ~1100 comfortably covers a downscaled full-pane screenshot at
+     * "auto" detail so the prepay gate never under-estimates.
+     */
+    protected const IMAGE_PROMPT_TOKENS = 1100;
+
     /** Worst-case completion length when caller didn't set max_tokens. */
     protected const DEFAULT_MAX_OUTPUT_TOKENS = 1024;
 
@@ -50,6 +58,7 @@ class OpenAiService
     public function chat(User $user, string $model, array $messages, array $opts = []): array
     {
         $modelCfg = $this->guard($model, 'chat');
+        $this->guardVision($model, $messages);
 
         // Worst-case prepay gate: estimate prompt tokens from message
         // text length and assume the model will emit max_tokens of output
@@ -140,6 +149,7 @@ class OpenAiService
         callable $onChunk,
     ): array {
         $modelCfg = $this->guard($model, 'chat');
+        $this->guardVision($model, $messages);
 
         $multiplier  = AiPlanAccess::coinMultiplier($user, 'openai');
         $estimatedIn = $this->estimateChatPromptTokens($messages);
@@ -504,12 +514,53 @@ class OpenAiService
         $total = 0;
         foreach ($messages as $m) {
             // OpenAI adds ~4 framing tokens per message (role + delimiters).
-            $content = is_array($m['content'] ?? null)
-                ? json_encode($m['content'])
-                : (string) ($m['content'] ?? '');
-            $total += 4 + $this->estimateTextTokens($content);
+            $content = $m['content'] ?? null;
+            if (is_array($content)) {
+                // Multimodal message: sum text parts normally and add a flat
+                // per-image estimate for image_url parts. NEVER json_encode
+                // the parts wholesale — a base64 data URL would inflate the
+                // estimate by orders of magnitude and the prepay gate would
+                // refuse affordable calls.
+                $chars = 0;
+                foreach ($content as $part) {
+                    if (!is_array($part)) { $chars += mb_strlen((string) $part); continue; }
+                    if (($part['type'] ?? '') === 'image_url') {
+                        $total += self::IMAGE_PROMPT_TOKENS;
+                    } else {
+                        $chars += mb_strlen((string) ($part['text'] ?? ''));
+                    }
+                }
+                $total += 4 + (int) max(1, ceil($chars / self::CHARS_PER_TOKEN));
+            } else {
+                $total += 4 + $this->estimateTextTokens((string) $content);
+            }
         }
         return max(1, $total + 2); // closing assistant priming
+    }
+
+    /** True when any message carries an image_url content part. */
+    protected function messagesContainImages(array $messages): bool
+    {
+        foreach ($messages as $m) {
+            $content = $m['content'] ?? null;
+            if (!is_array($content)) continue;
+            foreach ($content as $part) {
+                if (is_array($part) && ($part['type'] ?? '') === 'image_url') return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Model guard extension for multimodal calls: refuse to send image
+     * parts to a model that is not vision-capable so we fail loudly at
+     * the call site instead of burning a paid request on a 400.
+     */
+    protected function guardVision(string $model, array $messages): void
+    {
+        if ($this->messagesContainImages($messages) && !AiEngineSettings::modelSupportsVision($model)) {
+            throw new \RuntimeException("AI model \"{$model}\" is not vision-capable; cannot send image content.");
+        }
     }
 
     /**

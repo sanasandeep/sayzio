@@ -6,6 +6,13 @@ import {
   extractEmails,
   buildAiSystemPrompt,
   extractContacts,
+  buildMediaBlock,
+  looksVisualQuestion,
+  isCapturableUrl,
+  MAX_MEDIA_LINES,
+  MAX_MEDIA_LINE_CHARS,
+  SCREENSHOT_MAX_BYTES,
+  SCREENSHOT_MAX_WIDTH,
   type PageContext,
 } from '../src/shared/context-extractor';
 
@@ -172,5 +179,94 @@ describe('extractContacts', () => {
     const ctx: PageContext = { ...baseContext, emails: manyEmails, phones: [] };
     const contacts = extractContacts(ctx);
     expect(contacts.length).toBe(10);
+  });
+});
+
+describe('media block (Ask Zio vision text tier)', () => {
+  it('appends a labeled media block to the excerpt', () => {
+    const ctx: PageContext = {
+      ...baseContext,
+      media: ['Image: "Golden Gate Bridge at sunset"', 'Video: "Product demo"'],
+    };
+    const result = trimPageContext(ctx);
+    expect(result.excerpt).toContain('[Visual media on this page]:');
+    expect(result.excerpt).toContain('- Image: "Golden Gate Bridge at sunset"');
+    expect(result.excerpt).toContain('- Video: "Product demo"');
+  });
+
+  it('appends media even when the selection is used', () => {
+    const ctx: PageContext = {
+      ...baseContext,
+      selection: 'This is the selected text from the user which is fairly long',
+      media: ['Figure: "Fig 3 — revenue by quarter"'],
+    };
+    const result = trimPageContext(ctx);
+    expect(result.usedSelection).toBe(true);
+    expect(result.excerpt).toContain('Figure: "Fig 3 — revenue by quarter"');
+  });
+
+  it('omits the block when media is missing or empty (back-compat)', () => {
+    expect(trimPageContext(baseContext).excerpt).not.toContain('[Visual media');
+    expect(trimPageContext({ ...baseContext, media: [] }).excerpt).not.toContain('[Visual media');
+    expect(buildMediaBlock(undefined)).toBe('');
+    expect(buildMediaBlock([])).toBe('');
+  });
+
+  it('caps line count and per-line length, dedupes, and drops blanks', () => {
+    const media = [
+      ...Array.from({ length: 30 }, (_, i) => `Image: "photo ${i}"`),
+      'Image: "photo 0"', // dup
+      '   ',
+    ];
+    const block = buildMediaBlock(media);
+    const lines = block.split('\n').slice(1);
+    expect(lines.length).toBe(MAX_MEDIA_LINES);
+
+    const long = buildMediaBlock(['Image: "' + 'x'.repeat(500) + '"']);
+    const line = long.split('\n')[1]!;
+    expect(line.length).toBeLessThanOrEqual(2 + MAX_MEDIA_LINE_CHARS);
+    expect(line.endsWith('…')).toBe(true);
+  });
+});
+
+describe('looksVisualQuestion', () => {
+  it('matches questions about images, charts, and videos', () => {
+    expect(looksVisualQuestion('What does this image show?')).toBe(true);
+    expect(looksVisualQuestion('explain the chart on this page')).toBe(true);
+    expect(looksVisualQuestion('what is the video about')).toBe(true);
+    expect(looksVisualQuestion('What does this look like?')).toBe(true);
+    expect(looksVisualQuestion('describe the photo')).toBe(true);
+  });
+
+  it('does not match plain text questions', () => {
+    expect(looksVisualQuestion('Summarize this page')).toBe(false);
+    expect(looksVisualQuestion('What is the pricing?')).toBe(false);
+    expect(looksVisualQuestion('imagine a better headline')).toBe(false);
+  });
+});
+
+describe('isCapturableUrl (screenshot IPC guard)', () => {
+  it('accepts plain http(s) pages', () => {
+    expect(isCapturableUrl('https://example.com/page')).toBe(true);
+    expect(isCapturableUrl('http://example.com')).toBe(true);
+  });
+
+  it('refuses internal and non-web pages', () => {
+    expect(isCapturableUrl('about:newtab')).toBe(false);
+    expect(isCapturableUrl('about:sayzio')).toBe(false);
+    expect(isCapturableUrl('about:zio')).toBe(false);
+    expect(isCapturableUrl('chrome://settings')).toBe(false);
+    expect(isCapturableUrl('devtools://devtools/bundled')).toBe(false);
+    expect(isCapturableUrl('file:///etc/passwd')).toBe(false);
+    expect(isCapturableUrl('data:text/html,hi')).toBe(false);
+    expect(isCapturableUrl('view-source:https://example.com')).toBe(false);
+    expect(isCapturableUrl('')).toBe(false);
+    expect(isCapturableUrl(null)).toBe(false);
+    expect(isCapturableUrl(undefined)).toBe(false);
+  });
+
+  it('screenshot caps stay under the server-side limit', () => {
+    expect(SCREENSHOT_MAX_BYTES).toBeLessThan(1_500_000);
+    expect(SCREENSHOT_MAX_WIDTH).toBeLessThanOrEqual(1600);
   });
 });

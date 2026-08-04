@@ -10,6 +10,7 @@ import {
   PINNABLE_TOOLS, PINNABLE_TOOL_INFO, MAX_PINNED_TOOLS,
 } from '../../shared/toolbar-pins';
 import { usePinnedTools } from '../hooks/use-pinned-tools';
+import { formatRejectedNotice, type SyncPlanStatus } from '../../shared/sync-engine';
 import {
   VK_PREF_KEYS,
   VK_DEFAULT_SETTINGS,
@@ -24,10 +25,13 @@ import {
 
 interface Props {
   onClose: () => void;
+  /** Section to show when the panel opens (defaults to General). */
+  initialSection?: SectionId;
 }
 
 type SectionId =
   | 'general'
+  | 'sync'
   | 'privacy'
   | 'sites'
   | 'search'
@@ -64,6 +68,7 @@ const TRANSLATE_LANGS: Array<{ code: string; label: string }> = [
 /** Nav entries with search keywords so the filter box can find sections. */
 const SECTIONS: Array<{ id: SectionId; icon: string; label: string; keywords: string }> = [
   { id: 'general', icon: '⚙️', label: 'General', keywords: 'appearance theme dark light spell check translate language import bookmarks history chrome edge brave firefox other browser toolbar pin pinned tools reading list dialer device lab screenshot' },
+  { id: 'sync', icon: '🔄', label: 'Sync', keywords: 'sync cloud bookmarks collections history reading list account plan upgrade limit pending devices' },
   { id: 'privacy', icon: '🛡️', label: 'Privacy & Security', keywords: 'tracker blocking do not track cookies clear browsing data delete safety check forget site dashboard privacy' },
   { id: 'sites', icon: '🌐', label: 'Site Settings', keywords: 'permissions camera microphone location notifications allow block sites' },
   { id: 'search', icon: '🔍', label: 'Search engine', keywords: 'google bing duckduckgo brave default search address bar' },
@@ -76,8 +81,8 @@ const SECTIONS: Array<{ id: SectionId; icon: string; label: string; keywords: st
   { id: 'shortcuts', icon: '⌨️', label: 'Shortcuts', keywords: 'keyboard shortcuts hotkeys command palette keys tabs windows navigation view modes bookmarks privacy developer reader mode zoom print clear browsing data' },
 ];
 
-export function SettingsPanel({ onClose }: Props) {
-  const [section, setSection] = useState<SectionId>('general');
+export function SettingsPanel({ onClose, initialSection }: Props) {
+  const [section, setSection] = useState<SectionId>(initialSection ?? 'general');
   const [query, setQuery] = useState('');
 
   const visibleSections = useMemo(() => {
@@ -200,6 +205,7 @@ export function SettingsPanel({ onClose }: Props) {
             }}>{active.label}</div>
           )}
           {section === 'general' && <GeneralSection />}
+          {section === 'sync' && <SyncSection />}
           {section === 'privacy' && <PrivacySection />}
           {section === 'sites' && <SiteSettingsSection />}
           {section === 'search' && <SearchEngineSection />}
@@ -1118,6 +1124,148 @@ function SearchEngineSection() {
           </label>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ── Sync ──────────────────────────────────────────────────────────────────────
+
+function SyncSection() {
+  const [status, setStatus] = useState<SyncPlanStatus | null>(null);
+  const [pending, setPending] = useState(0);
+  const [flushing, setFlushing] = useState(false);
+
+  const refresh = useCallback(async () => {
+    try {
+      const s = await window.zio.sync.planStatus() as SyncPlanStatus | null;
+      if (s) setStatus(s);
+    } catch { /* main not ready */ }
+    try { setPending(await window.zio.sync.pendingCount() as number); } catch { /* non-fatal */ }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+    const planListener = (...args: unknown[]) => {
+      const s = args[0] as SyncPlanStatus | undefined;
+      if (s && typeof s === 'object') setStatus(s);
+    };
+    const queueListener = (...args: unknown[]) => {
+      if (typeof args[0] === 'number') setPending(args[0]);
+    };
+    window.zio.on('sync:plan-status-changed', planListener);
+    window.zio.on('sync:queue-changed', queueListener);
+    return () => {
+      window.zio.off('sync:plan-status-changed', planListener);
+      window.zio.off('sync:queue-changed', queueListener);
+    };
+  }, [refresh]);
+
+  const openPlans = useCallback(async () => {
+    let base = 'https://sayzio.com';
+    try {
+      const v = await window.zio.prefs.get('sayzio_api_base_url');
+      if (typeof v === 'string' && v) base = v.replace(/\/$/, '');
+    } catch { /* fall back to default */ }
+    void window.zio.shell.openExternal(`${base}/pricing`);
+  }, []);
+
+  const retryNow = useCallback(async () => {
+    setFlushing(true);
+    try { await window.zio.sync.flush(); } catch { /* non-fatal */ }
+    setFlushing(false);
+    void refresh();
+  }, [refresh]);
+
+  const gate = status?.gate;
+  const rejected = status?.rejected ?? null;
+  const blocked = gate?.blocked === true;
+
+  return (
+    <div style={sectionBodyStyle}>
+      <div style={mutedTextStyle}>
+        Bookmarks, collections, history, and your reading list sync to your Sayzio
+        account so other devices stay up to date.
+      </div>
+
+      {/* Sync status card */}
+      <div style={{
+        padding: '12px 14px',
+        borderRadius: 10,
+        border: `1px solid ${blocked ? '#e0a020' : 'var(--color-border)'}`,
+        background: blocked
+          ? 'color-mix(in srgb, #e0a020 8%, var(--color-bg-elevated))'
+          : 'var(--color-bg-elevated)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700 }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+            background: blocked ? '#e0a020' : '#2fbf71',
+          }} />
+          {blocked ? 'Sync is paused' : 'Sync is on'}
+        </div>
+        {blocked ? (
+          <>
+            <div style={{ fontSize: 12, color: 'var(--color-text)' }}>
+              Your current plan doesn't include browser sync, so changes stay on
+              this device for now. Nothing is lost — everything picks up right
+              where it left off after you upgrade
+              {gate?.recommended_plan ? <> (the <b>{gate.recommended_plan}</b> plan includes it)</> : null}.
+            </div>
+            <div>
+              <button onClick={() => void openPlans()} style={{
+                padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: 'var(--color-primary)', color: '#fff', fontSize: 12, fontWeight: 700,
+              }}>See upgrade options</button>
+            </div>
+          </>
+        ) : (
+          <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+            {pending > 0
+              ? `${pending} change${pending === 1 ? '' : 's'} waiting to sync — they retry automatically.`
+              : 'All changes are synced.'}
+          </div>
+        )}
+      </div>
+
+      {/* Over-cap rejection notice */}
+      {rejected && rejected.count > 0 && (
+        <div style={{
+          padding: '10px 14px',
+          borderRadius: 10,
+          border: '1px solid #e0a020',
+          background: 'color-mix(in srgb, #e0a020 8%, var(--color-bg-elevated))',
+          fontSize: 12,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+        }}>
+          <div style={{ fontWeight: 700 }}>{formatRejectedNotice(rejected)}</div>
+          <div style={{ color: 'var(--color-text-muted)' }}>
+            Your plan caps how many items can sync. The newest items over the cap
+            stay on this device and sync automatically once you upgrade or free up space.
+          </div>
+          <div>
+            <button onClick={() => void openPlans()} style={{
+              padding: '5px 12px', borderRadius: 8, cursor: 'pointer',
+              border: '1px solid var(--color-border)', background: 'var(--color-bg-elevated)',
+              fontSize: 12, fontWeight: 600, color: 'var(--color-text)',
+            }}>See upgrade options</button>
+          </div>
+        </div>
+      )}
+
+      {pending > 0 && (
+        <div>
+          <button onClick={() => void retryNow()} disabled={flushing} style={{
+            padding: '6px 14px', borderRadius: 8, cursor: flushing ? 'default' : 'pointer',
+            border: '1px solid var(--color-border)', background: 'var(--color-bg-elevated)',
+            fontSize: 12, fontWeight: 600, color: 'var(--color-text)', opacity: flushing ? 0.6 : 1,
+          }}>{flushing ? 'Retrying…' : 'Retry sync now'}</button>
+        </div>
+      )}
     </div>
   );
 }

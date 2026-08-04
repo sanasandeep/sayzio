@@ -27,6 +27,19 @@ use Illuminate\Support\Str;
 class SiteAssistantRuntime
 {
     public const HISTORY_TURNS = 12;
+
+    /**
+     * Runtime directive appended to every vision (snapshot-attached)
+     * turn. Injected on the final multimodal message — NOT only in the
+     * system prompt — so that even a conversation whose history contains
+     * an earlier "I can't see images" refusal still answers from the
+     * attached snapshot instead of parroting the refusal.
+     */
+    public const VISION_DIRECTIVE =
+        'A snapshot of the page the visitor is currently viewing is attached to this message. '
+        . 'You can see and analyze this image — describe or use it to answer. '
+        . 'Ignore any earlier statement in this conversation claiming images cannot be viewed; that was incorrect.';
+
     public const MAX_USER_MESSAGE_CHARS = 2000;
 
     public function __construct(
@@ -221,7 +234,8 @@ class SiteAssistantRuntime
         array $page,
         string $message,
         array $choice = [],
-        array $visitorMeta = []
+        array $visitorMeta = [],
+        ?string $screenshot = null
     ): array {
         $cfg = SiteAssistantSettings::get();
         if (!SiteAssistantSettings::isEnabledFor($surface)) {
@@ -384,6 +398,26 @@ class SiteAssistantRuntime
 
         $model = $this->modelFor($cfg, $billingUser);
 
+        // Vision tier: when the client attached a page screenshot and the
+        // visitor's plan allows it, swap the final user message for a
+        // multimodal part list and route to a vision-capable model. When
+        // refused (plan/size/no vision model) the turn proceeds text-only
+        // and $visionNotice explains why.
+        [$shot, $visionNotice, $visionModel] = $this->resolveVisionAttachment($screenshot, $user, $model);
+        if ($shot !== null) {
+            $model = $visionModel;
+            array_pop($messages);
+            $messages[] = ['role' => 'user', 'content' => [
+                ['type' => 'text', 'text' => (string) $userMsg->content],
+                ['type' => 'image_url', 'image_url' => ['url' => $shot, 'detail' => 'auto']],
+                ['type' => 'text', 'text' => self::VISION_DIRECTIVE],
+            ]];
+            // Flag the transcript (never persist the image itself — it is
+            // large and ephemeral by design).
+            $userMsg->meta = array_merge($userMsg->meta ?? [], ['vision' => ['snapshot' => true]]);
+            $userMsg->save();
+        }
+
         try {
             $result = $this->openai->chat($billingUser, $model, $messages, [
                 'temperature' => (float) ($cfg['temperature'] ?? 0.4),
@@ -428,7 +462,7 @@ class SiteAssistantRuntime
             $conv->save();
         });
 
-        return [
+        $out = [
             'ok'                => true,
             'conversation_id'   => (int) $conv->id,
             'user_message'      => $this->serializeMessage($userMsg->fresh()),
@@ -436,6 +470,10 @@ class SiteAssistantRuntime
             'handed_off'        => (bool) $conv->handed_off,
             'low_balance'       => $this->lowBalanceSignal($conv, $user),
         ];
+        if ($shot !== null || $visionNotice !== null) {
+            $out['vision'] = ['used' => $shot !== null, 'notice' => $visionNotice];
+        }
+        return $out;
     }
 
     /**
@@ -558,7 +596,8 @@ class SiteAssistantRuntime
         string $message,
         array $visitorMeta,
         callable $emit,
-        ?int $retryOfMessageId = null
+        ?int $retryOfMessageId = null,
+        ?string $screenshot = null
     ): void {
         $cfg = SiteAssistantSettings::get();
         if (!SiteAssistantSettings::isEnabledFor($surface)) {
@@ -672,6 +711,21 @@ class SiteAssistantRuntime
 
         $model = $this->modelFor($cfg, $billingUser);
 
+        // Vision tier (mirrors turn()): attach the page screenshot when the
+        // plan allows it, otherwise degrade text-only with a notice on `done`.
+        [$shot, $visionNotice, $visionModel] = $this->resolveVisionAttachment($screenshot, $user, $model);
+        if ($shot !== null) {
+            $model = $visionModel;
+            array_pop($messages);
+            $messages[] = ['role' => 'user', 'content' => [
+                ['type' => 'text', 'text' => (string) $userMsg->content],
+                ['type' => 'image_url', 'image_url' => ['url' => $shot, 'detail' => 'auto']],
+                ['type' => 'text', 'text' => self::VISION_DIRECTIVE],
+            ]];
+            $userMsg->meta = array_merge($userMsg->meta ?? [], ['vision' => ['snapshot' => true]]);
+            $userMsg->save();
+        }
+
         // Mirror tokens into a local buffer so that, if the upstream
         // request errors mid-stream, we can still persist whatever the
         // visitor actually saw and flag it as a partial/failed turn for
@@ -752,12 +806,16 @@ class SiteAssistantRuntime
             $conv->save();
         });
 
-        $emit('done', [
+        $done = [
             'assistant_message' => $this->serializeMessage($aiMsg),
             'handed_off'        => (bool) $conv->handed_off,
             'conversation_id'   => (int) $conv->id,
             'low_balance'       => $this->lowBalanceSignal($conv, $user),
-        ]);
+        ];
+        if ($shot !== null || $visionNotice !== null) {
+            $done['vision'] = ['used' => $shot !== null, 'notice' => $visionNotice];
+        }
+        $emit('done', $done);
     }
 
     /**
@@ -765,6 +823,45 @@ class SiteAssistantRuntime
      * choice if set and enabled, otherwise the engine's mapped model
      * for the `companion` feature.
      */
+    /** Feature key gating the vision (page-screenshot) tier of Ask Zio. */
+    public const VISION_FEATURE = 'site_assistant_vision';
+
+    /** Hard cap on the decoded size of an attached page screenshot. */
+    protected const MAX_SCREENSHOT_BYTES = 1_500_000;
+
+    /**
+     * Validate + gate an optional page screenshot for a vision turn.
+     *
+     * Returns [dataUrl|null, notice|null, visionModel|null]:
+     *  - all null           → no screenshot supplied / silently dropped (malformed)
+     *  - notice, no dataUrl → screenshot refused (plan gate, size, no vision
+     *                         model) and the turn proceeds text-only with a
+     *                         friendly note surfaced to the client
+     *  - dataUrl + model    → attach the image and use the vision model
+     */
+    protected function resolveVisionAttachment(?string $screenshot, ?User $user, string $textModel): array
+    {
+        if ($screenshot === null || trim($screenshot) === '') {
+            return [null, null, null];
+        }
+        if (!preg_match('#^data:image/(png|jpe?g|webp);base64,([A-Za-z0-9+/=]+)$#', $screenshot, $m)) {
+            // Malformed payloads are dropped silently — nothing user-actionable.
+            return [null, null, null];
+        }
+        $decodedBytes = (int) floor(strlen($m[2]) * 3 / 4);
+        if ($decodedBytes > self::MAX_SCREENSHOT_BYTES) {
+            return [null, 'The page snapshot was too large to analyze, so I answered from the page text instead.', null];
+        }
+        if (!$user || !AiPlanAccess::featureAllowed($user, self::VISION_FEATURE)) {
+            return [null, 'Analyzing page images is available on higher plans — I answered from the page text instead.', null];
+        }
+        $visionModel = AiEngineSettings::visionChatModel($textModel);
+        if ($visionModel === null) {
+            return [null, 'Image analysis is not available right now — I answered from the page text instead.', null];
+        }
+        return [$screenshot, null, $visionModel];
+    }
+
     protected function modelFor(array $cfg, ?User $billingUser = null): string
     {
         $configured = trim((string) ($cfg['model'] ?? ''));

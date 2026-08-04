@@ -101,9 +101,11 @@ class CreatorProfilePublicController extends Controller
         $showcase          = $creator->resolvedProfileShowcase();
         $featuredLinks     = $this->resolveFeaturedLinks($creator, $showcase, $sectionsVisible);
         $showcaseCards     = $this->resolveShowcaseCards($creator, $showcase, $sectionsVisible);
+        // Task #6618 — link surfaces scope to the profile's WORKSPACE when
+        // the creator was resolved through a workspace profile.
         $totalPublicLinks  = Link::query()
             ->withoutGlobalScope('workspace')
-            ->where('user_id', $creator->id)
+            ->tap($this->workspaceLinkScope($creator))
             ->where('is_active', true)
             ->where('visibility', 'public')
             ->count();
@@ -478,7 +480,7 @@ class CreatorProfilePublicController extends Controller
 
         $links = Link::query()
             ->withoutGlobalScope('workspace')
-            ->where('user_id', $creator->id)
+            ->tap($this->workspaceLinkScope($creator))
             ->where('is_active', true)
             ->where('visibility', 'public')
             ->whereIn('id', $enabledIds)
@@ -510,7 +512,7 @@ class CreatorProfilePublicController extends Controller
         $linkIds = array_values(array_unique(array_column($items, 'link_id')));
         $links = Link::query()
             ->withoutGlobalScope('workspace')
-            ->where('user_id', $creator->id)
+            ->tap($this->workspaceLinkScope($creator))
             ->where('is_active', true)
             ->where('visibility', 'public')
             ->whereIn('id', $linkIds)
@@ -533,13 +535,30 @@ class CreatorProfilePublicController extends Controller
         return $cards;
     }
 
+    /**
+     * Task #6618 — closure scoping a Link query to the creator's WORKSPACE
+     * profile when the creator was resolved via a workspace profile
+     * (falls back to the legacy owner-wide user_id filter).
+     */
+    private function workspaceLinkScope(User $creator): \Closure
+    {
+        $wid = $creator->relationLoaded('activeCreatorProfile')
+            ? $creator->getRelation('activeCreatorProfile')?->workspace_id
+            : null;
+        return fn ($q) => $wid
+            ? $q->where(fn ($w) => $w
+                ->where('workspace_id', $wid)
+                ->orWhere(fn ($n) => $n->whereNull('workspace_id')->where('user_id', $creator->id)))
+            : $q->where('user_id', $creator->id);
+    }
+
     private function resolveCreator(string $handle): ?User
     {
         // The route normalises @handle / handle equivalently — resolution
         // here is case-insensitive on the handle column.
-        $handle = ltrim($handle, '@');
-        if ($handle === '' || strlen($handle) > 60) return null;
-        return User::query()->whereRaw('LOWER(handle) = ?', [strtolower($handle)])->first();
+        // Task #6618 — handles resolve to a WORKSPACE creator profile;
+        // the owner User is returned with the profile fields overlaid.
+        return \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle);
     }
 
     /**

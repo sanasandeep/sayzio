@@ -32,7 +32,7 @@ see [API usage metering](#api-usage-metering)).
 - [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Restaurant menu](#restaurant-menu) · [Store menu](#store-menu) · [Service booking](#service-booking) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms) · [Spam settings](#spam-settings) · [Forwarding](#forwarding)
 - [Social connections & proofs](#social-connections--proofs) · [Integrations](#integrations) · [Calendar](#calendar) · [Verification](#verification)
 - [Admin (mobile back-office)](#admin-mobile-back-office) · [Banned names / reserved handles](#banned-names--reserved-handles) · [Plan editor](#plan-editor) · [Scheduled jobs](#admin-scheduled-jobs) · [Admin mail / SMTP](#admin-mail--smtp-settings)
-- [Extension surface](#browser-extension-surface) (properties, backlinks, pixels, thank-yous) · [Pixel tracking](#pixel-tracking) · [Health](#health)
+- [Extension surface](#browser-extension-surface) (properties, backlinks, pixels, thank-yous) · [Browser device sync](#browser-device-sync) · [Referrals](#referrals--rewards) · [Pixel tracking](#pixel-tracking) · [Health](#health)
 - [Error codes](#error-codes) · [Pagination](#pagination-shape) · [API usage metering](#api-usage-metering)
 
 ---
@@ -1573,6 +1573,68 @@ Endpoints the [browser extension](../../1inme-extension/README.md) relies on (al
 | **Add to calendar**      | POST   | `/calendars/{id}/events`           | Creates the event (see [Calendar](#calendar)). |
 | **Page → bio-link (AI)** | GET    | `/links/{id}/ai-builder`           | Intake for the AI-powered mode against an existing biolink page (plan-allowed block types, coin estimate). |
 | **Page → bio-link (AI)** | POST   | `/links/{id}/ai-builder/generate`  | Generates the page from the captured content via `AiBiolinkBuilderService`. Charged to the `biolink_builder` coin-priced AI feature with auto-refund on parse failure (see [AI tools](#ai-tools)). Throttle: 10/min. |
+
+## Browser device sync
+
+Cross-device sync backbone for Zio Browser profiles: bookmarks, collections,
+browsing history and the reading list. All routes require a bearer token
+(`auth:sanctum`). Two headers scope every call:
+
+- `X-Browser-Device-Id` — the client's stable device UUID (minted server-side
+  on first registration when absent).
+- `X-Browser-Workspace-Id` — the active browser profile's workspace id;
+  omit it for the personal/default profile (`workspace_id = null`). The
+  workspace must belong to the authenticated user or it falls back to the
+  personal bucket.
+
+**Plan gating.** The whole surface (register, pushes, pull) is gated by the
+`browser_sync` plan-feature boolean (legacy-safe default ON): plans with it
+switched off get **402** `plan_upgrade_required` with `details.feature =
+"browser_sync"` (plus the usual `recommended_plan` hint). Each entity table is
+also capped per user by `max_browser_sync_items` (rows per data type;
+-1 = unlimited, still hard-capped server-side): once at the cap, pushes of
+**new** rows are refused and their `local_id`s come back in a `rejected` array
+(the response also carries the effective `limit`); updates and tombstones of
+existing rows always go through, and `POST /browser/history/purge` is never
+gated so users can always clean up.
+
+| Method | Path                                        | Auth | Description |
+| ------ | ------------------------------------------- | ---- | ----------- |
+| POST   | `/browser/devices`                          | yes  | Register (or refresh) this device. Body: `label` (≤120), `platform` (`mac`\|`windows`\|`linux`), `app_version?` (≤32). Returns `{data: {device_id}}` — echo it back as `X-Browser-Device-Id`. |
+| POST   | `/browser/devices/{deviceId}/bookmarks`     | yes  | Push bookmark changes. Body: `items[]` (≤1000) of `{local_id, updated_at, deleted?, data: {url?, title?, description?, favicon_url?, folder?}}`. |
+| POST   | `/browser/devices/{deviceId}/collections`   | yes  | Push collection changes (same envelope; `data` carries the collection fields). |
+| POST   | `/browser/devices/{deviceId}/history`       | yes  | Push history entries (same envelope). Throttle: 60/min. |
+| POST   | `/browser/devices/{deviceId}/reading-list`  | yes  | Push reading-list changes (same envelope; `data.is_read` etc.). |
+| GET    | `/browser/devices/{deviceId}/pull`          | yes  | Pull changes since a cursor. Query: `since` (ISO-8601, optional = everything). Returns `{data: {bookmarks[], collections[], history[], reading_list[], server_time, workspace_id}}`; each item is `{local_id, updated_at, deleted, data}`. |
+| POST   | `/browser/history/purge`                    | yes  | Soft-delete history rows for this user (all profiles). Body: `since?` (ISO-8601 — only entries last visited at/after it). Returns `{data: {deleted: <count>}}`. Throttle: 10/min. |
+
+**Conflict model.** Sync is last-write-wins on `item_updated_at`: every push
+returns `{data: {accepted: [local_id…], conflicts: [local_id…], rejected:
+[local_id…], limit, server_time, workspace_id}}` — a `conflict` means the
+server copy was newer, so the client
+should adopt it on the next pull. Deletions are tombstones (`deleted: true`),
+never hard deletes, so they replicate to the other devices.
+
+## Referrals & rewards
+
+The referral program (share link, clicks/signups/conversions tracking, free-day
+rewards) currently ships on **web session routes only** — there is no `/api/v1`
+surface yet. Documented here so the endpoint group is discoverable:
+
+| Method | Path                | Auth (web session)         | Description |
+| ------ | ------------------- | -------------------------- | ----------- |
+| GET    | `/r/{code}`         | public                     | Referral click tracker: records the click, drops the attribution cookie and redirects to signup. |
+| GET    | `/referrals/check`  | public                     | Custom-code availability check. Returns `{ok, message}`. |
+| GET    | `/referrals`        | `workspace.can:referrals.view` | Referral dashboard: personal code, share link and stats (`clicks`, `signups`, `conversions`, `days_earned`). |
+| PUT    | `/referrals/code`   | `workspace.can:referrals.edit` | Update the personal referral code. |
+
+Reward knobs live on each plan's features blob (admin plan form → *Referral
+rewards*): `signup_bonus_days` (bonus trial days at referred signup, read from
+the **referrer's** plan), `referrer_free_days` (days credited to the inviter
+when the referral activates, read from the referrer's plan) and
+`referred_free_days` (days credited to the new user, read from the **activated**
+plan). Rewards are granted by `ReferralService` when the referred signup
+activates a plan; self-referrals are never rewarded.
 
 ## Pixel tracking
 

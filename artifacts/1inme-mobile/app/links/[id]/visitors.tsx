@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -178,6 +178,165 @@ export default function LinkVisitorsScreen() {
                     ))}
                   </View>
                 ) : null}
+              </Section>
+            ) : null}
+
+            {data.qr_connect ? (
+              <Section title="QR Connect" colors={colors} icon="user-plus">
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 12,
+                    fontFamily: "SpaceGrotesk_400Regular",
+                  }}
+                >
+                  Guests who scanned your Connect QR — one code signs them in,
+                  RSVPs them "yes" and connects them with you.
+                </Text>
+                <View style={styles.tileRow}>
+                  <StatTile
+                    label="Scans"
+                    value={data.qr_connect.scans.toLocaleString()}
+                    icon="maximize"
+                  />
+                  <StatTile
+                    label="New signups"
+                    value={data.qr_connect.new_users.toLocaleString()}
+                    icon="user-plus"
+                  />
+                  <StatTile
+                    label="Existing"
+                    value={data.qr_connect.existing.toLocaleString()}
+                    icon="user-check"
+                  />
+                </View>
+                <View style={styles.tileRow}>
+                  <StatTile
+                    label="RSVPs"
+                    value={data.qr_connect.rsvps.toLocaleString()}
+                    icon="calendar"
+                  />
+                  <StatTile
+                    label="New follows"
+                    value={data.qr_connect.follows.toLocaleString()}
+                    icon="heart"
+                  />
+                  <StatTile
+                    label="Conversion"
+                    value={
+                      data.qr_connect.conversion_pct !== null &&
+                      data.qr_connect.conversion_pct !== undefined
+                        ? `${data.qr_connect.conversion_pct}%`
+                        : "—"
+                    }
+                    icon="trending-up"
+                  />
+                </View>
+                {(data.qr_connect.daily ?? []).length > 0 ? (
+                  <View style={{ gap: 6 }}>
+                    <View style={styles.barRow}>
+                      <Text
+                        style={[
+                          styles.barLabel,
+                          { color: colors.mutedForeground },
+                        ]}
+                      >
+                        Day
+                      </Text>
+                      <Text
+                        style={[
+                          styles.qrDailyCol,
+                          { color: colors.mutedForeground },
+                        ]}
+                      >
+                        Scans
+                      </Text>
+                      <Text
+                        style={[
+                          styles.qrDailyCol,
+                          { color: colors.mutedForeground },
+                        ]}
+                      >
+                        Connects
+                      </Text>
+                    </View>
+                    {(data.qr_connect.daily ?? []).map((r) => {
+                      const maxQr = Math.max(
+                        1,
+                        ...(data.qr_connect?.daily ?? []).map((x) =>
+                          Math.max(x.scans, x.connects),
+                        ),
+                      );
+                      return (
+                        <View key={r.d} style={{ gap: 2 }}>
+                          <View style={styles.barRow}>
+                            <Text
+                              style={[
+                                styles.barLabel,
+                                { color: colors.foreground },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {r.d}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.qrDailyCol,
+                                { color: colors.foreground },
+                              ]}
+                            >
+                              {r.scans.toLocaleString()}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.qrDailyCol,
+                                { color: colors.primary },
+                              ]}
+                            >
+                              {r.connects.toLocaleString()}
+                            </Text>
+                          </View>
+                          <View
+                            style={[
+                              styles.qrDailyTrack,
+                              { backgroundColor: colors.border + "80" },
+                            ]}
+                          >
+                            <View
+                              style={{
+                                height: 8,
+                                width: `${(r.scans / maxQr) * 100}%`,
+                                backgroundColor: colors.border,
+                                borderRadius: 4,
+                              }}
+                            />
+                            <View
+                              style={{
+                                position: "absolute",
+                                left: 0,
+                                top: 0,
+                                height: 8,
+                                width: `${(r.connects / maxQr) * 100}%`,
+                                backgroundColor: colors.primary,
+                                borderRadius: 4,
+                              }}
+                            />
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                ) : null}
+                <Button
+                  label="Get the Connect QR"
+                  variant="outline"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/events/connect-qr/[linkId]",
+                      params: { linkId: String(id) },
+                    })
+                  }
+                />
               </Section>
             ) : null}
 
@@ -407,6 +566,13 @@ const styles = StyleSheet.create({
   barRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   barLabel: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12, flex: 1.4 },
   barTrack: { flex: 2, height: 8, borderRadius: 4 },
+  qrDailyCol: {
+    fontFamily: "SpaceGrotesk_700Bold",
+    fontSize: 12,
+    minWidth: 64,
+    textAlign: "right",
+  },
+  qrDailyTrack: { height: 8, borderRadius: 4, overflow: "hidden" },
   barValue: {
     fontFamily: "SpaceGrotesk_700Bold",
     fontSize: 12,

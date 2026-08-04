@@ -400,6 +400,36 @@ class ExternalValueGuides
                 'docs_url' => 'https://razorpay.com/route/',
                 'docs_label' => 'Razorpay Route documentation',
             ],
+            'payouts.phonepe' => [
+                'title' => 'What happens when I connect PhonePe?',
+                'steps' => [
+                    'Click <strong>Connect</strong> — you\'ll be taken to PhonePe\'s hosted merchant onboarding.',
+                    'Sign in with (or create) a PhonePe Business account and complete the KYC/bank details PhonePe asks for.',
+                    'Once PhonePe confirms your merchant account, you\'ll be redirected back here automatically — no keys or IDs to copy yourself.',
+                ],
+                'docs_url' => 'https://developer.phonepe.com/payment-gateway',
+                'docs_label' => 'PhonePe Payment Gateway documentation',
+            ],
+            'payouts.ccavenue' => [
+                'title' => 'What happens when I connect CCAvenue?',
+                'steps' => [
+                    'Click <strong>Connect</strong> — you\'ll be taken to CCAvenue\'s hosted merchant onboarding.',
+                    'Sign in with (or create) a CCAvenue merchant account and complete the registration and bank details CCAvenue asks for.',
+                    'Once CCAvenue activates your merchant account, you\'ll be redirected back here automatically — no keys or IDs to copy yourself.',
+                ],
+                'docs_url' => 'https://www.ccavenue.com/',
+                'docs_label' => 'CCAvenue merchant documentation',
+            ],
+            'payouts.paytm' => [
+                'title' => 'What happens when I connect Paytm?',
+                'steps' => [
+                    'Click <strong>Connect</strong> — you\'ll be taken to Paytm\'s hosted merchant onboarding.',
+                    'Sign in with (or create) a Paytm for Business account and complete the KYC/bank details Paytm asks for.',
+                    'Once Paytm confirms your merchant account, you\'ll be redirected back here automatically — no keys or IDs to copy yourself.',
+                ],
+                'docs_url' => 'https://business.paytm.com/payment-gateway',
+                'docs_label' => 'Paytm Payment Gateway documentation',
+            ],
             'payouts.ccbill' => [
                 'title' => 'What happens when I connect CCBill?',
                 'steps' => [

@@ -28,10 +28,7 @@ class CreatorProfileApiController extends Controller
 
     public function show(Request $request, string $handle)
     {
-        $handle  = ltrim($handle, '@');
-        $creator = User::query()
-            ->whereRaw('LOWER(handle) = ?', [strtolower($handle)])
-            ->first();
+        $creator = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle);
         if (!$creator) return $this->notFound('Creator not found');
 
         $viewer  = $request->user();
@@ -60,17 +57,31 @@ class CreatorProfileApiController extends Controller
      * one here. Returned as a RELATIVE path so the app prepends its own
      * base URL (hosts differ between dev proxy / production domains).
      */
+    /**
+     * The authed user's ACTIVE workspace profile (Task #6618). The API path
+     * skips SetActiveWorkspace, so resolve statelessly via WorkspaceContext
+     * (falls back to users.active_workspace_id → personal workspace).
+     */
+    private function activeProfile(User $user): \App\Modules\User\Models\CreatorProfile
+    {
+        $ws = app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($user)
+            ?? $user->ensureDefaultWorkspace();
+
+        return \App\Modules\User\Models\CreatorProfile::forWorkspace($ws);
+    }
+
     public function previewUrl(Request $request)
     {
         $user = $request->user();
-        if (!$user || empty($user->handle)) {
+        $profile = $user ? $this->activeProfile($user) : null;
+        if (!$profile || empty($profile->handle)) {
             return $this->fail('Claim a handle first to preview your profile.', 422, 'no_handle');
         }
 
         $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
             'creator-profile.show',
             now()->addMinutes(30),
-            ['handle' => $user->handle, 'cp_preview' => 1],
+            ['handle' => $profile->handle, 'cp_preview' => 1],
             absolute: false,
         );
 
@@ -93,6 +104,10 @@ class CreatorProfileApiController extends Controller
             return $this->fail('Unauthenticated.', 401, 'unauthenticated');
         }
 
+        // Overlay the active workspace's profile so the payload reflects
+        // the workspace being edited (Task #6618).
+        $this->activeProfile($user)->applyToUser($user);
+
         return $this->ok(['profile' => $this->ownerProfilePayload($user)]);
     }
 
@@ -112,9 +127,15 @@ class CreatorProfileApiController extends Controller
             array_column($showcase['featured_links'], 'id'),
             array_column($showcase['showcase_items'], 'link_id'),
         )));
+        $wsId = $user->relationLoaded('activeCreatorProfile')
+            ? $user->getRelation('activeCreatorProfile')?->workspace_id
+            : null;
         $refLinks = empty($refIds) ? collect() : Link::query()
             ->withoutGlobalScope('workspace')
-            ->where('user_id', $user->id)
+            ->when($wsId, fn ($q) => $q->where(fn ($w) => $w
+                    ->where('workspace_id', $wsId)
+                    ->orWhere(fn ($n) => $n->whereNull('workspace_id')->where('user_id', $user->id))),
+                fn ($q) => $q->where('user_id', $user->id))
             ->whereIn('id', $refIds)
             ->get(['id', 'title', 'alias', 'type'])
             ->keyBy('id');
@@ -205,16 +226,18 @@ class CreatorProfileApiController extends Controller
             'cta_secondary.*.value'        => 'required_with:cta_secondary.*|string|max:500',
         ]);
 
-        \App\Modules\User\Controllers\CreatorProfileController::saveCoreProfileFields($user, $data, $request);
+        // Task #6618 — all writes target the ACTIVE workspace's profile.
+        $profile = $this->activeProfile($user);
+        \App\Modules\User\Controllers\CreatorProfileController::saveCoreProfileFields($user, $data, $request, $profile);
 
         // Publish toggle — same handle guard as the web editor: a published
         // profile without a handle would 404 at /@handle.
         if ($request->has('profile_published')) {
             $wantsPublished = filter_var($data['profile_published'], FILTER_VALIDATE_BOOLEAN);
-            if ($wantsPublished && empty($user->handle)) {
+            if ($wantsPublished && empty($profile->handle)) {
                 return $this->fail('Claim a handle before publishing — your profile lives at /@handle.', 422, 'no_handle');
             }
-            $user->profile_published = $wantsPublished;
+            $profile->profile_published = $wantsPublished;
         }
 
         // Showcase block: only touched when the request carries at least one
@@ -228,11 +251,14 @@ class CreatorProfileApiController extends Controller
         if ($request->hasAny($showcaseKeys)) {
             // Absent boolean toggles fall back to the same defaults as the
             // web form, so senders should submit the full showcase state.
-            \App\Modules\User\Controllers\CreatorProfileController::saveShowcaseFields($user, $data);
+            \App\Modules\User\Controllers\CreatorProfileController::saveShowcaseFields($user, $data, $profile);
         }
 
+        $profile->save();
         $user->save();
+        $profile->mirrorToOwner();
         $user->refresh();
+        $profile->refresh()->applyToUser($user);
 
         return $this->ok([
             'profile' => [
@@ -381,6 +407,24 @@ class CreatorProfileApiController extends Controller
      *
      * @return array<string,mixed>
      */
+    /**
+     * Task #6618 — scope a Link query to the creator's WORKSPACE profile
+     * when the creator was resolved via a workspace profile, with a
+     * fallback OR for legacy links whose workspace_id is NULL. Mirrors the
+     * web CreatorProfilePublicController::workspaceLinkScope.
+     */
+    private function apiWorkspaceLinkScope(User $creator): \Closure
+    {
+        $wid = $creator->relationLoaded('activeCreatorProfile')
+            ? $creator->getRelation('activeCreatorProfile')?->workspace_id
+            : null;
+        return fn ($q) => $wid
+            ? $q->where(fn ($w) => $w
+                ->where('workspace_id', $wid)
+                ->orWhere(fn ($n) => $n->whereNull('workspace_id')->where('user_id', $creator->id)))
+            : $q->where('user_id', $creator->id);
+    }
+
     private function profilePayload(User $creator, ?User $viewer, bool $isOwner, bool $isFollowing): array
     {
         $primaryBiolink = Link::where('user_id', $creator->id)
@@ -393,7 +437,7 @@ class CreatorProfileApiController extends Controller
         $showcaseCards   = $this->apiResolveShowcaseCards($creator, $showcase, $sections);
         $totalPublicLinks = Link::query()
             ->withoutGlobalScope('workspace')
-            ->where('user_id', $creator->id)
+            ->tap($this->apiWorkspaceLinkScope($creator))
             ->where('is_active', true)
             ->where('visibility', 'public')
             ->count();
@@ -449,7 +493,7 @@ class CreatorProfileApiController extends Controller
 
         $links = Link::query()
             ->withoutGlobalScope('workspace')
-            ->where('user_id', $creator->id)
+            ->tap($this->apiWorkspaceLinkScope($creator))
             ->where('is_active', true)
             ->where('visibility', 'public')
             ->whereIn('id', $ids)
@@ -486,7 +530,7 @@ class CreatorProfileApiController extends Controller
         $linkIds = array_values(array_unique(array_column($items, 'link_id')));
         $links = Link::query()
             ->withoutGlobalScope('workspace')
-            ->where('user_id', $creator->id)
+            ->tap($this->apiWorkspaceLinkScope($creator))
             ->where('is_active', true)
             ->where('visibility', 'public')
             ->whereIn('id', $linkIds)
@@ -516,10 +560,7 @@ class CreatorProfileApiController extends Controller
      */
     public function mini(Request $request, string $handle)
     {
-        $handle  = ltrim($handle, '@');
-        $creator = User::query()
-            ->whereRaw('LOWER(handle) = ?', [strtolower($handle)])
-            ->first();
+        $creator = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle);
 
         if (!$creator || !$creator->profile_published) {
             return $this->notFound('Creator not found');
@@ -604,8 +645,7 @@ class CreatorProfileApiController extends Controller
 
     public function feed(Request $request, string $handle)
     {
-        $handle  = ltrim($handle, '@');
-        $creator = User::query()->whereRaw('LOWER(handle) = ?', [strtolower($handle)])->first();
+        $creator = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle);
         if (!$creator) return $this->notFound('Creator not found');
 
         $viewer  = $request->user();
@@ -705,7 +745,7 @@ class CreatorProfileApiController extends Controller
         $viewer = $request->user();
         if (!$viewer) return $this->fail('Sign in to react.', 401);
 
-        $creator = User::query()->whereRaw('LOWER(handle) = ?', [strtolower(ltrim($handle, '@'))])->first();
+        $creator = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle);
         if (!$creator) return $this->notFound();
 
         $p = CreatorPost::query()->withoutGlobalScope('workspace')
@@ -743,7 +783,7 @@ class CreatorProfileApiController extends Controller
 
     public function comments(Request $request, string $handle, int $post)
     {
-        $creator = User::query()->whereRaw('LOWER(handle) = ?', [strtolower(ltrim($handle, '@'))])->first();
+        $creator = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle);
         if (!$creator) return $this->notFound();
 
         $p = CreatorPost::query()->withoutGlobalScope('workspace')
@@ -776,7 +816,7 @@ class CreatorProfileApiController extends Controller
         $viewer = $request->user();
         if (!$viewer) return $this->fail('Sign in to comment.', 401);
 
-        $creator = User::query()->whereRaw('LOWER(handle) = ?', [strtolower(ltrim($handle, '@'))])->first();
+        $creator = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle);
         if (!$creator) return $this->notFound();
 
         $p = CreatorPost::query()->withoutGlobalScope('workspace')

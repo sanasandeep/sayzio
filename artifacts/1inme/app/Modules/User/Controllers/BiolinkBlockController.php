@@ -2004,6 +2004,45 @@ class BiolinkBlockController extends Controller
             if ($txt === '') unset($settings['ornament_text']); else $settings['ornament_text'] = mb_substr($txt, 0, 30);
         }
 
+        // Event list (Task #6615 — Smart Calendar source): clamp/allowlist
+        // the calendar-source knobs. The renderer/API resolve ownership at
+        // read time (EventListCalendarSource fails closed), so here we only
+        // normalise shapes and drop empty optionals.
+        if ($type === 'event_list') {
+            $cid = $settings['calendar_link_id'] ?? null;
+            if ($cid === null || $cid === '' || (int) $cid <= 0) {
+                unset($settings['calendar_link_id']);
+            } else {
+                $settings['calendar_link_id'] = (int) $cid;
+            }
+
+            if (array_key_exists('count', $settings)) {
+                $cv = $settings['count'];
+                if ($cv === '' || $cv === null || !is_numeric($cv)) {
+                    unset($settings['count']);
+                } else {
+                    $settings['count'] = max(1, min(\App\Modules\User\Support\EventListCalendarSource::MAX_COUNT, (int) $cv));
+                }
+            }
+
+            if (array_key_exists('range_days', $settings)) {
+                $rv = $settings['range_days'];
+                if ($rv === '' || $rv === null || !is_numeric($rv) || (int) $rv <= 0) {
+                    unset($settings['range_days']);
+                } else {
+                    $settings['range_days'] = min(\App\Modules\User\Support\EventListCalendarSource::MAX_RANGE_DAYS, (int) $rv);
+                }
+            }
+
+            if (array_key_exists('layout', $settings) && !in_array($settings['layout'], ['compact', 'cards', 'agenda'], true)) {
+                $settings['layout'] = 'compact';
+            }
+
+            if (array_key_exists('show_subscribe', $settings)) {
+                $settings['show_subscribe'] = (bool) $settings['show_subscribe'];
+            }
+        }
+
         // Spacer height: same 4–200px envelope the editor slider offers.
         if ($type === 'spacer') {
             $settings['height'] = max(4, min(200, (int) ($settings['height'] ?? 20)));

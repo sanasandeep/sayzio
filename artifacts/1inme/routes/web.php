@@ -260,6 +260,9 @@ Route::get('/f/{slug}',          [\App\Modules\User\Controllers\FormController::
 Route::get('/f/{slug}/iframe',   [\App\Modules\User\Controllers\FormController::class, 'publicIframe'])->name('forms.public.iframe')->where('slug', '[a-z0-9-]+');
 Route::get('/f/{slug}/embed.js', [\App\Modules\User\Controllers\FormController::class, 'publicEmbedJs'])->name('forms.public.embed')->where('slug', '[a-z0-9-]+');
 Route::post('/f/{slug}',         [\App\Modules\User\Controllers\FormController::class, 'publicSubmit'])->name('forms.public.submit')->where('slug', '[a-z0-9-]+')->middleware('throttle:10,1');
+// Signed, time-limited delivery-file unlock (Task #6624) — the signature is
+// minted per successful submission; the controller re-checks payment status.
+Route::get('/f/{slug}/delivery/{submission}', [\App\Modules\User\Controllers\FormController::class, 'deliveryDownload'])->name('forms.public.delivery')->where('slug', '[a-z0-9-]+')->whereNumber('submission');
 
 // ---- Embeddable Link Codes (task #2617): card / iframe / loader, CORS-open ----
 // Multi-segment under the reserved `embed` prefix so they never collide with the
@@ -697,6 +700,12 @@ Route::post  ('/@{handle}/manage-subscription/resume', [\App\Modules\Common\Cont
 Route::get ('/checkout/preview', [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'preview'])->name('checkout.preview');
 Route::post('/checkout/preview/confirm', [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'confirmPreview'])->name('checkout.preview.confirm');
 Route::get ('/checkout/return',  [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'returnHandler'])->name('checkout.return');
+// Live Razorpay hosted checkout (Task #6642) — signed URL minted by
+// RazorpayRouteAdapter after the order + Route transfer are created.
+Route::get ('/checkout/razorpay', [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'razorpay'])->name('checkout.razorpay');
+// Live Cashfree hosted checkout (Task #6643) — signed URL minted by the
+// CreatorPayouts CashfreeAdapter after the order + Easy Split are created.
+Route::get ('/checkout/cashfree-payout', [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'cashfreePayout'])->name('checkout.cashfree-payout');
 
 // In-page biolink storefront (Task #1761). Multi-segment paths so they
 // never collide with the single-segment `/{alias}` catch-all below. Cart
@@ -821,6 +830,12 @@ Route::get('/{alias}/download.txt', [RedirectController::class, 'textDownload'])
 Route::get('/{alias}/raw', [RedirectController::class, 'textRaw'])->name('redirect.text.raw')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$');
 Route::get('/{alias}/rsvp',  [RedirectController::class, 'rsvpForm'])->name('redirect.rsvp.form')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
 Route::post('/{alias}/rsvp', [RedirectController::class, 'rsvpSubmit'])->name('redirect.rsvp.submit')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:10,1');
+// Event Connect QR (Task #6685): the one-flow "RSVP & Connect" endpoints
+// used by the `?src=connect_qr` prompt on the public event page. Multi-
+// segment paths keep them clear of the single-segment /{alias} catch-all.
+Route::post('/{alias}/connect-qr/send',    [\App\Modules\Common\Controllers\EventConnectQrController::class, 'send'])->name('events.connect-qr.send')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:5,1');
+Route::post('/{alias}/connect-qr/verify',  [\App\Modules\Common\Controllers\EventConnectQrController::class, 'verify'])->name('events.connect-qr.verify')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:10,1');
+Route::post('/{alias}/connect-qr/confirm', [\App\Modules\Common\Controllers\EventConnectQrController::class, 'confirm'])->name('events.connect-qr.confirm')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');
 Route::post('/{alias}/interest', [\App\Modules\Common\Controllers\EventInterestController::class, 'toggle'])->name('events.interest.toggle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:30,1');
 // Task #3769: lazily-fetched "similar events" / "more from this host"
 // recommendation fragment for the RSVP + ticketed event pages — kept off

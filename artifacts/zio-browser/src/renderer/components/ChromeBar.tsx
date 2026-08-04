@@ -64,6 +64,8 @@ interface Props {
   onToggleDialer?: () => void;
   /** Callback to open the browser settings panel. */
   onOpenSettings?: () => void;
+  /** Opens the settings panel directly on the Sync section (sync pill click). */
+  onOpenSyncSettings?: () => void;
   settingsOpen?: boolean;
   /** Virtual keyboard — toolbar toggle (shown only when the feature is enabled). */
   vkEnabled?: boolean;
@@ -437,6 +439,7 @@ export function ChromeBar({
   dialerPanelOpen = false,
   onToggleDialer,
   onOpenSettings,
+  onOpenSyncSettings,
   settingsOpen = false,
   vkEnabled = false,
   vkOpen = false,
@@ -487,6 +490,7 @@ export function ChromeBar({
   useChromeOverlay(shortenOpen || createOpen || clipboardOpen || overflowOpen || sitePopoverOpen || adblockPopoverOpen || shareOpen || tabOverviewOpen);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [pendingSyncByProfile, setPendingSyncByProfile] = useState<SyncQueueProfileCount[]>([]);
+  const [syncPlanBlocked, setSyncPlanBlocked] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [stripMenuOpen, setStripMenuOpen] = useState(false);
   const [blockedCount, setBlockedCount] = useState(0);
@@ -811,9 +815,20 @@ export function ChromeBar({
       if (Array.isArray(byProfile)) setPendingSyncByProfile(byProfile as SyncQueueProfileCount[]);
     };
     window.zio.on('sync:queue-changed', listener);
+    // Plan gate — when the server 402-blocks sync for this plan, swap the
+    // pending pill's copy to a friendly "paused, upgrade to resume" hint.
+    void window.zio.sync.planStatus().then((s: { gate?: { blocked?: boolean } } | null) => {
+      if (!cancelled) setSyncPlanBlocked(s?.gate?.blocked === true);
+    }).catch(() => { /* main not ready yet — event listener will update */ });
+    const planListener = (...args: unknown[]) => {
+      const s = args[0] as { gate?: { blocked?: boolean } } | undefined;
+      setSyncPlanBlocked(s?.gate?.blocked === true);
+    };
+    window.zio.on('sync:plan-status-changed', planListener);
     return () => {
       cancelled = true;
       window.zio.off('sync:queue-changed', listener);
+      window.zio.off('sync:plan-status-changed', planListener);
     };
   }, []);
 
@@ -1584,11 +1599,15 @@ export function ChromeBar({
           >📋</button>
         )}
 
-        {/* Sync pending indicator */}
-        {pendingSyncCount > 0 && (
-          <div
+        {/* Sync pending indicator — also shown (with 0 queued items) whenever
+            the plan gate blocks sync, so the paused state is never invisible. */}
+        {(pendingSyncCount > 0 || syncPlanBlocked) && (
+          <button
+            onClick={() => onOpenSyncSettings?.()}
             title={
-              pendingSyncByProfile.length > 0
+              syncPlanBlocked
+                ? 'Sync is paused — your current plan doesn\'t include browser sync. Changes stay on this device and sync automatically after you upgrade. Click to open Settings → Sync.'
+                : pendingSyncByProfile.length > 0
                 ? `Waiting to sync — will retry automatically: ${pendingSyncByProfile
                     .map(p => `${p.count} pending for ${p.profileName}`)
                     .join(', ')}`
@@ -1606,6 +1625,7 @@ export function ChromeBar({
               color: 'var(--color-text-muted)',
               whiteSpace: 'nowrap',
               flexShrink: 0,
+              cursor: 'pointer',
             }}
           >
             <span style={{
@@ -1615,8 +1635,8 @@ export function ChromeBar({
               background: '#f0a020',
               flexShrink: 0,
             }} />
-            Sync pending
-          </div>
+            {syncPlanBlocked ? 'Sync paused — upgrade to resume' : 'Sync pending'}
+          </button>
         )}
 
         {/* "Settings for this website" popover button (per-site settings). */}

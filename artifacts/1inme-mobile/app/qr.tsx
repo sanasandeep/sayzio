@@ -100,9 +100,11 @@ export default function QrScreen() {
       }
     },
     onError: (e: any) => {
+      // Refresh quota/balance either way so the "X of Y left" line and the
+      // exhausted state stay accurate after a rejected generation.
+      artAvail.refetch();
       if (handlePlanLockedError(e)) return;
       setArtError(e?.message ?? "Generation failed. Please try again.");
-      artAvail.refetch();
     },
   });
 
@@ -437,6 +439,37 @@ export default function QrScreen() {
                     verb="generate"
                   />
 
+                  {/* Monthly allowance (-1 = unlimited, hidden). */}
+                  {artAvail.data.monthly_allowance >= 0 ? (
+                    artAvail.data.monthly_remaining > 0 ? (
+                      <Text style={[styles.lockHint, { color: colors.mutedForeground }]}>
+                        {artAvail.data.monthly_remaining} of {artAvail.data.monthly_allowance}{" "}
+                        {artAvail.data.monthly_allowance === 1 ? "generation" : "generations"} left
+                        this month.
+                      </Text>
+                    ) : (
+                      <>
+                        <Text style={[styles.lockHint, { color: colors.mutedForeground }]}>
+                          You've used all {artAvail.data.monthly_allowance}{" "}
+                          {artAvail.data.monthly_allowance === 1 ? "generation" : "generations"}{" "}
+                          included in your plan this month. Upgrade for a higher monthly
+                          allowance.
+                        </Text>
+                        <Button
+                          label="Upgrade for more"
+                          variant="outline"
+                          onPress={() =>
+                            showUpgradePrompt({
+                              message:
+                                "You've reached this month's AI Artistic QR limit on your current plan. Upgrade to generate more artwork.",
+                              hint: { feature: "qr_art" },
+                            })
+                          }
+                        />
+                      </>
+                    )
+                  ) : null}
+
                   {art?.image_url ? (
                     <View style={{ gap: 8 }}>
                       <Image
@@ -466,6 +499,7 @@ export default function QrScreen() {
                       !value.trim() ||
                       !artPrompt.trim() ||
                       generateArt.isPending ||
+                      artAvail.data.monthly_remaining === 0 ||
                       insufficientCoins(artAvail.data.cost, artAvail.data.balance)
                     }
                     onPress={() => generateArt.mutate()}

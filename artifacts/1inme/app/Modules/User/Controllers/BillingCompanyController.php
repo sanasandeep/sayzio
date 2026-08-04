@@ -279,6 +279,7 @@ class BillingCompanyController extends Controller
     protected function validateSmtp(Request $request): void
     {
         $request->validate([
+            'smtp_connection_id' => 'nullable|integer',
             'smtp_enabled'      => 'nullable|boolean',
             'smtp_host'         => 'nullable|string|max:255|required_if:smtp_enabled,1',
             'smtp_port'         => 'nullable|integer|min:1|max:65535',
@@ -297,6 +298,16 @@ class BillingCompanyController extends Controller
      */
     protected function applySmtp(BillingCompany $company, Request $request): void
     {
+        // A saved reusable email connection (Task #6632) can drive this
+        // company's client-email sender: picking one copies its SMTP-shaped
+        // settings into the per-company fields below, so the existing
+        // fully-configured-only fallback rule (CompanyMailSettings) keeps
+        // guarding sends exactly as before — a half-set connection can never
+        // drop an invoice email.
+        if ($this->applySmtpFromConnection($company, $request)) {
+            return;
+        }
+
         $company->forceFill([
             'smtp_enabled'      => $request->boolean('smtp_enabled'),
             'smtp_host'         => $this->nullableTrim($request->input('smtp_host')),
@@ -319,6 +330,51 @@ class BillingCompanyController extends Controller
         }
 
         $company->save();
+    }
+
+    /**
+     * When the creator picked a saved email connection, copy its SMTP-shaped
+     * settings onto the company (host/port/encryption/username/password/from)
+     * and enable per-company SMTP. Returns true when a connection was applied.
+     * Only wired providers (smtp, sendgrid) carry SMTP-shaped settings; the
+     * connection must belong to the signed-in user and be active.
+     */
+    protected function applySmtpFromConnection(BillingCompany $company, Request $request): bool
+    {
+        $connectionId = (int) $request->input('smtp_connection_id');
+        if (!$connectionId) {
+            return false;
+        }
+
+        $config = \App\Modules\User\Services\EmailConnectionMailer::resolve((int) auth()->id(), $connectionId);
+        $mailerConfig = $config ? \App\Modules\User\Services\EmailConnectionMailer::mailerConfig($config) : null;
+        if (!$config || !$mailerConfig) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'smtp_connection_id' => 'Pick one of your own active SMTP/SendGrid connections (with host and password filled in).',
+            ]);
+        }
+
+        $meta = (array) $config->meta;
+
+        $company->forceFill([
+            'smtp_enabled'      => true,
+            'smtp_host'         => $mailerConfig['host'],
+            'smtp_port'         => (int) $mailerConfig['port'],
+            'smtp_encryption'   => in_array($mailerConfig['encryption'] ?? null, CompanyMailSettings::ENCRYPTION_OPTIONS, true) ? $mailerConfig['encryption'] : 'tls',
+            'smtp_username'     => $mailerConfig['username'] ?? null,
+            'smtp_from_address' => $this->nullableTrim($meta['from_email'] ?? null),
+            'smtp_from_name'    => $this->nullableTrim($meta['from_name'] ?? null),
+        ]);
+
+        CompanyMailSettings::for($company)->setPassword($mailerConfig['password'] ?? null);
+
+        if ($company->isDirty(['smtp_host', 'smtp_port', 'smtp_encryption', 'smtp_username', 'smtp_password_enc'])) {
+            $company->smtp_verified_at = null;
+        }
+
+        $company->save();
+
+        return true;
     }
 
     private function nullableTrim($value): ?string

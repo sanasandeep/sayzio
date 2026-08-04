@@ -2009,6 +2009,57 @@ if (typeof window.resetPollVotes !== 'function') {
     <label class="flex items-center gap-2 text-xs text-white/60"><input type="hidden" name="settings[show_directions]" value="0"><input type="checkbox" name="settings[show_directions]" value="1" {{ ($s['show_directions'] ?? true) ? 'checked' : '' }} class="rounded text-blue-500">Show "Directions" button</label>
 </div>
 
+@elseif($block->type === 'event_list')
+@php
+    // Task #6615 — Smart Calendar source picker: list the owner's
+    // followable calendar links so the block can pull upcoming events
+    // live instead of hand-entered rows.
+    $evCalLinks = \App\Modules\User\Models\Link::withoutGlobalScopes()
+        ->where('user_id', $link->user_id)
+        ->where('type', \App\Modules\User\Models\Link::TYPE_CALENDAR)
+        ->where('is_active', true)
+        ->orderBy('title')
+        ->get(['id', 'title', 'alias']);
+    $evSelected = (int) ($s['calendar_link_id'] ?? 0);
+@endphp
+<div class="space-y-3" x-data="{ evSource: @js($evSelected > 0 ? 'calendar' : 'manual') }">
+    <div><label class="{{ $labelClass }}">Title</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}" placeholder="Upcoming Events"></div>
+    <div>
+        <label class="{{ $labelClass }}">Events Source</label>
+        <select name="settings[calendar_link_id]" class="{{ $selectClass }}" @change="evSource = $event.target.value ? 'calendar' : 'manual'">
+            <option value="" style="background: var(--bg-body); color: var(--text-primary);">Manual events (edit below)</option>
+            @foreach($evCalLinks as $evCal)
+                <option value="{{ $evCal->id }}" {{ $evSelected === (int) $evCal->id ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">
+                    {{ $evCal->title ?: $evCal->alias }} (/{{ $evCal->alias }})
+                </option>
+            @endforeach
+        </select>
+        @if($evCalLinks->isEmpty())
+            <p class="text-[11px] mt-1" style="color: var(--text-faint);"><i class="fas fa-circle-info mr-1"></i>Create a Calendar link to show its upcoming events here automatically.</p>
+        @else
+            <p class="text-[11px] mt-1" style="color: var(--text-faint);">Pick one of your calendars to always show its live upcoming events.</p>
+        @endif
+    </div>
+    <div>
+        <label class="{{ $labelClass }}">Layout</label>
+        <select name="settings[layout]" class="{{ $selectClass }}">
+            @foreach(['compact' => 'Compact list', 'cards' => 'Cards', 'agenda' => 'Agenda'] as $evLy => $evLyLabel)
+                <option value="{{ $evLy }}" {{ ($s['layout'] ?? 'compact') === $evLy ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">{{ $evLyLabel }}</option>
+            @endforeach
+        </select>
+    </div>
+    <div class="grid grid-cols-2 gap-3" x-show="evSource === 'calendar'" x-cloak>
+        <div><label class="{{ $labelClass }}">Max events</label><input type="number" name="settings[count]" value="{{ (int) ($s['count'] ?? \App\Modules\User\Support\EventListCalendarSource::DEFAULT_COUNT) }}" min="1" max="{{ \App\Modules\User\Support\EventListCalendarSource::MAX_COUNT }}" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Within days (blank = any)</label><input type="number" name="settings[range_days]" value="{{ !empty($s['range_days']) ? (int) $s['range_days'] : '' }}" min="1" max="{{ \App\Modules\User\Support\EventListCalendarSource::MAX_RANGE_DAYS }}" class="{{ $inputClass }}" placeholder="e.g. 30"></div>
+    </div>
+    <label class="flex items-center gap-2 text-xs text-white/60" x-show="evSource === 'calendar'" x-cloak>
+        <input type="hidden" name="settings[show_subscribe]" value="0">
+        <input type="checkbox" name="settings[show_subscribe]" value="1" {{ ($s['show_subscribe'] ?? true) ? 'checked' : '' }} class="rounded text-blue-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+        Show "View full calendar / Subscribe" footer
+    </label>
+    <div><label class="{{ $labelClass }}">Accent Color</label><input type="color" name="settings[accent_color]" value="{{ preg_match('/^#[0-9a-fA-F]{6}$/', (string) ($s['accent_color'] ?? '')) ? $s['accent_color'] : '#3d6bff' }}" class="w-full h-10 rounded-xl cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+</div>
+
 @else
 <p class="text-xs text-white/20">Configure this block's settings below.</p>
 @foreach($s as $key => $val)

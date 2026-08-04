@@ -107,6 +107,11 @@ class BiolinkController extends Controller
                 ]))->all();
         }
 
+        // Task #6615 — resolve calendar-sourced event_list blocks
+        // server-side so the mobile renderer gets live events + the
+        // "view full calendar / subscribe" URLs, matching the web page.
+        $blocks = array_map(fn (array $b) => $this->decorateEventListBlock($b, $link), $blocks);
+
         $mode = (string) (data_get($link->settings, 'biolink.mode', 'list'));
         $slidesPayload = null;
         if ($mode === 'slides') {
@@ -205,6 +210,47 @@ class BiolinkController extends Controller
      * @param array<string, mixed> $block
      * @return array<string, mixed>
      */
+    /**
+     * Task #6615 — enrich a calendar-sourced `event_list` block with the
+     * resolved upcoming events and calendar/subscribe URLs so the mobile
+     * renderer shows the same live data as the web page. Fails closed:
+     * a deleted/foreign/inactive source yields an empty events list.
+     *
+     * @param array<string, mixed> $block
+     * @return array<string, mixed>
+     */
+    protected function decorateEventListBlock(array $block, \App\Modules\User\Models\Link $link): array
+    {
+        if (($block['type'] ?? '') !== 'event_list') {
+            return $block;
+        }
+        $settings = (array) ($block['settings'] ?? []);
+        if ((int) ($settings['calendar_link_id'] ?? 0) <= 0) {
+            return $block;
+        }
+
+        $src = null;
+        try {
+            $src = \App\Modules\User\Support\EventListCalendarSource::resolve($link, $settings);
+        } catch (\Throwable $e) {
+            $src = null;
+        }
+
+        if ($src === null) {
+            // Source gone — fall back to the block's manual events payload,
+            // exactly like the web renderer does.
+            return $block;
+        }
+
+        $settings['events']         = $src['events'];
+        $settings['calendar_title'] = $src['calendar_title'];
+        $settings['calendar_url']   = $src['calendar_url'];
+        $settings['subscribe_url']  = $src['subscribe_url'];
+        $block['settings'] = $settings;
+
+        return $block;
+    }
+
     protected function decorateFormBlock(array $block): array
     {
         if (($block['type'] ?? '') !== 'form') {

@@ -74,6 +74,29 @@ class VisitorAnalyticsController extends Controller
             }
             fputcsv($out, []);
 
+            // QR Connect funnel (event links only) — mirrors the on-page panel:
+            // totals + the per-day scans-vs-connects table.
+            if ($data['qrConnect'] !== null) {
+                $qr = $data['qrConnect'];
+                fputcsv($out, ['QR Connect']);
+                fputcsv($out, ['Metric', 'Count']);
+                fputcsv($out, ['Scans', $qr['scans']]);
+                fputcsv($out, ['Connects', $qr['connected']]);
+                fputcsv($out, ['New users', $qr['new_users']]);
+                fputcsv($out, ['Existing users', $qr['existing']]);
+                fputcsv($out, ['RSVPs', $qr['rsvps']]);
+                fputcsv($out, ['Follows', $qr['follows']]);
+                fputcsv($out, ['Conversion %', $qr['conversion_pct'] !== null ? $qr['conversion_pct'] : '—']);
+                fputcsv($out, []);
+
+                fputcsv($out, ['QR Connect daily']);
+                fputcsv($out, ['Date', 'Scans', 'Connects']);
+                foreach ($qr['daily'] as $row) {
+                    fputcsv($out, [$row->d, $row->scans, $row->connects]);
+                }
+                fputcsv($out, []);
+            }
+
             fputcsv($out, ['Identified visitors']);
             fputcsv($out, ['Name', 'Email', 'Visits', 'First seen', 'Last seen', 'Follower']);
             foreach ($data['identified'] as $row) {
@@ -223,6 +246,57 @@ class VisitorAnalyticsController extends Controller
             ->where('clicked_at', '>=', $since)
             ->where('clicked_at', '<=', $until)
             ->count();
+        // QR Connect stats (Task #6685) — event links only. Scans come from
+        // the click pipeline (source = 'connect_qr', counted even when the
+        // visitor never signs in); completions/new-signups/RSVPs/follows
+        // come from the event_qr_connects attribution rows. All respect the
+        // selected date range.
+        $qrConnect = null;
+        if ($link->type === 'ics') {
+            $connects = \App\Modules\User\Models\EventQrConnect::where('link_id', $link->id)
+                ->where('created_at', '>=', $since)
+                ->where('created_at', '<=', $until)
+                ->get(['was_new_user', 'rsvp_id', 'followed', 'created_at']);
+
+            // Daily funnel series (Task #6689): scans vs completed connects per
+            // day so multi-day promoters can see which day the printed QR
+            // performed best. Days come from the union of both series (no
+            // zero-fill across an "all time" range).
+            $scansByDay = LinkClick::where('link_id', $link->id)
+                ->where('source', 'connect_qr')
+                ->where('is_bot', false)
+                ->whereNull('block_id')
+                ->where('clicked_at', '>=', $since)
+                ->where('clicked_at', '<=', $until)
+                ->selectRaw('DATE(clicked_at) as d, COUNT(*) as n')
+                ->groupBy('d')
+                ->pluck('n', 'd');
+            $connectsByDay = $connects
+                ->groupBy(fn ($c) => $c->created_at->format('Y-m-d'))
+                ->map->count();
+
+            $qrDays = $scansByDay->keys()->merge($connectsByDay->keys())->unique()->sort()->values();
+            $qrDaily = $qrDays->map(fn ($d) => (object)[
+                'd'        => $d,
+                'scans'    => (int) ($scansByDay[$d] ?? 0),
+                'connects' => (int) ($connectsByDay[$d] ?? 0),
+            ])->values();
+
+            $qrScans = (int) $scansByDay->sum();
+            $qrConnect = [
+                'scans'          => $qrScans,
+                'connected'      => $connects->count(),
+                'new_users'      => $connects->where('was_new_user', true)->count(),
+                'existing'       => $connects->where('was_new_user', false)->count(),
+                'rsvps'          => $connects->whereNotNull('rsvp_id')->count(),
+                'follows'        => $connects->where('followed', true)->count(),
+                'daily'          => $qrDaily,
+                // Conversion for the selected range: scans → completed connects.
+                'conversion_pct' => $qrScans > 0
+                    ? round(($connects->count() / $qrScans) * 100, 1)
+                    : null,
+            ];
+        }
         $sourceBreakdown = LinkClick::where('link_id', $link->id)
             ->where('is_bot', false)
             ->where('clicked_at', '>=', $since)
@@ -249,6 +323,7 @@ class VisitorAnalyticsController extends Controller
             'arSessions'       => $arSessions,
             'arClicks'         => $arClicks,
             'sourceBreakdown'  => $sourceBreakdown,
+            'qrConnect'        => $qrConnect,
         ];
     }
 

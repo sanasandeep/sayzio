@@ -187,7 +187,7 @@ export default function ImportUrlScreen() {
   // ───────────────────────────────────────────────────────────────────
   const calendarsQ = useQuery({
     queryKey: ["calendars"],
-    queryFn: listCalendars,
+    queryFn: () => listCalendars(),
     enabled: mode === "calendar",
   });
   const ownedCalendars = (calendarsQ.data ?? []).filter((c) => c.is_owner);

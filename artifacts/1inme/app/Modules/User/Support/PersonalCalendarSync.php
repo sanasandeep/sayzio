@@ -51,12 +51,24 @@ class PersonalCalendarSync
         return Calendar::firstOrCreate(
             ['user_id' => $user->id, 'slug' => self::SLUG_PREFIX . $user->id],
             [
-                'title'       => 'Tasks & Reminders',
-                'description' => 'Auto-generated from your task due dates and note reminders.',
-                'is_public'   => false,
-                'timezone'    => \App\Support\PlatformTimezone::forUser($user),
+                'title'        => 'Tasks & Reminders',
+                'description'  => 'Auto-generated from your task due dates and note reminders.',
+                'is_public'    => false,
+                'timezone'     => \App\Support\PlatformTimezone::forUser($user),
+                // Task #6619 — personal calendar lives in the Personal workspace.
+                'workspace_id' => static::personalWorkspaceId($user),
             ]
         );
+    }
+
+    /** The owner's Personal workspace id (lazily created), null on failure. */
+    protected static function personalWorkspaceId(User $user): ?int
+    {
+        try {
+            return $user->ensureDefaultWorkspace()?->id;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /* ── Task Board cards ─────────────────────────────────────────── */

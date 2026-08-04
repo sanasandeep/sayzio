@@ -34,7 +34,8 @@ class AuthController extends Controller
                 }
             }],
             'password' => ['required', 'string', 'min:8', 'max:200'],
-            'handle'   => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9_]+$/i', Rule::unique('users', 'handle'), new \App\Modules\Admin\Rules\NotBannedName()],
+            // Task #6618 — handles live on workspace creator profiles.
+            'handle'   => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9_]+$/i', \App\Modules\User\Models\CreatorProfile::uniqueHandleRule(), new \App\Modules\Admin\Rules\NotBannedName()],
         ]);
 
         $user = User::create([
@@ -49,6 +50,14 @@ class AuthController extends Controller
             'allow_followers' => true,
             'discoverable'    => true,
         ]);
+
+        // Task #6618 — seed the personal workspace's creator profile with
+        // the chosen handle (users.handle above stays as the legacy mirror).
+        if (!empty($data['handle'])) {
+            $p = \App\Modules\User\Models\CreatorProfile::forWorkspace($user->ensureDefaultWorkspace());
+            $p->handle = strtolower($data['handle']);
+            $p->save();
+        }
 
         $newToken = SessionTokenIssuer::issue($user, $request, null, 'api', 'mobile');
         // First-ever login is informational only — record it so the

@@ -82,6 +82,9 @@ class PremiumFeatures
             ['key' => 'social_proof_popup', 'group' => 'Audience growth', 'name' => 'Social proof pop-ups', 'description' => 'Live "X people just signed up / bought" style notifications on your Link in Bio pages to build trust and urgency.'],
             ['key' => 'events_rsvps', 'group' => 'Audience growth', 'name' => 'Events & RSVPs', 'description' => 'Run launches, drops and meet-ups inside your Link in Bio with countdown blocks, RSVP capture, reminder emails, capacity caps and add-to-calendar (.ics) downloads.'],
             ['key' => 'referrals', 'group' => 'Audience growth', 'name' => 'Referral program', 'description' => 'Give every creator a personal /r/<code> share link, custom referral codes and live tracking of who joined through them — turn happy users into your biggest growth channel.'],
+            ['key' => 'special_dates', 'group' => 'Audience growth', 'name' => 'Special dates', 'description' => 'Birthdays, anniversaries and product-release dates on your profile — shown publicly if you want, with automatic wish emails to followers who opt in.'],
+            ['key' => 'browser_sync', 'group' => 'Tools & extras', 'name' => 'Zio Browser sync', 'description' => 'Sync your Zio Browser bookmarks, collections, browsing history and reading list to the cloud across all your devices.'],
+            ['key' => 'max_browser_sync_items', 'group' => 'Tools & extras', 'name' => 'Browser sync items', 'description' => 'How many Zio Browser items of each type (bookmarks, collections, history entries, reading-list items) you can keep synced in the cloud.', 'unit' => 'items / type'],
 
             // ---- Domains & SEO ----
             ['key' => 'custom_domains', 'group' => 'Domains & SEO', 'name' => 'Custom domains', 'description' => 'Connect your own domain (yourbrand.com) so short links and Link in Bio pages live under your URL instead of 1inme.co.'],
@@ -97,7 +100,10 @@ class PremiumFeatures
             ['key' => 'link_deep_link', 'group' => 'Security & control', 'name' => 'Deep links', 'description' => 'Open native mobile apps directly when a link is tapped, with a web fallback when the app is not installed.'],
             ['key' => 'link_smart_rules', 'group' => 'Security & control', 'name' => 'Smart redirect rules', 'description' => 'Compose multiple targeting rules with priority and fallback so one link routes everyone to exactly the right place.'],
             ['key' => 'link_active_window', 'group' => 'Security & control', 'name' => 'Active windows', 'description' => 'Only let a link redirect during the specific days and times you choose.'],
+            ['key' => 'max_smart_rules', 'group' => 'Security & control', 'name' => 'Smart rules per link', 'description' => 'How many targeting rules a single smart link can stack (hard cap 25).', 'unit' => 'rules / link'],
+            ['key' => 'ab_tests', 'group' => 'Security & control', 'name' => 'A/B testing', 'description' => 'Split traffic between multiple destinations per short link with sticky weighted assignment, per-variant click counters and a one-tap winner.'],
             ['key' => 'qr_customization', 'group' => 'Security & control', 'name' => 'Custom QR codes', 'description' => 'Style the QR codes generated for each link — colors, logo in the centre, dot shape and frame.'],
+            ['key' => 'max_qr_codes', 'group' => 'Limits', 'name' => 'Saved QR codes', 'description' => 'How many QR codes you can keep saved in the QR Studio library.', 'unit' => 'QR codes'],
 
             // ---- Forms & lead capture ----
             ['key' => 'custom_forms', 'group' => 'Forms & lead capture', 'name' => 'Custom forms', 'description' => 'Build branded lead-capture forms inside your Link in Bio pages, route submissions to your inbox or a webhook, and export them.'],
@@ -173,11 +179,18 @@ class PremiumFeatures
             ['key' => 'inbox_agent', 'group' => 'AI suite', 'name' => 'AI Inbox Agent', 'description' => 'AI that triages your unified inbox, drafts on-brand replies and can run on autopilot — staging anything sensitive for your review.'],
             ['key' => 'brand_consistency', 'group' => 'AI suite', 'name' => 'Brand Consistency AI', 'description' => 'A live Brand Consistency Score plus on-brand prompt injection so every AI-generated page, reply and asset stays true to your brand kit.'],
             ['key' => 'qr_art', 'group' => 'AI suite', 'name' => 'AI Artistic QR', 'description' => 'Generate eye-catching, on-brand artistic QR codes with AI that still scan reliably.'],
+            ['key' => 'max_qr_art_monthly', 'group' => 'AI suite', 'name' => 'AI QR art generations', 'description' => 'How many AI Artistic QR images you can generate each month (coin charges still apply).', 'unit' => 'generations / mo'],
             ['key' => 'whatsapp_agent', 'group' => 'AI suite', 'name' => 'WhatsApp AI Agent', 'description' => 'An AI responder for inbound WhatsApp messages that answers questions and captures leads in your voice, around the clock.'],
             ['key' => 'marketing_strategist', 'group' => 'AI suite', 'name' => 'AI Marketing Strategist', 'description' => 'An AI strategist that analyses your account and audience to build saved, actionable marketing plans and campaign ideas.'],
             ['key' => 'brand_studio', 'group' => 'AI suite', 'name' => 'AI Brand Studio', 'description' => 'Turn one plain-language brief into a whole on-brand asset kit — Link in Bio page, short links, QR codes, a form and a digital card — reviewed before anything is created.'],
             ['key' => 'max_brand_studio_bulk', 'group' => 'AI suite', 'name' => 'AI Brand Studio bulk variations', 'description' => 'How many on-brand variants one AI Brand Studio bulk run can generate at once (e.g. 20 personalized QR codes or short links).', 'unit' => 'variants / run'],
             ['key' => 'competitor_teardown', 'group' => 'AI suite', 'name' => 'Competitor Biolink Teardown', 'description' => 'Paste any competitor\'s link-in-bio URL and get an AI-scored teardown — strengths, weaknesses, missing elements and CTA quality — then build a better version with one click.'],
+            ['key' => 'audience_type_estimation', 'group' => 'AI suite', 'name' => 'Audience Type AI Estimation', 'description' => 'On-demand AI analysis of your click data that estimates who your audience actually is — segments, interests and how to speak to them.'],
+            ['key' => 'dashboard_designer', 'group' => 'AI suite', 'name' => 'AI Dashboard Designer', 'description' => 'Describe the dashboard you want in plain language and AI arranges your widgets, layouts and metrics into a ready-to-use dashboard.'],
+            ['key' => 'ai_staff_billing', 'group' => 'AI suite', 'name' => 'AI Staff — Billing', 'description' => 'A configurable AI billing assistant that drafts invoice reminders, payment follow-ups and billing communication for your review.'],
+            ['key' => 'ai_staff_contacts', 'group' => 'AI suite', 'name' => 'AI Staff — Contacts', 'description' => 'A configurable AI contacts assistant that researches, enriches and organises your CRM contacts on request.'],
+            ['key' => 'ai_staff_inbox', 'group' => 'AI suite', 'name' => 'AI Staff — Inbox', 'description' => 'A configurable AI inbox assistant that reads your unified inbox and helps triage, summarise and draft responses.'],
+            ['key' => 'ai_staff_general', 'group' => 'AI suite', 'name' => 'AI Staff — General Assistant', 'description' => 'A configurable general-purpose AI assistant that answers questions and completes tasks using your account\'s data.'],
         ];
     }
 

@@ -143,8 +143,27 @@ class ViewerAuthController extends Controller
         $creator = User::find($creatorId);
         if (!$creator) return response()->json(['success' => false], 404);
 
+        // Task #6618 — follows are keyed to the workspace creator profile.
+        // A `handle` in the request pins the exact profile being followed;
+        // otherwise fall back to the creator's personal profile.
+        $profile = ($h = trim((string) $request->input('handle', '')))
+            ? \App\Modules\User\Models\CreatorProfile::resolveByHandle($h)
+            : null;
+        $profile = ($profile && (int) $profile->user_id === (int) $creatorId)
+            ? $profile
+            : \App\Modules\User\Models\CreatorProfile::personalForUser((int) $creatorId);
+
         $existing = Follow::where('follower_id', $me->id)->where('creator_id', $creatorId)->first();
         if ($existing) {
+            // Decrement the profile the follow was ORIGINALLY recorded
+            // against (the row's pointer), never the current page context —
+            // otherwise unfollowing from a different /@handle would corrupt
+            // the counters.
+            if ($existing->creator_profile_id) {
+                \App\Modules\User\Models\CreatorProfile::whereKey($existing->creator_profile_id)
+                    ->where('followers_count', '>', 0)
+                    ->decrement('followers_count');
+            }
             $existing->delete();
             $creator->decrement('followers_count');
             return response()->json(['success' => true, 'following' => false, 'followers_count' => max(0, $creator->followers_count)]);
@@ -155,8 +174,14 @@ class ViewerAuthController extends Controller
             return response()->json(['success' => false, 'message' => 'This creator is not accepting new followers.'], 403);
         }
 
-        Follow::create(['follower_id' => $me->id, 'creator_id' => $creatorId, 'created_at' => now()]);
+        Follow::create([
+            'follower_id'        => $me->id,
+            'creator_id'         => $creatorId,
+            'creator_profile_id' => $profile?->id,
+            'created_at'         => now(),
+        ]);
         $creator->increment('followers_count');
+        $profile?->increment('followers_count');
 
         // Paid DMs (Task #1210): fire any welcome-message rules the
         // creator has configured for new followers.

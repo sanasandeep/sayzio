@@ -147,6 +147,35 @@ export default function EditEventScreen() {
   const cancelled = q.data.cancelled;
   const busy = cancel.isPending || reactivate.isPending;
 
+  // Task #6687 — host access to the Connect QR: a scan-to-connect code
+  // guests can scan to sign in, RSVP "yes" and follow in one step.
+  const connectQrSection = (
+    <View
+      style={[
+        styles.danger,
+        { borderColor: colors.border, borderRadius: colors.radius },
+      ]}
+    >
+      <Text style={[styles.dangerTitle, { color: colors.foreground }]}>
+        Connect QR
+      </Text>
+      <Text style={[styles.dangerHint, { color: colors.mutedForeground }]}>
+        A special QR for the door or your invites: guests who scan it verify
+        one code, get RSVP'd "yes" and connect with you automatically.
+      </Text>
+      <Button
+        label="View & share the Connect QR"
+        variant="outline"
+        onPress={() =>
+          router.push({
+            pathname: "/events/connect-qr/[linkId]",
+            params: { linkId: String(id) },
+          })
+        }
+      />
+    </View>
+  );
+
   const dangerSection = (
     <View
       style={[
@@ -222,7 +251,12 @@ export default function EditEventScreen() {
         submitLabel="Save changes"
         saving={save.isPending}
         onSubmit={(payload) => save.mutate(payload)}
-        footer={dangerSection}
+        footer={
+          <>
+            {connectQrSection}
+            {dangerSection}
+          </>
+        }
       />
     </>
   );

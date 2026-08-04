@@ -284,6 +284,25 @@ html.light-mode .sa-badge{border:2px solid #ffffff}
 .sa-mic:disabled{opacity:.5;cursor:default}
 .sa-mic svg{width:18px;height:18px}
 .sa-mic.sa-mic-rec{background:#ef4444;border-color:transparent;color:#fff;animation:sa-mic-pulse 1.3s ease-in-out infinite}
+/* ── Page snapshot (vision) button + attached-chip ─────────────────── */
+.sa-snap{flex:0 0 auto;width:40px;height:36px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:#cbd5e1;border-radius:10px;cursor:pointer;padding:0;transition:background .15s,color .15s,border-color .15s}
+.sa-snap:hover{background:rgba(255,255,255,.12);color:#fff}
+.sa-snap:disabled{opacity:.5;cursor:default}
+.sa-snap svg{width:18px;height:18px}
+.sa-snap.sa-snap-on{background:rgba(16,185,129,.2);border-color:rgba(16,185,129,.4);color:#6ee7b7}
+.sa-snap.sa-snap-busy{opacity:.6;cursor:progress}
+.sa-snap-chip{display:flex;align-items:center;gap:8px;margin:6px 10px 0;padding:6px 8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);border-radius:10px;font-size:11px;color:#cbd5e1}
+.sa-snap-chip img{width:34px;height:24px;object-fit:cover;border-radius:5px;flex:0 0 auto}
+.sa-snap-chip span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sa-snap-chip button{flex:0 0 auto;background:transparent;border:0;color:#94a3b8;font-size:15px;line-height:1;cursor:pointer;padding:2px 4px}
+.sa-snap-chip button:hover{color:#fff}
+.sa-vision-note{font-size:11px;color:#94a3b8;padding:2px 6px 0;font-style:italic}
+html.light-mode .sa-snap{background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.12);color:#475569}
+html.light-mode .sa-snap:hover{background:rgba(15,23,42,.1);color:#0f172a}
+html.light-mode .sa-snap-chip{background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.12);color:#334155}
+html.light-mode .sa-snap-chip button{color:#64748b}
+html.light-mode .sa-snap-chip button:hover{color:#0f172a}
+html.light-mode .sa-vision-note{color:#64748b}
 @keyframes sa-mic-pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.55)}50%{box-shadow:0 0 0 7px rgba(239,68,68,0)}}
 .sa-mic-lock{position:absolute;top:-5px;right:-5px;width:15px;height:15px;border-radius:50%;background:#fbbf24;color:#0f172a;font-size:9px;line-height:1;display:flex;align-items:center;justify-content:center;border:2px solid #0d1118;font-weight:700}
 .sa-voice{padding:6px 12px 0;display:flex;flex-direction:column;gap:6px}
@@ -424,6 +443,13 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   var voicePlayer=null, capsPaneEl=null, capsBodyEl=null, capsLoaded=false;
   // Mic icon SVG (matches the standalone widget glyph).
   var MIC_SVG='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>';
+  // Camera icon for the "include a page snapshot" (vision) affordance.
+  var SNAP_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+  // Pending page snapshot (JPEG data URL) attached to the NEXT message.
+  // Captured client-side via the vendored html2canvas (lazy-loaded on
+  // first use so the widget itself stays light) and downscaled to fit
+  // the server's decoded-size cap. Never persisted server-side.
+  var snapPending=null, snapBusy=false;
   // Which passwordless methods the in-chat login form may offer. Updated
   // from the bootstrap response; when both are false the gate falls back
   // to the full-page login CTA.
@@ -601,16 +627,23 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   // get a mic with a lock badge that routes to the upgrade gate.
   // (MIC_SVG + voice state vars are declared above, before the DOM build, so
   // the builders that run during construction don't get undefined refs.)
+  // "Include a page snapshot" affordance: captures the visible page as a
+  // downscaled JPEG and attaches it to the next message (vision tier).
+  var snapBtn=el('button',{class:'sa-snap',type:'button','aria-label':@json(__('Include a page snapshot')),title:@json(__('Include a page snapshot')),html:SNAP_SVG});
+  snapBtn.onclick=toggleSnapshot;
+  var snapChip=el('div',{class:'sa-snap-chip',id:'sa-snap-chip'});
+  snapChip.style.display='none';
   var micBtn=null;
   if(VOICE_AVAILABLE || VOICE_GATED){
     micBtn=buildMicButton();
-    inputRow.appendChild(ta); inputRow.appendChild(micBtn); inputRow.appendChild(sendBtn);
+    inputRow.appendChild(ta); inputRow.appendChild(snapBtn); inputRow.appendChild(micBtn); inputRow.appendChild(sendBtn);
   } else {
-    inputRow.appendChild(ta); inputRow.appendChild(sendBtn);
+    inputRow.appendChild(ta); inputRow.appendChild(snapBtn); inputRow.appendChild(sendBtn);
   }
   // Voice activity strip (hands-free toggle, "What I can do", status,
   // confirmation chips, credits) lives directly above the composer.
   if(VOICE_AVAILABLE){ panel.appendChild(buildVoiceStrip()); }
+  panel.appendChild(snapChip);
   panel.appendChild(inputRow);
   // Capabilities ("What I can do") overlay pane, hidden until requested.
   if(VOICE_AVAILABLE){ panel.appendChild(buildCapsPane()); }
@@ -899,8 +932,8 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     if(!row) return;
     row.innerHTML='';
     row.classList.remove('sa-gate');
-    if(micBtn){ row.appendChild(ta); row.appendChild(micBtn); row.appendChild(sendBtn); }
-    else { row.appendChild(ta); row.appendChild(sendBtn); }
+    if(micBtn){ row.appendChild(ta); row.appendChild(snapBtn); row.appendChild(micBtn); row.appendChild(sendBtn); }
+    else { row.appendChild(ta); row.appendChild(snapBtn); row.appendChild(sendBtn); }
     ta.disabled=false; sendBtn.disabled=false;
   }
 
@@ -1260,12 +1293,99 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   }
   function removeTyping(){ var t=document.getElementById('sa-typing'); if(t) t.remove(); }
 
+  // ── Page snapshot (vision) ─────────────────────────────────────
+  // Lazy-load the vendored html2canvas only when the visitor actually
+  // asks for a snapshot, so the widget bundle stays light.
+  function loadHtml2Canvas(){
+    if(window.html2canvas) return Promise.resolve(window.html2canvas);
+    return new Promise(function(resolve,reject){
+      var s=document.createElement('script');
+      s.src=@json(asset('js/vendor/html2canvas.min.js'));
+      s.onload=function(){ window.html2canvas ? resolve(window.html2canvas) : reject(new Error('h2c')); };
+      s.onerror=function(){ reject(new Error('h2c')); };
+      document.head.appendChild(s);
+    });
+  }
+  // Downscale + re-encode the captured canvas as JPEG until the decoded
+  // payload fits comfortably under the server's 1.5MB screenshot cap.
+  function compressSnapshot(canvas){
+    var maxSide=1280;
+    var scale=Math.min(1, maxSide/Math.max(canvas.width, canvas.height, 1));
+    var q=0.8;
+    for(var i=0;i<6;i++){
+      var w=Math.max(1, Math.round(canvas.width*scale));
+      var h=Math.max(1, Math.round(canvas.height*scale));
+      var c=document.createElement('canvas'); c.width=w; c.height=h;
+      var ctx=c.getContext('2d');
+      ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
+      ctx.drawImage(canvas,0,0,w,h);
+      var url=c.toDataURL('image/jpeg', q);
+      if(url.length*0.75 <= 1400000) return url;
+      if(q>0.55){ q-=0.15; } else { scale*=0.75; }
+    }
+    return null;
+  }
+  function toggleSnapshot(){
+    if(snapPending){ clearSnapshot(); return; }
+    if(snapBusy || AUTH_REQUIRED) return;
+    snapBusy=true; snapBtn.disabled=true; snapBtn.classList.add('sa-snap-busy');
+    loadHtml2Canvas().then(function(h2c){
+      // Capture only the visible viewport (what the visitor is looking
+      // at), excluding the assistant's own launcher + panel.
+      return h2c(document.body, {
+        x: window.scrollX, y: window.scrollY,
+        width: window.innerWidth, height: window.innerHeight,
+        windowWidth: window.innerWidth, windowHeight: window.innerHeight,
+        scale: 1, logging: false,
+        ignoreElements: function(n){
+          return (panelWrap && panelWrap.contains(n)) || (launcherWrap && launcherWrap.contains(n));
+        }
+      });
+    }).then(function(canvas){
+      var url=compressSnapshot(canvas);
+      if(!url) throw new Error('too-large');
+      snapPending=url;
+      renderSnapChip(url);
+    }).catch(function(){
+      renderMessage({role:'assistant',content:@json(__("I couldn't capture this page — you can still ask your question in text."))});
+    }).finally(function(){
+      snapBusy=false; snapBtn.disabled=false; snapBtn.classList.remove('sa-snap-busy');
+    });
+  }
+  function renderSnapChip(url){
+    snapChip.innerHTML='';
+    var img=el('img',{alt:''}); img.src=url;
+    snapChip.appendChild(img);
+    snapChip.appendChild(el('span',{}, @json(__('Page snapshot attached — sent with your next message'))));
+    var x=el('button',{type:'button','aria-label':@json(__('Remove snapshot'))},'×');
+    x.onclick=clearSnapshot;
+    snapChip.appendChild(x);
+    snapChip.style.display='flex';
+    snapBtn.classList.add('sa-snap-on');
+  }
+  function clearSnapshot(){
+    snapPending=null;
+    snapChip.style.display='none';
+    snapChip.innerHTML='';
+    snapBtn.classList.remove('sa-snap-on');
+  }
+  // Friendly server-side note when a snapshot was refused (plan gate,
+  // size, no vision model) and the reply proceeded text-only.
+  function renderVisionNotice(vision){
+    if(!vision || !vision.notice) return;
+    body.appendChild(el('div',{class:'sa-vision-note'}, vision.notice));
+    scrollBottom();
+  }
+
   function sendMessage(){
     if(busy || AUTH_REQUIRED) return;
     var text=ta.value.trim(); if(!text) return;
+    // Detach the pending snapshot up-front: it rides along on this turn
+    // only (stream + non-stream fallback share the same captured value).
+    var shot=snapPending; clearSnapshot();
     ta.value=''; busy=true; sendBtn.disabled=true;
     renderMessage({role:'user',content:text});
-    streamMessage(text).finally(function(){ busy=false; sendBtn.disabled=false; });
+    streamMessage(text, undefined, shot).finally(function(){ busy=false; sendBtn.disabled=false; });
   }
 
   // Retry a previous prompt after a mid-stream cutoff. Reuses the same
@@ -1283,7 +1403,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   // word-by-word. We pre-render an empty assistant bubble and append
   // each token as it arrives. Final `done` event swaps the bubble's
   // content with the sanitized server-side message (handles blocks).
-  function streamMessage(text, retryOfId){
+  function streamMessage(text, retryOfId, shot){
     var bubble=el('div',{class:'sa-msg assistant'},'');
     body.appendChild(bubble); scrollBottom();
     var streamed='';
@@ -1299,7 +1419,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
       fellBack=true;
       if(bubble && bubble.parentNode) bubble.remove();
       appendTyping();
-      return jpost(ds.messageUrl, { visitor_token: token, message: text, page: pageMeta() })
+      return jpost(ds.messageUrl, { visitor_token: token, message: text, page: pageMeta(), screenshot: shot || undefined })
         .then(handleTurn)
         .catch(function(){
           removeTyping();
@@ -1309,7 +1429,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     return fetch(ds.streamUrl, {
       method:'POST', credentials:'same-origin',
       headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf,'Accept':'text/event-stream'},
-      body: JSON.stringify({ visitor_token: token, message: text, page: pageMeta(), surface: SURFACE || undefined, retry_of_message_id: retryOfId || undefined })
+      body: JSON.stringify({ visitor_token: token, message: text, page: pageMeta(), surface: SURFACE || undefined, retry_of_message_id: retryOfId || undefined, screenshot: shot || undefined })
     }).then(function(res){
       // Session expired/revoked: re-show the login gate in place rather than
       // falling back (which would only 401 again) or showing a raw error.
@@ -1355,6 +1475,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
               doneReceived=true;
               bubble.remove();
               if(parsed.assistant_message) renderMessage(parsed.assistant_message);
+              if(parsed.vision) renderVisionNotice(parsed.vision);
               if(parsed.handed_off) disableInput(true, CHROME.handoff_note);
               if('low_balance' in parsed) renderLowBalance(parsed.low_balance);
             } else if(event==='error'){
@@ -1538,6 +1659,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
       return;
     }
     if(res.assistant_message) renderMessage(res.assistant_message);
+    if(res.vision) renderVisionNotice(res.vision);
     if(res.handed_off) disableInput(true, CHROME.handoff_note);
     if('low_balance' in res) renderLowBalance(res.low_balance);
   }

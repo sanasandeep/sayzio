@@ -27,6 +27,83 @@
     <form method="POST" action="{{ route('user.forms.settings.update', $form) }}">
         @csrf @method('PUT')
 
+        {{-- After submit / success state (Task #6624) --}}
+        <div class="card-premium p-6 mb-6" x-data="{ action: @js($settings['success_action'] ?? 'message'), deliver: {{ !empty($delivery['enabled']) ? 'true' : 'false' }} }">
+            <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">
+                <i class="fas fa-flag-checkered mr-2 text-blue-400"></i> After Submit
+            </h3>
+            <p class="text-xs mb-5" style="color: var(--text-muted);">
+                What the respondent sees after a successful submission — a thank-you message or a redirect, optionally with a file to download.
+            </p>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Success message</label>
+                    <input type="text" name="success_message" class="theme-input w-full text-sm" maxlength="500"
+                           value="{{ old('success_message', $settings['success_message'] ?? '') }}">
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <label class="flex items-center gap-2 text-sm cursor-pointer" style="color: var(--text-secondary);">
+                        <input type="radio" name="success_action" value="message" x-model="action" style="accent-color:#5c83ff;"> Show message
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer" style="color: var(--text-secondary);">
+                        <input type="radio" name="success_action" value="redirect" x-model="action" style="accent-color:#5c83ff;"> Redirect to URL
+                    </label>
+                </div>
+
+                <div x-show="action === 'redirect'" x-cloak>
+                    <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Redirect URL</label>
+                    <input type="url" name="success_redirect" class="theme-input w-full text-sm" placeholder="https://example.com/thank-you"
+                           value="{{ old('success_redirect', $settings['success_redirect'] ?? '') }}">
+                    @error('success_redirect')<p class="text-[11px] mt-1" style="color:#f87171;">{{ $message }}</p>@enderror
+                </div>
+
+                {{-- Deliver a file --}}
+                <div class="p-4 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                    <label class="flex items-center gap-2.5 cursor-pointer">
+                        <input type="checkbox" name="delivery_enabled" value="1" x-model="deliver" style="accent-color:#5c83ff;">
+                        <span class="text-sm font-semibold" style="color: var(--text-primary);">
+                            <i class="fas fa-file-arrow-down mr-1.5 text-blue-400"></i> Deliver a file
+                        </span>
+                    </label>
+                    <p class="text-[11px] mt-1 mb-0" style="color: var(--text-faint);">
+                        Unlock a download (lead magnet, PDF guide, media) after a successful — and, for paid forms, paid — submission. The link is a time-limited signed URL and also goes out with the auto-responder email.
+                    </p>
+
+                    <div x-show="deliver" x-cloak class="mt-4 space-y-3">
+                        @if($vaultFiles->isNotEmpty())
+                            <div>
+                                <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Pick from your vault</label>
+                                <select class="theme-input w-full text-sm"
+                                        onchange="if(this.value){document.getElementById('delivery-url-input').value=this.value;}">
+                                    <option value="">— choose a vault file —</option>
+                                    @foreach($vaultFiles as $vf)
+                                        <option value="{{ $vf->url_path }}" @selected(($delivery['url'] ?? '') === $vf->url_path)>
+                                            {{ \Illuminate\Support\Str::limit($vf->original_name ?: $vf->filename, 60) }} ({{ $vf->size_human }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
+                        <div>
+                            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">File URL <span style="color: var(--text-faint);">(vault path or https:// link)</span></label>
+                            <input type="text" id="delivery-url-input" name="delivery_url" class="theme-input w-full text-sm font-mono text-xs"
+                                   placeholder="https://example.com/guide.pdf"
+                                   value="{{ old('delivery_url', $delivery['url'] ?? '') }}">
+                            @error('delivery_url')<p class="text-[11px] mt-1" style="color:#f87171;">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Download button label <span style="color: var(--text-faint);">(optional)</span></label>
+                            <input type="text" name="delivery_label" class="theme-input w-full text-sm" maxlength="120"
+                                   placeholder="Download your guide"
+                                   value="{{ old('delivery_label', $delivery['label'] ?? '') }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Captcha / Spam Protection --}}
         <div class="card-premium p-6 mb-6" x-data="{ provider: @js($captcha['provider']) }">
             <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">

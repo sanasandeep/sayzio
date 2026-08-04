@@ -80,7 +80,7 @@ export default function CalendarEditScreen() {
   // resolve, so first-time/free creators are never falsely blocked. Create-only.
   const calendarsQ = useQuery({
     queryKey: ["calendars"],
-    queryFn: listCalendars,
+    queryFn: () => listCalendars(),
     enabled: !isEdit,
   });
   const ownedCount = (calendarsQ.data ?? []).filter((c) => c.is_owner).length;

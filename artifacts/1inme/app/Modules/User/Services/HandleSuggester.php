@@ -126,8 +126,17 @@ class HandleSuggester
             ->pluck('handle')
             ->all();
 
+        // Task #6618 — handles are workspace-profile-scoped now; check the
+        // authoritative creator_profiles store too (excluding the user's
+        // own profiles so their current handle stays "available" to them).
+        $profileRows = \App\Modules\User\Models\CreatorProfile::query()
+            ->whereRaw("LOWER(handle) IN ($placeholders)", $keys)
+            ->where('user_id', '!=', $excludeUserId)
+            ->pluck('handle')
+            ->all();
+
         $taken = [];
-        foreach ($rows as $h) {
+        foreach (array_merge($rows, $profileRows) as $h) {
             $taken[mb_strtolower((string) $h)] = true;
         }
         return $taken;

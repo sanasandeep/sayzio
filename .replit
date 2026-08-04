@@ -36,6 +36,30 @@ args = "e2e-home-fast-lean"
 task = "workflow.run"
 args = "e2e-auth-modal-error-tab-restore"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-payouts-nav-placement"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-zio-sync-plan-gate"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-assistant-page-snapshot"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-topbar-autohide"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-connect-qr-prompt"
+
+    [[workflows.workflow.tasks]]
+    task = "workflow.run"
+    args = "e2e-connect-qr"
+    
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
 author = "agent"
@@ -91,6 +115,28 @@ args = "cd artifacts/1inme && VALIDATION_PORT=5063 bash tests/Browser/run-valida
 [workflows.workflow.metadata]
 isValidation = true
 
+[[workflows.workflow]]
+name = "e2e-payouts-nav-placement"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5071 bash tests/Browser/run-validation.sh payouts-nav-placement.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-zio-sync-plan-gate"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/zio-browser/tests/e2e-sync-plan-gate/run.sh"
+
+[workflows.workflow.metadata]
+isValidation = true
+
 
   [agent]
 stack = "PNPM_WORKSPACE"
@@ -141,3 +187,47 @@ externalPort = 3003
 [[ports]]
 localPort = 23681
 externalPort = 80
+
+[[workflows.workflow]]
+name = "e2e-assistant-page-snapshot"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5073 bash tests/Browser/run-validation.sh site-assistant-page-snapshot.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-topbar-autohide"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:topbar-autohide-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-connect-qr-prompt"
+    author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5074 bash tests/Browser/run-validation.sh event-connect-qr-prompt.spec.ts"
+
+    [workflows.workflow.metadata]
+    isValidation = true
+
+    [[workflows.workflow]]
+    name = "e2e-connect-qr"
+    author = "agent"
+
+    [[workflows.workflow.tasks]]
+    task = "shell.exec"
+    args = "pnpm --filter @workspace/1inme-mobile run test:connect-qr-real-api-e2e"
+    
+[workflows.workflow.metadata]
+isValidation = true

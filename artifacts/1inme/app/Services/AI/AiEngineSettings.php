@@ -560,15 +560,78 @@ PROMPT;
         $out = [];
         foreach ($stored as $m) {
             if (!is_array($m) || empty($m['name'])) continue;
+            // Stored rows written before the credits→coins rename (or by a
+            // buggy import) may still carry *_credits_per_1k. Reading them
+            // as coin rates of 0 would make the model silently free, so
+            // shout in the logs — the data migration should have converted
+            // these, and setModels() refuses to write new ones.
+            foreach (self::LEGACY_RATE_KEYS as $legacy) {
+                if (array_key_exists($legacy, $m)) {
+                    \Illuminate\Support\Facades\Log::warning(
+                        "AiEngineSettings::models(): stored model '{$m['name']}' still has legacy rate key '{$legacy}'; "
+                        . 'its coin rate reads as 0 (free usage). Re-run the ai credits→coins migration or re-save the model rates.'
+                    );
+                }
+            }
             $out[] = [
                 'name'              => (string) $m['name'],
                 'kind'              => (string) ($m['kind'] ?? 'chat'),
                 'enabled'           => (bool) ($m['enabled'] ?? true),
                 'in_coins_per_1k'   => max(0.0, (float) ($m['in_coins_per_1k'] ?? 0)),
                 'out_coins_per_1k'  => max(0.0, (float) ($m['out_coins_per_1k'] ?? 0)),
+                // Vision capability: stored flag wins; rows saved before the
+                // flag existed fall back to a name-based inference so the
+                // known multimodal OpenAI families keep working untouched.
+                'supports_vision'   => array_key_exists('supports_vision', $m)
+                    ? (bool) $m['supports_vision']
+                    : self::inferVisionByName((string) $m['name'], (string) ($m['kind'] ?? 'chat')),
             ];
         }
         return $out ?: self::defaultModels();
+    }
+
+    /**
+     * Name-based vision inference for model rows saved before the
+     * `supports_vision` flag existed. All current GPT-4o / GPT-4.1 /
+     * GPT-5 family chat snapshots accept image_url content parts.
+     */
+    protected static function inferVisionByName(string $name, string $kind): bool
+    {
+        if ($kind !== 'chat') return false;
+        $n = strtolower($name);
+        foreach (['gpt-4o', 'gpt-4.1', 'gpt-5'] as $prefix) {
+            if (str_starts_with($n, $prefix)) return true;
+        }
+        return false;
+    }
+
+    /** True when the named model accepts image_url content parts. */
+    public static function modelSupportsVision(string $name): bool
+    {
+        $m = self::model($name);
+        return (bool) ($m['supports_vision'] ?? false);
+    }
+
+    /**
+     * Resolve a vision-capable chat model for a multimodal call:
+     * the preferred model when it already supports vision, otherwise
+     * the first enabled vision-capable chat model, or null when the
+     * admin has none configured (callers degrade to text-only).
+     */
+    public static function visionChatModel(?string $preferred = null): ?string
+    {
+        if ($preferred !== null) {
+            $m = self::model($preferred);
+            if ($m && ($m['enabled'] ?? false) && ($m['kind'] ?? '') === 'chat' && ($m['supports_vision'] ?? false)) {
+                return $m['name'];
+            }
+        }
+        foreach (self::models() as $m) {
+            if (($m['enabled'] ?? false) && ($m['kind'] ?? '') === 'chat' && ($m['supports_vision'] ?? false)) {
+                return $m['name'];
+            }
+        }
+        return null;
     }
 
     /**
@@ -595,32 +658,55 @@ PROMPT;
     public static function defaultModels(): array
     {
         return [
-            ['name' => 'gpt-5.6-sol',             'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 10.0, 'out_coins_per_1k' => 60.0],
-            ['name' => 'gpt-5.6-terra',           'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 5.0,  'out_coins_per_1k' => 30.0],
-            ['name' => 'gpt-5.6-luna',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 2.0,  'out_coins_per_1k' => 12.0],
-            ['name' => 'gpt-5',                   'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 2.5,  'out_coins_per_1k' => 20.0],
-            ['name' => 'gpt-5-mini',              'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.5,  'out_coins_per_1k' => 4.0],
-            ['name' => 'gpt-5-nano',              'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.1,  'out_coins_per_1k' => 0.8],
-            ['name' => 'gpt-4.1',                 'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 4.0,  'out_coins_per_1k' => 16.0],
-            ['name' => 'gpt-4.1-mini',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.8,  'out_coins_per_1k' => 3.2],
-            ['name' => 'gpt-4.1-nano',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.2,  'out_coins_per_1k' => 0.8],
-            ['name' => 'gpt-4o',                  'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 5.0,  'out_coins_per_1k' => 20.0],
-            ['name' => 'gpt-4o-mini',             'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.3,  'out_coins_per_1k' => 1.2],
+            ['name' => 'gpt-5.6-sol',             'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 10.0, 'out_coins_per_1k' => 60.0, 'supports_vision' => true],
+            ['name' => 'gpt-5.6-terra',           'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 5.0,  'out_coins_per_1k' => 30.0, 'supports_vision' => true],
+            ['name' => 'gpt-5.6-luna',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 2.0,  'out_coins_per_1k' => 12.0, 'supports_vision' => true],
+            ['name' => 'gpt-5',                   'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 2.5,  'out_coins_per_1k' => 20.0, 'supports_vision' => true],
+            ['name' => 'gpt-5-mini',              'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.5,  'out_coins_per_1k' => 4.0, 'supports_vision' => true],
+            ['name' => 'gpt-5-nano',              'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.1,  'out_coins_per_1k' => 0.8, 'supports_vision' => true],
+            ['name' => 'gpt-4.1',                 'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 4.0,  'out_coins_per_1k' => 16.0, 'supports_vision' => true],
+            ['name' => 'gpt-4.1-mini',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.8,  'out_coins_per_1k' => 3.2, 'supports_vision' => true],
+            ['name' => 'gpt-4.1-nano',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.2,  'out_coins_per_1k' => 0.8, 'supports_vision' => true],
+            ['name' => 'gpt-4o',                  'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 5.0,  'out_coins_per_1k' => 20.0, 'supports_vision' => true],
+            ['name' => 'gpt-4o-mini',             'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.3,  'out_coins_per_1k' => 1.2, 'supports_vision' => true],
             ['name' => 'text-embedding-3-small',  'kind' => 'embedding', 'enabled' => true,  'in_coins_per_1k' => 0.04, 'out_coins_per_1k' => 0.0],
         ];
     }
 
+    /**
+     * Rate keys retired by the credits→coins rename. Anything still
+     * supplying these would silently price the model at 0 coins (free
+     * usage), so setModels() rejects them loudly instead.
+     */
+    public const LEGACY_RATE_KEYS = ['in_credits_per_1k', 'out_credits_per_1k'];
+
+    /**
+     * @throws \InvalidArgumentException when a model row still carries a
+     *         legacy *_credits_per_1k rate key from before the coin rename.
+     */
     public static function setModels(array $models): void
     {
         $clean = [];
         foreach ($models as $m) {
             if (!is_array($m) || empty($m['name'])) continue;
+            foreach (self::LEGACY_RATE_KEYS as $legacy) {
+                if (array_key_exists($legacy, $m)) {
+                    throw new \InvalidArgumentException(
+                        "AiEngineSettings::setModels(): model '{$m['name']}' uses the retired rate key '{$legacy}'. "
+                        . "Rates were renamed to in_coins_per_1k/out_coins_per_1k in the credits→coins migration; "
+                        . 'passing the old key would silently price the model at 0 coins.'
+                    );
+                }
+            }
             $clean[] = [
                 'name'              => trim((string) $m['name']),
                 'kind'              => in_array(($m['kind'] ?? 'chat'), ['chat','embedding'], true) ? $m['kind'] : 'chat',
                 'enabled'           => (bool) ($m['enabled'] ?? false),
                 'in_coins_per_1k'   => round(max(0.0, (float) ($m['in_coins_per_1k'] ?? 0)), 4),
                 'out_coins_per_1k'  => round(max(0.0, (float) ($m['out_coins_per_1k'] ?? 0)), 4),
+                'supports_vision'   => array_key_exists('supports_vision', $m)
+                    ? (bool) $m['supports_vision']
+                    : self::inferVisionByName((string) $m['name'], (string) ($m['kind'] ?? 'chat')),
             ];
         }
         AppSetting::put(self::KEY_MODELS, $clean);

@@ -70,7 +70,7 @@ class BadgeRequestController extends Controller
             return response()->json(['found' => null, 'message' => 'Enter a handle to find someone.']);
         }
 
-        $recipient = User::whereRaw('LOWER(handle) = ?', [mb_strtolower($handle)])->first();
+        $recipient = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle);
         if (! $recipient) {
             return response()->json(['found' => false, 'message' => "No account found with the handle \"@{$handle}\"."]);
         }
@@ -115,7 +115,7 @@ class BadgeRequestController extends Controller
 
         // Resolve the recipient by handle (case-insensitive, leading @ tolerated).
         $handle = ltrim(trim($data['handle']), '@');
-        $recipient = User::whereRaw('LOWER(handle) = ?', [mb_strtolower($handle)])->first();
+        $recipient = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle);
         if (! $recipient) {
             return back()->withInput()
                 ->with('error', "No account found with the handle \"@{$handle}\".");

@@ -546,6 +546,21 @@ class QrCodeCatalog
             ['label' => 'Geometric',  'prompt' => 'clean geometric abstract pattern, bold overlapping shapes, minimal flat design'],
             ['label' => 'Galaxy',     'prompt' => 'a deep space galaxy, swirling nebula, scattered stars, vivid cosmic colors'],
             ['label' => 'Vintage',    'prompt' => 'vintage travel poster illustration, warm retro tones, screen-printed look'],
+            ['label' => 'Anime',      'prompt' => 'vibrant anime illustration, dramatic sky, cel-shaded characters, studio-quality key art'],
+            ['label' => '3D Render',  'prompt' => 'playful 3D claymation scene, soft rounded shapes, pastel colors, studio lighting render'],
+            ['label' => 'Pixel Art',  'prompt' => 'retro pixel art scene, 16-bit video game landscape, chunky pixels, limited color palette'],
+            ['label' => 'Origami',    'prompt' => 'origami papercraft scene, folded paper animals and flowers, layered paper texture, soft shadows'],
+            ['label' => 'Stained Glass', 'prompt' => 'stained glass window design, bold leaded outlines, luminous jewel-toned glass panels'],
+            ['label' => 'Graffiti',   'prompt' => 'bold graffiti street art on a brick wall, spray paint splashes, vivid urban colors'],
+            ['label' => 'Line Art',   'prompt' => 'minimal single-line art illustration, elegant continuous strokes, clean white background'],
+            ['label' => 'Art Deco',   'prompt' => 'art deco poster design, geometric gold ornaments, symmetrical fan motifs, elegant 1920s style'],
+            ['label' => 'Steampunk',  'prompt' => 'steampunk machinery scene, brass gears and cogs, copper pipes, victorian industrial detail'],
+            ['label' => 'Low-Poly',   'prompt' => 'low-poly 3D landscape, faceted triangular mountains, flat shaded geometric surfaces'],
+            ['label' => 'Winter',     'prompt' => 'serene winter landscape, snow-covered pines, gentle falling snow, cool blue morning light'],
+            ['label' => 'Autumn',     'prompt' => 'cozy autumn forest scene, golden falling leaves, warm amber light, misty morning'],
+            ['label' => 'Holidays',   'prompt' => 'festive holiday scene, twinkling string lights, ornaments and gift boxes, warm cozy glow'],
+            ['label' => 'Ocean',      'prompt' => 'tranquil ocean scene, rolling turquoise waves, coral reef, sunlight rays through water'],
+            ['label' => 'Coffee',     'prompt' => 'artisan coffee shop still life, latte art, roasted beans, warm rustic wooden table'],
         ];
     }
 }

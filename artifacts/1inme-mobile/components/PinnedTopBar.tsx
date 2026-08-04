@@ -5,11 +5,11 @@ import { useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { BrandIcon } from "@/components/Brand";
 import { useDrawer } from "@/contexts/DrawerContext";
-import { TOP_BAR_H } from "@/contexts/TabBarContext";
 import { useColors, useResolvedScheme } from "@/hooks/useColors";
 import { listNotifications } from "@/lib/api/notifications";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { TOP_BAR_H, useTabBar } from "@/contexts/TabBarContext";
 
 export function PinnedTopBar() {
   const colors = useColors();
@@ -39,10 +39,16 @@ export function PinnedTopBar() {
 
   const totalHeight = insets.top + TOP_BAR_H;
 
+  const { topTranslateY } = useTabBar();
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: topTranslateY.value }],
+  }));
+
   return (
-    <View
+    <Animated.View
       style={[
         styles.wrapper,
+        animatedStyle,
         {
           height: totalHeight,
         },
@@ -85,10 +91,6 @@ export function PinnedTopBar() {
           <Feather name="menu" size={19} color={colors.foreground} />
         </Pressable>
 
-        <View style={styles.center} pointerEvents="none">
-          <BrandIcon size={40} />
-        </View>
-
         <Pressable
           onPress={() => router.push("/notifications")}
           hitSlop={8}
@@ -110,7 +112,7 @@ export function PinnedTopBar() {
           )}
         </Pressable>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -135,14 +137,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-  },
-  center: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    height: TOP_BAR_H,
   },
   chip: {
     width: 42,

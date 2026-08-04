@@ -14,7 +14,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuthStore } from '../store/auth-store';
 import { ApiClient, ApiClientError } from '../../shared/api-client';
 import type { LinkAnalytics, AssistantPage, ApiContact, ApiUserProfile, ApiLink, UpdateLinkPayload, ApiFile } from '../../shared/api-client';
-import { trimPageContext } from '../../shared/context-extractor';
+import { trimPageContext, looksVisualQuestion } from '../../shared/context-extractor';
 import type { PageContext, TrimmedContext } from '../../shared/context-extractor';
 import { detectSayzioLink } from '../../shared/link-tools';
 import { AddToBiolinkModal } from './AddToBiolinkModal';
@@ -51,6 +51,8 @@ interface Message {
   streaming?: boolean;
   /** When set, this message is a local browser action response (not from backend). */
   isLocalAction?: boolean;
+  /** True when a snapshot of the page was attached to this user question. */
+  snapshotSent?: boolean;
 }
 
 interface PendingCredential {
@@ -87,6 +89,9 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
   const { token } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
+  // Vision tier: when on, the next question always carries a page snapshot;
+  // when off, snapshots are auto-attached only for visual-looking questions.
+  const [includeSnapshot, setIncludeSnapshot] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [greeting, setGreeting] = useState<string | null>(null);
   const [trimmedCtx, setTrimmedCtx] = useState<TrimmedContext | null>(null);
@@ -451,7 +456,18 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
       lastUploadsRef.current = [];
     }
 
-    const userMsg: Message = { role: 'user', content: text, timestamp: Date.now() };
+    // Vision tier: attach a snapshot of the website pane when the user asked
+    // (toggle) or the question looks visual. capture refuses internal pages
+    // and over-cap payloads by returning null, so this degrades silently.
+    let screenshot: string | undefined;
+    if (includeSnapshot || looksVisualQuestion(text)) {
+      try {
+        const shot = await window.zio.tabs.captureWebsitePane();
+        if (shot) screenshot = shot;
+      } catch { /* capture is best-effort */ }
+    }
+
+    const userMsg: Message = { role: 'user', content: text, timestamp: Date.now(), snapshotSent: !!screenshot };
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
     setError(null);
@@ -483,6 +499,19 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
         });
       };
 
+      // Vision degrade path: when the backend refused the snapshot (plan
+      // gate, size, no vision model) it still answers from text and sends a
+      // friendly notice on `done` — surface it as a small local note.
+      const applyVisionNotice = (vision?: { used?: boolean; notice?: string | null }): void => {
+        if (!vision) return;
+        if (!vision.used && screenshot) {
+          setMessages(prev => prev.map(m => (m === userMsg || (m.role === 'user' && m.snapshotSent && m.timestamp === userMsg.timestamp) ? { ...m, snapshotSent: false } : m)));
+        }
+        if (vision.notice) {
+          setMessages(prev => [...prev, { role: 'assistant', content: vision.notice as string, timestamp: Date.now(), isLocalAction: true }]);
+        }
+      };
+
       await client.assistantStream(vt, outgoing, buildPage(), {
         onToken: (delta) => { streamingStarted = true; appendDelta(delta); },
         onDone: (payload) => {
@@ -501,6 +530,7 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
             }
             return next;
           });
+          applyVisionNotice(payload.vision);
         },
         onError: (payload) => {
           if (payload.rotated && payload.visitor_token && !streamingStarted) {
@@ -509,7 +539,7 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
             streamError = payload.error ?? 'The assistant could not respond right now.';
           }
         },
-      });
+      }, undefined, screenshot);
 
       if (rotatedRetry) {
         visitorTokenRef.current = rotatedRetry;
@@ -529,9 +559,10 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
               }
               return next;
             });
+            applyVisionNotice(payload.vision);
           },
           onError: (payload) => { streamError = payload.error ?? 'The assistant could not respond right now.'; },
-        });
+        }, undefined, screenshot);
       }
 
       if (streamError) setError(streamError);
@@ -548,7 +579,7 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
       setMessages(prev => prev.map(m => (m.streaming ? { ...m, streaming: false } : m)));
       setIsLoading(false);
     }
-  }, [input, isLoading, getClient, trimmedCtx, buildPage, handleBrowserIntent]);
+  }, [input, isLoading, getClient, trimmedCtx, buildPage, handleBrowserIntent, includeSnapshot]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -792,6 +823,8 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
             onInputChange={setInput}
             onKeyDown={handleKeyDown}
             onSend={() => void sendMessage()}
+            includeSnapshot={includeSnapshot}
+            onToggleSnapshot={() => setIncludeSnapshot(v => !v)}
           />
         )}
 
@@ -903,6 +936,8 @@ function ChatView({
   onInputChange,
   onKeyDown,
   onSend,
+  includeSnapshot,
+  onToggleSnapshot,
 }: {
   messages: Message[];
   input: string;
@@ -913,6 +948,8 @@ function ChatView({
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   onInputChange: (v: string) => void;
   onKeyDown: (e: React.KeyboardEvent) => void;
+  includeSnapshot: boolean;
+  onToggleSnapshot: () => void;
   onSend: () => void;
 }) {
   return (
@@ -946,6 +983,9 @@ function ChatView({
               borderLeft: msg.isLocalAction ? '3px solid var(--color-primary)' : undefined,
             }}>
               {msg.content}
+              {msg.snapshotSent && (
+                <div style={{ marginTop: 4, fontSize: 10, opacity: 0.8 }}>📷 Page snapshot included</div>
+              )}
             </div>
           </div>
         ))}
@@ -967,6 +1007,22 @@ function ChatView({
       </div>
       <div style={{ padding: 12, borderTop: '1px solid var(--color-border)', flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+          <button
+            onClick={onToggleSnapshot}
+            title={includeSnapshot
+              ? 'Snapshot on: a picture of this page will be sent with your question'
+              : 'Include a snapshot of this page with your question'}
+            aria-pressed={includeSnapshot}
+            style={{
+              padding: '8px 10px',
+              borderRadius: 10,
+              border: '1px solid var(--color-border)',
+              background: includeSnapshot ? 'var(--color-primary)' : 'var(--color-bg)',
+              color: includeSnapshot ? '#fff' : 'var(--color-text-muted)',
+              fontSize: 13,
+              flexShrink: 0,
+            }}
+          >📷</button>
           <textarea
             value={input}
             onChange={e => onInputChange(e.target.value)}

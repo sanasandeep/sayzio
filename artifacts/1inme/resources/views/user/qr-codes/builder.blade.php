@@ -523,6 +523,16 @@
                                     <span class="font-semibold" x-text="qrArt.cost"></span> coins per image
                                     (balance <span x-text="qrArt.balance"></span>). Auto-refunded if it fails.
                                 </p>
+                                @if(($qrArtMonthlyAllowance ?? -1) >= 0)
+                                    <p class="text-[11px] font-semibold" style="color: {{ ($qrArtMonthlyRemaining ?? 0) > 0 ? 'var(--text-muted)' : '#f87171' }};">
+                                        @if(($qrArtMonthlyRemaining ?? 0) > 0)
+                                            {{ $qrArtMonthlyRemaining }} of {{ $qrArtMonthlyAllowance }} AI generations left this month.
+                                        @else
+                                            You've used all {{ $qrArtMonthlyAllowance }} AI generations included in your plan this month.
+                                            <a href="{{ url('/user/upgrade') }}" class="underline">Upgrade for more</a>.
+                                        @endif
+                                    </p>
+                                @endif
 
                                 <div class="qr-section">
                                     <div class="text-[11px] font-semibold uppercase tracking-wider mb-2" style="color: var(--text-faint);">Style presets</div>

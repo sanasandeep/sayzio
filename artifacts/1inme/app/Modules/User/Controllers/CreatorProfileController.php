@@ -74,15 +74,36 @@ class CreatorProfileController extends Controller
         'form'      => ['label' => 'Fill out a form','icon' => 'fas fa-wpforms',      'hint' => 'select a form below'],
     ];
 
+    /**
+     * The active workspace's creator profile (lazily created empty +
+     * unpublished). Every editor read/write below targets this row —
+     * switching the active workspace switches the whole editor (Task #6618).
+     */
+    protected function activeProfile(): \App\Modules\User\Models\CreatorProfile
+    {
+        $ws = app()->bound('current_workspace')
+            ? app('current_workspace')
+            : app(\App\Modules\User\Services\WorkspaceContext::class)->resolve(Auth::user());
+
+        return \App\Modules\User\Models\CreatorProfile::forWorkspace($ws);
+    }
+
     public function edit()
     {
         $user = Auth::user();
+        $profile = $this->activeProfile();
+        // Overlay the workspace profile's fields onto the auth user in
+        // memory so the (large) editor blade keeps reading $user->…
+        $profile->applyToUser($user);
         $showcase = $user->resolvedProfileShowcase();
 
-        // Load owner's links for the featured-link picker (all active links).
+        // Featured-link picker: links of the ACTIVE workspace only
+        // (Task #6618 — previously a cross-workspace query).
         $pickerLinks = \App\Modules\User\Models\Link::query()
             ->withoutGlobalScope('workspace')
-            ->where('user_id', $user->id)
+            ->where(fn ($w) => $w
+                ->where('workspace_id', $profile->workspace_id)
+                ->orWhere(fn ($n) => $n->whereNull('workspace_id')->where('user_id', $user->id)))
             ->where('is_active', true)
             ->orderByDesc('id')
             ->get(['id', 'title', 'alias', 'type']);
@@ -92,10 +113,12 @@ class CreatorProfileController extends Controller
             fn ($l) => array_key_exists($l->type, self::SHOWCASE_ITEM_TYPES)
         )->values();
 
-        // Load owner's active forms for the CTA form-picker.
+        // Load the workspace's active forms for the CTA form-picker.
         $formsForCta = \App\Modules\User\Models\Link::query()
             ->withoutGlobalScope('workspace')
-            ->where('user_id', $user->id)
+            ->where(fn ($w) => $w
+                ->where('workspace_id', $profile->workspace_id)
+                ->orWhere(fn ($n) => $n->whereNull('workspace_id')->where('user_id', $user->id)))
             ->where('is_active', true)
             ->where('type', 'form')
             ->orderByDesc('id')
@@ -162,8 +185,13 @@ class CreatorProfileController extends Controller
     public static function saveCoreProfileFields(
         User $user,
         array $data,
-        ?\Illuminate\Http\Request $request = null
+        ?\Illuminate\Http\Request $request = null,
+        ?\App\Modules\User\Models\CreatorProfile $profile = null
     ): void {
+        // Task #6618 — profiles are workspace-scoped. When a CreatorProfile
+        // is supplied, profile fields land on it instead of the users row
+        // ($user is still consulted for the verified-identity avatar lock).
+        $target = $profile ?? $user;
         // Creator-profile-specific avatar override (Task #5494). Defaults to
         // the account profile photo when null. Verified users have their
         // avatar identity locked — ignore upload/remove server-side so a
@@ -177,31 +205,31 @@ class CreatorProfileController extends Controller
                 ) !== null;
 
             if ($request && $request->hasFile('creator_avatar')) {
-                $user->creator_avatar = '/storage/' . $request->file('creator_avatar')->store('avatars', 'public');
+                $target->creator_avatar = '/storage/' . $request->file('creator_avatar')->store('avatars', 'public');
             } elseif ($creatorAvatarAssetValid) {
                 // Platform avatar-gallery pick (Task #6015) — store the
                 // absolute public CDN URL (PublicStorageUrl passes absolute
                 // URLs through untouched, so all render paths stay safe).
-                $user->creator_avatar = \App\Modules\User\Support\PlatformAssetCatalog::urlForKey($creatorAvatarAsset);
+                $target->creator_avatar = \App\Modules\User\Support\PlatformAssetCatalog::urlForKey($creatorAvatarAsset);
             } elseif ($request && $request->boolean('creator_avatar_remove')) {
-                $user->creator_avatar = null;
+                $target->creator_avatar = null;
             }
         }
 
         if ($request && $request->hasFile('cover_image')) {
-            $user->cover_image = '/storage/' . $request->file('cover_image')->store('profile-covers', 'public');
+            $target->cover_image = '/storage/' . $request->file('cover_image')->store('profile-covers', 'public');
         } elseif (!empty($data['cover_image_url'])) {
-            $user->cover_image = $data['cover_image_url'];
+            $target->cover_image = $data['cover_image_url'];
         } elseif ($request && $request->boolean('cover_image_remove')) {
-            $user->cover_image = null;
+            $target->cover_image = null;
         }
 
-        if (array_key_exists('tagline', $data))  $user->tagline  = $data['tagline'];
-        if (array_key_exists('location', $data)) $user->location = $data['location'];
-        if (array_key_exists('bio', $data))      $user->bio      = $data['bio'];
+        if (array_key_exists('tagline', $data))  $target->tagline  = $data['tagline'];
+        if (array_key_exists('location', $data)) $target->location = $data['location'];
+        if (array_key_exists('bio', $data))      $target->bio      = $data['bio'];
 
         if (array_key_exists('profile_theme_color', $data)) {
-            $user->profile_theme_color = isset($data['profile_theme_color']) && $data['profile_theme_color'] !== ''
+            $target->profile_theme_color = isset($data['profile_theme_color']) && $data['profile_theme_color'] !== ''
                 ? strtolower($data['profile_theme_color'])
                 : null;
         }
@@ -215,7 +243,7 @@ class CreatorProfileController extends Controller
                 ->take(8)
                 ->values()
                 ->all();
-            $user->niche_tags = $tags;
+            $target->niche_tags = $tags;
         }
 
         if (array_key_exists('socials', $data)) {
@@ -226,7 +254,7 @@ class CreatorProfileController extends Controller
                 $value = trim((string) $value);
                 if ($value !== '') $socials[$key] = $value;
             }
-            $user->socials = $socials;
+            $target->socials = $socials;
         }
 
         if (array_key_exists('sections', $data)) {
@@ -235,7 +263,7 @@ class CreatorProfileController extends Controller
             foreach (User::PROFILE_DEFAULT_VISIBILITY as $sectionKey => $default) {
                 $sections[$sectionKey] = filter_var($sectionsIn[$sectionKey] ?? $default, FILTER_VALIDATE_BOOLEAN);
             }
-            $user->profile_section_visibility = $sections;
+            $target->profile_section_visibility = $sections;
         }
     }
 
@@ -326,20 +354,24 @@ class CreatorProfileController extends Controller
             'special_dates.*.sync'    => 'nullable|in:0,1,true,false',
         ]);
 
+        // Task #6618 — all profile fields target the ACTIVE workspace's
+        // creator profile, not the users row.
+        $profile = $this->activeProfile();
+
         // Core profile fields — shared with the onboarding creator-profile step.
-        self::saveCoreProfileFields($user, $data, $request);
+        self::saveCoreProfileFields($user, $data, $request, $profile);
 
         // Publish toggle. Block publishing without a handle — the URL
         // would 404 otherwise.
         $wantsPublished = filter_var(
-            $data['profile_published'] ?? $user->profile_published,
+            $data['profile_published'] ?? $profile->profile_published,
             FILTER_VALIDATE_BOOLEAN
         );
-        if ($wantsPublished && empty($user->handle)) {
+        if ($wantsPublished && empty($profile->handle)) {
             return back()->withInput()->with('error',
                 'Pick a handle below before you publish — your profile lives at /@handle.');
         }
-        $user->profile_published = $wantsPublished;
+        $profile->profile_published = $wantsPublished;
 
         // ── Task #1211: moderation / safety preferences ──────────────
         // Mute words: split on commas/newlines, lowercase, dedupe.
@@ -404,14 +436,24 @@ class CreatorProfileController extends Controller
         $user->organizer_profile = $organizer;
 
         // ── Task #5431: profile showcase ──────────────────────────────
-        self::saveShowcaseFields($user, $data);
+        self::saveShowcaseFields($user, $data, $profile);
 
         // ── Task #6551: special dates ────────────────────────────────
+        // Plan-gated (Task #6646): `special_dates` defaults ON for legacy
+        // plans that predate the key, so behaviour only changes when an
+        // admin explicitly switches it off for a plan.
+        if (! $user->getPlanFeature('special_dates', true)) {
+            unset($data['special_dates']);
+        }
         if (array_key_exists('special_dates', $data)) {
             \App\Modules\User\Support\SpecialDates::applyInput($user, (array) ($data['special_dates'] ?? []));
         }
 
+        $profile->save();
         $user->save();
+        // Keep the legacy users.* columns in sync for PERSONAL workspaces
+        // (creators directory, watermark text, DM routing still read them).
+        $profile->mirrorToOwner();
 
         // Calendar lockstep after save so new entries persist their
         // calendar_event_id back-references via saveQuietly.
@@ -436,11 +478,17 @@ class CreatorProfileController extends Controller
      *
      * @param array<string,mixed> $data Validated input.
      */
-    public static function saveShowcaseFields(User $user, array $data): void
+    public static function saveShowcaseFields(User $user, array $data, ?\App\Modules\User\Models\CreatorProfile $profile = null): void
     {
+        // Task #6618 — with a workspace profile, showcase references are
+        // validated against (and stored on) the workspace, not the account.
+        $target = $profile ?? $user;
         $ownerLinkIds = \App\Modules\User\Models\Link::query()
             ->withoutGlobalScope('workspace')
-            ->where('user_id', $user->id)
+            ->when($profile, fn ($q) => $q->where(fn ($w) => $w
+                    ->where('workspace_id', $profile->workspace_id)
+                    ->orWhere(fn ($n) => $n->whereNull('workspace_id')->where('user_id', $user->id))),
+                fn ($q) => $q->where('user_id', $user->id))
             ->where('is_active', true)
             ->pluck('id')
             ->all();
@@ -483,7 +531,10 @@ class CreatorProfileController extends Controller
             if ($ctaPrimary['kind'] === 'form') {
                 $formExists = \App\Modules\User\Models\Link::query()
                     ->withoutGlobalScope('workspace')
-                    ->where('user_id', $user->id)
+                    ->when($profile, fn ($q) => $q->where(fn ($w) => $w
+                            ->where('workspace_id', $profile->workspace_id)
+                            ->orWhere(fn ($n) => $n->whereNull('workspace_id')->where('user_id', $user->id))),
+                        fn ($q) => $q->where('user_id', $user->id))
                     ->where('type', 'form')
                     ->where('alias', $ctaPrimary['value'])
                     ->exists();
@@ -505,7 +556,7 @@ class CreatorProfileController extends Controller
         $chosenStyle = (string) ($data['featured_links_style'] ?? 'classic');
         if (!in_array($chosenStyle, $validStyles, true)) $chosenStyle = 'classic';
 
-        $user->profile_showcase = [
+        $target->profile_showcase = [
             'featured_links'       => $featuredLinks,
             'featured_links_style' => $chosenStyle,
             'show_link_stats'      => filter_var($data['showcase_show_link_stats'] ?? false, FILTER_VALIDATE_BOOLEAN),
@@ -531,25 +582,29 @@ class CreatorProfileController extends Controller
     public function claimHandle(Request $request)
     {
         $user = Auth::user();
+        // Task #6618 — the handle belongs to the ACTIVE workspace's profile.
+        $profile = $this->activeProfile();
+        $request->merge(['handle' => strtolower(trim((string) $request->input('handle')))]);
         $data = $request->validate([
             'handle' => [
                 'required', 'string', 'min:3', 'max:30',
                 'regex:/^[a-z0-9_]+$/i',
-                Rule::unique('users')->ignore($user->id),
+                \App\Modules\User\Models\CreatorProfile::uniqueHandleRule($profile->id, (int) $profile->user_id),
                 new NotBannedName(),
             ],
         ]);
-        $previousHandle = $user->handle;
-        $user->handle = strtolower($data['handle']);
-        $user->save();
+        $previousHandle = $profile->handle;
+        $profile->handle = strtolower($data['handle']);
+        $profile->save();
+        $profile->mirrorToOwner();
 
         // Clear the admin-forced rename flag once the user has successfully
         // picked a different handle (banner lives on Profile Settings).
-        if (session()->has('force_handle_rename') && $user->handle !== $previousHandle) {
+        if (session()->has('force_handle_rename') && $profile->handle !== $previousHandle) {
             session()->forget('force_handle_rename');
         }
 
         return redirect()->route('user.creator-profile.edit')
-            ->with('success', "Your profile is now at /@{$user->handle}");
+            ->with('success', "Your profile is now at /@{$profile->handle}");
     }
 }

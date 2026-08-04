@@ -252,6 +252,10 @@ class AiPlanAccess
             // on-demand analytics call; gate to any non-free plan until
             // plans carry the explicit key.
             'audience_type_estimation' => !$user->isOnFreePlan(),
+            // Ask Zio vision tier (Task #6654) — screenshot analysis drives
+            // metered vision-model spend; gate to any non-free plan until
+            // plans carry the explicit key.
+            'site_assistant_vision' => !$user->isOnFreePlan(),
             default              => true,
         };
     }

@@ -22,7 +22,7 @@ class CreatorOgImageController extends Controller
 {
     public function show(string $handle)
     {
-        $creator = User::where('handle', strtolower(trim($handle)))->first();
+        $creator = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle);
         if (!$creator || !$creator->profile_published) abort(404);
 
         $key = "og:creator:{$creator->id}:" . md5(($creator->name ?? '') . ($creator->tagline ?? '') . ($creator->avatar ?? ''));

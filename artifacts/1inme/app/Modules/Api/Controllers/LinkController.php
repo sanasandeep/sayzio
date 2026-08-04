@@ -583,6 +583,8 @@ class LinkController extends Controller
             $calendar = \App\Modules\User\Models\Calendar::create([
                 'link_id'      => $link->id,
                 'user_id'      => $link->user_id,
+                // Task #6619 — stamp the calendar into the link's workspace.
+                'workspace_id' => $link->workspace_id,
                 'title'        => $link->title ?: 'My Calendar',
                 'slug'         => $link->alias,
                 'description'  => (string) ($calSettings['description'] ?? ''),

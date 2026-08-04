@@ -431,6 +431,54 @@ class MonetizationCheckout
         $payload = cache()->pull($key);
         if (!$payload) return null;
 
+        return $this->settle($kind, $payload);
+    }
+
+    /**
+     * Settle a checkout after a payout provider has confirmed the charge
+     * server-side (e.g. a signature-verified Razorpay `payment.captured`
+     * webhook). Unlike confirm(), this path runs in production too: the
+     * caller is responsible for having verified that money actually moved.
+     *
+     * Idempotent — the cache token is pulled (consumed) on first delivery,
+     * so a webhook re-delivery finds no payload and returns null without
+     * double-crediting.
+     */
+    public function settleFromProvider(string $kind, string $reference, string $token): ?array
+    {
+        $key = $this->cacheKeyFromReference($kind, $reference, $token);
+        if (!$key) return null;
+        $payload = cache()->pull($key);
+        if (!$payload) return null;
+
+        $result = $this->settle($kind, $payload);
+        if ($result) {
+            // Remember the outcome so the buyer's browser return
+            // (checkout.return) can show success in production, where the
+            // preview-only confirm() path is disabled by design.
+            cache()->put($this->settledKey($kind, $reference, $token), $result, now()->addDays(2));
+        }
+        return $result;
+    }
+
+    /**
+     * Result of an earlier provider-webhook settlement for this checkout,
+     * or null if the webhook hasn't settled it (yet). Lets checkout.return
+     * succeed in production after the webhook already granted access.
+     */
+    public function settledResult(string $kind, string $reference, string $token): ?array
+    {
+        return cache()->get($this->settledKey($kind, $reference, $token));
+    }
+
+    protected function settledKey(string $kind, string $reference, string $token): string
+    {
+        return "monetization_settled:{$kind}:{$reference}:{$token}";
+    }
+
+    /** Dispatch a pulled checkout payload to its kind-specific handler. */
+    protected function settle(string $kind, array $payload): ?array
+    {
         return match ($kind) {
             'subscription' => $this->confirmSubscription($payload),
             'ppv'          => $this->confirmPpv($payload),
@@ -1182,6 +1230,16 @@ class MonetizationCheckout
         $successUrl = (($settings['success_action'] ?? 'message') === 'redirect' && !empty($settings['success_redirect']))
             ? $settings['success_redirect']
             : $form->getPublicUrl() . '?paid=1';
+
+        // Deliver-a-file (Task #6624): when the paid form lands back on its
+        // own success state, carry the signed download link along so the
+        // paying submitter sees the download button. The link is only handed
+        // out via this server-held success URL after the gateway return, and
+        // the download route independently rejects still-pending submissions.
+        if ((($settings['success_action'] ?? 'message') !== 'redirect' || empty($settings['success_redirect']))
+            && ($dl = $form->deliverySignedUrl($submission, now()->addHours(24)))) {
+            $successUrl .= '&dl=' . urlencode($dl);
+        }
 
         $token     = Str::random(32);
         $reference = 'form_' . $submission->id;

@@ -18,6 +18,17 @@ use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
+    /** The active workspace's creator profile (Task #6618). */
+    protected function activeCreatorProfile(): \App\Modules\User\Models\CreatorProfile
+    {
+        $user = auth()->user();
+        $ws = app()->bound('current_workspace')
+            ? app('current_workspace')
+            : (app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($user) ?? $user->ensureDefaultWorkspace());
+
+        return \App\Modules\User\Models\CreatorProfile::forWorkspace($ws);
+    }
+
     public function edit()
     {
         $user = Auth::user();
@@ -196,7 +207,9 @@ class ProfileController extends Controller
             // Handle / bio / persona are edited on the Creator Profile tab —
             // the settings form no longer submits them, but direct POSTs are
             // still validated (nullable = absent keys are simply not updated).
-            'handle' => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/i', Rule::unique('users')->ignore($user->id), new \App\Modules\Admin\Rules\NotBannedName()],
+            // Task #6618 — handles live on the ACTIVE workspace's creator
+            // profile; uniqueness enforced across all workspace profiles.
+            'handle' => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/i', \App\Modules\User\Models\CreatorProfile::uniqueHandleRule($this->activeCreatorProfile()->id, $user->id), new \App\Modules\Admin\Rules\NotBannedName()],
             'bio' => 'nullable|string|max:500',
             'avatar' => 'nullable|image|max:2048',
             // Platform avatar-gallery pick (Task #6015): S3 object key from
@@ -268,7 +281,20 @@ class ProfileController extends Controller
 
         $previousAvatar = $user->avatar;
         $previousName   = $user->name;
-        $previousHandle = $user->handle;
+
+        // Task #6618 — a submitted handle targets the ACTIVE workspace's
+        // creator profile (users.handle only updated via the personal mirror).
+        $profile = $this->activeCreatorProfile();
+        $previousHandle = $profile->handle;
+        if (array_key_exists('handle', $validated)) {
+            if ($validated['handle'] !== null && $validated['handle'] !== '') {
+                $profile->handle = strtolower(trim((string) $validated['handle']));
+                $profile->save();
+                $profile->mirrorToOwner();
+            }
+            unset($validated['handle']);
+        }
+
         $user->update($validated);
 
         // Propagate the rename to every denormalized copy of the name
@@ -346,7 +372,7 @@ class ProfileController extends Controller
         // banned their previous handle and toggled "force rename on
         // next login"), clear the flag now that they've successfully
         // picked something else.
-        if (session()->has('force_handle_rename') && $user->handle !== $previousHandle) {
+        if (session()->has('force_handle_rename') && $profile->handle !== $previousHandle) {
             session()->forget('force_handle_rename');
         }
 

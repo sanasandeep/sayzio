@@ -201,6 +201,76 @@ export function getDueQueueItems(items: SyncQueueItem[], nowMs: number = Date.no
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 }
 
+// ── Plan gating ──────────────────────────────────────────────────────────────
+
+/**
+ * Persisted "sync is blocked by the plan" state. Set when a sync endpoint
+ * returns HTTP 402 `plan_upgrade_required` (feature `browser_sync`), cleared
+ * on the first successful push after the account is upgraded.
+ */
+export interface SyncPlanGate {
+  blocked: boolean;
+  /** Plan feature that gated the call (e.g. "browser_sync"). */
+  feature: string | null;
+  /** Server-suggested plan that includes the feature, when provided. */
+  recommended_plan: string | null;
+  /** ISO-8601 timestamp of when the gate was first observed. */
+  blocked_at: string | null;
+}
+
+export const EMPTY_PLAN_GATE: SyncPlanGate = {
+  blocked: false,
+  feature: null,
+  recommended_plan: null,
+  blocked_at: null,
+};
+
+/**
+ * Notice describing items the server refused because the account is over its
+ * `max_browser_sync_items` cap. The push itself succeeds (200) — the refused
+ * rows come back in a `rejected` array with the effective `limit`.
+ */
+export interface SyncRejectedNotice {
+  /** Number of items currently held back by the cap. */
+  count: number;
+  /** Effective per-entity item limit for the plan (-1 = unlimited). */
+  limit: number | null;
+  /** ISO-8601 timestamp of the push that produced this notice. */
+  at: string;
+}
+
+/** Combined plan status the renderer's sync settings UI displays. */
+export interface SyncPlanStatus {
+  gate: SyncPlanGate;
+  rejected: SyncRejectedNotice | null;
+}
+
+/** Whether an API failure is the browser-sync plan gate (402 upgrade required). */
+export function isPlanGateError(status: number, code: string): boolean {
+  return status === 402 && code === 'plan_upgrade_required';
+}
+
+/**
+ * Extract the plan-gate metadata from an API error `details` payload.
+ * Tolerates missing/malformed details.
+ */
+export function planGateFromDetails(details: unknown, nowIso: string = new Date().toISOString()): SyncPlanGate {
+  const d = (details && typeof details === 'object' ? details : {}) as Record<string, unknown>;
+  return {
+    blocked: true,
+    feature: typeof d.feature === 'string' ? d.feature : 'browser_sync',
+    recommended_plan: typeof d.recommended_plan === 'string' ? d.recommended_plan : null,
+    blocked_at: nowIso,
+  };
+}
+
+/** Human copy for the over-cap notice, e.g. "3 items not synced — over your plan's limit (25)". */
+export function formatRejectedNotice(notice: SyncRejectedNotice): string {
+  const items = `${notice.count} item${notice.count === 1 ? '' : 's'}`;
+  const limit = notice.limit != null && notice.limit >= 0 ? ` (limit: ${notice.limit})` : '';
+  return `${items} not synced — over your plan's limit${limit}`;
+}
+
 /**
  * Compute a sync state summary from local records.
  */

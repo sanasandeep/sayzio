@@ -59,10 +59,18 @@ export type FeedMeta = {
   last_page: number;
 };
 
-/** Calendars the user owns or follows, with counts + following flag. */
-export async function listCalendars(): Promise<CalendarSummary[]> {
+/**
+ * Calendars the user owns or follows, with counts + following flag. Owned
+ * calendars are scoped to the active workspace by default; pass
+ * `allWorkspaces` to list calendars from every workspace (followed calendars
+ * are external to workspaces and always included).
+ */
+export async function listCalendars(
+  opts: { allWorkspaces?: boolean } = {},
+): Promise<CalendarSummary[]> {
+  const qs = opts.allWorkspaces ? "?ws=all" : "";
   const res = await apiFetch<{ data: { items: CalendarSummary[] } }>(
-    "/calendars",
+    `/calendars${qs}`,
   );
   return res.data.items;
 }
@@ -104,6 +112,11 @@ export type MyCalendarFilters = {
   q?: string | null;
   /** Include events that already started/ended. */
   past?: boolean;
+  /**
+   * Show owned calendars from EVERY workspace instead of just the active one
+   * (the server default). Followed calendars are always included either way.
+   */
+  allWorkspaces?: boolean;
   page?: number;
   perPage?: number;
 };
@@ -123,6 +136,7 @@ export async function getMyCalendar(
   if (filters.tag) q.set("tag", filters.tag);
   if (filters.q) q.set("q", filters.q);
   if (filters.past) q.set("past", "1");
+  if (filters.allWorkspaces) q.set("ws", "all");
   if (filters.page) q.set("page", String(filters.page));
   if (filters.perPage) q.set("per_page", String(filters.perPage));
   const qs = q.toString();
@@ -153,6 +167,7 @@ export async function exportMyCalendar(
   if (filters.tag) q.set("tag", filters.tag);
   if (filters.q) q.set("q", filters.q);
   if (filters.past) q.set("past", "1");
+  if (filters.allWorkspaces) q.set("ws", "all");
 
   const token = await getToken();
   const url = `${getBaseUrl()}/api/v1/my-calendar/export?${q.toString()}`;
@@ -189,14 +204,20 @@ export async function exportMyCalendar(
   }
 }
 
-/** Today's events across owned + followed calendars (user's local timezone). */
-export async function getTodayEvents(): Promise<{
+/**
+ * Today's events across owned + followed calendars (user's local timezone).
+ * Owned calendars honour the active-workspace scope unless `allWorkspaces`.
+ */
+export async function getTodayEvents(
+  opts: { allWorkspaces?: boolean } = {},
+): Promise<{
   date: string;
   items: CalendarEventItem[];
 }> {
+  const qs = opts.allWorkspaces ? "?ws=all" : "";
   const res = await apiFetch<{
     data: { date: string; items: CalendarEventItem[] };
-  }>("/my-calendar/today");
+  }>(`/my-calendar/today${qs}`);
   return res.data;
 }
 

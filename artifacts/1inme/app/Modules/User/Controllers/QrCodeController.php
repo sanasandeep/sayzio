@@ -13,10 +13,12 @@ use App\Services\AI\AiActionCooldown;
 use App\Services\AI\AiPlanAccess;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\InsufficientCoinsForAiException;
+use App\Services\AI\QrArtAllowanceExceededException;
 use App\Services\AI\QrArtGenerationException;
 use App\Services\AI\QrArtService;
 use App\Services\AI\QrArtUnavailableException;
 use App\Services\UploadPolicy;
+use App\Support\PlanLimit;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -42,7 +44,13 @@ class QrCodeController extends Controller
         $qrCodes = $query->latest()->paginate(20)->withQueryString();
         $projects = workspace_owner()->projects()->orderBy('name')->get();
         $types = QrCodeTypeRegistry::types();
-        return view('user.qr-codes.index', compact('qrCodes', 'projects', 'types'));
+        // Saved-QR plan quota for the header chip: -1 = unlimited (normalized,
+        // never the bypass sentinel); count spans all workspaces like the cap.
+        $owner = workspace_owner();
+        $savedQrCap   = PlanLimit::normalize((int) $owner->getPlanFeature('max_qr_codes', -1));
+        $savedQrCount = QrCodeModel::withoutGlobalScope('workspace')
+            ->where('user_id', $owner->id)->count();
+        return view('user.qr-codes.index', compact('qrCodes', 'projects', 'types', 'savedQrCap', 'savedQrCount'));
     }
 
     public function builder(Request $request, ?QrCodeModel $qrCode = null)
@@ -63,7 +71,11 @@ class QrCodeController extends Controller
         $prefillLinkId = null;
         $prefillName   = null;
         if (!($qrCode && $qrCode->exists) && $request->filled('link_id')) {
-            $prefillLink = Link::where('id', (int) $request->query('link_id'))
+            // Owner-keyed lookup: bypass the workspace global scope so links
+            // from another of the owner's workspaces (or legacy NULL-workspace
+            // links) still prefill — ownership is enforced by user_id below.
+            $prefillLink = Link::withoutGlobalScope('workspace')
+                ->where('id', (int) $request->query('link_id'))
                 ->where('user_id', workspace_owner_id())
                 ->first(['id', 'alias', 'title']);
             if ($prefillLink) {
@@ -89,9 +101,19 @@ class QrCodeController extends Controller
         $qrArtBalance  = app(AiUsageCharger::class)->getBalance($owner);
         $qrArtPresets  = QrCodeCatalog::aiArtStylePresets();
 
+        // Monthly AI-art allowance + saved-QR quota hints (both normalized:
+        // -1 = unlimited, never the bypass sentinel).
+        $qrArtMonthlyAllowance = $art->monthlyAllowance($owner);
+        $qrArtMonthlyRemaining = $art->monthlyRemaining($owner);
+        $savedQrCap   = PlanLimit::normalize((int) $owner->getPlanFeature('max_qr_codes', -1));
+        $savedQrCap   = $owner->hasPermission('user.plan_limits.bypass') ? -1 : $savedQrCap;
+        $savedQrCount = QrCodeModel::withoutGlobalScope('workspace')
+            ->where('user_id', $owner->id)->count();
+
         return view('user.qr-codes.builder', compact(
             'qrCode', 'types', 'projects', 'links', 'defaultDesign', 'presets',
             'qrArtEnabled', 'qrArtAllowed', 'qrArtCost', 'qrArtBalance', 'qrArtPresets',
+            'qrArtMonthlyAllowance', 'qrArtMonthlyRemaining', 'savedQrCap', 'savedQrCount',
             'prefillLinkId', 'prefillName'
         ));
     }
@@ -101,6 +123,9 @@ class QrCodeController extends Controller
 
     public function store(Request $request)
     {
+        if ($msg = $this->savedQrLimitMessage()) {
+            return back()->with('error', $msg)->withInput();
+        }
         $data = $this->validateRequest($request);
         $qrCode = new QrCodeModel($data);
         $qrCode->user_id = workspace_owner_id();
@@ -125,6 +150,9 @@ class QrCodeController extends Controller
     public function duplicate(Request $request, QrCodeModel $qrCode)
     {
         abort_unless($qrCode->user_id === workspace_owner_id(), 403);
+        if ($msg = $this->savedQrLimitMessage()) {
+            return back()->with('error', $msg);
+        }
         $copy = $qrCode->replicate(['preview_url', 'downloads']);
         $copy->name = $qrCode->name . ' (copy)';
         $copy->save();
@@ -158,7 +186,14 @@ class QrCodeController extends Controller
             'payload'   => 'nullable|array',
         ]);
         if ($request->filled('link_id')) {
-            $link = Link::find($request->input('link_id'));
+            // Owner-keyed lookup mirroring builder(): bypass the workspace
+            // global scope so links from another of the owner's workspaces
+            // (or legacy NULL-workspace links) still resolve — ownership is
+            // enforced by user_id, matching the exists-rule above.
+            $link = Link::withoutGlobalScope('workspace')
+                ->where('id', (int) $request->input('link_id'))
+                ->where('user_id', workspace_owner_id())
+                ->first();
             return response()->json(['encoded' => $link ? $link->getShortUrl() : '']);
         }
         $type = $request->input('type');
@@ -237,6 +272,13 @@ class QrCodeController extends Controller
                 'negative_prompt' => $validated['negative_prompt'] ?? null,
                 'strength'        => $validated['strength'] ?? null,
             ]);
+        } catch (QrArtAllowanceExceededException $e) {
+            return response()->json([
+                'error'     => $e->getMessage(),
+                'code'      => 'allowance',
+                'allowance' => $e->allowance,
+                'used'      => $e->used,
+            ], 403);
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
                 'error'    => "Not enough coins — this needs {$e->required}, your balance is {$e->balance}.",
@@ -263,6 +305,31 @@ class QrCodeController extends Controller
     }
 
     // -------- internal --------
+
+    /**
+     * Friendly "saved QR codes limit reached" message when the workspace
+     * owner is at their plan's `max_qr_codes` cap, or null when another QR
+     * can be created. planUnderLimit() handles -1 = unlimited and the
+     * plan-limits-bypass permission; the emitted cap is normalized through
+     * PlanLimit so the bypass sentinel can never leak into a page.
+     */
+    private function savedQrLimitMessage(): ?string
+    {
+        $owner = workspace_owner();
+        // Plan caps are account-wide: count across every workspace, not just
+        // the active one, or a user could dodge the cap by switching.
+        $current = QrCodeModel::withoutGlobalScope('workspace')
+            ->where('user_id', $owner->id)->count();
+        if ($owner->planUnderLimit('max_qr_codes', $current, -1)) {
+            return null;
+        }
+        $cap = PlanLimit::normalize((int) $owner->getPlanFeature('max_qr_codes', -1));
+        $msg = "You've reached your plan's saved QR code limit ({$cap}).";
+        if ($plan = $owner->planThatUnlocks('max_qr_codes', $current)) {
+            $msg .= " Upgrade to the {$plan->name} plan to save more.";
+        }
+        return $msg;
+    }
 
     private function validateRequest(Request $request): array
     {
@@ -328,6 +395,57 @@ class QrCodeController extends Controller
         abort_if($link->user_id !== workspace_owner_id(), 403);
 
         return view('user.links.qrcode', compact('link'));
+    }
+
+    /**
+     * Event Connect QR (Task #6685) — a special QR for event (`ics`) links
+     * that encodes the event URL tagged with the `src=connect_qr` scan
+     * source. Scanners land on the event page's "RSVP & Connect" prompt;
+     * scans/signups/RSVPs/follows are attributed on the Visitor Insights
+     * page. `?download=png|svg` streams the file; otherwise renders the
+     * page with the inline QR + download buttons.
+     */
+    public function connectQr(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== workspace_owner_id(), 403);
+        abort_unless($link->type === 'ics', 404);
+
+        $connectUrl = $link->getShortUrl() . '?src=connect_qr';
+
+        $download = $request->query('download');
+        if (in_array($download, ['png', 'svg'], true)) {
+            $qr = QrCode::format($download)
+                ->size(600)
+                ->errorCorrection('M')
+                ->margin(1)
+                ->generate($connectUrl);
+            $filename = 'connect-qr-' . ($link->alias ?: $link->id) . '.' . $download;
+            return response($qr)
+                ->header('Content-Type', $download === 'svg' ? 'image/svg+xml' : 'image/png')
+                ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
+        }
+
+        // Print-ready poster (Task #6693): a standalone A4/Letter page with
+        // the event name, date/venue from ics_data, the QR and a scan
+        // instruction. SVG-based so it works without imagick; the page
+        // auto-opens the browser print dialog (print-to-PDF friendly).
+        if ($download === 'poster') {
+            $qrSvg = QrCode::format('svg')
+                ->size(520)
+                ->errorCorrection('M')
+                ->margin(1)
+                ->generate($connectUrl);
+            $ics = $link->icsData;
+            return view('user.links.connect-qr-poster', compact('link', 'connectUrl', 'qrSvg', 'ics'));
+        }
+
+        $qrSvg = QrCode::format('svg')
+            ->size(280)
+            ->errorCorrection('M')
+            ->margin(1)
+            ->generate($connectUrl);
+
+        return view('user.links.connect-qr', compact('link', 'connectUrl', 'qrSvg'));
     }
 
     public function standalone()

@@ -13,9 +13,11 @@ use App\Services\AI\AiActionCooldown;
 use App\Services\AI\AiPlanAccess;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\InsufficientCoinsForAiException;
+use App\Services\AI\QrArtAllowanceExceededException;
 use App\Services\AI\QrArtGenerationException;
 use App\Services\AI\QrArtService;
 use App\Services\AI\QrArtUnavailableException;
+use App\Support\PlanLimit;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Validation\Rule;
@@ -55,6 +57,9 @@ class QrCodeController extends Controller
 
     public function store(Request $request)
     {
+        if ($limited = $this->savedQrLimitResponse($request->user(), 1)) {
+            return $limited;
+        }
         try {
             $attrs = $this->validatePayload($request, $request->all());
         } catch (ValidationException $e) {
@@ -99,6 +104,9 @@ class QrCodeController extends Controller
         }
         if (count($items) > 500) {
             return $this->fail('Bulk limit is 500 items per request', 422, 'too_many_items');
+        }
+        if ($limited = $this->savedQrLimitResponse($request->user(), count($items))) {
+            return $limited;
         }
 
         $prepared = [];
@@ -150,6 +158,11 @@ class QrCodeController extends Controller
             'balance' => app(AiUsageCharger::class)->getBalance($user),
             'recommended_plan' => $plan ? ['slug' => $plan->slug, 'name' => $plan->name] : null,
             'presets' => QrCodeCatalog::aiArtStylePresets(),
+            // Monthly allowance (max_qr_art_monthly): -1 = unlimited, values
+            // normalized so the bypass sentinel never leaks into a payload.
+            'monthly_allowance' => $art->monthlyAllowance($user),
+            'monthly_used'      => $art->monthlyUsed($user),
+            'monthly_remaining' => $art->monthlyRemaining($user),
         ]);
     }
 
@@ -259,6 +272,13 @@ class QrCodeController extends Controller
             $result = $art->generate($user, $data, $validated['prompt'], [
                 'negative_prompt' => $validated['negative_prompt'] ?? null,
             ]);
+        } catch (QrArtAllowanceExceededException $e) {
+            return $this->fail(
+                $e->getMessage(),
+                403,
+                'allowance_exhausted',
+                ['allowance' => $e->allowance, 'used' => $e->used]
+            );
         } catch (InsufficientCoinsForAiException $e) {
             return $this->fail(
                 "Not enough coins — this needs {$e->required}, your balance is {$e->balance}.",
@@ -288,6 +308,32 @@ class QrCodeController extends Controller
             'balance'   => $result['balance'] ?? null,
             'style'     => $validated['style'] ?? null,
             'encoded'   => $data,
+        ]);
+    }
+
+    /**
+     * 403 "saved QR limit reached" response when creating $adding more QR
+     * codes would exceed the user's `max_qr_codes` plan cap, or null when
+     * allowed. -1 = unlimited; bypass-permission holders always pass and the
+     * cap in the payload is normalized so the sentinel never leaks.
+     */
+    protected function savedQrLimitResponse(\App\Modules\User\Models\User $user, int $adding)
+    {
+        // Account-wide count: the plan cap spans every workspace.
+        $current = QrCode::withoutGlobalScope('workspace')
+            ->where('user_id', $user->id)->count();
+        // planUnderLimit checks "one more"; for bulk verify the whole batch fits.
+        if ($user->planUnderLimit('max_qr_codes', $current + $adding - 1, -1)) {
+            return null;
+        }
+        $cap = PlanLimit::normalize((int) $user->getPlanFeature('max_qr_codes', -1));
+        $msg = "You've reached your plan's saved QR code limit ({$cap}).";
+        if ($plan = $user->planThatUnlocks('max_qr_codes', $current)) {
+            $msg .= " Upgrade to the {$plan->name} plan to save more.";
+        }
+        return $this->fail($msg, 403, 'plan_limit_reached', [
+            'limit' => $cap,
+            'used'  => $current,
         ]);
     }
 

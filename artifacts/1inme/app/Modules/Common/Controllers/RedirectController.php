@@ -52,9 +52,7 @@ class RedirectController extends Controller
             return null;
         }
 
-        $exists = \App\Modules\User\Models\User::query()
-            ->whereRaw('LOWER(handle) = ?', [strtolower($handle)])
-            ->exists();
+        $exists = \App\Modules\User\Models\CreatorProfile::ownerUserForHandle($handle) !== null;
         if (!$exists) {
             return null;
         }
@@ -297,7 +295,13 @@ class RedirectController extends Controller
             && $request->hasValidSignatureWhileIgnoring(['_draft', '_t', '_sim_country', '_sim_device'], false);
         $trackedClick = null;
         if (!$previewEnabled && !$request->boolean('_web') && !$isOwnerPreview) {
-            $trackedClick = $this->trackingService->track($link, $request, $alias, 'web');
+            // Event Connect QR (Task #6685): visits arriving via the Connect
+            // QR carry ?src=connect_qr — record the click with that source so
+            // scans are countable and distinguishable from normal visits
+            // (scan count works even when the visitor never signs in).
+            $trackSource = ($link->type === 'ics' && $request->query('src') === 'connect_qr')
+                ? 'connect_qr' : 'web';
+            $trackedClick = $this->trackingService->track($link, $request, $alias, $trackSource);
         }
 
         // A/B variant resolution from the dedicated `ab_variants` table

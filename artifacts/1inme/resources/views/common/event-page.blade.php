@@ -392,6 +392,12 @@
                     {{-- Sticky CTA column --}}
                     <div class="lg:col-span-1">
                         <div class="lg:sticky lg:top-24">
+                            {{-- Connect QR scan-to-connect prompt (Task #6685):
+                                 only for visitors who arrived via the Connect QR,
+                                 and only while RSVPs are actually open. --}}
+                            @if(request()->query('src') === 'connect_qr' && !$eventCancelled && !$hasTicketTiers && $rsvpEnabled)
+                                @include('common.partials.event-connect-qr-prompt', ['link' => $link])
+                            @endif
                             @if($eventCancelled)
                                 <div class="ev-card p-5 text-center">
                                     <span class="ev-accent-icon-badge w-10 h-10 rounded-lg inline-flex items-center justify-center mb-3" style="background: rgba(239,68,68,0.16); border-color: rgba(239,68,68,0.3); color:#ef4444;">

@@ -92,4 +92,75 @@ class QrStudioLinkPrefillTest extends TestCase
         $resp->assertSee('useExistingLink: false', false);
         $resp->assertSee('linkId: null', false);
     }
+
+    // ------------------------------------------------------------------
+    //  resolvePayload (live-preview endpoint) — must resolve owner links
+    //  from ANY workspace (or legacy NULL-workspace links), not just the
+    //  active one, or the preview goes blank for prefilled links.
+    // ------------------------------------------------------------------
+
+    /** Bind the user's personal workspace context (workspace.can routes need it). */
+    private function bindWorkspace(User $user): void
+    {
+        $ws = app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($user);
+        app()->instance('current_workspace', $ws);
+        app()->instance('workspace_owner', $user);
+    }
+
+    public function test_resolve_payload_returns_short_url_for_link_in_another_workspace(): void
+    {
+        $owner = $this->makeUser();
+        $this->bindWorkspace($owner);
+        $link = $this->makeLink($owner);
+
+        // Move the link into a different workspace of the same owner —
+        // workspace_id is not fillable, so set it directly.
+        $otherWs = \App\Modules\User\Models\Workspace::create([
+            'owner_user_id' => $owner->id,
+            'name'          => 'Second Workspace',
+        ]);
+        \DB::table('links')->where('id', $link->id)->update(['workspace_id' => $otherWs->id]);
+
+        $resp = $this->actingAs($owner)->postJson('/user/qr-codes/resolve', [
+            'type'    => 'url',
+            'link_id' => $link->id,
+        ]);
+
+        $resp->assertOk();
+        $encoded = $resp->json('encoded');
+        $this->assertNotSame('', $encoded, 'Cross-workspace owned link must resolve to a short URL, not blank.');
+        $this->assertSame($link->fresh()->getShortUrl(), $encoded);
+    }
+
+    public function test_resolve_payload_returns_short_url_for_legacy_null_workspace_link(): void
+    {
+        $owner = $this->makeUser();
+        $this->bindWorkspace($owner);
+        $link = $this->makeLink($owner);
+        \DB::table('links')->where('id', $link->id)->update(['workspace_id' => null]);
+
+        $resp = $this->actingAs($owner)->postJson('/user/qr-codes/resolve', [
+            'type'    => 'url',
+            'link_id' => $link->id,
+        ]);
+
+        $resp->assertOk();
+        $this->assertSame($link->fresh()->getShortUrl(), $resp->json('encoded'));
+    }
+
+    public function test_resolve_payload_rejects_foreign_link(): void
+    {
+        $owner = $this->makeUser();
+        $other = $this->makeUser();
+        $this->bindWorkspace($other);
+        $theirs = $this->makeLink($other);
+        $this->bindWorkspace($owner);
+
+        $resp = $this->actingAs($owner)->postJson('/user/qr-codes/resolve', [
+            'type'    => 'url',
+            'link_id' => $theirs->id,
+        ]);
+
+        $resp->assertStatus(422);
+    }
 }

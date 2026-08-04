@@ -4,6 +4,8 @@ namespace App\Services\AI;
 
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
+use App\Modules\User\Models\WalletTransaction;
+use App\Support\PlanLimit;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -91,6 +93,74 @@ class QrArtService
         return ['ok' => false, 'status' => $status, 'message' => $message];
     }
 
+    // ---------------- Monthly plan allowance (max_qr_art_monthly) ----------------
+
+    /**
+     * Normalized monthly allowance for $user: -1 = unlimited (also for
+     * plan-limits-bypass holders, whose getPlanFeature returns PHP_INT_MAX),
+     * otherwise the finite per-plan cap. Never leaks the bypass sentinel.
+     */
+    public function monthlyAllowance(User $user): int
+    {
+        return PlanLimit::normalize((int) $user->getPlanFeature('max_qr_art_monthly', -1));
+    }
+
+    /**
+     * Successful generations counted against the current billing month
+     * (calendar month, matching the other monthly meters). A generation is
+     * a `spend` wallet transaction attributed to the qr_art feature; spends
+     * that were refunded (failed generation / storage) are excluded so
+     * failures never consume allowance.
+     */
+    public function monthlyUsed(User $user): int
+    {
+        return WalletTransaction::query()
+            ->where('user_id', $user->id)
+            ->where('type', 'spend')
+            ->where('meta->feature', 'qr_art')
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->whereNotExists(function ($q) use ($user) {
+                $q->selectRaw('1')
+                    ->from('wallet_transactions as r')
+                    ->where('r.user_id', $user->id)
+                    ->where('r.type', 'refund')
+                    ->whereRaw("(r.meta->>'related_id') = wallet_transactions.id::text");
+            })
+            ->count();
+    }
+
+    /** Remaining generations this month: -1 = unlimited, never negative. */
+    public function monthlyRemaining(User $user): int
+    {
+        $allowance = $this->monthlyAllowance($user);
+        if ($allowance < 0) {
+            return -1;
+        }
+        return max(0, $allowance - $this->monthlyUsed($user));
+    }
+
+    /**
+     * Throw when the user's monthly allowance is used up. Called at the top
+     * of generate() so the check always runs BEFORE the coin charge.
+     */
+    protected function assertMonthlyAllowance(User $user): void
+    {
+        $allowance = $this->monthlyAllowance($user);
+        if ($allowance < 0) {
+            return; // unlimited (-1 or bypass permission)
+        }
+        $used = $this->monthlyUsed($user);
+        if ($used < $allowance) {
+            return;
+        }
+        $msg = "You've used all {$allowance} AI QR art generation" . ($allowance === 1 ? '' : 's')
+            . " included in your plan this month. Your allowance resets next month.";
+        if ($plan = $user->planThatUnlocks('max_qr_art_monthly', $used)) {
+            $msg .= " Upgrade to the {$plan->name} plan for more.";
+        }
+        throw new QrArtAllowanceExceededException($msg, $allowance, $used);
+    }
+
     /**
      * Generate an artistic QR for $user. Charges coins up-front and refunds
      * automatically if generation or storage fails.
@@ -108,6 +178,9 @@ class QrArtService
         $prompt = trim($prompt);
         if ($data === '')   throw new \InvalidArgumentException('There is nothing to encode yet.');
         if ($prompt === '') throw new \InvalidArgumentException('Describe the artwork you want.');
+
+        // Monthly plan allowance — must reject BEFORE any coin charge.
+        $this->assertMonthlyAllowance($user);
 
         $cost = $this->coinCost($user);
         $tx = $this->charger->charge($user, $cost, [

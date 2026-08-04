@@ -78,6 +78,60 @@ if (!function_exists('fa_icon_class')) {
     }
 }
 
+if (!function_exists('nav_route_is')) {
+    /**
+     * Sidebar-aware replacement for `request()->routeIs(...)`.
+     *
+     * Soon-gated features redirect from their real URL to
+     * /user/coming-soon/{feature}, which makes the current route name
+     * `user.coming-soon.show` — so no sidebar item matches and the user
+     * loses their place in the nav. This helper matches the given patterns
+     * against the current route name as usual, and additionally — when the
+     * current page IS the coming-soon preview — against the gated feature's
+     * landing route and route globs, so the feature's sidebar item still
+     * highlights (and its collapsible group still auto-opens).
+     */
+    function nav_route_is(string ...$patterns): bool
+    {
+        if (request()->routeIs(...$patterns)) {
+            return true;
+        }
+
+        if (!request()->routeIs('user.coming-soon.show')) {
+            return false;
+        }
+
+        $feature = (string) request()->route('feature');
+        $def = $feature !== ''
+            ? \App\Modules\Common\Support\FeatureStates\FeatureAvailability::definition($feature)
+            : null;
+        if (!$def) {
+            return false;
+        }
+
+        // Route names the feature owns: its landing route plus each glob's
+        // literal prefix expanded to a representative name ("user.payouts.*"
+        // matches pattern "user.payouts.*" directly via Str::is below).
+        $ownNames = array_merge([(string) ($def['landing'] ?? '')], (array) ($def['routes'] ?? []));
+
+        foreach ($patterns as $pattern) {
+            foreach ($ownNames as $name) {
+                if ($name === '') {
+                    continue;
+                }
+                // Match sidebar pattern against the feature's concrete
+                // landing name, or exact-equal globs (e.g. both sides
+                // "user.payouts.*").
+                if (\Illuminate\Support\Str::is($pattern, $name) || $pattern === $name) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+}
+
 if (!function_exists('workspace_owner_id')) {
     /**
      * Return the user id that "owns" the resources visible in the current

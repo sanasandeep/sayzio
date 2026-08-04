@@ -430,12 +430,13 @@ export class ApiClient {
     });
   }
 
-  async assistantMessage(visitorToken: string, message: string, page?: AssistantPage): Promise<AssistantTurn> {
+  async assistantMessage(visitorToken: string, message: string, page?: AssistantPage, screenshot?: string): Promise<AssistantTurn> {
     return this.rawRequest<AssistantTurn>('POST', '/assistant/message', {
       visitor_token: visitorToken,
       surface: 'app',
       message,
       page,
+      screenshot: screenshot || undefined,
     });
   }
 
@@ -450,6 +451,7 @@ export class ApiClient {
     page: AssistantPage | undefined,
     handlers: AssistantStreamHandlers,
     signal?: AbortSignal,
+    screenshot?: string,
   ): Promise<void> {
     const url = `${this.baseUrl}/api/v1/assistant/stream`;
     const headers: Record<string, string> = {
@@ -463,7 +465,7 @@ export class ApiClient {
     const response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ visitor_token: visitorToken, surface: 'app', message, page }),
+      body: JSON.stringify({ visitor_token: visitorToken, surface: 'app', message, page, screenshot: screenshot || undefined }),
       signal,
     });
 
@@ -754,6 +756,13 @@ export interface SyncItem {
 export interface SyncResponse {
   accepted: string[];
   conflicts: string[];
+  /**
+   * Local ids of NEW rows the server refused because the account is at its
+   * `max_browser_sync_items` cap. Updates/tombstones always go through.
+   */
+  rejected?: string[];
+  /** Effective per-entity item limit for the plan (-1 = unlimited). */
+  limit?: number;
   server_time: string;
 }
 
@@ -913,12 +922,19 @@ export interface AssistantTurn {
   user_message?: AssistantMessagePayload;
   assistant_message?: AssistantMessagePayload;
   handed_off?: boolean;
+  vision?: AssistantVisionInfo;
 }
 
+/** Vision-tier outcome for a turn that carried a page screenshot. */
+export interface AssistantVisionInfo {
+  used?: boolean;
+  notice?: string | null;
+}
 export interface AssistantStreamDone {
   assistant_message?: AssistantMessagePayload;
   handed_off?: boolean;
   conversation_id?: number;
+  vision?: AssistantVisionInfo;
 }
 
 export interface AssistantStreamHandlers {

@@ -619,6 +619,8 @@ coin wallet; 80%/100%/overage warnings.
 | Billing | invoices, credit notes, wallet, plans |
 | Payouts | payout connections, onboarding status, 18+ toggle |
 | Browser extension | notifications, click-to-dial, capture reviews, quick QR, add-to-calendar, page→biolink |
+| Browser device sync | Zio Browser device registration + bookmarks/collections/history/reading-list last-write-wins sync ([api.md#browser-device-sync](./api.md#browser-device-sync)) |
+| Referrals & rewards | web-session referral routes + per-plan reward knobs ([api.md#referrals--rewards](./api.md#referrals--rewards)) |
 
 **Public biolink resolution.** `GET /api/v1/biolinks/{alias}` with optional auth
 for visibility filtering. Uses `api.optional_auth` middleware.

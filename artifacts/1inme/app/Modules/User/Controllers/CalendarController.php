@@ -47,6 +47,22 @@ class CalendarController extends Controller
             ->pluck('id');
     }
 
+    /**
+     * Task #6619 — the signed-in user's active workspace id (session-aware via
+     * WorkspaceContext), or null when no user / no workspace can be resolved.
+     */
+    private function activeWorkspaceId(?\App\Modules\User\Models\User $user = null): ?int
+    {
+        $user = $user ?: request()->user();
+        if (!$user) return null;
+
+        try {
+            return app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($user)?->id;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
     /** Resolve the Calendar for an owned `calendar` link or 404/403. */
     private function calendarForLink(Link $link): Calendar
     {
@@ -56,10 +72,13 @@ class CalendarController extends Controller
         $calendar = Calendar::firstOrCreate(
             ['link_id' => $link->id],
             [
-                'user_id'  => $link->user_id,
-                'title'    => $link->title ?: 'My Calendar',
-                'slug'     => $link->alias,
-                'timezone' => \App\Support\PlatformTimezone::forUser(workspace_owner()),
+                'user_id'      => $link->user_id,
+                'title'        => $link->title ?: 'My Calendar',
+                'slug'         => $link->alias,
+                'timezone'     => \App\Support\PlatformTimezone::forUser(workspace_owner()),
+                // Task #6619 — calendars are workspace-scoped: inherit the
+                // bridged link's workspace, falling back to the active one.
+                'workspace_id' => $link->workspace_id ?? $this->activeWorkspaceId(),
             ]
         );
 
@@ -312,7 +331,12 @@ class CalendarController extends Controller
             'events'        => $events,
             'gridEvents'    => $gridEvents,
             'calendars'     => $calendars,
-            'feedUrl'       => route('public.calendars.mine.feed', ['token' => $user->myCalendarFeedToken()]),
+            // Task #6619 — the subscription feed mirrors the chosen workspace
+            // scope: default (active workspace) vs the all-workspaces toggle.
+            'feedUrl'       => route('public.calendars.mine.feed', array_filter([
+                'token' => $user->myCalendarFeedToken(),
+                'ws'    => $built['allWorkspaces'] ? 'all' : null,
+            ])),
             'ownedIds'      => $ownedIds,
             'followedIds'   => $followedIds,
             'view'          => $view,
@@ -327,6 +351,7 @@ class CalendarController extends Controller
                 'tag'      => $built['tag'],
                 'q'        => $built['q'],
                 'past'     => $built['past'],
+                'ws'       => $built['allWorkspaces'] ? 'all' : '',
             ],
         ]);
     }
@@ -418,13 +443,33 @@ class CalendarController extends Controller
      */
     private function buildMyCalendarQuery(Request $request, $user): array
     {
-        $ownedIds    = Calendar::where('user_id', $user->id)->pluck('id');
+        // Task #6619 — My Calendar is scoped to the ACTIVE workspace by
+        // default; `?ws=all` restores the old cross-workspace aggregate.
+        // Followed calendars are external to your workspaces and are never
+        // workspace-filtered — the scope applies to owned/project calendars.
+        $allWorkspaces = $request->query('ws') === 'all';
+        $activeWsId    = $allWorkspaces ? null : $this->activeWorkspaceId($user);
+
+        // NULL workspace_id = legacy/unscoped rows (pre-backfill edge cases):
+        // they show in every workspace rather than vanishing.
+        $ownedIds = Calendar::where('user_id', $user->id)
+            ->when($activeWsId, fn ($q) => $q->where(
+                fn ($w) => $w->where('workspace_id', $activeWsId)->orWhereNull('workspace_id')
+            ))
+            ->pluck('id');
         $followedIds = CalendarFollow::where('follower_id', $user->id)->pluck('calendar_id');
 
         // Task #3584 — Delivery Project calendars set to "Workspace" or
         // "Public" roll into every workspace member's My Calendar (never
         // "Project" tier, which stays scoped to the project page + share link).
+        // Under workspace scoping, only the active workspace's project
+        // calendars roll in.
         $wsProjectIds = $this->workspaceProjectCalendarIds();
+        if ($activeWsId) {
+            $wsProjectIds = Calendar::whereIn('id', $wsProjectIds)
+                ->where('workspace_id', $activeWsId)
+                ->pluck('id');
+        }
 
         $source      = $request->query('source', 'all');
         $calendarIds = match ($source) {
@@ -528,6 +573,7 @@ class CalendarController extends Controller
             'past'        => $past,
             'tag'         => $tag,
             'q'           => $search,
+            'allWorkspaces' => $allWorkspaces,
         ];
     }
 
@@ -559,9 +605,36 @@ class CalendarController extends Controller
             return response($this->composeMyCalendarIcs([], config('app.timezone', 'UTC'), 'My Calendar'), 200, $headers);
         }
 
-        $ownedIds    = Calendar::where('user_id', $user->id)->pluck('id');
+        // Task #6619 — the feed honours the same workspace scope as the
+        // on-screen My Calendar: the user's active workspace by default
+        // (persisted users.active_workspace_id — no session here), or
+        // everything when the subscription URL carries ?ws=all. Followed
+        // calendars are external to workspaces and always included.
+        $allWorkspaces = $request->query('ws') === 'all';
+        $activeWsId    = null;
+        if (!$allWorkspaces) {
+            $persisted = (int) ($user->active_workspace_id ?? 0);
+            if ($persisted && ($ws = \App\Modules\User\Models\Workspace::find($persisted)) && $user->belongsToWorkspace($ws)) {
+                $activeWsId = $ws->id;
+            } else {
+                // No usable persisted pointer — fall back to the oldest owned
+                // workspace without lazily creating one on a public route.
+                $activeWsId = $user->ownedWorkspaces()->orderBy('id')->value('id');
+            }
+        }
+
+        $ownedIds = Calendar::where('user_id', $user->id)
+            ->when($activeWsId, fn ($q) => $q->where(
+                fn ($w) => $w->where('workspace_id', $activeWsId)->orWhereNull('workspace_id')
+            ))
+            ->pluck('id');
         $followedIds = CalendarFollow::where('follower_id', $user->id)->pluck('calendar_id');
         $wsProjectIds = $this->workspaceProjectCalendarIds($user);
+        if ($activeWsId) {
+            $wsProjectIds = Calendar::whereIn('id', $wsProjectIds)
+                ->where('workspace_id', $activeWsId)
+                ->pluck('id');
+        }
         $calendarIds = $ownedIds->merge($followedIds)->merge($wsProjectIds)->unique()->values();
 
         $userTz = \App\Support\PlatformTimezone::forUser($user);

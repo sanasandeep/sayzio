@@ -279,7 +279,27 @@
             </div>
         </fieldset>
 
-        {{-- Special dates (Task #6551) --}}
+        {{-- Special dates (Task #6551). Plan-gated (Task #6651): when the
+             plan switches `special_dates` off, the save path strips the
+             field (Task #6646), so rendering the editable repeater would
+             silently discard input — show an upgrade hint instead. Legacy
+             plans without the key (and plan-less users) default ON. --}}
+        @if(! $user->getPlanFeature('special_dates', true))
+        <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);" data-testid="special-dates-upgrade-hint">
+            <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Special dates</legend>
+            <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Birthday, anniversaries and product release days on your public profile, with follower wishes and a followable calendar.</p>
+            <div class="rounded-lg p-4 flex items-start gap-3" style="background: rgba(61,107,255,0.06); border: 1px dashed rgba(61,107,255,0.35);">
+                <i class="fas fa-lock mt-0.5" style="color: var(--text-dimmed);"></i>
+                <div class="min-w-0">
+                    <p class="text-xs font-semibold" style="color: var(--text-primary);">Special dates aren't included in your current plan.</p>
+                    <p class="text-[11px] mt-1" style="color: var(--text-dimmed);">Upgrade to add special dates, notify your followers on the day, and publish a followable Special Dates calendar.</p>
+                    <a href="{{ route('user.upgrade') }}" class="inline-block mt-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
+                        Upgrade plan
+                    </a>
+                </div>
+            </div>
+        </fieldset>
+        @else
         <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
                   x-data="{
                       kinds: @js((object) $specialDateKindsJs),
@@ -344,6 +364,7 @@
                 </button>
             </div>
         </fieldset>
+        @endif
 
         {{-- Organizer profile (Task #3699) — account-wide event organizer
              details shown on the public event detail page and on

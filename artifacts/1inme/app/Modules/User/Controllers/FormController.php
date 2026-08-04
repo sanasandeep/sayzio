@@ -506,7 +506,14 @@ class FormController extends Controller
     {
         $this->authorizeForm($request, $form);
         $captcha = $form->captchaConfig();
-        return view('user.forms.settings', compact('form', 'captcha'));
+        $settings = array_merge(Form::defaultSettings(), $form->settings ?? []);
+        $delivery = $form->deliveryFileConfig();
+        // Vault files the creator can attach as the post-submit delivery
+        // (Task #6624). Recent-first, a light projection is enough for the
+        // picker — the stored value is the file's /f/{id}/{filename} path.
+        $vaultFiles = UserFile::where('user_id', workspace_owner_id())
+            ->latest()->limit(200)->get(['id', 'filename', 'original_name', 'size_bytes']);
+        return view('user.forms.settings', compact('form', 'captcha', 'settings', 'delivery', 'vaultFiles'));
     }
 
     public function updateSettings(Request $request, Form $form)
@@ -517,7 +524,29 @@ class FormController extends Controller
             'site_key'         => 'nullable|string|max:255',
             'secret_key'       => 'nullable|string|max:255',
             'score_threshold'  => 'nullable|numeric|min:0.1|max:1.0',
+            // After-submit settings (message / redirect / deliver a file).
+            'success_message'  => 'nullable|string|max:500',
+            'success_action'   => 'nullable|in:message,redirect',
+            'success_redirect' => 'nullable|url|max:2000',
+            'delivery_enabled' => 'sometimes|boolean',
+            'delivery_url'     => 'nullable|string|max:2000',
+            'delivery_label'   => 'nullable|string|max:120',
         ]);
+
+        // Delivery file (Task #6624): accept an absolute http(s) URL or a
+        // vault serve path (/f/{id}/{filename}). Anything else is rejected so
+        // the public success state never links out to javascript: etc.
+        $deliveryUrl = trim((string) $request->input('delivery_url', ''));
+        if ($deliveryUrl !== '') {
+            $isVaultPath = (bool) preg_match('#^/f/\d+/[^/\s]+$#', $deliveryUrl);
+            $isHttpUrl   = (bool) preg_match('#^https?://#i', $deliveryUrl)
+                && filter_var($deliveryUrl, FILTER_VALIDATE_URL);
+            if (!$isVaultPath && !$isHttpUrl) {
+                return back()->withInput()->withErrors([
+                    'delivery_url' => 'The delivery file must be a vault file or a valid http(s) URL.',
+                ]);
+            }
+        }
 
         $cap = $form->captchaConfig();
         $cap['provider']        = $request->input('captcha_provider');
@@ -537,6 +566,18 @@ class FormController extends Controller
 
         $settings = array_merge(Form::defaultSettings(), $form->settings ?? []);
         $settings['captcha'] = $cap;
+
+        // After-submit settings (Task #6624) — saved alongside captcha.
+        $settings['success_message'] = trim((string) $request->input('success_message', ''))
+            ?: Form::defaultSettings()['success_message'];
+        $settings['success_action'] = $request->input('success_action') === 'redirect' ? 'redirect' : 'message';
+        $settings['success_redirect'] = trim((string) $request->input('success_redirect', '')) ?: null;
+        $settings['delivery_file'] = [
+            'enabled' => $request->boolean('delivery_enabled'),
+            'url'     => $deliveryUrl !== '' ? $deliveryUrl : null,
+            'label'   => trim((string) $request->input('delivery_label', '')) ?: null,
+        ];
+
         $form->update(['settings' => $settings]);
 
         return back()->with('success', 'Settings saved.');
@@ -559,7 +600,8 @@ class FormController extends Controller
         $resolveConfigId = function (?string $raw, string $kind) use ($request): ?int {
             if ($raw === null || $raw === '') return null;
             if (! ctype_digit($raw)) return null;
-            $found = \App\Modules\User\Models\IntegrationConfig::where('id', (int) $raw)
+            $found = \App\Modules\User\Models\IntegrationConfig::withoutGlobalScope('workspace')
+                ->where('id', (int) $raw)
                 ->where('user_id', workspace_owner_id())
                 ->kind($kind)
                 ->value('id');
@@ -1996,17 +2038,84 @@ class FormController extends Controller
     protected function successResponse(Request $request, Form $form, bool $silent, ?FormSubmission $submission = null)
     {
         $settings = array_merge(Form::defaultSettings(), $form->settings ?? []);
+
+        // Deliver-a-file (Task #6624): only a real, stored, non-spam
+        // submission unlocks the signed download. Paid forms never reach this
+        // branch pre-payment (they return the checkout redirect above);
+        // the paid return path carries its own link via the checkout
+        // success URL, and the download route re-checks payment anyway.
+        $deliveryUrl = (!$silent && $submission) ? $form->deliverySignedUrl($submission) : null;
+
         if ($request->wantsJson()) {
             return response()->json([
                 'ok' => true,
                 'message' => $settings['success_message'],
                 'redirect' => $settings['success_action'] === 'redirect' ? $settings['success_redirect'] : null,
+                'delivery_url'   => $deliveryUrl,
+                'delivery_label' => $deliveryUrl ? $form->deliveryFileLabel() : null,
             ]);
         }
         if ($settings['success_action'] === 'redirect' && !empty($settings['success_redirect'])) {
             return redirect()->away($settings['success_redirect']);
         }
-        return back()->with('form_success', $settings['success_message']);
+        return back()
+            ->with('form_success', $settings['success_message'])
+            ->with('form_delivery_url', $deliveryUrl);
+    }
+
+    /**
+     * Signed, time-limited download unlock for a form's delivery file
+     * (Task #6624). The signature binds the link to one submission; we then
+     * re-check that the submission is real (right form, not spam) and — for
+     * paid forms — that its charge actually cleared before handing over the
+     * file. The configured target is either a vault serve path or an
+     * external URL; both are delivered as a redirect.
+     */
+    public function deliveryDownload(Request $request, string $slug, int $submission)
+    {
+        abort_unless($request->hasValidSignature(), 403);
+
+        $form = Form::withoutGlobalScope('workspace')
+            ->where('slug', $slug)->where('is_active', true)->firstOrFail();
+        $sub = FormSubmission::withoutGlobalScope('workspace')
+            ->where('form_id', $form->id)->find($submission);
+
+        abort_if(!$sub || $sub->is_spam, 404);
+        // A paid form's pending row is an unpaid/abandoned checkout — the
+        // link a submitter got before paying must not unlock the file.
+        abort_if($sub->isAwaitingPayment(), 403);
+
+        $url = $form->deliveryFileUrl();
+        abort_if(!$url, 404);
+
+        // Vault-backed delivery: serve the file directly under THIS route's
+        // own signed/submission/payment gate. The generic /f/{id}/{filename}
+        // serve endpoint only allows anonymous access for files referenced by
+        // public records — a delivery file deliberately isn't public, so the
+        // valid signature stands in for authorization here. Scan gates still
+        // apply: never hand a pending/flagged file to a respondent.
+        if (preg_match('#^/f/(\d+)/([^/\s]+)$#', $url, $m)) {
+            $file = UserFile::find((int) $m[1]);
+            abort_if(!$file || $file->filename !== $m[2], 404);
+            abort_if($file->isPendingScan() || $file->isFlagged(), 403);
+
+            $storageDisk = $file->disk === 'public' ? 'public' : ($file->disk === 's3' ? 's3' : 'user_files');
+            if (config("filesystems.disks.{$storageDisk}.driver") === 's3') {
+                return redirect(Storage::disk($storageDisk)->temporaryUrl($file->path, now()->addMinutes(30)));
+            }
+
+            $fullPath = Storage::disk($storageDisk)->path($file->path);
+            abort_unless(file_exists($fullPath), 404);
+
+            return response()->file($fullPath, [
+                'Content-Type'            => $file->mime_type,
+                'Content-Disposition'     => 'attachment; filename="' . addslashes($file->original_name) . '"',
+                'Cache-Control'           => 'private, max-age=0',
+                'X-Content-Type-Options'  => 'nosniff',
+            ]);
+        }
+
+        return redirect()->away($url);
     }
 
     protected function fireNotifications(Form $form, FormSubmission $submission): void
@@ -2062,12 +2171,19 @@ class FormController extends Controller
             if (!empty($n['autoresponder']['enabled'])) {
                 $to = $submission->data[$n['autoresponder']['email_field']] ?? null;
                 if ($to && filter_var($to, FILTER_VALIDATE_EMAIL)) {
+                    // Deliver-a-file (Task #6624): the email link gets a longer
+                    // window than the on-page one — inboxes are read late.
+                    $autoBody = (string) $n['autoresponder']['body'];
+                    $dl = $form->deliverySignedUrl($submission, now()->addDays(7));
+                    if ($dl) {
+                        $autoBody .= "\n\n" . $form->deliveryFileLabel() . ':' . "\n" . $dl;
+                    }
                     $this->sendEmailViaConfig(
                         $form->user_id,
                         $n['autoresponder']['config_id'] ?? null,
                         [$to],
                         $n['autoresponder']['subject'],
-                        $n['autoresponder']['body'],
+                        $autoBody,
                         null,
                     );
                 }
@@ -2163,19 +2279,16 @@ class FormController extends Controller
     }
 
     /**
-     * Send an email through the user-selected mailer configuration. When no
-     * config_id is provided, falls back to the application's default mailer.
-     * Supports SMTP-shaped providers (smtp, sendgrid) end-to-end; other
-     * providers (mailgun, postmark, ses) require their respective transport
-     * packages and will log a warning until those are wired in.
+     * Send an email through the user-selected email connection. Delegates to
+     * the shared {@see \App\Modules\User\Services\EmailConnectionMailer} so
+     * forms, subscriber broadcasts, and any future surface share the same
+     * transport wiring and safety rule: no / unusable connection → platform
+     * default mailer (never a dropped send).
      *
      * @param  array<int, string> $to
      */
     protected function sendEmailViaConfig(int $userId, ?int $configId, array $to, string $subject, string $body, ?string $replyTo): void
     {
-        $to = array_values(array_filter($to, fn ($e) => filter_var($e, FILTER_VALIDATE_EMAIL)));
-        if (empty($to)) return;
-
         $opts = [
             'subject' => $subject,
             'body'    => $body,
@@ -2184,75 +2297,7 @@ class FormController extends Controller
         ];
         if ($replyTo) $opts['reply_to'] = $replyTo;
 
-        if (! $configId) {
-            // No config selected → use application default mailer.
-            foreach ($to as $recipient) {
-                \App\Modules\Common\Services\Emailer::send('form.notification', $recipient, [], $opts);
-            }
-            return;
-        }
-
-        $config = \App\Modules\User\Models\IntegrationConfig::where('user_id', $userId)
-            ->where('id', $configId)->kind('email')->active()->first();
-        if (! $config) {
-            logger()->warning("Form email skipped: integration config #{$configId} not found / inactive.");
-            return;
-        }
-
-        $cred = (array) $config->credentials;
-        $meta = (array) $config->meta;
-        $mailerKey = 'integ_' . $config->id;
-
-        // Only smtp + sendgrid are wired today (both go through SMTP transport).
-        $smtpConfig = match ($config->provider) {
-            'smtp' => [
-                'transport'  => 'smtp',
-                'host'       => $meta['host'] ?? null,
-                'port'       => (int) ($meta['port'] ?? 587),
-                'encryption' => $meta['encryption'] ?? null,
-                'username'   => $meta['username'] ?? null,
-                'password'   => $cred['password'] ?? null,
-                'timeout'    => 10,
-            ],
-            'sendgrid' => [
-                'transport'  => 'smtp',
-                'host'       => 'smtp.sendgrid.net',
-                'port'       => 587,
-                'encryption' => 'tls',
-                'username'   => 'apikey',
-                'password'   => $cred['api_key'] ?? null,
-                'timeout'    => 10,
-            ],
-            default => null,
-        };
-
-        if (! $smtpConfig) {
-            logger()->warning("Form email skipped: provider '{$config->provider}' transport not yet wired.");
-            return;
-        }
-
-        $fromEmail = $meta['from_email'] ?? config('mail.from.address');
-        $fromName  = $meta['from_name']  ?? config('mail.from.name');
-
-        $opts['mailer'] = $mailerKey;
-        $opts['mailer_config'] = $smtpConfig;
-        if ($fromEmail) {
-            $opts['from'] = ['address' => $fromEmail, 'name' => $fromName ?? ''];
-        }
-
-        try {
-            foreach ($to as $recipient) {
-                \App\Modules\Common\Services\Emailer::send('form.notification', $recipient, [], $opts);
-            }
-        } finally {
-            // Purge the runtime mailer config so the next request / queue job in
-            // a long-running worker does not see leaked credentials. Also forget
-            // the resolved mailer instance from the MailManager cache.
-            $mailers = (array) config('mail.mailers');
-            unset($mailers[$mailerKey]);
-            config(['mail.mailers' => $mailers]);
-            try { app('mail.manager')->forgetMailers(); } catch (\Throwable $e) { /* older Laravel */ }
-        }
+        \App\Modules\User\Services\EmailConnectionMailer::send('form.notification', $userId, $configId, $to, $opts);
     }
 
     /**

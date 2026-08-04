@@ -66,6 +66,10 @@ class SendSpecialDateWishes extends Command
 
     protected function processCreator(User $creator, NotificationService $notifications, bool $force): int
     {
+        // Plan-gated (Task #6646): skip creators whose plan explicitly
+        // disables special dates (legacy plans without the key default ON).
+        if (! $creator->getPlanFeature('special_dates', true)) return 0;
+
         $entries = SpecialDates::entries($creator);
         if (empty($entries)) return 0;
 

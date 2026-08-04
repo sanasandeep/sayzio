@@ -32,12 +32,32 @@ class MyCalendarController extends Controller
     use ApiResponses;
     use ExportsCalendarEvents;
 
+    /**
+     * Task #6619 — owned-calendar ids honouring the workspace scope: the
+     * user's active workspace by default, everything when `?ws=all`. Followed
+     * calendars are external to workspaces and are never filtered.
+     */
+    private function scopedOwnedIds(Request $request, $user): \Illuminate\Support\Collection
+    {
+        $q = Calendar::where('user_id', $user->id);
+
+        if ($request->query('ws') !== 'all') {
+            $wsId = $this->activeWorkspaceId($user);
+            if ($wsId) {
+                // NULL workspace_id = legacy/unscoped rows: visible everywhere.
+                $q->where(fn ($w) => $w->where('workspace_id', $wsId)->orWhereNull('workspace_id'));
+            }
+        }
+
+        return $q->pluck('id');
+    }
+
     /** Calendars the user owns or follows, with counts + following flag. */
     public function index(Request $request)
     {
         $user = $request->user();
 
-        $ownedIds    = Calendar::where('user_id', $user->id)->pluck('id');
+        $ownedIds    = $this->scopedOwnedIds($request, $user);
         $followedIds = CalendarFollow::where('follower_id', $user->id)->pluck('calendar_id');
 
         $calendars = Calendar::whereIn('id', $ownedIds->merge($followedIds)->unique())
@@ -198,7 +218,7 @@ class MyCalendarController extends Controller
     {
         $user = $request->user();
 
-        $ownedIds    = Calendar::where('user_id', $user->id)->pluck('id');
+        $ownedIds    = $this->scopedOwnedIds($request, $user);
         $followedIds = CalendarFollow::where('follower_id', $user->id)->pluck('calendar_id');
 
         $source = $request->query('source', 'all');
@@ -272,7 +292,7 @@ class MyCalendarController extends Controller
     {
         $user = $request->user();
 
-        $ownedIds    = Calendar::where('user_id', $user->id)->pluck('id');
+        $ownedIds    = $this->scopedOwnedIds($request, $user);
         $followedIds = CalendarFollow::where('follower_id', $user->id)->pluck('calendar_id');
 
         $source = $request->query('source', 'all');
@@ -347,7 +367,7 @@ class MyCalendarController extends Controller
         $tz   = \App\Support\PlatformTimezone::forUser($user);
         $now  = Carbon::now($tz);
 
-        $ownedIds    = Calendar::where('user_id', $user->id)->pluck('id');
+        $ownedIds    = $this->scopedOwnedIds($request, $user);
         $followedIds = CalendarFollow::where('follower_id', $user->id)->pluck('calendar_id');
         $calendarIds = $ownedIds->merge($followedIds)->unique()->values();
 
@@ -438,6 +458,8 @@ class MyCalendarController extends Controller
             $calendar = Calendar::create([
                 'link_id'      => $link->id,
                 'user_id'      => $user->id,
+                // Task #6619 — stamp the calendar into the active workspace.
+                'workspace_id' => $workspaceId,
                 'title'        => $data['title'],
                 'slug'         => $alias,
                 'description'  => $data['description'] ?? '',

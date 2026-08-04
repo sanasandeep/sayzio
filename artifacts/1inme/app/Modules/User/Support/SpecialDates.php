@@ -198,6 +198,15 @@ class SpecialDates
                 'description' => 'Birthdays, anniversaries and release days worth celebrating.',
                 'is_public'   => true,
                 'timezone'    => \App\Support\PlatformTimezone::forUser($user),
+                // Task #6619 — calendars are workspace-scoped; the auto
+                // "Special Dates" calendar lives in the Personal workspace.
+                'workspace_id' => (function () use ($user) {
+                    try {
+                        return $user->ensureDefaultWorkspace()?->id;
+                    } catch (\Throwable) {
+                        return null;
+                    }
+                })(),
             ]
         );
     }

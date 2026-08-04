@@ -8,5 +8,10 @@ export const modules: ModuleMap = {
   "./components/mockups/ai-hero-cards/BiolinkPage.tsx": () => import("../components/mockups/ai-hero-cards/BiolinkPage.tsx"),
   "./components/mockups/ai-hero-cards/EventPage.tsx": () => import("../components/mockups/ai-hero-cards/EventPage.tsx"),
   "./components/mockups/ai-hero-cards/StatsDashboard.tsx": () => import("../components/mockups/ai-hero-cards/StatsDashboard.tsx"),
-  "./components/mockups/ai-hero-cards/StoreMenu.tsx": () => import("../components/mockups/ai-hero-cards/StoreMenu.tsx")
+  "./components/mockups/ai-hero-cards/StoreMenu.tsx": () => import("../components/mockups/ai-hero-cards/StoreMenu.tsx"),
+  "./components/mockups/smart-calendar/CreateFlow.tsx": () => import("../components/mockups/smart-calendar/CreateFlow.tsx"),
+  "./components/mockups/smart-calendar/EmptyState.tsx": () => import("../components/mockups/smart-calendar/EmptyState.tsx"),
+  "./components/mockups/smart-calendar/MyCalendarSmart.tsx": () => import("../components/mockups/smart-calendar/MyCalendarSmart.tsx"),
+  "./components/mockups/smart-calendar/PublicPage.tsx": () => import("../components/mockups/smart-calendar/PublicPage.tsx"),
+  "./components/mockups/smart-calendar/TooManyState.tsx": () => import("../components/mockups/smart-calendar/TooManyState.tsx")
 };

@@ -165,6 +165,10 @@ signed in to their dashboard. Always:
   so and suggest contacting support.
 - If the user asks to speak with a human, offer the "Talk to a human"
   action.
+- Some turns include an attached snapshot of the page the visitor is
+  looking at. You CAN see and analyze these images — describe what is
+  in the snapshot and use it to answer. Never claim you cannot view
+  images when one is attached.
 P;
     }
 

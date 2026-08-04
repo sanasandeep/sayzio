@@ -94,8 +94,12 @@ class PlansAndAddonsSeeder extends Seeder
         // the overlay-fill path below pick them up. Existing per-tier keys
         // (e.g. ai_widget / ai_voice_assistant) win over these defaults.
         $aiLimits = self::aiFeatureLimits();
+        $gatingSync = self::gatingSyncFeatureDefaults();
         foreach ($defs as &$def) {
-            $extra = $aiLimits[$def['slug']] ?? [];
+            $extra = array_merge(
+                $aiLimits[$def['slug']] ?? [],
+                $gatingSync[$def['slug']] ?? [],
+            );
             $def['features'] = array_merge($extra, $def['features']);
         }
         unset($def);
@@ -186,6 +190,49 @@ class PlansAndAddonsSeeder extends Seeder
      *
      * @return array<string, array<string, int|bool>>
      */
+    /**
+     * Per-plan defaults for the plan-gating sync sweep (Task #6646): feature
+     * keys that were already enforced in code (or previously ungated) but
+     * missing from the seeded plan rows. Merged into every tier alongside
+     * aiFeatureLimits() and reused verbatim by the additive backfill
+     * migration so both share one source of truth.
+     *
+     * - `special_dates` was previously ungated — default ON everywhere so
+     *   behaviour does not change; admins can now switch it off per plan.
+     * - `max_smart_rules` was an invisible cap falling back to the hard
+     *   ceiling (25); tiers now carry an explicit value (-1 = unlimited,
+     *   still hard-capped at 25 by the sanitizer).
+     * - `browser_sync` / `max_browser_sync_items` (Task #6647) — Zio Browser
+     *   device sync was previously ungated. The boolean defaults ON on every
+     *   tier (legacy-safe: behaviour unchanged, admins can switch it off);
+     *   the per-entity row cap bounds how many bookmarks / collections /
+     *   history entries / reading-list items one account can store per data
+     *   type (-1 = unlimited, still hard-capped server-side).
+     * - `max_service_booking_staff` (Task #6652) — staff members per service
+     *   booking page. Previously unseeded, so every plan fell back to the
+     *   call-site default. Tiers mirror `max_service_booking` (0 = staff
+     *   feature hidden, -1 = unlimited).
+     * - `max_brand_asset_versions` (Task #6652) — generations/regenerations
+     *   per Brand Kit visual asset. Previously unseeded, so plans silently
+     *   fell back to the legacy default. 0 on free (which has
+     *   `brand_kit_assets` off anyway); -1 = unlimited.
+     *
+     * @return array<string, array<string, int|bool>>
+     */
+    public static function gatingSyncFeatureDefaults(): array
+    {
+        return [
+            'free'           => ['special_dates' => true, 'max_smart_rules' => 3,  'browser_sync' => true, 'max_browser_sync_items' => 2000,  'max_service_booking_staff' => 1,  'max_brand_asset_versions' => 0],
+            'creator'        => ['special_dates' => true, 'max_smart_rules' => 10, 'browser_sync' => true, 'max_browser_sync_items' => 10000, 'max_service_booking_staff' => 3,  'max_brand_asset_versions' => 5],
+            'professional'   => ['special_dates' => true, 'max_smart_rules' => 25, 'browser_sync' => true, 'max_browser_sync_items' => 25000, 'max_service_booking_staff' => 10, 'max_brand_asset_versions' => 20],
+            'business'       => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1,    'max_service_booking_staff' => -1, 'max_brand_asset_versions' => -1],
+            'agency'         => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1,    'max_service_booking_staff' => -1, 'max_brand_asset_versions' => -1],
+            'developer'      => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => 25000, 'max_service_booking_staff' => 10, 'max_brand_asset_versions' => 20],
+            'enterprise-api' => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1,    'max_service_booking_staff' => -1, 'max_brand_asset_versions' => -1],
+            'unlimited'      => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1,    'max_service_booking_staff' => -1, 'max_brand_asset_versions' => -1],
+        ];
+    }
+
     public static function aiFeatureLimits(): array
     {
         return [
@@ -204,6 +251,14 @@ class PlansAndAddonsSeeder extends Seeder
                 'qr_art'               => false,
                 'whatsapp_agent'       => false,
                 'marketing_strategist' => false,
+                'competitor_teardown'  => false,
+                'audience_type_estimation' => false,
+                'brand_kit_assets'     => false,
+                'dashboard_designer'   => false,
+                'ai_staff_billing'     => false,
+                'ai_staff_contacts'    => false,
+                'ai_staff_inbox'       => false,
+                'ai_staff_general'     => false,
             ],
             'creator' => [
                 'brand_studio'          => true,
@@ -220,6 +275,14 @@ class PlansAndAddonsSeeder extends Seeder
                 'qr_art'               => true,
                 'whatsapp_agent'       => false,
                 'marketing_strategist' => false,
+                'competitor_teardown'  => true,
+                'audience_type_estimation' => true,
+                'brand_kit_assets'     => true,
+                'dashboard_designer'   => true,
+                'ai_staff_billing'     => true,
+                'ai_staff_contacts'    => true,
+                'ai_staff_inbox'       => true,
+                'ai_staff_general'     => true,
             ],
             'professional' => [
                 'brand_studio'          => true,
@@ -236,6 +299,14 @@ class PlansAndAddonsSeeder extends Seeder
                 'qr_art'               => true,
                 'whatsapp_agent'       => true,
                 'marketing_strategist' => true,
+                'competitor_teardown'  => true,
+                'audience_type_estimation' => true,
+                'brand_kit_assets'     => true,
+                'dashboard_designer'   => true,
+                'ai_staff_billing'     => true,
+                'ai_staff_contacts'    => true,
+                'ai_staff_inbox'       => true,
+                'ai_staff_general'     => true,
             ],
             'business' => [
                 'brand_studio'          => true,
@@ -252,6 +323,14 @@ class PlansAndAddonsSeeder extends Seeder
                 'qr_art'               => true,
                 'whatsapp_agent'       => true,
                 'marketing_strategist' => true,
+                'competitor_teardown'  => true,
+                'audience_type_estimation' => true,
+                'brand_kit_assets'     => true,
+                'dashboard_designer'   => true,
+                'ai_staff_billing'     => true,
+                'ai_staff_contacts'    => true,
+                'ai_staff_inbox'       => true,
+                'ai_staff_general'     => true,
             ],
             'agency' => [
                 'brand_studio'          => true,
@@ -268,6 +347,14 @@ class PlansAndAddonsSeeder extends Seeder
                 'qr_art'               => true,
                 'whatsapp_agent'       => true,
                 'marketing_strategist' => true,
+                'competitor_teardown'  => true,
+                'audience_type_estimation' => true,
+                'brand_kit_assets'     => true,
+                'dashboard_designer'   => true,
+                'ai_staff_billing'     => true,
+                'ai_staff_contacts'    => true,
+                'ai_staff_inbox'       => true,
+                'ai_staff_general'     => true,
             ],
             'developer' => [
                 'brand_studio'          => true,
@@ -284,6 +371,14 @@ class PlansAndAddonsSeeder extends Seeder
                 'qr_art'               => true,
                 'whatsapp_agent'       => true,
                 'marketing_strategist' => true,
+                'competitor_teardown'  => true,
+                'audience_type_estimation' => true,
+                'brand_kit_assets'     => true,
+                'dashboard_designer'   => true,
+                'ai_staff_billing'     => true,
+                'ai_staff_contacts'    => true,
+                'ai_staff_inbox'       => true,
+                'ai_staff_general'     => true,
             ],
             'enterprise-api' => [
                 'brand_studio'          => true,
@@ -300,6 +395,14 @@ class PlansAndAddonsSeeder extends Seeder
                 'qr_art'               => true,
                 'whatsapp_agent'       => true,
                 'marketing_strategist' => true,
+                'competitor_teardown'  => true,
+                'audience_type_estimation' => true,
+                'brand_kit_assets'     => true,
+                'dashboard_designer'   => true,
+                'ai_staff_billing'     => true,
+                'ai_staff_contacts'    => true,
+                'ai_staff_inbox'       => true,
+                'ai_staff_general'     => true,
             ],
             'unlimited' => [
                 'brand_studio'          => true,
@@ -316,6 +419,14 @@ class PlansAndAddonsSeeder extends Seeder
                 'qr_art'               => true,
                 'whatsapp_agent'       => true,
                 'marketing_strategist' => true,
+                'competitor_teardown'  => true,
+                'audience_type_estimation' => true,
+                'brand_kit_assets'     => true,
+                'dashboard_designer'   => true,
+                'ai_staff_billing'     => true,
+                'ai_staff_contacts'    => true,
+                'ai_staff_inbox'       => true,
+                'ai_staff_general'     => true,
             ],
         ];
     }
