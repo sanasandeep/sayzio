@@ -6,9 +6,10 @@ import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useDrawer } from "@/contexts/DrawerContext";
-import { TOP_BAR_H } from "@/contexts/TabBarContext";
 import { useColors, useResolvedScheme } from "@/hooks/useColors";
 import { listNotifications } from "@/lib/api/notifications";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { TOP_BAR_H, useTabBar } from "@/contexts/TabBarContext";
 
 export function PinnedTopBar() {
   const colors = useColors();
@@ -38,10 +39,16 @@ export function PinnedTopBar() {
 
   const totalHeight = insets.top + TOP_BAR_H;
 
+  const { topTranslateY } = useTabBar();
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: topTranslateY.value }],
+  }));
+
   return (
-    <View
+    <Animated.View
       style={[
         styles.wrapper,
+        animatedStyle,
         {
           height: totalHeight,
         },
@@ -105,7 +112,7 @@ export function PinnedTopBar() {
           )}
         </Pressable>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

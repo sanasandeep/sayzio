@@ -18,6 +18,7 @@ export const TOP_BAR_H = 56;
 
 type TabBarContextValue = {
   translateY: SharedValue<number>;
+  topTranslateY: SharedValue<number>;
   reportScroll: (offsetY: number) => void;
 };
 
@@ -25,6 +26,10 @@ const TabBarContext = createContext<TabBarContextValue | null>(null);
 
 export function TabBarProvider({ children }: { children: React.ReactNode }) {
   const translateY = useSharedValue(0);
+  // Top bar slides UP out of view by its full height (safe-area inset + bar).
+  const topTranslateY = useSharedValue(0);
+  const insets = useSafeAreaInsets();
+  const topBarTotalHeight = insets.top + TOP_BAR_H;
   const lastOffsetY = useRef(0);
   const hidden = useRef(false);
 
@@ -37,6 +42,7 @@ export function TabBarProvider({ children }: { children: React.ReactNode }) {
         if (hidden.current) {
           hidden.current = false;
           translateY.value = withTiming(0, { duration: 220 });
+          topTranslateY.value = withTiming(0, { duration: 220 });
         }
         return;
       }
@@ -44,16 +50,18 @@ export function TabBarProvider({ children }: { children: React.ReactNode }) {
       if (delta > 6 && !hidden.current) {
         hidden.current = true;
         translateY.value = withTiming(120, { duration: 220 });
+        topTranslateY.value = withTiming(-topBarTotalHeight, { duration: 220 });
       } else if (delta < -6 && hidden.current) {
         hidden.current = false;
         translateY.value = withTiming(0, { duration: 220 });
+        topTranslateY.value = withTiming(0, { duration: 220 });
       }
     },
-    [translateY],
+    [translateY, topTranslateY, topBarTotalHeight],
   );
 
   return (
-    <TabBarContext.Provider value={{ translateY, reportScroll }}>
+    <TabBarContext.Provider value={{ translateY, topTranslateY, reportScroll }}>
       {children}
     </TabBarContext.Provider>
   );
