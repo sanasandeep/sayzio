@@ -118,6 +118,13 @@
         @endif
     </div>
 
+    @if(!empty($qrConnect) || $dailySeries->isNotEmpty())
+        {{-- Shared chart runtime — loaded once for both the QR Connect funnel
+             chart and the daily visitors chart below. --}}
+        <script src="{{ asset('js/vendor/chart.umd.min.js') }}"></script>
+        @vite(['resources/js/analytics-charts.js'])
+    @endif
+
     @if(!empty($qrConnect))
         {{-- QR Connect panel (Task #6685) — event links only. Scan-to-connect
              funnel attributed to the event's Connect QR, within the range. --}}
@@ -129,7 +136,7 @@
                 </div>
                 <a href="{{ route('user.links.connect-qr', $link) }}" class="text-sm px-3 py-1.5 rounded-lg border font-semibold" style="border-color: var(--border-soft); color: var(--text-primary);">Get the Connect QR →</a>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div class="grid grid-cols-2 sm:grid-cols-6 gap-3">
                 <div class="rounded-xl p-4 border" style="border-color: var(--border-soft);">
                     <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">Scans</p>
                     <p class="text-2xl font-extrabold mt-1" style="color: var(--text-primary);">{{ number_format($qrConnect['scans']) }}</p>
@@ -150,7 +157,48 @@
                     <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">New followers</p>
                     <p class="text-2xl font-extrabold mt-1 text-amber-600">{{ number_format($qrConnect['follows']) }}</p>
                 </div>
+                <div class="rounded-xl p-4 border" style="border-color: var(--border-soft);">
+                    <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">Conversion</p>
+                    <p class="text-2xl font-extrabold mt-1 text-violet-600">{{ $qrConnect['conversion_pct'] !== null ? $qrConnect['conversion_pct'] . '%' : '—' }}</p>
+                    <p class="text-[10px] mt-0.5" style="color: var(--text-faint);">Scans → connects</p>
+                </div>
             </div>
+
+            @if(($qrConnect['daily'] ?? collect())->isNotEmpty())
+                {{-- Daily funnel trend (Task #6689) — scans vs completed connects per day. --}}
+                <div class="mt-5">
+                    <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+                        <span class="text-xs font-semibold uppercase tracking-wide" style="color: var(--text-faint);">Daily scans vs connects</span>
+                        <div class="view-toggle" data-chart-toggle="qrConnectChart">
+                            <button type="button" class="active" data-view="bar">Bar</button>
+                            <button type="button" data-view="line">Line</button>
+                        </div>
+                    </div>
+                    <div style="height: 200px;"><canvas id="qrConnectChart"></canvas></div>
+                </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const chart = AnalyticsCharts.createTrendChart('qrConnectChart',
+                            @json($qrConnect['daily']->pluck('d')),
+                            [
+                                { label: 'Scans', data: @json($qrConnect['daily']->pluck('scans')), color: '#3d6bff' },
+                                { label: 'Connects', data: @json($qrConnect['daily']->pluck('connects')), color: '#10b981' },
+                            ],
+                            { defaultView: 'bar' }
+                        );
+                        const toggle = document.querySelector('[data-chart-toggle="qrConnectChart"]');
+                        if (toggle && chart) {
+                            toggle.querySelectorAll('button').forEach((btn) => {
+                                btn.addEventListener('click', () => {
+                                    toggle.querySelectorAll('button').forEach((b) => b.classList.remove('active'));
+                                    btn.classList.add('active');
+                                    AnalyticsCharts.setTrendView(chart, btn.dataset.view);
+                                });
+                            });
+                        }
+                    });
+                </script>
+            @endif
         </div>
     @endif
 
@@ -185,8 +233,6 @@
             <div style="height: 240px;"><canvas id="visitorChart"></canvas></div>
         </div>
 
-        <script src="{{ asset('js/vendor/chart.umd.min.js') }}"></script>
-        @vite(['resources/js/analytics-charts.js'])
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 const labels = @json($dailySeries->pluck('d'));

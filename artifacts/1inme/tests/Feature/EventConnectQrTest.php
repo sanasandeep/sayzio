@@ -338,5 +338,18 @@ class EventConnectQrTest extends TestCase
         $this->assertSame(1, $qr['existing']);
         $this->assertSame(1, $qr['rsvps']);
         $this->assertSame(2, $qr['follows']);
+
+        // Daily funnel + conversion (Task #6689): 2 scans yesterday, 2
+        // connects today → union of both days, 100% conversion for the range.
+        $this->assertSame(100.0, $qr['conversion_pct']);
+        $daily = $qr['daily'];
+        $this->assertCount(2, $daily);
+        $byDay = $daily->keyBy('d');
+        $yesterday = now()->subDay()->format('Y-m-d');
+        $today = now()->format('Y-m-d');
+        $this->assertSame(2, $byDay[$yesterday]->scans);
+        $this->assertSame(0, $byDay[$yesterday]->connects);
+        $this->assertSame(0, $byDay[$today]->scans);
+        $this->assertSame(2, $byDay[$today]->connects);
     }
 }
