@@ -121,7 +121,10 @@ class MarketingPlanCalculatorController extends Controller
 
     /**
      * Validate a save/update. The payload is the owner's own free-form
-     * assumption set, so validation focuses on shape + size, not values.
+     * assumption set, so validation focuses on shape + size, plus bounds
+     * on the numbers the calculation engine consumes (Task #6742) so a
+     * stored plan can never reload with nonsense inputs (0/negative FX
+     * rate, negative costs, >100% conversion rates).
      *
      * @return array{name:string,payload:array<string,mixed>}
      */
@@ -130,14 +133,35 @@ class MarketingPlanCalculatorController extends Controller
         $validated = $request->validate([
             'name'    => 'required|string|max:160',
             'payload' => 'required|array',
+
+            // Engine-critical numbers — bounded, but nullable so older /
+            // partial payloads still save.
+            'payload.usd_inr_rate'     => 'nullable|numeric|min:1|max:100000',
+            'payload.annual_budget'    => 'nullable|numeric|min:0|max:1000000000000',
+            'payload.ai_credits'       => 'nullable|numeric|min:0|max:1000000000000',
+            'payload.organic_visitors' => 'nullable|numeric|min:0|max:1000000000000',
+            'payload.hours_per_tool'   => 'nullable|numeric|min:0|max:1000000000000',
+            'payload.time_value'       => 'nullable|numeric|min:0|max:1000000000000',
+            'payload.weights.*'        => 'nullable|numeric|min:0|max:100',
+            'payload.uplifts.chat'     => 'nullable|numeric|min:0|max:100',
+            'payload.uplifts.crm'      => 'nullable|numeric|min:0|max:100',
+            'payload.channels.*.alloc' => 'nullable|numeric|min:0|max:100',
+            'payload.channels.*.cpv'   => 'nullable|numeric|min:0|max:1000000000000',
+            'payload.channels.*.vl'    => 'nullable|numeric|min:0|max:100',
+            'payload.channels.*.lc'    => 'nullable|numeric|min:0|max:100',
+            'payload.channels.*.acv'   => 'nullable|numeric|min:0|max:1000000000000',
+            'payload.tools.*.cost'     => 'nullable|numeric|min:0|max:1000000000000',
         ]);
 
         // Hard cap the stored blob so a hostile client can't bloat the row.
-        if (strlen((string) json_encode($validated['payload'])) > 120_000) {
+        if (strlen((string) json_encode($request->input('payload'))) > 120_000) {
             abort(422, 'Plan payload too large.');
         }
 
-        return ['name' => trim($validated['name']), 'payload' => $validated['payload']];
+        // NOTE: once nested `payload.*` rules exist, validated()['payload']
+        // would contain ONLY the ruled keys — return the full raw payload
+        // (it passed the bounds checks above) so unruled keys survive.
+        return ['name' => trim($validated['name']), 'payload' => (array) $request->input('payload')];
     }
 
     /** Owner-scoped plan lookup or 404. */

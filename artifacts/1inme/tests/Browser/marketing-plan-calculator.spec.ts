@@ -154,6 +154,72 @@ test.describe("marketing plan calculator — live math + charts", () => {
     expect(await alpine<number>(page, "d.p.annual_budget")).toBe(newBudget);
   });
 
+  test("out-of-range inputs clamp with a hint and the server rejects bad payloads", async ({
+    page,
+  }) => {
+    test.setTimeout(480_000);
+    await loginAsDemo(page);
+    await gotoCreate(page);
+
+    // ---- USD→INR rate of 0 clamps back to 1 with an inline hint ----
+    const rateInput = page
+      .locator(".mpc-card", { hasText: "USD → INR display rate" })
+      .locator('input[type="number"]');
+    await rateInput.fill("0");
+    await rateInput.blur();
+    expect(await alpine<number>(page, "d.p.usd_inr_rate")).toBe(1);
+    await expect(page.getByText(/rate must be at least 1/)).toBeVisible();
+
+    // ---- negative allocation clamps to 0 (no negative spend) ----
+    const firstAlloc = page.locator("tbody tr td:nth-child(2) input").first();
+    await firstAlloc.fill("-25");
+    await firstAlloc.blur();
+    expect(await alpine<number>(page, "d.p.channels.find(c => !c.fixed).alloc")).toBe(0);
+    await expect(
+      page.getByText(/allocations and conversion rates stay between/i),
+    ).toBeVisible();
+
+    // Projections stay finite and non-negative even after abuse.
+    const totals = await alpine<{ spend: number; revenue: number; roas: number }>(
+      page,
+      "d.model.totals",
+    );
+    expect(Number.isFinite(totals.spend)).toBe(true);
+    expect(Number.isFinite(totals.revenue)).toBe(true);
+    expect(Number.isFinite(totals.roas)).toBe(true);
+    expect(totals.spend).toBeGreaterThanOrEqual(0);
+
+    // ---- server-side: validatePlan rejects out-of-range payload values ----
+    const statuses = await page.evaluate(async () => {
+      const payload = (document.querySelector('[x-data="mpcApp()"]') as any)._x_dataStack[0].p;
+      const post = async (mutate: (p: any) => void) => {
+        const bad = JSON.parse(JSON.stringify(payload));
+        mutate(bad); // the client clamps, so hand-craft the bad values
+        const res = await fetch("/user/marketing-plan", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRF-TOKEN":
+              (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ??
+              "",
+          },
+          body: JSON.stringify({ name: "Bad plan", payload: bad }),
+        });
+        return res.status;
+      };
+      return {
+        zeroRate: await post((p) => (p.usd_inr_rate = 0)),
+        hugeBudget: await post((p) => (p.annual_budget = 1e15)), // beyond the 1e12 clamp cap
+        negativeCost: await post((p) => (p.channels[1].cpv = -5)),
+      };
+    });
+    expect(statuses.zeroRate).toBe(422);
+    expect(statuses.hugeBudget).toBe(422);
+    expect(statuses.negativeCost).toBe(422);
+  });
+
   test("light and dark mode visual pass across all four tabs", async ({ page }, testInfo) => {
     test.setTimeout(480_000);
     await loginAsDemo(page);

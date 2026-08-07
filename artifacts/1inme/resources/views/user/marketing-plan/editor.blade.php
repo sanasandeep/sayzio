@@ -42,7 +42,7 @@
         html.light-mode .mpc-menu-item:hover { background: #f1f5f9; }
     </style>
 
-    {{-- ===== Header: name, currency toggle, save ===== --}}
+    {{-- ───── Header: name, currency toggle, save ───── --}}
     <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div class="min-w-0">
             <a href="{{ route('user.marketing-plan.index') }}" class="text-[11px] font-bold uppercase tracking-[0.15em] text-blue-400 hover:text-blue-300">
@@ -112,7 +112,7 @@
     <p class="text-xs text-emerald-400 mb-3" x-show="savedFlash" x-cloak><i class="fas fa-check mr-1"></i> Saved.</p>
     <p class="text-xs text-red-400 mb-3" x-show="saveError" x-cloak x-text="saveError"></p>
 
-    {{-- ===== Tabs ===== --}}
+    {{-- ───── Tabs ───── --}}
     <div class="flex flex-wrap gap-1.5 mb-5">
         <button type="button" class="mpc-tab" :class="tab === 'assumptions' && 'active'" @click="tab = 'assumptions'">1 · Assumptions</button>
         <button type="button" class="mpc-tab" :class="tab === 'monthly' && 'active'" @click="tab = 'monthly'">2 · Monthly Plan</button>
@@ -120,7 +120,7 @@
         <button type="button" class="mpc-tab" :class="tab === 'roi' && 'active'" @click="tab = 'roi'">4 · Sayzio ROI &amp; Value</button>
     </div>
 
-    {{-- ========================= 1 · ASSUMPTIONS ========================= --}}
+    {{-- ───── 1 · ASSUMPTIONS ───── --}}
     <div x-show="tab === 'assumptions'" class="space-y-5">
         <div class="grid md:grid-cols-3 gap-4">
             <div class="rounded-2xl mpc-card p-4">
@@ -131,11 +131,13 @@
                 <label class="text-xs font-semibold mpc-sub">Total annual ad-spend budget (₹, paid channels only)</label>
                 <input type="number" min="0" x-model.number="p.annual_budget" class="mpc-input mt-1.5">
                 <p class="text-[11px] mpc-faint mt-1">Excludes Sayzio's fixed subscription cost.</p>
+                <p class="text-[11px] text-amber-400 mt-1" x-show="clampHints.annual_budget" x-cloak x-text="clampHints.annual_budget"></p>
             </div>
             <div class="rounded-2xl mpc-card p-4">
                 <label class="text-xs font-semibold mpc-sub">USD → INR display rate</label>
                 <input type="number" min="1" step="0.01" x-model.number="p.usd_inr_rate" class="mpc-input mt-1.5">
                 <p class="text-[11px] mpc-faint mt-1">Used only when the display toggle is set to $ USD.</p>
+                <p class="text-[11px] text-amber-400 mt-1" x-show="clampHints.usd_inr_rate" x-cloak x-text="clampHints.usd_inr_rate"></p>
             </div>
         </div>
 
@@ -149,6 +151,7 @@
                     </div>
                 </template>
             </div>
+            <p class="text-[11px] text-amber-400 mt-2" x-show="clampHints.weights" x-cloak x-text="clampHints.weights"></p>
         </div>
 
         <div class="grid md:grid-cols-2 gap-4">
@@ -171,6 +174,7 @@
                         <input type="number" min="0" x-model.number="p.organic_visitors" class="mpc-input mt-1">
                     </div>
                 </div>
+                <p class="text-[11px] text-amber-400 mt-2" x-show="clampHints.plan_inputs" x-cloak x-text="clampHints.plan_inputs"></p>
             </div>
             <div class="rounded-2xl mpc-card p-4">
                 <h3 class="text-sm font-bold mpc-title">Sayzio toolset effectiveness uplifts</h3>
@@ -189,6 +193,7 @@
                     </div>
                 </div>
                 <p class="text-[11px] mpc-faint mt-2">Illustrative defaults — replace with your own before/after data. Turn off for baseline, apples-to-apples projections.</p>
+                <p class="text-[11px] text-amber-400 mt-2" x-show="clampHints.uplifts" x-cloak x-text="clampHints.uplifts"></p>
             </div>
         </div>
 
@@ -225,11 +230,12 @@
                     </template>
                 </tbody>
             </table>
+            <p class="text-[11px] text-amber-400 mt-2" x-show="clampHints.channels" x-cloak x-text="clampHints.channels"></p>
             <p class="text-[11px] mpc-faint mt-2">Sayzio's row is a fixed monthly subscription + optional AI credits and is excluded from the 100% total — the other 15 paid channels' allocations sum to 100% of the annual ad budget on their own.</p>
         </div>
     </div>
 
-    {{-- ========================= 2 · MONTHLY PLAN ========================= --}}
+    {{-- ───── 2 · MONTHLY PLAN ───── --}}
     <div x-show="tab === 'monthly'" x-cloak class="space-y-4">
         <div class="rounded-2xl mpc-card p-4 overflow-x-auto">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -271,7 +277,7 @@
         </div>
     </div>
 
-    {{-- ========================= 3 · DASHBOARD ========================= --}}
+    {{-- ───── 3 · DASHBOARD ───── --}}
     <div x-show="tab === 'dashboard'" x-cloak class="space-y-4">
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Total annual budget</p><p class="mpc-kpi mt-1" x-text="money(p.annual_budget)"></p></div>
@@ -316,7 +322,7 @@
         </div>
     </div>
 
-    {{-- ========================= 4 · SAYZIO ROI & VALUE ========================= --}}
+    {{-- ───── 4 · SAYZIO ROI & VALUE ───── --}}
     <div x-show="tab === 'roi'" x-cloak class="space-y-4">
         <div class="rounded-2xl mpc-card p-4 overflow-x-auto">
             <h3 class="text-sm font-bold mpc-title">If you didn't use Sayzio — what you'd need instead</h3>
@@ -352,6 +358,7 @@
                     </tr>
                 </tbody>
             </table>
+            <p class="text-[11px] text-amber-400 mt-2" x-show="clampHints.tools" x-cloak x-text="clampHints.tools"></p>
         </div>
 
         <div class="grid lg:grid-cols-2 gap-4">
@@ -367,6 +374,7 @@
                         <input type="number" min="0" x-model.number="p.time_value" class="mpc-input mt-1">
                     </div>
                 </div>
+                <p class="text-[11px] text-amber-400 mt-2" x-show="clampHints.time" x-cloak x-text="clampHints.time"></p>
                 <dl class="mt-4 space-y-1.5 text-sm">
                     <div class="flex justify-between"><dt class="mpc-sub">Standalone tools replaced</dt><dd class="mpc-text font-semibold" x-text="p.tools.length"></dd></div>
                     <div class="flex justify-between"><dt class="mpc-sub">Total hours saved / month</dt><dd class="mpc-text font-semibold" x-text="nf(roi.hoursMonthly, 1) + ' h'"></dd></div>
@@ -415,15 +423,22 @@ function mpcApp() {
         saving: false, savedFlash: false, saveError: '', pdfBusy: false,
         charts: {},
         dirty: false, _baseline: '',
+        clampHints: {},
+        _hintTimers: {},
 
         init() {
             // Ensure array shapes survive older/partial payloads.
             if (!Array.isArray(this.p.weights) || this.p.weights.length !== 12) this.p.weights = Array(12).fill(1);
             if (!this.p.uplifts) this.p.uplifts = { apply: true, chat: 8, crm: 15 };
+            // Task #6742 — keep every numeric input in a sane range so the
+            // engine can never produce Infinity-adjacent projections.
+            // Run before the dirty baseline so a silent self-heal of an old
+            // saved plan doesn't count as an unsaved edit.
+            this.applyClamps(false);
 
             // ----- unsaved-changes guard -----
             this._baseline = this.snapshot();
-            this.$watch('p', () => this.recomputeDirty());
+            this.$watch('p', () => { this.applyClamps(true); this.recomputeDirty(); });
             this.$watch('name', () => this.recomputeDirty());
             window.addEventListener('beforeunload', (e) => {
                 if (!this.dirty) return;
@@ -442,6 +457,48 @@ function mpcApp() {
                     e.stopPropagation();
                 }
             }, true);
+        },
+
+        // ---------- input clamping (Task #6742) ----------
+        flagClamp(key, msg) {
+            this.clampHints[key] = msg;
+            clearTimeout(this._hintTimers[key]);
+            this._hintTimers[key] = setTimeout(() => { this.clampHints[key] = ''; }, 5000);
+        },
+        clampNum(obj, prop, min, max) {
+            const v = obj?.[prop];
+            if (typeof v !== 'number' || !isFinite(v)) return false;   // blank/partial input — leave alone
+            const c = Math.min(max, Math.max(min, v));
+            if (c === v) return false;
+            obj[prop] = c;
+            return true;
+        },
+        applyClamps(hint = true) {
+            const BIG = 1e12;
+            const flag = (key, msg) => { if (hint) this.flagClamp(key, msg); };
+            if (this.clampNum(this.p, 'usd_inr_rate', 1, 100000)) flag('usd_inr_rate', 'Adjusted — the USD → INR rate must be at least 1.');
+            if (this.clampNum(this.p, 'annual_budget', 0, BIG)) flag('annual_budget', 'Adjusted — the budget cannot be negative.');
+            if ([this.clampNum(this.p, 'ai_credits', 0, BIG), this.clampNum(this.p, 'organic_visitors', 0, BIG)].some(Boolean))
+                flag('plan_inputs', 'Adjusted — costs and visitor counts cannot be negative.');
+            let w = false;
+            for (let i = 0; i < (this.p.weights || []).length; i++) w = this.clampNum(this.p.weights, i, 0, 100) || w;
+            if (w) flag('weights', 'Adjusted — seasonality weights stay between 0 and 100.');
+            if ([this.clampNum(this.p.uplifts, 'chat', 0, 100), this.clampNum(this.p.uplifts, 'crm', 0, 100)].some(Boolean))
+                flag('uplifts', 'Adjusted — uplift percentages stay between 0 and 100.');
+            let ch = false;
+            for (const c of this.p.channels || []) {
+                ch = this.clampNum(c, 'alloc', 0, 100) || ch;
+                ch = this.clampNum(c, 'cpv', 0, BIG) || ch;
+                ch = this.clampNum(c, 'vl', 0, 100) || ch;
+                ch = this.clampNum(c, 'lc', 0, 100) || ch;
+                ch = this.clampNum(c, 'acv', 0, BIG) || ch;
+            }
+            if (ch) flag('channels', 'Adjusted — allocations and conversion rates stay between 0 and 100%, costs cannot be negative.');
+            let t = false;
+            for (const tool of this.p.tools || []) t = this.clampNum(tool, 'cost', 0, BIG) || t;
+            if (t) flag('tools', 'Adjusted — tool costs cannot be negative.');
+            if ([this.clampNum(this.p, 'hours_per_tool', 0, BIG), this.clampNum(this.p, 'time_value', 0, BIG)].some(Boolean))
+                flag('time', 'Adjusted — hours and time value cannot be negative.');
         },
         snapshot() { return JSON.stringify({ name: this.name, p: this.p }); },
         recomputeDirty() { this.dirty = this.snapshot() !== this._baseline; },

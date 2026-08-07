@@ -63,6 +63,72 @@ class MarketingPlanCalculatorTest extends TestCase
             ->assertSee($plan->slug);
     }
 
+    /**
+     * Task #6742 — validatePlan rejects out-of-range payload numbers on
+     * BOTH store and update, per boundary.
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('outOfRangePayloadProvider')]
+    public function test_store_and_update_reject_out_of_range_payload(string $key, mixed $bad): void
+    {
+        $user = $this->user();
+        $payload = MarketingPlanDefaults::defaults($user);
+        data_set($payload, $key, $bad);
+
+        $this->actingAs($user, 'web')
+            ->postJson(route('user.marketing-plan.store'), ['name' => 'Bad', 'payload' => $payload])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['payload.' . $key]);
+
+        $store = $this->actingAs($user, 'web')->postJson(route('user.marketing-plan.store'), [
+            'name' => 'Existing', 'payload' => MarketingPlanDefaults::defaults($user),
+        ]);
+        $store->assertStatus(200);
+        $this->actingAs($user, 'web')
+            ->putJson(route('user.marketing-plan.update', (int) $store->json('id')), ['name' => 'Bad', 'payload' => $payload])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['payload.' . $key]);
+    }
+
+    public static function outOfRangePayloadProvider(): array
+    {
+        return [
+            'zero FX rate'          => ['usd_inr_rate', 0],
+            'huge FX rate'          => ['usd_inr_rate', 200000],
+            'negative budget'       => ['annual_budget', -1],
+            'huge budget'           => ['annual_budget', 1e15],
+            'negative AI credits'   => ['ai_credits', -5],
+            'negative organic'      => ['organic_visitors', -100],
+            'weight over 100'       => ['weights.0', 101],
+            'negative weight'       => ['weights.3', -1],
+            'chat uplift over 100'  => ['uplifts.chat', 150],
+            'crm uplift negative'   => ['uplifts.crm', -2],
+            'alloc over 100'        => ['channels.1.alloc', 120],
+            'negative cpv'          => ['channels.1.cpv', -5],
+            'huge cpv'              => ['channels.1.cpv', 1e14],
+            'vl over 100'           => ['channels.1.vl', 101],
+            'lc negative'           => ['channels.1.lc', -1],
+            'huge acv'              => ['channels.1.acv', 1e14],
+            'negative tool cost'    => ['tools.0.cost', -10],
+            'negative hours'        => ['hours_per_tool', -1],
+            'huge time value'       => ['time_value', 1e14],
+        ];
+    }
+
+    /** In-range values still save fine after the bounds were added. */
+    public function test_store_accepts_in_range_boundary_values(): void
+    {
+        $user = $this->user();
+        $payload = MarketingPlanDefaults::defaults($user);
+        $payload['usd_inr_rate'] = 1;          // lower bound inclusive
+        $payload['annual_budget'] = 0;
+        data_set($payload, 'channels.1.alloc', 100);
+        data_set($payload, 'uplifts.chat', 0);
+
+        $this->actingAs($user, 'web')
+            ->postJson(route('user.marketing-plan.store'), ['name' => 'Edge', 'payload' => $payload])
+            ->assertStatus(200)->assertJson(['ok' => true]);
+    }
+
     public function test_create_save_reload_update_and_delete(): void
     {
         $user = $this->user();
