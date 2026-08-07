@@ -5,7 +5,7 @@
  * "continue where you left off" session groups, and a daily privacy strip.
  * In private/incognito mode shows a minimalist private-mode splash instead.
  */
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { HistoryEntry } from '../../main/db';
 import type { Collection, SavedLink } from '../../shared/collection-store';
 import { ProfileBadge } from './ProfileBadge';
@@ -203,15 +203,21 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
   const [trackerStats, setTrackerStats] = useState<{ todayTotal: number; weekTotal: number } | null>(null);
   const { user } = useAuthStore();
 
+  // Epoch guard: bumped whenever the window flips to private so any
+  // collections request already in flight can't repopulate state afterwards.
+  const loadEpochRef = useRef(0);
+
   const loadCollections = useCallback(async () => {
+    const epoch = loadEpochRef.current;
     try {
       const all = await window.zio.collections.all() as Collection[];
-      setCollections(all);
+      if (loadEpochRef.current === epoch) setCollections(all);
     } catch { /* collections unavailable — hide section */ }
   }, []);
 
   useEffect(() => {
     if (isPrivate) {
+      loadEpochRef.current += 1;
       // Reset anything loaded while the window was normal so a mode switch
       // never keeps normal-profile data (history/folders/stats) in state.
       setRecentHistory([]);
