@@ -1060,6 +1060,7 @@
                         </a>
                         @endif
                         @if($__can['settings_view'])
+                        @if(\App\Modules\Common\Support\EventsModule::enabled())
                         <a href="{{ route('user.events.index') }}"
                            class="sidebar-link {{ nav_route_is('user.events.*') ? 'active' : '' }}"
                            style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
@@ -1067,6 +1068,7 @@
                             <span class="nav-label">Events</span>
                             <span class="sidebar-tooltip">Events calendar</span>
                         </a>
+                        @endif
                         <a href="{{ route('user.calendar.index') }}"
                            class="sidebar-link {{ nav_route_is('user.calendar.*') ? 'active' : '' }}"
                            style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
@@ -1742,7 +1744,9 @@
                                 <a href="{{ route('user.vault.index') }}" class="sidebar-link {{ nav_route_is('user.vault.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-vault"></i></div> <span>Vault</span></a>
                                 @endif
                                 @if($__can['settings_view'])
+                                @if(\App\Modules\Common\Support\EventsModule::enabled())
                                 <a href="{{ route('user.events.index') }}" class="sidebar-link {{ nav_route_is('user.events.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-day"></i></div> <span>Events</span></a>
+                                @endif
                                 <a href="{{ route('user.calendar.index') }}" class="sidebar-link {{ nav_route_is('user.calendar.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-alt"></i></div> <span>Calendar Sync</span></a>
                                 @endif
                             </div>

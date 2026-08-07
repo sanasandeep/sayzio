@@ -81,7 +81,11 @@ class CreatorProfilePublicController extends Controller
         // Task #3666 — a few upcoming public events for the profile's
         // "Events" section, capped at 3 with a "See all events" link out
         // to the standalone /@{handle}/events page.
-        $upcomingEvents = static::upcomingEventsQuery($creator)->limit(3)->get();
+        // Task #6726 — hide the profile's Events preview section entirely
+        // when the platform-wide Events module is switched off.
+        $upcomingEvents = \App\Modules\Common\Support\EventsModule::enabled()
+            ? static::upcomingEventsQuery($creator)->limit(3)->get()
+            : collect();
 
         $feed = $this->buildFeedViewData($creator, $viewer, $isOwner);
 

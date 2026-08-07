@@ -156,9 +156,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/discovery/creators/{handle}', [DiscoveryController::class, 'creator']);
 
         // Public events directory + event detail + QR ticket lookup (Task #3589).
-        Route::get('/events',                     [\App\Modules\Api\Controllers\EventTicketApiController::class, 'directory']);
-        Route::get('/events/{alias}',              [\App\Modules\Api\Controllers\EventTicketApiController::class, 'show']);
-        Route::get('/events/{alias}/tickets/{code}', [\App\Modules\Api\Controllers\EventTicketApiController::class, 'ticket']);
+        Route::get('/events',                     [\App\Modules\Api\Controllers\EventTicketApiController::class, 'directory'])->middleware('events.enabled');
+        Route::get('/events/{alias}',              [\App\Modules\Api\Controllers\EventTicketApiController::class, 'show'])->middleware('events.enabled');
+        Route::get('/events/{alias}/tickets/{code}', [\App\Modules\Api\Controllers\EventTicketApiController::class, 'ticket'])->middleware('events.enabled');
         Route::get('/feed',                        [FeedController::class, 'index']);
         Route::get('/creators/{handle}/feed',      [FeedController::class, 'byCreator']);
 
@@ -237,51 +237,51 @@ Route::prefix('v1')->group(function () {
         // (no guest checkout on the app), tier CRUD + door check-in are
         // owner-only. Public directory/show/ticket lookup are registered
         // above outside this authed group.
-        Route::post('/events/{alias}/buy',                 [\App\Modules\Api\Controllers\EventTicketApiController::class, 'buy'])->middleware('throttle:30,1');
-        Route::post('/events/{alias}/interest',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'interest'])->middleware('throttle:30,1');
-        Route::get ('/me/event-tickets',                   [\App\Modules\Api\Controllers\EventTicketApiController::class, 'myTickets']);
+        Route::post('/events/{alias}/buy',                 [\App\Modules\Api\Controllers\EventTicketApiController::class, 'buy'])->middleware('throttle:30,1')->middleware('events.enabled');
+        Route::post('/events/{alias}/interest',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'interest'])->middleware('throttle:30,1')->middleware('events.enabled');
+        Route::get ('/me/event-tickets',                   [\App\Modules\Api\Controllers\EventTicketApiController::class, 'myTickets'])->middleware('events.enabled');
         // My events calendar (dialer app): ticketed + interested, past & future.
-        Route::get ('/me/events',                          [\App\Modules\Api\Controllers\EventTicketApiController::class, 'myEvents']);
+        Route::get ('/me/events',                          [\App\Modules\Api\Controllers\EventTicketApiController::class, 'myEvents'])->middleware('events.enabled');
 
         // Organizer event create/edit (mobile). Mirrors the web
         // IcsLinkController essentials (title, start/end, timezone, location,
         // description, capacity, RSVP on/off); advanced settings stay web-only.
-        Route::post ('/events',                            [\App\Modules\Api\Controllers\EventApiController::class, 'store'])->middleware('throttle:30,1');
-        Route::get  ('/links/{link}/event',                [\App\Modules\Api\Controllers\EventApiController::class, 'show'])->whereNumber('link');
-        Route::patch('/links/{link}/event',                [\App\Modules\Api\Controllers\EventApiController::class, 'update'])->whereNumber('link')->middleware('throttle:60,1');
-        Route::post ('/links/{link}/event/cancel',         [\App\Modules\Api\Controllers\EventApiController::class, 'cancel'])->whereNumber('link')->middleware('throttle:30,1');
-        Route::post ('/links/{link}/event/reactivate',     [\App\Modules\Api\Controllers\EventApiController::class, 'reactivate'])->whereNumber('link')->middleware('throttle:30,1');
+        Route::post ('/events',                            [\App\Modules\Api\Controllers\EventApiController::class, 'store'])->middleware('throttle:30,1')->middleware('events.enabled');
+        Route::get  ('/links/{link}/event',                [\App\Modules\Api\Controllers\EventApiController::class, 'show'])->whereNumber('link')->middleware('events.enabled');
+        Route::patch('/links/{link}/event',                [\App\Modules\Api\Controllers\EventApiController::class, 'update'])->whereNumber('link')->middleware('throttle:60,1')->middleware('events.enabled');
+        Route::post ('/links/{link}/event/cancel',         [\App\Modules\Api\Controllers\EventApiController::class, 'cancel'])->whereNumber('link')->middleware('throttle:30,1')->middleware('events.enabled');
+        Route::post ('/links/{link}/event/reactivate',     [\App\Modules\Api\Controllers\EventApiController::class, 'reactivate'])->whereNumber('link')->middleware('throttle:30,1')->middleware('events.enabled');
 
         // Task #6687 — Event Connect QR on mobile: the host's QR payload
         // (view/share/download) and the guest's one-tap RSVP & Connect for
         // `?src=connect_qr` event URLs opened in the app.
-        Route::get ('/links/{link}/connect-qr',            [\App\Modules\Api\Controllers\EventConnectQrApiController::class, 'qr'])->whereNumber('link');
-        Route::post('/events/{alias}/connect',             [\App\Modules\Api\Controllers\EventConnectQrApiController::class, 'connect'])->middleware('throttle:20,1');
+        Route::get ('/links/{link}/connect-qr',            [\App\Modules\Api\Controllers\EventConnectQrApiController::class, 'qr'])->whereNumber('link')->middleware('events.enabled');
+        Route::post('/events/{alias}/connect',             [\App\Modules\Api\Controllers\EventConnectQrApiController::class, 'connect'])->middleware('throttle:20,1')->middleware('events.enabled');
 
         // Task #5008 — Event contact exchange: "My card" QR + opt-in people list.
-        Route::get ('/me/event-card',                      [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'myCard']);
-        Route::get ('/events/{alias}/discoverability',     [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'getDiscoverability']);
-        Route::post('/events/{alias}/discoverability',     [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'toggleDiscoverability'])->middleware('throttle:30,1');
-        Route::get ('/events/{alias}/people',              [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'listAttendees']);
-        Route::post('/events/{alias}/exchange',            [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'requestExchange'])->middleware('throttle:10,1');
-        Route::post('/me/contact-exchanges/{id}/accept',  [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'acceptExchange'])->whereNumber('id');
-        Route::post('/me/contact-exchanges/{id}/decline', [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'declineExchange'])->whereNumber('id');
+        Route::get ('/me/event-card',                      [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'myCard'])->middleware('events.enabled');
+        Route::get ('/events/{alias}/discoverability',     [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'getDiscoverability'])->middleware('events.enabled');
+        Route::post('/events/{alias}/discoverability',     [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'toggleDiscoverability'])->middleware('throttle:30,1')->middleware('events.enabled');
+        Route::get ('/events/{alias}/people',              [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'listAttendees'])->middleware('events.enabled');
+        Route::post('/events/{alias}/exchange',            [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'requestExchange'])->middleware('throttle:10,1')->middleware('events.enabled');
+        Route::post('/me/contact-exchanges/{id}/accept',  [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'acceptExchange'])->whereNumber('id')->middleware('events.enabled');
+        Route::post('/me/contact-exchanges/{id}/decline', [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'declineExchange'])->whereNumber('id')->middleware('events.enabled');
         // Task #5052 — "My swaps": review + withdraw own swap requests.
-        Route::get ('/events/{alias}/my-swaps',           [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'mySwaps']);
-        Route::post('/me/contact-exchanges/{id}/cancel',  [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'cancelExchange'])->whereNumber('id');
+        Route::get ('/events/{alias}/my-swaps',           [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'mySwaps'])->middleware('events.enabled');
+        Route::post('/me/contact-exchanges/{id}/cancel',  [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'cancelExchange'])->whereNumber('id')->middleware('events.enabled');
         // Task #5010 — organizer aggregate stats for the connections dashboard.
-        Route::get ('/links/{link}/exchange-stats',        [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'ownerStats'])->whereNumber('link');
-        Route::get ('/links/{link}/event-tiers',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'ownerTiers'])->whereNumber('link');
-        Route::post('/links/{link}/event-tiers',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'storeTier'])->whereNumber('link');
-        Route::patch('/links/{link}/event-tiers/{tier}',    [\App\Modules\Api\Controllers\EventTicketApiController::class, 'updateTier'])->whereNumber('link')->whereNumber('tier');
-        Route::delete('/links/{link}/event-tiers/{tier}',   [\App\Modules\Api\Controllers\EventTicketApiController::class, 'destroyTier'])->whereNumber('link')->whereNumber('tier');
-        Route::post('/links/{link}/event-checkin',          [\App\Modules\Api\Controllers\EventTicketApiController::class, 'checkin'])->whereNumber('link')->middleware('throttle:120,1');
-        Route::get ('/links/{link}/event-checkin/progress', [\App\Modules\Api\Controllers\EventTicketApiController::class, 'checkinProgress'])->whereNumber('link');
-        Route::get ('/links/{link}/event-tickets',          [\App\Modules\Api\Controllers\EventTicketApiController::class, 'ownerTickets'])->whereNumber('link');
-        Route::post('/links/{link}/event-tickets/{ticket}/refund', [\App\Modules\Api\Controllers\EventTicketApiController::class, 'refundTicket'])->whereNumber('link')->whereNumber('ticket');
+        Route::get ('/links/{link}/exchange-stats',        [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'ownerStats'])->whereNumber('link')->middleware('events.enabled');
+        Route::get ('/links/{link}/event-tiers',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'ownerTiers'])->whereNumber('link')->middleware('events.enabled');
+        Route::post('/links/{link}/event-tiers',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'storeTier'])->whereNumber('link')->middleware('events.enabled');
+        Route::patch('/links/{link}/event-tiers/{tier}',    [\App\Modules\Api\Controllers\EventTicketApiController::class, 'updateTier'])->whereNumber('link')->whereNumber('tier')->middleware('events.enabled');
+        Route::delete('/links/{link}/event-tiers/{tier}',   [\App\Modules\Api\Controllers\EventTicketApiController::class, 'destroyTier'])->whereNumber('link')->whereNumber('tier')->middleware('events.enabled');
+        Route::post('/links/{link}/event-checkin',          [\App\Modules\Api\Controllers\EventTicketApiController::class, 'checkin'])->whereNumber('link')->middleware('throttle:120,1')->middleware('events.enabled');
+        Route::get ('/links/{link}/event-checkin/progress', [\App\Modules\Api\Controllers\EventTicketApiController::class, 'checkinProgress'])->whereNumber('link')->middleware('events.enabled');
+        Route::get ('/links/{link}/event-tickets',          [\App\Modules\Api\Controllers\EventTicketApiController::class, 'ownerTickets'])->whereNumber('link')->middleware('events.enabled');
+        Route::post('/links/{link}/event-tickets/{ticket}/refund', [\App\Modules\Api\Controllers\EventTicketApiController::class, 'refundTicket'])->whereNumber('link')->whereNumber('ticket')->middleware('events.enabled');
         // Message guests: organizer → guest broadcast (venue moved, time changed, cancellation).
-        Route::get ('/links/{link}/broadcasts', [\App\Modules\Api\Controllers\EventBroadcastApiController::class, 'index'])->whereNumber('link');
-        Route::post('/links/{link}/broadcasts', [\App\Modules\Api\Controllers\EventBroadcastApiController::class, 'store'])->whereNumber('link')->middleware('throttle:30,1');
+        Route::get ('/links/{link}/broadcasts', [\App\Modules\Api\Controllers\EventBroadcastApiController::class, 'index'])->whereNumber('link')->middleware('events.enabled');
+        Route::post('/links/{link}/broadcasts', [\App\Modules\Api\Controllers\EventBroadcastApiController::class, 'store'])->whereNumber('link')->middleware('throttle:30,1')->middleware('events.enabled');
     });
 
     Route::post('/biolinks/{alias}/subscribe', [BiolinkController::class, 'subscribe'])
@@ -347,7 +347,7 @@ Route::prefix('v1')->group(function () {
     // its event link server-side via settings.event_link_id so the mobile
     // client only needs the biolink alias + block id (matching how the
     // poll-vote endpoint is shaped).
-    Route::middleware(['api.optional_auth', 'throttle:10,1'])
+    Route::middleware(['api.optional_auth', 'throttle:10,1', 'events.enabled'])
         ->post('/biolinks/{alias}/blocks/{blockId}/rsvp', [BiolinkController::class, 'rsvpSubmit'])
         ->whereNumber('blockId');
 
@@ -1410,7 +1410,7 @@ Route::prefix('v1')->group(function () {
         // Calendar accounts + RSVP responses
         Route::get   ('/calendar/accounts',        [CalendarController::class, 'accounts']);
         Route::delete('/calendar/accounts/{id}',   [CalendarController::class, 'disconnectAccount'])->whereNumber('id');
-        Route::get   ('/links/{id}/rsvps',         [CalendarController::class, 'rsvps'])->whereNumber('id');
+        Route::get   ('/links/{id}/rsvps',         [CalendarController::class, 'rsvps'])->whereNumber('id')->middleware('events.enabled');
 
         // Followable calendars: owned + followed list, public calendar view,
         // follow toggle, "My Calendar" agenda feed, today's reminders.

@@ -136,6 +136,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'user.can'          => \App\Modules\User\Middleware\UserPermission::class,
             'contacts.sync-on-open' => \App\Modules\User\Middleware\SyncGoogleContactsOnOpen::class,
             'brand.primary'     => \App\Modules\Common\Middleware\RedirectToPrimaryBrandDomain::class,
+            'events.enabled'    => \App\Modules\Common\Middleware\EnsureEventsModuleEnabled::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

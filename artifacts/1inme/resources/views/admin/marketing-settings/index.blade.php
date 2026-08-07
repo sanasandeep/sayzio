@@ -76,6 +76,19 @@
             @error('home_design')<p class="ak-red text-xs text-red-400">{{ $message }}</p>@enderror
         </div>
 
+        {{-- Events module (platform-wide) --}}
+        <div class="glass rounded-2xl p-6 space-y-4">
+            <div>
+                <h2 class="ak-strong text-lg font-semibold text-white">Events module</h2>
+                <p class="ak-muted text-xs text-white/50">Platform-wide switch for the entire Events module. When off: the public /events directory, event pages, RSVP/ticket/connect-QR flows, creator @handle/events pages and the mobile event APIs all return "not found", Events links disappear from user navigation and marketing pages, and users cannot create new events. No event data is ever deleted — turning it back on restores everything.</p>
+            </div>
+            <label class="flex items-center gap-3 cursor-pointer select-none">
+                <input type="checkbox" name="events_module_enabled" value="1" @checked(old('events_module_enabled', $events_module_enabled))
+                       class="w-4 h-4 rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">
+                <span class="ak-strong text-sm text-white">Enable the Events module</span>
+            </label>
+        </div>
+
         {{-- Events promo band --}}
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>

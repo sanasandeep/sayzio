@@ -349,6 +349,13 @@ class LinkController extends Controller
         // IcsLinkController create path is unchanged.
         $isEvent = in_array($data['type'], ['event', 'ics'], true);
         if ($isEvent) {
+            // Task #6726 — the generic link-create endpoint is the mobile
+            // event-creation path; refuse event types when the platform-wide
+            // Events module is switched off (matches the 404 the dedicated
+            // event routes return).
+            if (!\App\Modules\Common\Support\EventsModule::enabled()) {
+                abort(404, 'Events are not available.');
+            }
             $data['type'] = 'ics';
             // A fresh event create (type "event") must carry a name + start;
             // a duplicate (type "ics") simply reuses the copied settings.event

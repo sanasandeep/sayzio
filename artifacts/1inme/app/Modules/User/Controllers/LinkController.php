@@ -269,6 +269,14 @@ class LinkController extends Controller
      */
     public function chooseType(Request $request)
     {
+        // Platform-wide Events module switch: the Event card is hidden from
+        // the chooser, and a hand-crafted type=ics submit must not dead-end
+        // on the gated (404) ICS create route.
+        if ($request->input('type') === 'ics'
+            && !\App\Modules\Common\Support\EventsModule::enabled()) {
+            abort(404, 'Events are not available.');
+        }
+
         $limits = workspace_owner()->getAliasLengthLimits();
 
         $validated = $request->validate([

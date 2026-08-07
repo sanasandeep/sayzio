@@ -26,6 +26,29 @@ class LinkTypeCategories
      */
     public static function categories(): array
     {
+        $categories = self::allCategories();
+
+        // Platform-wide Events module switch: drop the Event card from the
+        // create-link chooser and the My Links type filter when off.
+        if (!\App\Modules\Common\Support\EventsModule::enabled()) {
+            foreach ($categories as &$cat) {
+                $cat['types'] = array_values(array_filter(
+                    $cat['types'],
+                    fn (array $t) => $t['value'] !== 'ics'
+                ));
+            }
+            unset($cat);
+        }
+
+        return $categories;
+    }
+
+    /**
+     * The full, unfiltered catalog — internal lookups (labels/icons for
+     * existing links) must keep working even while the Events module is off.
+     */
+    private static function allCategories(): array
+    {
         return [
             [
                 'label' => 'Everyday links',
@@ -140,7 +163,9 @@ class LinkTypeCategories
     public static function types(): array
     {
         $out = [];
-        foreach (self::categories() as $cat) {
+        // Built from the UNFILTERED catalog: labels/icons for existing links
+        // (incl. events) must keep resolving while the Events module is off.
+        foreach (self::allCategories() as $cat) {
             foreach ($cat['types'] as $type) {
                 $out[$type['value']] = $type;
             }

@@ -57,6 +57,11 @@ class EventsHeroBandComposer
     protected function featuredEvents()
     {
         try {
+            // Task #6726 — platform-wide Events module switch trumps the
+            // band-level toggle: no module, no band.
+            if (!\App\Modules\Common\Support\EventsModule::enabled()) {
+                return collect();
+            }
             // Admin kill switch (Admin → Marketing settings). Default ON.
             if (!\App\Modules\Admin\Models\AppSetting::get('marketing_events_band_enabled', true)) {
                 return collect();
