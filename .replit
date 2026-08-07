@@ -79,6 +79,9 @@ args = "e2e-embed-card-state-heights"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "e2e-event-location-map-paste"
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-marketing-plan-calculator"
     
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
@@ -303,6 +306,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && VALIDATION_PORT=5082 bash tests/Browser/run-validation.sh event-location-map-paste.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-marketing-plan-calculator"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5083 bash tests/Browser/run-validation.sh marketing-plan-calculator.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
