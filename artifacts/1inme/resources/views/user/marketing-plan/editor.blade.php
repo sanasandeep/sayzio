@@ -75,6 +75,11 @@
                             class="mpc-menu-item w-full text-left px-4 py-2.5 text-sm">
                         <i class="fas fa-file-csv mr-2 text-blue-400"></i> CSV (.csv)
                     </button>
+                    <button type="button" @click="open = false; exportPdf()" :disabled="pdfBusy"
+                            class="mpc-menu-item w-full text-left px-4 py-2.5 text-sm disabled:opacity-60">
+                        <i class="fas mr-2 text-red-400" :class="pdfBusy ? 'fa-circle-notch fa-spin' : 'fa-file-pdf'"></i>
+                        <span x-text="pdfBusy ? 'Preparing PDF…' : 'PDF one-pager (.pdf)'"></span>
+                    </button>
                 </div>
             </div>
             <button type="button" @click="save()" :disabled="saving"
@@ -396,6 +401,7 @@
 
 <script src="{{ asset('js/vendor/chart.umd.min.js') }}"></script>
 <script src="{{ asset('js/vendor/xlsx.mini.min.js') }}" defer></script>
+<script src="{{ asset('js/vendor/html2canvas.min.js') }}" defer></script>
 <script>
 function mpcApp() {
     return {
@@ -406,7 +412,7 @@ function mpcApp() {
         months: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
         tab: 'assumptions',
         monthlyMetric: 'spend',
-        saving: false, savedFlash: false, saveError: '',
+        saving: false, savedFlash: false, saveError: '', pdfBusy: false,
         charts: {},
         dirty: false, _baseline: '',
 
@@ -671,6 +677,223 @@ function mpcApp() {
             document.body.appendChild(a);
             a.click();
             setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+        },
+
+        // ---------- PDF one-pager export ----------
+        /**
+         * Renders a branded, presentation-ready one-pager (KPIs, both charts,
+         * channel summary, Sayzio total-value story) into an offscreen node,
+         * rasterizes it with html2canvas and wraps the JPEG in a minimal
+         * single-page PDF — fully client-side, respecting the INR/USD toggle.
+         */
+        async exportPdf() {
+            if (this.pdfBusy) return;
+            if (typeof html2canvas === 'undefined' || typeof Chart === 'undefined') {
+                this.saveError = 'PDF export is still loading — try again in a moment.';
+                return;
+            }
+            this.pdfBusy = true; this.saveError = '';
+            const host = document.createElement('div');
+            host.style.cssText = 'position:fixed;left:-12000px;top:0;width:1120px;z-index:-1;';
+            const savedColor = Chart.defaults.color, savedBorder = Chart.defaults.borderColor;
+            let tmpCharts = [];
+            try {
+                host.innerHTML = this.pdfPageHtml();
+                document.body.appendChild(host);
+
+                // Render both charts into the offscreen page with light styling
+                // (the PDF page is always white regardless of app theme).
+                Chart.defaults.color = '#475569';
+                Chart.defaults.borderColor = 'rgba(15,23,42,0.10)';
+                tmpCharts = this.renderPdfCharts(host);
+                await new Promise(r => setTimeout(r, 60)); // let canvases paint
+
+                const canvas = await html2canvas(host.firstElementChild, {
+                    scale: 2, backgroundColor: '#ffffff', logging: false,
+                    width: 1120, windowWidth: 1120,
+                });
+                const jpeg = canvas.toDataURL('image/jpeg', 0.92);
+                const blob = this.jpegToPdfBlob(jpeg, canvas.width, canvas.height);
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = this.exportFileBase() + '.pdf';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+            } catch (e) {
+                this.saveError = 'Could not generate the PDF: ' + (e?.message || 'unknown error');
+            } finally {
+                Chart.defaults.color = savedColor;
+                Chart.defaults.borderColor = savedBorder;
+                for (const c of tmpCharts) { try { c.destroy(); } catch (_) {} }
+                host.remove();
+                this.pdfBusy = false;
+            }
+        },
+
+        pdfEsc(v) {
+            return String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        },
+
+        pdfPageHtml() {
+            const esc = v => this.pdfEsc(v);
+            const m = this.model, r = this.roi;
+            const cur = this.p.display_currency;
+            const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            const kpi = (label, value) => `
+                <div style="flex:1;min-width:150px;border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;background:#f8fafc;">
+                    <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#64748b;">${label}</p>
+                    <p style="margin:4px 0 0;font-size:22px;font-weight:800;color:#0f172a;">${value}</p>
+                </div>`;
+            const chanRows = m.channels.map(row => {
+                const sp = this.sum(row.spend), rev = this.sum(row.revenue), cu = this.sum(row.customers);
+                return `<tr>
+                    <td style="padding:5px 8px;border-top:1px solid #e2e8f0;font-weight:600;color:#0f172a;">${esc(row.name)}</td>
+                    <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${this.money(sp)}</td>
+                    <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${this.money(rev)}</td>
+                    <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${this.nf(cu, 0)}</td>
+                    <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${cu > 0 ? this.money(sp / cu) : '—'}</td>
+                    <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${sp > 0 ? this.nf((rev - sp) / sp * 100, 0) + '%' : '—'}</td>
+                </tr>`;
+            }).join('');
+            const th = t => `<th style="padding:5px 8px;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;text-align:right;">${t}</th>`;
+            return `
+            <div style="width:1120px;background:#ffffff;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;padding:36px 40px;box-sizing:border-box;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #2563eb;padding-bottom:14px;">
+                    <div>
+                        <p style="margin:0;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#2563eb;">Sayzio · Marketing Plan</p>
+                        <h1 style="margin:4px 0 0;font-size:26px;font-weight:800;color:#0f172a;">${esc(this.name || 'My Marketing Plan')}</h1>
+                        ${this.p.company ? `<p style="margin:2px 0 0;font-size:13px;color:#475569;">${esc(this.p.company)}</p>` : ''}
+                    </div>
+                    <div style="text-align:right;font-size:11px;color:#64748b;">
+                        <p style="margin:0;">${today}</p>
+                        <p style="margin:2px 0 0;">All amounts in <b style="color:#0f172a;">${cur}</b></p>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:18px;">
+                    ${kpi('Total annual budget', this.money(this.p.annual_budget))}
+                    ${kpi('Projected revenue (year)', this.money(m.totals.revenue))}
+                    ${kpi('Blended ROAS', this.nf(m.totals.roas, 2) + '×')}
+                    ${kpi('Customers acquired', this.nf(m.totals.customers, 0))}
+                    ${kpi('Blended CAC', this.money(m.totals.cac))}
+                    ${kpi('Blended ROI', this.nf(m.totals.roi * 100, 0) + '%')}
+                </div>
+
+                <div style="display:flex;gap:16px;margin-top:18px;">
+                    <div style="flex:1.2;border:1px solid #e2e8f0;border-radius:14px;padding:14px;">
+                        <h3 style="margin:0 0 8px;font-size:12px;font-weight:800;color:#0f172a;">Spend vs revenue by month</h3>
+                        <canvas data-pdf-chart="month" width="580" height="260"></canvas>
+                    </div>
+                    <div style="flex:1;border:1px solid #e2e8f0;border-radius:14px;padding:14px;">
+                        <h3 style="margin:0 0 8px;font-size:12px;font-weight:800;color:#0f172a;">Annual revenue by channel</h3>
+                        <canvas data-pdf-chart="channel" width="440" height="260"></canvas>
+                    </div>
+                </div>
+
+                <div style="border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-top:18px;">
+                    <h3 style="margin:0 0 4px;font-size:12px;font-weight:800;color:#0f172a;">Channel summary (annual)</h3>
+                    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                        <thead><tr>
+                            <th style="padding:5px 8px;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;text-align:left;">Channel</th>
+                            ${th('Annual spend')}${th('Annual revenue')}${th('Customers')}${th('CAC')}${th('ROI %')}
+                        </tr></thead>
+                        <tbody>${chanRows}</tbody>
+                    </table>
+                </div>
+
+                <div style="border:1px solid #bfdbfe;background:#eff6ff;border-radius:14px;padding:18px;margin-top:18px;">
+                    <h3 style="margin:0;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#1d4ed8;">Total value of using Sayzio (year)</h3>
+                    <div style="display:flex;gap:20px;margin-top:10px;">
+                        <div style="flex:1;"><p style="margin:0;font-size:10px;color:#64748b;">Money saved on tools</p><p style="margin:2px 0 0;font-size:17px;font-weight:800;color:#0f172a;">${this.money(r.extraAnnual)}</p></div>
+                        <div style="flex:1;"><p style="margin:0;font-size:10px;color:#64748b;">Money saved via time</p><p style="margin:2px 0 0;font-size:17px;font-weight:800;color:#0f172a;">${this.money(r.timeAnnual)}</p></div>
+                        <div style="flex:1;"><p style="margin:0;font-size:10px;color:#64748b;">Effectiveness revenue</p><p style="margin:2px 0 0;font-size:17px;font-weight:800;color:#0f172a;">${this.money(r.upliftRevenue)}</p></div>
+                    </div>
+                    <p style="margin:12px 0 0;font-size:26px;font-weight:800;color:#2563eb;">${this.money(r.totalValue)}</p>
+                    <p style="margin:3px 0 0;font-size:10px;color:#64748b;">Tangible savings (tools + time) + additional effectiveness revenue · Sayzio plan: ${esc(this.selectedPlan.name)}</p>
+                </div>
+
+                <p style="margin:16px 0 0;font-size:9px;color:#94a3b8;">Generated with the Sayzio Marketing Plan Calculator · Projections are illustrative estimates based on your assumptions.</p>
+            </div>`;
+        },
+
+        renderPdfCharts(host) {
+            const m = this.model, mult = this.curMult;
+            const sym = this.p.display_currency === 'USD' ? '$' : '₹';
+            const created = [];
+            const monthEl = host.querySelector('canvas[data-pdf-chart="month"]');
+            if (monthEl) {
+                created.push(new Chart(monthEl, {
+                    type: 'bar',
+                    data: {
+                        labels: this.months,
+                        datasets: [
+                            { label: 'Spend (' + sym + ')',   data: m.monthTotals.spend.map(v => v * mult),   backgroundColor: 'rgba(37,99,235,0.65)' },
+                            { label: 'Revenue (' + sym + ')', data: m.monthTotals.revenue.map(v => v * mult), backgroundColor: 'rgba(16,185,129,0.65)' },
+                        ],
+                    },
+                    options: { responsive: false, animation: false, devicePixelRatio: 2, plugins: { legend: { position: 'bottom' } } },
+                }));
+            }
+            const chanEl = host.querySelector('canvas[data-pdf-chart="channel"]');
+            if (chanEl) {
+                const rows = m.channels
+                    .map(r => ({ name: r.name, rev: this.sum(r.revenue) * mult }))
+                    .filter(r => r.rev > 0)
+                    .sort((a, b) => b.rev - a.rev);
+                const palette = ['#2563eb','#0ea5e9','#10b981','#f59e0b','#ef4444','#14b8a6','#3b82f6','#64748b','#22c55e','#eab308','#06b6d4','#f97316','#0284c7','#84cc16','#e11d48','#475569'];
+                created.push(new Chart(chanEl, {
+                    type: 'doughnut',
+                    data: {
+                        labels: rows.map(r => r.name),
+                        datasets: [{ data: rows.map(r => r.rev), backgroundColor: rows.map((_, i) => palette[i % palette.length]), borderWidth: 0 }],
+                    },
+                    options: { responsive: false, animation: false, devicePixelRatio: 2, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } },
+                }));
+            }
+            return created;
+        },
+
+        /**
+         * Wraps a JPEG data-URL in a minimal one-page PDF (page sized to the
+         * image at 96dpi → points). No library needed — the JPEG stream is
+         * embedded verbatim via DCTDecode.
+         */
+        jpegToPdfBlob(dataUrl, pxW, pxH) {
+            const b64 = dataUrl.split(',')[1];
+            const bin = atob(b64);
+            const img = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) img[i] = bin.charCodeAt(i);
+            // Rendered at scale 2 → treat as 192dpi so the page prints at the intended size.
+            const wPt = (pxW / 2) * 72 / 96, hPt = (pxH / 2) * 72 / 96;
+            const enc = new TextEncoder();
+            const content = `q ${wPt.toFixed(2)} 0 0 ${hPt.toFixed(2)} 0 0 cm /Im0 Do Q`;
+            const objs = [
+                '<< /Type /Catalog /Pages 2 0 R >>',
+                '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+                `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${wPt.toFixed(2)} ${hPt.toFixed(2)}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`,
+                null, // image — handled specially below
+                `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
+            ];
+            const parts = []; let offset = 0; const offsets = [];
+            const push = (chunk) => { parts.push(chunk); offset += chunk.length; };
+            push(enc.encode('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n'));
+            for (let i = 0; i < objs.length; i++) {
+                offsets.push(offset);
+                if (i === 3) {
+                    push(enc.encode(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${pxW} /Height ${pxH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.length} >>\nstream\n`));
+                    push(img);
+                    push(enc.encode('\nendstream\nendobj\n'));
+                } else {
+                    push(enc.encode(`${i + 1} 0 obj\n${objs[i]}\nendobj\n`));
+                }
+            }
+            const xrefStart = offset;
+            let xref = `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+            for (const o of offsets) xref += String(o).padStart(10, '0') + ' 00000 n \n';
+            xref += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+            push(enc.encode(xref));
+            return new Blob(parts, { type: 'application/pdf' });
         },
 
         // ---------- charts ----------

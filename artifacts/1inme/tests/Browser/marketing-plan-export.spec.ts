@@ -89,4 +89,36 @@ test.describe("marketing plan export", () => {
     expect(buf[0]).toBe(0x50);
     expect(buf[1]).toBe(0x4b);
   });
+
+  // Task #6746 — client-side PDF one-pager (html2canvas + minimal PDF writer).
+  test("PDF one-pager export downloads a real single-page PDF", async ({ page }) => {
+    test.setTimeout(300_000);
+    await loginAsDemo(page);
+    await page.goto("/user/marketing-plan/create", { timeout: 240_000 });
+    const exportBtn = page.getByRole("button", { name: /Export/ }).first();
+    await exportBtn.waitFor({ state: "visible", timeout: 120_000 });
+    // Wait for the deferred html2canvas vendor script + Chart.js.
+    await page.waitForFunction(
+      () =>
+        typeof (window as any).html2canvas !== "undefined" &&
+        typeof (window as any).Chart !== "undefined",
+      null,
+      { timeout: 60_000 },
+    );
+
+    await exportBtn.click();
+    const [dl] = await Promise.all([
+      page.waitForEvent("download", { timeout: 120_000 }),
+      page.getByRole("button", { name: /PDF one-pager/ }).click(),
+    ]);
+    expect(dl.suggestedFilename()).toMatch(/\.pdf$/);
+    const buf = fs.readFileSync((await dl.path())!);
+    // Valid PDF header/trailer and a rendered JPEG payload of real size.
+    expect(buf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+    expect(buf.toString("latin1")).toContain("%%EOF");
+    expect(buf.toString("latin1")).toContain("/DCTDecode");
+    expect(buf.length).toBeGreaterThan(50_000);
+    // No error surfaced in the UI.
+    await expect(page.locator("text=Could not generate the PDF")).toHaveCount(0);
+  });
 });
