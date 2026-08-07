@@ -36,7 +36,7 @@
         <h1 class="text-4xl sm:text-5xl font-bold tracking-tight">Events aren't available right now</h1>
         <p class="mt-4 text-lg text-gray-400 evun-body max-w-2xl mx-auto">
             The event page you're looking for can't be shown because events are
-            currently switched off on 1IN.ME. Please check back later — the link
+            currently switched off on 1IN.ME. Please check back later; the link
             you followed may work again once events return.
         </p>
     </div>
@@ -49,7 +49,7 @@
                 In the meantime…
             </h2>
             <p class="mt-3 text-gray-300 evun-card-body max-w-xl mx-auto">
-                Creators on 1IN.ME share everything from one tidy link — pages,
+                Creators on 1IN.ME share everything from one tidy link: pages,
                 products, and profiles. Head back to the homepage to explore.
             </p>
 

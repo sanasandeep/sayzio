@@ -13,7 +13,7 @@
         <h1 class="text-2xl font-bold text-white mt-5" data-plan-lock="marketing_plan_calculator">Marketing Plan Calculator</h1>
         <p class="text-sm text-white/60 mt-2 max-w-md mx-auto">
             Build a 12-month channel plan, live projections dashboard and ROI summary from your
-            own budget and assumptions — no spreadsheet needed.
+            own budget and assumptions, no spreadsheet needed.
         </p>
         <div class="mt-6 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 inline-flex items-start gap-3 text-left">
             <i class="fas fa-lock text-blue-300 mt-0.5"></i>

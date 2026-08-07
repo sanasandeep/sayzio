@@ -190,7 +190,7 @@ export default function LinkVisitorsScreen() {
                     fontFamily: "SpaceGrotesk_400Regular",
                   }}
                 >
-                  Guests who scanned your Connect QR — one code signs them in,
+                  Guests who scanned your Connect QR: one code signs them in,
                   RSVPs them "yes" and connects them with you.
                 </Text>
                 <View style={styles.tileRow}>

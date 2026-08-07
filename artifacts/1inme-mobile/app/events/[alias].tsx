@@ -65,11 +65,11 @@ function EventDetailScreenInner() {
         setConnectDone(true);
         setConnectMessage(res.message ?? "You're going! We've saved your RSVP and connected you with the host.");
       } else {
-        setConnectError(res.message ?? "Could not complete — please try again.");
+        setConnectError(res.message ?? "Could not complete. Please try again.");
       }
     } catch (e) {
       setConnectError(
-        (e as { message?: string })?.message ?? "Could not complete — please try again.",
+        (e as { message?: string })?.message ?? "Could not complete. Please try again.",
       );
     } finally {
       setConnectBusy(false);

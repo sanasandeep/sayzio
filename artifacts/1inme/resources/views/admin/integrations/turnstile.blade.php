@@ -22,7 +22,7 @@
 
     <p class="ak-muted text-sm text-white/50">
         Cloudflare Turnstile protects the <strong>web sign-up form</strong> and the <strong>one-time-code send &amp; resend</strong>
-        flows (email and WhatsApp) from bots — invisibly, so real visitors never solve a puzzle. The secret key is
+        flows (email and WhatsApp) from bots, invisibly, so real visitors never solve a puzzle. The secret key is
         encrypted at rest and never displayed back &mdash; leave the field blank to keep the stored value. With no keys
         configured, or with enforcement switched off, nothing changes for users and no Cloudflare script is loaded.
         Social sign-in and the mobile app are not affected.
@@ -53,7 +53,7 @@
     @if($toggleOn && !$enforcing)
         @include('admin.partials.help-note', [
             'type' => 'warn',
-            'body' => 'Enforcement is switched on but a site key and/or secret key is missing — the captcha stays <strong>inactive</strong> until both keys are saved.',
+            'body' => 'Enforcement is switched on but a site key and/or secret key is missing, so the captcha stays <strong>inactive</strong> until both keys are saved.',
         ])
     @endif
 
@@ -77,7 +77,7 @@
                 <label class="ak-note text-xs uppercase tracking-wider text-white/40 mb-1 block">Site key</label>
                 <input type="text" name="site_key" value="{{ old('site_key', $siteKey) }}" placeholder="0x4AAAAAAA..."
                        class="ak-input w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white" autocomplete="off">
-                <p class="ak-note text-[11px] text-white/30 mt-1">Public — rendered into the sign-up and login pages when enforcement is on.</p>
+                <p class="ak-note text-[11px] text-white/30 mt-1">Public: rendered into the sign-up and login pages when enforcement is on.</p>
                 @if($siteKey)
                     <label class="ak-muted mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                         <input type="hidden" name="clear_site_key" value="0">

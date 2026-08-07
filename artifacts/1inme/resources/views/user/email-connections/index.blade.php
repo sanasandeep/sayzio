@@ -5,7 +5,7 @@
 <div class="max-w-5xl mx-auto">
     @include('user.partials.page-hero', [
         'title'    => 'SMTP Connections',
-        'subtitle' => 'Reusable email connections for everything the platform sends on your behalf — form notifications, autoresponders, subscriber broadcasts, and billing emails.',
+        'subtitle' => 'Reusable email connections for everything the platform sends on your behalf: form notifications, autoresponders, subscriber broadcasts, and billing emails.',
         'icon'     => 'fa-server',
         'chips'    => [
             ['icon' => 'fa-layer-group', 'text' => $connections->count() . ' connection' . ($connections->count() === 1 ? '' : 's')],
@@ -33,7 +33,7 @@
 
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
         <p class="text-xs" style="color: var(--text-muted);">
-            Add as many connections as you need — different domains, brands, or providers. The default one is pre-selected wherever you pick a connection.
+            Add as many connections as you need (different domains, brands, or providers). The default one is pre-selected wherever you pick a connection.
         </p>
         <a href="{{ route('user.integrations.create', ['kind' => 'email', 'return_to' => 'connections']) }}"
            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"

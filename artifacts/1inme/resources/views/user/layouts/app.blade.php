@@ -1170,7 +1170,7 @@
                            style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-server"></i></div>
                             <span class="nav-label">SMTP Connections</span>
-                            <span class="sidebar-tooltip">SMTP Connections — your reusable email senders</span>
+                            <span class="sidebar-tooltip">SMTP Connections: your reusable email senders</span>
                         </a>
                         <a href="{{ route('user.emails.index') }}"
                            class="sidebar-link {{ nav_route_is('user.emails.*') ? 'active' : '' }}"

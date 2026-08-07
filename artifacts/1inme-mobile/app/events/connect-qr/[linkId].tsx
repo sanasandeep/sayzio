@@ -296,7 +296,7 @@ function EventConnectQrScreenInner() {
                 }}
               >
                 Print this QR at the door or on invites. Guests who scan it
-                verify one code — that signs them in (creating an account if
+                verify one code; that signs them in (creating an account if
                 needed), RSVPs them "yes" and connects them with you. Track the
                 results in Visitor Insights.
               </Text>

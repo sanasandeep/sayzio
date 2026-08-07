@@ -23,7 +23,7 @@
             </div>
             <p class="text-xs text-white/40">
                 Scan results appear on the <a href="{{ route('user.links.visitors', $link) }}" class="text-blue-400 hover:underline">Visitor Insights</a>
-                page in the "QR Connect" panel — scans, new signups vs. existing users, RSVPs, and new followers.
+                page in the "QR Connect" panel: scans, new signups vs. existing users, RSVPs, and new followers.
             </p>
         </div>
 
