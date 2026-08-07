@@ -215,6 +215,51 @@
     .resume-tailor-skill-row input[type=checkbox] { margin-top: 3px; accent-color: #3d6bff; }
     .resume-tailor-skill-name { font-size: 12px; font-weight: 600; color: var(--text-primary,#fff); }
     .resume-tailor-skill-rationale { font-size: 11px; color: var(--text-muted,#9ca3af); margin-top: 2px; }
+
+    /* ── Light-mode pairing ─────────────────────────────
+       The rules above hardcode pale-on-dark accents (#bccfff text, white
+       hover text, dark rgba backdrops). Each gets an explicit light-mode
+       counterpart; never blanket-override (see admin/marketing precedent). */
+    html.light-mode .resume-add-btn { background: rgba(61,107,255,0.08); color: #2b4fd8; border-color: rgba(61,107,255,0.35); }
+    html.light-mode .resume-add-btn:hover { background: rgba(61,107,255,0.14); }
+    html.light-mode .resume-pill { background: rgba(61,107,255,0.08); color: #2b4fd8; border-color: rgba(61,107,255,0.25); }
+    html.light-mode .resume-icon-btn:hover { color: #2b4fd8; }
+    html.light-mode .tpl-cat-tab:hover { color: #1f2937; }
+    html.light-mode .tpl-cat-tab.active { color: #1e3a8a; background: rgba(61,107,255,0.16); }
+    html.light-mode .tpl-cat-count { background: rgba(61,107,255,0.12); color: #1e3a8a; }
+    html.light-mode .pdf-size-active { color: #1e3a8a; background: rgba(61,107,255,0.16); }
+    html.light-mode .resume-mobile-tabs button.active { color: #1e3a8a; }
+    html.light-mode .empty-state .icon { color: #2b4fd8; }
+    html.light-mode .level-stars button { color: rgba(61,107,255,0.35); }
+    html.light-mode .level-stars button.on { color: #d97706; }
+    html.light-mode .resume-toast.error { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+    html.light-mode .resume-toast.success { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+    /* Import modal */
+    html.light-mode .resume-import-close:hover { color: #1f2937; }
+    html.light-mode .resume-import-tabs button:hover { color: #1f2937; }
+    html.light-mode .resume-import-tabs button.active { color: #1e3a8a; }
+    html.light-mode .resume-import-drop i { color: #2b4fd8; }
+    html.light-mode .resume-import-error { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+    html.light-mode .resume-import-note { background: rgba(61,107,255,0.06); color: #1e3a8a; }
+    html.light-mode .resume-import-mini { color: #2b4fd8; }
+    html.light-mode .resume-import-group { background: rgba(0,0,0,0.015); }
+    html.light-mode .resume-import-summary { background: rgba(0,0,0,0.05); color: #374151; }
+    html.light-mode .resume-import-preview-hint { color: #1e3a8a; }
+    /* Tailor modal */
+    html.light-mode .resume-tailor-cost strong { color: #111827; }
+    html.light-mode .resume-tailor-cost-hint { color: #b45309; }
+    html.light-mode .resume-tailor-history-row { background: rgba(0,0,0,0.03); }
+    html.light-mode .resume-tailor-summary-bar i { color: #059669; }
+    html.light-mode .resume-tailor-summary-bar-bullet { color: #047857; }
+    html.light-mode .resume-tailor-keywords { background: rgba(0,0,0,0.015); }
+    html.light-mode .resume-tailor-keyword-chip { background: rgba(245,158,11,0.12); color: #92400e; border-color: rgba(245,158,11,0.35); }
+    html.light-mode .resume-tailor-diff-text { background: rgba(0,0,0,0.045); color: #1f2937; }
+    html.light-mode .resume-tailor-diff-text ins { background: rgba(16,185,129,0.16); color: #065f46; }
+    html.light-mode .resume-tailor-diff-text del { background: rgba(239,68,68,0.12); color: #991b1b; }
+    html.light-mode .resume-tailor-diff-text mark.kw { background: rgba(245,158,11,0.22); color: #92400e; }
+    html.light-mode .resume-tailor-rationale { color: #4b5563; }
+    html.light-mode .resume-tailor-rationale i { color: #b45309; }
+    html.light-mode .resume-tailor-exp { background: rgba(0,0,0,0.015); }
 </style>
 @endpush
 
