@@ -17,6 +17,11 @@ import {
  */
 export type FeatureStatesGate = {
   isLoading: boolean;
+  /**
+   * Platform-wide Events module switch. False only when the API explicitly
+   * reports the module off; fails OPEN (true) while loading or on error.
+   */
+  eventsModuleEnabled: boolean;
   byKey: Map<string, FeatureState>;
   stateForKey: (key: string) => FeatureState | null;
   stateForHref: (href: string) => FeatureState | null;
@@ -27,11 +32,12 @@ export type FeatureStatesGate = {
 export function useFeatureStates(): FeatureStatesGate {
   const q = useQuery({
     queryKey: ["feature-states"],
-    queryFn: () => featureStates.list(),
+    queryFn: () => featureStates.overview(),
     staleTime: 5 * 60 * 1000,
   });
 
-  const list: FeatureState[] = q.data ?? [];
+  const list: FeatureState[] = q.data?.features ?? [];
+  const eventsModuleEnabled = q.data?.events_module_enabled !== false;
   const byKey = new Map<string, FeatureState>(list.map((f) => [f.key, f]));
 
   function stateForKey(key: string): FeatureState | null {
@@ -53,6 +59,7 @@ export function useFeatureStates(): FeatureStatesGate {
 
   return {
     isLoading: q.isLoading,
+    eventsModuleEnabled,
     byKey,
     stateForKey,
     stateForHref,

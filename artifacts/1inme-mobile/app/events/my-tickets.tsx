@@ -13,8 +13,9 @@ import {
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import { type EventTicket, getMyEventTickets } from "@/lib/api/events";
+import { EventsModuleGate } from "@/components/EventsModuleGate";
 
-export default function MyTicketsScreen() {
+function MyTicketsScreenInner() {
   const colors = useColors();
   const [tickets, setTickets] = useState<EventTicket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,3 +104,13 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   card: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 3 },
 });
+
+// Task #6729 — platform-wide Events module gate: shows a graceful
+// "not available" state (instead of API 404 errors) when events are off.
+export default function MyTicketsScreen() {
+  return (
+    <EventsModuleGate>
+      <MyTicketsScreenInner />
+    </EventsModuleGate>
+  );
+}

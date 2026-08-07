@@ -18,6 +18,7 @@ import {
   sendEventBroadcast,
 } from "@/lib/api/events";
 import { showAlert } from "@/lib/webAlert";
+import { EventsModuleGate } from "@/components/EventsModuleGate";
 
 const AUDIENCES: { value: BroadcastAudience; label: string }[] = [
   { value: "going", label: "Going" },
@@ -26,7 +27,7 @@ const AUDIENCES: { value: BroadcastAudience; label: string }[] = [
   { value: "ticket_holders", label: "Ticket holders" },
 ];
 
-export default function EventBroadcastScreen() {
+function EventBroadcastScreenInner() {
   const { linkId } = useLocalSearchParams<{ linkId: string }>();
   const colors = useColors();
   const id = Number(linkId);
@@ -237,3 +238,13 @@ const styles = StyleSheet.create({
   section: { fontSize: 16, fontWeight: "700", marginTop: 24, marginBottom: 4 },
   card: { borderWidth: 1, borderRadius: 14, padding: 12, marginTop: 8 },
 });
+
+// Task #6729 — platform-wide Events module gate: shows a graceful
+// "not available" state (instead of API 404 errors) when events are off.
+export default function EventBroadcastScreen() {
+  return (
+    <EventsModuleGate>
+      <EventBroadcastScreenInner />
+    </EventsModuleGate>
+  );
+}

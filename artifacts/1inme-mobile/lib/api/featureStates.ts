@@ -30,12 +30,31 @@ export type FeatureState = {
   notified: boolean;
 };
 
+export type FeatureStatesOverview = {
+  features: FeatureState[];
+  /**
+   * Platform-wide Events module switch (Task #6729). When false the API
+   * 404s every events endpoint, so the app hides event entry points and
+   * shows a "not available" state on event deep links. Fails OPEN (true)
+   * when the field is absent (older API) so a working module is never hidden.
+   */
+  events_module_enabled: boolean;
+};
+
 export const featureStates = {
+  overview: async (): Promise<FeatureStatesOverview> => {
+    const res = await apiFetch<{
+      data: { features: FeatureState[]; events_module_enabled?: boolean };
+    }>("/feature-states");
+    return {
+      features: res?.data?.features ?? [],
+      events_module_enabled: res?.data?.events_module_enabled !== false,
+    };
+  },
+
   list: async (): Promise<FeatureState[]> => {
-    const res = await apiFetch<{ data: { features: FeatureState[] } }>(
-      "/feature-states",
-    );
-    return res?.data?.features ?? [];
+    const res = await featureStates.overview();
+    return res.features;
   },
 
   notify: async (

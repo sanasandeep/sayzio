@@ -558,8 +558,12 @@ export default function Profile() {
           >
             {TOOL_PAGES.filter(
               (p) =>
-                p.href !== "/marketing-strategist" ||
-                !!user?.capabilities?.marketing_strategist,
+                (p.href !== "/marketing-strategist" ||
+                  !!user?.capabilities?.marketing_strategist) &&
+                // Task #6729 — hide event entries when the platform-wide
+                // Events module is off (the API 404s events endpoints then).
+                (featureStatesGate.eventsModuleEnabled ||
+                  (p.href !== "/events" && p.href !== "/events/my-tickets")),
             ).map((p, i) => {
               const soon = featureStatesGate.stateForHref(p.href);
               const isSoon = soon?.status === "coming_soon";

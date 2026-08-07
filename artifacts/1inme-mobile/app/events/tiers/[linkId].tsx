@@ -25,12 +25,13 @@ import {
   updateTier,
 } from "@/lib/api/events";
 import { showAlert } from "@/lib/webAlert";
+import { EventsModuleGate } from "@/components/EventsModuleGate";
 
 function money(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
-export default function OwnerTiersScreen() {
+function OwnerTiersScreenInner() {
   const { linkId } = useLocalSearchParams<{ linkId: string }>();
   const colors = useColors();
   const id = Number(linkId);
@@ -344,3 +345,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
+
+// Task #6729 — platform-wide Events module gate: shows a graceful
+// "not available" state (instead of API 404 errors) when events are off.
+export default function OwnerTiersScreen() {
+  return (
+    <EventsModuleGate>
+      <OwnerTiersScreenInner />
+    </EventsModuleGate>
+  );
+}

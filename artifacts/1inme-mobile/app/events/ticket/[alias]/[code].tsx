@@ -10,8 +10,9 @@ import {
   getCachedEventTicket,
   getEventTicket,
 } from "@/lib/api/events";
+import { EventsModuleGate } from "@/components/EventsModuleGate";
 
-export default function TicketViewScreen() {
+function TicketViewScreenInner() {
   const { alias, code } = useLocalSearchParams<{ alias: string; code: string }>();
   const colors = useColors();
   const [ticket, setTicket] = useState<FullEventTicket | null>(null);
@@ -145,3 +146,13 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
 });
+
+// Task #6729 — platform-wide Events module gate: shows a graceful
+// "not available" state (instead of API 404 errors) when events are off.
+export default function TicketViewScreen() {
+  return (
+    <EventsModuleGate>
+      <TicketViewScreenInner />
+    </EventsModuleGate>
+  );
+}

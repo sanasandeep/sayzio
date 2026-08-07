@@ -25,8 +25,9 @@ import {
   type EventItem,
   listEvents,
 } from "@/lib/api/events";
+import { EventsModuleGate } from "@/components/EventsModuleGate";
 
-export default function EventsDirectoryScreen() {
+function EventsDirectoryScreenInner() {
   const colors = useColors();
   const [q, setQ] = useState("");
   const [nearMe, setNearMe] = useState(false);
@@ -439,3 +440,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
+
+// Task #6729 — platform-wide Events module gate: shows a graceful
+// "not available" state (instead of API 404 errors) when events are off.
+export default function EventsDirectoryScreen() {
+  return (
+    <EventsModuleGate>
+      <EventsDirectoryScreenInner />
+    </EventsModuleGate>
+  );
+}

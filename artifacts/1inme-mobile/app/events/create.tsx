@@ -5,8 +5,9 @@ import { EventForm } from "@/components/EventForm";
 import { createEvent, type EventInput } from "@/lib/api/events";
 import { handlePlanLockedError } from "@/lib/upgradePrompt";
 import { showAlert } from "@/lib/webAlert";
+import { EventsModuleGate } from "@/components/EventsModuleGate";
 
-export default function CreateEventScreen() {
+function CreateEventScreenInner() {
   const qc = useQueryClient();
 
   const save = useMutation({
@@ -35,5 +36,15 @@ export default function CreateEventScreen() {
         onSubmit={(payload) => save.mutate(payload)}
       />
     </>
+  );
+}
+
+// Task #6729 — platform-wide Events module gate: shows a graceful
+// "not available" state (instead of API 404 errors) when events are off.
+export default function CreateEventScreen() {
+  return (
+    <EventsModuleGate>
+      <CreateEventScreenInner />
+    </EventsModuleGate>
   );
 }

@@ -28,6 +28,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useThemeControls } from "@/contexts/ThemeContext";
 import { useColors, useResolvedScheme } from "@/hooks/useColors";
+import { useFeatureStates } from "@/hooks/useFeatureStates";
 import { BrandWordmark } from "@/components/Brand";
 import {
   DRAWER_FOCUS_RING,
@@ -524,6 +525,9 @@ function ThemeToggleBlock({
 }
 
 export function DrawerSidebar() {
+  // Task #6729 — hide the Events entry when the platform-wide Events module
+  // is switched off (the API 404s every events endpoint then). Fails open.
+  const { eventsModuleEnabled } = useFeatureStates();
   const { isOpen, closeDrawer, contentProgress } = useDrawer();
   const { user, signOut } = useAuth();
   const colors = useColors();
@@ -834,7 +838,11 @@ export function DrawerSidebar() {
                     {group.title}
                   </Text>
                 </View>
-                {group.items.map((item) => {
+                {group.items
+                  .filter(
+                    (item) => eventsModuleEnabled || item.href !== "/events",
+                  )
+                  .map((item) => {
                   const active = !item.soon && isActive(item.href);
                   return (
                     <Pressable
