@@ -958,24 +958,40 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   });
 
   // ── Collections ──────────────────────────────────────────────────────────
-  ipcMain.handle('collections:all', (event) => getAllCollections(resolveProfileId(event)));
+  // Like bookmarks, collections are normal-profile data: private windows may
+  // neither read nor mutate them (reads return empty, writes are no-ops).
+  ipcMain.handle('collections:all', (event) => {
+    if (senderIsPrivate(event)) return [];
+    return getAllCollections(resolveProfileId(event));
+  });
   ipcMain.handle('collections:create', (event, name: string, opts?: Record<string, string>) => {
+    if (senderIsPrivate(event)) return null;
     const c = createCollection(name, opts);
     createCollectionInDb(c, resolveProfileId(event));
     return c;
   });
-  ipcMain.handle('collections:update', (_, id: string, updates: Record<string, string>) => {
+  ipcMain.handle('collections:update', (event, id: string, updates: Record<string, string>) => {
+    if (senderIsPrivate(event)) return false;
     updateCollection(id, updates);
     return true;
   });
-  ipcMain.handle('collections:delete', (_, id: string) => { deleteCollection(id); return true; });
-  ipcMain.handle('collections:get-links', (_, collectionId: string) => getSavedLinksForCollection(collectionId));
-  ipcMain.handle('collections:save-link', (_, collectionId: string, url: string, title: string, opts?: Record<string, unknown>) => {
+  ipcMain.handle('collections:delete', (event, id: string) => {
+    if (senderIsPrivate(event)) return false;
+    deleteCollection(id);
+    return true;
+  });
+  ipcMain.handle('collections:get-links', (event, collectionId: string) => {
+    if (senderIsPrivate(event)) return [];
+    return getSavedLinksForCollection(collectionId);
+  });
+  ipcMain.handle('collections:save-link', (event, collectionId: string, url: string, title: string, opts?: Record<string, unknown>) => {
+    if (senderIsPrivate(event)) return null;
     const link = createSavedLink(collectionId, url, title, opts as Parameters<typeof createSavedLink>[3]);
     saveLinkToCollection(link);
     return link;
   });
-  ipcMain.handle('collections:update-ai', (_, id: string, summary: string, tags: string[], context: string, coins: number) => {
+  ipcMain.handle('collections:update-ai', (event, id: string, summary: string, tags: string[], context: string, coins: number) => {
+    if (senderIsPrivate(event)) return false;
     updateSavedLinkAiEnrichment(id, summary, tags, context, coins);
     return true;
   });

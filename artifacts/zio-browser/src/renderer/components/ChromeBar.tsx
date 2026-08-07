@@ -19,6 +19,7 @@ import { ProfileSwitcher } from './ProfileSwitcher';
 import { useChromeOverlay } from '../hooks/use-chrome-overlay';
 import { AccountButton } from './AccountButton';
 import zioIcon from '../assets/zio-icon.png';
+import zioMascotIcon from '../assets/zio-mascot-icon.png';
 import zioMascot from '../assets/zio-mascot.png';
 import type { RecentlyClosedEntry } from '../../main/tab-manager';
 import { resolveFavicon } from '../../shared/favicon';
@@ -1134,7 +1135,7 @@ export function ChromeBar({
               } as React.CSSProperties}
             >
               {tab?.isLoading ? (
-                <img src={zioIcon} width={14} height={14} className="zio-loading-icon" alt="" />
+                <img src={zioMascotIcon} width={15} height={15} className="zio-loading-icon" alt="" />
               ) : tab?.favicon ? (
                 <img src={tab.favicon} width={14} height={14} style={{ borderRadius: 2, filter: isActive ? 'none' : 'grayscale(1)', opacity: isActive ? 1 : 0.75 }} alt="" />
               ) : (
@@ -1226,7 +1227,7 @@ export function ChromeBar({
               } as React.CSSProperties}
             >
               {tab?.isLoading ? (
-                <img src={zioIcon} width={14} height={14} className="zio-loading-icon" style={{ flexShrink: 0 }} alt="" />
+                <img src={zioMascotIcon} width={15} height={15} className="zio-loading-icon" style={{ flexShrink: 0 }} alt="" />
               ) : tab?.favicon ? (
                 <img src={tab.favicon} width={14} height={14} style={{ borderRadius: 2, flexShrink: 0, filter: isActive ? 'none' : 'grayscale(1)', opacity: isActive ? 1 : 0.75 }} alt="" />
               ) : (

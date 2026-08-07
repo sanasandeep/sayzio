@@ -1,14 +1,19 @@
 /**
  * New Tab page — shown when no URL is loaded.
- * Shows a search bar, quick links, and recent history.
+ * A Zio "home base": time-aware greeting scene with the animated mascot,
+ * a command bar with Sayzio quick actions, folders (local collections),
+ * "continue where you left off" session groups, and a daily privacy strip.
  * In private/incognito mode shows a minimalist private-mode splash instead.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { HistoryEntry } from '../../main/db';
+import type { Collection, SavedLink } from '../../shared/collection-store';
 import { ProfileBadge } from './ProfileBadge';
 import { resolveFavicon } from '../../shared/favicon';
 import { FaviconImg } from './FaviconImg';
+import { useAuthStore } from '../store/auth-store';
 import { SayzioIcon, GmailIcon, GitHubIcon, LinkedInIcon, XIcon, YouTubeIcon } from './BrandIcons';
+import zioMascot from '../assets/zio-mascot-icon.png';
 
 /**
  * Neutral fallback for favicons that can't be loaded: the site's first
@@ -146,26 +151,94 @@ function PrivateNewTabPage({ onNavigate }: Pick<Props, 'onNavigate'>) {
   );
 }
 
+// ── Time-of-day phases (greeting scene) ───────────────────────────────────────
+
+type DayPhase = 'dawn' | 'day' | 'dusk' | 'night';
+
+function dayPhase(d: Date): DayPhase {
+  const h = d.getHours();
+  if (h >= 5 && h < 9) return 'dawn';
+  if (h >= 9 && h < 17) return 'day';
+  if (h >= 17 && h < 21) return 'dusk';
+  return 'night';
+}
+
+const PHASE_STYLES: Record<DayPhase, { wash: string; greeting: string; accent: string }> = {
+  dawn:  { wash: 'radial-gradient(90% 55% at 50% 0%, rgba(255,170,120,0.14) 0%, rgba(255,120,160,0.06) 45%, transparent 75%)', greeting: 'Good morning',   accent: '#fdba74' },
+  day:   { wash: 'radial-gradient(90% 55% at 50% 0%, rgba(96,165,250,0.13) 0%, rgba(56,189,248,0.05) 45%, transparent 75%)',  greeting: 'Good afternoon', accent: '#60a5fa' },
+  dusk:  { wash: 'radial-gradient(90% 55% at 50% 0%, rgba(192,132,252,0.15) 0%, rgba(244,114,182,0.06) 45%, transparent 75%)', greeting: 'Good evening',   accent: '#c084fc' },
+  night: { wash: 'radial-gradient(90% 55% at 50% 0%, rgba(122,92,255,0.14) 0%, rgba(79,124,255,0.05) 45%, transparent 75%)',   greeting: 'Good night',     accent: '#8da2ff' },
+};
+
+// Folder card palette, cycled by index — mirrors the Sayzio Folders page look.
+const FOLDER_COLORS = ['#ec4899', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#14b8a6', '#ef4444', '#6366f1'];
+
+function FolderGlyph({ color, size = 40 }: { color: string; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M6 12c0-2.2 1.8-4 4-4h9l4 5h15c2.2 0 4 1.8 4 4v19c0 2.2-1.8 4-4 4H10c-2.2 0-4-1.8-4-4V12z" fill={color} opacity="0.35" />
+      <path d="M6 18h36v18c0 2.2-1.8 4-4 4H10c-2.2 0-4-1.8-4-4V18z" fill={color} />
+    </svg>
+  );
+}
+
+interface SessionGroup {
+  host: string;
+  entries: HistoryEntry[];
+}
+
 // ── Normal new tab page ───────────────────────────────────────────────────────
 
 export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
   const [query, setQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const [recentHistory, setRecentHistory] = useState<HistoryEntry[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [openFolderId, setOpenFolderId] = useState<string | null>(null);
+  const [folderLinks, setFolderLinks] = useState<SavedLink[]>([]);
+  const [folderLinksLoading, setFolderLinksLoading] = useState(false);
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [trackerStats, setTrackerStats] = useState<{ todayTotal: number; weekTotal: number } | null>(null);
+  const { user } = useAuthStore();
+
+  const loadCollections = useCallback(async () => {
+    try {
+      const all = await window.zio.collections.all() as Collection[];
+      setCollections(all);
+    } catch { /* collections unavailable — hide section */ }
+  }, []);
 
   useEffect(() => {
+    if (isPrivate) {
+      // Reset anything loaded while the window was normal so a mode switch
+      // never keeps normal-profile data (history/folders/stats) in state.
+      setRecentHistory([]);
+      setCollections([]);
+      setTrackerStats(null);
+      setOpenFolderId(null);
+      setFolderLinks([]);
+      return;
+    }
+    let cancelled = false;
     const load = async () => {
       try {
         const history = await window.zio.history.recent() as HistoryEntry[];
-        setRecentHistory(history.slice(0, 8));
-      } catch {
-        // ignore
-      }
+        if (!cancelled) setRecentHistory(history);
+      } catch { /* ignore */ }
+      try {
+        const stats = await window.zio.privacy.trackerStats();
+        if (!cancelled) setTrackerStats({ todayTotal: stats.todayTotal, weekTotal: stats.weekTotal });
+      } catch { /* stats unavailable — hide strip */ }
+      if (!cancelled) void loadCollections();
     };
     void load();
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+    // The clock shows hours:minutes only — a 30s tick keeps it accurate
+    // without re-rendering the whole page every second.
+    const timer = setInterval(() => setCurrentTime(new Date()), 30000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [isPrivate, loadCollections]);
 
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -173,9 +246,66 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
     onNavigate(query.trim());
   }, [query, onNavigate]);
 
+  const openFolder = useCallback(async (id: string) => {
+    if (openFolderId === id) { setOpenFolderId(null); setFolderLinks([]); return; }
+    setOpenFolderId(id);
+    setFolderLinks([]);
+    setFolderLinksLoading(true);
+    try {
+      const links = await window.zio.collections.getLinks(id) as SavedLink[];
+      setFolderLinks(links);
+    } catch {
+      setFolderLinks([]);
+    } finally {
+      setFolderLinksLoading(false);
+    }
+  }, [openFolderId]);
+
+  const createFolder = useCallback(async () => {
+    const name = newFolderName.trim();
+    if (!name) return;
+    try {
+      const color = FOLDER_COLORS[collections.length % FOLDER_COLORS.length];
+      await window.zio.collections.create(name, { color });
+      setNewFolderName('');
+      setCreatingFolder(false);
+      await loadCollections();
+    } catch { /* keep the input open so the user can retry */ }
+  }, [newFolderName, collections.length, loadCollections]);
+
+  // "Continue where you left off": group recent history by hostname and keep
+  // groups with 2+ distinct pages, newest first, top 4.
+  const sessionGroups = useMemo<SessionGroup[]>(() => {
+    const byHost = new Map<string, HistoryEntry[]>();
+    for (const entry of recentHistory) {
+      let host: string;
+      try { host = new URL(entry.url).hostname.replace(/^www\./, ''); } catch { continue; }
+      if (!host) continue;
+      const list = byHost.get(host) ?? [];
+      if (list.length < 4 && !list.some(e => e.url === entry.url)) list.push(entry);
+      byHost.set(host, list);
+    }
+    return [...byHost.entries()]
+      .filter(([, entries]) => entries.length >= 2)
+      .slice(0, 4)
+      .map(([host, entries]) => ({ host, entries }));
+  }, [recentHistory]);
+
+  const reopenSession = useCallback((group: SessionGroup) => {
+    const [first, ...rest] = group.entries;
+    for (const entry of rest) {
+      try { void window.zio.tabs.create(entry.url, true); } catch { /* ignore */ }
+    }
+    onNavigate(first.url);
+  }, [onNavigate]);
+
   if (isPrivate) {
     return <PrivateNewTabPage onNavigate={onNavigate} />;
   }
+
+  const phase = dayPhase(currentTime);
+  const phaseStyle = PHASE_STYLES[phase];
+  const firstName = (user?.name ?? '').trim().split(/\s+/)[0] || null;
 
   const formatTime = (d: Date) =>
     d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -199,6 +329,26 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
     { title: 'YouTube', url: 'https://youtube.com', icon: <YouTubeIcon size={24} /> },
   ];
 
+  // Sayzio quick actions surfaced under the command bar.
+  const QUICK_ACTIONS = [
+    { label: 'Shorten a link', icon: '🔗', url: 'https://sayzio.app/user/links/create' },
+    { label: 'QR code', icon: '▦', url: 'https://sayzio.app/user/qr-codes' },
+    { label: 'Bio link page', icon: '👤', url: 'https://sayzio.app/user/links/create' },
+    { label: 'Dashboard', icon: '📊', url: 'https://sayzio.app/user/dashboard' },
+  ];
+
+  const sectionLabel: React.CSSProperties = {
+    fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)',
+    marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1,
+  };
+
+  const cardBase: React.CSSProperties = {
+    borderRadius: 12,
+    background: 'var(--color-bg-surface)',
+    border: '1px solid var(--color-border)',
+    cursor: 'pointer',
+  };
+
   return (
     <div style={{
       flex: 1,
@@ -209,7 +359,7 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
       // when the window is shorter than the content instead of cropping it.
       justifyContent: 'safe center',
       padding: 'clamp(16px, 5vw, 40px)',
-      background: 'var(--color-bg)',
+      background: `${phaseStyle.wash}, var(--color-bg)`,
       overflowY: 'auto',
       position: 'relative',
     }}>
@@ -218,57 +368,103 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
         <ProfileBadge variant="ribbon" />
       </div>
 
-      {/* Clock */}
-      <div style={{ textAlign: 'center', marginBottom: 40 }}>
-        <div style={{ fontSize: 56, fontWeight: 200, letterSpacing: -2, color: 'var(--color-text)' }}>
+      {/* Greeting scene: mascot + greeting + clock */}
+      <div className="zio-newtab-rise" style={{ textAlign: 'center', marginBottom: 28 }}>
+        <div className={`zio-newtab-mascot${searchFocused ? ' is-excited' : ''}`} style={{ display: 'inline-block', marginBottom: 10 }}>
+          <div className="zio-newtab-mascot-inner">
+            <img src={zioMascot} width={84} height={84} alt="" draggable={false} style={{ display: 'block' }} />
+          </div>
+        </div>
+        <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.5, color: 'var(--color-text)' }}>
+          {phaseStyle.greeting}{firstName ? `, ${firstName}` : ''}
+        </div>
+        <div style={{ fontSize: 40, fontWeight: 200, letterSpacing: -1.5, color: 'var(--color-text)', lineHeight: 1.2 }}>
           {formatTime(currentTime)}
         </div>
-        <div style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
+        <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>
           {formatDate(currentTime)}
         </div>
       </div>
 
-      {/* Search bar */}
-      <form onSubmit={handleSearch} style={{ width: '100%', maxWidth: 560, marginBottom: 40 }}>
-        <input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search the web or enter a URL"
-          autoFocus
-          style={{
-            width: '100%',
-            height: 48,
-            borderRadius: 24,
-            border: '2px solid var(--color-border)',
-            background: 'var(--color-bg-surface)',
-            color: 'var(--color-text)',
-            padding: '0 20px',
-            fontSize: 15,
-            outline: 'none',
-            transition: 'border-color 0.15s',
-          }}
-          onFocus={e => { e.target.style.borderColor = 'var(--color-primary)'; }}
-          onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
-        />
-      </form>
+      {/* Command bar + Sayzio quick actions */}
+      <div className="zio-newtab-rise" style={{ width: '100%', maxWidth: 560, marginBottom: 14, animationDelay: '0.08s' }}>
+        <form onSubmit={handleSearch}>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search the web, enter a URL…"
+            autoFocus
+            style={{
+              width: '100%',
+              height: 48,
+              borderRadius: 24,
+              border: '2px solid var(--color-border)',
+              background: 'var(--color-bg-surface)',
+              color: 'var(--color-text)',
+              padding: '0 20px',
+              fontSize: 15,
+              outline: 'none',
+              transition: 'border-color 0.15s, box-shadow 0.15s',
+            }}
+            onFocus={e => { setSearchFocused(true); e.target.style.borderColor = 'var(--color-primary)'; e.target.style.boxShadow = '0 0 0 4px rgba(99,102,241,0.12)'; }}
+            onBlur={e => { setSearchFocused(false); e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none'; }}
+          />
+        </form>
+        <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {QUICK_ACTIONS.map(a => (
+            <button
+              key={a.label}
+              onClick={() => onNavigate(a.url)}
+              style={{
+                ...cardBase,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                borderRadius: 16,
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--color-text)',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-elevated)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-surface)'; }}
+            >
+              <span aria-hidden="true">{a.icon}</span>{a.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Daily privacy strip */}
+      {trackerStats && (trackerStats.todayTotal > 0 || trackerStats.weekTotal > 0) && (
+        <div className="zio-newtab-rise" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          padding: '6px 14px', borderRadius: 16, marginBottom: 28,
+          background: 'var(--color-bg-surface)', border: '1px solid var(--color-border)',
+          fontSize: 12, color: 'var(--color-text-muted)', animationDelay: '0.14s',
+        }}>
+          <span aria-hidden="true">🛡️</span>
+          <span>
+            <strong style={{ color: phaseStyle.accent }}>{trackerStats.todayTotal}</strong> trackers blocked today
+            <span style={{ opacity: 0.6 }}> · {trackerStats.weekTotal} this week</span>
+          </span>
+        </div>
+      )}
 
       {/* Quick links */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 40, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div className="zio-newtab-rise" style={{ display: 'flex', gap: 16, marginBottom: 32, flexWrap: 'wrap', justifyContent: 'center', animationDelay: '0.18s' }}>
         {QUICK_LINKS.map(link => (
           <button
             key={link.url}
             onClick={() => onNavigate(link.url)}
             style={{
+              ...cardBase,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               gap: 6,
               padding: '12px 16px',
-              borderRadius: 12,
-              background: 'var(--color-bg-surface)',
-              border: '1px solid var(--color-border)',
               width: 72,
-              cursor: 'pointer',
               transition: 'all 0.15s',
             }}
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-elevated)'; }}
@@ -280,14 +476,180 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
         ))}
       </div>
 
-      {/* Recent history */}
+      {/* Folders (local collections) */}
+      <div className="zio-newtab-rise" style={{ width: '100%', maxWidth: 560, marginBottom: 32, animationDelay: '0.22s' }}>
+        <p style={sectionLabel}>Folders</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
+          {collections.map((c, i) => {
+            const color = c.color || FOLDER_COLORS[i % FOLDER_COLORS.length];
+            const isOpen = openFolderId === c.id;
+            return (
+              <button
+                key={c.id}
+                onClick={() => void openFolder(c.id)}
+                style={{
+                  ...cardBase,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '14px 10px',
+                  borderColor: isOpen ? color : 'var(--color-border)',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'none'; }}
+              >
+                <FolderGlyph color={color} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {c.name}
+                </span>
+                <span style={{ fontSize: 10.5, color: 'var(--color-text-muted)' }}>
+                  {c.item_count ?? 0} {(c.item_count ?? 0) === 1 ? 'link' : 'links'}
+                </span>
+              </button>
+            );
+          })}
+
+          {/* New folder card */}
+          {creatingFolder ? (
+            <div style={{
+              ...cardBase,
+              cursor: 'default',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              gap: 8, padding: '14px 10px', borderStyle: 'dashed',
+            }}>
+              <input
+                value={newFolderName}
+                onChange={e => setNewFolderName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') void createFolder();
+                  if (e.key === 'Escape') { setCreatingFolder(false); setNewFolderName(''); }
+                }}
+                placeholder="Folder name"
+                autoFocus
+                style={{
+                  width: '100%', fontSize: 12, padding: '6px 8px', borderRadius: 8,
+                  border: '1px solid var(--color-border)', background: 'var(--color-bg)',
+                  color: 'var(--color-text)', outline: 'none',
+                }}
+              />
+              <button
+                onClick={() => void createFolder()}
+                style={{
+                  fontSize: 11, fontWeight: 700, color: '#fff', border: 'none', cursor: 'pointer',
+                  padding: '5px 12px', borderRadius: 8, background: 'var(--color-primary)',
+                }}
+              >
+                Create
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setCreatingFolder(true)}
+              style={{
+                ...cardBase,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                gap: 6, padding: '14px 10px', borderStyle: 'dashed', background: 'transparent',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-surface)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+            >
+              <span style={{ fontSize: 22, lineHeight: '40px', color: 'var(--color-text-muted)' }}>＋</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-muted)' }}>New Folder</span>
+            </button>
+          )}
+        </div>
+
+        {/* Open folder contents */}
+        {openFolderId && (
+          <div style={{
+            marginTop: 10, borderRadius: 12, border: '1px solid var(--color-border)',
+            background: 'var(--color-bg-surface)', padding: 10,
+          }}>
+            {folderLinksLoading ? (
+              <div style={{ fontSize: 12, color: 'var(--color-text-muted)', padding: '6px 4px' }}>Loading…</div>
+            ) : folderLinks.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--color-text-muted)', padding: '6px 4px' }}>
+                No links in this folder yet — save any page into it from the Zio panel.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 6 }}>
+                {folderLinks.map(link => (
+                  <button
+                    key={link.id}
+                    onClick={() => onNavigate(link.url)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
+                      borderRadius: 8, background: 'transparent', border: 'none',
+                      textAlign: 'left', cursor: 'pointer', overflow: 'hidden',
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-elevated)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                  >
+                    <FaviconImg
+                      src={resolveFavicon(link.favicon_url, link.url)}
+                      size={16}
+                      fallback={<FaviconFallback url={link.url} size={16} />}
+                    />
+                    <span style={{ fontSize: 12, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {link.title || link.url}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Continue where you left off */}
+      {sessionGroups.length > 0 && (
+        <div className="zio-newtab-rise" style={{ width: '100%', maxWidth: 560, marginBottom: 32, animationDelay: '0.26s' }}>
+          <p style={sectionLabel}>Continue where you left off</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 8 }}>
+            {sessionGroups.map(group => (
+              <button
+                key={group.host}
+                onClick={() => reopenSession(group)}
+                title={`Reopen ${group.entries.length} pages from ${group.host}`}
+                style={{
+                  ...cardBase,
+                  display: 'flex', flexDirection: 'column', gap: 6,
+                  padding: '10px 12px', textAlign: 'left', overflow: 'hidden',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-elevated)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-surface)'; }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <FaviconImg
+                    src={resolveFavicon(group.entries[0].favicon_url, group.entries[0].url)}
+                    size={16}
+                    fallback={<FaviconFallback url={group.entries[0].url} size={16} />}
+                  />
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--color-text)' }}>{group.host}</span>
+                  <span style={{
+                    marginLeft: 'auto', fontSize: 10.5, fontWeight: 600, flexShrink: 0,
+                    color: 'var(--color-primary)',
+                  }}>
+                    {group.entries.length} pages ↗
+                  </span>
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {group.entries.map(e => e.title || e.url).join(' · ')}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent history (single pages) */}
       {recentHistory.length > 0 && (
-        <div style={{ width: '100%', maxWidth: 560 }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>
-            Recent
-          </p>
+        <div className="zio-newtab-rise" style={{ width: '100%', maxWidth: 560, animationDelay: '0.3s' }}>
+          <p style={sectionLabel}>Recent</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
-            {recentHistory.map(entry => (
+            {recentHistory.slice(0, 8).map(entry => (
               <button
                 key={entry.id}
                 onClick={() => onNavigate(entry.url)}
@@ -326,7 +688,7 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
 
       {/* Why Zio? */}
       <div style={{ width: '100%', maxWidth: 560, marginTop: 40 }}>
-        <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>
+        <p style={sectionLabel}>
           Why Zio?
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
