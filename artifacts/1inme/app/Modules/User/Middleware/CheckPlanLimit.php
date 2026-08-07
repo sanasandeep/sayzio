@@ -72,7 +72,13 @@ class CheckPlanLimit
             case 'projects':
                 $maxProjects = $features['max_projects'] ?? 1;
                 if ($maxProjects !== -1 && $user->projects()->count() >= $maxProjects) {
-                    return back()->with('error', "You've reached your plan's project limit ({$maxProjects}). Upgrade your plan for more.");
+                    $msg = "You've reached your plan's folder limit ({$maxProjects}). Upgrade your plan for more.";
+                    // The dashboard folders desk creates via fetch() — hand the
+                    // rejection back as JSON instead of a redirect it can't parse.
+                    if ($request->expectsJson()) {
+                        return response()->json(['error' => $msg], 422);
+                    }
+                    return back()->with('error', $msg);
                 }
                 break;
 

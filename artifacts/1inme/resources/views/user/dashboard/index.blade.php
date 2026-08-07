@@ -176,6 +176,175 @@
         </div>
     @endif
 
+    {{-- ===================== FOLDERS DESK =====================
+         The old /user/projects page folded into the dashboard: a desktop-style
+         "desk" surface where each folder is a 3D icon that flips open on
+         hover, exactly like files on a real computer. Click opens the links
+         inside; the dashed folder creates a new one inline (AJAX). --}}
+    <style>
+        .folders-desk {
+            position: relative;
+            border-radius: 1.5rem;
+            border: 1px solid var(--border-subtle);
+            background:
+                radial-gradient(circle at 1px 1px, rgba(148,163,184,0.14) 1px, transparent 0) 0 0 / 22px 22px,
+                linear-gradient(180deg, rgba(61,107,255,0.05), rgba(2,6,23,0.0) 55%);
+            overflow: hidden;
+        }
+        html.light-mode .folders-desk {
+            background:
+                radial-gradient(circle at 1px 1px, rgba(100,116,139,0.16) 1px, transparent 0) 0 0 / 22px 22px,
+                linear-gradient(180deg, rgba(61,107,255,0.06), rgba(255,255,255,0) 55%);
+        }
+        .desk-item { width: 118px; }
+        .desk-icon-link { display: block; text-align: center; border-radius: 1rem; padding: 10px 6px 8px; transition: background .15s; }
+        .desk-icon-link:hover { background: rgba(61,107,255,0.08); }
+        html.light-mode .desk-icon-link:hover { background: rgba(61,107,255,0.10); }
+        /* 3D folder */
+        .fld { position: relative; width: 74px; height: 56px; margin: 0 auto; perspective: 320px; }
+        .fld-back, .fld-front { position: absolute; inset: 0; border-radius: 7px; }
+        .fld-back { background: color-mix(in srgb, var(--fc) 72%, #0b1220); }
+        .fld-back::before {
+            content: ''; position: absolute; top: -7px; left: 0; width: 34%; height: 12px;
+            border-radius: 6px 8px 0 0; background: inherit;
+        }
+        .fld-paper {
+            position: absolute; left: 8px; right: 8px; top: 3px; bottom: 6px; border-radius: 4px;
+            background: linear-gradient(180deg, #fff, #dbe3ef); box-shadow: 0 1px 3px rgba(2,6,23,0.25);
+            transition: transform .28s cubic-bezier(.34,1.4,.5,1);
+        }
+        .fld-front {
+            top: 9px; transform-origin: bottom center; transform-style: preserve-3d;
+            background: linear-gradient(180deg, color-mix(in srgb, var(--fc) 92%, #fff), color-mix(in srgb, var(--fc) 82%, #0b1220));
+            box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--fc) 55%, transparent);
+            transition: transform .28s cubic-bezier(.34,1.4,.5,1);
+            display: flex; align-items: flex-end; justify-content: flex-end; padding: 4px 6px;
+        }
+        .desk-icon-link:hover .fld-front, .desk-icon-link:focus-visible .fld-front { transform: rotateX(-30deg); }
+        .desk-icon-link:hover .fld-paper, .desk-icon-link:focus-visible .fld-paper { transform: translateY(-7px); }
+        .fld-count {
+            font-size: 10px; font-weight: 800; line-height: 1; color: #fff;
+            background: rgba(2,6,23,0.35); border-radius: 999px; padding: 3px 6px;
+        }
+        .desk-label {
+            margin-top: 8px; font-size: 12.5px; font-weight: 600; color: var(--text-primary);
+            max-width: 106px; margin-left: auto; margin-right: auto;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .desk-sub { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
+        .fld-new {
+            border: 2px dashed var(--border-glass); border-radius: 7px; position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center; color: var(--text-faint);
+            transition: all .15s;
+        }
+        .desk-icon-btn:hover .fld-new { border-color: rgba(61,107,255,0.55); color: #3d6bff; transform: translateY(-3px); }
+        @media (prefers-reduced-motion: reduce) {
+            .fld-front, .fld-paper, .fld-new { transition: none !important; }
+            .desk-icon-link:hover .fld-front { transform: none; }
+            .desk-icon-link:hover .fld-paper { transform: none; }
+        }
+    </style>
+    <div id="folders" class="folders-desk mb-6 p-5 sm:p-6"
+         x-data="{
+            creating: false,
+            name: '',
+            saving: false,
+            error: '',
+            async createFolder() {
+                const n = this.name.trim();
+                if (!n || this.saving) return;
+                this.saving = true;
+                this.error = '';
+                try {
+                    const res = await fetch('{{ route('user.projects.store') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
+                        },
+                        body: JSON.stringify({ name: n })
+                    });
+                    const data = await res.json().catch(() => null);
+                    if (res.ok && data && data.success) { window.location.reload(); return; }
+                    this.error = (data && data.error) ? data.error : 'Couldn\'t create the folder. Please try again.';
+                } catch (e) {
+                    this.error = 'Couldn\'t create the folder. Please try again.';
+                }
+                this.saving = false;
+            }
+         }">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.2);">
+                    <i class="fas fa-folder text-amber-400 text-xs"></i>
+                </div>
+                <div>
+                    <h2 class="text-sm font-bold" style="color: var(--text-primary);">Folders</h2>
+                    <p class="text-[11px]" style="color: var(--text-faint);">Your desk — click a folder to open the links inside</p>
+                </div>
+            </div>
+            <a href="{{ route('user.links.index') }}" class="text-[11px] text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1">
+                All links <i class="fas fa-arrow-right text-[9px]"></i>
+            </a>
+        </div>
+
+        <div class="flex flex-wrap items-start gap-1 sm:gap-2">
+            @foreach($deskFolders as $folder)
+                @php $fc = $folder->color ?: '#3b82f6'; @endphp
+                <div class="desk-item group relative">
+                    <a href="{{ route('user.links.index', ['project_id' => $folder->id]) }}"
+                       class="desk-icon-link" title="Open {{ $folder->name }}">
+                        <div class="fld" style="--fc: {{ $fc }};">
+                            <span class="fld-back"></span>
+                            <span class="fld-paper"></span>
+                            <span class="fld-front"><span class="fld-count">{{ number_format($folder->links_count) }}</span></span>
+                        </div>
+                        <div class="desk-label" title="{{ $folder->name }}">{{ $folder->name }}</div>
+                        <div class="desk-sub">{{ number_format($folder->active_links_count) }} active · {{ $folder->updated_at->diffForHumans(short: true) }}</div>
+                    </a>
+                    <div class="absolute top-1 right-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <a href="{{ route('user.projects.edit', $folder) }}" class="p-1.5 rounded-lg" style="color: var(--text-faint); background: var(--bg-glass-input);" title="Rename / recolor"><i class="fas fa-pen text-[9px]"></i></a>
+                        <form action="{{ route('user.projects.destroy', $folder) }}" method="POST" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this folder?', message: 'Links inside will be kept but become unfiled.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
+                            @csrf @method('DELETE')
+                            <button class="p-1.5 rounded-lg hover:text-red-400" style="color: var(--text-faint); background: var(--bg-glass-input);" title="Delete folder"><i class="fas fa-trash text-[9px]"></i></button>
+                        </form>
+                    </div>
+                </div>
+            @endforeach
+
+            {{-- New Folder — dashed desk icon with inline naming --}}
+            <div class="desk-item">
+                <button type="button" x-show="!creating" @click="creating = true; $nextTick(() => $refs.newFolderName.focus())"
+                        class="desk-icon-link desk-icon-btn w-full" title="New folder">
+                    <div class="fld"><span class="fld-new"><i class="fas fa-plus"></i></span></div>
+                    <div class="desk-label" style="color: var(--text-faint);">New Folder</div>
+                    <div class="desk-sub">&nbsp;</div>
+                </button>
+                <div x-show="creating" x-cloak class="pt-2 px-1">
+                    <input type="text" x-ref="newFolderName" x-model="name" maxlength="60" placeholder="Folder name"
+                           @keydown.enter.prevent="createFolder()" @keydown.escape="creating = false; name = ''"
+                           class="w-full text-xs px-2.5 py-2 rounded-lg border focus:outline-none"
+                           style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);">
+                    <div class="flex items-center gap-1 mt-1.5">
+                        <button type="button" @click="createFolder()" :disabled="saving"
+                                class="flex-1 text-[11px] font-bold text-white rounded-lg py-1.5"
+                                style="background: linear-gradient(135deg,#3d6bff,#90acff);">
+                            <span x-show="!saving">Create</span><span x-show="saving" x-cloak>Saving…</span>
+                        </button>
+                        <button type="button" @click="creating = false; name = ''; error = ''" class="text-[11px] px-2 py-1.5 rounded-lg" style="color: var(--text-faint);">Cancel</button>
+                    </div>
+                    <p x-show="error" x-cloak x-text="error" class="text-[10px] text-red-400 mt-1.5 leading-snug"></p>
+                </div>
+            </div>
+        </div>
+
+        @if($deskFolders->isEmpty())
+            <p class="text-xs mt-1" style="color: var(--text-faint);">No folders yet — create one and drag your links in from the All Links page, just like on your computer.</p>
+        @endif
+    </div>
+
     <div x-data="{
             tab: '{{ !empty($channelFilter) ? 'traffic' : 'overview' }}',
             channelForced: {{ !empty($channelFilter) ? 'true' : 'false' }},
@@ -308,7 +477,7 @@
                 <div class="bento-tile accent b-2 justify-between p-5" style="--tile-accent: linear-gradient(90deg, #22d3ee, #67e8f9); --tile-glow: rgba(34,211,238,0.18);">
                     <span class="tile-orb"></span>
                     <div class="flex items-center justify-between">
-                        <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Projects</p>
+                        <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Folders</p>
                         <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: rgba(34,211,238,0.12); border: 1px solid rgba(34,211,238,0.2);">
                             <i class="fas fa-folder text-cyan-400 text-xs"></i>
                         </div>
@@ -547,7 +716,7 @@
                             <div class="w-8 h-8 rounded-xl flex items-center justify-center glow-icon transition-all duration-300" style="background: rgba(34,211,238,0.1); border: 1px solid rgba(34,211,238,0.12);">
                                 <i class="fas fa-folder-plus text-cyan-400 text-[10px]"></i>
                             </div>
-                            <span class="text-xs font-medium" style="color: var(--text-muted);">Create Project</span>
+                            <span class="text-xs font-medium" style="color: var(--text-muted);">New Folder</span>
                             <i class="fas fa-chevron-right text-[8px] ml-auto transition-transform group-hover:translate-x-1" style="color: var(--text-faint);"></i>
                         </a>
                         <a href="{{ route('user.pixels.create') }}" class="flex items-center gap-3 p-2.5 rounded-xl transition-all group hover:translate-x-1" style="background: transparent;" onmouseover="this.style.background='var(--bg-glass-input)'" onmouseout="this.style.background='transparent'">

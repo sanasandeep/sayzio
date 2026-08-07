@@ -34,6 +34,19 @@ class DashboardController extends Controller
 
         $totalProjects = $user->projects()->count();
 
+        // Folders desk on the dashboard (replaces the separate Folders page):
+        // most recently touched folders first, with live link counts. Scoped
+        // to the workspace owner (like ProjectController) so team members see
+        // the active workspace's folders, not their own personal ones. No
+        // limit — folder counts are already bounded by the plan cap.
+        $deskFolders = workspace_owner()->projects()
+            ->withCount([
+                'links as links_count',
+                'links as active_links_count' => fn ($q) => $q->where('is_active', true),
+            ])
+            ->orderByDesc('updated_at')
+            ->get();
+
         // Optional workspace-wide channel filter — narrows the click-derived
         // tiles (Total Clicks, Today) to a single user-agent bucket so creators
         // can ask "what share of all my traffic comes from in-app webviews?"
@@ -176,7 +189,7 @@ class DashboardController extends Controller
         );
 
         return view('user.dashboard.index', compact(
-            'user', 'totalLinks', 'totalClicks', 'totalProjects',
+            'user', 'totalLinks', 'totalClicks', 'totalProjects', 'deskFolders',
             'activeLinks', 'recentLinks', 'clicksToday',
             'channelStats', 'channelFilter', 'backlinksThisWeek',
             'showWhatsappPrompt', 'whatsappChannelUrl', 'deliveryProjects',
