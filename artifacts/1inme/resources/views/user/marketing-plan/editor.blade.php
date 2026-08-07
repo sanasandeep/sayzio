@@ -84,6 +84,26 @@
             </button>
         </div>
     </div>
+    @if(!empty($aiSeed))
+        {{-- Task #6739 — this new plan was pre-filled from an AI Marketing Strategist plan. --}}
+        <div class="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 mb-5">
+            <p class="text-sm font-semibold text-blue-300">
+                <i class="fas fa-wand-magic-sparkles mr-1.5"></i>
+                Pre-filled from your AI strategy “{{ $aiSeed['strategy_title'] !== '' ? $aiSeed['strategy_title'] : 'Marketing Strategy' }}”
+            </p>
+            <p class="text-xs mpc-sub mt-1">
+                @if(!empty($aiSeed['matched']))
+                    Channel allocations were re-weighted toward the strategist's recommended channels
+                    ({{ implode(', ', array_slice($aiSeed['matched'], 0, 6)) }}{{ count($aiSeed['matched']) > 6 ? '…' : '' }})
+                    and the budget was taken from the strategy where possible.
+                @else
+                    The budget and company details were taken from the strategy where possible.
+                @endif
+                Everything below is a starting point — review and edit anything before saving.
+            </p>
+        </div>
+    @endif
+
     <p class="text-xs text-emerald-400 mb-3" x-show="savedFlash" x-cloak><i class="fas fa-check mr-1"></i> Saved.</p>
     <p class="text-xs text-red-400 mb-3" x-show="saveError" x-cloak x-text="saveError"></p>
 
@@ -380,7 +400,7 @@
 function mpcApp() {
     return {
         planId: @js($plan?->id),
-        name: @js($plan?->name ?? 'My Marketing Plan'),
+        name: @js($plan?->name ?? ($seedName ?? 'My Marketing Plan')),
         p: @js($payload),
         planOptions: @js($planOptions),
         months: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],

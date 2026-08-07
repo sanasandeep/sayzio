@@ -17,10 +17,20 @@
             <h1 class="text-2xl font-bold mpc-title mt-1">Marketing Plan Calculator</h1>
             <p class="text-sm mpc-sub mt-1">Build a 12-month channel plan, projections dashboard and Sayzio ROI summary — no spreadsheet needed.</p>
         </div>
-        <a href="{{ route('user.marketing-plan.create') }}"
-           class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
-            <i class="fas fa-plus"></i> New plan
-        </a>
+        <div class="flex flex-wrap items-center gap-2">
+            @if($latestStrategy ?? null)
+                {{-- Task #6739 — seed a new plan from the latest AI Marketing Strategist plan. --}}
+                <a href="{{ route('user.marketing-plan.create', ['from_strategy' => $latestStrategy->id]) }}"
+                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-500/15 text-blue-300 text-sm font-semibold hover:bg-blue-500/25"
+                   title="Pre-fill a new plan from “{{ $latestStrategy->title }}”">
+                    <i class="fas fa-wand-magic-sparkles"></i> Start from AI suggestions
+                </a>
+            @endif
+            <a href="{{ route('user.marketing-plan.create') }}"
+               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
+                <i class="fas fa-plus"></i> New plan
+            </a>
+        </div>
     </div>
 
     @if(session('status'))

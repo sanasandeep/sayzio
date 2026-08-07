@@ -4,6 +4,8 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\MarketingPlanCalc;
+use App\Modules\User\Models\MarketingStrategy;
+use App\Services\MarketingPlanAiSeed;
 use App\Services\MarketingPlanDefaults;
 use Illuminate\Http\Request;
 
@@ -21,17 +23,43 @@ class MarketingPlanCalculatorController extends Controller
     public function index(Request $request)
     {
         return view('user.marketing-plan.index', [
-            'plans' => MarketingPlanCalc::listForOwner($request->user()->id, $this->workspaceId()),
+            'plans'          => MarketingPlanCalc::listForOwner($request->user()->id, $this->workspaceId()),
+            'latestStrategy' => $this->ownedStrategies($request)->orderByDesc('id')->first(['id', 'title']),
         ]);
     }
 
-    /** New-plan editor seeded from the spreadsheet's default benchmarks. */
+    /**
+     * New-plan editor seeded from the spreadsheet's default benchmarks —
+     * or, with `?from_strategy={id}` (Task #6739), pre-filled from one of
+     * the owner's AI Marketing Strategist plans. Everything stays editable
+     * before saving.
+     */
     public function create(Request $request)
     {
+        $payload  = MarketingPlanDefaults::defaults($request->user());
+        $seedName = null;
+        $aiSeed   = null;
+
+        if (($strategyId = (int) $request->query('from_strategy')) > 0) {
+            $strategy = $this->ownedStrategies($request)->whereKey($strategyId)->first();
+            if (!$strategy) abort(404);
+
+            $seed     = MarketingPlanAiSeed::fromStrategy($strategy, $request->user());
+            $payload  = $seed['payload'];
+            $seedName = $seed['name'];
+            $aiSeed   = [
+                'strategy_id'    => $strategy->id,
+                'strategy_title' => (string) $strategy->title,
+                'matched'        => $seed['matched'],
+            ];
+        }
+
         return view('user.marketing-plan.editor', [
             'plan'        => null,
-            'payload'     => MarketingPlanDefaults::defaults($request->user()),
+            'payload'     => $payload,
             'planOptions' => MarketingPlanDefaults::planOptions(),
+            'seedName'    => $seedName,
+            'aiSeed'      => $aiSeed,
         ]);
     }
 
@@ -123,6 +151,18 @@ class MarketingPlanCalculatorController extends Controller
 
         if (!$model) abort(404);
         return $model;
+    }
+
+    /** The owner's AI Marketing Strategist plans in the active workspace. */
+    protected function ownedStrategies(Request $request)
+    {
+        $wsId = $this->workspaceId();
+
+        return MarketingStrategy::query()
+            ->where('user_id', $request->user()->id)
+            ->where(fn ($q) => $wsId === null
+                ? $q->whereNull('workspace_id')
+                : $q->where('workspace_id', $wsId));
     }
 
     /** Active workspace id (null when personal). */
