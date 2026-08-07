@@ -105,7 +105,10 @@ class PublicEmbedController extends Controller
                 'state'    => 'gated',
                 'alias'    => $link->alias,
                 'title'    => $link->title ?: $link->type_label,
-                'subtitle' => 'This link is private.',
+                // Single explanation line — the card renders NO extra footnote
+                // row for fallback states (task #6714) so the layout fits the
+                // height the static no-JS iframe snippet was copied with.
+                'subtitle' => 'Private link — open to view if you have access.',
                 'favicon'  => $this->favicon($link),
                 'action'   => ['label' => 'View on site', 'icon' => 'open'],
                 'url'      => $shortUrl,
@@ -157,16 +160,10 @@ class PublicEmbedController extends Controller
 
     protected function subtitle(Link $link): ?string
     {
-        if ($link->seo_description) {
-            return \Illuminate\Support\Str::limit($link->seo_description, 120);
-        }
-
-        if ($link->type === 'url' && $link->long_url) {
-            $host = parse_url($link->long_url, PHP_URL_HOST);
-            return $host ?: null;
-        }
-
-        return null;
+        // Delegates to the model so the static iframe snippet's height
+        // (Link::embedCardIframeHeight) stays in lockstep with what the
+        // card actually renders.
+        return $link->embedCardSubtitle();
     }
 
     protected function favicon(Link $link): ?string

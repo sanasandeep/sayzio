@@ -197,6 +197,15 @@ Route::prefix('user')->name('user.')->group(function () {
         ->middleware('auth')
         ->name('complete.profile.save');
 
+    // Geocoding suggestion proxy for the shared map pin picker — the
+    // browser must never hit Nominatim per keystroke (their policy bans
+    // client-side autocomplete), so suggestions go through this cached,
+    // per-user throttled endpoint instead. Two-segment path keeps it
+    // clear of the single-segment /{alias} catch-all.
+    Route::get('geo/suggest', [\App\Modules\Common\Controllers\GeoSuggestController::class, 'suggest'])
+        ->middleware(['auth', 'throttle:30,1'])
+        ->name('geo.suggest');
+
     Route::get('verify-email', [AuthController::class, 'showVerifyEmail'])->middleware('auth')->name('verification.notice');
     Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware(['auth', 'signed'])->name('verification.verify');
     Route::post('verify-email/resend', [AuthController::class, 'resendVerification'])->middleware(['auth', 'throttle:6,1'])->name('verification.send');
@@ -822,6 +831,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // Cross-workspace move (owner-only — see LinkController::move).
         Route::post('links/{link}/move',  [LinkController::class, 'move'])->middleware('workspace.can:links.edit')->name('links.move');
         Route::post('links/move-bulk',    [LinkController::class, 'moveBulk'])->middleware('workspace.can:links.edit')->name('links.move-bulk');
+        Route::post('links/delete-bulk',  [LinkController::class, 'destroyBulk'])->middleware('workspace.can:links.delete')->name('links.delete-bulk');
         // Admin-granted cross-account transfer (capability + ownership are
         // enforced in AssetTransferService, not middleware).
         Route::post('links/{link}/transfer', [\App\Modules\User\Controllers\AssetTransferController::class, 'transferLink'])->name('links.transfer');
@@ -873,36 +883,36 @@ Route::prefix('user')->name('user.')->group(function () {
 
         Route::get('links-file/create', [FileLinkController::class, 'create'])->middleware('workspace.can:links.create')->name('links.file.create');
         Route::post('links-file', [FileLinkController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.file.store');
-        Route::get('links-ics/create', [IcsLinkController::class, 'create'])->middleware('workspace.can:links.create')->name('links.ics.create');
-        Route::post('links-ics', [IcsLinkController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links', CheckPlanLimit::class . ':events'])->name('links.ics.store');
-        Route::get('links-ics/{link}/edit', [IcsLinkController::class, 'edit'])->middleware('workspace.can:links.edit')->name('links.ics.edit');
-        Route::put('links-ics/{link}', [IcsLinkController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.ics.update');
+        Route::get('links-ics/create', [IcsLinkController::class, 'create'])->middleware('workspace.can:links.create')->name('links.ics.create')->middleware('events.enabled');
+        Route::post('links-ics', [IcsLinkController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links', CheckPlanLimit::class . ':events'])->name('links.ics.store')->middleware('events.enabled');
+        Route::get('links-ics/{link}/edit', [IcsLinkController::class, 'edit'])->middleware('workspace.can:links.edit')->name('links.ics.edit')->middleware('events.enabled');
+        Route::put('links-ics/{link}', [IcsLinkController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.ics.update')->middleware('events.enabled');
         // ===== Cancel / reactivate an event (Sayzio events). Confirm screen with
         // an optional "notify all guests" step; state lives in the link settings JSON.
-        Route::get ('links-ics/{link}/cancel', [IcsLinkController::class, 'cancelConfirm'])->middleware('workspace.can:links.edit')->name('links.ics.cancel');
-        Route::post('links-ics/{link}/cancel', [IcsLinkController::class, 'cancel'])->middleware('workspace.can:links.edit')->name('links.ics.cancel.confirm');
-        Route::post('links-ics/{link}/reactivate', [IcsLinkController::class, 'reactivate'])->middleware('workspace.can:links.edit')->name('links.ics.reactivate');
+        Route::get ('links-ics/{link}/cancel', [IcsLinkController::class, 'cancelConfirm'])->middleware('workspace.can:links.edit')->name('links.ics.cancel')->middleware('events.enabled');
+        Route::post('links-ics/{link}/cancel', [IcsLinkController::class, 'cancel'])->middleware('workspace.can:links.edit')->name('links.ics.cancel.confirm')->middleware('events.enabled');
+        Route::post('links-ics/{link}/reactivate', [IcsLinkController::class, 'reactivate'])->middleware('workspace.can:links.edit')->name('links.ics.reactivate')->middleware('events.enabled');
 
         // ===== Event ticketing (Task #3589): tier CRUD + sales dashboard + door check-in.
-        Route::get('links-ics/{link}/tickets', [\App\Modules\User\Controllers\EventTicketTierController::class, 'index'])->middleware('workspace.can:links.view')->name('links.ics.tickets');
-        Route::post('links-ics/{link}/tiers', [\App\Modules\User\Controllers\EventTicketTierController::class, 'store'])->middleware('workspace.can:links.edit')->name('links.ics.tiers.store');
-        Route::put('links-ics/{link}/tiers/{tier}', [\App\Modules\User\Controllers\EventTicketTierController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.ics.tiers.update');
-        Route::delete('links-ics/{link}/tiers/{tier}', [\App\Modules\User\Controllers\EventTicketTierController::class, 'destroy'])->middleware('workspace.can:links.edit')->name('links.ics.tiers.destroy');
-        Route::get('links-ics/{link}/checkin', [\App\Modules\User\Controllers\EventCheckinController::class, 'scanner'])->middleware('workspace.can:links.view')->name('links.ics.checkin');
-        Route::post('links-ics/{link}/checkin/scan', [\App\Modules\User\Controllers\EventCheckinController::class, 'scan'])->middleware('workspace.can:links.edit')->name('links.ics.checkin.scan');
-        Route::get('links-ics/{link}/checkin/progress', [\App\Modules\User\Controllers\EventCheckinController::class, 'progress'])->middleware('workspace.can:links.view')->name('links.ics.checkin.progress');
+        Route::get('links-ics/{link}/tickets', [\App\Modules\User\Controllers\EventTicketTierController::class, 'index'])->middleware('workspace.can:links.view')->name('links.ics.tickets')->middleware('events.enabled');
+        Route::post('links-ics/{link}/tiers', [\App\Modules\User\Controllers\EventTicketTierController::class, 'store'])->middleware('workspace.can:links.edit')->name('links.ics.tiers.store')->middleware('events.enabled');
+        Route::put('links-ics/{link}/tiers/{tier}', [\App\Modules\User\Controllers\EventTicketTierController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.ics.tiers.update')->middleware('events.enabled');
+        Route::delete('links-ics/{link}/tiers/{tier}', [\App\Modules\User\Controllers\EventTicketTierController::class, 'destroy'])->middleware('workspace.can:links.edit')->name('links.ics.tiers.destroy')->middleware('events.enabled');
+        Route::get('links-ics/{link}/checkin', [\App\Modules\User\Controllers\EventCheckinController::class, 'scanner'])->middleware('workspace.can:links.view')->name('links.ics.checkin')->middleware('events.enabled');
+        Route::post('links-ics/{link}/checkin/scan', [\App\Modules\User\Controllers\EventCheckinController::class, 'scan'])->middleware('workspace.can:links.edit')->name('links.ics.checkin.scan')->middleware('events.enabled');
+        Route::get('links-ics/{link}/checkin/progress', [\App\Modules\User\Controllers\EventCheckinController::class, 'progress'])->middleware('workspace.can:links.view')->name('links.ics.checkin.progress')->middleware('events.enabled');
         // ===== Message guests: organizer → guest broadcast (venue moved, time changed, cancellation).
-        Route::get ('links-ics/{link}/broadcast', [\App\Modules\User\Controllers\EventBroadcastController::class, 'index'])->middleware('workspace.can:links.view')->name('links.ics.broadcast');
-        Route::get ('links-ics/{link}/broadcast/count', [\App\Modules\User\Controllers\EventBroadcastController::class, 'count'])->middleware('workspace.can:links.view')->name('links.ics.broadcast.count');
-        Route::post('links-ics/{link}/broadcast', [\App\Modules\User\Controllers\EventBroadcastController::class, 'send'])->middleware(['workspace.can:links.edit', 'throttle:30,1'])->name('links.ics.broadcast.send');
-        Route::get('links-ics/{link}/people', [\App\Modules\User\Controllers\EventPeopleController::class, 'dashboard'])->middleware('workspace.can:links.view')->name('links.ics.people');
-        Route::get('links-ics/{link}/people/stats', [\App\Modules\User\Controllers\EventPeopleController::class, 'stats'])->middleware('workspace.can:links.view')->name('links.ics.people.stats');
+        Route::get ('links-ics/{link}/broadcast', [\App\Modules\User\Controllers\EventBroadcastController::class, 'index'])->middleware('workspace.can:links.view')->name('links.ics.broadcast')->middleware('events.enabled');
+        Route::get ('links-ics/{link}/broadcast/count', [\App\Modules\User\Controllers\EventBroadcastController::class, 'count'])->middleware('workspace.can:links.view')->name('links.ics.broadcast.count')->middleware('events.enabled');
+        Route::post('links-ics/{link}/broadcast', [\App\Modules\User\Controllers\EventBroadcastController::class, 'send'])->middleware(['workspace.can:links.edit', 'throttle:30,1'])->name('links.ics.broadcast.send')->middleware('events.enabled');
+        Route::get('links-ics/{link}/people', [\App\Modules\User\Controllers\EventPeopleController::class, 'dashboard'])->middleware('workspace.can:links.view')->name('links.ics.people')->middleware('events.enabled');
+        Route::get('links-ics/{link}/people/stats', [\App\Modules\User\Controllers\EventPeopleController::class, 'stats'])->middleware('workspace.can:links.view')->name('links.ics.people.stats')->middleware('events.enabled');
         // Task #5052 — attendee "My swaps" per event: JSON list + withdraw,
         // consumed by the public event page for signed-in viewers.
-        Route::get ('event-swaps/{alias}', [\App\Modules\User\Controllers\EventSwapsController::class, 'index'])->name('event-swaps.index');
-        Route::post('contact-exchanges/{id}/cancel', [\App\Modules\User\Controllers\EventSwapsController::class, 'cancel'])->whereNumber('id')->name('contact-exchanges.cancel');
-        Route::post('links-ics/{link}/tickets/{ticket}/refund', [\App\Modules\User\Controllers\EventTicketTierController::class, 'refundTicket'])->middleware('workspace.can:links.edit')->name('links.ics.tickets.refund');
-        Route::get('events/{link}/checkin/lookup/{code}', [\App\Modules\User\Controllers\EventCheckinController::class, 'lookup'])->name('events.checkin.lookup');
+        Route::get ('event-swaps/{alias}', [\App\Modules\User\Controllers\EventSwapsController::class, 'index'])->name('event-swaps.index')->middleware('events.enabled');
+        Route::post('contact-exchanges/{id}/cancel', [\App\Modules\User\Controllers\EventSwapsController::class, 'cancel'])->whereNumber('id')->name('contact-exchanges.cancel')->middleware('events.enabled');
+        Route::post('links-ics/{link}/tickets/{ticket}/refund', [\App\Modules\User\Controllers\EventTicketTierController::class, 'refundTicket'])->middleware('workspace.can:links.edit')->name('links.ics.tickets.refund')->middleware('events.enabled');
+        Route::get('events/{link}/checkin/lookup/{code}', [\App\Modules\User\Controllers\EventCheckinController::class, 'lookup'])->name('events.checkin.lookup')->middleware('events.enabled');
         Route::get('links-vcf/create', [VcfLinkController::class, 'create'])->middleware('workspace.can:links.create')->name('links.vcf.create');
         Route::post('links-vcf', [VcfLinkController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.vcf.store');
         Route::get('links-vcf/{link}/edit', [VcfLinkController::class, 'edit'])->middleware('workspace.can:links.edit')->name('links.vcf.edit');
@@ -1212,6 +1222,16 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('wallet/buy',            [\App\Modules\User\Controllers\WalletController::class, 'buyHandoff'])->name('wallet.buy.handoff');
         Route::post('addons/{addon}/activate-with-coins', [\App\Modules\User\Controllers\WalletController::class, 'activateAddon'])->name('addons.activate-with-coins');
 
+        // ---- Marketing Plan Calculator (Task #6737) ----
+        // Interactive, browser-computed replacement for the 12-month
+        // digital-marketing-plan spreadsheet. No AI spend — plain tool.
+        Route::get   ('marketing-plan',               [\App\Modules\User\Controllers\MarketingPlanCalculatorController::class, 'index'])->name('marketing-plan.index');
+        Route::get   ('marketing-plan/create',        [\App\Modules\User\Controllers\MarketingPlanCalculatorController::class, 'create'])->name('marketing-plan.create');
+        Route::post  ('marketing-plan',               [\App\Modules\User\Controllers\MarketingPlanCalculatorController::class, 'store'])->middleware('throttle:30,1')->name('marketing-plan.store');
+        Route::get   ('marketing-plan/{plan}/edit',   [\App\Modules\User\Controllers\MarketingPlanCalculatorController::class, 'edit'])->whereNumber('plan')->name('marketing-plan.edit');
+        Route::put   ('marketing-plan/{plan}',        [\App\Modules\User\Controllers\MarketingPlanCalculatorController::class, 'update'])->whereNumber('plan')->middleware('throttle:60,1')->name('marketing-plan.update');
+        Route::delete('marketing-plan/{plan}',        [\App\Modules\User\Controllers\MarketingPlanCalculatorController::class, 'destroy'])->whereNumber('plan')->name('marketing-plan.destroy');
+
         // ---- AI features (charge coins from the wallet via OpenAiService) ----
         // Each feature charges through OpenAiService::chat() with a
         // unique `feature` tag so admin reporting can attribute spend
@@ -1473,7 +1493,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/qrcode', [QrCodeController::class, 'generate'])->middleware('workspace.can:links.edit')->name('links.qrcode.download');
         Route::get('links/{link}/qrcode/preview', [QrCodeController::class, 'preview'])->middleware('workspace.can:links.view')->name('links.qrcode.preview');
         // Event Connect QR (Task #6685): view + download the scan-to-connect QR for event links.
-        Route::get('links/{link}/connect-qr', [QrCodeController::class, 'connectQr'])->middleware('workspace.can:links.view')->name('links.connect-qr');
+        Route::get('links/{link}/connect-qr', [QrCodeController::class, 'connectQr'])->middleware(['workspace.can:links.view', 'events.enabled'])->name('links.connect-qr');
 
         Route::get('qrcode', [QrCodeController::class, 'standalone'])->middleware('workspace.can:links.view')->name('qrcode');
 
@@ -1614,8 +1634,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::delete('dialer/notes/data/{id}', [\App\Modules\Api\Controllers\DialerNoteController::class, 'destroy'])->whereNumber('id')->name('dialer.notes.destroy');
 
         // ===== Events calendar (month / week / day / list views) =====
-        Route::get('events',                                [CalendarAccountController::class, 'events'])->middleware('workspace.can:settings.view')->name('events.index');
-        Route::get('events/feed',                           [CalendarAccountController::class, 'eventsFeed'])->middleware('workspace.can:settings.view')->name('events.feed');
+        Route::get('events',                                [CalendarAccountController::class, 'events'])->middleware('workspace.can:settings.view')->name('events.index')->middleware('events.enabled');
+        Route::get('events/feed',                           [CalendarAccountController::class, 'eventsFeed'])->middleware('workspace.can:settings.view')->name('events.feed')->middleware('events.enabled');
 
         // ===== Calendar accounts (Google / Microsoft / CalDAV sync) =====
         Route::get('calendar',                              [CalendarAccountController::class, 'index'])->middleware('workspace.can:settings.view')->name('calendar.index');
@@ -1626,11 +1646,11 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::delete('calendar/{account}',                 [CalendarAccountController::class, 'destroy'])->middleware('workspace.can:settings.edit')->name('calendar.destroy');
 
         // ===== RSVPs (guest list on Event Invite links) — followers feature.
-        Route::get('links/{link}/rsvps',                    [RsvpController::class, 'index'])->middleware('workspace.can:followers.view')->name('links.rsvps.index');
-        Route::get('links/{link}/rsvps/export',             [RsvpController::class, 'export'])->middleware('workspace.can:followers.view')->name('links.rsvps.export');
-        Route::delete('links/{link}/rsvps/{rsvp}',          [RsvpController::class, 'destroy'])->middleware('workspace.can:followers.edit')->name('links.rsvps.destroy');
-        Route::post  ('links/{link}/rsvps/{rsvp}/promote',  [RsvpController::class, 'promote'])->middleware('workspace.can:followers.edit')->name('links.rsvps.promote');
-        Route::post  ('links/{link}/rsvps/erase-voter',     [RsvpController::class, 'eraseVoter'])->middleware('workspace.can:followers.edit')->name('links.rsvps.erase-voter');
+        Route::get('links/{link}/rsvps',                    [RsvpController::class, 'index'])->middleware('workspace.can:followers.view')->name('links.rsvps.index')->middleware('events.enabled');
+        Route::get('links/{link}/rsvps/export',             [RsvpController::class, 'export'])->middleware('workspace.can:followers.view')->name('links.rsvps.export')->middleware('events.enabled');
+        Route::delete('links/{link}/rsvps/{rsvp}',          [RsvpController::class, 'destroy'])->middleware('workspace.can:followers.edit')->name('links.rsvps.destroy')->middleware('events.enabled');
+        Route::post  ('links/{link}/rsvps/{rsvp}/promote',  [RsvpController::class, 'promote'])->middleware('workspace.can:followers.edit')->name('links.rsvps.promote')->middleware('events.enabled');
+        Route::post  ('links/{link}/rsvps/erase-voter',     [RsvpController::class, 'eraseVoter'])->middleware('workspace.can:followers.edit')->name('links.rsvps.erase-voter')->middleware('events.enabled');
         Route::post  ('settings/auto-sync-calendar',        [\App\Modules\User\Controllers\CalendarAccountController::class, 'updateAutoSync'])->middleware('workspace.owner')->name('calendar.auto-sync');
 
         // ===== Poll votes (per biolink-block) — followers feature.

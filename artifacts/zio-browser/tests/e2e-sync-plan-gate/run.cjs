@@ -23,6 +23,15 @@
  */
 'use strict';
 
+// Under the parallel validation battery Playwright's Electron launch can fail
+// twice: the awaited launch promise rejects AND a duplicate rejection escapes
+// from an internal helper, which crashes Node before the retry loop's catch
+// runs. Log-and-continue so the retry loop below owns the failure.
+process.on('unhandledRejection', (err) => {
+  try { log(`unhandledRejection (ignored, retry loop owns launch failures): ${String((err && err.message) || err).split('\n')[0]}`); }
+  catch (_) { console.error('unhandledRejection:', err); }
+});
+
 const path = require('path');
 const fs = require('fs');
 const { execFileSync } = require('child_process');
@@ -63,26 +72,41 @@ async function waitFor(fn, label, timeout = 30000, interval = 400) {
   throw new Error(`Timed out waiting for: ${label} (last=${JSON.stringify(last)})`);
 }
 
+// Spawning psql can hit transient fork pressure (EAGAIN) under the parallel
+// validation battery — retry a few times before giving up.
+function psql(args) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return execFileSync('psql', args, { encoding: 'utf8' });
+    } catch (e) {
+      if (attempt >= 5) throw e;
+      log(`psql attempt ${attempt} failed (${String(e.message || e).split('\n')[0]}); retrying in ${attempt * 5}s…`);
+      // Synchronous sleep with no extra process (we're already under fork pressure).
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, attempt * 5000);
+    }
+  }
+}
+
 // Switch the fixture user's plan on the REAL Laravel DB (throwaway local PG).
 function setUserPlan(planId) {
   const userId = Number(process.env.SEED_USER_ID);
-  execFileSync('psql', [
+  psql([
     '-h', process.env.PGHOST, '-p', process.env.PGPORT,
     '-U', process.env.PGUSER, '-d', process.env.PGDATABASE,
     '-v', 'ON_ERROR_STOP=1',
     '-c', `UPDATE users SET plan_id = ${Number(planId)} WHERE id = ${userId};`,
-  ], { encoding: 'utf8' });
+  ]);
   log(`server: switched user ${userId} to plan ${planId}`);
 }
 
 function countServerBookmarks() {
   const userId = Number(process.env.SEED_USER_ID);
-  const out = execFileSync('psql', [
+  const out = psql([
     '-h', process.env.PGHOST, '-p', process.env.PGPORT,
     '-U', process.env.PGUSER, '-d', process.env.PGDATABASE,
     '-t', '-A', '-c',
     `SELECT COUNT(*) FROM browser_bookmarks WHERE user_id = ${userId} AND deleted = false;`,
-  ], { encoding: 'utf8' });
+  ]);
   return Number(out.trim());
 }
 
@@ -121,11 +145,24 @@ async function planStatus(page) {
 (async () => {
   const userData = process.env.ZIO_USER_DATA;
   log(`launching Electron (userData=${userData}, api=${process.env.LARAVEL_BASE})`);
-  const app = await _electron.launch({
-    args: [MAIN, `--user-data-dir=${userData}`, '--no-sandbox', '--disable-gpu'],
-    cwd: APP_DIR,
-    env: { ...process.env, NODE_ENV: 'production' },
-  });
+  // Under the parallel validation battery the cgroup pid/thread cap can starve
+  // Chromium's boot (pthread_create EAGAIN → "Process failed to launch!").
+  // Retry a few times with backoff — the pressure is transient.
+  let app;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      app = await _electron.launch({
+        args: [MAIN, `--user-data-dir=${userData}`, '--no-sandbox', '--disable-gpu'],
+        cwd: APP_DIR,
+        env: { ...process.env, NODE_ENV: 'production' },
+      });
+      break;
+    } catch (e) {
+      if (attempt >= 4) throw e;
+      log(`electron launch attempt ${attempt} failed (${String(e.message || e).split('\n')[0]}); retrying in ${attempt * 15}s…`);
+      await new Promise(r => setTimeout(r, attempt * 15000));
+    }
+  }
 
   try {
     const page = await appPage(app);
@@ -176,8 +213,13 @@ async function planStatus(page) {
       const s = await planStatus(page);
       return s.pending === 0 ? s : null;
     }, 'queue drained automatically', 200000, 1000);
-    ok(drained.gate.rejected === null || drained.gate.rejected === undefined,
-      'rejected notice cleared after the clean flush');
+    // The rejected-notice pref is cleared a moment AFTER the queue drains —
+    // poll instead of asserting the drain-time snapshot (race under load).
+    await waitFor(async () => {
+      const s = await planStatus(page);
+      return s.gate.rejected === null || s.gate.rejected === undefined ? s : null;
+    }, 'rejected notice cleared', 30000, 500);
+    ok(true, 'rejected notice cleared after the clean flush');
     ok(drained.gate.gate.blocked === false, 'gate remains unblocked');
     ok(countServerBookmarks() === 3, `all 3 bookmarks landed on the server (got ${countServerBookmarks()})`);
     await page.locator('text=All changes are synced.').waitFor({ timeout: 15000 });

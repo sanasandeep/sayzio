@@ -3197,7 +3197,7 @@ class SitePagesContent
                 ['Can I transfer ownership of a Link in Bio to another account?', 'Yes, transfer ownership from page settings; the new owner accepts the transfer in their dashboard.'],
                 ['Are my pages discoverable on search engines?', 'They can be, since pages set to public are indexed; private or password-protected pages are not.'],
                 ['Can I hide my page from the Discover directory?', 'Yes, toggle "Show me in Discover" off in profile settings and your page disappears from the directory within minutes.'],
-                ['How do I get human support?', 'Email support@1inme.app or use in-app chat; paid plans get priority response targets, with the Pro tier guaranteeing same-business-day replies.'],
+                ['How do I get human support?', 'Email support@sayzio.app or use in-app chat; paid plans get priority response targets, with the Pro tier guaranteeing same-business-day replies.'],
             ],
         ];
     }

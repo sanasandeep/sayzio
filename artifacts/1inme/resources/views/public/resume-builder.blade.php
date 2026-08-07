@@ -209,7 +209,7 @@
                 <span class="block grad-text">built in 5 minutes flat.</span>
             </h1>
             <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">
-                Drag-and-drop sections. AI-polished bullet points. 20+ recruiter-tested templates. A public portfolio link at <span class="font-semibold text-white">1inme.com/you/cv</span> &mdash; and a pixel-perfect PDF export when you need to email it.
+                Drag-and-drop sections. AI-polished bullet points. 20+ recruiter-tested templates. A public portfolio link at <span class="font-semibold text-white">sayzio.app/you/resume</span> &mdash; and a pixel-perfect PDF export when you need to email it.
             </p>
             <div class="mt-7 flex flex-wrap items-center gap-3">
                 <a href="/register" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
@@ -323,7 +323,7 @@
                 ['01','fa-user-plus',         '#1bd4d9', 'Tell us about you',     'Paste a LinkedIn URL or fill in 5 quick fields. We pre-fill everything we can.'],
                 ['02','fa-wand-magic-sparkles','#3d6bff', 'Let AI polish it',     'AI rewrites bullet points with metrics, action verbs and ATS keywords for your role.'],
                 ['03','fa-palette',           '#e94e8c', 'Pick a template',       '20+ recruiter-tested designs. Recolor, reorder, swap fonts &mdash; all live preview.'],
-                ['04','fa-share-nodes',       '#ff8a3c', 'Share &amp; export',    'Public link at 1inme.com/you/cv, private link, or pixel-perfect PDF download.'],
+                ['04','fa-share-nodes',       '#ff8a3c', 'Share &amp; export',    'Public link at sayzio.app/you/resume, private link, or pixel-perfect PDF download.'],
             ] as $i => $s)
                 <div class="reveal rd-{{ $i + 1 }} rbp-step glass rounded-3xl p-6 text-center" style="--rbp-c: {{ $s[2] }};">
                     <span class="rbp-step-num">{{ $s[0] }}</span>
@@ -395,7 +395,7 @@
                     <li class="flex items-start gap-2.5"><i class="fas fa-check text-emerald-400 mt-1"></i><span>20+ templates, all free, all ATS-clean</span></li>
                     <li class="flex items-start gap-2.5"><i class="fas fa-check text-emerald-400 mt-1"></i><span>Public link with view analytics &mdash; know who looked</span></li>
                     <li class="flex items-start gap-2.5"><i class="fas fa-check text-emerald-400 mt-1"></i><span>AI polishes every bullet with metrics &amp; keywords</span></li>
-                    <li class="flex items-start gap-2.5"><i class="fas fa-check text-emerald-400 mt-1"></i><span>Portfolio &amp; résumé live together at 1inme.com/you</span></li>
+                    <li class="flex items-start gap-2.5"><i class="fas fa-check text-emerald-400 mt-1"></i><span>Portfolio &amp; résumé live together at sayzio.app/you</span></li>
                 </ul>
             </div>
         </div>
@@ -415,7 +415,7 @@
                 ['Will my résumé pass ATS systems?', 'Every template is structured so that Greenhouse, Lever, Workday and other ATS parsers read it cleanly. The PDF export uses selectable text and embedded fonts &mdash; no scanned images.'],
                 ['Can I import from LinkedIn?', 'Paste your LinkedIn URL and we pre-fill experience, education and skills. You can edit everything before publishing.'],
                 ['Who can see my portfolio link?', 'You choose: public (indexed and discoverable), unlisted (link-only) or private (only you). Email and phone can be hidden from public view in one tap.'],
-                ['Can I host multiple résumés?', 'Yes &mdash; create a different version for every role. Each gets its own URL slug like 1inme.com/you/cv-design or 1inme.com/you/cv-pm.'],
+                ['Can I host multiple résumés?', 'Yes &mdash; create a different version for every role. Each gets its own URL slug like sayzio.app/you/resume/v/design or sayzio.app/you/resume/v/pm.'],
             ] as $i => $f)
                 <div class="reveal rd-{{ ($i % 4) + 1 }} glass rounded-2xl overflow-hidden">
                     <button type="button" @click="open === {{ $i }} ? open = -1 : open = {{ $i }}" class="w-full flex items-center justify-between gap-4 px-5 py-4 text-left">

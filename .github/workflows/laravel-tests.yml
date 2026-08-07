@@ -44,6 +44,7 @@ jobs:
     outputs:
       onein: ${{ steps.filter.outputs.onein }}
       emdash: ${{ steps.filter.outputs.emdash }}
+      expolink: ${{ steps.filter.outputs.expolink }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -61,6 +62,20 @@ jobs:
               - 'artifacts/1inme/**'
               - 'artifacts/1inme-mobile/**'
               - 'scripts/src/check-em-dash.ts'
+              - '.github/workflows/laravel-tests.yml'
+
+            # Expo project-link guard only cares about the mobile app config
+            # and the guard script itself.
+            expolink:
+              - 'artifacts/1inme-mobile/app.json'
+              - 'artifacts/1inme-mobile/scripts/check-expo-project-link.mjs'
+              - 'sayzio-dialer-standalone/app.json'
+              - 'sayzio-dialer-standalone/scripts/check-expo-project-link.mjs'
+              - 'artifacts/1inme-mobile/scripts/check-eas-lockfile-registry.mjs'
+              - 'artifacts/1inme-mobile/package-lock.json'
+              - 'sayzio-dialer-standalone/package-lock.json'
+              - 'package-lock.json'
+              - 'pnpm-lock.yaml'
               - '.github/workflows/laravel-tests.yml'
 
   phpunit-postgres:
@@ -429,6 +444,51 @@ jobs:
 
       - name: Scan marketing views for heavy animated blur glows
         run: php scripts/check-marketing-heavy-blur.php
+
+  expo-project-link-guard:
+    name: Expo project-link guard (no database)
+    needs: changes
+    if: needs.changes.outputs.expolink == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    # Fail when an Expo relink leaves artifacts/1inme-mobile/app.json in a
+    # state that silently breaks EAS APK builds: wrong `owner` (must be
+    # eefind), a placeholder/non-UUID `extra.eas.projectId` (makes
+    # `eas project:init` die on "Invalid UUID appId"), or a re-injected
+    # `extra.eas.build.experimental` appExtensions block that duplicates the
+    # expo-share-intent ShareExtension and makes `expo config --json` exit 1
+    # with zero output. Pure Node stdlib static check — no install, no
+    # database. Also registered as a Replit pre-merge validation step.
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Validate app.json Expo project linkage (main app)
+        run: node artifacts/1inme-mobile/scripts/check-expo-project-link.mjs
+
+      - name: Validate app.json Expo project linkage (standalone dialer)
+        run: node sayzio-dialer-standalone/scripts/check-expo-project-link.mjs
+
+      - name: Block package-firewall URLs in EAS-shipped lockfiles
+        run: node artifacts/1inme-mobile/scripts/check-eas-lockfile-registry.mjs
+
+  # Passthrough companion so the required check never deadlocks on PRs that
+  # don't touch the mobile app config or the guard script.
+  expo-project-link-passthrough:
+    name: Expo project-link guard (no database)
+    needs: changes
+    if: needs.changes.outputs.expolink != 'true' && github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Passthrough (no relevant changes)
+        run: echo "No app.json / guard changes; passing through."
 
   em-dash-guard:
     name: Em-dash copy guard (no database)

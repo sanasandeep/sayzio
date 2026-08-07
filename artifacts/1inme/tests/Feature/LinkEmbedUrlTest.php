@@ -141,4 +141,117 @@ class LinkEmbedUrlTest extends TestCase
         $this->assertStringContainsString('https://links.example.com/embed/link/', $link->embedScriptSnippet());
         $this->assertStringContainsString('https://links.example.com/embed/link/', $link->embedIframeSnippet());
     }
+
+    /**
+     * Text links embed as a compact card, not a tall full-page iframe
+     * (task #6712) — otherwise the editor preview and copyable snippet
+     * leave a huge blank area under a few lines of text.
+     */
+    public function test_text_links_embed_as_compact_card(): void
+    {
+        $this->forcePlatformHost(self::BRAND_HOST);
+
+        $user = $this->makeUser();
+        $link = Link::create([
+            'user_id'   => $user->id,
+            'type'      => 'text',
+            'alias'     => 'embed-txt-' . Str::random(6),
+            'is_active' => true,
+            'settings'  => ['text_content' => 'Hello world'],
+        ]);
+
+        $this->assertTrue($link->isEmbedCard());
+        $this->assertSame('card', $link->embedKind());
+        $this->assertSame('View text', $link->embedAction()['label']);
+
+        // Compact card iframe snippet — never the 80vh/560px full-page one.
+        // No subtitle (no seo_description) → the shorter card height.
+        $snippet = $link->embedIframeSnippet();
+        $this->assertStringContainsString('height:148px', $snippet);
+        $this->assertStringNotContainsString('80vh', $snippet);
+        $this->assertStringNotContainsString('min-height:560px', $snippet);
+
+        // Adding a description makes the card render a subtitle row, so the
+        // static snippet grows to fit (task #6713).
+        $link->seo_description = 'A short description shown as the card subtitle';
+        $this->assertSame('A short description shown as the card subtitle', $link->embedCardSubtitle());
+        $this->assertStringContainsString('height:164px', $link->embedIframeSnippet());
+    }
+
+    public function test_text_link_card_endpoint_renders_title_and_action(): void
+    {
+        $this->forcePlatformHost(self::BRAND_HOST);
+
+        $user = $this->makeUser();
+        $link = Link::create([
+            'user_id'   => $user->id,
+            'type'      => 'text',
+            'alias'     => 'embed-txt-' . Str::random(6),
+            'title'     => 'My shared note',
+            'is_active' => true,
+            'settings'  => ['text_content' => 'Hello world'],
+        ]);
+
+        $this->get('/embed/link/' . $link->alias . '/card')
+            ->assertOk()
+            ->assertSee('My shared note')
+            ->assertSee('View text');
+
+        // The canonical iframe target for a card-style link is the card doc too.
+        $this->get('/embed/link/' . $link->alias . '/iframe')
+            ->assertOk()
+            ->assertSee('View text');
+    }
+
+    /**
+     * The static no-JS iframe snippet is sized at copy time and can't grow,
+     * so the gated / unavailable fallback card layouts must fit WITHIN that
+     * height (task #6714): the explanation lives on the single subtitle
+     * line, and neither a footnote row nor the badge row renders.
+     */
+    public function test_gated_and_unavailable_cards_fit_static_snippet_height(): void
+    {
+        $this->forcePlatformHost(self::BRAND_HOST);
+
+        $user = $this->makeUser();
+
+        // Gated: link later switched to a non-public visibility.
+        $gated = Link::create([
+            'user_id'    => $user->id,
+            'type'       => 'url',
+            'alias'      => 'embed-gated-' . Str::random(6),
+            'long_url'   => 'https://dest.example.com/x',
+            'title'      => 'Now private',
+            'is_active'  => true,
+            'visibility' => 'followers',
+        ]);
+
+        $res = $this->get('/embed/link/' . $gated->alias . '/card')->assertOk();
+        $res->assertSee('Private link — open to view if you have access.');
+        $res->assertSee('View on site');
+        // No extra footnote row and no badge row → fallback fits the copied height.
+        $res->assertDontSee('class="footnote"', false);
+        $res->assertDontSee('class="badge"', false);
+
+        // Unavailable: link later deactivated.
+        $off = Link::create([
+            'user_id'   => $user->id,
+            'type'      => 'url',
+            'alias'     => 'embed-off-' . Str::random(6),
+            'long_url'  => 'https://dest.example.com/x',
+            'title'     => 'Now off',
+            'is_active' => false,
+        ]);
+
+        $res = $this->get('/embed/link/' . $off->alias . '/card')->assertOk();
+        $res->assertSee('This link is not available right now.');
+        $res->assertDontSee('class="footnote"', false);
+        $res->assertDontSee('class="badge"', false);
+
+        // Happy path still renders the badge row.
+        $ok = $this->makeLink($user, null, 'embed-ok-' . Str::random(6));
+        $this->get('/embed/link/' . $ok->alias . '/card')
+            ->assertOk()
+            ->assertSee('class="badge"', false);
+    }
 }

@@ -36,6 +36,20 @@ if (!existsSync(lockfilePath)) {
   process.exit(1);
 }
 
+// Cheap static gate first: Expo project-link drift in app.json wastes a
+// shared free-plan EAS build if it slips through (no deps needed).
+const linkGuard = spawnSync(
+  process.execPath,
+  [path.join(standaloneRoot, "scripts", "check-expo-project-link.mjs")],
+  { stdio: "inherit", env: process.env },
+);
+if (linkGuard.status !== 0) {
+  console.error(
+    `check:dialer-typecheck: FAILED — expo-project-link guard (exit ${linkGuard.status ?? "signal"})`,
+  );
+  process.exit(linkGuard.status ?? 1);
+}
+
 const lockHash = createHash("sha256")
   .update(readFileSync(lockfilePath))
   .digest("hex");

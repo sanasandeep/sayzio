@@ -3,6 +3,7 @@
 namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
+use App\Modules\Common\Support\EventsModule;
 use App\Modules\Common\Support\FeatureStates\FeatureAvailability;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,11 @@ class FeatureStateController extends Controller
 
         return $this->ok([
             'features' => FeatureAvailability::overview($userId ?: null),
+            // Platform-wide Events module switch (Task #6726/#6729). When
+            // false the API 404s every events endpoint, so the mobile app
+            // hides event entry points and shows a "not available" state
+            // on event deep links instead of surfacing raw errors.
+            'events_module_enabled' => EventsModule::enabled(),
         ]);
     }
 

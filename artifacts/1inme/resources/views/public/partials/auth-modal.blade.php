@@ -135,6 +135,7 @@
                             <input type="email" name="identifier" value="{{ old('identifier') }}" required placeholder="you@example.com"
                                    class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none">
                         </div>
+                        @include('common.partials.turnstile-widget')
                         <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-bold text-white">
                             <i class="fas fa-paper-plane mr-1 text-xs"></i> Send 6-digit code
                         </button>
@@ -161,6 +162,7 @@
                                 <i class="fab fa-whatsapp mr-0.5"></i> We'll send your code over WhatsApp. Supported country codes: {{ implode(', ', $allowedCountryCodes ?? []) }}.
                             </p>
                         </div>
+                        @include('common.partials.turnstile-widget')
                         <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-bold text-white">
                             <i class="fas fa-paper-plane mr-1 text-xs"></i> Send 6-digit code
                         </button>
@@ -260,6 +262,7 @@
                                class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none">
                         <p class="mt-1 text-[10px] text-gray-500">If a friend referred you, paste their code to give them credit.</p>
                     </div>
+                    @include('common.partials.turnstile-widget')
                     <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-bold text-white">
                         Create account <i class="fas fa-arrow-right ml-1 text-xs"></i>
                     </button>
@@ -295,6 +298,7 @@
                                 <i class="fab fa-whatsapp mr-0.5"></i> We'll create your account and send a 6-digit code over WhatsApp. Supported country codes: {{ implode(', ', $allowedCountryCodes ?? []) }}.
                             </p>
                         </div>
+                        @include('common.partials.turnstile-widget')
                         <button type="submit" class="w-full py-2.5 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-bold text-white">
                             <i class="fab fa-whatsapp mr-1"></i> Sign up with WhatsApp
                         </button>

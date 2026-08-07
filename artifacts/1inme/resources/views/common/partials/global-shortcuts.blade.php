@@ -31,7 +31,10 @@
                 ['Subscribers',        $__r('user.subscribers.index'), 'fa-solid fa-users'],
                 ['Followers',          $__r('user.followers.index'),   'fa-solid fa-user-group'],
                 ['Contacts',           $__r('user.contacts.index'),    'fa-solid fa-address-book'],
-                ['Events',             $__r('user.events.index'),      'fa-solid fa-calendar'],
+                // Task #6726 — drop the Events shortcut when the platform-wide module is off.
+                ...(\App\Modules\Common\Support\EventsModule::enabled()
+                    ? [['Events',      $__r('user.events.index'),      'fa-solid fa-calendar']]
+                    : []),
             ]],
             ['Account', [
                 ['Profile',            $__r('user.profile.edit'),      'fa-solid fa-user'],

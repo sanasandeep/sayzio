@@ -67,7 +67,7 @@
         </span>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-4">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-4 items-start">
         {{-- Snippets --}}
         <div class="space-y-5">
             {{-- Script (auto-render) --}}
@@ -101,7 +101,7 @@
                     </button>
                 </div>
                 <pre class="text-[11px] leading-relaxed embp-pre rounded-xl p-3 overflow-x-auto whitespace-pre-wrap break-all"><code>{{ $iframeSnippet }}</code></pre>
-                <p class="text-[11px] mt-1" style="color: var(--text-muted);">Paste straight into your page&rsquo;s HTML.</p>
+                <p class="text-[11px] mt-1" style="color: var(--text-muted);">Paste straight into your page&rsquo;s HTML. Fixed height &mdash; prefer the auto-render script if you can run JavaScript.</p>
             </div>
         </div>
 
@@ -114,10 +114,30 @@
                 <iframe src="{{ $previewSrc }}"
                         title="Embed preview"
                         loading="lazy"
+                        data-embed-preview="{{ $link->alias }}"
                         class="w-full rounded-lg border-0 bg-transparent"
                         style="{{ $isCard ? 'height:200px;' : 'height:460px;' }} width:100%;"></iframe>
             </div>
             <p class="text-[11px] mt-1" style="color: var(--text-muted);">This is exactly what visitors see when embedded.</p>
+            {{-- Auto-fit the preview to its content (task #6712): the card
+                 document posts a `1inme-embed-resize` message (same channel the
+                 public auto-render loader listens on); resize the preview iframe
+                 to match so short embeds don't leave a blank area. Full-page
+                 previews never post, so they keep the tall fallback height. --}}
+            <script>
+                (function () {
+                    var alias = @js($link->alias);
+                    window.addEventListener('message', function (e) {
+                        var d = e.data;
+                        if (!d || d.type !== '1inme-embed-resize' || d.alias !== alias) return;
+                        if (!(d.height > 0)) return;
+                        var frames = document.querySelectorAll('iframe[data-embed-preview="' + alias.replace(/"/g, '') + '"]');
+                        for (var i = 0; i < frames.length; i++) {
+                            frames[i].style.height = Math.ceil(d.height) + 'px';
+                        }
+                    });
+                })();
+            </script>
         </div>
     </div>
 </div>

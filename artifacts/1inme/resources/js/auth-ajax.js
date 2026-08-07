@@ -89,6 +89,26 @@
     if (el) { el.hidden = true; el.textContent = ''; }
   }
 
+  /* ── Turnstile helper ─────────────────────────────────────────────── */
+
+  /* Turnstile tokens are single-use: once the server has verified (or
+     rejected) one, a re-submit with the same token always fails. Whenever an
+     AJAX submission completes WITHOUT navigating away, reset any Turnstile
+     widget inside the form so the next attempt carries a fresh token. */
+  function resetTurnstile(form) {
+    if (!window.turnstile) return;
+    /* Reset ONLY the widget(s) inside the submitted form — auth pages render
+       several forms each carrying their own .cf-turnstile (email OTP,
+       WhatsApp sign-up, …), and a bare turnstile.reset() only resets the
+       FIRST widget on the page, leaving this form's spent token in place.
+       turnstile.reset() accepts the widget container element. */
+    var widgets = form.querySelectorAll('.cf-turnstile');
+    for (var i = 0; i < widgets.length; i++) {
+      try { window.turnstile.reset(widgets[i]); }
+      catch (_) { /* best-effort */ }
+    }
+  }
+
   /* ── Form wiring ──────────────────────────────────────────────────── */
 
   function wireForm(form) {
@@ -134,6 +154,7 @@
 
         /* Restore button for in-place error/status display */
         if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+        resetTurnstile(form);
 
         if (data.status) showStatus(form, data.status);
 

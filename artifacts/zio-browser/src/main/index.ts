@@ -2,9 +2,10 @@
  * Zio Browser — Electron main process entry point.
  */
 import path from 'path';
-import { app, BrowserWindow, Menu, session, nativeTheme, dialog, webContents } from 'electron';
+import { app, BrowserWindow, Menu, session, dialog, webContents } from 'electron';
 import type { BaseWindow } from 'electron';
 import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, setDomainMuted, pruneHistoryOlderThan, setSiteSettings, addBookmark, isBookmarked, getAllBookmarks, getRecentHistory } from './db';
+import { chromePrefersDark, restoreWebsiteAppearance, initThemeBridge } from './theme';
 import { resolveSiteSettingsForUrl, contentBlockerOverrideForOrigin, adBlockOverrideForOrigin, invalidateSiteSettingsCache } from './site-settings';
 import { PREFERENCE_KEYS, type PreferenceKey } from '../shared/db-schema';
 import { VK_PREF_KEYS } from '../shared/virtual-keyboard';
@@ -171,7 +172,7 @@ export function createWindow(): BrowserWindow {
     minWidth: 800,
     minHeight: 600,
     title: 'Zio Browser',
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1a1a2e' : '#ffffff',
+    backgroundColor: chromePrefersDark() ? '#1a1a2e' : '#ffffff',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -1049,6 +1050,15 @@ app.whenReady().then(() => {
   // When the user picks an auto-delete window (e.g. 30 days), prune older
   // history at startup and every 6 hours while the app runs. '0'/unset = keep
   // forever. Never let a sweep failure interfere with startup.
+  // ── Website appearance ───────────────────────────────────────────────────
+  // Restore the persisted website color-scheme override (default: system) —
+  // this owns nativeTheme.themeSource; the chrome Appearance setting never
+  // touches it. The bridge relays real OS scheme changes to all windows.
+  try {
+    restoreWebsiteAppearance();
+    initThemeBridge();
+  } catch { /* fall back to Electron's default 'system' */ }
+
   const runHistoryRetentionSweep = () => {
     try {
       const days = parseInt(safeGetPreference(PREFERENCE_KEYS.HISTORY_DAYS_RETENTION) ?? '0', 10);

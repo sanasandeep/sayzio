@@ -30,8 +30,12 @@ const api = {
 
   // ── Theme ─────────────────────────────────────────────────────────────────
   theme: {
-    get: () => ipcRenderer.invoke('theme:get'),
-    set: (mode: 'system' | 'light' | 'dark') => ipcRenderer.invoke('theme:set', mode),
+    /** Real OS color scheme ('dark' | 'light') — never affected by the website-appearance override. */
+    getSystem: () => ipcRenderer.invoke('theme:get-system') as Promise<'dark' | 'light'>,
+    /** Persisted website color-scheme override (what pages see via prefers-color-scheme). */
+    getWebsite: () => ipcRenderer.invoke('theme:get-website') as Promise<'system' | 'light' | 'dark'>,
+    setWebsite: (mode: 'system' | 'light' | 'dark') =>
+      ipcRenderer.invoke('theme:set-website', mode) as Promise<'system' | 'light' | 'dark'>,
   },
 
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -492,6 +496,8 @@ const api = {
       // Device Lab — context menu "Preview in Device Lab" trigger
       'device-lab:preview-url',
       'window:mode-changed',
+      // Real OS color scheme changed (chrome "System" appearance follows live)
+      'theme:system-changed',
       'sync:queue-changed',
       // Sync plan gate / over-cap rejection notice changed (upgrade prompts)
       'sync:plan-status-changed',

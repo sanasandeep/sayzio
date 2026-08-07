@@ -56,9 +56,45 @@ args = "e2e-topbar-autohide"
 task = "workflow.run"
 args = "e2e-connect-qr-prompt"
 
-    [[workflows.workflow.tasks]]
-    task = "workflow.run"
-    args = "e2e-connect-qr"
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-connect-qr"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "expo-project-link-guard"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "eas-lockfile-registry-guard"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-embed-panel-text-card"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-embed-card-state-heights"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-event-location-map-paste"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-marketing-plan-calculator"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-marketing-plan-export"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mpc-dirty-guard"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-admin-minimized-sidebar"
     
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
@@ -231,3 +267,102 @@ args = "cd artifacts/1inme && VALIDATION_PORT=5074 bash tests/Browser/run-valida
     
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "expo-project-link-guard"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:expo-project-link && node sayzio-dialer-standalone/scripts/check-expo-project-link.mjs"
+
+[[workflows.workflow]]
+name = "eas-lockfile-registry-guard"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node artifacts/1inme-mobile/scripts/check-eas-lockfile-registry.mjs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-embed-panel-text-card"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5079 bash tests/Browser/run-validation.sh embed-panel-text-card.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-embed-card-state-heights"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5081 bash tests/Browser/run-validation.sh embed-card-state-heights.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-event-location-map-paste"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5082 bash tests/Browser/run-validation.sh event-location-map-paste.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-marketing-plan-calculator"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5083 bash tests/Browser/run-validation.sh marketing-plan-calculator.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-marketing-plan-export"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5084 bash tests/Browser/run-validation.sh marketing-plan-export.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+    name = "e2e-mpc-dirty-guard"
+    author = "agent"
+
+    [[workflows.workflow.tasks]]
+    task = "shell.exec"
+    args = "cd artifacts/1inme && VALIDATION_PORT=5085 bash tests/Browser/run-validation.sh mpc-dirty-guard.spec.ts"
+
+    [workflows.workflow.metadata]
+    isValidation = true
+
+    [[workflows.workflow]]
+    name = "e2e-admin-minimized-sidebar"
+    author = "agent"
+
+    [[workflows.workflow.tasks]]
+    task = "shell.exec"
+    args = "cd artifacts/1inme && VALIDATION_PORT=5086 bash tests/Browser/run-validation.sh admin-minimized-sidebar-layout.spec.ts admin-sidebar-label-clip.spec.ts"
+
+    [workflows.workflow.metadata]
+    isValidation = true

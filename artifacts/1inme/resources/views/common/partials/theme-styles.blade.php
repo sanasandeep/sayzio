@@ -708,9 +708,39 @@
     html:not(.light-mode) select option { background-color: #1e1b2e !important; color: #f1f5f9 !important; }
     html.light-mode select option { background-color: #ffffff !important; color: #0f172a !important; }
 
-    /* Theme toggle is now rendered as a standard .header-icon-btn (see
-       user/layouts/app.blade.php) so it matches the search/notification
-       buttons. The pill/track/knob rules below are intentionally removed. */
+    /* Theme toggle renders as a standard .header-icon-btn so it matches the
+       neighboring header buttons. Canonical shared definition lives here so
+       every layout that includes the theme-toggle partial (admin header,
+       auth pages, user layout) gets a proper square button; layouts may
+       override size/radius to match their own header controls. */
+    .header-icon-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 11px;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.25s ease;
+        position: relative;
+        background: var(--bg-glass, rgba(255,255,255,0.04));
+        border: 1px solid var(--border-glass, var(--border-strong, rgba(255,255,255,0.12)));
+        color: var(--text-muted);
+        font-size: 13px;
+    }
+    .header-icon-btn:hover {
+        background: var(--bg-glass-hover, rgba(255,255,255,0.08));
+        color: var(--text-primary);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px -4px rgba(0,0,0,0.18);
+        border-color: var(--border-glass-light, var(--border-strong, rgba(255,255,255,0.18)));
+    }
+    html.light-mode .header-icon-btn {
+        border-color: #cbd5e1;
+        color: #475569;
+    }
+    html.light-mode .header-icon-btn:hover {
+        color: #0f172a;
+        box-shadow: 0 6px 16px -4px rgba(15,23,42,0.12);
+    }
 
     .gradient-text {
         color: var(--text-primary);

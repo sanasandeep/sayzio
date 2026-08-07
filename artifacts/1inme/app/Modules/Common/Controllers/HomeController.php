@@ -15,6 +15,23 @@ use Illuminate\Support\Facades\Cache;
 
 class HomeController extends Controller
 {
+    /**
+     * Admin-selected homepage design. 'classic' renders the original
+     * full-size landing page (home.blade.php); 'compact' renders the
+     * lighter Variant B (home-b.blade.php). Stored as an AppSetting so
+     * the marketing team can flip the live design from the admin panel;
+     * takes effect within the AppSetting cache window (~5 min) without
+     * a deploy. Any unknown stored value falls back to 'classic'.
+     */
+    public const DESIGN_SETTING_KEY = 'marketing_home_design';
+
+    public static function activeDesign(): string
+    {
+        $design = (string) \App\Modules\Admin\Models\AppSetting::get(self::DESIGN_SETTING_KEY, 'classic');
+
+        return $design === 'compact' ? 'compact' : 'classic';
+    }
+
     public function index(Request $request)
     {
         // The short-link brand domain (1in.me) is dedicated to links/profiles;
@@ -33,7 +50,7 @@ class HomeController extends Controller
         // showcase, AI demos, featured posts…) is rendered by sections()
         // and fetched by the homepage loader right after first paint, so the
         // initial render needs NO plan/link-type/blog queries at all.
-        return view('home');
+        return view(self::activeDesign() === 'compact' ? 'home-b' : 'home');
     }
 
     /**
@@ -84,7 +101,9 @@ class HomeController extends Controller
         // AiHeroExamples.
         $aiStrategistExamples = AiStrategistExamples::all();
 
-        return view('home.deferred-sections', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'linkTypes', 'aiHeroExamples', 'resumePersonas', 'aiStrategistExamples'));
+        $fragment = self::activeDesign() === 'compact' ? 'home.deferred-sections-b' : 'home.deferred-sections';
+
+        return view($fragment, compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'linkTypes', 'aiHeroExamples', 'resumePersonas', 'aiStrategistExamples'));
     }
 
     /**

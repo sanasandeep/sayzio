@@ -6,6 +6,9 @@
     $homeUrl     = route('home');
     // "Pricing" always navigates to the dedicated /pricing page.
     $pricingHref = route('site.pricing');
+    // Task #6726 — platform-wide Events module toggle: drops the Events
+    // pill (desktop + mobile) and the Solutions "Events & RSVPs" entry.
+    $eventsModuleOn = \App\Modules\Common\Support\EventsModule::enabled();
 
     // Mega-menu link groups. [href, fa-icon, title, one-line description, route-name pattern(s)|null].
     // The 5th element drives the "current page" highlight (matched with
@@ -51,7 +54,8 @@
         [route('site.creators-feed'),               'fa-stream',              'Creators feed',          'What the community is shipping',         'site.creators-feed'],
         [route('site.newsroom'),                    'fa-newspaper',           'Newsroom',               'News, press & love',                     'site.newsroom'],
         // Events entry: active state is owned by the dedicated Events pill, not the Solutions group.
-        [route('events.index'),                     'fa-calendar-day',        'Events & RSVPs',         'Run launches with one link',             null],
+        // Dropped entirely when the platform-wide Events module is off (Task #6726).
+        ...($eventsModuleOn ? [[route('events.index'), 'fa-calendar-day', 'Events & RSVPs', 'Run launches with one link', null]] : []),
         // Referrals is an anchor into the Features page — the plain Features top link owns that page's highlight.
         [route('site.features').'#cat-referrals',   'fa-gift',                'Referrals',              'Reward fans who spread the word',        null],
     ];
@@ -155,11 +159,14 @@
                 <a href="{{ route('site.contact') }}" @mouseenter="openMenu=null" @if($topActive['contact']) aria-current="page" @endif class="px-3 py-2 text-sm rounded-lg whitespace-nowrap {{ $topActive['contact'] ? 'text-blue-400 bg-white/5 font-semibold' : 'text-gray-300 hover:text-blue-400' }}">Contact</a>
 
                 {{-- Highlighted "Events" badge — visually distinct pill (vs the
-                     plain text links above) to drive discovery of /events. --}}
+                     plain text links above) to drive discovery of /events.
+                     Hidden entirely when the Events module is off (Task #6726). --}}
+                @if($eventsModuleOn)
                 <a href="{{ route('events.index') }}" @mouseenter="openMenu=null" @if($topActive['events']) aria-current="page" @endif
                    class="ml-1 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors mkt-events-pill {{ $topActive['events'] ? 'mkt-events-pill-active' : '' }}">
                     <i class="fas fa-calendar-day text-[11px]"></i> Events
                 </a>
+                @endif
 
                 {{-- ============ Product mega panel ============ --}}
                 {{-- Outer wrapper has no visible chrome and a top padding "bridge" so
@@ -436,10 +443,12 @@
             {{-- Highlighted "Events" badge (mobile) — same distinct pill
                  treatment as desktop, placed above the accordions so it
                  stays prominent. --}}
+            @if($eventsModuleOn)
             <a href="{{ route('events.index') }}" @click="mobileOpen=false" @if($topActive['events']) aria-current="page" @endif
                class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold mkt-events-pill {{ $topActive['events'] ? 'mkt-events-pill-active' : '' }}">
                 <i class="fas fa-calendar-day text-xs"></i> Events
             </a>
+            @endif
 
             {{-- Company --}}
             <div class="rounded-xl border overflow-hidden {{ $companyActive ? 'border-blue-400/40' : 'border-white/10' }}">

@@ -60,6 +60,13 @@
             </div>
         </div>
 
+        {{-- Task #6739 — hand this strategy into the Marketing Plan Calculator. --}}
+        <a href="{{ route('user.marketing-plan.create', ['from_strategy' => $strategy->id]) }}"
+           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/15 text-blue-300 hover:bg-blue-500/25 text-xs"
+           title="Open the Marketing Plan Calculator pre-filled with this strategy's channels and budget">
+            <i class="fas fa-calculator"></i> Build plan in calculator
+        </a>
+
         {{-- Share link --}}
         <div x-data="msShare({ shareUrl: @js($strategy->isShared() ? route('public.ai-report', $strategy->share_token) : ''), shareEndpoint: @js(route('user.ai.marketing-strategist.share', $strategy->id)), unshareEndpoint: @js(route('user.ai.marketing-strategist.unshare', $strategy->id)) })"
              class="flex items-center gap-2">

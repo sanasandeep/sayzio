@@ -269,6 +269,14 @@ class LinkController extends Controller
      */
     public function chooseType(Request $request)
     {
+        // Platform-wide Events module switch: the Event card is hidden from
+        // the chooser, and a hand-crafted type=ics submit must not dead-end
+        // on the gated (404) ICS create route.
+        if ($request->input('type') === 'ics'
+            && !\App\Modules\Common\Support\EventsModule::enabled()) {
+            abort(404, 'Events are not available.');
+        }
+
         $limits = workspace_owner()->getAliasLengthLimits();
 
         $validated = $request->validate([
@@ -3187,6 +3195,19 @@ class LinkController extends Controller
     {
         abort_if($link->user_id !== workspace_owner_id(), 403);
 
+        $this->performLinkDelete($link);
+
+        return redirect()->route('user.links.index')
+            ->with('success', 'Link deleted successfully.');
+    }
+
+    /**
+     * Delete one link with all its side effects (calendar push-delete,
+     * workspace activity entry, sensitive-action audit log). Shared by the
+     * single destroy action and the bulk delete so behavior can't drift.
+     */
+    private function performLinkDelete(Link $link): void
+    {
         $linkId    = $link->id;
         $linkLabel = $link->title ?: ($link->alias ?: $link->long_url ?: ('Link #'.$link->id));
         $alias     = $link->alias;
@@ -3231,9 +3252,6 @@ class LinkController extends Controller
                 ['alias' => $alias],
             );
         }
-
-        return redirect()->route('user.links.index')
-            ->with('success', 'Link deleted successfully.');
     }
 
     /**
@@ -3295,6 +3313,39 @@ class LinkController extends Controller
         }
         return back()->with('success',
             $moved . ' link' . ($moved === 1 ? '' : 's') . " moved to '{$target->name}'.");
+    }
+
+    /**
+     * Bulk-delete many links in one shot. Mirrors moveBulk's shape: the
+     * requested ids are filtered down to rows owned by the workspace owner
+     * (matching the single-destroy ownership check) so a tampered POST can't
+     * delete someone else's links — non-owned ids are silently skipped.
+     * Each surviving link goes through the same performLinkDelete() side
+     * effects as a single delete (calendar sync cleanup, activity + audit
+     * logging). Route is guarded by workspace.can:links.delete.
+     */
+    public function destroyBulk(Request $request)
+    {
+        $data = $request->validate([
+            'link_ids'   => 'required|array|min:1',
+            'link_ids.*' => 'integer',
+        ]);
+
+        $links = Link::whereIn('id', $data['link_ids'])
+            ->where('user_id', workspace_owner_id())
+            ->get();
+
+        foreach ($links as $link) {
+            $this->performLinkDelete($link);
+        }
+
+        $deleted = $links->count();
+        if ($deleted === 0) {
+            return back()->with('info', 'Nothing to delete.');
+        }
+
+        return back()->with('success',
+            $deleted . ' link' . ($deleted === 1 ? '' : 's') . ' deleted.');
     }
 
     /**

@@ -112,11 +112,19 @@ describe('TabManager closeTab', () => {
       expect(tm.getActiveTabId()).toBe(a);
     });
 
-    it('sets the active tab to null when the last remaining tab closes', () => {
+    it('replaces the last remaining tab with a fresh New Tab instead of leaving the window tab-less', () => {
       const a = addTab(tm, 'https://a.test');
       tm.closeTab(a);
+      const order = tm.getTabOrder();
+      expect(order).toHaveLength(1);
+      expect(order[0]).not.toBe(a);
+      expect(tm.getActiveTabId()).toBe(order[0]);
+    });
+
+    it('leaves no tabs behind after destroyAll (no replacement tab is spawned)', () => {
+      addTab(tm, 'https://a.test');
+      tm.destroyAll();
       expect(tm.getTabOrder()).toEqual([]);
-      expect(tm.getActiveTabId()).toBeNull();
     });
 
     it('ignores unknown tab ids', () => {

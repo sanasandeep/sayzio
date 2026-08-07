@@ -100,7 +100,7 @@
 
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Optional CTA URL</label>
-                <input type="url" name="target_url" value="{{ old('target_url') }}" placeholder="https://1inme.com/changelog"
+                <input type="url" name="target_url" value="{{ old('target_url') }}" placeholder="https://sayzio.app/changelog"
                        class="theme-input w-full"/>
                 @error('target_url')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>

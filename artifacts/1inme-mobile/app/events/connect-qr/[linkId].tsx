@@ -17,6 +17,7 @@ import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
 import { getEventConnectQr } from "@/lib/api/events";
 import { showAlert } from "@/lib/webAlert";
+import { EventsModuleGate } from "@/components/EventsModuleGate";
 
 // Host's Connect QR for an event link (Task #6687 — mobile parity for the
 // web /user/links/{link}/connect-qr page from Task #6685). Guests who scan
@@ -24,7 +25,7 @@ import { showAlert } from "@/lib/webAlert";
 // RSVPs them "yes" and follows the host. View, share the link, or save the
 // QR image for printing.
 
-export default function EventConnectQrScreen() {
+function EventConnectQrScreenInner() {
   const colors = useColors();
   const { linkId } = useLocalSearchParams<{ linkId: string }>();
   const id = Number(linkId);
@@ -337,3 +338,13 @@ const styles = StyleSheet.create({
     padding: 12,
   },
 });
+
+// Task #6729 — platform-wide Events module gate: shows a graceful
+// "not available" state (instead of API 404 errors) when events are off.
+export default function EventConnectQrScreen() {
+  return (
+    <EventsModuleGate>
+      <EventConnectQrScreenInner />
+    </EventsModuleGate>
+  );
+}

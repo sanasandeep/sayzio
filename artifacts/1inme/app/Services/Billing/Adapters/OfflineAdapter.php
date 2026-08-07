@@ -93,7 +93,7 @@ class OfflineAdapter extends AbstractAdapter
 
         return [
             'invoice'         => $invoice,
-            'instructions'    => (string) $this->cred('instructions', "Please transfer the amount to the account shown on your invoice.\nEmail the transaction reference to billing@1inme.com."),
+            'instructions'    => (string) $this->cred('instructions', "Please transfer the amount to the account shown on your invoice.\nEmail the transaction reference to billing@sayzio.app."),
             'payee_name'      => $payeeName,
             'bank_details'    => (string) $this->cred('bank_details', ''),
             'upi_id'          => $upiId,

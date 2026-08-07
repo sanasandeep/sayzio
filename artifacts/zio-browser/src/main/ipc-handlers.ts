@@ -151,6 +151,7 @@ import { SEARCH_ENGINES } from '../shared/omnibox';
 import { buildAutofillScript } from '../shared/form-autofill';
 import type { AutofillCard } from '../shared/form-autofill';
 import { storeToken, retrieveToken, clearToken, storeUser, retrieveUser, clearUser } from './auth-store';
+import { systemPrefersDark, getWebsiteAppearance, setWebsiteAppearance, sanitizeAppearance } from './theme';
 import { encryptPassword, decryptPassword } from './password-store';
 import { createCollection, createSavedLink } from '../shared/collection-store';
 import { PREFERENCE_KEYS } from '../shared/db-schema';
@@ -371,11 +372,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('prefs:all', () => getAllPreferences());
 
   // ── Theme ────────────────────────────────────────────────────────────────
-  ipcMain.handle('theme:get', () => nativeTheme.shouldUseDarkColors ? 'dark' : 'light');
-  ipcMain.handle('theme:set', (_, mode: 'system' | 'light' | 'dark') => {
-    nativeTheme.themeSource = mode;
-    return nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
-  });
+  // Chrome appearance resolves in the renderer; these handlers only expose
+  // the REAL OS scheme (for chrome "System" mode) and the website-appearance
+  // override, which is the sole owner of nativeTheme.themeSource.
+  ipcMain.handle('theme:get-system', () => systemPrefersDark() ? 'dark' : 'light');
+  ipcMain.handle('theme:get-website', () => getWebsiteAppearance());
+  ipcMain.handle('theme:set-website', (_, mode: 'system' | 'light' | 'dark') =>
+    setWebsiteAppearance(sanitizeAppearance(mode)));
 
   // ── Auth ─────────────────────────────────────────────────────────────────
   ipcMain.handle('auth:store-token', (event, token: string) => {

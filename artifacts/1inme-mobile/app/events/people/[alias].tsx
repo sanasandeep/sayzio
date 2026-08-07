@@ -26,13 +26,14 @@ import {
   requestContactExchange,
   toggleDiscoverability,
 } from "@/lib/api/events";
+import { EventsModuleGate } from "@/components/EventsModuleGate";
 
 /**
  * Task #5008 — "People at this event" screen. Shows opted-in attendees,
  * lets the viewer toggle their own discoverability, and send/accept exchange
  * requests. Mutual contacts are created server-side on acceptance.
  */
-export default function PeopleAtEventScreen() {
+function PeopleAtEventScreenInner() {
   const { alias, title, highlight_user } = useLocalSearchParams<{
     alias: string;
     title?: string;
@@ -614,3 +615,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
+// Task #6729 — platform-wide Events module gate: shows a graceful
+// "not available" state (instead of API 404 errors) when events are off.
+export default function PeopleAtEventScreen() {
+  return (
+    <EventsModuleGate>
+      <PeopleAtEventScreenInner />
+    </EventsModuleGate>
+  );
+}

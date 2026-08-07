@@ -31,8 +31,9 @@ import {
 import { errorStatus, getBaseUrl } from "@/lib/api";
 import { getProfile } from "@/lib/api/profile";
 import { showAlert } from "@/lib/webAlert";
+import { EventsModuleGate } from "@/components/EventsModuleGate";
 
-export default function EventDetailScreen() {
+function EventDetailScreenInner() {
   const { alias, src } = useLocalSearchParams<{ alias: string; src?: string }>();
   const srcTag = src ? String(src) : "";
   const colors = useColors();
@@ -876,3 +877,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
+
+// Task #6729 — platform-wide Events module gate: shows a graceful
+// "not available" state (instead of API 404 errors) when events are off.
+export default function EventDetailScreen() {
+  return (
+    <EventsModuleGate>
+      <EventDetailScreenInner />
+    </EventsModuleGate>
+  );
+}

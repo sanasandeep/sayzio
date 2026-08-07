@@ -79,6 +79,14 @@ class AuthController extends Controller
             return response()->view('user.auth.registration-paused');
         }
 
+        // Invisible Turnstile captcha (only when an admin has enabled it and
+        // configured keys). Runs after the honeypot (bots still get the
+        // silent 200) and before validation/account creation, so a failed
+        // check never creates a user.
+        if ($resp = $this->turnstileGuard($request)) {
+            return $resp;
+        }
+
         $passwordEnabled = AuthMethods::emailPasswordEnabled();
 
         $rules = [
@@ -239,6 +247,35 @@ class AuthController extends Controller
         return redirect()->route('user.otp.verify.form')
             ->with('status', 'Account created. We sent a 6-digit code to ' . $user->email . '.')
             ->with('otp_demo_reveal', AuthMethods::demoRevealMessage($code));
+    }
+
+    /**
+     * Enforce the invisible Turnstile captcha on a web auth request.
+     *
+     * Returns null when the request may proceed — either the feature is
+     * disabled/unconfigured (default: everything behaves exactly as before)
+     * or the submitted token verified successfully. Otherwise returns the
+     * friendly error response for whichever path (AJAX/JSON or classic
+     * redirect) the form used.
+     */
+    private function turnstileGuard(Request $request)
+    {
+        if (!\App\Services\Integrations\TurnstileSettings::enabled()) {
+            return null;
+        }
+
+        $token = (string) $request->input(\App\Services\Integrations\TurnstileSettings::TOKEN_FIELD, '');
+        if (\App\Services\Integrations\TurnstileSettings::verify($token, $request->ip())) {
+            return null;
+        }
+
+        $msg = "We couldn't verify that you're human. Please refresh the page and try again.";
+        if ($request->ajax()) {
+            return response()->json(['ok' => false, 'errors' => ['_' => $msg], 'csrf_token' => csrf_token()]);
+        }
+        return back()
+            ->withErrors(['turnstile' => $msg])
+            ->withInput($request->except(['password', 'password_confirmation', \App\Services\Integrations\TurnstileSettings::TOKEN_FIELD]));
     }
 
     /**
@@ -459,6 +496,12 @@ class AuthController extends Controller
 
     public function sendOtp(Request $request, ReferralService $referrals)
     {
+        // Invisible Turnstile captcha (only when enabled): a failed check
+        // must never issue or send an OTP (email or paid WhatsApp send).
+        if ($resp = $this->turnstileGuard($request)) {
+            return $resp;
+        }
+
         $request->validate([
             'identifier' => 'required|string',
             'type' => 'required|in:email,mobile',
@@ -663,6 +706,12 @@ class AuthController extends Controller
 
     public function resendOtp(Request $request)
     {
+        // Invisible Turnstile captcha (only when enabled) — resends burn
+        // paid OTP deliveries too, so they get the same gate.
+        if ($resp = $this->turnstileGuard($request)) {
+            return $resp;
+        }
+
         $identifier = session('otp_identifier');
         $type = session('otp_type', 'email');
         if (!$identifier) {

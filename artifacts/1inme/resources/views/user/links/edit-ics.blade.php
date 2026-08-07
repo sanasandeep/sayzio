@@ -47,8 +47,30 @@
     $base = rtrim(config('app.url', url('/')), '/');
 @endphp
 
+{{-- Shared location/map picker (lazy-loads vendored Leaflet itself). Pushed
+     into the layout's head-scripts stack so window.mapPinPicker exists before
+     the deferred Alpine vendor bundle starts and evaluates x-data. --}}
+@push('head-scripts')
+    @vite(['resources/js/map-pin-picker.js'])
+@endpush
 <style>
     [x-cloak] { display: none !important; }
+    /* Leaflet map theming (matches the calendar editor) */
+    .mpp-map .leaflet-container { background:#1e2330 !important; font-family:'Space Grotesk', sans-serif; }
+    html.light-mode .mpp-map .leaflet-container { background:#e6e9f0 !important; }
+    .mpp-map .leaflet-control-attribution { background:rgba(30,35,48,0.85) !important; color:#9ca3af !important; }
+    .mpp-map .leaflet-control-attribution a { color:#90acff !important; }
+    .mpp-map .leaflet-control-zoom a { background:#1e2330 !important; color:#fff !important; border-color:rgba(255,255,255,0.15) !important; }
+    .mpp-map .leaflet-control-zoom a:hover { background:#3d6bff !important; }
+    .mpp-marker { width:30px; height:40px; filter:drop-shadow(0 3px 6px rgba(0,0,0,0.35)); }
+    .mpp-marker svg { width:100%; height:100%; display:block; }
+    /* Location autocomplete dropdown (theme-aware) */
+    .mpp-suggest { position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:40; background:var(--bg-card); border:1px solid var(--border-glass); border-radius:0.75rem; overflow:hidden; box-shadow:0 12px 32px rgba(0,0,0,0.35); }
+    html.light-mode .mpp-suggest { box-shadow:0 12px 32px rgba(15,23,42,0.15); }
+    .mpp-suggest-item { display:flex; align-items:flex-start; gap:0.5rem; width:100%; text-align:left; padding:0.55rem 0.85rem; font-size:0.8125rem; color:var(--text-secondary); }
+    .mpp-suggest-item:hover { background:var(--bg-glass); color:var(--text-primary); }
+    .mpp-suggest-item i { color:#5c83ff; margin-top:2px; flex-shrink:0; }
+    .mpp-suggest-item + .mpp-suggest-item { border-top:1px solid var(--border-subtle); }
     .ics-input { width: 100%; background-color: var(--bg-glass-input); border: 1px solid var(--border-glass);
         border-radius: 0.75rem; padding: 0.625rem 1rem; font-size: 0.875rem; color: var(--text-primary); }
     .ics-input:focus { outline: 2px solid transparent; background-color: var(--bg-glass-input-focus);
@@ -65,6 +87,8 @@
     .day-chip-on { background-color: #5c83ff; border-color: #5c83ff; color: #fff; }
     .ics-freq-off { background: var(--bg-glass); border-color: var(--border-glass); color: var(--text-muted); }
     .ics-freq-on { background-color: rgba(92,131,255,0.15); border-color: #5c83ff; color: #fff; }
+    /* Light mode: white text on the pale-blue selected chip is illegible. */
+    html.light-mode .ics-freq-on { color: #1d4ed8; }
     .ics-tile { background: var(--bg-glass); border: 1px solid var(--border-glass); border-radius: 0.75rem; }
     .ics-tile-strong { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 0.75rem; }
     .ics-pill { display: flex; align-items: stretch; background-color: var(--bg-glass-input); border: 1px solid var(--border-glass); border-radius: 0.75rem; overflow: hidden; }
@@ -252,10 +276,33 @@
                     <label class="ics-label">What's it about? <span class="text-white/30 font-normal">(optional)</span></label>
                     <textarea name="description" rows="3" placeholder="A short description that will appear in calendar apps." class="ics-input">{{ old('description', $ics->description) }}</textarea>
                 </div>
-                <div>
+                <div x-data="mapPinPicker({ address: @js((string) old('location', $ics->location ?? '')) })">
                     <label class="ics-label">Where is it? <span class="text-white/30 font-normal">(optional)</span></label>
-                    <input type="text" name="location" value="{{ old('location', $ics->location) }}" placeholder="e.g. Zoom, 123 Main St, or a venue name" class="ics-input">
-                    <p class="ics-help">Calendar apps will turn addresses into a tappable map link.</p>
+                    <div class="relative" @click.outside="dismissSuggestions()">
+                        <input type="text" name="location" x-model="address"
+                               @input="suggestPlaces()"
+                               @paste="handleLocationPaste($event)"
+                               @keydown.escape="dismissSuggestions()"
+                               autocomplete="off"
+                               placeholder="Search a venue or address, or paste a map link" class="ics-input">
+                        <div x-show="suggestions.length" x-cloak class="mpp-suggest">
+                            <template x-for="s in suggestions" :key="s.id">
+                                <button type="button" class="mpp-suggest-item" @click="chooseSuggestion(s)">
+                                    <i class="fas fa-location-dot"></i><span x-text="s.label"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="flex items-start justify-between gap-3 mt-1">
+                        <p class="ics-help">Pick a place from search, paste a Google Maps link, or drop a pin on the map. Calendar apps will turn addresses into a tappable map link.</p>
+                        <button type="button" @click="toggleMap()" class="text-[11px] font-medium flex-shrink-0 mt-0.5" style="color:#5c83ff;">
+                            <i class="fas fa-map-location-dot mr-1"></i><span x-text="showMap ? 'Hide map' : 'Pick on map'"></span>
+                        </button>
+                    </div>
+                    <div x-show="showMap" x-cloak class="mt-2">
+                        <div x-ref="map" class="mpp-map" style="height:240px;border-radius:12px;overflow:hidden;border:1px solid var(--border-glass);background:#1e2330;"></div>
+                        <p class="text-[11px] mt-1.5" style="color:var(--text-muted);"><i class="fas fa-circle-info mr-1"></i> Tap the map or drag the pin and we'll fill in the address.</p>
+                    </div>
                 </div>
             </div>
         </div>

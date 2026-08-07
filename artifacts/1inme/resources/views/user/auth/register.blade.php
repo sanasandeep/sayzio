@@ -91,6 +91,9 @@
                     <input type="hidden" name="desired_handle" value="{{ old('desired_handle', $prefilledHandle ?? '') }}">
 
                     <div data-general-err class="mb-3 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" hidden></div>
+                    @if($errors->has('turnstile'))
+                        <div class="mb-3 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);">{{ $errors->first('turnstile') }}</div>
+                    @endif
 
                     <div class="space-y-4">
                         <div>
@@ -129,6 +132,8 @@
                             <i class="fas fa-shield-alt text-blue-400 mt-0.5"></i>
                             <span>{{ ($emailPasswordEnabled ?? false) ? "Use your email and password to sign in. Keep your password somewhere safe, it can't be reset yet." : "No password needed. We'll email you a 6-digit code to sign in every time." }}</span>
                         </div>
+
+                        @include('common.partials.turnstile-widget')
 
                         <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
                             Create Account <i class="fas fa-arrow-right text-[10px] ml-1"></i>
@@ -170,6 +175,7 @@
                                         <i class="fab fa-whatsapp mr-0.5"></i> We'll create your account and send a 6-digit code over WhatsApp. Supported country codes: {{ implode(', ', $allowedCountryCodes ?? []) }}.
                                     </p>
                                 </div>
+                                @include('common.partials.turnstile-widget')
                                 <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
                                     <i class="fab fa-whatsapp"></i> Sign up with WhatsApp
                                 </button>

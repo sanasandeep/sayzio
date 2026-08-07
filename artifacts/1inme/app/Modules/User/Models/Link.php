@@ -910,7 +910,7 @@ protected $fillable = [
      * ------------------------------------------------------------------ */
 
     /** Link types that embed as a compact action card (not a full-page iframe). */
-    public const EMBED_CARD_TYPES = ['url', 'file', 'pdf', 'ics', 'vcf'];
+    public const EMBED_CARD_TYPES = ['url', 'file', 'pdf', 'ics', 'vcf', 'text'];
 
     /** Whether this link embeds as a compact card (vs a full-page iframe). */
     public function isEmbedCard(): bool
@@ -937,6 +937,7 @@ protected $fillable = [
             'ics'         => ['label' => 'Add to calendar', 'icon' => 'calendar'],
             'vcf'         => ['label' => 'Save contact',    'icon' => 'contact'],
             'url'         => ['label' => 'Open',            'icon' => 'open'],
+            'text'        => ['label' => 'View text',       'icon' => 'text'],
             default       => ['label' => 'View',            'icon' => 'open'],
         };
     }
@@ -964,12 +965,52 @@ protected $fillable = [
              . '<div data-1inme-embed="' . $this->alias . '"></div>';
     }
 
+    /**
+     * Subtitle line shown on the embed card for a public, accessible link.
+     * Single source of truth shared by PublicEmbedController (which renders
+     * the card) and {@see embedCardIframeHeight()} (which sizes the static
+     * iframe snippet) so the two can't drift.
+     */
+    public function embedCardSubtitle(): ?string
+    {
+        if ($this->seo_description) {
+            return Str::limit($this->seo_description, 120);
+        }
+
+        if ($this->type === 'url' && $this->long_url) {
+            $host = parse_url($this->long_url, PHP_URL_HOST);
+            return $host ?: null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Height (px) for the static no-JS card iframe, sized to the variant the
+     * card will actually render. Measured in Chromium at the card's 420px
+     * max width: title + badge + action button ≈ 127px, a subtitle row adds
+     * ≈ 17px, plus the card's 8px vertical margins; both text rows are
+     * nowrap/ellipsis so height is content-length independent. A ~12px
+     * buffer absorbs host-page font-metric differences. The gated /
+     * unavailable fallback states are deliberately kept WITHIN these
+     * heights (task #6714): they render no footnote row and no badge row,
+     * so a link that later becomes private/unavailable still fits the
+     * height copied here. (The `<script>` snippet additionally auto-resizes
+     * via the card's `1inme-embed-resize` postMessage and stays the
+     * recommended embed.)
+     */
+    public function embedCardIframeHeight(): int
+    {
+        return $this->embedCardSubtitle() !== null ? 164 : 148;
+    }
+
     /** Static `<iframe>` embed snippet (no JavaScript required). */
     public function embedIframeSnippet(): string
     {
         $src = $this->embedBaseUrl() . '/embed/link/' . $this->alias . '/iframe';
         if ($this->isEmbedCard()) {
-            return '<iframe src="' . $src . '" style="width:100%;max-width:420px;height:188px;border:0;" loading="lazy"></iframe>';
+            $height = $this->embedCardIframeHeight();
+            return '<iframe src="' . $src . '" style="width:100%;max-width:420px;height:' . $height . 'px;border:0;" loading="lazy"></iframe>';
         }
         return '<iframe src="' . $src . '" style="width:100%;height:80vh;min-height:560px;border:0;" loading="lazy"></iframe>';
     }

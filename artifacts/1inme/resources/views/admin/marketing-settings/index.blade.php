@@ -48,6 +48,47 @@
         @csrf
         @method('PUT')
 
+        {{-- Homepage design --}}
+        <div class="glass rounded-2xl p-6 space-y-4">
+            <div>
+                <h2 class="ak-strong text-lg font-semibold text-white">Homepage design</h2>
+                <p class="ak-muted text-xs text-white/50">Which landing-page design visitors see on <span class="font-mono">/</span>. Takes effect for everyone within a few minutes (settings cache). SEO, tracking and dark/light mode work identically on both.</p>
+            </div>
+            @php $__homeDesign = old('home_design', $home_design); @endphp
+            <div class="grid sm:grid-cols-2 gap-4">
+                <label class="cursor-pointer select-none rounded-xl border p-4 flex gap-3 items-start transition-colors {{ $__homeDesign === 'classic' ? 'border-blue-500/60 bg-blue-500/10' : 'border-white/10 bg-white/5 hover:bg-white/10' }}">
+                    <input type="radio" name="home_design" value="classic" @checked($__homeDesign !== 'compact')
+                           class="mt-1 w-4 h-4 border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">
+                    <span>
+                        <span class="ak-strong block text-sm font-semibold text-white mb-0.5"><i class="fas fa-panorama mr-1.5 text-blue-300 ak-blue"></i>Classic</span>
+                        <span class="ak-muted block text-xs text-white/50">The original full-story landing page: animated hero, showcase, AI demos, audience sections and rich motion.</span>
+                    </span>
+                </label>
+                <label class="cursor-pointer select-none rounded-xl border p-4 flex gap-3 items-start transition-colors {{ $__homeDesign === 'compact' ? 'border-blue-500/60 bg-blue-500/10' : 'border-white/10 bg-white/5 hover:bg-white/10' }}">
+                    <input type="radio" name="home_design" value="compact" @checked($__homeDesign === 'compact')
+                           class="mt-1 w-4 h-4 border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">
+                    <span>
+                        <span class="ak-strong block text-sm font-semibold text-white mb-0.5"><i class="fas fa-table-list mr-1.5 text-blue-300 ak-blue"></i>Compact (Variant B)</span>
+                        <span class="ak-muted block text-xs text-white/50">A lighter, denser take on the same content: compact hero, feature grid, how-it-works, pricing teaser and one closing CTA, with minimal motion.</span>
+                    </span>
+                </label>
+            </div>
+            @error('home_design')<p class="ak-red text-xs text-red-400">{{ $message }}</p>@enderror
+        </div>
+
+        {{-- Events module (platform-wide) --}}
+        <div class="glass rounded-2xl p-6 space-y-4">
+            <div>
+                <h2 class="ak-strong text-lg font-semibold text-white">Events module</h2>
+                <p class="ak-muted text-xs text-white/50">Platform-wide switch for the entire Events module. When off: the public /events directory, event pages, RSVP/ticket/connect-QR flows, creator @handle/events pages and the mobile event APIs all return "not found", Events links disappear from user navigation and marketing pages, and users cannot create new events. No event data is ever deleted — turning it back on restores everything.</p>
+            </div>
+            <label class="flex items-center gap-3 cursor-pointer select-none">
+                <input type="checkbox" name="events_module_enabled" value="1" @checked(old('events_module_enabled', $events_module_enabled))
+                       class="w-4 h-4 rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">
+                <span class="ak-strong text-sm text-white">Enable the Events module</span>
+            </label>
+        </div>
+
         {{-- Events promo band --}}
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>

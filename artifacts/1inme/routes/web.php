@@ -108,7 +108,7 @@ Route::get('/.well-known/assetlinks.json',
 Route::get('/creators', [\App\Modules\Common\Controllers\CreatorsController::class, 'index'])->middleware('brand.primary')->name('creators.index');
 
 // ---- Public Events directory (Task #3589) ----
-Route::get('/events', [\App\Modules\Common\Controllers\EventsDirectoryController::class, 'index'])->name('events.index');
+Route::get('/events', [\App\Modules\Common\Controllers\EventsDirectoryController::class, 'index'])->middleware('events.enabled')->name('events.index');
 
 // ── Visitor 18+ age gate (Task #1208) ─────────────────────────────
 // Posted from the interstitial shown on /@handle when the creator
@@ -621,6 +621,7 @@ Route::get('/@{handle}/og.png', [\App\Modules\Common\Controllers\CreatorOgImageC
 // `/{alias}` catch-all below.
 Route::get('/@{handle}/events', [\App\Modules\Common\Controllers\CreatorProfilePublicController::class, 'events'])
     ->where('handle', '[A-Za-z0-9_]+')
+    ->middleware('events.enabled')
     ->name('creator-profile.events');
 
 // Public testimonial submission form. Two-segment path under /testimonials
@@ -828,26 +829,26 @@ Route::get('/{alias}/download', [RedirectController::class, 'rawFileDownload'])-
 // single-segment /{alias} catch-all; same access gates as the page itself.
 Route::get('/{alias}/download.txt', [RedirectController::class, 'textDownload'])->name('redirect.text.download')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$');
 Route::get('/{alias}/raw', [RedirectController::class, 'textRaw'])->name('redirect.text.raw')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$');
-Route::get('/{alias}/rsvp',  [RedirectController::class, 'rsvpForm'])->name('redirect.rsvp.form')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
-Route::post('/{alias}/rsvp', [RedirectController::class, 'rsvpSubmit'])->name('redirect.rsvp.submit')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:10,1');
+Route::get('/{alias}/rsvp',  [RedirectController::class, 'rsvpForm'])->name('redirect.rsvp.form')->middleware('events.enabled')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
+Route::post('/{alias}/rsvp', [RedirectController::class, 'rsvpSubmit'])->name('redirect.rsvp.submit')->middleware('events.enabled')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:10,1');
 // Event Connect QR (Task #6685): the one-flow "RSVP & Connect" endpoints
 // used by the `?src=connect_qr` prompt on the public event page. Multi-
 // segment paths keep them clear of the single-segment /{alias} catch-all.
-Route::post('/{alias}/connect-qr/send',    [\App\Modules\Common\Controllers\EventConnectQrController::class, 'send'])->name('events.connect-qr.send')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:5,1');
-Route::post('/{alias}/connect-qr/verify',  [\App\Modules\Common\Controllers\EventConnectQrController::class, 'verify'])->name('events.connect-qr.verify')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:10,1');
-Route::post('/{alias}/connect-qr/confirm', [\App\Modules\Common\Controllers\EventConnectQrController::class, 'confirm'])->name('events.connect-qr.confirm')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');
-Route::post('/{alias}/interest', [\App\Modules\Common\Controllers\EventInterestController::class, 'toggle'])->name('events.interest.toggle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:30,1');
+Route::post('/{alias}/connect-qr/send',    [\App\Modules\Common\Controllers\EventConnectQrController::class, 'send'])->name('events.connect-qr.send')->middleware('events.enabled')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:5,1');
+Route::post('/{alias}/connect-qr/verify',  [\App\Modules\Common\Controllers\EventConnectQrController::class, 'verify'])->name('events.connect-qr.verify')->middleware('events.enabled')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:10,1');
+Route::post('/{alias}/connect-qr/confirm', [\App\Modules\Common\Controllers\EventConnectQrController::class, 'confirm'])->name('events.connect-qr.confirm')->middleware('events.enabled')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');
+Route::post('/{alias}/interest', [\App\Modules\Common\Controllers\EventInterestController::class, 'toggle'])->name('events.interest.toggle')->middleware('events.enabled')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:30,1');
 // Task #3769: lazily-fetched "similar events" / "more from this host"
 // recommendation fragment for the RSVP + ticketed event pages — kept off
 // the main page render path so its slow queries can never blank the page.
-Route::get('/{alias}/event-extras', [RedirectController::class, 'eventPageExtrasFragment'])->name('events.extras.fragment')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:30,1');
-Route::get ('/{alias}/rsvp/manage/{token}',  [\App\Modules\Common\Controllers\RsvpManageController::class, 'show'])->name('redirect.rsvp.manage')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
-Route::post('/{alias}/rsvp/manage/{token}',  [\App\Modules\Common\Controllers\RsvpManageController::class, 'update'])->name('redirect.rsvp.manage.update')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');
-Route::post('/{alias}/rsvp/manage/{token}/cancel', [\App\Modules\Common\Controllers\RsvpManageController::class, 'cancel'])->name('redirect.rsvp.manage.cancel')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');
+Route::get('/{alias}/event-extras', [RedirectController::class, 'eventPageExtrasFragment'])->name('events.extras.fragment')->middleware('events.enabled')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:30,1');
+Route::get ('/{alias}/rsvp/manage/{token}',  [\App\Modules\Common\Controllers\RsvpManageController::class, 'show'])->name('redirect.rsvp.manage')->middleware('events.enabled')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
+Route::post('/{alias}/rsvp/manage/{token}',  [\App\Modules\Common\Controllers\RsvpManageController::class, 'update'])->name('redirect.rsvp.manage.update')->middleware('events.enabled')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');
+Route::post('/{alias}/rsvp/manage/{token}/cancel', [\App\Modules\Common\Controllers\RsvpManageController::class, 'cancel'])->name('redirect.rsvp.manage.cancel')->middleware('events.enabled')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');
 
 // ---- Event ticketing (Task #3589): buy + view QR ticket. Multi-segment
 // paths so they never collide with the single-segment /{alias} catch-all. ----
 Route::post('/{alias}/tickets/buy', [\App\Modules\Common\Controllers\EventTicketPublicController::class, 'buy'])
-    ->name('redirect.event.buy')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');
+    ->name('redirect.event.buy')->middleware('events.enabled')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');
 Route::get('/{alias}/tickets/{code}', [\App\Modules\Common\Controllers\EventTicketPublicController::class, 'viewTicket'])
-    ->name('redirect.event.ticket')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->where('code', '[A-Za-z0-9\-]+');
+    ->name('redirect.event.ticket')->middleware('events.enabled')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->where('code', '[A-Za-z0-9\-]+');

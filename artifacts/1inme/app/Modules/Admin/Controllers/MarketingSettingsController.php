@@ -32,9 +32,11 @@ class MarketingSettingsController extends Controller
         ];
 
         return view('admin.marketing-settings.index', [
+            'home_design'              => \App\Modules\Common\Controllers\HomeController::activeDesign(),
             'browser_release_version'  => (string) ($release['version'] ?? ''),
             'browser_fallbacks'        => $browserFallbacks,
             'events_band_enabled'      => (bool) AppSetting::get('marketing_events_band_enabled', true),
+            'events_module_enabled'    => \App\Modules\Common\Support\EventsModule::enabled(),
             'ga4_id'                   => (string) AppSetting::get('marketing_ga4_id', ''),
             'meta_pixel_id'            => (string) AppSetting::get('marketing_meta_pixel_id', ''),
             'default_share_image'      => (string) AppSetting::get('marketing_default_share_image', ''),
@@ -70,6 +72,10 @@ class MarketingSettingsController extends Controller
     public function update(Request $request)
     {
         $data = $request->validate([
+            // Which homepage design visitors see on `/` — the original
+            // full-size page ('classic') or the compact Variant B. Applies
+            // within the AppSetting cache window (~5 min).
+            'home_design'                     => ['required', 'in:classic,compact'],
             'ga4_id'                          => ['nullable', 'string', 'max:60', 'regex:/^[A-Za-z0-9\-_]*$/'],
             'meta_pixel_id'                   => ['nullable', 'string', 'max:60', 'regex:/^[0-9]*$/'],
             'default_share_image'             => ['nullable', 'string', 'max:1000', 'regex:#^https?://#i'],
@@ -123,7 +129,15 @@ class MarketingSettingsController extends Controller
         // Checkbox: absent from the payload when unchecked, so read it off the
         // raw request rather than the validated set.
         AppSetting::put('marketing_events_band_enabled', $request->boolean('events_band_enabled'));
+        // Task #6726 — platform-wide Events module switch. Checkbox, so the
+        // same absent-when-unchecked handling applies. Default ON.
+        AppSetting::put(\App\Modules\Common\Support\EventsModule::KEY, $request->boolean('events_module_enabled'));
         \Illuminate\Support\Facades\Cache::forget(\App\Modules\Common\Services\EventsHeroBandComposer::CACHE_KEY);
+
+        AppSetting::put(
+            \App\Modules\Common\Controllers\HomeController::DESIGN_SETTING_KEY,
+            $data['home_design'] === 'compact' ? 'compact' : 'classic'
+        );
 
         AppSetting::put('marketing_ga4_id', trim((string) ($data['ga4_id'] ?? '')));
         AppSetting::put('marketing_meta_pixel_id', trim((string) ($data['meta_pixel_id'] ?? '')));

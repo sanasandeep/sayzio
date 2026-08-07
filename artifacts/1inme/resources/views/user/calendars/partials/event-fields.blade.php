@@ -47,7 +47,21 @@
 {{-- Location + map pin picker (host form provides x-data="mapPinPicker(...)") --}}
 <div>
     <label class="{{ $labelClass }}">Location <span class="text-white/30">(optional)</span></label>
-    <input type="text" name="location" x-model="address" placeholder="123 Main St, City" class="{{ $inputClass }}">
+    <div class="relative" @click.outside="dismissSuggestions()">
+        <input type="text" name="location" x-model="address"
+               @input="suggestPlaces()"
+               @paste="handleLocationPaste($event)"
+               @keydown.escape="dismissSuggestions()"
+               autocomplete="off"
+               placeholder="Search a place or address, or paste a map link" class="{{ $inputClass }}">
+        <div x-show="suggestions.length" x-cloak class="mpp-suggest">
+            <template x-for="s in suggestions" :key="s.id">
+                <button type="button" class="mpp-suggest-item" @click="chooseSuggestion(s)">
+                    <i class="fas fa-location-dot"></i><span x-text="s.label"></span>
+                </button>
+            </template>
+        </div>
+    </div>
 </div>
 <div>
     <div class="flex items-center justify-between mb-1">

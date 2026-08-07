@@ -13,6 +13,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {{-- Page scripts that must be evaluated BEFORE Alpine starts (e.g. the
+         shared map-pin-picker's window.mapPinPicker x-data factory). Alpine's
+         deferred vendor bundle below starts synchronously at evaluation, so a
+         @vite module emitted in the body runs too late — push it here instead
+         (see the map-pin-picker consumers). --}}
+    @stack('head-scripts')
     <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
     <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
     @include('common.partials.theme-styles')
@@ -114,13 +120,15 @@
             }
         }
         html.light-mode .dash-glass {
-            background: rgba(255, 255, 255, 0.15) !important;
+            /* Near-opaque: translucent glass let dark page content bleed
+               through as a dark-blue tint that washed out sidebar text. */
+            background: rgba(255, 255, 255, 0.92) !important;
             border-color: transparent !important;
             box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 12px 32px rgba(0, 0, 0, 0.08) !important;
         }
         @supports (backdrop-filter: blur(8px)) {
             html.light-mode .dash-glass {
-                background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%) !important;
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.88) 100%) !important;
                 backdrop-filter: blur(6px) saturate(180%) brightness(1.05) !important;
                 -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.05) !important;
             }
@@ -1003,6 +1011,13 @@
                             <span class="sidebar-tooltip">AI Marketing Strategist</span>
                         </a>
                         @endif
+                        <a href="{{ route('user.marketing-plan.index') }}"
+                           class="sidebar-link {{ nav_route_is('user.marketing-plan.*') ? 'active' : '' }}"
+                           style="--nav-tint:#60a5fa; --nav-tint-soft:rgba(96,165,250,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-calculator"></i></div>
+                            <span class="nav-label">Marketing Plan Calculator</span>
+                            <span class="sidebar-tooltip">Marketing Plan Calculator</span>
+                        </a>
                         @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && (\App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_billing') || \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_contacts') || \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_general')))
                         <a href="{{ route('user.ai.staff.index') }}"
                            class="sidebar-link {{ nav_route_is('user.ai.staff.*') ? 'active' : '' }}"
@@ -1051,6 +1066,7 @@
                         </a>
                         @endif
                         @if($__can['settings_view'])
+                        @if(\App\Modules\Common\Support\EventsModule::enabled())
                         <a href="{{ route('user.events.index') }}"
                            class="sidebar-link {{ nav_route_is('user.events.*') ? 'active' : '' }}"
                            style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
@@ -1058,6 +1074,7 @@
                             <span class="nav-label">Events</span>
                             <span class="sidebar-tooltip">Events calendar</span>
                         </a>
+                        @endif
                         <a href="{{ route('user.calendar.index') }}"
                            class="sidebar-link {{ nav_route_is('user.calendar.*') ? 'active' : '' }}"
                            style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
@@ -1708,6 +1725,7 @@
                                 @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'marketing_strategist'))
                                 <a href="{{ route('user.ai.marketing-strategist.index') }}" class="sidebar-link {{ nav_route_is('user.ai.marketing-strategist.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>AI Marketing Strategist</span></a>
                                 @endif
+                                <a href="{{ route('user.marketing-plan.index') }}" class="sidebar-link {{ nav_route_is('user.marketing-plan.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calculator"></i></div> <span>Marketing Plan Calculator</span></a>
                                 @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && (\App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_billing') || \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_contacts') || \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_general')))
                                 <a href="{{ route('user.ai.staff.index') }}" class="sidebar-link {{ nav_route_is('user.ai.staff.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-people-group"></i></div> <span>AI Staff</span></a>
                                 @endif
@@ -1732,7 +1750,9 @@
                                 <a href="{{ route('user.vault.index') }}" class="sidebar-link {{ nav_route_is('user.vault.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-vault"></i></div> <span>Vault</span></a>
                                 @endif
                                 @if($__can['settings_view'])
+                                @if(\App\Modules\Common\Support\EventsModule::enabled())
                                 <a href="{{ route('user.events.index') }}" class="sidebar-link {{ nav_route_is('user.events.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-day"></i></div> <span>Events</span></a>
+                                @endif
                                 <a href="{{ route('user.calendar.index') }}" class="sidebar-link {{ nav_route_is('user.calendar.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-alt"></i></div> <span>Calendar Sync</span></a>
                                 @endif
                             </div>

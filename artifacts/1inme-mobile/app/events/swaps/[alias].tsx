@@ -19,6 +19,7 @@ import {
   cancelContactExchange,
   listMyEventSwaps,
 } from "@/lib/api/events";
+import { EventsModuleGate } from "@/components/EventsModuleGate";
 
 /**
  * Task #5052 — "My swaps" screen: the viewer's own pending/accepted
@@ -26,7 +27,7 @@ import {
  * be withdrawn; accepted swaps show when they were accepted. Mirrors the
  * web event page's "My swaps" panel.
  */
-export default function MyEventSwapsScreen() {
+function MyEventSwapsScreenInner() {
   const { alias, title } = useLocalSearchParams<{
     alias: string;
     title?: string;
@@ -343,3 +344,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
+// Task #6729 — platform-wide Events module gate: shows a graceful
+// "not available" state (instead of API 404 errors) when events are off.
+export default function MyEventSwapsScreen() {
+  return (
+    <EventsModuleGate>
+      <MyEventSwapsScreenInner />
+    </EventsModuleGate>
+  );
+}

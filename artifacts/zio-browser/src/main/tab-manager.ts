@@ -161,6 +161,8 @@ export interface TabManagerOptions {
 
 export class TabManager {
   private tabs: Map<TabId, ManagedTab> = new Map();
+  /** True while destroyAll() runs — disables the last-tab replacement guard. */
+  private destroyingAll = false;
   private activeTabId: TabId | null = null;
   private tabOrder: TabId[] = [];
   private pinnedTabs = new Set<TabId>();
@@ -922,6 +924,15 @@ export class TabManager {
   closeTab(id: TabId): void {
     const tab = this.tabs.get(id);
     if (!tab) return;
+
+    // Last-tab guard: a window must never end up tab-less. When the tab
+    // being closed is the only one, create a fresh New Tab FIRST (mirroring
+    // the "create new before destroying old" lifecycle rule) so the window
+    // always has usable content. Skipped during window teardown (destroyAll),
+    // where spawning replacement tabs would leak views.
+    if (!this.destroyingAll && this.tabOrder.length === 1 && this.tabOrder[0] === id) {
+      this.createTab();
+    }
 
     // Save to recently-closed stack (skip empty/new-tab pages).
     // A renderer-drawn internal page is what the user actually sees, so it
@@ -2321,6 +2332,9 @@ ${extracted.content}
   }
 
   destroyAll(): void {
+    // Window teardown: disable the last-tab guard so closing the final tab
+    // doesn't spawn a replacement into a dying window.
+    this.destroyingAll = true;
     for (const [id] of this.tabs) {
       this.closeTab(id);
     }

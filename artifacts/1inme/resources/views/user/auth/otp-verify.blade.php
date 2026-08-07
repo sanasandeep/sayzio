@@ -85,6 +85,10 @@
                 <form method="POST" action="{{ route('user.otp.resend') }}" class="mt-4 text-center lg:text-left" data-ajax>
                     @csrf
                     <div class="mb-2 p-2 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" data-general-err hidden></div>
+                    @if($errors->has('turnstile'))
+                        <div class="mb-2 p-2 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);">{{ $errors->first('turnstile') }}</div>
+                    @endif
+                    @include('common.partials.turnstile-widget')
                     <button type="submit" class="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors">
                         <i class="fas fa-rotate-right text-[10px] mr-1"></i> Resend code
                     </button>

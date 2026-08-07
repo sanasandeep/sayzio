@@ -30,6 +30,9 @@
             ->get();
     }
     $__canMove = $__moveTargets->isNotEmpty();
+    // Bulk delete: gated on the same links.delete workspace permission as
+    // single delete; per-link ownership is re-checked server-side.
+    $__canBulkDelete = $__ws && auth()->check() && auth()->user()->canInWorkspace($__ws, 'links.delete');
     // Admin-granted cross-account transfer: capability + link ownership are
     // re-checked server-side; this only controls action visibility.
     $__canTransfer = auth()->check() && auth()->user()->canTransferAssets();
@@ -228,30 +231,47 @@
     </div>
 </div>
 
-@if($__canMove)
+@if($__canMove || $__canBulkDelete)
 <div x-show="selected.length > 0" x-cloak
      class="card-premium p-3 mb-3 flex flex-wrap items-center gap-3">
     <span class="text-sm font-semibold" style="color: var(--text-primary);">
         <span x-text="selected.length"></span> selected
     </span>
-    <form method="POST" action="{{ route('user.links.move-bulk') }}" class="flex items-center gap-2 ml-auto">
-        @csrf
-        <template x-for="id in selected" :key="id">
-            <input type="hidden" name="link_ids[]" :value="id">
-        </template>
-        <select name="workspace_id" required class="theme-input text-xs py-1.5">
-            <option value="" class="bg-[#0a0612]">Move to workspace…</option>
-            @foreach($__moveTargets as $t)
-                <option value="{{ $t->id }}" class="bg-[#0a0612]">
-                    {{ $t->name }} ({{ $t->is_personal ? 'Personal' : 'Team' }})
-                </option>
-            @endforeach
-        </select>
-        <button type="submit" class="btn-primary text-xs py-1.5">
-            <i class="fas fa-arrow-right text-[10px]"></i> Move
-        </button>
+    <div class="flex flex-wrap items-center gap-2 ml-auto">
+        @if($__canMove)
+        <form method="POST" action="{{ route('user.links.move-bulk') }}" class="flex items-center gap-2">
+            @csrf
+            <template x-for="id in selected" :key="id">
+                <input type="hidden" name="link_ids[]" :value="id">
+            </template>
+            <select name="workspace_id" required class="theme-input text-xs py-1.5">
+                <option value="" class="bg-[#0a0612]">Move to workspace…</option>
+                @foreach($__moveTargets as $t)
+                    <option value="{{ $t->id }}" class="bg-[#0a0612]">
+                        {{ $t->name }} ({{ $t->is_personal ? 'Personal' : 'Team' }})
+                    </option>
+                @endforeach
+            </select>
+            <button type="submit" class="btn-primary text-xs py-1.5">
+                <i class="fas fa-arrow-right text-[10px]"></i> Move
+            </button>
+        </form>
+        @endif
+        @if($__canBulkDelete)
+        <form method="POST" action="{{ route('user.links.delete-bulk') }}" class="flex items-center"
+              onsubmit="var n = this.querySelectorAll('input[name^=link_ids]').length; return window.themedConfirmSubmit(this, {title: 'Delete ' + n + ' link' + (n === 1 ? '' : 's') + '?', message: 'This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
+            @csrf
+            <template x-for="id in selected" :key="id">
+                <input type="hidden" name="link_ids[]" :value="id">
+            </template>
+            <button type="submit" class="text-xs py-1.5 px-3 rounded-xl font-semibold transition-all border"
+                    style="background: rgba(239,68,68,0.10); border-color: rgba(239,68,68,0.25); color: #f87171;">
+                <i class="fas fa-trash text-[10px]"></i> Delete
+            </button>
+        </form>
+        @endif
         <button type="button" @click="selected = []" class="btn-ghost text-xs py-1.5">Clear</button>
-    </form>
+    </div>
 </div>
 @endif
 
@@ -328,8 +348,8 @@
     <div class="card-premium p-4 group" data-link-id="{{ $link->id }}">
         <div class="flex items-start justify-between">
             <div class="flex items-start gap-3.5 flex-1 min-w-0">
-                @if($__canMove)
-                <label class="flex-shrink-0 pt-1.5 cursor-pointer" title="Select to move">
+                @if($__canMove || $__canBulkDelete)
+                <label class="flex-shrink-0 pt-1.5 cursor-pointer" title="Select link">
                     <input type="checkbox" :value="{{ $link->id }}" x-model.number="selected"
                            class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">
                 </label>

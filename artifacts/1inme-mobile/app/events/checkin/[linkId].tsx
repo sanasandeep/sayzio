@@ -19,8 +19,9 @@ import {
   type CheckinResult,
   getCheckinProgress,
 } from "@/lib/api/events";
+import { EventsModuleGate } from "@/components/EventsModuleGate";
 
-export default function CheckinScannerScreen() {
+function CheckinScannerScreenInner() {
   const { linkId } = useLocalSearchParams<{ linkId: string }>();
   const colors = useColors();
   const id = Number(linkId);
@@ -215,3 +216,13 @@ const styles = StyleSheet.create({
   },
   manualInput: { flex: 1, fontSize: 15, height: 40 },
 });
+
+// Task #6729 — platform-wide Events module gate: shows a graceful
+// "not available" state (instead of API 404 errors) when events are off.
+export default function CheckinScannerScreen() {
+  return (
+    <EventsModuleGate>
+      <CheckinScannerScreenInner />
+    </EventsModuleGate>
+  );
+}

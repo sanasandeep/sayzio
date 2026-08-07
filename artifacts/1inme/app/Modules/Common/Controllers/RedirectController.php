@@ -1191,6 +1191,19 @@ class RedirectController extends Controller
      */
     protected function handleEventTicketingPage(Request $request, Link $link)
     {
+        // Task #6726 — platform-wide Events module switch. Event pages are
+        // selected inside the /{alias} catch-all (no dedicated route to
+        // gate), so the check lives here. 404 mirrors the routed surfaces.
+        if (!\App\Modules\Common\Support\EventsModule::enabled()) {
+            // Browser visitors get the branded "Events are unavailable"
+            // page (still 404 for SEO); JSON callers keep the plain 404.
+            if ($request->expectsJson()) {
+                abort(404, 'Events are not available.');
+            }
+
+            return response()->view('errors.events-unavailable', [], 404);
+        }
+
         if ($request->boolean('ics')) {
             return $this->handleIcsDownload($link);
         }
