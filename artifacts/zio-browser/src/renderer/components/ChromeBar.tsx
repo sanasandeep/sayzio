@@ -504,6 +504,19 @@ export function ChromeBar({
   const omniboxRef = useRef<HTMLInputElement>(null);
   const stripMenuBtnRef = useRef<HTMLButtonElement>(null);
 
+  // ── Responsive toolbar breakpoints ───────────────────────────────────────
+  // compact (<1000px): button labels drop to icons, Home hides.
+  // narrow  (<860px): low-priority buttons (clipboard, site settings,
+  // bookmark, pinned tools, VK) fold into the "⋯" overflow menu.
+  const [winWidth, setWinWidth] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const onResize = () => setWinWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  const compactBar = winWidth < 1000;
+  const narrowBar = winWidth < 860;
+
   // ── Pinned toolbar tools (promoted from the "⋯" overflow menu) ──────────
   // Shared hook keeps this surface in sync with the Settings panel via the
   // zio:pinned-tools-changed window event and enforces the pin cap.
@@ -1031,6 +1044,16 @@ export function ChromeBar({
   const pinnedTabIds = tabOrder.filter(id => tabs[id]?.pinned);
   const normalTabIds = tabOrder.filter(id => !tabs[id]?.pinned);
 
+  // Origin of the active page (http/https only) — drives the per-site
+  // settings button/popover, computed once so the popover can outlive the
+  // button when the button folds into the overflow menu at narrow widths.
+  const siteOrigin = (() => {
+    try {
+      const u = new URL(activeTab?.url ?? '');
+      return u.origin.startsWith('http') ? u.origin : null;
+    } catch { return null; }
+  })();
+
   const ctxTab = contextMenu ? tabs[contextMenu.tabId] : null;
   const ctxTabIndex = contextMenu ? tabOrder.indexOf(contextMenu.tabId) : -1;
 
@@ -1324,11 +1347,13 @@ export function ChromeBar({
           style={{ fontSize: 14, padding: '2px 6px' }}
           title={activeTabState?.isLoading ? 'Stop' : 'Reload'}
         >{activeTabState?.isLoading ? '✕' : '↻'}</button>
-        <button
-          onClick={() => activeTabId && void navigate(activeTabId, BASE_URL)}
-          style={{ fontSize: 14, padding: '2px 6px' }}
-          title="Home"
-        >⌂</button>
+        {!compactBar && (
+          <button
+            onClick={() => activeTabId && void navigate(activeTabId, BASE_URL)}
+            style={{ fontSize: 14, padding: '2px 6px' }}
+            title="Home"
+          >⌂</button>
+        )}
 
         {/* "On Sayzio" chip — shown when the current site is a verified Sayzio custom domain */}
         {siteResolve?.on_sayzio && (
@@ -1360,7 +1385,7 @@ export function ChromeBar({
             ? (activeTab.focusedPane ?? 'primary')
             : null;
           return (
-        <form onSubmit={handleOmniboxSubmit} style={{ flex: 1, position: 'relative' }}>
+        <form onSubmit={handleOmniboxSubmit} style={{ flex: 1, position: 'relative', minWidth: 110 }}>
           <input
             ref={omniboxRef}
             value={omniboxFocused || omniboxEdited ? omniboxValue : (activeTab?.url ?? '')}
@@ -1571,10 +1596,10 @@ export function ChromeBar({
             transition: 'all 0.12s',
             cursor: 'pointer',
           }}
-        >+ Create</button>
+        >{compactBar ? '+' : '+ Create'}</button>
 
         {/* Clipboard tool — read clipboard, detect content, shorten links */}
-        {!isPrivate && (
+        {!isPrivate && !narrowBar && (
           <button
             onClick={() => {
               setShortenOpen(false);
@@ -1640,45 +1665,35 @@ export function ChromeBar({
         )}
 
         {/* "Settings for this website" popover button (per-site settings). */}
-        {!isPrivate && (() => {
-          let siteOrigin: string | null = null;
-          try {
-            const u = new URL(activeTab?.url ?? '');
-            if (u.origin.startsWith('http')) siteOrigin = u.origin;
-          } catch { /* not a web page */ }
-          if (!siteOrigin) return null;
-          return (
-            <>
-              <button
-                onClick={() => setSitePopoverOpen(o => !o)}
-                title="Settings for this website"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 28,
-                  height: 28,
-                  borderRadius: 8,
-                  background: sitePopoverOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
-                  color: sitePopoverOpen ? '#fff' : 'var(--color-text-muted)',
-                  border: '1px solid var(--color-border)',
-                  fontSize: 14,
-                  flexShrink: 0,
-                  cursor: 'pointer',
-                  transition: 'all 0.12s',
-                }}
-              >
-                ⚙️
-              </button>
-              {sitePopoverOpen && (
-                <SiteSettingsPopover
-                  origin={siteOrigin}
-                  onClose={() => setSitePopoverOpen(false)}
-                />
-              )}
-            </>
-          );
-        })()}
+        {!isPrivate && !narrowBar && siteOrigin && (
+          <button
+            onClick={() => setSitePopoverOpen(o => !o)}
+            title="Settings for this website"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              background: sitePopoverOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+              color: sitePopoverOpen ? '#fff' : 'var(--color-text-muted)',
+              border: '1px solid var(--color-border)',
+              fontSize: 14,
+              flexShrink: 0,
+              cursor: 'pointer',
+              transition: 'all 0.12s',
+            }}
+          >
+            ⚙️
+          </button>
+        )}
+        {!isPrivate && sitePopoverOpen && siteOrigin && (
+          <SiteSettingsPopover
+            origin={siteOrigin}
+            onClose={() => setSitePopoverOpen(false)}
+          />
+        )}
 
         {/* Shield button — ad-block quick controls popover, with tracker badge */}
         <button
@@ -1737,7 +1752,7 @@ export function ChromeBar({
         )}
 
         {/* Bookmark button (hidden in private windows — bookmarks are not saved there) */}
-        {!isPrivate && (
+        {!isPrivate && !narrowBar && (
         <button
           onClick={() => void handleToggleBookmark()}
           title={isBookmarked ? 'Remove bookmark' : 'Bookmark this page'}
@@ -1774,7 +1789,7 @@ export function ChromeBar({
               transition: 'all 0.12s',
             }}
             title="Open Zio AI Panel"
-          ><img src={zioMascot} alt="" aria-hidden="true" style={{ width: 16, height: 16, objectFit: 'contain', verticalAlign: 'text-bottom', marginRight: 4 }} />Zio</button>
+          ><img src={zioMascot} alt="" aria-hidden="true" style={{ width: 16, height: 16, objectFit: 'contain', verticalAlign: 'text-bottom', marginRight: compactBar ? 0 : 4 }} />{compactBar ? '' : 'Zio'}</button>
         ) : (
           <div
             title="Zio AI is not available in private windows"
@@ -1807,8 +1822,9 @@ export function ChromeBar({
           onOpenAuth={onOpenAuth}
         />
 
-        {/* Pinned tools — overflow items the user promoted onto the toolbar */}
-        {pinnedTools.map((tool) => {
+        {/* Pinned tools — overflow items the user promoted onto the toolbar.
+            At narrow widths they fold back into the "⋯" overflow menu. */}
+        {!narrowBar && pinnedTools.map((tool) => {
           if (tool === 'reading_list') {
             return (
               <button
@@ -1890,7 +1906,7 @@ export function ChromeBar({
         })}
 
         {/* Virtual keyboard toggle */}
-        {vkEnabled && onToggleVk && (
+        {vkEnabled && onToggleVk && !narrowBar && (
           <button
             onClick={onToggleVk}
             title={vkOpen ? 'Hide virtual keyboard' : 'Show virtual keyboard'}
@@ -2064,6 +2080,30 @@ export function ChromeBar({
           anchorRef={overflowBtnRef}
           onClose={() => setOverflowOpen(false)}
           isPrivate={isPrivate}
+          extraItems={[
+            // Toolbar controls folded in at compact/narrow widths.
+            ...(compactBar ? [{
+              icon: '⌂', label: 'Home',
+              onClick: () => { if (activeTabId) void navigate(activeTabId, BASE_URL); },
+            }] : []),
+            ...(narrowBar && !isPrivate ? [{
+              icon: '📋', label: 'Clipboard — create a short URL',
+              onClick: () => { setShortenOpen(false); setCreateOpen(false); setClipboardOpen(true); },
+            }] : []),
+            ...(narrowBar && !isPrivate && canShorten ? [{
+              icon: isBookmarked ? '★' : '☆',
+              label: isBookmarked ? 'Remove bookmark' : 'Bookmark this page',
+              onClick: () => void handleToggleBookmark(),
+            }] : []),
+            ...(narrowBar && !isPrivate && siteOrigin ? [{
+              icon: '⚙️', label: 'Settings for this website',
+              onClick: () => setSitePopoverOpen(true),
+            }] : []),
+            ...(narrowBar && vkEnabled && onToggleVk ? [{
+              icon: '⌨️', label: vkOpen ? 'Hide virtual keyboard' : 'Show virtual keyboard',
+              onClick: onToggleVk,
+            }] : []),
+          ]}
           canScreenshot={!!(canShorten && !isPrivate && onScreenshot)}
           screenshotCapturing={screenshotCapturing}
           onScreenshot={onScreenshot}
@@ -2207,6 +2247,8 @@ interface OverflowMenuProps {
   anchorRef: React.RefObject<HTMLButtonElement | null>;
   onClose: () => void;
   isPrivate: boolean;
+  /** Toolbar controls folded into this menu at compact/narrow window widths. */
+  extraItems?: Array<{ icon: string; label: string; onClick: () => void }>;
   canScreenshot: boolean;
   screenshotCapturing: boolean;
   onScreenshot?: (fullPage: boolean) => void;
@@ -2229,7 +2271,7 @@ interface OverflowMenuProps {
 }
 
 function OverflowMenu({
-  anchorRef, onClose, isPrivate,
+  anchorRef, onClose, isPrivate, extraItems = [],
   canScreenshot, screenshotCapturing, onScreenshot,
   onOpenDeviceLab,
   dialerAvailable, dialerPanelOpen, onToggleDialer,
@@ -2302,6 +2344,19 @@ function OverflowMenu({
         overflow: 'hidden',
       }}
     >
+      {/* Controls folded in from the toolbar at narrow window widths */}
+      {extraItems.length > 0 && (
+        <>
+          {extraItems.map((item) => (
+            <button key={item.label} onClick={action(item.onClick)} style={menuItemStyle}>
+              <span>{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+          <div style={{ borderTop: '1px solid var(--color-border)', margin: '4px 0' }} />
+        </>
+      )}
+
       {/* Reading list */}
       <div style={menuRowStyle}>
         <button onClick={action(onReadingList)} style={{ ...menuItemStyle, flex: 1 }}>

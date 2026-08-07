@@ -85,8 +85,10 @@ function PrivateNewTabPage({ onNavigate }: Pick<Props, 'onNavigate'>) {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
-      padding: 40,
+      // 'safe center' keeps the top of the content reachable (scrollable)
+      // when the window is shorter than the content instead of cropping it.
+      justifyContent: 'safe center',
+      padding: 'clamp(16px, 5vw, 40px)',
       background: '#0d0d1a',
       overflowY: 'auto',
       color: '#e0d7ff',
@@ -203,8 +205,10 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
-      padding: 40,
+      // 'safe center' keeps the top of the content reachable (scrollable)
+      // when the window is shorter than the content instead of cropping it.
+      justifyContent: 'safe center',
+      padding: 'clamp(16px, 5vw, 40px)',
       background: 'var(--color-bg)',
       overflowY: 'auto',
       position: 'relative',
@@ -282,7 +286,7 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
           <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>
             Recent
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
             {recentHistory.map(entry => (
               <button
                 key={entry.id}
@@ -325,7 +329,7 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
         <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>
           Why Zio?
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
           {WHY_ZIO.map(f => (
             <div
               key={f.title}
