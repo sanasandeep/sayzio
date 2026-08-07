@@ -87,6 +87,10 @@ args = "e2e-marketing-plan-calculator"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "e2e-marketing-plan-export"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mpc-dirty-guard"
     
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
@@ -333,6 +337,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && VALIDATION_PORT=5084 bash tests/Browser/run-validation.sh marketing-plan-export.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mpc-dirty-guard"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5085 bash tests/Browser/run-validation.sh mpc-dirty-guard.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
