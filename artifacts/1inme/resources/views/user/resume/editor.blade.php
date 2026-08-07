@@ -504,7 +504,7 @@
                                    @change="publishing.is_public = $event.target.checked; savePublishing()">
                             <div class="w-11 h-6 bg-slate-600 rounded-full peer peer-checked:bg-emerald-500 relative transition-colors">
                                 <div class="absolute top-[2px] left-[2px] bg-white rounded-full h-5 w-5 transition-transform"
-                                     :class="publishing.is_public ? 'translate-x-5' : ''></div>
+                                     :class="publishing.is_public ? 'translate-x-5' : ''"></div>
                             </div>
                         </label>
                     </div>
