@@ -247,17 +247,19 @@ describe('ApiClient', () => {
     expect(result.by_day).toHaveLength(2);
   });
 
-  it('listAvailableDomains returns domain array', async () => {
-    const domains: ApiDomain[] = [
-      { id: 1, name: '1in.me', is_global: true, is_verified: true },
-      { id: 2, name: 'custom.com', is_global: false, is_verified: true },
+  it('listAvailableDomains returns items and normalizes host from domain', async () => {
+    const domains: Array<ApiDomain & { domain?: string }> = [
+      { id: 1, name: '1in.me', domain: '1in.me', is_global: true, is_verified: true },
+      { id: 2, name: 'custom.com', host: 'custom.com', is_global: false, is_verified: true },
     ];
-    global.fetch = mockFetch({ ok: true, status: 200, body: { data: domains } });
+    global.fetch = mockFetch({ ok: true, status: 200, body: { data: { items: domains } } });
 
     const result = await client.listAvailableDomains();
-    expect(result).toHaveLength(2);
-    expect(result[0]!.name).toBe('1in.me');
-    expect(result[0]!.is_global).toBe(true);
+    expect(result.items).toHaveLength(2);
+    expect(result.items[0]!.name).toBe('1in.me');
+    expect(result.items[0]!.host).toBe('1in.me'); // normalized from API's `domain` field
+    expect(result.items[1]!.host).toBe('custom.com');
+    expect(result.items[0]!.is_global).toBe(true);
   });
 
   it('createQrCode posts payload and returns QR object', async () => {
