@@ -245,6 +245,23 @@
             </div>
         </div>
 
+        {{-- Task #6768 — finance assumptions behind CAC / ROAS / LTV metrics. --}}
+        <div class="rounded-2xl mpc-card p-4">
+            <h3 class="text-sm font-bold mpc-title">Finance assumptions <span class="mpc-faint font-normal">(for CAC, ROAS &amp; LTV:CAC metrics)</span></h3>
+            <div class="grid sm:grid-cols-2 gap-3 mt-3">
+                <div>
+                    <label class="text-[11px] font-semibold mpc-sub">Gross margin (% of revenue kept as gross profit)</label>
+                    <input type="number" min="0" max="100" step="1" x-model.number="p.gross_margin" class="mpc-input mt-1">
+                </div>
+                <div>
+                    <label class="text-[11px] font-semibold mpc-sub">Customer lifetime / repeat-purchase multiplier (×)</label>
+                    <input type="number" min="0" step="0.1" x-model.number="p.ltv_multiplier" class="mpc-input mt-1">
+                </div>
+            </div>
+            <p class="text-[11px] mpc-faint mt-2">LTV = average customer value × lifetime multiplier × gross margin. These feed the LTV:CAC, break-even and payback metrics on the Dashboard tab.</p>
+            <p class="text-[11px] text-amber-400 mt-1" x-show="clampHints.finance" x-cloak x-text="clampHints.finance"></p>
+        </div>
+
         <div class="rounded-2xl mpc-card p-4 overflow-x-auto">
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <h3 class="text-sm font-bold mpc-title">Channel assumptions <span class="mpc-faint font-normal">(money in ₹ — base currency)</span></h3>
@@ -356,10 +373,26 @@
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Total annual budget</p><p class="mpc-kpi mt-1" x-text="money(p.annual_budget)"></p></div>
             <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Total projected revenue (year)</p><p class="mpc-kpi mt-1" x-text="money(model.totals.revenue)"></p></div>
-            <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Blended ROAS</p><p class="mpc-kpi mt-1" x-text="nf(model.totals.roas, 2) + '×'"></p></div>
+            <div class="rounded-2xl mpc-card p-4" title="Return on ad spend — projected revenue divided by total spend. Every ₹1 spent brings in this much revenue."><p class="text-xs mpc-sub">Blended ROAS <i class="fas fa-circle-info mpc-faint text-[10px]"></i></p><p class="mpc-kpi mt-1" x-text="nf(model.totals.roas, 2) + '×'"></p></div>
             <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Total customers acquired (year)</p><p class="mpc-kpi mt-1" x-text="nf(model.totals.customers, 0)"></p></div>
-            <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Blended CAC</p><p class="mpc-kpi mt-1" x-text="money(model.totals.cac)"></p></div>
+            <div class="rounded-2xl mpc-card p-4" title="Customer acquisition cost — total spend divided by customers acquired. What you pay, on average, to win one customer."><p class="text-xs mpc-sub">Blended CAC <i class="fas fa-circle-info mpc-faint text-[10px]"></i></p><p class="mpc-kpi mt-1" x-text="money(model.totals.cac)"></p></div>
             <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Blended ROI</p><p class="mpc-kpi mt-1" x-text="nf(model.totals.roi * 100, 0) + '%'"></p></div>
+        </div>
+
+        {{-- Task #6768 — finance metrics strip. --}}
+        <div class="grid sm:grid-cols-3 gap-4">
+            <div class="rounded-2xl mpc-card p-4" title="Lifetime value vs acquisition cost — how much gross profit a customer generates over their lifetime for every ₹1 spent acquiring them. 3× or more is healthy; below 1× loses money.">
+                <p class="text-xs mpc-sub">LTV : CAC <i class="fas fa-circle-info mpc-faint text-[10px]"></i></p>
+                <p class="mpc-kpi mt-1" :class="ltvCacClass(model.totals.ltvCac)" x-text="ratio(model.totals.ltvCac)"></p>
+            </div>
+            <div class="rounded-2xl mpc-card p-4" title="The first month where cumulative gross profit (revenue × gross margin) covers cumulative spend.">
+                <p class="text-xs mpc-sub">Break-even month <i class="fas fa-circle-info mpc-faint text-[10px]"></i></p>
+                <p class="mpc-kpi mt-1" x-text="breakEvenLabel"></p>
+            </div>
+            <div class="rounded-2xl mpc-card p-4" title="How many months of average gross profit it takes to earn back the year's total spend.">
+                <p class="text-xs mpc-sub">Payback period <i class="fas fa-circle-info mpc-faint text-[10px]"></i></p>
+                <p class="mpc-kpi mt-1" x-text="paybackLabel"></p>
+            </div>
         </div>
 
         <div class="grid lg:grid-cols-2 gap-4">
@@ -390,7 +423,10 @@
             <table class="w-full min-w-[720px]">
                 <thead><tr>
                     <th class="mpc-th">Channel</th><th class="mpc-th text-right">Annual spend</th><th class="mpc-th text-right">Annual revenue</th>
-                    <th class="mpc-th text-right">Customers</th><th class="mpc-th text-right">CAC</th><th class="mpc-th text-right">ROI %</th>
+                    <th class="mpc-th text-right">Customers</th><th class="mpc-th text-right">CAC</th>
+                    <th class="mpc-th text-right" title="Return on ad spend — revenue ÷ spend">ROAS</th>
+                    <th class="mpc-th text-right" title="Lifetime gross profit per customer vs cost to acquire one — ≥3× healthy, <1× losing money">LTV:CAC</th>
+                    <th class="mpc-th text-right">ROI %</th>
                 </tr></thead>
                 <tbody>
                     <template x-for="row in model.channels" :key="row.key">
@@ -399,7 +435,9 @@
                             <td class="mpc-td text-right" x-text="money(sum(row.spend))"></td>
                             <td class="mpc-td text-right" x-text="money(sum(row.revenue))"></td>
                             <td class="mpc-td text-right" x-text="nf(sum(row.customers), 0)"></td>
-                            <td class="mpc-td text-right" x-text="sum(row.customers) > 0 ? money(sum(row.spend) / sum(row.customers)) : '—'"></td>
+                            <td class="mpc-td text-right" x-text="row.metrics.cac !== null ? money(row.metrics.cac) : '—'"></td>
+                            <td class="mpc-td text-right" x-text="ratio(row.metrics.roas, 2)"></td>
+                            <td class="mpc-td text-right font-semibold" :class="ltvCacClass(row.metrics.ltvCac)" x-text="ratio(row.metrics.ltvCac)"></td>
                             <td class="mpc-td text-right" x-text="sum(row.spend) > 0 ? nf((sum(row.revenue) - sum(row.spend)) / sum(row.spend) * 100, 0) + '%' : '—'"></td>
                         </tr>
                     </template>
@@ -532,6 +570,9 @@ function mpcApp() {
             if (this.planOptions.length && !this.planOptions.some(o => o.slug === this.p.plan_slug)) {
                 this.p.plan_slug = this.planOptions[0].slug;
             }
+            // Task #6768 — finance assumptions merged safely into old payloads.
+            if (typeof this.p.gross_margin !== 'number' || !isFinite(this.p.gross_margin)) this.p.gross_margin = 60;
+            if (typeof this.p.ltv_multiplier !== 'number' || !isFinite(this.p.ltv_multiplier)) this.p.ltv_multiplier = 1.5;
             // Task #6742 — keep every numeric input in a sane range so the
             // engine can never produce Infinity-adjacent projections.
             // Run before the dirty baseline so a silent self-heal of an old
@@ -591,6 +632,8 @@ function mpcApp() {
             if (w) flag('weights', 'Adjusted — seasonality weights stay between 0 and 100.');
             if ([this.clampNum(this.p.uplifts, 'chat', 0, 100), this.clampNum(this.p.uplifts, 'crm', 0, 100)].some(Boolean))
                 flag('uplifts', 'Adjusted — uplift percentages stay between 0 and 100.');
+            if ([this.clampNum(this.p, 'gross_margin', 0, 100), this.clampNum(this.p, 'ltv_multiplier', 0, 1000)].some(Boolean))
+                flag('finance', 'Adjusted — gross margin stays between 0 and 100%, the LTV multiplier cannot be negative.');
             let ch = false;
             for (const c of this.p.channels || []) {
                 ch = this.clampNum(c, 'alloc', 0, 100) || ch;
@@ -640,6 +683,22 @@ function mpcApp() {
         },
         cellFmt(v) { return this.monthlyMetric === 'spend' || this.monthlyMetric === 'revenue' ? this.money(v) : this.nf(v, 0); },
 
+        // ---------- finance-metric display helpers (Task #6768) ----------
+        ratio(v, d = 1) { return v === null || !isFinite(v) ? '—' : this.nf(v, d) + '×'; },
+        // Traffic-light class for LTV:CAC — ≥3 healthy, 1–3 borderline, <1 losing money.
+        ltvCacClass(v) {
+            if (v === null || !isFinite(v)) return 'mpc-faint';
+            return v >= 3 ? 'text-emerald-400' : (v >= 1 ? 'text-amber-400' : 'text-red-400');
+        },
+        get breakEvenLabel() {
+            const m = this.model.totals.breakEvenMonth;
+            return m === null ? 'Beyond 12 mo' : this.months[m];
+        },
+        get paybackLabel() {
+            const v = this.model.totals.paybackMonths;
+            return v === null ? '—' : this.nf(v, 1) + ' mo';
+        },
+
         get selectedPlan() {
             return this.planOptions.find(o => o.slug === this.p.plan_slug) || { name: '—', inr: 0, usd: 0 };
         },
@@ -655,6 +714,9 @@ function mpcApp() {
             const lcMult = this.p.uplifts.apply ? 1 + this.n(this.p.uplifts.crm) / 100 : 1;
             const subInr = this.n(this.selectedPlan.inr);
             const budget = this.n(this.p.annual_budget);
+            // Task #6768 — finance assumptions for CAC/ROAS/LTV metrics.
+            const margin  = Math.min(100, Math.max(0, this.n(this.p.gross_margin))) / 100;
+            const ltvMult = Math.max(0, this.n(this.p.ltv_multiplier));
 
             const channels = this.p.channels.map(c => {
                 const spend = [], visitors = [], leads = [], customers = [], revenue = [];
@@ -673,7 +735,16 @@ function mpcApp() {
                     spend.push(sp); visitors.push(vis); leads.push(ld);
                     customers.push(cu); revenue.push(cu * this.n(c.acv));
                 }
-                return { key: c.key, name: c.name, spend, visitors, leads, customers, revenue };
+                // Task #6768 — per-channel annual finance metrics.
+                const aSp = this.sum(spend), aRev = this.sum(revenue), aCu = this.sum(customers);
+                const cac  = aCu > 0 ? aSp / aCu : null;
+                const roas = aSp > 0 ? aRev / aSp : null;
+                const ltv  = aCu > 0 ? (aRev / aCu) * ltvMult * margin : null;
+                const metrics = {
+                    cac, roas, ltv,
+                    ltvCac: (cac !== null && cac > 0 && ltv !== null) ? ltv / cac : null,
+                };
+                return { key: c.key, name: c.name, spend, visitors, leads, customers, revenue, metrics };
             });
 
             const monthTotals = { spend: [], visitors: [], leads: [], customers: [], revenue: [] };
@@ -685,13 +756,31 @@ function mpcApp() {
 
             const spend = this.sum(monthTotals.spend), revenue = this.sum(monthTotals.revenue),
                   customers = this.sum(monthTotals.customers);
+
+            // Task #6768 — blended finance metrics from the monthly cashflow.
+            // Cumulative cashflow = gross profit (revenue × margin) minus spend.
+            const cac = customers > 0 ? spend / customers : 0;
+            const ltv = customers > 0 ? (revenue / customers) * ltvMult * margin : 0;
+            let cum = 0, breakEvenMonth = null;
+            for (let m = 0; m < 12; m++) {
+                cum += monthTotals.revenue[m] * margin - monthTotals.spend[m];
+                if (breakEvenMonth === null && cum >= 0) breakEvenMonth = m; // 0-based month index
+            }
+            const grossProfit = revenue * margin;
+            // Months of blended spend recovered by average monthly gross profit.
+            const paybackMonths = (spend > 0 && grossProfit > 0) ? spend / (grossProfit / 12) : null;
+
             return {
                 channels, monthTotals, vlMult, lcMult,
                 totals: {
                     spend, revenue, customers,
                     roas: spend > 0 ? revenue / spend : 0,
-                    cac:  customers > 0 ? spend / customers : 0,
+                    cac,
                     roi:  spend > 0 ? (revenue - spend) / spend : 0,
+                    ltv,
+                    ltvCac: cac > 0 ? ltv / cac : null,
+                    breakEvenMonth,
+                    paybackMonths,
                 },
             };
         },
@@ -741,6 +830,8 @@ function mpcApp() {
                 ['Apply Sayzio toolset uplifts', this.p.uplifts.apply ? 'Yes' : 'No'],
                 ['Chat widget uplift — visitor → lead (%)', this.xn(this.p.uplifts.chat, 1)],
                 ['CRM & dialer uplift — lead → customer (%)', this.xn(this.p.uplifts.crm, 1)],
+                ['Gross margin (%)', this.xn(this.p.gross_margin, 1)],
+                ['Customer lifetime / repeat-purchase multiplier (×)', this.xn(this.p.ltv_multiplier)],
                 [],
                 ['Monthly seasonality weights'],
                 ['Month', ...this.months],
@@ -778,13 +869,19 @@ function mpcApp() {
                 ['Total customers acquired', this.xn(m.totals.customers, 0)],
                 ['Blended CAC (' + sym + ')', this.xm(m.totals.cac)],
                 ['Blended ROI (%)', this.xn(m.totals.roi * 100, 1)],
+                ['Blended LTV (' + sym + ', gross profit per customer)', this.xm(m.totals.ltv)],
+                ['LTV : CAC (×)', m.totals.ltvCac !== null ? this.xn(m.totals.ltvCac) : '—'],
+                ['Break-even month (cumulative cashflow)', m.totals.breakEvenMonth !== null ? this.months[m.totals.breakEvenMonth] : 'Beyond 12 months'],
+                ['Payback period (months)', m.totals.paybackMonths !== null ? this.xn(m.totals.paybackMonths, 1) : '—'],
                 [],
                 ['Channel summary (annual)'],
-                ['Channel', 'Annual spend (' + sym + ')', 'Annual revenue (' + sym + ')', 'Customers', 'CAC (' + sym + ')', 'ROI %'],
+                ['Channel', 'Annual spend (' + sym + ')', 'Annual revenue (' + sym + ')', 'Customers', 'CAC (' + sym + ')', 'ROAS (×)', 'LTV:CAC (×)', 'ROI %'],
                 ...m.channels.map(row => {
                     const sp = this.sum(row.spend), rev = this.sum(row.revenue), cu = this.sum(row.customers);
                     return [row.name, this.xm(sp), this.xm(rev), this.xn(cu, 0),
-                            cu > 0 ? this.xm(sp / cu) : '—',
+                            row.metrics.cac !== null ? this.xm(row.metrics.cac) : '—',
+                            row.metrics.roas !== null ? this.xn(row.metrics.roas) : '—',
+                            row.metrics.ltvCac !== null ? this.xn(row.metrics.ltvCac) : '—',
                             sp > 0 ? this.xn((rev - sp) / sp * 100, 1) : '—'];
                 }),
             ];
@@ -950,14 +1047,22 @@ function mpcApp() {
                     <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#64748b;">${label}</p>
                     <p style="margin:4px 0 0;font-size:22px;font-weight:800;color:#0f172a;">${value}</p>
                 </div>`;
+            // Task #6768 — LTV inputs for the per-row finance metrics.
+            const pdfMargin  = Math.min(100, Math.max(0, this.n(this.p.gross_margin))) / 100;
+            const pdfLtvMult = Math.max(0, this.n(this.p.ltv_multiplier));
             const chanRows = this.pdfSummaryRows().map(row => {
                 const sp = row.spend, rev = row.revenue, cu = row.customers;
+                const cac = cu > 0 ? sp / cu : null;
+                const ltvCac = (cac !== null && cac > 0) ? ((rev / cu) * pdfLtvMult * pdfMargin) / cac : null;
+                const ltvColor = ltvCac === null ? '#94a3b8' : (ltvCac >= 3 ? '#059669' : (ltvCac >= 1 ? '#d97706' : '#dc2626'));
                 return `<tr>
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;font-weight:600;color:#0f172a;">${esc(row.name)}</td>
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${this.money(sp)}</td>
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${this.money(rev)}</td>
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${this.nf(cu, 0)}</td>
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${cu > 0 ? this.money(sp / cu) : '—'}</td>
+                    <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${sp > 0 ? this.nf(rev / sp, 2) + '×' : '—'}</td>
+                    <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;font-weight:600;color:${ltvColor};">${this.ratio(ltvCac)}</td>
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${sp > 0 ? this.nf((rev - sp) / sp * 100, 0) + '%' : '—'}</td>
                 </tr>`;
             }).join('');
@@ -983,6 +1088,9 @@ function mpcApp() {
                     ${kpi('Customers acquired', this.nf(m.totals.customers, 0))}
                     ${kpi('Blended CAC', this.money(m.totals.cac))}
                     ${kpi('Blended ROI', this.nf(m.totals.roi * 100, 0) + '%')}
+                    ${kpi('LTV : CAC', this.ratio(m.totals.ltvCac))}
+                    ${kpi('Break-even month', this.breakEvenLabel)}
+                    ${kpi('Payback period', this.paybackLabel)}
                 </div>
 
                 <div style="display:flex;gap:16px;margin-top:18px;">
@@ -1001,7 +1109,7 @@ function mpcApp() {
                     <table style="width:100%;border-collapse:collapse;font-size:11px;">
                         <thead><tr>
                             <th style="padding:5px 8px;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;text-align:left;">Channel</th>
-                            ${th('Annual spend')}${th('Annual revenue')}${th('Customers')}${th('CAC')}${th('ROI %')}
+                            ${th('Annual spend')}${th('Annual revenue')}${th('Customers')}${th('CAC')}${th('ROAS')}${th('LTV:CAC')}${th('ROI %')}
                         </tr></thead>
                         <tbody>${chanRows}</tbody>
                     </table>

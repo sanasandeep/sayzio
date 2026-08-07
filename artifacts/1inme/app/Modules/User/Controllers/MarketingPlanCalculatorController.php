@@ -219,6 +219,9 @@ class MarketingPlanCalculatorController extends Controller
             'payload.hours_per_tool'   => 'nullable|numeric|min:0|max:1000000000000',
             'payload.time_value'       => 'nullable|numeric|min:0|max:1000000000000',
             'payload.weights.*'        => 'nullable|numeric|min:0|max:100',
+            // Task #6768 — finance assumptions for CAC/ROAS/LTV metrics.
+            'payload.gross_margin'     => 'nullable|numeric|min:0|max:100',
+            'payload.ltv_multiplier'   => 'nullable|numeric|min:0|max:1000',
             'payload.uplifts.chat'     => 'nullable|numeric|min:0|max:100',
             'payload.uplifts.crm'      => 'nullable|numeric|min:0|max:100',
             'payload.channels.*.alloc' => 'nullable|numeric|min:0|max:100',

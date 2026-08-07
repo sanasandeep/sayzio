@@ -88,6 +88,10 @@ class MarketingPlanDefaults
             'ai_credits'       => 2000,        // ₹/month (~$20 under the USD toggle) — a realistic starting point, fully editable
             'organic_visitors' => 8000,        // est. monthly organic (bio page, QR & short links)
             'uplifts'          => ['apply' => true, 'chat' => 8.0, 'crm' => 15.0],
+            // Task #6768 — finance assumptions behind CAC / ROAS / LTV:CAC,
+            // break-even & payback metrics.
+            'gross_margin'     => 60.0,        // % of revenue kept as gross profit
+            'ltv_multiplier'   => 1.5,         // customer lifetime / repeat-purchase multiplier on customer value
             'channels'         => self::CHANNELS,
             'tools'            => self::TOOLS,
             'hours_per_tool'   => 1.5,
