@@ -53,7 +53,10 @@ function line(int $x1, int $y1, int $x2, int $y2, string $stroke, string $sw = '
 }
 function txt(int $x, int $y, string $s, string $font, int $size, string $weight, string $fill, string $extra = ''): string
 {
-    return "<text x=\"$x\" y=\"$y\" font-family=\"$font\" font-size=\"$size\" font-weight=\"$weight\" fill=\"$fill\" $extra>".esc($s)."</text>";
+    // Font stacks may contain double-quoted family names ("Plus Jakarta Sans")
+    // — they MUST be escaped inside the double-quoted attribute or the whole
+    // SVG becomes invalid XML and renders as a blank card.
+    return "<text x=\"$x\" y=\"$y\" font-family=\"".esc($font)."\" font-size=\"$size\" font-weight=\"$weight\" fill=\"$fill\" $extra>".esc($s)."</text>";
 }
 
 function renderHeader(array $tpl, array $pal, string $font, int $left, int $right): string
