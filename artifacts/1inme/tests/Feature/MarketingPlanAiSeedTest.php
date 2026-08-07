@@ -29,7 +29,7 @@ class MarketingPlanAiSeedTest extends TestCase
             'name' => 'Professional ' . $slug, 'slug' => $slug,
             'monthly_price' => 0, 'annual_price' => 0,
             'trial_days' => 0, 'status' => 'active',
-            'features' => [],
+            'features' => ['marketing_plan_calculator' => true, 'max_marketing_plans' => -1],
         ]);
     }
 

@@ -20,12 +20,33 @@ use Illuminate\Http\Request;
  */
 class MarketingPlanCalculatorController extends Controller
 {
+    /**
+     * Plan feature key that switches the calculator on (Task #6766) and the
+     * quantity key capping how many named plans can be kept (-1 = unlimited).
+     */
+    public const FEATURE_KEY = 'marketing_plan_calculator';
+    public const LIMIT_KEY   = 'max_marketing_plans';
+
+    /**
+     * Advisory-lock "class" for the saved-plan cap critical section in
+     * store(): pg_advisory_xact_lock(CAP_LOCK_CLASS, user_id) serialises
+     * concurrent creates per owner. Arbitrary but must be unique among
+     * advisory-lock users of this database.
+     */
+    public const CAP_LOCK_CLASS = 67660;
+
     /** Saved-plan list. */
     public function index(Request $request)
     {
+        if ($gate = $this->gateView($request)) return $gate;
+
+        $plans = MarketingPlanCalc::listForOwner($request->user()->id, $this->workspaceId());
+
         return view('user.marketing-plan.index', [
-            'plans'          => MarketingPlanCalc::listForOwner($request->user()->id, $this->workspaceId()),
+            'plans'          => $plans,
             'latestStrategy' => $this->ownedStrategies($request)->orderByDesc('id')->first(['id', 'title']),
+            'canCreate'      => $request->user()->planUnderLimit(self::LIMIT_KEY, $plans->count()),
+            'planCap'        => (int) $request->user()->getPlanFeature(self::LIMIT_KEY, 0),
         ]);
     }
 
@@ -37,6 +58,13 @@ class MarketingPlanCalculatorController extends Controller
      */
     public function create(Request $request)
     {
+        if ($gate = $this->gateView($request)) return $gate;
+        if (!$this->underCap($request)) {
+            return redirect()
+                ->route('user.marketing-plan.index')
+                ->with('limit_reached', true);
+        }
+
         $payload  = MarketingPlanDefaults::defaults($request->user());
         $seedName = null;
         $aiSeed   = null;
@@ -75,14 +103,36 @@ class MarketingPlanCalculatorController extends Controller
     /** Save a new named plan (AJAX). */
     public function store(Request $request)
     {
+        $this->ensureEnabled($request);
+
         $data = $this->validatePlan($request);
 
-        $plan = MarketingPlanCalc::create([
-            'user_id'      => $request->user()->id,
-            'workspace_id' => $this->workspaceId(),
-            'name'         => $data['name'],
-            'payload'      => $data['payload'],
-        ]);
+        // Count-and-create must be atomic or two concurrent requests at the
+        // last free slot both pass the cap check and both insert. A per-owner
+        // Postgres advisory lock (transaction-scoped, auto-released on
+        // commit/rollback) serialises the critical section; the cap is
+        // (re)checked only after the lock is held.
+        $plan = \DB::transaction(function () use ($request, $data) {
+            \DB::select('select pg_advisory_xact_lock(?, ?)', [self::CAP_LOCK_CLASS, $request->user()->id]);
+
+            if (!$this->underCap($request)) {
+                return null;
+            }
+
+            return MarketingPlanCalc::create([
+                'user_id'      => $request->user()->id,
+                'workspace_id' => $this->workspaceId(),
+                'name'         => $data['name'],
+                'payload'      => $data['payload'],
+            ]);
+        });
+
+        if (!$plan) {
+            return response()->json([
+                'ok'      => false,
+                'message' => 'You have reached your plan\'s saved-plan limit. Upgrade to save more plans.',
+            ], 403);
+        }
 
         return response()->json([
             'ok'       => true,
@@ -94,6 +144,8 @@ class MarketingPlanCalculatorController extends Controller
     /** Reopen a saved plan in the editor. */
     public function edit(Request $request, int $plan)
     {
+        if ($gate = $this->gateView($request)) return $gate;
+
         $model = $this->findOwned($request, $plan);
 
         // Merge over the defaults so payloads saved before new fields were
@@ -117,6 +169,8 @@ class MarketingPlanCalculatorController extends Controller
     /** Update a saved plan (AJAX). */
     public function update(Request $request, int $plan)
     {
+        $this->ensureEnabled($request);
+
         $model = $this->findOwned($request, $plan);
         $data  = $this->validatePlan($request);
 
@@ -128,6 +182,8 @@ class MarketingPlanCalculatorController extends Controller
     /** Delete a saved plan. */
     public function destroy(Request $request, int $plan)
     {
+        $this->ensureEnabled($request);
+
         $this->findOwned($request, $plan)->delete();
 
         return redirect()
@@ -182,6 +238,45 @@ class MarketingPlanCalculatorController extends Controller
         // would contain ONLY the ruled keys — return the full raw payload
         // (it passed the bounds checks above) so unruled keys survive.
         return ['name' => trim($validated['name']), 'payload' => (array) $request->input('payload')];
+    }
+
+    /**
+     * Locked-out upgrade page when the plan doesn't include the calculator
+     * (Task #6766), or null when the feature is enabled. GET actions render
+     * this instead of the tool.
+     */
+    protected function gateView(Request $request)
+    {
+        if ($request->user()->planFeatureEnabled(self::FEATURE_KEY)) {
+            return null;
+        }
+
+        return view('user.marketing-plan.locked', [
+            'upgradePlan' => $request->user()->planThatUnlocks(self::FEATURE_KEY),
+        ]);
+    }
+
+    /** Hard gate for write actions (AJAX/non-GET). */
+    protected function ensureEnabled(Request $request): void
+    {
+        if (!$request->user()->planFeatureEnabled(self::FEATURE_KEY)) {
+            abort(403, 'The Marketing Plan Calculator is not available on your current plan.');
+        }
+    }
+
+    /**
+     * True while the owner is below the saved-plan cap in the active
+     * workspace. Existing plans stay viewable/editable/deletable at or over
+     * the cap — only creating NEW plans is blocked.
+     */
+    protected function underCap(Request $request): bool
+    {
+        $count = MarketingPlanCalc::query()
+            ->where('user_id', $request->user()->id)
+            ->where('workspace_id', $this->workspaceId())
+            ->count();
+
+        return $request->user()->planUnderLimit(self::LIMIT_KEY, $count);
     }
 
     /** Owner-scoped plan lookup or 404. */
