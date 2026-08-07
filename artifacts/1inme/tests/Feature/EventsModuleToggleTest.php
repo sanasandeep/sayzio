@@ -88,6 +88,32 @@ class EventsModuleToggleTest extends TestCase
         $this->get('/@' . $host->handle . '/events')->assertNotFound();
     }
 
+    // ---------------- branded unavailable page (Task #6728) ----------------
+
+    public function test_html_visitors_get_branded_events_unavailable_page_when_off(): void
+    {
+        $host = User::factory()->create()->fresh();
+        $link = $this->makeEvent($host);
+
+        $this->off();
+
+        // Routed events surface (middleware) — branded page, still 404 status.
+        $dir = $this->get('/events');
+        $dir->assertNotFound();
+        $this->assertStringContainsString("Events aren't available right now", $dir->getContent());
+        $this->assertStringContainsString(url('/'), $dir->getContent());
+
+        // Catch-all event page (in-controller guard) — same branded page.
+        $page = $this->get('/' . $link->alias);
+        $page->assertNotFound();
+        $this->assertStringContainsString("Events aren't available right now", $page->getContent());
+
+        // JSON callers keep the plain 404 (no branded HTML).
+        $json = $this->getJson('/api/v1/events');
+        $json->assertNotFound();
+        $this->assertStringNotContainsString("Events aren't available right now", $json->getContent());
+    }
+
     // ---------------- API parity ----------------
 
     public function test_api_event_endpoints_404_when_off(): void

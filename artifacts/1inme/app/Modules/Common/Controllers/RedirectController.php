@@ -1195,7 +1195,13 @@ class RedirectController extends Controller
         // selected inside the /{alias} catch-all (no dedicated route to
         // gate), so the check lives here. 404 mirrors the routed surfaces.
         if (!\App\Modules\Common\Support\EventsModule::enabled()) {
-            abort(404, 'Events are not available.');
+            // Browser visitors get the branded "Events are unavailable"
+            // page (still 404 for SEO); JSON callers keep the plain 404.
+            if ($request->expectsJson()) {
+                abort(404, 'Events are not available.');
+            }
+
+            return response()->view('errors.events-unavailable', [], 404);
         }
 
         if ($request->boolean('ics')) {

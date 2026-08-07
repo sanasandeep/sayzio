@@ -17,7 +17,13 @@ class EnsureEventsModuleEnabled
     public function handle(Request $request, Closure $next)
     {
         if (!EventsModule::enabled()) {
-            abort(404, 'Events are not available.');
+            // API/JSON callers keep the plain 404; browser visitors get a
+            // branded "Events are unavailable" page (still 404 for SEO).
+            if ($request->expectsJson() || $request->is('api/*')) {
+                abort(404, 'Events are not available.');
+            }
+
+            return response()->view('errors.events-unavailable', [], 404);
         }
 
         return $next($request);
