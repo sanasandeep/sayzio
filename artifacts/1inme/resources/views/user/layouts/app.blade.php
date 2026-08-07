@@ -702,7 +702,7 @@
                         @endphp
                         <div x-data="{ foldersOpen: {{ nav_route_is('user.projects.*') || request()->filled('project_id') ? 'true' : 'false' }} }">
                             <div class="flex items-center">
-                                <a href="{{ route('user.projects.index') }}"
+                                <a href="{{ route('user.dashboard') }}#folders"
                                    class="sidebar-link flex-1 {{ nav_route_is('user.projects.*') ? 'active' : '' }}"
                                    style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
                                     <div class="nav-icon-wrap"><i class="fas fa-folder"></i></div>
@@ -1582,7 +1582,7 @@
                                 <a href="{{ route('user.resume.editor') }}" class="sidebar-link {{ nav_route_is('user.resume.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-file-lines"></i></div> <span>AI Resume / Portfolio</span></a>
                                 <div x-data="{ mFoldersOpen: {{ nav_route_is('user.projects.*') || request()->filled('project_id') ? 'true' : 'false' }} }">
                                     <div class="flex items-center">
-                                        <a href="{{ route('user.projects.index') }}" class="sidebar-link flex-1 {{ nav_route_is('user.projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder"></i></div> <span>Folders</span></a>
+                                        <a href="{{ route('user.dashboard') }}#folders" class="sidebar-link flex-1 {{ nav_route_is('user.projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder"></i></div> <span>Folders</span></a>
                                         @php $__mNavFolders = workspace_owner()->projects()->orderBy('name')->limit(10)->get(['id', 'name', 'color']); @endphp
                                         @if($__mNavFolders->isNotEmpty())
                                         <button type="button" @click="mFoldersOpen = !mFoldersOpen" class="p-1.5 mr-1 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/10" :aria-expanded="mFoldersOpen ? 'true' : 'false'" aria-label="Toggle folders list">

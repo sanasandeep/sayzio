@@ -22,6 +22,14 @@ class ProjectController extends Controller
 
     public function index(Request $request)
     {
+        // The standalone Folders page is retired — folders now live on the
+        // dashboard desk. Keep the route for old bookmarks/deep links.
+        return redirect(route('user.dashboard') . '#folders');
+    }
+
+    /** @deprecated Standalone folders page retired; kept for reference. */
+    private function legacyIndex(Request $request)
+    {
         $sort = $request->get('sort', 'created');
 
         // "name" defaults to ascending, everything else to descending.

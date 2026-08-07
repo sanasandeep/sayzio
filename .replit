@@ -115,6 +115,10 @@ args = "e2e-mpc-scenarios"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "e2e-mpc-actuals"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-dashboard-folders-desk"
     
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
@@ -438,6 +442,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && VALIDATION_PORT=5092 bash tests/Browser/run-validation.sh marketing-plan-actuals.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-dashboard-folders-desk"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5093 bash tests/Browser/run-validation.sh dashboard-folders-desk.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
