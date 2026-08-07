@@ -75,7 +75,7 @@ class MarketingPlanDefaults
      */
     public static function defaults(?User $user = null): array
     {
-        $planSlug = $user?->plan?->slug ?? Plan::defaultPlan()?->slug;
+        $planSlug = self::preselectPlanSlug($user);
 
         return [
             'company'          => '',
@@ -85,7 +85,7 @@ class MarketingPlanDefaults
             'usd_inr_rate'     => 83.0,        // editable USD→INR display rate
             'weights'          => array_fill(0, 12, 1.0),
             'plan_slug'        => $planSlug,
-            'ai_credits'       => 0,           // ₹/month extra, only if used
+            'ai_credits'       => 2000,        // ₹/month (~$20 under the USD toggle) — a realistic starting point, fully editable
             'organic_visitors' => 8000,        // est. monthly organic (bio page, QR & short links)
             'uplifts'          => ['apply' => true, 'chat' => 8.0, 'crm' => 15.0],
             'channels'         => self::CHANNELS,
@@ -93,6 +93,38 @@ class MarketingPlanDefaults
             'hours_per_tool'   => 1.5,
             'time_value'       => 1000,        // ₹/hour
         ];
+    }
+
+    /**
+     * The plan slug a NEW marketing plan preselects. Only ever resolves to
+     * a public, active, non-archived plan — the selector lists exactly
+     * those, so an internal/hidden/archived "current plan" (or default
+     * plan) must gracefully fall back instead of preselecting a ghost
+     * option (Task #6765).
+     */
+    public static function preselectPlanSlug(?User $user = null): ?string
+    {
+        try {
+            $isSelectable = fn (?Plan $plan): bool => $plan !== null
+                && !$plan->is_internal
+                && !$plan->is_archived
+                && $plan->status === 'active';
+
+            $own = $user?->plan;
+            if ($isSelectable($own)) {
+                return (string) $own->slug;
+            }
+
+            $default = Plan::defaultPlan();
+            if ($isSelectable($default)) {
+                return (string) $default->slug;
+            }
+
+            $slug = Plan::query()->active()->public()->ordered()->value('slug');
+            return $slug !== null ? (string) $slug : null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

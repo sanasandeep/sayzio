@@ -12,22 +12,53 @@
         .mpc-sub   { color: rgba(255,255,255,0.5); } html.light-mode .mpc-sub { color: #475569; }
         .mpc-faint { color: rgba(255,255,255,0.35); } html.light-mode .mpc-faint { color: #64748b; }
         .mpc-input {
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+            /* background-COLOR longhand on purpose: the app layout injects a
+               chevron background-image into selects — a `background:` shorthand
+               here would reset its no-repeat/position and tile the chevron
+               into a criss-cross artifact across the select. */
+            background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
             color: #fff; border-radius: 0.6rem; padding: 0.4rem 0.6rem; font-size: 0.82rem; width: 100%;
         }
         .mpc-input:focus { outline: none; border-color: #3b82f6; }
-        html.light-mode .mpc-input { background: #fff; border-color: rgba(15,23,42,0.18); color: #0f172a; }
+        html.light-mode .mpc-input { background-color: #fff; border-color: rgba(15,23,42,0.18); color: #0f172a; }
         .mpc-th { color: rgba(255,255,255,0.45); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; text-align: left; padding: 0.5rem 0.6rem; white-space: nowrap; }
         html.light-mode .mpc-th { color: #64748b; }
         .mpc-td { padding: 0.4rem 0.6rem; font-size: 0.82rem; color: rgba(255,255,255,0.8); white-space: nowrap; }
         html.light-mode .mpc-td { color: #1e293b; }
         .mpc-row { border-top: 1px solid rgba(255,255,255,0.06); }
         html.light-mode .mpc-row { border-top-color: rgba(15,23,42,0.08); }
-        .mpc-tab { padding: 0.5rem 0.9rem; border-radius: 0.75rem; font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.55); }
-        html.light-mode .mpc-tab { color: #475569; }
-        .mpc-tab:hover { color: #60a5fa; }
-        .mpc-tab.active { background: rgba(37,99,235,0.15); color: #60a5fa; }
-        html.light-mode .mpc-tab.active { background: rgba(37,99,235,0.10); color: #2563eb; }
+        /* ── Stepper tabs ── */
+        .mpc-step {
+            display: inline-flex; align-items: center; gap: 0.55rem;
+            padding: 0.45rem 0.95rem 0.45rem 0.5rem; border-radius: 9999px;
+            font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.55);
+            border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.03);
+            transition: color .15s ease, border-color .15s ease, background .15s ease;
+        }
+        html.light-mode .mpc-step { color: #475569; border-color: rgba(15,23,42,0.12); background: #fff; }
+        .mpc-step:hover { color: #93c5fd; border-color: rgba(59,130,246,0.45); }
+        html.light-mode .mpc-step:hover { color: #2563eb; border-color: rgba(37,99,235,0.4); }
+        .mpc-step:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+        .mpc-step-num {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 1.5rem; height: 1.5rem; border-radius: 9999px; flex: none;
+            font-size: 0.7rem; font-weight: 800;
+            background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6);
+            transition: background .15s ease, color .15s ease;
+        }
+        html.light-mode .mpc-step-num { background: rgba(15,23,42,0.06); color: #475569; }
+        .mpc-step.active {
+            background: rgba(37,99,235,0.16); border-color: rgba(59,130,246,0.55);
+            color: #93c5fd; box-shadow: 0 0 0 1px rgba(59,130,246,0.15);
+        }
+        html.light-mode .mpc-step.active { background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.45); color: #1d4ed8; }
+        .mpc-step.active .mpc-step-num { background: #2563eb; color: #fff; }
+        .mpc-step.done { color: rgba(255,255,255,0.75); }
+        html.light-mode .mpc-step.done { color: #1e293b; }
+        .mpc-step.done .mpc-step-num { background: rgba(16,185,129,0.18); color: #34d399; }
+        html.light-mode .mpc-step.done .mpc-step-num { background: rgba(16,185,129,0.14); color: #059669; }
+        .mpc-step-sep { width: 1.1rem; height: 1px; background: rgba(255,255,255,0.15); flex: none; align-self: center; }
+        html.light-mode .mpc-step-sep { background: rgba(15,23,42,0.15); }
         .mpc-kpi { font-size: 1.35rem; font-weight: 800; color: #fff; }
         html.light-mode .mpc-kpi { color: #0f172a; }
         .mpc-export-btn { background: rgba(255,255,255,0.10); color: #fff; border: 1px solid rgba(255,255,255,0.10); }
@@ -117,13 +148,25 @@
     <p class="text-xs text-emerald-400 mb-3" x-show="savedFlash" x-cloak><i class="fas fa-check mr-1"></i> Saved.</p>
     <p class="text-xs text-red-400 mb-3" x-show="saveError" x-cloak x-text="saveError"></p>
 
-    {{-- ───── Tabs ───── --}}
-    <div class="flex flex-wrap gap-1.5 mb-5">
-        <button type="button" class="mpc-tab" :class="tab === 'assumptions' && 'active'" @click="tab = 'assumptions'">1 · Assumptions</button>
-        <button type="button" class="mpc-tab" :class="tab === 'monthly' && 'active'" @click="tab = 'monthly'">2 · Monthly Plan</button>
-        <button type="button" class="mpc-tab" :class="tab === 'dashboard' && 'active'" @click="openDashboard()">3 · Dashboard</button>
-        <button type="button" class="mpc-tab" :class="tab === 'roi' && 'active'" @click="tab = 'roi'">4 · Sayzio ROI &amp; Value</button>
-    </div>
+    {{-- ───── Stepper tabs ───── --}}
+    <nav class="flex flex-wrap items-center gap-1.5 mb-5" aria-label="Calculator steps">
+        <template x-for="(s, i) in steps" :key="s.key">
+            <div class="flex items-center gap-1.5">
+                <div class="mpc-step-sep" x-show="i > 0" aria-hidden="true"></div>
+                <button type="button" class="mpc-step"
+                        :class="tab === s.key ? 'active' : (stepIndex > i ? 'done' : '')"
+                        :aria-label="(i + 1) + ' · ' + s.label"
+                        :aria-current="tab === s.key ? 'step' : false"
+                        @click="s.key === 'dashboard' ? openDashboard() : tab = s.key">
+                    <span class="mpc-step-num">
+                        <template x-if="stepIndex > i && tab !== s.key"><i class="fas fa-check text-[9px]"></i></template>
+                        <template x-if="!(stepIndex > i && tab !== s.key)"><span x-text="i + 1"></span></template>
+                    </span>
+                    <span x-text="s.label"></span>
+                </button>
+            </div>
+        </template>
+    </nav>
 
     {{-- ───── 1 · ASSUMPTIONS ───── --}}
     <div x-show="tab === 'assumptions'" class="space-y-5">
@@ -295,6 +338,21 @@
 
     {{-- ───── 3 · DASHBOARD ───── --}}
     <div x-show="tab === 'dashboard'" x-cloak class="space-y-4">
+        {{-- On-tab export controls (Task #6765) — no need to scroll back to the header --}}
+        <div class="flex flex-wrap items-center justify-end gap-2">
+            <span class="text-[11px] font-bold uppercase tracking-[0.12em] mpc-faint mr-auto">Export this plan</span>
+            <button type="button" @click="exportXlsx()" class="mpc-export-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                <i class="fas fa-file-excel text-emerald-400"></i> Excel
+            </button>
+            <button type="button" @click="exportCsv()" class="mpc-export-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                <i class="fas fa-file-csv text-blue-400"></i> CSV
+            </button>
+            <button type="button" @click="exportPdf()" :disabled="pdfBusy" class="mpc-export-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60">
+                <i class="fas text-red-400" :class="pdfBusy ? 'fa-circle-notch fa-spin' : 'fa-file-pdf'"></i>
+                <span x-text="pdfBusy ? 'Preparing…' : 'PDF'"></span>
+            </button>
+        </div>
+
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Total annual budget</p><p class="mpc-kpi mt-1" x-text="money(p.annual_budget)"></p></div>
             <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Total projected revenue (year)</p><p class="mpc-kpi mt-1" x-text="money(model.totals.revenue)"></p></div>
@@ -306,11 +364,23 @@
 
         <div class="grid lg:grid-cols-2 gap-4">
             <div class="rounded-2xl mpc-card p-4">
-                <h3 class="text-sm font-bold mpc-title mb-2">Spend vs revenue by month</h3>
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <h3 class="text-sm font-bold mpc-title">Spend vs revenue by month</h3>
+                    <button type="button" @click="downloadChart('month')" title="Download chart as image"
+                            class="mpc-export-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
+                        <i class="fas fa-image"></i> PNG
+                    </button>
+                </div>
                 <canvas id="mpcMonthChart" height="220"></canvas>
             </div>
             <div class="rounded-2xl mpc-card p-4">
-                <h3 class="text-sm font-bold mpc-title mb-2">Annual revenue by channel</h3>
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <h3 class="text-sm font-bold mpc-title">Annual revenue by channel</h3>
+                    <button type="button" @click="downloadChart('channel')" title="Download chart as image"
+                            class="mpc-export-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
+                        <i class="fas fa-image"></i> PNG
+                    </button>
+                </div>
                 <canvas id="mpcChannelChart" height="220"></canvas>
             </div>
         </div>
@@ -436,6 +506,12 @@ function mpcApp() {
         presets: @js($presets ?? []),
         presetPick: 'custom',
         months: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+        steps: [
+            { key: 'assumptions', label: 'Assumptions' },
+            { key: 'monthly',     label: 'Monthly Plan' },
+            { key: 'dashboard',   label: 'Dashboard' },
+            { key: 'roi',         label: 'Sayzio ROI & Value' },
+        ],
         tab: 'assumptions',
         monthlyMetric: 'spend',
         saving: false, savedFlash: false, saveError: '', pdfBusy: false,
@@ -448,6 +524,14 @@ function mpcApp() {
             // Ensure array shapes survive older/partial payloads.
             if (!Array.isArray(this.p.weights) || this.p.weights.length !== 12) this.p.weights = Array(12).fill(1);
             if (!this.p.uplifts) this.p.uplifts = { apply: true, chat: 8, crm: 15 };
+            // The plan selector only lists public, active plans. If the stored
+            // slug points at a plan that is no longer offered (internal /
+            // archived / unpublished), fall back to the first public option so
+            // the select never shows an empty/ghost value. Runs BEFORE the
+            // dirty baseline so the silent self-heal isn't an "unsaved edit".
+            if (this.planOptions.length && !this.planOptions.some(o => o.slug === this.p.plan_slug)) {
+                this.p.plan_slug = this.planOptions[0].slug;
+            }
             // Task #6742 — keep every numeric input in a sane range so the
             // engine can never produce Infinity-adjacent projections.
             // Run before the dirty baseline so a silent self-heal of an old
@@ -523,6 +607,7 @@ function mpcApp() {
                 flag('time', 'Adjusted — hours and time value cannot be negative.');
         },
         snapshot() { return JSON.stringify({ name: this.name, p: this.p }); },
+        get stepIndex() { return this.steps.findIndex(s => s.key === this.tab); },
         recomputeDirty() { this.dirty = this.snapshot() !== this._baseline; },
 
         // ---------- industry presets (Task #6767) ----------
@@ -1027,6 +1112,30 @@ function mpcApp() {
         },
 
         // ---------- charts ----------
+        /**
+         * Task #6765 — download a dashboard chart as a PNG. Chart.js canvases
+         * are transparent, so composite onto the current theme's background
+         * first (white in light mode, dashboard navy in dark) for a readable
+         * standalone image.
+         */
+        downloadChart(key) {
+            const src = document.getElementById(key === 'month' ? 'mpcMonthChart' : 'mpcChannelChart');
+            if (!src || !src.width) return;
+            const light = document.documentElement.classList.contains('light-mode');
+            const out = document.createElement('canvas');
+            out.width = src.width; out.height = src.height;
+            const ctx = out.getContext('2d');
+            ctx.fillStyle = light ? '#ffffff' : '#0f172a';
+            ctx.fillRect(0, 0, out.width, out.height);
+            ctx.drawImage(src, 0, 0);
+            const a = document.createElement('a');
+            a.href = out.toDataURL('image/png');
+            a.download = this.exportFileBase() + (key === 'month' ? '-spend-vs-revenue.png' : '-revenue-by-channel.png');
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => a.remove(), 0);
+        },
+
         openDashboard() {
             this.tab = 'dashboard';
             this.$nextTick(() => this.renderCharts());

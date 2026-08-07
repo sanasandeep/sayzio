@@ -33,6 +33,22 @@
 
 html.light-mode [data-app-layout] select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234b5675' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    /* Re-assert the chevron geometry at THIS specificity. A component rule
+       like `html.light-mode .some-input { background: #fff; }` (same 0-2-0+
+       ballpark) can reset background-repeat/position via the shorthand while
+       this higher-specificity image declaration still wins — the chevron then
+       TILES across the whole select as a criss-cross/zigzag artifact. */
+    background-repeat: no-repeat;
+    background-position: right 0.875rem center;
+    background-size: 1rem 1rem;
+}
+
+/* Same guard for dark mode: any `background:` shorthand on a select must not
+   turn the injected chevron into a repeating pattern. */
+[data-app-layout] select {
+    background-repeat: no-repeat !important;
+    background-position: right 0.875rem center !important;
+    background-size: 1rem 1rem !important;
 }
 
 @theme {
