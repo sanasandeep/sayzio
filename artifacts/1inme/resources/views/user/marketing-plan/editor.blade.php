@@ -792,6 +792,28 @@ function mpcApp() {
             return String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
         },
 
+        // Task #6763 — the one-pager must stay readable even if a plan carries
+        // many extra channels. Cap the PDF summary table: keep the biggest
+        // channels and aggregate the tail into a single "Other" row.
+        pdfMaxChannelRows: 16,
+
+        pdfSummaryRows() {
+            const rows = this.model.channels.map(row => ({
+                name: row.name,
+                spend: this.sum(row.spend),
+                revenue: this.sum(row.revenue),
+                customers: this.sum(row.customers),
+            }));
+            const max = this.pdfMaxChannelRows;
+            if (rows.length <= max) return rows;
+            const sorted = rows.slice().sort((a, b) => (b.revenue - a.revenue) || (b.spend - a.spend));
+            const keep = sorted.slice(0, max - 1);
+            const rest = sorted.slice(max - 1);
+            const other = { name: `Other (${rest.length} channels)`, spend: 0, revenue: 0, customers: 0 };
+            for (const r of rest) { other.spend += r.spend; other.revenue += r.revenue; other.customers += r.customers; }
+            return [...keep, other];
+        },
+
         pdfPageHtml() {
             const esc = v => this.pdfEsc(v);
             const m = this.model, r = this.roi;
@@ -802,8 +824,8 @@ function mpcApp() {
                     <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#64748b;">${label}</p>
                     <p style="margin:4px 0 0;font-size:22px;font-weight:800;color:#0f172a;">${value}</p>
                 </div>`;
-            const chanRows = m.channels.map(row => {
-                const sp = this.sum(row.spend), rev = this.sum(row.revenue), cu = this.sum(row.customers);
+            const chanRows = this.pdfSummaryRows().map(row => {
+                const sp = row.spend, rev = row.revenue, cu = row.customers;
                 return `<tr>
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;font-weight:600;color:#0f172a;">${esc(row.name)}</td>
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${this.money(sp)}</td>
@@ -894,10 +916,20 @@ function mpcApp() {
             }
             const chanEl = host.querySelector('canvas[data-pdf-chart="channel"]');
             if (chanEl) {
-                const rows = m.channels
+                let rows = m.channels
                     .map(r => ({ name: r.name, rev: this.sum(r.revenue) * mult }))
                     .filter(r => r.rev > 0)
                     .sort((a, b) => b.rev - a.rev);
+                // Task #6763 — cap doughnut slices so an inflated channel list
+                // can't blow up the legend and squash the chart on the one-pager.
+                const maxSlices = 12;
+                if (rows.length > maxSlices) {
+                    const rest = rows.slice(maxSlices - 1);
+                    rows = [
+                        ...rows.slice(0, maxSlices - 1),
+                        { name: `Other (${rest.length})`, rev: rest.reduce((s, r) => s + r.rev, 0) },
+                    ];
+                }
                 const palette = ['#2563eb','#0ea5e9','#10b981','#f59e0b','#ef4444','#14b8a6','#3b82f6','#64748b','#22c55e','#eab308','#06b6d4','#f97316','#0284c7','#84cc16','#e11d48','#475569'];
                 created.push(new Chart(chanEl, {
                     type: 'doughnut',
