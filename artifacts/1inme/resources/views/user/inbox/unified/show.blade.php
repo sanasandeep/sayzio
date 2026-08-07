@@ -2,6 +2,26 @@
 @section('title', 'Thread · ' . ($thread->sender_name ?: 'Inbox'))
 
 @section('content')
+<style>
+    /* Inbox 2.0 thread — dark defaults with paired light-mode overrides so
+       the soft-blue AI actions/chips stay legible on a light background. */
+    .inb-ai-btn { background: rgba(92,131,255,0.15); color: #bccfff; border: 1px solid rgba(92,131,255,0.3); }
+    html.light-mode .inb-ai-btn { background: rgba(37,99,235,0.08); color: #1d4ed8; border-color: rgba(37,99,235,0.3); }
+    .inb-ai-note { background: rgba(92,131,255,0.08); border: 1px solid rgba(92,131,255,0.2); color: #bccfff; }
+    html.light-mode .inb-ai-note { background: rgba(37,99,235,0.06); border-color: rgba(37,99,235,0.2); color: #1e40af; }
+    .inb-ai-chip { background: rgba(92,131,255,0.1); color: #bccfff; border: 1px solid rgba(92,131,255,0.2); }
+    html.light-mode .inb-ai-chip { background: rgba(37,99,235,0.06); color: #1d4ed8; border-color: rgba(37,99,235,0.22); }
+    .inb-err-text { color: #fca5a5; }
+    html.light-mode .inb-err-text { color: #dc2626; }
+    .inb-hint-text { color: #90acff; }
+    html.light-mode .inb-hint-text { color: #2563eb; }
+    .inb-badge-dim { background: rgba(0,0,0,0.25); }
+    html.light-mode .inb-badge-dim { background: rgba(15,23,42,0.07); }
+    .inb-badge-wait { background: rgba(0,0,0,0.2); }
+    html.light-mode .inb-badge-wait { background: rgba(15,23,42,0.06); }
+    .inb-sla-soon { background: rgba(245,158,11,0.1); color: #fbbf24; }
+    html.light-mode .inb-sla-soon { background: rgba(217,119,6,0.1); color: #b45309; }
+</style>
 @php
     $availableBoards = \App\Modules\User\Models\TaskBoard::query()
         ->where('workspace_id', $thread->workspace_id)
@@ -73,7 +93,7 @@
                         <div class="text-base font-bold" style="color: var(--text-primary);">{{ $thread->sender_name ?: '—' }}</div>
                         <div class="text-xs" style="color: var(--text-muted);">{{ $thread->sender_email }}</div>
                         <div class="flex items-center gap-2 flex-wrap mt-2">
-                            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded inline-flex items-center gap-1" style="background: rgba(0,0,0,0.25); color: {{ $thread->channelColor() }};"><i class="{{ $thread->channelIcon() }}"></i>{{ $thread->channelLabel() }}</span>
+                            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded inline-flex items-center gap-1 inb-badge-dim" style="color: {{ $thread->channelColor() }};"><i class="{{ $thread->channelIcon() }}"></i>{{ $thread->channelLabel() }}</span>
                             <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded" style="background: {{ $thread->categoryColor() }}22; color: {{ $thread->categoryColor() }};">{{ $thread->categoryLabel() }}</span>
                             <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded" style="background: {{ $thread->priorityColor() }}22; color: {{ $thread->priorityColor() }};"><i class="fas fa-flag mr-1"></i>{{ $thread->priorityLabel() }}</span>
                             @if($thread->wasSentByAi())
@@ -84,7 +104,7 @@
                             @if($thread->isOverdue())
                                 <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded" style="background: rgba(239,68,68,0.15); color: #f87171;"><i class="fas fa-clock mr-1"></i>Overdue {{ $thread->sla_due_at->diffForHumans() }}</span>
                             @elseif($thread->sla_due_at)
-                                <span class="text-[10px] font-semibold px-2 py-0.5 rounded" style="background: rgba(245,158,11,0.1); color: #fbbf24;"><i class="fas fa-stopwatch mr-1"></i>SLA {{ $thread->sla_due_at->diffForHumans() }}</span>
+                                <span class="text-[10px] font-semibold px-2 py-0.5 rounded inb-sla-soon"><i class="fas fa-stopwatch mr-1"></i>SLA {{ $thread->sla_due_at->diffForHumans() }}</span>
                             @endif
                         </div>
                     </div>
@@ -150,7 +170,7 @@
                                         <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded inline-flex items-center gap-1" style="background: rgba(56,189,248,0.15); color: #38bdf8;">
                                             <i class="fas fa-shield-virus fa-spin"></i>Scanning…
                                         </span>
-                                        <span class="px-2 py-1 rounded text-[11px]" style="background: rgba(0,0,0,0.2); color: var(--text-faint);" title="Download disabled until scan finishes">
+                                        <span class="px-2 py-1 rounded text-[11px] inb-badge-wait" style="color: var(--text-faint);" title="Download disabled until scan finishes">
                                             <i class="fas fa-clock"></i>
                                         </span>
                                     @elseif($flagged)
@@ -172,7 +192,7 @@
                                     @endif
                                 </div>
                                 @if($flagged)
-                                    <div class="mt-2 text-[11px]" style="color: #fca5a5;">
+                                    <div class="mt-2 text-[11px] inb-err-text">
                                         <i class="fas fa-circle-info mr-1"></i>{{ $uf->scanReasonLabel() }}
                                         @if($highRisk) · <strong class="uppercase tracking-wider">High-risk file type</strong>@endif
                                     </div>
@@ -190,14 +210,12 @@
                     <div class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-faint);">Reply via {{ $thread->channelLabel() }}</div>
                     <div class="flex items-center gap-2">
                         <button type="button" @click="showLinkPicker = true; linkQuery = ''; linkResults = []; searchLinks(); $nextTick(() => $refs.linkPickerInput && $refs.linkPickerInput.focus())"
-                                class="px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5"
-                                style="background: rgba(92,131,255,0.15); color: #bccfff; border: 1px solid rgba(92,131,255,0.3);">
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 inb-ai-btn">
                             <i class="fas fa-link"></i>
                             <span>Attach a link</span>
                         </button>
                         <button type="button" @click="draftWithAi()" :disabled="aiDrafting"
-                                class="px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5"
-                                style="background: rgba(92,131,255,0.15); color: #bccfff; border: 1px solid rgba(92,131,255,0.3);">
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 inb-ai-btn">
                             <i class="fas" :class="aiDrafting ? 'fa-spinner fa-spin' : 'fa-robot'"></i>
                             <span x-text="aiDrafting ? 'Drafting…' : (replyText ? 'Regenerate with AI' : 'Draft with AI')"></span>
                         </button>
@@ -241,20 +259,20 @@
                 </div>
 
                 @if($thread->needsReview())
-                    <div class="p-2.5 rounded-lg text-[11px] flex items-start gap-2" style="background: rgba(92,131,255,0.08); border: 1px solid rgba(92,131,255,0.2); color: #bccfff;">
+                    <div class="p-2.5 rounded-lg text-[11px] flex items-start gap-2 inb-ai-note">
                         <i class="fas fa-robot mt-0.5"></i>
                         <span>The AI Inbox Agent drafted this reply automatically and is waiting for your review. Edit it as needed, then send.</span>
                     </div>
                 @endif
 
-                <div x-show="aiError" x-cloak class="p-2.5 rounded-lg text-[11px]" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #fca5a5;">
+                <div x-show="aiError" x-cloak class="p-2.5 rounded-lg text-[11px] inb-err-text" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2);">
                     <i class="fas fa-circle-exclamation mr-1"></i><span x-text="aiError"></span>
                 </div>
 
                 @if(!empty($suggestions))
                 <div class="flex flex-wrap gap-2">
                     @foreach($suggestions as $s)
-                        <button type="button" @click="replyText = @js($s)" class="px-3 py-1.5 rounded-lg text-xs text-left max-w-md truncate" style="background: rgba(92,131,255,0.1); color: #bccfff; border: 1px solid rgba(92,131,255,0.2);" title="{{ $s }}">
+                        <button type="button" @click="replyText = @js($s)" class="px-3 py-1.5 rounded-lg text-xs text-left max-w-md truncate inb-ai-chip" title="{{ $s }}">
                             <i class="fas fa-magic-wand-sparkles mr-1"></i>{{ \Illuminate\Support\Str::limit($s, 90) }}
                         </button>
                     @endforeach
@@ -300,7 +318,7 @@
                     @if($thread->category_source === 'auto' && $thread->category_confidence)
                         <div class="text-[10px]" style="color: var(--text-faint);">AI confidence: {{ number_format($thread->category_confidence * 100) }}%</div>
                     @elseif($thread->category_source === 'manual')
-                        <div class="text-[10px]" style="color: #90acff;">Manual override (used as training feedback)</div>
+                        <div class="text-[10px] inb-hint-text">Manual override (used as training feedback)</div>
                     @endif
                 </form>
 
