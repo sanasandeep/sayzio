@@ -1,9 +1,8 @@
 {
- "headSha": "5db4b47a0d5abb11e20eba0836232b3124edd1d7",
- "remoteTreeSha": "17430b460347fdf09fa0efd0af9f585947234d16",
+ "headSha": "bd8e46009fbae540b776c8a3a9e4a96ed06f14c7",
+ "remoteTreeSha": "1419d8b068081a049264854339d877ea5b066702",
  "changed": [
   ".agents/memory/MEMORY.md",
-  ".agents/memory/tinker-seed-workspace-scope.md",
   ".replit",
   "artifacts/1inme/app/Modules/User/Controllers/MarketingPlanCalculatorController.php",
   "artifacts/1inme/app/Services/MarketingPlanDefaults.php",
@@ -12,7 +11,6 @@
   "artifacts/zio-browser/src/renderer/components/ChromeBar.tsx",
   "artifacts/zio-browser/src/renderer/components/NewTabPage.tsx",
   "artifacts/zio-browser/src/renderer/styles/global.css",
-  "artifacts/zio-browser/src/shared/api-client.ts",
   "blobs.json",
   "state.json"
  ],
