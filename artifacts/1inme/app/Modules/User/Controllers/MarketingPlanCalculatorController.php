@@ -7,6 +7,7 @@ use App\Modules\User\Models\MarketingPlanCalc;
 use App\Modules\User\Models\MarketingStrategy;
 use App\Services\MarketingPlanAiSeed;
 use App\Services\MarketingPlanDefaults;
+use App\Services\MarketingPlanIndustryPresets;
 use Illuminate\Http\Request;
 
 /**
@@ -40,6 +41,13 @@ class MarketingPlanCalculatorController extends Controller
         $seedName = null;
         $aiSeed   = null;
 
+        // Task #6767 — `?preset={key}` seeds the channel table from an
+        // industry benchmark preset. Unknown keys fall back to generic.
+        if (($presetKey = (string) $request->query('preset')) !== ''
+            && MarketingPlanIndustryPresets::exists($presetKey)) {
+            $payload = MarketingPlanIndustryPresets::apply($payload, $presetKey);
+        }
+
         if (($strategyId = (int) $request->query('from_strategy')) > 0) {
             $strategy = $this->ownedStrategies($request)->whereKey($strategyId)->first();
             if (!$strategy) abort(404);
@@ -58,6 +66,7 @@ class MarketingPlanCalculatorController extends Controller
             'plan'        => null,
             'payload'     => $payload,
             'planOptions' => MarketingPlanDefaults::planOptions(),
+            'presets'     => MarketingPlanIndustryPresets::forClient(),
             'seedName'    => $seedName,
             'aiSeed'      => $aiSeed,
         ]);
@@ -91,10 +100,17 @@ class MarketingPlanCalculatorController extends Controller
         // added still open with sane values for the newer inputs.
         $payload = array_replace(MarketingPlanDefaults::defaults($request->user()), (array) $model->payload);
 
+        // Task #6767 — plans saved before presets existed must read "Custom",
+        // not inherit the defaults' 'generic' stamp from the merge above.
+        if (!array_key_exists(MarketingPlanIndustryPresets::PAYLOAD_KEY, (array) $model->payload)) {
+            unset($payload[MarketingPlanIndustryPresets::PAYLOAD_KEY]);
+        }
+
         return view('user.marketing-plan.editor', [
             'plan'        => $model,
             'payload'     => $payload,
             'planOptions' => MarketingPlanDefaults::planOptions(),
+            'presets'     => MarketingPlanIndustryPresets::forClient(),
         ]);
     }
 
@@ -133,6 +149,10 @@ class MarketingPlanCalculatorController extends Controller
         $validated = $request->validate([
             'name'    => 'required|string|max:160',
             'payload' => 'required|array',
+
+            // Task #6767 — the originating industry preset key (badge only,
+            // free-form so a removed preset can't block re-saving old plans).
+            'payload.industry_preset'  => 'nullable|string|max:64',
 
             // Engine-critical numbers — bounded, but nullable so older /
             // partial payloads still save.

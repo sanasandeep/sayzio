@@ -48,6 +48,11 @@
             <a href="{{ route('user.marketing-plan.index') }}" class="text-[11px] font-bold uppercase tracking-[0.15em] text-blue-400 hover:text-blue-300">
                 <i class="fas fa-arrow-left mr-1"></i> Marketing Plan Calculator
             </a>
+            {{-- Task #6767 — which industry preset this plan started from. --}}
+            <span data-mpc-preset-badge
+                  class="inline-block align-middle ml-2 px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-400 text-[10px] font-bold uppercase tracking-wide"
+                  title="Industry benchmark preset this plan started from"
+                  x-text="presetLabel"></span>
             <input type="text" x-model="name" placeholder="Plan name (e.g. 2026 Growth Plan)"
                    class="mpc-input mt-1.5 !text-base !font-semibold" style="max-width: 26rem;">
         </div>
@@ -200,6 +205,17 @@
         <div class="rounded-2xl mpc-card p-4 overflow-x-auto">
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <h3 class="text-sm font-bold mpc-title">Channel assumptions <span class="mpc-faint font-normal">(money in ₹ — base currency)</span></h3>
+                {{-- Task #6767 — one-click industry benchmark presets. --}}
+                <div class="flex items-center gap-2">
+                    <label for="mpcPresetPick" class="text-[11px] font-semibold mpc-sub whitespace-nowrap">Industry preset</label>
+                    <select id="mpcPresetPick" x-model="presetPick" @change="onPresetPick()"
+                            class="mpc-input !w-auto" :title="presets[presetPick]?.description || ''">
+                        <option value="custom" disabled hidden>Custom</option>
+                        <template x-for="(pr, k) in presets" :key="k">
+                            <option :value="k" x-text="pr.label"></option>
+                        </template>
+                    </select>
+                </div>
                 <span class="text-xs font-bold px-2.5 py-1 rounded-lg"
                       :class="allocOk ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'"
                       x-text="(allocOk ? '✓ Allocation ' : '⚠ Allocation ') + nf(allocTotal, 1) + '% ' + (allocOk ? '' : '— must total 100%')"></span>
@@ -417,6 +433,8 @@ function mpcApp() {
         name: @js($plan?->name ?? ($seedName ?? 'My Marketing Plan')),
         p: @js($payload),
         planOptions: @js($planOptions),
+        presets: @js($presets ?? []),
+        presetPick: 'custom',
         months: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
         tab: 'assumptions',
         monthlyMetric: 'spend',
@@ -435,6 +453,10 @@ function mpcApp() {
             // Run before the dirty baseline so a silent self-heal of an old
             // saved plan doesn't count as an unsaved edit.
             this.applyClamps(false);
+
+            // Task #6767 — reflect the saved preset in the picker; unknown /
+            // pre-preset payloads read as "Custom".
+            this.presetPick = this.presets[this.p.industry_preset] ? this.p.industry_preset : 'custom';
 
             // ----- unsaved-changes guard -----
             this._baseline = this.snapshot();
@@ -502,6 +524,25 @@ function mpcApp() {
         },
         snapshot() { return JSON.stringify({ name: this.name, p: this.p }); },
         recomputeDirty() { this.dirty = this.snapshot() !== this._baseline; },
+
+        // ---------- industry presets (Task #6767) ----------
+        get presetLabel() { return this.presets[this.p.industry_preset]?.label || 'Custom'; },
+        onPresetPick() {
+            const key = this.presetPick;
+            if (key === 'custom' || !this.presets[key] || key === this.p.industry_preset) return;
+            // Overwrites a plan someone has worked on → confirm first. A
+            // fresh, untouched new plan applies silently.
+            if ((this.planId || this.dirty)
+                && !window.confirm('Apply the "' + this.presets[key].label + '" preset?\n\nThis overwrites the whole channel-assumptions table (allocations, cost per visitor, conversion rates, customer values and notes) with the preset\'s benchmarks. Your budget, seasonality and other inputs are kept. Everything stays editable afterwards.')) {
+                this.presetPick = this.presets[this.p.industry_preset] ? this.p.industry_preset : 'custom';
+                return;
+            }
+            this.applyPreset(key);
+        },
+        applyPreset(key) {
+            this.p.channels = JSON.parse(JSON.stringify(this.presets[key].channels));
+            this.p.industry_preset = key;
+        },
 
         // ---------- helpers ----------
         n(v) { const x = parseFloat(v); return isFinite(x) ? x : 0; },

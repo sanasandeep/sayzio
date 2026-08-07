@@ -79,6 +79,7 @@ class MarketingPlanDefaults
 
         return [
             'company'          => '',
+            'industry_preset'  => MarketingPlanIndustryPresets::GENERIC, // Task #6767
             'annual_budget'    => 180000,      // INR, paid channels only
             'display_currency' => 'INR',
             'usd_inr_rate'     => 83.0,        // editable USD→INR display rate
