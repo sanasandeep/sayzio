@@ -159,7 +159,7 @@
                 </div>
                 <div class="rounded-xl p-4 border" style="border-color: var(--border-soft);">
                     <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">Conversion</p>
-                    <p class="text-2xl font-extrabold mt-1 text-violet-600">{{ $qrConnect['conversion_pct'] !== null ? $qrConnect['conversion_pct'] . '%' : '—' }}</p>
+                    <p class="text-2xl font-extrabold mt-1 text-blue-600">{{ $qrConnect['conversion_pct'] !== null ? $qrConnect['conversion_pct'] . '%' : '—' }}</p>
                     <p class="text-[10px] mt-0.5" style="color: var(--text-faint);">Scans → connects</p>
                 </div>
             </div>
