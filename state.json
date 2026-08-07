@@ -1,0 +1,19 @@
+{
+ "headSha": "b18925cb9568615309b1f90f95be1c971c5a8cd4",
+ "remoteTreeSha": "6c58091adb986570b1d865523372dd28ff5c9d78",
+ "changed": [
+  ".replit",
+  "artifacts/1inme/app/Modules/Admin/Controllers/MarketingPlanToolCostsController.php",
+  "artifacts/1inme/app/Modules/User/Controllers/MarketingPlanCalculatorController.php",
+  "artifacts/1inme/app/Services/MarketingPlanDefaults.php",
+  "artifacts/1inme/resources/views/admin/layouts/app.blade.php",
+  "artifacts/1inme/resources/views/admin/marketing-plan-tool-costs/index.blade.php",
+  "artifacts/1inme/resources/views/user/marketing-plan/editor.blade.php",
+  "artifacts/1inme/routes/modules/admin.php",
+  "artifacts/1inme/tests/Feature/MarketingPlanToolCostsTest.php",
+  "attached_assets/Screenshot_2026-08-07_at_11.20.54_PM_1786125065775.png",
+  "blobs.json",
+  "state.json"
+ ],
+ "removed": []
+}
