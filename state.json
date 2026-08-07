@@ -1,14 +1,13 @@
 {
- "headSha": "63fde4f03a017ecd68999519c001a9ae1831994a",
- "remoteTreeSha": "aae842296c810c2eab2eb782b841a0a01c99cb86",
+ "headSha": "ccca062d1a51ccc977aba971148fcff312122eea",
+ "remoteTreeSha": "279c7efe64541a82f537f379b809cc7590b949d5",
  "changed": [
   ".replit",
   "artifacts/1inme/app/Modules/User/Controllers/MarketingPlanCalculatorController.php",
   "artifacts/1inme/app/Services/MarketingPlanDefaults.php",
   "artifacts/1inme/resources/views/user/marketing-plan/editor.blade.php",
-  "attached_assets/Screenshot_2026-08-07_at_11.32.00_PM_1786125727576.png",
-  "attached_assets/Screenshot_2026-08-07_at_11.33.06_PM_1786125798029.png",
-  "blobs.json"
+  "blobs.json",
+  "state.json"
  ],
  "removed": []
 }
