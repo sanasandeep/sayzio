@@ -388,12 +388,37 @@ function mpcApp() {
         monthlyMetric: 'spend',
         saving: false, savedFlash: false, saveError: '',
         charts: {},
+        dirty: false, _baseline: '',
 
         init() {
             // Ensure array shapes survive older/partial payloads.
             if (!Array.isArray(this.p.weights) || this.p.weights.length !== 12) this.p.weights = Array(12).fill(1);
             if (!this.p.uplifts) this.p.uplifts = { apply: true, chat: 8, crm: 15 };
+
+            // ----- unsaved-changes guard -----
+            this._baseline = this.snapshot();
+            this.$watch('p', () => this.recomputeDirty());
+            this.$watch('name', () => this.recomputeDirty());
+            window.addEventListener('beforeunload', (e) => {
+                if (!this.dirty) return;
+                e.preventDefault();
+                e.returnValue = ''; // legacy browsers need a value to show the prompt
+            });
+            // In-app nav guard: confirm before following any link while dirty.
+            document.addEventListener('click', (e) => {
+                if (!this.dirty) return;
+                const a = e.target.closest('a[href]');
+                if (!a) return;
+                const href = a.getAttribute('href') || '';
+                if (href.startsWith('#') || a.target === '_blank' || a.hasAttribute('download')) return;
+                if (!window.confirm('You have unsaved changes to this plan. Leave without saving?')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }, true);
         },
+        snapshot() { return JSON.stringify({ name: this.name, p: this.p }); },
+        recomputeDirty() { this.dirty = this.snapshot() !== this._baseline; },
 
         // ---------- helpers ----------
         n(v) { const x = parseFloat(v); return isFinite(x) ? x : 0; },
@@ -698,6 +723,8 @@ function mpcApp() {
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok || !data.ok) throw new Error(data.message || 'Could not save the plan. Please try again.');
+                this._baseline = this.snapshot();
+                this.dirty = false;
                 if (!this.planId && data.redirect) { window.location.href = data.redirect; return; }
                 this.savedFlash = true;
                 setTimeout(() => this.savedFlash = false, 2500);
