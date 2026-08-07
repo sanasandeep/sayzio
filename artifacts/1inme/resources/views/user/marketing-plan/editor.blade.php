@@ -30,6 +30,16 @@
         html.light-mode .mpc-tab.active { background: rgba(37,99,235,0.10); color: #2563eb; }
         .mpc-kpi { font-size: 1.35rem; font-weight: 800; color: #fff; }
         html.light-mode .mpc-kpi { color: #0f172a; }
+        .mpc-export-btn { background: rgba(255,255,255,0.10); color: #fff; border: 1px solid rgba(255,255,255,0.10); }
+        .mpc-export-btn:hover { background: rgba(255,255,255,0.15); }
+        html.light-mode .mpc-export-btn { background: #fff; color: #0f172a; border-color: rgba(15,23,42,0.18); }
+        html.light-mode .mpc-export-btn:hover { background: #f1f5f9; }
+        .mpc-menu { background: #0f172a; border: 1px solid rgba(255,255,255,0.10); }
+        html.light-mode .mpc-menu { background: #fff; border-color: rgba(15,23,42,0.12); }
+        .mpc-menu-item { color: rgba(255,255,255,0.8); }
+        .mpc-menu-item:hover { background: rgba(255,255,255,0.10); }
+        html.light-mode .mpc-menu-item { color: #1e293b; }
+        html.light-mode .mpc-menu-item:hover { background: #f1f5f9; }
     </style>
 
     {{-- ===== Header: name, currency toggle, save ===== --}}
@@ -49,6 +59,23 @@
                 <button type="button" @click="p.display_currency = 'USD'"
                         :class="p.display_currency === 'USD' ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/50'"
                         class="px-3 py-1.5 text-xs font-bold">$ USD</button>
+            </div>
+            <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                <button type="button" @click="open = !open"
+                        class="mpc-export-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold">
+                    <i class="fas fa-download"></i> Export <i class="fas fa-chevron-down text-[10px]"></i>
+                </button>
+                <div x-show="open" x-cloak
+                     class="mpc-menu absolute right-0 mt-1.5 w-48 rounded-xl shadow-xl z-20 overflow-hidden">
+                    <button type="button" @click="open = false; exportXlsx()"
+                            class="mpc-menu-item w-full text-left px-4 py-2.5 text-sm">
+                        <i class="fas fa-file-excel mr-2 text-emerald-400"></i> Excel (.xlsx)
+                    </button>
+                    <button type="button" @click="open = false; exportCsv()"
+                            class="mpc-menu-item w-full text-left px-4 py-2.5 text-sm">
+                        <i class="fas fa-file-csv mr-2 text-blue-400"></i> CSV (.csv)
+                    </button>
+                </div>
             </div>
             <button type="button" @click="save()" :disabled="saving"
                     class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
@@ -348,6 +375,7 @@
 </div>
 
 <script src="{{ asset('js/vendor/chart.umd.min.js') }}"></script>
+<script src="{{ asset('js/vendor/xlsx.mini.min.js') }}" defer></script>
 <script>
 function mpcApp() {
     return {
@@ -450,6 +478,154 @@ function mpcApp() {
                 upliftPct: baselineRevenue > 0 ? upliftRevenue / baselineRevenue : 0,
                 totalValue: extraMonthly * 12 + timeMonthly * 12 + upliftRevenue,
             };
+        },
+
+        // ---------- export ----------
+        // Rounds a display-currency money value for the spreadsheet cells.
+        xm(vInr) { const v = this.n(vInr) * this.curMult; return Math.round(v * 100) / 100; },
+        xn(v, d = 2) { const f = Math.pow(10, d); return Math.round(this.n(v) * f) / f; },
+
+        /**
+         * Builds the export as named sections of AOA rows. All money is in
+         * the currently selected display currency (INR/USD toggle).
+         */
+        exportSections() {
+            const cur = this.p.display_currency, sym = cur === 'USD' ? '$' : '₹';
+            const m = this.model, r = this.roi;
+
+            const assumptions = [
+                ['Marketing Plan — Assumptions'],
+                ['Plan name', this.name || 'My Marketing Plan'],
+                ['Company / Product', this.p.company || ''],
+                ['Display currency', cur],
+                ['USD → INR rate', this.xn(this.p.usd_inr_rate)],
+                ['Total annual ad-spend budget (' + sym + ')', this.xm(this.p.annual_budget)],
+                ['Sayzio plan', this.selectedPlan.name],
+                ['Sayzio subscription (' + sym + '/month)', this.xm(this.selectedPlan.inr)],
+                ['AI credits usage (' + sym + '/month)', this.xm(this.p.ai_credits)],
+                ['Est. monthly organic visitors', this.xn(this.p.organic_visitors, 0)],
+                ['Apply Sayzio toolset uplifts', this.p.uplifts.apply ? 'Yes' : 'No'],
+                ['Chat widget uplift — visitor → lead (%)', this.xn(this.p.uplifts.chat, 1)],
+                ['CRM & dialer uplift — lead → customer (%)', this.xn(this.p.uplifts.crm, 1)],
+                [],
+                ['Monthly seasonality weights'],
+                ['Month', ...this.months],
+                ['Weight', ...this.p.weights.map(w => this.xn(w, 2))],
+                [],
+                ['Channel assumptions'],
+                ['Channel', 'Alloc %', 'Cost / visitor (' + sym + ')', 'Visitor → lead %', 'Lead → customer %', 'Avg customer value (' + sym + ')', 'Notes'],
+                ...this.p.channels.map(c => [
+                    c.name,
+                    c.fixed ? 'Fixed cost' : this.xn(c.alloc, 1),
+                    c.fixed ? 'N/A' : this.xm(c.cpv),
+                    this.xn(c.vl, 1), this.xn(c.lc, 1), this.xm(c.acv), c.notes || '',
+                ]),
+            ];
+
+            const monthly = [['Monthly plan — all metrics in ' + cur + ' where money']];
+            for (const [metric, label] of [['spend', 'Spend (' + sym + ')'], ['visitors', 'Visitors'], ['leads', 'Leads'], ['customers', 'Customers'], ['revenue', 'Revenue (' + sym + ')']]) {
+                const isMoney = metric === 'spend' || metric === 'revenue';
+                const fmt = v => isMoney ? this.xm(v) : this.xn(v, 1);
+                monthly.push([]);
+                monthly.push([label]);
+                monthly.push(['Channel', ...this.months, 'Total']);
+                for (const row of m.channels) {
+                    monthly.push([row.name, ...row[metric].map(fmt), fmt(this.sum(row[metric]))]);
+                }
+                monthly.push(['All channels', ...m.monthTotals[metric].map(fmt), fmt(this.sum(m.monthTotals[metric]))]);
+            }
+
+            const dashboard = [
+                ['Dashboard — annual totals (' + cur + ')'],
+                ['Total annual budget (' + sym + ')', this.xm(this.p.annual_budget)],
+                ['Total projected spend (' + sym + ')', this.xm(m.totals.spend)],
+                ['Total projected revenue (' + sym + ')', this.xm(m.totals.revenue)],
+                ['Blended ROAS (×)', this.xn(m.totals.roas)],
+                ['Total customers acquired', this.xn(m.totals.customers, 0)],
+                ['Blended CAC (' + sym + ')', this.xm(m.totals.cac)],
+                ['Blended ROI (%)', this.xn(m.totals.roi * 100, 1)],
+                [],
+                ['Channel summary (annual)'],
+                ['Channel', 'Annual spend (' + sym + ')', 'Annual revenue (' + sym + ')', 'Customers', 'CAC (' + sym + ')', 'ROI %'],
+                ...m.channels.map(row => {
+                    const sp = this.sum(row.spend), rev = this.sum(row.revenue), cu = this.sum(row.customers);
+                    return [row.name, this.xm(sp), this.xm(rev), this.xn(cu, 0),
+                            cu > 0 ? this.xm(sp / cu) : '—',
+                            sp > 0 ? this.xn((rev - sp) / sp * 100, 1) : '—'];
+                }),
+            ];
+
+            const roiRows = [
+                ['Sayzio ROI & value (' + cur + ')'],
+                [],
+                ['If you didn\'t use Sayzio — what you\'d need instead'],
+                ['Sayzio feature', 'Example standalone tool', 'Est. monthly cost (' + sym + ')', 'Notes'],
+                ...this.p.tools.map(t => [t.feature, t.example, this.xm(t.cost), t.notes || '']),
+                ['TOTAL — estimated monthly cost without Sayzio', '', this.xm(r.toolsMonthly), ''],
+                ['Sayzio monthly subscription (' + this.selectedPlan.name + ')', '', this.xm(r.subMonthly), ''],
+                ['Extra monthly spend without Sayzio', '', this.xm(r.extraMonthly), ''],
+                ['Extra annual spend without Sayzio', '', this.xm(r.extraAnnual), ''],
+                [],
+                ['Time saved by consolidating into Sayzio'],
+                ['Standalone tools replaced', this.p.tools.length],
+                ['Est. hours saved per tool per month', this.xn(this.p.hours_per_tool, 1)],
+                ['Value of your time (' + sym + '/hour)', this.xm(this.p.time_value)],
+                ['Total hours saved / month', this.xn(r.hoursMonthly, 1)],
+                ['Monthly value of time saved (' + sym + ')', this.xm(r.timeMonthly)],
+                ['Annual value of time saved (' + sym + ')', this.xm(r.timeAnnual)],
+                [],
+                ['Sayzio effectiveness — revenue impact'],
+                ['Baseline annual revenue, no uplift (' + sym + ')', this.xm(r.baselineRevenue)],
+                ['Annual revenue with current uplift setting (' + sym + ')', this.xm(m.totals.revenue)],
+                ['Additional revenue from Sayzio effectiveness (' + sym + ')', this.xm(r.upliftRevenue)],
+                ['Effectiveness uplift on revenue (%)', this.xn(r.upliftPct * 100, 1)],
+                [],
+                ['Total value of using Sayzio (year)'],
+                ['Money saved on tools (' + sym + ')', this.xm(r.extraAnnual)],
+                ['Money saved via time (' + sym + ')', this.xm(r.timeAnnual)],
+                ['Effectiveness revenue (' + sym + ')', this.xm(r.upliftRevenue)],
+                ['TOTAL VALUE (' + sym + ')', this.xm(r.totalValue)],
+            ];
+
+            return [
+                ['Assumptions', assumptions],
+                ['Monthly Plan', monthly],
+                ['Dashboard', dashboard],
+                ['Sayzio ROI', roiRows],
+            ];
+        },
+
+        exportFileBase() {
+            return (this.name || 'marketing-plan').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'marketing-plan';
+        },
+
+        exportXlsx() {
+            if (typeof XLSX === 'undefined') { this.saveError = 'Excel export is still loading — try again in a moment.'; return; }
+            const wb = XLSX.utils.book_new();
+            for (const [title, rows] of this.exportSections()) {
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), title);
+            }
+            XLSX.writeFile(wb, this.exportFileBase() + '.xlsx');
+        },
+
+        exportCsv() {
+            const esc = v => {
+                const s = String(v ?? '');
+                return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+            };
+            const parts = [];
+            for (const [title, rows] of this.exportSections()) {
+                parts.push('=== ' + title + ' ===');
+                for (const row of rows) parts.push(row.map(esc).join(','));
+                parts.push('');
+            }
+            const blob = new Blob(['\ufeff' + parts.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = this.exportFileBase() + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
         },
 
         // ---------- charts ----------
