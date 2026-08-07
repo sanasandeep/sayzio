@@ -236,7 +236,7 @@
                 Build a résumé and portfolio<br><span class="grad-text">that lands the interview.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                Drag-and-drop sections, AI-polished copy, and a public portfolio link that lives at <span class="font-semibold text-white">1inme.com/you/cv</span>. Export to PDF in one click. No Word, no fiddling, no recruiter rejection.
+                Drag-and-drop sections, AI-polished copy, and a public portfolio link that lives at <span class="font-semibold text-white">sayzio.app/you/resume</span>. Export to PDF in one click. No Word, no fiddling, no recruiter rejection.
             </p>
         </div>
 
@@ -344,7 +344,7 @@
                     ['fa-wand-magic-sparkles', '#3d6bff', 'AI writes the boring parts',  'Paste your past role &mdash; we generate impact-first bullet points with metrics, action verbs and ATS keywords.'],
                     ['fa-grip-vertical',       '#1bd4d9', 'Drag-and-drop sections',       'Reorder Experience, Education, Projects, Skills and custom blocks. Live preview, no save button.'],
                     ['fa-palette',             '#e94e8c', '20+ recruiter-tested templates','Minimalist, design-led, classic ATS &mdash; all responsive, all printable, all yours to recolor.'],
-                    ['fa-link',                '#ff8a3c', 'Public portfolio link',        'Share <span class="text-white font-semibold">1inme.com/you/cv</span> instantly. Embed projects, GitHub repos, Behance shots and case studies.'],
+                    ['fa-link',                '#ff8a3c', 'Public portfolio link',        'Share <span class="text-white font-semibold">sayzio.app/you/resume</span> instantly. Embed projects, GitHub repos, Behance shots and case studies.'],
                     ['fa-file-pdf',            '#22c55e', 'One-click PDF export',         'Pixel-perfect A4 / Letter export with selectable text and embedded fonts. ATS systems read it cleanly.'],
                     ['fa-shield-halved',       '#22d3ee', 'Privacy-first',                'Toggle between public, unlisted (link-only) and private. Hide email/phone from public view in one tap.'],
                 ] as $i => $f)

@@ -104,7 +104,7 @@
     @endif
 
     <p class="muted" style="margin-top:32px">
-        Questions? Contact {{ $merchant['support_email'] ?? 'billing@1inme.com' }}.
+        Questions? Contact {{ $merchant['support_email'] ?? 'billing@sayzio.app' }}.
         This is a computer-generated tax invoice; no signature required.
     </p>
 </body>

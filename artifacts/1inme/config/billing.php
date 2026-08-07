@@ -29,7 +29,7 @@ return [
         'gst_state' => env('MERCHANT_GST_STATE', 'MH'),
         'gstin'    => env('MERCHANT_GSTIN', '27AAACO9633K1ZK'),
         'vatin'    => env('MERCHANT_VATIN', null),
-        'support_email' => env('MERCHANT_SUPPORT_EMAIL', 'billing@1inme.com'),
+        'support_email' => env('MERCHANT_SUPPORT_EMAIL', 'billing@sayzio.app'),
     ],
 
     /*

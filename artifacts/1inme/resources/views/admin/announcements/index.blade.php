@@ -3,7 +3,7 @@
 @section('content')
 @php
     $audienceHints = [
-        'marketing'      => 'Shown to everyone on the marketing / public pages (this app and the 1inme.com site).',
+        'marketing'      => 'Shown to everyone on the marketing / public pages (this app and the sayzio.app site).',
         'guests'         => 'Shown on public pages only to visitors who are NOT logged in.',
         'users'          => 'Shown on public pages only to visitors who ARE logged in.',
         'user_dashboard' => 'Shown inside the logged-in user dashboard.',
