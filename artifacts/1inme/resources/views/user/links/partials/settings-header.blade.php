@@ -105,7 +105,8 @@
 </div>
 @endif
 
-<div class="settings-tabs inline-flex items-center gap-1 mb-6 p-1 rounded-full">
+<div class="settings-tabs-scroll mb-6">
+<div class="settings-tabs inline-flex items-center gap-1 p-1 rounded-full">
     @foreach($settingsTabs as $tabKey => $tab)
     <a href="{{ route($tab['route'], $link) }}"
        class="settings-tab no-underline {{ $activeSettingsTab === $tabKey ? 'is-active' : '' }}">
@@ -114,7 +115,19 @@
     </a>
     @endforeach
 </div>
+</div>
 <style>
+    /* On narrow viewports the pill bar becomes horizontally swipeable
+       instead of clipping later tabs off-screen (Task #6784). */
+    .settings-tabs-scroll {
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;         /* Firefox */
+        -ms-overflow-style: none;      /* legacy Edge/IE */
+    }
+    .settings-tabs-scroll::-webkit-scrollbar { display: none; }  /* WebKit */
     .settings-tabs {
         background: var(--bg-glass-input);
         border: 1px solid var(--border-glass);
@@ -135,6 +148,7 @@
         transition: color .2s ease, background .2s ease, box-shadow .2s ease, transform .2s ease;
     }
     .settings-tab:hover { color: var(--text-primary); }
+    .settings-tab { flex: 0 0 auto; white-space: nowrap; }
     .settings-tab.is-active {
         color: #fff;
         background: linear-gradient(135deg, rgba(144,172,255,0.95), rgba(103,232,249,0.85));
@@ -146,6 +160,21 @@
     }
     #settings-tab-content.is-loading { opacity: 0.5; pointer-events: none; transition: opacity .15s ease; }
 </style>
+
+<script>
+/* Keep the active settings tab visible when the pill bar scrolls on small
+   screens (horizontal-only — never scroll the page vertically). */
+(function() {
+    window.__settingsTabsRevealActive = function() {
+        var scroller = document.querySelector('.settings-tabs-scroll');
+        var active = scroller && scroller.querySelector('.settings-tab.is-active');
+        if (!scroller || !active || scroller.scrollWidth <= scroller.clientWidth) return;
+        var target = active.offsetLeft - (scroller.clientWidth - active.offsetWidth) / 2;
+        scroller.scrollLeft = Math.max(0, Math.min(target, scroller.scrollWidth - scroller.clientWidth));
+    };
+    window.__settingsTabsRevealActive();
+})();
+</script>
 
 <script>
 /* AJAX-swap settings sub-tabs so the device preview iframe never reloads.
@@ -204,6 +233,7 @@
                 if (a.getAttribute('href') === url) a.classList.add('is-active');
                 else a.classList.remove('is-active');
             });
+            if (typeof window.__settingsTabsRevealActive === 'function') window.__settingsTabsRevealActive();
 
             // Bind Alpine to the freshly inserted DOM.
             if (window.Alpine && typeof window.Alpine.initTree === 'function') {

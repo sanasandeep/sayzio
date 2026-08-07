@@ -103,6 +103,10 @@ args = "e2e-mpc-presets"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "e2e-mpc-finance-metrics"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-settings-tabs-scroll"
     
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
@@ -396,3 +400,15 @@ args = "cd artifacts/1inme && VALIDATION_PORT=5088 bash tests/Browser/run-valida
 
 [workflows.workflow.metadata]
 isValidation = true
+
+    [[workflows.workflow]]
+    name = "e2e-settings-tabs-scroll"
+    author = "agent"
+
+    [[workflows.workflow.tasks]]
+    task = "shell.exec"
+    args = "cd artifacts/1inme && VALIDATION_PORT=5090 bash tests/Browser/run-validation.sh settings-tabs-mobile-scroll.spec.ts"
+
+    [workflows.workflow.metadata]
+    isValidation = true
+    
