@@ -15,7 +15,10 @@
     @include('common.partials.theme-styles')
     <style>
         /* ============ Shared sidebar shell (mirrors user layout v3) ============ */
-        .sidebar-v2 { transition: width 0.35s cubic-bezier(0.4,0,0.2,1), transform 0.35s cubic-bezier(0.4,0,0.2,1); overflow: hidden; }
+        /* No overflow:hidden here — the inner nav scroller does its own
+           clipping; hiding overflow on the shell clipped the outer half of
+           the edge toggle handle and the hover tooltips. */
+        .sidebar-v2 { transition: width 0.35s cubic-bezier(0.4,0,0.2,1), transform 0.35s cubic-bezier(0.4,0,0.2,1); }
         .main-content-v2 { transition: margin-left 0.35s cubic-bezier(0.4,0,0.2,1); }
 
         .sidebar-v2 .nav-label,
@@ -38,7 +41,10 @@
         .sidebar-v2.collapsed .sidebar-link.active::after,
         .sidebar-v2.collapsed .sidebar-link.active::before { display: none !important; }
         .sidebar-v2.collapsed nav { display: flex; flex-direction: column; align-items: center; padding-left: 0 !important; padding-right: 0 !important; }
-        .sidebar-v2.collapsed nav > * { width: 100%; display: flex; justify-content: center; }
+        /* Stack children VERTICALLY — a plain `display:flex` row here laid
+           every link out side-by-side inside the 72px rail, clipping all but
+           the first couple of icons out of view. */
+        .sidebar-v2.collapsed nav > * { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
         .sidebar-v2.collapsed .sidebar-link .nav-icon-wrap { margin: 0 auto; width: 36px; height: 36px; min-width: 36px; }
 
         .sidebar-shell {
@@ -51,7 +57,9 @@
         }
 
         .sidebar-edge-toggle {
-            position: absolute; top: 20px; right: -14px;
+            /* Centered on the 60px header seam; the aside is z-30 (above the
+               sticky z-20 header) so the handle never hides behind it. */
+            position: absolute; top: 16px; right: -14px;
             width: 28px; height: 28px; border-radius: 8px;
             background: var(--bg-card, #1f1f23);
             border: 1px solid var(--border-strong);
@@ -112,6 +120,13 @@
         html.light-mode .ak-btn-disabled { color: #94a3b8; background-color: rgba(15,23,42,.05); }
         html.light-mode .ak-open-link { color: #1d4ed8; }
 
+        /* Admin header controls are 32px rounded-lg squares (switch-to-user,
+           avatar) — size the shared theme-toggle button to match. */
+        .header-icon-btn { width: 32px; height: 32px; border-radius: 8px; font-size: 12px; }
+
+        /* Base position is relative to the link; in collapsed mode a tiny
+           script re-anchors the tooltip with position:fixed so it escapes the
+           nav scroller's overflow clipping. */
         .sidebar-tooltip {
             position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%);
             padding: 4px 10px; border-radius: 8px;

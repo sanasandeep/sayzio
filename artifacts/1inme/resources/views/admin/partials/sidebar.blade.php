@@ -709,4 +709,41 @@
             </form>
         </div>
     </div>
+
+    {{-- Collapsed-mode tooltips: re-anchor with position:fixed on hover so
+         they escape the nav scroller's overflow clipping. The aside is a
+         transformed, viewport-origin fixed element, so fixed coords line up. --}}
+    <script>
+    (function () {
+        var bind = function () {
+            var aside = document.querySelector('aside.sidebar-v2');
+            if (!aside) return;
+            aside.addEventListener('mouseover', function (e) {
+                var link = e.target.closest ? e.target.closest('.sidebar-link') : null;
+                if (!link || !aside.classList.contains('collapsed')) return;
+                var tip = link.querySelector('.sidebar-tooltip');
+                if (!tip) return;
+                var r = link.getBoundingClientRect();
+                var a = aside.getBoundingClientRect();
+                tip.style.position = 'fixed';
+                tip.style.left = (a.right + 8) + 'px';
+                tip.style.top = (r.top + r.height / 2) + 'px';
+            });
+            aside.addEventListener('mouseout', function (e) {
+                var link = e.target.closest ? e.target.closest('.sidebar-link') : null;
+                if (!link) return;
+                var tip = link.querySelector('.sidebar-tooltip');
+                if (!tip) return;
+                tip.style.position = '';
+                tip.style.left = '';
+                tip.style.top = '';
+            });
+        };
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bind);
+        } else {
+            bind();
+        }
+    })();
+    </script>
 </aside>

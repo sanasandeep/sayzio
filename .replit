@@ -91,6 +91,10 @@ args = "e2e-marketing-plan-export"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "e2e-mpc-dirty-guard"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-admin-minimized-sidebar"
     
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
@@ -342,12 +346,23 @@ args = "cd artifacts/1inme && VALIDATION_PORT=5084 bash tests/Browser/run-valida
 isValidation = true
 
 [[workflows.workflow]]
-name = "e2e-mpc-dirty-guard"
-author = "agent"
+    name = "e2e-mpc-dirty-guard"
+    author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd artifacts/1inme && VALIDATION_PORT=5085 bash tests/Browser/run-validation.sh mpc-dirty-guard.spec.ts"
+    [[workflows.workflow.tasks]]
+    task = "shell.exec"
+    args = "cd artifacts/1inme && VALIDATION_PORT=5085 bash tests/Browser/run-validation.sh mpc-dirty-guard.spec.ts"
 
-[workflows.workflow.metadata]
-isValidation = true
+    [workflows.workflow.metadata]
+    isValidation = true
+
+    [[workflows.workflow]]
+    name = "e2e-admin-minimized-sidebar"
+    author = "agent"
+
+    [[workflows.workflow.tasks]]
+    task = "shell.exec"
+    args = "cd artifacts/1inme && VALIDATION_PORT=5086 bash tests/Browser/run-validation.sh admin-minimized-sidebar-layout.spec.ts admin-sidebar-label-clip.spec.ts"
+
+    [workflows.workflow.metadata]
+    isValidation = true
