@@ -236,6 +236,44 @@ export class TabManager {
     this.win = win;
     this.tabSession = options.privateSession ?? session.defaultSession;
     this.isPrivate = options.privateSession !== undefined;
+    // Failsafe: re-apply the active tab's layout whenever the window regains
+    // focus. If a native view was ever left detached (e.g. a chrome-overlay
+    // release was lost mid-flight), the content area stays blank forever with
+    // no user-visible way to recover — a focus relayout is idempotent and
+    // no-ops while an overlay legitimately holds the views detached.
+    // (Guarded: unit tests pass a minimal BrowserWindow stub without .on.)
+    if (typeof win.on === 'function') {
+      win.on('focus', () => {
+        try { this.layoutActiveTab(); } catch { /* window mid-teardown */ }
+      });
+    }
+  }
+
+  /**
+   * Reload a native view's page if its renderer process dies unexpectedly.
+   * Without this, a crashed renderer leaves the pane permanently blank while
+   * the chrome keeps working — the user sees an empty content area with no
+   * way to recover short of closing the tab. Guards against crash loops
+   * (max 3 automatic reloads per minute per view).
+   */
+  private wireRenderProcessRecovery(view: WebContentsView): void {
+    const wc = view.webContents;
+    let recentCrashes: number[] = [];
+    wc.on('render-process-gone', (_event, details) => {
+      // 'clean-exit' and 'killed' are deliberate teardown, not crashes.
+      if (details.reason === 'clean-exit' || details.reason === 'killed') return;
+      const now = Date.now();
+      recentCrashes = recentCrashes.filter(t => now - t < 60_000);
+      recentCrashes.push(now);
+      if (recentCrashes.length > 3) return; // crash loop — stop retrying
+      setTimeout(() => {
+        try {
+          if (wc.isDestroyed()) return;
+          wc.reload();
+          this.layoutActiveTab();
+        } catch { /* view mid-teardown */ }
+      }, 250);
+    });
   }
 
   setCallbacks(cbs: {
@@ -470,6 +508,7 @@ export class TabManager {
     });
 
     const wc = view.webContents;
+    this.wireRenderProcessRecovery(view);
 
     // Solid background so tab switches never flash white/transparent.
     view.setBackgroundColor(VIEW_BG_COLOR);
@@ -1499,6 +1538,7 @@ export class TabManager {
       },
     });
     view.setBackgroundColor(VIEW_BG_COLOR);
+    this.wireRenderProcessRecovery(view);
     const wc = view.webContents;
     const id = tab.id;
     // Which pane of the tab this view currently serves. Normally 'second',
@@ -1769,6 +1809,7 @@ export class TabManager {
     });
 
     const wc = view.webContents;
+    this.wireRenderProcessRecovery(view);
 
     wc.on('will-navigate', (event, url) => {
       try {

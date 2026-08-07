@@ -229,6 +229,25 @@ export class WindowModeManager {
 
     const wc = this.dashboardView.webContents;
 
+    // Reload the dashboard if its renderer process dies unexpectedly —
+    // otherwise the pane stays permanently blank while the chrome keeps
+    // working. Guard against crash loops (max 3 automatic reloads/minute).
+    let recentCrashes: number[] = [];
+    wc.on('render-process-gone', (_event, details) => {
+      if (details.reason === 'clean-exit' || details.reason === 'killed') return;
+      const now = Date.now();
+      recentCrashes = recentCrashes.filter(t => now - t < 60_000);
+      recentCrashes.push(now);
+      if (recentCrashes.length > 3) return;
+      setTimeout(() => {
+        try {
+          if (wc.isDestroyed()) return;
+          wc.reload();
+          this.setMode(this.mode);
+        } catch { /* view mid-teardown */ }
+      }, 250);
+    });
+
     // Route external navigations (links leaving 1in.me) to a new browser tab
     wc.on('will-navigate', (event, url) => {
       try {
