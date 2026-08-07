@@ -18,9 +18,14 @@
   --chrome-height: 72px;
   --tab-height: 36px;
   --sidebar-width: 380px;
+  /* Form-control rendering (native <select> popups, scrollbars) must follow
+     the APP theme, not the OS theme — otherwise a light-mode app on a
+     dark-mode Mac gets a dark dropdown popup with dark text (invisible). */
+  color-scheme: dark;
 }
 
 .light-mode {
+  color-scheme: light;
   --color-bg: #f8f8fc;
   --color-bg-surface: #ffffff;
   --color-bg-elevated: #f0f0f8;

@@ -1,28 +1,42 @@
 /**
  * Toolbar "Save to folder" button + popover.
  *
- * One-click save of the current page into a chosen collection ("folder" on
- * the new-tab page): lists existing folders with link counts, allows creating
- * a new folder inline, and shows a brief ✓ confirmation after saving.
- * Hidden in private windows (collections are normal-profile data; the main
+ * One-click save of the current page into a chosen folder. When the user is
+ * signed in to Sayzio, folders are the ACCOUNT folders (the same "projects"
+ * the web dashboard's folders desk shows) and saving files the page as a link
+ * in that folder — so browser and web stay in sync. Signed out, it falls back
+ * to the browser's local collections.
+ * Hidden in private windows (folders are normal-profile data; the main
  * process additionally rejects collection IPC from private senders).
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Collection } from '../../shared/collection-store';
+import { ApiClient } from '../../shared/api-client';
+import type { ApiProject } from '../../shared/api-client';
+import { useAuthStore } from '../store/auth-store';
 import { useChromeOverlay } from '../hooks/use-chrome-overlay';
+
+const API_BASE_URL = 'https://sayzio.app';
 
 interface Props {
   url: string | null | undefined;
   title: string | null | undefined;
 }
 
+interface FolderOption {
+  id: string;          // local collection id or `p:<projectId>`
+  name: string;
+  count: number;
+}
+
 export function SaveToFolderButton({ url, title }: Props) {
   const [open, setOpen] = useState(false);
-  const [collections, setCollections] = useState<Collection[]>([]);
+  const [folders, setFolders] = useState<FolderOption[]>([]);
   const [savedToId, setSavedToId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const rootRef = useRef<HTMLDivElement>(null);
+  const { token } = useAuthStore();
 
   // Native WebContentsViews sit above renderer DOM — hold the ref-counted
   // chrome overlay while the popover is open so it isn't occluded/unclickable.
@@ -30,12 +44,39 @@ export function SaveToFolderButton({ url, title }: Props) {
 
   const canSave = !!url && url !== 'about:newtab' && !url.startsWith('about:');
 
+  const getClient = useCallback((): ApiClient | null => {
+    if (!token) return null;
+    return new ApiClient({ baseUrl: API_BASE_URL, token });
+  }, [token]);
+
+  // Request-generation guard: bumped per load AND on token changes so a slow
+  // response from the previous account can never repopulate the list after a
+  // login/logout/account switch while the popover is open.
+  const loadSeqRef = useRef(0);
+  useEffect(() => {
+    loadSeqRef.current += 1;
+    setFolders([]);
+    if (open) setOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
   const load = useCallback(async () => {
+    const seq = ++loadSeqRef.current;
+    const client = getClient();
+    if (client) {
+      try {
+        const res = await client.listProjects();
+        if (loadSeqRef.current !== seq) return;
+        setFolders(res.items.map(p => ({ id: `p:${p.id}`, name: p.name, count: p.links_count ?? 0 })));
+        return;
+      } catch { /* fall through to local */ }
+    }
     try {
       const all = await window.zio.collections.all() as Collection[];
-      setCollections(all);
-    } catch { setCollections([]); }
-  }, []);
+      if (loadSeqRef.current !== seq) return;
+      setFolders(all.map(c => ({ id: c.id, name: c.name, count: c.item_count ?? 0 })));
+    } catch { if (loadSeqRef.current === seq) setFolders([]); }
+  }, [getClient]);
 
   useEffect(() => {
     if (!open) return;
@@ -52,27 +93,49 @@ export function SaveToFolderButton({ url, title }: Props) {
     };
   }, [open, load]);
 
-  const saveTo = useCallback(async (collectionId: string) => {
+  const saveTo = useCallback(async (folderId: string) => {
     if (!url) return;
     try {
-      await window.zio.collections.saveLink(collectionId, url, title || url);
-      setSavedToId(collectionId);
+      if (folderId.startsWith('p:')) {
+        const client = getClient();
+        if (!client) return;
+        // Saving a page into an account folder = creating a short link filed
+        // under that folder, so it shows up on the web dashboard too.
+        await client.createLink({
+          type: 'short',
+          long_url: url,
+          title: (title || url).slice(0, 200),
+          project_id: Number(folderId.slice(2)),
+        });
+      } else {
+        await window.zio.collections.saveLink(folderId, url, title || url);
+      }
+      setSavedToId(folderId);
       await load();
       setTimeout(() => { setSavedToId(null); setOpen(false); }, 900);
     } catch { /* non-fatal */ }
-  }, [url, title, load]);
+  }, [url, title, load, getClient]);
 
   const createAndSave = useCallback(async () => {
     const name = newName.trim();
     if (!name) return;
     try {
+      const client = getClient();
+      if (client) {
+        const created = await client.createProject({ name: name.slice(0, 120) });
+        setNewName('');
+        setCreating(false);
+        if (created?.project?.id) await saveTo(`p:${created.project.id}`);
+        else void load();
+        return;
+      }
       const created = await window.zio.collections.create(name) as Collection | null;
       setNewName('');
       setCreating(false);
       if (created?.id) await saveTo(created.id);
       else void load();
     } catch { /* non-fatal */ }
-  }, [newName, saveTo, load]);
+  }, [newName, saveTo, load, getClient]);
 
   if (!canSave) return null;
 
@@ -117,13 +180,13 @@ export function SaveToFolderButton({ url, title }: Props) {
             Save to folder
           </div>
 
-          {collections.length === 0 && !creating && (
+          {folders.length === 0 && !creating && (
             <div style={{ fontSize: 12, color: 'var(--color-text-muted)', padding: '2px 6px 8px' }}>
               No folders yet — create your first one below.
             </div>
           )}
 
-          {collections.map(c => (
+          {folders.map(c => (
             <button
               key={c.id}
               onClick={() => void saveTo(c.id)}
@@ -144,7 +207,7 @@ export function SaveToFolderButton({ url, title }: Props) {
               </span>
               {savedToId !== c.id && (
                 <span style={{ fontSize: 10.5, color: 'var(--color-text-muted)', flexShrink: 0 }}>
-                  {c.item_count ?? 0}
+                  {c.count}
                 </span>
               )}
             </button>

@@ -59,6 +59,14 @@
         html.light-mode .mpc-step.done .mpc-step-num { background: rgba(16,185,129,0.14); color: #059669; }
         .mpc-step-sep { width: 1.1rem; height: 1px; background: rgba(255,255,255,0.15); flex: none; align-self: center; }
         html.light-mode .mpc-step-sep { background: rgba(15,23,42,0.15); }
+        /* Small screens: drop the connector dashes and tighten the pills so
+           the four steps sit as a clean centered 2×2 wrap instead of a
+           ragged dash-broken line. */
+        @media (max-width: 640px) {
+            .mpc-step-sep { display: none; }
+            .mpc-step { font-size: 0.78rem; gap: 0.4rem; padding: 0.4rem 0.75rem 0.4rem 0.4rem; }
+            .mpc-step-num { width: 1.3rem; height: 1.3rem; font-size: 0.65rem; }
+        }
         .mpc-kpi { font-size: 1.35rem; font-weight: 800; color: #fff; }
         html.light-mode .mpc-kpi { color: #0f172a; }
         .mpc-export-btn { background: rgba(255,255,255,0.10); color: #fff; border: 1px solid rgba(255,255,255,0.10); }
@@ -149,7 +157,7 @@
     <p class="text-xs text-red-400 mb-3" x-show="saveError" x-cloak x-text="saveError"></p>
 
     {{-- ───── Stepper tabs ───── --}}
-    <nav class="flex flex-wrap items-center gap-1.5 mb-5" aria-label="Calculator steps">
+    <nav class="flex flex-wrap items-center justify-center gap-1.5 mb-5" aria-label="Calculator steps">
         <template x-for="(s, i) in steps" :key="s.key">
             <div class="flex items-center gap-1.5">
                 <div class="mpc-step-sep" x-show="i > 0" aria-hidden="true"></div>
@@ -565,6 +573,9 @@
     <div x-show="tab === 'roi'" x-cloak class="space-y-4">
         <div class="rounded-2xl mpc-card p-4 overflow-x-auto">
             <h3 class="text-sm font-bold mpc-title">If you didn't use Sayzio — what you'd need instead</h3>
+            @if(!empty($toolsLocked))
+                <p class="text-[11px] mpc-sub mt-1" data-mpc-tools-locked><i class="fas fa-lock mr-1"></i>Monthly costs are set by Sayzio and can't be edited.</p>
+            @endif
             <table class="w-full mt-2 min-w-[680px]">
                 <thead><tr>
                     <th class="mpc-th">Sayzio feature</th><th class="mpc-th">Example standalone tool</th>
@@ -575,7 +586,13 @@
                         <tr class="mpc-row">
                             <td class="mpc-td font-semibold" x-text="t.feature"></td>
                             <td class="mpc-td mpc-sub" x-text="t.example"></td>
-                            <td class="mpc-td" style="width:130px;"><input type="number" min="0" x-model.number="t.cost" class="mpc-input !w-28"></td>
+                            <td class="mpc-td" style="width:130px;">
+                                @if(!empty($toolsLocked))
+                                    <input type="number" class="mpc-input !w-28 opacity-60 cursor-not-allowed" :value="t.cost" readonly tabindex="-1" data-mpc-tool-cost-locked>
+                                @else
+                                    <input type="number" min="0" x-model.number="t.cost" class="mpc-input !w-28" data-mpc-tool-cost>
+                                @endif
+                            </td>
                             <td class="mpc-td !whitespace-normal text-xs mpc-sub" x-text="t.notes"></td>
                         </tr>
                     </template>

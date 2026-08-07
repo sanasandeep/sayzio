@@ -533,10 +533,11 @@ export class ApiClient {
 
   // ── Links ─────────────────────────────────────────────────────────────────
 
-  async listLinks(params?: { type?: string; q?: string; per_page?: number }): Promise<ApiLinksPage> {
+  async listLinks(params?: { type?: string; q?: string; per_page?: number; project_id?: number }): Promise<ApiLinksPage> {
     const qs = new URLSearchParams();
     if (params?.type) qs.set('type', params.type);
     if (params?.q) qs.set('q', params.q);
+    if (params?.project_id) qs.set('project_id', String(params.project_id));
     if (params?.per_page) qs.set('per_page', String(params.per_page));
     const query = qs.toString() ? `?${qs.toString()}` : '';
     return this.get<ApiLinksPage>(`/links${query}`);
@@ -544,6 +545,16 @@ export class ApiClient {
 
   async createLink(data: CreateLinkPayload): Promise<{ link: ApiLink }> {
     return this.post('/links', data);
+  }
+
+  // ── Folders (account "projects" — same folders as the web dashboard) ──────
+
+  async listProjects(): Promise<{ items: ApiProject[] }> {
+    return this.get('/projects');
+  }
+
+  async createProject(data: { name: string; color?: string; description?: string }): Promise<{ project: ApiProject }> {
+    return this.post('/projects', data);
   }
 
   /**
@@ -983,6 +994,16 @@ export interface ApiLink {
   created_at: string | null;
 }
 
+/** Account folder ("project") — the same folders the web dashboard's folders desk shows. */
+export interface ApiProject {
+  id: number;
+  name: string;
+  description: string | null;
+  color: string | null;
+  links_count?: number;
+  created_at: string | null;
+}
+
 export interface ApiLinksPage {
   items: ApiLink[];
   meta: {
@@ -1001,6 +1022,8 @@ export interface CreateLinkPayload {
   domain_id?: number | null;
   visibility?: 'public' | 'registered' | 'followers' | 'subscribers';
   is_active?: boolean;
+  /** Account folder (project) to file the link under — must be owned by the caller. */
+  project_id?: number;
   settings?: Record<string, unknown>;
 }
 

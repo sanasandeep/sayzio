@@ -5,9 +5,11 @@
  * "continue where you left off" session groups, and a daily privacy strip.
  * In private/incognito mode shows a minimalist private-mode splash instead.
  */
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { HistoryEntry } from '../../main/db';
 import type { Collection, SavedLink } from '../../shared/collection-store';
+import { ApiClient } from '../../shared/api-client';
+import type { ApiProject } from '../../shared/api-client';
 import { ProfileBadge } from './ProfileBadge';
 import { resolveFavicon } from '../../shared/favicon';
 import { FaviconImg } from './FaviconImg';
@@ -173,15 +175,6 @@ const PHASE_STYLES: Record<DayPhase, { wash: string; greeting: string; accent: s
 // Folder card palette, cycled by index — mirrors the Sayzio Folders page look.
 const FOLDER_COLORS = ['#ec4899', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#14b8a6', '#ef4444', '#6366f1'];
 
-function FolderGlyph({ color, size = 40 }: { color: string; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
-      <path d="M6 12c0-2.2 1.8-4 4-4h9l4 5h15c2.2 0 4 1.8 4 4v19c0 2.2-1.8 4-4 4H10c-2.2 0-4-1.8-4-4V12z" fill={color} opacity="0.35" />
-      <path d="M6 18h36v18c0 2.2-1.8 4-4 4H10c-2.2 0-4-1.8-4-4V18z" fill={color} />
-    </svg>
-  );
-}
-
 interface SessionGroup {
   host: string;
   entries: HistoryEntry[];
@@ -195,27 +188,67 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
   const [recentHistory, setRecentHistory] = useState<HistoryEntry[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [collections, setCollections] = useState<Collection[]>([]);
+  // Account folders ("projects") — the same folders the sayzio.app dashboard
+  // shows. Non-null once loaded for a signed-in user; they take precedence
+  // over local collections so both surfaces show the same folders.
+  const [accountFolders, setAccountFolders] = useState<ApiProject[] | null>(null);
   const [openFolderId, setOpenFolderId] = useState<string | null>(null);
   const [folderLinks, setFolderLinks] = useState<SavedLink[]>([]);
   const [folderLinksLoading, setFolderLinksLoading] = useState(false);
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [trackerStats, setTrackerStats] = useState<{ todayTotal: number; weekTotal: number } | null>(null);
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
+
+  const getClient = useCallback((): ApiClient | null => {
+    if (!token) return null;
+    return new ApiClient({ baseUrl: 'https://sayzio.app', token });
+  }, [token]);
+
+  // Epoch guard: bumped whenever the window flips to private OR the signed-in
+  // token changes, so any folders/links request already in flight for the old
+  // account (or the normal profile) can't repopulate state afterwards.
+  const loadEpochRef = useRef(0);
+  useEffect(() => {
+    loadEpochRef.current += 1;
+    // Token flip (login/logout/account switch): drop anything account-derived
+    // immediately; the load effect below repopulates for the new state.
+    setAccountFolders(null);
+    openFolderRef.current = null;
+    setOpenFolderId(null);
+    setFolderLinks([]);
+  }, [token]);
 
   const loadCollections = useCallback(async () => {
+    const epoch = loadEpochRef.current;
+    // Signed in → show the account folders (same as the web dashboard's
+    // folders desk) so both surfaces stay in sync. Local collections remain
+    // the signed-out/offline fallback.
+    const client = getClient();
+    if (client) {
+      try {
+        const res = await client.listProjects();
+        if (loadEpochRef.current === epoch) {
+          setAccountFolders(res.items);
+          setCollections([]);
+        }
+        return;
+      } catch { /* offline / API unavailable — fall back to local */ }
+    }
     try {
       const all = await window.zio.collections.all() as Collection[];
-      setCollections(all);
+      if (loadEpochRef.current === epoch) { setAccountFolders(null); setCollections(all); }
     } catch { /* collections unavailable — hide section */ }
-  }, []);
+  }, [getClient]);
 
   useEffect(() => {
     if (isPrivate) {
+      loadEpochRef.current += 1;
       // Reset anything loaded while the window was normal so a mode switch
       // never keeps normal-profile data (history/folders/stats) in state.
       setRecentHistory([]);
       setCollections([]);
+      setAccountFolders(null);
       setTrackerStats(null);
       setOpenFolderId(null);
       setFolderLinks([]);
@@ -246,32 +279,69 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
     onNavigate(query.trim());
   }, [query, onNavigate]);
 
+  // Mirrors openFolderId for in-flight request staleness checks (state reads
+  // inside an async closure would be captured stale).
+  const openFolderRef = useRef<string | null>(null);
+
   const openFolder = useCallback(async (id: string) => {
-    if (openFolderId === id) { setOpenFolderId(null); setFolderLinks([]); return; }
+    if (openFolderId === id) {
+      openFolderRef.current = null;
+      setOpenFolderId(null);
+      setFolderLinks([]);
+      return;
+    }
+    const epoch = loadEpochRef.current;
+    // Selection guard: a slower earlier folder request must never overwrite
+    // the currently selected folder's contents (or leak across private/token
+    // flips — epoch covers those).
+    const stale = () => loadEpochRef.current !== epoch || openFolderRef.current !== id;
+    openFolderRef.current = id;
     setOpenFolderId(id);
     setFolderLinks([]);
     setFolderLinksLoading(true);
     try {
-      const links = await window.zio.collections.getLinks(id) as SavedLink[];
-      setFolderLinks(links);
+      if (id.startsWith('p:')) {
+        // Account folder — list its links from the API and map them onto the
+        // SavedLink display shape (destination first, short link fallback).
+        const client = getClient();
+        const res = client ? await client.listLinks({ project_id: Number(id.slice(2)), per_page: 100 }) : { items: [] };
+        if (stale()) return;
+        setFolderLinks(res.items.map(l => ({
+          id: String(l.id),
+          collection_id: id,
+          url: l.long_url || l.short_url,
+          title: l.title || l.alias,
+          favicon_url: null,
+        } as unknown as SavedLink)));
+      } else {
+        const links = await window.zio.collections.getLinks(id) as SavedLink[];
+        if (stale()) return;
+        setFolderLinks(links);
+      }
     } catch {
-      setFolderLinks([]);
+      if (!stale()) setFolderLinks([]);
     } finally {
-      setFolderLinksLoading(false);
+      if (!stale()) setFolderLinksLoading(false);
     }
-  }, [openFolderId]);
+  }, [openFolderId, getClient]);
 
   const createFolder = useCallback(async () => {
     const name = newFolderName.trim();
     if (!name) return;
     try {
-      const color = FOLDER_COLORS[collections.length % FOLDER_COLORS.length];
-      await window.zio.collections.create(name, { color });
+      const client = accountFolders !== null ? getClient() : null;
+      if (client) {
+        const color = FOLDER_COLORS[accountFolders!.length % FOLDER_COLORS.length];
+        await client.createProject({ name: name.slice(0, 120), color });
+      } else {
+        const color = FOLDER_COLORS[collections.length % FOLDER_COLORS.length];
+        await window.zio.collections.create(name, { color });
+      }
       setNewFolderName('');
       setCreatingFolder(false);
       await loadCollections();
     } catch { /* keep the input open so the user can retry */ }
-  }, [newFolderName, collections.length, loadCollections]);
+  }, [newFolderName, collections.length, accountFolders, getClient, loadCollections]);
 
   // "Continue where you left off": group recent history by hostname and keep
   // groups with 2+ distinct pages, newest first, top 4.
@@ -476,36 +546,76 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
         ))}
       </div>
 
-      {/* Folders (local collections) */}
+      {/* Folders — account folders (synced with the sayzio.app dashboard) when
+          signed in, local collections otherwise. Cards use the same 3D
+          folder-flip animation as the web dashboard's folders desk. */}
+      <style>{`
+        .zio-fld { position: relative; width: 74px; height: 56px; margin: 0 auto; perspective: 320px; }
+        .zio-fld-back, .zio-fld-front { position: absolute; inset: 0; border-radius: 7px; }
+        .zio-fld-back { background: color-mix(in srgb, var(--fc) 72%, #0b1220); }
+        .zio-fld-back::before {
+          content: ''; position: absolute; top: -7px; left: 0; width: 34%; height: 12px;
+          border-radius: 6px 8px 0 0; background: inherit;
+        }
+        .zio-fld-paper {
+          position: absolute; left: 8px; right: 8px; top: 3px; bottom: 6px; border-radius: 4px;
+          background: linear-gradient(180deg, #fff, #dbe3ef); box-shadow: 0 1px 3px rgba(2,6,23,0.25);
+          transition: transform .28s cubic-bezier(.34,1.4,.5,1);
+        }
+        .zio-fld-front {
+          top: 9px; transform-origin: bottom center; transform-style: preserve-3d;
+          background: linear-gradient(180deg, color-mix(in srgb, var(--fc) 92%, #fff), color-mix(in srgb, var(--fc) 82%, #0b1220));
+          box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--fc) 55%, transparent);
+          transition: transform .28s cubic-bezier(.34,1.4,.5,1);
+          display: flex; align-items: flex-end; justify-content: flex-end; padding: 4px 6px;
+        }
+        .zio-desk-item:hover .zio-fld-front, .zio-desk-item:focus-visible .zio-fld-front, .zio-desk-item.is-open .zio-fld-front { transform: rotateX(-30deg); }
+        .zio-desk-item:hover .zio-fld-paper, .zio-desk-item:focus-visible .zio-fld-paper, .zio-desk-item.is-open .zio-fld-paper { transform: translateY(-7px); }
+        .zio-fld-count {
+          font-size: 10px; font-weight: 800; line-height: 1; color: #fff;
+          background: rgba(2,6,23,0.35); border-radius: 999px; padding: 3px 6px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .zio-fld-front, .zio-fld-paper { transition: none !important; }
+          .zio-desk-item:hover .zio-fld-front, .zio-desk-item.is-open .zio-fld-front { transform: none; }
+          .zio-desk-item:hover .zio-fld-paper, .zio-desk-item.is-open .zio-fld-paper { transform: none; }
+        }
+      `}</style>
       <div className="zio-newtab-rise" style={{ width: '100%', maxWidth: 560, marginBottom: 32, animationDelay: '0.22s' }}>
         <p style={sectionLabel}>Folders</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
-          {collections.map((c, i) => {
-            const color = c.color || FOLDER_COLORS[i % FOLDER_COLORS.length];
-            const isOpen = openFolderId === c.id;
+          {(accountFolders
+            ? accountFolders.map(p => ({ key: `p:${p.id}`, name: p.name, color: p.color, count: p.links_count ?? 0 }))
+            : collections.map(c => ({ key: c.id, name: c.name, color: c.color, count: c.item_count ?? 0 }))
+          ).map((f, i) => {
+            const color = f.color || FOLDER_COLORS[i % FOLDER_COLORS.length];
+            const isOpen = openFolderId === f.key;
             return (
               <button
-                key={c.id}
-                onClick={() => void openFolder(c.id)}
+                key={f.key}
+                onClick={() => void openFolder(f.key)}
+                className={`zio-desk-item${isOpen ? ' is-open' : ''}`}
                 style={{
                   ...cardBase,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: 6,
-                  padding: '14px 10px',
+                  gap: 8,
+                  padding: '16px 10px 12px',
                   borderColor: isOpen ? color : 'var(--color-border)',
                   transition: 'all 0.15s',
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'none'; }}
               >
-                <FolderGlyph color={color} />
+                <span className="zio-fld" style={{ ['--fc' as string]: color }}>
+                  <span className="zio-fld-back" />
+                  <span className="zio-fld-paper" />
+                  <span className="zio-fld-front"><span className="zio-fld-count">{f.count}</span></span>
+                </span>
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {c.name}
+                  {f.name}
                 </span>
                 <span style={{ fontSize: 10.5, color: 'var(--color-text-muted)' }}>
-                  {c.item_count ?? 0} {(c.item_count ?? 0) === 1 ? 'link' : 'links'}
+                  {f.count} {f.count === 1 ? 'link' : 'links'}
                 </span>
               </button>
             );

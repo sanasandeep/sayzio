@@ -146,8 +146,8 @@
                                         <div class="flex items-center gap-2 flex-wrap">
                                             <span class="text-sm font-{{ $t->is_read ? 'medium' : 'bold' }} truncate" style="color: var(--text-primary);">{{ $t->sender_name ?: 'Unknown' }}</span>
                                             @if(!$t->is_read)<span class="w-2 h-2 rounded-full bg-blue-500"></span>@endif
-                                            <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
-                                                  style="background: rgba(0,0,0,0.25); color: {{ $t->channelColor() }};">
+                                            <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1 inb-badge-dim"
+                                                  style="color: {{ $t->channelColor() }};">
                                                 <i class="{{ $t->channelIcon() }}"></i> {{ $t->channelLabel() }}
                                             </span>
                                             <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: {{ $t->categoryColor() }}22; color: {{ $t->categoryColor() }};">{{ $t->categoryLabel() }}</span>
@@ -162,7 +162,7 @@
                                             @if($t->isOverdue())
                                                 <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: rgba(239,68,68,0.15); color: #f87171;"><i class="fas fa-clock mr-1"></i>Overdue</span>
                                             @elseif($t->sla_due_at)
-                                                <span class="text-[9px] font-semibold px-1.5 py-0.5 rounded" style="background: rgba(245,158,11,0.1); color: #fbbf24;" title="Respond by {{ $t->sla_due_at->format('Y-m-d H:i') }}"><i class="fas fa-stopwatch mr-1"></i>{{ $t->sla_due_at->diffForHumans() }}</span>
+                                                <span class="text-[9px] font-semibold px-1.5 py-0.5 rounded inb-sla-soon" title="Respond by {{ $t->sla_due_at->format('Y-m-d H:i') }}"><i class="fas fa-stopwatch mr-1"></i>{{ $t->sla_due_at->diffForHumans() }}</span>
                                             @endif
                                             @if($t->assignee_user_id && $t->assignee)
                                                 <span class="text-[9px] font-semibold px-1.5 py-0.5 rounded" style="background: rgba(59,130,246,0.1); color: #60a5fa;"><i class="fas fa-user mr-1"></i>{{ $t->assignee->name }}</span>

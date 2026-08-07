@@ -20,6 +20,7 @@ import { useChromeOverlay } from '../hooks/use-chrome-overlay';
 import { AccountButton } from './AccountButton';
 import zioIcon from '../assets/zio-icon.png';
 import zioMascotIcon from '../assets/zio-mascot-icon.png';
+import { SaveToFolderButton } from './SaveToFolderButton';
 import zioMascot from '../assets/zio-mascot.png';
 import type { RecentlyClosedEntry } from '../../main/tab-manager';
 import { resolveFavicon } from '../../shared/favicon';
@@ -1770,6 +1771,11 @@ export function ChromeBar({
         >
           {isBookmarked ? '★' : '☆'}
         </button>
+        )}
+
+        {/* Save current page to a folder (collections) — normal windows only */}
+        {!isPrivate && !narrowBar && (
+          <SaveToFolderButton url={activeTab?.url} title={activeTab?.title} />
         )}
 
         {/* Zio AI button — hidden / disabled in private mode */}

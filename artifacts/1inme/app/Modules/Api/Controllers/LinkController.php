@@ -207,6 +207,12 @@ class LinkController extends Controller
         if ($type = $request->string('type')->toString()) {
             $q->where('type', $type);
         }
+        // Folder (project) filter — the desktop browser's new-tab folders
+        // section lists a folder's links through this. Scoped to the caller's
+        // links already, so a foreign project id simply returns an empty page.
+        if ($request->filled('project_id')) {
+            $q->where('project_id', (int) $request->input('project_id'));
+        }
         if ($search = $request->string('q')->toString()) {
             $q->where(function ($w) use ($search) {
                 $w->where('title', 'ilike', "%{$search}%")
@@ -330,6 +336,11 @@ class LinkController extends Controller
             // links row only when the column exists, otherwise stashed
             // under settings.workspace_id so the choice isn't lost.
             'workspace_id' => ['nullable', 'integer'],
+            // Folder (project) to file this link under. Optional — the
+            // desktop browser's "save page to folder" flow passes it so a
+            // page saved from the browser lands in the same folder the web
+            // dashboard's folders desk shows. Ownership is verified below.
+            'project_id'   => ['nullable', 'integer'],
             // Auto-fire workspace tracking pixels (Meta / TikTok / Google
             // Ads) when this link is clicked. Optional — when omitted,
             // defaults to true if the workspace has any pixel configured,
@@ -421,6 +432,26 @@ class LinkController extends Controller
             'expires_at' => $data['expires_at'] ?? null,
             'domain_id'  => $data['domain_id'] ?? null,
         ];
+
+        // Folder (project) assignment — silently drop ids outside the link's
+        // target workspace rather than 422ing, matching the web move-to-folder
+        // behaviour of only ever filing into folders on the workspace you're
+        // acting in (folders are owned by the workspace owner, so a bare
+        // user_id check would both miss team-member saves and allow filing
+        // into another workspace's folders).
+        if (!empty($data['project_id'])) {
+            $projectOk = \App\Modules\User\Models\Project::withoutGlobalScope('workspace')
+                ->whereKey((int) $data['project_id'])
+                ->when(
+                    $workspaceId !== null,
+                    fn ($q) => $q->where('workspace_id', (int) $workspaceId),
+                    fn ($q) => $q->where('user_id', $request->user()->id)
+                )
+                ->exists();
+            if ($projectOk) {
+                $attrs['project_id'] = (int) $data['project_id'];
+            }
+        }
 
         // workspace_id is not mass-assignable; when the column doesn't exist
         // we stash it under settings, otherwise it's set on the model below.
