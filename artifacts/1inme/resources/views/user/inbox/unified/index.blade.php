@@ -2,7 +2,7 @@
 @section('title', 'Inbox 2.0')
 
 @section('content')
-<div class="max-w-[1400px] mx-auto" x-data="{ selected: [] }">
+<div class="max-w-[1400px] mx-auto" x-data="{ selected: [], filtersOpen: {{ request()->hasAny(['q','channel','category','assignee','starred','overdue','review']) ? 'true' : 'false' }} }">
     @include('user.partials.page-hero', [
         'title' => 'Inbox 2.0',
         'subtitle' => 'Every channel in one triaged stream',
@@ -30,9 +30,18 @@
         </div>
     @endif
 
+    {{-- Mobile: filters collapse behind a toggle so threads show first --}}
+    <button type="button" class="lg:hidden w-full mb-4 px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-between"
+            style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);"
+            @click="filtersOpen = !filtersOpen" :aria-expanded="filtersOpen" data-inbox-filters-toggle>
+        <span><i class="fas fa-sliders mr-2" style="color:#5c83ff;"></i>Filters &amp; search</span>
+        <i class="fas fa-chevron-down transition-transform" :class="filtersOpen ? 'rotate-180' : ''"></i>
+    </button>
+
     <div class="grid lg:grid-cols-[240px_1fr] gap-5">
         {{-- Filters sidebar --}}
-        <aside class="card-premium p-4 h-fit space-y-4">
+        <aside class="card-premium p-4 h-fit space-y-4"
+               :class="filtersOpen ? '' : 'hidden lg:block'">
             <form method="GET">
                 <input type="text" name="q" value="{{ $filters['q'] }}" placeholder="Search threads…"
                     class="w-full px-3 py-2 rounded-lg text-sm outline-none mb-3"
@@ -123,9 +132,9 @@
                     <div class="card-premium overflow-hidden">
                         <div class="divide-y" style="border-color: var(--border-glass);">
                             @foreach($threads as $t)
-                                <div class="flex items-center gap-3 p-4 hover:bg-blue-500/5 transition-colors {{ !$t->is_read ? 'bg-blue-500/5' : '' }}">
+                                <div class="flex items-center gap-2.5 sm:gap-3 p-3 sm:p-4 hover:bg-blue-500/5 transition-colors {{ !$t->is_read ? 'bg-blue-500/5' : '' }}">
                                     <input type="checkbox" name="thread_ids[]" value="{{ $t->id }}" form="bulk-form" x-model="selected" class="flex-shrink-0">
-                                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 overflow-hidden"
+                                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 overflow-hidden"
                                          style="background: linear-gradient(135deg, {{ $t->channelColor() }}aa, {{ $t->categoryColor() }}aa); color: white;">
                                         @if($t->sender_avatar)
                                             <img src="{{ $t->sender_avatar }}" alt="" class="w-full h-full object-cover">
