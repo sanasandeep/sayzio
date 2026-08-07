@@ -12,22 +12,53 @@
         .mpc-sub   { color: rgba(255,255,255,0.5); } html.light-mode .mpc-sub { color: #475569; }
         .mpc-faint { color: rgba(255,255,255,0.35); } html.light-mode .mpc-faint { color: #64748b; }
         .mpc-input {
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+            /* background-COLOR longhand on purpose: the app layout injects a
+               chevron background-image into selects — a `background:` shorthand
+               here would reset its no-repeat/position and tile the chevron
+               into a criss-cross artifact across the select. */
+            background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
             color: #fff; border-radius: 0.6rem; padding: 0.4rem 0.6rem; font-size: 0.82rem; width: 100%;
         }
         .mpc-input:focus { outline: none; border-color: #3b82f6; }
-        html.light-mode .mpc-input { background: #fff; border-color: rgba(15,23,42,0.18); color: #0f172a; }
+        html.light-mode .mpc-input { background-color: #fff; border-color: rgba(15,23,42,0.18); color: #0f172a; }
         .mpc-th { color: rgba(255,255,255,0.45); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; text-align: left; padding: 0.5rem 0.6rem; white-space: nowrap; }
         html.light-mode .mpc-th { color: #64748b; }
         .mpc-td { padding: 0.4rem 0.6rem; font-size: 0.82rem; color: rgba(255,255,255,0.8); white-space: nowrap; }
         html.light-mode .mpc-td { color: #1e293b; }
         .mpc-row { border-top: 1px solid rgba(255,255,255,0.06); }
         html.light-mode .mpc-row { border-top-color: rgba(15,23,42,0.08); }
-        .mpc-tab { padding: 0.5rem 0.9rem; border-radius: 0.75rem; font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.55); }
-        html.light-mode .mpc-tab { color: #475569; }
-        .mpc-tab:hover { color: #60a5fa; }
-        .mpc-tab.active { background: rgba(37,99,235,0.15); color: #60a5fa; }
-        html.light-mode .mpc-tab.active { background: rgba(37,99,235,0.10); color: #2563eb; }
+        /* ── Stepper tabs ── */
+        .mpc-step {
+            display: inline-flex; align-items: center; gap: 0.55rem;
+            padding: 0.45rem 0.95rem 0.45rem 0.5rem; border-radius: 9999px;
+            font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.55);
+            border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.03);
+            transition: color .15s ease, border-color .15s ease, background .15s ease;
+        }
+        html.light-mode .mpc-step { color: #475569; border-color: rgba(15,23,42,0.12); background: #fff; }
+        .mpc-step:hover { color: #93c5fd; border-color: rgba(59,130,246,0.45); }
+        html.light-mode .mpc-step:hover { color: #2563eb; border-color: rgba(37,99,235,0.4); }
+        .mpc-step:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+        .mpc-step-num {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 1.5rem; height: 1.5rem; border-radius: 9999px; flex: none;
+            font-size: 0.7rem; font-weight: 800;
+            background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6);
+            transition: background .15s ease, color .15s ease;
+        }
+        html.light-mode .mpc-step-num { background: rgba(15,23,42,0.06); color: #475569; }
+        .mpc-step.active {
+            background: rgba(37,99,235,0.16); border-color: rgba(59,130,246,0.55);
+            color: #93c5fd; box-shadow: 0 0 0 1px rgba(59,130,246,0.15);
+        }
+        html.light-mode .mpc-step.active { background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.45); color: #1d4ed8; }
+        .mpc-step.active .mpc-step-num { background: #2563eb; color: #fff; }
+        .mpc-step.done { color: rgba(255,255,255,0.75); }
+        html.light-mode .mpc-step.done { color: #1e293b; }
+        .mpc-step.done .mpc-step-num { background: rgba(16,185,129,0.18); color: #34d399; }
+        html.light-mode .mpc-step.done .mpc-step-num { background: rgba(16,185,129,0.14); color: #059669; }
+        .mpc-step-sep { width: 1.1rem; height: 1px; background: rgba(255,255,255,0.15); flex: none; align-self: center; }
+        html.light-mode .mpc-step-sep { background: rgba(15,23,42,0.15); }
         .mpc-kpi { font-size: 1.35rem; font-weight: 800; color: #fff; }
         html.light-mode .mpc-kpi { color: #0f172a; }
         .mpc-export-btn { background: rgba(255,255,255,0.10); color: #fff; border: 1px solid rgba(255,255,255,0.10); }
@@ -48,6 +79,11 @@
             <a href="{{ route('user.marketing-plan.index') }}" class="text-[11px] font-bold uppercase tracking-[0.15em] text-blue-400 hover:text-blue-300">
                 <i class="fas fa-arrow-left mr-1"></i> Marketing Plan Calculator
             </a>
+            {{-- Task #6767 — which industry preset this plan started from. --}}
+            <span data-mpc-preset-badge
+                  class="inline-block align-middle ml-2 px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-400 text-[10px] font-bold uppercase tracking-wide"
+                  title="Industry benchmark preset this plan started from"
+                  x-text="presetLabel"></span>
             <input type="text" x-model="name" placeholder="Plan name (e.g. 2026 Growth Plan)"
                    class="mpc-input mt-1.5 !text-base !font-semibold" style="max-width: 26rem;">
         </div>
@@ -112,13 +148,25 @@
     <p class="text-xs text-emerald-400 mb-3" x-show="savedFlash" x-cloak><i class="fas fa-check mr-1"></i> Saved.</p>
     <p class="text-xs text-red-400 mb-3" x-show="saveError" x-cloak x-text="saveError"></p>
 
-    {{-- ───── Tabs ───── --}}
-    <div class="flex flex-wrap gap-1.5 mb-5">
-        <button type="button" class="mpc-tab" :class="tab === 'assumptions' && 'active'" @click="tab = 'assumptions'">1 · Assumptions</button>
-        <button type="button" class="mpc-tab" :class="tab === 'monthly' && 'active'" @click="tab = 'monthly'">2 · Monthly Plan</button>
-        <button type="button" class="mpc-tab" :class="tab === 'dashboard' && 'active'" @click="openDashboard()">3 · Dashboard</button>
-        <button type="button" class="mpc-tab" :class="tab === 'roi' && 'active'" @click="tab = 'roi'">4 · Sayzio ROI &amp; Value</button>
-    </div>
+    {{-- ───── Stepper tabs ───── --}}
+    <nav class="flex flex-wrap items-center gap-1.5 mb-5" aria-label="Calculator steps">
+        <template x-for="(s, i) in steps" :key="s.key">
+            <div class="flex items-center gap-1.5">
+                <div class="mpc-step-sep" x-show="i > 0" aria-hidden="true"></div>
+                <button type="button" class="mpc-step"
+                        :class="tab === s.key ? 'active' : (stepIndex > i ? 'done' : '')"
+                        :aria-label="(i + 1) + ' · ' + s.label"
+                        :aria-current="tab === s.key ? 'step' : false"
+                        @click="s.key === 'dashboard' ? openDashboard() : tab = s.key">
+                    <span class="mpc-step-num">
+                        <template x-if="stepIndex > i && tab !== s.key"><i class="fas fa-check text-[9px]"></i></template>
+                        <template x-if="!(stepIndex > i && tab !== s.key)"><span x-text="i + 1"></span></template>
+                    </span>
+                    <span x-text="s.label"></span>
+                </button>
+            </div>
+        </template>
+    </nav>
 
     {{-- ───── 1 · ASSUMPTIONS ───── --}}
     <div x-show="tab === 'assumptions'" class="space-y-5">
@@ -197,9 +245,37 @@
             </div>
         </div>
 
+        {{-- Task #6768 — finance assumptions behind CAC / ROAS / LTV metrics. --}}
+        <div class="rounded-2xl mpc-card p-4">
+            <h3 class="text-sm font-bold mpc-title">Finance assumptions <span class="mpc-faint font-normal">(for CAC, ROAS &amp; LTV:CAC metrics)</span></h3>
+            <div class="grid sm:grid-cols-2 gap-3 mt-3">
+                <div>
+                    <label class="text-[11px] font-semibold mpc-sub">Gross margin (% of revenue kept as gross profit)</label>
+                    <input type="number" min="0" max="100" step="1" x-model.number="p.gross_margin" class="mpc-input mt-1">
+                </div>
+                <div>
+                    <label class="text-[11px] font-semibold mpc-sub">Customer lifetime / repeat-purchase multiplier (×)</label>
+                    <input type="number" min="0" step="0.1" x-model.number="p.ltv_multiplier" class="mpc-input mt-1">
+                </div>
+            </div>
+            <p class="text-[11px] mpc-faint mt-2">LTV = average customer value × lifetime multiplier × gross margin. These feed the LTV:CAC, break-even and payback metrics on the Dashboard tab.</p>
+            <p class="text-[11px] text-amber-400 mt-1" x-show="clampHints.finance" x-cloak x-text="clampHints.finance"></p>
+        </div>
+
         <div class="rounded-2xl mpc-card p-4 overflow-x-auto">
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <h3 class="text-sm font-bold mpc-title">Channel assumptions <span class="mpc-faint font-normal">(money in ₹ — base currency)</span></h3>
+                {{-- Task #6767 — one-click industry benchmark presets. --}}
+                <div class="flex items-center gap-2">
+                    <label for="mpcPresetPick" class="text-[11px] font-semibold mpc-sub whitespace-nowrap">Industry preset</label>
+                    <select id="mpcPresetPick" x-model="presetPick" @change="onPresetPick()"
+                            class="mpc-input !w-auto" :title="presets[presetPick]?.description || ''">
+                        <option value="custom" disabled hidden>Custom</option>
+                        <template x-for="(pr, k) in presets" :key="k">
+                            <option :value="k" x-text="pr.label"></option>
+                        </template>
+                    </select>
+                </div>
                 <span class="text-xs font-bold px-2.5 py-1 rounded-lg"
                       :class="allocOk ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'"
                       x-text="(allocOk ? '✓ Allocation ' : '⚠ Allocation ') + nf(allocTotal, 1) + '% ' + (allocOk ? '' : '— must total 100%')"></span>
@@ -279,22 +355,65 @@
 
     {{-- ───── 3 · DASHBOARD ───── --}}
     <div x-show="tab === 'dashboard'" x-cloak class="space-y-4">
+        {{-- On-tab export controls (Task #6765) — no need to scroll back to the header --}}
+        <div class="flex flex-wrap items-center justify-end gap-2">
+            <span class="text-[11px] font-bold uppercase tracking-[0.12em] mpc-faint mr-auto">Export this plan</span>
+            <button type="button" @click="exportXlsx()" class="mpc-export-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                <i class="fas fa-file-excel text-emerald-400"></i> Excel
+            </button>
+            <button type="button" @click="exportCsv()" class="mpc-export-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                <i class="fas fa-file-csv text-blue-400"></i> CSV
+            </button>
+            <button type="button" @click="exportPdf()" :disabled="pdfBusy" class="mpc-export-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60">
+                <i class="fas text-red-400" :class="pdfBusy ? 'fa-circle-notch fa-spin' : 'fa-file-pdf'"></i>
+                <span x-text="pdfBusy ? 'Preparing…' : 'PDF'"></span>
+            </button>
+        </div>
+
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Total annual budget</p><p class="mpc-kpi mt-1" x-text="money(p.annual_budget)"></p></div>
             <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Total projected revenue (year)</p><p class="mpc-kpi mt-1" x-text="money(model.totals.revenue)"></p></div>
-            <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Blended ROAS</p><p class="mpc-kpi mt-1" x-text="nf(model.totals.roas, 2) + '×'"></p></div>
+            <div class="rounded-2xl mpc-card p-4" title="Return on ad spend — projected revenue divided by total spend. Every ₹1 spent brings in this much revenue."><p class="text-xs mpc-sub">Blended ROAS <i class="fas fa-circle-info mpc-faint text-[10px]"></i></p><p class="mpc-kpi mt-1" x-text="nf(model.totals.roas, 2) + '×'"></p></div>
             <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Total customers acquired (year)</p><p class="mpc-kpi mt-1" x-text="nf(model.totals.customers, 0)"></p></div>
-            <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Blended CAC</p><p class="mpc-kpi mt-1" x-text="money(model.totals.cac)"></p></div>
+            <div class="rounded-2xl mpc-card p-4" title="Customer acquisition cost — total spend divided by customers acquired. What you pay, on average, to win one customer."><p class="text-xs mpc-sub">Blended CAC <i class="fas fa-circle-info mpc-faint text-[10px]"></i></p><p class="mpc-kpi mt-1" x-text="money(model.totals.cac)"></p></div>
             <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Blended ROI</p><p class="mpc-kpi mt-1" x-text="nf(model.totals.roi * 100, 0) + '%'"></p></div>
+        </div>
+
+        {{-- Task #6768 — finance metrics strip. --}}
+        <div class="grid sm:grid-cols-3 gap-4">
+            <div class="rounded-2xl mpc-card p-4" title="Lifetime value vs acquisition cost — how much gross profit a customer generates over their lifetime for every ₹1 spent acquiring them. 3× or more is healthy; below 1× loses money.">
+                <p class="text-xs mpc-sub">LTV : CAC <i class="fas fa-circle-info mpc-faint text-[10px]"></i></p>
+                <p class="mpc-kpi mt-1" :class="ltvCacClass(model.totals.ltvCac)" x-text="ratio(model.totals.ltvCac)"></p>
+            </div>
+            <div class="rounded-2xl mpc-card p-4" title="The first month where cumulative gross profit (revenue × gross margin) covers cumulative spend.">
+                <p class="text-xs mpc-sub">Break-even month <i class="fas fa-circle-info mpc-faint text-[10px]"></i></p>
+                <p class="mpc-kpi mt-1" x-text="breakEvenLabel"></p>
+            </div>
+            <div class="rounded-2xl mpc-card p-4" title="How many months of average gross profit it takes to earn back the year's total spend.">
+                <p class="text-xs mpc-sub">Payback period <i class="fas fa-circle-info mpc-faint text-[10px]"></i></p>
+                <p class="mpc-kpi mt-1" x-text="paybackLabel"></p>
+            </div>
         </div>
 
         <div class="grid lg:grid-cols-2 gap-4">
             <div class="rounded-2xl mpc-card p-4">
-                <h3 class="text-sm font-bold mpc-title mb-2">Spend vs revenue by month</h3>
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <h3 class="text-sm font-bold mpc-title">Spend vs revenue by month</h3>
+                    <button type="button" @click="downloadChart('month')" title="Download chart as image"
+                            class="mpc-export-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
+                        <i class="fas fa-image"></i> PNG
+                    </button>
+                </div>
                 <canvas id="mpcMonthChart" height="220"></canvas>
             </div>
             <div class="rounded-2xl mpc-card p-4">
-                <h3 class="text-sm font-bold mpc-title mb-2">Annual revenue by channel</h3>
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <h3 class="text-sm font-bold mpc-title">Annual revenue by channel</h3>
+                    <button type="button" @click="downloadChart('channel')" title="Download chart as image"
+                            class="mpc-export-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
+                        <i class="fas fa-image"></i> PNG
+                    </button>
+                </div>
                 <canvas id="mpcChannelChart" height="220"></canvas>
             </div>
         </div>
@@ -304,7 +423,10 @@
             <table class="w-full min-w-[720px]">
                 <thead><tr>
                     <th class="mpc-th">Channel</th><th class="mpc-th text-right">Annual spend</th><th class="mpc-th text-right">Annual revenue</th>
-                    <th class="mpc-th text-right">Customers</th><th class="mpc-th text-right">CAC</th><th class="mpc-th text-right">ROI %</th>
+                    <th class="mpc-th text-right">Customers</th><th class="mpc-th text-right">CAC</th>
+                    <th class="mpc-th text-right" title="Return on ad spend — revenue ÷ spend">ROAS</th>
+                    <th class="mpc-th text-right" title="Lifetime gross profit per customer vs cost to acquire one — ≥3× healthy, <1× losing money">LTV:CAC</th>
+                    <th class="mpc-th text-right">ROI %</th>
                 </tr></thead>
                 <tbody>
                     <template x-for="row in model.channels" :key="row.key">
@@ -313,7 +435,9 @@
                             <td class="mpc-td text-right" x-text="money(sum(row.spend))"></td>
                             <td class="mpc-td text-right" x-text="money(sum(row.revenue))"></td>
                             <td class="mpc-td text-right" x-text="nf(sum(row.customers), 0)"></td>
-                            <td class="mpc-td text-right" x-text="sum(row.customers) > 0 ? money(sum(row.spend) / sum(row.customers)) : '—'"></td>
+                            <td class="mpc-td text-right" x-text="row.metrics.cac !== null ? money(row.metrics.cac) : '—'"></td>
+                            <td class="mpc-td text-right" x-text="ratio(row.metrics.roas, 2)"></td>
+                            <td class="mpc-td text-right font-semibold" :class="ltvCacClass(row.metrics.ltvCac)" x-text="ratio(row.metrics.ltvCac)"></td>
                             <td class="mpc-td text-right" x-text="sum(row.spend) > 0 ? nf((sum(row.revenue) - sum(row.spend)) / sum(row.spend) * 100, 0) + '%' : '—'"></td>
                         </tr>
                     </template>
@@ -417,7 +541,15 @@ function mpcApp() {
         name: @js($plan?->name ?? ($seedName ?? 'My Marketing Plan')),
         p: @js($payload),
         planOptions: @js($planOptions),
+        presets: @js($presets ?? []),
+        presetPick: 'custom',
         months: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+        steps: [
+            { key: 'assumptions', label: 'Assumptions' },
+            { key: 'monthly',     label: 'Monthly Plan' },
+            { key: 'dashboard',   label: 'Dashboard' },
+            { key: 'roi',         label: 'Sayzio ROI & Value' },
+        ],
         tab: 'assumptions',
         monthlyMetric: 'spend',
         saving: false, savedFlash: false, saveError: '', pdfBusy: false,
@@ -430,11 +562,26 @@ function mpcApp() {
             // Ensure array shapes survive older/partial payloads.
             if (!Array.isArray(this.p.weights) || this.p.weights.length !== 12) this.p.weights = Array(12).fill(1);
             if (!this.p.uplifts) this.p.uplifts = { apply: true, chat: 8, crm: 15 };
+            // The plan selector only lists public, active plans. If the stored
+            // slug points at a plan that is no longer offered (internal /
+            // archived / unpublished), fall back to the first public option so
+            // the select never shows an empty/ghost value. Runs BEFORE the
+            // dirty baseline so the silent self-heal isn't an "unsaved edit".
+            if (this.planOptions.length && !this.planOptions.some(o => o.slug === this.p.plan_slug)) {
+                this.p.plan_slug = this.planOptions[0].slug;
+            }
+            // Task #6768 — finance assumptions merged safely into old payloads.
+            if (typeof this.p.gross_margin !== 'number' || !isFinite(this.p.gross_margin)) this.p.gross_margin = 60;
+            if (typeof this.p.ltv_multiplier !== 'number' || !isFinite(this.p.ltv_multiplier)) this.p.ltv_multiplier = 1.5;
             // Task #6742 — keep every numeric input in a sane range so the
             // engine can never produce Infinity-adjacent projections.
             // Run before the dirty baseline so a silent self-heal of an old
             // saved plan doesn't count as an unsaved edit.
             this.applyClamps(false);
+
+            // Task #6767 — reflect the saved preset in the picker; unknown /
+            // pre-preset payloads read as "Custom".
+            this.presetPick = this.presets[this.p.industry_preset] ? this.p.industry_preset : 'custom';
 
             // ----- unsaved-changes guard -----
             this._baseline = this.snapshot();
@@ -485,6 +632,8 @@ function mpcApp() {
             if (w) flag('weights', 'Adjusted — seasonality weights stay between 0 and 100.');
             if ([this.clampNum(this.p.uplifts, 'chat', 0, 100), this.clampNum(this.p.uplifts, 'crm', 0, 100)].some(Boolean))
                 flag('uplifts', 'Adjusted — uplift percentages stay between 0 and 100.');
+            if ([this.clampNum(this.p, 'gross_margin', 0, 100), this.clampNum(this.p, 'ltv_multiplier', 0, 1000)].some(Boolean))
+                flag('finance', 'Adjusted — gross margin stays between 0 and 100%, the LTV multiplier cannot be negative.');
             let ch = false;
             for (const c of this.p.channels || []) {
                 ch = this.clampNum(c, 'alloc', 0, 100) || ch;
@@ -501,7 +650,27 @@ function mpcApp() {
                 flag('time', 'Adjusted — hours and time value cannot be negative.');
         },
         snapshot() { return JSON.stringify({ name: this.name, p: this.p }); },
+        get stepIndex() { return this.steps.findIndex(s => s.key === this.tab); },
         recomputeDirty() { this.dirty = this.snapshot() !== this._baseline; },
+
+        // ---------- industry presets (Task #6767) ----------
+        get presetLabel() { return this.presets[this.p.industry_preset]?.label || 'Custom'; },
+        onPresetPick() {
+            const key = this.presetPick;
+            if (key === 'custom' || !this.presets[key] || key === this.p.industry_preset) return;
+            // Overwrites a plan someone has worked on → confirm first. A
+            // fresh, untouched new plan applies silently.
+            if ((this.planId || this.dirty)
+                && !window.confirm('Apply the "' + this.presets[key].label + '" preset?\n\nThis overwrites the whole channel-assumptions table (allocations, cost per visitor, conversion rates, customer values and notes) with the preset\'s benchmarks. Your budget, seasonality and other inputs are kept. Everything stays editable afterwards.')) {
+                this.presetPick = this.presets[this.p.industry_preset] ? this.p.industry_preset : 'custom';
+                return;
+            }
+            this.applyPreset(key);
+        },
+        applyPreset(key) {
+            this.p.channels = JSON.parse(JSON.stringify(this.presets[key].channels));
+            this.p.industry_preset = key;
+        },
 
         // ---------- helpers ----------
         n(v) { const x = parseFloat(v); return isFinite(x) ? x : 0; },
@@ -513,6 +682,22 @@ function mpcApp() {
             return (this.p.display_currency === 'USD' ? '$' : '₹') + this.nf(v, v !== 0 && Math.abs(v) < 100 ? 2 : 0);
         },
         cellFmt(v) { return this.monthlyMetric === 'spend' || this.monthlyMetric === 'revenue' ? this.money(v) : this.nf(v, 0); },
+
+        // ---------- finance-metric display helpers (Task #6768) ----------
+        ratio(v, d = 1) { return v === null || !isFinite(v) ? '—' : this.nf(v, d) + '×'; },
+        // Traffic-light class for LTV:CAC — ≥3 healthy, 1–3 borderline, <1 losing money.
+        ltvCacClass(v) {
+            if (v === null || !isFinite(v)) return 'mpc-faint';
+            return v >= 3 ? 'text-emerald-400' : (v >= 1 ? 'text-amber-400' : 'text-red-400');
+        },
+        get breakEvenLabel() {
+            const m = this.model.totals.breakEvenMonth;
+            return m === null ? 'Beyond 12 mo' : this.months[m];
+        },
+        get paybackLabel() {
+            const v = this.model.totals.paybackMonths;
+            return v === null ? '—' : this.nf(v, 1) + ' mo';
+        },
 
         get selectedPlan() {
             return this.planOptions.find(o => o.slug === this.p.plan_slug) || { name: '—', inr: 0, usd: 0 };
@@ -529,6 +714,9 @@ function mpcApp() {
             const lcMult = this.p.uplifts.apply ? 1 + this.n(this.p.uplifts.crm) / 100 : 1;
             const subInr = this.n(this.selectedPlan.inr);
             const budget = this.n(this.p.annual_budget);
+            // Task #6768 — finance assumptions for CAC/ROAS/LTV metrics.
+            const margin  = Math.min(100, Math.max(0, this.n(this.p.gross_margin))) / 100;
+            const ltvMult = Math.max(0, this.n(this.p.ltv_multiplier));
 
             const channels = this.p.channels.map(c => {
                 const spend = [], visitors = [], leads = [], customers = [], revenue = [];
@@ -547,7 +735,16 @@ function mpcApp() {
                     spend.push(sp); visitors.push(vis); leads.push(ld);
                     customers.push(cu); revenue.push(cu * this.n(c.acv));
                 }
-                return { key: c.key, name: c.name, spend, visitors, leads, customers, revenue };
+                // Task #6768 — per-channel annual finance metrics.
+                const aSp = this.sum(spend), aRev = this.sum(revenue), aCu = this.sum(customers);
+                const cac  = aCu > 0 ? aSp / aCu : null;
+                const roas = aSp > 0 ? aRev / aSp : null;
+                const ltv  = aCu > 0 ? (aRev / aCu) * ltvMult * margin : null;
+                const metrics = {
+                    cac, roas, ltv,
+                    ltvCac: (cac !== null && cac > 0 && ltv !== null) ? ltv / cac : null,
+                };
+                return { key: c.key, name: c.name, spend, visitors, leads, customers, revenue, metrics };
             });
 
             const monthTotals = { spend: [], visitors: [], leads: [], customers: [], revenue: [] };
@@ -559,13 +756,31 @@ function mpcApp() {
 
             const spend = this.sum(monthTotals.spend), revenue = this.sum(monthTotals.revenue),
                   customers = this.sum(monthTotals.customers);
+
+            // Task #6768 — blended finance metrics from the monthly cashflow.
+            // Cumulative cashflow = gross profit (revenue × margin) minus spend.
+            const cac = customers > 0 ? spend / customers : 0;
+            const ltv = customers > 0 ? (revenue / customers) * ltvMult * margin : 0;
+            let cum = 0, breakEvenMonth = null;
+            for (let m = 0; m < 12; m++) {
+                cum += monthTotals.revenue[m] * margin - monthTotals.spend[m];
+                if (breakEvenMonth === null && cum >= 0) breakEvenMonth = m; // 0-based month index
+            }
+            const grossProfit = revenue * margin;
+            // Months of blended spend recovered by average monthly gross profit.
+            const paybackMonths = (spend > 0 && grossProfit > 0) ? spend / (grossProfit / 12) : null;
+
             return {
                 channels, monthTotals, vlMult, lcMult,
                 totals: {
                     spend, revenue, customers,
                     roas: spend > 0 ? revenue / spend : 0,
-                    cac:  customers > 0 ? spend / customers : 0,
+                    cac,
                     roi:  spend > 0 ? (revenue - spend) / spend : 0,
+                    ltv,
+                    ltvCac: cac > 0 ? ltv / cac : null,
+                    breakEvenMonth,
+                    paybackMonths,
                 },
             };
         },
@@ -615,6 +830,8 @@ function mpcApp() {
                 ['Apply Sayzio toolset uplifts', this.p.uplifts.apply ? 'Yes' : 'No'],
                 ['Chat widget uplift — visitor → lead (%)', this.xn(this.p.uplifts.chat, 1)],
                 ['CRM & dialer uplift — lead → customer (%)', this.xn(this.p.uplifts.crm, 1)],
+                ['Gross margin (%)', this.xn(this.p.gross_margin, 1)],
+                ['Customer lifetime / repeat-purchase multiplier (×)', this.xn(this.p.ltv_multiplier)],
                 [],
                 ['Monthly seasonality weights'],
                 ['Month', ...this.months],
@@ -652,13 +869,19 @@ function mpcApp() {
                 ['Total customers acquired', this.xn(m.totals.customers, 0)],
                 ['Blended CAC (' + sym + ')', this.xm(m.totals.cac)],
                 ['Blended ROI (%)', this.xn(m.totals.roi * 100, 1)],
+                ['Blended LTV (' + sym + ', gross profit per customer)', this.xm(m.totals.ltv)],
+                ['LTV : CAC (×)', m.totals.ltvCac !== null ? this.xn(m.totals.ltvCac) : '—'],
+                ['Break-even month (cumulative cashflow)', m.totals.breakEvenMonth !== null ? this.months[m.totals.breakEvenMonth] : 'Beyond 12 months'],
+                ['Payback period (months)', m.totals.paybackMonths !== null ? this.xn(m.totals.paybackMonths, 1) : '—'],
                 [],
                 ['Channel summary (annual)'],
-                ['Channel', 'Annual spend (' + sym + ')', 'Annual revenue (' + sym + ')', 'Customers', 'CAC (' + sym + ')', 'ROI %'],
+                ['Channel', 'Annual spend (' + sym + ')', 'Annual revenue (' + sym + ')', 'Customers', 'CAC (' + sym + ')', 'ROAS (×)', 'LTV:CAC (×)', 'ROI %'],
                 ...m.channels.map(row => {
                     const sp = this.sum(row.spend), rev = this.sum(row.revenue), cu = this.sum(row.customers);
                     return [row.name, this.xm(sp), this.xm(rev), this.xn(cu, 0),
-                            cu > 0 ? this.xm(sp / cu) : '—',
+                            row.metrics.cac !== null ? this.xm(row.metrics.cac) : '—',
+                            row.metrics.roas !== null ? this.xn(row.metrics.roas) : '—',
+                            row.metrics.ltvCac !== null ? this.xn(row.metrics.ltvCac) : '—',
                             sp > 0 ? this.xn((rev - sp) / sp * 100, 1) : '—'];
                 }),
             ];
@@ -792,6 +1015,28 @@ function mpcApp() {
             return String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
         },
 
+        // Task #6763 — the one-pager must stay readable even if a plan carries
+        // many extra channels. Cap the PDF summary table: keep the biggest
+        // channels and aggregate the tail into a single "Other" row.
+        pdfMaxChannelRows: 16,
+
+        pdfSummaryRows() {
+            const rows = this.model.channels.map(row => ({
+                name: row.name,
+                spend: this.sum(row.spend),
+                revenue: this.sum(row.revenue),
+                customers: this.sum(row.customers),
+            }));
+            const max = this.pdfMaxChannelRows;
+            if (rows.length <= max) return rows;
+            const sorted = rows.slice().sort((a, b) => (b.revenue - a.revenue) || (b.spend - a.spend));
+            const keep = sorted.slice(0, max - 1);
+            const rest = sorted.slice(max - 1);
+            const other = { name: `Other (${rest.length} channels)`, spend: 0, revenue: 0, customers: 0 };
+            for (const r of rest) { other.spend += r.spend; other.revenue += r.revenue; other.customers += r.customers; }
+            return [...keep, other];
+        },
+
         pdfPageHtml() {
             const esc = v => this.pdfEsc(v);
             const m = this.model, r = this.roi;
@@ -802,14 +1047,22 @@ function mpcApp() {
                     <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#64748b;">${label}</p>
                     <p style="margin:4px 0 0;font-size:22px;font-weight:800;color:#0f172a;">${value}</p>
                 </div>`;
-            const chanRows = m.channels.map(row => {
-                const sp = this.sum(row.spend), rev = this.sum(row.revenue), cu = this.sum(row.customers);
+            // Task #6768 — LTV inputs for the per-row finance metrics.
+            const pdfMargin  = Math.min(100, Math.max(0, this.n(this.p.gross_margin))) / 100;
+            const pdfLtvMult = Math.max(0, this.n(this.p.ltv_multiplier));
+            const chanRows = this.pdfSummaryRows().map(row => {
+                const sp = row.spend, rev = row.revenue, cu = row.customers;
+                const cac = cu > 0 ? sp / cu : null;
+                const ltvCac = (cac !== null && cac > 0) ? ((rev / cu) * pdfLtvMult * pdfMargin) / cac : null;
+                const ltvColor = ltvCac === null ? '#94a3b8' : (ltvCac >= 3 ? '#059669' : (ltvCac >= 1 ? '#d97706' : '#dc2626'));
                 return `<tr>
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;font-weight:600;color:#0f172a;">${esc(row.name)}</td>
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${this.money(sp)}</td>
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${this.money(rev)}</td>
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${this.nf(cu, 0)}</td>
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${cu > 0 ? this.money(sp / cu) : '—'}</td>
+                    <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${sp > 0 ? this.nf(rev / sp, 2) + '×' : '—'}</td>
+                    <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;font-weight:600;color:${ltvColor};">${this.ratio(ltvCac)}</td>
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${sp > 0 ? this.nf((rev - sp) / sp * 100, 0) + '%' : '—'}</td>
                 </tr>`;
             }).join('');
@@ -835,6 +1088,9 @@ function mpcApp() {
                     ${kpi('Customers acquired', this.nf(m.totals.customers, 0))}
                     ${kpi('Blended CAC', this.money(m.totals.cac))}
                     ${kpi('Blended ROI', this.nf(m.totals.roi * 100, 0) + '%')}
+                    ${kpi('LTV : CAC', this.ratio(m.totals.ltvCac))}
+                    ${kpi('Break-even month', this.breakEvenLabel)}
+                    ${kpi('Payback period', this.paybackLabel)}
                 </div>
 
                 <div style="display:flex;gap:16px;margin-top:18px;">
@@ -853,7 +1109,7 @@ function mpcApp() {
                     <table style="width:100%;border-collapse:collapse;font-size:11px;">
                         <thead><tr>
                             <th style="padding:5px 8px;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;text-align:left;">Channel</th>
-                            ${th('Annual spend')}${th('Annual revenue')}${th('Customers')}${th('CAC')}${th('ROI %')}
+                            ${th('Annual spend')}${th('Annual revenue')}${th('Customers')}${th('CAC')}${th('ROAS')}${th('LTV:CAC')}${th('ROI %')}
                         </tr></thead>
                         <tbody>${chanRows}</tbody>
                     </table>
@@ -894,10 +1150,20 @@ function mpcApp() {
             }
             const chanEl = host.querySelector('canvas[data-pdf-chart="channel"]');
             if (chanEl) {
-                const rows = m.channels
+                let rows = m.channels
                     .map(r => ({ name: r.name, rev: this.sum(r.revenue) * mult }))
                     .filter(r => r.rev > 0)
                     .sort((a, b) => b.rev - a.rev);
+                // Task #6763 — cap doughnut slices so an inflated channel list
+                // can't blow up the legend and squash the chart on the one-pager.
+                const maxSlices = 12;
+                if (rows.length > maxSlices) {
+                    const rest = rows.slice(maxSlices - 1);
+                    rows = [
+                        ...rows.slice(0, maxSlices - 1),
+                        { name: `Other (${rest.length})`, rev: rest.reduce((s, r) => s + r.rev, 0) },
+                    ];
+                }
                 const palette = ['#2563eb','#0ea5e9','#10b981','#f59e0b','#ef4444','#14b8a6','#3b82f6','#64748b','#22c55e','#eab308','#06b6d4','#f97316','#0284c7','#84cc16','#e11d48','#475569'];
                 created.push(new Chart(chanEl, {
                     type: 'doughnut',
@@ -954,6 +1220,30 @@ function mpcApp() {
         },
 
         // ---------- charts ----------
+        /**
+         * Task #6765 — download a dashboard chart as a PNG. Chart.js canvases
+         * are transparent, so composite onto the current theme's background
+         * first (white in light mode, dashboard navy in dark) for a readable
+         * standalone image.
+         */
+        downloadChart(key) {
+            const src = document.getElementById(key === 'month' ? 'mpcMonthChart' : 'mpcChannelChart');
+            if (!src || !src.width) return;
+            const light = document.documentElement.classList.contains('light-mode');
+            const out = document.createElement('canvas');
+            out.width = src.width; out.height = src.height;
+            const ctx = out.getContext('2d');
+            ctx.fillStyle = light ? '#ffffff' : '#0f172a';
+            ctx.fillRect(0, 0, out.width, out.height);
+            ctx.drawImage(src, 0, 0);
+            const a = document.createElement('a');
+            a.href = out.toDataURL('image/png');
+            a.download = this.exportFileBase() + (key === 'month' ? '-spend-vs-revenue.png' : '-revenue-by-channel.png');
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => a.remove(), 0);
+        },
+
         openDashboard() {
             this.tab = 'dashboard';
             this.$nextTick(() => this.renderCharts());

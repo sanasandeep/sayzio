@@ -121,4 +121,85 @@ test.describe("marketing plan export", () => {
     // No error surfaced in the UI.
     await expect(page.locator("text=Could not generate the PDF")).toHaveCount(0);
   });
+
+  // Task #6763 — the one-pager must stay readable when a plan carries many
+  // extra channels: the summary table caps rows (small channels aggregate
+  // into an "Other" row) and the PDF still generates within a sane height.
+  test("PDF one-pager stays a sane single page with an inflated channel list", async ({
+    page,
+  }) => {
+    test.setTimeout(300_000);
+    await loginAsDemo(page);
+    await page.goto("/user/marketing-plan/create", { timeout: 240_000 });
+    const exportBtn = page.getByRole("button", { name: /Export/ }).first();
+    await exportBtn.waitFor({ state: "visible", timeout: 120_000 });
+    await page.waitForFunction(
+      () =>
+        typeof (window as any).html2canvas !== "undefined" &&
+        typeof (window as any).Chart !== "undefined" &&
+        typeof (window as any).Alpine !== "undefined",
+      null,
+      { timeout: 60_000 },
+    );
+
+    // Inflate the channel list to 40 channels via the Alpine component state.
+    const counts = await page.evaluate(() => {
+      const el = document.querySelector('[x-data^="mpcApp"]') as any;
+      const d = (window as any).Alpine.$data(el);
+      const before = d.p.channels.length;
+      for (let i = 1; i <= 40 - before; i++) {
+        d.p.channels.push({
+          key: `extra_${i}`,
+          name: `Extra Channel ${i}`,
+          alloc: 0.5,
+          cpv: 10,
+          vl: 3,
+          lc: 5,
+          acv: 4000,
+          notes: "",
+          fixed: false,
+        });
+      }
+      return { before, after: d.p.channels.length };
+    });
+    expect(counts.after).toBe(40);
+
+    // The PDF summary caps rows and aggregates the tail into "Other".
+    const summary = await page.evaluate(() => {
+      const el = document.querySelector('[x-data^="mpcApp"]') as any;
+      const d = (window as any).Alpine.$data(el);
+      const rows = d.pdfSummaryRows();
+      return {
+        rowCount: rows.length,
+        lastName: rows[rows.length - 1].name,
+        html: d.pdfPageHtml() as string,
+      };
+    });
+    expect(summary.rowCount).toBeLessThanOrEqual(16);
+    expect(summary.lastName).toMatch(/^Other \(\d+ channels\)$/);
+    expect(summary.html).toContain("Other (");
+
+    // Full export still succeeds and the page stays a sane one-pager height.
+    await exportBtn.click();
+    const [dl] = await Promise.all([
+      page.waitForEvent("download", { timeout: 120_000 }),
+      page.getByRole("button", { name: /PDF one-pager/ }).click(),
+    ]);
+    expect(dl.suggestedFilename()).toMatch(/\.pdf$/);
+    const buf = fs.readFileSync((await dl.path())!);
+    const s = buf.toString("latin1");
+    expect(s.startsWith("%PDF-")).toBe(true);
+    expect(s).toContain("%%EOF");
+    expect(s).toContain("/DCTDecode");
+    // Parse the single page's MediaBox and assert a sane aspect ratio —
+    // roughly one landscape-ish sheet, never a mile-long scroll.
+    const mb = s.match(/MediaBox \[0 0 ([\d.]+) ([\d.]+)\]/);
+    expect(mb).not.toBeNull();
+    const wPt = parseFloat(mb![1]);
+    const hPt = parseFloat(mb![2]);
+    expect(wPt).toBeGreaterThan(0);
+    expect(hPt / wPt).toBeLessThan(2.1);
+    // No error surfaced in the UI.
+    await expect(page.locator("text=Could not generate the PDF")).toHaveCount(0);
+  });
 });

@@ -19,10 +19,8 @@
                   style="background: var(--c-primary-soft); color: var(--accent); border: 1px solid var(--c-primary-soft);">Admin</span>
         </a>
         <template x-if="sidebarMode === 'icons'">
-            <a href="{{ route('admin.dashboard') }}" class="group" title="Sayzio Admin">
-                <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--accent);">
-                    <span class="text-white text-sm font-bold ak-strong">1</span>
-                </div>
+            <a href="{{ route('admin.dashboard') }}" class="group" title="{{ config('app.name', 'Sayzio') }} Admin">
+                @include('common.partials.brand-logo', ['variant' => 'icon', 'height' => 'h-9'])
             </a>
         </template>
     </div>

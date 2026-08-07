@@ -222,14 +222,14 @@ class PlansAndAddonsSeeder extends Seeder
     public static function gatingSyncFeatureDefaults(): array
     {
         return [
-            'free'           => ['special_dates' => true, 'max_smart_rules' => 3,  'browser_sync' => true, 'max_browser_sync_items' => 2000,  'max_service_booking_staff' => 1,  'max_brand_asset_versions' => 0],
-            'creator'        => ['special_dates' => true, 'max_smart_rules' => 10, 'browser_sync' => true, 'max_browser_sync_items' => 10000, 'max_service_booking_staff' => 3,  'max_brand_asset_versions' => 5],
-            'professional'   => ['special_dates' => true, 'max_smart_rules' => 25, 'browser_sync' => true, 'max_browser_sync_items' => 25000, 'max_service_booking_staff' => 10, 'max_brand_asset_versions' => 20],
-            'business'       => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1,    'max_service_booking_staff' => -1, 'max_brand_asset_versions' => -1],
-            'agency'         => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1,    'max_service_booking_staff' => -1, 'max_brand_asset_versions' => -1],
-            'developer'      => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => 25000, 'max_service_booking_staff' => 10, 'max_brand_asset_versions' => 20],
-            'enterprise-api' => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1,    'max_service_booking_staff' => -1, 'max_brand_asset_versions' => -1],
-            'unlimited'      => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1,    'max_service_booking_staff' => -1, 'max_brand_asset_versions' => -1],
+            'free'           => ['special_dates' => true, 'max_smart_rules' => 3,  'browser_sync' => true, 'max_browser_sync_items' => 2000,  'max_service_booking_staff' => 1,  'max_brand_asset_versions' => 0,  'marketing_plan_calculator' => false, 'max_marketing_plans' => 0],
+            'creator'        => ['special_dates' => true, 'max_smart_rules' => 10, 'browser_sync' => true, 'max_browser_sync_items' => 10000, 'max_service_booking_staff' => 3,  'max_brand_asset_versions' => 5,  'marketing_plan_calculator' => true,  'max_marketing_plans' => 3],
+            'professional'   => ['special_dates' => true, 'max_smart_rules' => 25, 'browser_sync' => true, 'max_browser_sync_items' => 25000, 'max_service_booking_staff' => 10, 'max_brand_asset_versions' => 20, 'marketing_plan_calculator' => true,  'max_marketing_plans' => 10],
+            'business'       => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1,    'max_service_booking_staff' => -1, 'max_brand_asset_versions' => -1, 'marketing_plan_calculator' => true,  'max_marketing_plans' => -1],
+            'agency'         => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1,    'max_service_booking_staff' => -1, 'max_brand_asset_versions' => -1, 'marketing_plan_calculator' => true,  'max_marketing_plans' => -1],
+            'developer'      => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => 25000, 'max_service_booking_staff' => 10, 'max_brand_asset_versions' => 20, 'marketing_plan_calculator' => true,  'max_marketing_plans' => 10],
+            'enterprise-api' => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1,    'max_service_booking_staff' => -1, 'max_brand_asset_versions' => -1, 'marketing_plan_calculator' => true,  'max_marketing_plans' => -1],
+            'unlimited'      => ['special_dates' => true, 'max_smart_rules' => -1, 'browser_sync' => true, 'max_browser_sync_items' => -1,    'max_service_booking_staff' => -1, 'max_brand_asset_versions' => -1, 'marketing_plan_calculator' => true,  'max_marketing_plans' => -1],
         ];
     }
 

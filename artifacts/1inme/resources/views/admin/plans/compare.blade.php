@@ -323,14 +323,17 @@ html.light-mode .cmp-badge.all { background: rgba(16,185,129,0.1); color: #05966
 html.light-mode .cmp-btn-edit { background: rgba(61,107,255,0.08); color: #3d6bff; border-color: rgba(61,107,255,0.2); }
 html.light-mode .cmp-btn-edit:hover { background: rgba(61,107,255,0.15); }
 
-/* Floating save bar */
+/* Floating save bar — consumes the shared liquid-glass tokens (--lg-*)
+   from theme-styles on the near-opaque surface so controls stay legible. */
 .compare-save-bar {
     position: sticky; bottom: 0; z-index: 20;
-    border-top: 1px solid rgba(255,255,255,0.08);
+    border-top: 1px solid var(--lg-border, rgba(255,255,255,0.08));
     padding: 12px 20px; display: flex; align-items: center; gap: 12px;
-    background: rgba(18,18,22,0.95); backdrop-filter: blur(16px);
+    background: var(--lg-bg-opaque, rgba(24,28,40,0.96));
+    backdrop-filter: var(--lg-blur, blur(26px) saturate(1.4));
+    -webkit-backdrop-filter: var(--lg-blur, blur(26px) saturate(1.4));
+    box-shadow: var(--lg-highlight, inset 0 1px 0 rgba(255,255,255,0.07));
 }
-html.light-mode .compare-save-bar { background: rgba(248,250,252,0.97); border-top-color: #e2e8f0; }
 
 /* Full-screen modal overlay */
 .cmp-modal-overlay {

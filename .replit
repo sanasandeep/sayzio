@@ -95,6 +95,18 @@ args = "e2e-mpc-dirty-guard"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "e2e-admin-minimized-sidebar"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mpc-presets"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mpc-finance-metrics"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-settings-tabs-scroll"
     
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
@@ -366,3 +378,37 @@ isValidation = true
 
     [workflows.workflow.metadata]
     isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mpc-presets"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5087 bash tests/Browser/run-validation.sh marketing-plan-presets.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mpc-finance-metrics"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5088 bash tests/Browser/run-validation.sh mpc-finance-metrics.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+    [[workflows.workflow]]
+    name = "e2e-settings-tabs-scroll"
+    author = "agent"
+
+    [[workflows.workflow.tasks]]
+    task = "shell.exec"
+    args = "cd artifacts/1inme && VALIDATION_PORT=5090 bash tests/Browser/run-validation.sh settings-tabs-mobile-scroll.spec.ts"
+
+    [workflows.workflow.metadata]
+    isValidation = true
+    

@@ -27,7 +27,9 @@ class MarketingPlanCalculatorTest extends TestCase
             'name' => 'Professional ' . $slug, 'slug' => $slug,
             'monthly_price' => 0, 'annual_price' => 0,
             'trial_days' => 0, 'status' => 'active',
-            'features' => [],
+            // Task #6766 — the calculator is now plan-gated; these tests
+            // exercise the tool itself, so grant access with no cap.
+            'features' => ['marketing_plan_calculator' => true, 'max_marketing_plans' => -1],
         ]);
     }
 
