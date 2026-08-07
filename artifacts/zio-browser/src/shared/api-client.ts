@@ -587,7 +587,14 @@ export class ApiClient {
   // ── Domains ───────────────────────────────────────────────────────────────
 
   async listAvailableDomains(): Promise<{ items: ApiDomain[] }> {
-    return this.get<{ items: ApiDomain[] }>('/domains/available');
+    // The API returns each entry's hostname under `domain`; older client code
+    // (and the UI) reads `host`. Normalize so `host` is always populated —
+    // without this every row in the domain <select> renders blank.
+    const res = await this.get<{ items: Array<ApiDomain & { domain?: string }> }>('/domains/available');
+    return {
+      ...res,
+      items: (res.items ?? []).map(d => ({ ...d, host: d.host ?? d.domain ?? '' })),
+    };
   }
 
   // ── QR codes ──────────────────────────────────────────────────────────────
