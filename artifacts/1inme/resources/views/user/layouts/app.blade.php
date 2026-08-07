@@ -1005,6 +1005,13 @@
                             <span class="sidebar-tooltip">AI Marketing Strategist</span>
                         </a>
                         @endif
+                        <a href="{{ route('user.marketing-plan.index') }}"
+                           class="sidebar-link {{ nav_route_is('user.marketing-plan.*') ? 'active' : '' }}"
+                           style="--nav-tint:#60a5fa; --nav-tint-soft:rgba(96,165,250,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-calculator"></i></div>
+                            <span class="nav-label">Marketing Plan Calculator</span>
+                            <span class="sidebar-tooltip">Marketing Plan Calculator</span>
+                        </a>
                         @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && (\App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_billing') || \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_contacts') || \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_general')))
                         <a href="{{ route('user.ai.staff.index') }}"
                            class="sidebar-link {{ nav_route_is('user.ai.staff.*') ? 'active' : '' }}"
@@ -1710,6 +1717,7 @@
                                 @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'marketing_strategist'))
                                 <a href="{{ route('user.ai.marketing-strategist.index') }}" class="sidebar-link {{ nav_route_is('user.ai.marketing-strategist.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>AI Marketing Strategist</span></a>
                                 @endif
+                                <a href="{{ route('user.marketing-plan.index') }}" class="sidebar-link {{ nav_route_is('user.marketing-plan.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calculator"></i></div> <span>Marketing Plan Calculator</span></a>
                                 @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && (\App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_billing') || \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_contacts') || \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_general')))
                                 <a href="{{ route('user.ai.staff.index') }}" class="sidebar-link {{ nav_route_is('user.ai.staff.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-people-group"></i></div> <span>AI Staff</span></a>
                                 @endif
