@@ -243,7 +243,11 @@ export class WindowModeManager {
         try {
           if (wc.isDestroyed()) return;
           wc.reload();
-          this.setMode(this.mode);
+          // Only re-apply the mode (which reattaches the dashboard view) when
+          // no chrome overlay holds the native views detached — reattaching
+          // mid-overlay would cover the open menu and swallow its clicks.
+          // The final overlay close re-applies the mode anyway.
+          if (this.overlayCount === 0) this.setMode(this.mode);
         } catch { /* view mid-teardown */ }
       }, 250);
     });
