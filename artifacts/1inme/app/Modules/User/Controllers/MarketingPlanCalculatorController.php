@@ -107,6 +107,7 @@ class MarketingPlanCalculatorController extends Controller
             'presets'     => MarketingPlanIndustryPresets::forClient(),
             'seedName'    => $seedName,
             'aiSeed'      => $aiSeed,
+            'toolsLocked' => MarketingPlanDefaults::toolCostsLocked(),
         ]);
     }
 
@@ -130,6 +131,11 @@ class MarketingPlanCalculatorController extends Controller
         $this->ensureEnabled($request);
 
         $data = $this->validatePlan($request);
+
+        // Admin-locked tool costs can never be overridden by the client.
+        if (MarketingPlanDefaults::toolCostsLocked()) {
+            $data['payload'] = MarketingPlanDefaults::enforceLockedToolCosts($data['payload']);
+        }
 
         // Count-and-create must be atomic or two concurrent requests at the
         // last free slot both pass the cap check and both insert. A per-owner
@@ -182,11 +188,18 @@ class MarketingPlanCalculatorController extends Controller
             unset($payload[MarketingPlanIndustryPresets::PAYLOAD_KEY]);
         }
 
+        // Admin-locked tool costs always display the admin's numbers, even
+        // on plans saved before the lock (or with older costs).
+        if (MarketingPlanDefaults::toolCostsLocked()) {
+            $payload = MarketingPlanDefaults::enforceLockedToolCosts($payload);
+        }
+
         return view('user.marketing-plan.editor', [
             'plan'        => $model,
             'payload'     => $payload,
             'planOptions' => MarketingPlanDefaults::planOptions(),
             'presets'     => MarketingPlanIndustryPresets::forClient(),
+            'toolsLocked' => MarketingPlanDefaults::toolCostsLocked(),
         ]);
     }
 
@@ -197,6 +210,11 @@ class MarketingPlanCalculatorController extends Controller
 
         $model = $this->findOwned($request, $plan);
         $data  = $this->validatePlan($request);
+
+        // Admin-locked tool costs can never be overridden by the client.
+        if (MarketingPlanDefaults::toolCostsLocked()) {
+            $data['payload'] = MarketingPlanDefaults::enforceLockedToolCosts($data['payload']);
+        }
 
         $model->update(['name' => $data['name'], 'payload' => $data['payload']]);
 

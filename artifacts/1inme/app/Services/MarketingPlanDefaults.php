@@ -53,18 +53,66 @@ class MarketingPlanDefaults
      * @var array<int,array<string,mixed>>
      */
     public const TOOLS = [
-        ['feature' => 'Link-in-Bio Page',              'example' => 'Linktree Pro / Beacons',      'cost' => 1600, 'notes' => "Sayzio's bio-link mini-site replaces this"],
-        ['feature' => 'QR Code Generator',             'example' => 'Dynamic QR code tools',       'cost' => 1200, 'notes' => 'Trackable, brandable QR codes'],
-        ['feature' => 'Digital Business Card',         'example' => 'Blinq / CardX',               'cost' => 800,  'notes' => 'Shareable digital contact card'],
-        ['feature' => 'CRM & Contacts',                'example' => 'Zoho CRM / HubSpot Starter',  'cost' => 4000, 'notes' => 'Central contact database & pipeline'],
-        ['feature' => 'Dialer / Click-to-Call',        'example' => 'JustCall / Ozonetel',         'cost' => 3500, 'notes' => 'Click-to-call & call logging'],
-        ['feature' => 'Lead Capture Forms',            'example' => 'Typeform / Google Forms',     'cost' => 1500, 'notes' => 'Embeddable lead-capture forms'],
-        ['feature' => 'Live Chat / AI Site Assistant', 'example' => 'Tidio / Intercom',            'cost' => 5000, 'notes' => 'On-site chat widget & AI assistant'],
-        ['feature' => 'File-Share Links',              'example' => 'WeTransfer Pro / Dropbox',    'cost' => 800,  'notes' => 'Branded, trackable file-share links'],
-        ['feature' => 'Event Page / RSVP',             'example' => 'Eventbrite',                  'cost' => 2000, 'notes' => 'Event landing page & registration'],
-        ['feature' => 'Review / Testimonial Page',     'example' => 'Trustpilot Business',         'cost' => 3000, 'notes' => 'Collect & display customer reviews'],
-        ['feature' => 'Restaurant Menu / Website Page','example' => 'Wix / Bites',                 'cost' => 2500, 'notes' => 'Menu builder / simple website page'],
+        ['key' => 'linkinbio', 'feature' => 'Link-in-Bio Page',              'example' => 'Linktree Pro / Beacons',      'cost' => 1600, 'notes' => "Sayzio's bio-link mini-site replaces this"],
+        ['key' => 'qr', 'feature' => 'QR Code Generator',             'example' => 'Dynamic QR code tools',       'cost' => 1200, 'notes' => 'Trackable, brandable QR codes'],
+        ['key' => 'bizcard', 'feature' => 'Digital Business Card',         'example' => 'Blinq / CardX',               'cost' => 800,  'notes' => 'Shareable digital contact card'],
+        ['key' => 'crm', 'feature' => 'CRM & Contacts',                'example' => 'Zoho CRM / HubSpot Starter',  'cost' => 4000, 'notes' => 'Central contact database & pipeline'],
+        ['key' => 'dialer', 'feature' => 'Dialer / Click-to-Call',        'example' => 'JustCall / Ozonetel',         'cost' => 3500, 'notes' => 'Click-to-call & call logging'],
+        ['key' => 'forms', 'feature' => 'Lead Capture Forms',            'example' => 'Typeform / Google Forms',     'cost' => 1500, 'notes' => 'Embeddable lead-capture forms'],
+        ['key' => 'chat', 'feature' => 'Live Chat / AI Site Assistant', 'example' => 'Tidio / Intercom',            'cost' => 5000, 'notes' => 'On-site chat widget & AI assistant'],
+        ['key' => 'files', 'feature' => 'File-Share Links',              'example' => 'WeTransfer Pro / Dropbox',    'cost' => 800,  'notes' => 'Branded, trackable file-share links'],
+        ['key' => 'events_page', 'feature' => 'Event Page / RSVP',             'example' => 'Eventbrite',                  'cost' => 2000, 'notes' => 'Event landing page & registration'],
+        ['key' => 'reviews', 'feature' => 'Review / Testimonial Page',     'example' => 'Trustpilot Business',         'cost' => 3000, 'notes' => 'Collect & display customer reviews'],
+        ['key' => 'menu', 'feature' => 'Restaurant Menu / Website Page','example' => 'Wix / Bites',                 'cost' => 2500, 'notes' => 'Menu builder / simple website page'],
     ];
+
+    /** AppSetting keys for the admin-managed standalone-tool cost table. */
+    public const SETTING_TOOL_COSTS  = 'marketing_plan.tool_costs';
+    public const SETTING_TOOLS_LOCKED = 'marketing_plan.tool_costs_locked';
+
+    /**
+     * The TOOLS table with any admin-edited monthly costs applied
+     * (admin → AppSetting overrides keyed by each row's `key`).
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public static function tools(): array
+    {
+        $overrides = \App\Modules\Admin\Models\AppSetting::get(self::SETTING_TOOL_COSTS, []);
+        $overrides = is_array($overrides) ? $overrides : [];
+
+        return array_map(function (array $row) use ($overrides) {
+            $key = $row['key'] ?? '';
+            if ($key !== '' && isset($overrides[$key]) && is_numeric($overrides[$key])) {
+                $row['cost'] = max(0, (float) $overrides[$key]);
+            }
+            return $row;
+        }, self::TOOLS);
+    }
+
+    /** Whether the admin locked the tool costs (read-only for users). */
+    public static function toolCostsLocked(): bool
+    {
+        return (bool) \App\Modules\Admin\Models\AppSetting::get(self::SETTING_TOOLS_LOCKED, false);
+    }
+
+    /**
+     * Force a payload's tools table back to the admin-managed values —
+     * used when the admin lock is on. The submitted array is discarded
+     * ENTIRELY and rebuilt from the canonical admin-resolved table, so
+     * omitted, renamed, duplicated, or unknown client rows can never
+     * smuggle user-controlled costs past the lock (the tool rows carry
+     * no other user-editable fields, so nothing legitimate is lost).
+     *
+     * @param  array<string,mixed> $payload
+     * @return array<string,mixed>
+     */
+    public static function enforceLockedToolCosts(array $payload): array
+    {
+        $payload['tools'] = self::tools();
+
+        return $payload;
+    }
 
     /**
      * Task #6769 — Conservative / Aggressive scenario multipliers, stored as
@@ -106,7 +154,7 @@ class MarketingPlanDefaults
             'ltv_multiplier'   => 1.5,         // customer lifetime / repeat-purchase multiplier on customer value
             'scenarios'        => self::SCENARIO_DEFAULTS, // Task #6769
             'channels'         => self::CHANNELS,
-            'tools'            => self::TOOLS,
+            'tools'            => self::tools(),
             'hours_per_tool'   => 1.5,
             'time_value'       => 1000,        // ₹/hour
         ];

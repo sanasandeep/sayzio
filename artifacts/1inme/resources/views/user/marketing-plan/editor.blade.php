@@ -565,6 +565,9 @@
     <div x-show="tab === 'roi'" x-cloak class="space-y-4">
         <div class="rounded-2xl mpc-card p-4 overflow-x-auto">
             <h3 class="text-sm font-bold mpc-title">If you didn't use Sayzio — what you'd need instead</h3>
+            @if(!empty($toolsLocked))
+                <p class="text-[11px] mpc-sub mt-1" data-mpc-tools-locked><i class="fas fa-lock mr-1"></i>Monthly costs are set by Sayzio and can't be edited.</p>
+            @endif
             <table class="w-full mt-2 min-w-[680px]">
                 <thead><tr>
                     <th class="mpc-th">Sayzio feature</th><th class="mpc-th">Example standalone tool</th>
@@ -575,7 +578,13 @@
                         <tr class="mpc-row">
                             <td class="mpc-td font-semibold" x-text="t.feature"></td>
                             <td class="mpc-td mpc-sub" x-text="t.example"></td>
-                            <td class="mpc-td" style="width:130px;"><input type="number" min="0" x-model.number="t.cost" class="mpc-input !w-28"></td>
+                            <td class="mpc-td" style="width:130px;">
+                                @if(!empty($toolsLocked))
+                                    <input type="number" class="mpc-input !w-28 opacity-60 cursor-not-allowed" :value="t.cost" readonly tabindex="-1" data-mpc-tool-cost-locked>
+                                @else
+                                    <input type="number" min="0" x-model.number="t.cost" class="mpc-input !w-28" data-mpc-tool-cost>
+                                @endif
+                            </td>
                             <td class="mpc-td !whitespace-normal text-xs mpc-sub" x-text="t.notes"></td>
                         </tr>
                     </template>
