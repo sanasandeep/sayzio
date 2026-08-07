@@ -64,7 +64,7 @@
             </template>
             <p class="text-xs mt-2 ev-muted" x-show="info" x-text="info"></p>
             <p class="text-xs mt-2" style="color:#f87171;" x-show="error" x-text="error"></p>
-            <p class="text-[11px] mt-3 ev-muted" style="opacity:.6;">New here? An account is created for you automatically — no password needed. Your email/phone may be shared with the host.</p>
+            <p class="text-[11px] mt-3 ev-muted" style="opacity:.6;">New here? An account is created for you automatically, no password needed. Your email/phone may be shared with the host.</p>
         </div>
     </template>
 </div>
@@ -108,7 +108,7 @@ function connectQrPrompt(signedIn, who) {
                 const r = await post(@js(route('events.connect-qr.confirm', $link->alias)));
                 const d = await r.json();
                 if (r.ok && d.success) { this.done = true; this.message = d.message; }
-                else this.error = d.message || 'Could not complete — please try again.';
+                else this.error = d.message || 'Could not complete. Please try again.';
             } catch (e) { this.error = 'Network error.'; }
             this.busy = false;
         },

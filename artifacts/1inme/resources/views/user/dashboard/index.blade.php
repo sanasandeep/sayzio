@@ -282,7 +282,7 @@
                 </div>
                 <div>
                     <h2 class="text-sm font-bold" style="color: var(--text-primary);">Folders</h2>
-                    <p class="text-[11px]" style="color: var(--text-faint);">Your desk — click a folder to open the links inside</p>
+                    <p class="text-[11px]" style="color: var(--text-faint);">Your desk: click a folder to open the links inside</p>
                 </div>
             </div>
             <a href="{{ route('user.links.index') }}" class="text-[11px] text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1">
@@ -341,7 +341,7 @@
         </div>
 
         @if($deskFolders->isEmpty())
-            <p class="text-xs mt-1" style="color: var(--text-faint);">No folders yet — create one and drag your links in from the All Links page, just like on your computer.</p>
+            <p class="text-xs mt-1" style="color: var(--text-faint);">No folders yet. Create one and drag your links in from the All Links page, just like on your computer.</p>
         @endif
     </div>
 

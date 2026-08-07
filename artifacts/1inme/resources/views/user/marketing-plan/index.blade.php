@@ -21,7 +21,7 @@
         <div>
             <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-blue-400">Tools</p>
             <h1 class="text-2xl font-bold mpc-title mt-1">Marketing Plan Calculator</h1>
-            <p class="text-sm mpc-sub mt-1">Build a 12-month channel plan, projections dashboard and Sayzio ROI summary — no spreadsheet needed.</p>
+            <p class="text-sm mpc-sub mt-1">Build a 12-month channel plan, projections dashboard and Sayzio ROI summary, no spreadsheet needed.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
             @if(($canCreate ?? true))
@@ -58,7 +58,7 @@
                 <a href="{{ route('user.upgrade') }}"
                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 text-white/70 text-sm font-semibold hover:bg-white/15"
                    title="You have reached your plan's saved-plan limit">
-                    <i class="fas fa-lock"></i> Plan limit reached — Upgrade
+                    <i class="fas fa-lock"></i> Plan limit reached. Upgrade
                 </a>
             @endif
         </div>

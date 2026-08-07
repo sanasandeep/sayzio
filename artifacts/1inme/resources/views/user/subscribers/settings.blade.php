@@ -82,7 +82,7 @@
                 </div>
                 <div class="flex-1">
                     <h2 class="font-semibold" style="color: var(--text-primary);">Custom SMTP <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-md align-middle" style="background: rgba(234,179,8,0.15); color: #eab308;">LEGACY</span></h2>
-                    <p class="text-xs" style="color: var(--text-muted);">Inline mail-server settings — still honored, but only when no connection is selected above. Prefer a saved connection so it can be reused everywhere.</p>
+                    <p class="text-xs" style="color: var(--text-muted);">Inline mail-server settings, still honored, but only when no connection is selected above. Prefer a saved connection so it can be reused everywhere.</p>
                 </div>
                 <button type="button" @click="legacyOpen = !legacyOpen" class="text-xs font-semibold underline flex-shrink-0" style="color: var(--text-muted);">
                     <span x-text="legacyOpen ? 'Hide' : 'Show'"></span>

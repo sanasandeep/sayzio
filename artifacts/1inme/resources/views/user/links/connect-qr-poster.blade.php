@@ -6,7 +6,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Connect QR poster — {{ $link->title ?: $link->alias }}</title>
+    <title>Connect QR poster: {{ $link->title ?: $link->alias }}</title>
     <meta name="robots" content="noindex">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }

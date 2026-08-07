@@ -33,7 +33,7 @@
                 <i class="fas fa-flag-checkered mr-2 text-blue-400"></i> After Submit
             </h3>
             <p class="text-xs mb-5" style="color: var(--text-muted);">
-                What the respondent sees after a successful submission — a thank-you message or a redirect, optionally with a file to download.
+                What the respondent sees after a successful submission: a thank-you message or a redirect, optionally with a file to download.
             </p>
 
             <div class="space-y-4">
@@ -68,7 +68,7 @@
                         </span>
                     </label>
                     <p class="text-[11px] mt-1 mb-0" style="color: var(--text-faint);">
-                        Unlock a download (lead magnet, PDF guide, media) after a successful — and, for paid forms, paid — submission. The link is a time-limited signed URL and also goes out with the auto-responder email.
+                        Unlock a download (lead magnet, PDF guide, media) after a successful (and, for paid forms, paid) submission. The link is a time-limited signed URL and also goes out with the auto-responder email.
                     </p>
 
                     <div x-show="deliver" x-cloak class="mt-4 space-y-3">
@@ -77,7 +77,7 @@
                                 <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Pick from your vault</label>
                                 <select class="theme-input w-full text-sm"
                                         onchange="if(this.value){document.getElementById('delivery-url-input').value=this.value;}">
-                                    <option value="">— choose a vault file —</option>
+                                    <option value="">Choose a vault file…</option>
                                     @foreach($vaultFiles as $vf)
                                         <option value="{{ $vf->url_path }}" @selected(($delivery['url'] ?? '') === $vf->url_path)>
                                             {{ \Illuminate\Support\Str::limit($vf->original_name ?: $vf->filename, 60) }} ({{ $vf->size_human }})

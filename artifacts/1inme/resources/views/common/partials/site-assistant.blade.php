@@ -1347,7 +1347,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
       snapPending=url;
       renderSnapChip(url);
     }).catch(function(){
-      renderMessage({role:'assistant',content:@json(__("I couldn't capture this page — you can still ask your question in text."))});
+      renderMessage({role:'assistant',content:@json(__("I couldn't capture this page, but you can still ask your question in text."))});
     }).finally(function(){
       snapBusy=false; snapBtn.disabled=false; snapBtn.classList.remove('sa-snap-busy');
     });
@@ -1356,7 +1356,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     snapChip.innerHTML='';
     var img=el('img',{alt:''}); img.src=url;
     snapChip.appendChild(img);
-    snapChip.appendChild(el('span',{}, @json(__('Page snapshot attached — sent with your next message'))));
+    snapChip.appendChild(el('span',{}, @json(__('Page snapshot attached, sent with your next message'))));
     var x=el('button',{type:'button','aria-label':@json(__('Remove snapshot'))},'×');
     x.onclick=clearSnapshot;
     snapChip.appendChild(x);

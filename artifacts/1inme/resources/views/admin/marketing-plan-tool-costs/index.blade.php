@@ -4,9 +4,9 @@
 
 @section('content')
 <div class="max-w-4xl">
-    <h1 class="text-xl font-bold ak-strong">Marketing Plan — Tool Costs</h1>
+    <h1 class="text-xl font-bold ak-strong">Marketing Plan: Tool Costs</h1>
     <p class="text-sm ak-muted mt-1">
-        Default estimated monthly costs (₹) for the "If you didn't use Sayzio — what you'd need instead"
+        Default estimated monthly costs (₹) for the "If you didn't use Sayzio, what you'd need instead"
         table in the Marketing Plan Calculator's ROI tab. Lock the table to make these costs read-only for users.
     </p>
 
@@ -21,7 +21,7 @@
         <label class="flex items-center gap-2 rounded-xl border px-4 py-3 cursor-pointer" style="border-color: var(--border, rgba(148,163,184,.25));">
             <input type="checkbox" name="locked" value="1" @checked($locked) class="h-4 w-4" data-admin-tools-lock>
             <span class="text-sm font-semibold ak-strong">Lock costs for users</span>
-            <span class="text-xs ak-muted">— when checked, the Est. monthly cost column becomes read-only in every user's calculator.</span>
+            <span class="text-xs ak-muted">When checked, the Est. monthly cost column becomes read-only in every user's calculator.</span>
         </label>
 
         <div class="mt-4 overflow-x-auto rounded-xl border" style="border-color: var(--border, rgba(148,163,184,.25));">

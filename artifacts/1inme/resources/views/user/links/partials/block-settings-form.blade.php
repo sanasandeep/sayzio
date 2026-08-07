@@ -379,7 +379,7 @@ function linkBlockEditor(cfg) {
         </div>
     </div>
     <div class="pt-2" style="border-top: 1px solid var(--border-subtle);">
-        <p class="{{ $labelClass }} mb-2">Center Ornament <span style="color: var(--text-faint);">(optional — icon wins over text)</span></p>
+        <p class="{{ $labelClass }} mb-2">Center Ornament <span style="color: var(--text-faint);">(optional; icon wins over text)</span></p>
         <div class="space-y-3">
             @include('user.links.partials.icon-picker', ['fieldName' => 'settings[ornament_icon]', 'currentValue' => $s['ornament_icon'] ?? '', 'labelText' => 'Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
             <div><label class="{{ $labelClass }}">Text label</label><input type="text" name="settings[ornament_text]" value="{{ $s['ornament_text'] ?? '' }}" maxlength="30" class="{{ $inputClass }}" placeholder="e.g. ✦ or a short word"></div>
