@@ -4,8 +4,12 @@
 @section('breadcrumb_parent_url', route('user.links.index'))
 
 @section('content')
-{{-- Shared "drop a pin to fill address + lat/lng" map picker (lazy-loads Leaflet itself). --}}
-@vite(['resources/js/map-pin-picker.js'])
+{{-- Shared "drop a pin to fill address + lat/lng" map picker (lazy-loads
+     Leaflet itself). Pushed to the head-scripts stack so window.mapPinPicker
+     exists before the deferred Alpine vendor bundle starts. --}}
+@push('head-scripts')
+    @vite(['resources/js/map-pin-picker.js'])
+@endpush
 <style>
     .mpp-map .leaflet-container { background:#1e2330 !important; font-family:'Space Grotesk', sans-serif; }
     html.light-mode .mpp-map .leaflet-container { background:#e6e9f0 !important; }

@@ -65,8 +65,12 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 {{-- Shared "drop a pin to fill address + lat/lng" map picker, reused by the
      map_location block settings form (loaded here on the host page since the
-     edit form is injected via AJAX, which strips external <script src> tags). --}}
-@vite(['resources/js/map-pin-picker.js'])
+     edit form is injected via AJAX, which strips external <script src> tags).
+     Pushed to the head-scripts stack so window.mapPinPicker exists before the
+     deferred Alpine vendor bundle starts. --}}
+@push('head-scripts')
+    @vite(['resources/js/map-pin-picker.js'])
+@endpush
 <style>
     .mpp-map .leaflet-container { background:#1e2330 !important; font-family:'Space Grotesk', sans-serif; }
     html.light-mode .mpp-map .leaflet-container { background:#e6e9f0 !important; }

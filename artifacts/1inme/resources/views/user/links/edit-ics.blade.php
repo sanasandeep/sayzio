@@ -47,8 +47,12 @@
     $base = rtrim(config('app.url', url('/')), '/');
 @endphp
 
-{{-- Shared location/map picker (lazy-loads vendored Leaflet itself). --}}
-@vite(['resources/js/map-pin-picker.js'])
+{{-- Shared location/map picker (lazy-loads vendored Leaflet itself). Pushed
+     into the layout's head-scripts stack so window.mapPinPicker exists before
+     the deferred Alpine vendor bundle starts and evaluates x-data. --}}
+@push('head-scripts')
+    @vite(['resources/js/map-pin-picker.js'])
+@endpush
 <style>
     [x-cloak] { display: none !important; }
     /* Leaflet map theming (matches the calendar editor) */
