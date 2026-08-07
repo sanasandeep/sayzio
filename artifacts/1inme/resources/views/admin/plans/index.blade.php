@@ -29,21 +29,15 @@
     }
     html.light-mode .plan-card-checkbox:hover { border-color: #94a3b8; }
 
+    /* Layout-only — the surface itself comes from the shared .glass-modal
+       liquid-glass recipe in theme-styles, so it stays in lockstep with the
+       rest of the admin glass system (dark + light). */
     .compare-float-bar {
         position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
         z-index: 40; display: flex; align-items: center; gap: 10px;
         padding: 10px 18px;
-        background: rgba(25,25,30,0.92);
-        backdrop-filter: blur(16px);
-        border: 1px solid rgba(61,107,255,0.45);
         border-radius: 16px;
-        box-shadow: 0 8px 32px rgba(0,0,0,.45), 0 0 0 1px rgba(61,107,255,0.15);
         white-space: nowrap;
-    }
-    html.light-mode .compare-float-bar {
-        background: rgba(255,255,255,0.96);
-        border-color: rgba(61,107,255,0.35);
-        box-shadow: 0 8px 32px rgba(15,23,42,0.18), 0 0 0 1px rgba(61,107,255,0.12);
     }
 </style>
 @endpush
@@ -224,7 +218,7 @@
 @endif
 
 {{-- ── Floating compare bar (2–6 selected) ────────────────────────── --}}
-<div x-show="selectedCount() >= 2" x-cloak class="compare-float-bar" x-transition>
+<div x-show="selectedCount() >= 2" x-cloak class="compare-float-bar glass-modal" x-transition>
     <i class="fas fa-columns text-blue-400 text-sm ak-blue"></i>
     <span class="text-sm font-medium" style="color: var(--text-primary);">
         Compare <span x-text="selectedCount()"></span> plans

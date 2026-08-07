@@ -82,6 +82,22 @@
         --radius-card: 1rem;
         --radius-pill: 999px;
 
+        /* ===== Liquid-glass surface tokens =====
+           The single source of truth for the liquid-glass recipe (26px
+           blur/saturate, translucent surface, hairline border, single inset
+           top highlight + long soft drop shadow). Flip per mode below.
+           Consumers: .glass/.card-premium/.stat-card, .glass-modal/.gsm-panel,
+           auth-glass-card, feature-locked card, admin plan bars. */
+        --lg-blur: blur(26px) saturate(1.4);
+        --lg-bg: rgba(255,255,255,0.045);
+        --lg-bg-solid: rgba(255,255,255,0.055); /* no-backdrop-filter fallback */
+        --lg-bg-opaque: rgba(24,28,40,0.96);    /* near-opaque modal/bar surface */
+        --lg-border: rgba(255,255,255,0.10);
+        --lg-highlight: inset 0 1px 0 rgba(255,255,255,0.07);
+        --lg-shadow: 0 30px 70px -35px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.07);
+        --lg-shadow-hover: 0 38px 80px -30px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.10), 0 0 0 1px rgba(255,255,255,0.14);
+        --lg-radius: 1.5rem;
+
         /* Multi-color accent palette — purple/cyan/pink-led to match GlassDark */
         --c-primary:   #7d9bff;  --c-primary-soft:   rgba(61,107,255,0.18);
         --c-success:   #34d399;  --c-success-soft:   rgba(52,211,153,0.16);
@@ -139,6 +155,15 @@
         --card-shadow-hover: 0 10px 28px -6px rgba(7,20,55,0.12), 0 3px 8px rgba(7,20,55,0.06);
         --noise-opacity: 0;
 
+        /* Liquid-glass tokens — light-mode pairing */
+        --lg-bg: rgba(255,255,255,0.62);
+        --lg-bg-solid: rgba(255,255,255,0.78);
+        --lg-bg-opaque: rgba(255,255,255,0.96);
+        --lg-border: rgba(15,23,42,0.09);
+        --lg-highlight: inset 0 1px 0 rgba(255,255,255,0.85);
+        --lg-shadow: 0 30px 70px -45px rgba(15,23,42,0.35), inset 0 1px 0 rgba(255,255,255,0.85);
+        --lg-shadow-hover: 0 34px 72px -38px rgba(15,23,42,0.40), inset 0 1px 0 rgba(255,255,255,0.9), 0 0 0 1px rgba(15,23,42,0.06);
+
         --c-primary:   #3d6bff;  --c-primary-soft:   #eaf0ff;
         --c-success:   #17c653;  --c-success-soft:   #e9f9ee;
         --c-info:      #1b84ff;  --c-info-soft:      #e9f3ff;
@@ -183,33 +208,24 @@
         z-index: 1;
     }
 
+    /* ===== Liquid Glass primitives =====
+       Legacy `.glass` / `.card-premium` / `.stat-card` consumers inherit the
+       shared liquid-glass recipe (26px blur/saturate, single inset top
+       highlight, long soft drop shadow) used by the auth cards
+       (auth-glass-style) and dashboard bento tiles — so every legacy
+       consumer picks up the new look without markup churn. Paired
+       html.light-mode rules keep light mode legible. */
     .glass, .card-premium, .stat-card {
-        background: rgba(255, 255, 255, 0.04) !important;
-        border: 1px solid transparent !important;
-        border-radius: 1.5rem !important;
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 12px 32px rgba(0, 0, 0, 0.4) !important;
+        background: var(--lg-bg-solid) !important;
+        border: 1px solid var(--lg-border) !important;
+        border-radius: var(--lg-radius) !important;
+        box-shadow: var(--lg-shadow) !important;
     }
     @supports (backdrop-filter: blur(8px)) {
-        html:not(.light-mode) .glass,
-        html:not(.light-mode) .card-premium,
-        html:not(.light-mode) .stat-card {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.01) 100%) !important;
-            backdrop-filter: blur(6px) saturate(180%) brightness(1.1) !important;
-            -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.1) !important;
-        }
-    }
-    html.light-mode .glass, html.light-mode .card-premium, html.light-mode .stat-card {
-        background: rgba(255, 255, 255, 0.15) !important;
-        border: 1px solid transparent !important;
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 12px 32px rgba(0, 0, 0, 0.08) !important;
-    }
-    @supports (backdrop-filter: blur(8px)) {
-        html.light-mode .glass,
-        html.light-mode .card-premium,
-        html.light-mode .stat-card {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%) !important;
-            backdrop-filter: blur(6px) saturate(180%) brightness(1.05) !important;
-            -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.05) !important;
+        .glass, .card-premium, .stat-card {
+            background: var(--lg-bg) !important;
+            backdrop-filter: var(--lg-blur) !important;
+            -webkit-backdrop-filter: var(--lg-blur) !important;
         }
     }
     .glass-light {
@@ -242,10 +258,7 @@
     .card-premium > .py-6 { padding-top: 2.25rem;   padding-bottom: 2.25rem; }
     .card-premium::before { display: none; }
     .card-premium:hover {
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 20px 45px rgba(0, 0, 0, 0.6) !important;
-    }
-    html.light-mode .card-premium:hover {
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 20px 45px rgba(0, 0, 0, 0.12) !important;
+        box-shadow: var(--lg-shadow-hover) !important;
     }
 
     /* Card decorations disabled in Metronic flat style */
@@ -320,10 +333,7 @@
     .stat-card::before, .stat-card::after { display: none !important; }
     .stat-card:hover {
         transform: translateY(-2px);
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 20px 45px rgba(0, 0, 0, 0.6) !important;
-    }
-    html.light-mode .stat-card:hover {
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 20px 45px rgba(0, 0, 0, 0.12) !important;
+        box-shadow: var(--lg-shadow-hover) !important;
     }
     /* Subtle colored top accent — reuses the per-tile --stat-accent gradient set
        inline in markup; adds quiet brand-colored depth without heavy chrome.
@@ -898,35 +908,16 @@
     }
     html.light-mode .gsm-backdrop { background: var(--overlay-bg); }
 
-    /* Shared Liquid Glass modal surface — mirrors the marketing site's
-       .glass-dropdown (near-opaque so modal content stays legible, with the
-       same inset highlight stack + backdrop blur). Paired html.light-mode
-       rules below; blue accents only per the brand-color guard. */
+    /* Shared Liquid Glass modal surface — same token recipe as
+       .glass/.card-premium, but on the near-opaque --lg-bg-opaque surface so
+       modal content stays legible over busy pages. Tokens flip per mode;
+       blue accents only per the brand-color guard. */
     .glass-modal, .gsm-panel {
-        background: rgba(24, 28, 40, 0.96);
-        border: 1px solid transparent;
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 16px 48px rgba(0, 0, 0, 0.6);
-    }
-    @supports (backdrop-filter: blur(8px)) {
-        html:not(.light-mode) .glass-modal,
-        html:not(.light-mode) .gsm-panel {
-            background: linear-gradient(135deg, rgba(30, 35, 48, 0.985) 0%, rgba(20, 24, 34, 0.975) 100%);
-            backdrop-filter: blur(24px) saturate(160%);
-            -webkit-backdrop-filter: blur(24px) saturate(160%);
-        }
-    }
-    html.light-mode .glass-modal, html.light-mode .gsm-panel {
-        background: rgba(255, 255, 255, 0.96);
-        border: 1px solid transparent;
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 16px 48px rgba(0, 0, 0, 0.12);
-    }
-    @supports (backdrop-filter: blur(8px)) {
-        html.light-mode .glass-modal,
-        html.light-mode .gsm-panel {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.99) 0%, rgba(240, 247, 255, 0.97) 100%);
-            backdrop-filter: blur(24px) saturate(160%);
-            -webkit-backdrop-filter: blur(24px) saturate(160%);
-        }
+        background: var(--lg-bg-opaque);
+        border: 1px solid var(--lg-border);
+        backdrop-filter: var(--lg-blur);
+        -webkit-backdrop-filter: var(--lg-blur);
+        box-shadow: var(--lg-shadow);
     }
 
     .gsm-divider { border-color: var(--border-glass); }
