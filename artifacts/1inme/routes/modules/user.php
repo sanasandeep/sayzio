@@ -1227,6 +1227,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // digital-marketing-plan spreadsheet. No AI spend — plain tool.
         Route::get   ('marketing-plan',               [\App\Modules\User\Controllers\MarketingPlanCalculatorController::class, 'index'])->name('marketing-plan.index');
         Route::get   ('marketing-plan/create',        [\App\Modules\User\Controllers\MarketingPlanCalculatorController::class, 'create'])->name('marketing-plan.create');
+        Route::get   ('marketing-plan/actuals',       [\App\Modules\User\Controllers\MarketingPlanCalculatorController::class, 'actuals'])->middleware('throttle:30,1')->name('marketing-plan.actuals');
         Route::post  ('marketing-plan',               [\App\Modules\User\Controllers\MarketingPlanCalculatorController::class, 'store'])->middleware('throttle:30,1')->name('marketing-plan.store');
         Route::get   ('marketing-plan/{plan}/edit',   [\App\Modules\User\Controllers\MarketingPlanCalculatorController::class, 'edit'])->whereNumber('plan')->name('marketing-plan.edit');
         Route::put   ('marketing-plan/{plan}',        [\App\Modules\User\Controllers\MarketingPlanCalculatorController::class, 'update'])->whereNumber('plan')->middleware('throttle:60,1')->name('marketing-plan.update');

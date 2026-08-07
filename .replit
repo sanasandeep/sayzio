@@ -107,6 +107,14 @@ args = "e2e-mpc-finance-metrics"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "e2e-settings-tabs-scroll"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mpc-scenarios"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mpc-actuals"
     
 [[workflows.workflow]]
 name = "e2e-contact-jump-to-record"
@@ -411,4 +419,26 @@ isValidation = true
 
     [workflows.workflow.metadata]
     isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mpc-scenarios"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5091 bash tests/Browser/run-validation.sh marketing-plan-scenarios.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mpc-actuals"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5092 bash tests/Browser/run-validation.sh marketing-plan-actuals.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
     

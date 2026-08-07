@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\MarketingPlanCalc;
 use App\Modules\User\Models\MarketingStrategy;
+use App\Services\MarketingPlanActuals;
 use App\Services\MarketingPlanAiSeed;
 use App\Services\MarketingPlanDefaults;
 use App\Services\MarketingPlanIndustryPresets;
@@ -76,6 +77,15 @@ class MarketingPlanCalculatorController extends Controller
             $payload = MarketingPlanIndustryPresets::apply($payload, $presetKey);
         }
 
+        // Task #6772 — `?prefill=actuals` seeds the assumptions from the
+        // owner's real Sayzio usage (no-op when the workspace has no data).
+        if ($request->query('prefill') === 'actuals') {
+            $payload = MarketingPlanActuals::applyToPayload(
+                $payload,
+                MarketingPlanActuals::forUser($request->user(), $this->workspaceId()),
+            );
+        }
+
         if (($strategyId = (int) $request->query('from_strategy')) > 0) {
             $strategy = $this->ownedStrategies($request)->whereKey($strategyId)->first();
             if (!$strategy) abort(404);
@@ -97,6 +107,20 @@ class MarketingPlanCalculatorController extends Controller
             'presets'     => MarketingPlanIndustryPresets::forClient(),
             'seedName'    => $seedName,
             'aiSeed'      => $aiSeed,
+        ]);
+    }
+
+    /**
+     * Task #6772 — the owner's real Sayzio usage for the active workspace
+     * (AJAX). Powers "Use my Sayzio data" and the Plan vs. Actual view.
+     */
+    public function actuals(Request $request)
+    {
+        $this->ensureEnabled($request);
+
+        return response()->json([
+            'ok'      => true,
+            'actuals' => MarketingPlanActuals::forUser($request->user(), $this->workspaceId()),
         ]);
     }
 
@@ -224,6 +248,16 @@ class MarketingPlanCalculatorController extends Controller
             'payload.ltv_multiplier'   => 'nullable|numeric|min:0|max:1000',
             'payload.uplifts.chat'     => 'nullable|numeric|min:0|max:100',
             'payload.uplifts.crm'      => 'nullable|numeric|min:0|max:100',
+            // Task #6769 — scenario multipliers (% of the Expected base;
+            // 100 = unchanged). CPV must stay > 0 — it divides spend.
+            'payload.scenarios.conservative.cpv'    => 'nullable|numeric|min:1|max:1000',
+            'payload.scenarios.conservative.vl'     => 'nullable|numeric|min:0|max:1000',
+            'payload.scenarios.conservative.lc'     => 'nullable|numeric|min:0|max:1000',
+            'payload.scenarios.conservative.budget' => 'nullable|numeric|min:0|max:1000',
+            'payload.scenarios.aggressive.cpv'      => 'nullable|numeric|min:1|max:1000',
+            'payload.scenarios.aggressive.vl'       => 'nullable|numeric|min:0|max:1000',
+            'payload.scenarios.aggressive.lc'       => 'nullable|numeric|min:0|max:1000',
+            'payload.scenarios.aggressive.budget'   => 'nullable|numeric|min:0|max:1000',
             'payload.channels.*.alloc' => 'nullable|numeric|min:0|max:100',
             'payload.channels.*.cpv'   => 'nullable|numeric|min:0|max:1000000000000',
             'payload.channels.*.vl'    => 'nullable|numeric|min:0|max:100',

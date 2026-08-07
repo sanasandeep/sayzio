@@ -67,6 +67,18 @@ class MarketingPlanDefaults
     ];
 
     /**
+     * Task #6769 — Conservative / Aggressive scenario multipliers, stored as
+     * percentages of the saved ("Expected") base. 100 = unchanged. The
+     * Expected scenario has no multipliers — it IS the saved plan.
+     *
+     * @var array<string,array<string,float>>
+     */
+    public const SCENARIO_DEFAULTS = [
+        'conservative' => ['cpv' => 120.0, 'vl' => 80.0,  'lc' => 80.0,  'budget' => 80.0],
+        'aggressive'   => ['cpv' => 80.0,  'vl' => 120.0, 'lc' => 120.0, 'budget' => 120.0],
+    ];
+
+    /**
      * A fresh plan's full assumption payload (the spreadsheet's defaults).
      * The Sayzio plan selection defaults to the user's actual current plan,
      * priced live from the plans/prices tables.
@@ -92,6 +104,7 @@ class MarketingPlanDefaults
             // break-even & payback metrics.
             'gross_margin'     => 60.0,        // % of revenue kept as gross profit
             'ltv_multiplier'   => 1.5,         // customer lifetime / repeat-purchase multiplier on customer value
+            'scenarios'        => self::SCENARIO_DEFAULTS, // Task #6769
             'channels'         => self::CHANNELS,
             'tools'            => self::TOOLS,
             'hours_per_tool'   => 1.5,
