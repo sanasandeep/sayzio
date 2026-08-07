@@ -197,6 +197,15 @@ Route::prefix('user')->name('user.')->group(function () {
         ->middleware('auth')
         ->name('complete.profile.save');
 
+    // Geocoding suggestion proxy for the shared map pin picker — the
+    // browser must never hit Nominatim per keystroke (their policy bans
+    // client-side autocomplete), so suggestions go through this cached,
+    // per-user throttled endpoint instead. Two-segment path keeps it
+    // clear of the single-segment /{alias} catch-all.
+    Route::get('geo/suggest', [\App\Modules\Common\Controllers\GeoSuggestController::class, 'suggest'])
+        ->middleware(['auth', 'throttle:30,1'])
+        ->name('geo.suggest');
+
     Route::get('verify-email', [AuthController::class, 'showVerifyEmail'])->middleware('auth')->name('verification.notice');
     Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware(['auth', 'signed'])->name('verification.verify');
     Route::post('verify-email/resend', [AuthController::class, 'resendVerification'])->middleware(['auth', 'throttle:6,1'])->name('verification.send');

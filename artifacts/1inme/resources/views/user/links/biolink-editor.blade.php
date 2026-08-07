@@ -76,6 +76,12 @@
     .mpp-map .leaflet-control-zoom a:hover { background:#3d6bff !important; }
     .mpp-marker { width:30px; height:40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); }
     .mpp-marker svg { width:100%; height:100%; display:block; }
+    .mpp-suggest { position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:40; background:var(--bg-card); border:1px solid var(--border-glass); border-radius:0.75rem; overflow:hidden; box-shadow:0 12px 32px rgba(0,0,0,0.35); }
+    html.light-mode .mpp-suggest { box-shadow:0 12px 32px rgba(15,23,42,0.15); }
+    .mpp-suggest-item { display:flex; align-items:flex-start; gap:0.5rem; width:100%; text-align:left; padding:0.55rem 0.85rem; font-size:0.8125rem; color:var(--text-secondary); }
+    .mpp-suggest-item:hover { background:var(--bg-glass); color:var(--text-primary); }
+    .mpp-suggest-item i { color:#5c83ff; margin-top:2px; flex-shrink:0; }
+    .mpp-suggest-item + .mpp-suggest-item { border-top:1px solid var(--border-subtle); }
 </style>
 @include('user.links.partials.themed-confirm')
 

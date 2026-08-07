@@ -1978,7 +1978,24 @@ if (typeof window.resetPollVotes !== 'function') {
         lat: {{ Illuminate\Support\Js::from((string)($s['lat'] ?? '')) }},
         lng: {{ Illuminate\Support\Js::from((string)($s['lng'] ?? '')) }},
      })">
-    <div><label class="{{ $labelClass }}">Address</label><input type="text" name="settings[address]" x-model="address" placeholder="123 Main St, City" class="{{ $inputClass }}"></div>
+    <div>
+        <label class="{{ $labelClass }}">Address</label>
+        <div class="relative" @click.outside="dismissSuggestions()">
+            <input type="text" name="settings[address]" x-model="address"
+                   @input="suggestPlaces()"
+                   @paste="handleLocationPaste($event)"
+                   @keydown.escape="dismissSuggestions()"
+                   autocomplete="off"
+                   placeholder="Search a place or address, or paste a map link" class="{{ $inputClass }}">
+            <div x-show="suggestions.length" x-cloak class="mpp-suggest">
+                <template x-for="s in suggestions" :key="s.id">
+                    <button type="button" class="mpp-suggest-item" @click="chooseSuggestion(s)">
+                        <i class="fas fa-location-dot"></i><span x-text="s.label"></span>
+                    </button>
+                </template>
+            </div>
+        </div>
+    </div>
     <div>
         <div class="flex items-center justify-between mb-1">
             <span class="{{ $labelClass }}" style="margin-bottom:0;">Pin location</span>

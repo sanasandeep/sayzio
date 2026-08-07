@@ -274,11 +274,11 @@
                 </div>
                 <div x-data="mapPinPicker({ address: @js((string) old('location', $ics->location ?? '')) })">
                     <label class="ics-label">Where is it? <span class="text-white/30 font-normal">(optional)</span></label>
-                    <div class="relative" @click.outside="suggestions = []">
+                    <div class="relative" @click.outside="dismissSuggestions()">
                         <input type="text" name="location" x-model="address"
                                @input="suggestPlaces()"
                                @paste="handleLocationPaste($event)"
-                               @keydown.escape="suggestions = []"
+                               @keydown.escape="dismissSuggestions()"
                                autocomplete="off"
                                placeholder="Search a venue or address, or paste a map link" class="ics-input">
                         <div x-show="suggestions.length" x-cloak class="mpp-suggest">
