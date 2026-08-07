@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { applyChromeTheme, installChromeThemeListener } from './lib/chrome-theme';
 import { ChromeBar } from './components/ChromeBar';
 import { ZioPanel } from './components/ZioPanel';
 import { FilesPane } from './components/FilesPane';
@@ -145,12 +146,14 @@ export default function App() {
         setShowModePicker(true);
       }
 
-      // Restore the saved theme (dark / light / system)
+      // Restore the saved chrome theme (dark / light / system). This themes
+      // only Zio's own UI — the color scheme websites see is the separate
+      // "Website appearance" setting, restored by the main process.
       try {
         const savedTheme = await window.zio.prefs.get('theme');
         const mode = savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'system';
-        const resolved = await window.zio.theme.set(mode) as 'dark' | 'light';
-        document.documentElement.classList.toggle('light-mode', resolved === 'light');
+        await applyChromeTheme(mode);
+        installChromeThemeListener();
       } catch { /* keep default dark */ }
 
       // Restore the active profile from preferences

@@ -67,8 +67,9 @@ function buildDefaults(ipcHandlers: IpcHandlerMap): Record<string, unknown> {
       ipcHandlers.get(channel)?.delete(fn);
     },
     theme: {
-      get: resolved('system'),
-      set: resolved(undefined),
+      getSystem: resolved('light'),
+      getWebsite: resolved('system'),
+      setWebsite: resolved('system'),
     },
     tabs: {
       getOrder: resolved([]),

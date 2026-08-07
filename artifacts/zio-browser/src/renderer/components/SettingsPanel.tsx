@@ -10,6 +10,7 @@ import {
   PINNABLE_TOOLS, PINNABLE_TOOL_INFO, MAX_PINNED_TOOLS,
 } from '../../shared/toolbar-pins';
 import { usePinnedTools } from '../hooks/use-pinned-tools';
+import { applyChromeTheme } from '../lib/chrome-theme';
 import { formatRejectedNotice, type SyncPlanStatus } from '../../shared/sync-engine';
 import {
   VK_PREF_KEYS,
@@ -50,6 +51,9 @@ export function applyResolvedTheme(resolved: 'dark' | 'light') {
   document.documentElement.classList.toggle('light-mode', resolved === 'light');
 }
 
+/** What websites see via prefers-color-scheme; independent of the chrome look. */
+type WebsiteAppearance = 'system' | 'dark' | 'light';
+
 const TRANSLATE_LANGS: Array<{ code: string; label: string }> = [
   { code: 'en', label: 'English' },
   { code: 'es', label: 'Spanish' },
@@ -67,7 +71,7 @@ const TRANSLATE_LANGS: Array<{ code: string; label: string }> = [
 
 /** Nav entries with search keywords so the filter box can find sections. */
 const SECTIONS: Array<{ id: SectionId; icon: string; label: string; keywords: string }> = [
-  { id: 'general', icon: '⚙️', label: 'General', keywords: 'appearance theme dark light spell check translate language import bookmarks history chrome edge brave firefox other browser toolbar pin pinned tools reading list dialer device lab screenshot' },
+  { id: 'general', icon: '⚙️', label: 'General', keywords: 'appearance theme dark light website appearance color scheme prefers dark mode websites pages spell check translate language import bookmarks history chrome edge brave firefox other browser toolbar pin pinned tools reading list dialer device lab screenshot' },
   { id: 'sync', icon: '🔄', label: 'Sync', keywords: 'sync cloud bookmarks collections history reading list account plan upgrade limit pending devices' },
   { id: 'privacy', icon: '🛡️', label: 'Privacy & Security', keywords: 'tracker blocking do not track cookies clear browsing data delete safety check forget site dashboard privacy' },
   { id: 'sites', icon: '🌐', label: 'Site Settings', keywords: 'permissions camera microphone location notifications allow block sites' },
@@ -229,6 +233,7 @@ function GeneralSection() {
   const [spellcheckNote, setSpellcheckNote] = useState<string | null>(null);
   const [translateLang, setTranslateLang] = useState('en');
   const [themeMode, setThemeMode] = useState<ThemeMode>('system');
+  const [websiteMode, setWebsiteMode] = useState<WebsiteAppearance>('system');
 
   useEffect(() => {
     void window.zio.spellcheck.getEnabled().then(setSpellcheck).catch(() => setSpellcheck(true));
@@ -238,14 +243,25 @@ function GeneralSection() {
     void window.zio.prefs.get('theme')
       .then((v) => { if (v === 'light' || v === 'dark' || v === 'system') setThemeMode(v); })
       .catch(() => {});
+    void window.zio.theme.getWebsite()
+      .then((v) => { if (v === 'light' || v === 'dark' || v === 'system') setWebsiteMode(v); })
+      .catch(() => {});
   }, []);
 
   const changeTheme = useCallback(async (mode: ThemeMode) => {
     setThemeMode(mode);
     try {
-      const resolved = await window.zio.theme.set(mode) as 'dark' | 'light';
+      // Chrome-only: never touches the color scheme websites see.
+      const resolved = await applyChromeTheme(mode);
       applyResolvedTheme(resolved);
       await window.zio.prefs.set('theme', mode);
+    } catch { /* non-fatal */ }
+  }, []);
+
+  const changeWebsiteMode = useCallback(async (mode: WebsiteAppearance) => {
+    setWebsiteMode(mode);
+    try {
+      await window.zio.theme.setWebsite(mode);
     } catch { /* non-fatal */ }
   }, []);
 
@@ -274,11 +290,26 @@ function GeneralSection() {
     <div style={sectionBodyStyle}>
       <SettingRow
         title="Appearance"
-        description="Choose a dark or light look, or follow your computer's setting."
+        description="How Zio's own toolbar, tabs, and panels look — dark, light, or your computer's setting. Doesn't change how websites look."
       >
         <select
           value={themeMode}
           onChange={(e) => void changeTheme(e.target.value as ThemeMode)}
+          style={selectStyle}
+        >
+          <option value="system">System</option>
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </select>
+      </SettingRow>
+
+      <SettingRow
+        title="Website appearance"
+        description="How websites detect dark mode. System matches your computer; Dark or Light tells sites like Gmail to use that theme (some pages need a reload)."
+      >
+        <select
+          value={websiteMode}
+          onChange={(e) => void changeWebsiteMode(e.target.value as WebsiteAppearance)}
           style={selectStyle}
         >
           <option value="system">System</option>

@@ -350,6 +350,8 @@ export const PREFERENCE_KEYS = {
   /** JSON-serialized SyncRejectedNotice — last over-cap push rejection. */
   SYNC_REJECTED_NOTICE: 'sync_rejected_notice',
   THEME: 'theme',
+  /** Color scheme websites see via prefers-color-scheme (system/light/dark). */
+  WEBSITE_APPEARANCE: 'website_appearance',
   DEVICE_ID: 'device_id',
   HISTORY_DAYS_RETENTION: 'history_days_retention',
   NEW_TAB_PAGE: 'new_tab_page',
