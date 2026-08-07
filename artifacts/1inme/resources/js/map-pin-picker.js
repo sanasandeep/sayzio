@@ -195,6 +195,172 @@
         }, 250);
       },
 
+      /* ---- Autocomplete (filter-as-you-type) --------------------------- */
+      suggestions: [],
+      _suggestTimer: null,
+
+      suggestPlaces: function () {
+        var q = (this.address || "").trim();
+        clearTimeout(this._suggestTimer);
+        if (q.length < 3 || /^https?:\/\//i.test(q)) {
+          this.suggestions = [];
+          return;
+        }
+        var self = this;
+        var reqId = (this._suggestReq = (this._suggestReq || 0) + 1);
+        this._suggestTimer = setTimeout(function () {
+          fetch(
+            "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=" +
+              encodeURIComponent(q),
+            { headers: { Accept: "application/json" } },
+          )
+            .then(function (r) {
+              return r.ok ? r.json() : [];
+            })
+            .then(function (d) {
+              // Ignore stale responses (user kept typing / picked a result).
+              if (reqId !== self._suggestReq) return;
+              self.suggestions = (d || []).map(function (row) {
+                return {
+                  id: row.place_id,
+                  label: row.display_name,
+                  lat: row.lat,
+                  lng: row.lon,
+                };
+              });
+            })
+            .catch(function () {});
+        }, 350);
+      },
+
+      chooseSuggestion: function (s) {
+        clearTimeout(this._suggestTimer);
+        this._suggestReq = (this._suggestReq || 0) + 1; // invalidate in-flight
+        this.suggestions = [];
+        this._suppressMapSync = true;
+        this.address = s.label;
+        this.lat = round6(parseFloat(s.lat));
+        this.lng = round6(parseFloat(s.lng));
+        this._suppressMapSync = false;
+        this._placeMarker(parseFloat(s.lat), parseFloat(s.lng));
+      },
+
+      _placeMarker: function (lat, lng) {
+        if (this.mpMarker) {
+          this.mpMarker.setLatLng([lat, lng]);
+          this.mpMarker.setOpacity(1);
+        }
+        if (this.mpMap) this.mpMap.setView([lat, lng], 15, { animate: false });
+      },
+
+      /* ---- Pasted map links / addresses -------------------------------- */
+      // Pull a place name and/or coordinates out of a pasted Google Maps /
+      // Apple Maps / OSM style URL. Returns { name, lat, lng } (nulls when
+      // absent) or null when nothing recognizable was found.
+      extractFromMapUrl: function (text) {
+        var name = null,
+          lat = null,
+          lng = null,
+          m;
+        // Normalize URL-encoding in the query string so encoded coordinate
+        // separators (e.g. ?q=40.71%2C-74.00) parse like literal ones.
+        try {
+          text = text.replace(/%2C/gi, ",").replace(/%20/g, " ");
+        } catch (e) {}
+        // /maps/place/<Name>/...
+        m = text.match(/\/maps\/place\/([^\/@?]+)/i);
+        if (m) {
+          try {
+            name = decodeURIComponent(m[1]).replace(/\+/g, " ").trim();
+          } catch (e) {
+            name = m[1].replace(/\+/g, " ").trim();
+          }
+        }
+        // Precise pin: !3d<lat>!4d<lng>
+        m = text.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
+        if (!m) m = text.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/); // viewport @lat,lng
+        if (!m) m = text.match(/[?&](?:q|ll|sll|center)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/i);
+        if (m) {
+          lat = parseFloat(m[1]);
+          lng = parseFloat(m[2]);
+          if (!isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+            lat = lng = null;
+          }
+        }
+        // ?q=<text> (non-coordinate query)
+        if (!name && lat === null) {
+          m = text.match(/[?&]q=([^&]+)/i);
+          if (m && !/^-?\d+(?:\.\d+)?,/.test(m[1])) {
+            try {
+              name = decodeURIComponent(m[1]).replace(/\+/g, " ").trim();
+            } catch (e) {
+              name = m[1].replace(/\+/g, " ").trim();
+            }
+          }
+        }
+        if (!name && lat === null) return null;
+        return { name: name, lat: lat, lng: lng };
+      },
+
+      // Bind as @paste on the address input. Non-URL pastes fall through to
+      // the browser's normal behavior; map URLs are intercepted and resolved
+      // into a readable place name/address.
+      handleLocationPaste: function (evt) {
+        var text = "";
+        try {
+          text = (evt.clipboardData && evt.clipboardData.getData("text")) || "";
+        } catch (e) {}
+        text = text.trim();
+        if (!/^https?:\/\//i.test(text)) return; // plain text → default paste
+        evt.preventDefault();
+        this.suggestions = [];
+        var info = this.extractFromMapUrl(text);
+        var self = this;
+        if (info && info.lat !== null) {
+          this._suppressMapSync = true;
+          this.lat = round6(info.lat);
+          this.lng = round6(info.lng);
+          this._suppressMapSync = false;
+          this._placeMarker(info.lat, info.lng);
+          if (info.name) {
+            // Keep the human place name, append the resolved street address.
+            this.address = info.name;
+            fetch(
+              "https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=" +
+                info.lat +
+                "&lon=" +
+                info.lng,
+              { headers: { Accept: "application/json" } },
+            )
+              .then(function (r) {
+                return r.ok ? r.json() : null;
+              })
+              .then(function (d) {
+                if (d && d.display_name && self.address === info.name) {
+                  var dn = d.display_name;
+                  self.address =
+                    dn.toLowerCase().indexOf(info.name.toLowerCase()) === 0
+                      ? dn
+                      : info.name + ", " + dn;
+                }
+              })
+              .catch(function () {});
+          } else {
+            this.reverseGeocode(info.lat, info.lng);
+          }
+        } else if (info && info.name) {
+          this.address = info.name;
+          this.searchQuery = info.name;
+          this.searchAddress();
+        } else {
+          // Unrecognized link (e.g. maps.app.goo.gl short link — can't be
+          // expanded client-side). Keep the raw text so nothing is lost.
+          this.address = text;
+          if (window.showToast)
+            window.showToast("Couldn't read a place from that link — try pasting the full map URL or the address itself.");
+        }
+      },
+
       searchAddress: function () {
         var q = (this.searchQuery || "").trim();
         if (!q) return;
