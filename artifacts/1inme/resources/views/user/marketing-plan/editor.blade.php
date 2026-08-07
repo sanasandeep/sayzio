@@ -168,6 +168,47 @@
         </template>
     </nav>
 
+    {{-- ───── Scenario switcher (Task #6769) ───── --}}
+    <div class="rounded-2xl mpc-card p-3 mb-5" data-mpc-scenarios>
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="text-[11px] font-bold uppercase tracking-[0.12em] mpc-faint">Scenario</span>
+            <div class="flex rounded-xl overflow-hidden border border-white/10" role="group" aria-label="Scenario">
+                <template x-for="k in scenKeys" :key="k">
+                    <button type="button" @click="setScenario(k)"
+                            :data-mpc-scenario="k"
+                            :class="scenario === k ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/50'"
+                            class="px-3 py-1.5 text-xs font-bold" x-text="scenLabels[k]"></button>
+                </template>
+            </div>
+            <span class="text-[11px] mpc-faint" x-show="scenario === 'expected'">Your saved assumptions, unchanged.</span>
+            <span class="text-[11px] mpc-faint" x-show="scenario !== 'expected'" x-cloak>All tables, charts and metrics reflect this scenario's multipliers.</span>
+        </div>
+        {{-- x-if (not x-show): p.scenarios has no 'expected' entry, so the
+             x-model bindings below must not even evaluate while Expected is
+             the active scenario. --}}
+        <template x-if="scenario !== 'expected'">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+            <div>
+                <label class="text-[10px] font-bold mpc-faint uppercase">Ad budget (% of base)</label>
+                <input type="number" min="0" max="1000" step="1" x-model.number="p.scenarios[scenario].budget" class="mpc-input mt-0.5" data-mpc-scen-budget>
+            </div>
+            <div>
+                <label class="text-[10px] font-bold mpc-faint uppercase">Cost / visitor (% of base)</label>
+                <input type="number" min="1" max="1000" step="1" x-model.number="p.scenarios[scenario].cpv" class="mpc-input mt-0.5" data-mpc-scen-cpv>
+            </div>
+            <div>
+                <label class="text-[10px] font-bold mpc-faint uppercase">Visitor → lead (% of base)</label>
+                <input type="number" min="0" max="1000" step="1" x-model.number="p.scenarios[scenario].vl" class="mpc-input mt-0.5" data-mpc-scen-vl>
+            </div>
+            <div>
+                <label class="text-[10px] font-bold mpc-faint uppercase">Lead → customer (% of base)</label>
+                <input type="number" min="0" max="1000" step="1" x-model.number="p.scenarios[scenario].lc" class="mpc-input mt-0.5" data-mpc-scen-lc>
+            </div>
+        </div>
+        </template>
+        <p class="text-[11px] text-amber-400 mt-2" x-show="clampHints.scenarios" x-cloak x-text="clampHints.scenarios"></p>
+    </div>
+
     {{-- ───── 1 · ASSUMPTIONS ───── --}}
     <div x-show="tab === 'assumptions'" class="space-y-5">
         <div class="grid md:grid-cols-3 gap-4">
@@ -212,6 +253,17 @@
                     </template>
                 </select>
                 <p class="text-[11px] mpc-faint mt-2">Live pricing — defaults to your current plan. A fixed monthly subscription, not a % of your ad budget.</p>
+                {{-- Task #6772 — prefill from real workspace usage. --}}
+                <div class="mt-3 flex flex-wrap items-center gap-2">
+                    <button type="button" @click="applyActuals()" :disabled="actualsLoading"
+                            class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold disabled:opacity-50"
+                            data-mpc-use-actuals>
+                        <span x-show="!actualsLoading">Use my Sayzio data</span>
+                        <span x-show="actualsLoading" x-cloak>Loading your data…</span>
+                    </button>
+                    <span class="text-[11px] text-emerald-400 font-semibold" x-show="actualsApplied" x-cloak data-mpc-actuals-applied>✓ Prefilled from your real usage — everything stays editable.</span>
+                </div>
+                <p class="text-[11px] text-amber-400 mt-2" x-show="actualsError" x-cloak x-text="actualsError" data-mpc-actuals-error></p>
                 <div class="grid grid-cols-2 gap-3 mt-3">
                     <div>
                         <label class="text-[11px] font-semibold mpc-sub">AI credits usage (₹/month, optional)</label>
@@ -239,6 +291,18 @@
                         <label class="text-[11px] font-semibold mpc-sub">CRM &amp; dialer uplift — lead → customer (%)</label>
                         <input type="number" min="0" step="0.5" x-model.number="p.uplifts.crm" class="mpc-input mt-1">
                     </div>
+                </div>
+                {{-- Task #6772 — "already in use" badges from real feature usage. --}}
+                <div class="flex flex-wrap gap-1.5 mt-2" x-show="actuals && actuals.features" x-cloak data-mpc-feature-badges>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                          :class="actuals?.features?.chat ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/5 text-white/40'"
+                          x-text="actuals?.features?.chat ? '✓ Chat widget in use' : 'Chat widget not used yet'"></span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                          :class="actuals?.features?.crm ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/5 text-white/40'"
+                          x-text="actuals?.features?.crm ? '✓ CRM in use' : 'CRM not used yet'"></span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                          :class="actuals?.features?.dialer ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/5 text-white/40'"
+                          x-text="actuals?.features?.dialer ? '✓ Dialer in use' : 'Dialer not used yet'"></span>
                 </div>
                 <p class="text-[11px] mpc-faint mt-2">Illustrative defaults — replace with your own before/after data. Turn off for baseline, apples-to-apples projections.</p>
                 <p class="text-[11px] text-amber-400 mt-2" x-show="clampHints.uplifts" x-cloak x-text="clampHints.uplifts"></p>
@@ -418,6 +482,57 @@
             </div>
         </div>
 
+        {{-- Task #6772 — Plan vs. Actual (real workspace usage). --}}
+        <div class="rounded-2xl mpc-card p-4" data-mpc-plan-vs-actual>
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <h3 class="text-sm font-bold mpc-title">Plan vs. Actual <span class="mpc-faint font-normal">(your real Sayzio traffic &amp; leads, last 12 months)</span></h3>
+                <button type="button" x-show="!actuals" @click="loadActuals()" :disabled="actualsLoading"
+                        class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold disabled:opacity-50"
+                        data-mpc-load-actuals>
+                    <span x-show="!actualsLoading">Load my Sayzio data</span>
+                    <span x-show="actualsLoading" x-cloak>Loading…</span>
+                </button>
+            </div>
+            <p class="text-[11px] text-amber-400" x-show="actualsError && tab === 'dashboard'" x-cloak x-text="actualsError"></p>
+            <template x-if="actuals && !actuals.has_data && !actuals.error">
+                <p class="text-[12px] mpc-faint" data-mpc-actuals-empty>No usage data in this workspace yet — once your links, forms and store start collecting activity, your real numbers appear here next to the plan.</p>
+            </template>
+            <div x-show="actuals && actuals.has_data" x-cloak>
+                <canvas id="mpcActualChart" height="220"></canvas>
+                <p class="text-[11px] mpc-faint mt-2">Solid bars = your actual monthly visitors &amp; leads; lines = this plan's projection. Revenue actuals appear in the tooltip.</p>
+            </div>
+        </div>
+
+        {{-- Task #6769 — side-by-side scenario comparison. --}}
+        <div class="rounded-2xl mpc-card p-4 overflow-x-auto" data-mpc-comparison>
+            <h3 class="text-sm font-bold mpc-title mb-2">Scenario comparison <span class="mpc-faint font-normal">(annual outcomes, all three at once)</span></h3>
+            <table class="w-full min-w-[560px]">
+                <thead><tr>
+                    <th class="mpc-th">Metric</th>
+                    <template x-for="s in comparison" :key="s.key">
+                        <th class="mpc-th text-right" :class="scenario === s.key ? 'text-blue-400' : ''">
+                            <span x-text="s.label"></span>
+                            <span x-show="scenario === s.key" x-cloak class="ml-1 normal-case tracking-normal">· viewing</span>
+                        </th>
+                    </template>
+                </tr></thead>
+                <tbody>
+                    <tr class="mpc-row"><td class="mpc-td font-semibold">Annual spend</td>
+                        <template x-for="s in comparison" :key="'sp' + s.key"><td class="mpc-td text-right" x-text="money(s.totals.spend)"></td></template></tr>
+                    <tr class="mpc-row"><td class="mpc-td font-semibold">Annual revenue</td>
+                        <template x-for="s in comparison" :key="'rv' + s.key"><td class="mpc-td text-right" x-text="money(s.totals.revenue)"></td></template></tr>
+                    <tr class="mpc-row"><td class="mpc-td font-semibold">Customers acquired</td>
+                        <template x-for="s in comparison" :key="'cu' + s.key"><td class="mpc-td text-right" x-text="nf(s.totals.customers, 0)"></td></template></tr>
+                    <tr class="mpc-row"><td class="mpc-td font-semibold">Blended ROAS</td>
+                        <template x-for="s in comparison" :key="'ro' + s.key"><td class="mpc-td text-right" x-text="nf(s.totals.roas, 2) + '×'"></td></template></tr>
+                    <tr class="mpc-row"><td class="mpc-td font-semibold">Blended ROI</td>
+                        <template x-for="s in comparison" :key="'ri' + s.key"><td class="mpc-td text-right" x-text="nf(s.totals.roi * 100, 0) + '%'"></td></template></tr>
+                    <tr class="mpc-row"><td class="mpc-td font-semibold">LTV : CAC</td>
+                        <template x-for="s in comparison" :key="'lc' + s.key"><td class="mpc-td text-right" :class="ltvCacClass(s.totals.ltvCac)" x-text="ratio(s.totals.ltvCac)"></td></template></tr>
+                </tbody>
+            </table>
+        </div>
+
         <div class="rounded-2xl mpc-card p-4 overflow-x-auto">
             <h3 class="text-sm font-bold mpc-title mb-2">Channel summary (annual)</h3>
             <table class="w-full min-w-[720px]">
@@ -552,6 +667,15 @@ function mpcApp() {
         ],
         tab: 'assumptions',
         monthlyMetric: 'spend',
+        // Task #6772 — real Sayzio usage (fetched on demand, never persisted).
+        actuals: null,
+        actualsLoading: false,
+        actualsError: '',
+        actualsApplied: false,
+        // Task #6769 — active scenario (view state, not persisted).
+        scenario: 'expected',
+        scenKeys: ['conservative', 'expected', 'aggressive'],
+        scenLabels: { conservative: 'Conservative', expected: 'Expected', aggressive: 'Aggressive' },
         saving: false, savedFlash: false, saveError: '', pdfBusy: false,
         charts: {},
         dirty: false, _baseline: '',
@@ -573,6 +697,18 @@ function mpcApp() {
             // Task #6768 — finance assumptions merged safely into old payloads.
             if (typeof this.p.gross_margin !== 'number' || !isFinite(this.p.gross_margin)) this.p.gross_margin = 60;
             if (typeof this.p.ltv_multiplier !== 'number' || !isFinite(this.p.ltv_multiplier)) this.p.ltv_multiplier = 1.5;
+            // Task #6769 — scenario multipliers merged safely into old payloads
+            // (plans saved before scenarios existed open with the defaults).
+            const scenDef = @js(\App\Services\MarketingPlanDefaults::SCENARIO_DEFAULTS);
+            if (!this.p.scenarios || typeof this.p.scenarios !== 'object' || Array.isArray(this.p.scenarios)) this.p.scenarios = {};
+            for (const k of Object.keys(scenDef)) {
+                const cur = (this.p.scenarios[k] && typeof this.p.scenarios[k] === 'object') ? this.p.scenarios[k] : {};
+                const merged = { ...scenDef[k] };
+                for (const f of Object.keys(scenDef[k])) {
+                    if (typeof cur[f] === 'number' && isFinite(cur[f])) merged[f] = cur[f];
+                }
+                this.p.scenarios[k] = merged;
+            }
             // Task #6742 — keep every numeric input in a sane range so the
             // engine can never produce Infinity-adjacent projections.
             // Run before the dirty baseline so a silent self-heal of an old
@@ -634,6 +770,18 @@ function mpcApp() {
                 flag('uplifts', 'Adjusted — uplift percentages stay between 0 and 100.');
             if ([this.clampNum(this.p, 'gross_margin', 0, 100), this.clampNum(this.p, 'ltv_multiplier', 0, 1000)].some(Boolean))
                 flag('finance', 'Adjusted — gross margin stays between 0 and 100%, the LTV multiplier cannot be negative.');
+            // Task #6769 — scenario multipliers stay in sane percentage bounds
+            // (CPV must stay above 0 — it divides spend).
+            let sc = false;
+            for (const k of Object.keys(this.p.scenarios || {})) {
+                const s = this.p.scenarios[k];
+                if (!s || typeof s !== 'object') continue;
+                sc = this.clampNum(s, 'cpv', 1, 1000) || sc;
+                sc = this.clampNum(s, 'vl', 0, 1000) || sc;
+                sc = this.clampNum(s, 'lc', 0, 1000) || sc;
+                sc = this.clampNum(s, 'budget', 0, 1000) || sc;
+            }
+            if (sc) flag('scenarios', 'Adjusted — scenario multipliers stay between 0 and 1000% (cost per visitor at least 1%).');
             let ch = false;
             for (const c of this.p.channels || []) {
                 ch = this.clampNum(c, 'alloc', 0, 100) || ch;
@@ -707,13 +855,80 @@ function mpcApp() {
         },
         get allocOk() { return Math.abs(this.allocTotal - 100) < 0.05; },
 
+        // ---------- scenarios (Task #6769) ----------
+        /**
+         * Multiplier factors (fractions of 1) for a scenario. "Expected" is
+         * always the saved base — no multipliers. CPV is floored above 0
+         * because it divides spend.
+         */
+        scenFactors(key) {
+            if (key === 'expected') return { cpv: 1, vl: 1, lc: 1, budget: 1 };
+            const s = (this.p.scenarios || {})[key] || {};
+            return {
+                cpv:    Math.max(0.01, this.n(s.cpv) > 0 ? this.n(s.cpv) / 100 : 1),
+                vl:     Math.max(0, typeof s.vl === 'number' && isFinite(s.vl) ? s.vl / 100 : 1),
+                lc:     Math.max(0, typeof s.lc === 'number' && isFinite(s.lc) ? s.lc / 100 : 1),
+                budget: Math.max(0, typeof s.budget === 'number' && isFinite(s.budget) ? s.budget / 100 : 1),
+            };
+        },
+        setScenario(key) {
+            if (!this.scenKeys.includes(key)) return;
+            this.scenario = key;
+            if (this.tab === 'dashboard') this.$nextTick(() => this.renderCharts());
+        },
+        /** Annual totals for all three scenarios side-by-side. */
+        get comparison() {
+            return this.scenKeys.map(key => ({
+                key,
+                label: this.scenLabels[key],
+                totals: this.buildModel(this.scenFactors(key)).totals,
+            }));
+        },
+
+        // ---------- real Sayzio data (Task #6772) ----------
+        async loadActuals() {
+            if (this.actualsLoading) return this.actuals;
+            this.actualsLoading = true; this.actualsError = '';
+            try {
+                const res = await fetch('{{ route('user.marketing-plan.actuals') }}', {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok || data.actuals?.error) throw new Error('Could not load your Sayzio data. Please try again.');
+                this.actuals = data.actuals;
+                if (this.tab === 'dashboard') this.$nextTick(() => this.renderCharts());
+            } catch (e) {
+                this.actualsError = e.message || 'Could not load your Sayzio data. Please try again.';
+            } finally {
+                this.actualsLoading = false;
+            }
+            return this.actuals;
+        },
+        /** Prefill the editable assumptions from the fetched actuals. */
+        async applyActuals() {
+            const a = this.actuals || await this.loadActuals();
+            if (!a) return;
+            if (!a.has_data) { this.actualsError = 'No usage data in this workspace yet — the defaults are your best starting point.'; return; }
+            if (a.monthly_visitors > 0) this.p.organic_visitors = a.monthly_visitors;
+            if (a.ai_coins_30d > 0) this.p.ai_credits = a.ai_coins_30d;
+            if (a.plan_slug && this.planOptions.some(o => o.slug === a.plan_slug)) this.p.plan_slug = a.plan_slug;
+            if (a.vl_rate !== null) {
+                const row = this.p.channels.find(c => c.key === 'sayzio');
+                if (row) row.vl = a.vl_rate;
+            }
+            this.actualsApplied = true;
+            setTimeout(() => this.actualsApplied = false, 3500);
+        },
+
         // ---------- the calculation engine ----------
-        get model() {
+        get model() { return this.buildModel(this.scenFactors(this.scenario)); },
+
+        buildModel(sf) {
             const W = Math.max(1e-9, this.sum(this.p.weights));
-            const vlMult = this.p.uplifts.apply ? 1 + this.n(this.p.uplifts.chat) / 100 : 1;
-            const lcMult = this.p.uplifts.apply ? 1 + this.n(this.p.uplifts.crm) / 100 : 1;
+            const vlMult = (this.p.uplifts.apply ? 1 + this.n(this.p.uplifts.chat) / 100 : 1) * sf.vl;
+            const lcMult = (this.p.uplifts.apply ? 1 + this.n(this.p.uplifts.crm) / 100 : 1) * sf.lc;
             const subInr = this.n(this.selectedPlan.inr);
-            const budget = this.n(this.p.annual_budget);
+            const budget = this.n(this.p.annual_budget) * sf.budget;
             // Task #6768 — finance assumptions for CAC/ROAS/LTV metrics.
             const margin  = Math.min(100, Math.max(0, this.n(this.p.gross_margin))) / 100;
             const ltvMult = Math.max(0, this.n(this.p.ltv_multiplier));
@@ -728,10 +943,12 @@ function mpcApp() {
                         vis = this.n(this.p.organic_visitors) * w / (W / 12);  // organic, seasonal
                     } else {
                         sp  = budget * this.n(c.alloc) / 100 * w / W;
-                        vis = this.n(c.cpv) > 0 ? sp / this.n(c.cpv) : 0;
+                        vis = this.n(c.cpv) > 0 ? sp / (this.n(c.cpv) * sf.cpv) : 0;
                     }
-                    const ld = vis * this.n(c.vl) / 100 * vlMult;
-                    const cu = ld * this.n(c.lc) / 100 * lcMult;
+                    // Effective conversion never exceeds 100% even under
+                    // aggressive scenario multipliers + uplifts (Task #6769).
+                    const ld = Math.min(vis, vis * this.n(c.vl) / 100 * vlMult);
+                    const cu = Math.min(ld, ld * this.n(c.lc) / 100 * lcMult);
                     spend.push(sp); visitors.push(vis); leads.push(ld);
                     customers.push(cu); revenue.push(cu * this.n(c.acv));
                 }
@@ -827,6 +1044,7 @@ function mpcApp() {
                 ['Sayzio subscription (' + sym + '/month)', this.xm(this.selectedPlan.inr)],
                 ['AI credits usage (' + sym + '/month)', this.xm(this.p.ai_credits)],
                 ['Est. monthly organic visitors', this.xn(this.p.organic_visitors, 0)],
+                ['Active scenario', this.scenLabels[this.scenario]],
                 ['Apply Sayzio toolset uplifts', this.p.uplifts.apply ? 'Yes' : 'No'],
                 ['Chat widget uplift — visitor → lead (%)', this.xn(this.p.uplifts.chat, 1)],
                 ['CRM & dialer uplift — lead → customer (%)', this.xn(this.p.uplifts.crm, 1)],
@@ -918,10 +1136,34 @@ function mpcApp() {
                 ['TOTAL VALUE (' + sym + ')', this.xm(r.totalValue)],
             ];
 
+            // Task #6769 — scenario multipliers + side-by-side annual outcomes.
+            const comp = this.comparison;
+            const compRow = (label, fn) => [label, ...comp.map(fn)];
+            const scenMult = (field) => compRow(
+                { budget: 'Ad budget (% of base)', cpv: 'Cost per visitor (% of base)', vl: 'Visitor → lead (% of base)', lc: 'Lead → customer (% of base)' }[field],
+                s => s.key === 'expected' ? 100 : this.xn(this.p.scenarios?.[s.key]?.[field], 0),
+            );
+            const scenarios = [
+                ['Scenario comparison — Conservative / Expected / Aggressive'],
+                ['Expected is the saved plan; the other scenarios apply the multipliers below to it.'],
+                [],
+                ['Multipliers', ...comp.map(s => s.label)],
+                scenMult('budget'), scenMult('cpv'), scenMult('vl'), scenMult('lc'),
+                [],
+                ['Annual outcome (' + cur + ')', ...comp.map(s => s.label)],
+                compRow('Annual spend (' + sym + ')', s => this.xm(s.totals.spend)),
+                compRow('Annual revenue (' + sym + ')', s => this.xm(s.totals.revenue)),
+                compRow('Customers acquired', s => this.xn(s.totals.customers, 0)),
+                compRow('Blended ROAS (×)', s => this.xn(s.totals.roas)),
+                compRow('Blended ROI (%)', s => this.xn(s.totals.roi * 100, 1)),
+                compRow('LTV : CAC (×)', s => s.totals.ltvCac !== null ? this.xn(s.totals.ltvCac) : '—'),
+            ];
+
             return [
                 ['Assumptions', assumptions],
                 ['Monthly Plan', monthly],
                 ['Dashboard', dashboard],
+                ['Scenarios', scenarios],
                 ['Sayzio ROI', roiRows],
             ];
         },
@@ -1093,7 +1335,25 @@ function mpcApp() {
                     ${kpi('Payback period', this.paybackLabel)}
                 </div>
 
-                <div style="display:flex;gap:16px;margin-top:18px;">
+                <div style="border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;margin-top:14px;">
+                    <h3 style="margin:0 0 6px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#64748b;">Scenario comparison (annual)</h3>
+                    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                        <thead><tr>
+                            <th style="padding:3px 8px;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;text-align:left;">Scenario</th>
+                            ${['Spend', 'Revenue', 'Customers', 'ROAS', 'ROI'].map(t => `<th style="padding:3px 8px;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;text-align:right;">${t}</th>`).join('')}
+                        </tr></thead>
+                        <tbody>${this.comparison.map(s => `<tr>
+                            <td style="padding:4px 8px;border-top:1px solid #e2e8f0;font-weight:${s.key === this.scenario ? 800 : 600};color:${s.key === this.scenario ? '#2563eb' : '#0f172a'};">${esc(s.label)}${s.key === this.scenario ? ' ·' : ''}</td>
+                            <td style="padding:4px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${this.money(s.totals.spend)}</td>
+                            <td style="padding:4px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${this.money(s.totals.revenue)}</td>
+                            <td style="padding:4px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${this.nf(s.totals.customers, 0)}</td>
+                            <td style="padding:4px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${this.nf(s.totals.roas, 2)}×</td>
+                            <td style="padding:4px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${this.nf(s.totals.roi * 100, 0)}%</td>
+                        </tr>`).join('')}</tbody>
+                    </table>
+                </div>
+
+                <div style="display:flex;gap:16px;margin-top:14px;">
                     <div style="flex:1.2;border:1px solid #e2e8f0;border-radius:14px;padding:14px;">
                         <h3 style="margin:0 0 8px;font-size:12px;font-weight:800;color:#0f172a;">Spend vs revenue by month</h3>
                         <canvas data-pdf-chart="month" width="580" height="260"></canvas>
@@ -1271,6 +1531,34 @@ function mpcApp() {
                         ],
                     },
                     options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+                });
+            }
+
+            // Task #6772 — Plan vs. Actual chart (only once actuals loaded).
+            const actEl = document.getElementById('mpcActualChart');
+            if (actEl && this.actuals && this.actuals.has_data) {
+                const a = this.actuals.months || [];
+                this.charts.actual = new Chart(actEl, {
+                    data: {
+                        labels: a.map(r => r.ym),
+                        datasets: [
+                            { type: 'bar',  label: 'Actual visitors', data: a.map(r => r.visitors), backgroundColor: 'rgba(37,99,235,0.55)' },
+                            { type: 'bar',  label: 'Actual leads',    data: a.map(r => r.leads),    backgroundColor: 'rgba(16,185,129,0.55)' },
+                            { type: 'line', label: 'Planned visitors', data: m.monthTotals.visitors, borderColor: '#60a5fa', backgroundColor: 'transparent', tension: 0.3 },
+                            { type: 'line', label: 'Planned leads',    data: m.monthTotals.leads,    borderColor: '#34d399', backgroundColor: 'transparent', tension: 0.3 },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { position: 'bottom' },
+                            tooltip: { callbacks: { footer: (items) => {
+                                const i = items[0]?.dataIndex;
+                                const row = (i !== undefined) ? a[i] : null;
+                                return row && row.revenue > 0 ? 'Actual revenue: ' + this.money(row.revenue) : '';
+                            } } },
+                        },
+                    },
                 });
             }
 

@@ -66,7 +66,9 @@ test.describe("marketing plan calculator — finance metrics (Task #6768)", () =
 
     // ---- dashboard strip renders the metrics with tooltips ----
     await page.getByRole("button", { name: /3 · Dashboard/ }).click();
-    const ltvCard = page.locator(".mpc-card", { hasText: "LTV : CAC" });
+    // [title] scopes to the KPI strip card — the Task #6769 scenario
+    // comparison table also contains the text "LTV : CAC".
+    const ltvCard = page.locator(".mpc-card[title]", { hasText: "LTV : CAC" });
     await expect(ltvCard).toBeVisible();
     await expect(ltvCard).toHaveAttribute("title", /gross profit/i);
     await expect(ltvCard.locator(".mpc-kpi")).toContainText("×");
