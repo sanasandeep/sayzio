@@ -114,13 +114,15 @@
             }
         }
         html.light-mode .dash-glass {
-            background: rgba(255, 255, 255, 0.15) !important;
+            /* Near-opaque: translucent glass let dark page content bleed
+               through as a dark-blue tint that washed out sidebar text. */
+            background: rgba(255, 255, 255, 0.92) !important;
             border-color: transparent !important;
             box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 12px 32px rgba(0, 0, 0, 0.08) !important;
         }
         @supports (backdrop-filter: blur(8px)) {
             html.light-mode .dash-glass {
-                background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%) !important;
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.88) 100%) !important;
                 backdrop-filter: blur(6px) saturate(180%) brightness(1.05) !important;
                 -webkit-backdrop-filter: blur(6px) saturate(180%) brightness(1.05) !important;
             }
