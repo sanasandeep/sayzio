@@ -29,4 +29,8 @@ The remote squash tree may match NO local commit's tree (earlier sanitization dr
 
 **Gotcha (July 2026):** an uncommitted working-tree edit (version bump) was silently missed by the ls-tree+status overlay diff and the release guard failed on the still-old version. Before dispatching a release build, verify the bumped file's content on remote via `GET /contents/<path>?ref=main`.
 
+**/tmp gets wiped between sessions** — the sync scripts live in /tmp/ghsync and vanish on container restart. Rebuild `sync.mjs` from this file's recipe (blob-sha diff vs remote tree, skip `.replit` + `.github/workflows/sed*`, chained 200-entry trees, parent=remote head). Aug 2026 rebuild worked first try.
+
+**Em-dash guard is effectively full-scan once any scanned view changes** — `check:em-dash` scans fixed roots, so touching one Blade view surfaces ALL pre-existing em dashes repo-wide (75 at once in Aug 2026). Sweep them all; the CI job otherwise stays red on every subsequent push.
+
 **Diff script can miss modified tracked files.** During the v0.3.5 push, `diff.mjs` failed to list a just-edited tracked file (zio-browser package.json) even though `git status` showed it modified and the remote blob differed. Always cross-check `git --no-optional-locks status --porcelain` against the `state.json` changed list before running push.mjs, and manually append any missing paths (untracked new files must always be appended by hand). Also filter out `.github/workflows/sed*` junk entries — those are sed -i temp files accidentally committed; push.mjs skips them, but keep them out of state.json too.
