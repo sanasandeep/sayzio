@@ -22,7 +22,7 @@
 
     <div x-show="open" @click.away="open = false" x-cloak x-transition
          class="fixed sm:absolute inset-x-3 sm:inset-x-auto sm:right-0 top-[72px] sm:top-auto sm:mt-2 w-auto sm:w-96 rounded-xl p-4 z-50"
-         style="background: var(--bg-sidebar); border: 1px solid var(--border-subtle); box-shadow: var(--card-shadow);">
+         style="background: var(--bg-dropdown); border: 1px solid var(--border-subtle); box-shadow: var(--card-shadow);">
         <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-semibold flex items-center gap-2" style="color: var(--text-primary);">
                 <i class="fas fa-bolt text-blue-400"></i> Quick shorten
@@ -100,7 +100,7 @@
     <template x-teleport="body">
         <div x-data x-show="$data.toast" x-cloak x-transition
              class="fixed bottom-5 right-5 z-[90] rounded-xl px-4 py-3 flex items-center gap-3 max-w-sm"
-             style="background: var(--bg-sidebar); border: 1px solid var(--border-subtle); box-shadow: var(--card-shadow);">
+             style="background: var(--bg-dropdown); border: 1px solid var(--border-subtle); box-shadow: var(--card-shadow);">
             <i class="fas fa-check-circle text-emerald-400"></i>
             <div class="min-w-0">
                 <p class="text-xs font-semibold" style="color: var(--text-primary);">

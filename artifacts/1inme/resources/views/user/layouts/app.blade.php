@@ -1394,7 +1394,7 @@
                                   title="{{ number_format($__hdrCoins) }} coins">{{ $__hdrCoins >= 1000 ? round($__hdrCoins / 1000, 1) . 'k' : $__hdrCoins }}</span>
                         </button>
                         <div x-show="open" @click.away="open = false" x-cloak x-transition
-                             class="absolute right-0 mt-2 w-72 rounded-xl py-2 z-50" style="background: var(--bg-sidebar); border: 1px solid var(--border-subtle); box-shadow: var(--card-shadow);">
+                             class="absolute right-0 mt-2 w-72 rounded-xl py-2 z-50" style="background: var(--bg-dropdown); border: 1px solid var(--border-subtle); box-shadow: var(--card-shadow);">
                             <div class="px-3.5 pb-2 flex items-center justify-between" style="border-bottom: 1px solid var(--border-subtle);">
                                 <span class="text-xs font-semibold" style="color: var(--text-primary);">Coin activity</span>
                                 <span class="text-xs" style="color: var(--text-muted);">{{ number_format($__hdrCoins) }} coins</span>
@@ -1486,7 +1486,7 @@
                             <i class="fas fa-ellipsis-v text-xs"></i>
                         </button>
                         <div x-show="open" @click.away="open = false" x-cloak x-transition
-                             class="absolute right-0 mt-2 w-48 rounded-xl py-1.5 z-50" style="background: var(--bg-sidebar); border: 1px solid var(--border-subtle); box-shadow: var(--card-shadow);">
+                             class="absolute right-0 mt-2 w-48 rounded-xl py-1.5 z-50" style="background: var(--bg-dropdown); border: 1px solid var(--border-subtle); box-shadow: var(--card-shadow);">
                             <div class="px-3 py-2" style="border-bottom: 1px solid var(--border-subtle);">
                                 @include('common.partials.theme-toggle')
                             </div>
