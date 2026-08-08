@@ -27,9 +27,10 @@
         ->where('workspace_id', $thread->workspace_id)
         ->orderBy('name')->get();
 @endphp
-<div class="max-w-6xl mx-auto"
+<div class="max-w-6xl 2xl:max-w-[1500px] mx-auto"
      x-data="{
         replyText: @js($thread->needsReview() ? (string) $thread->ai_draft : ''),
+        toolsOpen: false,
         showSnippets: false,
         aiDrafting: false,
         aiError: '',
@@ -79,9 +80,17 @@
     @if(session('success'))<div class="mb-4 px-4 py-3 rounded-xl text-sm" style="background: rgba(16,185,129,0.1); color: #10b981;">{{ session('success') }}</div>@endif
     @if(session('error'))<div class="mb-4 px-4 py-3 rounded-xl text-sm" style="background: rgba(239,68,68,0.1); color: #f87171;">{{ session('error') }}</div>@endif
 
-    <div class="grid lg:grid-cols-[1fr_320px] gap-5">
+    {{-- Mobile triage toggle (sidebar is always visible at lg+) --}}
+    <button type="button" @click="toolsOpen = !toolsOpen"
+            class="lg:hidden w-full mb-4 px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between"
+            style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);">
+        <span><i class="fas fa-sliders mr-1.5"></i>Triage &amp; actions</span>
+        <i class="fas fa-chevron-down transition-transform" :class="toolsOpen ? 'rotate-180' : ''"></i>
+    </button>
+
+    <div class="grid lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px] gap-5">
         {{-- Thread reader --}}
-        <div class="space-y-4">
+        <div class="space-y-4 min-w-0">
             <div class="card-premium p-5">
                 <div class="flex items-start gap-4">
                     <div class="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold flex-shrink-0"
@@ -134,7 +143,7 @@
             {{-- Messages --}}
             <div class="space-y-3">
                 @foreach($thread->messages as $m)
-                    <div class="card-premium p-4 {{ $m->direction === 'out' ? 'ml-12' : 'mr-12' }}" style="{{ $m->direction === 'out' ? 'background: rgba(92,131,255,0.05);' : '' }}">
+                    <div class="card-premium p-4 {{ $m->direction === 'out' ? 'ml-4 sm:ml-12' : 'mr-4 sm:mr-12' }}" style="{{ $m->direction === 'out' ? 'background: rgba(92,131,255,0.05);' : '' }}">
                         <div class="flex items-center gap-2 mb-2 text-xs" style="color: var(--text-muted);">
                             <span class="font-semibold" style="color: var(--text-secondary);">{{ $m->sender_name ?: ($m->direction === 'out' ? 'You' : 'Them') }}</span>
                             <span>·</span>
@@ -206,9 +215,9 @@
             {{-- Reply composer --}}
             @canInWorkspace('inbox.reply')
             <form method="POST" action="{{ route('user.inbox.unified.reply', $thread->id) }}" class="card-premium p-5 space-y-3">@csrf
-                <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
                     <div class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-faint);">Reply via {{ $thread->channelLabel() }}</div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
                         <button type="button" @click="showLinkPicker = true; linkQuery = ''; linkResults = []; searchLinks(); $nextTick(() => $refs.linkPickerInput && $refs.linkPickerInput.focus())"
                                 class="px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 inb-ai-btn">
                             <i class="fas fa-link"></i>
@@ -224,7 +233,7 @@
 
                 {{-- Link picker modal --}}
                 <div x-show="showLinkPicker" x-cloak
-                     class="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4"
+                     class="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4"
                      style="background: rgba(0,0,0,0.55);"
                      @click.self="showLinkPicker = false" @keydown.escape.window="showLinkPicker = false">
                     <div class="w-full max-w-md rounded-xl p-4 space-y-3" style="background: var(--bg-card, #161a2e); border: 1px solid var(--border-glass);" @click.stop>
@@ -305,7 +314,7 @@
         </div>
 
         {{-- Sidebar: triage + actions --}}
-        <aside class="space-y-4">
+        <aside class="space-y-4 min-w-0 lg:block lg:order-none" :class="toolsOpen ? 'block order-first' : 'hidden'">
             <div class="card-premium p-4">
                 <div class="text-[10px] font-bold uppercase tracking-wider mb-2" style="color: var(--text-faint);">Triage</div>
                 <form method="POST" action="{{ route('user.inbox.unified.update', $thread->id) }}" class="space-y-2">@csrf

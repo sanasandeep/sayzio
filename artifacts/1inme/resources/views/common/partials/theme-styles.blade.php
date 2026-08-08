@@ -993,6 +993,35 @@
     html.light-mode .text-cyan-100,    html.light-mode .text-cyan-200,    html.light-mode .text-cyan-300,    html.light-mode .text-cyan-400 { color: #0e7490 !important; }
     html.light-mode .text-blue-100,    html.light-mode .text-blue-200,    html.light-mode .text-blue-300,    html.light-mode .text-blue-400 { color: #1d4ed8 !important; }
     html.light-mode .text-indigo-100,  html.light-mode .text-indigo-200,  html.light-mode .text-indigo-300,  html.light-mode .text-indigo-400 { color: #4338ca !important; }
+    /* ===== Header notifications dropdown & notification row highlights =====
+       The dropdown used the near-transparent --bg-sidebar glass token, so page
+       content bled through it in dark mode. It gets its own opaque (blurred
+       when supported) surface. Row tints were light-mode-oriented Tailwind
+       utilities (bg-blue-50/30, hover:bg-blue-500/5) — replaced by theme-aware
+       classes so unread/hover stay legible in both modes. */
+    .notif-dropdown {
+        background: #14161f;
+        border: 1px solid var(--border-glass);
+        box-shadow: var(--card-shadow-hover);
+    }
+    @supports (backdrop-filter: blur(12px)) {
+        html:not(.light-mode) .notif-dropdown {
+            background: rgba(20,22,31,0.92);
+            backdrop-filter: blur(16px) saturate(160%);
+            -webkit-backdrop-filter: blur(16px) saturate(160%);
+        }
+    }
+    html.light-mode .notif-dropdown {
+        background: #ffffff;
+        border-color: var(--border-subtle);
+        box-shadow: var(--card-shadow-hover);
+    }
+    .notif-row-unread { background: rgba(61,107,255,0.14); }
+    html.light-mode .notif-row-unread { background: #eaf0ff; }
+    .notif-row-hover:hover { background: rgba(255,255,255,0.08); }
+    html.light-mode .notif-row-hover:hover { background: #f4f5f9; }
+    .notif-row-unread.notif-row-hover:hover { background: rgba(61,107,255,0.22); }
+    html.light-mode .notif-row-unread.notif-row-hover:hover { background: #dde7ff; }
 </style>
 <script>
 (function(){

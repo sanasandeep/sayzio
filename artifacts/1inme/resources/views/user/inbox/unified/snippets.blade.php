@@ -15,7 +15,7 @@
     @if(session('success'))<div class="mb-4 px-4 py-3 rounded-xl text-sm" style="background: rgba(16,185,129,0.1); color: #10b981;">{{ session('success') }}</div>@endif
 
     <form method="POST" action="{{ route('user.inbox.unified.snippets.store') }}" class="card-premium p-4 mb-6 space-y-3">@csrf
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid sm:grid-cols-2 gap-3">
             <input name="shortcut" required placeholder="shortcut (e.g. intro)" maxlength="64" class="px-3 py-2 rounded-lg text-sm" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
             <input name="label" required placeholder="Label (e.g. Booking intro)" maxlength="200" class="px-3 py-2 rounded-lg text-sm" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
         </div>

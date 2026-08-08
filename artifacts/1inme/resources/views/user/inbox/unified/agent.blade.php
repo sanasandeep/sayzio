@@ -28,7 +28,7 @@
     @endunless
 
     @unless($planAllows)
-        <div class="mb-4 px-4 py-3 rounded-xl text-sm flex items-center justify-between gap-3" style="background: rgba(92,131,255,0.1); border: 1px solid rgba(92,131,255,0.25); color: #bccfff;">
+        <div class="mb-4 px-4 py-3 rounded-xl text-sm flex items-center justify-between gap-3 flex-wrap" style="background: rgba(92,131,255,0.1); border: 1px solid rgba(92,131,255,0.25); color: #bccfff;">
             <span><i class="fas fa-lock mr-1.5"></i>The AI Inbox Agent isn't included in your current plan@if($upgradePlan), upgrade to <strong>{{ $upgradePlan->name }}</strong> to unlock AI triage, drafting, and autopilot@endif.</span>
             <a href="{{ route('user.upgrade') }}" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex-shrink-0" style="background: linear-gradient(135deg,#5c83ff,#2342c7);">Upgrade</a>
         </div>
@@ -93,7 +93,7 @@
             <div x-show="autopilot" x-cloak class="space-y-4 pt-1">
                 <div>
                     <label class="block text-[10px] font-bold uppercase tracking-wider mb-2" style="color: var(--text-faint);">Auto-reply these categories</label>
-                    <div class="grid grid-cols-2 gap-2">
+                    <div class="grid sm:grid-cols-2 gap-2">
                         @foreach($categories as $cat)
                             @php $lbl = $categoryLabels[$cat][0] ?? ucfirst($cat); $clr = $categoryLabels[$cat][1] ?? '#5c83ff'; @endphp
                             <label class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">

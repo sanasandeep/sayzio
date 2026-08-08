@@ -2,7 +2,7 @@
 @section('title', 'Inbox 2.0')
 
 @section('content')
-<div class="max-w-[1400px] mx-auto" x-data="{ selected: [], filtersOpen: {{ request()->hasAny(['q','channel','category','assignee','starred','overdue','review']) ? 'true' : 'false' }} }">
+<div class="max-w-[1400px] 2xl:max-w-[1720px] mx-auto" x-data="{ selected: [], filtersOpen: {{ request()->hasAny(['q','channel','category','assignee','starred','overdue','review']) ? 'true' : 'false' }} }">
     @include('user.partials.page-hero', [
         'title' => 'Inbox 2.0',
         'subtitle' => 'Every channel in one triaged stream',
@@ -38,7 +38,7 @@
         <i class="fas fa-chevron-down transition-transform" :class="filtersOpen ? 'rotate-180' : ''"></i>
     </button>
 
-    <div class="grid lg:grid-cols-[240px_1fr] gap-5">
+    <div class="grid lg:grid-cols-[240px_minmax(0,1fr)] 2xl:grid-cols-[260px_minmax(0,1fr)] gap-5">
         {{-- Filters sidebar --}}
         <aside class="card-premium p-4 h-fit space-y-4"
                :class="filtersOpen ? '' : 'hidden lg:block'">

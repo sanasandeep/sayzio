@@ -126,6 +126,11 @@
                     </button>
                 </div>
             </div>
+            <button type="button" x-show="prefill && prefill.sufficient" x-cloak @click="applyActuals()"
+                    class="mpc-export-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold"
+                    title="Fill the visitor, conversion and Sayzio-row assumptions from your real Sayzio analytics">
+                <i class="fas fa-bolt text-blue-400"></i> Use my Sayzio data
+            </button>
             <button type="button" @click="save()" :disabled="saving"
                     class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
                 <i class="fas" :class="saving ? 'fa-circle-notch fa-spin' : 'fa-floppy-disk'"></i>
@@ -153,6 +158,33 @@
         </div>
     @endif
 
+    @if(!empty($actualsSeed))
+        {{-- Task #6772 — this new plan was pre-filled from real Sayzio actuals. --}}
+        <div class="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 mb-5" data-testid="actuals-seed-banner">
+            @if(!empty($actualsSeed['sufficient']))
+                <p class="text-sm font-semibold text-blue-300">
+                    <i class="fas fa-bolt mr-1.5"></i> Pre-filled from your real Sayzio data
+                </p>
+                <p class="text-xs mpc-sub mt-1">
+                    Auto-filled from your last {{ \App\Services\MarketingPlanActuals::MONTHS }} months:
+                    @php($labels = ['organic_visitors' => 'monthly organic visitors', 'sayzio_vl' => 'visitor → lead rate', 'sayzio_lc' => 'lead → customer rate', 'sayzio_acv' => 'average customer value', 'ai_credits' => 'AI-credit spend'])
+                    {{ implode(', ', array_map(fn ($k) => $labels[$k] ?? $k, (array) $actualsSeed['filled'])) }}
+                    — inferred from your link analytics, form submissions, contacts and store/invoice revenue.
+                    Everything stays editable before saving.
+                </p>
+            @else
+                <p class="text-sm font-semibold text-blue-300">
+                    <i class="fas fa-circle-info mr-1.5"></i> Not enough Sayzio history yet
+                </p>
+                <p class="text-xs mpc-sub mt-1">
+                    Your workspace doesn't have enough link, lead or revenue history to infer assumptions from,
+                    so this plan starts from the standard benchmarks. Come back once you've collected some traffic and leads.
+                </p>
+            @endif
+        </div>
+    @endif
+
+    <p class="text-xs text-blue-400 mb-3" x-show="actualsFlash" x-cloak data-testid="actuals-flash"><i class="fas fa-bolt mr-1"></i> <span x-text="actualsFlash"></span></p>
     <p class="text-xs text-emerald-400 mb-3" x-show="savedFlash" x-cloak><i class="fas fa-check mr-1"></i> Saved.</p>
     <p class="text-xs text-red-400 mb-3" x-show="saveError" x-cloak x-text="saveError"></p>
 
@@ -165,7 +197,7 @@
                         :class="tab === s.key ? 'active' : (stepIndex > i ? 'done' : '')"
                         :aria-label="(i + 1) + ' · ' + s.label"
                         :aria-current="tab === s.key ? 'step' : false"
-                        @click="s.key === 'dashboard' ? openDashboard() : tab = s.key">
+                        @click="s.key === 'dashboard' ? openDashboard() : (s.key === 'actual' ? openActual() : tab = s.key)">
                     <span class="mpc-step-num">
                         <template x-if="stepIndex > i && tab !== s.key"><i class="fas fa-check text-[9px]"></i></template>
                         <template x-if="!(stepIndex > i && tab !== s.key)"><span x-text="i + 1"></span></template>
@@ -261,25 +293,20 @@
                     </template>
                 </select>
                 <p class="text-[11px] mpc-faint mt-2">Live pricing, defaults to your current plan. A fixed monthly subscription, not a % of your ad budget.</p>
-                {{-- Task #6772 — prefill from real workspace usage. --}}
-                <div class="mt-3 flex flex-wrap items-center gap-2">
-                    <button type="button" @click="applyActuals()" :disabled="actualsLoading"
-                            class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold disabled:opacity-50"
-                            data-mpc-use-actuals>
-                        <span x-show="!actualsLoading">Use my Sayzio data</span>
-                        <span x-show="actualsLoading" x-cloak>Loading your data…</span>
-                    </button>
-                    <span class="text-[11px] text-emerald-400 font-semibold" x-show="actualsApplied" x-cloak data-mpc-actuals-applied>✓ Prefilled from your real usage; everything stays editable.</span>
-                </div>
-                <p class="text-[11px] text-amber-400 mt-2" x-show="actualsError" x-cloak x-text="actualsError" data-mpc-actuals-error></p>
                 <div class="grid grid-cols-2 gap-3 mt-3">
                     <div>
                         <label class="text-[11px] font-semibold mpc-sub">AI credits usage (₹/month, optional)</label>
                         <input type="number" min="0" x-model.number="p.ai_credits" class="mpc-input mt-1">
+                        <p class="text-[10px] text-blue-400 mt-0.5" x-show="autoFilled.includes('ai_credits')" x-cloak>
+                            <i class="fas fa-bolt mr-0.5"></i> Auto-filled from last month's real AI-credit spend
+                        </p>
                     </div>
                     <div>
                         <label class="text-[11px] font-semibold mpc-sub">Est. monthly organic visitors (bio page, QR, short links)</label>
                         <input type="number" min="0" x-model.number="p.organic_visitors" class="mpc-input mt-1">
+                        <p class="text-[10px] text-blue-400 mt-0.5" x-show="autoFilled.includes('organic_visitors')" x-cloak>
+                            <i class="fas fa-bolt mr-0.5"></i> Auto-filled from your real link &amp; bio-page traffic
+                        </p>
                     </div>
                 </div>
                 <p class="text-[11px] text-amber-400 mt-2" x-show="clampHints.plan_inputs" x-cloak x-text="clampHints.plan_inputs"></p>
@@ -294,10 +321,25 @@
                     <div>
                         <label class="text-[11px] font-semibold mpc-sub">Chat widget uplift, visitor → lead (%)</label>
                         <input type="number" min="0" step="0.5" x-model.number="p.uplifts.chat" class="mpc-input mt-1">
+                        <template x-if="features">
+                            <p class="text-[10px] mt-0.5" :class="features.chat ? 'text-emerald-400' : 'mpc-faint'" data-testid="feature-chat">
+                                <i class="fas mr-0.5" :class="features.chat ? 'fa-circle-check' : 'fa-circle-minus'"></i>
+                                <span x-text="features.chat ? 'AI chat companion is active on your account' : 'No AI chat companion set up yet'"></span>
+                            </p>
+                        </template>
                     </div>
                     <div>
                         <label class="text-[11px] font-semibold mpc-sub">CRM &amp; dialer uplift, lead → customer (%)</label>
                         <input type="number" min="0" step="0.5" x-model.number="p.uplifts.crm" class="mpc-input mt-1">
+                        <template x-if="features">
+                            <p class="text-[10px] mt-0.5" :class="(features.crm || features.dialer) ? 'text-emerald-400' : 'mpc-faint'" data-testid="feature-crm">
+                                <i class="fas mr-0.5" :class="(features.crm || features.dialer) ? 'fa-circle-check' : 'fa-circle-minus'"></i>
+                                <span x-text="features.crm && features.dialer ? 'CRM contacts and the dialer are in use on your account'
+                                    : features.crm ? 'CRM contacts are in use — dialer not used yet'
+                                    : features.dialer ? 'Dialer is in use — no CRM contacts yet'
+                                    : 'CRM and dialer not in use yet'"></span>
+                            </p>
+                        </template>
                     </div>
                 </div>
                 {{-- Task #6772 — "already in use" badges from real feature usage. --}}
@@ -490,27 +532,6 @@
             </div>
         </div>
 
-        {{-- Task #6772 — Plan vs. Actual (real workspace usage). --}}
-        <div class="rounded-2xl mpc-card p-4" data-mpc-plan-vs-actual>
-            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-                <h3 class="text-sm font-bold mpc-title">Plan vs. Actual <span class="mpc-faint font-normal">(your real Sayzio traffic &amp; leads, last 12 months)</span></h3>
-                <button type="button" x-show="!actuals" @click="loadActuals()" :disabled="actualsLoading"
-                        class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold disabled:opacity-50"
-                        data-mpc-load-actuals>
-                    <span x-show="!actualsLoading">Load my Sayzio data</span>
-                    <span x-show="actualsLoading" x-cloak>Loading…</span>
-                </button>
-            </div>
-            <p class="text-[11px] text-amber-400" x-show="actualsError && tab === 'dashboard'" x-cloak x-text="actualsError"></p>
-            <template x-if="actuals && !actuals.has_data && !actuals.error">
-                <p class="text-[12px] mpc-faint" data-mpc-actuals-empty>No usage data in this workspace yet. Once your links, forms and store start collecting activity, your real numbers appear here next to the plan.</p>
-            </template>
-            <div x-show="actuals && actuals.has_data" x-cloak>
-                <canvas id="mpcActualChart" height="220"></canvas>
-                <p class="text-[11px] mpc-faint mt-2">Solid bars = your actual monthly visitors &amp; leads; lines = this plan's projection. Revenue actuals appear in the tooltip.</p>
-            </div>
-        </div>
-
         {{-- Task #6769 — side-by-side scenario comparison. --}}
         <div class="rounded-2xl mpc-card p-4 overflow-x-auto" data-mpc-comparison>
             <h3 class="text-sm font-bold mpc-title mb-2">Scenario comparison <span class="mpc-faint font-normal">(annual outcomes, all three at once)</span></h3>
@@ -661,6 +682,60 @@
             <p class="text-[11px] mpc-faint mt-1">Tangible savings (tools + time) + additional effectiveness revenue.</p>
         </div>
     </div>
+    {{-- ───── 5 · PLAN VS ACTUAL (Task #6772) ───── --}}
+    <div x-show="tab === 'actual'" x-cloak class="space-y-4">
+        <template x-if="actuals && actuals.has_data">
+            <div class="space-y-4">
+                <div class="rounded-2xl mpc-card p-4">
+                    <h3 class="text-sm font-bold mpc-title mb-1">Actuals vs plan baseline — monthly visitors, leads &amp; revenue</h3>
+                    <p class="text-[11px] mpc-faint mb-2">
+                        Actuals come from your real Sayzio data: link &amp; bio-page clicks, form submissions + new contacts,
+                        and paid store orders + client invoices. "Baseline" is NOT a historical target — it's what this plan
+                        projects for a typical month with that calendar month's seasonality weight, shown so you can judge
+                        whether the plan's assumptions are realistic against your recent history.
+                    </p>
+                    <canvas id="mpcActualChart" height="220"></canvas>
+                </div>
+                <div class="rounded-2xl mpc-card p-4 overflow-x-auto">
+                    <table class="w-full min-w-[760px]" data-testid="actuals-table">
+                        <thead><tr>
+                            <th class="mpc-th">Month</th>
+                            <th class="mpc-th text-right">Actual visitors</th><th class="mpc-th text-right">Baseline visitors</th>
+                            <th class="mpc-th text-right">Actual leads</th><th class="mpc-th text-right">Baseline leads</th>
+                            <th class="mpc-th text-right">Actual revenue</th><th class="mpc-th text-right">Baseline revenue</th>
+                        </tr></thead>
+                        <tbody>
+                            <template x-for="row in actualRows" :key="row.ym">
+                                <tr class="mpc-row">
+                                    <td class="mpc-td font-semibold" x-text="row.label"></td>
+                                    <td class="mpc-td text-right" x-text="nf(row.visitors, 0)"></td>
+                                    <td class="mpc-td text-right mpc-sub" x-text="nf(row.planVisitors, 0)"></td>
+                                    <td class="mpc-td text-right" x-text="nf(row.leads, 0)"></td>
+                                    <td class="mpc-td text-right mpc-sub" x-text="nf(row.planLeads, 0)"></td>
+                                    <td class="mpc-td text-right" x-text="money(row.revenue)"></td>
+                                    <td class="mpc-td text-right mpc-sub" x-text="money(row.planRevenue)"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                    <p class="text-[11px] mpc-faint mt-2">
+                        Leads count non-spam form submissions plus newly captured contacts; revenue is paid store orders + paid client invoices (₹).
+                        Baseline columns use the plan's seasonality profile for the same calendar month (the plan itself starts now — these are not past targets).
+                    </p>
+                </div>
+            </div>
+        </template>
+        <template x-if="!actuals || !actuals.has_data">
+            <div class="rounded-2xl mpc-card p-8 text-center" data-testid="actuals-empty">
+                <i class="fas fa-chart-line text-2xl text-blue-400/70"></i>
+                <h3 class="text-sm font-bold mpc-title mt-3">No Sayzio history to compare against yet</h3>
+                <p class="text-xs mpc-sub mt-1 max-w-md mx-auto">
+                    Once your links get traffic, forms collect submissions and your store or invoices record revenue,
+                    this tab will chart those actuals against this plan's monthly projections.
+                </p>
+            </div>
+        </template>
+    </div>
 </div>
 
 <script src="{{ asset('js/vendor/chart.umd.min.js') }}"></script>
@@ -675,20 +750,21 @@ function mpcApp() {
         planOptions: @js($planOptions),
         presets: @js($presets ?? []),
         presetPick: 'custom',
+        // Task #6772 — real Sayzio actuals + derived prefill values.
+        actuals: @js($actuals ?? null),
+        prefill: @js($actualsPrefill ?? null),
+        autoFilled: @js(!empty($actualsSeed['sufficient']) ? ($actualsSeed['filled'] ?? []) : []),
+        actualsFlash: '',
         months: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
         steps: [
             { key: 'assumptions', label: 'Assumptions' },
             { key: 'monthly',     label: 'Monthly Plan' },
             { key: 'dashboard',   label: 'Dashboard' },
             { key: 'roi',         label: 'Sayzio ROI & Value' },
+            ...(@js($actuals ?? null) ? [{ key: 'actual', label: 'Plan vs Actual' }] : []),
         ],
         tab: 'assumptions',
         monthlyMetric: 'spend',
-        // Task #6772 — real Sayzio usage (fetched on demand, never persisted).
-        actuals: null,
-        actualsLoading: false,
-        actualsError: '',
-        actualsApplied: false,
         // Task #6769 — active scenario (view state, not persisted).
         scenario: 'expected',
         scenKeys: ['conservative', 'expected', 'aggressive'],
@@ -900,41 +976,6 @@ function mpcApp() {
                 label: this.scenLabels[key],
                 totals: this.buildModel(this.scenFactors(key)).totals,
             }));
-        },
-
-        // ---------- real Sayzio data (Task #6772) ----------
-        async loadActuals() {
-            if (this.actualsLoading) return this.actuals;
-            this.actualsLoading = true; this.actualsError = '';
-            try {
-                const res = await fetch('{{ route('user.marketing-plan.actuals') }}', {
-                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                });
-                const data = await res.json().catch(() => ({}));
-                if (!res.ok || !data.ok || data.actuals?.error) throw new Error('Could not load your Sayzio data. Please try again.');
-                this.actuals = data.actuals;
-                if (this.tab === 'dashboard') this.$nextTick(() => this.renderCharts());
-            } catch (e) {
-                this.actualsError = e.message || 'Could not load your Sayzio data. Please try again.';
-            } finally {
-                this.actualsLoading = false;
-            }
-            return this.actuals;
-        },
-        /** Prefill the editable assumptions from the fetched actuals. */
-        async applyActuals() {
-            const a = this.actuals || await this.loadActuals();
-            if (!a) return;
-            if (!a.has_data) { this.actualsError = 'No usage data in this workspace yet; the defaults are your best starting point.'; return; }
-            if (a.monthly_visitors > 0) this.p.organic_visitors = a.monthly_visitors;
-            if (a.ai_coins_30d > 0) this.p.ai_credits = a.ai_coins_30d;
-            if (a.plan_slug && this.planOptions.some(o => o.slug === a.plan_slug)) this.p.plan_slug = a.plan_slug;
-            if (a.vl_rate !== null) {
-                const row = this.p.channels.find(c => c.key === 'sayzio');
-                if (row) row.vl = a.vl_rate;
-            }
-            this.actualsApplied = true;
-            setTimeout(() => this.actualsApplied = false, 3500);
         },
 
         // ---------- the calculation engine ----------
@@ -1496,6 +1537,89 @@ function mpcApp() {
             return new Blob(parts, { type: 'application/pdf' });
         },
 
+        // ---------- Task #6772: real Sayzio actuals ----------
+        get features() { return this.actuals ? this.actuals.features : null; },
+
+        /**
+         * Apply the server-derived "Use my Sayzio data" prefill to the
+         * current assumptions. Everything stays editable; the $watch('p')
+         * clamp/dirty machinery picks the changes up automatically.
+         */
+        applyActuals() {
+            const v = this.prefill && this.prefill.values ? this.prefill.values : null;
+            if (!v || !this.prefill.sufficient) return;
+            const filled = [];
+            if (v.organic_visitors != null) { this.p.organic_visitors = v.organic_visitors; filled.push('organic_visitors'); }
+            const s = (this.p.channels || []).find(c => c.key === 'sayzio');
+            if (s) {
+                if (v.sayzio_vl  != null) { s.vl  = v.sayzio_vl;  filled.push('sayzio_vl'); }
+                if (v.sayzio_lc  != null) { s.lc  = v.sayzio_lc;  filled.push('sayzio_lc'); }
+                if (v.sayzio_acv != null) { s.acv = v.sayzio_acv; filled.push('sayzio_acv'); }
+            }
+            if (v.ai_credits != null) { this.p.ai_credits = v.ai_credits; filled.push('ai_credits'); }
+            this.autoFilled = filled;
+            this.actualsFlash = 'Assumptions updated from your real Sayzio data — review and edit anything before saving.';
+            setTimeout(() => { this.actualsFlash = ''; }, 6000);
+        },
+
+        /**
+         * Actuals rows joined with the plan's CALENDAR-MONTH BASELINE projection.
+         * The plan is a forward-looking Jan–Dec seasonality profile, not a dated
+         * schedule, so each historical month is compared against the projection
+         * for that calendar month's seasonality slot — an "is this plan realistic
+         * vs my recent history?" baseline, never a past target. The UI labels
+         * these columns "Baseline" and explains this explicitly.
+         */
+        get actualRows() {
+            if (!this.actuals) return [];
+            const m = this.model;
+            return this.actuals.months.map(row => {
+                const mi = Math.max(0, Math.min(11, parseInt(String(row.ym).slice(5), 10) - 1));
+                return {
+                    ...row,
+                    planVisitors: m.monthTotals.visitors[mi],
+                    planLeads:    m.monthTotals.leads[mi],
+                    planRevenue:  m.monthTotals.revenue[mi],
+                };
+            });
+        },
+
+        openActual() {
+            this.tab = 'actual';
+            this.$nextTick(() => this.renderActualChart());
+        },
+
+        renderActualChart() {
+            if (typeof Chart === 'undefined' || !this.actuals || !this.actuals.has_data) return;
+            const el = document.getElementById('mpcActualChart');
+            if (!el) return;
+            const light = document.documentElement.classList.contains('light-mode');
+            Chart.defaults.color = light ? '#475569' : 'rgba(255,255,255,0.65)';
+            Chart.defaults.borderColor = light ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+            const rows = this.actualRows, mult = this.curMult;
+            const sym = this.p.display_currency === 'USD' ? '$' : '₹';
+            this.charts.actual?.destroy();
+            this.charts.actual = new Chart(el, {
+                type: 'bar',
+                data: {
+                    labels: rows.map(r => r.label),
+                    datasets: [
+                        { label: 'Actual visitors', data: rows.map(r => r.visitors),     backgroundColor: 'rgba(37,99,235,0.70)',  yAxisID: 'y' },
+                        { label: 'Baseline visitors', data: rows.map(r => r.planVisitors), backgroundColor: 'rgba(37,99,235,0.25)',  yAxisID: 'y' },
+                        { label: 'Actual leads',    data: rows.map(r => r.leads),        backgroundColor: 'rgba(14,165,233,0.70)', yAxisID: 'y' },
+                        { label: 'Baseline leads',  data: rows.map(r => r.planLeads),    backgroundColor: 'rgba(14,165,233,0.25)', yAxisID: 'y' },
+                        { label: 'Actual revenue (' + sym + ')', data: rows.map(r => r.revenue * mult),     type: 'line', borderColor: '#10b981', backgroundColor: '#10b981', yAxisID: 'y1', tension: 0.3 },
+                        { label: 'Baseline revenue (' + sym + ')', data: rows.map(r => r.planRevenue * mult), type: 'line', borderColor: 'rgba(16,185,129,0.4)', backgroundColor: 'rgba(16,185,129,0.4)', borderDash: [6, 4], yAxisID: 'y1', tension: 0.3 },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
+                    scales: { y: { position: 'left' }, y1: { position: 'right', grid: { drawOnChartArea: false } } },
+                },
+            });
+        },
+
         // ---------- charts ----------
         /**
          * Task #6765 — download a dashboard chart as a PNG. Chart.js canvases
@@ -1548,34 +1672,6 @@ function mpcApp() {
                         ],
                     },
                     options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
-                });
-            }
-
-            // Task #6772 — Plan vs. Actual chart (only once actuals loaded).
-            const actEl = document.getElementById('mpcActualChart');
-            if (actEl && this.actuals && this.actuals.has_data) {
-                const a = this.actuals.months || [];
-                this.charts.actual = new Chart(actEl, {
-                    data: {
-                        labels: a.map(r => r.ym),
-                        datasets: [
-                            { type: 'bar',  label: 'Actual visitors', data: a.map(r => r.visitors), backgroundColor: 'rgba(37,99,235,0.55)' },
-                            { type: 'bar',  label: 'Actual leads',    data: a.map(r => r.leads),    backgroundColor: 'rgba(16,185,129,0.55)' },
-                            { type: 'line', label: 'Planned visitors', data: m.monthTotals.visitors, borderColor: '#60a5fa', backgroundColor: 'transparent', tension: 0.3 },
-                            { type: 'line', label: 'Planned leads',    data: m.monthTotals.leads,    borderColor: '#34d399', backgroundColor: 'transparent', tension: 0.3 },
-                        ],
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: { position: 'bottom' },
-                            tooltip: { callbacks: { footer: (items) => {
-                                const i = items[0]?.dataIndex;
-                                const row = (i !== undefined) ? a[i] : null;
-                                return row && row.revenue > 0 ? 'Actual revenue: ' + this.money(row.revenue) : '';
-                            } } },
-                        },
-                    },
                 });
             }
 

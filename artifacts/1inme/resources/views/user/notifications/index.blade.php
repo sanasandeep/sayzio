@@ -36,7 +36,7 @@
         <div class="rounded-2xl border divide-y" style="background: var(--bg-card); border-color: var(--border-soft);">
             @foreach($notifications as $n)
                 @php $d = is_array($n->data) ? $n->data : []; $target = $n->targetUrl(); @endphp
-                <div class="relative p-4 flex items-start gap-3 {{ $n->read_at ? '' : 'bg-blue-50/30' }} {{ $target ? 'hover:bg-blue-500/5 transition-colors' : '' }}">
+                <div class="relative p-4 flex items-start gap-3 {{ $n->read_at ? '' : 'notif-row-unread' }} {{ $target ? 'notif-row-hover transition-colors' : '' }}">
                     @if($target)
                         {{-- Stretched link: clicking anywhere on the row opens the
                              target and marks this notification read in one step.
