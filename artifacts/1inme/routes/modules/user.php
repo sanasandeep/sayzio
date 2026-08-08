@@ -831,6 +831,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // Cross-workspace move (owner-only — see LinkController::move).
         Route::post('links/{link}/move',  [LinkController::class, 'move'])->middleware('workspace.can:links.edit')->name('links.move');
         Route::post('links/move-bulk',    [LinkController::class, 'moveBulk'])->middleware('workspace.can:links.edit')->name('links.move-bulk');
+        Route::post('links/move-to-folder-bulk', [LinkController::class, 'moveToFolderBulk'])->middleware('workspace.can:links.edit')->name('links.move-to-folder-bulk');
         Route::post('links/delete-bulk',  [LinkController::class, 'destroyBulk'])->middleware('workspace.can:links.delete')->name('links.delete-bulk');
         // Admin-granted cross-account transfer (capability + ownership are
         // enforced in AssetTransferService, not middleware).

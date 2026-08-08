@@ -3316,6 +3316,49 @@ class LinkController extends Controller
     }
 
     /**
+     * Bulk-move many links into a folder (project) — or out of any folder
+     * when project_id is 'none'. Mirrors moveBulk's ownership shape: the
+     * target folder must belong to the workspace owner, and the requested
+     * ids are filtered down to the owner's rows so a tampered POST cannot
+     * touch someone else's links.
+     */
+    public function moveToFolderBulk(Request $request)
+    {
+        $data = $request->validate([
+            'project_id' => 'required|string',
+            'link_ids'   => 'required|array|min:1',
+            'link_ids.*' => 'integer',
+        ]);
+
+        $projectId = null;
+        $label = null;
+        if ($data['project_id'] !== 'none') {
+            $project = workspace_owner()->projects()
+                ->whereKey((int) $data['project_id'])
+                ->first();
+            abort_unless($project, 422, 'That folder does not exist.');
+            $projectId = $project->id;
+            $label = $project->name;
+        }
+
+        $moved = Link::whereIn('id', $data['link_ids'])
+            ->where('user_id', workspace_owner_id())
+            ->where(function ($q) use ($projectId) {
+                $projectId === null
+                    ? $q->whereNotNull('project_id')
+                    : $q->where(fn ($qq) => $qq->whereNull('project_id')->orWhere('project_id', '!=', $projectId));
+            })
+            ->update(['project_id' => $projectId]);
+
+        if ($moved === 0) {
+            return back()->with('info', 'Nothing to move.');
+        }
+        return back()->with('success',
+            $moved . ' link' . ($moved === 1 ? '' : 's') .
+            ($projectId === null ? ' removed from folders.' : " moved to '{$label}'."));
+    }
+
+    /**
      * Bulk-delete many links in one shot. Mirrors moveBulk's shape: the
      * requested ids are filtered down to rows owned by the workspace owner
      * (matching the single-destroy ownership check) so a tampered POST can't
