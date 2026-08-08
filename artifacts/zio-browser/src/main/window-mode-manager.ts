@@ -269,6 +269,14 @@ export class WindowModeManager {
       }, 250);
     });
 
+    // Workspace switching inside Zio Browser is owned by the top-bar profile
+    // switcher — hide the web app's own sidebar workspace switcher here too
+    // (same rule as TabManager.HIDE_WORKSPACE_SWITCHER_CSS; inserted CSS does
+    // not survive navigation, so re-apply on every load).
+    wc.on('dom-ready', () => {
+      wc.insertCSS('#workspace-switcher{display:none!important}').catch(() => { });
+    });
+
     // Route external navigations (links leaving 1in.me) to a new browser tab
     wc.on('will-navigate', (event, url) => {
       try {
