@@ -25,11 +25,90 @@ class HomeController extends Controller
      */
     public const DESIGN_SETTING_KEY = 'marketing_home_design';
 
+    /**
+     * Homepage design registry. Every design shares the classic animated
+     * shell (hero, homeEnhance, marketingAnimScan); each one only swaps
+     * the deferred below-the-fold fragment. All designs except 'classic'
+     * are intentionally short and keyword-focused; their SEO title /
+     * description / keywords override the generic home SEO defaults so
+     * the picked design also targets its keyword cluster in search.
+     */
+    public const DESIGNS = [
+        'classic' => [
+            'fragment' => 'home.deferred-sections',
+            'label' => 'Classic (full page)',
+            'seo' => null,
+        ],
+        'compact' => [
+            'fragment' => 'home.deferred-sections-b',
+            'label' => 'Compact (short classic)',
+            'seo' => [
+                'title' => 'AI Link in Bio, Short Links & QR Codes',
+                'description' => 'Build your link in bio page, short links and QR codes with Sayzio, the AI-powered bio link platform. Free to start, no card required.',
+                'keywords' => 'link in bio, bio link, short links, qr code, ai page builder',
+            ],
+        ],
+        'ai' => [
+            'fragment' => 'home.deferred-sections-ai',
+            'label' => 'AI builder (short)',
+            'seo' => [
+                'title' => 'Free AI Link in Bio & AI Page Builder',
+                'description' => 'Describe your page and Sayzio\'s AI builds your link in bio, bio link page, short links and QR codes in seconds. Free AI page builder, no card required.',
+                'keywords' => 'ai link in bio, ai page builder, ai website builder free, link in bio maker',
+            ],
+        ],
+        'creators' => [
+            'fragment' => 'home.deferred-sections-creators',
+            'label' => 'Creators (short)',
+            'seo' => [
+                'title' => 'Link in Bio for Creators, Free Bio Link Page',
+                'description' => 'One bio link page for Instagram, TikTok and YouTube. Sell products, grow subscribers and share every link from one free creator link in bio page.',
+                'keywords' => 'link in bio, bio link page, link in bio for instagram, creator link page',
+            ],
+        ],
+        'shortlinks' => [
+            'fragment' => 'home.deferred-sections-shortlinks',
+            'label' => 'Short links & QR (short)',
+            'seo' => [
+                'title' => 'Free URL Shortener with Branded Links & QR Code Generator',
+                'description' => 'Shorten long URLs into branded short links on your own domain, generate QR codes and track every click with real-time link analytics. Free to start.',
+                'keywords' => 'url shortener, free url shortener, qr code generator, branded short links, link tracking',
+            ],
+        ],
+        'business' => [
+            'fragment' => 'home.deferred-sections-business',
+            'label' => 'Small business (short)',
+            'seo' => [
+                'title' => 'Digital Business Card & Business Mini-Site Builder',
+                'description' => 'Create a digital business card, lead capture forms and a business landing page on your own custom domain, with an AI receptionist answering customers 24/7.',
+                'keywords' => 'digital business card, business landing page, mini website builder, lead capture forms',
+            ],
+        ],
+        'growth' => [
+            'fragment' => 'home.deferred-sections-growth',
+            'label' => 'Analytics & growth (short)',
+            'seo' => [
+                'title' => 'Link Analytics & Click Tracking for Short Links and Bio Pages',
+                'description' => 'Track clicks, countries, devices and referrers for your short links and bio link page. Real-time link analytics, UTM insights and audience growth tools.',
+                'keywords' => 'link analytics, click tracking, link tracker, utm tracking, audience growth',
+            ],
+        ],
+    ];
+
     public static function activeDesign(): string
     {
         $design = (string) \App\Modules\Admin\Models\AppSetting::get(self::DESIGN_SETTING_KEY, 'classic');
 
-        return $design === 'compact' ? 'compact' : 'classic';
+        return array_key_exists($design, self::DESIGNS) ? $design : 'classic';
+    }
+
+    /**
+     * SEO override (title/description/keywords) for the active design,
+     * or null when the design uses the generic home SEO (classic).
+     */
+    public static function activeDesignSeo(): ?array
+    {
+        return self::DESIGNS[self::activeDesign()]['seo'];
     }
 
     public function index(Request $request)
@@ -104,7 +183,7 @@ class HomeController extends Controller
         // AiHeroExamples.
         $aiStrategistExamples = AiStrategistExamples::all();
 
-        $fragment = self::activeDesign() === 'compact' ? 'home.deferred-sections-b' : 'home.deferred-sections';
+        $fragment = self::DESIGNS[self::activeDesign()]['fragment'];
 
         return view($fragment, compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'linkTypes', 'aiHeroExamples', 'resumePersonas', 'aiStrategistExamples'));
     }

@@ -1,13 +1,10 @@
-{{-- Compact design: classic hero shell + a short set of the classic page's best sections. --}}
-{{-- ============================ "1IN.ME is Sayzio" BRAND SECTION ============================ --}}
-@include('home.partials.brand-sayzio')
-{{-- ============================ CREDIBILITY BAND (near-hero trust numbers) ============================ --}}
-@include('public.partials.marketing-trust-band')
-
-{{-- ============================ WHAT YOU CAN CREATE (LINK TYPES) ============================ --}}
-@include('home.partials.create-showcase')
-
-
+{{-- "AI builder" short design: keyword focus = AI link in bio, AI page builder. --}}
+@include('home.partials.seo-intro', [
+    'eyebrow' => 'AI Link in Bio Builder',
+    'heading' => 'The <span class="grad-text">AI link in bio</span> builder that does the work for you',
+    'lead' => 'Sayzio is a free AI page builder: describe your page and Zio builds your link in bio, bio link page, short links and QR codes in seconds, then answers visitors 24/7.',
+    'chips' => [['AI page builder', '/register'], ['Free link in bio', '/pricing'], ['See features', '/features']],
+])
 {{-- ============================ HOW IT WORKS (upgraded) ============================ --}}
 <style>
     .hiw-track { position: relative; }
@@ -183,81 +180,8 @@
     </section>
 
     @include('home.partials.ai-hero')
+    @include('home.partials.ai-suite')
 </div>
-
-{{-- ==================== ZONE · PROOF ==================== --}}
-{{-- ============================ TESTIMONIAL MARQUEE ============================ --}}
-<section id="proof" class="py-20 lg:py-24 relative overflow-hidden">
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Social proof</div>
-            <h2 class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold">Built with AI, <span class="grad-text">loved by creators.</span></h2>
-        </div>
-    </div>
-
-    @php
-        try {
-            $__allReviews    = \App\Modules\Admin\Models\Testimonial::cachedActive();
-            $__topReviews    = $__allReviews->where('row', 'top')->values();
-            $__bottomReviews = $__allReviews->where('row', 'bottom')->values();
-        } catch (\Throwable $e) {
-            $__topReviews = collect();
-            $__bottomReviews = collect();
-        }
-    @endphp
-
-    @if($__topReviews->isNotEmpty())
-        <div class="overflow-hidden mb-4" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
-            <div class="flex whitespace-nowrap marquee">
-                @for($i = 0; $i < 2; $i++)
-                    @foreach($__topReviews as $r)
-                        <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
-                            <div class="glass rounded-3xl p-6 lift">
-                                <div class="flex text-base mb-3" style="color:var(--c5)">
-                                    @for($s = 0; $s < $r->rating; $s++)<i class="fas fa-star {{ $s ? 'ml-0.5' : '' }}"></i>@endfor
-                                </div>
-                                <p class="text-sm text-gray-200 mb-4 whitespace-normal">&ldquo;{{ $r->quote }}&rdquo;</p>
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r->accent_color }}, var(--c2));">{{ $r->initial() }}</div>
-                                    <div>
-                                        <div class="text-sm font-bold">{{ $r->author_name }}</div>
-                                        <div class="text-[11px] text-gray-500">{{ $r->author_role }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                @endfor
-            </div>
-        </div>
-    @endif
-
-    @if($__bottomReviews->isNotEmpty())
-        <div class="overflow-hidden" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
-            <div class="flex whitespace-nowrap marquee-rev">
-                @for($i = 0; $i < 2; $i++)
-                    @foreach($__bottomReviews as $r)
-                        <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
-                            <div class="glass rounded-3xl p-6 lift">
-                                <div class="flex text-base mb-3" style="color:var(--c5)">
-                                    @for($s = 0; $s < $r->rating; $s++)<i class="fas fa-star {{ $s ? 'ml-0.5' : '' }}"></i>@endfor
-                                </div>
-                                <p class="text-sm text-gray-200 mb-4 whitespace-normal">&ldquo;{{ $r->quote }}&rdquo;</p>
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r->accent_color }}, var(--c2));">{{ $r->initial() }}</div>
-                                    <div>
-                                        <div class="text-sm font-bold">{{ $r->author_name }}</div>
-                                        <div class="text-[11px] text-gray-500">{{ $r->author_role }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                @endfor
-            </div>
-        </div>
-    @endif
-</section>
 
 
 @include('home.partials.pricing')
