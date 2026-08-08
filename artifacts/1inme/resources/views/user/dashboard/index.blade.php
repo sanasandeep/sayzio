@@ -401,6 +401,49 @@
             @include('user.dashboard.partials.trimmed-hint')
             @endif
 
+            {{-- Animated stat-tile icons: hand-drawn inline SVGs where each icon
+                 performs its own micro-story (cursor clicks, chart draws itself,
+                 crown sparkles, chain tugs, folder peeks open). Motion is subtle,
+                 loops slowly, and is fully disabled under prefers-reduced-motion. --}}
+            <style>
+                .dsi { display: block; overflow: visible; }
+                .dsi * { transform-box: fill-box; transform-origin: center; }
+                /* Cursor: presses down-right, then a click ripple expands from the tip */
+                @keyframes dsiPress { 0%, 55%, 100% { transform: translate(0, 0) scale(1); } 62% { transform: translate(1.2px, 1.4px) scale(0.9); } 70% { transform: translate(0, 0) scale(1); } }
+                @keyframes dsiRipple { 0%, 58% { transform: scale(0.2); opacity: 0; } 64% { transform: scale(0.5); opacity: 0.9; } 92%, 100% { transform: scale(1.6); opacity: 0; } }
+                .dsi-cursor  { animation: dsiPress 3.2s ease-in-out infinite; }
+                .dsi-ripple  { animation: dsiRipple 3.2s ease-out infinite; }
+                /* Chart: line redraws itself, the end dot pops as it lands */
+                @keyframes dsiDraw { 0% { stroke-dashoffset: 34; } 45%, 82% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -34; } }
+                @keyframes dsiDot  { 0%, 34% { transform: scale(0); opacity: 0; } 46% { transform: scale(1.5); opacity: 1; } 56%, 82% { transform: scale(1); opacity: 1; } 92%, 100% { transform: scale(0); opacity: 0; } }
+                .dsi-line { stroke-dasharray: 34; animation: dsiDraw 4.5s ease-in-out infinite; }
+                .dsi-dot  { animation: dsiDot 4.5s ease-in-out infinite; }
+                /* Crown: gentle bob while two sparkles take turns twinkling */
+                @keyframes dsiBob     { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-0.8px); } }
+                @keyframes dsiTwinkle { 0%, 25%, 100% { transform: scale(0); opacity: 0; } 8% { transform: scale(1) rotate(20deg); opacity: 1; } 16% { transform: scale(0.4); opacity: 0.4; } }
+                .dsi-crown    { animation: dsiBob 3.6s ease-in-out infinite; }
+                .dsi-spark-a  { animation: dsiTwinkle 3.6s ease-in-out infinite; }
+                .dsi-spark-b  { animation: dsiTwinkle 3.6s ease-in-out 1.6s infinite; }
+                /* Chain: the two links tug apart and snap back together */
+                @keyframes dsiTugA { 0%, 55%, 100% { transform: translate(0, 0); } 66% { transform: translate(-1.1px, -1.1px); } 78% { transform: translate(0.3px, 0.3px); } 86% { transform: translate(0, 0); } }
+                @keyframes dsiTugB { 0%, 55%, 100% { transform: translate(0, 0); } 66% { transform: translate(1.1px, 1.1px); } 78% { transform: translate(-0.3px, -0.3px); } 86% { transform: translate(0, 0); } }
+                .dsi-link-a { animation: dsiTugA 4s ease-in-out infinite; }
+                .dsi-link-b { animation: dsiTugB 4s ease-in-out infinite; }
+                /* Folder: flap tips open while a paper peeks out, then tucks away */
+                @keyframes dsiFlap  { 0%, 40%, 90%, 100% { transform: rotate(0deg); } 55%, 75% { transform: rotate(-7deg); } }
+                @keyframes dsiPaper { 0%, 42%, 92%, 100% { transform: translateY(0); opacity: 0; } 56%, 74% { transform: translateY(-2.6px); opacity: 1; } }
+                .dsi-flap  { transform-origin: left bottom; animation: dsiFlap 4.4s ease-in-out infinite; }
+                .dsi-paper { animation: dsiPaper 4.4s ease-in-out infinite; }
+                @media (prefers-reduced-motion: reduce) {
+                    .dsi-cursor, .dsi-ripple, .dsi-line, .dsi-dot, .dsi-crown,
+                    .dsi-spark-a, .dsi-spark-b, .dsi-link-a, .dsi-link-b,
+                    .dsi-flap, .dsi-paper { animation: none; }
+                    .dsi-ripple, .dsi-dot { opacity: 0; }
+                    .dsi-line { stroke-dasharray: none; }
+                    .dsi-spark-a, .dsi-spark-b { transform: scale(1); opacity: 0.9; }
+                }
+            </style>
+
             {{-- Metric bento: one tall feature tile (Total Clicks) + four regular tiles. --}}
             <div class="bento mb-5">
                 {{-- Total Clicks — tall feature tile --}}
@@ -410,7 +453,11 @@
                     <div class="flex items-center justify-between">
                         <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Total Clicks</p>
                         <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.2);">
-                            <i class="fas fa-mouse-pointer text-blue-400 text-sm"></i>
+                            <svg class="dsi text-blue-400" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                                <g transform="translate(15.2 10.2)"><circle class="dsi-ripple" r="4" stroke="currentColor" stroke-width="1.4" opacity="0"/></g>
+                                <path class="dsi-cursor" d="M5.5 3.2 L15.4 11.1 L10.9 12 L13.4 16.4 L11.3 17.5 L8.9 13.1 L5.9 16 Z"
+                                      fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                            </svg>
                         </div>
                     </div>
                     <div>
@@ -430,7 +477,11 @@
                     <div class="flex items-center justify-between">
                         <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Today</p>
                         <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.2);">
-                            <i class="fas fa-chart-line text-amber-400 text-xs"></i>
+                            <svg class="dsi text-amber-400" width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                                <path d="M3 3 V17 H17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.45"/>
+                                <path class="dsi-line" d="M5 13.5 L9 9.5 L12 11.5 L16.5 5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                                <g transform="translate(16.5 5.5)"><circle class="dsi-dot" r="1.7" fill="currentColor"/></g>
+                            </svg>
                         </div>
                     </div>
                     <p class="text-2xl font-bold mt-2" style="color: var(--text-primary);">{{ number_format($clicksToday) }}</p>
@@ -445,7 +496,15 @@
                     <div class="flex items-center justify-between">
                         <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Plan</p>
                         <div class="w-9 h-9 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform" style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.2);">
-                            <i class="fas fa-crown text-blue-400 text-xs"></i>
+                            <svg class="dsi text-blue-400" width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                                <g class="dsi-crown">
+                                    <path d="M4.2 13.5 L3.3 6.8 L7.4 9.6 L10 5.2 L12.6 9.6 L16.7 6.8 L15.8 13.5 Z"
+                                          fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                                    <path d="M4.6 15.8 H15.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                </g>
+                                <g transform="translate(17 3.2)"><path class="dsi-spark-a" d="M0 -1.9 L0.5 -0.5 L1.9 0 L0.5 0.5 L0 1.9 L-0.5 0.5 L-1.9 0 L-0.5 -0.5 Z" fill="currentColor"/></g>
+                                <g transform="translate(3 3.6)"><path class="dsi-spark-b" d="M0 -1.5 L0.4 -0.4 L1.5 0 L0.4 0.4 L0 1.5 L-0.4 0.4 L-1.5 0 L-0.4 -0.4 Z" fill="currentColor"/></g>
+                            </svg>
                         </div>
                     </div>
                     <div class="mt-2">
@@ -464,7 +523,12 @@
                     <div class="flex items-center justify-between">
                         <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Links</p>
                         <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.2);">
-                            <i class="fas fa-link text-emerald-400 text-xs"></i>
+                            <svg class="dsi text-emerald-400" width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path class="dsi-link-a" d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+                                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path class="dsi-link-b" d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+                                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
                         </div>
                     </div>
                     <p class="text-2xl font-bold mt-2" style="color: var(--text-primary);">{{ $totalLinks }}</p>
@@ -479,7 +543,13 @@
                     <div class="flex items-center justify-between">
                         <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Folders</p>
                         <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: rgba(34,211,238,0.12); border: 1px solid rgba(34,211,238,0.2);">
-                            <i class="fas fa-folder text-cyan-400 text-xs"></i>
+                            <svg class="dsi text-cyan-400" width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                                <path d="M2.2 6 A1.6 1.6 0 0 1 3.8 4.4 h4 l1.7 1.9 h6.7 A1.6 1.6 0 0 1 17.8 7.9 V9 H2.2 Z"
+                                      fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                                <rect class="dsi-paper" x="6" y="6.6" width="8" height="7" rx="1" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="1.1" opacity="0"/>
+                                <path class="dsi-flap" d="M2.2 15.6 L4.1 9 H19 L17.1 15.6 A1.6 1.6 0 0 1 15.6 16.8 H3.8 A1.6 1.6 0 0 1 2.2 15.6 Z"
+                                      fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                            </svg>
                         </div>
                     </div>
                     <p class="text-2xl font-bold mt-2" style="color: var(--text-primary);">{{ $totalProjects }}</p>
