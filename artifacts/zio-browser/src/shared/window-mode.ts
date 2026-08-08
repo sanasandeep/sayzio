@@ -79,7 +79,11 @@ export const TAB_MODES: TabMode[] = [
   'dashboard+zio',
   'dashboard+files',
   'files+zio',
-  'browser+files',
+  // 'browser+files' (Website + My Files) is intentionally NOT offered in the
+  // picker (removed by owner request — redundant with the full My Files tab).
+  // The mode itself stays in the TabMode type + layout handling so any tab
+  // persisted in that mode before the removal still renders and can be
+  // switched away from.
 ];
 
 export const TAB_MODE_LABELS: Record<TabMode, string> = {
