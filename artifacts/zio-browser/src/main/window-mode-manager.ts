@@ -129,6 +129,23 @@ export class WindowModeManager {
     }
   }
 
+  /** Pixel width the renderer's Sayzio sidebar rail currently occupies (0 = hidden). */
+  private sayzioRailReserve = 0;
+
+  getSayzioRailReserve(): number {
+    return this.sayzioRailReserve;
+  }
+
+  setSayzioRailReserve(px: number): void {
+    const v = Math.max(0, Math.floor(Number.isFinite(px) ? px : 0));
+    if (this.sayzioRailReserve === v) return;
+    this.sayzioRailReserve = v;
+    // Same rationale as setZioPanelVisible: reapply in every mode so the tab
+    // layout (which reads this via resolveSayzioRailReserve) never keeps a
+    // stale left reserve.
+    this.applyBounds();
+  }
+
   getZioPanelVisible(): boolean {
     return this.zioPanelVisible;
   }

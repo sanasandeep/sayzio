@@ -284,6 +284,14 @@ export function createWindow(): BrowserWindow {
       modeManager && modeManager.getMode() === 'browser' && modeManager.getZioPanelVisible()
         ? modeManager.getZioPanelWidth() + ZIO_PANEL_DIVIDER_WIDTH
         : 0,
+    // Reserve room on the LEFT for the renderer-drawn Sayzio sidebar rail.
+    // The renderer reports its live width via window:set-sayzio-rail-reserve
+    // (0 when hidden); browser window mode only, same reasoning as the Zio
+    // panel reserve above.
+    resolveSayzioRailReserve: () =>
+      modeManager && modeManager.getMode() === 'browser'
+        ? modeManager.getSayzioRailReserve()
+        : 0,
     resolveSpellcheckEnabled: () =>
       (safeGetPreference(PREFERENCE_KEYS.SPELLCHECK_ENABLED) ?? '1') === '1',
     resolveTranslateLang: () =>

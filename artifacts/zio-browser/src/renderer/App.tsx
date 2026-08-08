@@ -4,6 +4,7 @@ import { ChromeBar } from './components/ChromeBar';
 import { ZioPanel } from './components/ZioPanel';
 import { FilesPane } from './components/FilesPane';
 import { DialerPanel } from './components/DialerPanel';
+import { SayzioRail, SAYZIO_RAIL_COLLAPSED_WIDTH, SAYZIO_RAIL_EXPANDED_WIDTH, loadRailExpanded } from './components/SayzioRail';
 import { NewTabPage } from './components/NewTabPage';
 import { AboutPage } from './components/AboutPages';
 import { AuthModal } from './components/AuthModal';
@@ -77,6 +78,8 @@ export default function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [showModePicker, setShowModePicker] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
+  // Sayzio sidebar rail (browser window mode only; hidden in private windows).
+  const [sayzioRailExpanded, setSayzioRailExpanded] = useState(loadRailExpanded);
   const [deviceLabOpen, setDeviceLabOpen] = useState(false);
   const [deviceLabUrl, setDeviceLabUrl] = useState<string | undefined>(undefined);
   const [tabSearchOpen, setTabSearchOpen] = useState(false);
@@ -472,6 +475,30 @@ export default function App() {
     void window.zio.window.setZioPanelVisible(dockedZioVisible);
   }, [dockedZioVisible]);
 
+  // ── Sayzio sidebar rail ────────────────────────────────────────────────────
+  // Renderer-drawn left rail; the main process shifts every native view right
+  // of it (window:set-sayzio-rail-reserve). Hidden in private windows and
+  // while Settings owns the content area.
+  const showSayzioRail = mode === 'browser' && !isPrivate && !settingsOpen;
+  const sayzioRailWidth = sayzioRailExpanded ? SAYZIO_RAIL_EXPANDED_WIDTH : SAYZIO_RAIL_COLLAPSED_WIDTH;
+  // Left offset of the NATIVE tab area within containerRef. Every DOM overlay
+  // that mirrors native split geometry (focus frames, tab divider, files-right
+  // pane) must be positioned in this offset coordinate system, and the divider
+  // drag must compute its ratio against the reduced width — the main process
+  // splits the reserved-away area, not the full container.
+  const sayzioRailOffset = showSayzioRail ? sayzioRailWidth : 0;
+  const sayzioRailOffsetRef = useRef(0);
+  sayzioRailOffsetRef.current = sayzioRailOffset;
+  useEffect(() => {
+    void window.zio.window.setSayzioRailReserve(showSayzioRail ? sayzioRailWidth : 0);
+  }, [showSayzioRail, sayzioRailWidth]);
+
+  // Rail click: open the page in the active tab's dashboard pane (the main
+  // process splits the tab first when it isn't showing a dashboard yet).
+  const handleSayzioRailNavigate = useCallback((path: string) => {
+    if (activeTabId) void window.zio.tabs.navigateDashboard(activeTabId, path);
+  }, [activeTabId]);
+
   const handleToggleZio = useCallback(() => {
     // Zio AI panel is disabled in private windows.
     if (isPrivate) return;
@@ -585,10 +612,15 @@ export default function App() {
     const onMove = (ev: MouseEvent) => {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
-      if (rect.width <= 0) return;
+      // The native area starts right of the Sayzio rail — drag ratios are
+      // relative to that reduced area (matches main-process layout math).
+      const railOffset = sayzioRailOffsetRef.current;
+      const areaLeft = rect.left + railOffset;
+      const areaWidth = rect.width - railOffset;
+      if (areaWidth <= 0) return;
       const ratio = Math.min(
         MAX_TAB_SPLIT_RATIO,
-        Math.max(MIN_TAB_SPLIT_RATIO, (ev.clientX - rect.left) / rect.width),
+        Math.max(MIN_TAB_SPLIT_RATIO, (ev.clientX - areaLeft) / areaWidth),
       );
       tabDragRatioRef.current = ratio;
       setTabDragRatio(ratio);
@@ -833,6 +865,15 @@ export default function App() {
 
       <div ref={containerRef} style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
 
+        {/* ── Sayzio sidebar rail (leftmost; native views are shifted right of it) ── */}
+        {showSayzioRail && (
+          <SayzioRail
+            expanded={sayzioRailExpanded}
+            onToggleExpanded={setSayzioRailExpanded}
+            onNavigate={handleSayzioRailNavigate}
+          />
+        )}
+
         {/* Web content / new tab page (left side when docked, full-width when overlay). */}
         <div style={{
           flex: 1,
@@ -895,6 +936,7 @@ export default function App() {
             tabId={activeTabId}
             focusedPane={activeTab.focusedPane ?? 'primary'}
             splitRatio={activeTabSplitRatio}
+            leftOffset={sayzioRailOffset}
           />
         )}
 
@@ -908,7 +950,9 @@ export default function App() {
               position: 'absolute',
               top: 0,
               bottom: 0,
-              left: `calc(${activeTabSplitRatio * 100}% - ${Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2)}px)`,
+              // Native split geometry lives in the rail-offset coordinate
+              // system: the main process splits (100% - rail) starting at rail.
+              left: `calc(${sayzioRailOffset}px + (100% - ${sayzioRailOffset}px) * ${activeTabSplitRatio} - ${Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2)}px)`,
               width: TAB_SPLIT_DIVIDER_WIDTH,
               cursor: 'col-resize',
               background: 'var(--color-border)',
@@ -927,7 +971,7 @@ export default function App() {
             position: 'absolute',
             top: 0,
             bottom: 0,
-            left: `calc(${activeTabSplitRatio * 100}% + ${Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2)}px)`,
+            left: `calc(${sayzioRailOffset}px + (100% - ${sayzioRailOffset}px) * ${activeTabSplitRatio} + ${Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2)}px)`,
             right: 0,
             display: 'flex',
             alignItems: 'stretch',

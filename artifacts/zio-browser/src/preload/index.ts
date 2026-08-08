@@ -68,6 +68,8 @@ const api = {
     findStop: (id: string) => ipcRenderer.invoke('tabs:find-stop', id),
     mute: (id: string, muted: boolean) => ipcRenderer.invoke('tabs:mute', id, muted),
     setMode: (id: string, mode: string) => ipcRenderer.invoke('tabs:set-mode', id, mode),
+    /** Sayzio rail: open a sayzio.app path in the tab's dashboard pane (splits the tab if needed). */
+    navigateDashboard: (id: string, path: string) => ipcRenderer.invoke('tabs:navigate-dashboard', id, path),
     setSplitRatio: (id: string, ratio: number) => ipcRenderer.invoke('tabs:set-split-ratio', id, ratio),
     getState: (id: string) => ipcRenderer.invoke('tabs:get-state', id),
     getOrder: () => ipcRenderer.invoke('tabs:get-order'),
@@ -113,6 +115,8 @@ const api = {
     setZioPanelDocked: (docked: boolean) => ipcRenderer.invoke('window:set-zio-panel-docked', docked),
     /** Report whether the docked Zio panel is currently rendered (layout reserve). */
     setZioPanelVisible: (visible: boolean) => ipcRenderer.invoke('window:set-zio-panel-visible', visible),
+    /** Report the live width of the Sayzio sidebar rail (0 = hidden) for the layout reserve. */
+    setSayzioRailReserve: (px: number) => ipcRenderer.invoke('window:set-sayzio-rail-reserve', px),
     /** Returns true when this renderer is running inside a private/incognito window. */
     isPrivate: () => ipcRenderer.invoke('window:is-private') as Promise<boolean>,
     /** Ask the main process to open a new private window, optionally starting at a URL. */

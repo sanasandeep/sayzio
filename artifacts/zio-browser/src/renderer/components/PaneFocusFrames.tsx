@@ -18,16 +18,22 @@ export function PaneFocusFrames({
   tabId,
   focusedPane,
   splitRatio,
+  leftOffset = 0,
 }: {
   tabId: string;
   focusedPane: 'primary' | 'second';
   splitRatio: number;
+  /** Left inset (px) of the native tab area within the container (Sayzio rail). */
+  leftOffset?: number;
 }) {
   return (
     <>
       {(['primary', 'second'] as const).map((pane) => {
         const focused = focusedPane === pane;
         const dividerHalf = Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2);
+        // The native area spans (100% - leftOffset) starting at leftOffset —
+        // split positions must be computed inside that coordinate system.
+        const splitAt = `calc(${leftOffset}px + (100% - ${leftOffset}px) * ${splitRatio})`;
         return (
           <div
             key={pane}
@@ -37,9 +43,9 @@ export function PaneFocusFrames({
               position: 'absolute',
               top: 0,
               bottom: 0,
-              left: pane === 'primary' ? 0 : `calc(${splitRatio * 100}% + ${dividerHalf}px)`,
+              left: pane === 'primary' ? leftOffset : `calc(${splitAt} + ${dividerHalf}px)`,
               right: pane === 'primary' ? undefined : 0,
-              width: pane === 'primary' ? `calc(${splitRatio * 100}% - ${dividerHalf}px)` : undefined,
+              width: pane === 'primary' ? `calc(${splitAt} - ${leftOffset}px - ${dividerHalf}px)` : undefined,
               border: focused
                 ? `${TAB_SPLIT_FOCUS_FRAME}px solid var(--color-primary, #6366f1)`
                 : `${TAB_SPLIT_FOCUS_FRAME}px solid var(--color-border)`,

@@ -21,6 +21,7 @@ import {
   parseTabMode,
   normalizeTabMode,
   tabModeIncludes,
+  dashboardModeFor,
   SAYZIO_DASHBOARD_URL,
   SAYZIO_HOME_URL,
   SAYZIO_BASE_HOST,
@@ -201,6 +202,11 @@ export class TabManager {
    * renderer-drawn Ask Zio panel when the active tab is in zio-split mode.
    */
   private resolveZioPanelReserve?: () => number;
+  /**
+   * Returns the pixel width to reserve on the LEFT of the tab area for the
+   * renderer-drawn Sayzio sidebar rail (0 when hidden/private).
+   */
+  private resolveSayzioRailReserve?: () => number;
   /** Last content-area bounds applied via resizeTabs (browser/split layouts). */
   private contentBounds: { x: number; y: number; width: number; height: number } | null = null;
   /** True while a renderer chrome-overlay holds native views detached. */
@@ -294,6 +300,7 @@ export class TabManager {
     resolveAutoMute?: (url: string) => boolean;
     onUserMuteChange?: (url: string, muted: boolean) => void;
     resolveZioPanelReserve?: () => number;
+    resolveSayzioRailReserve?: () => number;
     resolveSpellcheckEnabled?: () => boolean;
     resolveTranslateLang?: () => string;
     resolveSiteSettings?: (url: string) => { zoom: number | null; autoplay: string | null; popups: string | null } | null;
@@ -319,6 +326,7 @@ export class TabManager {
     this.resolveAutoMute = cbs.resolveAutoMute;
     this.onUserMuteChange = cbs.onUserMuteChange;
     this.resolveZioPanelReserve = cbs.resolveZioPanelReserve;
+    this.resolveSayzioRailReserve = cbs.resolveSayzioRailReserve;
     this.resolveSpellcheckEnabled = cbs.resolveSpellcheckEnabled;
     this.resolveTranslateLang = cbs.resolveTranslateLang;
     this.resolveSiteSettings = cbs.resolveSiteSettings;
@@ -1378,6 +1386,32 @@ export class TabManager {
   }
 
   /**
+   * Sayzio rail navigation: open a Sayzio dashboard page in this tab's
+   * dashboard pane. If the tab isn't showing a dashboard pane yet, switch it
+   * into a split that keeps its current primary content and adds the
+   * dashboard (see dashboardModeFor). Only sayzio.app paths are allowed —
+   * the dashboard view must never be routed to an external site.
+   */
+  navigateDashboard(id: TabId, path: string): void {
+    const tab = this.tabs.get(id);
+    if (!tab) return;
+    let target: string;
+    try {
+      const u = new URL(path, `https://${SAYZIO_BASE_HOST}`);
+      if (u.host !== SAYZIO_BASE_HOST) return;
+      target = u.toString();
+    } catch {
+      return;
+    }
+    if (!tabModeIncludes(tab.mode, 'dashboard')) {
+      // setTabMode lazily creates the dashboard view and re-lays-out.
+      this.setTabMode(id, dashboardModeFor(tab.mode));
+    }
+    const wc = tab.dashboardView?.webContents;
+    if (wc && !wc.isDestroyed()) void wc.loadURL(target);
+  }
+
+  /**
    * Set the left-pane ratio of a two-native-pane split tab and re-layout.
    */
   setTabSplitRatio(id: TabId, ratio: number): void {
@@ -1669,6 +1703,13 @@ export class TabManager {
     const zioReserve = Math.max(0, this.resolveZioPanelReserve?.() ?? 0);
     if (zioReserve > 0) {
       area = { ...area, width: Math.max(0, area.width - zioReserve) };
+    }
+
+    // Sayzio sidebar rail: the renderer draws it on the LEFT edge of the
+    // content area; shift every native view right so none can cover it.
+    const railReserve = Math.max(0, this.resolveSayzioRailReserve?.() ?? 0);
+    if (railReserve > 0) {
+      area = { ...area, x: area.x + railReserve, width: Math.max(0, area.width - railReserve) };
     }
 
     // Docked virtual keyboard: reserve its strip at the bottom so no native
