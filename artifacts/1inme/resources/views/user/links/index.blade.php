@@ -33,6 +33,9 @@
     // Bulk delete: gated on the same links.delete workspace permission as
     // single delete; per-link ownership is re-checked server-side.
     $__canBulkDelete = $__ws && auth()->check() && auth()->user()->canInWorkspace($__ws, 'links.delete');
+    // Bulk move-to-folder: same links.edit permission as the per-row folder
+    // menu; only useful when at least one folder exists.
+    $__canBulkFolder = $__ws && auth()->check() && auth()->user()->canInWorkspace($__ws, 'links.edit') && $projects->isNotEmpty();
     // Admin-granted cross-account transfer: capability + link ownership are
     // re-checked server-side; this only controls action visibility.
     $__canTransfer = auth()->check() && auth()->user()->canTransferAssets();
@@ -211,6 +214,14 @@
         },
     }">
 
+{{-- Row action dropdowns (move to folder / workspace / transfer) must escape
+     the card: .card-premium clips with overflow:hidden, and sibling cards
+     later in the DOM would otherwise paint over an open menu. --}}
+<style>
+    .card-premium[data-link-id] { overflow: visible; }
+    .card-premium[data-link-id]:has([data-menu-open="true"]) { z-index: 40; }
+</style>
+
 {{-- ===== View toggle: list (rows) vs grid (folder-coloured icon tiles) ===== --}}
 <div class="flex items-center justify-end mb-3">
     <div class="inline-flex items-center rounded-xl border p-0.5" style="border-color: var(--border-strong); background: var(--bg-card);" role="group" aria-label="View mode">
@@ -231,13 +242,31 @@
     </div>
 </div>
 
-@if($__canMove || $__canBulkDelete)
+@if($__canMove || $__canBulkDelete || $__canBulkFolder)
 <div x-show="selected.length > 0" x-cloak
      class="card-premium p-3 mb-3 flex flex-wrap items-center gap-3">
     <span class="text-sm font-semibold" style="color: var(--text-primary);">
         <span x-text="selected.length"></span> selected
     </span>
     <div class="flex flex-wrap items-center gap-2 ml-auto">
+        @if($__canBulkFolder)
+        <form method="POST" action="{{ route('user.links.move-to-folder-bulk') }}" class="flex items-center gap-2">
+            @csrf
+            <template x-for="id in selected" :key="id">
+                <input type="hidden" name="link_ids[]" :value="id">
+            </template>
+            <select name="project_id" required class="theme-input text-xs py-1.5">
+                <option value="" class="bg-[#0a0612]">Move to folder…</option>
+                @foreach($projects as $__fp)
+                    <option value="{{ $__fp->id }}" class="bg-[#0a0612]">{{ $__fp->name }}</option>
+                @endforeach
+                <option value="none" class="bg-[#0a0612]">No folder (remove)</option>
+            </select>
+            <button type="submit" class="btn-primary text-xs py-1.5">
+                <i class="fas fa-folder-open text-[10px]"></i> Move
+            </button>
+        </form>
+        @endif
         @if($__canMove)
         <form method="POST" action="{{ route('user.links.move-bulk') }}" class="flex items-center gap-2">
             @csrf
@@ -348,7 +377,7 @@
     <div class="card-premium p-4 group" data-link-id="{{ $link->id }}">
         <div class="flex items-start justify-between">
             <div class="flex items-start gap-3.5 flex-1 min-w-0">
-                @if($__canMove || $__canBulkDelete)
+                @if($__canMove || $__canBulkDelete || $__canBulkFolder)
                 <label class="flex-shrink-0 pt-1.5 cursor-pointer" title="Select link">
                     <input type="checkbox" :value="{{ $link->id }}" x-model.number="selected"
                            class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">
@@ -428,7 +457,7 @@
                     </form>
                     @endcanInWorkspace
                     @canInWorkspace('links.edit')
-                    <div class="relative" x-data="{ open: false, saving: false }">
+                    <div class="relative" x-data="{ open: false, saving: false }" :data-menu-open="open ? 'true' : 'false'">
                         <button type="button" @click="open = !open" @click.outside="open = false"
                                 class="p-1.5 rounded-md transition-all hover:bg-yellow-500/10"
                                 style="color: var(--text-faint);" title="Move to folder">
@@ -465,7 +494,7 @@
                     </div>
                     @endcanInWorkspace
                     @if($__canMove)
-                    <div class="relative" x-data="{ open: false }">
+                    <div class="relative" x-data="{ open: false }" :data-menu-open="open ? 'true' : 'false'">
                         <button type="button" @click="open = !open" @click.outside="open = false"
                                 class="p-1.5 rounded-md transition-all hover:bg-amber-500/10"
                                 style="color: var(--text-faint);" title="Move to another workspace">
@@ -490,7 +519,7 @@
                     </div>
                     @endif
                     @if($__canTransfer && (int) $link->user_id === auth()->id())
-                    <div class="relative" x-data="{ open: false }">
+                    <div class="relative" x-data="{ open: false }" :data-menu-open="open ? 'true' : 'false'">
                         <button type="button" @click="open = !open" @click.outside="open = false"
                                 class="p-1.5 rounded-md transition-all hover:bg-blue-500/10"
                                 style="color: var(--text-faint);" title="Transfer to another user">

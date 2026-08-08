@@ -19,3 +19,6 @@ Rule: EVERY IPC handler that reads or writes durable state (DB prefs, named sess
 - To find a freshly opened window, snapshot `app.windows()` BEFORE the trigger and pass that array as the exclude list; old `page` object identities may not match the surviving windows.
 - The omnibox treats `data:` input as a search query (no `//`), so `tabs.navigate(id, 'data:...')` lands on a search page — use a real https URL when a non-newtab URL is needed (e.g. Create's canShorten).
 - Create button is auth-gated; seed `window.zio.auth.storeToken(...)` then open a NEW window via `window.zio.window.openNew()` (page.reload() breaks the tab registry). New windows show the mode picker — click the exact-match "Browser" card first.
+
+## Startup restore prompt (Aug 2026)
+`startup_mode` values are `ask` (DEFAULT since v0.3.14) / `continue` / `newtab`. The 'ask' prompt in ready-to-show and the crash-recovery prompt share module flag `startupRestorePromptShown` so a launch never prompts twice; release guard: push-to-main builds auto-publish on a detected version bump, so a manual release dispatch after a bump fails the "existing release" guard — that failure is benign.
