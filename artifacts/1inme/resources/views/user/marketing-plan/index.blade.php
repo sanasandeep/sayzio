@@ -33,6 +33,12 @@
                         <i class="fas fa-wand-magic-sparkles"></i> Start from AI suggestions
                     </a>
                 @endif
+                {{-- Task #6772 — start a plan from real Sayzio analytics/leads/revenue. --}}
+                <a href="{{ route('user.marketing-plan.create', ['use_actuals' => 1]) }}"
+                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-500/15 text-blue-300 text-sm font-semibold hover:bg-blue-500/25"
+                   title="Pre-fill a new plan from your real link analytics, leads and revenue">
+                    <i class="fas fa-bolt"></i> Use my Sayzio data
+                </a>
                 {{-- Task #6767 — new plan with an optional industry benchmark preset. --}}
                 <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                     <button type="button" @click="open = !open"

@@ -66,7 +66,8 @@ class MarketingPlanCalculatorController extends Controller
                 ->with('limit_reached', true);
         }
 
-        $payload  = MarketingPlanDefaults::defaults($request->user());
+        $user     = $request->user();
+        $payload  = MarketingPlanDefaults::defaults($user);
         $seedName = null;
         $aiSeed   = null;
 
@@ -77,20 +78,21 @@ class MarketingPlanCalculatorController extends Controller
             $payload = MarketingPlanIndustryPresets::apply($payload, $presetKey);
         }
 
-        // Task #6772 — `?prefill=actuals` seeds the assumptions from the
-        // owner's real Sayzio usage (no-op when the workspace has no data).
-        if ($request->query('prefill') === 'actuals') {
-            $payload = MarketingPlanActuals::applyToPayload(
-                $payload,
-                MarketingPlanActuals::forUser($request->user(), $this->workspaceId()),
-            );
-        }
+        // Task #6772 — live Sayzio actuals for "Use my Sayzio data" and the
+        // Plan vs Actual view. Only computed for users authorized to see the
+        // workspace's business analytics; other members get no actuals data.
+        $canActuals = $this->canViewActuals($request);
+        $prefill = $canActuals
+            ? MarketingPlanActuals::prefill($this->actualsSubject($request), $this->workspaceId())
+            : null;
+        $actuals = $prefill['summary'] ?? null;
+        $actualsSeed = null;
 
         if (($strategyId = (int) $request->query('from_strategy')) > 0) {
             $strategy = $this->ownedStrategies($request)->whereKey($strategyId)->first();
             if (!$strategy) abort(404);
 
-            $seed     = MarketingPlanAiSeed::fromStrategy($strategy, $request->user());
+            $seed     = MarketingPlanAiSeed::fromStrategy($strategy, $user);
             $payload  = $seed['payload'];
             $seedName = $seed['name'];
             $aiSeed   = [
@@ -98,30 +100,55 @@ class MarketingPlanCalculatorController extends Controller
                 'strategy_title' => (string) $strategy->title,
                 'matched'        => $seed['matched'],
             ];
+        } elseif ($request->boolean('use_actuals') && $prefill) {
+            // Task #6772 — "Use my Sayzio data": start the plan from the
+            // workspace's real analytics/leads/revenue instead of benchmarks.
+            $payload     = $prefill['payload'];
+            $actualsSeed = ['filled' => $prefill['filled'], 'sufficient' => $prefill['sufficient']];
+        }
+
+        // The fixed Sayzio row's AI-credit spend defaults to last month's
+        // real coin spend (still editable) whenever the user hasn't typed one.
+        if ($actuals && (float) ($payload['ai_credits'] ?? 0) <= 0 && (float) $actuals['ai_spend_last_month_inr'] > 0) {
+            $payload['ai_credits'] = $actuals['ai_spend_last_month_inr'];
         }
 
         return view('user.marketing-plan.editor', [
-            'plan'        => null,
-            'payload'     => $payload,
-            'planOptions' => MarketingPlanDefaults::planOptions(),
-            'presets'     => MarketingPlanIndustryPresets::forClient(),
-            'seedName'    => $seedName,
-            'aiSeed'      => $aiSeed,
-            'toolsLocked' => MarketingPlanDefaults::toolCostsLocked(),
+            'plan'           => null,
+            'payload'        => $payload,
+            'planOptions'    => MarketingPlanDefaults::planOptions(),
+            'presets'        => MarketingPlanIndustryPresets::forClient(),
+            'seedName'       => $seedName,
+            'aiSeed'         => $aiSeed,
+            'toolsLocked'    => MarketingPlanDefaults::toolCostsLocked(),
+            'actuals'        => $actuals,
+            'actualsPrefill' => $prefill
+                ? ['values' => $prefill['values'], 'filled' => $prefill['filled'], 'sufficient' => $prefill['sufficient']]
+                : null,
+            'actualsSeed'    => $actualsSeed,
         ]);
     }
 
     /**
-     * Task #6772 — the owner's real Sayzio usage for the active workspace
-     * (AJAX). Powers "Use my Sayzio data" and the Plan vs. Actual view.
+     * Task #6772 — the workspace's live Sayzio actuals + the derived
+     * prefill values, as JSON (used by tests and refresh-minded clients;
+     * the editor also gets the same data embedded server-side).
      */
     public function actuals(Request $request)
     {
-        $this->ensureEnabled($request);
+        // Sensitive owner analytics — membership alone is not enough.
+        abort_unless($this->canViewActuals($request), 403);
+
+        $prefill = MarketingPlanActuals::prefill($this->actualsSubject($request), $this->workspaceId());
 
         return response()->json([
             'ok'      => true,
-            'actuals' => MarketingPlanActuals::forUser($request->user(), $this->workspaceId()),
+            'actuals' => $prefill['summary'],
+            'prefill' => [
+                'values'     => $prefill['values'],
+                'filled'     => $prefill['filled'],
+                'sufficient' => $prefill['sufficient'],
+            ],
         ]);
     }
 
@@ -194,12 +221,23 @@ class MarketingPlanCalculatorController extends Controller
             $payload = MarketingPlanDefaults::enforceLockedToolCosts($payload);
         }
 
+        // Task #6772 — live actuals for the Plan vs Actual view and the
+        // in-editor "Use my Sayzio data" action; withheld from members who
+        // aren't authorized to see the workspace's business analytics.
+        $prefill = $this->canViewActuals($request)
+            ? MarketingPlanActuals::prefill($this->actualsSubject($request), $this->workspaceId())
+            : null;
+
         return view('user.marketing-plan.editor', [
-            'plan'        => $model,
-            'payload'     => $payload,
-            'planOptions' => MarketingPlanDefaults::planOptions(),
-            'presets'     => MarketingPlanIndustryPresets::forClient(),
-            'toolsLocked' => MarketingPlanDefaults::toolCostsLocked(),
+            'plan'           => $model,
+            'payload'        => $payload,
+            'planOptions'    => MarketingPlanDefaults::planOptions(),
+            'presets'        => MarketingPlanIndustryPresets::forClient(),
+            'toolsLocked'    => MarketingPlanDefaults::toolCostsLocked(),
+            'actuals'        => $prefill['summary'] ?? null,
+            'actualsPrefill' => $prefill
+                ? ['values' => $prefill['values'], 'filled' => $prefill['filled'], 'sufficient' => $prefill['sufficient']]
+                : null,
         ]);
     }
 
@@ -360,6 +398,46 @@ class MarketingPlanCalculatorController extends Controller
     }
 
     /** Active workspace id (null when personal). */
+    /**
+     * The user whose Sayzio data grounds the actuals: inside a workspace the
+     * data belongs to the workspace OWNER (a team member browsing an owner's
+     * workspace must see the owner's workspace actuals, never their own
+     * personal numbers misattributed to the team). Falls back to the
+     * authenticated user when no workspace context is bound.
+     */
+    protected function actualsSubject(Request $request): \App\Modules\User\Models\User
+    {
+        return app()->bound('workspace_owner')
+            ? app('workspace_owner')
+            : $request->user();
+    }
+
+    /**
+     * Task #6772 — may the authenticated user see the active workspace's
+     * live business actuals (traffic, leads, revenue, AI spend, feature
+     * signals)? Membership alone is NOT enough: this is sensitive owner
+     * analytics, so inside a team workspace it is restricted to the owner
+     * and to members whose role is analytics-capable (admin / analyst).
+     * Personal scope (no workspace bound) is always the user's own data.
+     */
+    protected function canViewActuals(Request $request): bool
+    {
+        if (!app()->bound('current_workspace')) {
+            return true; // personal scope: the user's own data
+        }
+
+        $ws   = app('current_workspace');
+        $user = $request->user();
+        if (!$user || !$ws) return false;
+        if ((int) $ws->owner_user_id === $user->id) return true;
+        if ($user->hasPermission('user.workspaces.access_any')) return true;
+
+        $membership = $user->membershipFor($ws);
+        return $membership !== null
+            && !$membership->isSuspended()
+            && in_array($membership->role, ['admin', 'analyst'], true);
+    }
+
     protected function workspaceId(): ?int
     {
         return app()->bound('current_workspace') ? (int) app('current_workspace')->id : null;
