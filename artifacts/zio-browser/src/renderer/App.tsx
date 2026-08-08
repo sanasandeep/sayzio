@@ -479,7 +479,11 @@ export default function App() {
   // Renderer-drawn left rail; the main process shifts every native view right
   // of it (window:set-sayzio-rail-reserve). Hidden in private windows and
   // while Settings owns the content area.
-  const showSayzioRail = mode === 'browser' && !isPrivate && !settingsOpen;
+  // Hidden whenever the active tab already shows a dashboard pane — the
+  // Sayzio web app renders its own full sidebar there, and two stacked
+  // sidebars would be redundant.
+  const showSayzioRail =
+    mode === 'browser' && !isPrivate && !settingsOpen && !tabModeIncludes(activeTabMode, 'dashboard');
   const sayzioRailWidth = sayzioRailExpanded ? SAYZIO_RAIL_EXPANDED_WIDTH : SAYZIO_RAIL_COLLAPSED_WIDTH;
   // Left offset of the NATIVE tab area within containerRef. Every DOM overlay
   // that mirrors native split geometry (focus frames, tab divider, files-right
