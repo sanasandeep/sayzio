@@ -7,6 +7,19 @@
     'chips' => [['Real-time clicks', '/register', 'fas fa-chart-line'], ['Devices & countries', '/features', 'fas fa-earth-asia'], ['UTM insights', '/features', 'fas fa-crosshairs']],
     'floats' => ['fas fa-chart-line', 'fas fa-earth-asia', 'fas fa-arrow-trend-up', 'fas fa-gauge-high'],
 ])
+@include('home.partials.audience-benefits', [
+    'title' => 'Stop guessing. <span class="grad-text">Start measuring.</span>',
+    'sub' => 'For growth marketers and data-driven creators who want proof, not vibes.',
+    'items' => [
+        ['fas fa-bolt', 'Every click, the moment it happens', 'Live click feeds for every short link and bio page, so you see a campaign take off (or flop) in real time.'],
+        ['fas fa-earth-asia', 'Know your audience', 'Countries, cities, devices and referrers for every link, so you know who is clicking and from where.'],
+        ['fas fa-crosshairs', 'UTM insights built in', 'See which campaign, channel and post drove each click without wrestling spreadsheets or a separate analytics tool.'],
+        ['fas fa-scale-balanced', 'Compare what works', 'Put links side by side to see which headline, platform or placement actually converts.'],
+        ['fas fa-file-arrow-down', 'Take your data with you', 'Export your click data to CSV for reports, dashboards or your own analysis.'],
+        ['fas fa-clock-rotate-left', 'History that stays', 'Keep your click history and spot long-term trends instead of losing last quarter\'s numbers.'],
+    ],
+    'pills' => ['Real-time dashboard', 'Per-link breakdowns', 'CSV export', 'No extra tracking scripts to install'],
+])
 {{-- ============================ 3 · GROW ============================ --}}
 <section class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

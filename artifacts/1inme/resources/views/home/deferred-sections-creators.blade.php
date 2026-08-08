@@ -7,6 +7,19 @@
     'chips' => [['Create your bio link', '/register', 'fas fa-at'], ['Sell products', '/features', 'fas fa-bag-shopping'], ['Grow subscribers', '/features', 'fas fa-users']],
     'floats' => ['fab fa-instagram', 'fab fa-tiktok', 'fab fa-youtube', 'fas fa-heart'],
 ])
+@include('home.partials.audience-benefits', [
+    'title' => 'Built for the way <span class="grad-text">creators</span> actually work',
+    'sub' => 'Your bio link is your storefront. Make it earn its place.',
+    'items' => [
+        ['fas fa-link', 'One link, every platform', 'Instagram, TikTok, YouTube, X: keep one link in every bio and update what is behind it anytime, without touching your profiles.'],
+        ['fas fa-bag-shopping', 'Sell without a store', 'Sell digital products, take tips and offer paid pages right from your bio link. No separate shop, no code.'],
+        ['fas fa-users', 'Own your audience', 'Turn followers into subscribers you can actually reach: collect emails and WhatsApp subscribers from your page.'],
+        ['fas fa-clapperboard', 'Show your latest work', 'Feature your newest video, drop or post front and center, so fans always land on your freshest content.'],
+        ['fas fa-chart-simple', 'Know what converts', 'See which links your fans tap, where they come from and what they ignore, so you post more of what works.'],
+        ['fas fa-gem', 'Look premium everywhere', 'Designer templates and smooth animations that look expensive on every phone, without hiring a designer.'],
+    ],
+    'pills' => ['Free to start', 'Custom themes', 'Gated content for fans', 'QR code for events'],
+])
 {{-- ============================ CREDIBILITY BAND (near-hero trust numbers) ============================ --}}
 @include('public.partials.marketing-trust-band')
 

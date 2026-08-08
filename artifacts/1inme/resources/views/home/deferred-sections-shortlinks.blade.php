@@ -7,6 +7,19 @@
     'chips' => [['Shorten a link', '/register', 'fas fa-link'], ['QR code generator', '/register', 'fas fa-qrcode'], ['Branded domains', '/features', 'fas fa-globe']],
     'floats' => ['fas fa-link', 'fas fa-qrcode', 'fas fa-chart-line', 'fas fa-share-nodes'],
 ])
+@include('home.partials.audience-benefits', [
+    'title' => 'Short links that <span class="grad-text">work harder</span> than bit.ly',
+    'sub' => 'For marketers, teams and anyone who shares links for a living.',
+    'items' => [
+        ['fas fa-globe', 'Your brand in every link', 'Short links on your own domain get more clicks than random ones, and every share promotes your brand instead of someone else\'s.'],
+        ['fas fa-qrcode', 'QR codes included', 'Every short link comes with a QR code for menus, posters, packaging and business cards. Download and print in seconds.'],
+        ['fas fa-chart-line', 'See every click, live', 'Real-time clicks with country, device and referrer for each link, so you know exactly which campaign is working.'],
+        ['fas fa-pen-to-square', 'Change where links go', 'Fix a typo in the destination or point an old link at a new page anytime. The short link and printed QR never change.'],
+        ['fas fa-folder-tree', 'Organised, not chaotic', 'Keep links grouped by workspace and searchable, instead of a spreadsheet nobody updates.'],
+        ['fas fa-shield-halved', 'Reliable and fast', 'Links resolve fast worldwide and stay yours: no ads, no interstitial pages between your audience and your content.'],
+    ],
+    'pills' => ['Custom domains', 'Real-time analytics', 'Team workspaces', 'API access'],
+])
 {{-- ============================ 2 · SHARE ============================ --}}
 <section id="share" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
