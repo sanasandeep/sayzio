@@ -75,7 +75,7 @@ class MarketingSettingsController extends Controller
             // Which homepage design visitors see on `/` — the original
             // full-size page ('classic') or the compact Variant B. Applies
             // within the AppSetting cache window (~5 min).
-            'home_design'                     => ['required', 'in:classic,compact'],
+            'home_design'                     => ['required', 'in:' . implode(',', array_keys(\App\Modules\Common\Controllers\HomeController::DESIGNS))],
             'ga4_id'                          => ['nullable', 'string', 'max:60', 'regex:/^[A-Za-z0-9\-_]*$/'],
             'meta_pixel_id'                   => ['nullable', 'string', 'max:60', 'regex:/^[0-9]*$/'],
             'default_share_image'             => ['nullable', 'string', 'max:1000', 'regex:#^https?://#i'],
@@ -136,7 +136,7 @@ class MarketingSettingsController extends Controller
 
         AppSetting::put(
             \App\Modules\Common\Controllers\HomeController::DESIGN_SETTING_KEY,
-            $data['home_design'] === 'compact' ? 'compact' : 'classic'
+            $data['home_design']
         );
 
         AppSetting::put('marketing_ga4_id', trim((string) ($data['ga4_id'] ?? '')));

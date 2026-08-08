@@ -9,6 +9,12 @@
     <meta name="theme-color" content="#0a0a14">
     @php
         $__seo = \App\Modules\Common\Support\MarketingSeo::resolveForView(['seoKey' => 'home']);
+        // Short keyword-focused home designs carry their own SEO cluster
+        // (title/description/keywords) so picking a design also retargets
+        // search. Classic returns null and keeps the generic home SEO.
+        if ($__designSeo = \App\Modules\Common\Controllers\HomeController::activeDesignSeo()) {
+            $__seo = array_merge($__seo, $__designSeo);
+        }
     @endphp
     <title>{{ $__seo['title'] }} — {{ config('app.name', 'Sayzio') }}</title>
     <meta name="description" content="{{ $__seo['description'] }}">

@@ -52,26 +52,33 @@
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>
                 <h2 class="ak-strong text-lg font-semibold text-white">Homepage design</h2>
-                <p class="ak-muted text-xs text-white/50">Which landing-page design visitors see on <span class="font-mono">/</span>. Takes effect for everyone within a few minutes (settings cache). SEO, tracking and dark/light mode work identically on both.</p>
+                <p class="ak-muted text-xs text-white/50">Which landing-page design visitors see on <span class="font-mono">/</span>. Takes effect for everyone within a few minutes (settings cache). All designs share the same animated hero; the short designs each target their own SEO keyword set (page title, description and keywords switch with the design).</p>
             </div>
-            @php $__homeDesign = old('home_design', $home_design); @endphp
+            @php
+                $__homeDesign = old('home_design', $home_design);
+                $__designs = \App\Modules\Common\Controllers\HomeController::DESIGNS;
+                if (!array_key_exists($__homeDesign, $__designs)) { $__homeDesign = 'classic'; }
+                $__designMeta = [
+                    'classic'    => ['icon' => 'fa-panorama',     'blurb' => 'The original full-story landing page: every showcase, AI demo and section. The longest option.'],
+                    'compact'    => ['icon' => 'fa-table-list',   'blurb' => 'A short cut of the classic page: how it works, AI highlight, testimonials, pricing, FAQ.'],
+                    'ai'         => ['icon' => 'fa-wand-magic-sparkles', 'blurb' => 'Targets "AI link in bio" and "AI page builder": AI demos up front, then pricing and FAQ.'],
+                    'creators'   => ['icon' => 'fa-star',         'blurb' => 'Targets "link in bio for creators": what you can create, testimonials, pricing, FAQ.'],
+                    'shortlinks' => ['icon' => 'fa-link',         'blurb' => 'Targets "URL shortener" and "QR code generator": the Share section, pricing, FAQ.'],
+                    'business'   => ['icon' => 'fa-briefcase',    'blurb' => 'Targets "digital business card": domains, resume, dialer and forms showcases, pricing.'],
+                    'growth'     => ['icon' => 'fa-chart-line',   'blurb' => 'Targets "link analytics" and "click tracking": the Grow section, testimonials, pricing.'],
+                ];
+            @endphp
             <div class="grid sm:grid-cols-2 gap-4">
-                <label class="cursor-pointer select-none rounded-xl border p-4 flex gap-3 items-start transition-colors {{ $__homeDesign === 'classic' ? 'border-blue-500/60 bg-blue-500/10' : 'border-white/10 bg-white/5 hover:bg-white/10' }}">
-                    <input type="radio" name="home_design" value="classic" @checked($__homeDesign !== 'compact')
-                           class="mt-1 w-4 h-4 border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">
-                    <span>
-                        <span class="ak-strong block text-sm font-semibold text-white mb-0.5"><i class="fas fa-panorama mr-1.5 text-blue-300 ak-blue"></i>Classic</span>
-                        <span class="ak-muted block text-xs text-white/50">The original full-story landing page: animated hero, showcase, AI demos, audience sections and rich motion.</span>
-                    </span>
-                </label>
-                <label class="cursor-pointer select-none rounded-xl border p-4 flex gap-3 items-start transition-colors {{ $__homeDesign === 'compact' ? 'border-blue-500/60 bg-blue-500/10' : 'border-white/10 bg-white/5 hover:bg-white/10' }}">
-                    <input type="radio" name="home_design" value="compact" @checked($__homeDesign === 'compact')
-                           class="mt-1 w-4 h-4 border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">
-                    <span>
-                        <span class="ak-strong block text-sm font-semibold text-white mb-0.5"><i class="fas fa-table-list mr-1.5 text-blue-300 ak-blue"></i>Compact (Variant B)</span>
-                        <span class="ak-muted block text-xs text-white/50">A lighter, denser take on the same content: compact hero, feature grid, how-it-works, pricing teaser and one closing CTA, with minimal motion.</span>
-                    </span>
-                </label>
+                @foreach($__designs as $__slug => $__d)
+                    <label class="cursor-pointer select-none rounded-xl border p-4 flex gap-3 items-start transition-colors {{ $__homeDesign === $__slug ? 'border-blue-500/60 bg-blue-500/10' : 'border-white/10 bg-white/5 hover:bg-white/10' }}">
+                        <input type="radio" name="home_design" value="{{ $__slug }}" @checked($__homeDesign === $__slug)
+                               class="mt-1 w-4 h-4 border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">
+                        <span>
+                            <span class="ak-strong block text-sm font-semibold text-white mb-0.5"><i class="fas {{ $__designMeta[$__slug]['icon'] ?? 'fa-panorama' }} mr-1.5 text-blue-300 ak-blue"></i>{{ $__d['label'] }}</span>
+                            <span class="ak-muted block text-xs text-white/50">{{ $__designMeta[$__slug]['blurb'] ?? '' }}</span>
+                        </span>
+                    </label>
+                @endforeach
             </div>
             @error('home_design')<p class="ak-red text-xs text-red-400">{{ $message }}</p>@enderror
         </div>
