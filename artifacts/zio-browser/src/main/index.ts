@@ -2,7 +2,7 @@
  * Zio Browser — Electron main process entry point.
  */
 import path from 'path';
-import { app, BrowserWindow, Menu, session, dialog, webContents } from 'electron';
+import { app, BrowserWindow, Menu, session, dialog, webContents, shell } from 'electron';
 import type { BaseWindow } from 'electron';
 import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, setDomainMuted, pruneHistoryOlderThan, setSiteSettings, addBookmark, isBookmarked, getAllBookmarks, getRecentHistory } from './db';
 import { chromePrefersDark, restoreWebsiteAppearance, initThemeBridge } from './theme';
@@ -13,6 +13,7 @@ import { hostForMutePolicy } from '../shared/mute-policy';
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import { seedSayzioWebSession } from './sayzio-session';
 import { initChromeBootGuard, markChromePainted } from './chrome-boot-guard';
+import { initStartupLog, slog, startupLogPath } from './startup-log';
 import { TabManager } from './tab-manager';
 import { WindowModeManager, CHROME_HEIGHT } from './window-mode-manager';
 import {
@@ -329,23 +330,36 @@ export function createWindow(): BrowserWindow {
   const recoverChrome = (why: string): void => {
     if (win.isDestroyed() || chromeRecoveryAttempts >= 3) return;
     chromeRecoveryAttempts++;
+    slog(`chrome recovery #${chromeRecoveryAttempts}: ${why}`);
     console.error(`Chrome renderer recovery #${chromeRecoveryAttempts} (${why})`);
     setTimeout(() => {
       if (!win.isDestroyed()) void win.loadURL(getRendererUrl());
     }, 1000 * chromeRecoveryAttempts);
   };
   win.webContents.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
+    slog(`did-fail-load code=${code} desc=${desc} url=${url} mainFrame=${String(isMainFrame)}`);
     console.error(`Renderer failed to load (${code} ${desc}) at ${url}`);
     // -3 = ABORTED (normal during rapid reloads) — everything else retries.
     if (isMainFrame && code !== -3) recoverChrome(`did-fail-load ${code}`);
   });
   win.webContents.on('render-process-gone', (_e, details) => {
+    slog(`render-process-gone reason=${details.reason} exitCode=${details.exitCode}`);
     if (details.reason !== 'clean-exit') recoverChrome(`render-process-gone ${details.reason}`);
   });
   win.webContents.on('unresponsive', () => recoverChrome('unresponsive'));
+  // Mirror the chrome renderer's console into the startup log (first 200
+  // lines) — a silent white page usually explains itself right here.
+  let consoleLinesLogged = 0;
+  win.webContents.on('console-message', (_e, level, message, line, sourceId) => {
+    if (consoleLinesLogged >= 200) return;
+    consoleLinesLogged++;
+    slog(`console[${level}] ${message} (${sourceId}:${line})`);
+  });
+  win.webContents.on('did-start-loading', () => slog('chrome did-start-loading'));
+  win.webContents.on('dom-ready', () => slog('chrome dom-ready'));
   // First successful load = this launch painted; clears the boot-guard marker
   // so the next launch keeps hardware acceleration as-is.
-  win.webContents.once('did-finish-load', () => markChromePainted());
+  win.webContents.once('did-finish-load', () => { slog('chrome did-finish-load'); markChromePainted(); });
   const showFailsafe = setTimeout(() => {
     closeSplash();
     if (!win.isDestroyed() && !win.isVisible()) win.show();
@@ -1085,6 +1099,18 @@ function buildMenu(): void {
         ...(isMac ? [{ type: 'separator' as const }, { role: 'front' as const }] : []),
       ],
     },
+    {
+      role: 'help' as const,
+      submenu: [
+        {
+          label: 'Reveal Startup Log',
+          click: () => {
+            const p = startupLogPath();
+            if (p) shell.showItemInFolder(p);
+          },
+        },
+      ],
+    },
   ];
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
@@ -1098,7 +1124,9 @@ app.setName('Zio Browser');
 
 // White-window self-heal: if the previous launch never painted the chrome UI,
 // fall back to software rendering permanently (must run before 'ready').
+initStartupLog();
 const gpuDisabledByGuard = initChromeBootGuard();
+slog(`boot guard: gpuDisabled=${gpuDisabledByGuard}`);
 if (gpuDisabledByGuard) console.error('Chrome boot guard: hardware acceleration disabled (previous launch never painted).');
 
 app.whenReady().then(() => {
