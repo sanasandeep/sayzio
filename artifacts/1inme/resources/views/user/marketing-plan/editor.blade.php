@@ -249,6 +249,92 @@
         <p class="text-[11px] text-amber-400 mt-2" x-show="clampHints.scenarios" x-cloak x-text="clampHints.scenarios"></p>
     </div>
 
+    {{-- ───── Goal seek: target → required budget (Task #6770) ───── --}}
+    <div class="rounded-2xl mpc-card p-4 mb-5" data-mpc-goalseek>
+        <button type="button" class="w-full flex items-center justify-between gap-3 text-left" @click="goalOpen = !goalOpen"
+                :aria-expanded="goalOpen ? 'true' : 'false'" data-mpc-goal-toggle>
+            <span>
+                <span class="text-sm font-bold mpc-title"><i class="fas fa-bullseye mr-1.5 text-blue-400"></i>Goal seek</span>
+                <span class="text-xs mpc-faint ml-2 hidden sm:inline">Start from a 12-month target — get the ad budget that hits it.</span>
+            </span>
+            <i class="fas text-xs mpc-faint" :class="goalOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        </button>
+        <div x-show="goalOpen" x-cloak class="mt-3">
+            <div class="grid sm:grid-cols-3 gap-3">
+                <div>
+                    <label class="text-[10px] font-bold mpc-faint uppercase">Target type</label>
+                    <select x-model="goalType" class="mpc-input mt-0.5" data-mpc-goal-type>
+                        <option value="revenue">Revenue (12-month)</option>
+                        <option value="customers">Customers (12-month)</option>
+                        <option value="leads">Leads (12-month)</option>
+                    </select>
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="text-[10px] font-bold mpc-faint uppercase"
+                           x-text="goalType === 'revenue' ? ('Target revenue (' + (p.display_currency === 'USD' ? '$' : '₹') + ', ' + p.display_currency + ')') : ('Target ' + goalTypeLabel())"></label>
+                    <input type="number" min="0" x-model.number="goalValue" class="mpc-input mt-0.5"
+                           :placeholder="goalType === 'revenue' ? 'e.g. 10000000' : 'e.g. 500'" data-mpc-goal-value>
+                </div>
+            </div>
+            <p class="text-[11px] mpc-faint mt-2">Holds your current channel allocations, costs and conversion rates — only the total annual ad budget is solved. The active scenario's multipliers apply.</p>
+
+            {{-- Results --}}
+            <template x-if="goal.state === 'infeasible'">
+                <p class="text-sm text-amber-400 mt-3" data-mpc-goal-infeasible x-text="goal.reason"></p>
+            </template>
+            <template x-if="goal.state === 'organic'">
+                <div class="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3" data-mpc-goal-organic>
+                    <p class="text-sm text-emerald-400 font-semibold">Your fixed &amp; organic channels alone already reach this target — the required paid ad budget is <span x-text="money(0)"></span>.</p>
+                    <button type="button" class="mt-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                            @click="applyGoalBudget()" data-mpc-goal-apply>Apply this budget</button>
+                </div>
+            </template>
+            <template x-if="goal.state === 'ok'">
+                <div class="mt-3" data-mpc-goal-results>
+                    <div class="grid sm:grid-cols-3 gap-3">
+                        <div class="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3">
+                            <p class="text-[10px] font-bold mpc-faint uppercase">Required annual ad budget</p>
+                            <p class="mpc-kpi mt-0.5" data-mpc-goal-required x-text="money(goal.required)"></p>
+                        </div>
+                        <div class="rounded-xl mpc-card p-3">
+                            <p class="text-[10px] font-bold mpc-faint uppercase">vs current budget</p>
+                            <p class="text-base font-bold mt-0.5" :class="goal.delta > 0 ? 'text-amber-400' : 'text-emerald-400'"
+                               data-mpc-goal-delta x-text="(goal.delta > 0 ? '+' : (goal.delta < 0 ? '−' : '')) + money(Math.abs(goal.delta))"></p>
+                        </div>
+                        <div class="rounded-xl mpc-card p-3">
+                            <p class="text-[10px] font-bold mpc-faint uppercase">From organic / fixed channels</p>
+                            <p class="text-base font-bold mpc-text mt-0.5"
+                               x-text="(goalType === 'revenue' ? money(goal.fixed) : nf(goal.fixed, 0)) + ' of the target'"></p>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto mt-3">
+                        <table class="w-full min-w-[480px]">
+                            <thead><tr>
+                                <th class="mpc-th">Channel</th><th class="mpc-th text-right">Alloc %</th>
+                                <th class="mpc-th text-right">Implied monthly spend</th><th class="mpc-th text-right">Implied annual spend</th>
+                            </tr></thead>
+                            <tbody>
+                                <template x-for="row in goal.channels" :key="row.key">
+                                    <tr class="mpc-row">
+                                        <td class="mpc-td font-semibold" x-text="row.name"></td>
+                                        <td class="mpc-td text-right" x-text="nf(row.alloc, 1) + '%'"></td>
+                                        <td class="mpc-td text-right" x-text="money(row.monthly)"></td>
+                                        <td class="mpc-td text-right font-semibold" x-text="money(row.annual)"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-[11px] mpc-faint mt-2">Sayzio's fixed subscription cost is unchanged and excluded from the budget, as always.</p>
+                    <button type="button" class="mt-2 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                            @click="applyGoalBudget()" data-mpc-goal-apply>
+                        <i class="fas fa-check mr-1"></i> Apply this budget
+                    </button>
+                </div>
+            </template>
+        </div>
+    </div>
+
     {{-- ───── 1 · ASSUMPTIONS ───── --}}
     <div x-show="tab === 'assumptions'" class="space-y-5">
         <div class="grid md:grid-cols-3 gap-4">
@@ -765,6 +851,10 @@ function mpcApp() {
         ],
         tab: 'assumptions',
         monthlyMetric: 'spend',
+        // Task #6770 — goal seek (view state, never persisted).
+        goalOpen: false,
+        goalType: 'revenue',
+        goalValue: null,
         // Task #6769 — active scenario (view state, not persisted).
         scenario: 'expected',
         scenKeys: ['conservative', 'expected', 'aggressive'],
@@ -978,15 +1068,84 @@ function mpcApp() {
             }));
         },
 
+        // ---------- goal seek (Task #6770) ----------
+        /**
+         * Back-solves the annual ad budget needed to hit a 12-month target.
+         *
+         * Every projection metric is LINEAR in the budget input: paid-channel
+         * visitors = spend / CPV and the funnel multipliers are per-channel
+         * constants, while the fixed/organic Sayzio row doesn't move with
+         * budget at all. So the model is `metric(B) = fixed + slope × B`,
+         * measured with two model builds (budget 0 and a probe), and the
+         * required budget is `(target − fixed) / slope`. The active
+         * scenario's multipliers apply throughout (the solved number is what
+         * you'd type into the budget field to hit the target IN the current
+         * scenario view).
+         */
+        get goal() {
+            const t = this.n(this.goalValue);
+            if (!(t > 0)) return { state: 'empty' };
+            const sf = this.scenFactors(this.scenario);
+            const pick = (m) => this.sum(m.monthTotals[this.goalType]);
+            // Revenue targets are typed in the display currency; the model is INR.
+            const targetInr = this.goalType === 'revenue' ? t / this.curMult : t;
+            const fixed = pick(this.buildModel(sf, 0));       // organic/fixed contribution
+            const PROBE = 1e6;
+            const slope = (pick(this.buildModel(sf, PROBE)) - fixed) / PROBE;
+
+            if (targetInr <= fixed) {
+                return {
+                    state: 'organic', required: 0, fixed,
+                    delta: 0 - this.n(this.p.annual_budget),
+                    channels: [],
+                };
+            }
+            if (!(slope > 1e-12)) {
+                let reason;
+                if (sf.budget <= 0) {
+                    reason = 'The active scenario sets the ad budget to 0% of base, so no budget can move the projection. Raise the scenario\'s budget multiplier or switch to Expected.';
+                } else if (!this.p.channels.some(c => !c.fixed && this.n(c.alloc) > 0)) {
+                    reason = 'All paid channels have a 0% allocation, so ad spend never reaches any channel. Allocate budget to at least one paid channel on the Assumptions tab.';
+                } else {
+                    reason = 'With the current assumptions, extra ad spend produces zero ' + this.goalType + ' — check that allocated channels have a cost per visitor above 0 and non-zero conversion rates.';
+                }
+                return { state: 'infeasible', reason };
+            }
+
+            const required = Math.ceil((targetInr - fixed) / slope);
+            const channels = this.p.channels
+                .filter(c => !c.fixed && this.n(c.alloc) > 0)
+                .map(c => {
+                    const annual = required * sf.budget * this.n(c.alloc) / 100;
+                    return { key: c.key, name: c.name, alloc: this.n(c.alloc), annual, monthly: annual / 12 };
+                });
+            return {
+                state: 'ok', required, fixed,
+                delta: required - this.n(this.p.annual_budget),
+                channels,
+            };
+        },
+        goalTypeLabel(k = null) {
+            return { revenue: 'revenue', customers: 'customers', leads: 'leads' }[k || this.goalType];
+        },
+        applyGoalBudget() {
+            const g = this.goal;
+            if (g.state !== 'ok' && g.state !== 'organic') return;
+            this.p.annual_budget = g.required; // normal unsaved-changes flow flags the edit
+        },
+
         // ---------- the calculation engine ----------
         get model() { return this.buildModel(this.scenFactors(this.scenario)); },
 
-        buildModel(sf) {
+        // `budgetOverride` (Task #6770 — goal seek) replaces the plan's
+        // annual-budget INPUT; the scenario's budget multiplier still applies
+        // on top, exactly as it would after typing that number into the field.
+        buildModel(sf, budgetOverride = null) {
             const W = Math.max(1e-9, this.sum(this.p.weights));
             const vlMult = (this.p.uplifts.apply ? 1 + this.n(this.p.uplifts.chat) / 100 : 1) * sf.vl;
             const lcMult = (this.p.uplifts.apply ? 1 + this.n(this.p.uplifts.crm) / 100 : 1) * sf.lc;
             const subInr = this.n(this.selectedPlan.inr);
-            const budget = this.n(this.p.annual_budget) * sf.budget;
+            const budget = (budgetOverride !== null ? this.n(budgetOverride) : this.n(this.p.annual_budget)) * sf.budget;
             // Task #6768 — finance assumptions for CAC/ROAS/LTV metrics.
             const margin  = Math.min(100, Math.max(0, this.n(this.p.gross_margin))) / 100;
             const ltvMult = Math.max(0, this.n(this.p.ltv_multiplier));

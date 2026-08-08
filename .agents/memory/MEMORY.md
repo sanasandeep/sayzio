@@ -156,3 +156,4 @@
 - [Biolink effect bg types](biolink-effect-bg-types.md) — tiles/mesh/pattern/torn lockstep across catalog+controller+editor+renderer+mobile; server stamps bg_effect_colors; mobile previews come from a TS mirror of the PHP catalogs — web-only edits silently fall back to gradient ([mirror](mobile-bg-effect-catalog-mirror.md)).
 - [Signup country inference](signup-country-inference.md) — no country picker at sign-up; SignupCountry::infer (dial code → GeoIP) wired in 3 account-creation paths, keep lockstep for new ones.
 - [Service Booking staff/self-service](service-booking-staff-selfservice.md) — place() returns an array not a model (8 stale FlowTest failures pre-exist at HEAD); slot opts need explicit capacity; public_token is a uuid column.
+- [MPC goal-seek solver](mpc-goal-seek-solver.md) — targets below the ~₹10.7Cr organic baseline hit the "organic" state; size test targets vs the zero-budget model, assert outcomes not rate ratios.

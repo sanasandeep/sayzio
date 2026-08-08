@@ -50,3 +50,14 @@ AWS_USE_PATH_STYLE_ENDPOINT = "true"
 USER_CONTENT_DISK = "s3"
 CONTACT_ADMIN_TOKEN = "qNApHcj3SDKCnQRrNcTyWOXdsxQMmeyhRy4Mf0"
 APP_NAME = "Sayzio"
+
+[[workflows.workflow]]
+name = "e2e-mpc-goal-seek"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5095 bash tests/Browser/run-validation.sh mpc-goal-seek.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
