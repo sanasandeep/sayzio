@@ -50,7 +50,10 @@ class HomeController extends Controller
         // showcase, AI demos, featured posts…) is rendered by sections()
         // and fetched by the homepage loader right after first paint, so the
         // initial render needs NO plan/link-type/blog queries at all.
-        return view(self::activeDesign() === 'compact' ? 'home-b' : 'home');
+        // Both designs share the classic animated shell (hero, homeEnhance,
+        // marketingAnimScan); "compact" only swaps in a trimmed deferred
+        // fragment (home/deferred-sections-b) with fewer, combined sections.
+        return view('home');
     }
 
     /**
