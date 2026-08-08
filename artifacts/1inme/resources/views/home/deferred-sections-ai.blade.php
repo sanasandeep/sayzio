@@ -6,6 +6,19 @@
     'chips' => [['AI page builder', '/register', 'fas fa-wand-magic-sparkles'], ['Free link in bio', '/pricing', 'fas fa-link'], ['All features', '/features', 'fas fa-layer-group']],
     'floats' => ['fas fa-robot', 'fas fa-wand-magic-sparkles', 'fas fa-comment-dots', 'fas fa-bolt'],
 ])
+@include('home.partials.audience-benefits', [
+    'title' => 'Too busy to build a website? <span class="grad-text">Just describe it.</span>',
+    'sub' => 'Zio is the AI behind Sayzio. You talk, it builds, and it keeps working for you after launch.',
+    'items' => [
+        ['fas fa-comments', 'Describe it, get it', 'Type "a page for my bakery with my menu and WhatsApp button" and watch your page appear in seconds, already styled.'],
+        ['fas fa-robot', 'Answers visitors 24/7', 'Zio chats with your visitors, answers their questions about you, and points them to the right link while you sleep.'],
+        ['fas fa-phone-volume', 'Picks up your calls', 'The AI receptionist takes calls you miss, so a busy day never costs you a customer.'],
+        ['fas fa-palette', 'Always on-brand', 'Your colors, fonts and tone are applied to everything the AI creates, so it all looks like you made it.'],
+        ['fas fa-rotate', 'Improves as you grow', 'Ask for changes in plain words: "make it more premium", "add my new product", and it updates the page for you.'],
+        ['fas fa-gift', 'Free to start', 'Build your first AI page, short links and QR codes on the free plan. No card required.'],
+    ],
+    'pills' => ['No design skills needed', 'Ready in under a minute', 'Works in your language', 'Edit by chatting'],
+])
 {{-- ============================ HOW IT WORKS (upgraded) ============================ --}}
 <style>
     .hiw-track { position: relative; }

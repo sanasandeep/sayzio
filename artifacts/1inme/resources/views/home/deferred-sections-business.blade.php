@@ -7,6 +7,19 @@
     'chips' => [['Digital business card', '/register', 'fas fa-id-card'], ['Custom domains', '/features', 'fas fa-globe'], ['Lead forms', '/features', 'fas fa-inbox']],
     'floats' => ['fas fa-briefcase', 'fas fa-id-card', 'fas fa-phone', 'fas fa-envelope-open-text'],
 ])
+@include('home.partials.audience-benefits', [
+    'title' => 'Look bigger. <span class="grad-text">Miss nothing.</span>',
+    'sub' => 'For shops, clinics, agencies, freelancers and every business that lives on referrals.',
+    'items' => [
+        ['fas fa-id-card', 'A card they can\'t lose', 'Your digital business card lives at one link: tap, save, call. Update your number once and everyone has the new one.'],
+        ['fas fa-store', 'A mini-site in minutes', 'Services, opening hours, location, reviews and booking, on your own domain, without paying for a website project.'],
+        ['fas fa-inbox', 'Never miss a lead', 'Enquiry and booking forms go straight to your inbox and dashboard, so weekend visitors become Monday customers.'],
+        ['fas fa-phone-volume', 'Calls answered for you', 'The AI receptionist picks up when you are with a customer, takes the message and lets you call back.'],
+        ['fas fa-qrcode', 'One QR on everything', 'Put one QR code on your storefront, van, packaging and cards. Change where it points anytime, reprint nothing.'],
+        ['fas fa-user-group', 'Your whole team, one place', 'Give staff their own cards and pages under one business workspace, with one bill and one brand.'],
+    ],
+    'pills' => ['Own domain', 'Lead forms', 'Google-review link', 'Works without an app'],
+])
 {{-- ============================ DOMAINS & URL ALIASES ============================ --}}
 <section id="domains" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="domains-h">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
