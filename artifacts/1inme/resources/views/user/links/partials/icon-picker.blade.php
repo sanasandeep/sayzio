@@ -27,7 +27,7 @@ $pickerId = 'iconpicker_' . md5($fieldName . uniqid());
 
     <div x-show="open" x-cloak @click.away="open = false"
          class="absolute z-50 mt-1 w-full rounded-xl overflow-hidden shadow-2xl"
-         style="background: var(--bg-sidebar); border: 1px solid var(--border-subtle); backdrop-filter: blur(20px);">
+         style="background: var(--bg-dropdown); border: 1px solid var(--border-subtle); backdrop-filter: blur(20px);">
         <div class="p-2" style="border-bottom: 1px solid var(--border-subtle);">
             <div class="relative">
                 <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]" style="color: var(--text-faint);"></i>

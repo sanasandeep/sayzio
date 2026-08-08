@@ -15,6 +15,11 @@
         --bg-body: #0a0a0f;
         --bg-sidebar: rgba(255,255,255,0.02);
         --bg-sidebar-mobile: rgba(14,15,21,0.85);
+        /* Solid (opaque) surface for floating dropdown menus. The glass
+           tokens above are near-transparent by design — fine for large
+           panels layered directly on the page canvas, but dropdowns float
+           over arbitrary content and must not let it paint through. */
+        --bg-dropdown: #12141c;
         --bg-header: rgba(255,255,255,0.01);
         --bg-glass: rgba(255,255,255,0.03);
         --bg-glass-light: rgba(255,255,255,0.05);
@@ -118,6 +123,7 @@
         --bg-body: #f4f6fa;
         --bg-sidebar: #ffffff;
         --bg-sidebar-mobile: #ffffff;
+        --bg-dropdown: #ffffff;
         --bg-header: #ffffff;
         --bg-glass: #ffffff;
         --bg-glass-light: #ffffff;
