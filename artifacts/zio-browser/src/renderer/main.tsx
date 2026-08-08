@@ -83,7 +83,20 @@ try {
       </RootErrorBoundary>
     </StrictMode>,
   );
-  appRendered = true;
+  // render() only SCHEDULES React work — treat the app as rendered only once
+  // the root actually receives committed DOM, so boot-time errors that land
+  // before first commit still surface the fallback screen.
+  if (root.childNodes.length > 0) {
+    appRendered = true;
+  } else {
+    const observer = new MutationObserver(() => {
+      if (root.childNodes.length > 0) {
+        appRendered = true;
+        observer.disconnect();
+      }
+    });
+    observer.observe(root, { childList: true });
+  }
 } catch (err) {
   showFatalFallback(err instanceof Error ? (err.stack ?? err.message) : String(err));
 }
