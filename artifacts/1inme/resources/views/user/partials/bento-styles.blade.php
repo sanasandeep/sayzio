@@ -27,7 +27,7 @@
 <style>
     /* ===================== Bento command center ===================== */
     /* Localised aurora depth behind the whole grid (dark mode only). */
-    .bento-stage { position: relative; isolation: isolate; }
+    .bento-stage { position: relative; isolation: isolate; overflow-x: clip; }
     .bento-stage > * { position: relative; z-index: 1; }
     html:not(.light-mode) .bento-stage::before,
     html:not(.light-mode) .bento-stage::after {
