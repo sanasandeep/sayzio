@@ -1,6 +1,6 @@
 {
   "name": "@workspace/zio-browser",
-  "version": "0.3.14",
+  "version": "0.3.15",
   "private": true,
   "description": "Zio Browser — AI-powered companion browser for Mac, Windows, and Linux",
   "homepage": "https://sayz.io",

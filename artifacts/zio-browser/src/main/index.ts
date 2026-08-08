@@ -210,7 +210,18 @@ export function createWindow(): BrowserWindow {
 
   // If the browser holds a Sanctum token, quietly establish a matching web
   // session in this profile's cookie jar so sayzio.app tabs open signed in.
-  void seedSayzioWebSession(sessionPartitionForProfile(savedProfileId));
+  // DEFERRED until after the window is visible: retrieving the token hits
+  // safeStorage synchronously, and on macOS (ad-hoc-signed builds especially)
+  // that pops a blocking keychain password prompt. Running it before the
+  // chrome renderer loaded used to leave the whole window white until the
+  // user answered the prompt.
+  let webSessionSeeded = false;
+  const seedWebSessionOnceVisible = (): void => {
+    if (webSessionSeeded) return;
+    webSessionSeeded = true;
+    // Small delay so the first chrome paint lands before any keychain prompt.
+    setTimeout(() => { void seedSayzioWebSession(sessionPartitionForProfile(savedProfileId)); }, 400);
+  };
 
 
   // Guard against sends after the window is destroyed — tab teardown during
@@ -318,6 +329,7 @@ export function createWindow(): BrowserWindow {
   const showFailsafe = setTimeout(() => {
     closeSplash();
     if (!win.isDestroyed() && !win.isVisible()) win.show();
+    seedWebSessionOnceVisible();
   }, 6000);
 
   void win.loadURL(getRendererUrl());
@@ -399,6 +411,7 @@ export function createWindow(): BrowserWindow {
     if (win.isDestroyed()) return;
     closeSplash();
     win.show();
+    seedWebSessionOnceVisible();
     modeManager.setMode(savedMode);
     {
       // Restore pinned + session tabs regardless of the launch mode. This used
