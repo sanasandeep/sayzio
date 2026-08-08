@@ -182,6 +182,12 @@
 
     [x-cloak] { display: none !important; }
 
+    /* iOS Safari ignores body{overflow-x:hidden} for viewport panning, so
+       decorative elements that bleed past the right edge (dark-mode aurora
+       glows, tile corner orbs) make the whole page pannable sideways.
+       `clip` at the html level forbids that without creating a new scroll
+       container (unlike `hidden`, it can't break position:sticky). */
+    html { overflow-x: clip; }
     body {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
         font-feature-settings: 'cv02','cv03','cv04','cv11';
