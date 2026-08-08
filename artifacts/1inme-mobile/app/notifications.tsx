@@ -289,6 +289,63 @@ export default function NotificationsScreen() {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator color={colors.primary} />
         </View>
+      ) : q.isError ? (
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 32,
+            gap: 12,
+          }}
+        >
+          <Feather name="wifi-off" size={28} color={colors.mutedForeground} />
+          <Text
+            style={{
+              fontFamily: "SpaceGrotesk_600SemiBold",
+              fontSize: 15,
+              color: colors.foreground,
+              textAlign: "center",
+            }}
+          >
+            Couldn't load notifications
+          </Text>
+          <Text
+            style={{
+              fontFamily: "SpaceGrotesk_400Regular",
+              fontSize: 13,
+              color: colors.mutedForeground,
+              textAlign: "center",
+            }}
+          >
+            Check your connection and try again.
+          </Text>
+          <Pressable
+            onPress={() => {
+              q.refetch();
+              dismissedQ.refetch();
+            }}
+            disabled={q.isFetching}
+            style={{
+              marginTop: 4,
+              paddingVertical: 10,
+              paddingHorizontal: 22,
+              borderRadius: 999,
+              backgroundColor: colors.primary,
+              opacity: q.isFetching ? 0.6 : 1,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "SpaceGrotesk_600SemiBold",
+                fontSize: 13,
+                color: "#fff",
+              }}
+            >
+              {q.isFetching ? "Retrying…" : "Retry"}
+            </Text>
+          </Pressable>
+        </View>
       ) : (
         <FlatList
           data={q.data?.items ?? []}
@@ -354,13 +411,11 @@ export default function NotificationsScreen() {
             );
           }}
           ListEmptyComponent={
-            dismissedItems.length > 0 ? null : (
-              <EmptyState
-                icon="bell"
-                title="No notifications yet"
-                body="Updates about your links and followers appear here."
-              />
-            )
+            <EmptyState
+              icon="bell"
+              title="No notifications yet"
+              body="Updates about your links and followers appear here."
+            />
           }
           ListFooterComponent={<DismissedSection />}
           refreshControl={

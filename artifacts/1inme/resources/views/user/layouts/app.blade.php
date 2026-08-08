@@ -1441,7 +1441,7 @@
                             @if($__headerUnread)<span class="badge-dot"></span>@endif
                         </button>
                         <div x-show="open" @click.away="open = false" x-cloak x-transition
-                             class="absolute right-0 mt-2 w-80 rounded-xl py-2 z-50" style="background: var(--bg-sidebar); border: 1px solid var(--border-subtle); box-shadow: var(--card-shadow);">
+                             class="notif-dropdown absolute right-0 mt-2 w-80 rounded-xl py-2 z-50">
                             <div class="px-3.5 pb-2 flex items-center justify-between" style="border-bottom: 1px solid var(--border-subtle);">
                                 <span class="text-xs font-semibold" style="color: var(--text-primary);">Notifications</span>
                                 @if($__headerUnread)<span class="text-xs" style="color: var(--text-muted);">{{ $__headerUnread }} unread</span>@endif
@@ -1453,7 +1453,7 @@
                                     @foreach($__hdrNotifications as $__hdrN)
                                         @php $__hdrD = is_array($__hdrN->data) ? $__hdrN->data : []; @endphp
                                         <a href="{{ route('user.notifications.open', $__hdrN->id) }}"
-                                           class="px-3.5 py-2 flex items-start gap-2.5 transition-colors hover:bg-blue-500/5 {{ $__hdrN->read_at ? '' : 'bg-blue-50/30' }}">
+                                           class="px-3.5 py-2 flex items-start gap-2.5 transition-colors notif-row-hover {{ $__hdrN->read_at ? '' : 'notif-row-unread' }}">
                                             @include('user.notifications._icon', ['n' => $__hdrN, 'd' => $__hdrD, 'size' => 'w-8 h-8'])
                                             <div class="min-w-0 flex-1">
                                                 <p class="text-xs {{ $__hdrN->read_at ? '' : 'font-semibold' }}" style="color: var(--text-primary);">{{ \Illuminate\Support\Str::limit($__hdrN->previewText(), 90) }}</p>
