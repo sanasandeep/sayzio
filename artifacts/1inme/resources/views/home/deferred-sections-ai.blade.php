@@ -172,9 +172,9 @@
             </p>
             <div class="reveal rd-3 mt-7 flex flex-wrap items-center justify-center gap-2.5">
                 <a href="#ai-suite" class="ai-zone-chip"><i class="fas fa-robot"></i> Chatbot &amp; Agent</a>
-                <a href="#ai-marketing-strategist" class="ai-zone-chip"><i class="fas fa-chart-line"></i> AI Marketing Strategist</a>
-                <a href="#whatsapp-agent" class="ai-zone-chip"><i class="fab fa-whatsapp"></i> WhatsApp Agent</a>
-                <a href="#ai-dashboard" class="ai-zone-chip"><i class="fas fa-gauge-high"></i> AI Dashboard</a>
+                <a href="/features" class="ai-zone-chip"><i class="fas fa-chart-line"></i> AI Marketing Strategist</a>
+                <a href="/features" class="ai-zone-chip"><i class="fab fa-whatsapp"></i> WhatsApp Agent</a>
+                <a href="/features" class="ai-zone-chip"><i class="fas fa-gauge-high"></i> AI Dashboard</a>
             </div>
         </div>
     </section>
@@ -250,7 +250,7 @@
                     <button type="button" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','final_cta'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap">
                         Sign up free <i class="fas fa-arrow-right text-xs"></i>
                     </button>
-                    <a href="#features" class="btn-bounce inline-flex items-center justify-center gap-2 px-8 py-4 glass-2 text-white rounded-full text-base font-bold whitespace-nowrap">
+                    <a href="/features" class="btn-bounce inline-flex items-center justify-center gap-2 px-8 py-4 glass-2 text-white rounded-full text-base font-bold whitespace-nowrap">
                         See features
                     </a>
                 </div>
