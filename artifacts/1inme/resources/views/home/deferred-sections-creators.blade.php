@@ -4,7 +4,8 @@
     'eyebrow' => 'Link in Bio for Creators',
     'heading' => 'One <span class="grad-text">bio link page</span> for everything you create',
     'lead' => 'Build a link in bio page for Instagram, TikTok and YouTube: sell products, collect subscribers and share every link from one creator page, free to start.',
-    'chips' => [['Create your bio link', '/register'], ['Creator pricing', '/pricing'], ['All features', '/features']],
+    'chips' => [['Create your bio link', '/register', 'fas fa-at'], ['Sell products', '/features', 'fas fa-bag-shopping'], ['Grow subscribers', '/features', 'fas fa-users']],
+    'floats' => ['fab fa-instagram', 'fab fa-tiktok', 'fab fa-youtube', 'fas fa-heart'],
 ])
 {{-- ============================ CREDIBILITY BAND (near-hero trust numbers) ============================ --}}
 @include('public.partials.marketing-trust-band')

@@ -4,7 +4,8 @@
     'eyebrow' => 'For Small Business',
     'heading' => 'Your <span class="grad-text">digital business card</span> and mini-site in minutes',
     'lead' => 'Create a digital business card, lead capture forms and a business landing page on your own custom domain, with an AI receptionist that answers customers for you.',
-    'chips' => [['Create your page', '/register'], ['Custom domains', '/features'], ['Business pricing', '/pricing']],
+    'chips' => [['Digital business card', '/register', 'fas fa-id-card'], ['Custom domains', '/features', 'fas fa-globe'], ['Lead forms', '/features', 'fas fa-inbox']],
+    'floats' => ['fas fa-briefcase', 'fas fa-id-card', 'fas fa-phone', 'fas fa-envelope-open-text'],
 ])
 {{-- ============================ DOMAINS & URL ALIASES ============================ --}}
 <section id="domains" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="domains-h">

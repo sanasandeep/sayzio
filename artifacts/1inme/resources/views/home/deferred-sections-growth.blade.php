@@ -4,7 +4,8 @@
     'eyebrow' => 'Link Analytics & Growth',
     'heading' => 'Track every click with real-time <span class="grad-text">link analytics</span>',
     'lead' => 'See clicks, countries, devices and referrers for your short links and bio link page. Click tracking, UTM insights and audience growth tools in one dashboard.',
-    'chips' => [['Start tracking free', '/register'], ['Analytics features', '/features'], ['Pricing', '/pricing']],
+    'chips' => [['Real-time clicks', '/register', 'fas fa-chart-line'], ['Devices & countries', '/features', 'fas fa-earth-asia'], ['UTM insights', '/features', 'fas fa-crosshairs']],
+    'floats' => ['fas fa-chart-line', 'fas fa-earth-asia', 'fas fa-arrow-trend-up', 'fas fa-gauge-high'],
 ])
 {{-- ============================ 3 · GROW ============================ --}}
 <section class="py-24 lg:py-32 relative overflow-hidden">
