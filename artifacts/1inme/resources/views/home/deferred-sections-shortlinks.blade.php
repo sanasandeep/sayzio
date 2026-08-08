@@ -4,7 +4,8 @@
     'eyebrow' => 'URL Shortener & QR Codes',
     'heading' => 'Free <span class="grad-text">URL shortener</span> with branded links & QR code generator',
     'lead' => 'Shorten long URLs into branded short links on your own domain, generate QR codes, and track every click with real-time link analytics.',
-    'chips' => [['Shorten a link', '/register'], ['QR code generator', '/register'], ['Pricing', '/pricing']],
+    'chips' => [['Shorten a link', '/register', 'fas fa-link'], ['QR code generator', '/register', 'fas fa-qrcode'], ['Branded domains', '/features', 'fas fa-globe']],
+    'floats' => ['fas fa-link', 'fas fa-qrcode', 'fas fa-chart-line', 'fas fa-share-nodes'],
 ])
 {{-- ============================ 2 · SHARE ============================ --}}
 <section id="share" class="py-24 lg:py-32 relative overflow-hidden">

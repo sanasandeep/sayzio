@@ -3,7 +3,8 @@
     'eyebrow' => 'AI Link in Bio Builder',
     'heading' => 'The <span class="grad-text">AI link in bio</span> builder that does the work for you',
     'lead' => 'Sayzio is a free AI page builder: describe your page and Zio builds your link in bio, bio link page, short links and QR codes in seconds, then answers visitors 24/7.',
-    'chips' => [['AI page builder', '/register'], ['Free link in bio', '/pricing'], ['See features', '/features']],
+    'chips' => [['AI page builder', '/register', 'fas fa-wand-magic-sparkles'], ['Free link in bio', '/pricing', 'fas fa-link'], ['All features', '/features', 'fas fa-layer-group']],
+    'floats' => ['fas fa-robot', 'fas fa-wand-magic-sparkles', 'fas fa-comment-dots', 'fas fa-bolt'],
 ])
 {{-- ============================ HOW IT WORKS (upgraded) ============================ --}}
 <style>
