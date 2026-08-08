@@ -191,7 +191,7 @@ export function createWindow(): BrowserWindow {
       webSecurity: true,
     },
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    trafficLightPosition: { x: 12, y: 20 },
+    trafficLightPosition: { x: 16, y: 12 },
     show: false,
   });
 
@@ -628,7 +628,7 @@ export function createPrivateWindow(startUrl?: string): BrowserWindow {
     ...(process.platform !== 'darwin'
       ? { titleBarOverlay: { color: '#0d0d1a', symbolColor: '#93c5fd', height: 36 } }
       : {}),
-    trafficLightPosition: { x: 12, y: 20 },
+    trafficLightPosition: { x: 16, y: 12 },
     show: false,
   });
 
