@@ -32,6 +32,18 @@
     }
     .stats-table tbody td { padding: 11px 0; color: var(--text-muted); border-top: 1px solid var(--border-glass); vertical-align: middle; }
     .stats-table tbody tr:first-child td { border-top: 0; }
+    /* The Monetization button sits INSIDE the purple gradient banner, which
+       keeps its gradient in light mode — but the sitewide light-mode remap
+       matches its `bg-white/15` class and repaints it near-white, leaving
+       the inherited white label invisible. Pin the translucent-white pill +
+       white text explicitly (see light-mode-textwhite-exemption-gap). */
+    html.light-mode .stats-monetize-btn {
+        background-color: rgba(255, 255, 255, 0.18) !important;
+        color: #fff !important;
+    }
+    html.light-mode .stats-monetize-btn:hover {
+        background-color: rgba(255, 255, 255, 0.3) !important;
+    }
 </style>
 {{-- Reuse the exact bento command-center look from the Dashboard. --}}
 @include('user.partials.bento-styles')
@@ -119,7 +131,7 @@
             <div class="text-[11px] uppercase tracking-wider opacity-80">Unlock revenue · {{ $rangeLabel }}</div>
             <div class="text-3xl font-extrabold mt-1">${{ number_format($kpis['unlock_revenue_cents']/100, 2) }}</div>
         </div>
-        <a href="{{ route('user.monetization.index') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-sm font-semibold">
+        <a href="{{ route('user.monetization.index') }}" class="stats-monetize-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-sm font-semibold">
             Open Monetization <i class="fas fa-arrow-right"></i>
         </a>
     </div>
