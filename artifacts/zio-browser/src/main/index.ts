@@ -12,6 +12,7 @@ import { VK_PREF_KEYS } from '../shared/virtual-keyboard';
 import { hostForMutePolicy } from '../shared/mute-policy';
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import { seedSayzioWebSession } from './sayzio-session';
+import { initChromeBootGuard, markChromePainted } from './chrome-boot-guard';
 import { TabManager } from './tab-manager';
 import { WindowModeManager, CHROME_HEIGHT } from './window-mode-manager';
 import {
@@ -320,16 +321,37 @@ export function createWindow(): BrowserWindow {
 
   win.on('resize', () => modeManager.applyBounds());
 
-  // Failsafe: never leave the user with an invisible window. If the renderer
-  // fails to load (so 'ready-to-show' never fires), show the window anyway
-  // after a short grace period so at least the frame is visible.
-  win.webContents.on('did-fail-load', (_e, code, desc, url) => {
+  // ── Chrome renderer self-recovery ─────────────────────────────────────────
+  // The main window's own UI must never stay permanently white. Three layers:
+  // load-failure retries, crashed-renderer reloads, and a watchdog reload if
+  // the renderer never reports ready.
+  let chromeRecoveryAttempts = 0;
+  const recoverChrome = (why: string): void => {
+    if (win.isDestroyed() || chromeRecoveryAttempts >= 3) return;
+    chromeRecoveryAttempts++;
+    console.error(`Chrome renderer recovery #${chromeRecoveryAttempts} (${why})`);
+    setTimeout(() => {
+      if (!win.isDestroyed()) void win.loadURL(getRendererUrl());
+    }, 1000 * chromeRecoveryAttempts);
+  };
+  win.webContents.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
     console.error(`Renderer failed to load (${code} ${desc}) at ${url}`);
+    // -3 = ABORTED (normal during rapid reloads) — everything else retries.
+    if (isMainFrame && code !== -3) recoverChrome(`did-fail-load ${code}`);
   });
+  win.webContents.on('render-process-gone', (_e, details) => {
+    if (details.reason !== 'clean-exit') recoverChrome(`render-process-gone ${details.reason}`);
+  });
+  win.webContents.on('unresponsive', () => recoverChrome('unresponsive'));
+  // First successful load = this launch painted; clears the boot-guard marker
+  // so the next launch keeps hardware acceleration as-is.
+  win.webContents.once('did-finish-load', () => markChromePainted());
   const showFailsafe = setTimeout(() => {
     closeSplash();
     if (!win.isDestroyed() && !win.isVisible()) win.show();
     seedWebSessionOnceVisible();
+    // Renderer never became ready — try a reload rather than sitting white.
+    if (!win.isDestroyed() && win.webContents.isLoading()) recoverChrome('ready-to-show timeout');
   }, 6000);
 
   void win.loadURL(getRendererUrl());
@@ -1073,6 +1095,11 @@ function buildMenu(): void {
 // Branded app name — drives the macOS application menu title and OS-level
 // surfaces that read app.getName(). Must be set before the menu is built.
 app.setName('Zio Browser');
+
+// White-window self-heal: if the previous launch never painted the chrome UI,
+// fall back to software rendering permanently (must run before 'ready').
+const gpuDisabledByGuard = initChromeBootGuard();
+if (gpuDisabledByGuard) console.error('Chrome boot guard: hardware acceleration disabled (previous launch never painted).');
 
 app.whenReady().then(() => {
   // Show the branded splash immediately — before any heavy startup work.
