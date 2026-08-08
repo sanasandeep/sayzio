@@ -1804,6 +1804,14 @@ export class TabManager {
   private static readonly HIDE_SITE_ASSISTANT_CSS = '#site-assistant-root{display:none!important}';
 
   /**
+   * Inside Zio Browser, workspace switching is owned by the top-bar profile
+   * switcher (which also isolates sessions/history/bookmarks per workspace).
+   * Hide the web app's own sidebar workspace switcher in dashboard panes so
+   * there aren't two competing switchers (owner request).
+   */
+  public static readonly HIDE_WORKSPACE_SWITCHER_CSS = '#workspace-switcher{display:none!important}';
+
+  /**
    * Insert/remove the "hide the in-page Zio Bot widget" CSS on this tab's
    * Sayzio views so the embedded site chatbot doesn't double up with the
    * Ask Zio pane when the tab mode includes 'zio'.
@@ -1886,6 +1894,10 @@ export class TabManager {
     // Inserted CSS does not survive navigation — re-apply the assistant-hide
     // rule on every page load while the owning tab's mode includes 'zio'.
     wc.on('dom-ready', () => {
+      // Dashboard panes never show the in-app workspace switcher — the
+      // browser's profile switcher owns workspace switching. (Inserted CSS
+      // does not survive navigation; re-apply every load.)
+      wc.insertCSS(TabManager.HIDE_WORKSPACE_SWITCHER_CSS).catch(() => { });
       this.assistantHideCssKeys.delete(view);
       if (shouldHideAssistant?.()) {
         this.assistantHideCssKeys.set(view, 'pending');
