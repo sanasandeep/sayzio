@@ -9,3 +9,6 @@ Electron's `nativeTheme.themeSource` changes the `prefers-color-scheme` signal E
 - **Why:** setting themeSource for chrome dark mode silently forced dark rendering on Gmail etc., diverging from Safari on a light-mode Mac.
 - **How to apply:** any new theming feature that needs the REAL OS scheme while an override is active must use the flip-probe in `theme.ts` (`systemPrefersDark()`), which temporarily sets themeSource='system' with a re-entrancy guard — assigning themeSource fires `updated` events, so the bridge that broadcasts `theme:system-changed` must ignore probe-triggered events or it loops.
 - Chrome "System" mode can't use the renderer's own matchMedia (it sees the overridden signal); it asks main via `theme:get-system` and listens on `theme:system-changed`.
+
+## Website 'browser' (inherit) mode — Aug 2026
+`website_appearance` also accepts `'browser'` = inherit the chrome `theme` pref. theme.ts resolves it to a concrete themeSource; the `prefs:set` hook for key `theme` calls `reapplyWebsiteAppearanceForChromeChange()` so inherit follows live. Keep new chrome-theme write paths calling that hook.
