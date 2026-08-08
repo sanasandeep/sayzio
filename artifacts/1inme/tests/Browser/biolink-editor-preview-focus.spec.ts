@@ -192,7 +192,7 @@ function centerOffset(frame: Frame, blockId: number): Promise<number> {
 
 test.describe.configure({ mode: "serial" });
 
-test("hovering a block card scrolls the preview to the block and highlights it", async ({
+test("hovering a block card scrolls the preview to the block without any highlight ring", async ({
   page,
 }) => {
   test.setTimeout(240_000);
@@ -201,46 +201,30 @@ test("hovering a block card scrolls the preview to the block and highlights it",
   // Nothing highlighted before any hover.
   expect(await outlineOf(frame, ids.blockA)).toBe("");
 
-  // Hover block A's card and wait past the 150ms debounce; the focus
-  // postMessage then drives a smooth scroll + outline in the iframe.
-  await page.hover(cardSel(ids.blockA));
+  // Hover block B's card (block A starts near the top, so B gives a real
+  // scroll) and wait past the 150ms debounce; the focus postMessage then
+  // drives a smooth scroll in the iframe.
+  await page.hover(cardSel(ids.blockB));
   await expect
-    .poll(() => outlineOf(frame, ids.blockA), {
+    .poll(() => centerOffset(frame, ids.blockB), {
       timeout: 15_000,
-      message: "block A never received the hover highlight",
+      message: "preview never scrolled to block B on hover",
     })
-    .toContain("solid");
+    .toBeLessThan(0.45);
 
-  // Scrolled near center (loose: smooth scroll + edge clamping; block A is
-  // at the top of the page so its center can't reach the exact middle, but
-  // it must at least be fully inside the viewport and roughly centered).
+  // The ring was removed per owner request: no outline may ever be drawn.
+  expect(await outlineOf(frame, ids.blockB)).toBe("");
+
+  // Hovering a different card scrolls again — still no outline anywhere.
+  await page.hover(cardSel(ids.blockA));
   await expect
     .poll(() => centerOffset(frame, ids.blockA), { timeout: 15_000 })
     .toBeLessThan(0.45);
-
-  // Hovering a different card moves the highlight (and clears A's).
-  await page.hover(cardSel(ids.blockB));
-  await expect
-    .poll(() => outlineOf(frame, ids.blockB), { timeout: 15_000 })
-    .toContain("solid");
-  await expect
-    .poll(() => outlineOf(frame, ids.blockA), { timeout: 15_000 })
-    .toBe("");
-  await expect
-    .poll(() => centerOffset(frame, ids.blockB), { timeout: 15_000 })
-    .toBeLessThan(0.45);
-
-  // Moving the mouse off the block list entirely unfocuses (debounced).
-  await page.mouse.move(5, 5);
-  await expect
-    .poll(() => outlineOf(frame, ids.blockB), {
-      timeout: 15_000,
-      message: "highlight never cleared after hover-leave",
-    })
-    .toBe("");
+  expect(await outlineOf(frame, ids.blockA)).toBe("");
+  expect(await outlineOf(frame, ids.blockB)).toBe("");
 });
 
-test("opening the edit drawer focuses the block; closing clears the highlight", async ({
+test("opening the edit drawer scrolls the preview to the block without highlighting it", async ({
   page,
 }) => {
   test.setTimeout(240_000);
@@ -253,34 +237,20 @@ test("opening the edit drawer focuses the block; closing clears the highlight", 
     page.locator(`[data-inline-editor="${ids.blockB}"]`),
   ).toBeVisible();
   await expect
-    .poll(() => outlineOf(frame, ids.blockB), {
+    .poll(() => centerOffset(frame, ids.blockB), {
       timeout: 15_000,
-      message: "opening the drawer never highlighted the block",
+      message: "opening the drawer never scrolled the preview to the block",
     })
-    .toContain("solid");
-  await expect
-    .poll(() => centerOffset(frame, ids.blockB), { timeout: 15_000 })
     .toBeLessThan(0.45);
 
-  // While the drawer is open, stray hover-leaves fall back to the edited
-  // block instead of clearing: park the mouse away from the list and the
-  // highlight must survive.
-  await page.mouse.move(5, 5);
-  await page.waitForTimeout(600); // past the 150ms unfocus debounce
-  expect(await outlineOf(frame, ids.blockB)).toContain("solid");
+  // No ring is ever drawn — even while the drawer stays open.
+  await page.waitForTimeout(600); // past any debounce
+  expect(await outlineOf(frame, ids.blockB)).toBe("");
 
-  // Close the drawer (edit button toggles) — _hideEditPreview posts the
-  // unfocus and the outline clears.
+  // Close the drawer (edit button toggles) — still nothing highlighted.
   await page.click(editBtnSel(ids.blockB));
   await expect(
     page.locator(`[data-inline-editor="${ids.blockB}"]`),
   ).toBeHidden();
-  // Move the mouse off the card so the hover fallback can't re-focus.
-  await page.mouse.move(5, 5);
-  await expect
-    .poll(() => outlineOf(frame, ids.blockB), {
-      timeout: 15_000,
-      message: "highlight never cleared after closing the drawer",
-    })
-    .toBe("");
+  expect(await outlineOf(frame, ids.blockB)).toBe("");
 });

@@ -2112,13 +2112,6 @@
                 var el = document.querySelector('[data-block-id="' + editBlockId + '"]');
                 if (el) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    el.style.transition = 'outline 0.3s ease, outline-offset 0.3s ease';
-                    el.style.outline = '2px solid rgba(92,131,255,0.6)';
-                    el.style.outlineOffset = '4px';
-                    el.style.borderRadius = '12px';
-                    setTimeout(function() {
-                        el.style.outline = '2px solid rgba(92,131,255,0.25)';
-                    }, 1500);
                 }
             }, 500);
 
@@ -2189,39 +2182,19 @@
         // either param.
         if (editBlockId || params.get('_preview')) {
 
-            // ── Editor focus scroll-and-highlight (Task #6232) ──────────────
+            // ── Editor focus scroll (Task #6232, ring removed per owner) ────
             // The editor posts focus/unfocus as the creator hovers a block
             // card or opens its edit drawer; we scroll the matching block
-            // into view and outline it (same style as the _editBlock deep
-            // link above). Only active in editor preview mode.
+            // into view. No visible outline/ring is drawn on the preview.
+            // Only active in editor preview mode.
             (function () {
-                var focusedEl = null;
-                var fadeTimer = null;
-                function clearFocus() {
-                    if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
-                    if (!focusedEl) return;
-                    focusedEl.style.outline = '';
-                    focusedEl.style.outlineOffset = '';
-                    focusedEl = null;
-                }
                 window.addEventListener('message', function (e) {
                     if (e.origin !== window.location.origin) return;
                     var d = e.data;
-                    if (!d || (d.type !== '1inme-block-focus' && d.type !== '1inme-block-unfocus')) return;
-                    if (d.type === '1inme-block-unfocus') { clearFocus(); return; }
+                    if (!d || d.type !== '1inme-block-focus') return;
                     var el = document.querySelector('[data-block-id="' + d.blockId + '"]');
                     if (!el) return;
-                    if (focusedEl && focusedEl !== el) clearFocus();
                     try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (err) {}
-                    el.style.transition = 'outline 0.3s ease, outline-offset 0.3s ease';
-                    el.style.outline = '2px solid rgba(92,131,255,0.6)';
-                    el.style.outlineOffset = '4px';
-                    el.style.borderRadius = '12px';
-                    focusedEl = el;
-                    if (fadeTimer) clearTimeout(fadeTimer);
-                    fadeTimer = setTimeout(function () {
-                        if (focusedEl === el) el.style.outline = '2px solid rgba(92,131,255,0.25)';
-                    }, 1500);
                 });
             })();
 
