@@ -128,13 +128,19 @@ else
 fi
 set -e
 
-log "Caching config, routes, and views..."
+log "Caching config and routes..."
 # Unlike the Replit deploy (which only ran the :clear variants because config
 # came from process env), on EC2 config lives in .env, so caching is safe and
 # the standard production optimization.
 php artisan config:cache
 php artisan route:cache
-php artisan view:cache
+# Deliberately NO `view:cache` here: it would compile every Blade view as the
+# deploy user (sayzio). When PHP-FPM (user apache) later recompiles one of
+# those files, BladeCompiler's touch($compiled, mtime) hits EPERM on the
+# sayzio-owned file → intermittent 500s ("touch(): Utime failed"). Leaving
+# views cleared (view:clear ran above) lets FPM compile lazily and OWN the
+# compiled files, which is permission-safe across deploys.
+php artisan view:clear
 
 log "Fixing storage permissions (FPM user: $PHP_FPM_USER)..."
 mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
