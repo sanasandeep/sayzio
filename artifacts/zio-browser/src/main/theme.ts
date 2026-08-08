@@ -16,9 +16,15 @@ import { getPreference, setPreference, isDbInitialized } from './db';
 import { PREFERENCE_KEYS } from '../shared/db-schema';
 
 export type AppearanceMode = 'system' | 'light' | 'dark';
+/** Website appearance additionally supports 'browser' = inherit the chrome Appearance setting. */
+export type WebsiteAppearanceMode = AppearanceMode | 'browser';
 
 export function sanitizeAppearance(v: unknown): AppearanceMode {
   return v === 'light' || v === 'dark' ? v : 'system';
+}
+
+export function sanitizeWebsiteAppearance(v: unknown): WebsiteAppearanceMode {
+  return v === 'browser' ? 'browser' : sanitizeAppearance(v);
 }
 
 let probing = false;
@@ -47,8 +53,18 @@ function safeGetPref(key: (typeof PREFERENCE_KEYS)[keyof typeof PREFERENCE_KEYS]
 }
 
 /** Current persisted website-appearance mode (defaults to 'system'). */
-export function getWebsiteAppearance(): AppearanceMode {
-  return sanitizeAppearance(safeGetPref(PREFERENCE_KEYS.WEBSITE_APPEARANCE));
+export function getWebsiteAppearance(): WebsiteAppearanceMode {
+  return sanitizeWebsiteAppearance(safeGetPref(PREFERENCE_KEYS.WEBSITE_APPEARANCE));
+}
+
+/**
+ * Map a website-appearance mode to a concrete nativeTheme.themeSource value.
+ * 'browser' inherits the chrome Appearance preference (its 'system' also
+ * maps to the OS scheme).
+ */
+function resolveWebsiteThemeSource(mode: WebsiteAppearanceMode): AppearanceMode {
+  if (mode === 'browser') return sanitizeAppearance(safeGetPref(PREFERENCE_KEYS.THEME));
+  return mode;
 }
 
 /**
@@ -56,16 +72,25 @@ export function getWebsiteAppearance(): AppearanceMode {
  * assign `nativeTheme.themeSource`. Applies live to all open tabs (regular
  * and private windows share the global nativeTheme).
  */
-export function setWebsiteAppearance(mode: AppearanceMode): AppearanceMode {
-  const clean = sanitizeAppearance(mode);
-  nativeTheme.themeSource = clean;
+export function setWebsiteAppearance(mode: WebsiteAppearanceMode): WebsiteAppearanceMode {
+  const clean = sanitizeWebsiteAppearance(mode);
+  nativeTheme.themeSource = resolveWebsiteThemeSource(clean);
   try { setPreference(PREFERENCE_KEYS.WEBSITE_APPEARANCE, clean); } catch { /* best-effort */ }
   return clean;
 }
 
 /** Restore the persisted website appearance at startup (default: system). */
 export function restoreWebsiteAppearance(): void {
-  nativeTheme.themeSource = getWebsiteAppearance();
+  nativeTheme.themeSource = resolveWebsiteThemeSource(getWebsiteAppearance());
+}
+
+/**
+ * Re-apply the website theme when the chrome Appearance preference changes,
+ * so a website mode of 'browser' (inherit) follows the chrome live.
+ */
+export function reapplyWebsiteAppearanceForChromeChange(): void {
+  if (getWebsiteAppearance() !== 'browser') return;
+  nativeTheme.themeSource = resolveWebsiteThemeSource('browser');
 }
 
 /**

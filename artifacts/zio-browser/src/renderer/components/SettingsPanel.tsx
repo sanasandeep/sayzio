@@ -52,7 +52,7 @@ export function applyResolvedTheme(resolved: 'dark' | 'light') {
 }
 
 /** What websites see via prefers-color-scheme; independent of the chrome look. */
-type WebsiteAppearance = 'system' | 'dark' | 'light';
+type WebsiteAppearance = 'system' | 'dark' | 'light' | 'browser';
 
 const TRANSLATE_LANGS: Array<{ code: string; label: string }> = [
   { code: 'en', label: 'English' },
@@ -244,7 +244,7 @@ function GeneralSection() {
       .then((v) => { if (v === 'light' || v === 'dark' || v === 'system') setThemeMode(v); })
       .catch(() => {});
     void window.zio.theme.getWebsite()
-      .then((v) => { if (v === 'light' || v === 'dark' || v === 'system') setWebsiteMode(v); })
+      .then((v) => { if (v === 'light' || v === 'dark' || v === 'system' || v === 'browser') setWebsiteMode(v); })
       .catch(() => {});
   }, []);
 
@@ -305,13 +305,14 @@ function GeneralSection() {
 
       <SettingRow
         title="Website appearance"
-        description="How websites detect dark mode. System matches your computer; Dark or Light tells sites like Gmail to use that theme (some pages need a reload)."
+        description="How websites detect dark mode. Match browser follows your Appearance setting above; System matches your computer; Dark or Light tells sites like Gmail to use that theme (some pages need a reload)."
       >
         <select
           value={websiteMode}
           onChange={(e) => void changeWebsiteMode(e.target.value as WebsiteAppearance)}
           style={selectStyle}
         >
+          <option value="browser">Match browser</option>
           <option value="system">System</option>
           <option value="dark">Dark</option>
           <option value="light">Light</option>
@@ -1304,20 +1305,21 @@ function SyncSection() {
 // ── On startup ────────────────────────────────────────────────────────────────
 
 function StartupSection() {
-  const [mode, setMode] = useState<'continue' | 'newtab'>('continue');
+  const [mode, setMode] = useState<'ask' | 'continue' | 'newtab'>('ask');
 
   useEffect(() => {
     void window.zio.prefs.get('startup_mode')
-      .then((v) => { if (v === 'newtab' || v === 'continue') setMode(v); })
+      .then((v) => { if (v === 'newtab' || v === 'continue' || v === 'ask') setMode(v); })
       .catch(() => {});
   }, []);
 
-  const change = useCallback(async (next: 'continue' | 'newtab') => {
+  const change = useCallback(async (next: 'ask' | 'continue' | 'newtab') => {
     setMode(next);
     try { await window.zio.prefs.set('startup_mode', next); } catch { /* non-fatal */ }
   }, []);
 
-  const options: Array<{ key: 'continue' | 'newtab'; title: string; desc: string }> = [
+  const options: Array<{ key: 'ask' | 'continue' | 'newtab'; title: string; desc: string }> = [
+    { key: 'ask', title: 'Ask me every time', desc: 'Ask whether to reopen the tabs from last time before restoring them.' },
     { key: 'continue', title: 'Continue where you left off', desc: 'Reopen the tabs you had open last time.' },
     { key: 'newtab', title: 'Open the New Tab page', desc: 'Start fresh each time. Pinned tabs still load.' },
   ];

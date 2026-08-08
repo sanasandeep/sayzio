@@ -151,7 +151,7 @@ import { SEARCH_ENGINES } from '../shared/omnibox';
 import { buildAutofillScript } from '../shared/form-autofill';
 import type { AutofillCard } from '../shared/form-autofill';
 import { storeToken, retrieveToken, clearToken, storeUser, retrieveUser, clearUser } from './auth-store';
-import { systemPrefersDark, getWebsiteAppearance, setWebsiteAppearance, sanitizeAppearance } from './theme';
+import { systemPrefersDark, getWebsiteAppearance, setWebsiteAppearance, sanitizeWebsiteAppearance, reapplyWebsiteAppearanceForChromeChange } from './theme';
 import { encryptPassword, decryptPassword } from './password-store';
 import { createCollection, createSavedLink } from '../shared/collection-store';
 import { PREFERENCE_KEYS } from '../shared/db-schema';
@@ -351,6 +351,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       if (engine) {
         for (const tm of tabManagerRegistry.values()) tm.setSearchEngine(engine);
       }
+    } else if (key === PREFERENCE_KEYS.THEME) {
+      // Website mode 'browser' inherits the chrome Appearance — follow live.
+      reapplyWebsiteAppearanceForChromeChange();
     } else if (key === PREFERENCE_KEYS.DO_NOT_TRACK) {
       setDoNotTrack(value === '1');
     } else if (key === PREFERENCE_KEYS.BLOCK_THIRD_PARTY_COOKIES) {
@@ -377,8 +380,8 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   // override, which is the sole owner of nativeTheme.themeSource.
   ipcMain.handle('theme:get-system', () => systemPrefersDark() ? 'dark' : 'light');
   ipcMain.handle('theme:get-website', () => getWebsiteAppearance());
-  ipcMain.handle('theme:set-website', (_, mode: 'system' | 'light' | 'dark') =>
-    setWebsiteAppearance(sanitizeAppearance(mode)));
+  ipcMain.handle('theme:set-website', (_, mode: 'system' | 'light' | 'dark' | 'browser') =>
+    setWebsiteAppearance(sanitizeWebsiteAppearance(mode)));
 
   // ── Auth ─────────────────────────────────────────────────────────────────
   ipcMain.handle('auth:store-token', (event, token: string) => {
