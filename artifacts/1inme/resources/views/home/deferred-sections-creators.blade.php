@@ -1,5 +1,6 @@
 {{-- "Creators" short design: keyword focus = link in bio for creators, bio link page. --}}
 @include('home.partials.seo-intro', [
+    'anchorId' => 'ai-zone',
     'eyebrow' => 'Link in Bio for Creators',
     'heading' => 'One <span class="grad-text">bio link page</span> for everything you create',
     'lead' => 'Build a link in bio page for Instagram, TikTok and YouTube: sell products, collect subscribers and share every link from one creator page, free to start.',
@@ -154,7 +155,7 @@
                     <button type="button" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','final_cta'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap">
                         Sign up free <i class="fas fa-arrow-right text-xs"></i>
                     </button>
-                    <a href="#features" class="btn-bounce inline-flex items-center justify-center gap-2 px-8 py-4 glass-2 text-white rounded-full text-base font-bold whitespace-nowrap">
+                    <a href="/features" class="btn-bounce inline-flex items-center justify-center gap-2 px-8 py-4 glass-2 text-white rounded-full text-base font-bold whitespace-nowrap">
                         See features
                     </a>
                 </div>
