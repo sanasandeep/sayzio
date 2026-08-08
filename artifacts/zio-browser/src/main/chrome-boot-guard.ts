@@ -21,11 +21,20 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 interface BootGuardState {
-  /** true while a launch is in flight and the chrome hasn't painted yet */
-  bootPending?: boolean;
+  /** consecutive launches that never painted the chrome UI */
+  pendingCount?: number;
   /** once true, hardware acceleration stays off for every future launch */
   gpuDisabled?: boolean;
 }
+
+/**
+ * How many consecutive unpainted launches before GPU fallback kicks in.
+ * Two, not one: a single stale marker can also come from an ordinary quick
+ * quit while the window was still loading — that must never permanently
+ * degrade rendering. A genuinely GPU-broken machine fails every launch, so
+ * it crosses this threshold on the second try.
+ */
+const FAILED_BOOTS_BEFORE_GPU_FALLBACK = 2;
 
 function markerPath(): string {
   return path.join(app.getPath('userData'), 'chrome-boot-guard.json');
@@ -49,18 +58,21 @@ function writeState(state: BootGuardState): void {
 /** Call BEFORE app.whenReady(). Returns true if GPU was disabled. */
 export function initChromeBootGuard(): boolean {
   const state = readState();
-  // Previous launch never painted the chrome UI → assume GPU compositing is
-  // broken on this machine and fall back to software rendering from now on.
-  const shouldDisableGpu = Boolean(state.gpuDisabled) || Boolean(state.bootPending);
+  const pendingCount = state.pendingCount ?? 0;
+  // Multiple consecutive launches never painted the chrome UI → assume GPU
+  // compositing is broken on this machine and fall back to software
+  // rendering from now on.
+  const shouldDisableGpu =
+    Boolean(state.gpuDisabled) || pendingCount >= FAILED_BOOTS_BEFORE_GPU_FALLBACK;
   if (shouldDisableGpu) {
     try { app.disableHardwareAcceleration(); } catch { /* already ready — too late this run */ }
   }
-  writeState({ bootPending: true, gpuDisabled: shouldDisableGpu });
+  writeState({ pendingCount: pendingCount + 1, gpuDisabled: shouldDisableGpu });
   return shouldDisableGpu;
 }
 
-/** Call when the main window's chrome renderer has finished loading. */
+/** Call when the main window's chrome renderer has visibly come up. */
 export function markChromePainted(): void {
   const state = readState();
-  writeState({ ...state, bootPending: false });
+  writeState({ ...state, pendingCount: 0 });
 }
