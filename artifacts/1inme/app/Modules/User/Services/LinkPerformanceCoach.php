@@ -870,14 +870,24 @@ class LinkPerformanceCoach
                 'headline' => 'Share your link once to seed data',
                 'reason'   => 'The coach starts giving recommendations as soon as you have real visitors.',
             ],
-            [
-                'severity' => 'tip', 'priority' => 80,
-                'icon' => 'fa-th-large',
-                'headline' => 'Add at least 3 blocks',
-                'reason'   => 'A Link in Bio page with one block has nothing to compare against. Add your top links.',
-                'action_label' => 'Edit page',
-                'action_url'   => self::editUrl($ctx),
-            ],
+            // The middle tip is type-aware: block advice only makes sense for
+            // page-style (biolink-family) links — a plain short link has no
+            // blocks to add, so it gets channel advice instead.
+            $link->isBiolinkFamily()
+                ? [
+                    'severity' => 'tip', 'priority' => 80,
+                    'icon' => 'fa-th-large',
+                    'headline' => 'Add at least 3 blocks',
+                    'reason'   => 'A Link in Bio page with one block has nothing to compare against. Add your top links.',
+                    'action_label' => 'Edit page',
+                    'action_url'   => self::editUrl($ctx),
+                ]
+                : [
+                    'severity' => 'tip', 'priority' => 80,
+                    'icon' => 'fa-bullhorn',
+                    'headline' => 'Post it in more than one place',
+                    'reason'   => 'Sharing on two or three channels lets the coach compare referrers and tell you which one converts.',
+                ],
             [
                 'severity' => 'tip', 'priority' => 70,
                 'icon' => 'fa-bullseye-arrow',
