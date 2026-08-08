@@ -768,7 +768,119 @@
             <p class="text-[11px] mpc-faint mt-1">Tangible savings (tools + time) + additional effectiveness revenue.</p>
         </div>
     </div>
-    {{-- ───── 5 · PLAN VS ACTUAL (Task #6772) ───── --}}
+    {{-- ───── 5 · ACTUALS TRACKING (Task #6771) ───── --}}
+    <div x-show="tab === 'track'" x-cloak class="space-y-4" data-mpc-actuals-log>
+        <div class="rounded-2xl mpc-card p-4 overflow-x-auto">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                <h3 class="text-sm font-bold mpc-title">Log actual monthly results</h3>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 text-[10px] font-bold"
+                      data-mpc-tracked-count>
+                    <i class="fas fa-chart-line"></i> <span x-text="trackedCount + '/12 months tracked'"></span>
+                </span>
+            </div>
+            <p class="text-[11px] mpc-faint mb-2">
+                Overall monthly totals, not per channel. Money is entered in ₹ (INR), like the budget; the variance
+                view respects the ₹/$ display toggle. Partial entry is fine — blank fields simply aren't compared.
+                Logged actuals save with the plan and survive re-editing assumptions.
+            </p>
+            <table class="w-full min-w-[760px]" data-mpc-actuals-grid>
+                <thead><tr>
+                    <th class="mpc-th">Month</th>
+                    <th class="mpc-th">Actual spend (₹)</th><th class="mpc-th">Actual visitors</th>
+                    <th class="mpc-th">Actual leads</th><th class="mpc-th">Actual customers</th>
+                    <th class="mpc-th">Actual revenue (₹)</th>
+                    <th class="mpc-th">Status</th><th class="mpc-th"></th>
+                </tr></thead>
+                <tbody>
+                    <template x-for="(m, i) in months" :key="'al' + i">
+                        <tr class="mpc-row">
+                            <td class="mpc-td font-semibold" x-text="m"></td>
+                            <template x-for="k in actualMetrics" :key="'al' + i + k">
+                                <td class="mpc-td" style="width:120px;">
+                                    <input type="number" min="0" x-model.number="p.actuals_log[i][k]"
+                                           class="mpc-input !w-28" :data-mpc-actual="k + '-' + i">
+                                </td>
+                            </template>
+                            <td class="mpc-td">
+                                <span class="text-[10px] font-bold uppercase tracking-wide"
+                                      :class="monthTracked(i) ? 'text-emerald-400' : 'mpc-faint'"
+                                      x-text="monthTracked(i) ? 'Tracked' : 'Not yet tracked'"></span>
+                            </td>
+                            <td class="mpc-td">
+                                <button type="button" x-show="monthTracked(i)" x-cloak @click="clearActualMonth(i)"
+                                        class="text-[11px] mpc-faint hover:text-red-400" title="Clear this month's actuals">
+                                    <i class="fas fa-xmark"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+            <p class="text-[11px] text-amber-400 mt-2" x-show="clampHints.actuals_log" x-cloak x-text="clampHints.actuals_log"></p>
+        </div>
+
+        <template x-if="trackedCount === 0">
+            <div class="rounded-2xl mpc-card p-8 text-center" data-mpc-variance-empty>
+                <i class="fas fa-scale-balanced text-2xl text-blue-400/70"></i>
+                <h3 class="text-sm font-bold mpc-title mt-3">No months tracked yet</h3>
+                <p class="text-xs mpc-sub mt-1 max-w-md mx-auto">
+                    Enter at least one month's real results above to see actual-vs-projected variance here,
+                    a cumulative overlay on the dashboard's spend/revenue chart, and an actuals section in exports.
+                </p>
+            </div>
+        </template>
+
+        <template x-if="trackedCount > 0">
+            <div class="space-y-4">
+                <div class="grid sm:grid-cols-3 lg:grid-cols-5 gap-3" data-mpc-variance-summary>
+                    <template x-for="s in varianceSummary" :key="'vs' + s.key">
+                        <div class="rounded-2xl mpc-card p-3">
+                            <p class="text-[10px] font-bold mpc-faint uppercase" x-text="s.label + ' · tracked months'"></p>
+                            <p class="text-sm font-bold mpc-title mt-1" x-text="s.months > 0 ? varFmt(s.key, s.actual) + ' vs ' + varFmt(s.key, s.plan) : 'Not tracked'"></p>
+                            <p class="text-xs font-semibold mt-0.5" :class="varClass(s.key, s.delta)"
+                               x-text="s.months > 0 ? deltaFmt(s.key, s.delta) + ' (' + pctFmt(s.pct) + ')' : '—'"></p>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="rounded-2xl mpc-card p-4 overflow-x-auto">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <h3 class="text-sm font-bold mpc-title">Variance by month <span class="mpc-faint font-normal">(tracked months only)</span></h3>
+                        <select x-model="trackMetric" class="mpc-input !w-auto" data-mpc-variance-metric>
+                            <template x-for="k in actualMetrics" :key="'vm' + k">
+                                <option :value="k" x-text="actualMetricLabels[k]"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <table class="w-full min-w-[560px]" data-mpc-variance-table>
+                        <thead><tr>
+                            <th class="mpc-th">Month</th><th class="mpc-th text-right">Actual</th>
+                            <th class="mpc-th text-right">Projected</th>
+                            <th class="mpc-th text-right">Δ</th><th class="mpc-th text-right">Δ %</th>
+                        </tr></thead>
+                        <tbody>
+                            <template x-for="row in varianceRows" :key="'vr' + row.i">
+                                <tr class="mpc-row">
+                                    <td class="mpc-td font-semibold" x-text="row.label"></td>
+                                    <td class="mpc-td text-right" x-text="row.actual !== null ? varFmt(trackMetric, row.actual) : 'Not entered'"></td>
+                                    <td class="mpc-td text-right mpc-sub" x-text="varFmt(trackMetric, row.plan)"></td>
+                                    <td class="mpc-td text-right font-semibold" :class="varClass(trackMetric, row.delta)" x-text="deltaFmt(trackMetric, row.delta)"></td>
+                                    <td class="mpc-td text-right font-semibold" :class="varClass(trackMetric, row.delta)" x-text="pctFmt(row.pct)"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                    <p class="text-[11px] mpc-faint mt-2">
+                        Projections are this plan's live monthly totals (they move when you re-edit assumptions; your logged
+                        actuals don't). Over-plan spend reads red; over-plan visitors, leads, customers and revenue read green.
+                        The Dashboard's spend-vs-revenue chart now overlays cumulative actuals against cumulative projections.
+                    </p>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    {{-- ───── 6 · PLAN VS ACTUAL (Task #6772) ───── --}}
     <div x-show="tab === 'actual'" x-cloak class="space-y-4">
         <template x-if="actuals && actuals.has_data">
             <div class="space-y-4">
@@ -847,10 +959,16 @@ function mpcApp() {
             { key: 'monthly',     label: 'Monthly Plan' },
             { key: 'dashboard',   label: 'Dashboard' },
             { key: 'roi',         label: 'Sayzio ROI & Value' },
+            // Task #6771 — manually logged monthly actuals + variance.
+            { key: 'track',       label: 'Actuals' },
             ...(@js($actuals ?? null) ? [{ key: 'actual', label: 'Plan vs Actual' }] : []),
         ],
         tab: 'assumptions',
         monthlyMetric: 'spend',
+        // Task #6771 — logged-actuals metrics + the variance table's metric picker.
+        actualMetrics: ['spend', 'visitors', 'leads', 'customers', 'revenue'],
+        actualMetricLabels: { spend: 'Spend', visitors: 'Visitors', leads: 'Leads', customers: 'Customers', revenue: 'Revenue' },
+        trackMetric: 'revenue',
         // Task #6770 — goal seek (view state, never persisted).
         goalOpen: false,
         goalType: 'revenue',
@@ -892,6 +1010,18 @@ function mpcApp() {
                 }
                 this.p.scenarios[k] = merged;
             }
+            // Task #6771 — normalize the logged-actuals structure: exactly 12
+            // months, every metric a finite number or null, so older payloads
+            // (saved before tracking existed) and partial blobs are safe.
+            const rawLog = Array.isArray(this.p.actuals_log) ? this.p.actuals_log : [];
+            this.p.actuals_log = Array.from({ length: 12 }, (_, i) => {
+                const src = (rawLog[i] && typeof rawLog[i] === 'object') ? rawLog[i] : {};
+                const row = {};
+                for (const k of this.actualMetrics) {
+                    row[k] = (typeof src[k] === 'number' && isFinite(src[k])) ? src[k] : null;
+                }
+                return row;
+            });
             // Task #6742 — keep every numeric input in a sane range so the
             // engine can never produce Infinity-adjacent projections.
             // Run before the dirty baseline so a silent self-heal of an old
@@ -974,6 +1104,13 @@ function mpcApp() {
                 ch = this.clampNum(c, 'acv', 0, BIG) || ch;
             }
             if (ch) flag('channels', 'Adjusted: allocations and conversion rates stay between 0 and 100%, costs cannot be negative.');
+            // Task #6771 — logged actuals can't go negative.
+            let al = false;
+            for (const mrow of this.p.actuals_log || []) {
+                if (!mrow || typeof mrow !== 'object') continue;
+                for (const k of this.actualMetrics) al = this.clampNum(mrow, k, 0, BIG) || al;
+            }
+            if (al) flag('actuals_log', 'Adjusted: logged actuals cannot be negative.');
             let t = false;
             for (const tool of this.p.tools || []) t = this.clampNum(tool, 'cost', 0, BIG) || t;
             if (t) flag('tools', 'Adjusted: tool costs cannot be negative.');
@@ -1376,11 +1513,53 @@ function mpcApp() {
                 compRow('LTV : CAC (×)', s => s.totals.ltvCac !== null ? this.xn(s.totals.ltvCac) : '—'),
             ];
 
+            // Task #6771 — logged monthly actuals + variance vs the live plan.
+            const actualsRows = [
+                ['Actuals vs plan (' + cur + ')'],
+                ['Months tracked', this.trackedCount + ' of 12'],
+            ];
+            if (this.trackedCount === 0) {
+                actualsRows.push(['No actual monthly results logged yet — use the Actuals tab in the editor.']);
+            } else {
+                actualsRows.push([], ['Cumulative over tracked months'], ['Metric', 'Actual', 'Projected', 'Δ', 'Δ %']);
+                for (const s of this.varianceSummary) {
+                    const isM = this.isMoneyMetric(s.key);
+                    const f = v => isM ? this.xm(v) : this.xn(v, 0);
+                    actualsRows.push([
+                        s.label + (isM ? ' (' + sym + ')' : ''),
+                        s.months > 0 ? f(s.actual) : 'Not tracked',
+                        s.months > 0 ? f(s.plan) : '—',
+                        s.months > 0 ? f(s.delta) : '—',
+                        s.pct !== null ? this.xn(s.pct, 1) : '—',
+                    ]);
+                }
+                for (const k of this.actualMetrics) {
+                    const isM = this.isMoneyMetric(k);
+                    const f = v => isM ? this.xm(v) : this.xn(v, 0);
+                    actualsRows.push([], [this.actualMetricLabels[k] + (isM ? ' (' + sym + ')' : '') + ' — monthly'],
+                        ['Month', 'Actual', 'Projected', 'Δ', 'Δ %']);
+                    for (let i = 0; i < 12; i++) {
+                        const tracked = this.monthTracked(i);
+                        const v = tracked ? this.p.actuals_log[i][k] : null;
+                        const has = typeof v === 'number' && isFinite(v);
+                        const plan = m.monthTotals[k][i];
+                        actualsRows.push([
+                            this.months[i],
+                            has ? f(v) : (tracked ? 'Not entered' : 'Not tracked'),
+                            f(plan),
+                            has ? f(v - plan) : '—',
+                            (has && Math.abs(plan) > 1e-9) ? this.xn((v - plan) / plan * 100, 1) : '—',
+                        ]);
+                    }
+                }
+            }
+
             return [
                 ['Assumptions', assumptions],
                 ['Monthly Plan', monthly],
                 ['Dashboard', dashboard],
                 ['Scenarios', scenarios],
+                ['Actuals vs Plan', actualsRows],
                 ['Sayzio ROI', roiRows],
             ];
         },
@@ -1696,6 +1875,95 @@ function mpcApp() {
             return new Blob(parts, { type: 'application/pdf' });
         },
 
+        // ---------- Task #6771: manually logged actuals & variance ----------
+        isMoneyMetric(k) { return k === 'spend' || k === 'revenue'; },
+        /** A month is "tracked" once at least one metric is entered. */
+        monthTracked(i) {
+            const m = (this.p.actuals_log || [])[i];
+            return !!m && this.actualMetrics.some(k => typeof m[k] === 'number' && isFinite(m[k]));
+        },
+        get trackedCount() {
+            let n = 0;
+            for (let i = 0; i < 12; i++) if (this.monthTracked(i)) n++;
+            return n;
+        },
+        clearActualMonth(i) {
+            const m = (this.p.actuals_log || [])[i];
+            if (m) for (const k of this.actualMetrics) m[k] = null;
+        },
+        /**
+         * Per-month variance rows for the selected metric — tracked months
+         * only; a tracked month missing THIS metric shows "Not entered" and
+         * is excluded from deltas.
+         */
+        get varianceRows() {
+            const m = this.model, rows = [];
+            for (let i = 0; i < 12; i++) {
+                if (!this.monthTracked(i)) continue;
+                const v = this.p.actuals_log[i][this.trackMetric];
+                const has = typeof v === 'number' && isFinite(v);
+                const plan = m.monthTotals[this.trackMetric][i];
+                const delta = has ? v - plan : null;
+                rows.push({
+                    i, label: this.months[i],
+                    actual: has ? v : null, plan, delta,
+                    pct: (has && Math.abs(plan) > 1e-9) ? delta / plan * 100 : null,
+                });
+            }
+            return rows;
+        },
+        /** Cumulative actual vs projected per metric over months where THAT metric is logged. */
+        get varianceSummary() {
+            const m = this.model;
+            return this.actualMetrics.map(k => {
+                let actual = 0, plan = 0, n = 0;
+                for (let i = 0; i < 12; i++) {
+                    if (!this.monthTracked(i)) continue;
+                    const v = this.p.actuals_log[i][k];
+                    if (typeof v === 'number' && isFinite(v)) { actual += v; plan += m.monthTotals[k][i]; n++; }
+                }
+                const delta = actual - plan;
+                return {
+                    key: k, label: this.actualMetricLabels[k], months: n, actual, plan, delta,
+                    pct: (n > 0 && Math.abs(plan) > 1e-9) ? delta / plan * 100 : null,
+                };
+            });
+        },
+        /** Over-plan spend is bad (red); over-plan output metrics are good (green). */
+        varClass(metric, delta) {
+            if (delta === null || !isFinite(delta) || Math.abs(delta) < 1e-9) return 'mpc-sub';
+            const good = metric === 'spend' ? delta < 0 : delta > 0;
+            return good ? 'text-emerald-400' : 'text-red-400';
+        },
+        varFmt(metric, v) { return v === null ? '—' : (this.isMoneyMetric(metric) ? this.money(v) : this.nf(v, 0)); },
+        deltaFmt(metric, d) {
+            if (d === null || !isFinite(d)) return '—';
+            const sign = d > 0 ? '+' : (d < 0 ? '−' : '');
+            return sign + (this.isMoneyMetric(metric) ? this.money(Math.abs(d)) : this.nf(Math.abs(d), 0));
+        },
+        pctFmt(pct) {
+            if (pct === null || !isFinite(pct)) return '—';
+            return (pct > 0 ? '+' : (pct < 0 ? '−' : '')) + this.nf(Math.abs(pct), 1) + '%';
+        },
+        /**
+         * Cumulative overlay series for the dashboard spend/revenue chart:
+         * projected accumulates across all 12 months; actual accumulates only
+         * where logged (nulls elsewhere; the line spans the gaps).
+         */
+        cumSeries(metric) {
+            const m = this.model;
+            let planCum = 0, actCum = 0;
+            const plan = [], act = [];
+            for (let i = 0; i < 12; i++) {
+                planCum += m.monthTotals[metric][i];
+                plan.push(planCum);
+                const v = this.monthTracked(i) ? this.p.actuals_log[i][metric] : null;
+                if (typeof v === 'number' && isFinite(v)) { actCum += v; act.push(actCum); }
+                else act.push(null);
+            }
+            return { plan, act };
+        },
+
         // ---------- Task #6772: real Sayzio actuals ----------
         get features() { return this.actuals ? this.actuals.features : null; },
 
@@ -1821,16 +2089,34 @@ function mpcApp() {
 
             const monthEl = document.getElementById('mpcMonthChart');
             if (monthEl) {
+                // Task #6771 — once any month has logged actuals, overlay
+                // cumulative actual vs cumulative projected lines on the
+                // monthly spend/revenue bars.
+                const overlay = [];
+                if (this.trackedCount > 0) {
+                    const cumS = this.cumSeries('spend'), cumR = this.cumSeries('revenue');
+                    const line = (label, data, color, dash) => ({
+                        label, data, type: 'line', borderColor: color, backgroundColor: color,
+                        borderDash: dash || [], pointRadius: dash ? 0 : 3, spanGaps: true, tension: 0.25, fill: false,
+                    });
+                    overlay.push(
+                        line('Cum. projected spend (' + sym + ')',   cumS.plan.map(v => v * mult), 'rgba(37,99,235,0.45)', [6, 4]),
+                        line('Cum. actual spend (' + sym + ')',      cumS.act.map(v => v === null ? null : v * mult), '#2563eb'),
+                        line('Cum. projected revenue (' + sym + ')', cumR.plan.map(v => v * mult), 'rgba(16,185,129,0.45)', [6, 4]),
+                        line('Cum. actual revenue (' + sym + ')',    cumR.act.map(v => v === null ? null : v * mult), '#10b981'),
+                    );
+                }
                 this.charts.month = new Chart(monthEl, {
                     type: 'bar',
                     data: {
                         labels: this.months,
                         datasets: [
+                            ...overlay,
                             { label: 'Spend (' + sym + ')',   data: m.monthTotals.spend.map(v => v * mult),   backgroundColor: 'rgba(37,99,235,0.55)' },
                             { label: 'Revenue (' + sym + ')', data: m.monthTotals.revenue.map(v => v * mult), backgroundColor: 'rgba(16,185,129,0.55)' },
                         ],
                     },
-                    options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } },
                 });
             }
 

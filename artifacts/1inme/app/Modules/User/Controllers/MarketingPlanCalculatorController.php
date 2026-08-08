@@ -254,6 +254,15 @@ class MarketingPlanCalculatorController extends Controller
             $data['payload'] = MarketingPlanDefaults::enforceLockedToolCosts($data['payload']);
         }
 
+        // Task #6771 — logged actuals must survive clients that resubmit a
+        // payload without the actuals_log key (e.g. an older cached editor
+        // re-saving assumptions): merge the stored log back in rather than
+        // silently dropping months of tracked history.
+        if (!array_key_exists('actuals_log', $data['payload'])
+            && array_key_exists('actuals_log', (array) $model->payload)) {
+            $data['payload']['actuals_log'] = ((array) $model->payload)['actuals_log'];
+        }
+
         $model->update(['name' => $data['name'], 'payload' => $data['payload']]);
 
         return response()->json(['ok' => true, 'id' => $model->id]);
@@ -314,6 +323,16 @@ class MarketingPlanCalculatorController extends Controller
             'payload.scenarios.aggressive.vl'       => 'nullable|numeric|min:0|max:1000',
             'payload.scenarios.aggressive.lc'       => 'nullable|numeric|min:0|max:1000',
             'payload.scenarios.aggressive.budget'   => 'nullable|numeric|min:0|max:1000',
+            // Task #6771 — manually logged monthly actuals (overall totals,
+            // not per channel). 12 slots; every field is optional so partial
+            // entry ("only spend so far this month") is valid.
+            'payload.actuals_log'             => 'nullable|array|max:12',
+            'payload.actuals_log.*'           => 'nullable|array',
+            'payload.actuals_log.*.spend'     => 'nullable|numeric|min:0|max:1000000000000',
+            'payload.actuals_log.*.visitors'  => 'nullable|numeric|min:0|max:1000000000000',
+            'payload.actuals_log.*.leads'     => 'nullable|numeric|min:0|max:1000000000000',
+            'payload.actuals_log.*.customers' => 'nullable|numeric|min:0|max:1000000000000',
+            'payload.actuals_log.*.revenue'   => 'nullable|numeric|min:0|max:1000000000000',
             'payload.channels.*.alloc' => 'nullable|numeric|min:0|max:100',
             'payload.channels.*.cpv'   => 'nullable|numeric|min:0|max:1000000000000',
             'payload.channels.*.vl'    => 'nullable|numeric|min:0|max:100',

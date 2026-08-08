@@ -32,6 +32,10 @@ args = "artifacts/mockup-sandbox: Component Preview Server"
 task = "workflow.run"
 args = "artifacts/1inme: web"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mpc-actuals-tracking"
+
 
 [postMerge]
 path = "scripts/post-merge.sh"
@@ -58,6 +62,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && VALIDATION_PORT=5095 bash tests/Browser/run-validation.sh mpc-goal-seek.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mpc-actuals-tracking"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5097 bash tests/Browser/run-validation.sh mpc-actuals-tracking.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true

@@ -22,6 +22,32 @@ class MarketingPlanCalc extends Model
         'payload' => 'array',
     ];
 
+    /**
+     * Task #6771 — the metric keys a manually logged actuals month can carry
+     * (overall monthly totals, not per channel).
+     */
+    public const ACTUAL_METRICS = ['spend', 'visitors', 'leads', 'customers', 'revenue'];
+
+    /**
+     * Task #6771 — how many of the payload's 12 actuals_log months have at
+     * least one metric logged. A month with every field blank is "not yet
+     * tracked" and doesn't count.
+     */
+    public static function trackedActualMonths(array $payload): int
+    {
+        $log = $payload['actuals_log'] ?? null;
+        if (!is_array($log)) return 0;
+
+        $n = 0;
+        foreach (array_slice(array_values($log), 0, 12) as $month) {
+            if (!is_array($month)) continue;
+            foreach (self::ACTUAL_METRICS as $k) {
+                if (isset($month[$k]) && is_numeric($month[$k])) { $n++; break; }
+            }
+        }
+        return $n;
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
