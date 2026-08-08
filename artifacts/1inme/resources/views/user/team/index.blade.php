@@ -13,14 +13,14 @@
     'maxSeats'          => $maxSeats,
     'pendingCount'      => $pendingCount,
 ]) }})">
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">{{ $workspace->name }}, Seats</h1>
             <p class="text-sm opacity-70 mt-1">
                 Manage who can work in this workspace, what they can do, and how many seats you're using.
             </p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
             @if(!empty($isOwner))
                 <a href="{{ route('user.workspaces.settings', $workspace) }}"
                    class="px-3 py-2 rounded-lg text-sm font-semibold border glass-hover"
