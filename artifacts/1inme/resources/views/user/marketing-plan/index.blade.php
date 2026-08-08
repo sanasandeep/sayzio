@@ -126,6 +126,14 @@
                         <p class="text-sm mpc-sub mt-0.5 truncate">
                             {{ trim((string) data_get($p->payload, 'company')) !== '' ? data_get($p->payload, 'company') : 'No company set' }}
                             · Budget ₹{{ number_format((float) data_get($p->payload, 'annual_budget', 0)) }}/yr
+                            {{-- Task #6771 — how many months of actual results are logged against the plan. --}}
+                            @php($tracked = \App\Modules\User\Models\MarketingPlanCalc::trackedActualMonths((array) $p->payload))
+                            @if($tracked > 0)
+                                <span class="inline-flex items-center gap-1 align-middle ml-1 px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 text-[10px] font-bold"
+                                      data-mpc-tracked-badge title="Months with actual results logged on the Actuals tab">
+                                    <i class="fas fa-chart-line"></i> {{ $tracked }}/12 months tracked
+                                </span>
+                            @endif
                         </p>
                     </a>
                     <div class="flex items-center gap-2 shrink-0">
