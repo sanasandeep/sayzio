@@ -33,9 +33,9 @@ const api = {
     /** Real OS color scheme ('dark' | 'light') — never affected by the website-appearance override. */
     getSystem: () => ipcRenderer.invoke('theme:get-system') as Promise<'dark' | 'light'>,
     /** Persisted website color-scheme override (what pages see via prefers-color-scheme). */
-    getWebsite: () => ipcRenderer.invoke('theme:get-website') as Promise<'system' | 'light' | 'dark'>,
-    setWebsite: (mode: 'system' | 'light' | 'dark') =>
-      ipcRenderer.invoke('theme:set-website', mode) as Promise<'system' | 'light' | 'dark'>,
+    getWebsite: () => ipcRenderer.invoke('theme:get-website') as Promise<'system' | 'light' | 'dark' | 'browser'>,
+    setWebsite: (mode: 'system' | 'light' | 'dark' | 'browser') =>
+      ipcRenderer.invoke('theme:set-website', mode) as Promise<'system' | 'light' | 'dark' | 'browser'>,
   },
 
   // ── Auth ──────────────────────────────────────────────────────────────────

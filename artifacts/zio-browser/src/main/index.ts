@@ -41,6 +41,10 @@ import type { RecentlyClosedEntry, SessionTabLayout } from './tab-manager';
 const isDev = process.env['NODE_ENV'] === 'development';
 
 let mainWindow: BrowserWindow | null = null;
+// True once a restore-or-fresh decision was already made this launch (either
+// via the crash-recovery prompt or the 'Ask me every time' startup prompt),
+// so the user is never asked twice in one launch.
+let startupRestorePromptShown = false;
 let splashWindow: BrowserWindow | null = null;
 
 // ── Branded splash screen ─────────────────────────────────────────────────────
@@ -413,9 +417,13 @@ export function createWindow(): BrowserWindow {
         pinnedIds = tabManager?.initPinnedUrls(savedPinnedUrls) ?? [];
       }
 
-      // "On startup" preference: 'continue' (default) restores the previous
-      // session's tabs; 'newtab' always starts fresh (pinned tabs still load).
-      const startupMode = safeGetPreference(PREFERENCE_KEYS.STARTUP_MODE) ?? 'continue';
+      // "On startup" preference: 'ask' (default) prompts before restoring the
+      // previous session's tabs; 'continue' restores silently; 'newtab'
+      // always starts fresh (pinned tabs still load).
+      const startupModeRaw = safeGetPreference(PREFERENCE_KEYS.STARTUP_MODE) ?? 'ask';
+      const startupMode = startupModeRaw === 'continue' || startupModeRaw === 'newtab'
+        ? startupModeRaw
+        : 'ask';
 
       // Restore the previous session's open tabs (in order, with active tab)
       const savedSessionJson = startupMode === 'newtab'
@@ -448,6 +456,29 @@ export function createWindow(): BrowserWindow {
         }
       } catch {
         // No / invalid saved session — fall through to a fresh new tab
+      }
+
+      // 'Ask me every time': confirm before restoring. Skipped when the
+      // crash-recovery prompt already asked this launch, and when there is
+      // nothing to restore. Declining keeps the snapshot on disk untouched —
+      // it is simply not restored into this window.
+      if (startupMode === 'ask' && !startupRestorePromptShown && sessionUrls.length > 0) {
+        startupRestorePromptShown = true;
+        const choice = dialog.showMessageBoxSync(win, {
+          type: 'question',
+          title: 'Zio Browser',
+          message: 'Restore your previous tabs?',
+          detail: `You had ${sessionUrls.length === 1 ? '1 tab' : `${sessionUrls.length} tabs`} open last time.`,
+          buttons: ['Restore tabs', 'Start fresh'],
+          defaultId: 0,
+          cancelId: 1,
+        });
+        if (choice === 1) {
+          sessionUrls = [];
+          sessionLayouts = undefined;
+          sessionActiveIndex = -1;
+          sessionActivePinnedIndex = -1;
+        }
       }
 
       if (sessionUrls.length > 0 || (sessionActivePinnedIndex >= 0 && pinnedIds.length > 0)) {
@@ -1087,6 +1118,7 @@ app.whenReady().then(() => {
       hasSnapshot = false;
     }
     if (hasSnapshot) {
+      startupRestorePromptShown = true;
       const choice = dialog.showMessageBoxSync({
         type: 'question',
         title: 'Zio Browser',

@@ -1,6 +1,6 @@
 {
- "headSha": "bd8e46009fbae540b776c8a3a9e4a96ed06f14c7",
- "remoteTreeSha": "1419d8b068081a049264854339d877ea5b066702",
+ "headSha": "71791802611ae981898632ee5a8c9cacdf8a0da7",
+ "remoteTreeSha": "c48930bfd03edd0a2acdb006c7883bc552dfbcb0",
  "changed": [
   ".agents/memory/MEMORY.md",
   ".replit",
@@ -8,9 +8,11 @@
   "artifacts/1inme/app/Services/MarketingPlanDefaults.php",
   "artifacts/1inme/resources/views/user/inbox/unified/index.blade.php",
   "artifacts/1inme/resources/views/user/marketing-plan/editor.blade.php",
+  "artifacts/1inme/resources/views/user/resume/editor.blade.php",
   "artifacts/zio-browser/src/renderer/components/ChromeBar.tsx",
   "artifacts/zio-browser/src/renderer/components/NewTabPage.tsx",
   "artifacts/zio-browser/src/renderer/styles/global.css",
+  "attached_assets/Screenshot_2026-08-07_at_11.51.34_PM_1786136652765.png",
   "blobs.json",
   "state.json"
  ],
