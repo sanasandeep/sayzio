@@ -193,6 +193,22 @@ export function tabModeWithout(mode: TabMode, pane: TabPane): TabMode {
   return mode;
 }
 
+/**
+ * The mode a tab should switch to so a dashboard pane becomes visible while
+ * keeping the user's current content on screen (Sayzio rail navigation).
+ * Already-dashboard modes are returned unchanged; otherwise the tab's
+ * PRIMARY (left) pane is kept and paired with the dashboard.
+ */
+export function dashboardModeFor(mode: TabMode): TabMode {
+  if (tabModeIncludes(mode, 'dashboard')) return mode;
+  const { left } = parseTabMode(mode);
+  switch (left) {
+    case 'zio': return 'dashboard+zio';
+    case 'files': return 'dashboard+files';
+    default: return 'dashboard+browser';
+  }
+}
+
 /** Default ratio of the tab area given to the LEFT pane in a two-pane split. */
 export const TAB_SPLIT_RATIO = 0.5;
 export const MIN_TAB_SPLIT_RATIO = 0.2;

@@ -451,6 +451,12 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     resolveTabManager(event)?.setTabMode(id, mode);
     return true;
   });
+  ipcMain.handle('tabs:navigate-dashboard', (event, id: string, path: string) => {
+    // Private windows are browser-only: no Sayzio surfaces may be attached.
+    if (senderIsPrivate(event)) return false;
+    resolveTabManager(event)?.navigateDashboard(id, String(path ?? ''));
+    return true;
+  });
   ipcMain.handle('tabs:set-split-ratio', (event, id: string, ratio: number) => {
     resolveTabManager(event)?.setTabSplitRatio(id, ratio);
     return true;
@@ -852,6 +858,16 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   // preference — pure per-window runtime state.
   ipcMain.handle('window:set-zio-panel-visible', (event, visible: boolean) => {
     resolveModeManager(event)?.setZioPanelVisible(visible === true);
+    return true;
+  });
+  // Renderer reports the live pixel width of the Sayzio sidebar rail (0 when
+  // hidden) so native tab views are shifted right of it. Runtime state, not
+  // a preference.
+  ipcMain.handle('window:set-sayzio-rail-reserve', (event, px: number) => {
+    // Private windows never draw the rail — force their reserve to 0 so a
+    // stale/rogue report can't shrink their tab views.
+    const v = senderIsPrivate(event) ? 0 : (typeof px === 'number' ? px : 0);
+    resolveModeManager(event)?.setSayzioRailReserve(v);
     return true;
   });
 
