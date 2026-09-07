@@ -110,7 +110,25 @@ class LinkController extends Controller
             $perPage = 15;
         }
 
-        $links = $query->latest()->paginate($perPage)->withQueryString();
+        // Sort order. Whitelisted through match() rather than taking a column
+        // name off the query string, so an unexpected value falls back to
+        // newest instead of reaching the query builder. Normalised first so
+        // the select re-renders on the option the list is actually sorted by,
+        // even when someone hand-edits the URL.
+        $sort = (string) $request->query('sort', 'newest');
+        if (!in_array($sort, ['newest', 'oldest', 'clicks_desc', 'clicks_asc', 'title_asc', 'title_desc'], true)) {
+            $sort = 'newest';
+        }
+        $query = match ($sort) {
+            'oldest'      => $query->oldest(),
+            'clicks_desc' => $query->orderByDesc('total_clicks'),
+            'clicks_asc'  => $query->orderBy('total_clicks'),
+            'title_asc'   => $query->orderBy('title'),
+            'title_desc'  => $query->orderByDesc('title'),
+            default       => $query->latest(),
+        };
+
+        $links = $query->paginate($perPage)->withQueryString();
         $projects = workspace_owner()->projects()->orderBy('name')->get();
 
         // Lightweight, unfiltered roll-up for the bento command-center hero /
@@ -123,7 +141,7 @@ class LinkController extends Controller
             'clicks'  => (int) $owner->links()->sum('total_clicks'),
         ];
 
-        return view('user.links.index', compact('links', 'projects', 'summary'));
+        return view('user.links.index', compact('links', 'projects', 'summary', 'sort'));
     }
 
     /**

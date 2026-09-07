@@ -327,6 +327,8 @@
        and the fit and leaves the scale alone rather than fighting it with
        !important. .leading-none is what separates a figure from a label here,
        both being font-bold paragraphs. */
+    html.aurora .bento-tile p.font-bold:not(.uppercase),
+    html.aurora .bento-hero p.font-bold:not(.uppercase),
     html.aurora .bento-stage p.font-bold.leading-none {
         font-family: 'Archivo', 'Inter', system-ui, sans-serif;
         font-variant-numeric: tabular-nums;
@@ -334,11 +336,23 @@
         letter-spacing: -0.045em;
         font-weight: 600;
     }
+    html.aurora .bento-tile p.uppercase.tracking-wider,
+    html.aurora .bento-hero p.uppercase.tracking-wider,
     html.aurora .bento-stage p.uppercase.tracking-wider {
         font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
         letter-spacing: 0.14em;
         font-weight: 500;
     }
+
+    /* The tinted icon chip on each metric tile carries a different hue per
+       tile, set inline on the element: the same competing-accents problem the
+       top bars had, in a smaller box. My Links alone runs blue, green and
+       amber down one row. Inline styles can only be answered with important. */
+    html.aurora .bento-tile div[style*="border: 1px solid rgba"] {
+        background: var(--bg-glass-input) !important;
+        border-color: var(--border-subtle) !important;
+    }
+    html.aurora .bento-tile div[style*="border: 1px solid rgba"] i { color: var(--text-muted); }
 
     @media (prefers-reduced-motion: reduce) {
         html.aurora .bento-tile:hover,

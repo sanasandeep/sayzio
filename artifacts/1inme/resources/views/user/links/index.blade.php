@@ -169,6 +169,21 @@
                 <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }} class="bg-[#0a0612]">Inactive</option>
             </select>
         </div>
+        <div>
+            <label class="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Sort by</label>
+            <select name="sort" class="theme-input appearance-none pr-8">
+                @foreach([
+                    'newest'      => 'Newest first',
+                    'oldest'      => 'Oldest first',
+                    'clicks_desc' => 'Most clicks',
+                    'clicks_asc'  => 'Fewest clicks',
+                    'title_asc'   => 'Title A to Z',
+                    'title_desc'  => 'Title Z to A',
+                ] as $sortValue => $sortLabel)
+                    <option value="{{ $sortValue }}" @selected(($sort ?? 'newest') === $sortValue) class="bg-[#0a0612]">{{ $sortLabel }}</option>
+                @endforeach
+            </select>
+        </div>
         <button type="submit" class="btn-ghost text-xs py-2">
             <i class="fas fa-search text-[10px]"></i> Filter
         </button>
