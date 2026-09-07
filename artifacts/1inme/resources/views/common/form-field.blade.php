@@ -263,7 +263,11 @@
                 $addrOld = old($id, []);
                 if (!is_array($addrOld)) $addrOld = [];
             @endphp
-            <div class="space-y-2">
+            {{-- Inline gap, not Tailwind's space-y-2: the public form page does not
+                 load Tailwind, so that class was inert and the address rows sat
+                 flush against each other. The two inner rows below already use
+                 inline grid gaps for the same reason. --}}
+            <div style="display:grid; gap:0.5rem;">
                 <input type="text" name="{{ $id }}[street]" class="form-input" placeholder="Street address" value="{{ $addrOld['street'] ?? '' }}" @if($required) required @endif>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
                     <input type="text" name="{{ $id }}[city]" class="form-input" placeholder="City" value="{{ $addrOld['city'] ?? '' }}" @if($required) required @endif>
