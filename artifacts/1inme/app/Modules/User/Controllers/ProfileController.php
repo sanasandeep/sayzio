@@ -413,11 +413,21 @@ class ProfileController extends Controller
         $user->settings = $settings;
         $user->save();
 
-        // Back where they came from, unless that was this route (a direct hit,
-        // or a second switch in a row), which would just bounce them here again.
-        $back = (string) (url()->previous() ?: '');
-        if ($back === '' || str_contains($back, '/user/appearance/')) {
-            $back = route('user.dashboard');
+        // Back to the page they switched from, but only when the browser
+        // actually told us what that was and it belongs to this site.
+        //
+        // url()->previous() is not that. With no Referer header, which is what
+        // a bare address-bar visit sends, it falls back to whatever URL the
+        // session last stored, so switching by typing the URL dropped people on
+        // an unrelated page they had opened earlier in the day. The dashboard
+        // is the only sensible default when we genuinely do not know.
+        $back = route('user.dashboard');
+        $referer = (string) $request->headers->get('referer', '');
+        if ($referer !== '' && !str_contains($referer, '/user/appearance/')) {
+            $host = parse_url($referer, PHP_URL_HOST);
+            if ($host !== null && $host === $request->getHost()) {
+                $back = $referer;
+            }
         }
 
         return redirect()->to($back)->with(
