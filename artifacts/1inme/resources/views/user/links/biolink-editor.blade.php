@@ -1427,7 +1427,7 @@ function openEditDrawer(blockId) {
     wrap.classList.add('open');
     container.innerHTML = '<div class="flex items-center justify-center py-16"><i class="fas fa-spinner fa-spin text-2xl" style="color: var(--text-faint);"></i></div>';
     _scrollInlineEditorIntoView(wrap);
-    if (typeof _postBlockFocus === 'function') _postBlockFocus(blockId);
+    if (typeof _postBlockFocus === 'function') _postBlockFocus(blockId, true);
 
     var editFormUrl = '{{ route("user.links.blocks.editForm", [$link, "__ID__"]) }}'.replace('__ID__', blockId);
     fetch(editFormUrl, {
@@ -1743,9 +1743,14 @@ function _postPreviewFocusMsg(payload) {
     });
 }
 
-function _postBlockFocus(blockId) {
+// `scroll` is opt-in and means "the creator asked for this block", which is
+// only true when they open its editor. Hovering a card highlights without
+// moving anything: the cursor crosses several cards on the way to the one it
+// wants, and scrolling on each of those is what made the page feel like it
+// was running away.
+function _postBlockFocus(blockId, scroll) {
     if (!blockId) return;
-    _postPreviewFocusMsg({ type: '1inme-block-focus', blockId: blockId });
+    _postPreviewFocusMsg({ type: '1inme-block-focus', blockId: blockId, scroll: !!scroll });
 }
 
 function _postBlockUnfocus() {
