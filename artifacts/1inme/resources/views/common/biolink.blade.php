@@ -2183,18 +2183,32 @@
         if (editBlockId || params.get('_preview')) {
 
             // ── Editor focus scroll (Task #6232, ring removed per owner) ────
-            // The editor posts focus/unfocus as the creator hovers a block
-            // card or opens its edit drawer; we scroll the matching block
-            // into view. No visible outline/ring is drawn on the preview.
+            // The editor posts focus as the creator hovers a block card or
+            // opens its edit drawer. Only the second one scrolls, and it
+            // scrolls this document alone. No visible outline is drawn.
             // Only active in editor preview mode.
             (function () {
                 window.addEventListener('message', function (e) {
                     if (e.origin !== window.location.origin) return;
                     var d = e.data;
                     if (!d || d.type !== '1inme-block-focus') return;
+                    if (!d.scroll) return; // hover: highlight only, never move
                     var el = document.querySelector('[data-block-id="' + d.blockId + '"]');
                     if (!el) return;
-                    try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (err) {}
+
+                    // Deliberately not scrollIntoView. That walks every
+                    // ancestor scroll container, and inside a same-origin
+                    // iframe those include the editor page hosting this
+                    // preview, so bringing a block into view here also
+                    // dragged the editor itself down to the preview column.
+                    // Setting scrollTop cannot escape this document.
+                    var doc = document.scrollingElement || document.documentElement;
+                    var rect = el.getBoundingClientRect();
+                    var target = doc.scrollTop + rect.top - (doc.clientHeight - rect.height) / 2;
+                    target = Math.max(0, Math.min(target, doc.scrollHeight - doc.clientHeight));
+                    var rm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                    try { doc.scrollTo({ top: target, behavior: rm ? 'auto' : 'smooth' }); }
+                    catch (err) { doc.scrollTop = target; }
                 });
             })();
 
