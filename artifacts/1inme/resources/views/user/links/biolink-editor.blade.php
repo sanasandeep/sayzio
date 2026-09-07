@@ -1475,10 +1475,12 @@ function _injectEditFormHtml(container, html, blockId) {
 
     Alpine.initTree(container);
 
-    // Bring the freshly-expanded inline editor into view (it may have opened
-    // below the fold, e.g. for a block near the bottom of the canvas).
-    var wrapEl = document.querySelector('[data-inline-editor="' + blockId + '"]');
-    if (wrapEl) _scrollInlineEditorIntoView(wrapEl);
+    // NOTE: no scroll here. This ran after the edit-form fetch resolved, so
+    // the page moved a second time at an unpredictable delay, long after the
+    // click that caused it. refreshBlockEditor() also re-enters this path on
+    // every autosave, which made the page drift with no user action at all --
+    // enough to shift a control out from under the cursor mid-click. The
+    // single gated scroll in openEditDrawer() covers the off-screen case.
 
     // Restore the style-tab selection captured before a refreshBlockEditor()
     // call, so applying a variant doesn't snap the user back to a default
@@ -1503,7 +1505,17 @@ function _injectEditFormHtml(container, html, blockId) {
 function _scrollInlineEditorIntoView(wrap) {
     var rm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     setTimeout(function() {
-        try { wrap.scrollIntoView({ behavior: rm ? 'auto' : 'smooth', block: 'nearest' }); } catch (e) {}
+        try {
+            // The drawer opens directly under the block the user just clicked,
+            // so it is usually already on screen. block:'nearest' alone still
+            // nudges the page whenever the element is not perfectly positioned,
+            // which is what read as an unexplained jump. Scroll only when the
+            // drawer is genuinely outside the viewport.
+            var r = wrap.getBoundingClientRect();
+            var vh = window.innerHeight || document.documentElement.clientHeight;
+            if (r.top < vh && r.bottom > 0) return; // any part visible: leave the page alone
+            wrap.scrollIntoView({ behavior: rm ? 'auto' : 'smooth', block: 'nearest' });
+        } catch (e) {}
     }, 50);
 }
 
