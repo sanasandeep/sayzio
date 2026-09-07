@@ -212,6 +212,14 @@
     $planPrice = $user->plan
         ? \App\Services\PricingResolver::priceFor($user->plan, $user, 'monthly')
         : null;
+
+    // Built here rather than inline in the markup. Blade only treats a
+    // directive as a directive when the character before its at-sign is not a
+    // word character, so closing a conditional immediately after a word (the
+    // "mo" of a price suffix, say) leaves that conditional open and the view
+    // fails to compile. Composing the string up here keeps the trap out of
+    // the template entirely.
+    $planLabel = !empty($planPrice['formatted']) ? $planPrice['formatted'] . '/mo' : '';
 @endphp
 
 <div class="au-grid">
@@ -408,7 +416,7 @@
             <div class="au-sep">
                 <div class="au-ph" style="margin-bottom:6px">
                     <span class="au-label">Plan</span>
-                    <span class="au-note">@if(!empty($planPrice['formatted'])){{ $planPrice['formatted'] }}/mo@endif</span>
+                    <span class="au-note">{{ $planLabel }}</span>
                 </div>
                 <div class="au-mini">
                     <span class="au-fig xs">{{ Str::limit($user->plan->name ?? 'Free', 14) }}</span>
