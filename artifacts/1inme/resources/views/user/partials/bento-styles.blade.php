@@ -266,4 +266,82 @@
         .pulse-orb::before { opacity: 0.4; }
         .pulse-orb::after { display: none; }
     }
+
+    /* ===================================================================
+       AURORA - the dashboard under html.aurora.
+
+       The tiles are the reason the token swap alone changed nothing here:
+       every surface property is written into this file directly, and the
+       coloured rule and glow on each metric tile come from --tile-accent and
+       --tile-glow set inline in dashboard/index.blade.php. Tokens cannot
+       reach any of it.
+
+       So the overrides are structural rather than value swaps. Same
+       specificity as the rules they replace, later in the file, which is what
+       decides the tie. Nothing outside html.aurora is touched.
+       =================================================================== */
+
+    /* The local blooms come out: body::after now lights the whole page, and
+       two aurora systems on one screen is one too many. */
+    html.aurora .bento-stage::before,
+    html.aurora .bento-stage::after { display: none; }
+
+    /* Opaque, unblurred, lit only at the edge. The inset-shadow stack that
+       built the glass bevel is replaced wholesale by one long shadow. */
+    html.aurora .bento-tile,
+    html.aurora.light-mode .bento-tile,
+    html.aurora .bento-hero,
+    html.aurora.light-mode .bento-hero {
+        background: var(--bg-card);
+        background-image: linear-gradient(var(--bg-card), var(--bg-card)), var(--aurora-edge);
+        background-origin: border-box;
+        background-clip: padding-box, border-box;
+        border: 1px solid transparent;
+        border-radius: 1.125rem;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        box-shadow: var(--lg-shadow);
+    }
+
+    /* The white top-edge sheen and the hero wash both assume a translucent
+       surface underneath. On an opaque panel they just look like smudges. */
+    html.aurora .bento-tile::after,
+    html.aurora.light-mode .bento-tile::after,
+    html.aurora .bento-hero::before { display: none; }
+
+    /* The coloured bar and the glow orb are the six competing accents. One
+       hue per meaning is the whole point of the palette, and a metric tile's
+       meaning is not its colour. */
+    html.aurora .bento-tile.accent::before,
+    html.aurora .bento-tile.accent .tile-orb { display: none; }
+
+    html.aurora .bento-tile:hover,
+    html.aurora.light-mode .bento-tile:hover {
+        transform: translateY(-2px);
+        background-image: linear-gradient(var(--bg-card), var(--bg-card)), var(--aurora-edge-hot);
+        box-shadow: var(--lg-shadow-hover);
+    }
+
+    /* Figures in Archivo with tabular digits, microlabels in mono at wide
+       tracking. Sizes are set inline on the elements, so this changes the face
+       and the fit and leaves the scale alone rather than fighting it with
+       !important. .leading-none is what separates a figure from a label here,
+       both being font-bold paragraphs. */
+    html.aurora .bento-stage p.font-bold.leading-none {
+        font-family: 'Archivo', 'Inter', system-ui, sans-serif;
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: 'tnum' 1;
+        letter-spacing: -0.045em;
+        font-weight: 600;
+    }
+    html.aurora .bento-stage p.uppercase.tracking-wider {
+        font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.14em;
+        font-weight: 500;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        html.aurora .bento-tile:hover,
+        html.aurora.light-mode .bento-tile:hover { transform: none; }
+    }
 </style>
