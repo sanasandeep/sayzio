@@ -182,7 +182,7 @@
                 <nav class="sticky top-20" aria-label="Feature categories">
                     <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-3">
                         <div class="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">On this page</div>
-                        <ul class="feat-spy-list space-y-0.5 max-h-[calc(100vh-8rem)] overflow-y-auto pr-1">
+                        <ul class="feat-spy-list space-y-0.5 max-h-[calc(100vh_-_8rem)] overflow-y-auto pr-1">
                             @foreach($categories as $cat)
                                 <li>
                                     <a href="#cat-{{ $cat['id'] }}"
