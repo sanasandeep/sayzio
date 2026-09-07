@@ -714,6 +714,23 @@ class User extends Authenticatable
         return (bool) (($this->settings['whatsapp_payment_alerts'] ?? false));
     }
 
+    /**
+     * Whether this account opted into the Aurora interface, the reworked token
+     * set (opaque panels, lit hairline edges, one aurora behind the page
+     * instead of a blur on every card). Account-level preference stored in the
+     * `settings` JSON and read by common/partials/theme-styles.blade.php,
+     * which adds `html.aurora` when it is true.
+     *
+     * Defaults to the current look, so no existing account changes appearance
+     * until it opts in at /user/appearance/aurora. That default is the whole
+     * point of the flag: the two token sets have to be comparable side by side
+     * before either becomes the one everybody gets.
+     */
+    public function usesAuroraUi(): bool
+    {
+        return (($this->settings['ui_pack'] ?? 'classic') === 'aurora');
+    }
+
     public function isFollowing(int $creatorId): bool
     {
         return Follow::where('follower_id', $this->id)->where('creator_id', $creatorId)->exists();

@@ -2,6 +2,9 @@
 (function(){
     const saved = localStorage.getItem('1inme_theme');
     if(saved !== 'dark') document.documentElement.classList.add('light-mode');
+@if(auth()->check() && auth()->user()->usesAuroraUi())
+    document.documentElement.classList.add('aurora');
+@endif
 })();
 </script>
 <style>
@@ -179,6 +182,197 @@
         --c-indigo:    #6e61ff;  --c-indigo-soft:    #ecebff;
         --c-teal:      #14b8a6;  --c-teal-soft:      #e2f7f4;
     }
+
+    /* ===================================================================
+       AURORA - opt-in interface, scoped entirely to html.aurora.
+
+       Phase 1 of the rework, and deliberately almost nothing but token
+       values. The premise of the design is that the current build has the
+       light in the wrong place: a 26px blur on every panel, over a page
+       whose own background is flat. Aurora inverts that. The page carries
+       the light (three ambient blooms plus grain), panels go opaque, and
+       depth comes from luminance rather than translucency.
+
+       Because .glass / .card-premium / .stat-card already read every one of
+       their surface properties from the --lg-* tokens, retuning those tokens
+       restyles every card in the product without touching a single blade
+       file. --lg-blur going to `none` is the single line that removes the
+       glass look.
+
+       Nothing below applies unless the account opted in. An account that has
+       not renders byte for byte what it rendered before, which is what makes
+       this safe to merge ahead of the layout work.
+       =================================================================== */
+    html.aurora {
+        --bg-body: #07060b;
+        --bg-sidebar: #0b0a11;
+        --bg-sidebar-mobile: rgba(11,10,17,0.92);
+        --bg-dropdown: #14131d;
+        --bg-header: rgba(255,255,255,0.01);
+        --bg-glass: #100f17;
+        --bg-glass-light: #14131d;
+        --bg-glass-hover: #14131d;
+        --bg-glass-input: #0b0a11;
+        --bg-glass-input-focus: #14131d;
+        --bg-card: #100f17;
+        --bg-card-hover: #14131d;
+        --border-glass: rgba(255,255,255,0.09);
+        --border-glass-light: rgba(255,255,255,0.14);
+        --border-subtle: rgba(255,255,255,0.055);
+        --border-strong: rgba(255,255,255,0.20);
+
+        /* Never pure white on the dark ground: at 100% it vibrates against a
+           near-black canvas and makes long screens tiring to read. */
+        --text-primary: #f3f1f7;
+        --text-secondary: #d9d6e2;
+        --text-muted: #9b97ac;
+        --text-dimmed: #7a768a;
+        --text-faint: #5e5a70;
+        --text-subtle: rgba(255,255,255,0.28);
+        --text-label: #9b97ac;
+
+        --accent: #6e8cff;
+        --accent-light: #b08bff;
+        --accent-glow: rgba(110,140,255,0.35);
+        --color-primary-400: #6e8cff;
+
+        --sidebar-link: #9b97ac;
+        --sidebar-link-hover-bg: rgba(255,255,255,0.05);
+        --sidebar-link-hover-text: #f3f1f7;
+        --sidebar-active-bg: rgba(255,255,255,0.07);
+        --sidebar-active-border: rgba(110,140,255,0.55);
+        --sidebar-active-text: #f3f1f7;
+
+        /* The aurora itself. Blue into violet into teal, wider and stronger
+           than the blooms they replace, because they are now the only source
+           of colour on the canvas rather than an accent on top of one. */
+        --glow-1: rgba(64,96,255,0.40);
+        --glow-2: rgba(150,80,255,0.30);
+        --glow-3: rgba(40,190,200,0.20);
+
+        /* Grain over the whole ground. body::before already draws this tile;
+           it only ever needed turning up and compositing properly. Without
+           it a blurred gradient at this scale reads as a flat wash. */
+        --noise-opacity: 0.045;
+
+        --scrollbar-thumb: rgba(255,255,255,0.10);
+        --scrollbar-thumb-hover: rgba(255,255,255,0.22);
+        --overlay-bg: rgba(4,3,8,0.72);
+
+        /* Panels: opaque, no blur, one long shadow, tighter corners. */
+        --lg-blur: none;
+        --lg-bg: #100f17;
+        --lg-bg-solid: #100f17;
+        --lg-bg-opaque: #14131d;
+        --lg-border: rgba(255,255,255,0.09);
+        --lg-highlight: none;
+        --lg-shadow: 0 30px 70px -40px rgba(0,0,0,0.95);
+        --lg-shadow-hover: 0 40px 90px -40px rgba(0,0,0,1), 0 0 0 1px rgba(255,255,255,0.14);
+        --lg-radius: 1.125rem;
+        --radius-card: 1.125rem;
+        --card-shadow: 0 30px 70px -40px rgba(0,0,0,0.95);
+        --card-shadow-hover: 0 40px 90px -40px rgba(0,0,0,1), 0 0 0 1px rgba(255,255,255,0.14);
+
+        /* One hue per meaning. Each folder colour is also its cluster colour
+           in the link graph that lands in a later phase. */
+        --c-primary:   #6e8cff;  --c-primary-soft:   rgba(110,140,255,0.16);
+        --c-success:   #46d592;  --c-success-soft:   rgba(70,213,146,0.14);
+        --c-info:      #46d3d9;  --c-info-soft:      rgba(70,211,217,0.16);
+        --c-warning:   #edb44e;  --c-warning-soft:   rgba(237,180,78,0.16);
+        --c-danger:    #ff83ab;  --c-danger-soft:    rgba(255,131,171,0.16);
+        --c-pink:      #ff83ab;  --c-pink-soft:      rgba(255,131,171,0.16);
+        --c-indigo:    #b08bff;  --c-indigo-soft:    rgba(176,139,255,0.16);
+        --c-teal:      #46d3d9;  --c-teal-soft:      rgba(70,211,217,0.16);
+    }
+
+    /* Light Aurora is warm paper rather than a lighter copy of the dark set:
+       a blue-grey light mode under a blue aurora goes muddy, and the warm
+       ground is what keeps the wash reading as light instead of as haze. */
+    html.aurora.light-mode {
+        --bg-body: #f6f5f2;
+        --bg-sidebar: #ffffff;
+        --bg-sidebar-mobile: #ffffff;
+        --bg-dropdown: #ffffff;
+        --bg-header: #ffffff;
+        --bg-glass: #ffffff;
+        --bg-glass-light: #ffffff;
+        --bg-glass-hover: #edebe6;
+        --bg-glass-input: #ffffff;
+        --bg-glass-input-focus: #ffffff;
+        --bg-card: #ffffff;
+        --bg-card-hover: #ffffff;
+        --border-glass: rgba(20,18,28,0.10);
+        --border-glass-light: rgba(20,18,28,0.16);
+        --border-subtle: rgba(20,18,28,0.055);
+        --border-strong: rgba(20,18,28,0.22);
+
+        --text-primary: #14121c;
+        --text-secondary: #33303f;
+        --text-muted: #5f5c6e;
+        --text-dimmed: #7c798a;
+        --text-faint: #9693a4;
+        --text-subtle: rgba(20,18,28,0.32);
+        --text-label: #5f5c6e;
+
+        --accent: #2f55e8;
+        --accent-light: #7b45d6;
+        --accent-glow: rgba(47,85,232,0.25);
+        --color-primary-400: #2f55e8;
+
+        --sidebar-link: #5f5c6e;
+        --sidebar-link-hover-bg: #edebe6;
+        --sidebar-link-hover-text: #14121c;
+        --sidebar-active-bg: #edebe6;
+        --sidebar-active-border: rgba(47,85,232,0.55);
+        --sidebar-active-text: #14121c;
+
+        /* Much weaker than the dark set. On paper the aurora is a tint you
+           notice at the edges, not a light source. */
+        --glow-1: rgba(47,85,232,0.16);
+        --glow-2: rgba(123,69,214,0.13);
+        --glow-3: rgba(16,134,143,0.10);
+        --noise-opacity: 0.030;
+
+        --scrollbar-thumb: rgba(20,18,28,0.16);
+        --scrollbar-thumb-hover: rgba(20,18,28,0.28);
+        --overlay-bg: rgba(20,18,28,0.45);
+
+        --lg-blur: none;
+        --lg-bg: #ffffff;
+        --lg-bg-solid: #ffffff;
+        --lg-bg-opaque: #ffffff;
+        --lg-border: rgba(20,18,28,0.10);
+        --lg-highlight: none;
+        --lg-shadow: 0 1px 2px rgba(20,18,28,0.04), 0 22px 44px -34px rgba(20,18,28,0.35);
+        --lg-shadow-hover: 0 2px 4px rgba(20,18,28,0.05), 0 34px 60px -34px rgba(20,18,28,0.42), 0 0 0 1px rgba(20,18,28,0.10);
+        --card-shadow: 0 1px 2px rgba(20,18,28,0.04), 0 22px 44px -34px rgba(20,18,28,0.35);
+        --card-shadow-hover: 0 2px 4px rgba(20,18,28,0.05), 0 34px 60px -34px rgba(20,18,28,0.42);
+
+        --c-primary:   #2f55e8;  --c-primary-soft:   #e9eeff;
+        --c-success:   #147f52;  --c-success-soft:   #e4f4ec;
+        --c-info:      #10868f;  --c-info-soft:      #e2f3f4;
+        --c-warning:   #b4791a;  --c-warning-soft:   #f8f0dd;
+        --c-danger:    #c03a6b;  --c-danger-soft:    #fbe8ee;
+        --c-pink:      #c03a6b;  --c-pink-soft:      #fbe8ee;
+        --c-indigo:    #7b45d6;  --c-indigo-soft:    #f0e9fb;
+        --c-teal:      #10868f;  --c-teal-soft:      #e2f3f4;
+    }
+
+    /* The two rules Aurora needs that are not token values.
+       Both exist because the current build assumes the ambient colour is a
+       dark-mode-only decoration, which under Aurora it is not. */
+
+    /* 1. The blooms are hidden outright in light mode today. Aurora wants
+          them in both, at the much lower light-mode alphas set above. */
+    html.aurora.light-mode .bg-mesh,
+    html.aurora.light-mode .bg-mesh::before,
+    html.aurora.light-mode .bg-mesh::after,
+    html.aurora.light-mode .bg-mesh > .bloom { display: block; }
+
+    /* 2. The grain tile is painted straight over the page, so at Aurora's
+          higher opacity it would silt the canvas grey. Compositing it as an
+          overlay lets it darken and lighten instead of just covering. */
+    html.aurora body::before { mix-blend-mode: overlay; }
 
     [x-cloak] { display: none !important; }
 
