@@ -435,6 +435,96 @@
         html.aurora .stat-card:hover { transform: none; }
     }
 
+    /* ---- Sidebar ----
+       The rail was the last thing still speaking the old language: a red
+       count, two solid blue blocks, and eight different hues across the nav
+       because every row carries its own --nav-tint inline. Structure and
+       markup are untouched; this is the same rail with the volume down. */
+
+    /* One accent, not eight. The per-row tint stays in the markup and simply
+       stops being read here, so nothing has to be edited out of the layout. */
+    html.aurora .sidebar-link.active {
+        background: var(--sidebar-active-bg);
+        color: var(--text-primary);
+    }
+    html.aurora .sidebar-link.active .nav-icon-wrap,
+    html.aurora .sidebar-link:hover .nav-icon-wrap { color: var(--text-primary); }
+    html.aurora .sidebar-link.active::before {
+        background: linear-gradient(var(--accent), var(--accent-light));
+        height: 18px;
+        width: 2px;
+    }
+
+    /* The hover chevron is dropped so the counts below can hold the right
+       edge on their own without the two fighting for it. */
+    html.aurora .sidebar-link::after { display: none; }
+
+    /* Counts to the right edge, in mono with tabular digits, so they form a
+       column down the rail instead of trailing each label at a ragged edge. */
+    html.aurora .sidebar-link .nav-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    html.aurora .sidebar-link .nav-label span[class*="bg-blue-500"],
+    html.aurora .sidebar-link .nav-label span[class*="bg-rose-500"] {
+        background: var(--bg-glass-input);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-muted);
+        font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-variant-numeric: tabular-nums;
+        font-size: 9.5px;
+        font-weight: 500;
+        padding: 1px 6px;
+        margin-left: 0;
+    }
+
+    /* Group headers in the same mono microtype as every other label in the
+       product now. */
+    html.aurora .section-header,
+    html.aurora .sidebar-group-toggle {
+        font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-weight: 500;
+        letter-spacing: 0.15em;
+    }
+
+    /* Upgrade: a bordered button rather than a filled block. New Link is the
+       page's primary action and should be the only solid fill in view. */
+    html.aurora .upgrade-card {
+        background: var(--bg-glass-input);
+        border: 1px solid var(--border-subtle);
+        box-shadow: none;
+    }
+    html.aurora .upgrade-card::before { display: none; }
+    html.aurora .upgrade-card .bg-blue-500 {
+        background: color-mix(in srgb, var(--accent) 16%, transparent);
+    }
+    html.aurora .upgrade-card .bg-blue-500 i { color: var(--accent); }
+    html.aurora .upgrade-card a[class*="bg-blue-600"] {
+        background: transparent;
+        border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+        color: var(--accent);
+        box-shadow: none;
+        font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-weight: 500;
+    }
+    html.aurora .upgrade-card a[class*="bg-blue-600"]:hover {
+        background: color-mix(in srgb, var(--accent) 12%, transparent);
+    }
+
+    /* Switch to admin: a quiet row. Its colours are set inline on the element,
+       so this is the one place here that has to say important. */
+    html.aurora button[title="Switch to the admin dashboard"] {
+        background: transparent !important;
+        border: 1px solid var(--border-subtle) !important;
+        color: var(--text-muted) !important;
+    }
+    html.aurora button[title="Switch to the admin dashboard"]:hover {
+        background: var(--bg-glass-hover) !important;
+        color: var(--text-primary) !important;
+    }
+
     [x-cloak] { display: none !important; }
 
     /* iOS Safari ignores body{overflow-x:hidden} for viewport panning, so
