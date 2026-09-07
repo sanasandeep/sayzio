@@ -397,6 +397,37 @@ class ProfileController extends Controller
      * Pending rows are NOT marked as emailed — the next real digest
      * still includes them.
      */
+    /**
+     * Switch this account between the current interface and Aurora.
+     *
+     * Deliberately a GET with no UI attached: the flag exists so the new token
+     * set can be looked at against the current one on real pages with real
+     * data, and a URL is the smallest thing that does that. When Aurora becomes
+     * the default this method and its route come out with it.
+     */
+    public function appearance(Request $request, string $pack)
+    {
+        $user = $request->user();
+        $settings = (array) ($user->settings ?? []);
+        $settings['ui_pack'] = $pack === 'aurora' ? 'aurora' : 'classic';
+        $user->settings = $settings;
+        $user->save();
+
+        // Back where they came from, unless that was this route (a direct hit,
+        // or a second switch in a row), which would just bounce them here again.
+        $back = (string) (url()->previous() ?: '');
+        if ($back === '' || str_contains($back, '/user/appearance/')) {
+            $back = route('user.dashboard');
+        }
+
+        return redirect()->to($back)->with(
+            'success',
+            $settings['ui_pack'] === 'aurora'
+                ? 'Aurora interface on. Switch back at /user/appearance/classic.'
+                : 'Back to the current interface.'
+        );
+    }
+
     public function sendSample(Request $request)
     {
         $user = Auth::user();

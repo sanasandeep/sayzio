@@ -207,6 +207,13 @@ Route::prefix('user')->name('user.')->group(function () {
         ->name('geo.suggest');
 
     Route::get('verify-email', [AuthController::class, 'showVerifyEmail'])->middleware('auth')->name('verification.notice');
+    // Opt this account into (or out of) the Aurora interface. See
+    // User::usesAuroraUi() for why this is a bare URL and not a settings toggle.
+    Route::get('appearance/{pack}', [ProfileController::class, 'appearance'])
+        ->whereIn('pack', ['classic', 'aurora'])
+        ->middleware(['auth', 'throttle:30,1'])
+        ->name('appearance');
+
     Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware(['auth', 'signed'])->name('verification.verify');
     Route::post('verify-email/resend', [AuthController::class, 'resendVerification'])->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
