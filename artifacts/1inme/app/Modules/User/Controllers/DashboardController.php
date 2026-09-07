@@ -188,8 +188,24 @@ class DashboardController extends Controller
             DashboardPresets::widgetsForPreset(DashboardPresets::DEFAULT_PRESET)
         );
 
-        return view('user.dashboard.index', compact(
-            'user', 'totalLinks', 'totalClicks', 'totalProjects', 'deskFolders',
+        // Aurora dashboard only. The link graph needs one row per link with its
+        // folder and its click count, and the top-links panel wants those same
+        // rows ordered, so one query serves both. Capped at 300 because the
+        // graph is a picture rather than a list: past a few hundred nodes it
+        // stops reading as clusters and starts reading as static, and an
+        // account with thousands of links would be paying render time for
+        // dots nobody can tell apart.
+        $auroraLinks = collect();
+        if ($user->usesAuroraUi()) {
+            $auroraLinks = $user->links()
+                ->select('id', 'project_id', 'alias', 'title', 'total_clicks')
+                ->orderByDesc('total_clicks')
+                ->limit(300)
+                ->get();
+        }
+
+        return view($user->usesAuroraUi() ? 'user.dashboard.aurora' : 'user.dashboard.index', compact(
+            'user', 'totalLinks', 'totalClicks', 'totalProjects', 'deskFolders', 'auroraLinks',
             'activeLinks', 'recentLinks', 'clicksToday',
             'channelStats', 'channelFilter', 'backlinksThisWeek',
             'showWhatsappPrompt', 'whatsappChannelUrl', 'deliveryProjects',
