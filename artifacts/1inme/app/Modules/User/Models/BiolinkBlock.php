@@ -948,6 +948,18 @@ class BiolinkBlock extends Model
             }
             $shadow = self::buildShadow($style);
             if ($shadow) $css[] = "box-shadow:{$shadow}";
+        } else {
+            // Content Only: the card branch above emits every decoration
+            // property, so skipping it leaves NO background/border/shadow CSS
+            // at all -- and the element then falls back to whatever its base
+            // button/link class paints (a solid accent colour). "Background:
+            // none" therefore appeared to do nothing on button-family blocks.
+            // Reset explicitly rather than relying on absent CSS to imply it.
+            // Emitted before the bg_image block below so a deliberately set
+            // background image still wins over this reset.
+            $css[] = 'background:transparent';
+            $css[] = 'box-shadow:none';
+            $css[] = 'border:none';
         }
 
         if (!empty($style['bg_image']) && preg_match('#^(https?://|/f/)#', $style['bg_image'])) {

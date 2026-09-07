@@ -445,6 +445,32 @@ class MarketingSeo
         ];
     }
 
+    /**
+     * Compose a page's <title>, appending the app name only when it is not
+     * already there.
+     *
+     * Views used to append it unconditionally, so any admin-entered SEO title
+     * that already carried the brand rendered it twice ("Sayzio — ... —
+     * Sayzio"). Match case-insensitively: admins type the brand in whatever
+     * case reads best.
+     *
+     * @param string $glue Verbatim separator, spacing included (' — ', ' | ', ': ').
+     */
+    public static function documentTitle(?string $title, string $glue = ' — '): string
+    {
+        $appName = trim((string) config('app.name', 'Sayzio'));
+        $title   = trim((string) $title);
+
+        if ($title === '') {
+            return $appName;
+        }
+        if ($appName === '' || mb_stripos($title, $appName) !== false) {
+            return $title;
+        }
+
+        return $title . $glue . $appName;
+    }
+
     /** Return the first trimmed non-empty string from the list, or null. */
     private static function firstNonEmpty(array $candidates): ?string
     {

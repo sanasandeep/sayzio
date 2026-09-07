@@ -143,7 +143,7 @@
 
                 <div id="fieldsList" class="min-h-[300px]"
                      style="display:grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.75rem;">
-                    <template x-for="(f, i) in fields" :key="f.id">
+                    <template x-for="(f, i) in fields" :key="f.id + '-' + i">
                         <div :data-id="f.id"
                              :style="`grid-column: span ${f.type === 'section' ? 12 : (f.width || 12)} / span ${f.type === 'section' ? 12 : (f.width || 12)}; ${(!isTopLevel(f)) ? 'display:none;' : ''}`"
                              :class="f.type === 'section' ? 'section-card' : ''">
@@ -168,7 +168,7 @@
                                     </div>
                                     {{-- Children of this section, in their own 12-col mini-grid --}}
                                     <div style="display:grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.75rem; padding: 0.5rem; border-radius: 8px; background: var(--bg-body);">
-                                        <template x-for="(cf, ci) in fields" :key="'child-'+cf.id">
+                                        <template x-for="(cf, ci) in fields" :key="'child-' + cf.id + '-' + ci">
                                             <template x-if="cf.parent === f.id">
                                                 <div class="card-premium p-3 field-card cursor-pointer"
                                                      :class="selectedIndex === ci ? 'ring-2 ring-blue-500' : ''"

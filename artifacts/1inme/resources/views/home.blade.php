@@ -16,7 +16,7 @@
             $__seo = array_merge($__seo, $__designSeo);
         }
     @endphp
-    <title>{{ $__seo['title'] }} — {{ config('app.name', 'Sayzio') }}</title>
+    <title>{{ \App\Modules\Common\Support\MarketingSeo::documentTitle($__seo['title'], ' — ') }}</title>
     <meta name="description" content="{{ $__seo['description'] }}">
     @if(($__seo['keywords'] ?? '') !== '')
         <meta name="keywords" content="{{ $__seo['keywords'] }}">
