@@ -116,6 +116,15 @@ protected $fillable = [
             'button_label' => 'Submit',
             'button_style' => 'gradient', // gradient | solid | outline
             'layout' => 'stacked',        // stacked | inline | oneq
+            // Input chrome. Four independent axes rather than one list of
+            // presets, so seven skins x three shapes x two densities x three
+            // focus treatments come out of four selects. Every default below
+            // reproduces the look the form had before these keys existed, and
+            // common/form.blade.php emits no CSS at all for a default axis.
+            'input_style' => 'soft',      // soft | outline | underline | filled | ghost | elevated | accent_bar
+            'input_shape' => 'auto',      // auto (follow border_radius) | pill | square
+            'density' => 'comfortable',   // comfortable | compact
+            'focus_style' => 'glow',      // glow | border | fill
             'font' => 'Plus Jakarta Sans',
             'show_branding' => true,
         ];

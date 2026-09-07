@@ -444,6 +444,13 @@ class FormController extends Controller
             'button_label' => 'required|string|max:60',
             'button_style' => 'required|in:gradient,solid,outline',
             'layout' => 'required|in:stacked,inline,oneq',
+            // Nullable rather than required: a form saved before these controls
+            // shipped posts none of them, and array_merge with defaultDesign()
+            // then keeps the stored value instead of blanking it.
+            'input_style' => 'nullable|in:soft,outline,underline,filled,ghost,elevated,accent_bar',
+            'input_shape' => 'nullable|in:auto,pill,square',
+            'density' => 'nullable|in:comfortable,compact',
+            'focus_style' => 'nullable|in:glow,border,fill',
             'font' => 'required|string|max:60',
             'show_branding' => 'sometimes|boolean',
             'cover_image' => \App\Services\UploadPolicy::rule('forms.cover', $request->user()),
