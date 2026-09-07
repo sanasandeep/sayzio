@@ -1515,7 +1515,7 @@
             @if(($hasCustomStyle && !$skipWrap) || $presetLayer)</div>@endif
             </div>
         @empty
-            <div class="text-center py-12">
+            <div class="text-center py-12" style="grid-column: 1 / -1;">
                 <div class="w-20 h-20 rounded-full bg-white/10 backdrop-blur flex items-center justify-center mx-auto mb-4 border border-white/10">
                     <span class="text-3xl font-bold">{{ strtoupper(substr($pageTitle, 0, 1)) }}</span>
                 </div>
