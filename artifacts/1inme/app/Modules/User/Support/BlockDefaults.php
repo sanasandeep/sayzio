@@ -370,6 +370,48 @@ class BlockDefaults
      *
      * @return array<string,mixed>
      */
+    /**
+     * Content keys whose value is a list of rows with a type-specific shape.
+     * These are the keys where a shared admin override can silently blank a
+     * sibling block type, so they get shape reconciliation before merging.
+     */
+    protected const ROW_CONTENT_KEYS = ['items', 'slots', 'options', 'image_options', 'price_options', 'addons'];
+
+    /**
+     * Reconcile admin-supplied rows against the shape this block type renders.
+     *
+     * Returns the rows trimmed to the keys the type actually understands, or
+     * null when the two shapes have nothing in common -- meaning the override
+     * belongs to a sibling type and must not be applied at all.
+     *
+     * Trimming rather than rejecting outright keeps the intended sharing
+     * working where shapes merely differ in breadth: an admin editing the
+     * bulleted List's sample copy still reaches the Numbered List (both carry
+     * `text`), while the Pricing List, which shares no keys with either, keeps
+     * its own seeded tiers.
+     */
+    protected static function reconcileRowShape(array $baseRows, array $overrideRows): ?array
+    {
+        $expected = null;
+        foreach ($baseRows as $row) {
+            if (is_array($row)) { $expected = array_keys($row); break; }
+        }
+        // No structured sample to compare against: nothing to protect.
+        if ($expected === null) return $overrideRows;
+
+        $out = [];
+        $sawStructuredRow = false;
+        foreach ($overrideRows as $row) {
+            if (!is_array($row)) { $out[] = $row; continue; }
+            $sawStructuredRow = true;
+            $trimmed = array_intersect_key($row, array_flip($expected));
+            if ($trimmed === []) return null; // wholly foreign shape
+            $out[] = $trimmed;
+        }
+
+        return $sawStructuredRow ? $out : $overrideRows;
+    }
+
     public static function contentForType(string $type): array
     {
         $imgUrl       = self::placeholderUrl('image');
@@ -771,6 +813,28 @@ class BlockDefaults
 
         $placeholder = $hardcoded['_placeholder'] ?? false;
         $base = $startBlank ? self::blankedContent($hardcoded) : $hardcoded;
+
+        // Alias types deliberately share one admin-override slot with their
+        // canonical type (see saveAdminOverrideForType). For flat key/value
+        // content that is harmless -- array_replace merges key by key. It is
+        // destructive when a shared key holds rows of a type-specific shape:
+        // array_replace swaps the array wholesale, so the plain bulleted
+        // `list` override's {icon,text} rows replaced `list_pricing`'s
+        // {name,price,period,description} rows and every pricing field
+        // rendered blank while looking like a stuck loading skeleton.
+        // Reconcile the row shapes instead of trusting them to match.
+        if (is_array($adminOverride)) {
+            foreach (self::ROW_CONTENT_KEYS as $rowKey) {
+                if (!isset($adminOverride[$rowKey], $base[$rowKey])) continue;
+                if (!is_array($adminOverride[$rowKey]) || !is_array($base[$rowKey])) continue;
+                $reconciled = self::reconcileRowShape($base[$rowKey], $adminOverride[$rowKey]);
+                if ($reconciled === null) {
+                    unset($adminOverride[$rowKey]);
+                } else {
+                    $adminOverride[$rowKey] = $reconciled;
+                }
+            }
+        }
 
         // array_replace honours explicit empty strings / empty arrays in the
         // override: an admin-cleared field stays genuinely blank rather than
