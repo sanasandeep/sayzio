@@ -110,7 +110,15 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {{-- LEFT: field type palette --}}
             <aside class="lg:col-span-3">
-                <div class="card-premium p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh_-_2rem)] lg:overflow-y-auto lg:custom-scrollbar" x-data="{ search: '' }">
+                                {{-- The scroll container must NOT be the .card-premium element:
+                     theme-styles.blade.php sets `.card-premium { overflow: hidden }`
+                     from an inline <style> in the head, so it loads after Tailwind's
+                     utilities. Equal specificity, later source order, so it beats
+                     `lg:overflow-y-auto` and the panel clips instead of scrolling.
+                     Keep sticky/max-height/overflow on a plain wrapper and let the
+                     card size naturally inside it. --}}
+                <div class="lg:sticky lg:top-4 lg:max-h-[calc(100vh_-_2rem)] lg:overflow-y-auto lg:custom-scrollbar">
+                <div class="card-premium p-4" x-data="{ search: '' }">
                     <h4 class="text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--text-faint);">Add a field</h4>
                     <div class="relative mb-2">
                         <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]" style="color: var(--text-faint);"></i>
@@ -131,6 +139,7 @@
                         <p x-show="search && !Object.entries(types).some(([t,m]) => m.label.toLowerCase().includes(search.toLowerCase()) || t.toLowerCase().includes(search.toLowerCase()))"
                            class="text-[11px] text-center py-3" style="color: var(--text-faint);">No fields match.</p>
                     </div>
+                </div>
                 </div>
             </aside>
 
@@ -289,7 +298,8 @@
 
             {{-- RIGHT: per-field editor --}}
             <aside class="lg:col-span-3">
-                <div x-ref="fieldPanel" class="card-premium p-5 lg:sticky lg:top-4 lg:max-h-[calc(100vh_-_2rem)] lg:overflow-y-auto lg:custom-scrollbar">
+                <div x-ref="fieldPanel" class="lg:sticky lg:top-4 lg:max-h-[calc(100vh_-_2rem)] lg:overflow-y-auto lg:custom-scrollbar">
+                <div class="card-premium p-5">
                     <h4 class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--text-faint);">
                         <span x-show="selectedIndex === null">Field options</span>
                         <span x-show="selectedIndex !== null" x-text="`Editing: ${fields[selectedIndex]?.type}`"></span>
@@ -672,6 +682,7 @@
                             </div>
                         </div>
                     </template>
+                </div>
                 </div>
             </aside>
         </div>
