@@ -1024,6 +1024,57 @@
 
         {{-- LAYOUT TAB (Spacing + Grid) --}}
         <div x-show="activeStyleTab === 'spacing'" class="space-y-4">
+            {{-- Icon Position — link-family blocks only.
+                 The Designs gallery already ships "Icon Left"/"Icon Right"/
+                 "Icon Both Sides"/"Icon Only" presets, but applying one also
+                 overwrites bg_color, radius, shadow, padding and text colour,
+                 so a creator lost their custom look just to move the icon.
+                 The underlying property is a plain style key (`link_layout`,
+                 sanitised against BlockStyleSanitizer::LINK_LAYOUTS and already
+                 exposed in the admin design editor), so expose it here as its
+                 own control alongside the other per-property settings.
+                 Only the icon arrangements are offered: the remaining
+                 LINK_LAYOUTS values are whole layout families (image_cover,
+                 taped_note, numbered_list …) that belong in the gallery, not
+                 behind a control labelled "Icon Position". A block currently
+                 using one of those simply shows nothing selected here until
+                 the creator picks an icon arrangement. --}}
+            @php
+                $__iconPosBlocks = ['link', 'link_big', 'cta_button', 'featured_pin', 'external_item'];
+                $__iconPosOptions = [
+                    ''           => 'Default',
+                    'icon_left'  => 'Left',
+                    'icon_right' => 'Right',
+                    'icon_both'  => 'Both',
+                    'icon_only'  => 'Icon only',
+                ];
+                $__currentIconPos = (string) ($st['link_layout'] ?? '');
+                // A non-icon layout (image_left, taped_note, …) is not one of
+                // ours: leave every chip unselected rather than lying about it.
+                $__iconPosValue = array_key_exists($__currentIconPos, $__iconPosOptions) ? $__currentIconPos : null;
+            @endphp
+            @if(in_array($block->type, $__iconPosBlocks, true))
+            <div x-data="{ iconPos: @js($__iconPosValue) }">
+                <label class="{{ $labelClass }}">Icon Position</label>
+                <div class="grid grid-cols-5 gap-1 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                    @foreach($__iconPosOptions as $__ipv => $__ipl)
+                    <label class="flex flex-col items-center cursor-pointer" @click="iconPos = @js($__ipv)">
+                        <input type="radio" name="style[link_layout]" value="{{ $__ipv }}" {{ $__iconPosValue === $__ipv ? 'checked' : '' }} class="hidden">
+                        <span class="w-full text-center text-[10px] font-bold py-1.5 rounded-lg border transition-all"
+                              :style="iconPos === @js($__ipv) ? 'background: rgba(61,107,255,0.15); border-color: rgba(61,107,255,0.3); color: #90acff;' : 'background: transparent; border-color: transparent; color: var(--text-faint);'">{{ $__ipl }}</span>
+                    </label>
+                    @endforeach
+                </div>
+                @if($__iconPosValue === null)
+                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">
+                        This block uses the &ldquo;{{ ucfirst(str_replace('_', ' ', $__currentIconPos)) }}&rdquo; layout from the Designs gallery. Picking an icon position here switches it to a standard button layout; your colours, font and shape are kept.
+                    </p>
+                @else
+                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Moves the icon without touching your colours, font or shape.</p>
+                @endif
+            </div>
+            @endif
+
             {{-- Grid Width — per-device (Task #6119). Mobile drives the base
                  `grid_span`; Desktop drives the `grid_span_md` override that
                  only applies at/above the 768px breakpoint on the public page.
