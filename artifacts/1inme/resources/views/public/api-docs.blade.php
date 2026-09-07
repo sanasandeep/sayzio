@@ -95,7 +95,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-10">
 
         {{-- Sidebar nav --}}
-        <aside class="lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto pr-2">
+        <aside class="lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh_-_6rem)] lg:overflow-y-auto pr-2">
             <nav class="space-y-0.5 text-sm" id="docs-nav">
                 @foreach($sections as $s)
                     <a href="#{{ $s['id'] }}" data-target="{{ $s['id'] }}"
