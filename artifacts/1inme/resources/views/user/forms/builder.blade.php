@@ -226,7 +226,7 @@
                                                           x-text="f.width === 6 ? '½ row' : (f.width === 4 ? '⅓ row' : '⅔ row')"></span>
                                                 </template>
                                             </div>
-                                            <div class="text-sm font-semibold mb-1" style="color: var(--text-primary);" x-text="f.label || '(no label)'"></div>
+                                            <div class="text-sm font-semibold mb-2" style="color: var(--text-primary);" x-text="f.label || '(no label)'"></div>
                                             <div x-show="f.type === 'text' || f.type === 'email' || f.type === 'phone' || f.type === 'url' || f.type === 'number'">
                                                 <div class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);" x-text="f.placeholder || 'Enter value…'"></div>
                                             </div>
@@ -261,7 +261,82 @@
                                             </div>
                                             <div x-show="f.type === 'divider'" class="border-t-2" style="border-color: var(--border-glass);"></div>
                                             <div x-show="f.type === 'paragraph'" class="text-sm" style="color: var(--text-muted);" x-text="f.label"></div>
-                                            <div x-show="f.help" class="text-[11px] mt-1" style="color: var(--text-faint);" x-text="f.help"></div>
+                                            {{-- Composite and specialised types previously had no canvas preview at
+                                                 all: the card showed only its label and a blank gap, so a creator could
+                                                 not see what a block actually contains. These mirror the real markup in
+                                                 common/form-field.blade.php so the canvas matches the live form. --}}
+                                            <div x-show="f.type === 'address'" class="mt-2 space-y-2">
+                                                <div class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);">Street address</div>
+                                                <div class="grid grid-cols-2 gap-2">
+                                                    <div class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);">City</div>
+                                                    <div class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);">State / Province</div>
+                                                    <div class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);">Postal / ZIP code</div>
+                                                    <div class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);">Country</div>
+                                                </div>
+                                            </div>
+                                            <div x-show="f.type === 'full_name'" class="mt-2 grid grid-cols-2 gap-2">
+                                                <div class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);" x-text="f.first_label || 'First Name'"></div>
+                                                <div class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);" x-text="f.last_label || 'Last Name'"></div>
+                                            </div>
+                                            <div x-show="f.type === 'date' || f.type === 'time'" class="mt-2 px-3 py-2 rounded-lg text-xs flex items-center gap-2" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);">
+                                                <i :class="f.type === 'date' ? 'fa-calendar' : 'fa-clock'" class="far text-[11px]"></i>
+                                                <span x-text="f.type === 'date' ? 'dd / mm / yyyy' : '--:--'"></span>
+                                            </div>
+                                            <div x-show="f.type === 'date_range' || f.type === 'time_range'" class="mt-2 flex items-center gap-2">
+                                                <div class="px-3 py-2 rounded-lg text-xs flex-1" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);" x-text="f.type === 'date_range' ? 'Start date' : 'Start time'"></div>
+                                                <span class="text-[11px]" style="color: var(--text-faint);">&rarr;</span>
+                                                <div class="px-3 py-2 rounded-lg text-xs flex-1" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);" x-text="f.type === 'date_range' ? 'End date' : 'End time'"></div>
+                                            </div>
+                                            <div x-show="f.type === 'country' || f.type === 'currency'" class="mt-2 px-3 py-2 rounded-lg text-xs flex items-center justify-between" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);">
+                                                <span x-text="f.type === 'country' ? 'Select a country' : 'Select a currency'"></span>
+                                                <i class="fas fa-caret-down text-[10px]"></i>
+                                            </div>
+                                            <div x-show="f.type === 'yes_no'" class="mt-2 flex gap-2 text-xs" style="color: var(--text-muted);">
+                                                <span class="px-3 py-1.5 rounded-lg flex items-center gap-1.5" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);"><i class="far fa-circle text-[9px]"></i> Yes</span>
+                                                <span class="px-3 py-1.5 rounded-lg flex items-center gap-1.5" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);"><i class="far fa-circle text-[9px]"></i> No</span>
+                                            </div>
+                                            <div x-show="f.type === 'consent'" class="mt-2 flex items-start gap-2 text-xs" style="color: var(--text-muted);">
+                                                <i class="far fa-square text-[11px] mt-0.5"></i>
+                                                <span x-text="f.consent_text || f.label || 'I agree to the terms'"></span>
+                                            </div>
+                                            <div x-show="f.type === 'slider'" class="mt-3 mb-1">
+                                                <div class="h-1.5 rounded-full relative" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                                    <span class="absolute w-3.5 h-3.5 rounded-full" style="left: 45%; top: -5px; background: #5c83ff;"></span>
+                                                </div>
+                                                <div class="flex justify-between text-[10px] mt-1.5" style="color: var(--text-faint);">
+                                                    <span x-text="f.min ?? 0"></span><span x-text="f.max ?? 100"></span>
+                                                </div>
+                                            </div>
+                                            <div x-show="f.type === 'ranking'" class="mt-2 space-y-1.5 text-xs" style="color: var(--text-muted);">
+                                                <template x-for="(opt, oi) in (f.options || [])" :key="opt">
+                                                    <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);">
+                                                        <span class="w-4 h-4 rounded flex items-center justify-center text-[9px] font-bold" style="background: rgba(92,131,255,0.16); color: #90acff;" x-text="oi + 1"></span>
+                                                        <span x-text="opt"></span>
+                                                        <i class="fas fa-grip-lines ml-auto text-[9px] opacity-40"></i>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            <div x-show="f.type === 'image_choice'" class="mt-2 grid grid-cols-3 gap-2">
+                                                <template x-for="opt in ((f.image_options || []).length ? f.image_options : [1,2,3])" :key="opt">
+                                                    <div class="rounded-lg flex items-center justify-center py-4" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);">
+                                                        <i class="far fa-image text-sm opacity-50"></i>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            <div x-show="f.type === 'pricing'" class="mt-2 space-y-1.5 text-xs" style="color: var(--text-muted);">
+                                                <template x-for="(po, pi) in ((f.price_options || []).length ? f.price_options : [null])" :key="pi">
+                                                    <div class="flex items-center justify-between px-2.5 py-1.5 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);">
+                                                        <span x-text="(po &amp;&amp; po.label) || 'Package name'"></span>
+                                                        <span class="font-semibold" x-text="(po &amp;&amp; po.price) ? po.price : '0.00'"></span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            <div x-show="f.type === 'hidden'" class="mt-2 flex items-center gap-2 text-[11px] px-2.5 py-1.5 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);">
+                                                <i class="fas fa-eye-slash text-[10px]"></i>
+                                                <span>Hidden &mdash; submitted, never shown to the visitor</span>
+                                            </div>
+                                            <div x-show="f.type === 'heading'" class="mt-1 text-base font-bold" style="color: var(--text-primary);" x-text="f.label || 'Section heading'"></div>
+                                            <div x-show="f.help" class="text-[11px] mt-2" style="color: var(--text-faint);" x-text="f.help"></div>
                                         </div>
                                         <div class="flex flex-col gap-1">
                                             <button type="button" @click.stop="duplicateField(i)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" style="background: var(--bg-glass-input); color: var(--text-muted);" title="Duplicate"><i class="fas fa-clone"></i></button>
