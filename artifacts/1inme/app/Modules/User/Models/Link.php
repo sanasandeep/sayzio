@@ -4,13 +4,31 @@ namespace App\Modules\User\Models;
 
 
 use App\Modules\User\Concerns\BelongsToWorkspace;
+use Database\Factories\LinkDatabaseFactory;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class Link extends Model
 {
     
-    use BelongsToWorkspace;
+    use BelongsToWorkspace, HasFactory;
+
+    /**
+     * Point the standard {@see HasFactory::factory()} entry point at
+     * {@see LinkDatabaseFactory}, mirroring {@see User::newFactory()}.
+     *
+     * Required because Laravel's default factory-name resolver derives
+     * `Database\Factories\Modules\User\Models\LinkFactory` from this model's
+     * module namespace, which does not exist. Without this override
+     * `Link::factory()` throws BadMethodCallException in test setUp and errors
+     * every test in the class before a single assertion runs.
+     */
+    protected static function newFactory(): Factory
+    {
+        return LinkDatabaseFactory::new();
+    }
 
     protected static function booted(): void
     {
