@@ -204,7 +204,7 @@ class DashboardController extends Controller
                 ->get();
         }
 
-        return view($user->usesAuroraUi() ? 'user.dashboard.aurora' : 'user.dashboard.index', compact(
+        $payload = compact(
             'user', 'totalLinks', 'totalClicks', 'totalProjects', 'deskFolders', 'auroraLinks',
             'activeLinks', 'recentLinks', 'clicksToday',
             'channelStats', 'channelFilter', 'backlinksThisWeek',
@@ -213,6 +213,32 @@ class DashboardController extends Controller
             'dashboardIsCustom', 'dashboardCatalog', 'dashboardGroupedCatalog', 'dashboardPresets',
             'dashboardAiAllowed', 'dashboardLayoutLabel', 'dashboardTrimmedTabs',
             'clicksSparkline', 'linksSparkline', 'projectsSparkline'
-        ));
+        );
+
+        // The Aurora dashboard is a preview behind an opt-in flag, so a fault
+        // in it must never cost anyone their dashboard. Render it inside the
+        // try (rather than returning the view and letting the response
+        // pipeline render it later) so a view-level error is caught here, and
+        // fall back to the dashboard that has always worked.
+        //
+        // The reason for the header: this box takes no inbound SSH, so the
+        // Laravel log is not reachable from where this preview is being built.
+        // One sanitised line on the response is enough to diagnose a broken
+        // preview, and only an account that opted in ever sees it.
+        if ($user->usesAuroraUi()) {
+            try {
+                return response(view('user.dashboard.aurora', $payload)->render());
+            } catch (\Throwable $e) {
+                report($e);
+
+                $note = $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine();
+                $note = preg_replace('/[^\x20-\x7E]/', ' ', $note);
+
+                return response(view('user.dashboard.index', $payload))
+                    ->header('X-Aurora-Error', mb_substr((string) $note, 0, 480));
+            }
+        }
+
+        return view('user.dashboard.index', $payload);
     }
 }
