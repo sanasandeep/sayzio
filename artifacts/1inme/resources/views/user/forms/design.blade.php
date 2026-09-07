@@ -17,6 +17,33 @@
         buttonStyle: @js($design['button_style']),
         layout: @js($design['layout']),
         showBranding: {{ ($design['show_branding'] ?? true) ? 'true' : 'false' }},
+        inputStyle: @js($design['input_style'] ?? 'soft'),
+        inputShape: @js($design['input_shape'] ?? 'auto'),
+        density: @js($design['density'] ?? 'comfortable'),
+        focusStyle: @js($design['focus_style'] ?? 'glow'),
+        inputCss(kind) {
+            const light = this.theme === 'light';
+            const txt = light ? this.text : 'white';
+            const bd = light ? '#e5e7eb' : 'rgba(255,255,255,0.12)';
+            const bg = light ? '#f5f6fa' : 'rgba(255,255,255,0.06)';
+            const solid = light ? '#ffffff' : 'rgba(255,255,255,0.10)';
+            const boxed = this.inputStyle !== 'underline' && this.inputStyle !== 'ghost';
+            let radius = Math.max(4, this.radius / 2) + 'px';
+            if (boxed && this.inputShape === 'pill') radius = kind === 'textarea' ? '1rem' : '999px';
+            if (boxed && this.inputShape === 'square') radius = '0';
+            let css = 'width: 100%; font-family: inherit; font-size: 0.72rem; outline: none;'
+                + ' color: ' + txt + ';'
+                + ' padding: ' + (this.density === 'compact' ? '0.35rem 0.7rem' : '0.5rem 0.75rem') + ';'
+                + ' border-radius: ' + radius + '; background: ' + bg + '; border: 1px solid ' + bd + ';';
+            if (boxed && this.inputShape === 'pill') css += ' padding-left: 1rem; padding-right: 1rem;';
+            if (this.inputStyle === 'outline') css += ' background: transparent; border-color: ' + (light ? '#cbd5e1' : 'rgba(255,255,255,0.24)') + ';';
+            if (this.inputStyle === 'underline') css += ' background: transparent; border: 0; border-bottom: 2px solid ' + bd + '; border-radius: 0; padding-left: 0; padding-right: 0;';
+            if (this.inputStyle === 'filled') css += ' background: ' + (light ? '#eceff5' : 'rgba(255,255,255,0.08)') + '; border-color: transparent;';
+            if (this.inputStyle === 'ghost') css += ' background: transparent; border-color: transparent; padding-left: 0; padding-right: 0;';
+            if (this.inputStyle === 'elevated') css += ' background: ' + solid + '; border-color: transparent; box-shadow: 0 1px 2px rgba(0,0,0,0.05), 0 6px 16px -8px rgba(0,0,0,0.2);';
+            if (this.inputStyle === 'accent_bar') css += ' border-left: 3px solid ' + this.accent + ';';
+            return css;
+        },
      }">
 
     @include('user.partials.page-hero', [
@@ -151,6 +178,53 @@
             </div>
 
             <div class="card-premium p-6">
+                <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Input Fields</h3>
+                <p class="text-[11px] mb-5" style="color: var(--text-faint);">Four independent controls: the skin, the shape, how tight the spacing is, and what focus looks like. The preview updates as you pick.</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Input style</label>
+                        <select name="input_style" x-model="inputStyle" class="theme-input w-full text-sm">
+                            <option value="soft">Soft (default)</option>
+                            <option value="outline">Outline, no fill</option>
+                            <option value="underline">Underline only</option>
+                            <option value="filled">Filled, no border</option>
+                            <option value="ghost">Borderless</option>
+                            <option value="elevated">Elevated, with shadow</option>
+                            <option value="accent_bar">Accent bar on the left</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Input shape</label>
+                        <select name="input_shape" x-model="inputShape" class="theme-input w-full text-sm">
+                            <option value="auto">Follow corner radius</option>
+                            <option value="pill">Pill, fully rounded</option>
+                            <option value="square">Square corners</option>
+                        </select>
+                        <p x-show="inputShape !== 'auto' && (inputStyle === 'underline' || inputStyle === 'ghost')" x-cloak class="text-[10px] mt-1.5" style="color: #f59e0b;">
+                            Underline and borderless fields have no box to shape, so this is ignored.
+                        </p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Density</label>
+                        <select name="density" x-model="density" class="theme-input w-full text-sm">
+                            <option value="comfortable">Comfortable (default)</option>
+                            <option value="compact">Compact</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Focus effect</label>
+                        <select name="focus_style" x-model="focusStyle" class="theme-input w-full text-sm">
+                            <option value="glow">Glow ring (default)</option>
+                            <option value="border">Accent border only</option>
+                            <option value="fill">Accent tint</option>
+                        </select>
+                        <p class="text-[10px] mt-1.5" style="color: var(--text-faint);">Click into the preview field to see it.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-premium p-6">
                 <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Button</h3>
                 <p class="text-[11px] mb-5" style="color: var(--text-faint);">The submit button label and its visual style.</p>
 
@@ -235,8 +309,11 @@
                         <div :style="`color: ${theme === 'light' ? text : 'white'}; font-weight: 800; font-size: 1.25rem; margin-bottom: 0.5rem;`">{{ $form->title }}</div>
                         <div class="text-xs mb-4" :style="`color: ${theme === 'light' ? text : 'rgba(255,255,255,0.6)'}; opacity: 0.7;`">Preview of how visitors will see your form.</div>
                         <div class="space-y-3 mb-4">
-                            <input type="text" placeholder="Sample input" class="w-full px-3 py-2 text-xs outline-none" :style="`background: ${theme === 'light' ? '#f5f6fa' : 'rgba(255,255,255,0.06)'}; border: 1px solid ${theme === 'light' ? '#e5e7eb' : 'rgba(255,255,255,0.1)'}; border-radius: ${Math.max(4, radius/2)}px; color: ${theme === 'light' ? text : 'white'};`">
-                            <textarea rows="3" placeholder="Another example field" class="w-full px-3 py-2 text-xs outline-none" :style="`background: ${theme === 'light' ? '#f5f6fa' : 'rgba(255,255,255,0.06)'}; border: 1px solid ${theme === 'light' ? '#e5e7eb' : 'rgba(255,255,255,0.1)'}; border-radius: ${Math.max(4, radius/2)}px; color: ${theme === 'light' ? text : 'white'};`"></textarea>
+                            <div>
+                                <div class="text-[10px] font-semibold mb-1" :style="`color: ${theme === 'light' ? text : 'white'}; opacity: 0.75;`">Sample label</div>
+                                <input type="text" placeholder="Sample input" :style="inputCss('input')">
+                            </div>
+                            <textarea rows="3" placeholder="Another example field" :style="inputCss('textarea')"></textarea>
                         </div>
                         <button type="button"
                                 :style="buttonStyle === 'gradient' ? `background: linear-gradient(135deg, ${accent}, ${accent}cc); color: white; border-radius: ${Math.max(4, radius/2)}px; padding: 0.7rem 1.5rem; font-weight: 700; font-size: 0.85rem; box-shadow: 0 8px 24px -8px ${accent}88;`

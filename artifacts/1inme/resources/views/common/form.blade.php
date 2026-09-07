@@ -24,6 +24,22 @@
         $cardBgSize = $cardImageMode === 'contain' ? 'contain' : ($cardImageMode === 'tile' ? 'auto' : 'cover');
         $cardBgRepeat = $cardImageMode === 'tile' ? 'repeat' : 'no-repeat';
 
+        // Input chrome (Design tab). Read defensively because forms saved
+        // before these keys existed carry a design array without them, and the
+        // default of each axis emits no CSS, so those forms render byte for
+        // byte what they rendered before.
+        $inputStyle = $design['input_style'] ?? 'soft';
+        $inputShape = $design['input_shape'] ?? 'auto';
+        $density    = $design['density'] ?? 'comfortable';
+        $focusStyle = $design['focus_style'] ?? 'glow';
+        // Underline and ghost fields have no box, so a shape would only fight
+        // the padding they zero out.
+        $shapeApplies = !in_array($inputStyle, ['underline', 'ghost'], true);
+        $isLight     = $theme === 'light';
+        $fieldBg     = $isLight ? '#f8fafc' : 'rgba(255,255,255,0.04)';
+        $fieldBorder = $isLight ? '#e2e8f0' : 'rgba(255,255,255,0.10)';
+        $fieldSolid  = $isLight ? '#ffffff' : 'rgba(255,255,255,0.09)';
+
         // Group fields into pages by page_break
         $pages = [[]];
         foreach (($form->fields ?? []) as $f) {
@@ -247,6 +263,159 @@
             background: {{ $theme === 'light' ? 'white' : 'rgba(255,255,255,0.08)' }};
         }
         .form-textarea { resize: vertical; min-height: 100px; }
+
+        /* Input chrome, driven by the Design tab's Input style / shape /
+           density / focus controls. Each axis is independent and each emits
+           nothing at its default, so an untouched form ships the CSS it always
+           did. Every rule below is body-scoped, which lands it at (0,2,1):
+           above the base .form-input rules and above the .oneq-slide
+           overrides, so a chosen skin survives in one-question layout too.
+           Custom CSS is emitted after this block, so overriding a skin from
+           there means matching the body scope:
+           body.input-filled .form-input { ... } */
+@if($inputStyle === 'outline')
+        body.input-outline .form-input,
+        body.input-outline .form-textarea,
+        body.input-outline .form-select {
+            background: transparent;
+            border-color: {{ $isLight ? '#cbd5e1' : 'rgba(255,255,255,0.24)' }};
+        }
+        body.input-outline .form-input:focus,
+        body.input-outline .form-textarea:focus,
+        body.input-outline .form-select:focus { background: transparent; }
+@elseif($inputStyle === 'underline')
+        /* Bottom rule only. Side padding goes to zero so the value sits flush
+           under its label instead of floating inside a box that is not there. */
+        body.input-underline .form-input,
+        body.input-underline .form-textarea,
+        body.input-underline .form-select {
+            background: transparent;
+            border: 0;
+            border-bottom: 2px solid {{ $fieldBorder }};
+            border-radius: 0;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        body.input-underline .form-input:focus,
+        body.input-underline .form-textarea:focus,
+        body.input-underline .form-select:focus {
+            background: transparent;
+            border-bottom-color: var(--form-accent);
+            box-shadow: 0 1px 0 0 var(--form-accent);
+        }
+@elseif($inputStyle === 'filled')
+        body.input-filled .form-input,
+        body.input-filled .form-textarea,
+        body.input-filled .form-select {
+            background: {{ $isLight ? '#eceff5' : 'rgba(255,255,255,0.08)' }};
+            border-color: transparent;
+        }
+        body.input-filled .form-input:focus,
+        body.input-filled .form-textarea:focus,
+        body.input-filled .form-select:focus {
+            background: {{ $isLight ? '#e4e9f2' : 'rgba(255,255,255,0.13)' }};
+            border-color: transparent;
+        }
+@elseif($inputStyle === 'ghost')
+        /* No border and no fill: the field is plain text on the card until it
+           takes focus, when an accent underline appears. Side padding is zero
+           so the value lines up with its label. */
+        body.input-ghost .form-input,
+        body.input-ghost .form-textarea,
+        body.input-ghost .form-select {
+            background: transparent;
+            border-color: transparent;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        body.input-ghost .form-input:focus,
+        body.input-ghost .form-textarea:focus,
+        body.input-ghost .form-select:focus {
+            background: transparent;
+            border-color: transparent;
+            box-shadow: inset 0 -2px 0 0 var(--form-accent);
+        }
+@elseif($inputStyle === 'elevated')
+        body.input-elevated .form-input,
+        body.input-elevated .form-textarea,
+        body.input-elevated .form-select {
+            background: {{ $fieldSolid }};
+            border-color: transparent;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05), 0 6px 16px -8px rgba(0,0,0,0.20);
+        }
+        body.input-elevated .form-input:focus,
+        body.input-elevated .form-textarea:focus,
+        body.input-elevated .form-select:focus {
+            background: {{ $fieldSolid }};
+            border-color: transparent;
+            box-shadow: 0 0 0 3px {{ $accent }}33, 0 6px 16px -8px rgba(0,0,0,0.24);
+        }
+@elseif($inputStyle === 'accent_bar')
+        body.input-accent-bar .form-input,
+        body.input-accent-bar .form-textarea,
+        body.input-accent-bar .form-select {
+            background: {{ $fieldBg }};
+            border-color: {{ $fieldBorder }};
+            border-left: 3px solid var(--form-accent);
+        }
+@endif
+@if($shapeApplies && $inputShape === 'pill')
+        body.ishape-pill .form-input,
+        body.ishape-pill .form-select { border-radius: 999px; padding-left: 1.15rem; padding-right: 1.15rem; }
+        body.ishape-pill .form-textarea { border-radius: 1.1rem; }
+        body.ishape-pill .form-radio-group label,
+        body.ishape-pill .form-check-group label,
+        body.ishape-pill .form-pricing-option,
+        body.ishape-pill .form-pricing-addon,
+        body.ishape-pill .scale-row label,
+        body.ishape-pill .rep-add-btn { border-radius: 999px; }
+        body.ishape-pill .form-stepper-btn:first-child { border-radius: 999px 0 0 999px; }
+        body.ishape-pill .form-stepper-btn:last-child { border-radius: 0 999px 999px 0; }
+@elseif($shapeApplies && $inputShape === 'square')
+        body.ishape-square .form-input,
+        body.ishape-square .form-textarea,
+        body.ishape-square .form-select,
+        body.ishape-square .form-radio-group label,
+        body.ishape-square .form-check-group label,
+        body.ishape-square .form-pricing-option,
+        body.ishape-square .scale-row label,
+        body.ishape-square .form-stepper-btn { border-radius: 0; }
+@endif
+@if($density === 'compact')
+        /* Padding is set as longhands so a skin that zeroes the side padding
+           (underline, ghost) keeps it. */
+        body.density-compact .form-field { margin-bottom: 0.8rem; }
+        body.density-compact .form-label { font-size: 0.78rem; margin-bottom: 0.3rem; }
+        body.density-compact .form-input,
+        body.density-compact .form-textarea,
+        body.density-compact .form-select { padding-top: 0.45rem; padding-bottom: 0.45rem; font-size: 0.85rem; }
+        body.density-compact .form-textarea { min-height: 78px; }
+        body.density-compact .form-help { margin-top: 0.25rem; }
+        body.density-compact .form-radio-group,
+        body.density-compact .form-check-group { gap: 0.35rem; }
+        body.density-compact .form-radio-group label,
+        body.density-compact .form-check-group label { padding: 0.35rem 0.6rem; }
+        body.density-compact .form-card { padding: 1.9rem 1.6rem; }
+@endif
+@if($focusStyle === 'border')
+        /* Emitted after the skin block on purpose: these selectors tie with a
+           skin's own :focus rule, so source order is what makes the focus
+           treatment win. */
+        body.focus-border .form-input:focus,
+        body.focus-border .form-textarea:focus,
+        body.focus-border .form-select:focus {
+            box-shadow: none;
+            border-color: var(--form-accent);
+        }
+@elseif($focusStyle === 'fill')
+        body.focus-fill .form-input:focus,
+        body.focus-fill .form-textarea:focus,
+        body.focus-fill .form-select:focus {
+            box-shadow: none;
+            border-color: var(--form-accent);
+            background: {{ $accent }}14;
+        }
+@endif
         .form-row-inline .form-field { display: grid; grid-template-columns: 1fr 2fr; align-items: center; gap: 1rem; }
         @media (max-width: 640px) { .form-row-inline .form-field { grid-template-columns: 1fr; } }
 
@@ -404,7 +573,7 @@
         {!! $safeCss !!}
     </style>
 </head>
-<body class="theme-{{ $theme }} {{ ($embed ?? false) ? 'embed-mode' : '' }} {{ ($design['layout'] ?? '') === 'oneq' ? 'layout-oneq' : '' }}">
+<body class="theme-{{ $theme }} {{ ($embed ?? false) ? 'embed-mode' : '' }} {{ ($design['layout'] ?? '') === 'oneq' ? 'layout-oneq' : '' }} input-{{ str_replace('_', '-', $inputStyle) }} ishape-{{ $inputShape }} density-{{ $density }} focus-{{ $focusStyle }}">
     <div class="form-page">
         <div style="width: 100%; max-width: 640px;">
             @if($cover)
