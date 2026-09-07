@@ -270,6 +270,12 @@
         --lg-shadow-hover: 0 40px 90px -40px rgba(0,0,0,1), 0 0 0 1px rgba(255,255,255,0.14);
         --lg-radius: 1.125rem;
         --radius-card: 1.125rem;
+        /* The lit edge. A panel is opaque, so the only thing that catches the
+           aurora is its 1px border, painted as a gradient rather than a flat
+           colour. This is the detail that reads as an object under a light
+           source instead of a rectangle with a stroke. */
+        --aurora-edge: linear-gradient(150deg, rgba(110,140,255,0.55), rgba(176,139,255,0.30) 42%, rgba(255,255,255,0.04) 78%);
+        --aurora-edge-hot: linear-gradient(150deg, rgba(110,140,255,0.95), rgba(176,139,255,0.55) 42%, rgba(255,255,255,0.10) 78%);
         --card-shadow: 0 30px 70px -40px rgba(0,0,0,0.95);
         --card-shadow-hover: 0 40px 90px -40px rgba(0,0,0,1), 0 0 0 1px rgba(255,255,255,0.14);
 
@@ -345,6 +351,8 @@
         --lg-highlight: none;
         --lg-shadow: 0 1px 2px rgba(20,18,28,0.04), 0 22px 44px -34px rgba(20,18,28,0.35);
         --lg-shadow-hover: 0 2px 4px rgba(20,18,28,0.05), 0 34px 60px -34px rgba(20,18,28,0.42), 0 0 0 1px rgba(20,18,28,0.10);
+        --aurora-edge: linear-gradient(150deg, rgba(47,85,232,0.42), rgba(123,69,214,0.24) 42%, rgba(20,18,28,0.06) 78%);
+        --aurora-edge-hot: linear-gradient(150deg, rgba(47,85,232,0.72), rgba(123,69,214,0.42) 42%, rgba(20,18,28,0.12) 78%);
         --card-shadow: 0 1px 2px rgba(20,18,28,0.04), 0 22px 44px -34px rgba(20,18,28,0.35);
         --card-shadow-hover: 0 2px 4px rgba(20,18,28,0.05), 0 34px 60px -34px rgba(20,18,28,0.42);
 
@@ -373,6 +381,59 @@
           higher opacity it would silt the canvas grey. Compositing it as an
           overlay lets it darken and lighten instead of just covering. */
     html.aurora body::before { mix-blend-mode: overlay; }
+
+    /* ---- The aurora itself, on every app page ----
+       .bg-mesh carries the current build's blooms, but it is only present on
+       a handful of layouts, so on the dashboard and every inner page there is
+       nothing behind the panels at all. body::after puts the light on the
+       ground everywhere, once, with no markup.
+
+       z-index 0 is deliberate: the app shell is `relative z-10`, so content
+       always paints above this, and the fixed position keeps the light still
+       while the page scrolls under it. */
+    html.aurora body::after {
+        content: '';
+        position: fixed;
+        inset: -25% -12% auto -12%;
+        height: 135vh;
+        pointer-events: none;
+        z-index: 0;
+        background:
+            radial-gradient(46vw 42vh at 14% 4%,  var(--glow-1), transparent 68%),
+            radial-gradient(44vw 40vh at 88% 12%, var(--glow-2), transparent 66%),
+            radial-gradient(42vw 34vh at 54% 64%, var(--glow-3), transparent 70%);
+        filter: blur(64px);
+    }
+
+    /* ---- Lit panel edge ----
+       The base .glass/.card-premium/.stat-card rule sets its surface with
+       !important, so these have to match that and win on specificity: adding
+       html.aurora takes them to (0,2,0) against the base (0,1,0).
+
+       The two stacked backgrounds are the standard gradient-border trick. The
+       first paints the panel colour clipped to the padding box, the second
+       paints the gradient clipped to the border box, and the transparent 1px
+       border is the only place the second one shows. */
+    html.aurora .glass,
+    html.aurora .card-premium,
+    html.aurora .stat-card {
+        border: 1px solid transparent !important;
+        background-image: linear-gradient(var(--bg-card), var(--bg-card)), var(--aurora-edge) !important;
+        background-origin: border-box !important;
+        background-clip: padding-box, border-box !important;
+        box-shadow: var(--lg-shadow) !important;
+        transition: transform .22s cubic-bezier(.2,.7,.3,1), box-shadow .22s ease, background-image .22s ease;
+    }
+    html.aurora .card-premium:hover,
+    html.aurora .stat-card:hover {
+        transform: translateY(-2px);
+        background-image: linear-gradient(var(--bg-card), var(--bg-card)), var(--aurora-edge-hot) !important;
+        box-shadow: var(--lg-shadow-hover) !important;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        html.aurora .card-premium:hover,
+        html.aurora .stat-card:hover { transform: none; }
+    }
 
     [x-cloak] { display: none !important; }
 
