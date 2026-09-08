@@ -64,6 +64,10 @@ class BlockStyleSanitizer
             // ('plain_text' / 'image_cover') will ever be persisted —
             // which is exactly what we want.
             'link_layout' => self::LINK_LAYOUTS,
+            // Label alignment for link-family blocks. Empty = centred, the
+            // historic rendering, and the foreach above drops empty values,
+            // so only a deliberate left/right is ever persisted.
+            'text_align' => ['left', 'center', 'right'],
         ];
         $numericBounds = [
             'font_size' => [8, 72],

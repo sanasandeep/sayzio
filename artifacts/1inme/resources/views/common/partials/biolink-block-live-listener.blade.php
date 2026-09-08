@@ -327,6 +327,16 @@
                     'style.font_weight': function (el, v) { el.style.fontWeight = v; },
                     'style.font_style': function (el, v) { el.style.fontStyle = v; },
                     'style.text_color': function (el, v) { el.style.color = v; },
+                    // Label alignment. Both properties, mirroring
+                    // BiolinkBlock::buildInlineStyle(): justify-content moves
+                    // the icon-and-label group along the flex row, text-align
+                    // catches a label that wraps to a second line. Clearing
+                    // both on '' hands the row back to the Tailwind class the
+                    // template shipped with.
+                    'style.text_align': function (el, v) {
+                        el.style.justifyContent = v === 'left' ? 'flex-start' : (v === 'right' ? 'flex-end' : '');
+                        el.style.textAlign = (v === 'left' || v === 'right') ? v : '';
+                    },
                     'style.bg_color': function (el, v) { el.style.background = v; },
                     'style.border_radius': function (el, v) { el.style.borderRadius = v === '' ? '' : parseInt(v, 10) + 'px'; },
                     'style.border_width': function (el, v) { el.style.borderWidth = v === '' ? '' : parseInt(v, 10) + 'px'; },
