@@ -184,26 +184,6 @@ jobs:
         env:
           PGPASSWORD: password
 
-      - name: New tests only (temporary, remove before merge)
-        # The full digest truncates before the end of the failure list, so a
-        # new test's absence from it proves nothing. This runs only the tests
-        # this branch adds and reports their result on its own, so "did this
-        # branch add a failure" has an answer that does not depend on where
-        # the annotation budget ran out. Delete this step before merging.
-        working-directory: artifacts/1inme
-        shell: bash
-        continue-on-error: true
-        run: |
-          set -o pipefail
-          php artisan test --filter='HomePrecisionDesignTest' 2>&1 | tee /tmp/new.log || true
-          sed -r 's/\x1B\[[0-9;]*[A-Za-z]//g' /tmp/new.log > /tmp/new.txt
-          {
-            echo "NEW TESTS ONLY"
-            grep -E '^ *(PASS|FAIL|WARN|Tests:|Duration:)|✓|✕|⨯' /tmp/new.txt || tail -30 /tmp/new.txt
-          } > /tmp/newdigest.txt
-          cat /tmp/newdigest.txt >> "$GITHUB_STEP_SUMMARY"
-          echo "::error::[new-tests] $(sed -z 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g' /tmp/newdigest.txt | head -c 3000)"
-
       - name: Run PHPUnit suite (the actual guard)
         # Runs the sharded runner (scripts/run-sharded-tests.php), not
         # `php artisan test --parallel`.
