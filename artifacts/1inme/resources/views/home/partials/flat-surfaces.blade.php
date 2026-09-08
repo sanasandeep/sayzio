@@ -44,7 +44,7 @@ html.light-mode{
 /* ---------- 1. no liquid glass ---------- */
 *,*::before,*::after{backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
 
-:is(.glass,.glass-2,.trust-band-card,.bs-card,.bs-pillar,.buzz-card,.prem-feat,.zio-node-btn,.geo-ticker){
+:is(.glass,.glass-2,.trust-band-card,.buzz-card,.prem-feat,.zio-node-btn,.geo-ticker){
   background-image:none !important;
   background-color:var(--fs-card) !important;
   border:1px solid var(--fs-rule) !important;
@@ -54,8 +54,8 @@ html.light-mode{
 
 /* The inner highlight and wash those cards drew on their own pseudo
    elements went with the blur; without it they read as smudges. */
-:is(.glass,.glass-2,.trust-band-card,.bs-card,.bs-pillar,.buzz-card,.prem-feat,.zio-node-btn)::before,
-:is(.glass,.glass-2,.trust-band-card,.bs-card,.bs-pillar,.buzz-card,.prem-feat,.zio-node-btn)::after{
+:is(.glass,.glass-2,.trust-band-card,.buzz-card,.prem-feat,.zio-node-btn)::before,
+:is(.glass,.glass-2,.trust-band-card,.buzz-card,.prem-feat,.zio-node-btn)::after{
   background-image:none !important;
 }
 
