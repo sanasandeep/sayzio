@@ -169,7 +169,7 @@
                     Auto-filled from your last {{ \App\Services\MarketingPlanActuals::MONTHS }} months:
                     @php($labels = ['organic_visitors' => 'monthly organic visitors', 'sayzio_vl' => 'visitor → lead rate', 'sayzio_lc' => 'lead → customer rate', 'sayzio_acv' => 'average customer value', 'ai_credits' => 'AI-credit spend'])
                     {{ implode(', ', array_map(fn ($k) => $labels[$k] ?? $k, (array) $actualsSeed['filled'])) }}
-                    — inferred from your link analytics, form submissions, contacts and store/invoice revenue.
+                    Inferred from your link analytics, form submissions, contacts and store/invoice revenue.
                     Everything stays editable before saving.
                 </p>
             @else
@@ -255,7 +255,7 @@
                 :aria-expanded="goalOpen ? 'true' : 'false'" data-mpc-goal-toggle>
             <span>
                 <span class="text-sm font-bold mpc-title"><i class="fas fa-bullseye mr-1.5 text-blue-400"></i>Goal seek</span>
-                <span class="text-xs mpc-faint ml-2 hidden sm:inline">Start from a 12-month target — get the ad budget that hits it.</span>
+                <span class="text-xs mpc-faint ml-2 hidden sm:inline">Start from a 12-month target: get the ad budget that hits it.</span>
             </span>
             <i class="fas text-xs mpc-faint" :class="goalOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
         </button>
@@ -276,7 +276,7 @@
                            :placeholder="goalType === 'revenue' ? 'e.g. 10000000' : 'e.g. 500'" data-mpc-goal-value>
                 </div>
             </div>
-            <p class="text-[11px] mpc-faint mt-2">Holds your current channel allocations, costs and conversion rates — only the total annual ad budget is solved. The active scenario's multipliers apply.</p>
+            <p class="text-[11px] mpc-faint mt-2">Holds your current channel allocations, costs and conversion rates; only the total annual ad budget is solved. The active scenario's multipliers apply.</p>
 
             {{-- Results --}}
             <template x-if="goal.state === 'infeasible'">
@@ -284,7 +284,7 @@
             </template>
             <template x-if="goal.state === 'organic'">
                 <div class="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3" data-mpc-goal-organic>
-                    <p class="text-sm text-emerald-400 font-semibold">Your fixed &amp; organic channels alone already reach this target — the required paid ad budget is <span x-text="money(0)"></span>.</p>
+                    <p class="text-sm text-emerald-400 font-semibold">Your fixed &amp; organic channels alone already reach this target; the required paid ad budget is <span x-text="money(0)"></span>.</p>
                     <button type="button" class="mt-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
                             @click="applyGoalBudget()" data-mpc-goal-apply>Apply this budget</button>
                 </div>
@@ -421,8 +421,8 @@
                             <p class="text-[10px] mt-0.5" :class="(features.crm || features.dialer) ? 'text-emerald-400' : 'mpc-faint'" data-testid="feature-crm">
                                 <i class="fas mr-0.5" :class="(features.crm || features.dialer) ? 'fa-circle-check' : 'fa-circle-minus'"></i>
                                 <span x-text="features.crm && features.dialer ? 'CRM contacts and the dialer are in use on your account'
-                                    : features.crm ? 'CRM contacts are in use — dialer not used yet'
-                                    : features.dialer ? 'Dialer is in use — no CRM contacts yet'
+                                    : features.crm ? 'CRM contacts are in use, dialer not used yet'
+                                    : features.dialer ? 'Dialer is in use, no CRM contacts yet'
                                     : 'CRM and dialer not in use yet'"></span>
                             </p>
                         </template>
@@ -780,7 +780,7 @@
             </div>
             <p class="text-[11px] mpc-faint mb-2">
                 Overall monthly totals, not per channel. Money is entered in ₹ (INR), like the budget; the variance
-                view respects the ₹/$ display toggle. Partial entry is fine — blank fields simply aren't compared.
+                view respects the ₹/$ display toggle. Partial entry is fine: blank fields simply aren't compared.
                 Logged actuals save with the plan and survive re-editing assumptions.
             </p>
             <table class="w-full min-w-[760px]" data-mpc-actuals-grid>
@@ -885,10 +885,10 @@
         <template x-if="actuals && actuals.has_data">
             <div class="space-y-4">
                 <div class="rounded-2xl mpc-card p-4">
-                    <h3 class="text-sm font-bold mpc-title mb-1">Actuals vs plan baseline — monthly visitors, leads &amp; revenue</h3>
+                    <h3 class="text-sm font-bold mpc-title mb-1">Actuals vs plan baseline, monthly visitors, leads &amp; revenue</h3>
                     <p class="text-[11px] mpc-faint mb-2">
                         Actuals come from your real Sayzio data: link &amp; bio-page clicks, form submissions + new contacts,
-                        and paid store orders + client invoices. "Baseline" is NOT a historical target — it's what this plan
+                        and paid store orders + client invoices. "Baseline" is NOT a historical target; it's what this plan
                         projects for a typical month with that calendar month's seasonality weight, shown so you can judge
                         whether the plan's assumptions are realistic against your recent history.
                     </p>
@@ -918,7 +918,7 @@
                     </table>
                     <p class="text-[11px] mpc-faint mt-2">
                         Leads count non-spam form submissions plus newly captured contacts; revenue is paid store orders + paid client invoices (₹).
-                        Baseline columns use the plan's seasonality profile for the same calendar month (the plan itself starts now — these are not past targets).
+                        Baseline columns use the plan's seasonality profile for the same calendar month (the plan itself starts now, so these are not past targets).
                     </p>
                 </div>
             </div>
@@ -1244,7 +1244,7 @@ function mpcApp() {
                 } else if (!this.p.channels.some(c => !c.fixed && this.n(c.alloc) > 0)) {
                     reason = 'All paid channels have a 0% allocation, so ad spend never reaches any channel. Allocate budget to at least one paid channel on the Assumptions tab.';
                 } else {
-                    reason = 'With the current assumptions, extra ad spend produces zero ' + this.goalType + ' — check that allocated channels have a cost per visitor above 0 and non-zero conversion rates.';
+                    reason = 'With the current assumptions, extra ad spend produces zero ' + this.goalType + '. Check that allocated channels have a cost per visitor above 0 and non-zero conversion rates.';
                 }
                 return { state: 'infeasible', reason };
             }
@@ -1519,7 +1519,7 @@ function mpcApp() {
                 ['Months tracked', this.trackedCount + ' of 12'],
             ];
             if (this.trackedCount === 0) {
-                actualsRows.push(['No actual monthly results logged yet — use the Actuals tab in the editor.']);
+                actualsRows.push(['No actual monthly results logged yet. Use the Actuals tab in the editor.']);
             } else {
                 actualsRows.push([], ['Cumulative over tracked months'], ['Metric', 'Actual', 'Projected', 'Δ', 'Δ %']);
                 for (const s of this.varianceSummary) {
@@ -1536,7 +1536,7 @@ function mpcApp() {
                 for (const k of this.actualMetrics) {
                     const isM = this.isMoneyMetric(k);
                     const f = v => isM ? this.xm(v) : this.xn(v, 0);
-                    actualsRows.push([], [this.actualMetricLabels[k] + (isM ? ' (' + sym + ')' : '') + ' — monthly'],
+                    actualsRows.push([], [this.actualMetricLabels[k] + (isM ? ' (' + sym + ')' : '') + ', monthly'],
                         ['Month', 'Actual', 'Projected', 'Δ', 'Δ %']);
                     for (let i = 0; i < 12; i++) {
                         const tracked = this.monthTracked(i);
@@ -1985,7 +1985,7 @@ function mpcApp() {
             }
             if (v.ai_credits != null) { this.p.ai_credits = v.ai_credits; filled.push('ai_credits'); }
             this.autoFilled = filled;
-            this.actualsFlash = 'Assumptions updated from your real Sayzio data — review and edit anything before saving.';
+            this.actualsFlash = 'Assumptions updated from your real Sayzio data. Review and edit anything before saving.';
             setTimeout(() => { this.actualsFlash = ''; }, 6000);
         },
 
