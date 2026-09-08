@@ -27,6 +27,7 @@
     "check:nested-interactive": "tsx ./src/check-nested-interactive.ts",
     "check:blank-content-fallbacks": "tsx ./src/check-blank-content-fallbacks.ts",
     "check:alpine-line-comments": "tsx ./src/check-alpine-line-comments.ts",
+    "check:blade-glued-directive": "tsx ./src/check-blade-glued-directive.ts",
     "check:view-guards": "tsx ./src/check-view-guards.ts",
     "check:demo-login-email": "tsx ./src/check-demo-login-email.ts",
     "check:demo-login-button": "tsx ./src/check-demo-login-button-pattern.ts",
