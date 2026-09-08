@@ -731,6 +731,32 @@ class User extends Authenticatable
         return (($this->settings['ui_pack'] ?? 'classic') === 'aurora');
     }
 
+    /**
+     * Whether any plan sits above this account's current one.
+     *
+     * The sidebar offered "Unlock analytics, custom domains & more" with an
+     * Upgrade button to an account already on the top plan, which reads as
+     * either a bug or a dark pattern depending on the reader's mood. Compares
+     * sort_order against the highest active, non-archived, non-internal plan.
+     *
+     * Cached for an hour because it renders on every authenticated page and
+     * the answer only changes when the plan catalogue does.
+     */
+    public function canUpgradePlan(): bool
+    {
+        $top = \Illuminate\Support\Facades\Cache::remember(
+            'plans:max-sort-order',
+            3600,
+            fn () => (int) \App\Modules\Admin\Models\Plan::query()
+                ->where('status', 'active')
+                ->where('is_archived', false)
+                ->where('is_internal', false)
+                ->max('sort_order')
+        );
+
+        return $top > (int) ($this->plan->sort_order ?? -1);
+    }
+
     public function isFollowing(int $creatorId): bool
     {
         return Follow::where('follower_id', $this->id)->where('creator_id', $creatorId)->exists();

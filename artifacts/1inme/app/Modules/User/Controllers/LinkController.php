@@ -110,25 +110,8 @@ class LinkController extends Controller
             $perPage = 15;
         }
 
-        // Sort order. Whitelisted through match() rather than taking a column
-        // name off the query string, so an unexpected value falls back to
-        // newest instead of reaching the query builder. Normalised first so
-        // the select re-renders on the option the list is actually sorted by,
-        // even when someone hand-edits the URL.
-        $sort = (string) $request->query('sort', 'newest');
-        if (!in_array($sort, ['newest', 'oldest', 'clicks_desc', 'clicks_asc', 'title_asc', 'title_desc'], true)) {
-            $sort = 'newest';
-        }
-        $query = match ($sort) {
-            'oldest'      => $query->oldest(),
-            'clicks_desc' => $query->orderByDesc('total_clicks'),
-            'clicks_asc'  => $query->orderBy('total_clicks'),
-            'title_asc'   => $query->orderBy('title'),
-            'title_desc'  => $query->orderByDesc('title'),
-            default       => $query->latest(),
-        };
-
-        $links = $query->paginate($perPage)->withQueryString();
+        $sort = $this->sortKey($request);
+        $links = $this->applySort($query, $sort)->paginate($perPage)->withQueryString();
         $projects = workspace_owner()->projects()->orderBy('name')->get();
 
         // Lightweight, unfiltered roll-up for the bento command-center hero /
@@ -142,6 +125,42 @@ class LinkController extends Controller
         ];
 
         return view('user.links.index', compact('links', 'projects', 'summary', 'sort'));
+    }
+
+    /** The sort options offered on My Links, in the order the select lists them. */
+    private const LINK_SORTS = ['newest', 'oldest', 'clicks_desc', 'clicks_asc', 'title_asc', 'title_desc'];
+
+    /**
+     * The requested sort, normalised.
+     *
+     * Whitelisted rather than taken off the query string, so an unexpected
+     * value falls back to newest instead of reaching the query builder.
+     * Normalising here (rather than inside applySort) means the select can
+     * re-render on the option the list is actually sorted by, even when
+     * someone hand-edits the URL.
+     */
+    private function sortKey(Request $request): string
+    {
+        $sort = (string) $request->query('sort', 'newest');
+
+        return in_array($sort, self::LINK_SORTS, true) ? $sort : 'newest';
+    }
+
+    /**
+     * Apply a normalised sort key. Shared by the on-screen list and the CSV
+     * export so a creator who sorts by most clicks and then exports gets the
+     * file in the order they were looking at.
+     */
+    private function applySort($query, string $sort)
+    {
+        return match ($sort) {
+            'oldest'      => $query->oldest(),
+            'clicks_desc' => $query->orderByDesc('total_clicks'),
+            'clicks_asc'  => $query->orderBy('total_clicks'),
+            'title_asc'   => $query->orderBy('title'),
+            'title_desc'  => $query->orderByDesc('title'),
+            default       => $query->latest(),
+        };
     }
 
     /**
@@ -176,7 +195,7 @@ class LinkController extends Controller
                 'project', 'status', 'total_clicks', 'created_at',
             ]);
 
-            $query->latest()->chunk(500, function ($rows) use ($out, $safe) {
+            $this->applySort($query, $this->sortKey($request))->chunk(500, function ($rows) use ($out, $safe) {
                 foreach ($rows as $link) {
                     fputcsv($out, [
                         $safe($link->title ?: $link->alias),
