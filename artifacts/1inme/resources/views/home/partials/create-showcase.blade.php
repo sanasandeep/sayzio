@@ -302,36 +302,6 @@
              @mouseenter="pause()" @mouseleave="resume()">
 
             {{-- ── Chip rail ── --}}
-            @php
-                /*
-                 * "How you would use it", one line per link type, shown only
-                 * inside the expanded card. Drafted copy: it describes the
-                 * occasion for each type rather than making any claim about
-                 * results, and it is keyed by name so an admin-edited list
-                 * that renames a type simply falls back to no line rather
-                 * than showing the wrong one.
-                 */
-                $__ltUsage = [
-                    'Short Link'       => 'Print it once on a poster or a pack, then change where it goes whenever the campaign does.',
-                    'Link in Bio'      => 'The one address in your Instagram or TikTok bio, holding everything you would otherwise have to choose between.',
-                    'Conversational'   => 'When a plain list of links loses people, this walks them to the right one instead.',
-                    'Slides'           => 'For a story that is better swiped than scrolled: a launch, a lookbook, a short pitch.',
-                    'AI Chatbot'       => 'For the questions you answer twenty times a week, answered from your own pages while you sleep.',
-                    'Restaurant Menu'  => 'A QR on the table that opens today\'s menu, so a price change does not mean a reprint.',
-                    'Store Menu'       => 'Take orders before you have a checkout: browse by category, request, and you confirm.',
-                    'File Share'       => 'Send a price list, a rider or a brochure as a link rather than a heavy attachment.',
-                    'Event'            => 'Put the date straight into someone\'s calendar instead of asking them to type it in.',
-                    'Calendar'         => 'For a season of dates, gigs, classes or drops, that people can subscribe to once.',
-                    'Contact Card'     => 'Swap details in one tap at an event, with nothing to type on either side.',
-                    'Resume / Portfolio' => 'One link on an application that shows the work and downloads as a PDF.',
-                    'Business Profile' => 'The address you give a customer who asked what you do, with hours, location and contact.',
-                    'Reviews Page'     => 'Collect the good word where you can point at it, rather than losing it in DMs.',
-                    'Brand / Press Kit' => 'For anyone who asks for your logo: one link, correct files, no back and forth.',
-                    'Paid Page'        => 'Put a page behind a payment when the content is the product.',
-                    'QR Code'          => 'For the offline half of your audience: a code that keeps working after you change the destination.',
-                    'Forms'            => 'Ask the question once and keep every answer in one inbox with your chats.',
-                ];
-            @endphp
             <div class="lt-rail" role="tablist" aria-label="Link type">
                 @foreach($__ltForEach as $i => $lt)
                 <button type="button" class="lt-chip {{ $i === 0 ? 'lt-chip-on' : '' }}" role="tab"
@@ -345,7 +315,9 @@
                         @if($lt['new'])<span class="lt-chip-new" style="color:{{ $lt['color'] }};border-color:{{ $lt['color'] }}55">New</span>@endif
                     </span>
                     <span class="lt-chip-desc">{{ $lt['desc'] }}</span>
-                    <span class="lt-chip-open" data-lt-open="{{ $i }}" role="button" tabindex="0"
+                    <span class="lt-chip-open" data-lt-open="{{ $i }}"
+                          data-lt-slug="{{ \Illuminate\Support\Str::slug($lt['name']) }}"
+                          role="button" tabindex="0"
                           aria-label="Expand {{ $lt['name'] }}">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-7.5 7.5M10 20H4v-6M4 20l7.5-7.5"/></svg>
                     </span>
@@ -373,10 +345,11 @@
                         @if($lt['new'])<span class="lt-pane-badge" style="color:{{ $lt['color'] }};border-color:{{ $lt['color'] }}55">New</span>@endif
                         <h3 class="lt-pane-name">{{ $lt['name'] }}</h3>
                         <p class="lt-pane-desc">{{ $lt['desc'] }}</p>
-                        @if(!empty($__ltUsage[$lt['name']]))
+                        @php($__ltUsageLine = \App\Modules\Common\Support\LinkTypeUsage::forName($lt['name']))
+                        @if($__ltUsageLine !== '')
                             <p class="lt-pane-usage" data-expand-more>
                                 <span>How you would use it</span>
-                                {{ $__ltUsage[$lt['name']] }}
+                                {{ $__ltUsageLine }}
                             </p>
                         @endif
                         <button type="button" class="lt-pane-cta" style="background:{{ $lt['color'] }}"

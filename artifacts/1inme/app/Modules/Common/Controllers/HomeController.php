@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Modules\Common\Support\AiHeroExamples;
 use App\Modules\Common\Support\AiStrategistExamples;
 use App\Modules\Common\Support\HomePageCache;
+use App\Modules\Common\Support\LinkTypeUsage;
 use App\Modules\Common\Support\PlatformHosts;
+use App\Modules\Common\Support\SitePagesContent;
 use App\Modules\Common\Support\ResumePersonas;
 use App\Modules\User\Models\BillingAddress;
 use App\Services\PricingResolver;
@@ -186,6 +188,63 @@ class HomeController extends Controller
         $fragment = self::DESIGNS[self::activeDesign()]['fragment'];
 
         return view($fragment, compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'linkTypes', 'aiHeroExamples', 'resumePersonas', 'aiStrategistExamples'));
+    }
+
+    /**
+     * One link type, expanded, for the home page card modal.
+     *
+     * Fetched over AJAX when a card's expand control is used, so eighteen
+     * live demo iframes never load with the page. The slug is matched
+     * against the admin-editable link-type list rather than trusted, so the
+     * iframe source can only ever be one of this site's own demo pages.
+     */
+    public function linkTypeCard(Request $request, string $slug)
+    {
+        $types = SitePagesContent::homeLinkTypesDefault();
+        try {
+            $stored = $this->cachedPayload(PricingResolver::currencyForUser($request->user('web')))['linkTypes'] ?? null;
+            if (is_array($stored) && $stored !== []) {
+                $types = $stored;
+            }
+        } catch (\Throwable $e) {
+            // Defaults are a complete list; a cache miss is not worth a 500.
+        }
+
+        $type = null;
+        foreach ($types as $candidate) {
+            if (\Illuminate\Support\Str::slug((string) ($candidate['name'] ?? '')) === $slug) {
+                $type = $candidate;
+                break;
+            }
+        }
+        if ($type === null) {
+            abort(404);
+        }
+
+        // Only link to a demo page that is actually published.
+        $alias = 'demo-type-' . $slug;
+        $demoUrl = null;
+        try {
+            $demos = Cache::remember(
+                \App\Modules\Common\Controllers\SitePageController::DEMOS_CACHE_KEY,
+                300,
+                fn () => \App\Modules\Common\Controllers\SitePageController::buildDemosData()
+            );
+            if (isset(((array) ($demos['links'] ?? []))[$alias])) {
+                $demoUrl = url('/' . $alias);
+            }
+        } catch (\Throwable $e) {
+            $demoUrl = null;
+        }
+
+        return response()
+            ->view('home.partials.link-type-card', [
+                'type'     => $type,
+                'usage'    => LinkTypeUsage::forName((string) ($type['name'] ?? '')),
+                'demoUrl'  => $demoUrl,
+                'demoHost' => PlatformHosts::primaryBrandDomain() . '/' . $alias,
+            ])
+            ->header('Cache-Control', 'public, max-age=300');
     }
 
     /**

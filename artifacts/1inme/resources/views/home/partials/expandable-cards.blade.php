@@ -88,6 +88,64 @@
     .xc-body .lt-dots { display: none; }
     .xc-body .lt-pane-usage { display: block; }
 
+    /* ---------- the link-type modal ----------
+       Two columns: what it is on the left, the thing itself on the right. */
+    .ltm { display: grid; gap: clamp(20px, 3vw, 36px); align-items: start; }
+    @media (min-width: 860px) { .ltm { grid-template-columns: .82fr 1.18fr; } }
+    .ltm-ico {
+        width: 46px; height: 46px; border-radius: 14px;
+        display: inline-flex; align-items: center; justify-content: center;
+        color: #fff; font-size: 17px;
+    }
+    .ltm-name {
+        margin: 16px 0 0; font-size: clamp(24px, 2.6vw, 32px); font-weight: 800;
+        letter-spacing: -.03em; line-height: 1.12; display: flex; align-items: center;
+        gap: 10px; flex-wrap: wrap;
+    }
+    .ltm-new {
+        font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+        padding: 3px 8px; border-radius: 9999px; border: 1px solid;
+    }
+    .ltm-desc { margin: 12px 0 0; font-size: 15.5px; line-height: 1.6; opacity: .8; }
+    .ltm-usage {
+        margin: 20px 0 0; padding-top: 18px; font-size: 15px; line-height: 1.6;
+        border-top: 1px solid rgba(255,255,255,.10);
+    }
+    html.light-mode .ltm-usage { border-top-color: #E6E8F2; }
+    .ltm-usage span {
+        display: block; font-size: 11px; font-weight: 700; letter-spacing: .12em;
+        text-transform: uppercase; opacity: .55; margin-bottom: 6px;
+    }
+    .ltm-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 24px; }
+    .ltm-cta {
+        display: inline-flex; align-items: center; gap: 8px; border: 0; cursor: pointer;
+        padding: 11px 18px; border-radius: 11px; color: #fff; font-size: 14.5px; font-weight: 700;
+    }
+    .ltm-cta i { font-size: 11px; }
+    .ltm-link { font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 7px; }
+    .ltm-link i { font-size: 11px; opacity: .7; }
+
+    .ltm-frame {
+        border-radius: 14px; overflow: hidden;
+        border: 1px solid rgba(255,255,255,.12); background: #0B0B18;
+    }
+    html.light-mode .ltm-frame { border-color: #E6E8F2; background: #F7F8FC; }
+    .ltm-bar {
+        display: flex; align-items: center; gap: 6px;
+        padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    html.light-mode .ltm-bar { border-bottom-color: #E6E8F2; }
+    .ltm-bar i { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.18); }
+    html.light-mode .ltm-bar i { background: #D2D6E6; }
+    .ltm-bar span { margin-left: 8px; font-size: 11.5px; opacity: .55; }
+    .ltm-frame iframe {
+        display: block; width: 100%; height: min(62vh, 560px); border: 0; background: #fff;
+    }
+    .ltm-frame-empty { display: grid; place-items: center; height: 260px; font-size: 14px; opacity: .6; }
+    .ltm-cap { margin: 10px 0 0; font-size: 12px; opacity: .55; }
+
+    .xc-loading { display: grid; place-items: center; min-height: 220px; font-size: 14px; opacity: .6; }
+
     body.xc-locked { overflow: hidden; }
 
     @media (prefers-reduced-motion: reduce) {
@@ -122,8 +180,11 @@
                 e.stopPropagation();
                 var card = el.closest('.lt-chip');
                 if (card) { card.click(); }
+                var slug = el.getAttribute('data-lt-slug');
+                if (slug) { openFetched(slug, el.getAttribute('aria-label') || ''); return; }
+                // No slug means an older render; fall back to the stage clone
+                // rather than doing nothing.
                 var stage = document.querySelector('#create .lt-stage');
-                // Let the pane switch before the clone is taken.
                 if (stage) { window.setTimeout(function () { open(stage); }, 60); }
             };
             el.addEventListener('click', go);
@@ -153,6 +214,75 @@
         scrim = null;
         window.setTimeout(function () { dying.remove(); }, 240);
         if (lastFocused && lastFocused.focus) { lastFocused.focus(); }
+    }
+
+    /**
+     * Open the modal on content fetched from the server. Eighteen live demo
+     * iframes have no business loading with the page, so each one is asked
+     * for only when someone actually expands that card.
+     */
+    function openFetched(slug, label) {
+        var shell = document.createElement('div');
+        shell.className = 'xc-loading';
+        shell.textContent = 'Loading';
+        var host = openShell(label || 'Link type', shell);
+
+        window.fetch('/home/link-type/' + encodeURIComponent(slug), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin'
+        })
+            .then(function (r) {
+                if (!r.ok) { throw new Error('HTTP ' + r.status); }
+                return r.text();
+            })
+            .then(function (html) {
+                if (host && host.isConnected) { host.innerHTML = html; }
+            })
+            .catch(function () {
+                if (host && host.isConnected) {
+                    host.innerHTML = '<div class="xc-loading">That did not load. ' +
+                        '<a href="/demo-type-' + slug + '">Open the demo page instead</a>.</div>';
+                }
+            });
+    }
+
+    /** The chrome: scrim, panel, close button. Returns the body to fill. */
+    function openShell(label, initial) {
+        close();
+        lastFocused = document.activeElement;
+
+        scrim = document.createElement('div');
+        scrim.className = 'xc-scrim';
+        scrim.setAttribute('role', 'dialog');
+        scrim.setAttribute('aria-modal', 'true');
+        scrim.setAttribute('aria-label', label);
+
+        var modal = document.createElement('div');
+        modal.className = 'xc-modal';
+
+        var closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'xc-close';
+        closeBtn.setAttribute('aria-label', 'Close');
+        closeBtn.innerHTML = '&times;';
+        closeBtn.addEventListener('click', close);
+
+        var body = document.createElement('div');
+        body.className = 'xc-body';
+        if (initial) { body.appendChild(initial); }
+
+        modal.appendChild(closeBtn);
+        modal.appendChild(body);
+        scrim.appendChild(modal);
+        scrim.addEventListener('click', function (e) { if (e.target === scrim) { close(); } });
+
+        document.body.appendChild(scrim);
+        document.body.classList.add('xc-locked');
+        window.requestAnimationFrame(function () {
+            if (scrim) { scrim.classList.add('is-open'); }
+        });
+        closeBtn.focus();
+        return body;
     }
 
     function open(card) {

@@ -38,6 +38,9 @@ Route::get('/', [\App\Modules\Common\Controllers\HomeController::class, 'index']
 // right after first paint. Two-segment path keeps it clear of the
 // single-segment /{alias} catch-all.
 Route::get('/home/sections', [\App\Modules\Common\Controllers\HomeController::class, 'sections'])->name('home.sections');
+Route::get('/home/link-type/{slug}', [\App\Modules\Common\Controllers\HomeController::class, 'linkTypeCard'])
+    ->where('slug', '[a-z0-9-]+')
+    ->name('home.link-type');
 
 // Public SVG placeholders generated for the biolink creation wizard.
 // Referenced as the default avatar / cover image on pages built by the
