@@ -2423,9 +2423,9 @@ class SitePagesContent
                 'location_subtitle'=> 'Remote-friendly',
                 'location_icon'    => 'fa-location-dot',
                 'stats' => [
-                    ['value' => '120000', 'suffix' => '+', 'label' => 'Creators served', 'visible' => true],
-                    ['value' => '3',      'suffix' => '',  'label' => 'Years young',    'visible' => true],
-                    ['value' => '9',      'suffix' => '',  'label' => 'Teammates',      'visible' => true],
+                    ['value' => 'auto', 'suffix' => '', 'label' => 'Creators served', 'visible' => true],
+                    ['value' => 'auto', 'suffix' => '', 'label' => 'Years young',     'visible' => true],
+                    ['value' => 'auto', 'suffix' => '', 'label' => 'Teammates',       'visible' => true],
                 ],
             ],
             'values' => [
