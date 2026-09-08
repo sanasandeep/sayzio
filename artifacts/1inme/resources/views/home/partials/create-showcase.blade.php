@@ -161,7 +161,48 @@
 
             /* Typing animation for AI chatbot mock (always-dark element) */
             @keyframes lt-pulse{0%,100%{opacity:.4;transform:scale(.8)}50%{opacity:1;transform:scale(1.1)}}
-        </style>
+        
+            /* ---------- all eighteen at once ----------
+               The rail was a horizontal scroller: 2858px of chips inside
+               1216px of space, so fewer than half the link types were ever
+               visible and the rest were behind a scroll nobody makes. They
+               wrap now, centred, three tidy rows, nothing hidden. */
+            .lt-rail{
+                flex-wrap:wrap;overflow:visible;justify-content:center;
+                gap:7px;padding:0 0 18px;
+                -webkit-mask-image:none;mask-image:none;animation:none
+            }
+
+            /* The autoplay is 4.2s per type and was invisible. The active
+               chip now fills a rule underneath itself, so the switch is
+               expected rather than startling, and hovering pauses both. */
+            .lt-chip{position:relative;overflow:hidden}
+            .lt-chip-on::after{
+                content:"";position:absolute;left:0;bottom:0;height:2px;width:100%;
+                transform-origin:left;background:currentColor;opacity:.55;
+                animation:lt-progress 4.2s linear forwards
+            }
+            .lt-rail:hover .lt-chip-on::after{animation-play-state:paused}
+            @keyframes lt-progress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+            /* The panel was 300px of text beside 914px of mostly empty
+               preview. A third and two thirds sits better, and the shorter
+               zone stops the mock swimming in the middle of it. */
+            @media(min-width:768px){
+                .lt-info-zone{flex:0 0 34%;max-width:34%}
+                .lt-mock-zone{height:300px}
+            }
+
+            /* Panes rise as they fade, which reads as a change rather than
+               a flicker. */
+            .lt-pane-on{animation:lt-pane-in .38s cubic-bezier(.2,.7,.3,1) both}
+            @keyframes lt-pane-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+            @media(prefers-reduced-motion:reduce){
+                .lt-chip-on::after{animation:none;transform:scaleX(1)}
+                .lt-pane-on{animation:none}
+            }
+</style>
 
         <div class="lt-spotlight reveal rd-1"
              x-data="{
