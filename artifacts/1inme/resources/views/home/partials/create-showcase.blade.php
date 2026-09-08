@@ -345,7 +345,17 @@
                         @if($lt['new'])<span class="lt-pane-badge" style="color:{{ $lt['color'] }};border-color:{{ $lt['color'] }}55">New</span>@endif
                         <h3 class="lt-pane-name">{{ $lt['name'] }}</h3>
                         <p class="lt-pane-desc">{{ $lt['desc'] }}</p>
-                        @php($__ltUsageLine = \App\Modules\Common\Support\LinkTypeUsage::forName($lt['name']))
+                        {{-- Block form is required here. Blade extracts raw
+                             php…endphp blocks BEFORE it compiles directives, so
+                             the one-line parenthesised php directive, in a file
+                             that also has a later endphp, pairs with THAT and
+                             swallows everything between as raw text: the
+                             foreach and if below stop compiling and $__lts is
+                             never assigned, which is a 500 on this section.
+                             scripts/src/check-blade-php.ts guards it. --}}
+                        @php
+                            $__ltUsageLine = \App\Modules\Common\Support\LinkTypeUsage::forName($lt['name']);
+                        @endphp
                         @if($__ltUsageLine !== '')
                             <p class="lt-pane-usage" data-expand-more>
                                 <span>How you would use it</span>
