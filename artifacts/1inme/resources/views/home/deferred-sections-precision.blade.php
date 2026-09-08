@@ -175,7 +175,17 @@
       <p class="lead">A free forever page, and paid tiers when you outgrow it. Every limit is published before you pay.</p>
     </div>
   </section>
-  @include('home.partials.pricing')
+{{-- The shared pricing partial is deliberately rendered OUTSIDE the .sz
+     wrapper. This design's base rules reach elements, not just classes
+     (.sz a, .sz p, .sz h4 and the margin reset), so anything included
+     inside the wrapper would silently inherit them. The pricing block is
+     shared with /pricing and the other home designs and has to look the
+     same everywhere, so it gets the page to itself. --}}
+</div>
+</div>
+@include('home.partials.pricing')
+<div class="sz">
+<div class="col">
 
   {{-- ============ FAQ, FROM THE ADMIN FAQ ROWS ============ --}}
   @php
