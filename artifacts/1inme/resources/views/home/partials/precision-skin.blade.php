@@ -34,15 +34,23 @@ html.szskin body{color:var(--sz-ink);font-family:'Instrument Sans','Space Grotes
 html.szskin .aurora{display:none}
 
 /* ---------- the ruled content column ----------
-   Two hairlines pinned at the column edges, the spine the whole page hangs
-   off. Drawn rather than wrapped in markup so no partial has to change. */
-html.szskin body::before,
-html.szskin body::after{
-  content:"";position:fixed;top:0;bottom:0;width:1px;background:var(--sz-rule);z-index:1;pointer-events:none
+   The rules sit on each section's own container rather than on two fixed
+   lines down the viewport. The page mixes max-w-6xl and max-w-7xl
+   containers, so fixed lines could only ever align with one of them and cut
+   through the text of the other. Pinning one width here and drawing the
+   rules on the container makes every section line up with every other. */
+html.szskin section > div.mx-auto{
+  max-width:1240px;
+  border-left:1px solid var(--sz-rule);border-right:1px solid var(--sz-rule);
+  padding-left:clamp(20px,3vw,40px);padding-right:clamp(20px,3vw,40px)
 }
-html.szskin body::before{left:calc(50% - var(--sz-col)/2)}
-html.szskin body::after{left:calc(50% + var(--sz-col)/2)}
-@media (max-width:1240px){html.szskin body::before,html.szskin body::after{display:none}}
+
+/* ---------- one vertical rhythm ----------
+   The page shipped with section padding of 40, 80, 96, 112 and 128px and
+   header margins of 48, 56 and 64. That inconsistency is most of what read
+   as "the spacing is off". One value each, everywhere. */
+html.szskin section{padding-top:clamp(52px,5.4vw,80px);padding-bottom:clamp(52px,5.4vw,80px)}
+html.szskin section > div > div.text-center{margin-bottom:clamp(26px,2.8vw,40px)}
 
 /* ---------- typography ---------- */
 html.szskin h1,html.szskin h2,html.szskin h3,html.szskin h4{letter-spacing:-.032em;color:var(--sz-ink)}
@@ -85,6 +93,20 @@ html.szskin section > div > div.text-center > h2::after{
 html.szskin section:nth-of-type(3n+1) > div > .text-center.mx-auto > h2::after{background:var(--sz-indigo)}
 html.szskin section:nth-of-type(3n+2) > div > .text-center.mx-auto > h2::after{background:var(--sz-amber)}
 html.szskin section:nth-of-type(3n)   > div > .text-center.mx-auto > h2::after{background:var(--sz-teal)}
+
+/* ---------- components built for the dark page ----------
+   Several newer components hardcode rgba(255,255,255,...) text instead of
+   taking a token, so they vanish on a light ground. An audit of the live
+   page found around 250 such elements. These are the named offenders; the
+   underlying gap is in each component's own light-mode pairing and is worth
+   fixing there, since it affects the site's existing light mode too. */
+html.szskin :is(.lt-chip,.lt-chip span,.lt-rail span,.lt-pane-desc,.lt-pane-title,
+  .lt-pane-badge,.lt-chip-new,.ms-item-text,.dc-dialchan-label,.dc-digit,
+  .aisx-card-desc,.th-pill,.bs-word){color:var(--sz-ink2)}
+html.szskin :is(.lt-chip.is-active,.lt-chip[aria-selected="true"],.aisx-card-title,.lt-pane-title){color:var(--sz-ink)}
+html.szskin [style*="color:#fff"],
+html.szskin [style*="color: #fff"],
+html.szskin [style*="color:rgba(255,255,255"]{color:var(--sz-ink2) !important}
 
 /* ---------- cards: flat and ruled, not blurred glass ---------- */
 html.szskin .glass,html.szskin .glass-2,html.szskin .trust-band-card{
