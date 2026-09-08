@@ -11,8 +11,8 @@ use Tests\TestCase;
  * Guards the marketing homepage design switch (`marketing_home_design`).
  *
  * The admin panel can flip `/` between the classic full-size landing page
- * (home.blade.php + home/deferred-sections.blade.php) and the compact
- * Variant B (home-b.blade.php + home/deferred-sections-b.blade.php) via
+ * (home.blade.php + home/deferred-sections.blade.php) and the precision
+ * the Precision skin (home.blade.php + home/deferred-sections-b.blade.php) via
  * HomeController::activeDesign(). A regression in that branching would
  * silently serve the wrong page — or worse, a classic shell whose deferred
  * loader injects the Variant-B fragment (mismatched hb-* CSS renders
@@ -26,22 +26,21 @@ class HomeDesignSwitchTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_compact_setting_serves_variant_b_page_and_fragment(): void
+    public function test_precision_setting_skins_the_page_and_keeps_the_classic_fragment(): void
     {
-        AppSetting::put(HomeController::DESIGN_SETTING_KEY, 'compact');
+        AppSetting::put(HomeController::DESIGN_SETTING_KEY, 'precision');
 
-        $this->assertSame('compact', HomeController::activeDesign());
+        $this->assertSame('precision', HomeController::activeDesign());
 
         $home = $this->get('/');
         $home->assertOk();
-        $home->assertViewIs('home-b');
-        // Variant-B layout primitive — only the compact hero uses it.
-        $home->assertSee('hb-hero-grid', false);
+        $home->assertViewIs('home');
+        // The skin marker class: only the Precision design emits it.
+        $home->assertSee('szskin', false);
 
         $sections = $this->get(route('home.sections'));
         $sections->assertOk();
-        $sections->assertViewIs('home.deferred-sections-b');
-        $sections->assertSee('hb-shell', false);
+        $sections->assertViewIs('home.deferred-sections');
     }
 
     public function test_classic_setting_serves_original_page_and_fragment(): void
@@ -53,12 +52,11 @@ class HomeDesignSwitchTest extends TestCase
         $home = $this->get('/');
         $home->assertOk();
         $home->assertViewIs('home');
-        $home->assertDontSee('hb-hero-grid', false);
+        $home->assertDontSee('szskin', false);
 
         $sections = $this->get(route('home.sections'));
         $sections->assertOk();
         $sections->assertViewIs('home.deferred-sections');
-        $sections->assertDontSee('hb-shell', false);
     }
 
     public function test_unknown_setting_value_falls_back_to_classic(): void

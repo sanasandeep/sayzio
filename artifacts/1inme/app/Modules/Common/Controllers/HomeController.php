@@ -16,9 +16,12 @@ use Illuminate\Support\Facades\Cache;
 class HomeController extends Controller
 {
     /**
-     * Admin-selected homepage design. 'classic' renders the original
-     * full-size landing page (home.blade.php); 'compact' renders the
-     * lighter Variant B (home-b.blade.php). Stored as an AppSetting so
+     * Admin-selected homepage design. Two options, deliberately: 'classic'
+     * is the page as it has always looked, and 'precision' is that same page
+     * with a different skin. The keyword-targeted short variants were removed
+     * because nine near-identical choices made the switch hard to reason
+     * about; their fragments are still in the repo if one is ever wanted
+     * back. Stored as an AppSetting so
      * the marketing team can flip the live design from the admin panel;
      * takes effect within the AppSetting cache window (~5 min) without
      * a deploy. Any unknown stored value falls back to 'classic'.
@@ -47,60 +50,6 @@ class HomeController extends Controller
             'fragment' => 'home.deferred-sections',
             'label' => 'Precision skin (same content, new look)',
             'seo' => null,
-        ],
-        'compact' => [
-            'fragment' => 'home.deferred-sections-b',
-            'label' => 'Compact (short classic)',
-            'seo' => [
-                'title' => 'AI Link in Bio, Short Links & QR Codes',
-                'description' => 'Build your link in bio page, short links and QR codes with Sayzio, the AI-powered bio link platform. Free to start, no card required.',
-                'keywords' => 'link in bio, bio link, short links, qr code, ai page builder',
-            ],
-        ],
-        'ai' => [
-            'fragment' => 'home.deferred-sections-ai',
-            'label' => 'AI builder (short)',
-            'seo' => [
-                'title' => 'Free AI Link in Bio & AI Page Builder',
-                'description' => 'Describe your page and Sayzio\'s AI builds your link in bio, bio link page, short links and QR codes in seconds. Free AI page builder, no card required.',
-                'keywords' => 'ai link in bio, ai page builder, ai website builder free, link in bio maker',
-            ],
-        ],
-        'creators' => [
-            'fragment' => 'home.deferred-sections-creators',
-            'label' => 'Creators (short)',
-            'seo' => [
-                'title' => 'Link in Bio for Creators, Free Bio Link Page',
-                'description' => 'One bio link page for Instagram, TikTok and YouTube. Sell products, grow subscribers and share every link from one free creator link in bio page.',
-                'keywords' => 'link in bio, bio link page, link in bio for instagram, creator link page',
-            ],
-        ],
-        'shortlinks' => [
-            'fragment' => 'home.deferred-sections-shortlinks',
-            'label' => 'Short links & QR (short)',
-            'seo' => [
-                'title' => 'Free URL Shortener with Branded Links & QR Code Generator',
-                'description' => 'Shorten long URLs into branded short links on your own domain, generate QR codes and track every click with real-time link analytics. Free to start.',
-                'keywords' => 'url shortener, free url shortener, qr code generator, branded short links, link tracking',
-            ],
-        ],
-        'business' => [
-            'fragment' => 'home.deferred-sections-business',
-            'label' => 'Small business (short)',
-            'seo' => [
-                'title' => 'Digital Business Card & Business Mini-Site Builder',
-                'description' => 'Create a digital business card, lead capture forms and a business landing page on your own custom domain, with an AI receptionist answering customers 24/7.',
-                'keywords' => 'digital business card, business landing page, mini website builder, lead capture forms',
-            ],
-        ],
-        'growth' => [
-            'fragment' => 'home.deferred-sections-growth',
-            'label' => 'Analytics & growth (short)',
-            'seo' => [
-                'title' => 'Link Analytics & Click Tracking for Short Links and Bio Pages',
-                'description' => 'Track clicks, countries, devices and referrers for your short links and bio link page. Real-time link analytics, UTM insights and audience growth tools.',
-                'keywords' => 'link analytics, click tracking, link tracker, utm tracking, audience growth',
-            ],
         ],
     ];
 
@@ -138,9 +87,9 @@ class HomeController extends Controller
         // showcase, AI demos, featured posts…) is rendered by sections()
         // and fetched by the homepage loader right after first paint, so the
         // initial render needs NO plan/link-type/blog queries at all.
-        // Both designs share the classic animated shell (hero, homeEnhance,
-        // marketingAnimScan); "compact" only swaps in a trimmed deferred
-        // fragment (home/deferred-sections-b) with fewer, combined sections.
+        // Both designs render this same shell and the same deferred
+        // fragment; "precision" adds a stylesheet on top, so the content is
+        // identical and only the look differs.
         return view('home');
     }
 
