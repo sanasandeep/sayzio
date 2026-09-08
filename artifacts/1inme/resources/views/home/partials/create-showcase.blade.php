@@ -195,13 +195,22 @@
                A shorter zone, a wider text column and a drawing scaled up to
                meet it. */
             @media(min-width:768px){
+                /* The drawing is 237px wide. Given a 777px zone it sat alone
+                   in 540px of nothing, which is what still read as empty
+                   after the first pass. The zone is now sized to the drawing
+                   rather than to whatever space was left over, and the stage
+                   itself is capped so the text column does not stretch to
+                   fill the difference. */
+                .lt-stage{max-width:1000px;margin-left:auto;margin-right:auto}
                 .lt-info-zone{
-                    flex:0 0 36%;max-width:36%;
+                    flex:1 1 auto;max-width:none;
                     justify-content:center;padding-top:26px;padding-bottom:26px
                 }
-                .lt-mock-zone{height:284px}
+                .lt-mock-zone{flex:0 0 clamp(320px,34%,430px);height:284px}
                 .lt-mock > *{transform:scale(1.22);transform-origin:center}
             }
+            .lt-pane p{max-width:52ch}
+            .lt-pane{padding-right:34px}
             /* An inner ring so the preview reads as a surface of its own
                rather than a hole in the card. */
             .lt-mock-zone{box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}

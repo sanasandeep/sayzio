@@ -80,6 +80,13 @@
     .xc-body [data-expand-more] { display: block; }
     .xc-host [data-expand-more] { display: none; }
 
+    /* The link-type stage is mostly picture, so in the modal it gets the
+       room: a taller preview and a bigger drawing. The carousel dots belong
+       to the rail outside, not in here. */
+    .xc-body .lt-mock-zone { height: 420px; flex: 0 0 46%; }
+    .xc-body .lt-mock > * { transform: scale(1.5); }
+    .xc-body .lt-dots { display: none; }
+
     body.xc-locked { overflow: hidden; }
 
     @media (prefers-reduced-motion: reduce) {
@@ -96,7 +103,10 @@
     var SELECTORS = [
         '#audience .audience-card',
         '#share .glass',
-        '#domains .glass'
+        '#domains .glass',
+        // The link-type stage: expanding it opens whichever type is showing
+        // at a size the drawing actually deserves.
+        '#create .lt-stage'
     ];
 
     var EXPAND_ICON =
