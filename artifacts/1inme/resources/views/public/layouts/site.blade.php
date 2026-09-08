@@ -129,41 +129,29 @@
     </style>
     @stack('head')
 </head>
-@php $__sch = (($skin ?? null) === 'schematic'); @endphp
-<body class="min-h-screen flex flex-col{{ $__sch ? ' skin-schematic' : '' }}">
+<body class="min-h-screen flex flex-col">
 
-{{-- Aurora background (consistent with the home page). The schematic skin
-     draws its own flat ground, so the aurora blobs are skipped there. --}}
-@unless($__sch)
+{{-- Aurora background (consistent with the home page) --}}
 <div class="aurora" aria-hidden="true"><b></b><b></b><b></b><b></b></div>
-@endunless
 
 @include('common.partials.announcement-banner', ['surface' => 'site'])
 
-@if($__sch)
-    @include('public.partials.schematic.header')
-@else
-    @include('public.partials.header', ['useModal' => $useModal ?? false])
-@endif
+@include('public.partials.header', ['useModal' => $useModal ?? false])
 
 {{-- Cross-page "Discover Events" promo band — every site-layout page shows
      it except the events directory itself (which already has the full hero
      it's modeled on) and any page that opts out via the
      `suppress_events_hero_band` request attribute (e.g. a single event's own
      page, which has its own hero and would otherwise show two stacked heroes). --}}
-@unless($__sch || request()->routeIs('events.index') || request()->attributes->get('suppress_events_hero_band'))
+@unless(request()->routeIs('events.index') || request()->attributes->get('suppress_events_hero_band'))
     @include('common.partials.events-hero-band')
 @endunless
 
-<main class="relative z-10 flex-1 {{ $__sch ? '' : 'mkt-site-main' }}">
+<main class="relative z-10 flex-1 mkt-site-main">
     @yield('content')
 </main>
 
-@if($__sch)
-    @include('public.partials.schematic.footer')
-@else
-    @include('public.partials.footer')
-@endif
+@include('public.partials.footer')
 
 @include('common.partials.cookie-consent', ['surface' => 'site'])
 
