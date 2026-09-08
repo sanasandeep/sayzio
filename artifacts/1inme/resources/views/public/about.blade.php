@@ -31,23 +31,28 @@
     $heroLocSubtitle   = $or($hero['location_subtitle'] ?? '', 'Remote-friendly');
     $heroLocIcon       = $or($hero['location_icon']     ?? '', 'fa-location-dot');
 
+    // "auto" means the figure comes from a single source rather than being
+    // typed in by hand: creators from Site Stats, years from the founding
+    // date, teammates from the team-size setting. See AboutFigures.
     $defaultHeroStats = [
-        ['value' => '120000', 'suffix' => '+', 'label' => 'Creators served', 'visible' => true],
-        ['value' => '3',      'suffix' => '',  'label' => 'Years young',     'visible' => true],
-        ['value' => '9',      'suffix' => '',  'label' => 'Teammates',       'visible' => true],
+        ['value' => 'auto', 'suffix' => '',  'label' => 'Creators served', 'visible' => true],
+        ['value' => 'auto', 'suffix' => '',  'label' => 'Years young',     'visible' => true],
+        ['value' => 'auto', 'suffix' => '',  'label' => 'Teammates',       'visible' => true],
     ];
     $heroStats = (array)($hero['stats'] ?? $defaultHeroStats);
     $visibleHeroStats = [];
     foreach ($heroStats as $s) {
         if (!is_array($s)) continue;
-        $value = trim((string)($s['value'] ?? ''));
         $label = trim((string)($s['label'] ?? ''));
         $visible = array_key_exists('visible', $s) ? (bool)$s['visible'] : true;
         if (!$visible) continue;
+        $resolved = \App\Modules\Common\Support\AboutFigures::resolve($s);
+        $value = $resolved['value'];
         if ($value === '' && $label === '') continue;
+        if ($value === '') continue;
         $visibleHeroStats[] = [
             'value'  => $value,
-            'suffix' => (string)($s['suffix'] ?? ''),
+            'suffix' => $resolved['suffix'],
             'label'  => $label,
         ];
     }
