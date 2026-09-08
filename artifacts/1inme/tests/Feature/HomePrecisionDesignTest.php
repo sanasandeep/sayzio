@@ -45,12 +45,42 @@ class HomePrecisionDesignTest extends TestCase
     {
         AppSetting::put(HomeController::DESIGN_SETTING_KEY, 'precision');
 
-        // Nothing seeded: the band and the FAQ section drop out rather than
-        // rendering invented figures or an empty accordion.
-        $html = $this->get('/')->assertOk()->getContent();
-        $this->assertStringNotContainsString('class="band"', $html);
+        // Empty both sources explicitly. A migration seeds Site Stats, so
+        // "fresh database" is not the same thing as "nothing saved", and the
+        // case worth guarding is the one where an admin has cleared them.
+        \App\Modules\Admin\Models\SiteStat::query()->delete();
+        \App\Modules\Common\Models\FaqItem::query()->delete();
+        \Illuminate\Support\Facades\Cache::flush();
 
-        $this->get(route('home.sections'))->assertOk();
+        // The band and the FAQ section drop out rather than rendering
+        // invented figures or an empty accordion.
+        $html = $this->get('/')->assertOk()->getContent();
+        $this->assertStringNotContainsString('<div class="band">', $html);
+        $this->assertStringContainsString('One address for everything you share.', $html);
+
+        $this->get(route('home.sections'))
+            ->assertOk()
+            ->assertDontSee('Before you pick.', false);
+    }
+
+    public function test_the_band_renders_the_admin_site_stats_when_there_are_some(): void
+    {
+        AppSetting::put(HomeController::DESIGN_SETTING_KEY, 'precision');
+
+        \App\Modules\Admin\Models\SiteStat::query()->delete();
+        \App\Modules\Admin\Models\SiteStat::create([
+            'label' => 'Creators and businesses',
+            'value' => '3.75 Lakh',
+            'suffix' => '+',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Creators and businesses', false)
+            ->assertSee('3.75 Lakh', false);
     }
 
     public function test_precision_carries_its_own_seo(): void
