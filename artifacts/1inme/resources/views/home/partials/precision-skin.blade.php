@@ -116,6 +116,43 @@ html.szskin.light-mode [style*="color:#fff"],
 html.szskin.light-mode [style*="color: #fff"],
 html.szskin.light-mode [style*="color:rgba(255,255,255"]{color:var(--sz-ink2) !important}
 
+/* ---------- flat, everywhere ----------
+   No liquid glass and no decorative gradients. Rather than chase this
+   section by section, the page was audited in the browser: 54 elements were
+   still running a backdrop blur and 242 carried a gradient background. The
+   rules below are aimed at what that audit actually found, so the treatment
+   is the same in every section instead of only the ones someone looked at.
+
+   Small brand marks and the product mockups keep their own colour: they are
+   content, not chrome. What goes is the blur, the glow, the drifting blobs
+   and the gradient washes on surfaces and buttons. */
+html.szskin *,html.szskin *::before,html.szskin *::after{
+  backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
+
+/* Decorative auras, halos and the blurred circles behind cards. */
+html.szskin :is(.aurora,.zio-glow,.zio-mascot-halo,.aud-blob,.lt-blob,.ai-zone-aura,.aisx-blob,.bs-glyph){display:none !important}
+html.szskin .absolute[class*="blur-"]{display:none !important}
+html.szskin .absolute.rounded-full[class*="opacity-"]{display:none !important}
+
+/* One surface treatment for every card-like thing on the page. */
+html.szskin :is(.glass,.glass-2,.trust-band-card,.bs-card,.bs-pillar,.buzz-card,.prem-feat,.zio-node-btn,.geo-ticker){
+  background-image:none !important;background-color:var(--sz-card) !important;
+  border:1px solid var(--sz-rule) !important;box-shadow:var(--sz-shadow) !important}
+html.szskin :is(.glass,.glass-2,.trust-band-card,.bs-card,.bs-pillar,.buzz-card,.prem-feat,.zio-node-btn)::before,
+html.szskin :is(.glass,.glass-2,.trust-band-card,.bs-card,.bs-pillar,.buzz-card,.prem-feat,.zio-node-btn)::after{
+  background-image:none !important}
+
+/* Buttons: one solid accent, no gradient and no glow. */
+html.szskin :is(.btn-glow,.btn-bounce,.btn-cta,.ai-gen-btn,.mf-btn,.bb-btn){
+  background-image:none !important;background-color:var(--sz-accent) !important;color:#FFFFFF !important;
+  box-shadow:none !important;border-radius:11px !important}
+
+/* The feature ticker was a five stop rainbow; it is one flat colour now. */
+html.szskin .grad-bar{background-image:none !important;background-color:var(--sz-block) !important}
+
+/* Product mock surfaces sit on the page ground rather than their own wash. */
+html.szskin :is(.lt-mock-zone,.bb-screen,.rb-paper,.geo-map){background-image:none !important;background-color:var(--sz-bg2) !important}
+
 /* ---------- two flat colour blocks ----------
    The same indigo in both themes, on the two sections that most need to
    interrupt the scroll. Both are short and mostly headings and buttons,
