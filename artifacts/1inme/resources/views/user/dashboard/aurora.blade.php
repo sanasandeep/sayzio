@@ -141,6 +141,24 @@
 
     .au-empty { font-size: 12.5px; color: var(--text-muted); padding: 6px 0 2px; }
 
+    /* Heatmap: 7 rows down, 12 two-hour blocks across. */
+    .au-heat { display: grid; grid-template-columns: 18px repeat(12, minmax(0, 1fr)); gap: 3px; align-items: center; }
+    .au-heat-day { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9px; color: var(--text-faint); }
+    .au-heat-cell { aspect-ratio: 1 / 1; border-radius: 3px; }
+    .au-heat-hours { display: grid; grid-template-columns: 18px repeat(12, minmax(0, 1fr)); gap: 3px; margin-top: 6px; }
+    .au-heat-hours span { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 8.5px; color: var(--text-faint); text-align: center; }
+    .au-heat-scale { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .au-heat-steps { display: flex; gap: 3px; }
+    .au-heat-steps i { width: 11px; height: 11px; border-radius: 3px; }
+
+    /* Activity feed */
+    .au-fev { display: grid; grid-template-columns: 7px 1fr auto; gap: 10px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--border-subtle); }
+    .au-fev:last-child { border-bottom: 0; }
+    .au-fev i.dot { width: 6px; height: 6px; border-radius: 50%; transform: translateY(2px); background: var(--accent); }
+    .au-fev-main { font-size: 12.5px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .au-fev-main em { font-style: normal; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; color: var(--text-muted); }
+    .au-fev-t { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; color: var(--text-faint); white-space: nowrap; }
+
     @media (max-width: 1100px) {
         .c8, .c4 { grid-column: span 12; }
         .au-hero { grid-template-columns: 1fr; }
@@ -197,11 +215,30 @@
     $topLinks = $auroraLinks->take(5);
     $maxTop   = max(1, (int) ($topLinks->max('total_clicks') ?: 0));
 
-    // Channel mix. Real rows from the click log, so the panel is never a
-    // placeholder; it just goes quiet when there is nothing to show yet.
-    $channelTotal = (int) $channelStats->sum('count');
-    $channelHues  = ['#6e8cff', '#b08bff', '#46d3d9', '#edb44e', '#ff83ab'];
-    $channelTop   = $channelStats->sortByDesc('count')->take(5)->values();
+    // Where clicks come from, by referring host. Real rows from the click
+    // log, so the panel is never a placeholder; it just goes quiet when
+    // there is nothing to show yet.
+    $channelHues = ['#6e8cff', '#b08bff', '#46d3d9', '#edb44e', '#ff83ab'];
+    $sourceRows  = collect($auroraSources)
+        ->map(fn ($count, $label) => ['label' => (string) $label, 'count' => (int) $count])
+        ->values();
+    $sourceTotal = (int) $sourceRows->sum('count');
+
+    // Heatmap scale. Alpha is on the square root of the count so a single
+    // busy hour does not flatten every other cell to the same faint tint.
+    $heatRows = collect($auroraHeat ?? []);
+    $heatMax  = max(1, (int) $heatRows->flatten()->max());
+    $heatPeak = 0;
+    $heatPeakLabel = '';
+    foreach (($auroraHeat ?? []) as $d => $blocks) {
+        foreach ($blocks as $b => $n) {
+            if ($n > $heatPeak) {
+                $heatPeak = (int) $n;
+                $heatPeakLabel = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][$d]
+                    . ' ' . str_pad((string) ($b * 2), 2, '0', STR_PAD_LEFT) . ':00';
+            }
+        }
+    }
 
     $spark    = collect($clicksSparkline)->values();
     $sparkMax = max(1, (int) $spark->max());
@@ -318,18 +355,18 @@
     <section class="card-premium au-pad c4">
         <div class="au-ph">
             <span class="au-label">Where clicks come from</span>
-            <span class="au-note">Lifetime</span>
+            <span class="au-note">By referrer</span>
         </div>
-        @if($channelTotal < 1)
+        @if($sourceTotal < 1)
             <p class="au-empty">Nothing recorded yet. This fills in as your links get opened.</p>
         @else
             <div class="au-ring-wrap">
-                <svg class="au-ring" viewBox="0 0 42 42" role="img" aria-label="Click sources by share.">
+                <svg class="au-ring" viewBox="0 0 42 42" role="img" aria-label="Click sources by share of referrer.">
                     <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--bg-glass-input)" stroke-width="5"></circle>
                     @php $offset = 25; @endphp
-                    @foreach($channelTop as $i => $row)
+                    @foreach($sourceRows as $i => $row)
                         @php
-                            $pct = round(($row->count / max(1, $channelTotal)) * 100, 1);
+                            $pct = round(($row['count'] / max(1, $sourceTotal)) * 100, 1);
                             $dash = $pct . ' ' . (100 - $pct);
                         @endphp
                         <circle cx="21" cy="21" r="15.9" fill="none"
@@ -339,11 +376,11 @@
                     @endforeach
                 </svg>
                 <div class="au-legend">
-                    @foreach($channelTop as $i => $row)
+                    @foreach($sourceRows as $i => $row)
                         <span>
                             <i style="background: {{ $channelHues[$i % count($channelHues)] }}"></i>
-                            {{ Str::limit(Str::headline((string) $row->channel), 16) }}
-                            <b>{{ round(($row->count / max(1, $channelTotal)) * 100) }}%</b>
+                            {{ Str::limit($row['label'], 16) }}
+                            <b>{{ round(($row['count'] / max(1, $sourceTotal)) * 100) }}%</b>
                         </span>
                     @endforeach
                 </div>
@@ -424,6 +461,58 @@
                 </div>
             </div>
         </div>
+    </section>
+
+    {{-- ============ WHEN LINKS GET CLICKED ============ --}}
+    <section class="card-premium au-pad c8">
+        <div class="au-ph">
+            <span class="au-label">When your links get clicked</span>
+            <span class="au-note">7 days &middot; 2-hour blocks</span>
+        </div>
+        @if($heatPeak < 1)
+            <p class="au-empty">No clicks in the last seven days, so there is no pattern to draw yet.</p>
+        @else
+            <div class="au-heat" role="img" aria-label="Click density by day and hour. Busiest at {{ $heatPeakLabel }} with {{ $heatPeak }} clicks.">
+                @foreach(($auroraHeat ?? []) as $d => $blocks)
+                    <span class="au-heat-day">{{ ['M','T','W','T','F','S','S'][$d] }}</span>
+                    @foreach($blocks as $n)
+                        @php $alpha = $n > 0 ? 0.12 + (sqrt($n / $heatMax) * 0.76) : 0.05; @endphp
+                        <span class="au-heat-cell" style="background: color-mix(in srgb, var(--accent) {{ round($alpha * 100) }}%, transparent)"></span>
+                    @endforeach
+                @endforeach
+            </div>
+            <div class="au-heat-hours">
+                <span></span>
+                @foreach(['','00','','04','','08','','12','','16','','20'] as $h)<span>{{ $h }}</span>@endforeach
+            </div>
+            <div class="au-heat-scale">
+                <span class="au-label">Quiet</span>
+                <span class="au-heat-steps">
+                    @foreach([5, 24, 43, 62, 88] as $step)
+                        <i style="background: color-mix(in srgb, var(--accent) {{ $step }}%, transparent)"></i>
+                    @endforeach
+                </span>
+                <span class="au-label">Busy</span>
+                <span class="au-mono" style="margin-left:auto">Peak {{ $heatPeak }} &middot; {{ $heatPeakLabel }}</span>
+            </div>
+        @endif
+    </section>
+
+    {{-- ============ LIVE ACTIVITY ============ --}}
+    <section class="card-premium au-pad c4">
+        <div class="au-ph">
+            <span class="au-label"><span class="au-live" style="margin-right:5px"></span>Live activity</span>
+            <span class="au-note">Latest 5</span>
+        </div>
+        @forelse($auroraActivity as $ev)
+            <div class="au-fev">
+                <i class="dot"></i>
+                <span class="au-fev-main">{{ $ev->city ?: ($ev->country_code ?: 'Somewhere') }} opened <em>/{{ $ev->alias }}</em></span>
+                <span class="au-fev-t">{{ $ev->clicked_at ? $ev->clicked_at->diffForHumans(null, true, true) : '' }}</span>
+            </div>
+        @empty
+            <p class="au-empty">No clicks recorded yet.</p>
+        @endforelse
     </section>
 
 </div>
