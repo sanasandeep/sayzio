@@ -43,8 +43,12 @@
         <nav class="sch-margin-index" aria-label="On this page">
             <h4>On this page</h4>
             @foreach($categories as $cat)
-                @php $__id = 'cap-' . \Illuminate\Support\Str::slug((string) ($cat['id'] ?? $cat['heading'] ?? 'section')); @endphp
-                <a href="#{{ $__id }}">{{ \Illuminate\Support\Str::before((string) ($cat['heading'] ?? ''), ':') }}</a>
+                @php
+                    $__id = 'cap-' . \Illuminate\Support\Str::slug((string) ($cat['id'] ?? $cat['heading'] ?? 'section'));
+                    $__label = trim((string) preg_replace('/\s*(:|\x{2014}|\x{2013})\s.*$/u', '', (string) ($cat['heading'] ?? '')));
+                    $__label = \Illuminate\Support\Str::limit($__label !== '' ? $__label : (string) ($cat['heading'] ?? ''), 34);
+                @endphp
+                <a href="#{{ $__id }}">{{ $__label }}</a>
             @endforeach
         </nav>
 

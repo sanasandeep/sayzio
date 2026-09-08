@@ -211,7 +211,8 @@ html.light-mode body.skin-schematic{
 /* ---------- about ---------- */
 .skin-schematic .sch-about{display:grid;gap:clamp(30px,4vw,60px)}
 @media (min-width:900px){.skin-schematic .sch-about{grid-template-columns:minmax(0,1fr) minmax(0,.82fr)}}
-.skin-schematic .sch-prose p{color:var(--ink-2);max-width:58ch}
+.skin-schematic .sch-prose p{color:var(--ink-2);max-width:58ch;margin:0 0 18px}
+.skin-schematic .sch-prose p:last-child{margin-bottom:0}
 .skin-schematic .sch-prose p:first-child{color:var(--ink);font-size:18px}
 .skin-schematic .sch-timeline{list-style:none;margin:0;padding:0}
 .skin-schematic .sch-timeline li{display:grid;grid-template-columns:62px 1fr;gap:18px;padding:15px 0;border-top:1px solid var(--rule)}
