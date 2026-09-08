@@ -1,14 +1,5 @@
 <!DOCTYPE html>
-@php
-    // The Precision skin is a light design, so it opens light unless this
-    // visitor has explicitly chosen dark. Every other design keeps the
-    // existing behaviour: dark unless the cookie says light.
-    $__szTheme = $_COOKIE['1inme_theme'] ?? null;
-    $__szSkin  = \App\Modules\Common\Controllers\HomeController::activeDesign() === 'precision';
-    $__szClass = trim(($__szSkin ? 'szskin ' : '')
-        . (($__szSkin ? $__szTheme !== 'dark' : $__szTheme === 'light') ? 'light-mode' : ''));
-@endphp
-<html lang="en" class="{{ $__szClass }}">
+<html lang="en" class="{{ (($_COOKIE['1inme_theme'] ?? null) === 'light') ? 'light-mode' : '' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -48,9 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=18">
-    @if(\App\Modules\Common\Controllers\HomeController::activeDesign() === 'precision')
-        @include('home.partials.precision-skin')
-    @endif
+    @include('home.partials.flat-surfaces')
     @vite(['resources/js/marketing-anim.js'])
     <script>
         // Fire-and-forget marketing-CTA tracking shared by every home-page
