@@ -40,6 +40,10 @@ class MarketingSettingsController extends Controller
             'ga4_id'                   => (string) AppSetting::get('marketing_ga4_id', ''),
             'meta_pixel_id'            => (string) AppSetting::get('marketing_meta_pixel_id', ''),
             'default_share_image'      => (string) AppSetting::get('marketing_default_share_image', ''),
+            // Marketing home page product shots. Blank means the page draws
+            // its own mock UI instead, which is the default so a deploy can
+            // never ship a real customer account on the marketing site.
+            'home_shots'               => \App\Modules\Common\Support\HomeShots::all(),
             'whatsapp_channel_url'     => (string) AppSetting::get('marketing_whatsapp_channel_url', ''),
             'whatsapp_number'          => (string) AppSetting::get('marketing_whatsapp_number', ''),
             'whatsapp_message'         => (string) AppSetting::get('marketing_whatsapp_message', ''),
@@ -79,6 +83,12 @@ class MarketingSettingsController extends Controller
             'ga4_id'                          => ['nullable', 'string', 'max:60', 'regex:/^[A-Za-z0-9\-_]*$/'],
             'meta_pixel_id'                   => ['nullable', 'string', 'max:60', 'regex:/^[0-9]*$/'],
             'default_share_image'             => ['nullable', 'string', 'max:1000', 'regex:#^https?://#i'],
+            // Home page product shots: an http(s) URL from the admin Asset
+            // Vault, or a site-root path. Blank returns the slot to the
+            // drawn fallback built into the view.
+            'home_shot_dashboard'             => ['nullable', 'string', 'max:1000', 'regex:#^(https?://|/[^/])#i'],
+            'home_shot_links'                 => ['nullable', 'string', 'max:1000', 'regex:#^(https?://|/[^/])#i'],
+            'home_shot_menu'                  => ['nullable', 'string', 'max:1000', 'regex:#^(https?://|/[^/])#i'],
             // WhatsApp channel/DM settings used by the public 3-way Subscribe block.
             // Channel URL must be an http(s) link (typically https://whatsapp.com/channel/...).
             // Number must be E.164 — digits only, optional leading +, 7–15 digits.
@@ -142,6 +152,9 @@ class MarketingSettingsController extends Controller
         AppSetting::put('marketing_ga4_id', trim((string) ($data['ga4_id'] ?? '')));
         AppSetting::put('marketing_meta_pixel_id', trim((string) ($data['meta_pixel_id'] ?? '')));
         AppSetting::put('marketing_default_share_image', trim((string) ($data['default_share_image'] ?? '')));
+        foreach (\App\Modules\Common\Support\HomeShots::KEYS as $slot => $settingKey) {
+            AppSetting::put($settingKey, trim((string) ($data['home_shot_' . $slot] ?? '')));
+        }
         AppSetting::put('marketing_whatsapp_channel_url', trim((string) ($data['whatsapp_channel_url'] ?? '')));
         AppSetting::put('marketing_whatsapp_number', trim((string) ($data['whatsapp_number'] ?? '')));
         AppSetting::put('marketing_whatsapp_message', trim((string) ($data['whatsapp_message'] ?? '')));

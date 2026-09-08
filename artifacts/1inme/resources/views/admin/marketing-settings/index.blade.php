@@ -139,6 +139,33 @@
             </div>
         </div>
 
+        {{-- Home page product shots. Blank = the page draws its own mock UI. --}}
+        <div class="glass rounded-2xl p-6 space-y-5">
+            <div>
+                <h2 class="ak-strong text-lg font-semibold text-white">Home page product shots</h2>
+                <p class="ak-note text-sm text-white/50 mt-1">
+                    Upload a screenshot in the Asset Vault and paste its URL here to show it on the home page.
+                    Leave a field blank and the page draws its own mock interface instead, which is the safe default:
+                    it never shows a real customer account and never goes stale. Applies within about five minutes, no deploy needed.
+                </p>
+            </div>
+            <div class="space-y-4">
+                @foreach (\App\Modules\Common\Support\HomeShots::LABELS as $shotSlot => $shotLabel)
+                    <div>
+                        <label class="ak-muted block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">{{ $shotLabel }}</label>
+                        <input type="text" name="home_shot_{{ $shotSlot }}"
+                               value="{{ old('home_shot_' . $shotSlot, $home_shots[$shotSlot] ?? '') }}"
+                               placeholder="https://sayzio.app/storage/admin-assets/{{ $shotSlot }}.png"
+                               class="ak-strong ak-input w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                        @error('home_shot_' . $shotSlot)<p class="ak-red mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    </div>
+                @endforeach
+            </div>
+            <p class="ak-note text-[11px] text-white/40">
+                Use a demo workspace, never a real customer account. A site-root path such as /storage/admin-assets/dashboard.png also works.
+            </p>
+        </div>
+
         {{-- Mobile app store links --}}
         <div class="glass rounded-2xl p-6 space-y-5">
             <div>
