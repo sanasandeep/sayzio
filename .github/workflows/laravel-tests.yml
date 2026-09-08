@@ -126,14 +126,13 @@ jobs:
           extensions: mbstring, intl, pdo, pdo_pgsql, pgsql, bcmath, gd, zip
           coverage: none
           tools: composer:v2
-          # The suite currently dies rather than fails: a paratest worker hits
-          # "Premature end of PHP process" around 90% and takes the whole run
-          # with it, so the several hundred real failures behind it are never
-          # reported. A worker exhausting the default memory limit is the
-          # leading explanation for that class of crash, and no limit was set
-          # here at all. If this is it, the run starts reporting instead of
-          # aborting; if not, it costs nothing and rules one thing out.
-          ini-values: memory_limit=512M
+          # The suite leaks memory across tests: a sequential run at 512M dies
+          # with "Allowed memory size ... exhausted" about 1700 tests in, at
+          # whatever allocation happens to come next (the reported file is
+          # arbitrary). Measured growth is roughly 400M over 1700 tests, so
+          # the full 5337 need on the order of 1.5G. 4G leaves headroom while
+          # still failing loudly if the leak ever gets materially worse.
+          ini-values: memory_limit=4G
 
       - name: Cache Composer dependencies
         uses: actions/cache@v4
