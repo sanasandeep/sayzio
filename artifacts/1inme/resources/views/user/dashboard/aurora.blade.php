@@ -507,7 +507,8 @@
         @forelse($auroraActivity as $ev)
             <div class="au-fev">
                 <i class="dot"></i>
-                <span class="au-fev-main">{{ $ev->city ?: ($ev->country_code ?: 'Somewhere') }} opened <em>/{{ $ev->alias }}</em></span>
+                @php $where = $ev->city ?: $ev->country_code; @endphp
+                <span class="au-fev-main">@if($where){{ $where }} opened @else Opened @endif<em>/{{ $ev->alias }}</em></span>
                 <span class="au-fev-t">{{ $ev->clicked_at ? $ev->clicked_at->diffForHumans(null, true, true) : '' }}</span>
             </div>
         @empty

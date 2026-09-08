@@ -1193,6 +1193,7 @@
             </nav>
 
             <div class="mx-3 mb-3" x-show="sidebarMode === 'full'" x-cloak x-transition.opacity>
+                @if(auth()->user()->canUpgradePlan())
                 <div class="upgrade-card">
                     <div class="relative z-10 upgrade-inner">
                         <div class="flex items-center gap-2 mb-2">
@@ -1207,6 +1208,7 @@
                         </a>
                     </div>
                 </div>
+                @endif
             </div>
 
             @if(!session('impersonate_user_id') && auth()->user()->hasActiveAdminAccount())
