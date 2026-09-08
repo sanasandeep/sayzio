@@ -221,21 +221,17 @@ class DashboardController extends Controller
         // pipeline render it later) so a view-level error is caught here, and
         // fall back to the dashboard that has always worked.
         //
-        // The reason for the header: this box takes no inbound SSH, so the
-        // Laravel log is not reachable from where this preview is being built.
-        // One sanitised line on the response is enough to diagnose a broken
-        // preview, and only an account that opted in ever sees it.
+        // report() is the whole diagnostic path now. This briefly also put the
+        // message on a response header, because the box takes no inbound SSH
+        // and the log was unreachable from where the preview was being built;
+        // that came out once it had found what it was added for.
         if ($user->usesAuroraUi()) {
             try {
                 return response(view('user.dashboard.aurora', $payload)->render());
             } catch (\Throwable $e) {
                 report($e);
 
-                $note = $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine();
-                $note = preg_replace('/[^\x20-\x7E]/', ' ', $note);
-
-                return response(view('user.dashboard.index', $payload))
-                    ->header('X-Aurora-Error', mb_substr((string) $note, 0, 480));
+                return view('user.dashboard.index', $payload);
             }
         }
 

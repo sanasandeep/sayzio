@@ -70,6 +70,7 @@ echo "running blade/alpine attribute guards..."
 run_guard run check:alpine-line-comments
 run_guard run check:blade-json-in-attr
 run_guard run check:blade-comment-echo
+run_guard run check:blade-glued-directive
 
 # Apply the api-server's drizzle schema. We use the NON-force `push` on purpose:
 # drizzle.config.ts restricts drizzle-kit to the dedicated `drizzle` Postgres
