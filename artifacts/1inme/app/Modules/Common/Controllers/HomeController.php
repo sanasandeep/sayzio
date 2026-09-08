@@ -39,6 +39,19 @@ class HomeController extends Controller
             'label' => 'Classic (full page)',
             'seo' => null,
         ],
+        'precision' => [
+            // The only design with a shell of its own. Every other design
+            // reuses home.blade.php and swaps the deferred fragment; this one
+            // replaces the hero and the shell too, so it carries a 'view'.
+            'view' => 'home-precision',
+            'fragment' => 'home.deferred-sections-precision',
+            'label' => 'Precision (new full page)',
+            'seo' => [
+                'title' => 'One Address for Everything You Share',
+                'description' => 'Pages, menus, QR codes, forms and an AI that answers for you, all behind one Sayzio address you can repoint whenever you like. Free forever, no card.',
+                'keywords' => 'link in bio, bio link page, qr code generator, url shortener, ai chatbot for business',
+            ],
+        ],
         'compact' => [
             'fragment' => 'home.deferred-sections-b',
             'label' => 'Compact (short classic)',
@@ -132,7 +145,17 @@ class HomeController extends Controller
         // Both designs share the classic animated shell (hero, homeEnhance,
         // marketingAnimScan); "compact" only swaps in a trimmed deferred
         // fragment (home/deferred-sections-b) with fewer, combined sections.
-        return view('home');
+        return view(self::activeShellView());
+    }
+
+    /**
+     * The shell view for the active design. Designs without a 'view' share
+     * home.blade.php and differ only below the fold, which is how every
+     * design worked before 'precision' arrived.
+     */
+    public static function activeShellView(): string
+    {
+        return (string) (self::DESIGNS[self::activeDesign()]['view'] ?? 'home');
     }
 
     /**
