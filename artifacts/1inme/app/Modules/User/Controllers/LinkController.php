@@ -173,7 +173,14 @@ class LinkController extends Controller
      */
     public function export(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
     {
-        $query = $this->buildLinksQuery($request)->with(['project', 'domain']);
+        // Sorted here rather than inside the streaming closure below: that
+        // closure captures only what it is given, so reading the request from
+        // inside it fails at stream time, which is after the response headers
+        // have gone out. Ordering is a query concern anyway.
+        $query = $this->applySort(
+            $this->buildLinksQuery($request)->with(['project', 'domain']),
+            $this->sortKey($request)
+        );
 
         $filename = 'my-links-' . now()->format('Y-m-d') . '.csv';
 
@@ -195,7 +202,7 @@ class LinkController extends Controller
                 'project', 'status', 'total_clicks', 'created_at',
             ]);
 
-            $this->applySort($query, $this->sortKey($request))->chunk(500, function ($rows) use ($out, $safe) {
+            $query->chunk(500, function ($rows) use ($out, $safe) {
                 foreach ($rows as $link) {
                     fputcsv($out, [
                         $safe($link->title ?: $link->alias),
