@@ -199,7 +199,11 @@ jobs:
         # superuser on the service container can CREATE DATABASE, so no
         # extra grants are needed. Cuts CI wall time noticeably as the
         # suite grows past 60+ test files.
-        run: php artisan test --parallel
+        # DIAGNOSTIC (branch only): running sequentially. Under --parallel a
+        # worker dies with "Premature end of PHP process" around 90% and
+        # paratest aborts the whole run, so the real failures are never
+        # listed. Sequential is slower but prints a complete report.
+        run: php artisan test
 
   database-guard:
     name: Dev-database safety net guard
