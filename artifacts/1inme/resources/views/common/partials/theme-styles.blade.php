@@ -513,6 +513,46 @@
         background: color-mix(in srgb, var(--accent) 12%, transparent);
     }
 
+    /* The earnings strip on Stats. A full-width blue-to-fuchsia gradient with
+       white text, and after everything else went quiet it became the loudest
+       thing in the product: the one place still shouting at a creator about
+       revenue they have not made yet.
+
+       Targeted through :has() on its button rather than the utility classes
+       that paint it, because "from-blue-600 to-fuchsia-600" is exactly the
+       kind of selector that silently stops matching the day someone retunes
+       the gradient. The button is the stable part. */
+    html.aurora div:has(> .stats-monetize-btn) {
+        background-color: var(--bg-card) !important;
+        background-image: linear-gradient(var(--bg-card), var(--bg-card)), var(--aurora-edge) !important;
+        background-origin: border-box;
+        background-clip: padding-box, border-box;
+        border: 1px solid transparent;
+        border-radius: var(--lg-radius);
+        color: var(--text-primary) !important;
+        box-shadow: var(--lg-shadow);
+    }
+    html.aurora div:has(> .stats-monetize-btn) .uppercase {
+        font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.14em;
+        color: var(--text-faint);
+        opacity: 1;
+    }
+    html.aurora div:has(> .stats-monetize-btn) .text-3xl {
+        font-family: 'Archivo', 'Inter', system-ui, sans-serif;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.045em;
+        color: var(--text-primary);
+    }
+    html.aurora .stats-monetize-btn {
+        background: transparent !important;
+        border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+        color: var(--accent) !important;
+    }
+    html.aurora .stats-monetize-btn:hover {
+        background: color-mix(in srgb, var(--accent) 12%, transparent) !important;
+    }
+
     /* Switch to admin: a quiet row. Its colours are set inline on the element,
        so this is the one place here that has to say important. */
     html.aurora button[title="Switch to the admin dashboard"] {
