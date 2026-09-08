@@ -216,7 +216,7 @@ jobs:
           # single error annotation (which the REST API returns in full).
           sed -r 's/\x1B\[[0-9;]*[A-Za-z]//g' /tmp/phpunit.log > /tmp/phpunit.txt
           {
-            grep -E '^=== Shard|^--- Shard|^Tests: |^OK |^FAILURES!|^ERRORS!|^WARNINGS!|^FAILED --' /tmp/phpunit.txt || true
+            grep -E '^=== Shard|^--- Shard|^Tests: |^OK |^FAILURES!|^ERRORS!|^WARNINGS!|^FAILED --|Fatal error|memory size|Premature end' /tmp/phpunit.txt || true
             echo "--- failing tests ---"
             grep -E '^[0-9]+\) ' /tmp/phpunit.txt || true
           } > /tmp/digest.txt
@@ -225,7 +225,16 @@ jobs:
           cat /tmp/digest.txt
           echo "::endgroup::"
           cat /tmp/digest.txt >> "$GITHUB_STEP_SUMMARY"
-          echo "::error::$(sed -z 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g' /tmp/digest.txt | head -c 60000)"
+          # GitHub truncates a single annotation at ~4KB and allows 10 error
+          # annotations per step, so emit the digest as up to 10 chunks.
+          rm -f /tmp/chunk_*
+          split -C 3000 -d -a 2 /tmp/digest.txt /tmp/chunk_
+          i=0
+          for f in /tmp/chunk_*; do
+            i=$((i+1))
+            [ "$i" -gt 10 ] && break
+            echo "::error::[digest $i] $(sed -z 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g' "$f")"
+          done
 
           exit $status
 
