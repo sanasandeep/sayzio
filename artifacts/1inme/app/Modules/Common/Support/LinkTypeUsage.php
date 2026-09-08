@@ -29,7 +29,13 @@ class LinkTypeUsage
         'calendar'          => 'For a season of dates, gigs, classes or drops, that people can subscribe to once.',
         'contact-card'      => 'Swap details in one tap at an event, with nothing to type on either side.',
         'resume-portfolio'  => 'One link on an application that shows the work and downloads as a PDF.',
+        // Keyed 'bizs-profile' because that is what the list actually calls
+        // this type; 'business-profile' matched nothing, so the line never
+        // appeared. 'business-profile' stays as an alias for the day the name
+        // is tidied up.
+        'bizs-profile'      => 'The address you give a customer who asked what you do, with hours, location and contact.',
         'business-profile'  => 'The address you give a customer who asked what you do, with hours, location and contact.',
+        'text-page'         => 'For the note you keep pasting into DMs: wifi details, an address, a discount code, in one link.',
         'reviews-page'      => 'Collect the good word where you can point at it, rather than losing it in DMs.',
         'brand-press-kit'   => 'For anyone who asks for your logo: one link, correct files, no back and forth.',
         'paid-page'         => 'Put a page behind a payment when the content is the product.',
