@@ -290,6 +290,22 @@ Route::get('/ai-report/{token}', [\App\Modules\Common\Controllers\PublicMarketin
 Route::get('/login',    fn () => redirect()->route('user.login'))->name('login.page');
 Route::get('/register', fn () => redirect()->route('user.register'))->name('register.page');
 
+// ---- Schematic art-direction preview ----
+// The redesigned marketing pages, rendered from exactly the same data as the
+// live ones, under their own prefix so nothing a visitor can reach changes
+// while the design is being reviewed. Every page here is noindex; when the
+// design is signed off these become the real routes and this block goes away.
+Route::middleware('brand.primary')
+    ->prefix('_schematic')
+    ->name('site.schematic.')
+    ->controller(\App\Modules\Common\Controllers\SchematicPreviewController::class)
+    ->group(function () {
+        Route::get('/',         'home')->name('home');
+        Route::get('features',  'features')->name('features');
+        Route::get('pricing',   'pricing')->name('pricing');
+        Route::get('about',     'about')->name('about');
+    });
+
 // Consolidate every marketing/legal landing page onto the primary brand
 // domain (sayzio.app): a 301 redirect when reached via a recognised
 // non-primary brand domain (1in.me) keeps search engines from indexing the
