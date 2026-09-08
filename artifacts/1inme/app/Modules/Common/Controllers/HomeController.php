@@ -39,6 +39,15 @@ class HomeController extends Controller
             'label' => 'Classic (full page)',
             'seo' => null,
         ],
+        'precision' => [
+            // Deliberately the CLASSIC fragment. This design is a skin, not a
+            // new page: same sections, same copy, same demos, restyled by
+            // home/partials/precision-skin. Switching back restores today's
+            // look exactly, because nothing in the content changed.
+            'fragment' => 'home.deferred-sections',
+            'label' => 'Precision skin (same content, new look)',
+            'seo' => null,
+        ],
         'compact' => [
             'fragment' => 'home.deferred-sections-b',
             'label' => 'Compact (short classic)',
