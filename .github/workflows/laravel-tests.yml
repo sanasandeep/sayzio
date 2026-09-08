@@ -185,13 +185,58 @@ jobs:
           PGPASSWORD: password
 
       - name: Run PHPUnit suite (the actual guard)
-        # --parallel uses brianium/paratest to fan tests out across multiple
-        # worker processes, each with its own per-worker Postgres database
-        # (onein_me_ci_test_1, _test_2, ...). The default `postgres`
-        # superuser on the service container can CREATE DATABASE, so no
-        # extra grants are needed. Cuts CI wall time noticeably as the
-        # suite grows past 60+ test files.
-        run: php artisan test --parallel
+        # Runs the sharded runner (scripts/run-sharded-tests.php), not
+        # `php artisan test --parallel`.
+        #
+        # Under paratest the run did not fail, it DIED: a worker hit
+        # "Premature end of PHP process" around 90% and paratest aborted the
+        # whole report, so the real failures behind it were never printed.
+        # The cause is the 512M ceiling in phpunit.xml combined with the
+        # suite's per-test memory growth -- measured at roughly 400M over
+        # 1700 tests in a single process. paratest only masked it, because
+        # each worker carried a quarter of the suite.
+        #
+        # phpunit.xml's own comment already anticipated this and says to
+        # prefer process isolation over raising the ceiling. That is exactly
+        # what the sharded runner does: several short-lived phpunit
+        # processes, so peak memory is bounded by the largest shard instead
+        # of the whole suite, and one shard dying can no longer take the
+        # other shards' reports with it. The single migrate:fresh is still
+        # paid once, shared across shards via tests/bootstrap.php.
+        shell: bash
+        run: |
+          set -o pipefail
+          status=0
+          composer test:sharded 2>&1 | tee /tmp/phpunit.log || status=$?
+
+          # GitHub only renders a huge step log in the browser, and the raw log
+          # download is not reachable from every environment. Boil the run down
+          # to a digest -- per-shard totals plus every failing test name -- and
+          # publish it three ways: in the log, in the job summary, and as a
+          # single error annotation (which the REST API returns in full).
+          sed -r 's/\x1B\[[0-9;]*[A-Za-z]//g' /tmp/phpunit.log > /tmp/phpunit.txt
+          {
+            grep -E '^=== Shard|^--- Shard|^Tests: |^OK |^FAILURES!|^ERRORS!|^WARNINGS!|^FAILED --|Fatal error|memory size|Premature end' /tmp/phpunit.txt || true
+            echo "--- failing tests ---"
+            grep -E '^[0-9]+\) ' /tmp/phpunit.txt || true
+          } > /tmp/digest.txt
+
+          echo "::group::PHPUnit digest"
+          cat /tmp/digest.txt
+          echo "::endgroup::"
+          cat /tmp/digest.txt >> "$GITHUB_STEP_SUMMARY"
+          # GitHub truncates a single annotation at ~4KB and allows 10 error
+          # annotations per step, so emit the digest as up to 10 chunks.
+          rm -f /tmp/chunk_*
+          split -C 3000 -d -a 2 /tmp/digest.txt /tmp/chunk_
+          i=0
+          for f in /tmp/chunk_*; do
+            i=$((i+1))
+            [ "$i" -gt 10 ] && break
+            echo "::error::[digest $i] $(sed -z 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g' "$f")"
+          done
+
+          exit $status
 
   database-guard:
     name: Dev-database safety net guard
