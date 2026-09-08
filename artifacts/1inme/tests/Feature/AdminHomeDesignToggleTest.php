@@ -16,10 +16,10 @@ use Tests\TestCase;
  *
  * The settings page (MarketingSettingsController::index) reflects the active
  * design via HomeController::activeDesign(); update() validates
- * 'home_design' in:classic,precision. A stale/broken round-trip would show the
+ * 'home_design' in:classic,compact. A stale/broken round-trip would show the
  * wrong radio as active or silently default an invalid value. This asserts:
- * saving 'precision' persists the AppSetting AND the index page re-renders
- * with the precision radio checked (same for 'classic'), and an invalid value
+ * saving 'compact' persists the AppSetting AND the index page re-renders
+ * with the compact radio checked (same for 'classic'), and an invalid value
  * fails validation without touching the stored setting.
  */
 class AdminHomeDesignToggleTest extends TestCase
@@ -55,29 +55,29 @@ class AdminHomeDesignToggleTest extends TestCase
         return $m[0];
     }
 
-    public function test_saving_precision_persists_and_shows_precision_as_active(): void
+    public function test_saving_compact_persists_and_shows_compact_as_active(): void
     {
         $admin = $this->admin();
 
         $this->actingAs($admin, 'admin')
             ->put(route('admin.marketing-settings.update'), [
-                'home_design' => 'precision',
+                'home_design' => 'compact',
             ])
             ->assertRedirect()
             ->assertSessionHasNoErrors();
 
         $this->assertSame(
-            'precision',
+            'compact',
             (string) AppSetting::get(HomeController::DESIGN_SETTING_KEY)
         );
-        $this->assertSame('precision', HomeController::activeDesign());
+        $this->assertSame('compact', HomeController::activeDesign());
 
         $html = $this->actingAs($admin, 'admin')
             ->get(route('admin.marketing-settings.index'))
             ->assertOk()
             ->getContent();
 
-        $this->assertStringContainsString('checked', $this->radioTag($html, 'precision'));
+        $this->assertStringContainsString('checked', $this->radioTag($html, 'compact'));
         $this->assertStringNotContainsString('checked', $this->radioTag($html, 'classic'));
     }
 
@@ -85,8 +85,8 @@ class AdminHomeDesignToggleTest extends TestCase
     {
         $admin = $this->admin();
 
-        // Start from precision so the flip back is a real state change.
-        AppSetting::put(HomeController::DESIGN_SETTING_KEY, 'precision');
+        // Start from compact so the flip back is a real state change.
+        AppSetting::put(HomeController::DESIGN_SETTING_KEY, 'compact');
 
         $this->actingAs($admin, 'admin')
             ->put(route('admin.marketing-settings.update'), [
@@ -107,14 +107,14 @@ class AdminHomeDesignToggleTest extends TestCase
             ->getContent();
 
         $this->assertStringContainsString('checked', $this->radioTag($html, 'classic'));
-        $this->assertStringNotContainsString('checked', $this->radioTag($html, 'precision'));
+        $this->assertStringNotContainsString('checked', $this->radioTag($html, 'compact'));
     }
 
     public function test_invalid_design_value_fails_validation_and_leaves_setting_untouched(): void
     {
         $admin = $this->admin();
 
-        AppSetting::put(HomeController::DESIGN_SETTING_KEY, 'precision');
+        AppSetting::put(HomeController::DESIGN_SETTING_KEY, 'compact');
 
         // Web form path: redirect back with a validation error.
         $this->actingAs($admin, 'admin')
@@ -141,9 +141,9 @@ class AdminHomeDesignToggleTest extends TestCase
 
         // The stored setting never changed.
         $this->assertSame(
-            'precision',
+            'compact',
             (string) AppSetting::get(HomeController::DESIGN_SETTING_KEY)
         );
-        $this->assertSame('precision', HomeController::activeDesign());
+        $this->assertSame('compact', HomeController::activeDesign());
     }
 }
