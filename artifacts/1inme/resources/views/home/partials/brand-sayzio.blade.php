@@ -14,19 +14,25 @@
 <style>
     /* ===== "1IN.ME is Sayzio" banner (bs- = brand-sayzio) ===== */
     .bs-banner {
-        display: flex; flex-wrap: wrap; align-items: center; gap: 18px 28px;
-        padding: 20px 24px; border-radius: 16px;
+        display: flex; flex-wrap: wrap; align-items: stretch; gap: 0;
+        border-radius: 16px;
         background: rgba(255,255,255,.04);
         border: 1px solid rgba(255,255,255,.10);
     }
+    .bs-banner > * { padding: 18px 22px; }
     html.light-mode .bs-banner { background: #F7F8FC; border-color: #E6E8F2; }
 
     .bs-lockup {
-        display: flex; align-items: center; gap: 10px; flex: none; margin: 0;
-        font-size: 22px; font-weight: 800; letter-spacing: -.02em; line-height: 1;
+        display: flex; align-items: center; gap: 9px; flex: none; margin: 0;
+        align-self: center;
+        font-size: 21px; font-weight: 800; letter-spacing: -.02em; line-height: 1;
     }
-    .bs-lockup img { width: 26px; height: 26px; object-fit: contain; }
-    .bs-is-word { font-style: italic; font-weight: 600; opacity: .55; padding: 0 2px; }
+    /* Sized by height, not into a square box. The 1IN.ME mark is 256x199 and
+       the Zio icon is 256x256, so a shared square box rendered the first one
+       26 wide by 20 tall and it read as the smaller of the two. Matching
+       their heights is what makes them look like a pair. */
+    .bs-lockup img { height: 24px; width: auto; object-fit: contain; display: block; }
+    .bs-is-word { font-style: italic; font-weight: 600; opacity: .45; font-size: .8em; padding: 0 4px; }
 
     /* Each brand word needs the plate the other mode would otherwise swallow:
        white text needs a dark plate in light mode, black text needs a light
@@ -36,10 +42,24 @@
     .bs-word--zio { color: #0a0a12; background: #fff; }
     html.light-mode .bs-word--zio { background: none; padding: 0; }
 
-    .bs-copy { flex: 1 1 320px; min-width: 0; margin: 0; font-size: 14px; line-height: 1.5; color: #9aa1c8; }
-    html.light-mode .bs-copy { color: #4E5680; }
+    /* Capped so the sentence sets in two comfortable lines instead of
+       stretching 840px to the far edge of the banner. */
+    .bs-copy {
+        flex: 1 1 340px; min-width: 0; max-width: 62ch; margin: 0; align-self: center;
+        font-size: 14px; line-height: 1.5; color: #9aa1c8;
+        border-left: 1px solid rgba(255,255,255,.10);
+    }
+    html.light-mode .bs-copy { color: #4E5680; border-left-color: #E6E8F2; }
+    @media (max-width: 900px) {
+        .bs-copy { border-left: 0; border-top: 1px solid rgba(255,255,255,.10); }
+        html.light-mode .bs-copy { border-top-color: #E6E8F2; }
+    }
 
-    .bs-pillars { display: flex; flex-wrap: wrap; gap: 8px; flex: none; }
+    .bs-pillars {
+        display: flex; flex-wrap: wrap; gap: 8px; width: 100%;
+        border-top: 1px solid rgba(255,255,255,.10);
+    }
+    html.light-mode .bs-pillars { border-top-color: #E6E8F2; }
     .bs-pillar {
         display: inline-flex; align-items: center; gap: 7px;
         padding: 7px 12px; border-radius: 9999px;
@@ -51,7 +71,7 @@
     .bs-pillar span { font-weight: 500; opacity: .6; }
 
     @media (max-width: 720px) {
-        .bs-banner { padding: 18px; gap: 14px; }
+        .bs-banner > * { padding: 16px 18px; }
         .bs-lockup { font-size: 19px; }
     }
 </style>
