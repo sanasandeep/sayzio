@@ -479,6 +479,14 @@ class BiolinkBlock extends Model
         // Lives in _style so it travels with curated variants and resets
         // back to '' on Reset.
         'link_layout' => '',
+        // Where a link button's label sits: '' (centred, the historic
+        // rendering) | 'left' | 'right'. Emitted as inline justify-content
+        // rather than by swapping Tailwind classes in the templates, because
+        // link.blade.php carries about twenty layout variants and several of
+        // them are deliberately justify-between or clipped shapes that an
+        // alignment sweep would break. Inline beats the class, so one place
+        // reaches every variant. See buildInlineStyle().
+        'text_align' => '',
         // Optional curated-variant metadata hooks (Task #1041). All three
         // are opaque slug-shaped strings the renderer is free to ignore;
         // they exist so heading animations, gallery layouts, and social
@@ -960,6 +968,22 @@ class BiolinkBlock extends Model
             $css[] = 'background:transparent';
             $css[] = 'box-shadow:none';
             $css[] = 'border:none';
+        }
+
+        // Label alignment. Applies to the link-family button chrome, which
+        // is a flex row, so both properties are needed: justify-content moves
+        // the icon-and-label group, text-align handles a label that wraps to
+        // a second line.
+        //
+        // Skipped for icon_both and icon_only. Those two exist to pin icons
+        // to the edges or to drop the label entirely, so an alignment would
+        // be arguing with the layout the creator already picked. The control
+        // says so rather than silently doing nothing.
+        $align = (string) ($style['text_align'] ?? '');
+        $layout = (string) ($style['link_layout'] ?? '');
+        if (in_array($align, ['left', 'right'], true) && !in_array($layout, ['icon_both', 'icon_only'], true)) {
+            $css[] = 'justify-content:' . ($align === 'left' ? 'flex-start' : 'flex-end');
+            $css[] = "text-align:{$align}";
         }
 
         if (!empty($style['bg_image']) && preg_match('#^(https?://|/f/)#', $style['bg_image'])) {

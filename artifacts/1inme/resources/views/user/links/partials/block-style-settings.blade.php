@@ -1075,6 +1075,47 @@
             </div>
             @endif
 
+            {{-- Text Align - the sibling of Icon Position, and the same
+                 promise: change where the label sits without losing the look.
+
+                 Applied as inline justify-content on the button rather than by
+                 swapping Tailwind classes, because link.blade.php carries
+                 about twenty layout variants and several are deliberately
+                 justify-between or clipped shapes that an alignment sweep
+                 would break. See BiolinkBlock::buildInlineStyle().
+
+                 Offered on the same block types as Icon Position, and inert
+                 for the two icon arrangements that exist precisely to control
+                 composition. The note below says so rather than leaving a
+                 control that quietly does nothing. --}}
+            @php
+                $__alignOptions = ['' => 'Default', 'left' => 'Left', 'center' => 'Centre', 'right' => 'Right'];
+                $__alignValue   = (string) ($st['text_align'] ?? '');
+                if (!array_key_exists($__alignValue, $__alignOptions)) $__alignValue = '';
+                $__alignInert   = in_array($__currentIconPos, ['icon_both', 'icon_only'], true);
+            @endphp
+            @if(in_array($block->type, $__iconPosBlocks, true))
+            <div x-data="{ align: @js($__alignValue) }">
+                <label class="{{ $labelClass }}">Text Align</label>
+                <div class="grid grid-cols-4 gap-1 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                    @foreach($__alignOptions as $__av => $__al)
+                    <label class="flex flex-col items-center cursor-pointer" @click="align = @js($__av)">
+                        <input type="radio" name="style[text_align]" value="{{ $__av }}" {{ $__alignValue === $__av ? 'checked' : '' }} class="hidden">
+                        <span class="w-full text-center text-[10px] font-bold py-1.5 rounded-lg border transition-all"
+                              :style="align === @js($__av) ? 'background: rgba(61,107,255,0.15); border-color: rgba(61,107,255,0.3); color: #90acff;' : 'background: transparent; border-color: transparent; color: var(--text-faint);'">{{ $__al }}</span>
+                    </label>
+                    @endforeach
+                </div>
+                @if($__alignInert)
+                    <p class="text-[10px] mt-1" style="color: #f59e0b;">
+                        Not applied while Icon Position is &ldquo;Both&rdquo; or &ldquo;Icon only&rdquo; &mdash; those layouts pin the icons to the edges themselves.
+                    </p>
+                @else
+                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Moves the label without touching your colours, font or shape.</p>
+                @endif
+            </div>
+            @endif
+
             {{-- Grid Width — per-device (Task #6119). Mobile drives the base
                  `grid_span`; Desktop drives the `grid_span_md` override that
                  only applies at/above the 768px breakpoint on the public page.
