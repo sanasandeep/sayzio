@@ -126,13 +126,6 @@ jobs:
           extensions: mbstring, intl, pdo, pdo_pgsql, pgsql, bcmath, gd, zip
           coverage: none
           tools: composer:v2
-          # The suite leaks memory across tests: a sequential run at 512M dies
-          # with "Allowed memory size ... exhausted" about 1700 tests in, at
-          # whatever allocation happens to come next (the reported file is
-          # arbitrary). Measured growth is roughly 400M over 1700 tests, so
-          # the full 5337 need on the order of 1.5G. 4G leaves headroom while
-          # still failing loudly if the leak ever gets materially worse.
-          ini-values: memory_limit=4G
 
       - name: Cache Composer dependencies
         uses: actions/cache@v4
@@ -192,17 +185,25 @@ jobs:
           PGPASSWORD: password
 
       - name: Run PHPUnit suite (the actual guard)
-        # --parallel uses brianium/paratest to fan tests out across multiple
-        # worker processes, each with its own per-worker Postgres database
-        # (onein_me_ci_test_1, _test_2, ...). The default `postgres`
-        # superuser on the service container can CREATE DATABASE, so no
-        # extra grants are needed. Cuts CI wall time noticeably as the
-        # suite grows past 60+ test files.
-        # DIAGNOSTIC (branch only): running sequentially. Under --parallel a
-        # worker dies with "Premature end of PHP process" around 90% and
-        # paratest aborts the whole run, so the real failures are never
-        # listed. Sequential is slower but prints a complete report.
-        run: php artisan test
+        # Runs the sharded runner (scripts/run-sharded-tests.php), not
+        # `php artisan test --parallel`.
+        #
+        # Under paratest the run did not fail, it DIED: a worker hit
+        # "Premature end of PHP process" around 90% and paratest aborted the
+        # whole report, so the real failures behind it were never printed.
+        # The cause is the 512M ceiling in phpunit.xml combined with the
+        # suite's per-test memory growth -- measured at roughly 400M over
+        # 1700 tests in a single process. paratest only masked it, because
+        # each worker carried a quarter of the suite.
+        #
+        # phpunit.xml's own comment already anticipated this and says to
+        # prefer process isolation over raising the ceiling. That is exactly
+        # what the sharded runner does: several short-lived phpunit
+        # processes, so peak memory is bounded by the largest shard instead
+        # of the whole suite, and one shard dying can no longer take the
+        # other shards' reports with it. The single migrate:fresh is still
+        # paid once, shared across shards via tests/bootstrap.php.
+        run: composer test:sharded
 
   database-guard:
     name: Dev-database safety net guard
