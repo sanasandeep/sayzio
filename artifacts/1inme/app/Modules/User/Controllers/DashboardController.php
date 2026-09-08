@@ -196,16 +196,80 @@ class DashboardController extends Controller
         // account with thousands of links would be paying render time for
         // dots nobody can tell apart.
         $auroraLinks = collect();
+        $auroraHeat = [];
+        $auroraActivity = collect();
+        $auroraSources = collect();
+
         if ($user->usesAuroraUi()) {
             $auroraLinks = $user->links()
                 ->select('id', 'project_id', 'alias', 'title', 'total_clicks')
                 ->orderByDesc('total_clicks')
                 ->limit(300)
                 ->get();
+
+            // When clicks land, as a 7 x 12 grid: ISO weekday down, two-hour
+            // blocks across. Bucketed in SQL so the rows that come back are at
+            // most 84 whatever the traffic. Server clock, matching the
+            // sparkline's calendar-day buckets rather than the greeting's
+            // timezone-aware one.
+            $heatSince = now()->subDays(6)->startOfDay();
+            $auroraHeat = array_fill(0, 7, array_fill(0, 12, 0));
+            LinkClick::whereIn('link_id', $linkIdSub)
+                ->where('clicked_at', '>=', $heatSince)
+                ->selectRaw('EXTRACT(ISODOW FROM clicked_at)::int AS dow, (EXTRACT(HOUR FROM clicked_at)::int / 2) AS blk, COUNT(*) AS c')
+                ->groupBy('dow', 'blk')
+                ->get()
+                ->each(function ($r) use (&$auroraHeat) {
+                    $d = ((int) $r->dow) - 1;   // ISODOW is 1..7, Monday first
+                    $b = min(11, max(0, (int) $r->blk));
+                    if ($d >= 0 && $d < 7) {
+                        $auroraHeat[$d][$b] = (int) $r->c;
+                    }
+                });
+
+            // The five most recent clicks, for the live feed.
+            $auroraActivity = LinkClick::whereIn('link_id', $linkIdSub)
+                ->orderByDesc('clicked_at')
+                ->limit(5)
+                ->get(['alias', 'city', 'country_code', 'referrer', 'clicked_at']);
+
+            // Where clicks come from, by referring host.
+            //
+            // This replaces a ring built on the `channel` column, which
+            // classifies the user agent (browser vs in-app webview) and so
+            // answered a question nobody asked, at 84% "unknown". The referrer
+            // is the field that means what the panel's title says. Grouped in
+            // SQL and bucketed in PHP, capped at 200 distinct referrers, which
+            // is far more than the handful that survive bucketing.
+            $auroraSources = LinkClick::whereIn('link_id', $linkIdSub)
+                ->selectRaw('referrer, COUNT(*) AS c')
+                ->groupBy('referrer')
+                ->orderByDesc('c')
+                ->limit(200)
+                ->get()
+                ->reduce(function (\Illuminate\Support\Collection $acc, $row) {
+                    $host = strtolower((string) parse_url((string) $row->referrer, PHP_URL_HOST));
+                    $label = match (true) {
+                        $host === ''                              => 'Direct',
+                        str_contains($host, 'instagram')          => 'Instagram',
+                        str_contains($host, 'whatsapp')           => 'WhatsApp',
+                        str_contains($host, 'facebook') || str_contains($host, 'fb.')  => 'Facebook',
+                        str_contains($host, 'youtube')  || str_contains($host, 'youtu.be') => 'YouTube',
+                        str_contains($host, 'linkedin')           => 'LinkedIn',
+                        str_contains($host, 'twitter')  || $host === 't.co' || str_contains($host, 'x.com') => 'X',
+                        str_contains($host, 'google')   || str_contains($host, 'bing') || str_contains($host, 'duckduckgo') => 'Search',
+                        str_contains($host, 'telegram') || $host === 't.me' => 'Telegram',
+                        default => preg_replace('/^www\./', '', $host),
+                    };
+                    return $acc->put($label, ($acc->get($label, 0)) + (int) $row->c);
+                }, collect())
+                ->sortDesc()
+                ->take(5);
         }
 
         $payload = compact(
-            'user', 'totalLinks', 'totalClicks', 'totalProjects', 'deskFolders', 'auroraLinks',
+            'user', 'totalLinks', 'totalClicks', 'totalProjects', 'deskFolders',
+            'auroraLinks', 'auroraHeat', 'auroraActivity', 'auroraSources',
             'activeLinks', 'recentLinks', 'clicksToday',
             'channelStats', 'channelFilter', 'backlinksThisWeek',
             'showWhatsappPrompt', 'whatsappChannelUrl', 'deliveryProjects',
