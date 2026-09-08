@@ -239,42 +239,61 @@
                section answers "what are the eighteen" without anyone having
                to click through them one at a time. */
             .lt-rail{
-                display:grid;gap:12px;max-width:1180px;margin:0 auto 26px;
-                grid-template-columns:repeat(auto-fill,minmax(255px,1fr));
+                display:grid;gap:14px;max-width:1180px;margin:0 auto 26px;
+                grid-template-columns:repeat(auto-fill,minmax(272px,1fr));
                 overflow:visible;padding:0
             }
             .lt-chip{
-                position:relative;display:flex;flex-direction:column;align-items:flex-start;
-                gap:8px;white-space:normal;text-align:left;
-                padding:15px 44px 16px 15px;border-radius:14px;line-height:1.35;
-                height:100%;
+                position:relative;display:flex;flex-direction:column;align-items:stretch;
+                gap:0;white-space:normal;text-align:left;
+                padding:15px 15px 0;border-radius:14px;line-height:1.35;
+                height:100%;overflow:hidden;
             }
-            .lt-chip-head{display:flex;align-items:center;gap:8px;width:100%}
-            .lt-chip-name{font-size:14.5px;font-weight:700}
-            .lt-chip-desc{
-                font-size:12.8px;font-weight:400;line-height:1.5;opacity:.72;
-                display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden
+            /* Each type's own colour, as a rail down the card's edge. The one
+               piece of identity a flat card can carry without a gradient or a
+               second surface; it also gives the selected card somewhere to
+               show that it is selected. */
+            .lt-chip::before{
+                content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+                background:var(--lt-accent,#3E3AE0);opacity:.45;
+                transition:opacity .18s ease
             }
+            .lt-chip:hover::before,.lt-chip-on::before{opacity:1}
+
+            .lt-chip-head{display:flex;align-items:center;gap:9px;width:100%;margin-bottom:9px}
+            .lt-chip-name{font-size:15px;font-weight:700;letter-spacing:-.01em}
+            /* No clamp. The grid equalises the row, so a longer line makes the
+               row taller rather than cutting a sentence off mid-word — which is
+               what the two-line clamp was doing to most of the eighteen. */
+            .lt-chip-desc{font-size:12.9px;font-weight:400;line-height:1.55;opacity:.72}
+
             /* The progress rule belongs to the old pill; on a card it would
                underline the description. */
             .lt-chip-on::after{display:none}
 
-            /* The expand control. A span rather than a button, because the
-               card is already a button and a button inside a button is not
-               valid markup. */
+            /* The expand control. A span rather than a button, because the card
+               is already a button and a button inside a button is not valid
+               markup. It sits in flow at the foot of the card and is ALWAYS
+               visible: as a hover-only icon at opacity 0 it was undiscoverable,
+               so most visitors never learned the cards opened at all. */
             .lt-chip-open{
-                position:absolute;top:10px;right:10px;
-                width:28px;height:28px;border-radius:8px;
-                display:inline-flex;align-items:center;justify-content:center;
-                border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);
-                opacity:0;transition:opacity .16s ease,background .16s ease
+                margin-top:auto;display:flex;align-items:center;gap:7px;
+                padding:11px 0 13px;border-top:1px solid rgba(255,255,255,.08);
+                font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+                color:var(--lt-accent,#3E3AE0);opacity:.9;
+                transition:opacity .16s ease,gap .16s ease
             }
-            html.light-mode .lt-chip-open{border-color:#E6E8F2;background:#fff}
-            .lt-chip:hover .lt-chip-open,.lt-chip-open:focus-visible{opacity:1}
-            @media (hover:none){.lt-chip-open{opacity:1}}
+            html.light-mode .lt-chip-open{border-top-color:rgba(0,0,0,.09)}
+            /* flat-surfaces.blade.php forces every span inside a chip to the
+               body ink in light mode so labels can never vanish; this control
+               is the deliberate exception, and outranks it on specificity. */
+            html.light-mode .lt-chip .lt-chip-open,
+            html.light-mode .lt-chip .lt-chip-open span{color:var(--lt-accent,#3E3AE0) !important}
+            .lt-chip:hover .lt-chip-open,.lt-chip-open:focus-visible{opacity:1;gap:10px}
             .lt-chip-open svg{
-                width:13px;height:13px;fill:none;stroke:currentColor;
-                stroke-width:2;stroke-linecap:round;stroke-linejoin:round
+                width:12px;height:12px;fill:none;stroke:currentColor;
+                stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;
+                flex-shrink:0
             }
 
             /* The usage line only ever appears in the expanded card. */
@@ -305,6 +324,7 @@
             <div class="lt-rail" role="tablist" aria-label="Link type">
                 @foreach($__ltForEach as $i => $lt)
                 <button type="button" class="lt-chip {{ $i === 0 ? 'lt-chip-on' : '' }}" role="tab"
+                        style="--lt-accent:{{ $lt['color'] }}"
                         :class="{'lt-chip-on':active==={{ $i }}}"
                         :style="active==={{ $i }}?'border-color:{{ $lt['color'] }}55;background:{{ $lt['color'] }}18':''"
                         @click="pick({{ $i }})"
@@ -318,8 +338,9 @@
                     <span class="lt-chip-open" data-lt-open="{{ $i }}"
                           data-lt-slug="{{ \Illuminate\Support\Str::slug($lt['name']) }}"
                           role="button" tabindex="0"
-                          aria-label="Expand {{ $lt['name'] }}">
+                          aria-label="Preview {{ $lt['name'] }}">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-7.5 7.5M10 20H4v-6M4 20l7.5-7.5"/></svg>
+                        <span>Preview</span>
                     </span>
                 </button>
                 @endforeach

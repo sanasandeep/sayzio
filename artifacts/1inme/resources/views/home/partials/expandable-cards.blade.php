@@ -380,16 +380,23 @@
         wireLinkTypeCards();
     }
 
-    // The grids arrive with the deferred home sections, so scan on load and
-    // again whenever the page injects more of itself.
+    // The grids arrive with the deferred home sections — fetched AFTER load —
+    // so the observer is the only thing that ever wires them. It must watch
+    // documentElement, not body: this partial is included from <head>, where
+    // document.body is still null, and observe(null) throws
+    // "parameter 1 is not of type 'Node'". That exception ended the script
+    // before the observer existed, so for every visitor the expand control was
+    // inert and nothing opened. Nothing above this line depends on <body>, so
+    // watching the root element is both correct here and cheap: subtree:true
+    // covers everything either way.
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', scan);
     } else {
         scan();
     }
     window.addEventListener('load', scan);
-    if (window.MutationObserver) {
-        new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+    if (window.MutationObserver && document.documentElement) {
+        new MutationObserver(scan).observe(document.documentElement, { childList: true, subtree: true });
     }
 })();
 </script>
