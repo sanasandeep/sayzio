@@ -86,6 +86,7 @@
     .xc-body .lt-mock-zone { height: 420px; flex: 0 0 46%; }
     .xc-body .lt-mock > * { transform: scale(1.5); }
     .xc-body .lt-dots { display: none; }
+    .xc-body .lt-pane-usage { display: block; }
 
     body.xc-locked { overflow: hidden; }
 
@@ -108,6 +109,29 @@
         // at a size the drawing actually deserves.
         '#create .lt-stage'
     ];
+
+    // The link-type cards carry their own control in the markup, because a
+    // button cannot be injected inside a button. Clicking it selects that
+    // type and then expands the stage showing it.
+    function wireLinkTypeCards() {
+        document.querySelectorAll('[data-lt-open]').forEach(function (el) {
+            if (el.dataset.xcWired) { return; }
+            el.dataset.xcWired = '1';
+            var go = function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var card = el.closest('.lt-chip');
+                if (card) { card.click(); }
+                var stage = document.querySelector('#create .lt-stage');
+                // Let the pane switch before the clone is taken.
+                if (stage) { window.setTimeout(function () { open(stage); }, 60); }
+            };
+            el.addEventListener('click', go);
+            el.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') { go(e); }
+            });
+        });
+    }
 
     var EXPAND_ICON =
         '<svg viewBox="0 0 24 24" aria-hidden="true">' +
@@ -223,6 +247,7 @@
         SELECTORS.forEach(function (sel) {
             document.querySelectorAll(sel).forEach(attach);
         });
+        wireLinkTypeCards();
     }
 
     // The grids arrive with the deferred home sections, so scan on load and

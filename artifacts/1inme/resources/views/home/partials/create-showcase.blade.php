@@ -231,6 +231,58 @@
                 .lt-chip-on::after{animation:none;transform:scaleX(1)}
                 .lt-pane-on{animation:none}
             }
+
+            /* ---------- the rail becomes a card grid ----------
+               Eighteen pills said the names and nothing else, and the one
+               description on the page belonged to whichever pill happened to
+               be selected. As cards they each carry their own line, so the
+               section answers "what are the eighteen" without anyone having
+               to click through them one at a time. */
+            .lt-rail{
+                display:grid;gap:12px;max-width:1180px;margin:0 auto 26px;
+                grid-template-columns:repeat(auto-fill,minmax(255px,1fr));
+                overflow:visible;padding:0
+            }
+            .lt-chip{
+                position:relative;display:flex;flex-direction:column;align-items:flex-start;
+                gap:8px;white-space:normal;text-align:left;
+                padding:15px 44px 16px 15px;border-radius:14px;line-height:1.35;
+                height:100%;
+            }
+            .lt-chip-head{display:flex;align-items:center;gap:8px;width:100%}
+            .lt-chip-name{font-size:14.5px;font-weight:700}
+            .lt-chip-desc{
+                font-size:12.8px;font-weight:400;line-height:1.5;opacity:.72;
+                display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden
+            }
+            /* The progress rule belongs to the old pill; on a card it would
+               underline the description. */
+            .lt-chip-on::after{display:none}
+
+            /* The expand control. A span rather than a button, because the
+               card is already a button and a button inside a button is not
+               valid markup. */
+            .lt-chip-open{
+                position:absolute;top:10px;right:10px;
+                width:28px;height:28px;border-radius:8px;
+                display:inline-flex;align-items:center;justify-content:center;
+                border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);
+                opacity:0;transition:opacity .16s ease,background .16s ease
+            }
+            html.light-mode .lt-chip-open{border-color:#E6E8F2;background:#fff}
+            .lt-chip:hover .lt-chip-open,.lt-chip-open:focus-visible{opacity:1}
+            @media (hover:none){.lt-chip-open{opacity:1}}
+            .lt-chip-open svg{
+                width:13px;height:13px;fill:none;stroke:currentColor;
+                stroke-width:2;stroke-linecap:round;stroke-linejoin:round
+            }
+
+            /* The usage line only ever appears in the expanded card. */
+            .lt-pane-usage{display:none;font-size:14px;line-height:1.55;margin-top:14px}
+            .lt-pane-usage span{
+                display:block;font-size:11px;font-weight:700;letter-spacing:.12em;
+                text-transform:uppercase;opacity:.55;margin-bottom:5px
+            }
 </style>
 
         <div class="lt-spotlight reveal rd-1"
@@ -250,6 +302,36 @@
              @mouseenter="pause()" @mouseleave="resume()">
 
             {{-- ── Chip rail ── --}}
+            @php
+                /*
+                 * "How you would use it", one line per link type, shown only
+                 * inside the expanded card. Drafted copy: it describes the
+                 * occasion for each type rather than making any claim about
+                 * results, and it is keyed by name so an admin-edited list
+                 * that renames a type simply falls back to no line rather
+                 * than showing the wrong one.
+                 */
+                $__ltUsage = [
+                    'Short Link'       => 'Print it once on a poster or a pack, then change where it goes whenever the campaign does.',
+                    'Link in Bio'      => 'The one address in your Instagram or TikTok bio, holding everything you would otherwise have to choose between.',
+                    'Conversational'   => 'When a plain list of links loses people, this walks them to the right one instead.',
+                    'Slides'           => 'For a story that is better swiped than scrolled: a launch, a lookbook, a short pitch.',
+                    'AI Chatbot'       => 'For the questions you answer twenty times a week, answered from your own pages while you sleep.',
+                    'Restaurant Menu'  => 'A QR on the table that opens today\'s menu, so a price change does not mean a reprint.',
+                    'Store Menu'       => 'Take orders before you have a checkout: browse by category, request, and you confirm.',
+                    'File Share'       => 'Send a price list, a rider or a brochure as a link rather than a heavy attachment.',
+                    'Event'            => 'Put the date straight into someone\'s calendar instead of asking them to type it in.',
+                    'Calendar'         => 'For a season of dates, gigs, classes or drops, that people can subscribe to once.',
+                    'Contact Card'     => 'Swap details in one tap at an event, with nothing to type on either side.',
+                    'Resume / Portfolio' => 'One link on an application that shows the work and downloads as a PDF.',
+                    'Business Profile' => 'The address you give a customer who asked what you do, with hours, location and contact.',
+                    'Reviews Page'     => 'Collect the good word where you can point at it, rather than losing it in DMs.',
+                    'Brand / Press Kit' => 'For anyone who asks for your logo: one link, correct files, no back and forth.',
+                    'Paid Page'        => 'Put a page behind a payment when the content is the product.',
+                    'QR Code'          => 'For the offline half of your audience: a code that keeps working after you change the destination.',
+                    'Forms'            => 'Ask the question once and keep every answer in one inbox with your chats.',
+                ];
+            @endphp
             <div class="lt-rail" role="tablist" aria-label="Link type">
                 @foreach($__ltForEach as $i => $lt)
                 <button type="button" class="lt-chip {{ $i === 0 ? 'lt-chip-on' : '' }}" role="tab"
@@ -257,9 +339,16 @@
                         :style="active==={{ $i }}?'border-color:{{ $lt['color'] }}55;background:{{ $lt['color'] }}18':''"
                         @click="pick({{ $i }})"
                         :aria-selected="active==={{ $i }}">
-                    <span class="lt-chip-ico" style="background:{{ $lt['color'] }}"><i class="fas {{ $lt['icon'] }}" style="color:#fff;font-size:10px"></i></span>
-                    <span>{{ $lt['name'] }}</span>
-                    @if($lt['new'])<span class="lt-chip-new" style="color:{{ $lt['color'] }};border-color:{{ $lt['color'] }}55">New</span>@endif
+                    <span class="lt-chip-head">
+                        <span class="lt-chip-ico" style="background:{{ $lt['color'] }}"><i class="fas {{ $lt['icon'] }}" style="color:#fff;font-size:10px"></i></span>
+                        <span class="lt-chip-name">{{ $lt['name'] }}</span>
+                        @if($lt['new'])<span class="lt-chip-new" style="color:{{ $lt['color'] }};border-color:{{ $lt['color'] }}55">New</span>@endif
+                    </span>
+                    <span class="lt-chip-desc">{{ $lt['desc'] }}</span>
+                    <span class="lt-chip-open" data-lt-open="{{ $i }}" role="button" tabindex="0"
+                          aria-label="Expand {{ $lt['name'] }}">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-7.5 7.5M10 20H4v-6M4 20l7.5-7.5"/></svg>
+                    </span>
                 </button>
                 @endforeach
             </div>
@@ -284,6 +373,12 @@
                         @if($lt['new'])<span class="lt-pane-badge" style="color:{{ $lt['color'] }};border-color:{{ $lt['color'] }}55">New</span>@endif
                         <h3 class="lt-pane-name">{{ $lt['name'] }}</h3>
                         <p class="lt-pane-desc">{{ $lt['desc'] }}</p>
+                        @if(!empty($__ltUsage[$lt['name']]))
+                            <p class="lt-pane-usage" data-expand-more>
+                                <span>How you would use it</span>
+                                {{ $__ltUsage[$lt['name']] }}
+                            </p>
+                        @endif
                         <button type="button" class="lt-pane-cta" style="background:{{ $lt['color'] }}"
                                 onclick="window.trackMarketingEvent&&window.trackMarketingEvent('landing_home_spotlight','{{ addslashes($lt['name']) }}');window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))">
                             Get started free <i class="fas fa-arrow-right" style="font-size:10px"></i>
