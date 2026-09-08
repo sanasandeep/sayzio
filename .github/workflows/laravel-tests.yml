@@ -203,7 +203,31 @@ jobs:
         # of the whole suite, and one shard dying can no longer take the
         # other shards' reports with it. The single migrate:fresh is still
         # paid once, shared across shards via tests/bootstrap.php.
-        run: composer test:sharded
+        shell: bash
+        run: |
+          set -o pipefail
+          status=0
+          composer test:sharded 2>&1 | tee /tmp/phpunit.log || status=$?
+
+          # GitHub only renders a huge step log in the browser, and the raw log
+          # download is not reachable from every environment. Boil the run down
+          # to a digest -- per-shard totals plus every failing test name -- and
+          # publish it three ways: in the log, in the job summary, and as a
+          # single error annotation (which the REST API returns in full).
+          sed -r 's/\x1B\[[0-9;]*[A-Za-z]//g' /tmp/phpunit.log > /tmp/phpunit.txt
+          {
+            grep -E '^=== Shard|^--- Shard|^Tests: |^OK |^FAILURES!|^ERRORS!|^WARNINGS!|^FAILED --' /tmp/phpunit.txt || true
+            echo "--- failing tests ---"
+            grep -E '^[0-9]+\) ' /tmp/phpunit.txt || true
+          } > /tmp/digest.txt
+
+          echo "::group::PHPUnit digest"
+          cat /tmp/digest.txt
+          echo "::endgroup::"
+          cat /tmp/digest.txt >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::$(sed -z 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g' /tmp/digest.txt | head -c 60000)"
+
+          exit $status
 
   database-guard:
     name: Dev-database safety net guard
