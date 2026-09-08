@@ -185,13 +185,33 @@
             .lt-rail:hover .lt-chip-on::after{animation-play-state:paused}
             @keyframes lt-progress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 
-            /* The panel was 300px of text beside 914px of mostly empty
-               preview. A third and two thirds sits better, and the shorter
-               zone stops the mock swimming in the middle of it. */
+            /* Three rows of six. Left to wrap at the full column width the
+               chips fell 8/8/2, and the orphan pair in the middle of an empty
+               third row was the ragged part. Capping the rail balances them. */
+            .lt-rail{max-width:1040px;margin-left:auto;margin-right:auto}
+
+            /* The panel was 300px of text beside 914px of preview holding a
+               194px drawing: a small picture adrift in a large empty box.
+               A shorter zone, a wider text column and a drawing scaled up to
+               meet it. */
             @media(min-width:768px){
-                .lt-info-zone{flex:0 0 34%;max-width:34%}
-                .lt-mock-zone{height:300px}
+                .lt-info-zone{
+                    flex:0 0 36%;max-width:36%;
+                    justify-content:center;padding-top:26px;padding-bottom:26px
+                }
+                .lt-mock-zone{height:284px}
+                .lt-mock > *{transform:scale(1.22);transform-origin:center}
             }
+            /* An inner ring so the preview reads as a surface of its own
+               rather than a hole in the card. */
+            .lt-mock-zone{box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+            html.light-mode .lt-mock-zone{box-shadow:inset 0 0 0 1px #EDEFF7}
+
+            /* The call to action sat 135px below the sentence it belongs to,
+               because the pane stretched to the panel's full height. It sits
+               with its own text now. */
+            .lt-pane{justify-content:center}
+            .lt-pane-cta{margin-top:18px;align-self:flex-start}
 
             /* Panes rise as they fade, which reads as a change rather than
                a flicker. */
