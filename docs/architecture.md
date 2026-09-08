@@ -2,7 +2,7 @@
 
 This document explains how the pieces of the monorepo fit together at runtime and at
 build time. For where files live, see [`file-structure.md`](./file-structure.md). For
-the product overview, see [`replit.md`](../replit.md).
+the product overview, see [`PROJECT.md`](../PROJECT.md).
 
 ## High-level shape
 
@@ -112,7 +112,7 @@ The success/error envelope itself is produced by the `ApiResponses` trait
 ## Authentication model
 
 The Laravel app uses multiple guards (see `artifacts/1inme/config/auth.php` and
-`replit.md`):
+`PROJECT.md`):
 
 - **`web`** guard — session-based, for the authenticated user app. Supports password
   and OTP login.

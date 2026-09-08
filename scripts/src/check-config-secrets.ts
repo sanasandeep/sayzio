@@ -67,11 +67,10 @@ export const ACKNOWLEDGED_FINDINGS: ReadonlyArray<{
   key: string;
   sha256: string;
 }> = [
-  {
-    file: ".replit",
-    key: "CONTACT_ADMIN_TOKEN",
-    sha256: "c58d19b4f44e8560417a8547bf5081888989acf02955e1ed8e6a670a365498ba",
-  },
+  // Was one entry for CONTACT_ADMIN_TOKEN in `.replit`. That file is gone
+  // (the project deploys from GitHub Actions to EC2, not from Replit), so
+  // the acknowledgement has nothing left to acknowledge. The guard itself
+  // still runs over every tracked config file; only this waiver is retired.
 ];
 
 /** Well-known secret token shapes. Order matters only for reporting. */

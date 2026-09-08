@@ -167,7 +167,7 @@ Biolink blocks are a major extension point.
 4. **Placeholder media** — if the block shows media, add a placeholder asset under
    `artifacts/1inme/public/block-placeholders/`.
 
-See `replit.md` ("Biolink Customization") for the full block styling model.
+See `PROJECT.md` ("Biolink Customization") for the full block styling model.
 
 ---
 

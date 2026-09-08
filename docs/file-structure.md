@@ -15,7 +15,7 @@ to the repo root unless noted.
 ├── package.json          # Root task orchestration + shared dev tooling
 ├── tsconfig.base.json    # Shared strict TS defaults (extended by most packages)
 ├── tsconfig.json         # Root TS "solution" file — references composite libs only
-├── replit.md             # Product overview + user preferences (not duplicated here)
+├── PROJECT.md             # Product overview + user preferences (not duplicated here)
 └── .agents/memory/       # Cross-session agent memory (index + topic files)
 ```
 

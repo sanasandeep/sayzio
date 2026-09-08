@@ -7,7 +7,7 @@ surrounding code. See also [`common-patterns.md`](./common-patterns.md) and
 ## The hard "do not" list
 
 - **Do not edit `artifacts/1inme/resources/views/vendor/`.** This is a stated user
-  preference in [`replit.md`](../replit.md).
+  preference in [`PROJECT.md`](../PROJECT.md).
 - **Do not hand-edit generated files.** Anything under
   `lib/api-zod/src/generated/**`, `lib/api-client-react/src/generated/**`, or any
   `dist/` folder is generated. Regenerate the API ones with
@@ -143,5 +143,5 @@ env (`PORT`, `BASE_PATH`) and may fail from a plain shell even when types are fi
 - This `docs/` set is the workspace-wide technical reference. Keep app-specific deep
   references where they live (e.g. [`artifacts/1inme/docs/api.md`](../artifacts/1inme/docs/api.md))
   and link to them rather than duplicating.
-- The product overview and user preferences live in [`replit.md`](../replit.md); do
+- The product overview and user preferences live in [`PROJECT.md`](../PROJECT.md); do
   not duplicate it here.

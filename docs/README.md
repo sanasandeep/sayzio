@@ -9,7 +9,7 @@ and the conventions you should follow when changing it. They are aimed at engine
 working in the codebase.
 
 > For a high-level **product** overview and user preferences, see the root
-> [`replit.md`](../replit.md). This documentation set does not repeat it.
+> [`PROJECT.md`](../PROJECT.md). This documentation set does not repeat it.
 
 ## Documentation index
 
