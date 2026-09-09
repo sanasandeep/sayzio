@@ -142,27 +142,31 @@
             66%     { transform: translate(-5%,5%) scale(.95); }
         }
 
-        /* ============ Reveal-on-scroll (bouncy) ============
-           Reveals run as a pure CSS animation so the content always
-           paints — even if the JS reveal observer is slow, fails, or
-           never fires (which used to leave the hero blank on
-           phones/tablets). The .js / .visible classes still gate the
-           transition so reduced-motion users get the calm fallback. */
+        /* ============ Reveal-on-scroll ============
+           These used to be a plain CSS animation with `both`, which meant
+           every .reveal on the page — including the ones twenty thousand
+           pixels down — played its entrance during the first second after
+           load, where nobody could see it. By the time a section scrolled
+           into view it had long since finished, so the page read as
+           completely static. They are gated on the scroll observer again.
+
+           The old shape was a reaction to a real bug: reveals that start at
+           opacity 0 leave the page blank if the observer never runs. That
+           cannot happen here, because the hidden state requires
+           `.reveal-ready`, and only the JS adds that — immediately before it
+           successfully observes the element. No JS, no hiding. A scroll
+           fallback in homeEnhance covers the rarer case where the observer
+           exists but never fires. */
         .reveal {
             opacity: 1;
             transform: none;
             transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.34,1.56,.64,1);
         }
-        @media (min-width: 1024px) {
-            .reveal { animation: revealAuto .8s cubic-bezier(.34,1.56,.64,1) both; }
-            @keyframes revealAuto {
-                from { opacity: 0; transform: translateY(40px) scale(.94); }
-                to   { opacity: 1; transform: none; }
-            }
-            .rd-1 { animation-delay: .08s }  .rd-2 { animation-delay: .18s }
-            .rd-3 { animation-delay: .28s }  .rd-4 { animation-delay: .38s }
-            .rd-5 { animation-delay: .48s }  .rd-6 { animation-delay: .58s }
-        }
+        html.js .reveal.reveal-ready { opacity: 0; transform: translateY(26px) scale(.985); }
+        html.js .reveal.reveal-ready.visible { opacity: 1; transform: none; }
+        .rd-1 { transition-delay: .06s }  .rd-2 { transition-delay: .14s }
+        .rd-3 { transition-delay: .22s }  .rd-4 { transition-delay: .30s }
+        .rd-5 { transition-delay: .38s }  .rd-6 { transition-delay: .46s }
 
         /* ============ Hero grid safety net ============
            Below the lg breakpoint, force the hero grid into a single
@@ -2913,6 +2917,39 @@
     // markup and AGAIN over the injected deferred sections (see the
     // #home-deferred loader). Every element is stamped via dataset flags so
     // re-running never double-observes or double-binds.
+    // Belt and braces for the reveal observer. IntersectionObserver exists in
+    // every browser we support, but it has been known to go quiet inside
+    // some in-app webviews and after a bfcache restore — and a reveal that
+    // never fires is invisible content, not just a missing animation. This
+    // sweeps anything still hidden but inside the viewport, on scroll and
+    // resize, throttled to one frame. It installs once and stops listening
+    // as soon as no hidden reveals are left.
+    window.homeRevealFallback = (function () {
+        var installed = false, queued = false;
+        function sweep() {
+            queued = false;
+            var pending = document.querySelectorAll('.reveal.reveal-ready:not(.visible)');
+            for (var i = 0; i < pending.length; i++) {
+                var top = pending[i].getBoundingClientRect().top;
+                if (top < window.innerHeight * 0.95) { pending[i].classList.add('visible'); }
+            }
+            if (!document.querySelector('.reveal.reveal-ready:not(.visible)')) {
+                window.removeEventListener('scroll', request);
+                window.removeEventListener('resize', request);
+                installed = false;
+            }
+        }
+        function request() { if (!queued) { queued = true; requestAnimationFrame(sweep); } }
+        return function () {
+            if (!installed) {
+                installed = true;
+                window.addEventListener('scroll', request, { passive: true });
+                window.addEventListener('resize', request);
+            }
+            setTimeout(request, 1200);
+        };
+    })();
+
     window.homeEnhance = function (root) {
         root = root || document;
         const pick = (sel) => Array.prototype.filter.call(
@@ -2930,16 +2967,14 @@
                         observer.unobserve(entry.target);
                     }
                 });
-            }, { threshold: 0.05, rootMargin: '0px 0px -10px 0px' });
-            reveals.forEach(el => observer.observe(el));
-            // Safety net for elements the observer might miss — but NEVER
-            // force showcase cards visible on load; they must stay gated on
-            // real intersection so their entrance/alive motion only fires
-            // once the grid scrolls into view.
-            setTimeout(() => reveals.forEach(el => {
-                if (!el.classList.contains('showcase-card')) el.classList.add('visible');
-            }), 250);
+            }, { threshold: 0.05, rootMargin: '0px 0px -8% 0px' });
+            // `reveal-ready` is what actually hides the element (see the CSS).
+            // It goes on immediately before observe() so an element is never
+            // hidden without something watching for its turn to appear.
+            reveals.forEach(el => { el.classList.add('reveal-ready'); observer.observe(el); });
+            window.homeRevealFallback();
         } else {
+            // No observer: never hide anything.
             reveals.forEach(el => el.classList.add('visible'));
         }
 
