@@ -23,6 +23,25 @@
 --}}
 @php
     $c = $ltColor ?? '#3d6bff';
+
+    /*
+     * Photography, from the set the site already ships in
+     * public/images/hero-roles: nineteen role portraits and fifteen subject
+     * thumbnails, all local webp of a few kilobytes. Only the photographic
+     * portraits are used (artist, coach, musician, business, creator,
+     * photographer, podcaster, influencer); the rest of that set are flat
+     * letter graphics, which read as a missing image at avatar size.
+     * Local on purpose — an
+     * external placeholder host would put the panel's appearance at the mercy
+     * of someone else's uptime, and these are already deployed.
+     *
+     * Used only where the TYPE is about content: a bio page has a face, a
+     * menu has dishes, a shop has products. The types that are about
+     * mechanics rather than content — short links, QR codes, forms, file
+     * downloads, text pages — get no photograph, because a decorative one
+     * there would say nothing about what the type does.
+     */
+    $img = fn (string $n) => asset('images/hero-roles/' . $n . '.webp');
 @endphp
 <div class="lts" style="--a:{{ $c }}">
 @switch($ltSlug)
@@ -44,7 +63,8 @@
     @break
 
 @case('link-in-bio')
-    <div class="lts-avatar lts-pop" style="--d:.05s"></div>
+    <img class="lts-avatar lts-pop" style="--d:.05s" src="{{ $img('role_artist-200') }}"
+         alt="" width="200" height="200" loading="lazy" decoding="async">
     <div class="lts-line lts-w50 lts-mid lts-rise" style="--d:.15s"></div>
     <div class="lts-socials">
         @foreach(['fa-instagram','fa-youtube','fa-pinterest'] as $i => $ic)
@@ -71,8 +91,12 @@
     <div class="lts-deck">
         @foreach([0,1,2] as $i)
             <div class="lts-slide lts-slide-{{ $i }}">
-                <div class="lts-line lts-w60"></div>
-                <div class="lts-line lts-w80 lts-faint"></div>
+                <img class="lts-cover" src="{{ $img(['thumb_travel-640','thumb_album-640','thumb_artwork-640'][$i]) }}"
+                     alt="" width="640" height="360" loading="lazy" decoding="async">
+                <div class="lts-slide-cap">
+                    <div class="lts-line lts-w60"></div>
+                    <div class="lts-line lts-w80 lts-faint"></div>
+                </div>
             </div>
         @endforeach
     </div>
@@ -93,9 +117,11 @@
         <span>Olive &amp; Ember</span>
         <span class="lts-cart lts-pop" style="--d:1.1s">2</span>
     </div>
-    @foreach([['Wood-fired Focaccia','7.50'],['Margherita Pizza','14.00'],['Burrata &amp; Tomato','12.00']] as $i => $d)
+    @foreach([['Wood-fired Focaccia','7.50','thumb_food-320'],['Margherita Pizza','14.00','thumb_food-320'],['Burrata &amp; Tomato','12.00','thumb_travel-320']] as $i => $d)
         <div class="lts-row lts-rise" style="--d:{{ .2 + $i * .13 }}s">
-            <span>{!! $d[0] !!}</span>
+            <img class="lts-pic" src="{{ $img($d[2]) }}" alt="" width="320" height="320"
+                 loading="lazy" decoding="async">
+            <span class="lts-grow">{!! $d[0] !!}</span>
             <b class="lts-price">{{ $d[1] }}</b>
         </div>
     @endforeach
@@ -104,9 +130,11 @@
 
 @case('store-menu')
     <div class="lts-grid">
-        @foreach(['Hoodie','Mug','Tote','Sticker'] as $i => $t)
+        @foreach([['Hoodie','thumb_merch-320'],['Print','thumb_artwork-320'],['Tote','thumb_design-320'],['Zine','thumb_book-320']] as $i => $t)
             <div class="lts-tile lts-pop" style="--d:{{ .1 + $i * .1 }}s">
-                <div class="lts-thumb"></div><span>{{ $t }}</span>
+                <img class="lts-thumb" src="{{ $img($t[1]) }}" alt="" width="320" height="320"
+                     loading="lazy" decoding="async">
+                <span>{{ $t[0] }}</span>
             </div>
         @endforeach
     </div>
@@ -144,7 +172,8 @@
 
 @case('contact-card')
     <div class="lts-card lts-rise" style="--d:.05s">
-        <div class="lts-avatar lts-sm"></div>
+        <img class="lts-avatar lts-sm" src="{{ $img('role_business-200') }}" alt=""
+             width="200" height="200" loading="lazy" decoding="async">
         <div class="lts-line lts-w60"></div>
         @foreach(['fa-phone','fa-envelope','fa-globe'] as $i => $ic)
             <div class="lts-row lts-thin lts-rise" style="--d:{{ .35 + $i * .12 }}s">
@@ -156,8 +185,13 @@
     @break
 
 @case('resume-portfolio')
+    <div class="lts-resume-head lts-rise" style="--d:.05s">
+        <img class="lts-avatar lts-sm" src="{{ $img('role_photographer-200') }}" alt=""
+             width="200" height="200" loading="lazy" decoding="async">
+        <div class="lts-grow"><div class="lts-line lts-w60"></div></div>
+    </div>
     @foreach(['Experience','Education','Skills'] as $i => $t)
-        <div class="lts-sect lts-rise" style="--d:{{ .1 + $i * .15 }}s">
+        <div class="lts-sect lts-rise" style="--d:{{ .2 + $i * .15 }}s">
             <span class="lts-lbl">{{ $t }}</span>
             <div class="lts-line lts-w80"></div>
             <div class="lts-line lts-w60 lts-faint"></div>
@@ -174,16 +208,23 @@
         <div class="lts-row lts-thin"><i class="fas fa-location-dot"></i><span>12 Rua das Flores</span></div>
     </div>
     <div class="lts-grid lts-grid-3">
-        @foreach([0,1,2] as $i)<div class="lts-thumb lts-pop" style="--d:{{ .4 + $i * .1 }}s"></div>@endforeach
+        @foreach(['thumb_food-320','thumb_design-320','thumb_photo-320'] as $i => $t)
+            <img class="lts-thumb lts-pop" style="--d:{{ .4 + $i * .1 }}s" src="{{ $img($t) }}"
+                 alt="" width="320" height="320" loading="lazy" decoding="async">
+        @endforeach
     </div>
     @break
 
 @case('reviews-page')
-    @foreach([5,5,4] as $i => $n)
+    @foreach([[5,'role_coach-200'],[5,'role_musician-200'],[4,'role_creator-200']] as $i => $r)
         <div class="lts-review lts-rise" style="--d:{{ .1 + $i * .16 }}s">
-            <span class="lts-stars">
-                @for($s = 0; $s < 5; $s++)<i class="fas fa-star {{ $s < $n ? '' : 'lts-star-off' }}"></i>@endfor
-            </span>
+            <div class="lts-review-head">
+                <img class="lts-avatar lts-xs" src="{{ $img($r[1]) }}" alt=""
+                     width="200" height="200" loading="lazy" decoding="async">
+                <span class="lts-stars">
+                    @for($st = 0; $st < 5; $st++)<i class="fas fa-star {{ $st < $r[0] ? '' : 'lts-star-off' }}"></i>@endfor
+                </span>
+            </div>
             <div class="lts-line lts-w80"></div>
         </div>
     @endforeach
@@ -205,9 +246,8 @@
 
 @case('paid-page')
     <div class="lts-locked">
-        <div class="lts-line lts-w80 lts-blur"></div>
-        <div class="lts-line lts-w60 lts-blur"></div>
-        <div class="lts-line lts-w70 lts-blur"></div>
+        <img class="lts-cover lts-blur" src="{{ $img('thumb_photo-640') }}" alt=""
+             width="640" height="360" loading="lazy" decoding="async">
         <span class="lts-lock lts-pop" style="--d:.5s"><i class="fas fa-lock"></i></span>
     </div>
     <div class="lts-btn lts-solid lts-pop" style="--d:.9s">Unlock for $9</div>
