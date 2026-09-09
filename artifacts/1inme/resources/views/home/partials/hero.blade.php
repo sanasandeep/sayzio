@@ -12,6 +12,29 @@
      trackMarketingEvent behaviour.
 --}}
 <section class="relative z-10 overflow-hidden pt-28 pb-16 sm:pt-32 lg:pt-24 lg:pb-24 lg:min-h-[100svh] lg:flex lg:items-center" aria-labelledby="hero-h">
+    {{-- Square grid behind the hero, with a scatter of tiles that fade up and
+         down. The positions are written out rather than randomised at request
+         time: a fixed scatter looks the same as a random one to anyone
+         reading the page once, and it keeps the markup identical between
+         renders, which matters for caching and for spotting a real diff.
+         Each tile carries its own cell coordinates, duration and negative
+         delay, so they are already mid-cycle on the first paint and no two
+         are ever in step. --}}
+    @php
+        // col, row, seconds, delay
+        $zioTiles = [
+            [2, 1, 7.5, -0.4], [5, 4, 9.0, -3.1], [3, 9, 8.0, -6.2], [8, 2, 10.5, -1.7],
+            [7, 11, 7.0, -4.8], [11, 6, 9.5, -2.3], [14, 3, 8.5, -7.4], [12, 13, 11.0, -0.9],
+            [17, 9, 7.5, -5.6], [19, 2, 10.0, -3.8], [21, 12, 8.0, -1.2], [23, 5, 9.5, -6.9],
+            [16, 15, 7.0, -2.7], [9, 7, 12.0, -8.3], [24, 8, 8.5, -4.1], [1, 13, 9.0, -5.2],
+        ];
+    @endphp
+    <div class="zio-grid" aria-hidden="true">
+        @foreach($zioTiles as [$c, $r, $d, $delay])
+            <span class="zio-tile" style="--c:{{ $c }}; --r:{{ $r }}; --d:{{ $d }}s; --delay:{{ $delay }}s"></span>
+        @endforeach
+    </div>
+
     {{-- Drifting confetti --}}
     <div class="confetti drift-a" style="left:10%; bottom:-22vh;"><div class="w-3 h-3 rounded-sm" style="background:var(--c1)"></div></div>
     <div class="confetti drift-b" style="left:86%; bottom:-28vh; animation-delay:-6s"><div class="w-2 h-6 rounded-full" style="background:var(--c2)"></div></div>
@@ -110,11 +133,9 @@
             <div class="reveal rd-2 zio-orbit-wrap zio-hero-visual">
                 <div class="zio-orbit" x-data="{ open: null }" @keydown.escape.window="open = null" @click.outside="open = null" :class="{ 'zio-paused': open !== null }">
                     <span class="zio-glow" aria-hidden="true"></span>
-                    <span class="zio-pulse zio-pulse--1" aria-hidden="true"></span>
-                    <span class="zio-pulse zio-pulse--2" aria-hidden="true"></span>
-                    <span class="zio-ring zio-ring--r1" aria-hidden="true"></span>
-                    <span class="zio-ring zio-ring--r2" aria-hidden="true"></span>
-                    <span class="zio-ring zio-ring--r3" aria-hidden="true"></span>
+                    {{-- The dashed orbit guides and the expanding pulse rings are
+                         gone. The nodes still travel their three circles; the
+                         circles are simply no longer drawn. --}}
 
                     @php
                         // Feature nodes split across three concentric rings. Zio's direct AI
@@ -431,6 +452,49 @@
         }
 
         /* ============ Orbital Zio visual ============ */
+        /* ---- Hero grid ----
+           A square grid drawn in two hairline gradients, with a scatter of
+           single cells that glow up and fade out. It is masked away toward
+           the edges so it never meets the page border as a hard line, which
+           is what keeps a texture from reading as a table. Both the grid and
+           the tiles are drawn from tokens, so the whole thing inverts for
+           dark mode by redefining two colours. */
+        .zio-grid {
+            position: absolute; inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            --cell: 58px;
+            --line: rgba(15,23,42,.055);
+            --tile: rgba(61,107,255,.10);
+            background-image:
+                linear-gradient(to right, var(--line) 1px, transparent 1px),
+                linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+            background-size: var(--cell) var(--cell);
+            -webkit-mask-image: radial-gradient(120% 85% at 42% 45%, #000 30%, transparent 78%);
+                    mask-image: radial-gradient(120% 85% at 42% 45%, #000 30%, transparent 78%);
+        }
+        html:not(.light-mode) .zio-grid {
+            --line: rgba(255,255,255,.05);
+            --tile: rgba(120,150,255,.14);
+        }
+        .zio-tile {
+            position: absolute;
+            left: calc(var(--cell) * var(--c));
+            top:  calc(var(--cell) * var(--r));
+            width: var(--cell); height: var(--cell);
+            background: radial-gradient(closest-side, var(--tile), transparent 92%);
+            opacity: 0;
+            animation: zioTile var(--d) ease-in-out infinite;
+            animation-delay: var(--delay);
+        }
+        @keyframes zioTile {
+            0%, 100% { opacity: 0; }
+            18%      { opacity: 1; }
+            46%      { opacity: .55; }
+            70%      { opacity: 0; }
+        }
+        @media (max-width: 640px) { .zio-grid { --cell: 44px; } }
+
         .zio-orbit-wrap { display: flex; align-items: center; justify-content: center; width: 100%; }
         .zio-orbit {
             --size: clamp(300px, 40vw, 500px);
@@ -457,36 +521,6 @@
             animation: zioGlowPulse 7s ease-in-out infinite;
         }
         @keyframes zioGlowPulse { 0%,100% { opacity: .85; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }
-
-        /* ---- Ambient pulse rings (expand + fade outward) ---- */
-        .zio-pulse {
-            position: absolute; top: 50%; left: 50%;
-            width: 46%; height: 46%;
-            margin: -23% 0 0 -23%;
-            border-radius: 50%;
-            border: 1px solid rgba(120,150,255,.35);
-            z-index: 0;
-            opacity: 0;
-            animation: zioPulse 5.5s ease-out infinite;
-        }
-        .zio-pulse--2 { animation-delay: 2.75s; }
-        @keyframes zioPulse {
-            0%   { transform: scale(.55); opacity: .55; }
-            70%  { opacity: .12; }
-            100% { transform: scale(2.1); opacity: 0; }
-        }
-
-        /* Dashed orbit guides — one per node ring, each sitting on its ring radius.
-           inset = (0.5 − radiusFraction) of the box, so the dashed circle lines up
-           with the icon centers on that ring (r3 pokes a touch past the box). */
-        .zio-ring {
-            position: absolute; border-radius: 50%;
-            border: 1.5px dashed rgba(120,140,255,.30);
-            z-index: 1;
-        }
-        .zio-ring--r1 { inset: 20%;   border-color: rgba(120,140,255,.16); }
-        .zio-ring--r2 { inset: 7.5%;  border-color: rgba(120,140,255,.22); }
-        .zio-ring--r3 { inset: -5%;   border-color: rgba(120,140,255,.30); }
 
         /* Three independent rotors. Each spins at its own speed; the middle ring
            runs in REVERSE so adjacent rings counter-rotate. Per-ring --r feeds the
@@ -680,36 +714,56 @@
         }
 
         /* ---- Antennae ----
-           Each one is its own layer over the body, pinned at inset:0 on the
-           same canvas, so it needs no positioning of its own — only a pivot.
-           The pivot is the point where that antenna meets the head in the
-           artwork, which is why the two differ: the left joins at (33%, 28%)
-           and the right, sitting higher on the tilted head, at (68%, 19%).
-           They sway against each other on purposely mismatched durations, so
-           the pair never falls into a mechanical lockstep. */
+           Each is its own layer on the same canvas, pinned at inset:0, so it
+           needs no positioning of its own — only a pivot.
+
+           They sit BEHIND the body, and that is the whole trick. In the
+           artwork an antenna is drawn resting along the head's dome for its
+           entire arc, so there is no single point where it "joins": cutting
+           it out leaves a long edge that follows the dome exactly. In front
+           of the body, the first degree of sway slides that edge off the
+           dome and the antenna reads as a sticker peeling away. Behind it,
+           the head's own silhouette is the boundary, and it never moves. The
+           layers also carry 90px of head with them below the cut, so the
+           edge is buried too deep for a few degrees to ever bring it out.
+
+           Cutting them out took two goes. The first cut took, per column,
+           everything above where the head's silhouette began — but where a
+           stalk merges into the head there is no gap between them, so that
+           column's silhouette starts partway UP the stalk. The stalk got
+           split lengthwise, half to the antenna and half to the body, and
+           the two halves came apart the moment it swayed. The cut now
+           follows a running median of the silhouette, which ignores those
+           narrow spikes and recovers the head's actual dome, so each antenna
+           comes away whole.
+
+           They sway on purposely mismatched durations, so the pair never
+           falls into a mechanical lockstep. */
         .zio-ant {
             position: absolute; inset: 0;
             background-repeat: no-repeat;
             background-size: 100% 100%;
             pointer-events: none;
+            z-index: 0;
         }
+        .zio-mascot { position: relative; z-index: 1; }
         .zio-ant--l {
             background-image: url('{{ asset('branding/zio-antenna-l.png') }}');
-            transform-origin: 33.4% 28.2%;
+            transform-origin: 33% 26%;
             animation: zioAntL 3.6s ease-in-out infinite;
         }
         .zio-ant--r {
             background-image: url('{{ asset('branding/zio-antenna-r.png') }}');
-            transform-origin: 67.9% 18.5%;
+            transform-origin: 68% 22%;
             animation: zioAntR 4.3s ease-in-out infinite;
         }
         @keyframes zioAntL {
-            0%,100% { transform: rotate(-3.5deg); }
-            50%     { transform: rotate(3deg); }
+            0%,100% { transform: rotate(-2.6deg); }
+            50%     { transform: rotate(2.2deg); }
         }
         @keyframes zioAntR {
-            0%,100% { transform: rotate(3.2deg); }
-            50%     { transform: rotate(-3deg); }
+            0%,100% { transform: rotate(2.4deg); }
+            50%     { transform: rotate(-2.2deg); }
         }
 
         /* ---- Blink ----
@@ -720,6 +774,8 @@
            before its own boundary. And it is half again as wide as the iris,
            so the dissolve happens over skin rather than over the eye. What is
            left to see is the lash line, which is the part that says "shut". */
+        /* Above the body, which is itself above the antennae (z-index 1). */
+        .zio-lid, .zio-mouth-gate { z-index: 2; }
         .zio-lid {
             position: absolute;
             clip-path: inset(0 0 100% 0);
@@ -783,7 +839,7 @@
         }
         @keyframes zioChatter {
             0%, 100% { height: 100%; }
-            50%      { height: 330%; }
+            50%      { height: 205%; }
         }
         /* Synced to the bubbles, not merely near them. A bubble's slot is 4s
            (16s / four lines): it finishes appearing at 2.5% of the 16s cycle
@@ -981,9 +1037,12 @@
         @media (prefers-reduced-motion: reduce) {
             .zio-rotor, .zio-node-ic, .zio-face, .zio-mascot, .zio-mascot-halo,
             .zio-glow, .zio-pulse, .zio-node, .zio-node-thumb,
-            .zio-lid, .zio-mouth, .zio-mouth-gate, .zio-bubble, .zio-ant {
+            .zio-lid, .zio-mouth, .zio-mouth-gate, .zio-bubble, .zio-ant, .zio-tile {
                 animation: none !important;
             }
+            /* The grid stays; only its blinking stops, on a low steady value
+               so the scatter still reads as texture rather than vanishing. */
+            .zio-tile { opacity: .5 !important; }
             .zio-node, .zio-node-thumb { opacity: 1 !important; }
             .zio-node-thumb { transform: scale(1) !important; }
             .zio-pulse { opacity: 0 !important; }
