@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Modules\User\Models\DialerFavorite;
 use App\Modules\User\Models\Follow;
+use App\Modules\User\Models\Form;
+use App\Modules\User\Models\FormSubmission;
 use App\Modules\User\Models\Subscriber;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserBlock;
@@ -59,7 +61,13 @@ class DialerSuggestionsTest extends TestCase
      */
     private function actingAsWeb(User $user): self
     {
-        $ws = $user->personalWorkspace ?? $user->workspaces()->first();
+        // Neither of these existed. User has no personalWorkspace attribute
+        // (so it read as null) and no workspaces() relation at all, which
+        // threw BadMethodCallException before the request was ever made --
+        // the relations are ownedWorkspaces()/accessibleWorkspaces().
+        // WorkspaceContext is how the app itself resolves the active
+        // workspace, and this file already imports it.
+        $ws = app(WorkspaceContext::class)->resolve($user);
         return $this->actingAs($user)->withSession(
             $ws ? [WorkspaceContext::SESSION_KEY => $ws->id] : []
         );
@@ -247,10 +255,15 @@ class DialerSuggestionsTest extends TestCase
     {
         $creator = $this->makeUser('cr6');
 
-        $form = \App\Modules\User\Models\Form::create([
-            'user_id' => $creator->id,
-            'name'    => 'Contact form',
-        ]);
+        $form = new Form(['title' => 'Contact form']);
+        // Neither key used before was doing anything. Form's
+        // $fillable has no user_id, so mass assignment silently
+        // dropped it and the insert hit forms.user_id's NOT NULL
+        // constraint; and the column is `title`, not `name`, so
+        // the form had no title either. Assigned outside the
+        // array, the way the model actually takes them.
+        $form->user_id = $creator->id;
+        $form->save();
 
         FormSubmission::create([
             'form_id'    => $form->id,
@@ -277,10 +290,15 @@ class DialerSuggestionsTest extends TestCase
     {
         $creator = $this->makeUser('cr7');
 
-        $form = \App\Modules\User\Models\Form::create([
-            'user_id' => $creator->id,
-            'name'    => 'Feedback form',
-        ]);
+        $form = new Form(['title' => 'Feedback form']);
+        // Neither key used before was doing anything. Form's
+        // $fillable has no user_id, so mass assignment silently
+        // dropped it and the insert hit forms.user_id's NOT NULL
+        // constraint; and the column is `title`, not `name`, so
+        // the form had no title either. Assigned outside the
+        // array, the way the model actually takes them.
+        $form->user_id = $creator->id;
+        $form->save();
 
         // Submission whose payload has no extractable name/email/phone.
         FormSubmission::create([
@@ -326,10 +344,15 @@ class DialerSuggestionsTest extends TestCase
     {
         $creator = $this->makeUser('cr8');
 
-        $form = \App\Modules\User\Models\Form::create([
-            'user_id' => $creator->id,
-            'name'    => 'Survey form',
-        ]);
+        $form = new Form(['title' => 'Survey form']);
+        // Neither key used before was doing anything. Form's
+        // $fillable has no user_id, so mass assignment silently
+        // dropped it and the insert hit forms.user_id's NOT NULL
+        // constraint; and the column is `title`, not `name`, so
+        // the form had no title either. Assigned outside the
+        // array, the way the model actually takes them.
+        $form->user_id = $creator->id;
+        $form->save();
 
         // One OLDER actionable submission…
         $old = FormSubmission::create([
