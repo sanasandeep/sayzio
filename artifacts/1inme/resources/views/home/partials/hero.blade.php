@@ -191,37 +191,35 @@
 
                         {{-- Zio, talking.
 
-                             This used to be a 1.3 MB VP9-alpha WebM with a poster,
-                             a lazy loader, an animated-WebP twin and a canvas probe
-                             that read a pixel's alpha to work out whether the
-                             browser honoured the clip's transparency (Safari
-                             decodes VP9 but ignores its alpha, so the keyed-out
-                             background came back as an opaque box). All of that is
-                             gone: the artwork is the still PNG it always had, and
-                             the movement is CSS on top of it.
+                             Three images, not one. The artwork ships cut into a
+                             body and two antennae (branding/zio-body.png,
+                             zio-antenna-l.png, zio-antenna-r.png), all on the same
+                             512x512 canvas so they stack at inset:0 with nothing to
+                             line up by hand. The cut was made along the head's own
+                             outline, so each antenna is whole and the body keeps
+                             the little stubs where they join — which is what lets
+                             them sway from their bases without coming loose.
 
-                             The eyelids and the mouth are absolutely positioned in
-                             PERCENTAGES of the artwork, so they stay registered to
-                             the eyes and the smile at every size. The numbers come
-                             from the pixels: on the 440x440 still the left eye is
-                             centred at (170,170), the right at (265,173), both about
-                             66px across, and the painted smile occupies x 188-220,
-                             y 192-201. Each lid is filled with the head colours
-                             sampled directly above and below its own eye, which is
-                             why the two gradients differ — the head runs blue on
-                             the left and violet on the right.
+                             Everything else — the lids, the mouth, the tongue — is
+                             CSS positioned in PERCENTAGES of the artwork, so it
+                             stays registered at every size. The numbers come from
+                             the pixels of the 758px master: left iris x 170-292,
+                             y 173-291; right iris x 409-542, y 201-323; the painted
+                             smile x 303-378, y 313-334.
 
                              The mouth sits ON TOP of the painted smile rather than
-                             replacing it: at rest it is hidden and the original
-                             smile shows through, and while Zio is speaking it opens
-                             and closes over it. --}}
+                             replacing it: between lines it is hidden and the
+                             original smile is Zio's resting face; while he is
+                             speaking it opens over it and the tongue shows. --}}
                         <div class="zio-face">
-                            <img src="{{ asset('branding/sayzio-mascot-still.png') }}"
+                            <img src="{{ asset('branding/zio-body.png') }}"
                                  alt="Zio, the Sayzio AI mascot" class="zio-mascot"
                                  width="220" height="220" loading="eager" decoding="async">
+                            <span class="zio-ant zio-ant--l"></span>
+                            <span class="zio-ant zio-ant--r"></span>
                             <span class="zio-lid zio-lid--l"></span>
                             <span class="zio-lid zio-lid--r"></span>
-                            <span class="zio-mouth-gate"><span class="zio-mouth"></span></span>
+                            <span class="zio-mouth-gate"><span class="zio-mouth"><i class="zio-tongue"></i></span></span>
                         </div>
 
                         {{-- One line at a time, on a loop. Every bubble sits in the
@@ -659,7 +657,11 @@
            mouth ride along with it instead of drifting off the eyes. */
         .zio-face {
             position: relative;
-            width: calc(var(--size) * 0.42);
+            /* Published as its own custom property so the few places that need
+               a real length rather than a percentage — the lash line's
+               thickness — can scale with the artwork. */
+            --fw: calc(var(--size) * 0.42);
+            width: var(--fw);
             aspect-ratio: 1 / 1;
             animation: zioFloat 6.5s ease-in-out infinite;
             transform-origin: 50% 80%;
@@ -668,75 +670,131 @@
             display: block;
             width: 100%;
             height: auto;
-            filter: drop-shadow(0 18px 36px rgba(61,107,255,.45));
+            /* No glow. The old blue drop-shadow spread a haze roughly 80px
+               wide around the mascot, which on a white page is not white:
+               the pixels beside his head measured #D1DBFF. */
         }
         @keyframes zioFloat {
             0%,100% { transform: translateY(0) rotate(-1.5deg) scale(1); }
             50%     { transform: translateY(-12px) rotate(1.5deg) scale(1.02); }
         }
 
+        /* ---- Antennae ----
+           Each one is its own layer over the body, pinned at inset:0 on the
+           same canvas, so it needs no positioning of its own — only a pivot.
+           The pivot is the point where that antenna meets the head in the
+           artwork, which is why the two differ: the left joins at (33%, 28%)
+           and the right, sitting higher on the tilted head, at (68%, 19%).
+           They sway against each other on purposely mismatched durations, so
+           the pair never falls into a mechanical lockstep. */
+        .zio-ant {
+            position: absolute; inset: 0;
+            background-repeat: no-repeat;
+            background-size: 100% 100%;
+            pointer-events: none;
+        }
+        .zio-ant--l {
+            background-image: url('{{ asset('branding/zio-antenna-l.png') }}');
+            transform-origin: 33.4% 28.2%;
+            animation: zioAntL 3.6s ease-in-out infinite;
+        }
+        .zio-ant--r {
+            background-image: url('{{ asset('branding/zio-antenna-r.png') }}');
+            transform-origin: 67.9% 18.5%;
+            animation: zioAntR 4.3s ease-in-out infinite;
+        }
+        @keyframes zioAntL {
+            0%,100% { transform: rotate(-3.5deg); }
+            50%     { transform: rotate(3deg); }
+        }
+        @keyframes zioAntR {
+            0%,100% { transform: rotate(3.2deg); }
+            50%     { transform: rotate(-3deg); }
+        }
+
         /* ---- Blink ----
-           A lid drops from the top of each eye. It is filled with the head's
-           own colours at that spot, so it reads as the eyelid closing rather
-           than as a shape appearing on the face. The bottom corners are
-           rounded far more than the top so the closing edge is a curve. */
+           The lid is a patch of head colour that wipes down over the eye, and
+           the whole trick is that it must not read AS a patch. Two things do
+           that. It is masked with a radial gradient, so it has no edge at all
+           — it is fully opaque over the iris and dissolves into the head well
+           before its own boundary. And it is half again as wide as the iris,
+           so the dissolve happens over skin rather than over the eye. What is
+           left to see is the lash line, which is the part that says "shut". */
         .zio-lid {
             position: absolute;
-            border-radius: 46% 46% 50% 50% / 34% 34% 66% 66%;
-            transform: scaleY(0);
-            transform-origin: 50% 0;
+            clip-path: inset(0 0 100% 0);
             animation: zioBlink 5.6s ease-in-out infinite;
-            will-change: transform;
+            will-change: clip-path;
         }
-        /* Each lid overhangs its eye by roughly a pixel of artwork on every
-           side; anything tighter leaves a crescent of iris showing at the top
-           corner when it closes. The last gradient stop is darker than the
-           head to read as the crease along the closed edge. */
-        .zio-lid--l { left: 29.6%; top: 29.0%; width: 17.6%; height: 19.0%;
-                      background: linear-gradient(#69A8F0 58%, #4E6FD6); }
-        .zio-lid--r { left: 51.6%; top: 30.0%; width: 17.0%; height: 18.4%;
-                      background: linear-gradient(#AAC3F3 58%, #6F63D8);
-                      animation-delay: .06s; }
-        /* The lash line. Without it a closed lid is just a patch of head
-           colour; the dark arc along its lower edge is what makes the eye
-           read as shut rather than as a missing eye. */
+        .zio-lid::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(var(--c-top), var(--c-bot));
+            -webkit-mask-image: radial-gradient(closest-side, #000 72%, transparent 100%);
+                    mask-image: radial-gradient(closest-side, #000 72%, transparent 100%);
+        }
+        /* Iris on the 758px master: left x 170-292 / y 173-291, right
+           x 409-542 / y 201-323. Each lid is 1.5x that box, centred on it. */
+        .zio-lid--l { left: 18.4%; top: 18.9%; width: 24.1%; height: 23.4%;
+                      --c-top: #569CFF; --c-bot: #5C7AFF; }
+        .zio-lid--r { left: 49.6%; top: 22.5%; width: 26.3%; height: 24.1%;
+                      --c-top: #A3C4FF; --c-bot: #7C72FF;
+                      animation-delay: .07s; }
+        /* The lash: a circle showing only its lower border, which draws the
+           closed eye as an arc rather than a straight line. */
         .zio-lid::after {
             content: ''; position: absolute;
-            left: 12%; right: 12%; bottom: 8%; height: 15%;
-            border-radius: 0 0 50% 50% / 0 0 100% 100%;
-            background: #16255F; opacity: .8;
+            left: 20%; right: 20%; top: 30%; height: 42%;
+            border: 0 solid #0E1A55;
+            border-bottom-width: calc(var(--fw) * .016);
+            border-radius: 50%;
         }
         @keyframes zioBlink {
-            0%, 88%, 100% { transform: scaleY(0); }
-            91%           { transform: scaleY(1); }
-            93%           { transform: scaleY(1); }
-            96%           { transform: scaleY(0); }
+            0%, 88%, 100% { clip-path: inset(0 0 100% 0); }
+            91%, 94%      { clip-path: inset(0 0 0 0); }
+            97%           { clip-path: inset(0 0 100% 0); }
         }
 
         /* ---- Mouth ----
-           The gate hides the animated mouth between lines, which lets the
-           painted smile underneath show through as Zio's resting expression;
-           the mouth inside it chatters open and closed while a line is up. */
+           The gate hides the whole mouth between lines, which lets the painted
+           smile underneath be Zio's resting face; while a line is up the mouth
+           opens and closes over it. It opens by growing its HEIGHT rather than
+           scaling, because a scale would stretch the tongue inside it with it.
+           The painted smile stays visible along the top edge and reads as the
+           upper lip. */
         .zio-mouth-gate {
             position: absolute;
-            left: 42.7%; top: 43.6%;
-            width: 7.3%; height: 2.1%;
+            left: 39.9%; top: 41.2%;
+            width: 9.9%; height: 3.0%;
             animation: zioMouthGate 4s linear infinite;
         }
         .zio-mouth {
-            display: block; width: 100%; height: 100%;
-            background: #131F62;
-            border-radius: 40% 40% 50% 50% / 25% 25% 75% 75%;
-            transform-origin: 50% 15%;
-            animation: zioChatter .34s ease-in-out infinite;
+            display: block; position: absolute; inset: 0 0 auto 0;
+            height: 100%;
+            background: #1B0E3C;
+            border-radius: 42% 42% 50% 50% / 22% 22% 78% 78%;
+            overflow: hidden;
+            animation: zioChatter .36s ease-in-out infinite;
+        }
+        .zio-tongue {
+            position: absolute; left: 20%; right: 20%; bottom: -14%;
+            height: 62%;
+            background: #FF6E9E;
+            border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
         }
         @keyframes zioChatter {
-            0%, 100% { transform: scaleY(1); }
-            50%      { transform: scaleY(2.9); }
+            0%, 100% { height: 100%; }
+            50%      { height: 330%; }
         }
+        /* Synced to the bubbles, not merely near them. A bubble's slot is 4s
+           (16s / four lines): it finishes appearing at 2.5% of the 16s cycle
+           and starts leaving at 21% — 0.4s and 3.36s inside its own slot. The
+           gate runs on the same 4s and opens at 11%, shuts at 84%: Zio starts
+           talking as the line lands and has finished the sentence by the time
+           it fades. Move one of these and the other has to move with it. */
         @keyframes zioMouthGate {
-            0%, 86%   { opacity: 1; }
-            89%, 100% { opacity: 0; }
+            0%, 9%    { opacity: 0; }
+            11%, 83%  { opacity: 1; }
+            85%, 100% { opacity: 0; }
         }
 
         /* ---- Speech bubbles ----
@@ -923,15 +981,17 @@
         @media (prefers-reduced-motion: reduce) {
             .zio-rotor, .zio-node-ic, .zio-face, .zio-mascot, .zio-mascot-halo,
             .zio-glow, .zio-pulse, .zio-node, .zio-node-thumb,
-            .zio-lid, .zio-mouth, .zio-mouth-gate, .zio-bubble {
+            .zio-lid, .zio-mouth, .zio-mouth-gate, .zio-bubble, .zio-ant {
                 animation: none !important;
             }
             .zio-node, .zio-node-thumb { opacity: 1 !important; }
             .zio-node-thumb { transform: scale(1) !important; }
             .zio-pulse { opacity: 0 !important; }
-            /* Zio holds still: eyes open, resting smile, and the first line
-               left on screen rather than a cycle nobody asked to watch. */
-            .zio-lid { transform: scaleY(0) !important; }
+            /* Zio holds still: eyes open, antennae level, resting smile, and
+               the first line left on screen rather than a cycle nobody asked
+               to watch. */
+            .zio-lid { clip-path: inset(0 0 100% 0) !important; }
+            .zio-ant { transform: none !important; }
             .zio-mouth-gate { opacity: 0 !important; }
             .zio-bubble { opacity: 0 !important; transform: translate(-50%, 0) !important; }
             .zio-bubble:first-child { opacity: 1 !important; }
