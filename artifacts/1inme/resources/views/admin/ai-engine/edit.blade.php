@@ -59,6 +59,64 @@
             <p class="ak-note text-[11px] text-white/30 mt-1">Encrypted at rest with the application key. Never displayed back.</p>
         </div>
 
+        {{-- The other two providers. Same storage treatment as the OpenAI key
+             above: Crypt-encrypted, never rendered back, clearable. A provider
+             with no key is simply not offered as a fallback and cannot serve
+             a model, so leaving one blank is a valid configuration rather
+             than a half-finished one. --}}
+        @foreach(['openrouter' => 'OpenRouter', 'anthropic' => 'Claude API'] as $slug => $label)
+            <div>
+                <label class="ak-note text-xs uppercase tracking-wider text-white/40 mb-1 block">{{ $label }} key</label>
+                @if($providerHasKey[$slug] ?? false)
+                    <p class="ak-muted text-xs text-white/60 mb-2">A key is stored.</p>
+                @endif
+                @include('common.partials.password-field', [
+                    'name' => $slug . '_api_key',
+                    'autocomplete' => 'off',
+                    'placeholder' => ($providerHasKey[$slug] ?? false) ? 'Paste a new key to replace' : ($slug === 'anthropic' ? 'sk-ant-…' : 'sk-or-…'),
+                    'inputClass' => 'ak-input w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+                ])
+                @if($providerHasKey[$slug] ?? false)
+                    <label class="ak-muted mt-2 inline-flex items-center gap-2 text-xs text-white/60">
+                        <input type="hidden" name="clear_{{ $slug }}_api_key" value="0">
+                        <input type="checkbox" name="clear_{{ $slug }}_api_key" value="1" class="accent-red-500">
+                        Remove the stored key
+                    </label>
+                @endif
+                <p class="ak-note text-[11px] text-white/30 mt-1">
+                    @if($slug === 'openrouter')
+                        Reaches many vendors on one bill. Model names carry a prefix, e.g. <span class="font-mono">anthropic/claude-sonnet-4</span>.
+                    @else
+                        Anthropic direct. Model names have no prefix, e.g. <span class="font-mono">claude-sonnet-4-latest</span>.
+                    @endif
+                </p>
+            </div>
+        @endforeach
+
+        {{-- Fallback order. Only failures another vendor could survive follow
+             it -- a rate limit, an outage, a rejected key. A malformed
+             request is rejected identically everywhere, so it is not
+             retried around the ring. --}}
+        <div class="pt-4 border-t border-white/10">
+            <label class="ak-note text-xs uppercase tracking-wider text-white/40 mb-1 block">Fallback order</label>
+            <p class="ak-muted text-xs text-white/60 mb-2">
+                When the provider a model belongs to is rate-limited, down, or rejects its key, the request is retried on these providers in order. Every switch is written to the log with what it replaced, so a move to a pricier vendor is visible rather than a surprise on the bill.
+            </p>
+            <div class="flex flex-wrap gap-4">
+                @foreach($providers as $slug => $label)
+                    <label class="ak-muted inline-flex items-center gap-2 text-sm text-white/70">
+                        <input type="checkbox" name="provider_fallback[]" value="{{ $slug }}"
+                               {{ in_array($slug, $providerFallback, true) ? 'checked' : '' }}
+                               class="accent-blue-500">
+                        {{ $label }}
+                        @unless($providerHasKey[$slug] ?? false)
+                            <span class="ak-note text-[11px] text-amber-300">(no key — will be skipped)</span>
+                        @endunless
+                    </label>
+                @endforeach
+            </div>
+        </div>
+
         <div class="pt-4 border-t border-white/10 space-y-3">
             <div class="flex flex-wrap items-center gap-3">
                 <button type="button" onclick="testOpenAiConnection(this)"
@@ -147,6 +205,7 @@
         <table class="w-full text-sm">
             <thead><tr class="ak-note text-white/40 text-xs uppercase tracking-wider">
                 <th class="text-left py-2">Model</th>
+                <th class="text-left">Provider</th>
                 <th class="text-left">Used by</th>
                 <th class="text-left">Kind</th>
                 <th class="text-left">Enabled</th>
@@ -166,6 +225,13 @@
                                 <span>{{ $modelDeprecations[$m['name']] }}</span>
                             </p>
                         @endif
+                    </td>
+                    <td>
+                        <select name="models[{{ $i }}][provider]" class="ak-strong ak-input bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm">
+                            @foreach($providers as $slug => $label)
+                                <option value="{{ $slug }}" {{ ($m['provider'] ?? 'openai') === $slug ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </select>
                     </td>
                     <td class="py-2">
                         @if($usedBy)
@@ -279,6 +345,73 @@
                 </div>
             </div>
         @endforeach
+    </div>
+
+    {{-- Per-plan model overrides ---------------------------------------
+
+         The section above sets one model per module for the whole site.
+         This narrows it per plan: rows are modules, columns are your active
+         plans, and a filled cell means "users on THIS plan use THIS model
+         for THIS module".
+
+         Cells are blank by default and a blank cell is not a value -- it
+         means the plan has no opinion and the site-wide default above
+         applies. That is what lets you add a plan or a module later without
+         touching this grid, and what keeps a change to a default reaching
+         every plan that never overrode it.
+
+         Users never see a model name. The one exception is the existing
+         per-user override on paid plans, which still wins where a user has
+         set one. --}}
+    <div class="ak-card rounded-2xl border border-white/10 bg-white/[0.02] p-5 space-y-4">
+        <div>
+            <h3 class="ak-strong font-semibold text-white">Model by plan</h3>
+            <p class="ak-note text-xs text-white/40">
+                Leave a cell on <span class="italic">Default</span> to use the site-wide model for that module.
+                Only active plans are listed, so a retired plan cannot leave a column you are unable to clear.
+            </p>
+        </div>
+
+        @if($plans->isEmpty())
+            <p class="ak-note text-xs text-white/40 italic">No active plans to configure.</p>
+        @else
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm min-w-[640px]">
+                    <thead>
+                        <tr class="ak-note text-white/40 text-xs uppercase tracking-wider">
+                            <th class="text-left py-2 sticky left-0 bg-[#0b0b12]">Module</th>
+                            @foreach($plans as $plan)
+                                <th class="text-left px-2">{{ $plan->name }}</th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($features as $f)
+                            <tr class="border-t border-white/5">
+                                <td class="py-2 pr-3 text-white/70 sticky left-0 bg-[#0b0b12] whitespace-nowrap">
+                                    {{ ucwords(str_replace('_', ' ', $f)) }}
+                                </td>
+                                @foreach($plans as $plan)
+                                    @php $cell = $planFeatureModels[$plan->slug][$f] ?? ''; @endphp
+                                    <td class="px-2 py-1">
+                                        <select name="plan_feature_models[{{ $plan->slug }}][{{ $f }}]"
+                                                class="ak-strong ak-input bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-xs w-full">
+                                            <option value="">Default</option>
+                                            @foreach($models as $m)
+                                                @continue($m['kind'] !== 'chat' || !$m['enabled'])
+                                                <option value="{{ $m['name'] }}" {{ $cell === $m['name'] ? 'selected' : '' }}>
+                                                    {{ $m['name'] }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
     </div>
 
     {{-- Per-feature model change history --}}
@@ -665,6 +798,7 @@ function addModelRow() {
     row.innerHTML = `
         <td class="py-2"><input name="models[${i}][name]" class="ak-strong ak-input w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm" required></td>
         <td class="py-2"><span class="ak-note text-white/30 text-xs">-</span></td>
+        <td><select name="models[${i}][provider]" class="ak-strong ak-input bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm">{!! collect($providers)->map(fn($l,$sl) => '<option value="'.$sl.'">'.$l.'</option>')->implode('') !!}</select></td>
         <td><select name="models[${i}][kind]" class="ak-strong ak-input bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"><option value="chat">chat</option><option value="embedding">embedding</option></select></td>
         <td><input type="hidden" name="models[${i}][enabled]" value="0"><input type="checkbox" data-enabled-toggle name="models[${i}][enabled]" value="1" checked class="accent-blue-500"><p data-disable-warning class="ak-amber hidden mt-1 text-[11px] text-amber-300 flex items-start gap-1"><i class="fas fa-triangle-exclamation mt-0.5"></i><span data-disable-warning-text></span></p></td>
         <td class="text-right"><input type="number" min="0" step="0.01" name="models[${i}][in_coins_per_1k]" value="0" class="ak-strong ak-input w-24 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>

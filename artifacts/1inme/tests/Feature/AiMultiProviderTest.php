@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Admin\Models\Admin;
+use App\Modules\Admin\Models\Permission;
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Admin\Models\Role;
 use App\Modules\User\Models\User;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\Providers\AiProviderException;
@@ -10,6 +13,7 @@ use App\Services\AI\Providers\AiProviderRegistry;
 use App\Services\AI\Providers\AnthropicDriver;
 use App\Services\AI\Providers\OpenRouterDriver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -345,5 +349,99 @@ class AiMultiProviderTest extends TestCase
         // A chain nobody configured a second grid for should still work.
         $this->assertSame('claude-sonnet-4-latest', AiEngineSettings::fallbackModelFor('anthropic'));
         $this->assertSame('anthropic/claude-sonnet-4', AiEngineSettings::fallbackModelFor('openrouter'));
+    }
+
+    // ── the admin surface ─────────────────────────────────────────
+
+    private function admin(): Admin
+    {
+        $role = Role::firstOrCreate(
+            ['slug' => 'staff-settings-manage'],
+            ['name' => 'Staff (settings.manage)', 'guard' => 'admin'],
+        );
+        $perm = Permission::firstOrCreate(
+            ['slug' => 'settings.manage'],
+            ['name' => 'settings.manage', 'group' => 'settings'],
+        );
+        $role->permissions()->syncWithoutDetaching([$perm->id]);
+
+        return Admin::create([
+            'name'     => 'Admin ' . Str::random(4),
+            'email'    => 'a' . Str::random(8) . '@ex.com',
+            'password' => Hash::make('x'),
+            'role_id'  => $role->id,
+            'status'   => 'active',
+        ]);
+    }
+
+    public function test_the_admin_page_offers_every_provider_and_the_plan_grid(): void
+    {
+        Plan::create([
+            'name' => 'Pro', 'slug' => 'pro-' . Str::random(4),
+            'monthly_price' => 19, 'annual_price' => 190,
+            'trial_days' => 0, 'status' => 'active', 'features' => [],
+        ]);
+
+        $this->actingAs($this->admin(), 'admin')
+            ->get('/admin/ai-engine')
+            ->assertOk()
+            ->assertSee('openrouter_api_key', false)
+            ->assertSee('anthropic_api_key', false)
+            ->assertSee('provider_fallback[]', false)
+            ->assertSee('plan_feature_models[', false)
+            // Each model row names the vendor that serves it.
+            ->assertSee('[provider]', false);
+    }
+
+    public function test_saving_the_grid_stores_only_the_cells_that_were_filled(): void
+    {
+        $pro = Plan::create([
+            'name' => 'Pro', 'slug' => 'pro-' . Str::random(4),
+            'monthly_price' => 19, 'annual_price' => 190,
+            'trial_days' => 0, 'status' => 'active', 'features' => [],
+        ]);
+
+        $this->actingAs($this->admin(), 'admin')
+            ->put('/admin/ai-engine', [
+                'enabled'             => 1,
+                'provider_fallback'   => ['anthropic', 'openrouter'],
+                'plan_feature_models' => [
+                    $pro->slug => [
+                        'coach'   => 'claude-sonnet-4-latest',
+                        // Left on "Default" in the UI. Storing it would put
+                        // an empty string where a model name belongs.
+                        'companion' => '',
+                    ],
+                ],
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(
+            [$pro->slug => ['coach' => 'claude-sonnet-4-latest']],
+            AiEngineSettings::planFeatureModels(),
+        );
+        $this->assertSame(['anthropic', 'openrouter'], AiEngineSettings::providerFallbackOrder());
+    }
+
+    public function test_a_provider_key_is_stored_encrypted_and_never_echoed_back(): void
+    {
+        $this->actingAs($this->admin(), 'admin')
+            ->put('/admin/ai-engine', [
+                'enabled'            => 1,
+                'anthropic_api_key'  => 'sk-ant-secret-value',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('sk-ant-secret-value', AiEngineSettings::anthropicKey());
+
+        // At rest it is ciphertext, and the page never renders it back.
+        $raw = \App\Modules\Admin\Models\AppSetting::get(AiEngineSettings::KEY_ANTHROPIC_KEY_ENC);
+        $this->assertIsString($raw);
+        $this->assertStringNotContainsString('sk-ant-secret-value', $raw);
+
+        $this->actingAs($this->admin(), 'admin')
+            ->get('/admin/ai-engine')
+            ->assertOk()
+            ->assertDontSee('sk-ant-secret-value', false);
     }
 }
