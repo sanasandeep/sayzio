@@ -86,12 +86,7 @@
          It is deliberately weakest where the copy is: the mask fades it out
          well before the headline column, which is what keeps body text at
          full contrast on top of it. --}}
-    <div class="zio-ribbon" aria-hidden="true">
-        <span class="rb-band rb-1"></span>
-        <span class="rb-band rb-2"></span>
-        <span class="rb-band rb-3"></span>
-        <span class="rb-band rb-4"></span>
-    </div>
+    @include('home.partials.hero-ribbon')
 
     {{-- The field: the grid, the tiles that glow on it, and the feature
          icons that live in its cells. All three are in one layer, pinned to
@@ -293,7 +288,18 @@
                         @endphp
                         <div class="zio-says">
                             @foreach($zioLines as $i => $line)
-                                <span class="zio-bubble" style="--i:{{ $i }}">{{ $line }}</span>
+                                {{-- Body and tail are ONE path, so there is a
+                                     single outline and no seam for the border to
+                                     cut across. The tail used to be two stacked
+                                     CSS triangles overlapping the box by 4px,
+                                     which is exactly why it looked like it was
+                                     sitting partly inside the bubble. --}}
+                                <span class="zio-bubble" style="--i:{{ $i }}">
+                                    <svg class="zio-bubble-shape" viewBox="0 0 600 300" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                                        <path d="M256.8 242.7 A292.0 114.0 0 1 1 360.7 241.5 Q330.0 284.0 250.0 296.0 Q258.0 264.0 256.8 242.7 Z"/>
+                                    </svg>
+                                    <b class="zio-bubble-text">{{ $line }}</b>
+                                </span>
                             @endforeach
                         </div>
 
@@ -538,81 +544,69 @@
         }
         .zio-field .zio-node { pointer-events: auto; }
 
-        /* ---------- the ribbon ---------- */
+        /* ---------- the ribbon ----------
+           The SVG is in home/partials/hero-ribbon.blade.php, and its viewBox
+           is mapped straight onto this box, so the composition is designed in
+           the coordinates it lands in. Nothing here filters or blurs: the
+           softness is a mask, and the strands do the rest. */
         .zio-ribbon {
-            position: absolute; top: -40%; right: -16%;
-            width: 54%; height: 168%;
+            position: absolute; inset: 0;
             z-index: 0; pointer-events: none;
-            /* No overflow:hidden here. The strands are blurred, and clipping
-               a blur at the box edge leaves a straight seam across the page —
-               which is exactly what it did. The section clips instead, and
-               the mask does the feathering.
+            /* Two masks, intersected.
 
-               Feathered on the LEFT, solid against the right edge of the
-               viewport: a ribbon entering the frame, not a wash over the
-               whole half, which is what keeps the copy on white. Both
-               prefixes — Safari still wants -webkit-. */
-            -webkit-mask-image: radial-gradient(96% 96% at 86% 24%, #000 34%, rgba(0,0,0,.62) 64%, transparent 96%);
-                    mask-image: radial-gradient(96% 96% at 86% 24%, #000 34%, rgba(0,0,0,.62) 64%, transparent 96%);
+               The radial feathers the ribbon where it runs out and leaves it
+               solid where it exits top right, so the copy column stays on
+               clean white with no straight cut anywhere.
+
+               The linear clears the top ~130px. The navbar is transparent
+               until the page scrolls, so without this the nav links sit on
+               the most saturated part of the sweep and stop being readable —
+               the ribbon has to get out of their way, not the other way
+               round. Stripe's own ribbon is pale where its nav crosses it;
+               this arrives at the same place by fading rather than by luck.
+
+               Both prefixes, and both composite spellings: Safari still wants
+               -webkit-, and it names the operation differently. */
+            -webkit-mask-image: radial-gradient(96% 104% at 92% 26%, #000 52%, rgba(0,0,0,.78) 76%, transparent 99%),
+                                linear-gradient(to bottom, transparent 0, rgba(0,0,0,.30) 68px, #000 138px);
+                    mask-image: radial-gradient(96% 104% at 92% 26%, #000 52%, rgba(0,0,0,.78) 76%, transparent 99%),
+                                linear-gradient(to bottom, transparent 0, rgba(0,0,0,.30) 68px, #000 138px);
+            -webkit-mask-composite: source-in;
+                    mask-composite: intersect;
         }
-        /* The softness is painted, not filtered. These started life as
-           filter: blur(30px) strands, which the marketing heavy-blur guard
-           rightly failed: a large live blur is re-composited every frame and
-           drags scrolling on older phone GPUs. A static mask feathers each
-           strand to nothing at its edges instead, so the look survives and
-           the only thing animating is a transform on a cheap layer. */
-        .rb-band {
-            position: absolute; left: -55%; right: -55%; height: 34%;
-            border-radius: 50%;
-            transform-origin: 72% 50%;
-            will-change: transform;
-            -webkit-mask-image: radial-gradient(closest-side ellipse at 50% 50%, #000 4%, rgba(0,0,0,.62) 40%, rgba(0,0,0,.22) 68%, transparent 94%);
-                    mask-image: radial-gradient(closest-side ellipse at 50% 50%, #000 4%, rgba(0,0,0,.62) 40%, rgba(0,0,0,.22) 68%, transparent 94%);
-        }
-        /* Four strands. Each takes a different slice of the palette, a
-           different angle and a different period, and none of the periods
-           divides another — so the fan never returns to the same shape. */
-        .rb-1 {
-            top: -14%;
-            background: linear-gradient(96deg, transparent 6%, #1bd4d9 26%, #3d6bff 48%, #7c5cff 68%, transparent 92%);
-            opacity: .72;
-            transform: rotate(-26deg);
-            animation: rbDrift1 19s ease-in-out infinite alternate;
-        }
-        .rb-2 {
-            top: 4%;
-            background: linear-gradient(96deg, transparent 10%, #7c5cff 30%, #e94e8c 56%, #ff8a3c 76%, transparent 96%);
-            opacity: .66;
-            transform: rotate(-18deg);
-            animation: rbDrift2 23s ease-in-out infinite alternate;
-        }
-        .rb-3 {
-            top: 24%; height: 34%;
-            background: linear-gradient(96deg, transparent 14%, #ff8a3c 34%, #ffc845 54%, transparent 88%);
-            opacity: .56;
-            transform: rotate(-31deg);
-            animation: rbDrift3 29s ease-in-out infinite alternate;
-        }
-        /* The bright seam. Thin, barely blurred and low opacity — it is what
-           stops the whole thing reading as fog. */
-        .rb-4 {
-            top: 12%; height: 12%;
-            background: linear-gradient(96deg, transparent 22%, rgba(255,255,255,.9) 44%, #ffc845 58%, transparent 84%);
-            filter: blur(10px); opacity: .5;
-            transform: rotate(-23deg);
-            animation: rbDrift4 17s ease-in-out infinite alternate;
-        }
-        @keyframes rbDrift1 { to { transform: rotate(-21deg) translate3d(-4%, 5%, 0)  scaleY(1.14); } }
-        @keyframes rbDrift2 { to { transform: rotate(-24deg) translate3d(3%, -4%, 0)  scaleY(.88);  } }
-        @keyframes rbDrift3 { to { transform: rotate(-25deg) translate3d(-5%, -6%, 0) scaleY(1.22); } }
-        @keyframes rbDrift4 { to { transform: rotate(-18deg) translate3d(2%, 6%, 0)   scaleY(1.3);  } }
-        html:not(.light-mode) .zio-ribbon { opacity: .62; }
-        /* On a phone the hero stacks and the copy runs the full width — the
-           ribbon would sit right under it, so it steps back to a corner. */
+        .zio-ribbon svg { width: 100%; height: 100%; display: block; }
+        .rb-g { fill: none; stroke-linecap: round; }
+        /* The whole sheet breathes, very slowly, as one object. Two groups
+           drifting against each other at periods that do not divide is enough
+           for the fold to open and close; animating individual strands would
+           be hundreds of animations for an effect nobody can see. */
+        .rb-body  { animation: rbBody  34s ease-in-out infinite alternate; }
+        .rb-fold  { animation: rbFold  41s ease-in-out infinite alternate; }
+        .rb-sheen { animation: rbSheen 29s ease-in-out infinite alternate; }
+        @keyframes rbBody  { to { transform: translate3d(-1.4%, 1.1%, 0) rotate(-1.1deg); } }
+        @keyframes rbFold  { to { transform: translate3d(1.8%, -1.4%, 0) rotate(1.4deg); } }
+        @keyframes rbSheen { to { transform: translate3d(-2.2%, 1.8%, 0); } }
+        html:not(.light-mode) .zio-ribbon { opacity: .58; }
+        /* On a phone the hero stacks and the copy runs the full width, so a
+           ribbon spanning the whole box would lie straight under the body
+           text -- which is exactly what it did. Anchoring it to the top strip
+           instead keeps it a corner flourish: the viewBox now maps onto a
+           short wide box, so the sweep stays a sweep instead of stretching
+           into a vertical curtain down the page. */
         @media (max-width: 1023px) {
-            .zio-ribbon { width: 130%; height: 62%; top: -18%; right: -40%; opacity: .7; }
+            .zio-ribbon {
+                inset: 0 0 auto 0;
+                height: min(46vh, 380px);
+                opacity: .62;
+                -webkit-mask-image: radial-gradient(104% 118% at 88% 16%, #000 40%, rgba(0,0,0,.6) 70%, transparent 96%);
+                        mask-image: radial-gradient(104% 118% at 88% 16%, #000 40%, rgba(0,0,0,.6) 70%, transparent 96%);
+                -webkit-mask-composite: source-over;
+                        mask-composite: add;
+            }
         }
-        @media (prefers-reduced-motion: reduce) { .rb-band { animation: none !important; } }
+        @media (prefers-reduced-motion: reduce) {
+            .rb-body, .rb-fold, .rb-sheen { animation: none !important; }
+        }
 
         /* ---------- the closing strip ---------- */
         .zio-strip {
@@ -1037,46 +1031,74 @@
            visible and the hero never reflows. */
         .zio-says {
             position: absolute;
-            left: 50%; bottom: calc(100% + 6px);
+            left: 50%; bottom: calc(100% - 2px);
             transform: translateX(-50%);
-            width: max-content; max-width: min(21rem, 74vw);
+            width: min(21.5rem, 76vw);
+            aspect-ratio: 600 / 300;
             z-index: 5;
         }
+        /* A real ellipse, the way a comic book draws one -- curved along the
+           top AND the bottom. border-radius:999px could never do this: on a
+           box wider than it is tall that is a stadium, flat across the middle
+           of both long edges, which is why it kept reading as a pill however
+           large the radius went.
+
+           Fixed aspect rather than shrink-to-fit, because an ellipse crops its
+           own corners: text has to be laid inside the curve, not measured
+           around it. Every line therefore gets the same bubble, which is also
+           how a comic panel does it. */
         .zio-bubble {
-            position: absolute; left: 50%; bottom: 0;
-            width: max-content; max-width: min(21rem, 74vw);
-            padding: 14px 22px;
-            /* A big radius against a short line of text reads as an oval
-               rather than a rounded box — no ellipse needed, and the tail
-               still lands on a straight bottom edge. */
-            border-radius: 999px;
-            /* Opaque on purpose: the tail is drawn as two triangles and can
-               only match a solid fill. Takes the same surface tokens as every
-               other floating chip on the page. */
-            background: var(--fs-chip, #17162A);
-            border: 1px solid var(--fs-rule, rgba(255,255,255,.16));
-            color: #fff;
-            font-size: 15.5px; font-weight: 600; line-height: 1.4;
-            text-align: center; text-wrap: balance;
+            position: absolute; inset: 0;
             opacity: 0;
-            transform: translate(-50%, 6px) scale(.96);
+            transform: translateY(6px) scale(.96);
+            transform-origin: 50% 88%;
             animation: zioSay 16s ease-in-out infinite;
             animation-delay: calc(var(--i) * 4s);
         }
-        /* The tail. Two stacked triangles: the outer one is the border colour
-           and sits a pixel lower, so the tail keeps the bubble's hairline. */
-        .zio-bubble::before, .zio-bubble::after {
-            content: ''; position: absolute; left: 50%; margin-left: -9px;
-            width: 0; height: 0; border-left: 9px solid transparent;
-            border-right: 9px solid transparent;
+        .zio-bubble-shape {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            overflow: visible;
         }
-        .zio-bubble::before { top: calc(100% - 4px); border-top: 11px solid var(--fs-rule, rgba(255,255,255,.16)); }
-        .zio-bubble::after  { top: calc(100% - 5px); border-top: 11px solid var(--fs-chip, #17162A); }
-        html.light-mode .zio-bubble { color: #0F172A; }
+        .zio-bubble-shape path {
+            fill: var(--fs-chip, #17162A);
+            /* Not --fs-rule. That token is a hairline meant to separate two
+               surfaces of nearly the same colour, and at this size on white it
+               vanished -- the bubble read as a faint dent in the page. A drawn
+               bubble needs a drawn line, so this one is its own colour. */
+            stroke: #c2c8de;
+            /* The box stretches to the text, which would thicken the outline
+               with it; non-scaling-stroke keeps 2px meaning 2px at every
+               width. */
+            stroke-width: 2px;
+            vector-effect: non-scaling-stroke;
+        }
+        html:not(.light-mode) .zio-bubble-shape path { stroke: rgba(255,255,255,.22); }
+        /* 43.3% is the ellipse's centre in the viewBox (cy 130 of 300), not
+           the box's -- the tail owns the bottom fifth. */
+        .zio-bubble-text {
+            position: absolute; left: 50%; top: 43.3%;
+            transform: translate(-50%, -50%);
+            width: 78%;
+            text-align: center; text-wrap: balance;
+            font-size: clamp(13.5px, 1.12vw, 16.5px); font-weight: 650; line-height: 1.34;
+            color: #fff;
+        }
+        html.light-mode .zio-bubble-text { color: #0F172A; }
+        /* Has to live AFTER the .zio-says rule above, not up with the other
+           mobile overrides in the ribbon block: same specificity, so order is
+           what decides, and from up there it lost every time. On a phone Zio
+           stands below the copy and the bubble hangs off his head into the
+           stat row, so it gives back the width it gained on desktop. */
+        @media (max-width: 1023px) {
+            .zio-says { width: min(15.5rem, 60vw); }
+        }
+        /* No translate(-50%) any more: the bubble is inset:0 inside .zio-says
+           and the parent does the centring, so these only carry the lift. */
         @keyframes zioSay {
-            0%              { opacity: 0; transform: translate(-50%, 6px) scale(.96); }
-            2.5%, 21%       { opacity: 1; transform: translate(-50%, 0) scale(1); }
-            24%, 100%       { opacity: 0; transform: translate(-50%, -4px) scale(.98); }
+            0%              { opacity: 0; transform: translateY(6px) scale(.96); }
+            2.5%, 21%       { opacity: 1; transform: translateY(0) scale(1); }
+            24%, 100%       { opacity: 0; transform: translateY(-4px) scale(.98); }
         }
         .zio-core-label {
             margin-top: 6px;
@@ -1233,7 +1255,7 @@
             .zio-lid { clip-path: inset(0 0 100% 0) !important; }
             .zio-ant { transform: none !important; }
             .zio-mouth-gate { opacity: 0 !important; }
-            .zio-bubble { opacity: 0 !important; transform: translate(-50%, 0) !important; }
+            .zio-bubble { opacity: 0 !important; transform: none !important; }
             .zio-bubble:first-child { opacity: 1 !important; }
         }
     </style>
