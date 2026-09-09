@@ -128,10 +128,32 @@
         html.light-mode .force-dark-logo .brand-logo--dark  { display: inline-block !important; }
     </style>
     @stack('head')
+
+    {{-- The marketing design system. Loaded LAST in <head> on purpose: these
+         rules exist to override component CSS written before there was a
+         system, and among equally-specific !important declarations the later
+         one wins.
+
+         This is what makes /features, /pricing, /about and the rest read as
+         the same product as the home page: one flat ground, cards as
+         outlines rather than raised panes, 12px corners, no backdrop blur and
+         no decorative gradients. It shipped on the home page first and lived
+         there alone, which is exactly why the rest of the site drifted. --}}
+    @include('public.partials.surfaces')
 </head>
 <body class="min-h-screen flex flex-col">
 
-{{-- Aurora background (consistent with the home page) --}}
+{{-- The page rails: a hairline under the nav and two vertical rules running
+     the full height, landing on the same columns the navbar's edges do.
+     Stripe frames its whole site in one drawn structure rather than a stack
+     of separate bands, and a frame that stopped at the home page was not a
+     frame. Hidden below 768px, where the content column is nearly full width
+     and a rule at 4% would run through the copy. --}}
+@include('public.partials.rails')
+
+{{-- The aurora is switched off by the surfaces pass (it is one of the
+     drifting decorative washes that stopped the page reading as one sheet).
+     The element stays so nothing that queries it breaks. --}}
 <div class="aurora" aria-hidden="true"><b></b><b></b><b></b><b></b></div>
 
 @include('common.partials.announcement-banner', ['surface' => 'site'])

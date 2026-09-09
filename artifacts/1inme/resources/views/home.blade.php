@@ -39,8 +39,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=18">
-    @include('home.partials.flat-surfaces')
-    @include('home.partials.rails')
+    @include('public.partials.surfaces')
+    @include('public.partials.rails')
     @include('home.partials.expandable-cards')
     @vite(['resources/js/marketing-anim.js'])
     <script>
@@ -1633,7 +1633,7 @@
            its own.
 
            The wash is a real child, not a pseudo-element, because the
-           flat-surfaces pass strips background-image from ::before and
+           surfaces pass strips background-image from ::before and
            ::after on every .glass — that rule exists to kill the inner
            highlights the old translucent cards drew, and a gradient hidden
            by it would have been a long afternoon. */
@@ -2805,7 +2805,7 @@
         .card-row > *:nth-child(4n+3) { --g1: #e94e8c; --g2: #ff8a3c; }
         .card-row > *:nth-child(4n+4) { --g1: #ff8a3c; --g2: #ffc845; }
 
-        /* The `html` prefix is load-bearing: flat-surfaces sets
+        /* The `html` prefix is load-bearing: surfaces sets
            `background-image: none !important` on these same cards, and among
            important declarations it is specificity that decides, not order. */
         html .card-row > :is(.glass, .glass-2, .audience-card, .hiw-step,
