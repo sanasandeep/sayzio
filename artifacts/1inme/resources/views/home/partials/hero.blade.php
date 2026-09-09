@@ -279,7 +279,16 @@
                              copy column beside it, and this whole block is
                              aria-hidden, so a screen reader hears it once. --}}
                         @php
-                            $zioLines = [
+                            /* Admin -> Zio's lines. Same contract as the trust
+                               band's stats: read from a 5-minute cache that the
+                               marketing warmer keeps hot, so the lean initial
+                               response normally costs no query.
+
+                               The hardcoded set stays as the fallback rather
+                               than being deleted, because an empty result here
+                               would leave Zio mid-gesture with a blank bubble --
+                               and "every line hidden" is one checkbox away. */
+                            $zioLines = \App\Modules\Admin\Models\ZioLine::activeTexts() ?: [
                                 "Hi, I'm Zio 👋",
                                 'I build your link page, QR codes and short links.',
                                 'Then I answer your visitors — and pick up your calls.',

@@ -4,6 +4,7 @@ namespace App\Modules\Common\Support;
 
 use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Admin\Models\SiteStat;
+use App\Modules\Admin\Models\ZioLine;
 use App\Modules\Common\Controllers\BlogController;
 use App\Modules\Common\Controllers\CreatorsController;
 use App\Modules\Common\Controllers\SitePageController;
@@ -137,6 +138,12 @@ class MarketingPageCache
             $summary['layout'][] = 'site_stats';
         } catch (\Throwable $e) {
             $summary['errors'][] = self::reportWarmFailure('site_stats', $e);
+        }
+        try {
+            Cache::put(ZioLine::ACTIVE_CACHE_KEY, ZioLine::buildActiveRows(), $ttl);
+            $summary['layout'][] = 'zio_lines';
+        } catch (\Throwable $e) {
+            $summary['errors'][] = self::reportWarmFailure('zio_lines', $e);
         }
         try {
             foreach (['marketing', 'app'] as $surface) {

@@ -38,6 +38,7 @@ use App\Modules\Admin\Controllers\ProtectedAccountController;
 use App\Modules\Admin\Controllers\AccountBadgeController;
 use App\Modules\Admin\Controllers\TestimonialController;
 use App\Modules\Admin\Controllers\SiteStatController;
+use App\Modules\Admin\Controllers\ZioLineController;
 use App\Modules\Admin\Middleware\CheckPermission;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -634,6 +635,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('{siteStat}',        [SiteStatController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::post('{siteStat}/toggle',[SiteStatController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
             Route::delete('{siteStat}',     [SiteStatController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+        });
+
+        // The lines Zio speaks in the homepage hero bubble. One page, inline
+        // rows -- a line is a single short string, so a separate edit screen
+        // per line would be a worse trade than editing it in place.
+        Route::prefix('zio-lines')->name('zio-lines.')->group(function () {
+            Route::get('/',                 [ZioLineController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::post('/',                [ZioLineController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::put('{zioLine}',         [ZioLineController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::post('{zioLine}/toggle', [ZioLineController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
+            Route::delete('{zioLine}',      [ZioLineController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 
         Route::prefix('wallet-settings')->name('wallet-settings.')->group(function () {
