@@ -77,6 +77,22 @@
         ];
     @endphp
 
+    {{-- The ribbon, after Stripe's: a broad band of colour sweeping in from
+         the top right, drawn as four blurred strands at slightly different
+         angles and speeds so it fans and breathes rather than sitting still.
+         It is CSS, not an image — so it costs nothing to download, scales to
+         any viewport and follows the brand palette if that ever changes.
+
+         It is deliberately weakest where the copy is: the mask fades it out
+         well before the headline column, which is what keeps body text at
+         full contrast on top of it. --}}
+    <div class="zio-ribbon" aria-hidden="true">
+        <span class="rb-band rb-1"></span>
+        <span class="rb-band rb-2"></span>
+        <span class="rb-band rb-3"></span>
+        <span class="rb-band rb-4"></span>
+    </div>
+
     {{-- The field: the grid, the tiles that glow on it, and the feature
          icons that live in its cells. All three are in one layer, pinned to
          the section, so they share a single origin and cannot drift out of
@@ -121,9 +137,10 @@
         @endforeach
     </div>
 
-    {{-- Drifting confetti --}}
-    <div class="confetti drift-a" style="left:10%; bottom:-22vh;"><div class="w-3 h-3 rounded-sm" style="background:var(--c1)"></div></div>
-    <div class="confetti drift-b" style="left:86%; bottom:-28vh; animation-delay:-6s"><div class="w-2 h-6 rounded-full" style="background:var(--c2)"></div></div>
+    {{-- The two drifting confetti shapes used to rise through here. They were
+         the only motion in the hero not tied to anything — a square and a
+         capsule floating up past the headline — and against the lattice they
+         read as debris. Removed. --}}
 
     <div class="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12">
         <div class="zio-hero-grid grid grid-cols-1 gap-y-16 lg:gap-x-14 xl:gap-x-20 lg:items-center">
@@ -304,6 +321,37 @@
                 </noscript>
             </div>
 
+        </div>
+    </div>
+
+    {{-- The strip that closes the hero, after Stripe's logo row: full width,
+         a hairline above it, muted marks on the page's own white, and the
+         ends feathered so items enter and leave instead of being cut off.
+
+         The same list used to run below the fold as a solid indigo bar with
+         white caps and stars between every item — loud enough that it read as
+         an advert wedged into the page. Same content, said quietly, and in
+         the place where a visitor is still deciding whether to read on. --}}
+    <div class="zio-strip" aria-hidden="true">
+        <div class="zio-strip-track">
+            @for($__m = 0; $__m < 2; $__m++)
+                <div class="zio-strip-run">
+                    @foreach([
+                        ['fa-grip-vertical', 'Drag &amp; drop editor'],
+                        ['fa-globe',         'Live geo heatmap'],
+                        ['fa-bolt',          'Performance coach'],
+                        ['fa-link',          'Short links'],
+                        ['fa-qrcode',        'Dynamic QR codes'],
+                        ['fa-users',         'Follower system'],
+                        ['fa-wpforms',       'Form builder'],
+                        ['fa-bullhorn',      'Social proof'],
+                        ['fa-address-book',  'Contacts sync'],
+                        ['fa-phone',         'Built-in dialer'],
+                    ] as $__item)
+                        <span class="zio-strip-item"><i class="fas {{ $__item[0] }}"></i>{!! $__item[1] !!}</span>
+                    @endforeach
+                </div>
+            @endfor
         </div>
     </div>
 
@@ -489,11 +537,116 @@
             --node: calc(var(--cell) * .74);
         }
         .zio-field .zio-node { pointer-events: auto; }
+
+        /* ---------- the ribbon ---------- */
+        .zio-ribbon {
+            position: absolute; top: -40%; right: -16%;
+            width: 54%; height: 168%;
+            z-index: 0; pointer-events: none;
+            /* No overflow:hidden here. The strands are blurred, and clipping
+               a blur at the box edge leaves a straight seam across the page —
+               which is exactly what it did. The section clips instead, and
+               the mask does the feathering.
+
+               Feathered on the LEFT, solid against the right edge of the
+               viewport: a ribbon entering the frame, not a wash over the
+               whole half, which is what keeps the copy on white. Both
+               prefixes — Safari still wants -webkit-. */
+            -webkit-mask-image: radial-gradient(96% 96% at 86% 24%, #000 34%, rgba(0,0,0,.62) 64%, transparent 96%);
+                    mask-image: radial-gradient(96% 96% at 86% 24%, #000 34%, rgba(0,0,0,.62) 64%, transparent 96%);
+        }
+        .rb-band {
+            position: absolute; left: -55%; right: -55%; height: 34%;
+            border-radius: 50%;
+            transform-origin: 72% 50%;
+            will-change: transform;
+        }
+        /* Four strands. Each takes a different slice of the palette, a
+           different angle and a different period, and none of the periods
+           divides another — so the fan never returns to the same shape. */
+        .rb-1 {
+            top: -14%;
+            background: linear-gradient(96deg, transparent 6%, #1bd4d9 26%, #3d6bff 48%, #7c5cff 68%, transparent 92%);
+            filter: blur(30px); opacity: .78;
+            transform: rotate(-26deg);
+            animation: rbDrift1 19s ease-in-out infinite alternate;
+        }
+        .rb-2 {
+            top: 4%;
+            background: linear-gradient(96deg, transparent 10%, #7c5cff 30%, #e94e8c 56%, #ff8a3c 76%, transparent 96%);
+            filter: blur(36px); opacity: .72;
+            transform: rotate(-18deg);
+            animation: rbDrift2 23s ease-in-out infinite alternate;
+        }
+        .rb-3 {
+            top: 24%; height: 34%;
+            background: linear-gradient(96deg, transparent 14%, #ff8a3c 34%, #ffc845 54%, transparent 88%);
+            filter: blur(26px); opacity: .6;
+            transform: rotate(-31deg);
+            animation: rbDrift3 29s ease-in-out infinite alternate;
+        }
+        /* The bright seam. Thin, barely blurred and low opacity — it is what
+           stops the whole thing reading as fog. */
+        .rb-4 {
+            top: 12%; height: 12%;
+            background: linear-gradient(96deg, transparent 22%, rgba(255,255,255,.9) 44%, #ffc845 58%, transparent 84%);
+            filter: blur(10px); opacity: .55;
+            transform: rotate(-23deg);
+            animation: rbDrift4 17s ease-in-out infinite alternate;
+        }
+        @keyframes rbDrift1 { to { transform: rotate(-21deg) translate3d(-4%, 5%, 0)  scaleY(1.14); } }
+        @keyframes rbDrift2 { to { transform: rotate(-24deg) translate3d(3%, -4%, 0)  scaleY(.88);  } }
+        @keyframes rbDrift3 { to { transform: rotate(-25deg) translate3d(-5%, -6%, 0) scaleY(1.22); } }
+        @keyframes rbDrift4 { to { transform: rotate(-18deg) translate3d(2%, 6%, 0)   scaleY(1.3);  } }
+        html:not(.light-mode) .zio-ribbon { opacity: .62; }
+        /* On a phone the hero stacks and the copy runs the full width — the
+           ribbon would sit right under it, so it steps back to a corner. */
+        @media (max-width: 1023px) {
+            .zio-ribbon { width: 130%; height: 62%; top: -18%; right: -40%; opacity: .7; }
+        }
+        @media (prefers-reduced-motion: reduce) { .rb-band { animation: none !important; } }
+
+        /* ---------- the closing strip ---------- */
+        .zio-strip {
+            position: absolute; left: 0; right: 0; bottom: 0;
+            z-index: 3;
+            padding: 20px 0;
+            border-top: 1px solid var(--fs-rule, rgba(255,255,255,.14));
+            background: var(--fs-page, #fff);
+            overflow: hidden;
+            /* Items enter and leave rather than being chopped at the edge. */
+            -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+                    mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+        }
+        .zio-strip-track { display: flex; width: max-content; animation: zioStrip 46s linear infinite; }
+        .zio-strip:hover .zio-strip-track { animation-play-state: paused; }
+        /* Two identical runs side by side, translated by exactly half the
+           track — which is one whole run — so the seam never shows. */
+        @keyframes zioStrip { to { transform: translateX(-50%); } }
+        .zio-strip-run { display: flex; align-items: center; gap: 52px; padding-right: 52px; }
+        .zio-strip-item {
+            display: inline-flex; align-items: center; gap: 9px;
+            white-space: nowrap;
+            font-size: 14px; font-weight: 600; letter-spacing: -.005em;
+            color: var(--fs-strip, #6B7396);
+        }
+        html:not(.light-mode) .zio-strip-item { color: rgba(255,255,255,.55); }
+        .zio-strip-item i { font-size: 13px; opacity: .65; }
+        @media (max-width: 1023px) { .zio-strip { position: static; margin-top: 40px; } }
+        @media (prefers-reduced-motion: reduce) { .zio-strip-track { animation: none; } }
+
+        /* The lattice, after Stripe's. Theirs is not a graph-paper field —
+           it is a small number of structural rules that say where the page's
+           columns are, drawn faintly and running the full height without
+           fading out. So: one line every FOUR cells, at about half the weight
+           it was, and the soft-edged mask replaced by a plain fade at the far
+           right only. The cell itself is unchanged, so the tiles and the
+           navbar still land on it; the lattice just stops shouting. */
         .zio-grid {
             position: absolute; inset: 0;
             pointer-events: none;
-            --line: rgba(15,23,42,.055);
-            --tile: rgba(61,107,255,.10);
+            --line: rgba(15,23,42,.05);
+            --tile: rgba(61,107,255,.055);
             background-image:
                 linear-gradient(to right, var(--line) 1px, transparent 1px),
                 linear-gradient(to bottom, var(--line) 1px, transparent 1px);
@@ -501,13 +654,13 @@
                the whole reason the tiles and the navbar can line up to this
                without measuring anything. Vertically it tiles from the top. */
             background-position: 50% 0;
-            background-size: var(--cell) var(--cell);
-            -webkit-mask-image: radial-gradient(135% 105% at 40% 45%, #000 55%, transparent 96%);
-                    mask-image: radial-gradient(135% 105% at 40% 45%, #000 55%, transparent 96%);
+            background-size: calc(var(--cell) * 4) calc(var(--cell) * 4);
+            -webkit-mask-image: linear-gradient(to right, #000 0%, #000 72%, transparent 100%);
+                    mask-image: linear-gradient(to right, #000 0%, #000 72%, transparent 100%);
         }
         html:not(.light-mode) .zio-grid {
-            --line: rgba(255,255,255,.05);
-            --tile: rgba(120,150,255,.14);
+            --line: rgba(255,255,255,.055);
+            --tile: rgba(120,150,255,.09);
         }
         .zio-tile {
             position: absolute;
@@ -613,6 +766,11 @@
             transition: box-shadow .25s ease, border-color .25s ease, background .25s ease;
         }
         .zio-node-btn:focus-visible { outline: 2px solid var(--c2); outline-offset: 3px; }
+        /* The field is scenery beside the headline, not competition for it.
+           Held back a step here and brought to full strength on hover and
+           when a node is the open one, so the interaction still reads. */
+        .zio-node { opacity: .62; transition: opacity .25s ease; }
+        .zio-node:hover, .zio-node--on { opacity: 1; }
 
         .zio-node-thumb {
             width: 80%; height: 80%; object-fit: contain;
@@ -873,22 +1031,25 @@
             position: absolute;
             left: 50%; bottom: calc(100% + 6px);
             transform: translateX(-50%);
-            width: max-content; max-width: min(15rem, 62vw);
+            width: max-content; max-width: min(21rem, 74vw);
             z-index: 5;
         }
         .zio-bubble {
             position: absolute; left: 50%; bottom: 0;
-            width: max-content; max-width: min(15rem, 62vw);
-            padding: 9px 13px;
-            border-radius: 12px;
+            width: max-content; max-width: min(21rem, 74vw);
+            padding: 14px 22px;
+            /* A big radius against a short line of text reads as an oval
+               rather than a rounded box — no ellipse needed, and the tail
+               still lands on a straight bottom edge. */
+            border-radius: 999px;
             /* Opaque on purpose: the tail is drawn as two triangles and can
                only match a solid fill. Takes the same surface tokens as every
                other floating chip on the page. */
             background: var(--fs-chip, #17162A);
             border: 1px solid var(--fs-rule, rgba(255,255,255,.16));
             color: #fff;
-            font-size: 12.5px; font-weight: 600; line-height: 1.35;
-            text-align: left; text-wrap: balance;
+            font-size: 15.5px; font-weight: 600; line-height: 1.4;
+            text-align: center; text-wrap: balance;
             opacity: 0;
             transform: translate(-50%, 6px) scale(.96);
             animation: zioSay 16s ease-in-out infinite;
@@ -897,12 +1058,12 @@
         /* The tail. Two stacked triangles: the outer one is the border colour
            and sits a pixel lower, so the tail keeps the bubble's hairline. */
         .zio-bubble::before, .zio-bubble::after {
-            content: ''; position: absolute; left: 50%; margin-left: -7px;
-            width: 0; height: 0; border-left: 7px solid transparent;
-            border-right: 7px solid transparent;
+            content: ''; position: absolute; left: 50%; margin-left: -9px;
+            width: 0; height: 0; border-left: 9px solid transparent;
+            border-right: 9px solid transparent;
         }
-        .zio-bubble::before { top: 100%; border-top: 8px solid var(--fs-rule, rgba(255,255,255,.16)); }
-        .zio-bubble::after  { top: calc(100% - 1px); border-top: 8px solid var(--fs-chip, #17162A); }
+        .zio-bubble::before { top: calc(100% - 4px); border-top: 11px solid var(--fs-rule, rgba(255,255,255,.16)); }
+        .zio-bubble::after  { top: calc(100% - 5px); border-top: 11px solid var(--fs-chip, #17162A); }
         html.light-mode .zio-bubble { color: #0F172A; }
         @keyframes zioSay {
             0%              { opacity: 0; transform: translate(-50%, 6px) scale(.96); }

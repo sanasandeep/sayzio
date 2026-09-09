@@ -2781,20 +2781,64 @@
             }
         }
 
-        /* Ambient washes behind glass grids in light mode */
-        html.light-mode .glass-ambient-wash {
-            position: relative;
-            isolation: isolate;
+        /* ---------- the card signature ----------
+
+           Every row of feature cards on this page used to sit on one blurred
+           blue-violet blob — a holdover from when the cards were translucent
+           glass and needed something behind them to refract. The cards are
+           opaque now, so the blob only stained the page, and it made three
+           cards read as one blue slab.
+
+           Each card carries its own pair of colours instead, worn in two
+           places: a 2px gradient rule along the top edge, and a soft bloom
+           out of each far corner. The surface itself stays white (near-black
+           in dark mode). This is the same language as the Share cards, and
+           the pairs walk the brand palette by position, so neighbours never
+           match and a row of three and a row of four both stay in step.
+
+           It is all done from the parent, by position — no per-card markup,
+           and a card added to a row gets its colours for free. */
+        .card-row > * { --g1: #3d6bff; --g2: #7c5cff; }
+        .card-row > *:nth-child(4n+1) { --g1: #1bd4d9; --g2: #3d6bff; }
+        .card-row > *:nth-child(4n+2) { --g1: #3d6bff; --g2: #7c5cff; }
+        .card-row > *:nth-child(4n+3) { --g1: #e94e8c; --g2: #ff8a3c; }
+        .card-row > *:nth-child(4n+4) { --g1: #ff8a3c; --g2: #ffc845; }
+
+        /* The `html` prefix is load-bearing: flat-surfaces sets
+           `background-image: none !important` on these same cards, and among
+           important declarations it is specificity that decides, not order. */
+        html .card-row > :is(.glass, .glass-2, .audience-card, .hiw-step,
+                             .buzz-card, .prem-feat, .dc-feat, .rb-feat) {
+            background-image:
+                linear-gradient(90deg, var(--g1), var(--g2)),
+                radial-gradient(66% 42% at 0% 0%,     color-mix(in srgb, var(--g1) 13%, transparent), transparent 74%),
+                radial-gradient(58% 36% at 100% 100%, color-mix(in srgb, var(--g2) 10%, transparent), transparent 76%) !important;
+            background-size: 100% 2px, auto, auto !important;
+            background-position: top left, 0 0, 0 0 !important;
+            background-repeat: no-repeat !important;
+            overflow: hidden;
         }
-        html.light-mode .glass-ambient-wash::before {
-            content: "";
-            position: absolute;
-            inset: -20%;
-            z-index: -1;
-            pointer-events: none;
-            background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.35) 0%, rgba(129, 140, 248, 0.2) 40%, transparent 70%);
-            filter: blur(60px);
+        html:not(.light-mode) .card-row > :is(.glass, .glass-2, .audience-card, .hiw-step,
+                                              .buzz-card, .prem-feat, .dc-feat, .rb-feat) {
+            background-image:
+                linear-gradient(90deg, var(--g1), var(--g2)),
+                radial-gradient(70% 46% at 0% 0%,     color-mix(in srgb, var(--g1) 30%, transparent), transparent 72%),
+                radial-gradient(62% 40% at 100% 100%, color-mix(in srgb, var(--g2) 22%, transparent), transparent 74%) !important;
+            background-size: 100% 2px, auto, auto !important;
+            background-position: top left, 0 0, 0 0 !important;
+            background-repeat: no-repeat !important;
         }
+
+        /* The icon chip is the third place the pair appears, at full strength
+           and small enough to stay a mark. These chips carried their own inline
+           colour, picked before the cards had colours of their own, which left
+           a pink icon under a teal rule. The pair wins now — hence !important,
+           which is what it takes to beat an inline style. */
+        html .card-row .card-ico {
+            background: linear-gradient(135deg, var(--g1), var(--g2)) !important;
+            box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--g1) 85%, transparent) !important;
+        }
+        html .card-row .card-ico > i { color: #fff !important; }
 
         /* In light mode the two #features product-preview panels render as
            light cards (matching the white "Themes & design controls" / hero

@@ -84,6 +84,18 @@ html,html body,html.light-mode body{background:var(--fs-page) !important}
 /* The same wash again, drawn as a drifting pseudo-element, once per section
    that copied the pattern: form builder, notifications, dialer, resume. */
 :is(.fb-mesh,.nf-mesh,.dc-mesh,.rb-mesh)::before{display:none !important}
+/* .mesh-bg is the shared version of the same thing, and the compare teaser
+   brings it onto this page. Killed here only — the standalone compare and
+   pricing pages don't load this file, so they keep their own look. */
+.mesh-bg::before,.mesh-bg::after{display:none !important}
+/* The blurred blue-violet blob behind every grid of cards. It was there to
+   give translucent glass something to refract; the cards are opaque now, so
+   all it does is stain the page. Killed here rather than at each call site
+   so the other marketing pages lose it too. */
+.glass-ambient-wash::before{display:none !important}
+/* Decorative colour blobs parked inside a card, same era, same problem —
+   and now they fight the card's own corner bloom. */
+:is(.aud-blob,.glass > .absolute.rounded-full[style*="background:var(--c"]){display:none !important}
 .-z-10[style*="rgba(61,107,255"]{background:transparent !important}
 .glass-footer{background-image:none !important;background-color:var(--fs-page) !important;
   border-top:1px solid var(--fs-rule) !important}
@@ -124,6 +136,13 @@ html,html body,html.light-mode body{background:var(--fs-page) !important}
   width:92% !important;
   width:calc(var(--cell) * (round(down, (92vw / var(--cell) - 1) / 2, 1) * 2 + 1)) !important;
   max-width:none !important;
+  /* No lift. The bar carried a six-layer inset highlight plus a 45px drop
+     shadow — the last of the glass look, and what made it read as a card
+     hovering above the lattice instead of a row of it. A hairline is all a
+     rule on a grid needs. */
+  box-shadow:none !important;
+  border:1px solid var(--fs-rule) !important;
+  background-color:var(--fs-chip) !important;
 }
 
 /* The inner highlight and wash those cards drew on their own pseudo
@@ -143,8 +162,11 @@ html,html body,html.light-mode body{background:var(--fs-page) !important}
 
 :is(.glass,.glass-2,.trust-band-card,.buzz-card,.prem-feat,.audience-card,
     .hiw-step,.rb-feat,.dc-feat,.aisx-card,.ai-prompt-card,.bs-banner,
-    .cc-card,.mkt-navbar-bar,.nt-card,.fm-card,.hiw-cta-wrap,.fb-card,
+    .cc-card,.nt-card,.fm-card,.hiw-cta-wrap,.fb-card,
     .rounded-3xl,.rounded-2xl){border-radius:var(--fs-r-card) !important}
+/* The navbar is NOT in that list. It used to be, and since both rules are
+   important at the same specificity the later one won — which is how it kept
+   a 12px radius after being told to square off. Its own rule is below. */
 
 /* Buttons. The named CTA classes, plus any link or button that is round
    AND has horizontal padding — which is what separates a pill-shaped

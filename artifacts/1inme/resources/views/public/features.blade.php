@@ -118,7 +118,7 @@
 {{-- SHOWCASE STRIP --}}
 <section class="pb-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid md:grid-cols-3 gap-5 glass-ambient-wash" data-anim="fade-up" data-stagger>
+        <div class="grid md:grid-cols-3 gap-5 card-row" data-anim="fade-up" data-stagger>
             @foreach($showcase as $s)
                 <div class="group relative" data-tilt="4">
                     <div class="img-frame img-tilt aspect-[4/3]">

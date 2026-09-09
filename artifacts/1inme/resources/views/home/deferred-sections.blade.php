@@ -1,30 +1,11 @@
 {{-- ============================ "1IN.ME is Sayzio" BRAND SECTION ============================ --}}
 @include('home.partials.brand-sayzio')
-{{-- ============================ MARQUEE STRIP ============================ --}}
-@php $__skipMarquee = false; @endphp
-<div class="grad-bar py-4 overflow-hidden border-y border-white/10" aria-hidden="true">
-    <div class="flex whitespace-nowrap marquee">
-        @for($i = 0; $i < 2; $i++)
-        <span class="inline-flex items-center gap-8 mx-4">
-            @foreach([
-                ['fa-grip-vertical','Drag &amp; Drop Editor'],
-                ['fa-globe','Live Geo Heatmap'],
-                ['fa-bolt','Performance Coach'],
-                ['fa-link','Short Links'],
-                ['fa-qrcode','Dynamic QR Codes'],
-                ['fa-users','Follower System'],
-                ['fa-wpforms','Form Builder'],
-                ['fa-bullhorn','Social Proof'],
-                ['fa-address-book','Contacts Sync'],
-                ['fa-phone','Built-in Dialer'],
-            ] as $item)
-                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2 text-white"><i class="fas {{ $item[0] }}"></i>{!! $item[1] !!}</span>
-                <span class="text-xl text-white/70">★</span>
-            @endforeach
-        </span>
-        @endfor
-    </div>
-</div>
+{{-- The marquee strip that ran here — a solid indigo bar, white caps and a
+     star between every item — has moved into the hero and been restyled to
+     sit on the page's own white. It said the same ten things twice on one
+     page, and this was the louder of the two. See .zio-strip in
+     home/partials/hero.blade.php. The $__skipMarquee flag that used to sit
+     here went with it — nothing ever read it. --}}
 
 {{-- ============================ CREDIBILITY BAND (near-hero trust numbers) ============================ --}}
 @include('public.partials.marketing-trust-band')
@@ -73,11 +54,11 @@
             <p class="reveal rd-2 text-gray-400">Pick the one that fits you &mdash; the same AI-powered, all-in-one toolkit powers all three.</p>
         </div>
 
-        <div class="grid md:grid-cols-3 gap-5">
+        <div class="grid md:grid-cols-3 gap-5 card-row">
             @foreach($__audiences as $i => $a)
                 <article class="audience-card reveal rd-{{ $i + 1 }} glass rounded-3xl p-7 tilt relative overflow-hidden flex flex-col">
                     <div class="aud-blob absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-25" style="background:{{ $a['color'] }};animation-delay:{{ $i * 1.2 }}s;"></div>
-                    <div class="aud-icon relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background: {{ $a['color'] }}; box-shadow: 0 12px 30px -10px {{ $a['color'] }};animation-delay:{{ $i * 0.4 }}s;">
+                    <div class="card-ico aud-icon relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background: {{ $a['color'] }}; box-shadow: 0 12px 30px -10px {{ $a['color'] }};animation-delay:{{ $i * 0.4 }}s;">
                         <i class="fas {{ $a['icon'] }} text-xl text-white" style="animation-delay:{{ $i * 0.5 }}s;"></i>
                     </div>
                     <div class="relative text-[11px] font-bold uppercase tracking-wider mb-2" style="color: {{ $a['color'] }};">{{ $a['eyebrow'] }}</div>
@@ -122,15 +103,17 @@
         margin-bottom: 10px; letter-spacing: .04em;
     }
     .hiw-time i { font-size: 9px; }
+    /* The banner that closes the four steps. It used to be a blue slab with a
+       blurred blue glow behind it — the last tinted panel in this section, and
+       it made the four white cards above look like they belonged to a
+       different page. It is a card now, with the full palette walked across
+       its top edge because it answers to all four steps, not one. */
     .hiw-cta-wrap {
-        position: relative; padding: 1.75rem; border-radius: 1.75rem; overflow: hidden;
-        background: rgba(61,107,255,.12);
-        border: 1px solid rgba(255,255,255,.08);
-    }
-    .hiw-cta-wrap::before {
-        content:""; position:absolute; inset:-1px; border-radius:inherit; pointer-events:none;
-        background: #3d6bff;
-        opacity:.18; filter: blur(20px);
+        position: relative; padding: 1.75rem; border-radius: var(--fs-r-card, 12px); overflow: hidden;
+        background-color: var(--fs-card, transparent);
+        background-image: linear-gradient(90deg, #1bd4d9, #3d6bff, #e94e8c, #ff8a3c);
+        background-size: 100% 2px; background-position: top left; background-repeat: no-repeat;
+        border: 1px solid var(--fs-rule, rgba(255,255,255,.14));
     }
 </style>
 <section id="how-it-works" class="py-20 lg:py-28 relative overflow-hidden">
@@ -143,7 +126,7 @@
             <p class="reveal rd-2 text-lg text-gray-400">Tell your AI what you want and it builds the page. Four tiny steps from "I have an idea" to "share my link" &mdash; no card, no setup call, no fuss.</p>
         </div>
 
-        <div class="hiw-track grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+        <div class="hiw-track card-row grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
             @foreach([
                 ['01','0:15','Sign up free','Email or one-tap Google. Pick your handle and you\'re in.','fa-user-plus','#1bd4d9'],
                 ['02','0:45','Build with AI','Let AI draft it, then drag-and-drop blocks for socials, music, shop, video.','fa-grip-vertical','#3d6bff'],
@@ -152,7 +135,7 @@
             ] as $i => $s)
                 <div class="reveal rd-{{ ($i % 4)+1 }} hiw-step glass rounded-3xl p-6 text-center" style="--hiw-color: {{ $s[5] }}">
                     <span class="hiw-num">{{ $s[0] }}</span>
-                    <div class="hiw-icon-wrap" style="background: {{ $s[5] }};"><i class="fas {{ $s[4] }} text-xl text-white"></i></div>
+                    <div class="card-ico hiw-icon-wrap" style="background: {{ $s[5] }};"><i class="fas {{ $s[4] }} text-xl text-white"></i></div>
                     <span class="hiw-time"><i class="fas fa-stopwatch"></i>{{ $s[1] }}</span>
                     <h3 class="text-lg font-bold mb-1.5">{!! $s[2] !!}</h3>
                     <p class="text-sm text-gray-400 leading-relaxed">{!! $s[3] !!}</p>
@@ -405,12 +388,12 @@
                 </div>
             </div>
 
-            <div class="reveal rd-2 lg:col-span-5 grid grid-cols-1 gap-6 auto-rows-fr">
+            <div class="reveal rd-2 lg:col-span-5 grid grid-cols-1 gap-6 auto-rows-fr card-row">
                 {{-- Themes & design controls --}}
                 <div class="glass rounded-3xl p-6 lift relative overflow-hidden flex flex-col">
                     <div class="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-25" style="background:var(--c1)"></div>
                     <div class="relative flex flex-col flex-1">
-                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(27,212,217,.2)"><i class="fas fa-palette text-xl" style="color:var(--c1)"></i></div>
+                        <div class="card-ico w-12 h-12 rounded-2xl flex items-center justify-center mb-4"><i class="fas fa-palette text-xl"></i></div>
                         <h3 class="text-lg font-bold mb-1.5">Themes &amp; design controls</h3>
                         <p class="text-sm text-gray-400 mb-5">Pick from beautiful presets, then fine-tune fonts, colours and layouts to match your vibe.</p>
 
@@ -449,7 +432,7 @@
                 <div class="glass rounded-3xl p-6 lift relative overflow-hidden flex flex-col">
                     <div class="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-25" style="background:var(--c3)"></div>
                     <div class="relative flex flex-col flex-1">
-                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(233,78,140,.2)"><i class="fas fa-mobile-screen text-xl" style="color:var(--c3)"></i></div>
+                        <div class="card-ico w-12 h-12 rounded-2xl flex items-center justify-center mb-4"><i class="fas fa-mobile-screen text-xl"></i></div>
                         <h3 class="text-lg font-bold mb-1.5">Mobile-first by default</h3>
                         <p class="text-sm text-gray-400 mb-5">Every theme looks razor-sharp on small screens — that’s where your audience actually is.</p>
 
@@ -771,9 +754,10 @@
             ];
         @endphp
 
-        {{-- No glass-ambient-wash here: it painted a blurred blue-violet blob
-             behind all four cards, which is exactly the tinted page background
-             we spent two passes removing. Colour belongs to the cards now. --}}
+        {{-- No `card-row` here: these four name their own colour pairs in the
+             $shareCards data, because each pair also has to reach the panel the
+             card expands into. Everywhere else on the page the row assigns them
+             by position — same signature either way. --}}
         <div class="share-grid">
             @foreach($shareCards as $card)
                 @include('home.partials.share-card', ['card' => $card])
@@ -795,12 +779,12 @@
             </p>
         </div>
 
-        <div class="grid md:grid-cols-3 gap-6 glass-ambient-wash">
+        <div class="grid md:grid-cols-3 gap-6 card-row">
             {{-- 1 · Multiple global domains --}}
             <div class="reveal rd-1 glass rounded-3xl p-7 tilt relative overflow-hidden">
                 <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c1)"></div>
                 <div class="relative">
-                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(27,212,217,.2)"><i class="fas fa-layer-group text-xl" style="color:var(--c1)"></i></div>
+                    <div class="card-ico w-12 h-12 rounded-2xl flex items-center justify-center mb-4"><i class="fas fa-layer-group text-xl"></i></div>
                     <h3 class="text-xl font-bold mb-2">Multiple global domains</h3>
                     <p class="text-sm text-gray-400 mb-5">Choose from our branded shared domains at sign-up — no DNS setup required.</p>
                     <div class="flex flex-wrap gap-2" aria-hidden="true">
@@ -817,7 +801,7 @@
             <div class="reveal rd-2 glass rounded-3xl p-7 tilt relative overflow-hidden">
                 <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c2)"></div>
                 <div class="relative">
-                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(61,107,255,.22)"><i class="fas fa-globe text-xl" style="color:var(--c2)"></i></div>
+                    <div class="card-ico w-12 h-12 rounded-2xl flex items-center justify-center mb-4"><i class="fas fa-globe text-xl"></i></div>
                     <h3 class="text-xl font-bold mb-2">Bring your own domain</h3>
                     <p class="text-sm text-gray-400 mb-5">Connect a personal or brand domain like <span class="text-white">links.yourbrand.com</span> and verify it with a single CNAME record.</p>
                     <div class="space-y-2" aria-hidden="true">
@@ -840,7 +824,7 @@
             <div class="reveal rd-3 glass rounded-3xl p-7 tilt relative overflow-hidden">
                 <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c3)"></div>
                 <div class="relative">
-                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(233,78,140,.2)"><i class="fas fa-tags text-xl" style="color:var(--c3)"></i></div>
+                    <div class="card-ico w-12 h-12 rounded-2xl flex items-center justify-center mb-4"><i class="fas fa-tags text-xl"></i></div>
                     <h3 class="text-xl font-bold mb-2">Custom URL aliases</h3>
                     <p class="text-sm text-gray-400 mb-5">Pick a memorable primary slug, then add extra aliases that all open the same page — no redirects.</p>
                     <div class="space-y-2" aria-hidden="true">
@@ -1092,7 +1076,7 @@
 
         <div class="grid lg:grid-cols-2 gap-10 items-center">
             <div class="reveal rd-2">
-                <div class="grid sm:grid-cols-2 gap-4 glass-ambient-wash">
+                <div class="grid sm:grid-cols-2 gap-4 card-row">
                     @foreach([
                         ['fa-layer-group','#1bd4d9','Multiple workspaces','One per brand, client or side project — fully isolated.'],
                         ['fa-user-plus','#3d6bff','Invite teammates','Add members by email. They get their own login.'],
@@ -1100,7 +1084,7 @@
                         ['fa-credit-card','#ff8a3c','Billing per workspace','Separate plans &amp; invoices for each workspace.'],
                     ] as $i => $f)
                         <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
-                            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: {{ $f[1] }}; box-shadow: 0 12px 30px -12px {{ $f[1] }};">
+                            <div class="card-ico w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: {{ $f[1] }}; box-shadow: 0 12px 30px -12px {{ $f[1] }};">
                                 <i class="fas {{ $f[0] }} text-white"></i>
                             </div>
                             <h3 class="text-base font-bold mb-1">{!! $f[2] !!}</h3>
@@ -1482,7 +1466,7 @@
             </div>
 
             <div class="reveal rd-2 order-1 lg:order-2">
-                <div class="grid sm:grid-cols-2 gap-4 glass-ambient-wash">
+                <div class="grid sm:grid-cols-2 gap-4 card-row">
                     @foreach([
                         ['fa-bolt','#ffc845','Real-time activity','Live signups, visits, purchases &amp; form fills.'],
                         ['fa-toggle-on','#1bd4d9','Zero setup','Already integrated with your Link in Bio — flip it on.'],
@@ -1490,7 +1474,7 @@
                         ['fa-user-secret','#3d6bff','Privacy-first','Names masked, locations coarse, dismissible.'],
                     ] as $i => $f)
                         <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
-                            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: {{ $f[1] }}; box-shadow: 0 12px 30px -12px {{ $f[1] }};">
+                            <div class="card-ico w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: {{ $f[1] }}; box-shadow: 0 12px 30px -12px {{ $f[1] }};">
                                 <i class="fas {{ $f[0] }} text-white"></i>
                             </div>
                             <h3 class="text-base font-bold mb-1">{!! $f[2] !!}</h3>
@@ -1793,7 +1777,7 @@
         </div>
 
         {{-- Snap-scroll carousel on mobile, 3-up grid from md+. --}}
-        <div class="-mx-4 sm:mx-0 px-4 sm:px-0 flex sm:grid sm:grid-cols-2 md:grid-cols-3 gap-6 glass-ambient-wash overflow-x-auto sm:overflow-visible snap-x snap-mandatory scroll-smooth pb-4 sm:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div class="-mx-4 sm:mx-0 px-4 sm:px-0 flex sm:grid sm:grid-cols-2 md:grid-cols-3 gap-6 card-row overflow-x-auto sm:overflow-visible snap-x snap-mandatory scroll-smooth pb-4 sm:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             @foreach($featuredBlogPosts as $post)
                 <a href="{{ route('site.blogs.show', $post->slug) }}"
                    class="group shrink-0 w-[85%] sm:w-auto snap-start block bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden hover:border-blue-500/40 transition reveal rd-{{ $loop->iteration + 1 }}">
