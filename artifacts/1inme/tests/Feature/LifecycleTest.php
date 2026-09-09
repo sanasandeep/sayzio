@@ -51,11 +51,20 @@ class LifecycleTest extends TestCase
 
     protected function makeFreePlan(): Plan
     {
-        return Plan::create([
-            'name' => 'Free', 'slug' => 'free', 'monthly_price' => 0, 'annual_price' => 0,
-            'trial_days' => 0, 'grace_days' => 0, 'refund_window_days' => 0,
-            'status' => 'active', 'sort_order' => 0, 'features' => [], 'is_default' => true,
-        ]);
+        // The migrations now ship a plan catalogue that already contains
+        // slug "free", so a bare create() collides on plans_slug_unique.
+        // updateOrCreate rather than firstOrCreate on purpose: the shipped
+        // row carries grace_days 7 and refund_window_days 7, and this file
+        // is precisely about grace windows and refunds -- taking the shipped
+        // values would quietly test something other than what it says.
+        return Plan::updateOrCreate(
+            ['slug' => 'free'],
+            [
+                'name' => 'Free', 'monthly_price' => 0, 'annual_price' => 0,
+                'trial_days' => 0, 'grace_days' => 0, 'refund_window_days' => 0,
+                'status' => 'active', 'sort_order' => 0, 'features' => [], 'is_default' => true,
+            ]
+        );
     }
 
     protected function payPlanInvoice(User $user, Plan $plan, string $cycle = 'monthly', array $extraMeta = []): Subscription

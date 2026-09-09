@@ -27,17 +27,41 @@ class PlanGateApiHintTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Every test here asserts WHICH plan the recommender picks out of all
+     * active plans -- "the cheapest tier that unlocks the feature", and in
+     * one case "no plan unlocks it, so send no hint at all". That premise
+     * only holds if the plans each test creates are the only ones there.
+     *
+     * The migrations now seed a full plan catalogue (free, creator,
+     * professional, business, agency, developer, enterprise-api,
+     * unlimited), so the recommender had eight extra candidates to choose
+     * from and the assertions stopped describing anything. Clearing the
+     * table first is what makes them mean what they say again.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Plan::query()->delete();
+    }
+
     private function plan(array $features, string $slug, int $monthlyPrice = 0): Plan
     {
-        return Plan::create([
-            'name'          => ucfirst($slug),
-            'slug'          => $slug,
-            'monthly_price' => $monthlyPrice,
-            'annual_price'  => $monthlyPrice * 10,
-            'trial_days'    => 0,
-            'status'        => 'active',
-            'features'      => $features,
-        ]);
+        // "free" is a seeded catalogue slug now, so create() collided on
+        // plans_slug_unique. updateOrCreate keeps the shipped row and still
+        // forces the per-test feature set, which is the whole subject here.
+        return Plan::updateOrCreate(
+            ['slug' => $slug],
+            [
+                'name'          => ucfirst($slug),
+                'monthly_price' => $monthlyPrice,
+                'annual_price'  => $monthlyPrice * 10,
+                'trial_days'    => 0,
+                'status'        => 'active',
+                'features'      => $features,
+            ]
+        );
     }
 
     private function userOn(Plan $plan): User
@@ -106,7 +130,10 @@ class PlanGateApiHintTest extends TestCase
         $resp = $this->postJson('/api/v1/links/wizard/generate', [
             'category'  => 'creator',
             'page_type' => 'influencer',
-            'answers'   => ['display_name' => 'Demo Creator'],
+            // The creator/influencer question set requires a headline as well
+            // as a name. Missing it made /generate answer 422 validation_failed
+            // and never reach the plan cap this test is actually about.
+            'answers'   => ['display_name' => 'Demo Creator', 'headline' => 'Making things on the internet'],
         ]);
 
         $resp->assertStatus(403);
