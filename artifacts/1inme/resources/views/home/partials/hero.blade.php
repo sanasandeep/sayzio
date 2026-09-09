@@ -188,32 +188,62 @@
 
                     <div class="zio-core" aria-hidden="true">
                         <span class="zio-mascot-halo"></span>
-                        {{-- Animated mascot: a transparent (VP9-alpha) looping clip keyed
-                             out of its original off-white box. Autoplays muted + inline,
-                             no controls/audio. The transparent still PNG is the poster
-                             (shown while loading or if the video can't play). Under
-                             prefers-reduced-motion the video is hidden and the static
-                             .zio-mascot-fallback image is shown instead (see <style>). --}}
-                        {{-- The 1.3 MB WebM never blocks or bloats the initial
-                             load: the poster paints immediately and the clip's
-                             src lives in data-src, attached by the lazy loader
-                             below only after window load / first interaction
-                             (and never under prefers-reduced-motion, where the
-                             CSS hides the video entirely). --}}
-                        <video class="zio-mascot zio-mascot-video"
-                               aria-label="Zio, the Sayzio AI mascot"
-                               width="220" height="220"
-                               loop muted playsinline disablepictureinpicture
-                               preload="none"
-                               data-src="{{ asset('branding/sayzio-mascot.webm') }}"
-                               poster="{{ asset('branding/sayzio-mascot-still.png') }}">
-                        </video>
-                        <img src="{{ asset('branding/sayzio-mascot-still.png') }}" alt="Zio, the Sayzio AI mascot" class="zio-mascot zio-mascot-fallback" width="220" height="220" loading="eager" decoding="async">
-                        {{-- Animated transparent WebP, revealed by the alpha guard for
-                             browsers that decode the WebM but ignore its alpha (Safari/iOS).
-                             data-src keeps it from downloading on browsers that honor video
-                             alpha or under reduced motion — the guard sets src only on demand. --}}
-                        <img data-src="{{ asset('branding/sayzio-mascot.webp') }}" alt="Zio, the Sayzio AI mascot" class="zio-mascot zio-mascot-anim" width="220" height="220" decoding="async">
+
+                        {{-- Zio, talking.
+
+                             This used to be a 1.3 MB VP9-alpha WebM with a poster,
+                             a lazy loader, an animated-WebP twin and a canvas probe
+                             that read a pixel's alpha to work out whether the
+                             browser honoured the clip's transparency (Safari
+                             decodes VP9 but ignores its alpha, so the keyed-out
+                             background came back as an opaque box). All of that is
+                             gone: the artwork is the still PNG it always had, and
+                             the movement is CSS on top of it.
+
+                             The eyelids and the mouth are absolutely positioned in
+                             PERCENTAGES of the artwork, so they stay registered to
+                             the eyes and the smile at every size. The numbers come
+                             from the pixels: on the 440x440 still the left eye is
+                             centred at (170,170), the right at (265,173), both about
+                             66px across, and the painted smile occupies x 188-220,
+                             y 192-201. Each lid is filled with the head colours
+                             sampled directly above and below its own eye, which is
+                             why the two gradients differ — the head runs blue on
+                             the left and violet on the right.
+
+                             The mouth sits ON TOP of the painted smile rather than
+                             replacing it: at rest it is hidden and the original
+                             smile shows through, and while Zio is speaking it opens
+                             and closes over it. --}}
+                        <div class="zio-face">
+                            <img src="{{ asset('branding/sayzio-mascot-still.png') }}"
+                                 alt="Zio, the Sayzio AI mascot" class="zio-mascot"
+                                 width="220" height="220" loading="eager" decoding="async">
+                            <span class="zio-lid zio-lid--l"></span>
+                            <span class="zio-lid zio-lid--r"></span>
+                            <span class="zio-mouth-gate"><span class="zio-mouth"></span></span>
+                        </div>
+
+                        {{-- One line at a time, on a loop. Every bubble sits in the
+                             same place and takes its turn via an animation-delay, so
+                             only one is ever on screen and they never reflow the
+                             hero. Decorative: the same promise is written out in the
+                             copy column beside it, and this whole block is
+                             aria-hidden, so a screen reader hears it once. --}}
+                        @php
+                            $zioLines = [
+                                "Hi, I'm Zio 👋",
+                                'I build your link page, QR codes and short links.',
+                                'Then I answer your visitors — and pick up your calls.',
+                                'Free forever. Want to try me?',
+                            ];
+                        @endphp
+                        <div class="zio-says">
+                            @foreach($zioLines as $i => $line)
+                                <span class="zio-bubble" style="--i:{{ $i }}">{{ $line }}</span>
+                            @endforeach
+                        </div>
+
                         <span class="zio-core-label"><i class="fas fa-wand-magic-sparkles"></i> Zio runs it all</span>
                     </div>
                 </div>
@@ -625,25 +655,133 @@
             animation: zioHalo 5s ease-in-out infinite;
         }
         @keyframes zioHalo { 0%,100% { opacity: .55; transform: translate(-50%,-50%) scale(1); } 50% { opacity: .9; transform: translate(-50%,-50%) scale(1.12); } }
-        .zio-mascot {
+        /* The float lives on the face, not the artwork, so the eyelids and the
+           mouth ride along with it instead of drifting off the eyes. */
+        .zio-face {
+            position: relative;
             width: calc(var(--size) * 0.42);
-            height: auto;
-            filter: drop-shadow(0 18px 36px rgba(61,107,255,.45));
+            aspect-ratio: 1 / 1;
             animation: zioFloat 6.5s ease-in-out infinite;
             transform-origin: 50% 80%;
         }
-        /* The animated clip is square (640x640); keep it block-level so it sits
-           flush like the old <img> and let its aspect ratio drive the height. */
-        .zio-mascot-video { display: block; aspect-ratio: 1 / 1; }
-        /* Default (motion ok): show the video, hide both fallback images. The
-           animated WebP fallback is only revealed by the alpha guard for
-           browsers that don't honor video alpha (Safari/iOS); the static PNG
-           fallback is reserved for the reduced-motion path. */
-        .zio-mascot-fallback { display: none; }
-        .zio-mascot-anim { display: none; }
+        .zio-mascot {
+            display: block;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 18px 36px rgba(61,107,255,.45));
+        }
         @keyframes zioFloat {
             0%,100% { transform: translateY(0) rotate(-1.5deg) scale(1); }
             50%     { transform: translateY(-12px) rotate(1.5deg) scale(1.02); }
+        }
+
+        /* ---- Blink ----
+           A lid drops from the top of each eye. It is filled with the head's
+           own colours at that spot, so it reads as the eyelid closing rather
+           than as a shape appearing on the face. The bottom corners are
+           rounded far more than the top so the closing edge is a curve. */
+        .zio-lid {
+            position: absolute;
+            border-radius: 46% 46% 50% 50% / 34% 34% 66% 66%;
+            transform: scaleY(0);
+            transform-origin: 50% 0;
+            animation: zioBlink 5.6s ease-in-out infinite;
+            will-change: transform;
+        }
+        /* Each lid overhangs its eye by roughly a pixel of artwork on every
+           side; anything tighter leaves a crescent of iris showing at the top
+           corner when it closes. The last gradient stop is darker than the
+           head to read as the crease along the closed edge. */
+        .zio-lid--l { left: 29.6%; top: 29.0%; width: 17.6%; height: 19.0%;
+                      background: linear-gradient(#69A8F0 58%, #4E6FD6); }
+        .zio-lid--r { left: 51.6%; top: 30.0%; width: 17.0%; height: 18.4%;
+                      background: linear-gradient(#AAC3F3 58%, #6F63D8);
+                      animation-delay: .06s; }
+        /* The lash line. Without it a closed lid is just a patch of head
+           colour; the dark arc along its lower edge is what makes the eye
+           read as shut rather than as a missing eye. */
+        .zio-lid::after {
+            content: ''; position: absolute;
+            left: 12%; right: 12%; bottom: 8%; height: 15%;
+            border-radius: 0 0 50% 50% / 0 0 100% 100%;
+            background: #16255F; opacity: .8;
+        }
+        @keyframes zioBlink {
+            0%, 88%, 100% { transform: scaleY(0); }
+            91%           { transform: scaleY(1); }
+            93%           { transform: scaleY(1); }
+            96%           { transform: scaleY(0); }
+        }
+
+        /* ---- Mouth ----
+           The gate hides the animated mouth between lines, which lets the
+           painted smile underneath show through as Zio's resting expression;
+           the mouth inside it chatters open and closed while a line is up. */
+        .zio-mouth-gate {
+            position: absolute;
+            left: 42.7%; top: 43.6%;
+            width: 7.3%; height: 2.1%;
+            animation: zioMouthGate 4s linear infinite;
+        }
+        .zio-mouth {
+            display: block; width: 100%; height: 100%;
+            background: #131F62;
+            border-radius: 40% 40% 50% 50% / 25% 25% 75% 75%;
+            transform-origin: 50% 15%;
+            animation: zioChatter .34s ease-in-out infinite;
+        }
+        @keyframes zioChatter {
+            0%, 100% { transform: scaleY(1); }
+            50%      { transform: scaleY(2.9); }
+        }
+        @keyframes zioMouthGate {
+            0%, 86%   { opacity: 1; }
+            89%, 100% { opacity: 0; }
+        }
+
+        /* ---- Speech bubbles ----
+           Four lines share one slot above Zio's head and take turns: each runs
+           the same 16s animation offset by four seconds, so exactly one is
+           visible and the hero never reflows. */
+        .zio-says {
+            position: absolute;
+            left: 50%; bottom: calc(100% + 6px);
+            transform: translateX(-50%);
+            width: max-content; max-width: min(15rem, 62vw);
+            z-index: 5;
+        }
+        .zio-bubble {
+            position: absolute; left: 50%; bottom: 0;
+            width: max-content; max-width: min(15rem, 62vw);
+            padding: 9px 13px;
+            border-radius: 12px;
+            /* Opaque on purpose: the tail is drawn as two triangles and can
+               only match a solid fill. Takes the same surface tokens as every
+               other floating chip on the page. */
+            background: var(--fs-chip, #17162A);
+            border: 1px solid var(--fs-rule, rgba(255,255,255,.16));
+            color: #fff;
+            font-size: 12.5px; font-weight: 600; line-height: 1.35;
+            text-align: left; text-wrap: balance;
+            opacity: 0;
+            transform: translate(-50%, 6px) scale(.96);
+            animation: zioSay 16s ease-in-out infinite;
+            animation-delay: calc(var(--i) * 4s);
+        }
+        /* The tail. Two stacked triangles: the outer one is the border colour
+           and sits a pixel lower, so the tail keeps the bubble's hairline. */
+        .zio-bubble::before, .zio-bubble::after {
+            content: ''; position: absolute; left: 50%; margin-left: -7px;
+            width: 0; height: 0; border-left: 7px solid transparent;
+            border-right: 7px solid transparent;
+        }
+        .zio-bubble::before { top: 100%; border-top: 8px solid var(--fs-rule, rgba(255,255,255,.16)); }
+        .zio-bubble::after  { top: calc(100% - 1px); border-top: 8px solid var(--fs-chip, #17162A); }
+        html.light-mode .zio-bubble { color: #0F172A; }
+        @keyframes zioSay {
+            0%              { opacity: 0; transform: translate(-50%, 6px) scale(.96); }
+            2.5%, 21%       { opacity: 1; transform: translate(-50%, 0) scale(1); }
+            24%, 100%       { opacity: 0; transform: translate(-50%, -4px) scale(.98); }
         }
         .zio-core-label {
             margin-top: 6px;
@@ -783,133 +921,24 @@
         /* ---- Reduced motion: freeze the orbit + ambient layers (nodes stay
                placed + upright, everything visible, popovers still work) ---- */
         @media (prefers-reduced-motion: reduce) {
-            .zio-rotor, .zio-node-ic, .zio-mascot, .zio-mascot-halo,
-            .zio-glow, .zio-pulse, .zio-node, .zio-node-thumb {
+            .zio-rotor, .zio-node-ic, .zio-face, .zio-mascot, .zio-mascot-halo,
+            .zio-glow, .zio-pulse, .zio-node, .zio-node-thumb,
+            .zio-lid, .zio-mouth, .zio-mouth-gate, .zio-bubble {
                 animation: none !important;
             }
             .zio-node, .zio-node-thumb { opacity: 1 !important; }
             .zio-node-thumb { transform: scale(1) !important; }
             .zio-pulse { opacity: 0 !important; }
-            /* No autoplaying clip when motion is reduced: hide the video and
-               show the static transparent mascot still in its place. */
-            .zio-mascot-video { display: none !important; }
-            .zio-mascot-fallback { display: block !important; }
+            /* Zio holds still: eyes open, resting smile, and the first line
+               left on screen rather than a cycle nobody asked to watch. */
+            .zio-lid { transform: scaleY(0) !important; }
+            .zio-mouth-gate { opacity: 0 !important; }
+            .zio-bubble { opacity: 0 !important; transform: translate(-50%, 0) !important; }
+            .zio-bubble:first-child { opacity: 1 !important; }
         }
     </style>
 
     <script>
-        // Transparent-mascot guard. The animated mascot is a VP9-alpha WebM,
-        // but Safari / iOS WebKit decode VP9 yet IGNORE its alpha channel, so
-        // the keyed-out off-white background renders as an opaque box. There is
-        // no reliable feature flag for "VP9 alpha honored", so we detect it
-        // directly: once a frame is available, draw a corner of the video (the
-        // keyed-out background region) to a small canvas and read its alpha.
-        // The clip is same-origin, so the canvas is not tainted. If the corner
-        // is opaque, the browser is not honoring alpha — hide the video and
-        // show the transparent still PNG instead (mascot still visible, no box).
-        // Covers the hero mascot clip (.zio-mascot-video), paired with its
-        // transparent still (*-fallback) sibling. (The "1IN.ME is Sayzio"
-        // section now uses a static icon, so only the hero clip is guarded.)
-        // Lazy mascot-clip loader: the WebM's URL sits in data-src so the
-        // browser fetches NOTHING for the clip up front (the poster paints
-        // instantly). Attach + play after window load or the first
-        // interaction, whichever comes first. Skipped under reduced motion —
-        // the CSS already hides the video and shows the static still there.
-        (function () {
-            var started = false;
-            function startMascot() {
-                if (started) { return; }
-                started = true;
-                if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
-                var videos = document.querySelectorAll('.zio-mascot-video[data-src]');
-                Array.prototype.forEach.call(videos, function (video) {
-                    var src = video.getAttribute('data-src');
-                    if (!src) { return; }
-                    video.removeAttribute('data-src');
-                    var source = document.createElement('source');
-                    source.src = src;
-                    source.type = 'video/webm';
-                    video.appendChild(source);
-                    video.load();
-                    var p = video.play();
-                    if (p && p.catch) { p.catch(function () { /* autoplay blocked — poster stays */ }); }
-                });
-            }
-            ['scroll', 'pointerdown', 'keydown', 'touchstart'].forEach(function (ev) {
-                window.addEventListener(ev, startMascot, { once: true, passive: true });
-            });
-            if (document.readyState === 'complete') { setTimeout(startMascot, 30); }
-            else { window.addEventListener('load', function () { setTimeout(startMascot, 30); }); }
-            setTimeout(startMascot, 4000);
-        })();
-
-        (function () {
-            function initMascotAlphaGuard() {
-            var videos = document.querySelectorAll('.zio-mascot-video');
-            if (!videos.length) { return; }
-            var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-            Array.prototype.forEach.call(videos, function (video) {
-                // Both fallbacks are matching siblings sharing the video's class
-                // prefix: -video -> -fallback (static still PNG, reduced-motion
-                // path) and -video -> -anim (animated transparent WebP, shown to
-                // browsers that decode VP9 but ignore its alpha, e.g. Safari/iOS).
-                var prefix = (video.className.split(/\s+/).filter(function (c) {
-                    return /-mascot-video$/.test(c);
-                })[0] || '');
-                var still = prefix ? video.parentNode.querySelector('.' + prefix.replace(/-video$/, '-fallback')) : null;
-                var anim = prefix ? video.parentNode.querySelector('.' + prefix.replace(/-video$/, '-anim')) : null;
-                if (!still) { return; }
-                var done = false;
-                function showStill() {
-                    done = true;
-                    video.style.display = 'none';
-                    // Motion allowed: show the animated transparent WebP (mascot
-                    // still moves, no opaque box). Reduced motion: keep the static
-                    // still. Set src only now so the WebP never downloads for
-                    // browsers that honor video alpha or under reduced motion.
-                    if (!reduceMotion && anim) {
-                        if (!anim.getAttribute('src') && anim.getAttribute('data-src')) {
-                            anim.setAttribute('src', anim.getAttribute('data-src'));
-                        }
-                        anim.style.display = 'block';
-                    } else {
-                        still.style.display = 'block';
-                    }
-                    try { video.pause(); } catch (e) { /* noop */ }
-                }
-                function checkAlpha() {
-                    if (done) { return; }
-                    if (video.readyState < 2 || !video.videoWidth) { return; }
-                    try {
-                        var c = document.createElement('canvas');
-                        c.width = 4; c.height = 4;
-                        var ctx = c.getContext('2d', { willReadFrequently: true });
-                        if (!ctx) { return; }
-                        ctx.clearRect(0, 0, 4, 4);
-                        // Sample the top-left corner of the frame (background region).
-                        ctx.drawImage(video, 0, 0, video.videoWidth * 0.05, video.videoHeight * 0.05, 0, 0, 4, 4);
-                        var a = ctx.getImageData(0, 0, 1, 1).data[3];
-                        done = true; // decided; if the corner is opaque, alpha isn't honored.
-                        if (a > 24) { showStill(); }
-                    } catch (e) {
-                        // Tainted/unsupported canvas: be safe, keep the still image.
-                        showStill();
-                    }
-                }
-                video.addEventListener('loadeddata', checkAlpha);
-                video.addEventListener('playing', checkAlpha);
-                // Belt-and-suspenders: re-check shortly after load in case the
-                // first probed frame was decoded before alpha was applied.
-                setTimeout(function () { done = false; checkAlpha(); }, 600);
-                if (video.readyState >= 2) { checkAlpha(); }
-            });
-            }
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initMascotAlphaGuard);
-            } else {
-                initMascotAlphaGuard();
-            }
-        })();
 
         // Hero "claim your link" handler. Carries the typed handle into the
         // existing register flow via the same open-auth event the other hero

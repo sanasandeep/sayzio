@@ -282,6 +282,15 @@
     .lts-locked .lts-cover { height: 132px }
     /* A dish thumbnail on a menu row. */
     .lts-pic { width: 38px; height: 38px; border-radius: 7px; object-fit: cover; flex-shrink: 0 }
+    /* A photograph across the top of a scene, with the name laid over it.
+       The scrim is what keeps white text legible on a bright photo. */
+    .lts-banner { position: relative; border-radius: 11px; overflow: hidden }
+    .lts-banner .lts-cover { height: 96px }
+    .lts-banner::after { content: ''; position: absolute; inset: auto 0 0; height: 60%;
+                         background: linear-gradient(transparent, rgba(0,0,0,.72)) }
+    .lts-banner-name { position: absolute; left: 11px; bottom: 9px; z-index: 1;
+                       font-size: 14px; font-weight: 700; color: #fff }
+    .lts-banner .lts-cart { position: absolute; right: 10px; top: 10px; z-index: 1 }
     .lts-grow { flex: 1; min-width: 0 }
     .lts-resume-head { display: flex; align-items: center; gap: 10px }
     .lts-review-head { display: flex; align-items: center; gap: 8px }
