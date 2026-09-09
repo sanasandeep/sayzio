@@ -35,13 +35,23 @@
 --}}
 <style>
 :root{
+  /* The lattice. One cell size for the whole page, because more than one
+     thing lines up to it: the hero's grid draws it, the hero's feature tiles
+     sit in its cells, and the floating navbar spans a whole number of them.
+     Phase is set by the hero grid at background-position-x:50%, which puts a
+     cell CENTRE on the viewport centre — so anything centred and an ODD
+     number of cells wide has both its edges on a line. */
+  --cell:58px;
+
   /* Ground and surfaces */
-  --fs-page:#0B0B0F;                    /* the whole page, one flat colour   */
+  --fs-page:#000000;                    /* the whole page, one flat colour   */
   --fs-card:transparent;                /* a card is an outline, not a pane  */
-  --fs-chip:#17162A;                    /* furniture that floats over content */
-  --fs-panel:#15151C;                   /* inside a product mockup            */
-  --fs-rule:rgba(255,255,255,.11);
-  --fs-rule-2:rgba(255,255,255,.24);
+  --fs-chip:#131320;                    /* furniture that floats over content */
+  --fs-panel:#121218;                   /* inside a product mockup            */
+  /* A hairline that held its own on #0B0B0F disappears on true black, so the
+     rules come up as the ground goes down. */
+  --fs-rule:rgba(255,255,255,.14);
+  --fs-rule-2:rgba(255,255,255,.28);
   --fs-shadow:none;
   --fs-ink-2:#A9B0D0;
   /* Corners */
@@ -101,6 +111,19 @@ html,html body,html.light-mode body{background:var(--fs-page) !important}
 :is(.mkt-navbar-bar,.zio-node-btn,.cc-card){
   background-color:var(--fs-chip) !important;
   border:1px solid var(--fs-rule) !important;
+}
+
+/* The navbar sits on the lattice: square corners, and a width of a whole
+   number of cells. An ODD number, because the grid's phase puts a cell
+   centre on the viewport centre — so a centred odd-width bar lands both its
+   edges on a line. round() picks the largest odd count that still fits
+   inside 92% of the viewport; the plain 92% above it is what browsers
+   without round() keep. */
+.mkt-navbar-bar{
+  border-radius:0 !important;
+  width:92% !important;
+  width:calc(var(--cell) * (round(down, (92vw / var(--cell) - 1) / 2, 1) * 2 + 1)) !important;
+  max-width:none !important;
 }
 
 /* The inner highlight and wash those cards drew on their own pseudo
