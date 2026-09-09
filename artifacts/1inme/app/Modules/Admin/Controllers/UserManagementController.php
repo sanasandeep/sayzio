@@ -592,7 +592,7 @@ class UserManagementController extends Controller
                 'app_name'  => config('app.name'),
                 'email'     => $user->email,
                 'password'  => $plainPassword,
-                'login_url' => AppModulesCommonSupportPlatformHosts::outboundUrl(route('user.login')),
+                'login_url' => \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('user.login')),
             ], ['user' => $user]);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::info('Account credentials email skipped: ' . $e->getMessage());

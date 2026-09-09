@@ -71,7 +71,7 @@ class SocialConnectionBrokenMail
             'platformLabel'  => $platformLabel,
             'handle'         => $handle,
             'reason'         => $reason ?: $connection->last_refresh_error,
-            'reconnectUrl'   => AppModulesCommonSupportPlatformHosts::outboundUrl(route('user.social-accounts.index')),
+            'reconnectUrl'   => \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('user.social-accounts.index')),
             'unsubscribeUrl' => $unsubscribeUrl,
         ];
 

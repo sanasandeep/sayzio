@@ -101,9 +101,9 @@ class PrivacyRequestNotifier
     protected function queueUrl(PrivacyRequest $pr): string
     {
         try {
-            return AppModulesCommonSupportPlatformHosts::outboundUrl(route('admin.privacy-requests.show', ['privacyRequest' => $pr->id]));
+            return \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('admin.privacy-requests.show', ['privacyRequest' => $pr->id]));
         } catch (\Throwable $e) {
-            return AppModulesCommonSupportPlatformHosts::outboundUrl(url('/admin/privacy-requests'));
+            return \App\Modules\Common\Support\PlatformHosts::outboundUrl(url('/admin/privacy-requests'));
         }
     }
 
