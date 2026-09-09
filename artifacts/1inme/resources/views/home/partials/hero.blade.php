@@ -555,11 +555,19 @@
             -webkit-mask-image: radial-gradient(96% 96% at 86% 24%, #000 34%, rgba(0,0,0,.62) 64%, transparent 96%);
                     mask-image: radial-gradient(96% 96% at 86% 24%, #000 34%, rgba(0,0,0,.62) 64%, transparent 96%);
         }
+        /* The softness is painted, not filtered. These started life as
+           filter: blur(30px) strands, which the marketing heavy-blur guard
+           rightly failed: a large live blur is re-composited every frame and
+           drags scrolling on older phone GPUs. A static mask feathers each
+           strand to nothing at its edges instead, so the look survives and
+           the only thing animating is a transform on a cheap layer. */
         .rb-band {
             position: absolute; left: -55%; right: -55%; height: 34%;
             border-radius: 50%;
             transform-origin: 72% 50%;
             will-change: transform;
+            -webkit-mask-image: radial-gradient(closest-side ellipse at 50% 50%, #000 4%, rgba(0,0,0,.62) 40%, rgba(0,0,0,.22) 68%, transparent 94%);
+                    mask-image: radial-gradient(closest-side ellipse at 50% 50%, #000 4%, rgba(0,0,0,.62) 40%, rgba(0,0,0,.22) 68%, transparent 94%);
         }
         /* Four strands. Each takes a different slice of the palette, a
            different angle and a different period, and none of the periods
@@ -567,21 +575,21 @@
         .rb-1 {
             top: -14%;
             background: linear-gradient(96deg, transparent 6%, #1bd4d9 26%, #3d6bff 48%, #7c5cff 68%, transparent 92%);
-            filter: blur(30px); opacity: .78;
+            opacity: .72;
             transform: rotate(-26deg);
             animation: rbDrift1 19s ease-in-out infinite alternate;
         }
         .rb-2 {
             top: 4%;
             background: linear-gradient(96deg, transparent 10%, #7c5cff 30%, #e94e8c 56%, #ff8a3c 76%, transparent 96%);
-            filter: blur(36px); opacity: .72;
+            opacity: .66;
             transform: rotate(-18deg);
             animation: rbDrift2 23s ease-in-out infinite alternate;
         }
         .rb-3 {
             top: 24%; height: 34%;
             background: linear-gradient(96deg, transparent 14%, #ff8a3c 34%, #ffc845 54%, transparent 88%);
-            filter: blur(26px); opacity: .6;
+            opacity: .56;
             transform: rotate(-31deg);
             animation: rbDrift3 29s ease-in-out infinite alternate;
         }
@@ -590,7 +598,7 @@
         .rb-4 {
             top: 12%; height: 12%;
             background: linear-gradient(96deg, transparent 22%, rgba(255,255,255,.9) 44%, #ffc845 58%, transparent 84%);
-            filter: blur(10px); opacity: .55;
+            filter: blur(10px); opacity: .5;
             transform: rotate(-23deg);
             animation: rbDrift4 17s ease-in-out infinite alternate;
         }
