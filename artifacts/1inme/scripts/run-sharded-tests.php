@@ -10,8 +10,9 @@
 | instead of one long-lived process. Each shard is a fresh PHP process, so the
 | per-test memory growth that accumulates across a single full run (Laravel app
 | boots, route registration, cyclic object graphs) is bounded by the largest
-| shard rather than the whole suite. This keeps the run comfortably under the
-| 512M ceiling in phpunit.xml no matter how many tests are added.
+| shard rather than the whole suite. The shard count is what keeps each process
+| under the 512M ceiling in phpunit.xml, so it is not an arbitrary number --
+| see the derivation next to $shardCount below before changing it.
 |
 | Migration cost is paid ONCE, not once per shard:
 |   - The first shard runs normally; its RefreshDatabase trait performs the
@@ -32,7 +33,7 @@
 | failing shard numbers are printed.
 |
 | Usage (from artifacts/1inme):
-|   composer test:sharded                 # default 4 shards
+|   composer test:sharded                 # default 6 shards
 |   php scripts/run-sharded-tests.php --shards=6
 |   php scripts/run-sharded-tests.php --shards=4 --filter=PlanGateTest
 |   php scripts/run-sharded-tests.php --dry-run   # print shard plan, run nothing
@@ -51,7 +52,32 @@
 $root = dirname(__DIR__);
 chdir($root);
 
-$shardCount = 4;
+/*
+ * Six, not four, and the number is derived rather than guessed.
+ *
+ * Memory per shard was measured by logging memory_get_usage(true) after every
+ * test: a ~109 MB baseline once the app has booted, then a clean linear climb
+ * of ~0.31 MB per test that gc_collect_cycles() in TestCase::tearDown() slows
+ * but does not stop. So a shard's peak is roughly
+ *
+ *     109 MB + 0.31 MB x (tests in that shard)
+ *
+ * At four shards the biggest shard carried ~1,300 tests -> ~510 MB, which is
+ * the 512M ceiling in phpunit.xml exactly. It died there every run, and a dead
+ * shard reports nothing: the run looked like ~340 failures out of ~3,750 tests
+ * when in truth ~1,600 tests had never executed at all.
+ *
+ * Six shards puts the biggest at ~1,170 tests -> ~470 MB... still close, but
+ * the whole suite now completes: 5,342 tests, no crash, and the same ~12
+ * minutes of wall clock, since shards are sequential and only shard 1 pays for
+ * the migration.
+ *
+ * If this is hit again, raise the shard count before raising the ceiling --
+ * see the long note in phpunit.xml for why. The real fix is the leak itself:
+ * 0.31 MB per test that survives a forced collection means something holds a
+ * reference across app teardown, and that has not been tracked down yet.
+ */
+$shardCount = 6;
 $dryRun = false;
 $passthrough = [];
 
