@@ -21,17 +21,103 @@
          delay, so they are already mid-cycle on the first paint and no two
          are ever in step. --}}
     @php
-        // col, row, seconds, delay
+        // col, row, seconds, delay — measured from the LEFT edge, which is
+        // where a background grid's tiling starts; the feature tiles below
+        // are measured from the centre instead, because that is where the
+        // grid's phase is pinned.
         $zioTiles = [
             [2, 1, 7.5, -0.4], [5, 4, 9.0, -3.1], [3, 9, 8.0, -6.2], [8, 2, 10.5, -1.7],
             [7, 11, 7.0, -4.8], [11, 6, 9.5, -2.3], [14, 3, 8.5, -7.4], [12, 13, 11.0, -0.9],
             [17, 9, 7.5, -5.6], [19, 2, 10.0, -3.8], [21, 12, 8.0, -1.2], [23, 5, 9.5, -6.9],
             [16, 15, 7.0, -2.7], [9, 7, 12.0, -8.3], [24, 8, 8.5, -4.1], [1, 13, 9.0, -5.2],
         ];
+
+        // Where each feature tile lives, as (column from the viewport centre,
+        // row from the top of the section) — so every one of them sits dead
+        // centre in a grid cell.
+        //
+        // Home cells are laid on an EVEN lattice and each tile only ever
+        // moves inside its own 2x2 square, which is what keeps seventeen of
+        // them hopping around without two ever landing on the same cell.
+        // The block at the centre-left is left empty: that is where Zio
+        // stands (columns -8..-3, rows 5..10 at desktop size).
+        $zioHomes = [
+            [-11,  3], [-11,  7], [-11, 11], [ -9,  1], [ -9,  5], [ -9,  9],
+            [ -9, 13], [ -7,  3], [ -7, 11], [ -5,  1], [ -5, 13], [ -3,  3],
+            [ -3, 11], [-11, 14], [ -7, 14], [ -5,  9], [ -3,  6],
+        ];
+        // Which corners of its square each tile visits, in order.
+        $zioPaths = [
+            [[1,0],[1,1],[0,1]], [[0,1],[1,1],[1,0]], [[1,1],[0,1],[1,0]],
+            [[1,0],[0,1],[1,1]], [[0,1],[1,0],[1,1]], [[1,1],[1,0],[0,1]],
+        ];
+
+        // The features themselves. Each carries a punchy title (t), a one-line
+        // detail (d) and a small benefit chip (tag) shown in the popover and
+        // in the <noscript> fallback further down. `img` files live in
+        // public/images/zio-nodes/.
+        $zioNodes = [
+            ['img' => 'ai.png',        'c' => 'var(--c2)', 't' => 'AI Page Builder',   'd' => 'Describe your idea in a sentence and Zio assembles a complete, on-brand page for you.', 'tag' => 'Live in ~30s'],
+            ['img' => 'growth.png',    'c' => '#10b981',   't' => 'AI Link Optimizer', 'd' => "Zio reads your stats, flags what's working and hands you the next move to grow.", 'tag' => 'Weekly tips'],
+            ['img' => 'calls.png',     'c' => 'var(--c4)', 't' => 'AI Phone',          'd' => 'Zio answers your calls and turns every caller into a captured lead while you focus.', 'tag' => '24/7 answer'],
+            ['img' => 'analytics.png', 'c' => 'var(--c3)', 't' => 'Live Analytics',    'd' => 'Watch every click, scan and visit land in real time on a live world map.', 'tag' => 'Real-time'],
+            ['img' => 'link.png',      'c' => 'var(--c1)', 't' => 'Smart Links',       'd' => 'Turn long URLs into branded short links you can track, tag and retarget.', 'tag' => 'Branded'],
+            ['img' => 'qr.png',        'c' => 'var(--c3)', 't' => 'QR Studio',         'd' => 'Design on-brand codes with custom eyes and frames that track every single scan.', 'tag' => '16 types'],
+            ['img' => 'store.png',     'c' => '#10b981',   't' => 'Built-in Store',    'd' => 'Sell products and take payments straight from your link. Keep every cent.', 'tag' => '0% fees'],
+            ['img' => 'forms.png',     'c' => 'var(--c4)', 't' => 'Forms',             'd' => 'Collect leads, bookings and payments with 21 customizable field types.', 'tag' => '21 fields'],
+            ['img' => 'audience.png',  'c' => 'var(--c5)', 't' => 'Subscribers',       'd' => 'Grow an email and WhatsApp audience you actually own, then message them anytime.', 'tag' => 'You own it'],
+            ['img' => 'social.png',    'c' => 'var(--c2)', 't' => 'Social Proof',      'd' => 'Live popups surface real activity that nudges new visitors to take action.', 'tag' => '7 widgets'],
+            ['img' => 'code.png',      'c' => '#10b981',   't' => 'Developer API',     'd' => 'Build anything on Sayzio with a full, token-secured REST API.', 'tag' => 'REST API'],
+            ['img' => 'reviews.png',   'c' => 'var(--c5)', 't' => 'Reviews',           'd' => 'Collect native reviews and pull in Google & Trustpilot ratings to build instant trust.', 'tag' => 'Google + more'],
+            ['img' => 'menu.png',      'c' => 'var(--c4)', 't' => 'Restaurant Menu',   'd' => 'QR menus with live ordering that sends tickets straight to your kitchen staff.', 'tag' => 'Live orders'],
+            ['img' => 'resume.png',    'c' => 'var(--c3)', 't' => 'Resume',            'd' => 'Build a polished, shareable resume and portfolio with AI tailoring and PDF export.', 'tag' => 'AI-tailored'],
+            ['img' => 'calendar.png',  'c' => 'var(--c1)', 't' => 'Calendar',          'd' => 'Share events visitors can follow and book, synced to Google Calendar.', 'tag' => 'Auto-sync'],
+            ['img' => 'vcard.png',     'c' => 'var(--c2)', 't' => 'Digital Cards',     'd' => 'Share a tappable vCard that saves straight to any phone in one tap.', 'tag' => 'One tap'],
+            ['img' => 'domain.png',    'c' => 'var(--c5)', 't' => 'Custom Domain',     'd' => 'Put your whole universe on your own domain for a fully branded presence.', 'tag' => 'Your brand'],
+        ];
     @endphp
-    <div class="zio-grid" aria-hidden="true">
-        @foreach($zioTiles as [$c, $r, $d, $delay])
-            <span class="zio-tile" style="--c:{{ $c }}; --r:{{ $r }}; --d:{{ $d }}s; --delay:{{ $delay }}s"></span>
+
+    {{-- The field: the grid, the tiles that glow on it, and the feature
+         icons that live in its cells. All three are in one layer, pinned to
+         the section, so they share a single origin and cannot drift out of
+         alignment with each other. The Alpine scope for the popovers sits
+         here too, since the icons moved in. --}}
+    <div class="zio-field" x-data="{ open: null }" @keydown.escape.window="open = null"
+         @click.outside="open = null" :class="{ 'zio-paused': open !== null }">
+        <div class="zio-grid" aria-hidden="true">
+            @foreach($zioTiles as [$c, $r, $d, $delay])
+                <span class="zio-tile" style="--c:{{ $c }}; --r:{{ $r }}; --d:{{ $d }}s; --delay:{{ $delay }}s"></span>
+            @endforeach
+        </div>
+        @foreach($zioNodes as $i => $n)
+            @php
+                [$hx, $hy] = $zioHomes[$i];
+                $path = $zioPaths[$i % count($zioPaths)];
+            @endphp
+            <div class="zio-node"
+                 style="--x:{{ $hx }}; --y:{{ $hy }};
+                        --x1:{{ $path[0][0] }}; --y1:{{ $path[0][1] }};
+                        --x2:{{ $path[1][0] }}; --y2:{{ $path[1][1] }};
+                        --x3:{{ $path[2][0] }}; --y3:{{ $path[2][1] }};
+                        --dur:{{ 26 + ($i % 6) * 6 }}s; --delay:-{{ $i * 3.4 }}s;
+                        --in:{{ 0.5 + $i * 0.05 }}s; --ac:{{ $n['c'] }}"
+                 :class="{ 'zio-node--on': open === {{ $i }} }">
+                <div class="zio-node-ic">
+                    <button type="button"
+                            class="zio-node-btn"
+                            @click="open = (open === {{ $i }} ? null : {{ $i }})"
+                            :aria-expanded="open === {{ $i }}"
+                            aria-label="{{ $n['t'] }}: {{ $n['d'] }}">
+                        <img class="zio-node-thumb" src="{{ asset('images/zio-nodes/' . $n['img']) }}" alt="" width="58" height="58" loading="lazy" decoding="async">
+                    </button>
+                    <div class="zio-pop" x-show="open === {{ $i }}" x-cloak x-transition.opacity.scale.95 @click.stop role="dialog" aria-label="{{ $n['t'] }}">
+                        <span class="zio-pop-title">{{ $n['t'] }}</span>
+                        <span class="zio-pop-desc">{{ $n['d'] }}</span>
+                        <span class="zio-pop-tag"><i class="fas fa-bolt"></i>{{ $n['tag'] }}</span>
+                        <button type="button" class="zio-pop-x" @click.stop="open = null" aria-label="Close">&times;</button>
+                    </div>
+                </div>
+            </div>
         @endforeach
     </div>
 
@@ -131,81 +217,12 @@
 
             {{-- Orbital Zio visual (sits on the LEFT at ≥lg via .zio-hero-visual order) --}}
             <div class="reveal rd-2 zio-orbit-wrap zio-hero-visual">
-                <div class="zio-orbit" x-data="{ open: null }" @keydown.escape.window="open = null" @click.outside="open = null" :class="{ 'zio-paused': open !== null }">
+                <div class="zio-orbit">
                     <span class="zio-glow" aria-hidden="true"></span>
-                    {{-- The dashed orbit guides and the expanding pulse rings are
-                         gone. The nodes still travel their three circles; the
-                         circles are simply no longer drawn. --}}
+                    {{-- The feature tiles used to orbit here. They now live in
+                         the section-level field above, laid out on the page
+                         grid, so this box holds only Zio himself. --}}
 
-                    @php
-                        // Feature nodes split across three concentric rings. Zio's direct AI
-                        // powers sit on the inner ring; the wider feature universe fans out
-                        // across the middle and outer rings. Each ring rotates independently
-                        // (its own radius, speed and direction — see CSS). Angles are evenly
-                        // spaced within each ring so tiles never crowd. `img` files live in
-                        // public/images/zio-nodes/.
-                        // Each node carries a punchy title (t), an engaging one-line
-                        // detail (d) and a small stat/benefit chip (tag) shown in the
-                        // popover + the <noscript> fallback.
-                        $zioRings = [
-                            // Inner ring (4) — Zio's core AI brain.
-                            ['cls' => 'r1', 'nodes' => [
-                                ['a' => 0,   'img' => 'ai.png',        'c' => 'var(--c2)', 't' => 'AI Page Builder', 'd' => 'Describe your idea in a sentence and Zio assembles a complete, on-brand page for you.', 'tag' => 'Live in ~30s'],
-                                ['a' => 90,  'img' => 'growth.png',    'c' => '#10b981',   't' => 'AI Link Optimizer',     'd' => "Zio reads your stats, flags what's working and hands you the next move to grow.", 'tag' => 'Weekly tips'],
-                                ['a' => 180, 'img' => 'calls.png',     'c' => 'var(--c4)', 't' => 'AI Phone',         'd' => 'Zio answers your calls and turns every caller into a captured lead while you focus.', 'tag' => '24/7 answer'],
-                                ['a' => 270, 'img' => 'analytics.png', 'c' => 'var(--c3)', 't' => 'Live Analytics',   'd' => 'Watch every click, scan and visit land in real time on a live world map.', 'tag' => 'Real-time'],
-                            ]],
-                            // Middle ring (6) — everyday building & growth tools.
-                            ['cls' => 'r2', 'nodes' => [
-                                ['a' => 30,  'img' => 'link.png',      'c' => 'var(--c1)', 't' => 'Smart Links',      'd' => 'Turn long URLs into branded short links you can track, tag and retarget.', 'tag' => 'Branded'],
-                                ['a' => 90,  'img' => 'qr.png',        'c' => 'var(--c3)', 't' => 'QR Studio',        'd' => 'Design on-brand codes with custom eyes and frames that track every single scan.', 'tag' => '16 types'],
-                                ['a' => 150, 'img' => 'store.png',     'c' => '#10b981',   't' => 'Built-in Store',   'd' => 'Sell products and take payments straight from your link. Keep every cent.', 'tag' => '0% fees'],
-                                ['a' => 210, 'img' => 'forms.png',     'c' => 'var(--c4)', 't' => 'Forms',           'd' => 'Collect leads, bookings and payments with 21 customizable field types.', 'tag' => '21 fields'],
-                                ['a' => 270, 'img' => 'audience.png',  'c' => 'var(--c5)', 't' => 'Subscribers',     'd' => 'Grow an email and WhatsApp audience you actually own, then message them anytime.', 'tag' => 'You own it'],
-                                ['a' => 330, 'img' => 'social.png',    'c' => 'var(--c2)', 't' => 'Social Proof',     'd' => 'Live popups surface real activity that nudges new visitors to take action.', 'tag' => '7 widgets'],
-                            ]],
-                            // Outer ring (7) — the wider feature universe + a new add-on.
-                            ['cls' => 'r3', 'nodes' => [
-                                ['a' => 0,   'img' => 'code.png',      'c' => '#10b981',   't' => 'Developer API',    'd' => 'Build anything on Sayzio with a full, token-secured REST API.', 'tag' => 'REST API'],
-                                ['a' => 51,  'img' => 'reviews.png',   'c' => 'var(--c5)', 't' => 'Reviews',         'd' => 'Collect native reviews and pull in Google & Trustpilot ratings to build instant trust.', 'tag' => 'Google + more'],
-                                ['a' => 103, 'img' => 'menu.png',      'c' => 'var(--c4)', 't' => 'Restaurant Menu', 'd' => 'QR menus with live ordering that sends tickets straight to your kitchen staff.', 'tag' => 'Live orders'],
-                                ['a' => 154, 'img' => 'resume.png',    'c' => 'var(--c3)', 't' => 'Resume',          'd' => 'Build a polished, shareable resume and portfolio with AI tailoring and PDF export.', 'tag' => 'AI-tailored'],
-                                ['a' => 206, 'img' => 'calendar.png',  'c' => 'var(--c1)', 't' => 'Calendar',        'd' => 'Share events visitors can follow and book, synced to Google Calendar.', 'tag' => 'Auto-sync'],
-                                ['a' => 257, 'img' => 'vcard.png',     'c' => 'var(--c2)', 't' => 'Digital Cards',    'd' => 'Share a tappable vCard that saves straight to any phone in one tap.', 'tag' => 'One tap'],
-                                ['a' => 309, 'img' => 'domain.png',    'c' => 'var(--c5)', 't' => 'Custom Domain',    'd' => 'Put your whole universe on your own domain for a fully branded presence.', 'tag' => 'Your brand'],
-                            ]],
-                        ];
-                        // Flat list (in ring order) for the <noscript> fallback below.
-                        $zioNodes = array_merge(...array_map(fn ($r) => $r['nodes'], $zioRings));
-                        $zioIdx = 0;
-                    @endphp
-
-                    @foreach($zioRings as $ring)
-                        <div class="zio-rotor zio-rotor--{{ $ring['cls'] }}">
-                            @foreach($ring['nodes'] as $n)
-                                @php $i = $zioIdx++; @endphp
-                                <div class="zio-node"
-                                     style="--a:{{ $n['a'] }}deg; --d:{{ 0.5 + $i * 0.06 }}s; --ac:{{ $n['c'] }}"
-                                     :class="{ 'zio-node--on': open === {{ $i }} }">
-                                    <div class="zio-node-ic">
-                                        <button type="button"
-                                                class="zio-node-btn"
-                                                @click="open = (open === {{ $i }} ? null : {{ $i }})"
-                                                :aria-expanded="open === {{ $i }}"
-                                                aria-label="{{ $n['t'] }}: {{ $n['d'] }}">
-                                            <img class="zio-node-thumb" src="{{ asset('images/zio-nodes/' . $n['img']) }}" alt="" width="58" height="58" loading="lazy" decoding="async">
-                                        </button>
-                                        <div class="zio-pop" x-show="open === {{ $i }}" x-cloak x-transition.opacity.scale.95 @click.stop role="dialog" aria-label="{{ $n['t'] }}">
-                                            <span class="zio-pop-title">{{ $n['t'] }}</span>
-                                            <span class="zio-pop-desc">{{ $n['d'] }}</span>
-                                            <span class="zio-pop-tag"><i class="fas fa-bolt"></i>{{ $n['tag'] }}</span>
-                                            <button type="button" class="zio-pop-x" @click.stop="open = null" aria-label="Close">&times;</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endforeach
 
                     <div class="zio-core" aria-hidden="true">
                         <span class="zio-mascot-halo"></span>
@@ -459,19 +476,34 @@
            is what keeps a texture from reading as a table. Both the grid and
            the tiles are drawn from tokens, so the whole thing inverts for
            dark mode by redefining two colours. */
+        /* The field holds the grid, the glowing tiles and the feature icons, pinned
+           to the section so all three share one origin. It sits BELOW the copy
+           in paint order (the copy's own wrapper is positioned and comes
+           later), so a tile that wanders near the text passes behind it. */
+        .zio-field {
+            position: absolute; inset: 0; z-index: 0; pointer-events: none;
+            /* The tiles size off the cell, not off the old orbit box, so a
+               tile is always the same fraction of a cell as the grid it sits
+               in — three quarters, which leaves a clear margin of ground on
+               every side of it. */
+            --node: calc(var(--cell) * .74);
+        }
+        .zio-field .zio-node { pointer-events: auto; }
         .zio-grid {
             position: absolute; inset: 0;
-            z-index: -1;
             pointer-events: none;
-            --cell: 58px;
             --line: rgba(15,23,42,.055);
             --tile: rgba(61,107,255,.10);
             background-image:
                 linear-gradient(to right, var(--line) 1px, transparent 1px),
                 linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+            /* 50% across is what pins a cell CENTRE to the viewport centre —
+               the whole reason the tiles and the navbar can line up to this
+               without measuring anything. Vertically it tiles from the top. */
+            background-position: 50% 0;
             background-size: var(--cell) var(--cell);
-            -webkit-mask-image: radial-gradient(120% 85% at 42% 45%, #000 30%, transparent 78%);
-                    mask-image: radial-gradient(120% 85% at 42% 45%, #000 30%, transparent 78%);
+            -webkit-mask-image: radial-gradient(135% 105% at 40% 45%, #000 55%, transparent 96%);
+                    mask-image: radial-gradient(135% 105% at 40% 45%, #000 55%, transparent 96%);
         }
         html:not(.light-mode) .zio-grid {
             --line: rgba(255,255,255,.05);
@@ -493,7 +525,10 @@
             46%      { opacity: .55; }
             70%      { opacity: 0; }
         }
-        @media (max-width: 640px) { .zio-grid { --cell: 44px; } }
+        /* Below the two-column breakpoint the hero stacks and there is no
+           clear left-hand field to scatter into — a tile would land on the
+           headline. The grid stays; the tiles come back at lg. */
+        @media (max-width: 1023px) { .zio-field .zio-node { display: none; } }
 
         .zio-orbit-wrap { display: flex; align-items: center; justify-content: center; width: 100%; }
         .zio-orbit {
@@ -522,71 +557,48 @@
         }
         @keyframes zioGlowPulse { 0%,100% { opacity: .85; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }
 
-        /* Three independent rotors. Each spins at its own speed; the middle ring
-           runs in REVERSE so adjacent rings counter-rotate. Per-ring --r feeds the
-           node placement below. One shared keyframe (0→360); animation-direction
-           gives clockwise vs counter-clockwise. */
-        .zio-rotor {
-            position: absolute; inset: 0; z-index: 2;
-            /* Each rotor is a full-size (inset:0) layer; with three stacked, the
-               topmost (outer) one would otherwise swallow clicks aimed at the
-               inner rings' nodes. Make the rotor layers click-through and re-enable
-               pointer events only on the nodes themselves (below). */
-            pointer-events: none;
-            animation-name: zioSpin;
-            animation-timing-function: linear;
-            animation-iteration-count: infinite;
-        }
-        .zio-rotor--r1 { --r: var(--r1); animation-duration: 54s; animation-direction: normal;  }
-        .zio-rotor--r2 { --r: var(--r2); animation-duration: 64s; animation-direction: reverse; }
-        .zio-rotor--r3 { --r: var(--r3); animation-duration: 80s; animation-direction: normal;  }
-        @keyframes zioSpin { to { transform: rotate(360deg); } }
+        /* ---- Where the feature tiles live ----
+           They used to orbit on three rotating rings. They now sit in cells of
+           the page grid and hop between them.
 
-        /* Lift the rotors above the central mascot (z-index:3) while a popover is
-           open, so an active node's popover is never hidden behind Zio. */
-        .zio-paused .zio-rotor { z-index: 6; }
-        /* Each rotor is its own stacking context, so lifting only the active NODE
-           (z-index:16) can't raise it above a sibling rotor that comes later in the
-           DOM — those rings' icons would paint over the open card. Lift the whole
-           rotor that contains the active node above every other ring instead. */
-        .zio-paused .zio-rotor:has(.zio-node--on) { z-index: 20; }
+           The maths is only this: the grid is drawn with
+           background-position-x:50%, which puts a cell CENTRE on the viewport
+           centre, so cell centres run at 50% + k*cell across and (k+.5)*cell
+           down. A tile placed at exactly those coordinates is dead centre in
+           a cell at every viewport width, with no measuring and no script.
 
-        /* Pause every ring (and its counter-rotation) while a popover is open OR a
-           node is hovered/focused, so nodes are easy to click and popovers stay put. */
-        .zio-paused .zio-rotor,
-        .zio-paused .zio-node-ic,
-        .zio-orbit:has(.zio-node:hover) .zio-rotor,
-        .zio-orbit:has(.zio-node:hover) .zio-node-ic,
-        .zio-orbit:has(.zio-node-btn:focus-visible) .zio-rotor,
-        .zio-orbit:has(.zio-node-btn:focus-visible) .zio-node-ic { animation-play-state: paused; }
-
+           Movement is one shared keyframe reading each tile's own --x1..--y3,
+           which are corners of its own 2x2 square. Home cells sit on an even
+           lattice, so no two squares overlap and seventeen tiles can wander
+           for as long as you leave the page open without ever colliding. */
         .zio-node {
-            position: absolute; top: 50%; left: 50%;
+            position: absolute;
+            left: calc(50% + var(--x) * var(--cell));
+            top:  calc((var(--y) + .5) * var(--cell));
             width: var(--node); height: var(--node);
-            margin: calc(var(--node) / -2);
-            /* Re-enable pointer events the parent rotor turned off, so the node's
-               button and its popover (close button / @click.stop) stay clickable. */
+            margin: calc(var(--node) / -2) 0 0 calc(var(--node) / -2);
             pointer-events: auto;
-            transform: rotate(var(--a)) translate(0, calc(-1 * var(--r))) rotate(calc(-1 * var(--a)));
-            animation: zioNodeFade .55s var(--d) ease backwards;
+            transform: translate(0, 0);
+            animation: zioHop var(--dur) cubic-bezier(.65,0,.35,1) var(--delay) infinite,
+                       zioNodeFade .55s var(--in) ease backwards;
         }
         @keyframes zioNodeFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes zioHop {
+            0%,  20%  { transform: translate(0, 0); }
+            25%, 45%  { transform: translate(calc(var(--x1) * var(--cell)), calc(var(--y1) * var(--cell))); }
+            50%, 70%  { transform: translate(calc(var(--x2) * var(--cell)), calc(var(--y2) * var(--cell))); }
+            75%, 95%  { transform: translate(calc(var(--x3) * var(--cell)), calc(var(--y3) * var(--cell))); }
+            100%      { transform: translate(0, 0); }
+        }
         .zio-node--on { z-index: 16; }
 
-        /* Counter-rotation wrapper — cancels the rotor spin so the tile + popover
-           stay upright at all times (and frozen-upright while paused). */
-        .zio-node-ic {
-            position: relative;
-            width: 100%; height: 100%;
-            animation-name: zioSpin;
-            animation-timing-function: linear;
-            animation-iteration-count: infinite;
-        }
-        /* Each tile counter-rotates with its OWN ring's duration but the OPPOSITE
-           direction, so the rotor spin is exactly cancelled and tiles stay upright. */
-        .zio-rotor--r1 .zio-node-ic { animation-duration: 54s; animation-direction: reverse; }
-        .zio-rotor--r2 .zio-node-ic { animation-duration: 64s; animation-direction: normal;  }
-        .zio-rotor--r3 .zio-node-ic { animation-duration: 80s; animation-direction: reverse; }
+        /* Hold still while a card is open or a tile is under the cursor, so it
+           stays where it was clicked. */
+        .zio-paused .zio-node,
+        .zio-field:has(.zio-node:hover) .zio-node,
+        .zio-field:has(.zio-node-btn:focus-visible) .zio-node { animation-play-state: paused; }
+
+        .zio-node-ic { position: relative; width: 100%; height: 100%; }
 
         .zio-node-btn {
             display: flex; align-items: center; justify-content: center;
