@@ -144,6 +144,173 @@
     .ltm-frame-empty { display: grid; place-items: center; height: 260px; font-size: 14px; opacity: .6; }
     .ltm-cap { margin: 10px 0 0; font-size: 12px; opacity: .55; }
 
+    /* ══ The animated scene ══
+       A composition of interface parts for one link type, built from a few
+       primitives so nineteen scenes look like one family. --a is the type's
+       accent; --d is each element's delay. Everything starts in its OFF state
+       and animates to ON, so the scene reads correctly even if the animation
+       never runs (reduced motion, a paused tab, an old engine): the
+       reduced-motion block below simply lands every element on its end state. */
+    .lts {
+        --a: #3d6bff;
+        display: flex; flex-direction: column; gap: 9px;
+        padding: 22px; min-height: 280px; height: min(52vh, 420px);
+        justify-content: center;
+        border-radius: 14px; overflow: hidden;
+        border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.02);
+    }
+    html.light-mode .lts { border-color: #E6E8F2; background: #F8F9FD; }
+
+    /* ── primitives ── */
+    .lts-card { padding: 13px 14px; border-radius: 11px; background: rgba(255,255,255,.05);
+                border: 1px solid rgba(255,255,255,.08); display: flex; flex-direction: column; gap: 8px }
+    html.light-mode .lts-card { background: #fff; border-color: #E6E8F2 }
+    .lts-card.lts-accent { border-color: color-mix(in srgb, var(--a) 55%, transparent);
+                           background: color-mix(in srgb, var(--a) 12%, transparent) }
+    .lts-line { height: 8px; border-radius: 4px; background: rgba(255,255,255,.16) }
+    html.light-mode .lts-line { background: #DFE3F0 }
+    .lts-line.lts-faint { opacity: .55 }
+    .lts-w50 { width: 50% } .lts-w60 { width: 60% } .lts-w70 { width: 70% }
+    .lts-w72 { width: 72% } .lts-w75 { width: 75% } .lts-w80 { width: 80% }
+    .lts-w85 { width: 85% } .lts-w90 { width: 90% }
+    .lts-mid { margin-left: auto; margin-right: auto }
+    .lts-lbl { font-size: 10.5px; font-weight: 700; letter-spacing: .1em;
+               text-transform: uppercase; opacity: .5 }
+    .lts-lbl.lts-right { text-align: right }
+    .lts-btn { padding: 11px 14px; border-radius: 10px; text-align: center;
+               font-size: 13px; font-weight: 700; background: rgba(255,255,255,.07);
+               border: 1px solid rgba(255,255,255,.1) }
+    html.light-mode .lts-btn { background: #fff; border-color: #E6E8F2 }
+    .lts-btn.lts-solid { background: var(--a); border-color: transparent; color: #fff }
+    .lts-num { font-size: 19px; font-weight: 800; color: var(--a) }
+    .lts-dim { opacity: .5 }
+    .lts-avatar { width: 46px; height: 46px; border-radius: 50%; margin: 0 auto;
+                  background: var(--a); opacity: .85 }
+    .lts-avatar.lts-sm { width: 30px; height: 30px; margin: 0 }
+    .lts-row { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+               padding: 9px 0; font-size: 12.5px;
+               border-bottom: 1px solid rgba(255,255,255,.07) }
+    html.light-mode .lts-row { border-bottom-color: #ECEEF6 }
+    .lts-row.lts-thin { border: 0; padding: 5px 0; justify-content: flex-start; gap: 9px }
+    .lts-row i { color: var(--a); font-size: 11px; width: 14px }
+    .lts-row .lts-line { flex: 1 }
+    .lts-price { color: var(--a); font-weight: 800 }
+    .lts-chip { padding: 6px 12px; border-radius: 9999px; font-size: 11.5px; font-weight: 600;
+                border: 1px solid color-mix(in srgb, var(--a) 45%, transparent);
+                color: var(--a) }
+    .lts-chips { display: flex; gap: 7px; flex-wrap: wrap }
+
+    /* ── scene parts ── */
+    .lts-arrow { text-align: center; font-size: 14px; color: var(--a); opacity: .85; line-height: 1 }
+    .lts-url { font-size: 15px; font-weight: 700 }
+    .lts-stats { display: flex; gap: 22px }
+    .lts-stats div { display: flex; flex-direction: column }
+    .lts-stats span { font-size: 10.5px; opacity: .55 }
+    .lts-socials { display: flex; gap: 9px; justify-content: center; margin: 2px 0 6px }
+    .lts-soc { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+               font-size: 13px; color: var(--a);
+               background: color-mix(in srgb, var(--a) 15%, transparent) }
+    .lts-bub { max-width: 82%; padding: 9px 13px; border-radius: 13px; font-size: 12.5px; line-height: 1.45 }
+    .lts-bub.lts-in { background: rgba(255,255,255,.07); border-bottom-left-radius: 4px }
+    html.light-mode .lts-bub.lts-in { background: #EEF1F9 }
+    .lts-bub.lts-out { background: var(--a); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px }
+    .lts-typing { display: inline-flex; gap: 4px; padding: 10px 13px; border-radius: 13px;
+                  background: rgba(255,255,255,.07); width: fit-content }
+    html.light-mode .lts-typing { background: #EEF1F9 }
+    .lts-typing i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .5;
+                    animation: lts-blink 1.1s infinite }
+    .lts-typing i:nth-child(2) { animation-delay: .15s } .lts-typing i:nth-child(3) { animation-delay: .3s }
+    .lts-deck { position: relative; height: 128px }
+    .lts-slide { position: absolute; inset: 0; padding: 16px; border-radius: 11px;
+                 display: flex; flex-direction: column; gap: 9px; justify-content: flex-end;
+                 background: color-mix(in srgb, var(--a) 22%, #0B0B18);
+                 border: 1px solid color-mix(in srgb, var(--a) 50%, transparent);
+                 opacity: 0; animation: lts-slide 6s infinite }
+    .lts-slide-1 { animation-delay: 2s } .lts-slide-2 { animation-delay: 4s }
+    .lts-dots { display: flex; gap: 5px; justify-content: center }
+    .lts-dot { width: 5px; height: 5px; border-radius: 9999px; background: rgba(255,255,255,.2);
+               animation: lts-dot 6s infinite }
+    html.light-mode .lts-dot { background: #D6DAE9 }
+    .lts-dot-1 { animation-delay: 2s } .lts-dot-2 { animation-delay: 4s }
+    .lts-head { display: flex; align-items: center; justify-content: space-between;
+                font-size: 14px; font-weight: 700 }
+    .lts-cart { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 9999px;
+                background: var(--a); color: #fff; font-size: 11px; font-weight: 800;
+                display: grid; place-items: center }
+    .lts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px }
+    .lts-grid.lts-grid-3 { grid-template-columns: repeat(3, 1fr) }
+    .lts-tile { padding: 9px; border-radius: 10px; font-size: 11.5px; text-align: center;
+                background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08) }
+    html.light-mode .lts-tile { background: #fff; border-color: #E6E8F2 }
+    .lts-thumb { height: 40px; border-radius: 7px; margin-bottom: 6px;
+                 background: color-mix(in srgb, var(--a) 25%, transparent) }
+    .lts-file { display: flex; align-items: center; gap: 9px; font-size: 12.5px }
+    .lts-file i { color: var(--a) }
+    .lts-track { height: 6px; border-radius: 3px; background: rgba(255,255,255,.1); overflow: hidden }
+    html.light-mode .lts-track { background: #E6E8F2 }
+    .lts-fill { display: block; height: 100%; width: 0; background: var(--a);
+                animation: lts-fill 1.6s .4s ease-out forwards }
+    .lts-datecard { width: 74px; margin: 0 auto; padding: 10px 0; border-radius: 12px; text-align: center;
+                    background: color-mix(in srgb, var(--a) 15%, transparent);
+                    border: 1px solid color-mix(in srgb, var(--a) 40%, transparent) }
+    .lts-datecard b { display: block; font-size: 26px; font-weight: 800; line-height: 1; color: var(--a) }
+    .lts-datecard span { font-size: 10px; letter-spacing: .12em; opacity: .6 }
+    .lts-month { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px }
+    .lts-day { height: 15px; border-radius: 4px; background: rgba(255,255,255,.08) }
+    html.light-mode .lts-day { background: #E9ECF6 }
+    .lts-day-on { background: var(--a) }
+    .lts-sect { display: flex; flex-direction: column; gap: 6px }
+    .lts-review { display: flex; flex-direction: column; gap: 6px; padding-bottom: 8px }
+    .lts-stars { display: flex; gap: 3px; font-size: 13px; color: var(--a) }
+    .lts-star-off { opacity: .25 }
+    .lts-score { display: flex; align-items: baseline; gap: 7px }
+    .lts-score span { font-size: 11px; opacity: .55 }
+    .lts-swatches { display: flex; gap: 7px }
+    .lts-sw { flex: 1; height: 42px; border-radius: 9px }
+    .lts-type { font-size: 30px; font-weight: 800; line-height: 1; color: var(--a) }
+    .lts-locked { position: relative; display: flex; flex-direction: column; gap: 9px;
+                  padding: 20px 14px; border-radius: 11px;
+                  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08) }
+    html.light-mode .lts-locked { background: #fff; border-color: #E6E8F2 }
+    .lts-blur { filter: blur(3px) }
+    .lts-lock { position: absolute; inset: 0; margin: auto; width: 36px; height: 36px; border-radius: 50%;
+                display: grid; place-items: center; font-size: 13px; color: #fff; background: var(--a) }
+    .lts-qr { display: grid; grid-template-columns: repeat(9, 1fr); gap: 2px;
+              width: 150px; margin: 0 auto; padding: 11px; border-radius: 10px; background: #fff }
+    .lts-qp { aspect-ratio: 1; border-radius: 2px; background: transparent }
+    .lts-qp-on { background: #0B0B18; animation: lts-qp .5s var(--d, 0s) both }
+    .lts-field { display: flex; flex-direction: column; gap: 5px }
+    .lts-input { height: 30px; border-radius: 8px; display: flex; align-items: center; padding: 0 10px;
+                 background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1) }
+    html.light-mode .lts-input { background: #fff; border-color: #E6E8F2 }
+    .lts-caret { width: 1.5px; height: 13px; background: var(--a); animation: lts-blink 1s infinite }
+    .lts-sent { display: flex; align-items: center; gap: 7px; justify-content: center;
+                font-size: 12px; font-weight: 700; color: var(--a) }
+
+    /* ── motion ── */
+    .lts-rise { animation: lts-rise .5s var(--d, 0s) cubic-bezier(.2,.7,.3,1) both }
+    .lts-pop  { animation: lts-pop  .45s var(--d, 0s) cubic-bezier(.2,.9,.3,1.2) both }
+    @keyframes lts-rise { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+    @keyframes lts-pop  { from { opacity: 0; transform: scale(.9) } to { opacity: 1; transform: none } }
+    @keyframes lts-blink { 0%, 100% { opacity: .25 } 50% { opacity: 1 } }
+    @keyframes lts-fill { to { width: 78% } }
+    @keyframes lts-qp   { from { opacity: 0; transform: scale(.4) } to { opacity: 1; transform: none } }
+    @keyframes lts-slide { 0%, 3% { opacity: 0; transform: translateX(14px) }
+                           8%, 30% { opacity: 1; transform: none }
+                           36%, 100% { opacity: 0; transform: translateX(-14px) } }
+    @keyframes lts-dot   { 0%, 30% { background: var(--a); width: 14px } 36%, 100% { width: 5px } }
+
+    /* Reduced motion: no movement anywhere, but every element still lands on
+       its END state, so the scene is complete rather than half-drawn. */
+    @media (prefers-reduced-motion: reduce) {
+        .lts-rise, .lts-pop, .lts-qp-on { animation: none; opacity: 1; transform: none }
+        .lts-typing i, .lts-caret { animation: none; opacity: .6 }
+        .lts-fill { animation: none; width: 78% }
+        .lts-slide { animation: none; opacity: 0 }
+        .lts-slide-0 { opacity: 1 }
+        .lts-dot { animation: none } .lts-dot-0 { background: var(--a); width: 14px }
+    }
+
     .xc-loading { display: grid; place-items: center; min-height: 220px; font-size: 14px; opacity: .6; }
 
     body.xc-locked { overflow: hidden; }

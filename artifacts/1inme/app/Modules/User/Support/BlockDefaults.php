@@ -480,14 +480,21 @@ class BlockDefaults
             'powerpoint' => ['url' => $pptUrl, 'title' => 'Placeholder presentation', '_placeholder' => true],
             'excel' => ['url' => $xlsxUrl, 'title' => 'Placeholder spreadsheet', '_placeholder' => true],
 
+            // The key is `name`, not `platform`. common/blocks/socials.blade.php
+            // resolves the brand icon with $socialIcons[$platform['name']] and
+            // falls back to a grey fa-link when that misses, and the editor
+            // (user/links/partials/socials-form.blade.php) pushes {name,url,…}.
+            // Seeded as `platform`, every new Socials block rendered three
+            // identical grey link icons until someone opened it and re-picked
+            // each network by hand.
             'socials' => ['platforms' => [
-                ['platform' => 'instagram', 'url' => 'https://instagram.com/yourhandle'],
-                ['platform' => 'tiktok', 'url' => 'https://tiktok.com/@yourhandle'],
-                ['platform' => 'youtube', 'url' => 'https://youtube.com/@yourhandle'],
+                ['name' => 'instagram', 'url' => 'https://instagram.com/yourhandle'],
+                ['name' => 'tiktok', 'url' => 'https://tiktok.com/@yourhandle'],
+                ['name' => 'youtube', 'url' => 'https://youtube.com/@yourhandle'],
             ], '_placeholder' => true],
             'socials_multi' => ['groups' => [['label' => 'Personal', 'platforms' => [
-                ['platform' => 'instagram', 'url' => 'https://instagram.com/yourhandle'],
-                ['platform' => 'twitter', 'url' => 'https://twitter.com/yourhandle'],
+                ['name' => 'instagram', 'url' => 'https://instagram.com/yourhandle'],
+                ['name' => 'twitter', 'url' => 'https://twitter.com/yourhandle'],
             ]]], '_placeholder' => true],
             'socials_custom' => ['platforms' => [
                 ['icon' => 'fa-brands fa-instagram', 'url' => 'https://instagram.com/yourhandle', 'label' => 'Instagram'],

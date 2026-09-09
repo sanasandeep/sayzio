@@ -48,17 +48,14 @@
     </div>
 
     <div class="ltm-preview">
-        @if($demoUrl)
-            <div class="ltm-frame">
-                <div class="ltm-bar"><i></i><i></i><i></i><span>{{ $demoHost }}</span></div>
-                <iframe src="{{ $demoUrl }}" title="Live {{ $ltName }} demo page"
-                        loading="lazy" referrerpolicy="same-origin"></iframe>
-            </div>
-            <p class="ltm-cap">The live demo page, not a picture of one.</p>
-        @else
-            <div class="ltm-frame ltm-frame-empty">
-                <p>No demo page is published for this type yet.</p>
-            </div>
-        @endif
+        {{-- An animated scene built from interface parts, not an iframe. The
+             iframe framed the type's EXPLAINER page — a heading, a paragraph
+             and a bullet list — so the panel for "Forms" showed prose about
+             forms rather than a form. This shows the interface instead. --}}
+        @include('home.partials.link-type-scene', [
+            'ltSlug'  => \Illuminate\Support\Str::slug($ltName),
+            'ltColor' => $ltColor,
+        ])
+        <p class="ltm-cap">An illustration of the interface, not a screenshot.</p>
     </div>
 </div>
