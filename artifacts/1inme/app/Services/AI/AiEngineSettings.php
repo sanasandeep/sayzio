@@ -30,6 +30,31 @@ class AiEngineSettings
     public const KEY_MODELS         = 'ai.models';
     public const KEY_FEATURE_MODELS = 'ai.feature_models';
 
+    // ── Additional chat providers ─────────────────────────────────
+    // Each model row names the provider that serves it, so these keys sit
+    // alongside the OpenAI one rather than replacing it. Same Crypt-at-rest
+    // treatment; a provider with no key is simply not offered.
+    public const KEY_OPENROUTER_KEY_ENC = 'ai.openrouter_api_key_enc';
+    public const KEY_ANTHROPIC_KEY_ENC  = 'ai.anthropic_api_key_enc';
+
+    /**
+     * Ordered provider slugs to try when the chosen one fails in a way
+     * another vendor could plausibly survive (rate limit, outage, bad key).
+     * Empty means "no cross-vendor fallback".
+     */
+    public const KEY_PROVIDER_FALLBACK = 'ai.provider_fallback';
+
+    /** Optional explicit "use this model when falling back to that provider". */
+    public const KEY_PROVIDER_FALLBACK_MODELS = 'ai.provider_fallback_models';
+
+    /**
+     * Per-plan, per-feature model overrides: [planSlug => [feature => model]].
+     * Sparse on purpose -- only the cells an admin actually set are stored,
+     * and everything else falls through to the plan-agnostic feature map, so
+     * adding a plan or a feature does not require touching this.
+     */
+    public const KEY_PLAN_FEATURE_MODELS = 'ai.plan_feature_models';
+
     // ── AI Artistic QR (Replicate QR-ControlNet) ──────────────────
     // Replicate token (Crypt-encrypted) with an env fallback, plus the
     // admin-configurable per-generation coin price for this image API.
@@ -577,6 +602,12 @@ PROMPT;
                 'name'              => (string) $m['name'],
                 'kind'              => (string) ($m['kind'] ?? 'chat'),
                 'enabled'           => (bool) ($m['enabled'] ?? true),
+                // Which vendor serves this model. Rows written before more
+                // than one provider existed carry no key at all, and every
+                // one of them is an OpenAI model -- so the absent case
+                // resolves to OpenAI rather than failing, and no stored row
+                // needs rewriting for this to ship.
+                'provider'          => \App\Services\AI\Providers\AiProviderRegistry::normalise($m['provider'] ?? null),
                 'in_coins_per_1k'   => max(0.0, (float) ($m['in_coins_per_1k'] ?? 0)),
                 'out_coins_per_1k'  => max(0.0, (float) ($m['out_coins_per_1k'] ?? 0)),
                 // Vision capability: stored flag wins; rows saved before the
@@ -702,6 +733,7 @@ PROMPT;
                 'name'              => trim((string) $m['name']),
                 'kind'              => in_array(($m['kind'] ?? 'chat'), ['chat','embedding'], true) ? $m['kind'] : 'chat',
                 'enabled'           => (bool) ($m['enabled'] ?? false),
+                'provider'          => \App\Services\AI\Providers\AiProviderRegistry::normalise($m['provider'] ?? null),
                 'in_coins_per_1k'   => round(max(0.0, (float) ($m['in_coins_per_1k'] ?? 0)), 4),
                 'out_coins_per_1k'  => round(max(0.0, (float) ($m['out_coins_per_1k'] ?? 0)), 4),
                 'supports_vision'   => array_key_exists('supports_vision', $m)
@@ -760,10 +792,208 @@ PROMPT;
             if ($override !== null) {
                 return $override;
             }
+
+            // Admin's per-plan choice for this feature. Sits BELOW the user's
+            // own override (which only paid plans can set at all) and ABOVE
+            // the plan-agnostic map, so the order of precedence reads:
+            // the user's explicit pick, then what their plan is configured
+            // for, then the site-wide default for the feature.
+            $forPlan = self::planFeatureModel($user->plan?->slug, $feature);
+            if ($forPlan !== null) {
+                return $forPlan;
+            }
         }
 
         $map = self::featureModels();
         return $map[$feature] ?? self::DEFAULT_FEATURE_MODEL;
+    }
+
+    // ── Providers ─────────────────────────────────────────────────
+
+    /** Decrypted OpenRouter key, or null when not configured. */
+    public static function openRouterKey(): ?string
+    {
+        return self::decryptKey(self::KEY_OPENROUTER_KEY_ENC);
+    }
+
+    public static function setOpenRouterKey(?string $key): void
+    {
+        self::storeKey(self::KEY_OPENROUTER_KEY_ENC, $key);
+    }
+
+    /** Decrypted Anthropic (Claude API) key, or null when not configured. */
+    public static function anthropicKey(): ?string
+    {
+        return self::decryptKey(self::KEY_ANTHROPIC_KEY_ENC);
+    }
+
+    public static function setAnthropicKey(?string $key): void
+    {
+        self::storeKey(self::KEY_ANTHROPIC_KEY_ENC, $key);
+    }
+
+    /**
+     * Ordered provider slugs to try after the model's own provider fails.
+     *
+     * @return array<int,string>
+     */
+    public static function providerFallbackOrder(): array
+    {
+        $stored = AppSetting::get(self::KEY_PROVIDER_FALLBACK);
+        if (!is_array($stored)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($stored as $slug) {
+            if (is_string($slug) && $slug !== '') {
+                $out[] = strtolower(trim($slug));
+            }
+        }
+
+        return array_values(array_unique($out));
+    }
+
+    /** @param array<int,string> $order */
+    public static function setProviderFallbackOrder(array $order): void
+    {
+        $clean = [];
+        foreach ($order as $slug) {
+            $slug = strtolower(trim((string) $slug));
+            if (in_array($slug, \App\Services\AI\Providers\AiProviderRegistry::ALL, true)) {
+                $clean[] = $slug;
+            }
+        }
+
+        AppSetting::put(self::KEY_PROVIDER_FALLBACK, array_values(array_unique($clean)));
+    }
+
+    /**
+     * Which model to use on $providerSlug when falling back to it.
+     *
+     * An explicit admin choice wins; otherwise the first enabled chat model
+     * that provider serves. Auto-picking rather than requiring configuration
+     * is deliberate -- a fallback chain that silently does nothing because
+     * nobody filled in a second grid is worse than one that picks something
+     * reasonable and says so in the log.
+     */
+    public static function fallbackModelFor(string $providerSlug): ?string
+    {
+        $providerSlug = \App\Services\AI\Providers\AiProviderRegistry::normalise($providerSlug);
+
+        $stored = AppSetting::get(self::KEY_PROVIDER_FALLBACK_MODELS);
+        if (is_array($stored) && !empty($stored[$providerSlug]) && is_string($stored[$providerSlug])) {
+            $name = trim($stored[$providerSlug]);
+            $cfg  = self::model($name);
+            if ($cfg && $cfg['enabled'] && $cfg['kind'] === 'chat') {
+                return $name;
+            }
+        }
+
+        foreach (self::models() as $m) {
+            if ($m['enabled'] && $m['kind'] === 'chat' && $m['provider'] === $providerSlug) {
+                return $m['name'];
+            }
+        }
+
+        return null;
+    }
+
+    /** @param array<string,string> $map provider slug => model name */
+    public static function setFallbackModels(array $map): void
+    {
+        $clean = [];
+        foreach ($map as $slug => $name) {
+            $slug = \App\Services\AI\Providers\AiProviderRegistry::normalise($slug);
+            $name = is_string($name) ? trim($name) : '';
+            if ($name !== '') {
+                $clean[$slug] = $name;
+            }
+        }
+
+        AppSetting::put(self::KEY_PROVIDER_FALLBACK_MODELS, $clean);
+    }
+
+    // ── Per-plan, per-feature models ──────────────────────────────
+
+    /**
+     * The whole plan x feature grid as stored.
+     *
+     * Deliberately NOT expanded to every plan/feature pair: a sparse map is
+     * what lets an unset cell fall through to featureModels(), and expanding
+     * it would freeze today's default into every empty cell so a later change
+     * to the site-wide default silently stopped applying.
+     *
+     * @return array<string,array<string,string>>
+     */
+    public static function planFeatureModels(): array
+    {
+        $stored = AppSetting::get(self::KEY_PLAN_FEATURE_MODELS);
+        if (!is_array($stored)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($stored as $planSlug => $features) {
+            if (!is_string($planSlug) || !is_array($features)) {
+                continue;
+            }
+            foreach ($features as $feature => $model) {
+                if (in_array($feature, self::FEATURES, true) && is_string($model) && trim($model) !== '') {
+                    $out[$planSlug][$feature] = trim($model);
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /** @param array<string,array<string,string>> $grid */
+    public static function setPlanFeatureModels(array $grid): void
+    {
+        $clean = [];
+        foreach ($grid as $planSlug => $features) {
+            if (!is_string($planSlug) || $planSlug === '' || !is_array($features)) {
+                continue;
+            }
+            foreach ($features as $feature => $model) {
+                $model = is_string($model) ? trim($model) : '';
+                // An empty cell is an ERASURE, not a value: it means "this
+                // plan has no opinion, use the site-wide default". Storing
+                // it would turn a blank select into a broken model name.
+                if ($model === '' || !in_array($feature, self::FEATURES, true)) {
+                    continue;
+                }
+                $clean[$planSlug][$feature] = $model;
+            }
+        }
+
+        AppSetting::put(self::KEY_PLAN_FEATURE_MODELS, $clean);
+    }
+
+    /**
+     * The model this plan is configured to use for this feature, or null
+     * when the plan has no opinion.
+     *
+     * A configured-but-now-invalid model returns null rather than the stale
+     * name: an admin can disable or delete a model long after wiring it into
+     * a plan, and answering with a model the engine will refuse would turn
+     * one bad cell into a hard failure for every user on that plan.
+     */
+    public static function planFeatureModel(?string $planSlug, string $feature): ?string
+    {
+        if (!$planSlug) {
+            return null;
+        }
+
+        $name = self::planFeatureModels()[$planSlug][$feature] ?? null;
+        if (!$name) {
+            return null;
+        }
+
+        $cfg = self::model($name);
+
+        return ($cfg && $cfg['enabled'] && $cfg['kind'] === 'chat') ? $name : null;
     }
 
     /** Key inside users.settings that holds the per-feature model map. */
