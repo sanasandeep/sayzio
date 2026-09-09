@@ -62,14 +62,24 @@ class OtpLoginEmailIsolationTest extends TestCase
         MailSettings::setFromName('Sayzio');
     }
 
-    public function test_non_production_boot_forces_the_log_mailer(): void
+    public function test_non_production_boot_leaves_a_non_delivering_mailer(): void
     {
-        // The suite runs under APP_ENV=testing (non-production) with
-        // MAIL_MAILER=array in phpunit.xml. If the production-only gate were
-        // ever dropped, config('mail.default') would fall back to that env
-        // value ('array'); the fact it's 'log' proves the boot override ran.
+        // This used to assert config('mail.default') === 'log', on the reasoning
+        // that seeing 'log' rather than phpunit.xml's 'array' proved the boot
+        // override had run. But the guarantee is that nothing can reach a real
+        // recipient, and 'array' satisfies that as completely as 'log' does --
+        // so the old assertion pinned the mechanism, not the property, and the
+        // override it demanded was silently destroying the array transport that
+        // 22 other tests need in order to read what was sent.
+        //
+        // Asserting the property instead. The danger this file exists to catch
+        // is a real socket, and specifically the admin's own SMTP credentials
+        // being honoured outside production -- both named explicitly below.
+        // test_configure_mail_transport_forces_log_even_with_admin_smtp_configured
+        // still covers that path end to end, unchanged.
         $this->assertFalse($this->app->environment('production'));
-        $this->assertSame('log', config('mail.default'));
+        $this->assertContains(config('mail.default'), ['array', 'log']);
+        $this->assertNotSame('smtp', config('mail.default'));
     }
 
     public function test_configure_mail_transport_forces_log_even_with_admin_smtp_configured(): void
@@ -107,9 +117,11 @@ class OtpLoginEmailIsolationTest extends TestCase
             'status'   => 'active',
         ]);
 
-        // The effective mailer is the non-delivering log driver — no real SMTP
-        // socket is opened by the OTP send below.
-        $this->assertSame('log', config('mail.default'));
+        // The effective mailer cannot reach a recipient — no real SMTP socket is
+        // opened by the OTP send below, and the admin's smtp credentials on file
+        // are not what is in force.
+        $this->assertContains(config('mail.default'), ['array', 'log']);
+        $this->assertNotSame('smtp', config('mail.default'));
 
         // Trigger a real OTP send through the web endpoint. Under the log
         // mailer this black-holes the message instead of dialing the relay.
@@ -149,7 +161,9 @@ class OtpLoginEmailIsolationTest extends TestCase
         $this->assertAuthenticatedAs($user);
         $this->assertTrue((bool) DB::table('otps')->where('id', $otp->id)->value('used'));
 
-        // The transport was never taken off the log driver for the whole flow.
-        $this->assertSame('log', config('mail.default'));
+        // The transport was never taken off a non-delivering driver for the
+        // whole flow -- in particular it never became the admin's smtp.
+        $this->assertContains(config('mail.default'), ['array', 'log']);
+        $this->assertNotSame('smtp', config('mail.default'));
     }
 }

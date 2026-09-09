@@ -13,7 +13,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    @if(auth()->check() && auth()->user()->usesAuroraUi())
+    {{-- Same guard as common/partials/theme-styles: ask what the model is
+         rather than assuming the default guard holds a User. --}}
+    @if(($__auroraUser = auth()->user()) instanceof \App\Modules\User\Models\User && $__auroraUser->usesAuroraUi())
     {{-- Aurora sets figures in Archivo and microlabels in mono. Requested only
          for accounts on that interface, so nobody else pays for two families
          they will never see. --}}

@@ -2,7 +2,15 @@
 (function(){
     const saved = localStorage.getItem('1inme_theme');
     if(saved !== 'dark') document.documentElement.classList.add('light-mode');
-@if(auth()->check() && auth()->user()->usesAuroraUi())
+{{-- usesAuroraUi() lives on User, but this partial is shared: admin/layouts/app
+     and the three admin auth screens include it too. auth()->user() reads the
+     DEFAULT guard, and an Admin authenticated on the admin guard leaves that
+     empty, so in the browser the check short-circuits and nobody notices. Under
+     actingAs($admin) the Admin lands on the default guard instead, the call
+     resolves against a model that has no such method, and the page 500s -- 69
+     admin tests, a fifth of the whole suite's failures, all from this line.
+     Asking what the model IS rather than assuming fixes both. --}}
+@if(($__themeUser = auth()->user()) instanceof \App\Modules\User\Models\User && $__themeUser->usesAuroraUi())
     document.documentElement.classList.add('aurora');
 @endif
 })();

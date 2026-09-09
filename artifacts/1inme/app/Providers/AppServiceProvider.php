@@ -19,6 +19,13 @@ use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
+    /**
+     * Mail drivers that cannot reach a real recipient. configureMailTransport()
+     * leaves these alone outside production instead of forcing 'log', so the
+     * array transport the test suite selects survives boot.
+     */
+    private const NON_DELIVERING_MAILERS = ['array', 'log'];
+
     public function register(): void
     {
         $this->app->singleton(CalendarProviderRegistry::class, function () {
@@ -221,7 +228,15 @@ class AppServiceProvider extends ServiceProvider
         try {
             if ($this->app->environment('production')) {
                 \App\Services\Integrations\MailSettings::applyRuntimeConfig();
-            } else {
+            } elseif (! in_array((string) config('mail.default'), self::NON_DELIVERING_MAILERS, true)) {
+                // The guarantee this gate exists for is "no real socket outside
+                // production", and it used to enforce that by forcing 'log'
+                // unconditionally. But 'array' does not deliver either, and it
+                // is what phpunit.xml selects so tests can read what was sent.
+                // Overwriting it turned every such assertion into "Call to
+                // undefined method LogTransport::messages()" -- 22 of them.
+                // Anything NOT already black-holed still gets forced to log, so
+                // admin SMTP credentials stay as inert as before.
                 config(['mail.default' => 'log']);
             }
         } catch (\Throwable $e) {
