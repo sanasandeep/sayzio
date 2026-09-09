@@ -184,10 +184,11 @@
     .lts-btn.lts-solid { background: var(--a); border-color: transparent; color: #fff }
     .lts-num { font-size: 19px; font-weight: 800; color: var(--a) }
     .lts-dim { opacity: .5 }
-    .lts-avatar { width: 46px; height: 46px; border-radius: 50%; margin: 0 auto;
-                  background: var(--a); opacity: .85 }
-    .lts-avatar.lts-sm { width: 30px; height: 30px; margin: 0 }
-    .lts-row { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    .lts-avatar { width: 52px; height: 52px; border-radius: 50%; margin: 0 auto;
+                  object-fit: cover; background: var(--a); flex-shrink: 0 }
+    .lts-avatar.lts-sm { width: 32px; height: 32px; margin: 0 }
+    .lts-avatar.lts-xs { width: 22px; height: 22px; margin: 0 }
+    .lts-row { display: flex; align-items: center; justify-content: space-between; gap: 9px;
                padding: 9px 0; font-size: 12.5px;
                border-bottom: 1px solid rgba(255,255,255,.07) }
     html.light-mode .lts-row { border-bottom-color: #ECEEF6 }
@@ -221,12 +222,15 @@
                     animation: lts-blink 1.1s infinite }
     .lts-typing i:nth-child(2) { animation-delay: .15s } .lts-typing i:nth-child(3) { animation-delay: .3s }
     .lts-deck { position: relative; height: 128px }
-    .lts-slide { position: absolute; inset: 0; padding: 16px; border-radius: 11px;
-                 display: flex; flex-direction: column; gap: 9px; justify-content: flex-end;
+    .lts-slide { position: absolute; inset: 0; border-radius: 11px; overflow: hidden;
+                 display: flex; flex-direction: column; justify-content: flex-end;
                  background: color-mix(in srgb, var(--a) 22%, #0B0B18);
                  border: 1px solid color-mix(in srgb, var(--a) 50%, transparent);
                  opacity: 0; animation: lts-slide 6s infinite }
     .lts-slide-1 { animation-delay: 2s } .lts-slide-2 { animation-delay: 4s }
+    .lts-slide-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px;
+                     display: flex; flex-direction: column; gap: 7px;
+                     background: linear-gradient(transparent, rgba(6,6,14,.85)) }
     .lts-dots { display: flex; gap: 5px; justify-content: center }
     .lts-dot { width: 5px; height: 5px; border-radius: 9999px; background: rgba(255,255,255,.2);
                animation: lts-dot 6s infinite }
@@ -239,11 +243,12 @@
                 display: grid; place-items: center }
     .lts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px }
     .lts-grid.lts-grid-3 { grid-template-columns: repeat(3, 1fr) }
-    .lts-tile { padding: 9px; border-radius: 10px; font-size: 11.5px; text-align: center;
+    .lts-tile { padding: 9px 9px 11px; border-radius: 10px; font-size: 11.5px; text-align: center;
                 background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08) }
     html.light-mode .lts-tile { background: #fff; border-color: #E6E8F2 }
-    .lts-thumb { height: 40px; border-radius: 7px; margin-bottom: 6px;
-                 background: color-mix(in srgb, var(--a) 25%, transparent) }
+    .lts-thumb { display: block; width: 100%; height: 46px; border-radius: 7px; margin-bottom: 6px;
+                 object-fit: cover; background: color-mix(in srgb, var(--a) 25%, transparent) }
+    .lts-tile span { display: block; margin-top: 2px }
     .lts-file { display: flex; align-items: center; gap: 9px; font-size: 12.5px }
     .lts-file i { color: var(--a) }
     .lts-track { height: 6px; border-radius: 3px; background: rgba(255,255,255,.1); overflow: hidden }
@@ -268,11 +273,18 @@
     .lts-swatches { display: flex; gap: 7px }
     .lts-sw { flex: 1; height: 42px; border-radius: 9px }
     .lts-type { font-size: 30px; font-weight: 800; line-height: 1; color: var(--a) }
-    .lts-locked { position: relative; display: flex; flex-direction: column; gap: 9px;
-                  padding: 20px 14px; border-radius: 11px;
+    .lts-locked { position: relative; border-radius: 11px; overflow: hidden;
                   background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08) }
     html.light-mode .lts-locked { background: #fff; border-color: #E6E8F2 }
-    .lts-blur { filter: blur(3px) }
+    .lts-blur { filter: blur(7px) }
+    /* A photograph that fills its frame: used for slide art and the locked cover. */
+    .lts-cover { display: block; width: 100%; height: 100%; object-fit: cover }
+    .lts-locked .lts-cover { height: 132px }
+    /* A dish thumbnail on a menu row. */
+    .lts-pic { width: 38px; height: 38px; border-radius: 7px; object-fit: cover; flex-shrink: 0 }
+    .lts-grow { flex: 1; min-width: 0 }
+    .lts-resume-head { display: flex; align-items: center; gap: 10px }
+    .lts-review-head { display: flex; align-items: center; gap: 8px }
     .lts-lock { position: absolute; inset: 0; margin: auto; width: 36px; height: 36px; border-radius: 50%;
                 display: grid; place-items: center; font-size: 13px; color: #fff; background: var(--a) }
     .lts-qr { display: grid; grid-template-columns: repeat(9, 1fr); gap: 2px;
