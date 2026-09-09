@@ -4,10 +4,13 @@ namespace Tests\Feature\AI;
 
 use App\Modules\Admin\Models\Admin;
 use App\Modules\Admin\Models\AppSetting;
+use App\Modules\Admin\Models\Permission;
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Admin\Models\Role;
 use App\Modules\User\Models\AskCoachMessage;
 use App\Modules\User\Models\AskCoachThread;
 use App\Modules\User\Models\User;
+use App\Modules\User\Services\WorkspaceContext;
 use App\Services\AI\AiEngineSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -43,12 +46,35 @@ class AskCoachAdminSettingsTest extends TestCase
 
     // ── helpers ───────────────────────────────────────────────────
 
+    /**
+     * Every /admin/ask-coach route is behind CheckPermission:settings.manage,
+     * so a bare Admin row is not enough -- the middleware bounces it to
+     * /admin/login and the PUT never reaches the controller. That is why the
+     * four "admin can save X" tests below were asserting against settings
+     * nothing had written: they were reading platform defaults back and
+     * comparing them to what they had tried to save.
+     *
+     * Same shape as makeAdminWithPermission() in ApiKeysPluginsPageTest.
+     */
     private function admin(): Admin
     {
+        $role = Role::firstOrCreate(
+            ['slug' => 'staff-settings-manage'],
+            ['name' => 'Staff (settings.manage)', 'guard' => 'admin']
+        );
+
+        $perm = Permission::firstOrCreate(
+            ['slug' => 'settings.manage'],
+            ['name' => 'settings.manage', 'group' => 'settings']
+        );
+        $role->permissions()->syncWithoutDetaching([$perm->id]);
+
         return Admin::create([
             'name'     => 'Admin ' . Str::random(4),
             'email'    => 'a' . Str::random(8) . '@admin.test',
             'password' => Hash::make('adminpass'),
+            'role_id'  => $role->id,
+            'status'   => 'active',
         ]);
     }
 
@@ -217,9 +243,18 @@ class AskCoachAdminSettingsTest extends TestCase
                 'message' => 'Another question',
             ]);
 
-        // Should redirect back with an error, not proceed to AI
-        $resp->assertSessionHasErrors([], null, 'default');
+        // Should redirect back with an error, not proceed to AI.
+        //
+        // This used to assert assertSessionHasErrors(), i.e. a *validation*
+        // error bag. The controller never populates one: preflightError()
+        // does back()->with('error', $message) for a web POST (and a 422 JSON
+        // body for stream/JSON callers). The comment on the next line has said
+        // "session 'error' flash key" all along -- the assertion just did not
+        // match it, so this test failed on a guard that was working correctly.
+        //
         // Cooldown error surfaced via session 'error' flash key
+        $resp->assertSessionHas('error');
+        $this->assertStringContainsString('wait', strtolower((string) session('error')));
         $this->assertTrue(
             $resp->isRedirect() || $resp->status() === 422,
             'Expected a redirect or 422 when cooldown active'
