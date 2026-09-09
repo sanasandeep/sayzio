@@ -9,6 +9,7 @@ use App\Modules\Common\Services\RestaurantOrderService;
 use App\Modules\User\Models\ApiUsageCounter;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\RestaurantMenu;
+use App\Modules\User\Models\RestaurantMenuCategory;
 use App\Modules\User\Models\RestaurantMenuItem;
 use App\Modules\User\Models\RestaurantTable;
 use App\Modules\User\Models\User;
@@ -131,8 +132,19 @@ class PushDeepLinkTest extends TestCase
             'currency' => 'USD',
         ]);
 
+        // restaurant_menu_items.category_id is NOT NULL -- menus grew a
+        // category layer, and production resolves one before creating an
+        // item (RestaurantMenuController::store). firstOrCreate so repeated
+        // calls in one test reuse the same default category rather than
+        // piling up duplicates.
+        $category = RestaurantMenuCategory::firstOrCreate(
+            ['menu_id' => $menu->id, 'name' => 'Menu'],
+            ['sort_order' => 0, 'is_active' => true]
+        );
+
         $item = RestaurantMenuItem::create([
-            'menu_id'   => $menu->id,
+            'menu_id'     => $menu->id,
+            'category_id' => $category->id,
             'name'      => 'Espresso',
             'price'     => 3.50,
             'is_active' => true,
