@@ -3,8 +3,9 @@
 namespace Tests\Unit\Support;
 
 use App\Modules\User\Support\EventCategories;
+use Illuminate\Support\Facades\Cache;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 /**
  * Guards the legacy event-category normalization mapping (Task #3624's
@@ -21,6 +22,26 @@ use PHPUnit\Framework\TestCase;
  */
 class EventCategoriesSlugForLegacyTest extends TestCase
 {
+    /**
+     * slugForLegacy() reads the curated set through EventCategories::all(),
+     * which is a Cache::remember() over an admin table. That needs the
+     * container, so this extends the Laravel TestCase rather than PHPUnit's
+     * bare one -- as a plain PHPUnit test every case here died on
+     * "Target class [db.schema] does not exist", because the Schema facade
+     * inside all() had no application behind it.
+     *
+     * Priming the cache with the shipped DEFAULTS keeps the test honest about
+     * its subject: these cases pin the KEYWORD MAPPING, not whatever an admin
+     * has enabled, and the primed value means all() returns without ever
+     * reaching the database.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Cache::put(EventCategories::CACHE_KEY, EventCategories::DEFAULTS, 300);
+    }
+
     /**
      * @return array<string,array{0:string,1:?string}>
      */
