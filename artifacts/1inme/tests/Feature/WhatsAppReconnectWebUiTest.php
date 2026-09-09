@@ -7,6 +7,7 @@ use App\Modules\Common\Services\OtpService;
 use App\Modules\User\Models\Form;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\User;
+use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -74,13 +75,20 @@ class WhatsAppReconnectWebUiTest extends TestCase
     /** Keep a verified primary email on file so the account always has a contact. */
     private function verifyEmail(User $u): LinkedIdentifier
     {
-        return LinkedIdentifier::create([
-            'user_id'     => $u->id,
-            'kind'        => 'email',
-            'value'       => $u->email,
-            'verified_at' => now(),
-            'is_primary'  => true,
-        ]);
+        // User::booted() already mirrors the email column into
+        // linked_identifiers as a verified PRIMARY row the moment the account
+        // is created, so creating another one here violated
+        // linked_identifiers_one_primary_per_user. Return the row that
+        // already exists; keyed the way the model keys it, normalized value
+        // included, so this finds it rather than making a second.
+        return LinkedIdentifier::firstOrCreate(
+            ['kind' => 'email', 'value' => LinkedIdentifier::normalize('email', $u->email)],
+            [
+                'user_id'     => $u->id,
+                'verified_at' => now(),
+                'is_primary'  => true,
+            ]
+        );
     }
 
     private function form(User $u): Form
@@ -98,6 +106,12 @@ class WhatsAppReconnectWebUiTest extends TestCase
             'is_active' => true,
         ]);
         $form->user_id = $u->id;
+        // Form uses BelongsToWorkspace. Created out here there is no
+        // current_workspace bound, so workspace_id stays NULL -- and then the
+        // request DOES resolve a workspace, whose global scope filters the
+        // form straight back out and route model binding 404s. Stamping the
+        // owner's own workspace is what the request-time create would do.
+        $form->workspace_id = app(WorkspaceContext::class)->resolve($u)?->id;
         $form->save();
 
         return $form;
@@ -114,7 +128,7 @@ class WhatsAppReconnectWebUiTest extends TestCase
 
         // ---- While disconnected: account toggle gone, verify prompt shown ----
         $this->actingAs($user, 'web')
-            ->get('/user/notifications/preferences')
+            ->get('/user/settings/notifications')
             ->assertOk()
             ->assertDontSee('name="whatsapp_payment_alerts"', false)
             ->assertSee('Connect and verify a WhatsApp number on your account to enable payment alerts.')
@@ -154,7 +168,7 @@ class WhatsAppReconnectWebUiTest extends TestCase
 
         // ---- After reconnect: account toggle back, prompt gone --------------
         $this->actingAs($user, 'web')
-            ->get('/user/notifications/preferences')
+            ->get('/user/settings/notifications')
             ->assertOk()
             ->assertSee('name="whatsapp_payment_alerts"', false)
             ->assertSee('Send me payment alerts on WhatsApp')
