@@ -88,6 +88,81 @@
     .xc-body .lt-dots { display: none; }
     .xc-body .lt-pane-usage { display: block; }
 
+    /* ---------- the Share panel ----------
+       Two columns: what you get on the left, the thing itself on the right,
+       sitting on the same gradient its card wears so the panel reads as that
+       card opened rather than as a different component. */
+    .xc-body--detail { padding-right: 0; }
+    .xcd { display: grid; gap: clamp(22px, 3vw, 40px); align-items: stretch; }
+    @media (min-width: 900px) { .xcd { grid-template-columns: 1fr 1fr; } }
+    .xcd-main { padding-right: 40px; }
+    /* Same gradient chip as on the card it opened from, one size up, so the
+       panel reads as that card enlarged rather than a different screen. */
+    .xcd-ico {
+        display: grid; place-items: center; width: 48px; height: 48px;
+        border-radius: 12px; font-size: 18px; color: #fff;
+        background: linear-gradient(135deg, var(--g1, #3d6bff), var(--g2, #7c5cff));
+        box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--g1, #3d6bff) 85%, transparent);
+    }
+    .xcd-title {
+        margin: 18px 0 0; font-size: clamp(24px, 2.6vw, 33px); font-weight: 800;
+        letter-spacing: -.03em; line-height: 1.12;
+    }
+    .xcd-lead { margin: 12px 0 0; font-size: 16px; line-height: 1.6; opacity: .78; max-width: 46ch; }
+    .xcd-points { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 13px; }
+    .xcd-points li { display: flex; gap: 11px; font-size: 14.5px; line-height: 1.55; }
+    .xcd-points i {
+        flex: none; margin-top: 3px; width: 18px; height: 18px; border-radius: 50%;
+        display: grid; place-items: center; font-size: 9px; color: #fff;
+        background: color-mix(in srgb, var(--g1, #3d6bff) 78%, #000);
+    }
+    .xcd-points strong { font-weight: 700; }
+    .xcd-stats {
+        display: flex; flex-wrap: wrap; gap: 26px; margin: 26px 0 0; padding-top: 20px;
+        border-top: 1px solid rgba(255,255,255,.10);
+    }
+    html.light-mode .xcd-stats { border-top-color: #E6E8F2; }
+    .xcd-stats dt { font-size: 21px; font-weight: 800; letter-spacing: -.02em; }
+    .xcd-stats dd {
+        margin: 2px 0 0; font-size: 11px; font-weight: 700; letter-spacing: .1em;
+        text-transform: uppercase; opacity: .5;
+    }
+    .xcd-cta {
+        margin-top: 26px; display: inline-flex; align-items: center; gap: 8px;
+        padding: 12px 20px; border: 0; border-radius: 10px; cursor: pointer;
+        font-size: 14.5px; font-weight: 700; color: #fff;
+        background: linear-gradient(120deg, var(--g1, #3d6bff), var(--g2, #7c5cff));
+    }
+    .xcd-cta i { font-size: 11px; }
+    .xcd-visual {
+        position: relative; overflow: hidden; border-radius: 14px;
+        border: 1px solid rgba(255,255,255,.10);
+        display: grid; place-items: center; padding: 34px 28px; min-height: 300px;
+    }
+    html.light-mode .xcd-visual { border-color: #E6E8F2; }
+    /* The panel is tall — it matches the copy column — so the demo sits in a
+       lot of space. A faint dot field and a stronger corner bloom than the
+       card uses give that space something to be. */
+    .xcd-visual::before {
+        content: ""; position: absolute; inset: 0; pointer-events: none;
+        background-image: radial-gradient(currentColor 1px, transparent 1px);
+        background-size: 18px 18px;
+        opacity: .07;
+    }
+    .xcd-visual .share-wash {
+        background:
+            radial-gradient(78% 52% at 0% 0%,     color-mix(in srgb, var(--g1) 34%, transparent), transparent 74%),
+            radial-gradient(70% 46% at 100% 100%, color-mix(in srgb, var(--g2) 26%, transparent), transparent 76%);
+    }
+    html.light-mode .xcd-visual .share-wash {
+        background:
+            radial-gradient(74% 48% at 0% 0%,     color-mix(in srgb, var(--g1) 19%, transparent), transparent 76%),
+            radial-gradient(66% 42% at 100% 100%, color-mix(in srgb, var(--g2) 15%, transparent), transparent 78%);
+    }
+    /* The demo is drawn at card size; in here it gets the room to be read. */
+    .xcd-demo { position: relative; width: 100%; max-width: 340px; }
+    @media (min-width: 900px) { .xcd-demo { transform: scale(1.12); } }
+
     /* ---------- the link-type modal ----------
        Two columns: what it is on the left, the thing itself on the right. */
     .ltm { display: grid; gap: clamp(20px, 3vw, 36px); align-items: start; }
@@ -349,7 +424,10 @@
     // The grids worth expanding. Everything else on the page is left alone.
     var SELECTORS = [
         '#audience .audience-card',
-        '#share .glass',
+        // Named rather than '#share .glass': the Share cards carry their own
+        // class now, and a selector that depends on a styling hook breaks the
+        // moment that hook moves.
+        '#share .share-card',
         '#domains .glass'
         // The link-type stage used to be listed here. It no longer exists:
         // the cards open a fetched modal directly, so there is no panel to
@@ -469,6 +547,19 @@
     function open(card) {
         close();
         lastFocused = document.activeElement;
+
+        // A card that ships its own panel gets that; everything else falls
+        // back to a clone of itself. The clone is why the Share cards used to
+        // open into a copy of what you had just clicked — same words, same
+        // three lines, nothing gained. Where a <template class="xc-detail">
+        // exists it holds the fuller story instead.
+        var tpl = card.querySelector(':scope > template.xc-detail');
+        if (tpl) {
+            var host = openShell(titleOf(card), null);
+            host.appendChild(tpl.content.cloneNode(true));
+            host.classList.add('xc-body--detail');
+            return;
+        }
 
         var clone = card.cloneNode(true);
         // The clone must not duplicate ids, re-run Alpine trees, or carry the
