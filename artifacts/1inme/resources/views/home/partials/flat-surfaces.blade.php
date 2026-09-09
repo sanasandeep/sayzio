@@ -141,8 +141,34 @@ html,html body,html.light-mode body{background:var(--fs-page) !important}
      hovering above the lattice instead of a row of it. A hairline is all a
      rule on a grid needs. */
   box-shadow:none !important;
-  border:1px solid var(--fs-rule) !important;
-  background-color:var(--fs-chip) !important;
+  /* At the top of the page the bar is glass: the hero's ribbon and lattice
+     run under it, and only the wordmark and links sit on top. It gains a
+     body as soon as the page moves, because from then on there is real
+     content sliding underneath that the links have to stay readable
+     against. `scrolled` is the Alpine flag the header already kept for its
+     auto-hide behaviour, exposed here as .is-stuck -- no new listener.
+
+     Transitioning colour rather than opacity keeps the text at full
+     strength throughout; fading the whole bar would take the links with
+     it. backdrop-filter only ever applies to the already-blurred stuck
+     state, so there is nothing to composite while the bar is clear. */
+  background-color:transparent !important;
+  border-color:transparent !important;
+  transition:background-color .28s ease, border-color .28s ease, backdrop-filter .28s ease !important;
+}
+.mkt-navbar-bar.is-stuck{
+  background-color:color-mix(in srgb, var(--fs-chip) 82%, transparent) !important;
+  border-color:var(--fs-rule) !important;
+  -webkit-backdrop-filter:saturate(150%) blur(14px);
+          backdrop-filter:saturate(150%) blur(14px);
+}
+/* No color-mix, no translucency: the bar takes its solid fill the moment
+   it sticks, which is the same thing one step less pretty. */
+@supports not (background-color: color-mix(in srgb, red 50%, transparent)){
+  .mkt-navbar-bar.is-stuck{ background-color:var(--fs-chip) !important; }
+}
+@media (prefers-reduced-motion: reduce){
+  .mkt-navbar-bar{ transition:none !important; }
 }
 
 /* The inner highlight and wash those cards drew on their own pseudo
