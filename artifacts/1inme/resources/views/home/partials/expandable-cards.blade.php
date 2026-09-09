@@ -162,34 +162,27 @@
     var SELECTORS = [
         '#audience .audience-card',
         '#share .glass',
-        '#domains .glass',
-        // The link-type stage: expanding it opens whichever type is showing
-        // at a size the drawing actually deserves.
-        '#create .lt-stage'
+        '#domains .glass'
+        // The link-type stage used to be listed here. It no longer exists:
+        // the cards open a fetched modal directly, so there is no panel to
+        // expand and nothing in #create for the generic injector to attach to.
     ];
 
-    // The link-type cards carry their own control in the markup, because a
-    // button cannot be injected inside a button. Clicking it selects that
-    // type and then expands the stage showing it.
+    // The link-type cards carry data-lt-open on the CARD ITSELF, so the whole
+    // card is the target rather than a 28px square in its corner. The card is
+    // already a <button>, so Enter and Space arrive as clicks and no separate
+    // key handling is needed.
+    //
+    // Nothing here may call card.click(): the element being wired IS the card,
+    // and clicking it from its own handler recurses until the stack blows.
     function wireLinkTypeCards() {
         document.querySelectorAll('[data-lt-open]').forEach(function (el) {
             if (el.dataset.xcWired) { return; }
             el.dataset.xcWired = '1';
-            var go = function (e) {
+            el.addEventListener('click', function (e) {
                 e.preventDefault();
-                e.stopPropagation();
-                var card = el.closest('.lt-chip');
-                if (card) { card.click(); }
                 var slug = el.getAttribute('data-lt-slug');
-                if (slug) { openFetched(slug, el.getAttribute('aria-label') || ''); return; }
-                // No slug means an older render; fall back to the stage clone
-                // rather than doing nothing.
-                var stage = document.querySelector('#create .lt-stage');
-                if (stage) { window.setTimeout(function () { open(stage); }, 60); }
-            };
-            el.addEventListener('click', go);
-            el.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' || e.key === ' ') { go(e); }
+                if (slug) { openFetched(slug, el.getAttribute('aria-label') || ''); }
             });
         });
     }
