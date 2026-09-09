@@ -1624,16 +1624,68 @@
             .ws-row { opacity: 1; transform: none; }
         }
 
-        /* ============ Share section · animated cards ============ */
-        .share-card { position: relative; overflow: hidden; }
-        .share-card::before {
-            content: ""; position: absolute; inset: 0;
-            background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.06) 50%, transparent 70%);
-            transform: translateX(-100%);
-            pointer-events: none;
-            transition: transform .9s ease;
+        /* ============ Share section · cards ============
+           Four cards, four gradients. The grid used to share one wash and
+           each card carried the same blurred circle in its corner at 30%
+           opacity, which read as one surface cut into quarters. Each card
+           now owns a pair of colours and lays them as two soft corners of
+           its own.
+
+           The wash is a real child, not a pseudo-element, because the
+           flat-surfaces pass strips background-image from ::before and
+           ::after on every .glass — that rule exists to kill the inner
+           highlights the old translucent cards drew, and a gradient hidden
+           by it would have been a long afternoon. */
+        .share-grid {
+            display: grid; gap: 22px;
+            grid-template-columns: 1fr;
         }
-        .share-card:hover::before { transform: translateX(100%); }
+        @media (min-width: 768px) { .share-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .share-grid { grid-template-columns: repeat(4, 1fr); } }
+
+        .share-card {
+            position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+            min-height: 27rem;
+            padding: 26px 24px 0;
+        }
+        /* Three layers, in paint order: a 2px gradient rule along the very top
+           edge — the card's signature, and the one place the colour is at full
+           strength — then a bloom out of the top-left corner and a fainter one
+           out of the bottom-right. The blooms stop well short of the middle so
+           the card stays a white (or near-black) surface with colour at its
+           corners, rather than a pastel tile. */
+        .share-wash {
+            position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+            background:
+                linear-gradient(90deg, var(--g1), var(--g2)) top left / 100% 2px no-repeat,
+                radial-gradient(70% 46% at 0% 0%,     color-mix(in srgb, var(--g1) 30%, transparent), transparent 72%),
+                radial-gradient(62% 40% at 100% 100%, color-mix(in srgb, var(--g2) 22%, transparent), transparent 74%);
+        }
+        html.light-mode .share-wash {
+            background:
+                linear-gradient(90deg, var(--g1), var(--g2)) top left / 100% 2px no-repeat,
+                radial-gradient(66% 42% at 0% 0%,     color-mix(in srgb, var(--g1) 13%, transparent), transparent 74%),
+                radial-gradient(58% 36% at 100% 100%, color-mix(in srgb, var(--g2) 10%, transparent), transparent 76%);
+        }
+        .share-head { position: relative; }
+        /* The icon chip is where the card's two colours meet at full
+           saturation — small enough to be a mark, not a wash. */
+        .share-ico {
+            display: grid; place-items: center;
+            width: 42px; height: 42px; margin-bottom: 16px;
+            border-radius: 11px; font-size: 16px; color: #fff;
+            background: linear-gradient(135deg, var(--g1), var(--g2));
+            box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--g1) 85%, transparent);
+        }
+        .share-title { font-size: 19px; font-weight: 700; margin-bottom: 7px; letter-spacing: -.01em; }
+        .share-blurb { font-size: 13.5px; line-height: 1.55; color: rgba(255,255,255,.62); }
+        html.light-mode .share-blurb { color: #4E5680; }
+        .share-em { color: #fff; font-weight: 600; }
+        html.light-mode .share-em { color: #0B1033; }
+        /* The demo sits at the BOTTOM of the card, so four cards of unequal
+           copy still line their visuals up with each other. */
+        .share-demo { position: relative; margin-top: auto; padding: 22px 0 26px; }
 
         /* Branded short link · typing slug */
         .sl-pill {
@@ -1666,8 +1718,52 @@
             100% { width: 0; }
         }
         @keyframes slCaret { 50% { border-color: transparent; } }
+        /* The destination the short link points at — the whole argument for
+           branded links is that this line can change and the printed link
+           cannot, so it is worth showing. */
+        .sl-dest {
+            display: flex; align-items: center; gap: 6px;
+            margin-top: 9px; padding-left: 2px;
+            font-size: 10.5px; color: rgba(255,255,255,.5);
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+        html.light-mode .sl-dest { color: #6B7396; }
+        .sl-dest i { font-size: 8px; opacity: .6; }
+        .sl-dest .url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sl-dest .tag {
+            margin-left: auto; flex: none;
+            font-family: inherit; font-size: 8.5px; font-weight: 700;
+            letter-spacing: .06em; text-transform: uppercase;
+            padding: 2px 6px; border-radius: 5px;
+            color: var(--g2);
+            background: color-mix(in srgb, var(--g2) 14%, transparent);
+        }
+
+        .sl-sources { margin-top: 14px; display: grid; gap: 7px; }
+        .sl-src {
+            display: grid; grid-template-columns: 58px 1fr 30px;
+            align-items: center; gap: 8px;
+            font-size: 10px; color: rgba(255,255,255,.55);
+        }
+        html.light-mode .sl-src { color: #6B7396; }
+        .sl-src .bar {
+            height: 4px; border-radius: 2px; overflow: hidden;
+            background: rgba(255,255,255,.09);
+        }
+        html.light-mode .sl-src .bar { background: #E9EBF4; }
+        .sl-src .bar i {
+            display: block; height: 100%; width: var(--pct); border-radius: 2px;
+            background: var(--col);
+            transform-origin: left center;
+            animation: slBar 1.1s cubic-bezier(.22,1,.36,1) backwards;
+        }
+        .sl-src:nth-child(2) .bar i { animation-delay: .1s; }
+        .sl-src:nth-child(3) .bar i { animation-delay: .2s; }
+        @keyframes slBar { from { transform: scaleX(0); } }
+        .sl-src .pct { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+
         .sl-counter {
-            margin-top: 10px;
+            margin-top: 14px;
             display: flex; align-items: center; justify-content: space-between;
             font-size: 10px; color: #9ca3af;
         }
@@ -1910,6 +2006,53 @@
         @keyframes qrPulse { 50% { transform: scale(1.08); } }
 
         /* Channel-ready · orbit pulses */
+        /* QR card · the code and its numbers, side by side */
+        .qr-row { display: flex; align-items: center; gap: 16px; }
+        .qr-meta { flex: 1; min-width: 0; }
+        .qr-meta-row {
+            display: flex; align-items: baseline; justify-content: space-between;
+            gap: 8px; padding: 4px 0;
+            font-size: 10.5px; color: rgba(255,255,255,.5);
+            border-bottom: 1px solid rgba(255,255,255,.07);
+        }
+        html.light-mode .qr-meta-row { color: #6B7396; border-bottom-color: #EDEFF6; }
+        .qr-meta-row dd { font-weight: 700; font-variant-numeric: tabular-nums; color: rgba(255,255,255,.88); }
+        html.light-mode .qr-meta-row dd { color: #0B1033; }
+        .qr-meta-row dd.zero, html.light-mode .qr-meta-row dd.zero { color: var(--g1); }
+        .qr-fmt { display: flex; gap: 5px; margin-top: 10px; }
+        .qr-fmt span {
+            font-size: 8.5px; font-weight: 800; letter-spacing: .07em;
+            padding: 3px 6px; border-radius: 5px;
+            color: var(--g2);
+            background: color-mix(in srgb, var(--g2) 13%, transparent);
+        }
+
+        /* Channels card · the unfurled link preview */
+        .ch-og {
+            display: flex; gap: 10px; align-items: center;
+            margin-bottom: 14px; padding: 8px;
+            border-radius: 10px;
+            background: rgba(255,255,255,.045);
+            border: 1px solid rgba(255,255,255,.08);
+        }
+        html.light-mode .ch-og { background: #FBFBFE; border-color: #E6E8F2; }
+        .ch-og-img {
+            flex: none; width: 46px; height: 46px; border-radius: 7px;
+            display: grid; place-items: center; font-size: 13px; color: #fff;
+            background: linear-gradient(135deg, var(--g1), var(--g2));
+        }
+        .ch-og-meta { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+        .ch-og-meta span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ch-og-site {
+            font-size: 8.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+            color: rgba(255,255,255,.4);
+        }
+        html.light-mode .ch-og-site { color: #8189AC; }
+        .ch-og-title { font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,.92); }
+        html.light-mode .ch-og-title { color: #0B1033; }
+        .ch-og-desc { font-size: 10px; color: rgba(255,255,255,.48); }
+        html.light-mode .ch-og-desc { color: #6B7396; }
+
         .ch-grid { display: flex; flex-wrap: wrap; gap: 8px; }
         .ch-icon {
             position: relative;
@@ -1943,12 +2086,17 @@
         .ch-tags {
             display:flex; flex-wrap:wrap; gap:5px; margin-top: 12px;
         }
+        /* These were #fed7aa on rgba(255,138,60,.15) — pale orange on pale
+           orange, which vanished the moment the page went white. They take
+           the card's own colours now, like every other pill in this set. */
         .ch-tags span {
-            font-size: 9px; font-weight: 700; letter-spacing: .06em;
+            font-size: 9px; font-weight: 800; letter-spacing: .06em;
             padding: 3px 7px; border-radius: 999px;
-            background: rgba(255,138,60,.15); color: #fed7aa;
+            background: color-mix(in srgb, var(--g1) 15%, transparent);
+            color: color-mix(in srgb, var(--g1) 75%, #000);
             text-transform: uppercase;
         }
+        html:not(.light-mode) .ch-tags span { color: color-mix(in srgb, var(--g1) 62%, #fff); }
 
         /* Custom domain card */
         .cd-stage {
@@ -2048,7 +2196,6 @@
             .sl-pill .slug, .sl-spark i, .qr-stage, .qr-stage::after,
             .qr-scans-pill, .ch-icon::after, .cd-bar .lock, .cd-bar::after,
             .cd-rec, .cd-rec .ok, .cd-status .pulse,
-            .share-card::before { animation: none !important; }
             .sl-pill .slug { width: 11ch; border-right: none; }
             .cd-rec, .cd-rec .ok { opacity: 1; transform: none; }
         }

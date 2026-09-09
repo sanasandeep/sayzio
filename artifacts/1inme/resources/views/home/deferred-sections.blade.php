@@ -702,158 +702,82 @@
             <p class="reveal rd-2 text-lg text-gray-400">Branded short links and dynamic QR codes you can repoint at any time. Add your link to bios, posters, business cards, packaging — anywhere. Save links from any browser tab with the Zio Extension, or share straight from any mobile app into Sayzio.</p>
         </div>
 
-        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 glass-ambient-wash">
-            {{-- 1 · Branded short links --}}
-            <div class="reveal rd-1 glass rounded-3xl p-7 tilt share-card">
-                <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c1)"></div>
-                <div class="relative">
-                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(27,212,217,.2)"><i class="fas fa-link text-xl" style="color:var(--c1)"></i></div>
-                    <h3 class="text-xl font-bold mb-2">Branded short links</h3>
-                    <p class="text-sm text-gray-400 mb-5">Custom slugs, UTM-ready, click tracking. Looks like you, not a random shortener.</p>
-                    <div class="sl-pill">
-                        <i class="fas fa-link text-[10px]" style="color:var(--c1)"></i>
-                        <span class="host">1inme.co/</span><span class="slug">spring-drop</span>
-                    </div>
-                    <div class="sl-counter">
-                        <span><span class="num">1,284</span> clicks today</span>
-                        <span class="sl-spark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
-                    </div>
-                </div>
-            </div>
+        @php
+            // The four cards, as data. Each carries what the card shows and
+            // what its panel adds — the blurb is the one-liner on the card,
+            // the lead is the sentence that opens the panel, and they are
+            // deliberately not the same words.
+            $shareCards = [
+                [
+                    'key' => 'short-links', 'rd' => 1, 'icon' => 'fa-link',
+                    'g1' => '#1bd4d9', 'g2' => '#3d6bff',
+                    'title' => 'Branded short links',
+                    'blurb' => 'Custom slugs, UTM-ready, click tracking. Looks like you, not a random shortener.',
+                    'lead'  => 'Every link you hand out carries your name on it, and reports back on what happened next.',
+                    'points' => [
+                        'Pick the slug yourself — <strong>1inme.co/spring-drop</strong>, not a string of characters',
+                        'UTM parameters built in, with presets you save once and reuse',
+                        'Clicks broken down by country, device and referrer, in real time',
+                        'Create and edit in bulk, or from any browser tab with the Zio Extension',
+                    ],
+                    'stats' => [['1,284', 'clicks today'], ['38', 'countries'], ['0', 'setup steps']],
+                    'cta' => 'Claim your short link',
+                ],
+                [
+                    'key' => 'custom-domain', 'rd' => 2, 'icon' => 'fa-globe',
+                    'g1' => '#3d6bff', 'g2' => '#7c5cff',
+                    'title' => 'Custom domain',
+                    'blurb' => 'Bring your own domain like <span class="share-em">links.yourbrand.com</span> — auto-SSL, zero DNS headaches.',
+                    'lead'  => 'Put your links on a domain you own. One DNS record, and the certificate is handled for you from then on.',
+                    'points' => [
+                        'One CNAME to verify — we check it and tell you the moment it lands',
+                        "Let's Encrypt certificate issued and renewed automatically, forever",
+                        'Unlimited links and pages on the domain, at no extra cost',
+                        'Your existing website stays exactly where it is, untouched',
+                    ],
+                    'stats' => [['1', 'DNS record'], ['auto', 'SSL renewal'], ['~5 min', 'to go live']],
+                    'cta' => 'Connect a domain',
+                ],
+                [
+                    'key' => 'qr-codes', 'rd' => 3, 'icon' => 'fa-qrcode',
+                    'g1' => '#e94e8c', 'g2' => '#ff8a3c',
+                    'title' => 'Dynamic QR codes',
+                    'blurb' => 'Print once, redirect forever. Change the destination without reprinting.',
+                    'lead'  => 'The code on the poster never changes. Where it sends people is yours to change whenever you like.',
+                    'points' => [
+                        'Repoint any code at a new destination — the printed code keeps working',
+                        'Scans plotted by place and time, so you can see which poster is pulling',
+                        'Custom eyes, frames and colours, with your mark in the middle',
+                        'SVG and PNG export at print resolution, ready for the printer',
+                    ],
+                    'stats' => [['+128', 'scans today'], ['16', 'code styles'], ['SVG', 'print export']],
+                    'cta' => 'Make a QR code',
+                ],
+                [
+                    'key' => 'channels', 'rd' => 4, 'icon' => 'fa-share-nodes',
+                    'g1' => '#ff8a3c', 'g2' => '#ffc845',
+                    'title' => 'Channel-ready',
+                    'blurb' => 'Pre-made share cards for every channel. Pixels, UTM and OG ready out of the box.',
+                    'lead'  => 'Your link arrives looking right on every platform, without a design round for each one.',
+                    'points' => [
+                        'Open Graph and Twitter cards generated per link, with a live preview',
+                        'Meta, TikTok and LinkedIn pixels fire on the pages you choose',
+                        'A UTM preset per channel, so the report tells you where each visit came from',
+                        'Run two variants and keep the one that wins',
+                    ],
+                    'stats' => [['6', 'channels'], ['OG', '+ pixels'], ['A/B', 'built in']],
+                    'cta' => 'See the share cards',
+                ],
+            ];
+        @endphp
 
-            {{-- 2 · Custom domain (NEW) --}}
-            <div class="reveal rd-2 glass rounded-3xl p-7 tilt share-card">
-                <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c2)"></div>
-                <div class="relative">
-                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(61,107,255,.22)"><i class="fas fa-globe text-xl" style="color:var(--c2)"></i></div>
-                    <h3 class="text-xl font-bold mb-2">Custom domain</h3>
-                    <p class="text-sm text-gray-400 mb-5">Bring your own domain like <span class="text-white">links.yourbrand.com</span> — auto-SSL, zero DNS headaches.</p>
-                    <div class="cd-stage">
-                        <div class="cd-bar">
-                            <span class="lock"><i class="fas fa-lock"></i></span>
-                            <span class="sub">https://</span><span class="brand">links.</span><span class="brand">yourbrand</span><span class="tld">.com</span><span class="path">/launch</span>
-                        </div>
-                        <div class="cd-rows" aria-hidden="true">
-                            <div class="cd-rec">
-                                <span class="ty">CNAME</span>
-                                <span class="val">links → cname.1inme.co</span>
-                                <span class="ok"><i class="fas fa-circle-check"></i></span>
-                            </div>
-                            <div class="cd-rec">
-                                <span class="ty">TXT</span>
-                                <span class="val">_1inme-verify=ok-91a2</span>
-                                <span class="ok"><i class="fas fa-circle-check"></i></span>
-                            </div>
-                            <div class="cd-rec">
-                                <span class="ty">SSL</span>
-                                <span class="val">Let's Encrypt · auto-renew</span>
-                                <span class="ok"><i class="fas fa-circle-check"></i></span>
-                            </div>
-                        </div>
-                        <span class="cd-status"><span class="pulse"></span>Live · secured</span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- 3 · Dynamic QR codes --}}
-            <div class="reveal rd-3 glass rounded-3xl p-7 tilt share-card">
-                <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c3)"></div>
-                <div class="relative">
-                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(233,78,140,.2)"><i class="fas fa-qrcode text-xl" style="color:var(--c3)"></i></div>
-                    <h3 class="text-xl font-bold mb-2">Dynamic QR codes</h3>
-                    <p class="text-sm text-gray-400 mb-5">Print once, redirect forever. Change the destination without reprinting.</p>
-                    <div class="qr-stage qr-stage--left" aria-hidden="true">
-                        <span class="qr-corner tl"></span>
-                        <span class="qr-corner tr"></span>
-                        <span class="qr-corner bl"></span>
-                        <span class="qr-corner br"></span>
-                        <span class="qr-scans-pill">+128 scans · today</span>
-                        @php
-                            $qrSize = 29;
-                            $qrGrid = array_fill(0, $qrSize, array_fill(0, $qrSize, 0));
-                            $qrFinder = function (&$g, $ox, $oy) {
-                                for ($i = 0; $i < 7; $i++) {
-                                    for ($j = 0; $j < 7; $j++) {
-                                        $on = ($i === 0 || $i === 6 || $j === 0 || $j === 6)
-                                            || ($i >= 2 && $i <= 4 && $j >= 2 && $j <= 4);
-                                        $g[$oy + $i][$ox + $j] = $on ? 1 : 0;
-                                    }
-                                }
-                            };
-                            $qrFinder($qrGrid, 0, 0);
-                            $qrFinder($qrGrid, 22, 0);
-                            $qrFinder($qrGrid, 0, 22);
-                            for ($i = 0; $i < 5; $i++) {
-                                for ($j = 0; $j < 5; $j++) {
-                                    $on = ($i === 0 || $i === 4 || $j === 0 || $j === 4) || ($i === 2 && $j === 2);
-                                    $qrGrid[20 + $i][20 + $j] = $on ? 1 : 0;
-                                }
-                            }
-                            for ($i = 8; $i <= 20; $i++) {
-                                $qrGrid[6][$i] = ($i % 2 === 0) ? 1 : 0;
-                                $qrGrid[$i][6] = ($i % 2 === 0) ? 1 : 0;
-                            }
-                            $qrReserved = function ($x, $y) {
-                                if ($x < 8 && $y < 8) return true;
-                                if ($x >= 22 && $y < 8) return true;
-                                if ($x < 8 && $y >= 22) return true;
-                                if ($x >= 20 && $x < 25 && $y >= 20 && $y < 25) return true;
-                                if ($x === 6 || $y === 6) return true;
-                                return false;
-                            };
-                            mt_srand(20251128);
-                            for ($y = 0; $y < $qrSize; $y++) {
-                                for ($x = 0; $x < $qrSize; $x++) {
-                                    if (!$qrReserved($x, $y)) {
-                                        $qrGrid[$y][$x] = (mt_rand(0, 100) < 47) ? 1 : 0;
-                                    }
-                                }
-                            }
-                            for ($y = 12; $y <= 16; $y++) {
-                                for ($x = 12; $x <= 16; $x++) {
-                                    $qrGrid[$y][$x] = 0;
-                                }
-                            }
-                        @endphp
-                        <svg class="qr-svg" viewBox="0 0 29 29" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-                            <defs>
-                                <linearGradient id="qrLogoGrad" x1="0" y1="0" x2="1" y2="1">
-                                    <stop offset="0" stop-color="#e94e8c"/>
-                                    <stop offset="1" stop-color="#3d6bff"/>
-                                </linearGradient>
-                            </defs>
-                            @for ($y = 0; $y < $qrSize; $y++)
-                                @for ($x = 0; $x < $qrSize; $x++)
-                                    @if ($qrGrid[$y][$x])
-                                        <rect x="{{ $x }}" y="{{ $y }}" width="1.04" height="1.04" rx="0.18" ry="0.18" fill="#0e0e10"/>
-                                    @endif
-                                @endfor
-                            @endfor
-                            <rect x="11.4" y="11.4" width="6.2" height="6.2" rx="1.3" ry="1.3" fill="#fff"/>
-                            <rect x="12.1" y="12.1" width="4.8" height="4.8" rx="1" ry="1" fill="url(#qrLogoGrad)"/>
-                            <text x="14.5" y="15.95" text-anchor="middle" font-family="Inter,system-ui,-apple-system,sans-serif" font-weight="900" font-size="3.2" fill="#fff">1</text>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            {{-- 4 · Channel-ready --}}
-            <div class="reveal rd-4 glass rounded-3xl p-7 tilt share-card">
-                <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c4)"></div>
-                <div class="relative">
-                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(255,138,60,.2)"><i class="fas fa-share-nodes text-xl" style="color:var(--c4)"></i></div>
-                    <h3 class="text-xl font-bold mb-2">Channel-ready</h3>
-                    <p class="text-sm text-gray-400 mb-5">Pre-made share cards for every channel. Pixels, UTM and OG ready out of the box.</p>
-                    <div class="ch-grid">
-                        @foreach(['fa-instagram'=>'#e94e8c','fa-tiktok'=>'#1bd4d9','fa-youtube'=>'#e94e8c','fa-x-twitter'=>'#3d6bff','fa-linkedin'=>'#1bd4d9','fa-facebook'=>'#3d6bff'] as $ic => $col)
-                            <span class="ch-icon" style="color:{{ $col }}"><i class="fab {{ $ic }}"></i></span>
-                        @endforeach
-                    </div>
-                    <div class="ch-tags" aria-hidden="true">
-                        <span>OG</span><span>Pixels</span><span>UTM</span><span>UTM-A/B</span>
-                    </div>
-                </div>
-            </div>
+        {{-- No glass-ambient-wash here: it painted a blurred blue-violet blob
+             behind all four cards, which is exactly the tinted page background
+             we spent two passes removing. Colour belongs to the cards now. --}}
+        <div class="share-grid">
+            @foreach($shareCards as $card)
+                @include('home.partials.share-card', ['card' => $card])
+            @endforeach
         </div>
     </div>
 </section>
