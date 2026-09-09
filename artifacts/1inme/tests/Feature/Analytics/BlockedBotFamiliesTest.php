@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Analytics;
 
+use App\Modules\Common\Services\ClickWriteBuffer;
 use App\Modules\Common\Services\LinkTrackingService;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\LinkClick;
@@ -34,9 +35,19 @@ class BlockedBotFamiliesTest extends AnalyticsTestCase
         $click = app(LinkTrackingService::class)->track($link, $this->makeRequest('Mozilla/5.0 (compatible; AhrefsBot/7.0)'));
 
         $this->assertNotNull($click);
-        $this->assertTrue((bool) $click->is_bot);
+        $this->assertTrue((bool) $click->isBot);
+
+        // track() buffers the row rather than inserting it; the real request
+        // flushes at terminate. Nothing lands in link_clicks until then.
+        app(ClickWriteBuffer::class)->flush();
+
         $this->assertSame(1, LinkClick::withBots()->where('link_id', $link->id)->count());
+
         // Cached counters stay flat — it's still a bot, just not a blocked one.
+        // Rolling the deltas up first is what makes this assertion mean
+        // anything: counters no longer move at write time, so a bare read of
+        // total_clicks would sit at 0 whether or not bots were excluded.
+        $this->artisan('analytics:flush-counters')->assertExitCode(0);
         $this->assertSame(0, (int) $link->fresh()->total_clicks);
     }
 
@@ -50,7 +61,11 @@ class BlockedBotFamiliesTest extends AnalyticsTestCase
         ));
 
         $this->assertNotNull($click);
-        $this->assertFalse((bool) $click->is_bot);
+        $this->assertFalse((bool) $click->isBot);
+
+        app(ClickWriteBuffer::class)->flush();
+        $this->artisan('analytics:flush-counters')->assertExitCode(0);
+
         $this->assertSame(1, (int) $link->fresh()->total_clicks);
     }
 
@@ -82,7 +97,7 @@ class BlockedBotFamiliesTest extends AnalyticsTestCase
         $click = app(LinkTrackingService::class)->track($link, $this->makeRequest('Mozilla/5.0 (compatible; GPTBot/1.0; +https://openai.com/gptbot)'));
 
         $this->assertNotNull($click);
-        $this->assertTrue((bool) $click->is_bot);
+        $this->assertTrue((bool) $click->isBot);
     }
 
     private function makeRequest(string $userAgent): Request
