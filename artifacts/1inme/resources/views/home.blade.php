@@ -2971,7 +2971,19 @@
             // `reveal-ready` is what actually hides the element (see the CSS).
             // It goes on immediately before observe() so an element is never
             // hidden without something watching for its turn to appear.
-            reveals.forEach(el => { el.classList.add('reveal-ready'); observer.observe(el); });
+            //
+            // Anything already on screen when this runs is NEVER hidden. The
+            // markup paints before this script does, so hiding the hero here
+            // and waiting for the observer's first callback to bring it back
+            // blanks the top of the page for about a second on every load —
+            // an entrance nobody sees, in exchange for a blank first
+            // impression. Those elements are simply marked done.
+            const vh = window.innerHeight || 800;
+            reveals.forEach(el => {
+                if (el.getBoundingClientRect().top < vh) { el.classList.add('visible'); return; }
+                el.classList.add('reveal-ready');
+                observer.observe(el);
+            });
             window.homeRevealFallback();
         } else {
             // No observer: never hide anything.
