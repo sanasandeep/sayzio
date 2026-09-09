@@ -25,23 +25,36 @@
     $c = $ltColor ?? '#3d6bff';
 
     /*
-     * Photography, from the set the site already ships in
-     * public/images/hero-roles: nineteen role portraits and fifteen subject
-     * thumbnails, all local webp of a few kilobytes. Only the photographic
-     * portraits are used (artist, coach, musician, business, creator,
-     * photographer, podcaster, influencer); the rest of that set are flat
-     * letter graphics, which read as a missing image at avatar size.
-     * Local on purpose — an
-     * external placeholder host would put the panel's appearance at the mercy
-     * of someone else's uptime, and these are already deployed.
+     * Photography, from the sets the site already ships. Local on purpose —
+     * an external placeholder host would put the panel's appearance at the
+     * mercy of someone else's uptime, and these are already deployed.
+     *
+     * Only some of those files are photographs, and the difference matters:
+     * hero-roles also contains flat gradient cards with the subject's name
+     * printed across them, which read as a missing image once they are
+     * cropped into a tile. The photographs are:
+     *
+     *   portraits    role_artist, role_business, role_coach, role_creator,
+     *                role_influencer, role_musician, role_photographer,
+     *                role_podcaster
+     *   subjects     thumb_album, thumb_artwork, thumb_merch, thumb_photo,
+     *                thumb_podcast, thumb_youtube
+     *   scenes       marketing/app/restaurant.webp and its neighbours
+     *
+     * Everything else in hero-roles (food, design, travel, book, code,
+     * fitness, stream, writing, course) is a gradient card, and is not used
+     * here. Bare names resolve inside hero-roles; a name containing a slash
+     * is taken as a path under images/.
      *
      * Used only where the TYPE is about content: a bio page has a face, a
-     * menu has dishes, a shop has products. The types that are about
+     * menu has a room, a shop has products. The types that are about
      * mechanics rather than content — short links, QR codes, forms, file
      * downloads, text pages — get no photograph, because a decorative one
      * there would say nothing about what the type does.
      */
-    $img = fn (string $n) => asset('images/hero-roles/' . $n . '.webp');
+    $img = fn (string $n) => asset(
+        'images/' . (str_contains($n, '/') ? $n : 'hero-roles/' . $n . '.webp')
+    );
 @endphp
 <div class="lts" style="--a:{{ $c }}">
 @switch($ltSlug)
@@ -91,7 +104,7 @@
     <div class="lts-deck">
         @foreach([0,1,2] as $i)
             <div class="lts-slide lts-slide-{{ $i }}">
-                <img class="lts-cover" src="{{ $img(['thumb_travel-640','thumb_album-640','thumb_artwork-640'][$i]) }}"
+                <img class="lts-cover" src="{{ $img(['thumb_photo-640','thumb_album-640','thumb_artwork-640'][$i]) }}"
                      alt="" width="640" height="360" loading="lazy" decoding="async">
                 <div class="lts-slide-cap">
                     <div class="lts-line lts-w60"></div>
@@ -113,14 +126,17 @@
     @break
 
 @case('restaurant-menu')
-    <div class="lts-head lts-rise" style="--d:.05s">
-        <span>Olive &amp; Ember</span>
+    {{-- The room, not the dishes: there is no food photograph in the shipped
+         set, and a gradient card behind a dish name looks like an image that
+         failed to load. A photograph of the place carries the same idea. --}}
+    <div class="lts-banner lts-rise" style="--d:.05s">
+        <img class="lts-cover" src="{{ $img('marketing/app/restaurant.webp') }}" alt=""
+             width="640" height="360" loading="lazy" decoding="async">
+        <span class="lts-banner-name">Olive &amp; Ember</span>
         <span class="lts-cart lts-pop" style="--d:1.1s">2</span>
     </div>
-    @foreach([['Wood-fired Focaccia','7.50','thumb_food-320'],['Margherita Pizza','14.00','thumb_food-320'],['Burrata &amp; Tomato','12.00','thumb_travel-320']] as $i => $d)
-        <div class="lts-row lts-rise" style="--d:{{ .2 + $i * .13 }}s">
-            <img class="lts-pic" src="{{ $img($d[2]) }}" alt="" width="320" height="320"
-                 loading="lazy" decoding="async">
+    @foreach([['Wood-fired Focaccia','7.50'],['Margherita Pizza','14.00'],['Burrata &amp; Tomato','12.00']] as $i => $d)
+        <div class="lts-row lts-thin lts-rise" style="--d:{{ .25 + $i * .13 }}s">
             <span class="lts-grow">{!! $d[0] !!}</span>
             <b class="lts-price">{{ $d[1] }}</b>
         </div>
@@ -130,7 +146,7 @@
 
 @case('store-menu')
     <div class="lts-grid">
-        @foreach([['Hoodie','thumb_merch-320'],['Print','thumb_artwork-320'],['Tote','thumb_design-320'],['Zine','thumb_book-320']] as $i => $t)
+        @foreach([['Hoodie','thumb_merch-320'],['Print','thumb_artwork-320'],['Poster','thumb_photo-320'],['Vinyl','thumb_album-320']] as $i => $t)
             <div class="lts-tile lts-pop" style="--d:{{ .1 + $i * .1 }}s">
                 <img class="lts-thumb" src="{{ $img($t[1]) }}" alt="" width="320" height="320"
                      loading="lazy" decoding="async">
@@ -208,7 +224,7 @@
         <div class="lts-row lts-thin"><i class="fas fa-location-dot"></i><span>12 Rua das Flores</span></div>
     </div>
     <div class="lts-grid lts-grid-3">
-        @foreach(['thumb_food-320','thumb_design-320','thumb_photo-320'] as $i => $t)
+        @foreach(['thumb_photo-320','thumb_artwork-320','thumb_merch-320'] as $i => $t)
             <img class="lts-thumb lts-pop" style="--d:{{ .4 + $i * .1 }}s" src="{{ $img($t) }}"
                  alt="" width="320" height="320" loading="lazy" decoding="async">
         @endforeach
