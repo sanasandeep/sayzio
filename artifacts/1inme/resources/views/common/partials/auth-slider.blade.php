@@ -170,10 +170,25 @@
                         <i class="{{ $slide['icon'] }}" style="color: {{ $slide['accent'] }};"></i>
                         <span>{{ $slide['tag'] }}</span>
                     </div>
-                    <h3 class="{{ $headSize }} font-bold mb-4 leading-tight"
-                        style="color:#ffffff !important; text-shadow: 0 2px 18px rgba(0,0,0,0.65);">
+                    {{-- A <p>, not an <h3>.
+
+                         This slider lives inside the sign-in modal, which is
+                         rendered near the top of every marketing page and kept
+                         hidden. Its six slide headlines were the first six
+                         headings in the homepage's document outline -- six H3s
+                         before the H1, with no H2 above them and no relation
+                         to anything on the page. That was the one genuine SEO
+                         defect a full audit of the page turned up.
+
+                         Nothing is lost by demoting them: the slide's own
+                         wrapper is already `role="group"` with
+                         `aria-roledescription="slide"` and an aria-label that
+                         reads "Slide 2 of 6: <this headline>", so a screen
+                         reader announces it either way. --}}
+                    <p class="{{ $headSize }} font-bold mb-4 leading-tight"
+                       style="color:#ffffff !important; text-shadow: 0 2px 18px rgba(0,0,0,0.65);">
                         {{ $slide['headline'] }}
-                    </h3>
+                    </p>
                     <ul class="space-y-1.5 text-sm">
                         @foreach($slide['bullets'] as $b)
                             <li class="flex items-start gap-2.5"

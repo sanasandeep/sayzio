@@ -161,7 +161,7 @@
 .sa-header{padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.06)}
 .sa-header img,.sa-header .sa-avatar{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff}
 .sa-header img{object-fit:contain;padding:1px}
-.sa-header h4{margin:0;font-size:14px;font-weight:600;color:#fff}
+.sa-header h3{margin:0;font-size:14px;font-weight:600;color:#fff}
 .sa-header .sa-sub{font-size:11px;opacity:.65}
 .sa-close{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;background:transparent;border:0;color:#94a3b8;font-size:20px;line-height:1;border-radius:8px;cursor:pointer;transition:background .15s ease,color .15s ease}
 .sa-close:hover{background:rgba(255,255,255,.08);color:#e2e8f0}
@@ -237,7 +237,7 @@
 html.light-mode #sa-panel{background:#ffffff;color:#1e293b;border:1px solid rgba(15,23,42,.1);box-shadow:0 25px 60px rgba(15,23,42,.18)}
 html.light-mode .sa-header{border-bottom:1px solid rgba(15,23,42,.08)}
 html.light-mode .sa-header img,html.light-mode .sa-header .sa-avatar{background:rgba(15,23,42,.06);color:#0f172a}
-html.light-mode .sa-header h4{color:#0f172a}
+html.light-mode .sa-header h3{color:#0f172a}
 html.light-mode .sa-close{color:#64748b}
 html.light-mode .sa-close:hover{color:#0f172a}
 html.light-mode .sa-msg.assistant{background:rgba(15,23,42,.05);color:#1e293b}
@@ -578,7 +578,11 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   // bootstrap arrives. Bootstrap re-applies it (in case admin edits
   // happened mid-pageload) but the initial value is already correct.
   var subInit = (typeof window.__SA_SUBHEADING==='string' && window.__SA_SUBHEADING) ? window.__SA_SUBHEADING : 'How can I help?';
-  var header=el('div',{class:'sa-header',html:'<div><h4>'+escapeHtml(window.__SA_BRAND||'Assistant')+'</h4><div class="sa-sub" id="sa-sub">'+escapeHtml(subInit)+'</div></div>'});
+    // h3, not h4. This panel's header was the page's only remaining heading-
+  // level skip: the heading before it is an h2, so an h4 here jumps a
+  // level in the document outline. Nothing about the panel changes -- its
+  // size comes from .sa-header, not from the tag.
+  var header=el('div',{class:'sa-header',html:'<div><h3>'+escapeHtml(window.__SA_BRAND||'Assistant')+'</h3><div class="sa-sub" id="sa-sub">'+escapeHtml(subInit)+'</div></div>'});
   // "Contact us" entry point: opens the multi-channel quick-contact form
   // (Call back / WhatsApp / Email) right inside the panel. This is the
   // former standalone quick-contact widget, folded into the assistant so
@@ -990,7 +994,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   function buildCapsPane(){
     capsPaneEl=el('div',{class:'sa-vcaps',id:'sa-vcaps'});
     var head=el('div',{class:'sa-header'});
-    var ttl=el('div',{html:'<h4>What I can do</h4>'});
+    var ttl=el('div',{html:'<h4>What I can do</h4>'});  // under the panel's h3, so h4 is the right step
     var back=el('button',{type:'button',class:'sa-close','aria-label':'Back'},'×');
     back.onclick=closeCaps;
     head.appendChild(ttl); head.appendChild(back);

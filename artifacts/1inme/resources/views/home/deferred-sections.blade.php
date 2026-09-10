@@ -1750,7 +1750,7 @@
                             @foreach($teammates as $m)
                                 <div class="ws-row" style="animation-delay: {{ $m['delay'] }}">
                                     <div class="ws-avatar is-online">
-                                        <img src="{{ $m['avatar'] }}" alt="{{ $m['name'] }}" loading="lazy">
+                                        <img src="{{ $m['avatar'] }}" alt="{{ $m['name'] }}" loading="lazy" decoding="async" width="400" height="400">
                                     </div>
                                     <div class="ws-meta">
                                         <div class="ws-name">
@@ -1780,7 +1780,7 @@
                             <div class="flex items-center gap-3">
                                 <div class="ws-online-stack" aria-label="Online now">
                                     @foreach($teammates as $m)
-                                        <div class="av"><img src="{{ $m['avatar'] }}" alt="" loading="lazy"></div>
+                                        <div class="av"><img src="{{ $m['avatar'] }}" alt="" loading="lazy" decoding="async" width="400" height="400"></div>
                                     @endforeach
                                 </div>
                                 <span class="text-[11px] text-gray-400">Collaborating live</span>

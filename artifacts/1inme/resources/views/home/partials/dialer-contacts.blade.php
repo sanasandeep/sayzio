@@ -393,7 +393,7 @@
                                 @endphp
                                 <div class="dc-numwrap">
                                     <div class="dc-match">
-                                        <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" onerror="this.remove()">
+                                        <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" decoding="async" width="192" height="192" onerror="this.remove()">
                                         Aisha Rahman <i class="fas fa-circle-check"></i>
                                     </div>
                                     {{-- Quick-channel icons appear with the T9 match --}}
@@ -454,7 +454,7 @@
                                     <div class="dc-cid-pill"><i class="fas fa-address-card"></i> Sayzio Caller ID</div>
                                     <div class="dc-avatar-lg">
                                         AR
-                                        <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" onerror="this.remove()">
+                                        <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" decoding="async" width="192" height="192" onerror="this.remove()">
                                     </div>
                                     <div class="dc-call-name">Aisha Rahman <i class="fas fa-circle-check"></i></div>
                                     <div class="dc-call-handle">@aisha &middot; on Sayzio</div>

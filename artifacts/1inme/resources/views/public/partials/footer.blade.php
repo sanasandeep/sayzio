@@ -109,7 +109,7 @@
         <div class="ft-grid mb-12">
             <div>
                 <a href="{{ route('home') }}" class="inline-flex items-center" aria-label="Sayzio home">
-                    @include('common.partials.brand-logo', ['height' => 'h-9'])
+                    @include('common.partials.brand-logo', ['height' => 'h-9', 'loading' => 'lazy'])
                 </a>
                 <p class="ft-blurb">The all-in-one link platform: build a drag-and-drop Link in Bio, share it everywhere, and grow with live analytics and a built-in Performance Coach.</p>
 
