@@ -34,19 +34,25 @@ class PageTemplateApiTest extends TestCase
 
     private function plan(string $slug, int $sortOrder): Plan
     {
-        return Plan::create([
-            'name'          => ucfirst($slug),
-            'slug'          => $slug,
-            'monthly_price' => 0,
-            'annual_price'  => 0,
-            'trial_days'    => 0,
-            'status'        => 'active',
-            'sort_order'    => $sortOrder,
-            'features'      => [
-                'max_links'    => 100,
-                'max_biolinks' => 100,
-            ],
-        ]);
+        // Callers pass real catalogue slugs ("free"), and the migrations now
+        // seed that catalogue -- so create() collided on plans_slug_unique.
+        // updateOrCreate reuses the shipped row while still pinning the
+        // features these tests assert against.
+        return Plan::updateOrCreate(
+            ['slug' => $slug],
+            [
+                'name'          => ucfirst($slug),
+                'monthly_price' => 0,
+                'annual_price'  => 0,
+                'trial_days'    => 0,
+                'status'        => 'active',
+                'sort_order'    => $sortOrder,
+                'features'      => [
+                    'max_links'    => 100,
+                    'max_biolinks' => 100,
+                ],
+            ]
+        );
     }
 
     private function makeUser(?Plan $plan = null, ?string $persona = null): User

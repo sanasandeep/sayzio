@@ -77,12 +77,14 @@ class ReadonlyDemoSeederNoPrivilegeTest extends TestCase
      */
     private function unlimitedPlan(): Plan
     {
-        return Plan::create([
-            'name'        => 'Unlimited',
-            'slug'        => 'unlimited',
-            'status'      => 'active',
-            'is_internal' => true,
-        ]);
+        // Same helper as ReadonlyDemoSeederWriteGuardTest, which already
+        // uses firstOrCreate -- slug "unlimited" is in the seeded catalogue,
+        // so create() collides. Nothing here depends on the row's numbers,
+        // only that an internal unlimited plan exists.
+        return Plan::firstOrCreate(
+            ['slug' => 'unlimited'],
+            ['name' => 'Unlimited', 'status' => 'active', 'is_internal' => true]
+        );
     }
 
     /**

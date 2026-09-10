@@ -81,21 +81,27 @@ class FailedGatewayRenewalGraceFlowTest extends TestCase
 
     protected function makeFreePlan(): Plan
     {
-        $plan = Plan::create([
-            'name'        => 'Free',
-            'slug'        => 'free',
-            'description' => 'Free',
-            'monthly_price' => 0,
-            'annual_price'  => 0,
-            'trial_days'  => 0,
-            'grace_days'  => 0,
-            'status'      => 'active',
-            'is_default'  => true,
-            'is_archived' => false,
-            'sort_order'  => 0,
-            'features'    => [],
-        ]);
-        return $plan;
+        // Slug "free" now ships in the seeded plan catalogue, so create()
+        // collides on plans_slug_unique. updateOrCreate keeps the shipped
+        // row but enforces this file's shape -- grace_days 0 in particular,
+        // since the shipped plan allows 7 and a grace-flow test that
+        // silently inherited that would stop testing the thing it names.
+        return Plan::updateOrCreate(
+            ['slug' => 'free'],
+            [
+                'name'        => 'Free',
+                'description' => 'Free',
+                'monthly_price' => 0,
+                'annual_price'  => 0,
+                'trial_days'  => 0,
+                'grace_days'  => 0,
+                'status'      => 'active',
+                'is_default'  => true,
+                'is_archived' => false,
+                'sort_order'  => 0,
+                'features'    => [],
+            ]
+        );
     }
 
     protected function makePlan(string $label, int $inrMonthlyMinor): Plan
