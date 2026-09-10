@@ -144,10 +144,14 @@
         }
     </style>
 
-    {{-- Tracking pixels --}}
-    @if(!empty($link->pixels) && $link->pixels->isNotEmpty())
-    @include('common.partials.tracking-pixels', ['pixels' => $link->pixels, 'event' => 'PageView'])
-    @endif
+    {{-- Tracking pixels. The partial is `pixel-scripts`, not
+         `tracking-pixels` -- there has never been a view by that name, so this
+         @include threw "View not found" and took the whole page down for any
+         Updates link with a pixel configured. It also takes $link (and does
+         its own pixel-count check plus the cookie-consent gating), not a
+         pixels/event pair. Same shape as biolink.blade.php and
+         link-password.blade.php. Found by scripts/check-view-references.php. --}}
+    @include('common.partials.pixel-scripts', ['link' => $link])
 
     {{-- Custom head code (plan-gated) --}}
     @if(!empty($link->settings['custom_head']))

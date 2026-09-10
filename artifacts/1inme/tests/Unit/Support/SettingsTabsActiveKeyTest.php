@@ -3,6 +3,7 @@
 namespace Tests\Unit\Support;
 
 use App\Modules\User\Support\SettingsTabs;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Tests\TestCase;
@@ -66,8 +67,11 @@ class SettingsTabsActiveKeyTest extends TestCase
     }
 
     /**
-     * @dataProvider tabForRoute
+     * PHPUnit 12 dropped support for the `@dataProvider` annotation, so this
+     * had been running with no arguments at all and erroring on
+     * ArgumentCountError -- the whole route-to-tab table went unchecked.
      */
+    #[DataProvider('tabForRoute')]
     public function test_active_key_maps_route_to_expected_tab(string $routeName, ?string $expected): void
     {
         $this->onRoute($routeName);
