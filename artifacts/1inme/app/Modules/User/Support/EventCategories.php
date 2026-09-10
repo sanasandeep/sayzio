@@ -78,7 +78,14 @@ class EventCategories
 
     public const FALLBACK_ICON = 'fa-calendar-days';
 
-    private const CACHE_KEY = 'event_categories.enabled';
+    /**
+     * Public because the cache is part of this class's contract, not an
+     * implementation detail: flush() already hands the key out by proxy, and
+     * a caller that needs to prime the set (a test pinning the shipped
+     * DEFAULTS without a database) has no other way in.
+     */
+    public const CACHE_KEY = 'event_categories.enabled';
+
     private const CACHE_TTL_SECONDS = 300;
 
     /**
