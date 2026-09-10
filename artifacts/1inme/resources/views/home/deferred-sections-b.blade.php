@@ -1,7 +1,8 @@
 {{-- Compact design: classic hero shell + a short set of the classic page's best sections. --}}
-{{-- ============================ "1IN.ME is Sayzio" BRAND SECTION ============================ --}}
-@include('home.partials.brand-sayzio')
-{{-- ============================ CREDIBILITY BAND (near-hero trust numbers) ============================ --}}
+{{-- ============================ PROOF BAND (brand lockup + trust numbers) ============================ --}}
+{{-- The separate "1IN.ME is Sayzio" banner that ran above this has merged
+     into the proof band itself — see
+     public/partials/marketing-trust-band.blade.php. --}}
 @include('public.partials.marketing-trust-band')
 
 {{-- ============================ WHAT YOU CAN CREATE (LINK TYPES) ============================ --}}

@@ -1,5 +1,8 @@
-{{-- ============================ "1IN.ME is Sayzio" BRAND SECTION ============================ --}}
-@include('home.partials.brand-sayzio')
+{{-- The "1IN.ME is Sayzio" banner that ran here has merged into the proof
+     band below. It was a bordered box making a brand claim, sitting directly
+     above a second bordered box holding the numbers that back that claim;
+     they are one statement and now they are one section. See
+     public/partials/marketing-trust-band.blade.php. --}}
 {{-- The marquee strip that ran here — a solid indigo bar, white caps and a
      star between every item — has moved into the hero and been restyled to
      sit on the page's own white. It said the same ten things twice on one
@@ -7,7 +10,7 @@
      home/partials/hero.blade.php. The $__skipMarquee flag that used to sit
      here went with it — nothing ever read it. --}}
 
-{{-- ============================ CREDIBILITY BAND (near-hero trust numbers) ============================ --}}
+{{-- ============================ PROOF BAND (brand lockup + trust numbers) ============================ --}}
 @include('public.partials.marketing-trust-band')
 
 {{-- ============================ WHAT YOU CAN CREATE (LINK TYPES) ============================ --}}
@@ -390,8 +393,40 @@
 
             <div class="reveal rd-2 lg:col-span-5 grid grid-cols-1 gap-6 auto-rows-fr card-row">
                 {{-- Themes & design controls --}}
-                <div class="glass rounded-3xl p-6 lift relative overflow-hidden flex flex-col">
-                    <div class="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-25" style="background:var(--c1)"></div>
+                <div data-xc-card class="glass rounded-3xl p-6 lift relative overflow-hidden flex flex-col">
+                    {{-- Gradient ribbon instead of the corner blob every other
+                         card wears. Three bands, one per palette pair, masked
+                         so they are strongest in the empty top-right and gone
+                         by the time they reach the copy. See .th-ribbon in
+                         home.blade.php. --}}
+                    <div class="th-ribbon" aria-hidden="true">
+                        <svg viewBox="0 0 400 300" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="thRib1" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stop-color="#1bd4d9"/><stop offset="100%" stop-color="#3d6bff"/>
+                                </linearGradient>
+                                <linearGradient id="thRib2" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stop-color="#e94e8c"/><stop offset="100%" stop-color="#ff8a3c"/>
+                                </linearGradient>
+                                <linearGradient id="thRib3" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stop-color="#7c5cff"/><stop offset="100%" stop-color="#22d3ee"/>
+                                </linearGradient>
+                            </defs>
+                            {{-- Each band leaves the frame at both ends, so the
+                                 ribbon reads as passing THROUGH the card rather
+                                 than as three shapes sitting inside it. They
+                                 share one curve, offset — a ribbon has parallel
+                                 edges; three unrelated curves is confetti. --}}
+                            <g class="th-ribbon-group">
+                                <path d="M-60,250 C70,214 140,86 250,52 C330,28 390,6 460,-16"
+                                      stroke="url(#thRib1)" stroke-width="34"/>
+                                <path d="M-60,304 C70,268 140,140 250,106 C330,82 390,60 460,38"
+                                      stroke="url(#thRib2)" stroke-width="18"/>
+                                <path d="M-60,206 C70,170 140,42 250,8 C330,-16 390,-38 460,-60"
+                                      stroke="url(#thRib3)" stroke-width="11"/>
+                            </g>
+                        </svg>
+                    </div>
                     <div class="relative flex flex-col flex-1">
                         <div class="card-ico w-12 h-12 rounded-2xl flex items-center justify-center mb-4"><i class="fas fa-palette text-xl"></i></div>
                         <h3 class="text-lg font-bold mb-1.5">Themes &amp; design controls</h3>
@@ -425,11 +460,38 @@
                                 <span class="th-pill th-pill--accent"><i class="fas fa-circle-half-stroke text-[9px]"></i> Round</span>
                             </div>
                         </div>
+
+                        {{-- Modal-only detail. Every claim restates the
+                             Link in Bio FAQ entries in SitePagesContent. --}}
+                        <div data-expand-more style="--xm-accent: var(--c1)">
+                            <p class="xm-lead">A preset gets you a page that already looks designed. The controls underneath are what stop it looking like everyone else's — you can override the colours, the font, the background, the button shape and the animations without leaving the editor or touching a line of CSS.</p>
+
+                            <div class="xm-cols">
+                                <div>
+                                    <h4 class="xm-h">What you can change</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-check"></i><span><strong>30 themes</strong> to start from, swapped in a single click — the page updates live, nothing to re-publish.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Override <strong>colours, fonts, backgrounds, button shapes and animations</strong> on top of any preset.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Set a <strong>light or dark</strong> treatment and have it hold up on both.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Themes apply to the <strong>whole page</strong>, so a colour change does not mean editing every block.</span></li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="xm-h">Why it's built this way</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-wand-magic-sparkles"></i><span><strong>Designed defaults, not a blank canvas.</strong> You are never staring at an empty page deciding what a good page looks like.</span></li>
+                                        <li><i class="fas fa-sliders"></i><span><strong>No ceiling.</strong> The preset is a starting point, not a cage — every part of it is yours to override.</span></li>
+                                        <li><i class="fas fa-eye"></i><span><strong>Nothing is a surprise.</strong> Changes render on the page as you make them, so what you approve is what visitors get.</span></li>
+                                        <li><i class="fas fa-clock"></i><span><strong>Reversible.</strong> Trying a different look costs one click, so it is cheap to change your mind.</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 {{-- Mobile-first by default --}}
-                <div class="glass rounded-3xl p-6 lift relative overflow-hidden flex flex-col">
+                <div data-xc-card class="glass rounded-3xl p-6 lift relative overflow-hidden flex flex-col">
                     <div class="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-25" style="background:var(--c3)"></div>
                     <div class="relative flex flex-col flex-1">
                         <div class="card-ico w-12 h-12 rounded-2xl flex items-center justify-center mb-4"><i class="fas fa-mobile-screen text-xl"></i></div>
@@ -460,6 +522,32 @@
                                 <div>
                                     <strong>100</strong><span>Lighthouse</span>
                                     <div class="mf-stat-bar mt-1.5" style="background:linear-gradient(90deg,#10b981,#1bd4d9);width:100%;animation-delay:.6s"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Modal-only detail. --}}
+                        <div data-expand-more style="--xm-accent: var(--c3)">
+                            <p class="xm-lead">Almost everyone who opens your link is holding a phone. A bio page is something people reach from an Instagram profile, a TikTok caption or a QR code on a table — so the phone is not the version that has to survive the design, it is the version the design is <em>for</em>. The desktop layout is what adapts here, not the other way round.</p>
+
+                            <div class="xm-cols">
+                                <div>
+                                    <h4 class="xm-h">What that means in practice</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-check"></i><span><strong>Every theme</strong> is built and checked at phone width first — none of the 30 are a desktop design squeezed down.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Tap targets, type sizes and spacing are set for <strong>thumbs, not cursors</strong>.</span></li>
+                                        <li><i class="fas fa-check"></i><span>The editor previews the phone layout <strong>as you build</strong>, so you approve what your audience actually sees.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Images are served at the size the device needs, so a big hero photo does not cost a mobile visitor their data.</span></li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="xm-h">Why speed is the feature</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-gauge-high"></i><span><strong>A slow page is an unread page.</strong> Visitors arriving from a social app have one thumb on the back gesture.</span></li>
+                                        <li><i class="fas fa-signal"></i><span><strong>Built for real connections</strong>, not office wifi — the page has to open on a train.</span></li>
+                                        <li><i class="fas fa-magnifying-glass"></i><span><strong>Search rewards it.</strong> Mobile performance is part of how your page is ranked, not just how it feels.</span></li>
+                                        <li><i class="fas fa-battery-half"></i><span><strong>Light on the device.</strong> Animations stand down when a visitor has reduced motion turned on.</span></li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -794,6 +882,37 @@
                             </span>
                         @endforeach
                     </div>
+
+                    {{-- Shown only inside the expand modal (see
+                         home/partials/expandable-cards.blade.php). Every claim
+                         below is the Domains & aliases FAQ copy in
+                         SitePagesContent, restated — the modal must not be the
+                         one place on the site making a promise nothing else
+                         makes. --}}
+                    <div data-expand-more style="--xm-accent: var(--c1)">
+                        <p class="xm-lead">Most link tools hand you a URL on their domain and stop there. Sayzio gives you five to choose from, so the address itself can suit the audience — a creator link that reads <span class="text-white font-semibold">1in.me</span>, a business one that reads <span class="text-white font-semibold">bizs.club</span> — and you pick it at the moment you create the link, not after a purchase.</p>
+
+                        <div class="xm-cols">
+                            <div>
+                                <h4 class="xm-h">What you get</h4>
+                                <ul class="xm-list">
+                                    <li><i class="fas fa-check"></i><span>All five branded domains — 1in.me, bizs.club, getbio.one, Sayzio.app and sayzio.link — <strong>free on every plan</strong>, including Free.</span></li>
+                                    <li><i class="fas fa-check"></i><span>No purchase, no registrar account and <strong>no DNS records</strong> to configure.</span></li>
+                                    <li><i class="fas fa-check"></i><span>Pick the domain when you create a link or Link in Bio, and it is live immediately.</span></li>
+                                    <li><i class="fas fa-check"></i><span>Each domain is its own namespace, so a slug someone else took on one is <strong>still free on another</strong>.</span></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="xm-h">Why it matters</h4>
+                                <ul class="xm-list">
+                                    <li><i class="fas fa-bolt"></i><span><strong>Nothing to wait for.</strong> No DNS propagation window between deciding to launch and being live.</span></li>
+                                    <li><i class="fas fa-tag"></i><span><strong>Nothing to renew.</strong> No annual registrar bill for a URL you are still testing.</span></li>
+                                    <li><i class="fas fa-arrows-left-right"></i><span><strong>Not a dead end.</strong> Start on a shared domain and connect your own later, when the brand is worth the setup.</span></li>
+                                    <li><i class="fas fa-lock"></i><span><strong>HTTPS from the first second</strong>, with no certificate to buy or install.</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -817,6 +936,35 @@
                         </div>
                     </div>
                     <p class="mt-4 text-[11px] text-gray-500"><i class="fas fa-crown text-[10px] mr-1" style="color:var(--c5)"></i> Custom domains are a paid-plan feature.</p>
+
+                    {{-- Modal-only detail. Sourced from the Domains & aliases
+                         and Custom domains FAQ entries in SitePagesContent. --}}
+                    <div data-expand-more style="--xm-accent: var(--c2)">
+                        <p class="xm-lead">A custom domain is the difference between a link that mentions your brand and a link that <em>is</em> your brand. Point one CNAME record at us from <span class="text-white font-semibold">links.yourbrand.com</span> — or any subdomain you like — and every URL you hand out from then on reads entirely as you, with nothing in it borrowed from us.</p>
+
+                        <div class="xm-cols">
+                            <div>
+                                <h4 class="xm-h">How the setup goes</h4>
+                                <ul class="xm-list">
+                                    <li><i class="fas fa-check"></i><span>Add <strong>one CNAME record</strong> at your registrar. That is the whole DNS change — no TXT tokens, no file uploads.</span></li>
+                                    <li><i class="fas fa-check"></i><span>We verify it automatically and provision a <strong>free SSL certificate</strong>, then renew it for you.</span></li>
+                                    <li><i class="fas fa-check"></i><span>Typically live in <strong>5–30 minutes</strong>; we keep retrying validation for up to 48 hours and email you when the certificate is ready.</span></li>
+                                    <li><i class="fas fa-check"></i><span>Each domain shows its <strong>verification status</strong>, so you always know which are healthy and serving.</span></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="xm-h">What it unlocks</h4>
+                                <ul class="xm-list">
+                                    <li><i class="fas fa-link"></i><span><strong>Branded short links</strong> across every campaign, on the same domain as your Link in Bio.</span></li>
+                                    <li><i class="fas fa-layer-group"></i><span><strong>More than one domain</strong>, as many as your plan allows, each assignable to a different workspace or page.</span></li>
+                                    <li><i class="fas fa-right-left"></i><span><strong>301 and 302 redirects</strong> from any path on your domain, so old URLs you have already printed keep working.</span></li>
+                                    <li><i class="fas fa-server"></i><span><strong>Nothing to host.</strong> We serve the domain end to end; you only touch DNS once.</span></li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <p class="xm-note"><i class="fas fa-crown" style="color:var(--c5)"></i>Connecting your own domain is a paid-plan feature. Branded domains and custom URL aliases stay free on every plan, including Free.</p>
+                    </div>
                 </div>
             </div>
 
@@ -839,6 +987,33 @@
                         <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-mono">
                             <i class="fas fa-link text-[10px]" style="color:var(--c3)"></i>
                             <span class="text-gray-400">1in.me/</span><span class="text-gray-200">drop24</span>
+                        </div>
+                    </div>
+
+                    {{-- Modal-only detail. Sourced from the Domains & aliases
+                         FAQ entries in SitePagesContent. --}}
+                    <div data-expand-more style="--xm-accent: var(--c3)">
+                        <p class="xm-lead">An alias is a second front door, not a forwarding address. Every extra alias you add opens the very same page directly — there is no redirect hop in between, so nothing flashes, nothing is lost from the referrer, and the visitor never sees a URL they did not click.</p>
+
+                        <div class="xm-cols">
+                            <div>
+                                <h4 class="xm-h">How it works</h4>
+                                <ul class="xm-list">
+                                    <li><i class="fas fa-check"></i><span>Every link gets a <strong>memorable primary slug</strong> you choose, not a string of random characters.</span></li>
+                                    <li><i class="fas fa-check"></i><span>Add as many <strong>extra aliases</strong> as you need; each one opens the same page with <strong>no redirect</strong>.</span></li>
+                                    <li><i class="fas fa-check"></i><span>Aliases resolve <strong>whatever the casing</strong> — <span class="font-mono">SpringDrop</span> and <span class="font-mono">springdrop</span> reach the same page.</span></li>
+                                    <li><i class="fas fa-check"></i><span>Available on <strong>every plan, Free included</strong>. Aliases are not the paid part.</span></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="xm-h">What people use them for</h4>
+                                <ul class="xm-list">
+                                    <li><i class="fas fa-bullhorn"></i><span><strong>Campaign variants.</strong> One page, a different URL per campaign, so the reporting separates cleanly.</span></li>
+                                    <li><i class="fas fa-share-nodes"></i><span><strong>Channel-specific URLs.</strong> A short one for print, a descriptive one for email, both landing in the same place.</span></li>
+                                    <li><i class="fas fa-spell-check"></i><span><strong>Catching typos.</strong> Register the misspelling people actually make and it works instead of 404-ing.</span></li>
+                                    <li><i class="fas fa-clock-rotate-left"></i><span><strong>Renaming without breaking.</strong> Move to a better slug and keep the old one alive as an alias.</span></li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
