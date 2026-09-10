@@ -299,8 +299,32 @@
                                 'Then I answer your visitors, and pick up your calls.',
                                 'Free forever. Want to try me?',
                             ];
+
+                            /* The bubbles take turns in one slot above Zio's
+                               head, and the turn-taking was written for exactly
+                               four of them: a 16s loop with each bubble offset
+                               by 4s, and keyframes showing each one for a
+                               quarter of it.
+
+                               So the lines were admin-editable only as long as
+                               an admin kept the count at four. A fifth line got
+                               a 20s delay against a 16s loop, which lands it on
+                               the same 4s offset as the second -- two bubbles
+                               stacked in one slot. Three lines left a four-
+                               second hole with Zio gesturing at nothing.
+
+                               One slot is four seconds; the cycle is however
+                               many slots there are. The keyframe percentages
+                               below are derived from that rather than written
+                               down, and at four lines they come out as the
+                               2.5 / 21 / 24 they always were. */
+                            $zioCount = max(1, count($zioLines));
+                            $zioSlotPct = 100 / $zioCount;
+                            $zioIn   = round($zioSlotPct * 0.10, 3);
+                            $zioHold = round($zioSlotPct * 0.84, 3);
+                            $zioOut  = round($zioSlotPct * 0.96, 3);
                         @endphp
-                        <div class="zio-says">
+                        <div class="zio-says" style="--zio-cycle: {{ $zioCount * 4 }}s">
                             @foreach($zioLines as $i => $line)
                                 {{-- Body and tail are ONE path, so there is a
                                      single outline and no seam for the border to
@@ -1069,7 +1093,7 @@
             opacity: 0;
             transform: translateY(6px) scale(.96);
             transform-origin: 50% 88%;
-            animation: zioSay 16s ease-in-out infinite;
+            animation: zioSay var(--zio-cycle, 16s) ease-in-out infinite;
             animation-delay: calc(var(--i) * 4s);
         }
         .zio-bubble-shape {
@@ -1112,10 +1136,13 @@
         }
         /* No translate(-50%) any more: the bubble is inset:0 inside .zio-says
            and the parent does the centring, so these only carry the lift. */
+        /* Percentages cannot be a CSS variable, so this one set of keyframes
+           is emitted for the number of lines the page actually has. See the
+           note beside `$zioCount` where the markup is built. */
         @keyframes zioSay {
-            0%              { opacity: 0; transform: translateY(6px) scale(.96); }
-            2.5%, 21%       { opacity: 1; transform: translateY(0) scale(1); }
-            24%, 100%       { opacity: 0; transform: translateY(-4px) scale(.98); }
+            0%                                          { opacity: 0; transform: translateY(6px) scale(.96); }
+            {{ $zioIn }}%, {{ $zioHold }}%              { opacity: 1; transform: translateY(0) scale(1); }
+            {{ $zioOut }}%, 100%                        { opacity: 0; transform: translateY(-4px) scale(.98); }
         }
         .zio-core-label {
             margin-top: 6px;
