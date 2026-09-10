@@ -56,12 +56,18 @@ class ZioLinesAdminTest extends TestCase
     {
         // The blade shipped with these; the table has to start life holding
         // them or the homepage copy silently changes on deploy.
+        //
+        // The third line lost its em dash when the homepage copy rule was
+        // extended to cover the database-backed marketing text as well as
+        // the views (see HomepageCopyPunctuationTest). Both the create
+        // migration's seed and the existing rows were rewritten, so this is
+        // the text a fresh install now starts with.
         $this->assertSame(4, ZioLine::count());
         $this->assertSame(
             [
                 "Hi, I'm Zio 👋",
                 'I build your link page, QR codes and short links.',
-                'Then I answer your visitors — and pick up your calls.',
+                'Then I answer your visitors, and pick up your calls.',
                 'Free forever. Want to try me?',
             ],
             ZioLine::activeTexts()

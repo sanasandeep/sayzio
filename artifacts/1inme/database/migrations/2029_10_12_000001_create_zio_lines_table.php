@@ -23,7 +23,7 @@ return new class extends Migration
     private const SEED = [
         "Hi, I'm Zio 👋",
         'I build your link page, QR codes and short links.',
-        'Then I answer your visitors — and pick up your calls.',
+        'Then I answer your visitors, and pick up your calls.',
         'Free forever. Want to try me?',
     ];
 
