@@ -486,4 +486,60 @@ test.describe("marketing header — auto-hide on scroll", () => {
     await scrollTo(page, landed - 120);
     await waitVisible(page);
   });
+
+  // The full-bleed hairline under the bar is a SEPARATE element
+  // (`.mkt-nav-rule`), and it is a SIBLING of <nav>, not a child of it. Every
+  // rule that switches the bar's own background and border off when it hides
+  // is written as `.mkt-nav-hidden .mkt-navbar-bar`, so none of them could
+  // ever reach the hairline: scrolling down slid the bar away and left a line
+  // drawn across the page on its own, with nothing above it.
+  //
+  // It also cannot simply follow `scrolled`, which is what it used to do.
+  // While the visitor is scrolled down, `scrolled` is still true -- the bar
+  // is not at the top of the page, it is merely hidden -- so the rule stayed
+  // lit for exactly as long as the bar was gone.
+  test("the hairline under the bar hides and returns with the bar", async ({
+    page,
+  }) => {
+    await seedConsent(page);
+    await openFeatures(page);
+
+    const ruleOpacity = () =>
+      page.evaluate(() => {
+        const rule = document.querySelector(".mkt-nav-rule");
+        return rule ? Number(getComputedStyle(rule).opacity) : -1;
+      });
+
+    // At the top the bar is transparent so the hero can run under it, and
+    // the hairline is off with it.
+    await scrollTo(page, 0);
+    await waitVisible(page);
+    expect(await ruleOpacity(), "no hairline at the top of the page").toBeLessThan(0.05);
+
+    // Scrolled down with the bar hidden: the hairline must be gone too.
+    await scrollDownAndWaitHidden(page, 900);
+    await page.waitForFunction(
+      () => Number(getComputedStyle(document.querySelector(".mkt-nav-rule")!).opacity) < 0.05,
+      undefined,
+      { timeout: 5000 },
+    );
+    expect(
+      await ruleOpacity(),
+      "the hairline must not stay drawn across the page once the bar has slid away",
+    ).toBeLessThan(0.05);
+
+    // Scroll back up: bar returns, and so does its hairline.
+    const y = await page.evaluate(() => window.scrollY);
+    await scrollTo(page, y - 200);
+    await waitVisible(page);
+    await page.waitForFunction(
+      () => Number(getComputedStyle(document.querySelector(".mkt-nav-rule")!).opacity) > 0.2,
+      undefined,
+      { timeout: 5000 },
+    );
+    expect(
+      await ruleOpacity(),
+      "the hairline must come back with the bar",
+    ).toBeGreaterThan(0.2);
+  });
 });

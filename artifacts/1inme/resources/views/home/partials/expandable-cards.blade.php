@@ -513,7 +513,7 @@
         // The two proof cards beside the drag-and-drop demo in #features.
         // Marked with an explicit data attribute rather than matched by
         // `.glass` or column position: the big editor card next to them is
-        // also a .glass card, and it must NOT get a control — its content is
+        // also a .glass card, and it must NOT get a control, its content is
         // a live drag demo, not text that benefits from more room.
         // Anywhere a card opts in by hand. Scoped by the attribute rather than
         // by section, so a card that moves keeps its control and a card that
@@ -640,7 +640,7 @@
 
         // A card that ships its own panel gets that; everything else falls
         // back to a clone of itself. The clone is why the Share cards used to
-        // open into a copy of what you had just clicked — same words, same
+        // open into a copy of what you had just clicked, same words, same
         // three lines, nothing gained. Where a <template class="xc-detail">
         // exists it holds the fuller story instead.
         var tpl = card.querySelector(':scope > template.xc-detail');
@@ -742,8 +742,7 @@
         wireLinkTypeCards();
     }
 
-    // The grids arrive with the deferred home sections — fetched AFTER load —
-    // so the observer is the only thing that ever wires them. It must watch
+    // The grids arrive with the deferred home sections, fetched AFTER load, // so the observer is the only thing that ever wires them. It must watch
     // documentElement, not body: this partial is included from <head>, where
     // document.body is still null, and observe(null) throws
     // "parameter 1 is not of type 'Node'". That exception ended the script

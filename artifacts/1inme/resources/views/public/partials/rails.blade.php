@@ -77,6 +77,10 @@
   z-index:39;
 }
 .mkt-nav-rule.is-stuck{ opacity:.62; }
+/* Goes away with the bar. Listed after .is-stuck and marked !important
+   because both classes are on the element at once whenever the visitor
+   scrolls down: `scrolled` is still true, the bar is simply hidden. */
+.mkt-nav-rule.mkt-nav-rule-hidden{ opacity:0 !important; }
 @media (prefers-reduced-motion: reduce){
   .mkt-nav-rule{ transition:none; }
 }

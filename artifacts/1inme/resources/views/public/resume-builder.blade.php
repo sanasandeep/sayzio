@@ -1,5 +1,5 @@
 @extends('public.layouts.site')
-@section('title', 'Résumé &amp; Portfolio Builder')
+@section('title', 'Resume &amp; Portfolio Builder')
 
 @section('content')
 @php
@@ -43,7 +43,7 @@
     .rbp-hero-art { position: relative; display: inline-block; }
 
     /* ===== Live "watch it build" sequence (reuses the home Resume section approach) =====
-       RESTING / no-JS / reduced-motion: the résumé is already fully assembled and the
+       RESTING / no-JS / reduced-motion: the resume is already fully assembled and the
        status reads "AI polished". The scatter + sequenced reveal + looping only kick in
        once JS adds `.rb-armed`, which it never does under reduced motion. */
     .rb-build { will-change: transform, opacity; }
@@ -186,7 +186,7 @@
     }
 
     /* Reduced motion / no-JS: freeze the ambient + build animations and show the
-       fully assembled résumé at rest — no motion. */
+       fully assembled resume at rest — no motion. */
     @media (prefers-reduced-motion: reduce) {
         .rbp-mesh::before,
         .rbp-paper,
@@ -202,10 +202,10 @@
         <div data-anim="fade-right">
             <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border"
                   style="background: {{ $accent }}1a; border-color: {{ $accent }}33; color: {{ $accent }};">
-                <i class="fas fa-file-lines text-[10px]"></i> Résumé &amp; Portfolio
+                <i class="fas fa-file-lines text-[10px]"></i> Resume &amp; Portfolio
             </span>
             <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
-                Your résumé &amp; portfolio,
+                Your resume &amp; portfolio,
                 <span class="block grad-text">built in 5 minutes flat.</span>
             </h1>
             <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">
@@ -233,7 +233,7 @@
                     <span class="rb-status-done"><i class="fas fa-circle-check"></i> AI polished</span>
                 </div>
 
-                <div class="rbp-paper" role="img" aria-label="Résumé preview">
+                <div class="rbp-paper" role="img" aria-label="Resume preview">
                     <div class="rbp-paper-head rb-build rb-b-head" style="--ty:-26px;--rot:-3deg;">
                         <div class="flex items-center gap-3">
                             <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white" style="background: #3d6bff;">JS</div>
@@ -395,7 +395,7 @@
                     <li class="flex items-start gap-2.5"><i class="fas fa-check text-emerald-400 mt-1"></i><span>20+ templates, all free, all ATS-clean</span></li>
                     <li class="flex items-start gap-2.5"><i class="fas fa-check text-emerald-400 mt-1"></i><span>Public link with view analytics &mdash; know who looked</span></li>
                     <li class="flex items-start gap-2.5"><i class="fas fa-check text-emerald-400 mt-1"></i><span>AI polishes every bullet with metrics &amp; keywords</span></li>
-                    <li class="flex items-start gap-2.5"><i class="fas fa-check text-emerald-400 mt-1"></i><span>Portfolio &amp; résumé live together at sayzio.app/you</span></li>
+                    <li class="flex items-start gap-2.5"><i class="fas fa-check text-emerald-400 mt-1"></i><span>Portfolio &amp; resume live together at sayzio.app/you</span></li>
                 </ul>
             </div>
         </div>
@@ -412,10 +412,10 @@
         <div class="space-y-3" x-data="{ open: 0 }">
             @foreach([
                 ['Is it really free?', 'Yes &mdash; the Free Forever plan includes unlimited public portfolios and 3 PDF exports per month. Upgrade only if you need unlimited exports or premium templates.'],
-                ['Will my résumé pass ATS systems?', 'Every template is structured so that Greenhouse, Lever, Workday and other ATS parsers read it cleanly. The PDF export uses selectable text and embedded fonts &mdash; no scanned images.'],
+                ['Will my resume pass ATS systems?', 'Every template is structured so that Greenhouse, Lever, Workday and other ATS parsers read it cleanly. The PDF export uses selectable text and embedded fonts &mdash; no scanned images.'],
                 ['Can I import from LinkedIn?', 'Paste your LinkedIn URL and we pre-fill experience, education and skills. You can edit everything before publishing.'],
                 ['Who can see my portfolio link?', 'You choose: public (indexed and discoverable), unlisted (link-only) or private (only you). Email and phone can be hidden from public view in one tap.'],
-                ['Can I host multiple résumés?', 'Yes &mdash; create a different version for every role. Each gets its own URL slug like sayzio.app/you/resume/v/design or sayzio.app/you/resume/v/pm.'],
+                ['Can I host multiple resumes?', 'Yes &mdash; create a different version for every role. Each gets its own URL slug like sayzio.app/you/resume/v/design or sayzio.app/you/resume/v/pm.'],
             ] as $i => $f)
                 <div class="reveal rd-{{ ($i % 4) + 1 }} glass rounded-2xl overflow-hidden">
                     <button type="button" @click="open === {{ $i }} ? open = -1 : open = {{ $i }}" class="w-full flex items-center justify-between gap-4 px-5 py-4 text-left">
@@ -436,7 +436,7 @@
             <div class="absolute inset-[-1px] rounded-[inherit] pointer-events-none" style="background: rgba(61,107,255,.45); opacity:.18; filter: blur(28px);"></div>
             <div class="relative">
                 <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
-                    Your next role is one <span class="grad-text">résumé away.</span>
+                    Your next role is one <span class="grad-text">resume away.</span>
                 </h2>
                 <p class="text-gray-300 mb-7 max-w-xl mx-auto">Build it free in 5 minutes. Share it as a link or download a perfect PDF. No card, no setup call, no fuss.</p>
                 <div class="flex flex-wrap items-center justify-center gap-3">
@@ -450,7 +450,7 @@
     </div>
 </section>
 
-{{-- Live "watch it build" sequence for the hero résumé (mirrors the home Resume section). --}}
+{{-- Live "watch it build" sequence for the hero resume (mirrors the home Resume section). --}}
 <script>
 (function () {
     var section = document.getElementById('rbp-hero');

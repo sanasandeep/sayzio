@@ -168,7 +168,7 @@
                 ['fa-chart-line', 'Live analytics', 'Watch clicks, scans, cities and referrers update in real time, with the same charts you know from the dashboard.'],
                 ['fa-inbox', 'Inbox & audience', 'Reply to messages, review followers and subscribers, and moderate reviews without opening a laptop.'],
                 ['fa-bell', 'Smart notifications', 'Order requests, new subscribers, milestone alerts, pushed the moment they happen, tuned per channel.'],
-                ['fa-wand-magic-sparkles', 'AI on the go', 'Generate pages, tailor your résumé or draft replies with the same AI tools as the web app.'],
+                ['fa-wand-magic-sparkles', 'AI on the go', 'Generate pages, tailor your resume or draft replies with the same AI tools as the web app.'],
             ] as [$icon, $title, $desc])
                 <div class="glass rounded-2xl p-6" data-anim="fade-up">
                     <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-300">

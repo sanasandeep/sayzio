@@ -495,7 +495,7 @@
                                     </div>
                                     <div class="aisx-transcript">
                                         <div class="aisx-line caller aisx-row" style="--d:.8s"><b>Caller:</b> Hi, are you open this Saturday?</div>
-                                        <div class="aisx-line aisx-row" style="--d:1.4s"><b>Zio:</b> We are — 9 to 5. Want me to book you in?</div>
+                                        <div class="aisx-line aisx-row" style="--d:1.4s"><b>Zio:</b> We are, from 9 to 5. Want me to book you in?</div>
                                         <div class="aisx-line caller aisx-row" style="--d:2s"><b>Caller:</b> Yes please, around 11.</div>
                                     </div>
                                     <div class="aisx-chip aisx-row" style="--d:2.6s"><i class="fas fa-calendar-check"></i> Meeting booked · Sat 11:00</div>
@@ -581,7 +581,7 @@
             card.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter' || e.key === ' ') {
                     // Cards are divs with role="tab" (a real <a> lives inside,
-                    // so they can't be <button>s) — emulate button activation.
+                    // so they can't be <button>s), emulate button activation.
                     if (e.target.closest && e.target.closest('a')) return;
                     e.preventDefault(); paint(i, true); stopTimer(); startTimer();
                 } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {

@@ -10,7 +10,7 @@
     }
     @keyframes rbMesh { 0% { transform: translate3d(0,0,0) scale(1); } 100% { transform: translate3d(2%,-2%,0) scale(1.06); } }
 
-    /* Resume preview card — looks like an actual A4 résumé */
+    /* Resume preview card — looks like an actual A4 resume */
     .rb-paper {
         position: relative; aspect-ratio: 1 / 1.32; max-width: 380px; margin: 0 auto;
         border-radius: 22px; overflow: hidden;
@@ -27,16 +27,17 @@
         0%,100% { transform: rotate(-3.5deg) translateY(0); }
         50%     { transform: rotate(-3.5deg) translateY(-10px); }
     }
-    .rb-paper::after {
-        content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
-        background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.55) 50%, transparent 65%);
-        background-size: 250% 250%;
-        animation: rbShine 4.5s ease-in-out infinite;
-    }
-    @keyframes rbShine {
-        0%   { background-position: 200% 50%; }
-        100% { background-position: -100% 50%; }
-    }
+    /* The white glare that used to sweep diagonally across this sheet is
+       gone. It was reading as a gloss highlight on a white page, which is
+       the only place it made sense: in dark mode the surrounding section is
+       near-black, so a 55%-white band travelling across the one bright
+       object on screen every 4.5 seconds pulled the eye off the copy and
+       looked like a rendering fault rather than an effect.
+
+       The paper still has depth from its own gradient, its shadow and the
+       float, none of which move. Removing the rule outright rather than
+       gating it on light mode: a highlight that only exists in one theme is
+       a second thing to maintain, and it was not carrying the section. */
     .rb-paper-head {
         padding: 22px 22px 16px; color: #fff;
         background: linear-gradient(135deg, #3d6bff 0%, #6e61ff 60%, #22d3ee 130%);
@@ -80,7 +81,7 @@
     }
 
     /* ===== Live "watch it build" sequence =====
-       RESTING / FINAL STATE (also no-JS + reduced motion): the résumé is already
+       RESTING / FINAL STATE (also no-JS + reduced motion): the resume is already
        fully assembled and the status reads "AI polished". The scatter + sequenced
        reveal + looping only kick in once JS adds `.rb-armed`, which it never does
        under reduced motion. */
@@ -214,7 +215,7 @@
     }
 
     /* Reduced motion / no-JS: freeze every ambient + build animation and show the
-       fully assembled résumé in its resting state — no motion. */
+       fully assembled resume in its resting state — no motion. */
     @media (prefers-reduced-motion: reduce) {
         .rb-mesh::before,
         .rb-paper,
@@ -227,13 +228,13 @@
         .rb-bar > span { transform: scaleX(1) !important; animation: none !important; }
     }
 </style>
-<section id="resume-portfolio" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="rb-h">
+<section id="resume-portfolio" class="sec-rule py-24 lg:py-32 relative overflow-hidden" aria-labelledby="rb-h">
     <div class="rb-mesh absolute inset-0 pointer-events-none" aria-hidden="true"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">Resume &amp; Portfolio</div>
             <h2 id="rb-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-                Build a résumé and portfolio<br><span class="grad-text">that lands the interview.</span>
+                Build a resume and portfolio<br><span class="grad-text">that lands the interview.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
                 Drag-and-drop sections, AI-polished copy, and a public portfolio link that lives at <span class="font-semibold text-white">sayzio.app/you/resume</span>. Export to PDF in one click. No Word, no fiddling, no recruiter rejection.
@@ -241,7 +242,7 @@
         </div>
 
         <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            {{-- LEFT: animated résumé preview --}}
+            {{-- LEFT: animated resume preview --}}
             <div class="reveal rd-3 rb-wrap relative h-[520px] sm:h-[560px]">
                 <div class="rb-thumb rb-thumb-1" style="--rot:-12deg;" aria-hidden="true">
                     <div class="rb-thumb-lines"><span></span><span></span><span></span><span></span></div>
@@ -279,7 +280,7 @@
                         ],
                     ];
                 @endphp
-                <div class="rb-paper" role="img" aria-label="Résumé preview">
+                <div class="rb-paper" role="img" aria-label="Resume preview">
                     <div class="rb-paper-head rb-build rb-b-head" style="--ty:-26px;--rot:-3deg;">
                         <div class="relative flex items-center gap-3">
                             <div class="rb-avatar">{{ $rbP['initials'] }}</div>
@@ -341,9 +342,9 @@
             {{-- RIGHT: features --}}
             <div class="space-y-4">
                 @foreach([
-                    ['fa-wand-magic-sparkles', '#3d6bff', 'AI writes the boring parts',  'Paste your past role &mdash; we generate impact-first bullet points with metrics, action verbs and ATS keywords.'],
+                    ['fa-wand-magic-sparkles', '#3d6bff', 'AI writes the boring parts',  'Paste your past role, we generate impact-first bullet points with metrics, action verbs and ATS keywords.'],
                     ['fa-grip-vertical',       '#1bd4d9', 'Drag-and-drop sections',       'Reorder Experience, Education, Projects, Skills and custom blocks. Live preview, no save button.'],
-                    ['fa-palette',             '#e94e8c', '20+ recruiter-tested templates','Minimalist, design-led, classic ATS &mdash; all responsive, all printable, all yours to recolor.'],
+                    ['fa-palette',             '#e94e8c', '20+ recruiter-tested templates','Minimalist, design-led, classic ATS, all responsive, all printable, all yours to recolor.'],
                     ['fa-link',                '#ff8a3c', 'Public portfolio link',        'Share <span class="text-white font-semibold">sayzio.app/you/resume</span> instantly. Embed projects, GitHub repos, Behance shots and case studies.'],
                     ['fa-file-pdf',            '#22c55e', 'One-click PDF export',         'Pixel-perfect A4 / Letter export with selectable text and embedded fonts. ATS systems read it cleanly.'],
                     ['fa-shield-halved',       '#22d3ee', 'Privacy-first',                'Toggle between public, unlisted (link-only) and private. Hide email/phone from public view in one tap.'],
@@ -359,7 +360,7 @@
 
                 <div class="reveal rd-4 pt-3 flex flex-wrap items-center gap-3">
                     <a href="{{ route('site.resume-builder') }}" class="btn-bounce btn-glow inline-flex items-center gap-2 px-7 py-3.5 grad-bar text-white rounded-full text-sm font-bold">
-                        Build my résumé free <i class="fas fa-arrow-right text-xs"></i>
+                        Build my resume free <i class="fas fa-arrow-right text-xs"></i>
                     </a>
                     <a href="{{ route('site.resume-builder') }}#templates" class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-xs font-semibold transition-colors">
                         See templates <i class="fas fa-images text-[10px]"></i>
@@ -383,7 +384,7 @@
     var fullText = typeEl ? typeEl.textContent : '';
 
     // Personas the demo cycles through (designer, developer, marketer, student)
-    // to show the builder works for any career — sourced from the same
+    // to show the builder works for any career, sourced from the same
     // server-passed list (Common\Support\ResumePersonas) that rendered the
     // resting/no-JS markup above, so adding/removing a persona is a one-line
     // data change. The first entry is already on screen at rest.
@@ -399,7 +400,7 @@
     var companyEl  = wrap.querySelector('.rb-exp-company');
     var skillRows  = Array.prototype.slice.call(wrap.querySelectorAll('.rb-skills .rb-skill'));
 
-    // Paint one persona's content into the (hidden) résumé surface. Also updates
+    // Paint one persona's content into the (hidden) resume surface. Also updates
     // `fullText` so the typed experience line types out the right copy.
     function applyPersona(p) {
         if (!p) return;

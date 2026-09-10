@@ -1,5 +1,50 @@
 {{-- ============================ PRICING ============================ --}}
-<section id="pricing" class="py-20 lg:py-24 relative overflow-hidden"
+<style>
+    /* The band's own ground. Literals rather than theme tokens because the
+       step has to be the same size in both directions: a touch darker than
+       white, a touch lighter than near-black. */
+    .pr-band { background: #F5F6FA; }
+    html:not(.light-mode) .pr-band { background: #0E1017; }
+
+    /* Hairlines top and bottom instead of the page's section divider, so the
+       band has a defined edge where it meets the sections either side rather
+       than just fading into them. */
+    .pr-band { border-block: 1px solid #E6E8F2; }
+    html:not(.light-mode) .pr-band { border-block-color: rgba(255,255,255,.07); }
+
+    /* Full width. 1600 rather than the page's 1280: on a wide screen the two
+       plans should run nearly edge to edge, and the gutters come in to match.
+       Capped, not literally 100% -- a plan card three feet wide is not
+       readable, it is just big. */
+    .pr-wide { max-width: 1600px; }
+
+    /* The cards sit ON this band, so they need a surface of their own or the
+       whole block flattens into one grey rectangle. */
+    .pr-band .pr-card-surface { background: #FFFFFF; border-color: #E4E7F0 !important; }
+    html:not(.light-mode) .pr-band .pr-card-surface {
+        background: #15181F; border-color: rgba(255,255,255,.09) !important;
+    }
+</style>
+{{-- The pricing band.
+
+     Two changes were asked for together and they work as one: run it full
+     width, and make it read as the highlighted band on the page.
+
+     Width: the content box is wider than every other band's (1600px against
+     1280px) and the gutters shrink, so on a large screen the two plans run
+     nearly edge to edge. This is the page's one real decision point; it
+     should not be its narrowest block.
+
+     Highlight: a ground of its own -- one flat step off the page in both
+     modes -- rather than an accent colour or a glow. A band that changes
+     surface reads as "this part is different" from across the room, and it
+     is the same device the Zio band uses, which keeps the page consistent
+     with itself.
+
+     Because it now brings its own ground, it drops the `sec-rule` hairline:
+     a divider AND a surface change at the same boundary is one separator too
+     many. HomepageSectionDividerTest carries the matching opt-out. --}}
+<section id="pricing" class="pr-band py-20 lg:py-24 relative overflow-hidden"
     @inme-currency.window="currency = $event.detail.c"
     x-data="{
         billing: 'monthly',
@@ -38,7 +83,7 @@
             } catch (e) { /* fire-and-forget */ }
         }
     }">
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="relative pr-wide mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 max-w-3xl mx-auto">
             <div class="reveal inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.2em] mb-3 px-3 py-1 rounded-full" style="color:var(--c1); background: rgba(61,107,255,0.10);">
                 <span class="inline-block w-1.5 h-1.5 rounded-full" style="background:var(--c1)"></span>
@@ -68,7 +113,19 @@
         @php
             $freePlans = collect($plans)->filter(fn($p) => !empty($p['is_free']))->values();
             $paidPlans = collect($plans)->reject(fn($p) => !empty($p['is_free']))->values();
-            $cheapestPaid = $paidPlans->sortBy(fn($p) => (int) ($p['monthly']['amount_minor'] ?? PHP_INT_MAX))->first();
+            // "Starting from" is the minimum across the WHOLE public
+            // catalogue, which the controller computes and passes in.
+            //
+            // It cannot be derived from $plans: that collection holds two
+            // cards by design, the free plan and the POPULAR one, so
+            // sorting it for the cheapest paid entry just returned the
+            // popular plan. The homepage was advertising Rs 1,389/mo as a
+            // starting price on a catalogue that starts at Rs 167/mo.
+            //
+            // Falls back to the old behaviour only when the key is absent
+            // (a cached payload written before this change).
+            $cheapestPaid = $cheapestPaidPlan
+                ?? $paidPlans->sortBy(fn($p) => (int) ($p['monthly']['amount_minor'] ?? PHP_INT_MAX))->first();
             $premiumHighlights = [
                 ['fa-infinity',          'Unlimited links & Link in Bio pages'],
                 ['fa-chart-line',        'Advanced analytics & A/B tests'],
@@ -93,10 +150,10 @@
         <div class="grid md:grid-cols-5 gap-6 items-start">
             @foreach($freePlans as $i => $plan)
                 @php $featured = false; $f = $plan['features']; @endphp
-                <div class="md:col-span-2 reveal rd-{{ $i + 1 }} lift group relative rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 glass hover:shadow-xl hover:shadow-[#3d6bff]/10 overflow-hidden" style="border: 1px solid rgba(255,255,255,0.08);">
-                    {{-- Animated background blobs --}}
-                    <div class="absolute -top-24 -right-24 w-72 h-72 rounded-full opacity-25 blur-3xl pointer-events-none" style="background: #3d6bff; animation: floatA 9s ease-in-out infinite;"></div>
-                    <div class="absolute -bottom-24 -left-24 w-72 h-72 rounded-full opacity-20 blur-3xl pointer-events-none" style="background: #6e61ff; animation: floatB 11s ease-in-out infinite;"></div>
+                <div class="md:col-span-2 reveal rd-{{ $i + 1 }} lift group relative rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 pr-card-surface hover:shadow-xl overflow-hidden" style="border: 1px solid rgba(255,255,255,0.08);">
+                    {{-- The two blurred colour discs that used to drift behind this
+                         card are gone with the rest of the page's ambient wash: on a
+                         band that is already a flat surface they read as smudges. --}}
                     {{-- Sparkles --}}
                     <span class="free-spark" style="top:14%;left:82%; animation-delay:0s"></span>
                     <span class="free-spark" style="top:46%;left:6%;  animation-delay:1.4s"></span>
