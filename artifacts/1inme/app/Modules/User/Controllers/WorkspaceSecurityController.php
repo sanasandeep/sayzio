@@ -94,7 +94,7 @@ class WorkspaceSecurityController extends Controller
     {
         $deadline = $this->policy->workspaceGraceDeadline($ws);
         $deadlineStr = $deadline ? $deadline->toDayDateTimeString() : null;
-        $setupUrl = AppModulesCommonSupportPlatformHosts::outboundUrl(route('user.account.two-factor.show'));
+        $setupUrl = \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('user.account.two-factor.show'));
 
         $memberUserIds = $ws->members()->pluck('user_id');
         $users = User::whereIn('id', $memberUserIds)->get();

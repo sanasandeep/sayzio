@@ -35,7 +35,7 @@ class NewsletterUnsubscribeLinkMail
         $viewData = [
             'subject'        => $subject,
             'appName'        => config('app.name'),
-            'siteUrl'        => AppModulesCommonSupportPlatformHosts::outboundUrl(url('/')),
+            'siteUrl'        => \App\Modules\Common\Support\PlatformHosts::outboundUrl(url('/')),
             'unsubscribeUrl' => $unsubscribeUrl,
         ];
 

@@ -154,7 +154,7 @@ class UserAccountNotifier
             try {
                 \App\Modules\Common\Services\Emailer::send($emailKey, $user->email, [
                     'message' => $message,
-                    'url'     => AppModulesCommonSupportPlatformHosts::outboundUrl($data['url'] ?? route('user.profile-verification.index')),
+                    'url'     => \App\Modules\Common\Support\PlatformHosts::outboundUrl($data['url'] ?? route('user.profile-verification.index')),
                 ], [
                     'user' => $user->id,
                 ]);

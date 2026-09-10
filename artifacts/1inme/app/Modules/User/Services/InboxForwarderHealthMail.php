@@ -83,7 +83,7 @@ class InboxForwarderHealthMail
             'reason'         => $reason,
             'deadCount'      => $deadRecent,
             'lookbackHours'  => self::LOOKBACK_HOURS,
-            'rulesUrl'       => AppModulesCommonSupportPlatformHosts::outboundUrl(route('user.inbox.forwards.index')),
+            'rulesUrl'       => \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('user.inbox.forwards.index')),
         ];
 
         try {

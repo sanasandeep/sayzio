@@ -275,7 +275,7 @@ class ServiceBookingRequestService
                 'currency'          => $request->payment_currency ?? $request->currency,
                 'amount'            => $amountFmt,
                 'link_title'        => $link->title,
-                'status_url'        => AppModulesCommonSupportPlatformHosts::outboundUrl(route('sb.public.booking.page', ['token' => $request->public_token])),
+                'status_url'        => \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('sb.public.booking.page', ['token' => $request->public_token])),
             ], ['related' => $request, 'to_name' => $request->customer_name]);
         } catch (\Throwable $e) {
             Log::warning('service_booking payment_confirmed visitor email failed: ' . $e->getMessage());
@@ -307,7 +307,7 @@ class ServiceBookingRequestService
                 'when'       => $when,
                 'status'     => 'cancelled (refunded ' . ($request->payment_currency ?? $request->currency) . ' ' . $amountFmt . ')',
                 'link_title' => $link->title,
-                'status_url' => AppModulesCommonSupportPlatformHosts::outboundUrl(route('sb.public.booking.page', ['token' => $request->public_token])),
+                'status_url' => \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('sb.public.booking.page', ['token' => $request->public_token])),
             ], ['related' => $request, 'to_name' => $request->customer_name]);
         } catch (\Throwable $e) {
             Log::warning('service_booking refund visitor email failed: ' . $e->getMessage());
@@ -410,7 +410,7 @@ class ServiceBookingRequestService
                 'currency'   => $request->currency,
                 'total'      => number_format($estimated, 2),
                 'link_title' => $link->title,
-                'status_url' => AppModulesCommonSupportPlatformHosts::outboundUrl(route('sb.public.booking.page', ['token' => $request->public_token])),
+                'status_url' => \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('sb.public.booking.page', ['token' => $request->public_token])),
             ], ['related' => $request, 'to_name' => $request->customer_name]);
         } catch (\Throwable $e) {
             Log::warning('service_booking request_received visitor email failed: ' . $e->getMessage());
@@ -458,7 +458,7 @@ class ServiceBookingRequestService
                 'when'       => $when,
                 'status'     => $request->status_label,
                 'link_title' => $link->title,
-                'status_url' => AppModulesCommonSupportPlatformHosts::outboundUrl(route('sb.public.booking.page', ['token' => $request->public_token])),
+                'status_url' => \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('sb.public.booking.page', ['token' => $request->public_token])),
             ], ['related' => $request, 'to_name' => $request->customer_name]);
         } catch (\Throwable $e) {
             Log::warning('service_booking status_changed visitor email failed: ' . $e->getMessage());

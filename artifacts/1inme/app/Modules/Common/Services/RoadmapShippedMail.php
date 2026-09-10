@@ -21,7 +21,7 @@ class RoadmapShippedMail
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) return false;
 
         $alias    = $item->link?->alias ?? '';
-        $publicUrl = AppModulesCommonSupportPlatformHosts::outboundUrl($alias ? url('/' . $alias) : url('/'));
+        $publicUrl = \App\Modules\Common\Support\PlatformHosts::outboundUrl($alias ? url('/' . $alias) : url('/'));
         $appName  = config('app.name');
         $subject  = '[' . $appName . '] Shipped: ' . $item->title;
 

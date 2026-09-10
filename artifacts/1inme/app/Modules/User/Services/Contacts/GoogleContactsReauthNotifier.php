@@ -30,7 +30,7 @@ class GoogleContactsReauthNotifier
         }
 
         $accountEmail = $account->account_email ?: 'your Google account';
-        $reconnectUrl = AppModulesCommonSupportPlatformHosts::outboundUrl(route('user.contacts.index'));
+        $reconnectUrl = \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('user.contacts.index'));
         $subject      = 'Google Contacts sync is paused — please reconnect';
         $body         = "Google has revoked or expired the connection to {$accountEmail}, so contact syncing is paused."
             . " Reconnect your Google account to resume syncing: {$reconnectUrl}";
