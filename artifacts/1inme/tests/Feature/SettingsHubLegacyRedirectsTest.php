@@ -21,10 +21,20 @@ use Tests\TestCase;
  * Two things can silently break with no failing test:
  *   1. A future route rename could point a legacy redirect at the wrong
  *      (or a now-missing) hub tab — bookmarks 404 or land on the wrong page.
- *   2. `Route::redirect` answers ANY verb, so it must stay registered LAST.
- *      If one drifted ahead of a real POST/PUT/DELETE route sharing its
- *      path (e.g. POST /user/social-accounts, PUT /user/notifications/
- *      preferences), the mutation would be swallowed by a 302 to the hub.
+ *   2. A redirect swallowing a real mutation that shares its path (e.g.
+ *      POST /user/social-accounts, PUT /user/notifications/preferences),
+ *      answering 302 to the hub tab and saving nothing.
+ *
+ *      This file used to say the redirects "must stay registered LAST",
+ *      on the theory that Route::redirect answers any verb and a later
+ *      registration loses. It is the other way round.
+ *      RouteCollection::addToCollections() stores routes as
+ *      routes[$method][$uri], so a LATER route with the same method and
+ *      URI replaces the earlier one -- registering the any-verb redirect
+ *      last is exactly what made it win. Six real handlers were being
+ *      swallowed that way. The redirects are GET-only now, and
+ *      scripts/check-route-shadowing.php fails CI on any method+URI pair
+ *      claimed twice, anywhere in the app.
  *
  * Both are covered here against a signed-in workspace owner.
  */
@@ -94,10 +104,14 @@ class SettingsHubLegacyRedirectsTest extends TestCase
     }
 
     /**
-     * Real mutation routes whose path is ALSO a legacy redirect target. Each
-     * tuple is [method, path]. The real route is registered before the
-     * any-verb redirect, so it must win — the response must NOT be a 302 to
-     * the hub tab (which is what a shadowing redirect would produce).
+     * Every real mutation route whose path is ALSO a legacy redirect target.
+     * Each tuple is [method, path, hub tab the redirect would send it to].
+     * The response must NOT be a redirect to that tab -- that is the
+     * fingerprint of the legacy redirect having swallowed the mutation.
+     *
+     * All six that were actually broken are listed. The four this file
+     * started with were the right idea; the two it was missing (DELETE
+     * two-factor, POST billing companies) were just as dead.
      *
      * @return array<string,array{0:string,1:string,2:string}>
      */
@@ -105,10 +119,12 @@ class SettingsHubLegacyRedirectsTest extends TestCase
     {
         return [
             // [method, path, hub target the redirect would send it to]
-            'POST social-accounts'        => ['post', '/user/social-accounts',           '/user/settings/connections'],
-            'PUT notifications/prefs'     => ['put',  '/user/notifications/preferences',  '/user/settings/notifications'],
-            'POST api-keys'               => ['post', '/user/api-keys',                   '/user/settings/developer'],
-            'POST account/two-factor'     => ['post', '/user/account/two-factor',         '/user/settings/security'],
+            'POST social-accounts'        => ['post',   '/user/social-accounts',            '/user/settings/connections'],
+            'PUT notifications/prefs'     => ['put',    '/user/notifications/preferences',  '/user/settings/notifications'],
+            'POST api-keys'               => ['post',   '/user/api-keys',                   '/user/settings/developer'],
+            'POST account/two-factor'     => ['post',   '/user/account/two-factor',         '/user/settings/security'],
+            'DELETE account/two-factor'   => ['delete', '/user/account/two-factor',         '/user/settings/security'],
+            'POST billing/companies'      => ['post',   '/user/billing/companies',          '/user/settings/billing'],
         ];
     }
 
@@ -122,9 +138,19 @@ class SettingsHubLegacyRedirectsTest extends TestCase
         $resp = $this->actingAs($this->owner())->{$method}($path, []);
 
         $location = $resp->headers->get('Location');
+
+        // Both sides go through url() before comparing, and that is the
+        // whole point. This assertion used to read
+        // assertNotSame(url($hubTarget), $location) -- comparing an
+        // ABSOLUTE url ("http://localhost/user/settings/notifications")
+        // against the RELATIVE Location header Laravel actually emits
+        // ("/user/settings/notifications"). Those two strings are never
+        // identical, so the assertion could not fail. This test was written
+        // for exactly the bug that then shipped, and passed green through
+        // all of it. Normalizing both sides is what gives it teeth.
         $this->assertNotSame(
             url($hubTarget),
-            $location,
+            $location === null ? null : url($location),
             "{$method} {$path} was shadowed by the legacy hub redirect ({$hubTarget})."
         );
     }
