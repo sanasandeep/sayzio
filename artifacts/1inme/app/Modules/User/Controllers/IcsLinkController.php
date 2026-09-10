@@ -38,7 +38,10 @@ class IcsLinkController extends Controller
     {
         $validated = $this->validateRequest($request, null);
 
-        $alias = $validated['alias'] ?: Link::generateAlias();
+        // `?? null` first -- see the note in VcfLinkController::store. `alias`
+        // is nullable, so a request that omits it has no such key and `?:`
+        // alone fatals rather than falling back.
+        $alias = ($validated['alias'] ?? null) ?: Link::generateAlias();
 
         $settings = $this->initialSettings($request);
 

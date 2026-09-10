@@ -268,7 +268,18 @@ class LinkController extends Controller
         // (e.g. from a "Perfect pairings" cross-promo card) takes priority
         // over the remembered session type for a one-off deep link, but is
         // never persisted to session itself.
-        $allowedTypes = ['url', 'biolink', 'conversational', 'slides', 'ai_chat', 'restaurant_menu', 'store_menu', 'service_booking', 'file', 'ics', 'vcf', 'text'];
+        // The catalog, not a copy of it.
+        //
+        // This was a hand-written list of twelve, and the catalog has grown to
+        // eighteen. The six it never gained -- Resume, Calendar, Bizs Profile,
+        // Reviews, Brand Kit, Updates -- were silently unrememberable: make a
+        // Reviews Page, come back tomorrow, and Step 1 opened on whatever you
+        // had made before that instead. Worse than not remembering, because
+        // the wrong card is pre-selected rather than none.
+        //
+        // Reading the catalog means a nineteenth type is remembered the day it
+        // is added, by nobody having to notice this line.
+        $allowedTypes = array_keys(\App\Modules\User\Support\LinkTypeCategories::types());
         $queryType = $request->query('type');
         $lastType = in_array($queryType, $allowedTypes, true)
             ? $queryType
