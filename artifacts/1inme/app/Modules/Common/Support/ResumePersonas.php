@@ -39,7 +39,7 @@ class ResumePersonas
                 'role'       => 'Senior Product Designer',
                 'location'   => 'Berlin',
                 'tags'       => ['Figma', 'Design Systems', 'Prototyping', 'UX Research'],
-                'company'    => 'Linear · 2023 — Now',
+                'company'    => 'Linear · 2023 to Now',
                 'experience' => 'Shipped onboarding redesign, +28% activation. Led design system across 4 squads.',
                 'skills'     => [
                     ['label' => 'Product design', 'value' => 95],
@@ -53,7 +53,7 @@ class ResumePersonas
                 'role'       => 'Full-Stack Developer',
                 'location'   => 'Lisbon',
                 'tags'       => ['TypeScript', 'React', 'Node.js', 'AWS'],
-                'company'    => 'Stripe · 2022 — Now',
+                'company'    => 'Stripe · 2022 to Now',
                 'experience' => 'Cut API latency 40% and shipped a payments SDK used by 12k developers.',
                 'skills'     => [
                     ['label' => 'TypeScript', 'value' => 94],
@@ -67,7 +67,7 @@ class ResumePersonas
                 'role'       => 'Growth Marketing Lead',
                 'location'   => 'Toronto',
                 'tags'       => ['SEO', 'Paid Ads', 'Lifecycle', 'Analytics'],
-                'company'    => 'Notion · 2021 — Now',
+                'company'    => 'Notion · 2021 to Now',
                 'experience' => 'Scaled organic signups 3× and ran paid campaigns at a 4.2 ROAS.',
                 'skills'     => [
                     ['label' => 'Performance marketing', 'value' => 92],

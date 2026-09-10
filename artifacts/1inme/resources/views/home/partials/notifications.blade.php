@@ -71,7 +71,7 @@
         .nf-row { opacity:1 !important; transform:none !important; animation: none !important; }
     }
 </style>
-<section id="notifications" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="nf-h">
+<section id="notifications" class="sec-rule py-24 lg:py-32 relative overflow-hidden" aria-labelledby="nf-h">
     <div class="nf-mesh absolute inset-0 pointer-events-none" aria-hidden="true"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
@@ -88,7 +88,7 @@
             {{-- LEFT: features --}}
             <div class="space-y-4 order-2 lg:order-1">
                 @foreach([
-                    ['fa-bell',            '#1bd4d9', 'One unified feed',            'Every alert in one place &mdash; new followers, DMs, orders, mentions and system events. Mark all read, or dismiss and restore from a 30-day history.'],
+                    ['fa-bell',            '#1bd4d9', 'One unified feed',            'Every alert in one place, new followers, DMs, orders, mentions and system events. Mark all read, or dismiss and restore from a 30-day history.'],
                     ['fa-sliders',         '#3d6bff', 'Per-event preferences',       'A full matrix of 20+ event types. Toggle <span class="text-white font-semibold">in-app</span>, <span class="text-white font-semibold">email</span> and <span class="text-white font-semibold">push</span> independently for each one.'],
                     ['fa-paper-plane',     '#e94e8c', 'Email &amp; mobile push',     'Transactional emails, weekly digests you can schedule by day and hour, and mobile push that deep-links you straight to the action.'],
                     ['fa-shield-halved',   '#ff8a3c', 'Stay ahead of problems',      'Proactive alerts for suspicious logins, broken social connections, custom-domain DNS drift and API usage thresholds.'],

@@ -23,7 +23,7 @@
     $__audiences = [
         [
             'eyebrow' => 'Creators',
-            'title'   => 'Turn followers into fans &mdash; and income.',
+            'title'   => 'Turn followers into fans, and income.',
             'desc'    => 'One link for every drop, with tips, products, DMs, scheduled posts and an AI coach to keep you growing.',
             'icon'    => 'fa-microphone-lines',
             'color'   => '#e94e8c',
@@ -39,7 +39,7 @@
         ],
         [
             'eyebrow' => 'Networking pros',
-            'title'   => 'Your digital business card &mdash; and then some.',
+            'title'   => 'Your digital business card, and then some.',
             'desc'    => 'Tap-to-share NFC tags, dynamic QR codes, instant DMs and a live visitor map of who&rsquo;s engaging.',
             'icon'    => 'fa-id-badge',
             'color'   => '#ff8a3c',
@@ -47,14 +47,14 @@
         ],
     ];
 @endphp
-<section id="audience" class="py-20 lg:py-28 relative overflow-hidden" aria-labelledby="audience-h">
+<section id="audience" class="sec-rule py-20 lg:py-28 relative overflow-hidden" aria-labelledby="audience-h">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 max-w-2xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Built for you</div>
             <h2 id="audience-h" class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
                 Built for <span class="grad-text">creators, brands &amp; networking pros.</span>
             </h2>
-            <p class="reveal rd-2 text-gray-400">Pick the one that fits you &mdash; the same AI-powered, all-in-one toolkit powers all three.</p>
+            <p class="reveal rd-2 text-gray-400">Pick the one that fits you. The same AI-powered, all-in-one toolkit powers all three.</p>
         </div>
 
         <div class="grid md:grid-cols-3 gap-5 card-row">
@@ -119,14 +119,14 @@
         border: 1px solid var(--fs-rule, rgba(255,255,255,.14));
     }
 </style>
-<section id="how-it-works" class="py-20 lg:py-28 relative overflow-hidden">
+<section id="how-it-works" class="sec-rule py-20 lg:py-28 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c2)">How it works</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
                 Live in <span class="grad-text">under 2 minutes.</span>
             </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">Tell your AI what you want and it builds the page. Four tiny steps from "I have an idea" to "share my link" &mdash; no card, no setup call, no fuss.</p>
+            <p class="reveal rd-2 text-lg text-gray-400">Tell your AI what you want and it builds the page. Four tiny steps from "I have an idea" to "share my link", no card, no setup call, no fuss.</p>
         </div>
 
         <div class="hiw-track card-row grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
@@ -146,36 +146,35 @@
             @endforeach
         </div>
 
-        <div class="reveal rd-4 mt-12 max-w-3xl mx-auto">
-            <div class="hiw-cta-wrap relative flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div class="relative text-center sm:text-left">
-                    <div class="text-[11px] font-bold uppercase tracking-[.2em] mb-1" style="color:var(--c1)">Ready when you are</div>
-                    <div class="text-lg sm:text-xl font-bold text-white">Start free — no card needed.</div>
-                    <div class="text-xs text-gray-400 mt-0.5">Free Forever plan · Upgrade only when you outgrow it.</div>
-                </div>
-                <div class="relative flex flex-wrap items-center gap-3 shrink-0">
-                    <button type="button" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','how_it_works'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="btn-bounce btn-glow inline-flex items-center gap-2 px-7 py-3.5 grad-bar text-white rounded-full text-sm font-bold">
-                        Start free — no card <i class="fas fa-arrow-right text-xs"></i>
-                    </button>
-                    <a href="{{ route('site.how-it-works') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-xs font-semibold transition-colors">
-                        Walk me through it <i class="fas fa-route text-[10px]"></i>
-                    </a>
-                </div>
-            </div>
+        {{-- The second of the page's two full-width CTA cards. Same
+             component, warm ribbon rather than cool, so the two do not read
+             as the same card repeated halfway down the page. --}}
+        <div class="reveal rd-4 mt-12 max-w-5xl mx-auto">
+            @include('home.partials.cta-card', [
+                'eyebrow'   => 'Ready when you are',
+                'heading'   => 'Start free, no card needed.',
+                'body'      => 'Free Forever plan. Upgrade only when you outgrow it.',
+                'primary'   => [
+                    'label'   => 'Start free',
+                    'onclick' => "window.trackMarketingEvent &amp;&amp; window.trackMarketingEvent('landing_home_cta','how_it_works'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))",
+                ],
+                'secondary' => ['label' => 'Walk me through it', 'href' => route('site.how-it-works')],
+                'ribbon'    => 'warm',
+            ])
         </div>
     </div>
 </section>
 
 {{-- ==================== ZONE · WHAT YOU CAN BUILD ==================== --}}
 {{-- ============================ 1 · BUILD ============================ --}}
-<section id="features" class="py-24 lg:py-32 relative overflow-hidden">
+<section id="features" class="sec-rule py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">Build</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 A whole website,<br><span class="grad-text">AI-built or drag-and-drop.</span>
             </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">Describe it and your AI stacks the blocks &mdash; or build by hand: text, images, video, audio, files, embeds and forms in multi-column layouts. Pick a theme. Go live.</p>
+            <p class="reveal rd-2 text-lg text-gray-400">Describe it and your AI stacks the blocks, or build by hand: text, images, video, audio, files, embeds and forms in multi-column layouts. Pick a theme. Go live.</p>
         </div>
 
         {{-- AI builder prompt showcase (typewriter loop, balances the drag loop below) --}}
@@ -464,13 +463,13 @@
                         {{-- Modal-only detail. Every claim restates the
                              Link in Bio FAQ entries in SitePagesContent. --}}
                         <div data-expand-more style="--xm-accent: var(--c1)">
-                            <p class="xm-lead">A preset gets you a page that already looks designed. The controls underneath are what stop it looking like everyone else's — you can override the colours, the font, the background, the button shape and the animations without leaving the editor or touching a line of CSS.</p>
+                            <p class="xm-lead">A preset gets you a page that already looks designed. The controls underneath are what stop it looking like everyone else's. You can override the colours, the font, the background, the button shape and the animations without leaving the editor or touching a line of CSS.</p>
 
                             <div class="xm-cols">
                                 <div>
                                     <h4 class="xm-h">What you can change</h4>
                                     <ul class="xm-list">
-                                        <li><i class="fas fa-check"></i><span><strong>30 themes</strong> to start from, swapped in a single click — the page updates live, nothing to re-publish.</span></li>
+                                        <li><i class="fas fa-check"></i><span><strong>30 themes</strong> to start from, swapped in a single click. The page updates live, with nothing to re-publish.</span></li>
                                         <li><i class="fas fa-check"></i><span>Override <strong>colours, fonts, backgrounds, button shapes and animations</strong> on top of any preset.</span></li>
                                         <li><i class="fas fa-check"></i><span>Set a <strong>light or dark</strong> treatment and have it hold up on both.</span></li>
                                         <li><i class="fas fa-check"></i><span>Themes apply to the <strong>whole page</strong>, so a colour change does not mean editing every block.</span></li>
@@ -480,7 +479,7 @@
                                     <h4 class="xm-h">Why it's built this way</h4>
                                     <ul class="xm-list">
                                         <li><i class="fas fa-wand-magic-sparkles"></i><span><strong>Designed defaults, not a blank canvas.</strong> You are never staring at an empty page deciding what a good page looks like.</span></li>
-                                        <li><i class="fas fa-sliders"></i><span><strong>No ceiling.</strong> The preset is a starting point, not a cage — every part of it is yours to override.</span></li>
+                                        <li><i class="fas fa-sliders"></i><span><strong>No ceiling.</strong> The preset is a starting point, not a cage. Every part of it is yours to override.</span></li>
                                         <li><i class="fas fa-eye"></i><span><strong>Nothing is a surprise.</strong> Changes render on the page as you make them, so what you approve is what visitors get.</span></li>
                                         <li><i class="fas fa-clock"></i><span><strong>Reversible.</strong> Trying a different look costs one click, so it is cheap to change your mind.</span></li>
                                     </ul>
@@ -496,7 +495,7 @@
                     <div class="relative flex flex-col flex-1">
                         <div class="card-ico w-12 h-12 rounded-2xl flex items-center justify-center mb-4"><i class="fas fa-mobile-screen text-xl"></i></div>
                         <h3 class="text-lg font-bold mb-1.5">Mobile-first by default</h3>
-                        <p class="text-sm text-gray-400 mb-5">Every theme looks razor-sharp on small screens — that’s where your audience actually is.</p>
+                        <p class="text-sm text-gray-400 mb-5">Every theme looks razor-sharp on small screens. That’s where your audience actually is.</p>
 
                         <div class="mt-auto mf-mock" aria-hidden="true">
                             {{-- Tiny phone mockup --}}
@@ -528,13 +527,13 @@
 
                         {{-- Modal-only detail. --}}
                         <div data-expand-more style="--xm-accent: var(--c3)">
-                            <p class="xm-lead">Almost everyone who opens your link is holding a phone. A bio page is something people reach from an Instagram profile, a TikTok caption or a QR code on a table — so the phone is not the version that has to survive the design, it is the version the design is <em>for</em>. The desktop layout is what adapts here, not the other way round.</p>
+                            <p class="xm-lead">Almost everyone who opens your link is holding a phone. A bio page is something people reach from an Instagram profile, a TikTok caption or a QR code on a table, so the phone is not the version that has to survive the design, it is the version the design is <em>for</em>. The desktop layout is what adapts here, not the other way round.</p>
 
                             <div class="xm-cols">
                                 <div>
                                     <h4 class="xm-h">What that means in practice</h4>
                                     <ul class="xm-list">
-                                        <li><i class="fas fa-check"></i><span><strong>Every theme</strong> is built and checked at phone width first — none of the 30 are a desktop design squeezed down.</span></li>
+                                        <li><i class="fas fa-check"></i><span><strong>Every theme</strong> is built and checked at phone width first, none of the 30 are a desktop design squeezed down.</span></li>
                                         <li><i class="fas fa-check"></i><span>Tap targets, type sizes and spacing are set for <strong>thumbs, not cursors</strong>.</span></li>
                                         <li><i class="fas fa-check"></i><span>The editor previews the phone layout <strong>as you build</strong>, so you approve what your audience actually sees.</span></li>
                                         <li><i class="fas fa-check"></i><span>Images are served at the size the device needs, so a big hero photo does not cost a mobile visitor their data.</span></li>
@@ -544,7 +543,7 @@
                                     <h4 class="xm-h">Why speed is the feature</h4>
                                     <ul class="xm-list">
                                         <li><i class="fas fa-gauge-high"></i><span><strong>A slow page is an unread page.</strong> Visitors arriving from a social app have one thumb on the back gesture.</span></li>
-                                        <li><i class="fas fa-signal"></i><span><strong>Built for real connections</strong>, not office wifi — the page has to open on a train.</span></li>
+                                        <li><i class="fas fa-signal"></i><span><strong>Built for real connections</strong>, not office wifi. The page has to open on a train.</span></li>
                                         <li><i class="fas fa-magnifying-glass"></i><span><strong>Search rewards it.</strong> Mobile performance is part of how your page is ranked, not just how it feels.</span></li>
                                         <li><i class="fas fa-battery-half"></i><span><strong>Light on the device.</strong> Animations stand down when a visitor has reduced motion turned on.</span></li>
                                     </ul>
@@ -763,19 +762,19 @@
 </script>
 
 {{-- ============================ 2 · SHARE ============================ --}}
-<section id="share" class="py-24 lg:py-32 relative overflow-hidden">
+<section id="share" class="sec-rule py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Share</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Share your Sayzio<br><span class="grad-text">anywhere you like.</span>
             </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">Branded short links and dynamic QR codes you can repoint at any time. Add your link to bios, posters, business cards, packaging — anywhere. Save links from any browser tab with the Zio Extension, or share straight from any mobile app into Sayzio.</p>
+            <p class="reveal rd-2 text-lg text-gray-400">Branded short links and dynamic QR codes you can repoint at any time. Add your link to bios, posters, business cards, packaging and anywhere else. Save links from any browser tab with the Zio Extension, or share straight from any mobile app into Sayzio.</p>
         </div>
 
         @php
             // The four cards, as data. Each carries what the card shows and
-            // what its panel adds — the blurb is the one-liner on the card,
+            // what its panel adds, the blurb is the one-liner on the card,
             // the lead is the sentence that opens the panel, and they are
             // deliberately not the same words.
             $shareCards = [
@@ -786,7 +785,7 @@
                     'blurb' => 'Custom slugs, UTM-ready, click tracking. Looks like you, not a random shortener.',
                     'lead'  => 'Every link you hand out carries your name on it, and reports back on what happened next.',
                     'points' => [
-                        'Pick the slug yourself — <strong>1inme.co/spring-drop</strong>, not a string of characters',
+                        'Pick the slug yourself, <strong>1inme.co/spring-drop</strong>, not a string of characters',
                         'UTM parameters built in, with presets you save once and reuse',
                         'Clicks broken down by country, device and referrer, in real time',
                         'Create and edit in bulk, or from any browser tab with the Zio Extension',
@@ -798,10 +797,10 @@
                     'key' => 'custom-domain', 'rd' => 2, 'icon' => 'fa-globe',
                     'g1' => '#3d6bff', 'g2' => '#7c5cff',
                     'title' => 'Custom domain',
-                    'blurb' => 'Bring your own domain like <span class="share-em">links.yourbrand.com</span> — auto-SSL, zero DNS headaches.',
+                    'blurb' => 'Bring your own domain like <span class="share-em">links.yourbrand.com</span>, auto-SSL, zero DNS headaches.',
                     'lead'  => 'Put your links on a domain you own. One DNS record, and the certificate is handled for you from then on.',
                     'points' => [
-                        'One CNAME to verify — we check it and tell you the moment it lands',
+                        'One CNAME to verify. We check it and tell you the moment it lands',
                         "Let's Encrypt certificate issued and renewed automatically, forever",
                         'Unlimited links and pages on the domain, at no extra cost',
                         'Your existing website stays exactly where it is, untouched',
@@ -816,7 +815,7 @@
                     'blurb' => 'Print once, redirect forever. Change the destination without reprinting.',
                     'lead'  => 'The code on the poster never changes. Where it sends people is yours to change whenever you like.',
                     'points' => [
-                        'Repoint any code at a new destination — the printed code keeps working',
+                        'Repoint any code at a new destination and the printed code keeps working',
                         'Scans plotted by place and time, so you can see which poster is pulling',
                         'Custom eyes, frames and colours, with your mark in the middle',
                         'SVG and PNG export at print resolution, ready for the printer',
@@ -855,7 +854,7 @@
 </section>
 
 {{-- ============================ DOMAINS & URL ALIASES ============================ --}}
-<section id="domains" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="domains-h">
+<section id="domains" class="sec-rule py-24 lg:py-32 relative overflow-hidden" aria-labelledby="domains-h">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c2)">Domains &amp; URL aliases</div>
@@ -863,7 +862,7 @@
                 Pick a domain that fits.<br><span class="grad-text">Or bring your own.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                Launch on one of our branded shared domains, connect your own custom domain, or give any link a memorable slug — with multiple aliases pointing at the same AI-built page.
+                Launch on one of our branded shared domains, connect your own custom domain, or give any link a memorable slug, with multiple aliases pointing at the same AI-built page.
             </p>
         </div>
 
@@ -874,7 +873,7 @@
                 <div class="relative">
                     <div class="card-ico w-12 h-12 rounded-2xl flex items-center justify-center mb-4"><i class="fas fa-layer-group text-xl"></i></div>
                     <h3 class="text-xl font-bold mb-2">Multiple global domains</h3>
-                    <p class="text-sm text-gray-400 mb-5">Choose from our branded shared domains at sign-up — no DNS setup required.</p>
+                    <p class="text-sm text-gray-400 mb-5">Choose from our branded shared domains at sign-up, no DNS setup required.</p>
                     <div class="flex flex-wrap gap-2" aria-hidden="true">
                         @foreach(($showcaseDomains ?? \App\Modules\User\Models\Domain::SHOWCASE_FALLBACK) as $__dom)
                             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10 bg-white/5 text-gray-200">
@@ -890,13 +889,13 @@
                          one place on the site making a promise nothing else
                          makes. --}}
                     <div data-expand-more style="--xm-accent: var(--c1)">
-                        <p class="xm-lead">Most link tools hand you a URL on their domain and stop there. Sayzio gives you five to choose from, so the address itself can suit the audience — a creator link that reads <span class="text-white font-semibold">1in.me</span>, a business one that reads <span class="text-white font-semibold">bizs.club</span> — and you pick it at the moment you create the link, not after a purchase.</p>
+                        <p class="xm-lead">Most link tools hand you a URL on their domain and stop there. Sayzio gives you five to choose from, so the address itself can suit the audience, a creator link that reads <span class="text-white font-semibold">1in.me</span>, a business one that reads <span class="text-white font-semibold">bizs.club</span>, and you pick it at the moment you create the link, not after a purchase.</p>
 
                         <div class="xm-cols">
                             <div>
                                 <h4 class="xm-h">What you get</h4>
                                 <ul class="xm-list">
-                                    <li><i class="fas fa-check"></i><span>All five branded domains — 1in.me, bizs.club, getbio.one, Sayzio.app and sayzio.link — <strong>free on every plan</strong>, including Free.</span></li>
+                                    <li><i class="fas fa-check"></i><span>All five branded domains: 1in.me, bizs.club, getbio.one, Sayzio.app and sayzio.link, <strong>free on every plan</strong>, including Free.</span></li>
                                     <li><i class="fas fa-check"></i><span>No purchase, no registrar account and <strong>no DNS records</strong> to configure.</span></li>
                                     <li><i class="fas fa-check"></i><span>Pick the domain when you create a link or Link in Bio, and it is live immediately.</span></li>
                                     <li><i class="fas fa-check"></i><span>Each domain is its own namespace, so a slug someone else took on one is <strong>still free on another</strong>.</span></li>
@@ -940,13 +939,13 @@
                     {{-- Modal-only detail. Sourced from the Domains & aliases
                          and Custom domains FAQ entries in SitePagesContent. --}}
                     <div data-expand-more style="--xm-accent: var(--c2)">
-                        <p class="xm-lead">A custom domain is the difference between a link that mentions your brand and a link that <em>is</em> your brand. Point one CNAME record at us from <span class="text-white font-semibold">links.yourbrand.com</span> — or any subdomain you like — and every URL you hand out from then on reads entirely as you, with nothing in it borrowed from us.</p>
+                        <p class="xm-lead">A custom domain is the difference between a link that mentions your brand and a link that <em>is</em> your brand. Point one CNAME record at us from <span class="text-white font-semibold">links.yourbrand.com</span>, or any subdomain you like, and every URL you hand out from then on reads entirely as you, with nothing in it borrowed from us.</p>
 
                         <div class="xm-cols">
                             <div>
                                 <h4 class="xm-h">How the setup goes</h4>
                                 <ul class="xm-list">
-                                    <li><i class="fas fa-check"></i><span>Add <strong>one CNAME record</strong> at your registrar. That is the whole DNS change — no TXT tokens, no file uploads.</span></li>
+                                    <li><i class="fas fa-check"></i><span>Add <strong>one CNAME record</strong> at your registrar. That is the whole DNS change, no TXT tokens, no file uploads.</span></li>
                                     <li><i class="fas fa-check"></i><span>We verify it automatically and provision a <strong>free SSL certificate</strong>, then renew it for you.</span></li>
                                     <li><i class="fas fa-check"></i><span>Typically live in <strong>5–30 minutes</strong>; we keep retrying validation for up to 48 hours and email you when the certificate is ready.</span></li>
                                     <li><i class="fas fa-check"></i><span>Each domain shows its <strong>verification status</strong>, so you always know which are healthy and serving.</span></li>
@@ -974,7 +973,7 @@
                 <div class="relative">
                     <div class="card-ico w-12 h-12 rounded-2xl flex items-center justify-center mb-4"><i class="fas fa-tags text-xl"></i></div>
                     <h3 class="text-xl font-bold mb-2">Custom URL aliases</h3>
-                    <p class="text-sm text-gray-400 mb-5">Pick a memorable primary slug, then add extra aliases that all open the same page — no redirects.</p>
+                    <p class="text-sm text-gray-400 mb-5">Pick a memorable primary slug, then add extra aliases that all open the same page, no redirects.</p>
                     <div class="space-y-2" aria-hidden="true">
                         <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-mono">
                             <i class="fas fa-star text-[10px]" style="color:var(--c5)"></i>
@@ -993,7 +992,7 @@
                     {{-- Modal-only detail. Sourced from the Domains & aliases
                          FAQ entries in SitePagesContent. --}}
                     <div data-expand-more style="--xm-accent: var(--c3)">
-                        <p class="xm-lead">An alias is a second front door, not a forwarding address. Every extra alias you add opens the very same page directly — there is no redirect hop in between, so nothing flashes, nothing is lost from the referrer, and the visitor never sees a URL they did not click.</p>
+                        <p class="xm-lead">An alias is a second front door, not a forwarding address. Every extra alias you add opens the very same page directly, with no redirect hop in between, so nothing flashes, nothing is lost from the referrer, and the visitor never sees a URL they did not click.</p>
 
                         <div class="xm-cols">
                             <div>
@@ -1001,7 +1000,7 @@
                                 <ul class="xm-list">
                                     <li><i class="fas fa-check"></i><span>Every link gets a <strong>memorable primary slug</strong> you choose, not a string of random characters.</span></li>
                                     <li><i class="fas fa-check"></i><span>Add as many <strong>extra aliases</strong> as you need; each one opens the same page with <strong>no redirect</strong>.</span></li>
-                                    <li><i class="fas fa-check"></i><span>Aliases resolve <strong>whatever the casing</strong> — <span class="font-mono">SpringDrop</span> and <span class="font-mono">springdrop</span> reach the same page.</span></li>
+                                    <li><i class="fas fa-check"></i><span>Aliases resolve <strong>whatever the casing</strong>, <span class="font-mono">SpringDrop</span> and <span class="font-mono">springdrop</span> reach the same page.</span></li>
                                     <li><i class="fas fa-check"></i><span>Available on <strong>every plan, Free included</strong>. Aliases are not the paid part.</span></li>
                                 </ul>
                             </div>
@@ -1029,14 +1028,14 @@
 </section>
 
 {{-- ============================ 3 · GROW ============================ --}}
-<section class="py-24 lg:py-32 relative overflow-hidden">
+<section id="grow" class="sec-rule py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Grow</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Live analytics with<br><span class="grad-text">an AI growth coach.</span>
             </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">See visitors land on a world map, watch click trends per block, and let your AI Performance Coach suggest one-click fixes. AI Audience Insights even estimates who's visiting — students, professionals, businesses or creators — so you can tune every page to its crowd.</p>
+            <p class="reveal rd-2 text-lg text-gray-400">See visitors land on a world map, watch click trends per block, and let your AI Performance Coach suggest one-click fixes. AI Audience Insights even estimates who's visiting: students, professionals, businesses or creators, so you can tune every page to its crowd.</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -1271,7 +1270,7 @@
 @include('home.partials.forms')
 @include('home.partials.notifications')
 {{-- ============================ WORKSPACE & TEAM ============================ --}}
-<section id="workspace-team" class="py-24 lg:py-32 relative overflow-hidden">
+<section id="workspace-team" class="sec-rule py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">Workspace &amp; Team</div>
@@ -1279,7 +1278,7 @@
                 Run Sayzio with <span class="grad-text">your whole team.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                Multiple workspaces, real teammates with real roles, fine-grained permissions and per-workspace billing — with shared AI tools built for agencies, founders and busy creators.
+                Multiple workspaces, real teammates with real roles, fine-grained permissions and per-workspace billing, with shared AI tools built for agencies, founders and busy creators.
             </p>
         </div>
 
@@ -1287,9 +1286,9 @@
             <div class="reveal rd-2">
                 <div class="grid sm:grid-cols-2 gap-4 card-row">
                     @foreach([
-                        ['fa-layer-group','#1bd4d9','Multiple workspaces','One per brand, client or side project — fully isolated.'],
+                        ['fa-layer-group','#1bd4d9','Multiple workspaces','One per brand, client or side project, fully isolated.'],
                         ['fa-user-plus','#3d6bff','Invite teammates','Add members by email. They get their own login.'],
-                        ['fa-user-shield','#e94e8c','Roles &amp; permissions','Owner, Admin, Editor, Viewer — locked down where it counts.'],
+                        ['fa-user-shield','#e94e8c','Roles &amp; permissions','Owner, Admin, Editor, Viewer, locked down where it counts.'],
                         ['fa-credit-card','#ff8a3c','Billing per workspace','Separate plans &amp; invoices for each workspace.'],
                     ] as $i => $f)
                         <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
@@ -1515,31 +1514,17 @@
     <div class="ai-zone-aura ai-zone-aura-a" aria-hidden="true"></div>
     <div class="ai-zone-aura ai-zone-aura-b" aria-hidden="true"></div>
 
-    {{-- Shared zone intro --}}
-    <section class="relative pt-24 lg:pt-32 pb-2" aria-labelledby="ai-zone-h">
-        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div class="reveal inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-[.2em] ai-zone-pill">
-                <span class="ai-zone-pill-dot" aria-hidden="true"></span> Meet Zio
-            </div>
-            <h2 id="ai-zone-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mt-5 mb-5">
-                One AI that <span class="grad-text">builds and runs it all.</span>
-            </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">
-                From your Link in Bio to your phone line, Sayzio ships a whole crew of AI coworkers — a page
-                builder, a chatbot, an agent, an embeddable widget, a voice receptionist, a marketing
-                strategist and a WhatsApp teammate. One login, all grounded in your real data.
-            </p>
-            <div class="reveal rd-3 mt-7 flex flex-wrap items-center justify-center gap-2.5">
-                <a href="#ai-suite" class="ai-zone-chip"><i class="fas fa-robot"></i> Chatbot &amp; Agent</a>
-                <a href="#ai-marketing-strategist" class="ai-zone-chip"><i class="fas fa-chart-line"></i> AI Marketing Strategist</a>
-                <a href="#whatsapp-agent" class="ai-zone-chip"><i class="fab fa-whatsapp"></i> WhatsApp Agent</a>
-                <a href="#ai-dashboard" class="ai-zone-chip"><i class="fas fa-gauge-high"></i> AI Dashboard</a>
-            </div>
-        </div>
-    </section>
+    {{-- The zone intro ("Meet Zio") used to live here, in its own section on
+         the page's white ground, with the dark hub band starting directly
+         underneath it. That read as two unrelated blocks: a question on one
+         surface, its answer on another.
 
-    {{-- The diagram goes first, before the individual coworkers get their own
-         bands: it is the map, and a map is only useful before the tour. --}}
+         The intro is now the first block inside the band itself (see
+         home/partials/zio-hub.blade.php), so the dark ground begins at "Meet
+         Zio" and carries straight through the diagram. The band is still the
+         first thing in the zone, before the individual coworkers get their
+         own sections: it is the map, and a map is only useful before the
+         tour. --}}
     @include('home.partials.zio-hub')
 
     @include('home.partials.ai-hero')
@@ -1559,7 +1544,7 @@
                 Your AI grows it. <span class="grad-text">Buzz shows it.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                While your AI builds and tunes the page, Buzz keeps the momentum visible — live signups, visits and purchases pop up right on your Link in Bio so visitors see the room is busy and act.
+                While your AI builds and tunes the page, Buzz keeps the momentum visible, live signups, visits and purchases pop up right on your Link in Bio so visitors see the room is busy and act.
             </p>
         </div>
 
@@ -1627,7 +1612,7 @@
                                     <div class="bz-coin">$</div>
                                     <div class="min-w-0">
                                         <div class="who"><b>@yuki.draws</b> sent you a tip</div>
-                                        <div class="msg">“Loved your latest pack — keep going!”</div>
+                                        <div class="msg">“Loved your latest pack, keep it going!”</div>
                                     </div>
                                     <div class="amt">$5<small>.00</small></div>
                                 </div>
@@ -1682,7 +1667,7 @@
                 <div class="grid sm:grid-cols-2 gap-4 card-row">
                     @foreach([
                         ['fa-bolt','#ffc845','Real-time activity','Live signups, visits, purchases &amp; form fills.'],
-                        ['fa-toggle-on','#1bd4d9','Zero setup','Already integrated with your Link in Bio — flip it on.'],
+                        ['fa-toggle-on','#1bd4d9','Zero setup','Already integrated with your Link in Bio, flip it on.'],
                         ['fa-sliders','#e94e8c','Pick what shows','Choose events &amp; priorities; hide the rest.'],
                         ['fa-user-secret','#3d6bff','Privacy-first','Names masked, locations coarse, dismissible.'],
                     ] as $i => $f)
@@ -1707,7 +1692,7 @@
 
 {{-- ==================== ZONE · PROOF ==================== --}}
 {{-- ============================ TESTIMONIAL MARQUEE ============================ --}}
-<section id="proof" class="py-20 lg:py-24 relative overflow-hidden">
+<section id="proof" class="sec-rule py-20 lg:py-24 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Social proof</div>
@@ -1781,9 +1766,14 @@
 
 {{-- ==================== ZONE · COMPARE & PRICING ==================== --}}
 {{-- ============================ HOW WE COMPARE ============================ --}}
-@include('public.partials._compare', ['teaser' => true, 'eyebrowOverride' => 'How we compare'])
+{{-- `sectionClass` carries the homepage's section divider. The compare
+     band renders from this shared partial, which is also used on /pricing
+     and the /compare pages, so the class is passed in from the caller
+     rather than baked into the partial: the divider is a homepage rule and
+     the styling for it only exists there. --}}
+@include('public.partials._compare', ['teaser' => true, 'eyebrowOverride' => 'How we compare', 'sectionClass' => 'sec-rule'])
 @php
-    // Legacy inline arrays kept commented out — replaced by shared partial above.
+    // Legacy inline arrays kept commented out, replaced by shared partial above.
     /*
     $__cmpCompetitors = [
         ['key' => 'ours',     'name' => 'Sayzio',         'badge' => 'Better deal',           'isOurs' => true],
@@ -1815,7 +1805,7 @@
             <h2 data-anim="fade-up" class="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
                 More features. <span class="grad-text">Better deal.</span>
             </h2>
-            <p data-anim="fade-up" class="text-gray-400">See how Sayzio stacks up against the link-in-bio tools you already know — most charge extra for AI; here it's built in and free.</p>
+            <p data-anim="fade-up" class="text-gray-400">See how Sayzio stacks up against the link-in-bio tools you already know, most charge extra for AI; here it's built in and free.</p>
         </div>
 
         {{-- ===== Desktop / tablet matrix ===== --}}
@@ -1943,12 +1933,12 @@
 @if($__faqNode)
 <script type="application/ld+json">{!! json_encode(\App\Modules\Common\Support\MarketingSchema::graph([$__faqNode]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 @endif
-<section id="faq" class="pt-16 pb-10 lg:pt-20 lg:pb-12 relative overflow-hidden">
+<section id="faq" class="sec-rule pt-16 pb-10 lg:pt-20 lg:pb-12 relative overflow-hidden">
     <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-8">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">FAQ</div>
             <h2 class="reveal rd-1 text-3xl sm:text-4xl font-bold tracking-tight mb-2">Questions? <span class="grad-text">Answered.</span></h2>
-            <p class="reveal rd-2 text-sm text-gray-400">How the AI builder, coach and the rest actually work — a quick highlight reel; the full searchable library lives on the FAQ page.</p>
+            <p class="reveal rd-2 text-sm text-gray-400">How the AI builder, coach and the rest actually work: a quick highlight reel; the full searchable library lives on the FAQ page.</p>
         </div>
 
         <div class="reveal rd-3 space-y-3">
@@ -1975,13 +1965,13 @@
 
 {{-- ============================ FEATURED POSTS CAROUSEL ============================ --}}
 @if(!empty($featuredBlogPosts) && $featuredBlogPosts->count())
-<section id="blog-featured" class="pt-14 pb-12 lg:pt-16 lg:pb-14 relative overflow-hidden">
+<section id="blog-featured" class="sec-rule pt-14 pb-12 lg:pt-16 lg:pb-14 relative overflow-hidden">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between mb-10 gap-6 flex-wrap">
             <div>
                 <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">From the blog</div>
                 <h2 class="reveal rd-1 text-4xl sm:text-5xl font-bold tracking-tight mb-3">Featured <span class="grad-text">stories.</span></h2>
-                <p class="reveal rd-2 text-gray-400 max-w-xl">AI playbooks, product news and creator deep-dives — fresh from the Sayzio team.</p>
+                <p class="reveal rd-2 text-gray-400 max-w-xl">AI playbooks, product news and creator deep-dives, fresh from the Sayzio team.</p>
             </div>
             <a href="{{ route('site.blogs.index') }}" class="hidden sm:inline-flex items-center gap-2 text-sm font-semibold text-blue-300 hover:text-blue-200 transition">
                 Browse all posts
@@ -2032,31 +2022,20 @@
 {{-- Visually distinct from the gradient hero blocks above: a single asymmetric
      glass card with a left-aligned headline + right-aligned action, so the
      closing run reads as "cards → trust strip → links → one final CTA". --}}
-<section id="cta-final" class="py-16 lg:py-20 relative overflow-hidden">
+<section id="cta-final" class="sec-rule py-16 lg:py-20 relative overflow-hidden">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="reveal glass rounded-[2rem] p-8 sm:p-12 relative overflow-hidden border border-white/10">
-            <div class="absolute -top-24 -right-20 w-80 h-80 rounded-full opacity-30 blur-3xl" style="background: var(--c2);"></div>
-            <div class="absolute -bottom-24 -left-20 w-80 h-80 rounded-full opacity-25 blur-3xl" style="background: var(--c4);"></div>
-
-            <div class="relative grid lg:grid-cols-[1fr_auto] gap-8 lg:gap-10 items-center">
-                <div class="text-center lg:text-left">
-                    <div class="text-[11px] font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Ready when you are</div>
-                    <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight">
-                        Your audience is <span class="grad-text">already searching for you.</span>
-                    </h2>
-                    <p class="text-base text-gray-400 mt-4 max-w-xl mx-auto lg:mx-0">
-                        Let your AI build the page. Share the link. Watch them show up — live on a map.
-                    </p>
-                </div>
-                <div class="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 items-stretch sm:justify-center lg:items-stretch">
-                    <button type="button" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','final_cta'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap">
-                        Sign up free <i class="fas fa-arrow-right text-xs"></i>
-                    </button>
-                    <a href="#features" class="btn-bounce inline-flex items-center justify-center gap-2 px-8 py-4 glass-2 text-white rounded-full text-base font-bold whitespace-nowrap">
-                        See features
-                    </a>
-                </div>
-            </div>
+        <div class="reveal">
+            @include('home.partials.cta-card', [
+                'eyebrow'   => 'Ready when you are',
+                'heading'   => 'Your audience is already searching for you.',
+                'body'      => 'Let your AI build the page. Share the link. Watch them show up live on a map.',
+                'primary'   => [
+                    'label'   => 'Sign up free',
+                    'onclick' => "window.trackMarketingEvent &amp;&amp; window.trackMarketingEvent('landing_home_cta','final_cta'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))",
+                ],
+                'secondary' => ['label' => 'See features', 'href' => '#features'],
+                'ribbon'    => 'cool',
+            ])
         </div>
     </div>
 </section>

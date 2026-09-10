@@ -32,7 +32,7 @@
         '--d:460ms;--tx:-170px;--ty:8px;--rot:-5deg;',
     ];
 @endphp
-<section class="relative py-16 lg:py-24 overflow-hidden" aria-labelledby="ai-hero-h">
+<section id="ai-hero" class="relative py-16 lg:py-24 overflow-hidden" aria-labelledby="ai-hero-h">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12">
         <div class="grid grid-cols-1 gap-y-12 lg:grid-cols-[1.05fr_1fr] lg:gap-x-12 xl:gap-x-16 lg:items-center">
             {{-- Copy column --}}
@@ -385,7 +385,7 @@
 
     // Example businesses the demo cycles through to show breadth. Sourced from
     // a single server-passed list (Common\Support\AiHeroExamples) that also
-    // drives the resting/no-JS markup above — so the armed sequence picks up
+    // drives the resting/no-JS markup above, so the armed sequence picks up
     // seamlessly and adding/removing an example is a one-line data change.
     var EXAMPLES = @json($aiHeroExamples ?? []);
     if (!EXAMPLES.length) return;
@@ -522,7 +522,7 @@
             }
 
             if (isFirst) {
-                // Nothing on screen yet (armed start state) — build straight away.
+                // Nothing on screen yet (armed start state), build straight away.
                 build();
             } else {
                 // Clear the previous result: blocks fly back out, status resets to
@@ -543,7 +543,7 @@
 
         function play() {
             if (started) {
-                // Returning into view after pausing between cycles — resume.
+                // Returning into view after pausing between cycles, resume.
                 if (!running) cycle(false);
                 return;
             }

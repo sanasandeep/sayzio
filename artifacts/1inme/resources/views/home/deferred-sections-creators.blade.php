@@ -119,7 +119,7 @@
         <div class="text-center mb-8">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">FAQ</div>
             <h2 class="reveal rd-1 text-3xl sm:text-4xl font-bold tracking-tight mb-2">Questions? <span class="grad-text">Answered.</span></h2>
-            <p class="reveal rd-2 text-sm text-gray-400">How the AI builder, coach and the rest actually work — a quick highlight reel; the full searchable library lives on the FAQ page.</p>
+            <p class="reveal rd-2 text-sm text-gray-400">How the AI builder, coach and the rest actually work: a quick highlight reel; the full searchable library lives on the FAQ page.</p>
         </div>
 
         <div class="reveal rd-3 space-y-3">
@@ -162,7 +162,7 @@
                         Your audience is <span class="grad-text">already searching for you.</span>
                     </h2>
                     <p class="text-base text-gray-400 mt-4 max-w-xl mx-auto lg:mx-0">
-                        Let your AI build the page. Share the link. Watch them show up — live on a map.
+                        Let your AI build the page. Share the link. Watch them show up live on a map.
                     </p>
                 </div>
                 <div class="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 items-stretch sm:justify-center lg:items-stretch">

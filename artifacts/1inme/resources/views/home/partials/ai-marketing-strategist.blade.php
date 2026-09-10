@@ -351,8 +351,7 @@
 
     // Example goals the strategist demo cycles through to show its breadth.
     // Sourced from a single server-passed list (Common\Support
-    // \AiStrategistExamples) that also drives the resting/no-JS markup above —
-    // so the armed sequence picks up seamlessly and adding/removing an example
+    // \AiStrategistExamples) that also drives the resting/no-JS markup above, // so the armed sequence picks up seamlessly and adding/removing an example
     // is a one-line data change.
     var EXAMPLES = @json($msExamples ?? []);
     if (!EXAMPLES.length) return;

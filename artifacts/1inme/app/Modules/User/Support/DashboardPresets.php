@@ -28,7 +28,7 @@ class DashboardPresets
     public const PRESETS = [
         'overview' => [
             'label'       => 'Overview',
-            'description' => 'The full command-center view — everything at a glance. (default)',
+            'description' => 'The full command-center view: everything at a glance. (default)',
             'icon'        => 'fa-gauge-high',
             'widgets'     => [
                 'stat_total_clicks', 'stat_today', 'stat_plan', 'stat_links', 'stat_projects',

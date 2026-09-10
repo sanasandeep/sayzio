@@ -28,7 +28,7 @@
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Share your Sayzio<br><span class="grad-text">anywhere you like.</span>
             </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">Branded short links and dynamic QR codes you can repoint at any time. Add your link to bios, posters, business cards, packaging — anywhere. Save links from any browser tab with the Zio Extension, or share straight from any mobile app into Sayzio.</p>
+            <p class="reveal rd-2 text-lg text-gray-400">Branded short links and dynamic QR codes you can repoint at any time. Add your link to bios, posters, business cards, packaging and anywhere else. Save links from any browser tab with the Zio Extension, or share straight from any mobile app into Sayzio.</p>
         </div>
 
         <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 card-row">
@@ -56,7 +56,7 @@
                 <div class="relative">
                     <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(61,107,255,.22)"><i class="fas fa-globe text-xl" style="color:var(--c2)"></i></div>
                     <h3 class="text-xl font-bold mb-2">Custom domain</h3>
-                    <p class="text-sm text-gray-400 mb-5">Bring your own domain like <span class="text-white">links.yourbrand.com</span> — auto-SSL, zero DNS headaches.</p>
+                    <p class="text-sm text-gray-400 mb-5">Bring your own domain like <span class="text-white">links.yourbrand.com</span>, auto-SSL, zero DNS headaches.</p>
                     <div class="cd-stage">
                         <div class="cd-bar">
                             <span class="lock"><i class="fas fa-lock"></i></span>
@@ -204,7 +204,7 @@
         <div class="text-center mb-8">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">FAQ</div>
             <h2 class="reveal rd-1 text-3xl sm:text-4xl font-bold tracking-tight mb-2">Questions? <span class="grad-text">Answered.</span></h2>
-            <p class="reveal rd-2 text-sm text-gray-400">How the AI builder, coach and the rest actually work — a quick highlight reel; the full searchable library lives on the FAQ page.</p>
+            <p class="reveal rd-2 text-sm text-gray-400">How the AI builder, coach and the rest actually work: a quick highlight reel; the full searchable library lives on the FAQ page.</p>
         </div>
 
         <div class="reveal rd-3 space-y-3">
@@ -247,7 +247,7 @@
                         Your audience is <span class="grad-text">already searching for you.</span>
                     </h2>
                     <p class="text-base text-gray-400 mt-4 max-w-xl mx-auto lg:mx-0">
-                        Let your AI build the page. Share the link. Watch them show up — live on a map.
+                        Let your AI build the page. Share the link. Watch them show up live on a map.
                     </p>
                 </div>
                 <div class="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 items-stretch sm:justify-center lg:items-stretch">

@@ -61,7 +61,7 @@
         .fb-mesh::before, .fb-caret, .fb-chip { animation: none !important; }
     }
 </style>
-<section id="form-builder" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="fb-h">
+<section id="form-builder" class="sec-rule py-24 lg:py-32 relative overflow-hidden" aria-labelledby="fb-h">
     <div class="fb-mesh absolute inset-0 pointer-events-none" aria-hidden="true"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
@@ -110,9 +110,9 @@
             {{-- RIGHT: features --}}
             <div class="space-y-4">
                 @foreach([
-                    ['fa-shapes',          '#3d6bff', '21 field types',              'Text, email, phone, dropdowns, checkboxes, ratings, dates, file uploads, hidden fields and more &mdash; drag, drop, reorder.'],
-                    ['fa-palette',         '#1bd4d9', 'Designed to match',           'Colors, fonts, spacing, buttons and backgrounds &mdash; style every form to fit your brand, no code required.'],
-                    ['fa-bell-concierge',  '#e94e8c', 'Instant notifications',       'Get every submission by <span class="text-white font-semibold">email</span>, <span class="text-white font-semibold">SMS</span> or <span class="text-white font-semibold">webhook</span> &mdash; pipe leads straight into your tools.'],
+                    ['fa-shapes',          '#3d6bff', '21 field types',              'Text, email, phone, dropdowns, checkboxes, ratings, dates, file uploads, hidden fields and more, drag, drop, reorder.'],
+                    ['fa-palette',         '#1bd4d9', 'Designed to match',           'Colors, fonts, spacing, buttons and backgrounds, style every form to fit your brand, no code required.'],
+                    ['fa-bell-concierge',  '#e94e8c', 'Instant notifications',       'Get every submission by <span class="text-white font-semibold">email</span>, <span class="text-white font-semibold">SMS</span> or <span class="text-white font-semibold">webhook</span>, pipe leads straight into your tools.'],
                     ['fa-link',            '#ff8a3c', 'Embed in any biolink',        'Drop a form block onto your Link in Bio page and start collecting responses the moment you publish.'],
                 ] as $i => $f)
                     <div class="reveal rd-{{ ($i % 4) + 1 }} rb-feat glass rounded-2xl p-4 flex items-start gap-4">

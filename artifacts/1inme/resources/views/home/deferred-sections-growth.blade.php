@@ -28,7 +28,7 @@
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Live analytics with<br><span class="grad-text">an AI growth coach.</span>
             </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">See visitors land on a world map, watch click trends per block, and let your AI Performance Coach suggest one-click fixes. AI Audience Insights even estimates who's visiting — students, professionals, businesses or creators — so you can tune every page to its crowd.</p>
+            <p class="reveal rd-2 text-lg text-gray-400">See visitors land on a world map, watch click trends per block, and let your AI Performance Coach suggest one-click fixes. AI Audience Insights even estimates who's visiting: students, professionals, businesses or creators, so you can tune every page to its crowd.</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -318,7 +318,7 @@
                         Your audience is <span class="grad-text">already searching for you.</span>
                     </h2>
                     <p class="text-base text-gray-400 mt-4 max-w-xl mx-auto lg:mx-0">
-                        Let your AI build the page. Share the link. Watch them show up — live on a map.
+                        Let your AI build the page. Share the link. Watch them show up live on a map.
                     </p>
                 </div>
                 <div class="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 items-stretch sm:justify-center lg:items-stretch">

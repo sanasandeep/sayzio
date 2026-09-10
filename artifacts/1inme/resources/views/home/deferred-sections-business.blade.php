@@ -29,7 +29,7 @@
                 Pick a domain that fits.<br><span class="grad-text">Or bring your own.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                Launch on one of our branded shared domains, connect your own custom domain, or give any link a memorable slug — with multiple aliases pointing at the same AI-built page.
+                Launch on one of our branded shared domains, connect your own custom domain, or give any link a memorable slug, with multiple aliases pointing at the same AI-built page.
             </p>
         </div>
 
@@ -40,7 +40,7 @@
                 <div class="relative">
                     <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(27,212,217,.2)"><i class="fas fa-layer-group text-xl" style="color:var(--c1)"></i></div>
                     <h3 class="text-xl font-bold mb-2">Multiple global domains</h3>
-                    <p class="text-sm text-gray-400 mb-5">Choose from our branded shared domains at sign-up — no DNS setup required.</p>
+                    <p class="text-sm text-gray-400 mb-5">Choose from our branded shared domains at sign-up, no DNS setup required.</p>
                     <div class="flex flex-wrap gap-2" aria-hidden="true">
                         @foreach(($showcaseDomains ?? \App\Modules\User\Models\Domain::SHOWCASE_FALLBACK) as $__dom)
                             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10 bg-white/5 text-gray-200">
@@ -80,7 +80,7 @@
                 <div class="relative">
                     <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(233,78,140,.2)"><i class="fas fa-tags text-xl" style="color:var(--c3)"></i></div>
                     <h3 class="text-xl font-bold mb-2">Custom URL aliases</h3>
-                    <p class="text-sm text-gray-400 mb-5">Pick a memorable primary slug, then add extra aliases that all open the same page — no redirects.</p>
+                    <p class="text-sm text-gray-400 mb-5">Pick a memorable primary slug, then add extra aliases that all open the same page, no redirects.</p>
                     <div class="space-y-2" aria-hidden="true">
                         <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-mono">
                             <i class="fas fa-star text-[10px]" style="color:var(--c5)"></i>
@@ -131,7 +131,7 @@
                         Your audience is <span class="grad-text">already searching for you.</span>
                     </h2>
                     <p class="text-base text-gray-400 mt-4 max-w-xl mx-auto lg:mx-0">
-                        Let your AI build the page. Share the link. Watch them show up — live on a map.
+                        Let your AI build the page. Share the link. Watch them show up live on a map.
                     </p>
                 </div>
                 <div class="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 items-stretch sm:justify-center lg:items-stretch">

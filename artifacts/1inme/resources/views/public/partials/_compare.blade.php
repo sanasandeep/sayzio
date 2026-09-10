@@ -6,6 +6,11 @@
                                        shows only the head-to-head selector
                                        plus a CTA linking to /pricing#compare.
       $anchorId (string, default 'compare') — id used on the <section>.
+      $sectionClass (string, default '') - extra classes for the <section>.
+                                       The homepage passes 'sec-rule' so this
+                                       band gets the same top hairline as the
+                                       bands around it; other pages pass
+                                       nothing and are unaffected.
       $only (string|null, default null) — when set to a rival key (e.g.
                                        'linktree'), locks the head-to-head to
                                        that rival, hides the rival selector and
@@ -52,7 +57,7 @@
     $__cmpShowMatrix = !$compact && !$__cmpOnlyKey;
 @endphp
 
-<section id="{{ $anchorId }}" class="py-20 lg:py-28 relative overflow-hidden">
+<section id="{{ $anchorId }}" class="{{ $sectionClass ?? '' }} py-20 lg:py-28 relative overflow-hidden">
     <div class="mesh-bg" aria-hidden="true"></div>
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 

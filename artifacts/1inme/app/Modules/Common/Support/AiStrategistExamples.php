@@ -43,7 +43,7 @@ class AiStrategistExamples
         return [
             [
                 'goal' => 'Grow my email & WhatsApp subscribers from my Link in Bio',
-                'summary' => 'Your bio gets steady traffic, but only ~2% subscribe — the funnel leaks before the ask.',
+                'summary' => 'Your bio gets steady traffic, but only ~2% subscribe: the funnel leaks before the ask.',
                 'head' => 'Turn bio traffic into owned subscribers',
                 'organic' => [
                     'tag'   => 'Organic',
@@ -83,7 +83,7 @@ class AiStrategistExamples
             ],
             [
                 'goal' => 'Sell more of my products straight from my bio',
-                'summary' => 'Strong product views, but visitors bounce before checkout — trust and urgency are missing.',
+                'summary' => 'Strong product views, but visitors bounce before checkout: trust and urgency are missing.',
                 'head' => 'Turn browsers into buyers',
                 'organic' => [
                     'tag'   => 'Organic',
@@ -123,7 +123,7 @@ class AiStrategistExamples
             ],
             [
                 'goal' => 'Get more bookings for my coaching sessions',
-                'summary' => 'Plenty of profile visits, but few reach your booking page — the path to "book" is buried.',
+                'summary' => 'Plenty of profile visits, but few reach your booking page: the path to "book" is buried.',
                 'head' => 'Fill your calendar on autopilot',
                 'organic' => [
                     'tag'   => 'Organic',
@@ -163,7 +163,7 @@ class AiStrategistExamples
             ],
             [
                 'goal' => 'Grow my audience and turn fans into followers',
-                'summary' => 'Visitors arrive and leave — there\'s no reason to follow or come back yet.',
+                'summary' => 'Visitors arrive and leave: there\'s no reason to follow or come back yet.',
                 'head' => 'Convert one-time visitors into a fanbase',
                 'organic' => [
                     'tag'   => 'Organic',

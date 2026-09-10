@@ -67,7 +67,7 @@
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
                 Live in <span class="grad-text">under 2 minutes.</span>
             </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">Tell your AI what you want and it builds the page. Four tiny steps from "I have an idea" to "share my link" &mdash; no card, no setup call, no fuss.</p>
+            <p class="reveal rd-2 text-lg text-gray-400">Tell your AI what you want and it builds the page. Four tiny steps from "I have an idea" to "share my link", no card, no setup call, no fuss.</p>
         </div>
 
         <div class="hiw-track grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
@@ -91,12 +91,12 @@
             <div class="hiw-cta-wrap relative flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div class="relative text-center sm:text-left">
                     <div class="text-[11px] font-bold uppercase tracking-[.2em] mb-1" style="color:var(--c1)">Ready when you are</div>
-                    <div class="text-lg sm:text-xl font-bold text-white">Start free — no card needed.</div>
+                    <div class="text-lg sm:text-xl font-bold text-white">Start free, no card needed.</div>
                     <div class="text-xs text-gray-400 mt-0.5">Free Forever plan · Upgrade only when you outgrow it.</div>
                 </div>
                 <div class="relative flex flex-wrap items-center gap-3 shrink-0">
                     <button type="button" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','how_it_works'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="btn-bounce btn-glow inline-flex items-center gap-2 px-7 py-3.5 grad-bar text-white rounded-full text-sm font-bold">
-                        Start free — no card <i class="fas fa-arrow-right text-xs"></i>
+                        Start free, no card <i class="fas fa-arrow-right text-xs"></i>
                     </button>
                     <a href="{{ route('site.how-it-works') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-xs font-semibold transition-colors">
                         Walk me through it <i class="fas fa-route text-[10px]"></i>
@@ -180,7 +180,7 @@
                 One AI that <span class="grad-text">builds and runs it all.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                From your Link in Bio to your phone line, Sayzio ships a whole crew of AI coworkers — a page
+                From your Link in Bio to your phone line, Sayzio ships a whole crew of AI coworkers, a page
                 builder, a chatbot, an agent, an embeddable widget, a voice receptionist, a marketing
                 strategist and a WhatsApp teammate. One login, all grounded in your real data.
             </p>
@@ -214,7 +214,7 @@
         <div class="text-center mb-8">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">FAQ</div>
             <h2 class="reveal rd-1 text-3xl sm:text-4xl font-bold tracking-tight mb-2">Questions? <span class="grad-text">Answered.</span></h2>
-            <p class="reveal rd-2 text-sm text-gray-400">How the AI builder, coach and the rest actually work — a quick highlight reel; the full searchable library lives on the FAQ page.</p>
+            <p class="reveal rd-2 text-sm text-gray-400">How the AI builder, coach and the rest actually work: a quick highlight reel; the full searchable library lives on the FAQ page.</p>
         </div>
 
         <div class="reveal rd-3 space-y-3">
@@ -257,7 +257,7 @@
                         Your audience is <span class="grad-text">already searching for you.</span>
                     </h2>
                     <p class="text-base text-gray-400 mt-4 max-w-xl mx-auto lg:mx-0">
-                        Let your AI build the page. Share the link. Watch them show up — live on a map.
+                        Let your AI build the page. Share the link. Watch them show up live on a map.
                     </p>
                 </div>
                 <div class="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 items-stretch sm:justify-center lg:items-stretch">

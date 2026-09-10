@@ -158,7 +158,7 @@
         <div class="ch-og-meta">
             <span class="ch-og-site">1inme.co</span>
             <span class="ch-og-title">Spring drop is live</span>
-            <span class="ch-og-desc">Everything in one link — shop, playlist, tour dates.</span>
+            <span class="ch-og-desc">Everything in one link, shop, playlist, tour dates.</span>
         </div>
     </div>
 

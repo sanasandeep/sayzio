@@ -16,7 +16,7 @@
             $__seo = array_merge($__seo, $__designSeo);
         }
     @endphp
-    <title>{{ \App\Modules\Common\Support\MarketingSeo::documentTitle($__seo['title'], ' — ') }}</title>
+    <title>{{ \App\Modules\Common\Support\MarketingSeo::documentTitle($__seo['title'], ', ') }}</title>
     <meta name="description" content="{{ $__seo['description'] }}">
     @if(($__seo['keywords'] ?? '') !== '')
         <meta name="keywords" content="{{ $__seo['keywords'] }}">
@@ -288,35 +288,36 @@
            gutters the sections use) so it lines up with the text above it,
            not with the viewport.
 
-           Named sections only, and deliberately NOT every section: the rule
-           belongs at the boundaries between the page's zones. Sections on a
-           coloured or dark ground are excluded -- a hairline calibrated for
-           white would be invisible on the Zio band and wrong on #buzz, and
-           those bands already announce themselves by changing colour. */
-        :is(#how-it-works, #features, #share, #domains, #workspace-team,
-            #proof, #compare-legacy, #pricing, #faq, #blog-featured)::before {
+           Which sections get one is now marked in the markup, with a
+           `sec-rule` class on the <section> tag, rather than by an id list
+           kept here. The list was the reason dividers kept turning up
+           missing: half the page's bands live in their own partials
+           (create-showcase, resume, dialer-contacts, forms, notifications)
+           and were simply never added to it, one band -- "Grow" -- had no id
+           to add, and `#compare-legacy` had been renamed. None of that is
+           visible from this file, so the gaps were only ever found by
+           looking at the page.
+
+           A class puts the decision next to the section it applies to, and
+           HomepageSectionDividerTest fails when a new full-bleed band on the
+           page ground has neither the class nor an entry in its opt-out
+           list, so the next section added cannot quietly go without one.
+
+           Still deliberately NOT every section: the rule belongs at the
+           boundaries between bands that share the page's ground. Bands with
+           a ground of their own are opted out -- a hairline calibrated for
+           white is invisible on the Zio band and wrong on #buzz, and those
+           announce themselves by changing colour instead. */
+        .sec-rule::before {
             content: "";
             position: absolute; top: 0; left: 50%; transform: translateX(-50%);
             width: min(1280px, 100% - 2rem); height: 1px;
             background: var(--sec-rule, rgba(255,255,255,.08));
             pointer-events: none;
         }
-        html.light-mode :is(#how-it-works, #features, #share, #domains, #workspace-team,
-            #proof, #compare-legacy, #pricing, #faq, #blog-featured)::before {
-            --sec-rule: rgba(15,23,42,.09);
-        }
-        @media (min-width: 640px) {
-            :is(#how-it-works, #features, #share, #domains, #workspace-team,
-                #proof, #compare-legacy, #pricing, #faq, #blog-featured)::before {
-                width: min(1280px, 100% - 3rem);
-            }
-        }
-        @media (min-width: 1024px) {
-            :is(#how-it-works, #features, #share, #domains, #workspace-team,
-                #proof, #compare-legacy, #pricing, #faq, #blog-featured)::before {
-                width: min(1280px, 100% - 4rem);
-            }
-        }
+        html.light-mode .sec-rule::before { --sec-rule: rgba(15,23,42,.09); }
+        @media (min-width: 640px)  { .sec-rule::before { width: min(1280px, 100% - 3rem); } }
+        @media (min-width: 1024px) { .sec-rule::before { width: min(1280px, 100% - 4rem); } }
 
         /* ─── .card-lit: a card that stays blue in BOTH modes ───
            The page has more than one of these -- the Premium plan and the
@@ -3162,6 +3163,145 @@
         html.light-mode .bz-goal .pct { color: #15803d; }
         html.light-mode .bz-buy .price { color: #15803d; }
         html.light-mode .bz-tip .amt { color: #ca8a04; text-shadow: none; }
+
+        /* ==========================================================
+           QUIET PALETTE
+           ==========================================================
+           Three things were asked for together, and they are one idea:
+           the page should carry its colour in the product shots, not in
+           the page furniture.
+
+           1. Headline text is never coloured. Half a heading in brand
+              blue while the other half is near-black reads as two
+              sentences, and the gradient-clipped variants were worse --
+              on the dark ground they came out as a glowing band that
+              fought the copy next to it.
+           2. Ambient colour blurs are gone. The big soft discs were
+              tuned against a white page; in dark mode they sit as
+              bruise-coloured smudges behind the text.
+           3. Card edges are one neutral hairline all the way round.
+
+           Done here, late and with !important, rather than at each of
+           the ~30 call sites. The partials carry their own <style> in
+           the body, so they land AFTER this block in the cascade and
+           would win any specificity tie; !important is what actually
+           settles it. Doing it in one place also means a section added
+           next month inherits the decision instead of quietly
+           reintroducing the problem.
+
+           What is deliberately NOT touched: colour inside the device
+           mockups (the fake dashboards, the QR frame, the chat bubbles)
+           -- that colour is depicting the product, and draining it
+           would leave the illustrations looking broken. Neutral
+           white/black glows inside the dark CTA panels stay too; they
+           read as lighting, not as a colour cast. */
+
+        /* -- 1. headline text inherits its heading's colour -- */
+        .grad-text,
+        html.light-mode .grad-text,
+        .aisx .aisx-shimmer,
+        .ms-promo .ms-grad,
+        .wa-promo .wa-grad,
+        .zh-h em,
+        /* Figures that are page copy rather than mockup chrome: the proof
+           band's lead number and the analytics card's three counters. Both
+           are set at headline size directly on the page ground, so a
+           gradient on them is the same coloured-headline problem in
+           another font size. The small figures inside the device mockups
+           (.mf-stats, .bz-views) are left alone -- see the note above. */
+        .pb-fig:first-child .pb-num,
+        .pb-fig:first-child .pb-suffix,
+        .geo-stat .num {
+            background: none !important;
+            -webkit-background-clip: border-box !important;
+            background-clip: border-box !important;
+            -webkit-text-fill-color: currentColor !important;
+            color: inherit !important;
+            animation: none !important;
+        }
+
+        /* -- 1b. section eyebrows read as labels, not accents --
+           The little uppercase line above each headline ("BUILD", "SHARE",
+           "HOW IT WORKS") is set inline as `style="color:var(--cN)"`, so it
+           was one of the last coloured things left on the page: forty-two
+           of them, a different hue each time, marching down a page whose
+           headings had just been made uniform. Muted grey keeps the label
+           doing its job -- it is already separated by size, weight and
+           letter-spacing -- without reintroducing the rainbow.
+
+           !important is unavoidable here: the colour is an inline style,
+           and nothing but !important outranks that.
+
+           Deliberately scoped to the eyebrow (.tracking-[.2em]) rather
+           than to every `style="color:var(--c*)"`, because the same
+           pattern is used on small inline icons -- the tick marks in the
+           pricing list, the link glyph on the share card -- where the
+           colour is carrying meaning rather than decorating a heading. */
+        .tracking-\[\.2em\][style*="color:var(--c"] {
+            color: #6B7280 !important;
+        }
+        html:not(.light-mode) .tracking-\[\.2em\][style*="color:var(--c"] {
+            color: #9098AB !important;
+        }
+        /* The dark band sets its own eyebrow colour and is already quiet. */
+        .zh-band .tracking-\[\.2em\][style*="color:var(--c"] { color: #9FB4FF !important; }
+
+        /* The link-type cards carry the same kind of label ("HOW YOU WOULD
+           USE IT") tinted to each card's own accent, so eighteen cards in a
+           row gave eighteen different label colours. Muted, like the rest.
+
+           The doubled class is not a typo. The showcase partial styles this
+           label from its own <style> in the BODY, so its rules land after
+           this block; one of them is already !important. Among important
+           declarations the winner is the more specific selector, and on a
+           tie it is the later one -- so matching its specificity would lose
+           on position. Repeating the class raises specificity by one class
+           and settles it without an id or an inline style. */
+        .lt-chip-usage-label.lt-chip-usage-label,
+        html.light-mode .lt-chip .lt-chip-usage-label.lt-chip-usage-label,
+        .ltm-usage > span {
+            color: currentColor !important;
+            opacity: .55;
+        }
+
+        /* -- 2. ambient COLOUR blurs off (neutral ones survive) -- */
+        .aisx .aisx-blob,
+        .ms-promo .ms-glow,
+        .wa-promo .wa-glow,
+        .ai-zone-aura,
+        .mkt-stats [class*="blur-3xl"],
+        #pricing [class*="blur-3xl"][style*="#3d6bff"],
+        #pricing [class*="blur-3xl"][style*="#6e61ff"],
+        [class*="blur-3xl"][style*="var(--c2)"],
+        [class*="blur-3xl"][style*="var(--c4)"] {
+            display: none !important;
+        }
+
+        /* -- 3. no accent edge on a card --
+           The coloured line across the top of every card is not a border
+           at all, which is why it survives any amount of `border-*`
+           tinkering: it is the first layer of a three-layer
+           `background-image` on `.card-row > *`, sized `100% 2px` and
+           pinned to `top left`. The two layers behind it are the corner
+           tints -- the same colour wash as the ambient discs, just
+           painted inside the card instead of behind the section.
+
+           Dropping the whole `background-image` takes all three at once
+           and leaves each card on its own `background-color` with the
+           neutral hairline it already had on all four sides. */
+        html .card-row > :is(.glass, .glass-2, .audience-card, .hiw-step,
+                             .buzz-card, .prem-feat, .dc-feat, .rb-feat),
+        html:not(.light-mode) .card-row > :is(.glass, .glass-2, .audience-card, .hiw-step,
+                                              .buzz-card, .prem-feat, .dc-feat, .rb-feat),
+        .hiw-cta-wrap,
+        /* Same three-layer trick, applied by hand to the four Share cards
+           rather than through .card-row -- so it needed naming separately.
+           Found by scanning the rendered page for any background whose
+           first layer is sized `100% 2px`, which is what that top line
+           always is, whatever class carries it. */
+        .share-wash {
+            background-image: none !important;
+        }
     </style>
 </head>
 <body class="overflow-x-hidden">
@@ -3230,7 +3370,7 @@
         if (!box) return;
         var started = false;
         function execScripts(root) {
-            // Scripts inserted via innerHTML never execute — recreate each
+            // Scripts inserted via innerHTML never execute, recreate each
             // one in place so section runtimes (demos, Alpine helpers) run.
             var scripts = root.querySelectorAll('script');
             Array.prototype.forEach.call(scripts, function (old) {
@@ -3265,7 +3405,7 @@
                     if (t) t.scrollIntoView({ block: 'start' });
                 }
             }).catch(function () {
-                // Fetch failed — allow a retry on the next trigger.
+                // Fetch failed, allow a retry on the next trigger.
                 started = false;
             });
         }
@@ -3294,7 +3434,7 @@
     // re-running never double-observes or double-binds.
     // Belt and braces for the reveal observer. IntersectionObserver exists in
     // every browser we support, but it has been known to go quiet inside
-    // some in-app webviews and after a bfcache restore — and a reveal that
+    // some in-app webviews and after a bfcache restore, and a reveal that
     // never fires is invisible content, not just a missing animation. This
     // sweeps anything still hidden but inside the viewport, on scroll and
     // resize, throttled to one frame. It installs once and stops listening
@@ -3350,8 +3490,7 @@
             // Anything already on screen when this runs is NEVER hidden. The
             // markup paints before this script does, so hiding the hero here
             // and waiting for the observer's first callback to bring it back
-            // blanks the top of the page for about a second on every load —
-            // an entrance nobody sees, in exchange for a blank first
+            // blanks the top of the page for about a second on every load, // an entrance nobody sees, in exchange for a blank first
             // impression. Those elements are simply marked done.
             const vh = window.innerHeight || 800;
             reveals.forEach(el => {

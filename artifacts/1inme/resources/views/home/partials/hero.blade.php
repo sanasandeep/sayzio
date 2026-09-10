@@ -11,7 +11,7 @@
      prefers-reduced-motion. CTAs keep the existing open-auth +
      trackMarketingEvent behaviour.
 --}}
-<section class="relative z-10 overflow-hidden pt-28 pb-16 sm:pt-32 lg:pt-24 lg:pb-24 lg:min-h-[100svh] lg:flex lg:items-center" aria-labelledby="hero-h">
+<section id="hero" class="relative z-10 overflow-hidden pt-28 pb-16 sm:pt-32 lg:pt-24 lg:pb-24 lg:min-h-[100svh] lg:flex lg:items-center" aria-labelledby="hero-h">
     {{-- Square grid behind the hero, with a scatter of tiles that fade up and
          down. The positions are written out rather than randomised at request
          time: a fixed scatter looks the same as a random one to anyone
@@ -21,7 +21,7 @@
          delay, so they are already mid-cycle on the first paint and no two
          are ever in step. --}}
     @php
-        // col, row, seconds, delay — measured from the LEFT edge, which is
+        // col, row, seconds, delay, measured from the LEFT edge, which is
         // where a background grid's tiling starts; the feature tiles below
         // are measured from the centre instead, because that is where the
         // grid's phase is pinned.
@@ -33,7 +33,7 @@
         ];
 
         // Where each feature tile lives, as (column from the viewport centre,
-        // row from the top of the section) — so every one of them sits dead
+        // row from the top of the section), so every one of them sits dead
         // centre in a grid cell.
         //
         // Home cells are laid on an EVEN lattice and each tile only ever
@@ -162,7 +162,7 @@
 
                 @guest
                     @php
-                        // Canonical brand host for the "claim your link" prefix — read
+                        // Canonical brand host for the "claim your link" prefix, read
                         // from the platform's primary domain rather than hardcoded so a
                         // rebrand carries through automatically.
                         $claimHost = \App\Modules\Common\Support\PlatformHosts::PLATFORM_DOMAINS[0] ?? 'sayzio.app';
@@ -296,7 +296,7 @@
                             $zioLines = \App\Modules\Admin\Models\ZioLine::activeTexts() ?: [
                                 "Hi, I'm Zio 👋",
                                 'I build your link page, QR codes and short links.',
-                                'Then I answer your visitors — and pick up your calls.',
+                                'Then I answer your visitors, and pick up your calls.',
                                 'Free forever. Want to try me?',
                             ];
                         @endphp
@@ -332,7 +332,7 @@
                      its text. --}}
                 <ul class="zio-toollist">
                     @foreach($zioNodes as $n)
-                        <li>{{ $n['t'] }} &mdash; {{ $n['d'] }}</li>
+                        <li>{{ $n['t'] }}, {{ $n['d'] }}</li>
                     @endforeach
                 </ul>
             </div>

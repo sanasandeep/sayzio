@@ -38,7 +38,7 @@
         [route('site.ai-dashboard'),       'fa-gauge-high',      'AI Dashboard',       'Presets or a prompt build your layout', 'site.ai-dashboard'],
     ];
     $navProductCareer = [
-        [route('site.resume-builder'), 'fa-file-lines', 'Résumé & Portfolio', 'Build a CV & portfolio link in 5 min', 'site.resume-builder'],
+        [route('site.resume-builder'), 'fa-file-lines', 'Resume & Portfolio', 'Build a CV & portfolio link in 5 min', 'site.resume-builder'],
     ];
     $navProductApps = [
         [route('site.mobile-app'),    'fa-mobile-screen-button', 'Mobile app',        'Sayzio for Android & iPhone',        'site.mobile-app'],
@@ -118,7 +118,20 @@
      and a hard rule across the viewport there would cut the hero in half.
      Styled in public/partials/rails.blade.php, which every marketing page now loads,
      so this span is inert everywhere else. --}}
-<div class="mkt-nav-rule" :class="scrolled ? 'is-stuck' : ''" aria-hidden="true"></div>
+{{-- The second binding is the fix for "the top bar's line still shows when
+     the menu is hidden". This div is a SIBLING of <nav>, not a child of it,
+     so every rule written against `.mkt-nav-hidden .mkt-navbar-bar` -- and
+     that is where the bar's own background and border were switched off --
+     could never reach it. Scrolling down slid the bar away and left its
+     hairline behind, drawn across the page on its own.
+
+     The condition is copied verbatim from the nav's `mkt-nav-hidden`
+     binding below rather than simplified, because the exceptions matter:
+     an open mega-menu or drawer force-shows the bar, and the rule has to
+     come back with it. --}}
+<div class="mkt-nav-rule"
+     :class="{ 'is-stuck': scrolled, 'mkt-nav-rule-hidden': navHidden && openMenu === null && !mobileOpen }"
+     aria-hidden="true"></div>
 <nav class="{{ $fixed ? 'fixed' : 'sticky' }} top-0 inset-x-0 {{ $fixed ? 'z-50' : 'z-40' }} mkt-nav-autohide"
      :class="{ 'mkt-nav-hidden': navHidden && openMenu === null && !mobileOpen, 'mkt-nav-drawer-open': mobileOpen }"
      style="top: var(--inme-anno-h, 0px);">
@@ -262,7 +275,7 @@
                                     <i class="fas fa-sparkles"></i> What you can create
                                 </span>
                                 <span class="mega-featured-title relative mt-2 block text-base font-bold leading-tight text-white">Everything in one link</span>
-                                <span class="relative mt-1.5 block flex-1 text-xs leading-snug text-gray-400">Links, Link in Bio pages, QR codes, résumés and AI pages, all fully branded.</span>
+                                <span class="relative mt-1.5 block flex-1 text-xs leading-snug text-gray-400">Links, Link in Bio pages, QR codes, resumes and AI pages, all fully branded.</span>
                                 <a href="{{ route('site.features') }}" class="relative mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-[#3d6bff] px-4 py-2 text-xs font-bold text-white hover:bg-[#2342c7] transition-colors">
                                     Explore features <i class="fas fa-arrow-right text-[10px]"></i>
                                 </a>

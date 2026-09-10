@@ -350,7 +350,7 @@
         .dc-cid-chans > div { opacity: 1 !important; transform: none !important; }
     }
 </style>
-<section id="dialer-contacts" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="dc-h">
+<section id="dialer-contacts" class="sec-rule py-24 lg:py-32 relative overflow-hidden" aria-labelledby="dc-h">
     <div class="dc-mesh absolute inset-0 pointer-events-none" aria-hidden="true"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
@@ -359,7 +359,7 @@
                 Your whole phonebook,<br><span class="grad-text">turned into profiles.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                A smart T9 dialer, quick call / SMS / WhatsApp channels, two-way Google Contacts sync and phone-to-biolink caller&nbsp;ID &mdash; so every number in your address book becomes a rich, connected profile.
+                A smart T9 dialer, quick call / SMS / WhatsApp channels, two-way Google Contacts sync and phone-to-biolink caller&nbsp;ID, so every number in your address book becomes a rich, connected profile.
             </p>
         </div>
 
@@ -382,7 +382,7 @@
                                 @php
                                     // Digits typed into the display, in press order (0.6s + n*0.3s).
                                     $dial = ['4','1','5','5','5','5','0','1','8','2'];
-                                    // Keys that flash — keyframes per key encode every press time.
+                                    // Keys that flash, keyframes per key encode every press time.
                                     $keyAnim = ['4' => 'k4', '1' => 'k1', '5' => 'k5', '0' => 'k0', '8' => 'k8', '2' => 'k2'];
                                 @endphp
                                 <div class="dc-numwrap">
@@ -502,9 +502,9 @@
             <div class="space-y-4">
                 @foreach([
                     ['fa-phone-volume', '#1bd4d9', 'Smart T9 dialer &amp; keypad',   'Type a name on the keypad and T9 finds the contact. Flip to a full alphanumeric keyboard whenever you want.'],
-                    ['fa-comments',     '#3d6bff', 'Quick channels, one tap',       'Call, SMS, WhatsApp, Telegram, Signal or Viber &mdash; jump straight into the right app from any contact.'],
-                    ['fa-rotate',       '#e94e8c', 'Two-way Google Contacts sync',  'Contacts stay in lockstep with Google via the People API &mdash; add or edit anywhere, changes flow both ways.'],
-                    ['fa-magnifying-glass', '#ff8a3c', 'Universal finder',          'One search spans contacts, people on Sayzio, your links, biolinks and workspaces &mdash; grouped and ready to act.'],
+                    ['fa-comments',     '#3d6bff', 'Quick channels, one tap',       'Call, SMS, WhatsApp, Telegram, Signal or Viber, jump straight into the right app from any contact.'],
+                    ['fa-rotate',       '#e94e8c', 'Two-way Google Contacts sync',  'Contacts stay in lockstep with Google via the People API, add or edit anywhere, changes flow both ways.'],
+                    ['fa-magnifying-glass', '#ff8a3c', 'Universal finder',          'One search spans contacts, people on Sayzio, your links, biolinks and workspaces, grouped and ready to act.'],
                     ['fa-id-card',      '#22c55e', 'AI business-card scanner',      'Snap a card or brochure and AI extracts the name, numbers, emails and socials into a clean new contact.'],
                     ['fa-address-card', '#22d3ee', 'Phone &rarr; biolink caller ID', 'Numbers resolve to rich Sayzio profiles, and a tap exports any contact as a shareable vCard.'],
                 ] as $i => $f)

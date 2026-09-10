@@ -8,7 +8,7 @@
         : \App\Modules\Common\Support\SitePagesContent::homeLinkTypesDefault();
 
 @endphp
-<section id="create" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="create-h">
+<section id="create" class="sec-rule py-24 lg:py-32 relative overflow-hidden" aria-labelledby="create-h">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">What you can create</div>
@@ -16,7 +16,7 @@
                 {{ count($__linkTypes) }} kinds of link.<br><span class="grad-text">One simple dashboard.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                A short link is just the start. Spin up a chat page, a slide story, a digital menu, a review wall and more — your AI helps draft each one, and every one is tracked and shareable from a single URL.
+                A short link is just the start. Spin up a chat page, a slide story, a digital menu, a review wall and more, your AI helps draft each one, and every one is tracked and shareable from a single URL.
             </p>
         </div>
 

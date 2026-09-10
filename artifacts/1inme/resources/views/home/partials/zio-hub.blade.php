@@ -111,6 +111,48 @@
     /* Same reason as the heading: the page's light mode has opinions about
        paragraph colour that do not apply on a permanently dark band. */
     .zh-sub { margin: 16px auto 0; max-width: 58ch; font-size: 15.5px; line-height: 1.62; color: #A8B2D8 !important; }
+
+    /* ---------- the zone intro, now the top of this band ---------- */
+    /* Separated from the hub block by space rather than a rule: a divider
+       here would put back the seam the move was meant to remove. */
+    .zh-hub-block { margin-top: 88px; }
+    @media (max-width: 767px) { .zh-hub-block { margin-top: 56px; } }
+
+    /* The intro's headline is the zone's, so it is a step larger than the
+       hub's own; both take the band's white from .zh-h. */
+    .zh-h-intro { font-size: clamp(32px, 5.2vw, 58px); }
+
+    .zh-pill {
+        color: #9FB4FF; background: rgba(61,107,255,.14);
+        border: 1px solid rgba(122,150,255,.28);
+    }
+    .zh-pill-dot {
+        width: 7px; height: 7px; border-radius: 9999px; background: #6f9bff;
+        box-shadow: 0 0 0 0 rgba(111,155,255,.6);
+        animation: zhPillPulse 2.2s ease-out infinite;
+    }
+    @keyframes zhPillPulse {
+        0%   { box-shadow: 0 0 0 0 rgba(111,155,255,.5); }
+        70%  { box-shadow: 0 0 0 8px rgba(111,155,255,0); }
+        100% { box-shadow: 0 0 0 0 rgba(111,155,255,0); }
+    }
+
+    /* The four jump links. Same shape as the chips they replace, recoloured
+       for a permanently dark ground -- the originals were tuned for white
+       and went invisible here. */
+    .zh-chip {
+        display: inline-flex; align-items: center; gap: 7px;
+        font-size: .8rem; font-weight: 700; padding: 8px 15px; border-radius: 9999px;
+        color: #C7D0F0; background: rgba(255,255,255,.05);
+        border: 1px solid rgba(160,180,255,.18);
+        transition: background .2s ease, color .2s ease, border-color .2s ease;
+    }
+    .zh-chip:hover { color: #fff; background: rgba(61,107,255,.22); border-color: rgba(122,150,255,.45); }
+    .zh-chip i { color: #6f9bff; font-size: .72rem; }
+    @media (prefers-reduced-motion: reduce) {
+        .zh-pill-dot { animation: none !important; }
+        .zh-chip { transition: none; }
+    }
     .zh-band .zh-eyebrow { color: #9FB4FF !important; }
 
     /* ---------- the stage ---------- */
@@ -209,8 +251,38 @@
     }
 </style>
 
-<section class="zh-band py-20 lg:py-28" aria-labelledby="zh-h">
-    <div class="zh-inner max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+<section class="zh-band pt-24 lg:pt-32 pb-20 lg:pb-28" aria-labelledby="zh-h">
+
+    {{-- The AI zone's intro used to sit in its own section immediately above
+         this band, on the page's normal ground. That put a hard seam between
+         "Meet Zio" and the diagram that answers it, and made the band look
+         like a separate thing dropped into the middle of the zone rather
+         than the top of it.
+
+         It is now the first block INSIDE the band, so the dark ground starts
+         at "Meet Zio" and runs unbroken through the diagram. The markup came
+         across as-is except for the classes that painted its text for the
+         page's white ground; on this band those are wrong in both modes, so
+         the band's own zh- type styles carry it instead. --}}
+    <div class="zh-inner zh-intro max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="reveal inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-[.2em] zh-pill">
+            <span class="zh-pill-dot" aria-hidden="true"></span> Meet Zio
+        </div>
+        <h2 class="reveal rd-1 zh-h zh-h-intro">One AI that builds and runs it all.</h2>
+        <p class="reveal rd-2 zh-sub">
+            From your Link in Bio to your phone line, Sayzio ships a whole crew of AI coworkers, a page
+            builder, a chatbot, an agent, an embeddable widget, a voice receptionist, a marketing
+            strategist and a WhatsApp teammate. One login, all grounded in your real data.
+        </p>
+        <div class="reveal rd-3 mt-7 flex flex-wrap items-center justify-center gap-2.5">
+            <a href="#ai-suite" class="zh-chip"><i class="fas fa-robot"></i> Chatbot &amp; Agent</a>
+            <a href="#ai-marketing-strategist" class="zh-chip"><i class="fas fa-chart-line"></i> AI Marketing Strategist</a>
+            <a href="#whatsapp-agent" class="zh-chip"><i class="fab fa-whatsapp"></i> WhatsApp Agent</a>
+            <a href="#ai-dashboard" class="zh-chip"><i class="fas fa-gauge-high"></i> AI Dashboard</a>
+        </div>
+    </div>
+
+    <div class="zh-inner zh-hub-block max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
 
         <p class="reveal zh-eyebrow"><span class="zh-dot" aria-hidden="true"></span> One brain, every surface</p>
         <h2 id="zh-h" class="reveal rd-1 zh-h">Zio is not eight tools. <em>It is one.</em></h2>
