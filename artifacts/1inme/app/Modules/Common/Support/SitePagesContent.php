@@ -2915,15 +2915,27 @@ class SitePagesContent
     }
 
     /**
-     * Default trust-strip metrics shown under the landing hero.
+     * The reliability signals in the trust band, under the big figures.
+     *
+     * This default used to be four vanity metrics -- active creators, uptime
+     * SLA, average rating, time to first link -- which was a problem in two
+     * directions. The setting was never read by anything, so nothing rendered
+     * them; and the row they belong to already had four hardcoded signals of
+     * its own, while the FIGURES above it are separately admin-editable
+     * through Site stats. An admin filling this in would have been writing a
+     * second set of metrics to sit under the first set.
+     *
+     * These are the four signals the band has actually been shipping, so
+     * "reset to defaults" now restores what is on the page rather than
+     * something that has never been on it.
      */
     public static function trustStripDefault(): array
     {
         return [
-            ['value' => '12,000+', 'label' => 'Active creators',  'icon' => 'fa-users'],
-            ['value' => '99.9%',   'label' => 'Uptime SLA',       'icon' => 'fa-bolt'],
-            ['value' => '4.8/5',   'label' => 'Average rating',   'icon' => 'fa-star'],
-            ['value' => '< 60s',   'label' => 'Time to first link','icon' => 'fa-stopwatch'],
+            ['value' => '99.9% uptime',  'label' => 'multi-region edge',   'icon' => 'fa-shield-halved'],
+            ['value' => 'TLS 1.3',       'label' => 'end-to-end encrypted','icon' => 'fa-lock'],
+            ['value' => 'GDPR-ready',    'label' => 'EU/UK SCCs in place', 'icon' => 'fa-user-shield'],
+            ['value' => 'Daily backups', 'label' => '30-day retention',    'icon' => 'fa-server'],
         ];
     }
 

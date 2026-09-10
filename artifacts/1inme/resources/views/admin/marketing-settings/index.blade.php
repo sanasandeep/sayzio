@@ -360,7 +360,11 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h2 class="ak-strong text-lg font-semibold text-white">Hero trust strip</h2>
-                    <p class="ak-muted text-xs text-white/50">Shown under the landing-page hero. Up to 6 items.</p>
+                    <p class="ak-muted text-xs text-white/50">
+                        The reliability signals under the landing-page hero, in the band that starts &ldquo;The engine behind every link you share&rdquo;.
+                        Up to 6. The big <strong>figures</strong> above them are a different screen &mdash; Site stats.
+                        Clearing every row restores the shipped four.
+                    </p>
                 </div>
                 <div class="flex items-center gap-2">
                     <button type="button" @click="resetTo('trust', trustDefaults)"
@@ -404,12 +408,31 @@
             </div>
         </div>
 
-        {{-- Why Sayzio comparison --}}
+        {{-- Why Sayzio comparison.
+
+             This writes `marketing_why_comparison`, which nothing reads, and
+             it is deliberately not being wired up.
+
+             Its shape is feature / ours / theirs -- one generic "them" column.
+             The comparison that IS on the site is a seven-tool boolean matrix
+             from `ComparisonContent`, shared by the homepage, /pricing,
+             /compare and each /compare/{competitor} page, and the homepage
+             teaser derives its headline figures from it. The two disagree on
+             the facts: this editor's shipped default says a drag-and-drop
+             Link in Bio page is "Limited" for the competition, while the
+             matrix records five of the seven as having one.
+
+             Rendering both would put a vague claim directly above a table
+             that contradicts it per-competitor -- which is a worse outcome
+             than an unread setting. Labelled honestly instead. --}}
         <div class="glass rounded-2xl p-6 space-y-3">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="ak-strong text-lg font-semibold text-white">Why Sayzio comparison</h2>
-                    <p class="ak-muted text-xs text-white/50">Rows in the comparison table on the landing page (just before pricing). Up to 12 rows. If the "Sayzio" column is left as <span class="font-mono">Yes</span> it renders as the green check pill; any other text is shown verbatim.</p>
+                    <h2 class="ak-strong text-lg font-semibold text-white">Why Sayzio comparison (not in use)</h2>
+                    <p class="ak-muted text-xs text-white/50">
+                        Nothing on the site reads this. The comparison visitors see is the seven-tool table shared by the homepage, /pricing and /compare, which lives in code (<span class="font-mono">ComparisonContent</span>) because each row is a per-competitor fact rather than a claim.
+                        Ask a developer to change it there; editing it here has no effect.
+                    </p>
                 </div>
                 <div class="flex items-center gap-2">
                     <button type="button" @click="resetTo('why', whyDefaults)"
@@ -468,12 +491,25 @@
             </div>
         </div>
 
-        {{-- Landing testimonials --}}
+        {{-- Landing testimonials.
+
+             This editor writes `marketing_landing_testimonials`, which nothing
+             on the site reads, and it should stay that way rather than being
+             wired up. The landing marquee is driven by the `Testimonial` model
+             under Admin -> Testimonials, which carries a rating, a marquee
+             lane, an accent colour and -- the part that matters -- an approval
+             state, because testimonials also arrive from a public submission
+             form. Quotes typed here would bypass that moderation entirely and
+             would render alongside, not instead of, the approved ones.
+
+             Left in place with honest labelling rather than deleted, because
+             deleting it silently loses whatever an admin has already typed
+             into it. --}}
         @include('admin.marketing-settings.partials._testimonial-editor', [
             'fieldName' => 'landing_testimonials',
             'modelKey'  => 'landing',
-            'title'     => 'Landing-page testimonials',
-            'helper'    => 'Shown in the carousel below the landing hero. Empty list hides the section.',
+            'title'     => 'Landing-page testimonials (not in use)',
+            'helper'    => 'Nothing on the site reads this. The landing page shows approved testimonials from Admin -> Testimonials, which also handles submissions from visitors. Edit them there.',
         ])
 
         {{-- Features testimonials --}}
@@ -481,7 +517,7 @@
             'fieldName' => 'features_testimonials',
             'modelKey'  => 'features',
             'title'     => 'Features-page testimonials',
-            'helper'    => 'Shown near the end of /features. Empty list hides the section.',
+            'helper'    => 'Shown near the end of /features, and on every AI-product and use-case page. One list drives all three. Empty list hides the section on all of them.',
         ])
 
         <div class="flex justify-end">
