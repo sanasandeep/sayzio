@@ -43,6 +43,25 @@
      number of cells wide has both its edges on a line. */
   --cell:58px;
 
+  /* The DRAWN square. The lattice is measured in --cell (that is what the
+     navbar counts to land its edges on a line), but what the eye reads as
+     "the grid" is this module. It was four cells (232px) and is now one and
+     a half (87px).
+
+     The size is not a taste call, it falls out of the arithmetic. Seventeen
+     feature icons have to sit at cell CENTRES, in a field about 620x700
+     with Zio and his bubble taking a 280x530 bite out of the middle, and
+     the outermost column still has to clear the left edge at 1200px wide.
+     That leaves roughly 400,000/G^2 cells, of which about a third are under
+     Zio -- so G much above 96px cannot seat them all with any room left to
+     move. Four cells gave nine usable cells; three gave eleven; two gave
+     eighteen, which is seventeen icons in eighteen squares, a grid rather
+     than a scatter. One and a half gives twenty-eight. Phase is set by the hero grid at background-position-x:50%,
+     which puts a cell CENTRE on the viewport centre -- so anything centred
+     lands in a square, and anything an ODD number of cells wide lands both
+     its edges on a line. */
+  --grid:calc(var(--cell) * 1.5);
+
   /* Ground and surfaces */
   --fs-page:#000000;                    /* the whole page, one flat colour   */
   --fs-card:transparent;                /* a card is an outline, not a pane  */
@@ -120,7 +139,7 @@ html,html body,html.light-mode body{background:var(--fs-page) !important}
 /* Furniture that floats over the page keeps a body, or the content behind
    it shows through: the navbar bar, the orbit's icon buttons, the cookie
    card. Same hairline, same corners — just not see-through. */
-:is(.mkt-navbar-bar,.zio-node-btn,.cc-card){
+:is(.mkt-navbar-bar,.cc-card){
   background-color:var(--fs-chip) !important;
   border:1px solid var(--fs-rule) !important;
 }
@@ -173,8 +192,8 @@ html,html body,html.light-mode body{background:var(--fs-page) !important}
 
 /* The inner highlight and wash those cards drew on their own pseudo
    elements went with the blur; without it they read as smudges. */
-:is(.glass,.glass-2,.trust-band-card,.buzz-card,.prem-feat,.zio-node-btn)::before,
-:is(.glass,.glass-2,.trust-band-card,.buzz-card,.prem-feat,.zio-node-btn)::after{
+:is(.glass,.glass-2,.trust-band-card,.buzz-card,.prem-feat)::before,
+:is(.glass,.glass-2,.trust-band-card,.buzz-card,.prem-feat)::after{
   background-image:none !important;
 }
 
@@ -199,7 +218,7 @@ html,html body,html.light-mode body{background:var(--fs-page) !important}
    button from a round icon button (those are sized w-9 h-9 and have no
    px- utility, so they stay round). */
 :is(.btn-cta,.btn-bounce,.zio-cta-ghost,.zio-claim,.zio-claim-btn,.ai-zone-chip,
-    .ms-btn,.wa-btn,.aih-see-live,.cmp-cta,.store-badge,.cc-btn,.zio-node-btn),
+    .ms-btn,.wa-btn,.aih-see-live,.cmp-cta,.store-badge,.cc-btn),
 :is(a,button)[class*="px-"].rounded-full{border-radius:var(--fs-r-btn) !important}
 
 :is(.th-pill,.lt-chip-new,.chip,.pill)[class]{border-radius:var(--fs-r-chip) !important}

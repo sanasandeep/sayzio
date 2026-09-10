@@ -26,10 +26,10 @@
         // are measured from the centre instead, because that is where the
         // grid's phase is pinned.
         $zioTiles = [
-            [2, 1, 7.5, -0.4], [5, 4, 9.0, -3.1], [3, 9, 8.0, -6.2], [8, 2, 10.5, -1.7],
-            [7, 11, 7.0, -4.8], [11, 6, 9.5, -2.3], [14, 3, 8.5, -7.4], [12, 13, 11.0, -0.9],
-            [17, 9, 7.5, -5.6], [19, 2, 10.0, -3.8], [21, 12, 8.0, -1.2], [23, 5, 9.5, -6.9],
-            [16, 15, 7.0, -2.7], [9, 7, 12.0, -8.3], [24, 8, 8.5, -4.1], [1, 13, 9.0, -5.2],
+            [ 2, 0, 7.5, -0.4], [ 0, 1, 9.0, -3.1], [-8, 2, 8.0, -6.2], [ 2, 2, 10.5, -1.7],
+            [ 3, 2, 7.0, -4.8], [ 1, 3, 9.5, -2.3], [-5, 4, 8.5, -7.4], [-4, 4, 11.0, -0.9],
+            [-7, 5, 7.5, -5.6], [-4, 5, 10.0, -3.8], [-4, 6, 8.0, -1.2], [-1, 6, 9.5, -6.9],
+            [-1, 7, 7.0, -2.7], [-8, 8, 12.0, -8.3], [-4, 8, 8.5, -4.1], [ 2, 9, 9.0, -5.2],
         ];
 
         // Where each feature tile lives, as (column from the viewport centre,
@@ -42,14 +42,29 @@
         // The block at the centre-left is left empty: that is where Zio
         // stands (columns -8..-3, rows 5..10 at desktop size).
         $zioHomes = [
-            [-11,  3], [-11,  7], [-11, 11], [ -9,  1], [ -9,  5], [ -9,  9],
-            [ -9, 13], [ -7,  3], [ -7, 11], [ -5,  1], [ -5, 13], [ -3,  3],
-            [ -3, 11], [-11, 14], [ -7, 14], [ -5,  9], [ -3,  6],
+            [ -6,  1], [ -4,  1], [ -3,  1], [ -2,  1], [ -1,  1], [ -1,  3],
+            [ -6,  4], [ -2,  4], [ -1,  4], [ -6,  5], [ -2,  5], [ -1,  5],
+            [ -2,  6], [ -2,  7], [ -6,  8], [ -3,  8], [ -2,  8],
         ];
         // Which corners of its square each tile visits, in order.
         $zioPaths = [
-            [[1,0],[1,1],[0,1]], [[0,1],[1,1],[1,0]], [[1,1],[0,1],[1,0]],
-            [[1,0],[0,1],[1,1]], [[0,1],[1,0],[1,1]], [[1,1],[1,0],[0,1]],
+            [[1,0],[0,1],[1,0]],
+            [[1,0],[-1,0],[1,0]],
+            [[1,0],[-1,0],[1,0]],
+            [[-1,0],[1,0],[1,1]],
+            [[-1,0],[0,1],[-1,0]],
+            [[0,-1],[-1,1],[0,1]],
+            [[0,-1],[0,1],[0,-1]],
+            [[1,1],[1,0],[1,-1]],
+            [[0,1],[-1,1],[0,-1]],
+            [[0,-1],[0,1],[0,-1]],
+            [[1,0],[0,1],[0,-1]],
+            [[0,1],[-1,-1],[-1,0]],
+            [[1,0],[1,-1],[0,-1]],
+            [[1,0],[0,-1],[1,1]],
+            [[1,0],[0,-1],[1,0]],
+            [[1,0],[-1,0],[1,-1]],
+            [[1,0],[0,-1],[-1,0]],
         ];
 
         // The features themselves. Each carries a punchy title (t), a one-line
@@ -93,8 +108,7 @@
          the section, so they share a single origin and cannot drift out of
          alignment with each other. The Alpine scope for the popovers sits
          here too, since the icons moved in. --}}
-    <div class="zio-field" x-data="{ open: null }" @keydown.escape.window="open = null"
-         @click.outside="open = null" :class="{ 'zio-paused': open !== null }">
+    <div class="zio-field" aria-hidden="true">
         <div class="zio-grid" aria-hidden="true">
             @foreach($zioTiles as [$c, $r, $d, $delay])
                 <span class="zio-tile" style="--c:{{ $c }}; --r:{{ $r }}; --d:{{ $d }}s; --delay:{{ $delay }}s"></span>
@@ -103,32 +117,23 @@
         @foreach($zioNodes as $i => $n)
             @php
                 [$hx, $hy] = $zioHomes[$i];
-                $path = $zioPaths[$i % count($zioPaths)];
+                $path = $zioPaths[$i];
             @endphp
-            <div class="zio-node"
-                 style="--x:{{ $hx }}; --y:{{ $hy }};
-                        --x1:{{ $path[0][0] }}; --y1:{{ $path[0][1] }};
-                        --x2:{{ $path[1][0] }}; --y2:{{ $path[1][1] }};
-                        --x3:{{ $path[2][0] }}; --y3:{{ $path[2][1] }};
-                        --dur:{{ 26 + ($i % 6) * 6 }}s; --delay:-{{ $i * 3.4 }}s;
-                        --in:{{ 0.5 + $i * 0.05 }}s; --ac:{{ $n['c'] }}"
-                 :class="{ 'zio-node--on': open === {{ $i }} }">
-                <div class="zio-node-ic">
-                    <button type="button"
-                            class="zio-node-btn"
-                            @click="open = (open === {{ $i }} ? null : {{ $i }})"
-                            :aria-expanded="open === {{ $i }}"
-                            aria-label="{{ $n['t'] }}: {{ $n['d'] }}">
-                        <img class="zio-node-thumb" src="{{ asset('images/zio-nodes/' . $n['img']) }}" alt="" width="58" height="58" loading="lazy" decoding="async">
-                    </button>
-                    <div class="zio-pop" x-show="open === {{ $i }}" x-cloak x-transition.opacity.scale.95 @click.stop role="dialog" aria-label="{{ $n['t'] }}">
-                        <span class="zio-pop-title">{{ $n['t'] }}</span>
-                        <span class="zio-pop-desc">{{ $n['d'] }}</span>
-                        <span class="zio-pop-tag"><i class="fas fa-bolt"></i>{{ $n['tag'] }}</span>
-                        <button type="button" class="zio-pop-x" @click.stop="open = null" aria-label="Close">&times;</button>
-                    </div>
-                </div>
-            </div>
+            {{-- Decoration, and nothing more. These used to be buttons that
+                 opened a popover; they are not any more, because an icon that
+                 fades out every few seconds is a cruel thing to ask anyone to
+                 aim at. The names and descriptions did not go anywhere: they
+                 are in the visually-hidden list further down, so a screen
+                 reader and a crawler still get every one of them. --}}
+            <span class="zio-node"
+                  style="--x:{{ $hx }}; --y:{{ $hy }};
+                         --x1:{{ $path[0][0] }}; --y1:{{ $path[0][1] }};
+                         --x2:{{ $path[1][0] }}; --y2:{{ $path[1][1] }};
+                         --x3:{{ $path[2][0] }}; --y3:{{ $path[2][1] }};
+                         --dur:{{ 29 + ($i % 7) * 5 }}s; --delay:-{{ $i * 4.3 }}s">
+                <img class="zio-node-thumb" src="{{ asset('images/zio-nodes/' . $n['img']) }}"
+                     alt="" width="58" height="58" loading="lazy" decoding="async">
+            </span>
         @endforeach
     </div>
 
@@ -316,24 +321,20 @@
                     </div>
                 </div>
 
-                {{-- No-JS fallback: the popover title/description live inside Alpine
-                     x-cloak panels, so they're unreachable if Alpine fails to load
-                     or JS is disabled. This <noscript> list keeps every tool's name
-                     + description readable. Hidden whenever JS is available. --}}
-                <noscript>
-                    <ul class="zio-noscript">
-                        @foreach($zioNodes as $n)
-                            <li class="zio-noscript-item">
-                                <img class="zio-noscript-ic" src="{{ asset('images/zio-nodes/' . $n['img']) }}" alt="" width="34" height="34" loading="lazy" decoding="async">
-                                <span class="zio-noscript-text">
-                                    <strong class="zio-noscript-title" style="--ac:{{ $n['c'] }}">{{ $n['t'] }}</strong>
-                                    <span class="zio-noscript-desc">{{ $n['d'] }}</span>
-                                    <span class="zio-noscript-tag" style="--ac:{{ $n['c'] }}">{{ $n['tag'] }}</span>
-                                </span>
-                            </li>
-                        @endforeach
-                    </ul>
-                </noscript>
+                {{-- The seventeen tools those icons stand for.
+
+                     This was a <noscript> block, on the reasoning that the
+                     names were reachable through the popovers whenever JS ran.
+                     The popovers are gone now, so leaving it gated on "no JS"
+                     would have quietly deleted this copy for everybody else.
+                     It is always in the DOM instead, and only visually hidden:
+                     the icons are the picture of this list, and this list is
+                     its text. --}}
+                <ul class="zio-toollist">
+                    @foreach($zioNodes as $n)
+                        <li>{{ $n['t'] }} &mdash; {{ $n['d'] }}</li>
+                    @endforeach
+                </ul>
             </div>
 
         </div>
@@ -549,9 +550,12 @@
                tile is always the same fraction of a cell as the grid it sits
                in — three quarters, which leaves a clear margin of ground on
                every side of it. */
-            --node: calc(var(--cell) * .74);
+            --node: calc(var(--grid) * .5);
+            /* How faint an icon is at the top of its fade. One token, so the
+               keyframes never carry a colour decision of their own. */
+            --zio-node-op: .34;
         }
-        .zio-field .zio-node { pointer-events: auto; }
+        .zio-field, .zio-field * { pointer-events: none; }
 
         /* ---------- the ribbon ----------
            The SVG is in home/partials/hero-ribbon.blade.php, and its viewBox
@@ -665,7 +669,7 @@
                the whole reason the tiles and the navbar can line up to this
                without measuring anything. Vertically it tiles from the top. */
             background-position: 50% 0;
-            background-size: calc(var(--cell) * 4) calc(var(--cell) * 4);
+            background-size: var(--grid) var(--grid);
             -webkit-mask-image: linear-gradient(to right, #000 0%, #000 72%, transparent 100%);
                     mask-image: linear-gradient(to right, #000 0%, #000 72%, transparent 100%);
         }
@@ -675,9 +679,9 @@
         }
         .zio-tile {
             position: absolute;
-            left: calc(var(--cell) * var(--c));
-            top:  calc(var(--cell) * var(--r));
-            width: var(--cell); height: var(--cell);
+            left: calc(50% + var(--c) * var(--grid) - var(--grid) / 2);
+            top:  calc(var(--r) * var(--grid));
+            width: var(--grid); height: var(--grid);
             background: radial-gradient(closest-side, var(--tile), transparent 92%);
             opacity: 0;
             animation: zioTile var(--d) ease-in-out infinite;
@@ -737,118 +741,68 @@
            for as long as you leave the page open without ever colliding. */
         .zio-node {
             position: absolute;
-            left: calc(50% + var(--x) * var(--cell));
-            top:  calc((var(--y) + .5) * var(--cell));
+            /* Both coordinates are in WHOLE grid modules now, not in --cell.
+               That is the whole fix: the squares are drawn at --grid but the
+               nodes were placed on the 58px --cell lattice, so a node could
+               only land in a square's centre by coincidence -- and with
+               --grid four cells wide, it never did. The horizontal cell
+               centres fall on 50% + k*--grid exactly (the grid is phased so a
+               cell centre is on the viewport centre), and the vertical ones
+               on (k + .5)*--grid, which is where these two lines put them. */
+            left: calc(50% + var(--x) * var(--grid));
+            top:  calc((var(--y) + .5) * var(--grid));
             width: var(--node); height: var(--node);
             margin: calc(var(--node) / -2) 0 0 calc(var(--node) / -2);
-            pointer-events: auto;
-            transform: translate(0, 0);
-            animation: zioHop var(--dur) cubic-bezier(.65,0,.35,1) var(--delay) infinite,
-                       zioNodeFade .55s var(--in) ease backwards;
-        }
-        @keyframes zioNodeFade { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes zioHop {
-            0%,  20%  { transform: translate(0, 0); }
-            25%, 45%  { transform: translate(calc(var(--x1) * var(--cell)), calc(var(--y1) * var(--cell))); }
-            50%, 70%  { transform: translate(calc(var(--x2) * var(--cell)), calc(var(--y2) * var(--cell))); }
-            75%, 95%  { transform: translate(calc(var(--x3) * var(--cell)), calc(var(--y3) * var(--cell))); }
-            100%      { transform: translate(0, 0); }
-        }
-        .zio-node--on { z-index: 16; }
-
-        /* Hold still while a card is open or a tile is under the cursor, so it
-           stays where it was clicked. */
-        .zio-paused .zio-node,
-        .zio-field:has(.zio-node:hover) .zio-node,
-        .zio-field:has(.zio-node-btn:focus-visible) .zio-node { animation-play-state: paused; }
-
-        .zio-node-ic { position: relative; width: 100%; height: 100%; }
-
-        .zio-node-btn {
-            display: flex; align-items: center; justify-content: center;
-            width: 100%; height: 100%;
-            padding: 0; margin: 0;
-            border-radius: 17px;
-            background: color-mix(in srgb, var(--ac, var(--c2)) 10%, rgba(255,255,255,.06));
-            border: 1px solid color-mix(in srgb, var(--ac, var(--c2)) 32%, rgba(255,255,255,.12));
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            box-shadow: 0 10px 26px -14px rgba(10,12,30,.85);
-            cursor: pointer; pointer-events: auto;
-            transition: box-shadow .25s ease, border-color .25s ease, background .25s ease;
-        }
-        .zio-node-btn:focus-visible { outline: 2px solid var(--c2); outline-offset: 3px; }
-        /* The field is scenery beside the headline, not competition for it.
-           Held back a step here and brought to full strength on hover and
-           when a node is the open one, so the interaction still reads. */
-        .zio-node { opacity: .62; transition: opacity .25s ease; }
-        .zio-node:hover, .zio-node--on { opacity: 1; }
-
-        .zio-node-thumb {
-            width: 80%; height: 80%; object-fit: contain;
-            transform: scale(1);
+            /* Decoration. Nothing in the field is a target. */
             pointer-events: none;
-            transition: transform .28s cubic-bezier(.34,1.56,.64,1);
-            animation: zioThumbPop .6s var(--d) cubic-bezier(.34,1.56,.64,1) backwards;
-            filter: drop-shadow(0 4px 8px rgba(10,12,30,.35));
+            opacity: 0;
+            transform: translate(0, 0);
+            /* Two animations on ONE period. zioPlace moves the icon between
+               four cells; zioShow fades it in and out four times. They are
+               phase-locked so every move happens while the icon is at zero,
+               which is what makes it read as appearing somewhere new rather
+               than sliding across the field. */
+            animation: zioPlace var(--dur) step-end var(--delay) infinite,
+                       zioShow  var(--dur) linear   var(--delay) infinite;
         }
-        @keyframes zioThumbPop { from { opacity: 0; transform: scale(.35); } to { opacity: 1; transform: scale(1); } }
+        /* step-end, so the position SNAPS at 25/50/75/100% instead of
+           travelling. At each of those instants zioShow is holding zero, and
+           a hop is a whole square, so the icon is centred in a cell at every
+           moment it is actually visible. */
+        @keyframes zioPlace {
+            0%   { transform: translate(0, 0); }
+            25%  { transform: translate(calc(var(--x1) * var(--grid)), calc(var(--y1) * var(--grid))); }
+            50%  { transform: translate(calc(var(--x2) * var(--grid)), calc(var(--y2) * var(--grid))); }
+            75%  { transform: translate(calc(var(--x3) * var(--grid)), calc(var(--y3) * var(--grid))); }
+            100% { transform: translate(0, 0); }
+        }
+        /* Each icon is up for four windows of about 6.5% of its own cycle, so
+           it shows roughly a quarter of the time. Seventeen icons at that duty
+           puts four or five on screen at once, and because the periods (29s to
+           59s in 5s steps) share no common factor the set never repeats -- so
+           the scatter keeps looking arbitrary without a line of JS. */
+        @keyframes zioShow {
+            0%,    1.5%  { opacity: 0; }
+            3.2%,  6.8%  { opacity: var(--zio-node-op); }
+            8.6%, 26.5%  { opacity: 0; }
+            28.2%, 31.8% { opacity: var(--zio-node-op); }
+            33.6%, 51.5% { opacity: 0; }
+            53.2%, 56.8% { opacity: var(--zio-node-op); }
+            58.6%, 76.5% { opacity: 0; }
+            78.2%, 81.8% { opacity: var(--zio-node-op); }
+            83.6%, 100%  { opacity: 0; }
+        }
 
-        /* Hover lift + active state (shadow/scale, not transform on the rotated node) */
-        .zio-node-btn:hover .zio-node-thumb { transform: scale(1.14); }
-        .zio-node-btn:hover {
-            border-color: color-mix(in srgb, var(--ac, var(--c2)) 55%, rgba(255,255,255,.30));
-            background: rgba(255,255,255,.10);
-            box-shadow: 0 16px 38px -16px color-mix(in srgb, var(--ac, var(--c2)) 60%, transparent);
-        }
-        .zio-node--on .zio-node-btn {
-            border-color: color-mix(in srgb, var(--ac) 70%, white 10%);
-            background: rgba(255,255,255,.12);
-            box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac) 28%, transparent), 0 20px 44px -16px color-mix(in srgb, var(--ac) 65%, transparent);
-        }
-        .zio-node--on .zio-node-thumb { transform: scale(1.12); }
 
-        /* ---- Popover card (lives inside the upright counter-rotated tile) ---- */
-        .zio-pop {
-            position: absolute; bottom: calc(100% + 13px); left: 50%;
-            transform: translateX(-50%);
-            width: max-content; max-width: 232px;
-            padding: 11px 30px 13px 13px;
-            text-align: left;
-            border-radius: 15px;
-            background: rgba(15,19,38,.94);
-            border: 1px solid rgba(255,255,255,.14);
-            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            box-shadow: 0 22px 48px -20px rgba(4,6,22,.95);
-            z-index: 30;
-            cursor: default;
+        .zio-node-thumb { width: 100%; height: 100%; object-fit: contain; display: block; }
+        /* Visually hidden, NOT display:none -- the difference matters, because
+           a screen reader skips display:none entirely and this list is the
+           only text seventeen wordless icons have. */
+        .zio-toollist {
+            position: absolute; width: 1px; height: 1px;
+            padding: 0; margin: -1px; overflow: hidden;
+            clip-path: inset(50%); white-space: nowrap; border: 0;
         }
-        .zio-pop::after {
-            content: ''; position: absolute; top: 100%; left: 50%;
-            transform: translateX(-50%);
-            border: 7px solid transparent; border-top-color: rgba(15,19,38,.94);
-        }
-        .zio-pop-title { display: block; font-size: 13px; font-weight: 800; color: #fff; line-height: 1.25; }
-        .zio-pop-desc  { display: block; margin-top: 4px; font-size: 11.5px; font-weight: 500; color: rgba(214,222,255,.82); line-height: 1.45; }
-        .zio-pop-tag {
-            display: inline-flex; align-items: center; gap: 4px;
-            margin-top: 9px;
-            padding: 3px 9px;
-            border-radius: 999px;
-            font-size: 10px; font-weight: 800; letter-spacing: .02em;
-            color: color-mix(in srgb, var(--ac) 75%, white 25%);
-            background: color-mix(in srgb, var(--ac) 16%, transparent);
-            border: 1px solid color-mix(in srgb, var(--ac) 38%, transparent);
-        }
-        .zio-pop-tag i { font-size: 8px; opacity: .9; }
-        .zio-pop-x {
-            position: absolute; top: 7px; right: 7px;
-            width: 18px; height: 18px; line-height: 1;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 15px; color: rgba(255,255,255,.55);
-            background: rgba(255,255,255,.06); border: 0; border-radius: 6px;
-            cursor: pointer; transition: color .15s ease, background .15s ease;
-        }
-        .zio-pop-x:hover { color: #fff; background: rgba(255,255,255,.14); }
 
         .zio-core {
             position: absolute; top: 50%; left: 50%;
@@ -1210,30 +1164,9 @@
         html.light-mode .zio-ring { border-color: rgba(37,66,199,.26); }
         html.light-mode .zio-ring--r1 { border-color: rgba(37,66,199,.14); }
         html.light-mode .zio-ring--r2 { border-color: rgba(37,66,199,.20); }
-        html.light-mode .zio-node-btn {
-            background: color-mix(in srgb, var(--ac, var(--c2)) 6%, #ffffff);
-            border-color: color-mix(in srgb, var(--ac, var(--c2)) 26%, #e2e8f0);
-            box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--ac, var(--c2)) 45%, rgba(15,23,42,.35));
-        }
-        html.light-mode .zio-node-btn:hover {
-            border-color: color-mix(in srgb, var(--ac, var(--c2)) 45%, #e2e8f0); background: #ffffff;
-            box-shadow: 0 16px 34px -16px color-mix(in srgb, var(--ac, var(--c2)) 45%, transparent);
-        }
-        html.light-mode .zio-node--on .zio-node-btn { background: #ffffff; }
-        html.light-mode .zio-pop {
-            background: rgba(255,255,255,.97); border-color: #e2e8f0;
-            box-shadow: 0 22px 48px -20px rgba(15,23,42,.35);
-        }
-        html.light-mode .zio-pop::after { border-top-color: rgba(255,255,255,.97); }
-        html.light-mode .zio-pop-title { color: #0f172a; }
-        html.light-mode .zio-pop-desc { color: #475569; }
-        html.light-mode .zio-pop-tag {
-            color: color-mix(in srgb, var(--ac) 60%, black 40%);
-            background: color-mix(in srgb, var(--ac) 12%, white 88%);
-            border-color: color-mix(in srgb, var(--ac) 30%, white 70%);
-        }
-        html.light-mode .zio-pop-x { color: #64748b; background: #f1f5f9; }
-        html.light-mode .zio-pop-x:hover { color: #0f172a; background: #e2e8f0; }
+        /* The icons are decoration now, so all light mode has to say
+           about them is how faint they are. */
+        html.light-mode .zio-field { --zio-node-op: .30; }
         html.light-mode .zio-mascot-halo { background: radial-gradient(circle, rgba(61,107,255,.28), transparent 68%); }
         html.light-mode .zio-core-label {
             background: #ffffff; border-color: #e2e8f0; color: #0f172a;
@@ -1247,7 +1180,7 @@
         /* ---- Reduced motion: freeze the orbit + ambient layers (nodes stay
                placed + upright, everything visible, popovers still work) ---- */
         @media (prefers-reduced-motion: reduce) {
-            .zio-rotor, .zio-node-ic, .zio-face, .zio-mascot, .zio-mascot-halo,
+            .zio-rotor, .zio-face, .zio-mascot, .zio-mascot-halo,
             .zio-glow, .zio-pulse, .zio-node, .zio-node-thumb,
             .zio-lid, .zio-mouth, .zio-mouth-gate, .zio-bubble, .zio-ant, .zio-tile {
                 animation: none !important;
@@ -1255,7 +1188,11 @@
             /* The grid stays; only its blinking stops, on a low steady value
                so the scatter still reads as texture rather than vanishing. */
             .zio-tile { opacity: .5 !important; }
-            .zio-node, .zio-node-thumb { opacity: 1 !important; }
+            /* With the animation stopped, every icon would otherwise hold at
+               opacity 0 and the field would be empty. They settle at their
+               home cell, at the faint token, all seventeen at once -- the
+               scatter without the blinking. */
+            .zio-node { opacity: var(--zio-node-op) !important; transform: translate(0, 0) !important; }
             .zio-node-thumb { transform: scale(1) !important; }
             .zio-pulse { opacity: 0 !important; }
             /* Zio holds still: eyes open, antennae level, resting smile, and
