@@ -251,7 +251,7 @@
         border: 1px solid var(--fs-rule, rgba(255,255,255,.14));
     }
 </style>
-<section id="how-it-works" class="sec-rule py-20 lg:py-28 relative overflow-hidden">
+<section id="how-it-works" class="sec-ground py-20 lg:py-28 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c2)">How it works</div>
@@ -1290,7 +1290,7 @@
 </section>
 
 {{-- ============================ 3 · GROW ============================ --}}
-<section id="grow" class="sec-rule py-24 lg:py-32 relative overflow-hidden">
+<section id="grow" class="sec-ground py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Grow</div>
@@ -1854,7 +1854,7 @@
         .ai-zone-aura, .ai-zone-pill-dot { animation: none !important; }
     }
 </style>
-<div id="ai-zone" class="ai-zone relative overflow-hidden">
+<div id="ai-zone" class="ai-zone sec-ground relative overflow-hidden">
     <div class="ai-zone-wash" aria-hidden="true"></div>
     <div class="ai-zone-aura ai-zone-aura-a" aria-hidden="true"></div>
     <div class="ai-zone-aura ai-zone-aura-b" aria-hidden="true"></div>
@@ -1880,8 +1880,13 @@
 </div>
 
 {{-- ============================ BUZZ ============================ --}}
-<section id="buzz" class="py-24 lg:py-32 relative overflow-hidden">
-    <div class="absolute inset-0 -z-10" style="background:rgba(61,107,255,.06);"></div>
+{{-- The tint used to be an inline `background:rgba(61,107,255,.06)` on an
+     absolutely-positioned child. The light-mode sheet matched it with
+     `.-z-10[style*="rgba(61,107,255"]{background:transparent!important}` and
+     removed it, so in light mode this band had no ground at all -- while the
+     divider test excused it from carrying a hairline on the grounds that it
+     "sits on its own tinted ground". `.sec-ground` paints in both themes. --}}
+<section id="buzz" class="sec-ground py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Buzz</div>
@@ -2127,155 +2132,13 @@
      rather than baked into the partial: the divider is a homepage rule and
      the styling for it only exists there. --}}
 @include('public.partials._compare', ['teaser' => true, 'eyebrowOverride' => 'How we compare', 'sectionClass' => 'sec-rule'])
-@php
-    // Legacy inline arrays kept commented out, replaced by shared partial above.
-    /*
-    $__cmpCompetitors = [
-        ['key' => 'ours',     'name' => 'Sayzio',         'badge' => 'Better deal',           'isOurs' => true],
-        ['key' => 'linktree', 'name' => 'Linktree',      'badge' => 'Half the cost',         'isOurs' => false],
-        ['key' => 'bitly',    'name' => 'Bitly',         'badge' => 'More features included', 'isOurs' => false],
-        ['key' => 'beacons',  'name' => 'Beacons',       'badge' => 'Up to 1/10th the price','isOurs' => false],
-    ];
-    // 10 features. Order chosen to front-load Sayzio-only wins.
-    $__cmpFeatures = [
-        ['Link in Bio pages',             ['ours' => true, 'linktree' => true,  'bitly' => true,  'beacons' => true]],
-        ['Branded short links',       ['ours' => true, 'linktree' => false, 'bitly' => true,  'beacons' => false]],
-        ['Dynamic QR codes',          ['ours' => true, 'linktree' => true,  'bitly' => true,  'beacons' => true]],
-        ['Built-in analytics',        ['ours' => true, 'linktree' => true,  'bitly' => true,  'beacons' => true]],
-        ['Live visitor map',          ['ours' => true, 'linktree' => false, 'bitly' => false, 'beacons' => false]],
-        ['Performance coach',         ['ours' => true, 'linktree' => false, 'bitly' => false, 'beacons' => false]],
-        ['Team workspaces',           ['ours' => true, 'linktree' => true,  'bitly' => true,  'beacons' => false]],
-        ['Direct messaging',          ['ours' => true, 'linktree' => false, 'bitly' => false, 'beacons' => false]],
-        ['Scheduled posts',           ['ours' => true, 'linktree' => false, 'bitly' => false, 'beacons' => true]],
-        ['Custom domains',            ['ours' => true, 'linktree' => true,  'bitly' => true,  'beacons' => true]],
-    ];
-    */
-@endphp
-@if(false)
-<section id="compare-legacy" class="py-20 lg:py-28 relative overflow-hidden">
-    <div class="mesh-bg" aria-hidden="true"></div>
-    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12 max-w-2xl mx-auto">
-            <div data-anim="fade-up" class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">How we compare</div>
-            <h2 data-anim="fade-up" class="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
-                More features. <span class="grad-text">Better deal.</span>
-            </h2>
-            <p data-anim="fade-up" class="text-gray-400">See how Sayzio stacks up against the link-in-bio tools you already know, most charge extra for AI; here it's built in and free.</p>
-        </div>
-
-        {{-- ===== Desktop / tablet matrix ===== --}}
-        <div data-anim="fade-up" class="hidden md:block cmp-wrap">
-            <div class="grad-border rounded-3xl overflow-hidden relative">
-                {{-- Highlighted column band overlays the Sayzio column (col 2 of 5: feature col + 4 brand cols) --}}
-                <div class="cmp-ours-band" style="left: 40%; width: calc(60% / 4);"></div>
-
-                {{-- Header --}}
-                <div class="grid items-center px-4 sm:px-6 py-5 bg-white/[.03] text-xs font-bold uppercase tracking-wider text-gray-400 relative z-[1]"
-                     style="grid-template-columns: 40% repeat(4, 1fr);">
-                    <div>Feature</div>
-                    @foreach($__cmpCompetitors as $c)
-                        <div class="text-center">
-                            @if($c['isOurs'])
-                                <span class="cmp-brand-ours text-xs">
-                                    <i class="fas fa-bolt"></i> {{ $c['name'] }}
-                                </span>
-                            @else
-                                <span class="text-gray-300 text-sm normal-case tracking-normal font-semibold">{{ $c['name'] }}</span>
-                            @endif
-                        </div>
-                    @endforeach
-                </div>
-
-                {{-- Rows --}}
-                <div class="cmp-stagger" data-anim="fade">
-                    @foreach($__cmpFeatures as $row)
-                        @php [$label, $support] = $row; @endphp
-                        <div class="cmp-row grid items-center px-4 sm:px-6 py-4 border-t border-white/5 text-sm"
-                             style="grid-template-columns: 40% repeat(4, 1fr);">
-                            <div class="text-gray-200 font-medium">{{ $label }}</div>
-                            @foreach($__cmpCompetitors as $c)
-                                <div class="text-center">
-                                    @if($support[$c['key']])
-                                        <span class="cmp-mark {{ $c['isOurs'] ? 'cmp-mark-yes-ours' : 'cmp-mark-yes' }}" aria-label="Included">
-                                            <svg class="cmp-draw" width="{{ $c['isOurs'] ? 18 : 14 }}" height="{{ $c['isOurs'] ? 18 : 14 }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                                <path d="M5 12.5l4.5 4.5L19 7"/>
-                                            </svg>
-                                        </span>
-                                    @else
-                                        <span class="cmp-mark cmp-mark-no" aria-label="Not included">
-                                            <svg class="cmp-draw" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
-                                                <path d="M6 12h12"/>
-                                            </svg>
-                                        </span>
-                                    @endif
-                                </div>
-                            @endforeach
-                        </div>
-                    @endforeach
-
-                    {{-- Footer badges row --}}
-                    <div class="cmp-row grid items-center px-4 sm:px-6 py-5 border-t border-white/10 bg-white/[.02]"
-                         style="grid-template-columns: 40% repeat(4, 1fr);">
-                        <div class="text-xs font-bold uppercase tracking-wider text-gray-400">The bottom line</div>
-                        @foreach($__cmpCompetitors as $c)
-                            <div class="text-center">
-                                <span class="cmp-badge {{ $c['isOurs'] ? 'cmp-badge-ours' : '' }}">
-                                    @if($c['isOurs'])<i class="fas fa-star text-[10px]"></i>@endif
-                                    {{ $c['badge'] }}
-                                </span>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- ===== Mobile stacked cards ===== --}}
-        <div class="md:hidden space-y-4" data-anim="fade">
-            @foreach($__cmpCompetitors as $c)
-                <div data-anim="fade-up" class="cmp-card {{ $c['isOurs'] ? 'cmp-card-ours' : '' }}">
-                    <div class="flex items-center justify-between gap-3 mb-4">
-                        <div class="flex items-center gap-2">
-                            @if($c['isOurs'])
-                                <span class="cmp-brand-ours text-xs"><i class="fas fa-bolt"></i> {{ $c['name'] }}</span>
-                            @else
-                                <span class="text-base font-bold text-gray-100">{{ $c['name'] }}</span>
-                            @endif
-                        </div>
-                        <span class="cmp-badge {{ $c['isOurs'] ? 'cmp-badge-ours' : '' }}">
-                            @if($c['isOurs'])<i class="fas fa-star text-[10px]"></i>@endif
-                            {{ $c['badge'] }}
-                        </span>
-                    </div>
-                    <ul class="cmp-stagger space-y-2.5" data-anim="fade">
-                        @foreach($__cmpFeatures as $row)
-                            @php [$label, $support] = $row; $on = $support[$c['key']]; @endphp
-                            <li class="cmp-row flex items-center gap-3 text-sm">
-                                @if($on)
-                                    <span class="cmp-mark {{ $c['isOurs'] ? 'cmp-mark-yes-ours' : 'cmp-mark-yes' }}" style="width:24px;height:24px;">
-                                        <svg class="cmp-draw" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <path d="M5 12.5l4.5 4.5L19 7"/>
-                                        </svg>
-                                    </span>
-                                @else
-                                    <span class="cmp-mark cmp-mark-no" style="width:24px;height:24px;">
-                                        <svg class="cmp-draw" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
-                                            <path d="M6 12h12"/>
-                                        </svg>
-                                    </span>
-                                @endif
-                                <span class="{{ $on ? 'text-gray-100' : 'text-gray-500 line-through' }}">{{ $label }}</span>
-                            </li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endforeach
-        </div>
-
-        <p data-anim="fade-up" class="text-center text-xs text-gray-500 mt-6">Comparison reflects publicly listed feature sets at the time of writing. We never quote a competitor's price.</p>
-    </div>
-</section>
-@endif
+{{-- The 4-tool inline comparison this band used to render lived here as a
+     commented-out @php array plus a 125-line @if(false) block, dead since the
+     shared partial above replaced it. It is deleted rather than kept: the
+     opt-out list in HomepageSectionDividerTest still carried an entry for its
+     id, `compare-legacy`, long after the id stopped rendering, and an entry
+     that matches nothing is the same kind of quiet wrong this batch is about.
+     git log has it if the arrays are ever wanted back. --}}
 
 @include('home.partials.pricing')
 {{-- ==================== ZONE · ANSWERS, TRUST & FINAL CTA ==================== --}}

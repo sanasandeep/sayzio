@@ -32,7 +32,7 @@
         '--d:460ms;--tx:-170px;--ty:8px;--rot:-5deg;',
     ];
 @endphp
-<section id="ai-hero" class="relative py-16 lg:py-24 overflow-hidden" aria-labelledby="ai-hero-h">
+<section id="ai-hero" class="sec-rule relative py-16 lg:py-24 overflow-hidden" aria-labelledby="ai-hero-h">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12">
         <div class="grid grid-cols-1 gap-y-12 lg:grid-cols-[1.05fr_1fr] lg:gap-x-12 xl:gap-x-16 lg:items-center">
             {{-- Copy column --}}

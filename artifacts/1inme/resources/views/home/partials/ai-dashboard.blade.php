@@ -2,7 +2,7 @@
 @php
     $__aidPresets = \App\Modules\User\Support\DashboardPresets::forFrontend();
 @endphp
-<section id="ai-dashboard" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="ai-dashboard-h">
+<section id="ai-dashboard" class="sec-rule py-24 lg:py-32 relative overflow-hidden" aria-labelledby="ai-dashboard-h">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">AI Dashboard</div>

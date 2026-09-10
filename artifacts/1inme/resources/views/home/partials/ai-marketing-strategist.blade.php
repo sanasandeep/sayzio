@@ -15,7 +15,7 @@
     $msCadence = $msEx['cadence']['items'] ?? [];
     $msTargets = $msEx['targets']['items'] ?? [];
 @endphp
-<section id="ai-marketing-strategist" class="ms-promo py-24 lg:py-32 relative overflow-hidden">
+<section id="ai-marketing-strategist" class="sec-rule ms-promo py-24 lg:py-32 relative overflow-hidden">
     <div class="ms-glow ms-glow-a" aria-hidden="true"></div>
     <div class="ms-glow ms-glow-b" aria-hidden="true"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

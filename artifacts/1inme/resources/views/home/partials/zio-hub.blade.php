@@ -251,7 +251,7 @@
     }
 </style>
 
-<section class="zh-band pt-24 lg:pt-32 pb-20 lg:pb-28" aria-labelledby="zh-h">
+<section class="zh-band sec-ground pt-24 lg:pt-32 pb-20 lg:pb-28" aria-labelledby="zh-h">
 
     {{-- The AI zone's intro used to sit in its own section immediately above
          this band, on the page's normal ground. That put a hard seam between

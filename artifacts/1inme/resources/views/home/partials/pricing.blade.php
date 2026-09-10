@@ -44,7 +44,7 @@
      Because it now brings its own ground, it drops the `sec-rule` hairline:
      a divider AND a surface change at the same boundary is one separator too
      many. HomepageSectionDividerTest carries the matching opt-out. --}}
-<section id="pricing" class="pr-band py-20 lg:py-24 relative overflow-hidden"
+<section id="pricing" class="pr-band sec-ground py-20 lg:py-24 relative overflow-hidden"
     @inme-currency.window="currency = $event.detail.c"
     x-data="{
         billing: 'monthly',

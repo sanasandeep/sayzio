@@ -37,7 +37,12 @@
         --pb-rule:     rgba(255,255,255,.12);
         --pb-rule-lit: rgba(255,255,255,.28);
         --pb-chip:     rgba(255,255,255,.05);
-        --pb-ground:   transparent;
+        /* Was `transparent`, which meant the band was a surface of its own in
+           light mode and not in dark -- the same band reading as two different
+           things depending on the theme. It takes the page's shared second
+           ground now (see .sec-ground in home.blade.php), which is what the
+           `sec-ground` class on the section actually promises. */
+        --pb-ground:   var(--sec-ground, #0E1017);
         position: relative;
         background: var(--pb-ground);
     }
@@ -220,7 +225,7 @@
     }
 @endphp
 
-<section class="pb-band relative py-14 sm:py-20" aria-labelledby="pb-h">
+<section class="pb-band sec-ground relative py-14 sm:py-20" aria-labelledby="pb-h">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="reveal text-center">
 

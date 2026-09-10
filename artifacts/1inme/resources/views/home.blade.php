@@ -285,11 +285,38 @@
            page ground has neither the class nor an entry in its opt-out
            list, so the next section added cannot quietly go without one.
 
-           Still deliberately NOT every section: the rule belongs at the
-           boundaries between bands that share the page's ground. Bands with
-           a ground of their own are opted out -- a hairline calibrated for
-           white is invisible on the Zio band and wrong on #buzz, and those
-           announce themselves by changing colour instead. */
+           Still deliberately NOT every section -- but which ones are exempt is
+           no longer a claim written down somewhere. It used to be: a list of
+           ids in HomepageSectionDividerTest, each with a prose reason of the
+           form "sits on its own tinted ground". Nothing checked the reason,
+           and the light-mode sheet (public/partials/surfaces.blade.php) had
+           quietly made half of them false -- it flattens every section wash on
+           the page, #buzz's included, so bands excused from carrying a rule
+           because they "announce themselves by changing colour" were sitting
+           on the same white as everything else. Seven consecutive bands, from
+           the top of the AI zone to the social-proof band, had no separator of
+           any kind: just under 8,000px of unbroken sheet.
+
+           So the exemption is now a class that PAINTS rather than a sentence
+           that asserts. A band is one of two things:
+
+             .sec-ground -- brings a ground of its own, in BOTH themes. The
+                            change of colour is the separator.
+             .sec-rule   -- sits on the page's ground and carries the hairline.
+
+           A band cannot claim a ground it does not have, because claiming it
+           is what draws it.
+
+           The separator belongs to the BOUNDARY, not to the band, so where a
+           grounded band is followed by one on the page ground, the colour
+           change has already marked that edge and the hairline underneath it
+           is one separator too many. `.sec-ground + .sec-rule` drops it.
+
+           A grounded ZONE is not an exception to this. #ai-zone is ~6,600px
+           across six bands; its ground separates the zone from the page, and
+           the bands inside it still share a ground with each other, so they
+           still carry rules. "Reads as one band" was never true of a quarter
+           of the page. */
         .sec-rule::before {
             content: "";
             position: absolute; top: 0; left: 50%; transform: translateX(-50%);
@@ -300,6 +327,38 @@
         html.light-mode .sec-rule::before { --sec-rule: rgba(15,23,42,.09); }
         @media (min-width: 640px)  { .sec-rule::before { width: min(1280px, 100% - 3rem); } }
         @media (min-width: 1024px) { .sec-rule::before { width: min(1280px, 100% - 4rem); } }
+
+        /* ─── .sec-ground: the page's second surface ───
+           One tint, used sparingly, so the page has a rhythm instead of
+           reading as a single 26,000px sheet with headings scattered down it.
+           Six bands take it: the trust band under the hero, How it works,
+           Grow, the AI zone, Buzz and pricing -- roughly every 4,000-7,000px,
+           which is what gives the page chapters.
+
+           Both values are #pricing's, which had already picked a pair by hand
+           and is the only band on the page that has read as its own surface in
+           both themes for a while. They are a token now so the next band that
+           wants a ground cannot invent a fourth shade of nearly-white.
+
+           `position: relative` is stated rather than assumed: several of these
+           bands (the trust band, the Zio hub band) do not carry Tailwind's
+           `relative`, and without it the ::before that some of them also need
+           would anchor to the wrong ancestor.
+
+           The light-mode value is wrapped in :where() so the whole selector
+           weighs nothing. Three bands want a ground of their own rather than
+           the shared tint -- the Zio hub is dark in both themes, the pricing
+           band has its own pair -- and at zero specificity a single class on
+           the band beats this in both directions without depending on which
+           <style> the browser happened to see last. Two of those bands live in
+           fragments injected after this file, so source order was doing the
+           work by accident. */
+        .sec-ground { position: relative; }
+        :where(.sec-ground) { background-color: var(--sec-ground, #0E1017); }
+        :where(html.light-mode) :where(.sec-ground) { --sec-ground: #F5F6FA; }
+        /* The colour change is the separator; a hairline on top of it is not. */
+        .sec-ground + .sec-rule::before,
+        .sec-ground + .sec-ground::before { display: none; }
 
         /* ─── .card-lit: a card that stays blue in BOTH modes ───
            The page has more than one of these -- the Premium plan and the
