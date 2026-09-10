@@ -1059,11 +1059,29 @@
             background: #08020f; padding: 8px;
             box-shadow: 0 28px 70px -20px rgba(61,107,255,.55), 0 0 0 1px rgba(255,255,255,.08);
         }
+        /* The previewed page wears a real background IMAGE, the way a real
+           Link in Bio does. It used to be three radial gradients over a flat
+           purple, which demonstrated "we have a colour picker" — but the
+           first thing most people do with a page is put a picture behind it,
+           and a demo of the builder that never shows one is selling the
+           product short.
+
+           The file is the shipped `mesh-dark` background, resized to twice
+           its rendered size and saved as WebP: 977KB of PNG becomes under 7KB,
+           which is what makes it affordable on a marketing page at all.
+
+           Layer order, topmost first: a dark scrim, then the brand wash that
+           was here before, then the photo, then the base colour as the
+           fallback if the image never loads. The scrim is what keeps white
+           block text legible over the picture's brighter passages — without
+           it the profile name disappears into the teal. */
         .bb-screen { position: relative; width:100%; height:100%; border-radius: 28px; overflow: hidden;
             background:
-                radial-gradient(ellipse at 25% 0%,   rgba(61,107,255,.55) 0%, transparent 55%),
-                radial-gradient(ellipse at 85% 38%,  rgba(233,78,140,.5)  0%, transparent 52%),
-                radial-gradient(ellipse at 50% 100%, rgba(255,138,60,.45) 0%, transparent 48%),
+                linear-gradient(180deg, rgba(8,4,18,.62) 0%, rgba(8,4,18,.38) 42%, rgba(8,4,18,.72) 100%),
+                radial-gradient(ellipse at 25% 0%,   rgba(61,107,255,.34) 0%, transparent 55%),
+                radial-gradient(ellipse at 85% 38%,  rgba(233,78,140,.30) 0%, transparent 52%),
+                radial-gradient(ellipse at 50% 100%, rgba(255,138,60,.26) 0%, transparent 48%),
+                url('{{ asset('images/biolink-preview-bg.webp') }}') center / cover no-repeat,
                 #0d0820; }
         .bb-notch { position:absolute; top: 7px; left:50%; transform: translateX(-50%); width:64px; height:14px; background:#08020f; border-radius:10px; z-index:20; }
         .bb-scroll { position:absolute; inset:28px 10px 10px; overflow:hidden; display:flex; flex-direction:column;
@@ -1201,6 +1219,55 @@
             box-shadow: 0 0 0 5px rgba(255,255,255,.1), 0 10px 22px -8px rgba(0,0,0,.6) !important;
         }
 
+        /* ─── Themes card: gradient ribbon backdrop ───
+           The card that sells "pick a theme, then tune the colours" was a
+           white panel with one soft cyan circle in the corner, which is the
+           same corner blob every other card on the page wears. A card about
+           colour should be the one place colour is doing something, so it
+           gets a ribbon: three broad bands sweeping across the panel behind
+           the content, each carrying a different pair from the logo palette.
+
+           The bands are stroked SVG paths rather than rotated divs — a ribbon
+           needs to curve, and a curve made of skewed rectangles reads as
+           skewed rectangles. `vector-effect: non-scaling-stroke` keeps the
+           band widths constant while the viewBox stretches to the card, so
+           the same markup works in a tall card and a short one. */
+        .th-ribbon {
+            position: absolute; inset: 0; z-index: 0;
+            pointer-events: none; overflow: hidden;
+            border-radius: inherit;
+            opacity: .5;
+            /* A ribbon crossing a card of text has to get out of the text's
+               way. The mask keeps it at full strength in the empty top-right
+               and takes it to nothing along the left edge and the bottom,
+               where the heading, the paragraph and the swatch controls live. */
+            -webkit-mask-image: linear-gradient(255deg, #000 0%, rgba(0,0,0,.72) 34%, rgba(0,0,0,.16) 62%, transparent 78%);
+                    mask-image: linear-gradient(255deg, #000 0%, rgba(0,0,0,.72) 34%, rgba(0,0,0,.16) 62%, transparent 78%);
+        }
+        html.light-mode .th-ribbon { opacity: .42; }
+        .th-ribbon svg { width: 100%; height: 100%; display: block; }
+        .th-ribbon path {
+            fill: none; stroke-linecap: round;
+            /* Constant band widths whatever the card's aspect ratio: the
+               viewBox stretches to the panel, the strokes do not. */
+            vector-effect: non-scaling-stroke;
+        }
+
+        /* The bands drift as one piece, slowly and along their own diagonal.
+           They were dashed and marched along the path at first, which cut the
+           ribbon into separate blobs -- the opposite of a ribbon. A ribbon is
+           continuous, so the stroke is continuous, and only its position
+           moves. */
+        @keyframes thRibbonDrift {
+            0%, 100% { transform: translate3d(0, 0, 0); }
+            50%      { transform: translate3d(-3.5%, 2.2%, 0); }
+        }
+        .th-ribbon-group {
+            animation: thRibbonDrift 17s ease-in-out infinite;
+            transform-origin: 70% 30%;
+            will-change: transform;
+        }
+
         /* ─── Right-col card polish: swatch preview bar ─── */
         .th-preview-bar {
             height: 4px; border-radius: 999px; overflow:hidden; position:relative;
@@ -1219,12 +1286,15 @@
         @media (prefers-reduced-motion: reduce) {
             .build-row.bl-dragging, .build-row.bl-ghost, .build-row.bl-dropping,
             .bl-drop-indicator, .bb-phone-inner, .th-swatch, .th-swatch.is-active,
+            .th-ribbon-group,
             .mf-stat-bar {
                 animation: none !important;
                 transform: none !important;
                 transition: none !important;
             }
             .th-swatch.is-active { outline: 2.5px solid rgba(255,255,255,.7); }
+            /* The ribbon stays — it is the card's background, not an effect —
+               it just stops drifting. */
         }
 
         /* ============ Hero category gallery ============ */

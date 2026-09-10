@@ -57,11 +57,14 @@
         border-radius: 18px; padding: clamp(22px, 3.4vw, 44px);
         background: #14132A; border: 1px solid rgba(255,255,255,.10);
         box-shadow: 0 40px 90px -40px rgba(0,0,0,.8);
-        transform: translateY(10px) scale(.985);
-        transition: transform .24s cubic-bezier(.2,.7,.3,1);
+        /* The panel does not animate in. It used to rise and scale from
+           translateY(10px)/.985, which is a fine flourish on a panel holding
+           one line of text and an irritation on one holding several hundred
+           words: the reader is here to read, and the first thing the motion
+           does is move the text they are already reading. The scrim still
+           fades, so the change of context still registers. */
     }
     html.light-mode .xc-modal { background: #fff; border-color: #E6E8F2; box-shadow: 0 40px 90px -46px rgba(11,16,51,.4); }
-    .xc-scrim.is-open .xc-modal { transform: none; }
     .xc-close {
         position: absolute; top: 14px; right: 14px; z-index: 2;
         width: 36px; height: 36px; border-radius: 10px;
@@ -79,6 +82,47 @@
     .xc-body p { font-size: 15.5px; line-height: 1.6; max-width: 68ch; }
     .xc-body [data-expand-more] { display: block; }
     .xc-host [data-expand-more] { display: none; }
+
+    /* ---------- richer modal copy (xm- = expand more) ----------
+       Type and rhythm for the long-form block a card opts into. It only ever
+       renders inside .xc-body, so everything here is scoped to that: the card
+       itself keeps its own compact styling untouched. */
+    .xc-body [data-expand-more] {
+        margin-top: 26px; padding-top: 24px;
+        border-top: 1px solid rgba(255,255,255,.10);
+    }
+    html.light-mode .xc-body [data-expand-more] { border-top-color: #E6E8F2; }
+
+    .xm-lead {
+        margin: 0 0 22px; max-width: 70ch;
+        font-size: 16px !important; line-height: 1.65; opacity: .85;
+    }
+    /* Two columns on a wide panel — "what you get" beside "why it matters" —
+       so a long block reads as two short ones instead of one deep scroll. */
+    .xm-cols { display: grid; gap: 26px 40px; }
+    @media (min-width: 860px) { .xm-cols { grid-template-columns: 1fr 1fr; } }
+
+    .xm-h {
+        margin: 0 0 13px; font-size: 11px !important; font-weight: 700;
+        letter-spacing: .13em; text-transform: uppercase; opacity: .55;
+    }
+    .xm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+    .xm-list li { display: flex; gap: 10px; font-size: 14.5px; line-height: 1.55; }
+    .xm-list i {
+        flex: none; margin-top: 4px; font-size: 10px;
+        color: var(--xm-accent, #3d6bff);
+    }
+    .xm-list strong { font-weight: 700; }
+
+    /* A closing note — plan availability, a caveat — set apart from the
+       claims above it so it does not read as one of them. */
+    .xm-note {
+        margin: 24px 0 0; padding: 12px 15px; border-radius: 10px;
+        font-size: 13px !important; line-height: 1.55;
+        background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+    }
+    html.light-mode .xm-note { background: #F7F8FC; border-color: #E6E8F2; }
+    .xm-note i { margin-right: 7px; opacity: .8; }
 
     /* The link-type stage is mostly picture, so in the modal it gets the
        room: a taller preview and a bigger drawing. The carousel dots belong
@@ -428,7 +472,13 @@
         // class now, and a selector that depends on a styling hook breaks the
         // moment that hook moves.
         '#share .share-card',
-        '#domains .glass'
+        '#domains .glass',
+        // The two proof cards beside the drag-and-drop demo in #features.
+        // Marked with an explicit data attribute rather than matched by
+        // `.glass` or column position: the big editor card next to them is
+        // also a .glass card, and it must NOT get a control — its content is
+        // a live drag demo, not text that benefits from more room.
+        '#features [data-xc-card]'
         // The link-type stage used to be listed here. It no longer exists:
         // the cards open a fetched modal directly, so there is no panel to
         // expand and nothing in #create for the generic injector to attach to.

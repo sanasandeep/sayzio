@@ -254,7 +254,13 @@ html,html body,html.light-mode body{background:var(--fs-page) !important}
 /* Product mock surfaces — a phone screen, a sheet of paper, a map — are
    panels INSIDE a card, so they take a faint fill rather than the ground:
    on a white page a white screen would have no edges at all. */
-:is(.lt-mock-zone,.bb-screen,.rb-paper,.geo-map){
+/* `.bb-screen` is deliberately NOT in this list. It is the one mock here
+   showing the user's OWN page rather than a neutral surface, and that page
+   carries a background image — stripping it left the builder demo showing a
+   blank panel, which is the opposite of what the section is selling. It needs
+   no faint fill for its edges either: the image is dark and supplies its own
+   contrast against the white card behind it. */
+:is(.lt-mock-zone,.rb-paper,.geo-map){
   background-image:none !important;background-color:var(--fs-panel) !important}
 
 /* ---------- 4. corners ---------- */
