@@ -136,7 +136,13 @@
 
         <div class="grid md:grid-cols-3 gap-5 card-row">
             @foreach($__audiences as $i => $a)
-                <article class="audience-card reveal rd-{{ $i + 1 }} glass rounded-3xl p-7 tilt relative overflow-hidden flex flex-col">
+                {{-- One card per section carries the CTA ribbon, cut down to a
+                     corner wedge. The middle one here, so the accent lands in
+                     the centre of the row rather than at one end. --}}
+                <article class="audience-card reveal rd-{{ $i + 1 }} glass rounded-3xl p-7 tilt relative overflow-hidden flex flex-col{{ $i === 1 ? ' card-ribbon-host' : '' }}">
+                    @if($i === 1)
+                        @include('home.partials.card-ribbon', ['variant' => 'cool'])
+                    @endif
                     {{-- The 192px blurred colour disc that used to sit in this
                          corner is gone. It had already been switched off in
                          `surfaces.blade.php` (`display:none !important`), so it
@@ -265,6 +271,10 @@
                 {{-- `--hiw-color` drove this step's border, glow and number. It was a
                      different hue on every step, so four steps meant four colours in
                      one row; it now follows the card row's own gradient. --}}
+                {{-- No ribbon on these. The step number is a large translucent
+                     numeral in the top-right corner -- the same corner the wedge
+                     wants -- and the section already closes on a full-ribbon CTA
+                     card a few hundred pixels below. --}}
                 <div class="reveal rd-{{ ($i % 4)+1 }} hiw-step glass rounded-3xl p-6 text-center" style="--hiw-color: var(--g1, #3d6bff)">
                     <span class="hiw-num">{{ $s[0] }}</span>
                     <div class="card-ico hiw-icon-wrap"><i class="fas {{ $s[4] }} text-xl text-white"></i></div>
@@ -1091,7 +1101,8 @@
             </div>
 
             {{-- 2 · Bring your own domain --}}
-            <div class="reveal rd-2 glass rounded-3xl p-7 tilt relative overflow-hidden">
+            <div class="reveal rd-2 glass rounded-3xl p-7 tilt relative overflow-hidden card-ribbon-host">
+                @include('home.partials.card-ribbon', ['variant' => 'cool'])
                 <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c2)"></div>
                 <div class="relative">
                     <div class="card-ico w-12 h-12 rounded-2xl flex items-center justify-center mb-4"><i class="fas fa-globe text-xl"></i></div>
@@ -1620,7 +1631,12 @@
                         ['fa-user-shield','#e94e8c','Roles &amp; permissions','Owner, Admin, Editor, Viewer, locked down where it counts.'],
                         ['fa-credit-card','#ff8a3c','Billing per workspace','Separate plans &amp; invoices for each workspace.'],
                     ] as $i => $f)
-                        <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
+                        {{-- The first card in the grid carries the accent, the
+                             same wedge the CTA cards use at full size. --}}
+                        <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift{{ $i === 0 ? ' card-ribbon-host' : '' }}">
+                            @if($i === 0)
+                                @include('home.partials.card-ribbon', ['variant' => 'cool'])
+                            @endif
                             <div class="card-ico w-11 h-11 rounded-xl flex items-center justify-center mb-3">
                                 <i class="fas {{ $f[0] }} text-white"></i>
                             </div>
@@ -2000,7 +2016,12 @@
                         ['fa-sliders','#e94e8c','Pick what shows','Choose events &amp; priorities; hide the rest.'],
                         ['fa-user-secret','#3d6bff','Privacy-first','Names masked, locations coarse, dismissible.'],
                     ] as $i => $f)
-                        <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
+                        {{-- The first card in the grid carries the accent, the
+                             same wedge the CTA cards use at full size. --}}
+                        <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift{{ $i === 0 ? ' card-ribbon-host' : '' }}">
+                            @if($i === 0)
+                                @include('home.partials.card-ribbon', ['variant' => 'cool'])
+                            @endif
                             <div class="card-ico w-11 h-11 rounded-xl flex items-center justify-center mb-3">
                                 <i class="fas {{ $f[0] }} text-white"></i>
                             </div>
