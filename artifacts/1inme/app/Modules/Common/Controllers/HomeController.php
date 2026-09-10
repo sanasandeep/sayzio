@@ -166,6 +166,10 @@ class HomeController extends Controller
             $plans = HomePageCache::applyTaxOverlay($plans, $billing, $currency);
         }
         $linkTypes = $payload['linkTypes'];
+        // The catalogue-wide minimum, for the teaser's "starting from" line.
+        // Nullable: an older cached payload predates this key, and a
+        // catalogue with no paid plan has no minimum to state.
+        $cheapestPaidPlan = $payload['cheapestPaid'] ?? null;
         $featuredBlogPosts = $this->featuredBlogPosts();
 
         // Example pages the AI-builder demo cycles through (and the resting
@@ -187,7 +191,7 @@ class HomeController extends Controller
 
         $fragment = self::DESIGNS[self::activeDesign()]['fragment'];
 
-        return view($fragment, compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'linkTypes', 'aiHeroExamples', 'resumePersonas', 'aiStrategistExamples'));
+        return view($fragment, compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'linkTypes', 'aiHeroExamples', 'resumePersonas', 'aiStrategistExamples', 'cheapestPaidPlan'));
     }
 
     /**

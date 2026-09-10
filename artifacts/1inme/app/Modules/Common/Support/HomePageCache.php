@@ -38,7 +38,15 @@ class HomePageCache
      * Anonymous home payload cache key prefix; suffixed with the plan
      * catalogue version + currency (see {@see anonPayloadKey()}).
      */
-    public const ANON_PAYLOAD_PREFIX = 'home:anon:payload:';
+    /**
+     * Bumped to v2 when `cheapestPaid` was added to the payload.
+     *
+     * Payloads already in the cache have no such key, and the teaser falls
+     * back to the old (wrong) figure for whatever remains of their TTL.
+     * Changing the prefix retires them at deploy instead of leaving a live
+     * pricing misstatement up for another cache window.
+     */
+    public const ANON_PAYLOAD_PREFIX = 'home:anon:payload:v2:';
 
     /** Featured blog-post carousel rows (plain attribute arrays). */
     public const FEATURED_CACHE_KEY = 'home:featured_blog_posts';
@@ -332,6 +340,41 @@ class HomePageCache
         }
         $plans = $plans->values();
 
+        // The TRUE cheapest paid plan, computed over the whole public
+        // catalogue rather than over the two cards above.
+        //
+        // The landing teaser says "Plans starting from X", and it used to
+        // derive X from `$plans` -- which by design holds only the free plan
+        // and the POPULAR one. With one paid card in that collection the
+        // "cheapest" was simply the popular plan's price, so the homepage
+        // advertised a starting price that no plan actually started at:
+        // Rs 1,389/mo on a catalogue whose entry paid plan is Rs 167/mo.
+        //
+        // A starting-from figure has to be the minimum of everything on
+        // offer, so it is computed here from $allPlans and carried
+        // separately. Both-currency prices are included in the same shape
+        // the cards use, so the teaser's client-side currency switch keeps
+        // working without a second lookup.
+        $cheapestPaid = null;
+        $cheapestMinor = PHP_INT_MAX;
+        foreach ($allPlans as $p) {
+            $monthly = PricingResolver::priceFor($p, $user, 'monthly');
+            $minor = (int) $monthly['amount_minor'];
+            if ($minor <= 0 || $minor >= $cheapestMinor) {
+                continue;
+            }
+            $pricesByCur = [];
+            foreach (self::CURRENCIES as $cur) {
+                $pricesByCur[$cur] = ['monthly' => PricingResolver::priceForCurrency($p, $cur, 'monthly')];
+            }
+            $cheapestMinor = $minor;
+            $cheapestPaid = [
+                'name'    => $p->name,
+                'monthly' => $monthly,
+                'prices'  => $pricesByCur,
+            ];
+        }
+
         // "What you can create" link-types showcase. Admin-editable from the
         // `home` SitePage row under extra.link_types; falls back to the shared
         // SitePagesContent defaults when unset (or the table isn't migrated).
@@ -348,7 +391,7 @@ class HomePageCache
             // SitePages migration not run yet — use defaults.
         }
 
-        return compact('plans', 'linkTypes');
+        return compact('plans', 'linkTypes', 'cheapestPaid');
     }
 
     /**
