@@ -2181,34 +2181,50 @@ Route::prefix('user')->name('user.')->group(function () {
         //      keeping the `user.billing.companies.index` name), and
         //   2. legacy-URL redirects so old bookmarks/links still resolve.
         //
-        // These redirects are registered LAST on purpose: Route::redirect
-        // responds to any verb, so placing them after every real POST/PUT/
-        // DELETE route guarantees the real routes win for their own methods
-        // and the redirects only catch stale GET landings.
+        // These redirects are GET-only, and that is load-bearing.
+        //
+        // Route::redirect() registers for EVERY verb, and registering it
+        // last does not make the real routes win -- it makes them lose.
+        // RouteCollection::addToCollections() stores routes as
+        // routes[$method][$uri], keyed by URI, so a later route with the
+        // same method and URI REPLACES the earlier one. An any-verb
+        // redirect placed after a real handler therefore silently takes
+        // that handler's POST/PUT/DELETE as well.
+        //
+        // It had, for six of them: saving notification preferences,
+        // enabling and disabling two-factor, creating an API key, adding a
+        // billing company and connecting a social account all answered 302
+        // to the settings tab and wrote nothing. The form looked like it
+        // worked. Nothing was saved.
+        //
+        // Route::redirect has no verb-scoped variant, so these are plain
+        // GET routes that redirect. Legacy bookmarks still land where they
+        // should; the real handlers keep their own verbs.
+        // check:route-shadowing guards this in CI.
         // ===================================================================
         Route::get('settings/billing', [\App\Modules\User\Controllers\BillingCompanyController::class, 'index'])
             ->middleware('workspace.can:tasks.view')
             ->name('billing.companies.index');
 
         // Hub root → default (Profile) tab.
-        Route::redirect('settings', '/user/settings/profile');
+        Route::get('settings', static fn () => redirect('/user/settings/profile'));
 
         // Legacy landing-URL redirects into the corresponding hub tab.
-        Route::redirect('profile', '/user/settings/profile');
-        Route::redirect('creator-profile', '/user/settings/creator');
-        Route::redirect('account/two-factor', '/user/settings/security');
-        Route::redirect('security/logins', '/user/settings/security/logins');
-        Route::redirect('settings/sessions', '/user/settings/security/devices');
-        Route::redirect('merge', '/user/settings/security/merge');
-        Route::redirect('social-accounts', '/user/settings/connections');
-        Route::redirect('connected-apps', '/user/settings/connections/apps');
-        Route::redirect('integrations', '/user/settings/integrations');
-        Route::redirect('domains', '/user/settings/domains');
-        Route::redirect('notifications/preferences', '/user/settings/notifications');
-        Route::redirect('billing/companies', '/user/settings/billing');
-        Route::redirect('api-keys', '/user/settings/developer');
-        Route::redirect('verification', '/user/settings/verification');
-        Route::redirect('badge-requests', '/user/settings/verification/badges');
+        Route::get('profile', static fn () => redirect('/user/settings/profile'));
+        Route::get('creator-profile', static fn () => redirect('/user/settings/creator'));
+        Route::get('account/two-factor', static fn () => redirect('/user/settings/security'));
+        Route::get('security/logins', static fn () => redirect('/user/settings/security/logins'));
+        Route::get('settings/sessions', static fn () => redirect('/user/settings/security/devices'));
+        Route::get('merge', static fn () => redirect('/user/settings/security/merge'));
+        Route::get('social-accounts', static fn () => redirect('/user/settings/connections'));
+        Route::get('connected-apps', static fn () => redirect('/user/settings/connections/apps'));
+        Route::get('integrations', static fn () => redirect('/user/settings/integrations'));
+        Route::get('domains', static fn () => redirect('/user/settings/domains'));
+        Route::get('notifications/preferences', static fn () => redirect('/user/settings/notifications'));
+        Route::get('billing/companies', static fn () => redirect('/user/settings/billing'));
+        Route::get('api-keys', static fn () => redirect('/user/settings/developer'));
+        Route::get('verification', static fn () => redirect('/user/settings/verification'));
+        Route::get('badge-requests', static fn () => redirect('/user/settings/verification/badges'));
 
         // Self-service "who has admin powers on the user side" page. Gated
         // by the `user.roles.manage` permission so only operators that
