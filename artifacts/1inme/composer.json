@@ -101,6 +101,9 @@
         "check:route-shadowing": [
             "@php scripts/check-route-shadowing.php"
         ],
+        "check:view-name-collisions": [
+            "@php scripts/check-view-name-collisions.php"
+        ],
         "check:migration-ordering": [
             "@php artisan db:check-migration-ordering"
         ],

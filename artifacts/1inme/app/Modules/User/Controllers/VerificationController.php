@@ -10,6 +10,27 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * Link Verification: per-page verification for a single Link in Bio page.
+ * A user applies for one of their biolink pages, an admin reviews it, and
+ * approval writes a verified name and logo onto that page (is_verified,
+ * verified_name, verified_logo, plus the verified_heading and verified_avatar
+ * blocks).
+ *
+ * Not to be confused with ProfileVerificationController (Task #5439), which
+ * verifies the ACCOUNT and its tick type. The two are separate features with
+ * separate tables, routes and queues.
+ *
+ * Views live under resources/views/user/link-verification/, NOT
+ * resources/views/user/verification/. Both controllers used to render the
+ * `user.verification.*` names, so whichever file was on disk answered for
+ * both — and since profile verification's version is the one that survived,
+ * every page in THIS controller died on a missing `$user`/`$queue`. All four
+ * were 500ing in production: the user's list, the request form, the admin
+ * queue and the admin review page. Blade resolves views by name alone, so two
+ * features sharing a name silently share a template; the fix is that they no
+ * longer share one. LinkVerificationPagesTest covers all four.
+ */
 class VerificationController extends Controller
 {
     public function index()
@@ -20,7 +41,7 @@ class VerificationController extends Controller
             ->orderByDesc('created_at')
             ->get();
         $biolinks = Link::where('user_id', $user->id)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->get();
-        return view('user.verification.index', compact('requests', 'biolinks'));
+        return view('user.link-verification.index', compact('requests', 'biolinks'));
     }
 
     public function create(Request $request)
@@ -28,7 +49,7 @@ class VerificationController extends Controller
         $user = Auth::user();
         $biolinks = Link::where('user_id', $user->id)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->get();
         $linkId = $request->query('link_id');
-        return view('user.verification.request', compact('biolinks', 'linkId'));
+        return view('user.link-verification.request', compact('biolinks', 'linkId'));
     }
 
     public function store(Request $request)
@@ -107,13 +128,13 @@ class VerificationController extends Controller
             $query->where('status', $request->status);
         }
         $requests = $query->orderByDesc('created_at')->paginate(20);
-        return view('user.verification.admin-index', compact('requests'));
+        return view('user.link-verification.admin-index', compact('requests'));
     }
 
     public function adminReview(VerificationRequest $verificationRequest)
     {
         $verificationRequest->load(['user', 'link']);
-        return view('user.verification.admin-review', compact('verificationRequest'));
+        return view('user.link-verification.admin-review', compact('verificationRequest'));
     }
 
     public function adminApprove(Request $request, VerificationRequest $verificationRequest)
