@@ -1,50 +1,18 @@
 {{-- ============================ PRICING ============================ --}}
-<style>
-    /* The band's own ground. Literals rather than theme tokens because the
-       step has to be the same size in both directions: a touch darker than
-       white, a touch lighter than near-black. */
-    .pr-band { background: #F5F6FA; }
-    html:not(.light-mode) .pr-band { background: #0E1017; }
+@include('home.partials.pricing-style')
+{{-- The pricing band, rebuilt against a Stripe reference.
 
-    /* Hairlines top and bottom instead of the page's section divider, so the
-       band has a defined edge where it meets the sections either side rather
-       than just fading into them. */
-    .pr-band { border-block: 1px solid #E6E8F2; }
-    html:not(.light-mode) .pr-band { border-block-color: rgba(255,255,255,.07); }
+     The shape of it: the colour lives in the ground rather than in the cards,
+     the two plans are a light/dark pair rather than white against saturated
+     blue, each card is a copy block over value cells separated by hairlines
+     rather than a grid of bordered chips, and the three side errands are one
+     floating pill instead of a button and two grey links in separate rows.
 
-    /* Full width. 1600 rather than the page's 1280: on a wide screen the two
-       plans should run nearly edge to edge, and the gutters come in to match.
-       Capped, not literally 100% -- a plan card three feet wide is not
-       readable, it is just big. */
-    .pr-wide { max-width: 1600px; }
-
-    /* The cards sit ON this band, so they need a surface of their own or the
-       whole block flattens into one grey rectangle. */
-    .pr-band .pr-card-surface { background: #FFFFFF; border-color: #E4E7F0 !important; }
-    html:not(.light-mode) .pr-band .pr-card-surface {
-        background: #15181F; border-color: rgba(255,255,255,.09) !important;
-    }
-</style>
-{{-- The pricing band.
-
-     Two changes were asked for together and they work as one: run it full
-     width, and make it read as the highlighted band on the page.
-
-     Width: the content box is wider than every other band's (1600px against
-     1280px) and the gutters shrink, so on a large screen the two plans run
-     nearly edge to edge. This is the page's one real decision point; it
-     should not be its narrowest block.
-
-     Highlight: a ground of its own -- one flat step off the page in both
-     modes -- rather than an accent colour or a glow. A band that changes
-     surface reads as "this part is different" from across the room, and it
-     is the same device the Zio band uses, which keeps the page consistent
-     with itself.
-
-     Because it now brings its own ground, it drops the `sec-rule` hairline:
-     a divider AND a surface change at the same boundary is one separator too
-     many. HomepageSectionDividerTest carries the matching opt-out. --}}
-<section id="pricing" class="pr-band sec-ground py-20 lg:py-24 relative overflow-hidden"
+     Everything that decides WHAT is shown -- the plan collections, the
+     currency switcher, the tax overlay, the annual maths, the "starting from"
+     figure -- is unchanged from the previous version and still comes from the
+     controller's cached payload. Only the presentation is new. --}}
+<section id="pricing" class="pr-band sec-ground py-24 lg:py-32 relative overflow-hidden"
     @inme-currency.window="currency = $event.detail.c"
     x-data="{
         billing: 'monthly',
@@ -84,28 +52,18 @@
         }
     }">
     <div class="relative pr-wide mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12 max-w-3xl mx-auto">
-            <div class="reveal inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.2em] mb-3 px-3 py-1 rounded-full" style="color:var(--c1); background: rgba(61,107,255,0.10);">
-                <span class="inline-block w-1.5 h-1.5 rounded-full" style="background:var(--c1)"></span>
-                Pricing
-            </div>
-            <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">Simple, <span class="grad-text">transparent pricing.</span></h2>
-            <p class="reveal rd-2 text-lg text-gray-400">Start free. Upgrade only when you outgrow it.</p>
+
+        <div class="pr-head">
+            <div class="reveal pr-eyebrow">Pricing</div>
+            <h2 class="reveal rd-1 pr-title">Start free. Pay when it pays you back.</h2>
+            <p class="reveal rd-2 pr-sub">Two plans on this page and the full grid on the next one. No card to begin, no expiry, and nothing you build is held hostage if you stop.</p>
         </div>
 
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-            {{-- Monthly / Annual billing toggle --}}
-            <div class="inline-flex items-center gap-1 p-1 rounded-full glass border border-white/10" role="tablist" aria-label="Billing cadence">
-                <button type="button" role="tab" :aria-selected="billing === 'monthly'" @click="billing = 'monthly'"
-                        :class="billing === 'monthly' ? 'grad-bar text-white shadow-lg shadow-[#3d6bff]/30' : 'text-gray-300 hover:text-white'"
-                        class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all">
-                    Monthly
-                </button>
-                <button type="button" role="tab" :aria-selected="billing === 'annual'" @click="billing = 'annual'"
-                        :class="billing === 'annual' ? 'grad-bar text-white shadow-lg shadow-[#3d6bff]/30' : 'text-gray-300 hover:text-white'"
-                        class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5">
-                    Annual
-                    <span class="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-400/20 text-emerald-300 border border-emerald-400/40">Save 2 months</span>
+        <div class="reveal rd-2 flex justify-center mt-9 mb-12">
+            <div class="pr-toggle" role="tablist" aria-label="Billing cadence">
+                <button type="button" role="tab" :aria-selected="billing === 'monthly'" @click="billing = 'monthly'">Monthly</button>
+                <button type="button" role="tab" :aria-selected="billing === 'annual'" @click="billing = 'annual'">
+                    Annual <span class="pr-save">2 months free</span>
                 </button>
             </div>
         </div>
@@ -127,272 +85,160 @@
             $cheapestPaid = $cheapestPaidPlan
                 ?? $paidPlans->sortBy(fn($p) => (int) ($p['monthly']['amount_minor'] ?? PHP_INT_MAX))->first();
             $premiumHighlights = [
-                ['fa-infinity',          'Unlimited links & Link in Bio pages'],
-                ['fa-chart-line',        'Advanced analytics & A/B tests'],
-                ['fa-users',             'Team seats & roles'],
-                ['fa-globe',             'Custom domains'],
-                ['fa-robot',             'AI Coach + AI replies'],
-                ['fa-shield-halved',     'Priority support'],
+                ['fa-infinity',      'Unlimited links & Link in Bio pages'],
+                ['fa-chart-line',    'Advanced analytics & A/B tests'],
+                ['fa-users',         'Team seats & roles'],
+                ['fa-globe',         'Custom domains'],
+                ['fa-robot',         'AI Coach + AI replies'],
+                ['fa-shield-halved', 'Priority support'],
             ];
         @endphp
-        {{-- Full content width, and an UNEVEN split: Free takes two columns of
-             five, Premium takes three.
 
-             At max-w-4xl the pair sat in an 896px box inside a 1280px section,
-             so the page's widest, most important decision was also its
-             narrowest band -- and the 50/50 split gave the plan being sold
-             exactly as much room as the plan being outgrown. Five columns is
-             the smallest ratio that reads as deliberate rather than as a
-             rounding error, and it gives Premium the space its six feature
-             tiles were already cramped in.
-
-             md: only. Below that they stack and the ratio is meaningless. --}}
-        <div class="grid md:grid-cols-5 gap-6 items-start">
+        <div class="pr-pair">
             @foreach($freePlans as $i => $plan)
-                @php $featured = false; $f = $plan['features']; @endphp
-                <div class="md:col-span-2 reveal rd-{{ $i + 1 }} lift group relative rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 pr-card-surface hover:shadow-xl overflow-hidden" style="border: 1px solid rgba(255,255,255,0.08);">
-                    {{-- The two blurred colour discs that used to drift behind this
-                         card are gone with the rest of the page's ambient wash: on a
-                         band that is already a flat surface they read as smudges. --}}
-                    {{-- The three twinkling white dots went with them. Three
-                         pulsing points of light on a plain card is decoration
-                         that says nothing about the plan. --}}
+                @php $f = $plan['features']; @endphp
+                <div class="reveal rd-{{ $i + 1 }} pr-card">
+                    <div class="pr-name">{{ $plan['name'] }}</div>
 
-                    <div class="relative">
-                    <div class="text-xs font-bold uppercase tracking-wider mb-3 text-gray-400 flex items-center gap-2">
-                        <span class="inline-flex w-5 h-5 rounded-full grad-bar items-center justify-center"><i class="fas fa-gift text-[8px] text-white"></i></span>
-                        {{ $plan['name'] }}
+                    <div class="pr-price">
+                        Free<span class="per">forever</span>
                     </div>
+                    <div class="pr-price-note">No card, no trial clock, no expiry.</div>
+                    <p class="pr-blurb">Everything you need to put one link in your bio and find out what people actually do with it.</p>
 
-                    @if($plan['is_free'])
-                        <div class="mb-4 flex items-center gap-4 flex-wrap">
-                            <div class="free-pill-wrap relative inline-flex">
-                                {{-- Pulsing glow halo --}}
-                                <span class="absolute -inset-2 rounded-3xl opacity-40 blur-xl pointer-events-none" style="background: #3d6bff; animation: pulseDot 2.4s ease-in-out infinite;"></span>
-                                {{-- The actual pill --}}
-                                <span class="relative inline-flex items-center px-5 py-2 rounded-2xl text-3xl sm:text-4xl font-extrabold tracking-tight text-white" style="background: #3d6bff; letter-spacing: 0.05em;">
-                                    FREE
-                                    <i class="fas fa-sparkles ml-1.5 text-xs" style="animation: wiggle 2s ease-in-out infinite;"></i>
-                                </span>
-                            </div>
-                            <div class="leading-tight">
-                                <div class="text-[10px] uppercase tracking-wider font-bold flex items-center gap-1.5" style="color:#4ade80">
-                                    <span class="relative flex w-2 h-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span></span>
-                                    Forever
-                                </div>
-                                <div class="text-[11px] text-gray-400 mt-0.5">No card. No expiry.</div>
-                            </div>
-                        </div>
-                    @else
-                        @php
-                            // Annual = 10× monthly (i.e. 2 months free) per the
-                            // FAQ promise. Pure UI estimate; checkout still
-                            // controls the actual cadence.
-                            $monthlyMinor = (int) ($plan['monthly']['amount_minor'] ?? 0);
-                            $currencyCode = (string) ($plan['monthly']['currency'] ?? 'USD');
-                            $annualEquivMonthlyMinor = (int) round($monthlyMinor * 10 / 12);
-                            $annualTotalMinor = $monthlyMinor * 10;
-                            $annualEquivPretty = \App\Services\PricingResolver::money($annualEquivMonthlyMinor, $currencyCode);
-                            $annualTotalPretty = \App\Services\PricingResolver::money($annualTotalMinor, $currencyCode);
-                        @endphp
-                        <div class="text-[11px] uppercase tracking-wider font-semibold {{ $featured ? 'text-white/70' : 'text-gray-400' }} mb-1">Starts at</div>
-                        <div x-show="billing === 'monthly'" class="text-5xl font-bold mb-1 text-white leading-none">
-                            {{ $plan['monthly']['formatted'] }}<span class="text-lg font-medium {{ $featured ? 'text-white/60' : 'text-gray-500' }}">/mo</span>
-                        </div>
-                        <div x-show="billing === 'annual'" x-cloak class="mb-1 leading-none">
-                            <div class="text-5xl font-bold text-white flex items-baseline gap-2">
-                                {{ $annualEquivPretty }}<span class="text-lg font-medium {{ $featured ? 'text-white/60' : 'text-gray-500' }}">/mo</span>
-                            </div>
-                            <div class="mt-1.5 flex items-center gap-2 text-[11px] {{ $featured ? 'text-white/80' : 'text-gray-400' }}">
-                                <span class="line-through opacity-70">{{ $plan['monthly']['formatted'] }}/mo</span>
-                                <span class="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-400/25 text-emerald-200 border border-emerald-400/40">2 months free</span>
-                            </div>
-                            <div class="text-[11px] mt-1 {{ $featured ? 'text-white/70' : 'text-gray-500' }}">Billed yearly · {{ $annualTotalPretty }}/yr</div>
-                        </div>
-                        @if(!empty($plan['tax']))
-                            @foreach($plan['tax']['tax_breakdown'] as $line)
-                                <div class="text-[11px] {{ $featured ? 'text-white/70' : 'text-gray-500' }}">+ {{ $line['label'] }} {{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $plan['monthly']['currency']) }}</div>
-                            @endforeach
-                            <div class="text-[11px] font-semibold {{ $featured ? 'text-white' : 'text-gray-300' }} mb-1">Total {{ \App\Services\PricingResolver::money((int) $plan['tax']['grand_total_minor'], $plan['monthly']['currency']) }}/mo</div>
-                            @if(!empty($plan['tax']['reverse_charge_note']))
-                                <div class="text-[10px] italic {{ $featured ? 'text-white/60' : 'text-gray-500' }} mb-1">{{ $plan['tax']['reverse_charge_note'] }}</div>
-                            @endif
-                        @else
-                            <div class="text-[11px] {{ $featured ? 'text-white/60' : 'text-gray-500' }} mb-1">+ taxes as applicable (shown at checkout)</div>
-                        @endif
-                    @endif
-                    @if(!$plan['is_free'] && !empty($plan['description']))
-                        <div class="text-sm mb-5 text-gray-400">{{ $plan['description'] }}</div>
-                    @endif
-
-                    {{-- Feature blocks (richer than plain bullets) --}}
-                    <div class="space-y-2 mb-5">
-                        @foreach(['max_links' => ['fa-link', 'links'], 'max_biolinks' => ['fa-id-card', 'Link in Bio pages'], 'storage_limit_mb' => ['fa-database', 'MB storage'], 'contacts_max' => ['fa-address-book', 'contacts']] as $key => $meta)
+                    {{-- The four numbers that are the free plan: what you get,
+                         from the plan record rather than from a list here, so
+                         an admin raising a limit changes this card too. --}}
+                    <div class="pr-cells">
+                        @foreach([
+                            'max_links'        => ['fa-link', 'links'],
+                            'max_biolinks'     => ['fa-id-card', 'Link in Bio pages'],
+                            'storage_limit_mb' => ['fa-database', 'MB storage'],
+                            'contacts_max'     => ['fa-address-book', 'contacts'],
+                        ] as $key => $meta)
                             @if(isset($f[$key]))
-                                <div class="free-row flex items-center gap-3 p-2.5 rounded-xl bg-white/[.04] border border-white/5 hover:border-white/15 hover:bg-white/[.06] transition group/row">
-                                    <span class="w-9 h-9 rounded-lg flex items-center justify-center grad-bar shrink-0 group-hover/row:scale-110 transition" style="box-shadow: 0 8px 20px -8px rgba(61,107,255,.6);">
-                                        <i class="fas {{ $meta[0] }} text-white text-[12px]"></i>
-                                    </span>
-                                    <div class="min-w-0 flex-1">
-                                        <div class="text-sm font-bold text-white leading-tight">{{ (int) $f[$key] === -1 ? 'Unlimited' : number_format((int) $f[$key]) }} {{ $meta[1] }}</div>
-                                        <div class="text-[10px] text-gray-500 uppercase tracking-wider">Included on Free</div>
-                                    </div>
-                                    <i class="fas fa-check text-xs" style="color:var(--c1)"></i>
+                                @php
+                                    $__n = (int) $f[$key];
+                                    // "1 Link in Bio pages" is the kind of thing
+                                    // a reader trusts a little less afterwards.
+                                    $__label = ($__n === 1 && str_ends_with($meta[1], 's') && ! str_ends_with($meta[1], 'ss'))
+                                        ? substr($meta[1], 0, -1)
+                                        : $meta[1];
+                                @endphp
+                                <div class="pr-cell">
+                                    <i class="fas {{ $meta[0] }}" aria-hidden="true"></i>
+                                    <span><b>{{ $__n === -1 ? 'Unlimited' : number_format($__n) }}</b> {{ $__n === -1 ? $meta[1] : $__label }}</span>
                                 </div>
                             @endif
                         @endforeach
+                        <div class="pr-cell">
+                            <i class="fas fa-chart-simple" aria-hidden="true"></i>
+                            <span>Click and scan analytics</span>
+                            <span class="pr-cell-note">Included</span>
+                        </div>
+                        <div class="pr-cell">
+                            <i class="fas fa-qrcode" aria-hidden="true"></i>
+                            <span>Dynamic QR codes</span>
+                            <span class="pr-cell-note">Included</span>
+                        </div>
                     </div>
 
-                    {{-- 0% reassurance strip --}}
-                    <div class="grid grid-cols-3 gap-2 mb-6 px-3 py-3 rounded-xl bg-emerald-500/[.06] border border-emerald-500/15">
-                        @foreach([['0%', 'Card'], ['0%', 'Trial'], ['100%', 'Yours']] as $z)
-                            <div class="text-center">
-                                <div class="text-base font-extrabold text-emerald-300 leading-none">{{ $z[0] }}</div>
-                                <div class="text-[9px] uppercase tracking-wider text-emerald-200/70 mt-0.5">{{ $z[1] }}</div>
-                            </div>
-                        @endforeach
+                    <div class="pr-foot">
+                        @guest
+                            <button type="button" @click="trackMarketingEvent('plan_free'); $dispatch('open-auth', { tab: 'register' })" class="pr-cta">
+                                Get started free <i class="fas fa-arrow-right text-xs"></i>
+                            </button>
+                        @else
+                            {{-- Signed in: skip the signup modal, go to the dashboard. --}}
+                            <a href="{{ route('user.dashboard') }}" class="pr-cta">
+                                Go to your dashboard <i class="fas fa-arrow-right text-xs"></i>
+                            </a>
+                        @endguest
+                        <div class="pr-note">Free forever · nothing to cancel</div>
                     </div>
-
-                    @guest
-                        <button type="button" @click="trackMarketingEvent('plan_free'); $dispatch('open-auth', { tab: 'register' })" class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold transition-transform group-hover:scale-[1.02] btn-cta">
-                            Get started free <i class="fas fa-arrow-right text-xs ml-1"></i>
-                        </button>
-                    @else
-                        {{-- Signed in: skip the signup modal, go to the dashboard. --}}
-                        <a href="{{ route('user.dashboard') }}" class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold transition-transform group-hover:scale-[1.02] btn-cta">
-                            Go to your dashboard <i class="fas fa-arrow-right text-xs ml-1"></i>
-                        </a>
-                    @endguest
-                    </div>{{-- /.relative --}}
                 </div>
             @endforeach
 
-            {{-- Premium promo card. Outer wrapper isolates the badge so the inner
-                 link can use overflow-hidden for blob effects without clipping it. --}}
-            {{-- The scale-up went with the column split. Scaling a card is how
-                 you fake prominence when you cannot give it more room; now it
-                 has more room, and 1.03 only blurred its text and pushed its
-                 edges a few pixels past the grid. --}}
-            <div class="md:col-span-3 relative reveal rd-2">
-                {{-- Floating badge --}}
-                <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-                    <div class="px-4 py-1.5 bg-white text-[#3d6bff] text-[11px] font-extrabold rounded-full uppercase tracking-wider shadow-lg flex items-center gap-1.5" style="box-shadow: 0 8px 24px -8px rgba(61,107,255,.6), 0 0 0 4px rgba(255,255,255,.08);">
-                        <i class="fas fa-crown text-[10px]" style="animation: wiggle 2.4s ease-in-out infinite; transform-origin: 50% 80%;"></i>
-                        Premium
+            {{-- The premium card. Dark in both themes -- that pairing is the
+                 whole point of the layout, and `card-lit` is the page's
+                 existing class for a surface that does not turn white when the
+                 page does. --}}
+            <div class="reveal rd-2 pr-card pr-card--dark card-lit">
+                <span class="pr-flag">Most popular</span>
+
+                <div class="pr-name">Premium</div>
+
+                @if($cheapestPaid)
+                    @php
+                        // Annual = 10x monthly (i.e. 2 months free) per the FAQ
+                        // promise. Pure UI estimate; checkout still controls
+                        // the actual cadence.
+                        $monthlyMinor  = (int) ($cheapestPaid['monthly']['amount_minor'] ?? 0);
+                        $currencyCode  = (string) ($cheapestPaid['monthly']['currency'] ?? 'USD');
+                        $annualEquiv   = \App\Services\PricingResolver::money((int) round($monthlyMinor * 10 / 12), $currencyCode);
+                        $annualTotal   = \App\Services\PricingResolver::money($monthlyMinor * 10, $currencyCode);
+                    @endphp
+                    <div class="pr-price" x-data='{ cheapest: @json($cheapestPaid['prices'] ?? []) }'>
+                        <span x-show="billing === 'monthly'"
+                              x-text="(cheapest[currency] && cheapest[currency].monthly && cheapest[currency].monthly.formatted) || '{{ $cheapestPaid['monthly']['formatted'] }}'">{{ $cheapestPaid['monthly']['formatted'] }}</span>
+                        <span x-show="billing === 'annual'" x-cloak>{{ $annualEquiv }}</span>
+                        <span class="per">/mo, from</span>
                     </div>
+                    <div class="pr-price-note" x-show="billing === 'monthly'">
+                        + taxes as applicable, shown at checkout.
+                    </div>
+                    <div class="pr-price-note" x-show="billing === 'annual'" x-cloak>
+                        <span class="was">{{ $cheapestPaid['monthly']['formatted'] }}/mo</span>
+                        billed yearly at {{ $annualTotal }}.
+                    </div>
+                @else
+                    <div class="pr-price">Premium<span class="per">plans</span></div>
+                @endif
+
+                <p class="pr-blurb">Everything in Free, plus the tools you grow into. Six plans on the next page; this is where they start.</p>
+
+                <div class="pr-cells">
+                    @foreach($premiumHighlights as $h)
+                        <div class="pr-cell">
+                            <i class="fas {{ $h[0] }}" aria-hidden="true"></i>
+                            <span>{{ $h[1] }}</span>
+                        </div>
+                    @endforeach
                 </div>
 
-                <a href="{{ route('site.pricing') }}"
-                   @click="trackMarketingEvent('plan_paid')"
-                   {{-- A lit gradient rather than a flat fill, and a ring that
-                        reads as light coming off the card rather than as a
-                        border drawn on it. Flat #3d6bff at this size was a
-                        large blue rectangle: nothing about it said "this is
-                        the one", it was just bigger. --}}
-                   class="lift group relative block rounded-3xl p-8 pt-9 text-white transition-all duration-300 hover:-translate-y-1 overflow-hidden card-lit"
-                   style="background: linear-gradient(152deg, #4E79FF 0%, #3d6bff 42%, #2C49D8 100%);">
-                    {{-- The two drifting white blurs, the diagonal shimmer
-                         sweep and the three twinkling sparkles are gone.
-
-                         They are the same three devices already taken off the
-                         rest of the page: ambient blur reads as haze rather
-                         than shape, and a white band travelling across the one
-                         bright object on a near-black page looks like a
-                         rendering fault rather than an effect -- which is
-                         exactly why the identical sweep came off the resume
-                         sheet. This card is the single most important surface
-                         in the section, and it was the one still doing all
-                         three.
-
-                         Nothing replaces them. The corner ribbon the feature
-                         cards now carry is how a card on a PLAIN ground says
-                         "this is the one" -- this card already is a saturated
-                         gradient, so a second gradient over the top of it read
-                         as a stain rather than an accent, which is what the
-                         first attempt looked like. The card was always being
-                         carried by its own colour. --}}
-
-                    <div class="relative">
-                        <div class="text-xs font-bold uppercase tracking-wider text-white/80 mb-3">Premium features</div>
-                        <h3 class="text-2xl sm:text-3xl font-extrabold leading-tight mb-2">
-                            Built for serious <span class="relative inline-block">creators &amp; teams.<span class="absolute left-0 right-0 -bottom-1 h-[3px] rounded-full bg-white/40"></span></span>
-                        </h3>
-                        <p class="text-sm text-white/80 mb-6">Everything in Free, plus the tools you grow into.</p>
-
-                        {{-- Each feature is its own animated block --}}
-                        <div class="grid grid-cols-2 gap-2 mb-6">
-                            @foreach($premiumHighlights as $hi => $h)
-                                <div class="prem-feat relative rounded-xl p-3 bg-white/[.12] backdrop-blur-sm border border-white/15 hover:bg-white/[.22] hover:-translate-y-0.5 transition-all duration-200" style="animation-delay: {{ $hi * 90 }}ms">
-                                    <span class="absolute top-1.5 right-2 text-[8px] font-bold text-white/45 tracking-wider">0{{ $hi + 1 }}</span>
-                                    <div class="flex items-start gap-2">
-                                        <span class="prem-feat-ico w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0 transition">
-                                            <i class="fas {{ $h[0] }} text-[13px]"></i>
-                                        </span>
-                                        <span class="text-[12px] font-semibold leading-snug pt-1">{{ $h[1] }}</span>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-
-                        @if($cheapestPaid)
-                            <div class="flex items-center justify-between gap-3 mb-5 p-3 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20"
-                                 x-data='{ cheapest: @json($cheapestPaid['prices'] ?? []) }'>
-                                <div class="leading-tight">
-                                    <div class="text-[10px] uppercase tracking-wider font-bold text-white/70">Plans starting from</div>
-                                    <div class="flex items-baseline gap-1">
-                                        <span class="text-2xl font-extrabold"
-                                              x-text="(cheapest[currency] && cheapest[currency].monthly && cheapest[currency].monthly.formatted) || '{{ $cheapestPaid['monthly']['formatted'] }}'">{{ $cheapestPaid['monthly']['formatted'] }}</span>
-                                        <span class="text-xs text-white/70">/mo</span>
-                                    </div>
-                                </div>
-                                <span class="text-[10px] px-2 py-1 rounded-full bg-emerald-300/30 text-emerald-50 font-bold uppercase tracking-wider whitespace-nowrap">Cancel anytime</span>
-                            </div>
-                        @endif
-
-                        {{-- card-lit-cta marks the one element inside the card that
-                             has its own (white) ground, so the light-mode rule
-                             that forces the rest of the card's text white does
-                             not turn this into white-on-white. --}}
-                        <span class="card-lit-cta btn-bounce inline-flex items-center justify-center gap-2 w-full py-3.5 text-center rounded-full text-sm font-bold bg-white text-[#3d6bff] hover:bg-gray-100 transition-transform group-hover:scale-[1.02]">
-                            Explore premium plans <i class="fas fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
-                        </span>
-                    </div>
-                </a>
+                <div class="pr-foot">
+                    {{-- The card is dark and its text is forced white in light
+                         mode; this button has a white ground of its own, so it
+                         has to be excluded from that or it is white on white.
+                         `surface-lit-keep` is the exclusion, and .pr-cta below
+                         then sets the navy that matches the card rather than
+                         the brand blue the older `card-lit-cta` escape forces. --}}
+                    <a href="{{ route('site.pricing') }}" @click="trackMarketingEvent('plan_paid')" class="surface-lit-keep pr-cta">
+                        Explore premium plans <i class="fas fa-arrow-right text-xs"></i>
+                    </a>
+                    <div class="pr-note">Cancel any time · keep everything you made</div>
+                </div>
             </div>
         </div>
 
-        {{-- Pricing trust strip — sits directly under the cards as a slim reassurance row --}}
-        <div class="reveal mt-8 max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs sm:text-sm text-gray-300">
-            @foreach([
-                ['fa-shield-halved', 'Cancel any time'],
-                ['fa-receipt', 'Tax-inclusive invoices'],
-            ] as $t)
-                <span class="inline-flex items-center gap-2"><i class="fas {{ $t[0] }} text-[11px]" style="color:var(--c1)"></i>{{ $t[1] }}</span>
-            @endforeach
+        {{-- The way out of this section is /pricing, and the two side errands
+             ride alongside it rather than under it in their own grey row. --}}
+        <div class="reveal pr-anchors">
+            <a href="{{ route('site.pricing') }}" @click="trackMarketingEvent('pricing')">
+                <i class="fas fa-tags" aria-hidden="true"></i> Compare every plan
+            </a>
+            <a href="{{ route('site.pricing', ['view' => 'coins']) }}" @click="trackMarketingEvent('coins')">
+                <i class="fas fa-coins" aria-hidden="true"></i> Coin packages
+            </a>
+            <a href="{{ route('site.pricing') }}#custom-plan-request">
+                <i class="fas fa-gem" aria-hidden="true"></i> Need a custom plan?
+            </a>
         </div>
 
-        {{-- The way out of this section is to /pricing, and it used to be one
-             of three same-weight grey links in a row prefixed "More pricing
-             details:" -- a footnote, not a way onward. The full grid, the
-             coin packages and the annual maths all live on that page; this
-             section only ever shows two cards. So the main link is a button
-             and the two side errands stay quiet beneath it. --}}
-        <div class="reveal mt-8 text-center">
-            <a href="{{ route('site.pricing') }}" @click="trackMarketingEvent('pricing')" class="cmp-cta">
-                <i class="fas fa-tags"></i>
-                See every plan and what is in it
-                <i class="fas fa-arrow-right text-xs"></i>
-            </a>
-        </div>
-        <div class="reveal mt-4 max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-gray-400">
-            <a href="{{ route('site.pricing', ['view' => 'coins']) }}" @click="trackMarketingEvent('coins')" class="inline-flex items-center gap-1.5 text-blue-300 hover:text-blue-200 font-semibold transition">
-                <i class="fas fa-coins text-[11px] text-amber-400"></i> Coin packages
-            </a>
-            <span class="text-gray-700">·</span>
-            <a href="{{ route('site.pricing') }}#custom-plan-request" class="inline-flex items-center gap-1.5 text-blue-300 hover:text-blue-200 font-semibold transition">
-                <i class="fas fa-gem text-[11px]"></i> Need a custom plan?
-            </a>
+        <div class="reveal pr-trust">
+            <span><i class="fas fa-shield-halved" aria-hidden="true"></i> Cancel any time</span>
+            <span><i class="fas fa-receipt" aria-hidden="true"></i> Tax-inclusive invoices</span>
+            <span><i class="fas fa-arrow-right-arrow-left" aria-hidden="true"></i> Export your data whenever</span>
         </div>
     </div>
 </section>
-

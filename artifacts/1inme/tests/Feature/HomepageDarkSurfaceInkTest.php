@@ -447,11 +447,18 @@ class HomepageDarkSurfaceInkTest extends TestCase
     {
         $home = (string) file_get_contents(resource_path('views/home.blade.php'));
 
-        $this->assertMatchesRegularExpression(
-            '/:not\(\s*\.surface-lit-keep\s*,\s*\.surface-lit-keep\s+\*\s*\)/',
-            $home,
-            'surface-lit-keep must exclude the subtree from the ink rule, including its descendants'
-        );
+        // Both escapes have to be in the :not(), each with its descendants.
+        // `.card-lit-cta` is there because adding `.surface-lit-keep *` raised
+        // the ink rule by one class, past the rule that colours the CTA, and
+        // the pricing card's button went white-on-white -- fixing one card's
+        // ink broke another card's escape.
+        foreach (['surface-lit-keep', 'card-lit-cta'] as $escape) {
+            $this->assertMatchesRegularExpression(
+                '/:not\([^)]*\.' . preg_quote($escape, '/') . '\s*,[^)]*\.' . preg_quote($escape, '/') . '\s+\*/s',
+                $home,
+                "{$escape} must be excluded from the ink rule together with its descendants"
+            );
+        }
 
         $this->assertDoesNotMatchRegularExpression(
             '/\.surface-lit-keep[^{]*\{\s*color:\s*inherit\s*!important/s',

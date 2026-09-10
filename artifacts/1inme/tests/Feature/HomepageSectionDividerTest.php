@@ -330,18 +330,91 @@ class HomepageSectionDividerTest extends TestCase
     }
 
     /**
-     * The separator belongs to the boundary, not the band. Where a grounded
-     * band is followed by one on the page ground, the change of colour has
-     * already marked that edge and the hairline under it is a second
-     * separator for the same join.
+     * A `.sec-ground + .sec-rule::before { display: none }` rule looks right
+     * and does not work here: half the bands live in partials that emit a
+     * <style> immediately before their <section>, so the sections are not
+     * adjacent siblings and the selector matches at three boundaries out of
+     * six. A rule that fires at half the places it names is worse than no rule
+     * -- the page ends up with two treatments and no way to tell which a given
+     * boundary got.
+     *
+     * Photographed at four boundaries, the hairline lands on the colour step
+     * and crisps it, so every band keeps its rule. This guards the decision
+     * rather than the rule: if adjacency suppression comes back, it needs to
+     * come back working.
      */
-    public function test_a_ground_suppresses_the_hairline_directly_below_it(): void
+    public function test_no_half_working_adjacency_suppression(): void
     {
-        $this->assertMatchesRegularExpression(
-            '/\.sec-ground\s*\+\s*\.sec-rule::before/',
-            (string) file_get_contents(resource_path('views/home.blade.php')),
-            'nothing stops a grounded band and the hairline below it from double-marking one boundary'
+        // Comments stripped first: the note explaining why this rule is gone
+        // quotes the rule, and a guard that trips on its own explanation is
+        // not a guard.
+        $css = preg_replace(
+            '#/\*.*?\*/#s',
+            '',
+            (string) file_get_contents(resource_path('views/home.blade.php'))
         );
+
+        $this->assertDoesNotMatchRegularExpression(
+            '/\.sec-ground\s*\+\s*\.sec-rule::before[^{]*\{[^}]*display\s*:\s*none/s',
+            (string) $css,
+            'sibling adjacency does not hold between these sections: the <style> blocks their partials '
+            . 'emit sit between them, so this rule silently applies to some boundaries and not others'
+        );
+    }
+
+    /**
+     * Every band the default fragment declares actually arrives.
+     *
+     * Marking bands is worth nothing if a band stops rendering, and one did,
+     * silently, in the middle of this work: a Blade comment that named a raw
+     * PHP directive opened a real block and swallowed #pricing, #faq and the
+     * blog band. The template still compiled, /home/sections still returned
+     * 200 at 798KB, nothing was logged, and every test in this file passed --
+     * they read the Blade source, where the sections were still sitting.
+     *
+     * BladeCommentsDoNotHideDirectivesTest guards that particular cause. This
+     * guards the symptom, whatever causes it next.
+     */
+    public function test_every_band_the_default_fragment_declares_actually_renders(): void
+    {
+        $source = (string) file_get_contents(resource_path('views/home/deferred-sections.blade.php'));
+
+        preg_match_all('/<section\b[^>]*\bid="([a-z][\w-]*)"/i', $source, $m, PREG_OFFSET_CAPTURE);
+
+        // Only the bands that render unconditionally. #proof is gated on there
+        // being an approved testimonial and #blog-featured on there being a
+        // featured post, so neither can be required of an arbitrary database.
+        $declared = [];
+
+        foreach ($m[1] as [$id, $offset]) {
+            $before = substr($source, 0, $offset);
+            $depth = preg_match_all('/@if\b/', $before) - preg_match_all('/@endif\b/', $before);
+
+            if ($depth === 0) {
+                $declared[$id] = true;
+            }
+        }
+
+        $declared = array_keys($declared);
+
+        $this->assertNotEmpty($declared, 'no unconditional ids found in the default fragment; the scan is broken');
+        $this->assertContains('buzz', $declared, 'the scan is not finding bands it should');
+
+        $html = $this->get('/home/sections')->assertOk()->getContent();
+
+        $missing = array_values(array_filter(
+            $declared,
+            fn ($id) => ! str_contains($html, 'id="' . $id . '"')
+        ));
+
+        $this->assertSame([], $missing, sprintf(
+            "These bands are in home/deferred-sections.blade.php and are NOT in the rendered\n"
+            . "fragment. A band can vanish without an error: Blade extracts raw PHP blocks\n"
+            . "before it strips comments, so a comment mentioning one swallows everything to\n"
+            . "the next closing directive, and the template still compiles.\n\n%d missing:\n  %s",
+            count($missing),
+            implode("\n  ", $missing)
+        ));
     }
 
     /**

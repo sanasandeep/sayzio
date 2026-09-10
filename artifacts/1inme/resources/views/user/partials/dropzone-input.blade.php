@@ -9,8 +9,12 @@
     Vault picks are fetched as Blobs and injected into the underlying input
     via DataTransfer so existing controllers keep working unchanged.
 
-    Usage (preferred: pass a plan-driven policy array):
-        @php $policy = \App\Services\UploadPolicy::for('vcf.photo', auth()->user()); @endphp
+    Usage (preferred: pass a plan-driven policy array). The first line is a
+    PHP block -- written here without its directive, because Blade pulls raw
+    PHP blocks out BEFORE it strips comments, so this example was really
+    running UploadPolicy::for() on every render of this partial:
+
+        [php] $policy = \App\Services\UploadPolicy::for('vcf.photo', auth()->user()); [endphp]
         @include('user.partials.dropzone-input', [
             'name'        => 'photo',
             'policy'      => $policy,

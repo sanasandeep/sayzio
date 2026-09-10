@@ -2132,13 +2132,21 @@
      rather than baked into the partial: the divider is a homepage rule and
      the styling for it only exists there. --}}
 @include('public.partials._compare', ['teaser' => true, 'eyebrowOverride' => 'How we compare', 'sectionClass' => 'sec-rule'])
-{{-- The 4-tool inline comparison this band used to render lived here as a
-     commented-out @php array plus a 125-line @if(false) block, dead since the
-     shared partial above replaced it. It is deleted rather than kept: the
-     opt-out list in HomepageSectionDividerTest still carried an entry for its
-     id, `compare-legacy`, long after the id stopped rendering, and an entry
-     that matches nothing is the same kind of quiet wrong this batch is about.
-     git log has it if the arrays are ever wanted back. --}}
+{{-- The 4-tool inline comparison this band used to render lived here: a
+     commented-out PHP array plus a 125-line always-false block, dead since
+     the shared partial above replaced it. It is deleted rather than kept.
+     The opt-out list in HomepageSectionDividerTest still carried an entry
+     for its id, `compare-legacy`, long after the id stopped rendering, and
+     an entry that matches nothing is the same kind of quiet wrong this
+     batch is about. git log has it if the arrays are ever wanted back.
+
+     Written without naming the Blade directives it describes, deliberately.
+     Blade extracts raw PHP blocks BEFORE it strips comments, so a literal
+     at-php inside a comment opens a raw block that swallows everything up to
+     the next at-endphp -- which was the FAQ's, 15 lines further down. This
+     band and the two after it silently stopped rendering, the file still
+     compiled to valid PHP, and BladeViewsCompileTest stayed green.
+     BladeCommentsDoNotHideDirectivesTest is the guard. --}}
 
 @include('home.partials.pricing')
 {{-- ==================== ZONE · ANSWERS, TRUST & FINAL CTA ==================== --}}

@@ -356,9 +356,22 @@
         .sec-ground { position: relative; }
         :where(.sec-ground) { background-color: var(--sec-ground, #0E1017); }
         :where(html.light-mode) :where(.sec-ground) { --sec-ground: #F5F6FA; }
-        /* The colour change is the separator; a hairline on top of it is not. */
-        .sec-ground + .sec-rule::before,
-        .sec-ground + .sec-ground::before { display: none; }
+        /* A hairline at a ground boundary was going to be suppressed -- the
+           colour change already marks that join -- and `.sec-ground +
+           .sec-rule::before { display: none }` is how. It does not survive
+           contact with the page: half the bands live in partials that emit a
+           <style> block immediately before their <section>, so the two
+           sections are not adjacent siblings and `+` never matches. It fired
+           at three boundaries out of six.
+
+           Inconsistent is worse than either option, and the ruled version is
+           the better of the two anyway: photographed at four boundaries, the
+           hairline lands exactly on the colour step and crisps it, where the
+           unruled ones read as a soft smear. It is also what #pricing had
+           already chosen for itself with `border-block`.
+
+           So every band keeps its rule, grounded neighbours included, and the
+           suppression is gone rather than left in place firing at random. */
 
         /* ─── .card-lit: a card that stays blue in BOTH modes ───
            The page has more than one of these -- the Premium plan and the
@@ -437,14 +450,22 @@
            a dark ground while the page turns white. `.card-lit` is now that
            plus the blue gradient. */
         html.light-mode :is(.card-lit, .surface-lit),
-        html.light-mode :is(.card-lit, .surface-lit) :is(h1,h2,h3,h4,p,span,div,b,strong,li,a,td,th,label,small,time):not(.surface-lit-keep, .surface-lit-keep *) {
+        html.light-mode :is(.card-lit, .surface-lit) :is(h1,h2,h3,h4,p,span,div,b,strong,li,a,td,th,label,small,time):not(.surface-lit-keep, .surface-lit-keep *, .card-lit-cta, .card-lit-cta *) {
             color: #fff !important;
         }
         /* Restore the deliberately-tinted text: these already set their own
            colour against their own background and must keep it. All
            !important, because the rule above is -- so the CTA went
            white-on-white the moment that landed. An !important above forces
-           !important on everything that has to escape it. */
+           !important on everything that has to escape it.
+
+           `.card-lit-cta` is also named in the :not() above, and has to be:
+           adding `.surface-lit-keep *` to that :not() raised the ink rule by
+           one class, past this one, and the pricing card's CTA went
+           white-on-white again -- the exact failure this rule was written for,
+           reintroduced by the fix for a different card. Excluding it up there
+           is what actually keeps it out; this rule only says what colour it
+           takes instead. */
         html.light-mode .card-lit .card-lit-cta,
         html.light-mode .card-lit .card-lit-cta :is(span,i,div) { color: #3d6bff !important; }
         /* Muted whites stay muted rather than snapping to full strength, and
