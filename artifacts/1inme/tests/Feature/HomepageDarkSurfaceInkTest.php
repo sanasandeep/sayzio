@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\AssertsAgainstLargeSubjects;
 use Tests\TestCase;
 
 /**
@@ -37,6 +38,7 @@ use Tests\TestCase;
 class HomepageDarkSurfaceInkTest extends TestCase
 {
     use RefreshDatabase;
+    use AssertsAgainstLargeSubjects;
 
     /** Anything at or below this relative luminance is "dark" for our purposes. */
     private const DARK = 0.12;
@@ -419,7 +421,7 @@ class HomepageDarkSurfaceInkTest extends TestCase
     {
         $home = (string) file_get_contents(resource_path('views/home.blade.php'));
 
-        $this->assertMatchesRegularExpression(
+        $this->assertPatternFound(
             '/html\.light-mode\s*:is\([^)]*\.card-lit[^)]*\.surface-lit[^)]*\)[^{]*\{[^}]*color:\s*#fff\s*!important/s',
             $home,
             'the ink rule must serve both .card-lit and .surface-lit from one place; two copies is two places to forget'
@@ -428,7 +430,7 @@ class HomepageDarkSurfaceInkTest extends TestCase
         // The utilities marketing-anim.css rewrites to near-black, which are
         // therefore the ones that need answering inside a dark surface.
         foreach (['text-white', 'text-gray-300', 'text-gray-400', 'text-slate-300', 'text-slate-400'] as $utility) {
-            $this->assertMatchesRegularExpression(
+            $this->assertPatternFound(
                 '/html\.light-mode[^{]*\.surface-lit[^{]*' . preg_quote($utility, '/') . '(?![\w-])/s',
                 $home,
                 "surface-lit says nothing about .{$utility}, which the light-mode sheet rewrites to near-black"
@@ -453,14 +455,14 @@ class HomepageDarkSurfaceInkTest extends TestCase
         // the pricing card's button went white-on-white -- fixing one card's
         // ink broke another card's escape.
         foreach (['surface-lit-keep', 'card-lit-cta'] as $escape) {
-            $this->assertMatchesRegularExpression(
+            $this->assertPatternFound(
                 '/:not\([^)]*\.' . preg_quote($escape, '/') . '\s*,[^)]*\.' . preg_quote($escape, '/') . '\s+\*/s',
                 $home,
                 "{$escape} must be excluded from the ink rule together with its descendants"
             );
         }
 
-        $this->assertDoesNotMatchRegularExpression(
+        $this->assertPatternAbsent(
             '/\.surface-lit-keep[^{]*\{\s*color:\s*inherit\s*!important/s',
             $home,
             'inherit !important under a landed !important inherits the white it was meant to escape'
@@ -484,7 +486,7 @@ class HomepageDarkSurfaceInkTest extends TestCase
             'dc-phone' => 'the dialer channel labels',
             'aisx-screen' => 'the AI Suite screen',
         ] as $class => $what) {
-            $this->assertMatchesRegularExpression(
+            $this->assertPatternFound(
                 '/class="[^"]*(?:' . $class . '[^"]*surface-lit|surface-lit[^"]*' . $class . ')[^"]*"/',
                 $html,
                 "{$what} lost surface-lit; its text goes near-black on near-black in light mode"
@@ -493,7 +495,7 @@ class HomepageDarkSurfaceInkTest extends TestCase
 
         // And the one that must NOT have it: adding it turned the label on its
         // white "Templates" pill white-on-white.
-        $this->assertDoesNotMatchRegularExpression(
+        $this->assertPatternAbsent(
             '/class="bb-phone surface-lit"/',
             $html,
             'the biolink phone handles light mode itself; surface-lit blanks the labels on its white pills'

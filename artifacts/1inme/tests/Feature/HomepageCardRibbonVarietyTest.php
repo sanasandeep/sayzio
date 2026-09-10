@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\AssertsAgainstLargeSubjects;
 use Tests\TestCase;
 
 /**
@@ -17,6 +18,7 @@ use Tests\TestCase;
 class HomepageCardRibbonVarietyTest extends TestCase
 {
     use RefreshDatabase;
+    use AssertsAgainstLargeSubjects;
 
     private function partial(): string
     {
@@ -114,7 +116,7 @@ class HomepageCardRibbonVarietyTest extends TestCase
         foreach ($names[1] as $shape) {
             $isDefault = $shape === 'wedge';
 
-            $this->assertMatchesRegularExpression(
+            $this->assertPatternFound(
                 $isDefault ? '/@default/' : '/@case\(\s*[\'"]' . preg_quote($shape, '/') . '[\'"]\s*\)/',
                 $partial,
                 "'{$shape}' is accepted but has no branch, so it silently renders the default shape"
@@ -127,7 +129,7 @@ class HomepageCardRibbonVarietyTest extends TestCase
         $this->assertNotEmpty($p, 'the palette table is gone');
 
         foreach (array_column($this->placements(), 'variant') as $variant) {
-            $this->assertMatchesRegularExpression(
+            $this->assertPatternFound(
                 '/[\'"]' . preg_quote($variant, '/') . '[\'"]\s*=>\s*\[[^\]]*#[0-9a-f]{6}/i',
                 $p[1],
                 "'{$variant}' is asked for at a call site but is not in the palette table, so it falls back to indigo"
@@ -142,7 +144,7 @@ class HomepageCardRibbonVarietyTest extends TestCase
      */
     public function test_each_instance_gets_a_unique_gradient_id(): void
     {
-        $this->assertMatchesRegularExpression(
+        $this->assertPatternFound(
             '/\$crUid\s*=.*uniqid/s',
             $this->partial(),
             'the gradient id is not per-instance'
@@ -173,14 +175,14 @@ class HomepageCardRibbonVarietyTest extends TestCase
         $this->assertNotEmpty($m, '.card-ribbon-host has no rule');
 
         foreach (['position', 'overflow', 'isolation'] as $property) {
-            $this->assertStringContainsString(
+            $this->assertSubjectContains(
                 $property,
                 $m[1],
                 "the host must state {$property}; half these cards do not carry it already"
             );
         }
 
-        $this->assertMatchesRegularExpression(
+        $this->assertPatternFound(
             '/z-index:\s*-1/',
             $this->partial(),
             'at z-index 0 the ribbon paints above the card copy'
@@ -193,7 +195,7 @@ class HomepageCardRibbonVarietyTest extends TestCase
         $html = $this->get('/home/sections')->assertOk()->getContent();
 
         foreach (array_column($this->placements(), 'shape') as $shape) {
-            $this->assertStringContainsString(
+            $this->assertSubjectContains(
                 'card-ribbon--' . $shape,
                 $html,
                 "the {$shape} ribbon is not in the rendered page"

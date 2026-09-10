@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\AssertsAgainstLargeSubjects;
 use Tests\TestCase;
 
 /**
@@ -23,6 +24,7 @@ use Tests\TestCase;
 class HomepagePricingBandTest extends TestCase
 {
     use RefreshDatabase;
+    use AssertsAgainstLargeSubjects;
 
     private function band(): string
     {
@@ -40,9 +42,9 @@ class HomepagePricingBandTest extends TestCase
     {
         $band = $this->band();
 
-        $this->assertStringContainsString('pr-card--dark', $band, 'no premium card');
-        $this->assertStringContainsString('pr-cells', $band, 'no value cells');
-        $this->assertStringContainsString('Most popular', $band);
+        $this->assertSubjectContains('pr-card--dark', $band, 'no premium card');
+        $this->assertSubjectContains('pr-cells', $band, 'no value cells');
+        $this->assertSubjectContains('Most popular', $band);
     }
 
     /**
@@ -59,14 +61,14 @@ class HomepagePricingBandTest extends TestCase
 
         $this->assertNotEmpty($m, '.pr-card--dark has no rule');
 
-        $this->assertDoesNotMatchRegularExpression(
+        $this->assertPatternAbsent(
             '/background[^;]*#3d6bff/i',
             $m[1],
             'the premium card is filled with the brand blue again'
         );
 
         // A navy: dark enough to be the dark half of a light/dark pair.
-        $this->assertMatchesRegularExpression(
+        $this->assertPatternFound(
             '/--pr-card:\s*#0[0-9a-f]{5}/i',
             $m[1],
             'the premium card needs a dark fill or the pair is two light cards'
@@ -78,12 +80,12 @@ class HomepagePricingBandTest extends TestCase
     {
         $css = (string) file_get_contents(resource_path('views/home/partials/pricing-style.blade.php'));
 
-        $this->assertMatchesRegularExpression(
+        $this->assertPatternFound(
             '/\.pr-band::before\s*\{[^}]*radial-gradient/s',
             $css,
             'the band has no wash of its own'
         );
-        $this->assertMatchesRegularExpression(
+        $this->assertPatternFound(
             '/\.pr-band::after\s*\{[^}]*background-image[^;]*gradient/s',
             $css,
             'the dotted verticals are gone'
@@ -93,7 +95,7 @@ class HomepagePricingBandTest extends TestCase
         // slice fills the whole tile height. Only a shape smaller than its
         // tile actually dots.
         preg_match('/\.pr-band::after\s*\{(.*?)\}/s', $css, $m);
-        $this->assertStringContainsString(
+        $this->assertSubjectContains(
             'radial-gradient',
             $m[1] ?? '',
             'a linear-gradient tiled this way draws solid verticals, not dotted ones'
@@ -109,11 +111,11 @@ class HomepagePricingBandTest extends TestCase
         $view = (string) file_get_contents(resource_path('views/home/partials/pricing.blade.php'));
 
         foreach (['max_links', 'max_biolinks', 'storage_limit_mb', 'contacts_max'] as $key) {
-            $this->assertStringContainsString($key, $view, "the free card stopped reading {$key} from the plan");
+            $this->assertSubjectContains($key, $view, "the free card stopped reading {$key} from the plan");
         }
 
         // "1 Link in Bio pages" reads as a bug even when the number is right.
-        $this->assertStringContainsString(
+        $this->assertSubjectContains(
             'substr($meta[1], 0, -1)',
             $view,
             'the singular case is not handled'
@@ -133,7 +135,7 @@ class HomepagePricingBandTest extends TestCase
         preg_match('/<a[^>]*class="([^"]*pr-cta[^"]*)"[^>]*>\s*Explore premium plans/s', $band, $m);
 
         $this->assertNotEmpty($m, 'the premium CTA is not where this test expects it');
-        $this->assertStringContainsString(
+        $this->assertSubjectContains(
             'surface-lit-keep',
             $m[1],
             'without an escape this button is white text on its own white ground in light mode'
@@ -141,7 +143,7 @@ class HomepagePricingBandTest extends TestCase
 
         $css = (string) file_get_contents(resource_path('views/home/partials/pricing-style.blade.php'));
 
-        $this->assertMatchesRegularExpression(
+        $this->assertPatternFound(
             '/\.pr-card--dark\s+\.pr-cta\s*\{[^}]*color:\s*#0[0-9a-f]{5}/is',
             $css,
             'the escaped button still needs a dark label stated for its white ground'
@@ -153,10 +155,10 @@ class HomepagePricingBandTest extends TestCase
     {
         $band = $this->band();
 
-        $this->assertStringContainsString('pr-anchors', $band);
-        $this->assertStringContainsString('Compare every plan', $band);
-        $this->assertStringContainsString('Coin packages', $band);
-        $this->assertStringContainsString('custom-plan-request', $band);
+        $this->assertSubjectContains('pr-anchors', $band);
+        $this->assertSubjectContains('Compare every plan', $band);
+        $this->assertSubjectContains('Coin packages', $band);
+        $this->assertSubjectContains('custom-plan-request', $band);
     }
 
     /**
@@ -168,13 +170,13 @@ class HomepagePricingBandTest extends TestCase
     {
         $css = (string) file_get_contents(resource_path('views/home/partials/pricing-style.blade.php'));
 
-        $this->assertMatchesRegularExpression('/\.pr-band\s*\{[^}]*--pr-ground:/s', $css);
-        $this->assertMatchesRegularExpression('/html:not\(\.light-mode\)\s*\.pr-band\s*\{[^}]*--pr-ground:/s', $css);
-        $this->assertMatchesRegularExpression('/html:not\(\.light-mode\)\s*\.pr-band\s*\{[^}]*--pr-ink:/s', $css);
+        $this->assertPatternFound('/\.pr-band\s*\{[^}]*--pr-ground:/s', $css);
+        $this->assertPatternFound('/html:not\(\.light-mode\)\s*\.pr-band\s*\{[^}]*--pr-ground:/s', $css);
+        $this->assertPatternFound('/html:not\(\.light-mode\)\s*\.pr-band\s*\{[^}]*--pr-ink:/s', $css);
 
         // In dark mode both cards are dark, so two filled white buttons would
         // leave the section with no hierarchy; the free plan's goes outline.
-        $this->assertMatchesRegularExpression(
+        $this->assertPatternFound(
             '/html:not\(\.light-mode\)\s*\.pr-card:not\(\.pr-card--dark\)\s*\.pr-cta\s*\{[^}]*background:\s*transparent/s',
             $css,
             'in dark mode both CTAs are filled white and neither one leads'

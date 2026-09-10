@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\AssertsAgainstLargeSubjects;
 use Tests\TestCase;
 
 /**
@@ -43,6 +44,7 @@ use Tests\TestCase;
 class HomepageSectionDividerTest extends TestCase
 {
     use RefreshDatabase;
+    use AssertsAgainstLargeSubjects;
 
     /**
      * Structural exceptions, and there are only two kinds now: a band with
@@ -305,24 +307,24 @@ class HomepageSectionDividerTest extends TestCase
     {
         $home = (string) file_get_contents(resource_path('views/home.blade.php'));
 
-        $this->assertStringContainsString('.sec-rule::before', $home, 'nothing draws the hairline');
-        $this->assertMatchesRegularExpression(
+        $this->assertSubjectContains('.sec-rule::before', $home, 'nothing draws the hairline');
+        $this->assertPatternFound(
             '/\.sec-rule::before\s*\{[^}]*content:/s',
             $home,
             'the ::before needs a content property or it never renders'
         );
-        $this->assertStringContainsString(
+        $this->assertSubjectContains(
             'html.light-mode .sec-rule::before',
             $home,
             'the hairline needs a light-mode colour; the dark one is invisible on white'
         );
 
-        $this->assertMatchesRegularExpression(
+        $this->assertPatternFound(
             '/\.sec-ground\)?\s*\{[^}]*background-color:/s',
             $home,
             'sec-ground has to paint a ground; a class that only marks is the prose reason again'
         );
-        $this->assertMatchesRegularExpression(
+        $this->assertPatternFound(
             '/light-mode\)?\s*:?w?h?e?r?e?\(?\.sec-ground\)?\s*\{[^}]*--sec-ground:/s',
             $home,
             'sec-ground needs a light-mode value; one ground for both themes is one of them wrong'
@@ -354,7 +356,7 @@ class HomepageSectionDividerTest extends TestCase
             (string) file_get_contents(resource_path('views/home.blade.php'))
         );
 
-        $this->assertDoesNotMatchRegularExpression(
+        $this->assertPatternAbsent(
             '/\.sec-ground\s*\+\s*\.sec-rule::before[^{]*\{[^}]*display\s*:\s*none/s',
             (string) $css,
             'sibling adjacency does not hold between these sections: the <style> blocks their partials '
@@ -436,7 +438,7 @@ class HomepageSectionDividerTest extends TestCase
             preg_match('/<section\b[^>]*id="' . preg_quote($id, '/') . '"[^>]*>/i', $source, $m);
 
             $this->assertNotEmpty($m, "#{$id} is not a <section>");
-            $this->assertMatchesRegularExpression(
+            $this->assertPatternFound(
                 '/(?<![\w-])sec-rule(?![\w-])/',
                 $m[0],
                 "#{$id} sits inside the AI zone's ground with five siblings and needs a rule between them"
