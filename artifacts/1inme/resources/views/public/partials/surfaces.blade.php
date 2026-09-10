@@ -1,9 +1,14 @@
 {{--
     Surfaces.
 
-    One place that decides what a surface looks like on the marketing home
-    page, so the answer does not have to be repeated in eleven partials and
-    four thousand lines of section CSS.
+    One place that decides what a surface looks like across EVERY marketing
+    page -- the home page and the ~26 pages on public/layouts/site.blade.php
+    (features, pricing, how-it-works, about, the AI product pages, the
+    compare set, the policy pages) -- so the answer does not have to be
+    repeated in eleven partials and four thousand lines of section CSS.
+
+    It used to load on the home page alone, which is how the home page ended
+    up looking like a different product from /features.
 
     The rules here are deliberately last in the cascade and use !important:
     they exist to override component CSS that was written before there was a
