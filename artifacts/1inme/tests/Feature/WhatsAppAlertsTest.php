@@ -63,12 +63,18 @@ class WhatsAppAlertsTest extends TestCase
     /** Attach a verified WhatsApp (phone) number to $u. */
     private function verifyWhatsapp(User $u, string $number = '+15551234567'): void
     {
+        // is_primary false, matching the identical helper in
+        // WhatsAppDisconnectWebUiTest. The account's primary is already its
+        // email -- User::booted() sets that at creation -- so claiming the
+        // phone as primary too broke
+        // linked_identifiers_one_primary_per_user. Nothing here reads the
+        // flag; the WhatsApp number is an additional verified contact.
         LinkedIdentifier::create([
             'user_id'     => $u->id,
             'kind'        => 'phone',
             'value'       => $number,
             'verified_at' => now(),
-            'is_primary'  => true,
+            'is_primary'  => false,
         ]);
     }
 
@@ -197,6 +203,10 @@ class WhatsAppAlertsTest extends TestCase
         $tier = SubscriptionTier::create([
             'user_id'      => $creator->id,
             'name'         => 'Gold',
+            // subscription_tiers.slug is NOT NULL and the model does not fill
+            // it: production always passes SubscriptionTier::makeSlug(), so
+            // the fixture does the same rather than inventing a literal.
+            'slug'         => SubscriptionTier::makeSlug($creator->id, 'Gold'),
             'price_monthly_cents' => 500,
             'currency'     => 'USD',
             'is_active'    => true,
@@ -219,6 +229,10 @@ class WhatsAppAlertsTest extends TestCase
         $tier = SubscriptionTier::create([
             'user_id'      => $creator->id,
             'name'         => 'Gold',
+            // subscription_tiers.slug is NOT NULL and the model does not fill
+            // it: production always passes SubscriptionTier::makeSlug(), so
+            // the fixture does the same rather than inventing a literal.
+            'slug'         => SubscriptionTier::makeSlug($creator->id, 'Gold'),
             'price_monthly_cents' => 500,
             'currency'     => 'USD',
             'is_active'    => true,
@@ -240,6 +254,10 @@ class WhatsAppAlertsTest extends TestCase
         $tier = SubscriptionTier::create([
             'user_id'      => $creator->id,
             'name'         => 'Gold',
+            // subscription_tiers.slug is NOT NULL and the model does not fill
+            // it: production always passes SubscriptionTier::makeSlug(), so
+            // the fixture does the same rather than inventing a literal.
+            'slug'         => SubscriptionTier::makeSlug($creator->id, 'Gold'),
             'price_monthly_cents' => 500,
             'currency'     => 'USD',
             'is_active'    => true,
