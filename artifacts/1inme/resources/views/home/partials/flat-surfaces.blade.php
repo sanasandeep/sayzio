@@ -59,8 +59,17 @@
      than a scatter. One and a half gives twenty-eight. Phase is set by the hero grid at background-position-x:50%,
      which puts a cell CENTRE on the viewport centre -- so anything centred
      lands in a square, and anything an ODD number of cells wide lands both
-     its edges on a line. */
+     its edges on a line.
+
+     This is the phone and no-round() value. Wider than that, --grid is
+     snapped to the rails just below, which moves it by a few percent. */
   --grid:calc(var(--cell) * 1.5);
+
+  /* The span between the two page rails, and the width the floating navbar
+     resolves to. It lives here rather than in rails.blade.php because the
+     drawn grid has to agree with it -- see the block below. The plain 92vw
+     is the fallback for browsers without round(). */
+  --rail-span:92vw;
 
   /* Ground and surfaces */
   --fs-page:#000000;                    /* the whole page, one flat colour   */
@@ -78,6 +87,46 @@
   --fs-r-btn:10px;
   --fs-r-chip:8px;
 }
+
+
+/* Snap the drawn square to the rails.
+   ----------------------------------
+   These are two different measuring systems, and they disagreed. The rails
+   and the navbar count in --cell: 23 cells at a 1512px viewport, so a
+   1334px span with its edges at x=89 and x=1423. The drawn grid was a flat
+   87px phased to the viewport centre, and 87 does not divide 1334 -- so the
+   nearest drawn line to the left rail fell at 103.5, a 14.5px sliver away.
+   At the left edge of the page, where the ribbon does not cover it, that
+   read as two vertical lines almost on top of each other with an
+   off-looking narrow column between them, while every other column was a
+   full square wide.
+
+   The fix is to stop drawing a fixed square and start drawing a whole
+   number of squares BETWEEN the rails, sized as close to 1.5 cells as that
+   allows. The rails then are grid lines rather than near-misses, and every
+   column across the page is identical.
+
+   The count must be ODD. The rail span is centred on the viewport, so an
+   odd number of squares keeps a square CENTRE on the viewport centre --
+   which is the phase `background-position: 50%` draws, and the phase the
+   hero's feature tiles and Zio's nodes are positioned against. An even
+   count would put a LINE on the centre and shift all of them by half a
+   square. round(...) to the nearest odd count is what the *2+1 does.
+
+   In practice this moves the square from a flat 87px to between 79px and
+   91px depending on viewport width -- small enough that the field still
+   seats its twenty-eight usable cells, exact enough that the gap at both
+   rails is 0px instead of 14.5px. */
+@media (min-width: 768px){
+  @supports (width: round(down, 10px, 3px)){
+    :root{
+      --rail-span:calc(var(--cell) * (round(down, (92vw / var(--cell) - 1) / 2, 1) * 2 + 1));
+      --grid-count:calc(round((var(--rail-span) / (var(--cell) * 1.5) - 1) / 2, 1) * 2 + 1);
+      --grid:calc(var(--rail-span) / var(--grid-count));
+    }
+  }
+}
+
 html.light-mode{
   --fs-page:#FFFFFF;
   --fs-card:transparent;

@@ -42,15 +42,19 @@
      faint enough that nobody reads them as a divider between two things. */
   opacity:.62;
 }
-/* Plain 92% is the fallback for browsers without round(); the calc below it
-   is the same width the navbar resolves to, so the rails and the bar share
-   an edge instead of nearly sharing one. */
+/* Plain 4% is the fallback for browsers without round(); --rail-span is the
+   same width the navbar resolves to, so the rails and the bar share an edge
+   instead of nearly sharing one.
+
+   --rail-span is defined on :root in flat-surfaces.blade.php, not here.
+   It used to be a local on .mkt-rails, which meant the drawn grid had no way
+   to see it -- and the grid, sized independently, put its nearest line 14.5px
+   off the left rail. Two lines, one narrow column, and every other column a
+   full square wide. One definition, read by both, is what keeps them on the
+   same geometry. */
 .mkt-rail--l{ left:4%; }
 .mkt-rail--r{ right:4%; }
 @supports (width: round(down, 10px, 3px)){
-  .mkt-rails{
-    --rail-span:calc(var(--cell) * (round(down, (92vw / var(--cell) - 1) / 2, 1) * 2 + 1));
-  }
   .mkt-rail--l{ left:calc(50% - var(--rail-span) / 2); }
   .mkt-rail--r{ left:calc(50% + var(--rail-span) / 2); right:auto; }
 }
