@@ -888,37 +888,83 @@
                         @endforeach
                     </div>
 
-                    {{-- Shown only inside the expand modal (see
-                         home/partials/expandable-cards.blade.php). Every claim
-                         below is the Domains & aliases FAQ copy in
-                         SitePagesContent, restated — the modal must not be the
-                         one place on the site making a promise nothing else
-                         makes. --}}
-                    <div data-expand-more style="--xm-accent: var(--c1)">
-                        <p class="xm-lead">Most link tools hand you a URL on their domain and stop there. Sayzio gives you five to choose from, so the address itself can suit the audience, a creator link that reads <span class="text-white font-semibold">1in.me</span>, a business one that reads <span class="text-white font-semibold">bizs.club</span>, and you pick it at the moment you create the link, not after a purchase.</p>
+                </div>
 
-                        <div class="xm-cols">
-                            <div>
-                                <h4 class="xm-h">What you get</h4>
-                                <ul class="xm-list">
-                                    <li><i class="fas fa-check"></i><span>All five branded domains: 1in.me, bizs.club, getbio.one, Sayzio.app and sayzio.link, <strong>free on every plan</strong>, including Free.</span></li>
-                                    <li><i class="fas fa-check"></i><span>No purchase, no registrar account and <strong>no DNS records</strong> to configure.</span></li>
-                                    <li><i class="fas fa-check"></i><span>Pick the domain when you create a link or Link in Bio, and it is live immediately.</span></li>
-                                    <li><i class="fas fa-check"></i><span>Each domain is its own namespace, so a slug someone else took on one is <strong>still free on another</strong>.</span></li>
-                                </ul>
+                {{-- The panel this card opens into.
+
+                     It used to be a `[data-expand-more]` block, which the modal
+                     appends to a CLONE of the card -- so the panel showed the
+                     card's own frame inside the modal's frame, the icon chip
+                     orphaned above a full-width paragraph, and two columns of
+                     list running to the bottom edge with no visual beside them.
+
+                     A `<template class="xc-detail">` replaces the clone
+                     outright and uses the same two-column `.xcd` grid the Share
+                     cards use: copy in a reading column, the thing itself on
+                     the right. Every claim below is the Domains & aliases FAQ
+                     copy in SitePagesContent, restated -- the modal must not be
+                     the one place on the site making a promise nothing else
+                     makes. --}}
+                <template class="xc-detail">
+                    <div class="xcd" style="--g1: #1bd4d9; --g2: #3d6bff;">
+                        <div class="xcd-main">
+                            <span class="xcd-ico" aria-hidden="true"><i class="fas fa-layer-group"></i></span>
+                            <h3 class="xcd-title">Multiple global domains</h3>
+                            <p class="xcd-lead">Most link tools hand you a URL on their domain and stop there. Sayzio gives you five to choose from, so the address itself can suit the audience: a creator link that reads <strong>1in.me</strong>, a business one that reads <strong>bizs.club</strong>. You pick it at the moment you create the link, not after a purchase.</p>
+
+                            <div class="xm-cols">
+                                <div>
+                                    <h4 class="xm-h">What you get</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-check"></i><span>All five branded domains, <strong>free on every plan</strong>, including Free.</span></li>
+                                        <li><i class="fas fa-check"></i><span>No purchase, no registrar account and <strong>no DNS records</strong> to configure.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Pick the domain as you create the link, and it is live immediately.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Each domain is its own namespace, so a slug taken on one is <strong>still free on another</strong>.</span></li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="xm-h">Why it matters</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-bolt"></i><span><strong>Nothing to wait for.</strong> No DNS propagation window between deciding to launch and being live.</span></li>
+                                        <li><i class="fas fa-tag"></i><span><strong>Nothing to renew.</strong> No annual registrar bill for a URL you are still testing.</span></li>
+                                        <li><i class="fas fa-arrows-left-right"></i><span><strong>Not a dead end.</strong> Start here and connect your own domain later.</span></li>
+                                        <li><i class="fas fa-lock"></i><span><strong>HTTPS from the first second</strong>, with no certificate to buy or install.</span></li>
+                                    </ul>
+                                </div>
                             </div>
-                            <div>
-                                <h4 class="xm-h">Why it matters</h4>
-                                <ul class="xm-list">
-                                    <li><i class="fas fa-bolt"></i><span><strong>Nothing to wait for.</strong> No DNS propagation window between deciding to launch and being live.</span></li>
-                                    <li><i class="fas fa-tag"></i><span><strong>Nothing to renew.</strong> No annual registrar bill for a URL you are still testing.</span></li>
-                                    <li><i class="fas fa-arrows-left-right"></i><span><strong>Not a dead end.</strong> Start on a shared domain and connect your own later, when the brand is worth the setup.</span></li>
-                                    <li><i class="fas fa-lock"></i><span><strong>HTTPS from the first second</strong>, with no certificate to buy or install.</span></li>
+
+                            <dl class="xcd-stats">
+                                <div><dt>5</dt><dd>branded domains</dd></div>
+                                <div><dt>&#8377;0</dt><dd>on every plan</dd></div>
+                                <div><dt>0</dt><dd>DNS records</dd></div>
+                            </dl>
+
+                            <button type="button" class="xcd-cta"
+                                    onclick="window.trackMarketingEvent&&window.trackMarketingEvent('home_domains_modal','shared');window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))">
+                                Claim a link <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                            </button>
+                        </div>
+
+                        <div class="xcd-visual">
+                            {{-- The card shows the five domains as a row of
+                                 chips. Here there is room to show what choosing
+                                 one actually looks like, so it is the picker. --}}
+                            <div class="dmv">
+                                <p class="dmv-cap">Choose your domain</p>
+                                <ul class="dmv-list">
+                                    @foreach(($showcaseDomains ?? \App\Modules\User\Models\Domain::SHOWCASE_FALLBACK) as $__i => $__dom)
+                                        <li class="dmv-row{{ $__i === 0 ? ' is-on' : '' }}">
+                                            <span class="dmv-radio" aria-hidden="true"></span>
+                                            <span class="dmv-host">{{ $__dom }}</span>
+                                            <span class="dmv-slug">/spring-drop</span>
+                                        </li>
+                                    @endforeach
                                 </ul>
+                                <p class="dmv-foot"><i class="fas fa-lock" aria-hidden="true"></i> HTTPS included &middot; live immediately</p>
                             </div>
                         </div>
                     </div>
-                </div>
+                </template>
             </div>
 
             {{-- 2 · Bring your own domain --}}
@@ -942,35 +988,81 @@
                     </div>
                     <p class="mt-4 text-[11px] text-gray-500"><i class="fas fa-crown text-[10px] mr-1" style="color:var(--c5)"></i> Custom domains are a paid-plan feature.</p>
 
-                    {{-- Modal-only detail. Sourced from the Domains & aliases
-                         and Custom domains FAQ entries in SitePagesContent. --}}
-                    <div data-expand-more style="--xm-accent: var(--c2)">
-                        <p class="xm-lead">A custom domain is the difference between a link that mentions your brand and a link that <em>is</em> your brand. Point one CNAME record at us from <span class="text-white font-semibold">links.yourbrand.com</span>, or any subdomain you like, and every URL you hand out from then on reads entirely as you, with nothing in it borrowed from us.</p>
+                </div>
 
-                        <div class="xm-cols">
-                            <div>
-                                <h4 class="xm-h">How the setup goes</h4>
-                                <ul class="xm-list">
-                                    <li><i class="fas fa-check"></i><span>Add <strong>one CNAME record</strong> at your registrar. That is the whole DNS change, no TXT tokens, no file uploads.</span></li>
-                                    <li><i class="fas fa-check"></i><span>We verify it automatically and provision a <strong>free SSL certificate</strong>, then renew it for you.</span></li>
-                                    <li><i class="fas fa-check"></i><span>Typically live in <strong>5–30 minutes</strong>; we keep retrying validation for up to 48 hours and email you when the certificate is ready.</span></li>
-                                    <li><i class="fas fa-check"></i><span>Each domain shows its <strong>verification status</strong>, so you always know which are healthy and serving.</span></li>
-                                </ul>
+                <template class="xc-detail">
+                    <div class="xcd" style="--g1: #3d6bff; --g2: #7c5cff;">
+                        <div class="xcd-main">
+                            <span class="xcd-ico" aria-hidden="true"><i class="fas fa-globe"></i></span>
+                            <h3 class="xcd-title">Bring your own domain</h3>
+                            <p class="xcd-lead">A custom domain is the difference between a link that mentions your brand and a link that <em>is</em> your brand. Point one CNAME record at us from <strong>links.yourbrand.com</strong>, or any subdomain you like, and every URL you hand out from then on reads entirely as you.</p>
+
+                            <div class="xm-cols">
+                                <div>
+                                    <h4 class="xm-h">How the setup goes</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-check"></i><span>Add <strong>one CNAME record</strong> at your registrar. That is the whole DNS change.</span></li>
+                                        <li><i class="fas fa-check"></i><span>We verify it and provision a <strong>free SSL certificate</strong>, then renew it for you.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Typically live in <strong>5-30 minutes</strong>; we retry validation for up to 48 hours and email you when the certificate is ready.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Each domain shows its <strong>verification status</strong>, so you know which are healthy and serving.</span></li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="xm-h">What it unlocks</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-link"></i><span><strong>Branded short links</strong> across every campaign, on the same domain as your Link in Bio.</span></li>
+                                        <li><i class="fas fa-layer-group"></i><span><strong>More than one domain</strong>, each assignable to a different workspace or page.</span></li>
+                                        <li><i class="fas fa-right-left"></i><span><strong>301 and 302 redirects</strong> from any path, so URLs you have already printed keep working.</span></li>
+                                        <li><i class="fas fa-server"></i><span><strong>Nothing to host.</strong> We serve the domain end to end; you touch DNS once.</span></li>
+                                    </ul>
+                                </div>
                             </div>
-                            <div>
-                                <h4 class="xm-h">What it unlocks</h4>
-                                <ul class="xm-list">
-                                    <li><i class="fas fa-link"></i><span><strong>Branded short links</strong> across every campaign, on the same domain as your Link in Bio.</span></li>
-                                    <li><i class="fas fa-layer-group"></i><span><strong>More than one domain</strong>, as many as your plan allows, each assignable to a different workspace or page.</span></li>
-                                    <li><i class="fas fa-right-left"></i><span><strong>301 and 302 redirects</strong> from any path on your domain, so old URLs you have already printed keep working.</span></li>
-                                    <li><i class="fas fa-server"></i><span><strong>Nothing to host.</strong> We serve the domain end to end; you only touch DNS once.</span></li>
-                                </ul>
-                            </div>
+
+                            <dl class="xcd-stats">
+                                <div><dt>1</dt><dd>DNS record</dd></div>
+                                <div><dt>5-30m</dt><dd>typical go-live</dd></div>
+                                <div><dt>Auto</dt><dd>SSL, renewed</dd></div>
+                            </dl>
+
+                            <p class="xm-note"><i class="fas fa-crown" style="color:var(--c5)"></i>Connecting your own domain is a paid-plan feature. Branded domains and custom URL aliases stay free on every plan, including Free.</p>
                         </div>
 
-                        <p class="xm-note"><i class="fas fa-crown" style="color:var(--c5)"></i>Connecting your own domain is a paid-plan feature. Branded domains and custom URL aliases stay free on every plan, including Free.</p>
+                        <div class="xcd-visual">
+                            {{-- The setup, as the three states it actually moves
+                                 through. The card can only show the finished
+                                 one; the panel has room for the sequence, which
+                                 is the part people want to know before they
+                                 touch their registrar. --}}
+                            <div class="dmv">
+                                <p class="dmv-cap">One record, three states</p>
+                                <ol class="dmv-steps">
+                                    <li class="dmv-step is-done">
+                                        <span class="dmv-dot" aria-hidden="true"><i class="fas fa-check"></i></span>
+                                        <span class="dmv-step-b">
+                                            <span class="dmv-step-t">Add the CNAME</span>
+                                            <code class="dmv-code">links &rarr; cname.1in.me</code>
+                                        </span>
+                                    </li>
+                                    <li class="dmv-step is-done">
+                                        <span class="dmv-dot" aria-hidden="true"><i class="fas fa-check"></i></span>
+                                        <span class="dmv-step-b">
+                                            <span class="dmv-step-t">We verify it</span>
+                                            <span class="dmv-step-s">Checked automatically, retried for 48h</span>
+                                        </span>
+                                    </li>
+                                    <li class="dmv-step is-live">
+                                        <span class="dmv-dot" aria-hidden="true"><i class="fas fa-lock"></i></span>
+                                        <span class="dmv-step-b">
+                                            <span class="dmv-step-t">Certificate issued</span>
+                                            <span class="dmv-step-s">links.yourbrand.com &middot; auto-SSL</span>
+                                        </span>
+                                    </li>
+                                </ol>
+                                <p class="dmv-foot"><i class="fas fa-server" aria-hidden="true"></i> Nothing to host &middot; nothing to renew</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </template>
             </div>
 
             {{-- 3 · Custom URL aliases --}}
@@ -995,33 +1087,63 @@
                         </div>
                     </div>
 
-                    {{-- Modal-only detail. Sourced from the Domains & aliases
-                         FAQ entries in SitePagesContent. --}}
-                    <div data-expand-more style="--xm-accent: var(--c3)">
-                        <p class="xm-lead">An alias is a second front door, not a forwarding address. Every extra alias you add opens the very same page directly, with no redirect hop in between, so nothing flashes, nothing is lost from the referrer, and the visitor never sees a URL they did not click.</p>
+                </div>
 
-                        <div class="xm-cols">
-                            <div>
-                                <h4 class="xm-h">How it works</h4>
-                                <ul class="xm-list">
-                                    <li><i class="fas fa-check"></i><span>Every link gets a <strong>memorable primary slug</strong> you choose, not a string of random characters.</span></li>
-                                    <li><i class="fas fa-check"></i><span>Add as many <strong>extra aliases</strong> as you need; each one opens the same page with <strong>no redirect</strong>.</span></li>
-                                    <li><i class="fas fa-check"></i><span>Aliases resolve <strong>whatever the casing</strong>, <span class="font-mono">SpringDrop</span> and <span class="font-mono">springdrop</span> reach the same page.</span></li>
-                                    <li><i class="fas fa-check"></i><span>Available on <strong>every plan, Free included</strong>. Aliases are not the paid part.</span></li>
-                                </ul>
+                <template class="xc-detail">
+                    <div class="xcd" style="--g1: #1bd4d9; --g2: #3d6bff;">
+                        <div class="xcd-main">
+                            <span class="xcd-ico" aria-hidden="true"><i class="fas fa-tags"></i></span>
+                            <h3 class="xcd-title">Custom URL aliases</h3>
+                            <p class="xcd-lead">An alias is a second front door, not a forwarding address. Every extra alias opens the very same page directly, with no redirect hop in between, so nothing flashes, nothing is lost from the referrer, and the visitor never sees a URL they did not click.</p>
+
+                            <div class="xm-cols">
+                                <div>
+                                    <h4 class="xm-h">How it works</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-check"></i><span>Every link gets a <strong>memorable primary slug</strong> you choose, not a string of random characters.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Add as many <strong>extra aliases</strong> as you need; each opens the same page with <strong>no redirect</strong>.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Aliases resolve <strong>whatever the casing</strong>: SpringDrop and springdrop reach the same page.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Available on <strong>every plan, Free included</strong>. Aliases are not the paid part.</span></li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="xm-h">What people use them for</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-bullhorn"></i><span><strong>Campaign variants.</strong> One page, a different URL per campaign, so reporting separates cleanly.</span></li>
+                                        <li><i class="fas fa-share-nodes"></i><span><strong>Channel-specific URLs.</strong> A short one for print, a descriptive one for email.</span></li>
+                                        <li><i class="fas fa-spell-check"></i><span><strong>Catching typos.</strong> Register the misspelling people actually make and it works instead of 404-ing.</span></li>
+                                        <li><i class="fas fa-clock-rotate-left"></i><span><strong>Renaming without breaking.</strong> Move to a better slug and keep the old one alive.</span></li>
+                                    </ul>
+                                </div>
                             </div>
-                            <div>
-                                <h4 class="xm-h">What people use them for</h4>
-                                <ul class="xm-list">
-                                    <li><i class="fas fa-bullhorn"></i><span><strong>Campaign variants.</strong> One page, a different URL per campaign, so the reporting separates cleanly.</span></li>
-                                    <li><i class="fas fa-share-nodes"></i><span><strong>Channel-specific URLs.</strong> A short one for print, a descriptive one for email, both landing in the same place.</span></li>
-                                    <li><i class="fas fa-spell-check"></i><span><strong>Catching typos.</strong> Register the misspelling people actually make and it works instead of 404-ing.</span></li>
-                                    <li><i class="fas fa-clock-rotate-left"></i><span><strong>Renaming without breaking.</strong> Move to a better slug and keep the old one alive as an alias.</span></li>
+
+                            <dl class="xcd-stats">
+                                <div><dt>0</dt><dd>redirect hops</dd></div>
+                                <div><dt>Free</dt><dd>on every plan</dd></div>
+                                <div><dt>Any</dt><dd>casing resolves</dd></div>
+                            </dl>
+                        </div>
+
+                        <div class="xcd-visual">
+                            {{-- The card lists three slugs stacked. The point of
+                                 an alias is that they all arrive at ONE page, so
+                                 the panel draws that instead of listing them. --}}
+                            <div class="dmv dmv-alias">
+                                <ul class="dmv-alias-in">
+                                    <li><span class="dmv-star" aria-hidden="true"><i class="fas fa-star"></i></span><code>1in.me/spring-drop</code></li>
+                                    <li><span class="dmv-star dmv-star--dim" aria-hidden="true"><i class="fas fa-link"></i></span><code>1in.me/sale</code></li>
+                                    <li><span class="dmv-star dmv-star--dim" aria-hidden="true"><i class="fas fa-link"></i></span><code>1in.me/drop24</code></li>
                                 </ul>
+                                <span class="dmv-join" aria-hidden="true"></span>
+                                <div class="dmv-target">
+                                    <i class="fas fa-file-lines" aria-hidden="true"></i>
+                                    <span class="dmv-target-t">One page</span>
+                                    <span class="dmv-target-s">No redirect &middot; referrer intact</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </template>
             </div>
         </div>
 
