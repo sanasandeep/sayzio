@@ -477,8 +477,21 @@ class ConversationPublicController extends Controller
                 ->where('link_id', $linkId)
                 ->first();
             if (!$block) return null;
+
+            // biolink-block-render reads $link unguarded -- $link->alias for
+            // the redirect.block route, $link->user for owner lookups, and it
+            // threads $link into every per-type sub-partial it @includes. Not
+            // passing it threw inside the try below, which logged a warning
+            // and returned null, so a conversational show_block just rendered
+            // nothing rather than failing loudly. Found by
+            // scripts/check-view-name-collisions.php.
+            $link = \App\Modules\User\Models\Link::withoutGlobalScope('workspace')
+                ->find($linkId);
+            if (!$link) return null;
+
             $s = is_array($block->settings) ? $block->settings : [];
             return view('common.partials.biolink-block-render', [
+                'link'      => $link,
                 'block'     => $block,
                 's'         => $s,
                 'fontColor' => '#ffffff',
