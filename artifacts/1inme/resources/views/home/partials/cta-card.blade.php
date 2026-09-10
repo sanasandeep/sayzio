@@ -20,6 +20,9 @@
       $primary   array    ['label','href'] or ['label','onclick']
       $secondary array    ['label','href']
       $ribbon    string   'cool' (blue to cyan) | 'warm' (magenta to amber)
+      $side      string   'right' (default) | 'left' -- which edge the ribbon
+                          bleeds off. The copy takes the other side, so this
+                          mirrors the card rather than just moving the artwork.
       $id        string   id for the wrapper, when the section needs an anchor
 
     The ribbon is an inline SVG rather than skewed divs so the bands stay
@@ -33,6 +36,9 @@
     $ctaPrimary   = $primary   ?? null;
     $ctaSecondary = $secondary ?? null;
     $ctaRibbon    = ($ribbon ?? 'cool') === 'warm' ? 'warm' : 'cool';
+    // Which edge the ribbon bleeds off. The copy always takes the other side,
+    // so this flips the card's whole composition rather than just the artwork.
+    $ctaSide      = ($side ?? 'right') === 'left' ? 'left' : 'right';
     // Two cards can sit on one page, and each needs its own gradient ids or
     // the second one silently reuses the first one's stops.
     $ctaUid = 'cta' . substr(md5($ctaHeading . $ctaRibbon . uniqid('', true)), 0, 8);
@@ -58,7 +64,7 @@
         background: #12151F;
         border: 1px solid rgba(255,255,255,.10);
         padding: 40px;
-        /* Room on the right for the ribbon so a long headline never runs
+        /* Room beside the copy for the ribbon so a long headline never runs
            under it. Collapses on narrow screens, where the ribbon becomes a
            strip along the top instead. */
         padding-right: min(46%, 520px);
@@ -66,6 +72,38 @@
     html.light-mode .xcta-card {
         background: #F6F7FB;
         border-color: #E6E8F2;
+    }
+
+    /* Mirrored variant. The ribbon takes the left edge and the copy moves
+       right, so two cards on one page are not the same composition twice. */
+    .xcta-card--left { padding-right: 40px; padding-left: min(46%, 520px); }
+
+    /* ---------- the lattice under the copy ----------
+       The hero's ground is a faint grid on the page's own `--grid` cell, and
+       everything that sits on it -- the navbar, the tiles, now the marquee --
+       lands on that cell. These cards were the one large surface on the page
+       with nothing behind the words at all, which is why they read as panels
+       dropped onto the page rather than as part of it.
+
+       Same variable, same 50% phase, so the card's lines are the page's lines
+       carried underneath it. It is masked to fade out well before the ribbon:
+       the grid is a ground for the copy, and running it under the gradient
+       would be two textures fighting in the same place. */
+    .xcta-grid {
+        position: absolute; inset: 0; pointer-events: none;
+        --xcta-line: rgba(15,23,42,.055);
+        background-image:
+            linear-gradient(to right,  var(--xcta-line) 1px, transparent 1px),
+            linear-gradient(to bottom, var(--xcta-line) 1px, transparent 1px);
+        background-size: var(--grid, 80px) var(--grid, 80px);
+        background-position: 50% 0;
+        -webkit-mask-image: linear-gradient(to right, #000 0%, #000 42%, transparent 68%);
+                mask-image: linear-gradient(to right, #000 0%, #000 42%, transparent 68%);
+    }
+    html:not(.light-mode) .xcta-grid { --xcta-line: rgba(255,255,255,.055); }
+    .xcta-card--left .xcta-grid {
+        -webkit-mask-image: linear-gradient(to left, #000 0%, #000 42%, transparent 68%);
+                mask-image: linear-gradient(to left, #000 0%, #000 42%, transparent 68%);
     }
 
     .xcta-eyebrow {
@@ -117,6 +155,10 @@
         width: min(52%, 620px); height: 124%;
         pointer-events: none;
     }
+    /* Mirrored rather than redrawn: the SVG's slant is asymmetric, so a ribbon
+       moved to the left edge without flipping would lean the wrong way and the
+       card would look like a mistake rather than a mirror. */
+    .xcta-card--left .xcta-ribbon { right: auto; left: -8%; transform: scaleX(-1); }
     .xcta-ribbon svg { width: 100%; height: 100%; display: block; }
 
     /* The copy sits above the ribbon in the stacking order AND is capped in
@@ -127,19 +169,30 @@
     .xcta-copy { position: relative; z-index: 1; max-width: 54ch; }
 
     @media (max-width: 900px) {
-        .xcta-card { padding: 32px 28px; padding-top: 96px; }
+        .xcta-card,
+        .xcta-card--left { padding: 32px 28px; padding-top: 96px; }
         /* On a phone the card is a single column, so the ribbon moves to a
            band across the top: still the same form, still bleeding off an
-           edge, but no longer competing with the copy for width. */
-        .xcta-ribbon {
+           edge, but no longer competing with the copy for width. Both
+           variants land in the same place -- at this width the mirror has
+           nothing left to mirror. */
+        .xcta-ribbon,
+        .xcta-card--left .xcta-ribbon {
             top: -30%; right: -10%; left: auto;
-            width: 78%; height: 150px;
+            width: 78%; height: 150px; transform: none;
+        }
+        /* The grid runs the full width here, since the copy does too. */
+        .xcta-grid,
+        .xcta-card--left .xcta-grid {
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 30%);
+                    mask-image: linear-gradient(to bottom, transparent 0%, #000 30%);
         }
     }
 </style>
 @endonce
 
-<div class="xcta-card"@if(isset($id)) id="{{ $id }}"@endif>
+<div class="xcta-card{{ $ctaSide === 'left' ? ' xcta-card--left' : '' }}"@if(isset($id)) id="{{ $id }}"@endif>
+    <span class="xcta-grid" aria-hidden="true"></span>
     <div class="xcta-ribbon" aria-hidden="true">
         <svg viewBox="0 0 400 460" preserveAspectRatio="xMidYMid slice" role="presentation" focusable="false">
             <defs>

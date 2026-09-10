@@ -2369,6 +2369,9 @@
                 ],
                 'secondary' => ['label' => 'See features', 'href' => '#features'],
                 'ribbon'    => 'cool',
+                // Mirrored against the card higher up the page, so the two do
+                // not read as one composition used twice.
+                'side'      => 'left',
             ])
         </div>
     </div>
