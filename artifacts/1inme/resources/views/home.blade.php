@@ -248,31 +248,13 @@
         /* ============ Drawn underline ============ */
         .draw-line { stroke-dasharray: 220; stroke-dashoffset: 220; animation: drawLine 1.6s 1s ease-out forwards; }
 
-        /* ============ Pricing card sparkles & shimmer ============ */
-        .free-spark, .prem-spark {
-            position: absolute; width: 10px; height: 10px; border-radius: 50%;
-            background: radial-gradient(circle, #fff 0%, rgba(255,255,255,.6) 40%, transparent 70%);
-            opacity: 0; pointer-events: none;
-            animation: sparkPulse 3.4s ease-in-out infinite;
-            filter: drop-shadow(0 0 6px rgba(255,255,255,.7));
-        }
-        .prem-spark { width: 8px; height: 8px; }
-        @keyframes sparkPulse {
-            0%, 100% { opacity: 0; transform: scale(.4); }
-            50% { opacity: 1; transform: scale(1.2); }
-        }
-
-        /* Diagonal shimmer sweep across the premium card */
-        .prem-shimmer::before {
-            content: ""; position: absolute; inset: 0;
-            background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.18) 48%, rgba(255,255,255,.30) 50%, rgba(255,255,255,.18) 52%, transparent 70%);
-            transform: translateX(-100%);
-            animation: premSweep 5.5s ease-in-out infinite;
-        }
-        @keyframes premSweep {
-            0% { transform: translateX(-100%); }
-            55%, 100% { transform: translateX(120%); }
-        }
+        /* The pricing cards' sparkles and the premium card's shimmer sweep
+           used to be defined here. Both are gone with their markup: the
+           sweep was the same white band that came off the resume sheet, and
+           three pulsing dots are decoration that says nothing about a plan.
+           Removing the rules as well as the elements, so the next person to
+           read this file does not find styling for something that no longer
+           exists and wonder where it went. */
 
         /* Premium feature blocks subtle entrance + icon halo on hover */
         /* ─── Section dividers ───
