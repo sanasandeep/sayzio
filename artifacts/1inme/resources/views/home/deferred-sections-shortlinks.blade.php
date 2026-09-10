@@ -57,7 +57,7 @@
                     <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(61,107,255,.22)"><i class="fas fa-globe text-xl" style="color:var(--c2)"></i></div>
                     <h3 class="text-xl font-bold mb-2">Custom domain</h3>
                     <p class="text-sm text-gray-400 mb-5">Bring your own domain like <span class="text-white">links.yourbrand.com</span>, auto-SSL, zero DNS headaches.</p>
-                    <div class="cd-stage">
+                    <div class="cd-stage surface-lit">
                         <div class="cd-bar">
                             <span class="lock"><i class="fas fa-lock"></i></span>
                             <span class="sub">https://</span><span class="brand">links.</span><span class="brand">yourbrand</span><span class="tld">.com</span><span class="path">/launch</span>

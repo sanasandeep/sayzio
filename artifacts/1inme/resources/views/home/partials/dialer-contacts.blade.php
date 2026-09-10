@@ -372,7 +372,7 @@
         <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {{-- LEFT: animated phone / dialer --}}
             <div class="reveal rd-3 dc-wrap relative flex justify-center">
-                <div class="dc-phone" role="img" aria-label="Zio dialer typing a phone number on a dual-SIM keypad, then flipping to a caller-ID screen that resolves the number into a verified Sayzio profile">
+                <div class="dc-phone surface-lit" role="img" aria-label="Zio dialer typing a phone number on a dual-SIM keypad, then flipping to a caller-ID screen that resolves the number into a verified Sayzio profile">
                     <div class="dc-stage" aria-hidden="true">
                         <div class="dc-flip">
 

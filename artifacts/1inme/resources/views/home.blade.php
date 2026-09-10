@@ -414,9 +414,30 @@
            and `html.light-mode h3:not(.grad-text)` are both (0,2,2), so the
            tie goes to source order, and that rule is ~2400 lines further down
            this file. Raising specificity here would only invite the next
-           person to raise theirs. */
-        html.light-mode .card-lit,
-        html.light-mode .card-lit :is(h1,h2,h3,h4,p,span,div,b,strong,li) {
+           person to raise theirs.
+
+           ─── and it is not only the cards ───
+           The comment above says the problem is a property of the SURFACE
+           rather than of any one card, and then the fix was scoped to
+           `.card-lit`, which also paints a blue gradient. So every other dark
+           surface on the page -- product mocks, phone frames, screens -- kept
+           the bug, because carrying `card-lit` would have repainted them blue.
+
+           Audited in Chromium: composite the real ground behind every element
+           in light mode, keep the ones that are still dark, and check the text
+           inside. Six mocks came back with near-black text on a near-black
+           ground: the notifications panel (11 nodes -- the reported one), the
+           marketing strategist card (14), the share stage (11), the dialer
+           phone (8), the biolink phone in Features (7) and the AI Suite screen
+           (3). Two more dark surfaces, the Zio hub band and the AI hero stage,
+           were fine -- somebody had fixed those two by hand, which is why this
+           read as one broken panel rather than a pattern.
+
+           `surface-lit` is the ink half on its own, for any surface that keeps
+           a dark ground while the page turns white. `.card-lit` is now that
+           plus the blue gradient. */
+        html.light-mode :is(.card-lit, .surface-lit),
+        html.light-mode :is(.card-lit, .surface-lit) :is(h1,h2,h3,h4,p,span,div,b,strong,li,a,td,th,label,small,time):not(.surface-lit-keep, .surface-lit-keep *) {
             color: #fff !important;
         }
         /* Restore the deliberately-tinted text: these already set their own
@@ -426,9 +447,22 @@
            !important on everything that has to escape it. */
         html.light-mode .card-lit .card-lit-cta,
         html.light-mode .card-lit .card-lit-cta :is(span,i,div) { color: #3d6bff !important; }
-        /* Muted whites stay muted rather than snapping to full strength. */
-        html.light-mode .card-lit :is(.text-white\/80, .text-white\/70, .text-white\/60) { color: rgba(255,255,255,.8) !important; }
-        html.light-mode .card-lit .text-white\/45 { color: rgba(255,255,255,.45) !important; }
+        /* Muted whites stay muted rather than snapping to full strength, and
+           the grey utilities the light-mode sheet rewrites to near-black
+           (marketing-anim.css: .text-gray-300/400/500 and the slate mirror)
+           come back as muted white instead -- inside these surfaces they were
+           always the secondary line, not the primary one. */
+        html.light-mode :is(.card-lit, .surface-lit) :is(.text-white\/80, .text-white\/70, .text-white\/60) { color: rgba(255,255,255,.8) !important; }
+        html.light-mode :is(.card-lit, .surface-lit) .text-white\/45 { color: rgba(255,255,255,.45) !important; }
+        html.light-mode .surface-lit :is(.text-gray-300, .text-gray-400, .text-slate-300, .text-slate-400) { color: rgba(255,255,255,.66) !important; }
+        html.light-mode .surface-lit :is(.text-gray-500, .text-slate-500) { color: rgba(255,255,255,.5) !important; }
+        /* A mock's own accent chips, badges and tinted labels set a colour
+           against their own fill and have to keep it -- the same escape
+           `.card-lit-cta` gets, available to any surface. It is a `:not()` on
+           the rule above rather than a rule that puts the colour back: once an
+           !important has landed, "inherit !important" only inherits the white
+           that landed on the parent. The subtree has to be excluded before the
+           fact, not repainted after it. */
 
         .prem-feat { opacity: 0; transform: translateY(6px); animation: premFeatIn .55s ease-out forwards; }
         @keyframes premFeatIn { to { opacity: 1; transform: translateY(0); } }

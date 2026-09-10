@@ -403,7 +403,7 @@
             {{-- Live demo screen --}}
             <div class="aisx-demo-col reveal rd-3">
                 <div class="aisx-demo-wrap">
-                    <div class="aisx-screen" data-aisx-screen style="--c: {{ $__aiProducts[0]['color'] }};">
+                    <div class="aisx-screen surface-lit" data-aisx-screen style="--c: {{ $__aiProducts[0]['color'] }};">
                         <div class="aisx-bar">
                             <span class="aisx-dot" aria-hidden="true"></span>
                             <span class="aisx-dot" aria-hidden="true"></span>
