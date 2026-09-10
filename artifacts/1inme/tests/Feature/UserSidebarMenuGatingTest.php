@@ -58,7 +58,19 @@ class UserSidebarMenuGatingTest extends TestCase
             'status'       => 'active',
             'plan_id'      => $plan?->id,
             // Skip the onboarding redirect so the dashboard actually renders.
-            'onboarded_at' => now(),
+            //
+            // now() stopped being enough. RedirectToOnboarding fires its
+            // one-time steps -- creator profile, WhatsApp, contact privacy --
+            // for anyone onboarded within the last 14 days, and a fresh test
+            // user has none of them stamped as shown, so /user/dashboard
+            // answered 302 to /user/onboarding/creator-profile and all ten
+            // of these read the redirect instead of the sidebar.
+            //
+            // An older date rather than stamping each step: all three are
+            // gated on the same recency window, so this keeps working when a
+            // fourth step is added. These tests are about an established
+            // account's menu, not about onboarding.
+            'onboarded_at' => now()->subMonths(6),
         ]);
     }
 

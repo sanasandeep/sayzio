@@ -43,7 +43,13 @@ class UserSidebarMemberRoleGatingTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::factory()->create();
+        // Onboarded long enough ago to be past the one-time onboarding steps.
+        // RedirectToOnboarding sends anyone onboarded within the last 14 days
+        // to the creator-profile / WhatsApp / privacy stages, so the factory
+        // default made /user/dashboard answer 302 and these four read the
+        // redirect rather than the sidebar. This file is about what a
+        // workspace MEMBER sees in the menu, not about onboarding.
+        return User::factory()->create(['onboarded_at' => now()->subMonths(6)]);
     }
 
     /** A workspace owned by $owner. */
