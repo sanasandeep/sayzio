@@ -104,6 +104,9 @@
         "check:view-name-collisions": [
             "@php scripts/check-view-name-collisions.php"
         ],
+        "check:view-references": [
+            "@php scripts/check-view-references.php"
+        ],
         "check:migration-ordering": [
             "@php artisan db:check-migration-ordering"
         ],
