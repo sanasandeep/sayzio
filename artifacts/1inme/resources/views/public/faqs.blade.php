@@ -47,7 +47,7 @@
 @php
     $__totalFaqs = collect($groups ?? [])->reduce(fn($c, $items) => $c + count($items), 0);
 @endphp
-<section class="pt-16 pb-8 lg:pt-24 lg:pb-10 text-center">
+<section class="sec-first pt-16 pb-8 lg:pt-24 lg:pb-10 text-center">
     <div class="max-w-3xl mx-auto px-4">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-[.2em] mb-4" style="background:rgba(61,107,255,.12); color:#90acff;">
             <i class="fas fa-circle-question"></i> Help centre
@@ -60,7 +60,7 @@
     </div>
 </section>
 
-<section class="pb-24">
+<section class="sec-rule pb-24">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
          x-data="{
             q: '',

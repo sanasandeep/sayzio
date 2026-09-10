@@ -65,7 +65,7 @@
 @endphp
 
 @section('content')
-<section class="relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
+<section class="sec-first relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="absolute inset-0 grid-bg opacity-50 pointer-events-none"></div>
     <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -99,7 +99,7 @@
     </div>
 </section>
 
-<section class="relative pb-16 lg:pb-24">
+<section class="sec-rule relative pb-16 lg:pb-24">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             @foreach($downloads as $d)

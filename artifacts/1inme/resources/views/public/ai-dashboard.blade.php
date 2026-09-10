@@ -54,7 +54,7 @@
 </style>
 
 {{-- ===================== HERO ===================== --}}
-<section class="aid-mesh relative pt-20 pb-14 lg:pt-28 lg:pb-16 overflow-hidden">
+<section class="sec-first aid-mesh relative pt-20 pb-14 lg:pt-28 lg:pb-16 overflow-hidden">
     <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div class="reveal aid-pill"><span class="aid-dot" aria-hidden="true"></span> AI-Powered Dashboard</div>
         <h1 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mt-5 mb-5">
@@ -75,7 +75,7 @@
 </section>
 
 {{-- ===================== DESIGN WITH AI FLOW ===================== --}}
-<section class="py-16 lg:py-20 relative" aria-labelledby="aid-flow-h">
+<section class="sec-rule py-16 lg:py-20 relative" aria-labelledby="aid-flow-h">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center max-w-2xl mx-auto mb-12">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:{{ $accent }}">Design with AI</div>
@@ -93,7 +93,7 @@
 </section>
 
 {{-- ===================== 5 PRESETS ===================== --}}
-<section id="aid-presets" class="py-16 lg:py-20 relative" aria-labelledby="aid-presets-h">
+<section id="aid-presets" class="sec-rule py-16 lg:py-20 relative" aria-labelledby="aid-presets-h">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center max-w-2xl mx-auto mb-12">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:{{ $accent }}">5 Curated Presets</div>
@@ -128,7 +128,7 @@
 
 {{-- ===================== RICH SECTIONS (from SitePagesContent) ===================== --}}
 @if(!empty($sections))
-<section class="py-16 lg:py-20">
+<section class="sec-rule py-16 lg:py-20">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         @foreach($sections as $i => $section)
             @if(!empty($section['heading']) || !empty($section['body']))
@@ -147,7 +147,7 @@
 @endif
 
 {{-- ===================== FAQ ===================== --}}
-<section class="py-16 lg:py-20" aria-labelledby="aid-faq-h">
+<section class="sec-rule py-16 lg:py-20" aria-labelledby="aid-faq-h">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 id="aid-faq-h" class="reveal text-3xl sm:text-4xl font-bold tracking-tight text-center mb-10">Questions, answered</h2>
         <div class="space-y-4" x-data="{ open: 0 }">
@@ -167,7 +167,7 @@
 </section>
 
 {{-- ===================== CTA BAND ===================== --}}
-<section class="py-16 lg:py-24">
+<section class="sec-rule py-16 lg:py-24">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="reveal glass rounded-3xl p-10 sm:p-14 text-center relative overflow-hidden">
             <div class="absolute -top-20 -right-20 w-64 h-64 rounded-full opacity-25" style="background:{{ $accent }};"></div>

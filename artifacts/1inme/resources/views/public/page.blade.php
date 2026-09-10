@@ -1,6 +1,6 @@
 @extends('public.layouts.site')
 @section('content')
-<section class="relative pt-16 pb-12 lg:pt-24 lg:pb-16 overflow-hidden">
+<section class="sec-first relative pt-16 pb-12 lg:pt-24 lg:pb-16 overflow-hidden">
     <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:rgba(61,107,255,.06);"></div>
     <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h1 class="text-4xl sm:text-5xl font-bold tracking-tight">{{ $page->title }}</h1>
@@ -10,7 +10,7 @@
     </div>
 </section>
 
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         @foreach(($page->sections ?? []) as $section)
             <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 sm:p-8">
@@ -48,7 +48,7 @@
     }
 @endphp
 @if($relatedBlog->count())
-    <section class="pb-20">
+    <section class="sec-rule pb-20">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 class="text-xl sm:text-2xl font-bold text-white mb-6">{{ $bb['heading'] ?? 'Related from the blog' }}</h2>
             <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">

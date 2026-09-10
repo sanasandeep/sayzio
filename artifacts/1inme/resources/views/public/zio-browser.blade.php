@@ -69,7 +69,7 @@
 </style>
 
 {{-- ============ Hero ============ --}}
-<section class="relative overflow-hidden zbp-mesh pt-16 sm:pt-24 pb-16 sm:pb-20">
+<section class="sec-first relative overflow-hidden zbp-mesh pt-16 sm:pt-24 pb-16 sm:pb-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12 lg:gap-10 items-center relative">
         <div data-anim="fade-right">
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider"
@@ -162,7 +162,7 @@
 </section>
 
 {{-- ============ In real life (photo band) ============ --}}
-<section class="py-16 sm:py-20 relative">
+<section class="sec-rule py-16 sm:py-20 relative">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
         <div data-anim="fade-right">
             <img src="{{ asset('images/marketing/browser/hero-desktop.webp') }}"
@@ -199,7 +199,7 @@
 </section>
 
 {{-- ============ Feature grid ============ --}}
-<section class="py-16 sm:py-20 relative">
+<section class="sec-rule py-16 sm:py-20 relative">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center max-w-2xl mx-auto" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl font-bold text-white">More than tabs</h2>
@@ -233,7 +233,7 @@
 </section>
 
 {{-- ============ Photo gallery: made for makers ============ --}}
-<section class="py-16 sm:py-20 relative">
+<section class="sec-rule py-16 sm:py-20 relative">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center max-w-2xl mx-auto" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl font-bold text-white">Three ways makers use it every day</h2>
@@ -261,7 +261,7 @@
 </section>
 
 {{-- ============ FAQs ============ --}}
-<section class="py-16 sm:py-20">
+<section class="sec-rule py-16 sm:py-20">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl font-bold text-white">Zio Browser, answered</h2>
@@ -291,7 +291,7 @@
 </section>
 
 {{-- ============ Bottom CTA ============ --}}
-<section class="py-16 sm:py-24">
+<section class="sec-rule py-16 sm:py-24">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl font-bold text-white">Browse like it's your workspace</h2>

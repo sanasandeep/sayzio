@@ -9,7 +9,7 @@
         ->values();
 @endphp
 @if($__items->isNotEmpty())
-<section class="py-20 lg:py-24" aria-labelledby="testimonials-h">
+<section class="sec-rule py-20 lg:py-24" aria-labelledby="testimonials-h">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center max-w-2xl mx-auto mb-10">
             <div class="text-xs font-bold uppercase tracking-[.2em] text-blue-300 mb-3">{{ $eyebrow ?? 'Loved by creators' }}</div>

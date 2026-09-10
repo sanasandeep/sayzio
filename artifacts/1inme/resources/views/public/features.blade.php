@@ -67,7 +67,7 @@
 
 @section('content')
 {{-- HERO --}}
-<section class="relative pt-20 pb-12 lg:pt-28 lg:pb-16 overflow-hidden">
+<section class="sec-first relative pt-20 pb-12 lg:pt-28 lg:pb-16 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="absolute inset-0 grid-bg opacity-40 pointer-events-none"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -116,7 +116,7 @@
 @include('public.partials.marketing-stats')
 
 {{-- SHOWCASE STRIP --}}
-<section class="pb-16">
+<section class="sec-rule pb-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid md:grid-cols-3 gap-5 card-row" data-anim="fade-up" data-stagger>
             @foreach($showcase as $s)
@@ -279,7 +279,7 @@
 ])
 
 {{-- CTA --}}
-<section class="pb-12">
+<section class="sec-rule pb-12">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
             <div class="mesh-bg opacity-50"></div>

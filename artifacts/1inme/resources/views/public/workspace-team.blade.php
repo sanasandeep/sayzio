@@ -18,7 +18,7 @@
 @endphp
 
 {{-- HERO --}}
-<section class="relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
+<section class="sec-first relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid lg:grid-cols-[1.05fr_1fr] gap-12 items-center">
@@ -65,7 +65,7 @@
 </section>
 
 {{-- BIG FEATURES --}}
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
         @foreach($features as $i => $f)
             @php $reverse = $i % 2 === 1; @endphp
@@ -88,7 +88,7 @@
 </section>
 
 {{-- HIGHLIGHT GRID --}}
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Everything else <span class="grad-text">teams actually need</span></h2>
@@ -109,7 +109,7 @@
 </section>
 
 {{-- CTA --}}
-<section class="pb-24">
+<section class="sec-rule pb-24">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
             <div class="mesh-bg opacity-50"></div>

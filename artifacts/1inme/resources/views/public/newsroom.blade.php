@@ -24,7 +24,7 @@
 @endphp
 
 {{-- HERO --}}
-<section class="relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
+<section class="sec-first relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
         <div data-anim="fade-right">
@@ -56,7 +56,7 @@
 </section>
 
 {{-- LOGO MARQUEE --}}
-<section class="pb-16">
+<section class="sec-rule pb-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <p class="text-center text-xs font-semibold uppercase tracking-[.25em] text-gray-500 mb-6" data-anim="fade-up">As featured in</p>
         <div class="marquee-mask overflow-hidden">
@@ -70,7 +70,7 @@
 </section>
 
 {{-- PRESS GRID --}}
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between flex-wrap gap-4 mb-8" data-anim="fade-up">
             <div>
@@ -97,7 +97,7 @@
 </section>
 
 {{-- AWARDS --}}
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid lg:grid-cols-[1fr_1.2fr] gap-10 items-center">
             <div data-anim="fade-right">
@@ -127,7 +127,7 @@
 </section>
 
 {{-- TESTIMONIALS --}}
-<section class="pb-24">
+<section class="sec-rule pb-24">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Customer love</h2>
@@ -152,7 +152,7 @@
 </section>
 
 {{-- CTA --}}
-<section class="pb-24">
+<section class="sec-rule pb-24">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
             <div class="mesh-bg opacity-50"></div>

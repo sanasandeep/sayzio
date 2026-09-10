@@ -40,7 +40,7 @@
 @endphp
 
 {{-- ─────────────  HERO  ───────────── --}}
-<section class="relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
+<section class="sec-first relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="absolute inset-0 grid-bg opacity-50 pointer-events-none"></div>
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -109,7 +109,7 @@
 </section>
 
 {{-- ─────────────  STEPS  ───────────── --}}
-<section class="relative pb-24">
+<section class="sec-rule relative pb-24">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20">
         @foreach($steps as $i => $step)
             @php $reverse = $i % 2 === 1; @endphp
@@ -141,7 +141,7 @@
 </section>
 
 {{-- Templates & link types --}}
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-8" data-anim="fade-up">
         <div class="grad-border rounded-3xl p-7 sm:p-8 relative overflow-hidden">
             <div class="mesh-bg opacity-50"></div>
@@ -192,7 +192,7 @@
 </section>
 
 {{-- ─────────────  CTA BAND  ───────────── --}}
-<section class="pb-24">
+<section class="sec-rule pb-24">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
             <div class="mesh-bg opacity-50"></div>

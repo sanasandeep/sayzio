@@ -1,7 +1,7 @@
 @extends('public.layouts.site')
 @section('content')
 {{-- HERO --}}
-<section class="relative pt-20 pb-12 lg:pt-28 lg:pb-14 overflow-hidden">
+<section class="sec-first relative pt-20 pb-12 lg:pt-28 lg:pb-14 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
         <div data-anim="fade-right">
@@ -47,7 +47,7 @@
 </section>
 
 {{-- GRID --}}
-<section class="pb-24">
+<section class="sec-rule pb-24">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         @if($biolinks->isEmpty())
             <div class="text-center text-gray-500 text-sm py-16" data-anim="fade-up">

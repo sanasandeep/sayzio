@@ -61,7 +61,7 @@
 @endphp
 
 {{-- HERO --}}
-<section class="relative pt-20 pb-12 lg:pt-28 lg:pb-16 overflow-hidden">
+<section class="sec-first relative pt-20 pb-12 lg:pt-28 lg:pb-16 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
         <div data-anim="fade-right">
@@ -95,7 +95,7 @@
 </section>
 
 {{-- Sayzio FOR… — deep-dive persona pages --}}
-<section class="pb-16">
+<section class="sec-rule pb-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10" data-anim="fade-up">
             <div class="text-xs font-bold uppercase tracking-[.2em] text-blue-300 mb-3">Sayzio for…</div>
@@ -126,7 +126,7 @@
 </section>
 
 {{-- USE CASE GRID --}}
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" data-anim="fade-up" data-stagger>
             @foreach($useCases as $i => $uc)

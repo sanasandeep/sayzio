@@ -1,6 +1,6 @@
 @extends('public.layouts.site')
 @section('content')
-<section class="relative pt-16 pb-10 lg:pt-20 lg:pb-12 overflow-hidden">
+<section class="sec-first relative pt-16 pb-10 lg:pt-20 lg:pb-12 overflow-hidden">
     <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:rgba(61,107,255,.06);"></div>
     <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <a href="/{{ $page->slug }}" class="text-xs text-blue-400 hover:underline">
@@ -11,7 +11,7 @@
     </div>
 </section>
 
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         @if($revisions->isEmpty())
             <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-8 text-center text-sm text-gray-400">

@@ -98,7 +98,7 @@
     $formSubmitLabel         = $or($formCfg['submit_label']        ?? '', 'Send message');
 @endphp
 
-<section class="relative pt-20 pb-12 lg:pt-28 lg:pb-16 overflow-hidden">
+<section class="sec-first relative pt-20 pb-12 lg:pt-28 lg:pb-16 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
         <div data-anim="fade-right">
@@ -157,7 +157,7 @@
     </div>
 </section>
 
-<section class="pb-12">
+<section class="sec-rule pb-12">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-2 gap-6" data-anim="fade-up" data-stagger>
         <div class="glass-panel rounded-2xl p-6 space-y-5">
             @if($detailsHeading !== '')<h2 class="text-lg font-bold text-white">{{ $detailsHeading }}</h2>@endif
@@ -243,7 +243,7 @@
 </section>
 
 @if(!empty($featureCards))
-<section class="pb-12">
+<section class="sec-rule pb-12">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-3 gap-5" data-anim="fade-up" data-stagger>
         @foreach($featureCards as $card)
             @php
@@ -261,7 +261,7 @@
 </section>
 @endif
 
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-[1fr_1fr] gap-6 items-start">
         @if($officeImageUrl !== '')
             <div class="img-frame aspect-[4/3] hidden md:block" data-anim="fade-right" data-tilt="4">
@@ -325,7 +325,7 @@
     </div>
 </section>
 
-<section class="pb-10">
+<section class="sec-rule pb-10">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8" data-anim="fade-up">
         <a href="{{ route('site.pricing') }}#custom-plan-request"
            class="group flex items-center gap-4 p-5 rounded-2xl bg-white/[0.025] border border-white/10 hover:border-blue-400/30 transition-all">
@@ -342,7 +342,7 @@
     </div>
 </section>
 
-<section class="pb-16">
+<section class="sec-rule pb-16">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8" data-anim="fade-up">
         <div class="glass-panel rounded-2xl p-6 sm:p-8">
             <div class="flex items-center gap-2 text-[11px] uppercase tracking-wider text-emerald-300 font-semibold mb-2">

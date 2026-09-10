@@ -11,7 +11,7 @@
 @endphp
 
 @section('content')
-<section class="relative pt-24 pb-20 lg:pt-32 overflow-hidden">
+<section class="sec-first relative pt-24 pb-20 lg:pt-32 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="relative max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
 
