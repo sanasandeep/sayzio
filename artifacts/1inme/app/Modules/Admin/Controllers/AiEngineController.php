@@ -52,10 +52,28 @@ class AiEngineController extends Controller
             }
         }
 
+        // Providers, and the per-plan x per-module grid. Plans are read live
+        // rather than stored alongside the grid so a renamed or retired plan
+        // never leaves an orphan column the admin cannot clear.
+        $providers = \App\Services\AI\Providers\AiProviderRegistry::labels();
+        $providerKeys = [];
+        foreach (array_keys($providers) as $slug) {
+            $providerKeys[$slug] = \App\Services\AI\Providers\AiProviderRegistry::driver($slug)->key() !== null;
+        }
+
         return view('admin.ai-engine.edit', [
             'enabled'         => AiEngineSettings::isEnabled(),
             'maskedKey'       => AiEngineSettings::maskedOpenAiKey(),
             'hasKey'          => AiEngineSettings::openAiKey() !== null,
+
+            'providers'            => $providers,
+            'providerHasKey'       => $providerKeys,
+            'providerFallback'     => AiEngineSettings::providerFallbackOrder(),
+            'plans'                => \App\Modules\Admin\Models\Plan::query()
+                                        ->where('status', 'active')
+                                        ->orderBy('sort_order')
+                                        ->get(['id', 'name', 'slug']),
+            'planFeatureModels'    => AiEngineSettings::planFeatureModels(),
             'models'          => $models,
             'features'        => AiEngineSettings::FEATURES,
             'featureModels'   => $featureModels,
@@ -97,6 +115,16 @@ class AiEngineController extends Controller
             'enabled'                       => 'nullable|boolean',
             'openai_api_key'                => 'nullable|string|max:255',
             'clear_openai_api_key'          => 'nullable|boolean',
+            'openrouter_api_key'            => 'nullable|string|max:255',
+            'clear_openrouter_api_key'      => 'nullable|boolean',
+            'anthropic_api_key'             => 'nullable|string|max:255',
+            'clear_anthropic_api_key'       => 'nullable|boolean',
+            'provider_fallback'             => 'array',
+            'provider_fallback.*'           => 'string|in:openai,openrouter,anthropic',
+            'plan_feature_models'           => 'array',
+            'plan_feature_models.*'         => 'array',
+            'plan_feature_models.*.*'       => 'nullable|string|max:64',
+            'models.*.provider'             => 'nullable|string|in:openai,openrouter,anthropic',
             'models'                        => 'array',
             'models.*.name'                 => 'required_with:models|string|max:64',
             'models.*.kind'                 => 'required_with:models|in:chat,embedding',
@@ -182,6 +210,30 @@ class AiEngineController extends Controller
             AiEngineSettings::setOpenAiKey(null);
         } elseif (!empty($data['openai_api_key'])) {
             AiEngineSettings::setOpenAiKey($data['openai_api_key']);
+        }
+
+        if ($request->boolean('clear_openrouter_api_key')) {
+            AiEngineSettings::setOpenRouterKey(null);
+        } elseif (!empty($data['openrouter_api_key'])) {
+            AiEngineSettings::setOpenRouterKey($data['openrouter_api_key']);
+        }
+
+        if ($request->boolean('clear_anthropic_api_key')) {
+            AiEngineSettings::setAnthropicKey(null);
+        } elseif (!empty($data['anthropic_api_key'])) {
+            AiEngineSettings::setAnthropicKey($data['anthropic_api_key']);
+        }
+
+        // A key change re-keys the memoised drivers; without this the rest
+        // of THIS request would still be holding the old one.
+        \App\Services\AI\Providers\AiProviderRegistry::flush();
+
+        if (array_key_exists('provider_fallback', $data)) {
+            AiEngineSettings::setProviderFallbackOrder($data['provider_fallback']);
+        }
+
+        if (array_key_exists('plan_feature_models', $data)) {
+            AiEngineSettings::setPlanFeatureModels($data['plan_feature_models']);
         }
 
         // Models: update only when the form actually submitted them

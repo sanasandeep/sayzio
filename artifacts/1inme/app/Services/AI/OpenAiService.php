@@ -3,6 +3,8 @@
 namespace App\Services\AI;
 
 use App\Modules\User\Models\User;
+use App\Services\AI\Providers\AiProviderException;
+use App\Services\AI\Providers\AiProviderRegistry;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -91,10 +93,24 @@ class OpenAiService
             'tool_choice'       => $opts['tool_choice'] ?? null,
         ], fn($v) => $v !== null);
 
-        $response = $this->request('POST', '/chat/completions', $payload);
+        // The call itself, plus any cross-provider fallback. $model and
+        // $modelCfg are rebound because a fallback answers on a DIFFERENT
+        // model, and everything downstream -- the cost, the ledger row, the
+        // 'model' key the caller reads back -- has to describe what actually
+        // ran, not what we first asked for.
+        [$result, $model, $modelCfg, $provider] = $this->dispatch(
+            $user,
+            $model,
+            $modelCfg,
+            $multiplier,
+            fn (string $m) => AiProviderRegistry::driver(
+                AiProviderRegistry::normalise(AiEngineSettings::model($m)['provider'] ?? null)
+            )->chat($m, $messages, $opts),
+        );
 
-        $tokensIn  = (int) ($response['usage']['prompt_tokens'] ?? 0);
-        $tokensOut = (int) ($response['usage']['completion_tokens'] ?? 0);
+        $response  = $result['raw'];
+        $tokensIn  = $result['tokens_in'];
+        $tokensOut = $result['tokens_out'];
         $cost      = $this->computeCost($modelCfg, $tokensIn, $tokensOut, $multiplier);
 
         // Skip the ledger entry entirely when the admin has set rates to
@@ -107,9 +123,9 @@ class OpenAiService
                 'model'      => $model,
                 'tokens_in'  => $tokensIn,
                 'tokens_out' => $tokensOut,
-                'provider'   => 'openai',
+                'provider'   => $provider,
                 'multiplier' => $multiplier,
-                'reason'     => $opts['reason'] ?? "OpenAI chat ({$model})",
+                'reason'     => $opts['reason'] ?? "AI chat ({$provider}/{$model})",
                 'meta'       => array_merge(
                     is_array($opts['meta'] ?? null) ? $opts['meta'] : [],
                     ['call_id' => $response['id'] ?? null],
@@ -117,18 +133,17 @@ class OpenAiService
             ])
             : null;
 
-        $message     = $response['choices'][0]['message'] ?? [];
-        $finish      = (string) ($response['choices'][0]['finish_reason'] ?? '');
-        $toolCalls   = is_array($message['tool_calls'] ?? null) ? $message['tool_calls'] : [];
+        $finish = (string) ($response['choices'][0]['finish_reason'] ?? $response['stop_reason'] ?? '');
 
         return [
-            'content'       => (string) ($message['content'] ?? ''),
-            'tool_calls'    => $toolCalls,
+            'content'       => (string) ($result['content'] ?? ''),
+            'tool_calls'    => $result['tool_calls'],
             'finish_reason' => $finish,
             'tokens_in'     => $tokensIn,
             'tokens_out'    => $tokensOut,
             'credits_spent' => $tx ? (int) abs($tx->delta_coins) : 0,
             'model'         => $model,
+            'provider'      => $provider,
             'raw'           => $response,
         ];
     }
@@ -420,17 +435,128 @@ class OpenAiService
     }
 
     /** Returns the validated model config or throws. */
+    /**
+     * Run $call against the model's own provider, and on a failure another
+     * vendor could plausibly survive, against each provider in the fallback
+     * chain in turn.
+     *
+     * Two things make this more than a retry loop:
+     *
+     *   1. Each attempt uses a DIFFERENT model, because a fallback provider
+     *      does not serve the same model name. So affordability is re-checked
+     *      per attempt -- the prepay gate the caller already passed was
+     *      computed for the original model, and silently running a pricier
+     *      one on a user who cannot afford it would put them in debt.
+     *
+     *   2. A 400-class failure is NOT retried. That is our own bad request
+     *      (unknown model, malformed tool schema, oversized prompt); every
+     *      other vendor rejects it too, and walking the ring just triples the
+     *      latency before failing with the same message.
+     *
+     * Returns [result, modelUsed, modelCfgUsed, providerUsed].
+     *
+     * @param  callable(string):array  $call  takes a model name, returns a driver result
+     * @return array{0:array,1:string,2:array,3:string}
+     */
+    protected function dispatch(
+        User $user,
+        string $model,
+        array $modelCfg,
+        float $multiplier,
+        callable $call,
+    ): array {
+        $startProvider = AiProviderRegistry::normalise($modelCfg['provider'] ?? null);
+        $chain         = AiProviderRegistry::fallbackChain($startProvider);
+
+        $attempted = [];
+        $last      = null;
+
+        foreach ($chain as $i => $provider) {
+            // The first hop is the model the caller actually asked for; every
+            // later hop has to find that provider's stand-in.
+            $candidate = $i === 0 ? $model : AiEngineSettings::fallbackModelFor($provider);
+            if (!$candidate) {
+                continue;
+            }
+
+            $cfg = $i === 0 ? $modelCfg : AiEngineSettings::model($candidate);
+            if (!$cfg || !$cfg['enabled'] || $cfg['kind'] !== 'chat') {
+                continue;
+            }
+
+            if ($i > 0) {
+                $worstCase = $this->computeCost(
+                    $cfg,
+                    $this->estimateTextTokens(''),
+                    self::DEFAULT_MAX_OUTPUT_TOKENS,
+                    $multiplier,
+                );
+                try {
+                    if ($worstCase > 0) {
+                        $this->ensureCanAfford($user, $worstCase);
+                    }
+                } catch (\Throwable $e) {
+                    // Cannot afford the stand-in. Not a provider problem, so
+                    // do not keep walking the chain looking for a cheaper one
+                    // the caller never chose -- surface the original failure.
+                    break;
+                }
+            }
+
+            $attempted[] = "{$provider}/{$candidate}";
+
+            try {
+                $result = $call($candidate);
+
+                if ($i > 0) {
+                    // A silent switch to another vendor is exactly the thing
+                    // that turns into an unexplained invoice, so it is stated
+                    // once per occurrence with what it replaced.
+                    Log::warning(sprintf(
+                        'AI fallback: %s/%s failed, served by %s/%s instead. Chain: %s',
+                        $startProvider,
+                        $model,
+                        $provider,
+                        $candidate,
+                        implode(' -> ', $attempted),
+                    ));
+                }
+
+                return [$result, $candidate, $cfg, $provider];
+            } catch (AiProviderException $e) {
+                $last = $e;
+
+                if (!$e->isWorthFallingBackFrom()) {
+                    throw $e;
+                }
+                if ($e->isCredentialProblem()) {
+                    Log::error("AI provider {$provider} rejected its API key (HTTP {$e->status}); check Admin -> AI Engine.");
+                }
+            }
+        }
+
+        throw $last ?? new AiProviderException(
+            'No AI provider could serve this request. Tried: ' . (implode(', ', $attempted) ?: 'none'),
+        );
+    }
+
     protected function guard(string $model, string $expectedKind): array
     {
         if (!AiEngineSettings::isEnabled()) {
             throw new \RuntimeException('AI Engine is disabled.');
         }
-        if (!AiEngineSettings::openAiKey()) {
-            throw new \RuntimeException('OpenAI API key is not configured.');
-        }
         $cfg = AiEngineSettings::model($model);
         if (!$cfg || !$cfg['enabled']) {
             throw new \RuntimeException("Model not enabled: {$model}");
+        }
+        // The key that matters is the one for THIS model's provider, not
+        // OpenAI's. Checking openAiKey() unconditionally would have made an
+        // Anthropic-served model unusable on a site with no OpenAI key at
+        // all -- which is a configuration the admin is now allowed to have.
+        $provider = AiProviderRegistry::normalise($cfg['provider'] ?? null);
+        if (!AiProviderRegistry::driver($provider)->key()) {
+            $label = AiProviderRegistry::driver($provider)->label();
+            throw new \RuntimeException("{$label} API key is not configured (required by model {$model}).");
         }
         if ($cfg['kind'] !== $expectedKind) {
             throw new \RuntimeException("Model {$model} is configured as {$cfg['kind']}, not {$expectedKind}.");
