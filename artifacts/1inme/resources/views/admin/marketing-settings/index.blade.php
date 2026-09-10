@@ -2,9 +2,11 @@
 @section('title', 'Marketing Settings')
 @section('content')
 @php
+    $defaultsMarquee = \App\Modules\Common\Support\SitePagesContent::heroMarqueeDefault();
     $defaultsTrust = \App\Modules\Common\Support\SitePagesContent::trustStripDefault();
     $defaultsTest = \App\Modules\Common\Support\SitePagesContent::testimonialsDefault();
     $defaultsWhy = \App\Modules\Common\Support\SitePagesContent::whyComparisonDefault();
+    $marqueeForJs = !empty($hero_marquee) ? $hero_marquee : $defaultsMarquee;
     $trustForJs = !empty($trust_strip) ? $trust_strip : $defaultsTrust;
     $landingForJs = !empty($landing_testimonials) ? $landing_testimonials : $defaultsTest;
     $featuresForJs = !empty($features_testimonials) ? $features_testimonials : $defaultsTest;
@@ -23,10 +25,12 @@
 
     <form method="POST" action="{{ route('admin.marketing-settings.update') }}"
           x-data='{
+              marquee: @json($marqueeForJs),
               trust: @json($trustForJs),
               landing: @json($landingForJs),
               features: @json($featuresForJs),
               why: @json($whyForJs),
+              marqueeDefaults: @json($defaultsMarquee),
               trustDefaults: @json($defaultsTrust),
               testDefaults: @json($defaultsTest),
               whyDefaults: @json($defaultsWhy),
@@ -296,12 +300,71 @@
             </div>
         </div>
 
+        {{-- Hero capability marquee --}}
+        <div class="glass rounded-2xl p-6 space-y-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="ak-strong text-lg font-semibold text-white">Hero capability marquee</h2>
+                    <p class="ak-muted text-xs text-white/50">
+                        The band that scrolls slowly across the bottom of the landing hero. Up to 18 items; the order here is the order they scroll in.
+                        Deleting every row restores the shipped list, because the band's height is part of the hero's grid and an empty one would leave a gap.
+                        Icons are Font Awesome names, e.g. <span class="font-mono">fa-qrcode</span>.
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="resetTo('marquee', marqueeDefaults)"
+                            class="ak-strong text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg text-white/80">
+                        <i class="fas fa-rotate-left mr-1"></i> Reset to defaults
+                    </button>
+                    <button type="button" @click="if(marquee.length<18) marquee.push({icon:'fa-circle-check',label:''})"
+                            class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
+                        <i class="fas fa-plus mr-1"></i> Add item
+                    </button>
+                </div>
+            </div>
+            <template x-for="(m,i) in marquee" :key="i">
+                <div class="bg-white/5 border border-white/10 rounded-xl p-3 grid sm:grid-cols-[1fr_2fr_auto_auto_auto] gap-2 items-center">
+                    <input type="text" :name="'hero_marquee['+i+'][icon]'" x-model="m.icon" placeholder="fa-qrcode"
+                           class="ak-strong ak-input px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono">
+                    <input type="text" :name="'hero_marquee['+i+'][label]'" x-model="m.label" placeholder="Dynamic QR codes" maxlength="60"
+                           class="ak-strong ak-input px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    <button type="button" @click="if(i>0){ marquee.splice(i-1,0,marquee.splice(i,1)[0]) }" :disabled="i===0"
+                            class="ak-muted text-white/50 hover:text-white text-xs px-2 disabled:opacity-25" title="Move up"><i class="fas fa-arrow-up"></i></button>
+                    <button type="button" @click="if(i<marquee.length-1){ marquee.splice(i+1,0,marquee.splice(i,1)[0]) }" :disabled="i===marquee.length-1"
+                            class="ak-muted text-white/50 hover:text-white text-xs px-2 disabled:opacity-25" title="Move down"><i class="fas fa-arrow-down"></i></button>
+                    <button type="button" @click="marquee.splice(i,1)" class="ak-red text-red-400 hover:text-red-300 text-xs px-2" title="Remove"><i class="fas fa-trash"></i></button>
+                </div>
+            </template>
+            <p x-show="marquee.length===0" class="ak-note text-xs text-white/40">No items, so the shipped list will be used.</p>
+
+            {{-- Live preview. Deliberately NOT animated: the point of the
+                 preview is to read the wording, and a preview that scrolls
+                 away from you while you type is worse than a still one. --}}
+            <div x-show="marquee.length>0" class="mt-2 pt-4 border-t border-white/5">
+                <div class="ak-note text-[10px] uppercase tracking-wider text-white/40 mb-3">Live preview</div>
+                <div class="rounded-xl bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 px-4 py-4 overflow-x-auto">
+                    <div class="flex items-center gap-x-8 whitespace-nowrap text-sm">
+                        <template x-for="(m,i) in marquee" :key="'mp'+i">
+                            <span class="flex items-center gap-2 text-gray-400 ak-muted">
+                                <i class="fas text-[13px] opacity-70" :class="(m.icon || 'fa-circle-check').replace(/^fas?\s+/, '')"></i>
+                                <span class="ak-strong font-semibold text-white/70" x-text="m.label || '—'"></span>
+                            </span>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Trust strip --}}
         <div class="glass rounded-2xl p-6 space-y-3">
             <div class="flex items-center justify-between">
                 <div>
                     <h2 class="ak-strong text-lg font-semibold text-white">Hero trust strip</h2>
-                    <p class="ak-muted text-xs text-white/50">Shown under the landing-page hero. Up to 6 items.</p>
+                    <p class="ak-muted text-xs text-white/50">
+                        The reliability signals under the landing-page hero, in the band that starts &ldquo;The engine behind every link you share&rdquo;.
+                        Up to 6. The big <strong>figures</strong> above them are a different screen &mdash; Site stats.
+                        Clearing every row restores the shipped four.
+                    </p>
                 </div>
                 <div class="flex items-center gap-2">
                     <button type="button" @click="resetTo('trust', trustDefaults)"
@@ -345,12 +408,31 @@
             </div>
         </div>
 
-        {{-- Why Sayzio comparison --}}
+        {{-- Why Sayzio comparison.
+
+             This writes `marketing_why_comparison`, which nothing reads, and
+             it is deliberately not being wired up.
+
+             Its shape is feature / ours / theirs -- one generic "them" column.
+             The comparison that IS on the site is a seven-tool boolean matrix
+             from `ComparisonContent`, shared by the homepage, /pricing,
+             /compare and each /compare/{competitor} page, and the homepage
+             teaser derives its headline figures from it. The two disagree on
+             the facts: this editor's shipped default says a drag-and-drop
+             Link in Bio page is "Limited" for the competition, while the
+             matrix records five of the seven as having one.
+
+             Rendering both would put a vague claim directly above a table
+             that contradicts it per-competitor -- which is a worse outcome
+             than an unread setting. Labelled honestly instead. --}}
         <div class="glass rounded-2xl p-6 space-y-3">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="ak-strong text-lg font-semibold text-white">Why Sayzio comparison</h2>
-                    <p class="ak-muted text-xs text-white/50">Rows in the comparison table on the landing page (just before pricing). Up to 12 rows. If the "Sayzio" column is left as <span class="font-mono">Yes</span> it renders as the green check pill; any other text is shown verbatim.</p>
+                    <h2 class="ak-strong text-lg font-semibold text-white">Why Sayzio comparison (not in use)</h2>
+                    <p class="ak-muted text-xs text-white/50">
+                        Nothing on the site reads this. The comparison visitors see is the seven-tool table shared by the homepage, /pricing and /compare, which lives in code (<span class="font-mono">ComparisonContent</span>) because each row is a per-competitor fact rather than a claim.
+                        Ask a developer to change it there; editing it here has no effect.
+                    </p>
                 </div>
                 <div class="flex items-center gap-2">
                     <button type="button" @click="resetTo('why', whyDefaults)"
@@ -409,12 +491,25 @@
             </div>
         </div>
 
-        {{-- Landing testimonials --}}
+        {{-- Landing testimonials.
+
+             This editor writes `marketing_landing_testimonials`, which nothing
+             on the site reads, and it should stay that way rather than being
+             wired up. The landing marquee is driven by the `Testimonial` model
+             under Admin -> Testimonials, which carries a rating, a marquee
+             lane, an accent colour and -- the part that matters -- an approval
+             state, because testimonials also arrive from a public submission
+             form. Quotes typed here would bypass that moderation entirely and
+             would render alongside, not instead of, the approved ones.
+
+             Left in place with honest labelling rather than deleted, because
+             deleting it silently loses whatever an admin has already typed
+             into it. --}}
         @include('admin.marketing-settings.partials._testimonial-editor', [
             'fieldName' => 'landing_testimonials',
             'modelKey'  => 'landing',
-            'title'     => 'Landing-page testimonials',
-            'helper'    => 'Shown in the carousel below the landing hero. Empty list hides the section.',
+            'title'     => 'Landing-page testimonials (not in use)',
+            'helper'    => 'Nothing on the site reads this. The landing page shows approved testimonials from Admin -> Testimonials, which also handles submissions from visitors. Edit them there.',
         ])
 
         {{-- Features testimonials --}}
@@ -422,7 +517,7 @@
             'fieldName' => 'features_testimonials',
             'modelKey'  => 'features',
             'title'     => 'Features-page testimonials',
-            'helper'    => 'Shown near the end of /features. Empty list hides the section.',
+            'helper'    => 'Shown near the end of /features, and on every AI-product and use-case page. One list drives all three. Empty list hides the section on all of them.',
         ])
 
         <div class="flex justify-end">

@@ -2915,16 +2915,81 @@ class SitePagesContent
     }
 
     /**
-     * Default trust-strip metrics shown under the landing hero.
+     * The reliability signals in the trust band, under the big figures.
+     *
+     * This default used to be four vanity metrics -- active creators, uptime
+     * SLA, average rating, time to first link -- which was a problem in two
+     * directions. The setting was never read by anything, so nothing rendered
+     * them; and the row they belong to already had four hardcoded signals of
+     * its own, while the FIGURES above it are separately admin-editable
+     * through Site stats. An admin filling this in would have been writing a
+     * second set of metrics to sit under the first set.
+     *
+     * These are the four signals the band has actually been shipping, so
+     * "reset to defaults" now restores what is on the page rather than
+     * something that has never been on it.
      */
     public static function trustStripDefault(): array
     {
         return [
-            ['value' => '12,000+', 'label' => 'Active creators',  'icon' => 'fa-users'],
-            ['value' => '99.9%',   'label' => 'Uptime SLA',       'icon' => 'fa-bolt'],
-            ['value' => '4.8/5',   'label' => 'Average rating',   'icon' => 'fa-star'],
-            ['value' => '< 60s',   'label' => 'Time to first link','icon' => 'fa-stopwatch'],
+            ['value' => '99.9% uptime',  'label' => 'multi-region edge',   'icon' => 'fa-shield-halved'],
+            ['value' => 'TLS 1.3',       'label' => 'end-to-end encrypted','icon' => 'fa-lock'],
+            ['value' => 'GDPR-ready',    'label' => 'EU/UK SCCs in place', 'icon' => 'fa-user-shield'],
+            ['value' => 'Daily backups', 'label' => '30-day retention',    'icon' => 'fa-server'],
         ];
+    }
+
+    /**
+     * The scrolling capability marquee that closes the landing hero.
+     *
+     * Not to be confused with `trustStripDefault()` above, which is the row of
+     * metrics in the trust band further down the page. This one is the band
+     * ruled into the hero's own lattice at the bottom of the fold: a plain
+     * list of what the product does, moving slowly past.
+     *
+     * The list was hardcoded in `home/partials/hero.blade.php`, which meant
+     * shipping a release to rename a feature. It is the first thing a visitor
+     * reads after the headline, so it is also the list most likely to go out
+     * of date.
+     */
+    public static function heroMarqueeDefault(): array
+    {
+        return [
+            ['icon' => 'fa-grip-vertical', 'label' => 'Drag & drop editor'],
+            ['icon' => 'fa-globe',         'label' => 'Live geo heatmap'],
+            ['icon' => 'fa-bolt',          'label' => 'Performance coach'],
+            ['icon' => 'fa-link',          'label' => 'Short links'],
+            ['icon' => 'fa-qrcode',        'label' => 'Dynamic QR codes'],
+            ['icon' => 'fa-users',         'label' => 'Follower system'],
+            ['icon' => 'fa-wpforms',       'label' => 'Form builder'],
+            ['icon' => 'fa-bullhorn',      'label' => 'Social proof'],
+            ['icon' => 'fa-address-book',  'label' => 'Contacts sync'],
+            ['icon' => 'fa-phone',         'label' => 'Built-in dialer'],
+        ];
+    }
+
+    /**
+     * Coerce admin input into a sane hero-marquee array.
+     *
+     * Capped at 18. The band scrolls two identical runs of the list side by
+     * side and translates by exactly half, so the seam only stays invisible
+     * while one run is at least as wide as the viewport -- a very long list
+     * costs nothing, but a very short one would show the loop.
+     */
+    public static function normalizeHeroMarquee(array $input): array
+    {
+        $out = [];
+        foreach (array_values($input) as $row) {
+            if (!is_array($row)) continue;
+            $label = trim((string) ($row['label'] ?? ''));
+            if ($label === '') continue;
+            $out[] = [
+                'icon'  => trim((string) ($row['icon'] ?? '')) ?: 'fa-circle-check',
+                'label' => mb_substr($label, 0, 60),
+            ];
+            if (count($out) >= 18) break;
+        }
+        return $out;
     }
 
     /**

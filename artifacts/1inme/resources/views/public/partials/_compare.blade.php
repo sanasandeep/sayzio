@@ -78,14 +78,85 @@
 
         @if($teaser)
         {{-- ========================================================
-             TEASER — single CTA to the full comparison on /pricing.
+             TEASER — the homepage's version of this section.
+
+             It used to be the heading and a single button. A band of white
+             space with "See the full comparison" in the middle of it asks a
+             visitor to click through on trust: it makes a claim ("more
+             features, better deal") and then offers no evidence for it, so
+             there is no reason to go and look.
+
+             It is a panel now, and everything in it is DERIVED from
+             ComparisonContent rather than written here -- the scores, the
+             leading rival, and the features nothing else on the list has.
+             That matters twice over: the numbers cannot drift out of step
+             with the full matrix the button leads to, and nobody has to
+             remember to update marketing copy when a competitor ships
+             something.
              ======================================================== --}}
-        <div data-anim="fade-up" class="text-center">
-            <a href="{{ url('/pricing') }}#compare" class="cmp-cta">
-                <i class="fas fa-table-cells-large"></i>
-                See the full comparison
-                <i class="fas fa-arrow-right text-xs"></i>
-            </a>
+        @php
+            // Rivals by score, so the panel can name the closest one rather
+            // than an arbitrary first entry.
+            $__tzRivals = [];
+            foreach ($__cmpRivals as $__r) {
+                $__tzRivals[] = $__r + ['score' => (int) ($__cmpScores[$__r['key']] ?? 0)];
+            }
+            usort($__tzRivals, fn ($a, $b) => $b['score'] <=> $a['score']);
+            $__tzBest = $__tzRivals[0] ?? null;
+
+            // Features Sayzio has and NO rival on the list does. This is the
+            // most persuasive thing in the data, and it was not on the page.
+            $__tzOnly = [];
+            foreach ($__cmpFeaturesFlat as [$__name, $__matrix]) {
+                if (empty($__matrix['ours'])) { continue; }
+                $__rivalHits = array_filter(array_diff_key($__matrix, ['ours' => 1]));
+                if (count($__rivalHits) === 0) { $__tzOnly[] = $__name; }
+            }
+        @endphp
+        <div data-anim="fade-up" class="cmpt">
+            <div class="cmpt-main">
+                <p class="cmpt-eyebrow">Feature for feature</p>
+                <p class="cmpt-lead">
+                    <strong>{{ $__cmpScores['ours'] ?? $__cmpTotal }} of {{ $__cmpTotal }}.</strong>
+                    @if($__tzBest)
+                        The closest tool on the list, {{ $__tzBest['name'] }}, does {{ $__tzBest['score'] }}.
+                    @endif
+                </p>
+
+                @if(!empty($__tzOnly))
+                    <p class="cmpt-h">{{ count($__tzOnly) }} of them, nobody else has at all</p>
+                    <ul class="cmpt-only">
+                        @foreach($__tzOnly as $__f)
+                            <li><i class="fas fa-check" aria-hidden="true"></i>{{ $__f }}</li>
+                        @endforeach
+                    </ul>
+                @endif
+
+                <a href="{{ url('/pricing') }}#compare" class="cmp-cta cmpt-cta">
+                    <i class="fas fa-table-cells-large"></i>
+                    See all {{ $__cmpTotal }} side by side
+                    <i class="fas fa-arrow-right text-xs"></i>
+                </a>
+            </div>
+
+            {{-- The scoreboard. Bars rather than numbers alone: the gap is the
+                 argument, and a reader takes a length in faster than a pair of
+                 integers. Widths are percentages of the same total the button
+                 leads to. --}}
+            <ul class="cmpt-board" aria-label="Features covered, out of {{ $__cmpTotal }}">
+                <li class="cmpt-row cmpt-row--ours">
+                    <span class="cmpt-name">Sayzio</span>
+                    <span class="cmpt-bar"><span style="width:{{ round((($__cmpScores['ours'] ?? $__cmpTotal) / max($__cmpTotal, 1)) * 100) }}%"></span></span>
+                    <span class="cmpt-num">{{ $__cmpScores['ours'] ?? $__cmpTotal }}</span>
+                </li>
+                @foreach($__tzRivals as $__r)
+                    <li class="cmpt-row">
+                        <span class="cmpt-name">{{ $__r['name'] }}</span>
+                        <span class="cmpt-bar"><span style="width:{{ round(($__r['score'] / max($__cmpTotal, 1)) * 100) }}%"></span></span>
+                        <span class="cmpt-num">{{ $__r['score'] }}</span>
+                    </li>
+                @endforeach
+            </ul>
         </div>
         @else
 

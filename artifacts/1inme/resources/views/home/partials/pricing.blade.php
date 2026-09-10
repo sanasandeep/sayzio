@@ -154,10 +154,9 @@
                     {{-- The two blurred colour discs that used to drift behind this
                          card are gone with the rest of the page's ambient wash: on a
                          band that is already a flat surface they read as smudges. --}}
-                    {{-- Sparkles --}}
-                    <span class="free-spark" style="top:14%;left:82%; animation-delay:0s"></span>
-                    <span class="free-spark" style="top:46%;left:6%;  animation-delay:1.4s"></span>
-                    <span class="free-spark" style="top:70%;left:88%; animation-delay:.7s"></span>
+                    {{-- The three twinkling white dots went with them. Three
+                         pulsing points of light on a plain card is decoration
+                         that says nothing about the plan. --}}
 
                     <div class="relative">
                     <div class="text-xs font-bold uppercase tracking-wider mb-3 text-gray-400 flex items-center gap-2">
@@ -292,15 +291,26 @@
                         the one", it was just bigger. --}}
                    class="lift group relative block rounded-3xl p-8 pt-9 text-white transition-all duration-300 hover:-translate-y-1 overflow-hidden card-lit"
                    style="background: linear-gradient(152deg, #4E79FF 0%, #3d6bff 42%, #2C49D8 100%);">
-                    {{-- Ambient blobs --}}
-                    <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-white/15 blur-3xl pointer-events-none" style="animation: floatA 10s ease-in-out infinite;"></div>
-                    <div class="absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none" style="animation: floatB 12s ease-in-out infinite;"></div>
-                    {{-- Diagonal shimmer sweep --}}
-                    <div class="absolute inset-0 prem-shimmer pointer-events-none"></div>
-                    {{-- Sparkles --}}
-                    <span class="prem-spark" style="top:18%;left:88%; animation-delay:0s"></span>
-                    <span class="prem-spark" style="top:50%;left:6%;  animation-delay:1.1s"></span>
-                    <span class="prem-spark" style="top:78%;left:84%; animation-delay:.6s"></span>
+                    {{-- The two drifting white blurs, the diagonal shimmer
+                         sweep and the three twinkling sparkles are gone.
+
+                         They are the same three devices already taken off the
+                         rest of the page: ambient blur reads as haze rather
+                         than shape, and a white band travelling across the one
+                         bright object on a near-black page looks like a
+                         rendering fault rather than an effect -- which is
+                         exactly why the identical sweep came off the resume
+                         sheet. This card is the single most important surface
+                         in the section, and it was the one still doing all
+                         three.
+
+                         Nothing replaces them. The corner ribbon the feature
+                         cards now carry is how a card on a PLAIN ground says
+                         "this is the one" -- this card already is a saturated
+                         gradient, so a second gradient over the top of it read
+                         as a stain rather than an accent, which is what the
+                         first attempt looked like. The card was always being
+                         carried by its own colour. --}}
 
                     <div class="relative">
                         <div class="text-xs font-bold uppercase tracking-wider text-white/80 mb-3">Premium features</div>
@@ -361,13 +371,20 @@
             @endforeach
         </div>
 
-        {{-- Slim "more pricing details" link row — replaces the previous oversized drill-down card. --}}
-        <div class="reveal mt-6 max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-gray-400">
-            <span class="text-gray-500">More pricing details:</span>
-            <a href="{{ route('site.pricing') }}" @click="trackMarketingEvent('pricing')" class="inline-flex items-center gap-1.5 text-blue-300 hover:text-blue-200 font-semibold transition">
-                <i class="fas fa-tags text-[11px]"></i> Compare all plans
+        {{-- The way out of this section is to /pricing, and it used to be one
+             of three same-weight grey links in a row prefixed "More pricing
+             details:" -- a footnote, not a way onward. The full grid, the
+             coin packages and the annual maths all live on that page; this
+             section only ever shows two cards. So the main link is a button
+             and the two side errands stay quiet beneath it. --}}
+        <div class="reveal mt-8 text-center">
+            <a href="{{ route('site.pricing') }}" @click="trackMarketingEvent('pricing')" class="cmp-cta">
+                <i class="fas fa-tags"></i>
+                See every plan and what is in it
+                <i class="fas fa-arrow-right text-xs"></i>
             </a>
-            <span class="text-gray-700">·</span>
+        </div>
+        <div class="reveal mt-4 max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-gray-400">
             <a href="{{ route('site.pricing', ['view' => 'coins']) }}" @click="trackMarketingEvent('coins')" class="inline-flex items-center gap-1.5 text-blue-300 hover:text-blue-200 font-semibold transition">
                 <i class="fas fa-coins text-[11px] text-amber-400"></i> Coin packages
             </a>

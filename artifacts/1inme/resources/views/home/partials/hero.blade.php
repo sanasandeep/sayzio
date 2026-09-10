@@ -299,8 +299,32 @@
                                 'Then I answer your visitors, and pick up your calls.',
                                 'Free forever. Want to try me?',
                             ];
+
+                            /* The bubbles take turns in one slot above Zio's
+                               head, and the turn-taking was written for exactly
+                               four of them: a 16s loop with each bubble offset
+                               by 4s, and keyframes showing each one for a
+                               quarter of it.
+
+                               So the lines were admin-editable only as long as
+                               an admin kept the count at four. A fifth line got
+                               a 20s delay against a 16s loop, which lands it on
+                               the same 4s offset as the second -- two bubbles
+                               stacked in one slot. Three lines left a four-
+                               second hole with Zio gesturing at nothing.
+
+                               One slot is four seconds; the cycle is however
+                               many slots there are. The keyframe percentages
+                               below are derived from that rather than written
+                               down, and at four lines they come out as the
+                               2.5 / 21 / 24 they always were. */
+                            $zioCount = max(1, count($zioLines));
+                            $zioSlotPct = 100 / $zioCount;
+                            $zioIn   = round($zioSlotPct * 0.10, 3);
+                            $zioHold = round($zioSlotPct * 0.84, 3);
+                            $zioOut  = round($zioSlotPct * 0.96, 3);
                         @endphp
-                        <div class="zio-says">
+                        <div class="zio-says" style="--zio-cycle: {{ $zioCount * 4 }}s">
                             @foreach($zioLines as $i => $line)
                                 {{-- Body and tail are ONE path, so there is a
                                      single outline and no seam for the border to
@@ -348,23 +372,35 @@
          white caps and stars between every item — loud enough that it read as
          an advert wedged into the page. Same content, said quietly, and in
          the place where a visitor is still deciding whether to read on. --}}
+    @php
+        /*
+         * The items are admin-editable, under Marketing Settings -> "Hero
+         * capability marquee". Read here rather than passed in, the same way
+         * this partial already reads Zio's hero lines: the marquee belongs to
+         * the hero, and threading it through HomeController and every one of
+         * the seven fragment designs to reach one <span> would be more moving
+         * parts than the feature is worth.
+         *
+         * `?:` on the normalised result, not `??` on the setting: an admin who
+         * deletes every row should get the shipped list back rather than an
+         * empty band -- there is no meaningful "no marquee" state, and the
+         * band's height is part of the hero's grid.
+         */
+        try {
+            $__marquee = \App\Modules\Common\Support\SitePagesContent::normalizeHeroMarquee(
+                (array) \App\Modules\Admin\Models\AppSetting::get('marketing_hero_marquee', [])
+            );
+        } catch (\Throwable $e) {
+            $__marquee = [];
+        }
+        $__marquee = $__marquee ?: \App\Modules\Common\Support\SitePagesContent::heroMarqueeDefault();
+    @endphp
     <div class="zio-strip" aria-hidden="true">
         <div class="zio-strip-track">
             @for($__m = 0; $__m < 2; $__m++)
                 <div class="zio-strip-run">
-                    @foreach([
-                        ['fa-grip-vertical', 'Drag &amp; drop editor'],
-                        ['fa-globe',         'Live geo heatmap'],
-                        ['fa-bolt',          'Performance coach'],
-                        ['fa-link',          'Short links'],
-                        ['fa-qrcode',        'Dynamic QR codes'],
-                        ['fa-users',         'Follower system'],
-                        ['fa-wpforms',       'Form builder'],
-                        ['fa-bullhorn',      'Social proof'],
-                        ['fa-address-book',  'Contacts sync'],
-                        ['fa-phone',         'Built-in dialer'],
-                    ] as $__item)
-                        <span class="zio-strip-item"><i class="fas {{ $__item[0] }}"></i>{!! $__item[1] !!}</span>
+                    @foreach($__marquee as $__item)
+                        <span class="zio-strip-item"><i class="fas {{ $__item['icon'] }}"></i>{{ $__item['label'] }}</span>
                     @endforeach
                 </div>
             @endfor
@@ -622,16 +658,58 @@
         }
 
         /* ---------- the closing strip ---------- */
+        /* The strip is a ROW OF THE LATTICE, not a bar laid over it.
+
+           It had one rule along its top, an arbitrary 20px of padding either
+           side of the text, and an opaque page-coloured ground that hid the
+           lattice's vertical lines behind it. So it floated: a band whose
+           height agreed with nothing on the page, open at the bottom, sitting
+           on top of the grid rather than in it.
+
+           Three things make it a row instead. Its height is exactly one cell,
+           so it is the same size as everything else the lattice measures. It
+           is ruled top AND bottom, at the lattice's own weight and colour --
+           the missing bottom border is what left it looking unfinished. And
+           it redraws the lattice's vertical lines across itself, at the same
+           `--grid` size and the same `50%` phase, so they continue straight
+           through the band and the items sit between them. */
         .zio-strip {
             position: absolute; left: 0; right: 0; bottom: 0;
             z-index: 3;
-            padding: 20px 0;
+            height: var(--grid);
+            display: flex; align-items: center;
             border-top: 1px solid var(--fs-rule, rgba(255,255,255,.14));
-            background: var(--fs-page, #fff);
+            border-bottom: 1px solid var(--fs-rule, rgba(255,255,255,.14));
+            background-color: var(--fs-page, #fff);
+            background-image: linear-gradient(to right, var(--strip-line, rgba(15,23,42,.05)) 1px, transparent 1px);
+            background-size: var(--grid) 100%;
+            background-position: 50% 0;
             overflow: hidden;
             /* Items enter and leave rather than being chopped at the edge. */
             -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
                     mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+        }
+        html:not(.light-mode) .zio-strip { --strip-line: rgba(255,255,255,.055); }
+
+        /* ...and the last piece: the hero's own height has to be a whole
+           number of cells, or the row is the right size in the wrong place.
+
+           The lattice tiles from the TOP of the hero, so its horizontal lines
+           fall at 0, g, 2g and so on. The strip is pinned to the BOTTOM. With
+           the hero at 100svh -- 950px against an 81px cell -- the last line
+           landed at 891 and the strip's top edge at 869: a cell-tall band
+           sitting 22px off the grid it is meant to belong to.
+
+           Rounding the hero's min-height down to a whole number of cells puts
+           a line on its bottom edge, and therefore on the strip's top edge
+           too. Guarded on `round()` like the rail snapping in
+           surfaces.blade.php, and scoped to the breakpoint where the strip is
+           actually pinned -- below `lg` it goes static and none of this
+           applies. It costs less than one cell of hero height. */
+        @media (min-width: 1024px) {
+            @supports (height: round(down, 10px, 3px)) {
+                #hero { min-height: round(down, 100svh, var(--grid)); }
+            }
         }
         .zio-strip-track { display: flex; width: max-content; animation: zioStrip 46s linear infinite; }
         .zio-strip:hover .zio-strip-track { animation-play-state: paused; }
@@ -1015,7 +1093,7 @@
             opacity: 0;
             transform: translateY(6px) scale(.96);
             transform-origin: 50% 88%;
-            animation: zioSay 16s ease-in-out infinite;
+            animation: zioSay var(--zio-cycle, 16s) ease-in-out infinite;
             animation-delay: calc(var(--i) * 4s);
         }
         .zio-bubble-shape {
@@ -1058,10 +1136,13 @@
         }
         /* No translate(-50%) any more: the bubble is inset:0 inside .zio-says
            and the parent does the centring, so these only carry the lift. */
+        /* Percentages cannot be a CSS variable, so this one set of keyframes
+           is emitted for the number of lines the page actually has. See the
+           note beside `$zioCount` where the markup is built. */
         @keyframes zioSay {
-            0%              { opacity: 0; transform: translateY(6px) scale(.96); }
-            2.5%, 21%       { opacity: 1; transform: translateY(0) scale(1); }
-            24%, 100%       { opacity: 0; transform: translateY(-4px) scale(.98); }
+            0%                                          { opacity: 0; transform: translateY(6px) scale(.96); }
+            {{ $zioIn }}%, {{ $zioHold }}%              { opacity: 1; transform: translateY(0) scale(1); }
+            {{ $zioOut }}%, 100%                        { opacity: 0; transform: translateY(-4px) scale(.98); }
         }
         .zio-core-label {
             margin-top: 6px;

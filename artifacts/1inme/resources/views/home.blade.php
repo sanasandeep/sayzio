@@ -248,31 +248,13 @@
         /* ============ Drawn underline ============ */
         .draw-line { stroke-dasharray: 220; stroke-dashoffset: 220; animation: drawLine 1.6s 1s ease-out forwards; }
 
-        /* ============ Pricing card sparkles & shimmer ============ */
-        .free-spark, .prem-spark {
-            position: absolute; width: 10px; height: 10px; border-radius: 50%;
-            background: radial-gradient(circle, #fff 0%, rgba(255,255,255,.6) 40%, transparent 70%);
-            opacity: 0; pointer-events: none;
-            animation: sparkPulse 3.4s ease-in-out infinite;
-            filter: drop-shadow(0 0 6px rgba(255,255,255,.7));
-        }
-        .prem-spark { width: 8px; height: 8px; }
-        @keyframes sparkPulse {
-            0%, 100% { opacity: 0; transform: scale(.4); }
-            50% { opacity: 1; transform: scale(1.2); }
-        }
-
-        /* Diagonal shimmer sweep across the premium card */
-        .prem-shimmer::before {
-            content: ""; position: absolute; inset: 0;
-            background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.18) 48%, rgba(255,255,255,.30) 50%, rgba(255,255,255,.18) 52%, transparent 70%);
-            transform: translateX(-100%);
-            animation: premSweep 5.5s ease-in-out infinite;
-        }
-        @keyframes premSweep {
-            0% { transform: translateX(-100%); }
-            55%, 100% { transform: translateX(120%); }
-        }
+        /* The pricing cards' sparkles and the premium card's shimmer sweep
+           used to be defined here. Both are gone with their markup: the
+           sweep was the same white band that came off the resume sheet, and
+           three pulsing dots are decoration that says nothing about a plan.
+           Removing the rules as well as the elements, so the next person to
+           read this file does not find styling for something that no longer
+           exists and wonder where it went. */
 
         /* Premium feature blocks subtle entrance + icon halo on hover */
         /* ─── Section dividers ───
@@ -2983,11 +2965,19 @@
 
            It is all done from the parent, by position — no per-card markup,
            and a card added to a row gets its colours for free. */
+        /* The cycle was four pairs long and walked the whole brand palette:
+           cyan-blue, blue-violet, pink-orange, orange-amber. Two of those four
+           are warm, so any row of four cards put a pink icon and an orange one
+           next to two cool ones, and with several such rows down the page the
+           icon tiles read as a rainbow rather than as one product.
+
+           It is two pairs now, both cool. Neighbours still differ -- which is
+           the reason the cycle exists -- but the page holds a single
+           temperature, and the warm end of the palette is spent somewhere it
+           means something (the CTA ribbon) instead of on every icon chip. */
         .card-row > * { --g1: #3d6bff; --g2: #7c5cff; }
-        .card-row > *:nth-child(4n+1) { --g1: #1bd4d9; --g2: #3d6bff; }
-        .card-row > *:nth-child(4n+2) { --g1: #3d6bff; --g2: #7c5cff; }
-        .card-row > *:nth-child(4n+3) { --g1: #e94e8c; --g2: #ff8a3c; }
-        .card-row > *:nth-child(4n+4) { --g1: #ff8a3c; --g2: #ffc845; }
+        .card-row > *:nth-child(2n+1) { --g1: #1bd4d9; --g2: #3d6bff; }
+        .card-row > *:nth-child(2n)   { --g1: #3d6bff; --g2: #7c5cff; }
 
         /* The `html` prefix is load-bearing: surfaces sets
            `background-image: none !important` on these same cards, and among

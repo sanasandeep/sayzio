@@ -263,16 +263,36 @@
                 </div>
             @endif
 
+            {{-- These four were hardcoded here while `marketing_trust_strip`
+                 sat in Marketing Settings being written and read by nothing.
+                 The admin screen has always called this row the "hero trust
+                 strip" and its live preview draws exactly this shape, so this
+                 is the row it was built for. It is read now.
+
+                 Not the figures above: those come from Site stats, which is a
+                 separate admin screen with its own model. Two admin-editable
+                 metric rows stacked on each other is the confusion this
+                 setting was one step away from causing.
+
+                 `?:` on the normalised value rather than `??` on the setting:
+                 an admin who clears every row gets the shipped signals back,
+                 because a band with a heading and no signals under it is worse
+                 than the four it started with. --}}
+            @php
+                try {
+                    $__pbSignals = \App\Modules\Common\Support\SitePagesContent::normalizeTrustStrip(
+                        (array) \App\Modules\Admin\Models\AppSetting::get('marketing_trust_strip', [])
+                    );
+                } catch (\Throwable $e) {
+                    $__pbSignals = [];
+                }
+                $__pbSignals = $__pbSignals ?: \App\Modules\Common\Support\SitePagesContent::trustStripDefault();
+            @endphp
             <div class="pb-signals">
-                @foreach([
-                    ['fa-shield-halved', '99.9% uptime',  'multi-region edge'],
-                    ['fa-lock',          'TLS 1.3',       'end-to-end encrypted'],
-                    ['fa-user-shield',   'GDPR-ready',    'EU/UK SCCs in place'],
-                    ['fa-server',        'Daily backups', '30-day retention'],
-                ] as [$icon, $title, $sub])
+                @foreach($__pbSignals as $__sig)
                     <span class="pb-signal">
-                        <i class="fas {{ $icon }}" aria-hidden="true"></i>
-                        <b>{{ $title }}</b>{{ $sub }}
+                        <i class="fas {{ $__sig['icon'] }}" aria-hidden="true"></i>
+                        <b>{{ $__sig['value'] }}</b>{{ $__sig['label'] }}
                     </span>
                 @endforeach
             </div>

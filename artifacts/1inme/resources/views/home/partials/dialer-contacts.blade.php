@@ -314,18 +314,24 @@
     /* Feature pills */
     .dc-feat { transition: transform .35s ease, background .35s ease, border-color .35s ease; }
     .dc-feat:hover { transform: translateX(6px); border-color: rgba(27,212,217,.45); background: rgba(27,212,217,.08); }
+    /* Feature-row icon tile. Same treatment as `.rb-feat-icon` in the Resume
+       section: one accent for the whole section rather than a different hue
+       per row, and a soft tint rather than a solid block with a pulsing ring.
+       Kept as its own class because this section's accent is the teal it uses
+       throughout, not Resume's blue. */
+    .dc-feat-icon { --dc-c: #1bd4d9; }
     .dc-feat-icon {
         width: 44px; height: 44px; border-radius: 14px;
         display:flex; align-items:center; justify-content:center; flex-shrink:0;
-        color: #fff; box-shadow: 0 12px 28px -10px var(--dc-c, #3d6bff);
-        background: var(--dc-c, #3d6bff); position: relative;
+        color: var(--dc-c, #3d6bff);
+        background: color-mix(in srgb, var(--dc-c, #3d6bff) 15%, transparent);
+        border: 1px solid color-mix(in srgb, var(--dc-c, #3d6bff) 28%, transparent);
+        position: relative;
     }
-    .dc-feat-icon::after {
-        content:""; position:absolute; inset:-5px; border-radius:18px;
-        border: 2px solid color-mix(in srgb, var(--dc-c, #3d6bff) 50%, transparent);
-        opacity:.35; animation: dcPulse 2.6s ease-in-out infinite;
+    html.light-mode .dc-feat-icon {
+        background: color-mix(in srgb, var(--dc-c, #3d6bff) 11%, #fff);
+        border-color: color-mix(in srgb, var(--dc-c, #3d6bff) 24%, transparent);
     }
-    @keyframes dcPulse { 0%,100% { transform: scale(1); opacity:.25; } 50% { transform: scale(1.08); opacity:.6; } }
 
     .dc-bubble {
         position: absolute; padding: 8px 12px; border-radius: 14px;
@@ -501,18 +507,18 @@
             {{-- RIGHT: features --}}
             <div class="space-y-4">
                 @foreach([
-                    ['fa-phone-volume', '#1bd4d9', 'Smart T9 dialer &amp; keypad',   'Type a name on the keypad and T9 finds the contact. Flip to a full alphanumeric keyboard whenever you want.'],
-                    ['fa-comments',     '#3d6bff', 'Quick channels, one tap',       'Call, SMS, WhatsApp, Telegram, Signal or Viber, jump straight into the right app from any contact.'],
-                    ['fa-rotate',       '#e94e8c', 'Two-way Google Contacts sync',  'Contacts stay in lockstep with Google via the People API, add or edit anywhere, changes flow both ways.'],
-                    ['fa-magnifying-glass', '#ff8a3c', 'Universal finder',          'One search spans contacts, people on Sayzio, your links, biolinks and workspaces, grouped and ready to act.'],
-                    ['fa-id-card',      '#22c55e', 'AI business-card scanner',      'Snap a card or brochure and AI extracts the name, numbers, emails and socials into a clean new contact.'],
-                    ['fa-address-card', '#22d3ee', 'Phone &rarr; biolink caller ID', 'Numbers resolve to rich Sayzio profiles, and a tap exports any contact as a shareable vCard.'],
+                    ['fa-phone-volume', 'Smart T9 dialer &amp; keypad',   'Type a name on the keypad and T9 finds the contact. Flip to a full alphanumeric keyboard whenever you want.'],
+                    ['fa-comments',     'Quick channels, one tap',       'Call, SMS, WhatsApp, Telegram, Signal or Viber, jump straight into the right app from any contact.'],
+                    ['fa-rotate',       'Two-way Google Contacts sync',  'Contacts stay in lockstep with Google via the People API, add or edit anywhere, changes flow both ways.'],
+                    ['fa-magnifying-glass', 'Universal finder',          'One search spans contacts, people on Sayzio, your links, biolinks and workspaces, grouped and ready to act.'],
+                    ['fa-id-card',      'AI business-card scanner',      'Snap a card or brochure and AI extracts the name, numbers, emails and socials into a clean new contact.'],
+                    ['fa-address-card', 'Phone &rarr; biolink caller ID', 'Numbers resolve to rich Sayzio profiles, and a tap exports any contact as a shareable vCard.'],
                 ] as $i => $f)
                     <div class="reveal rd-{{ ($i % 4) + 1 }} dc-feat glass rounded-2xl p-4 flex items-start gap-4">
-                        <div class="dc-feat-icon" style="--dc-c: {{ $f[1] }};"><i class="fas {{ $f[0] }}"></i></div>
+                        <div class="dc-feat-icon"><i class="fas {{ $f[0] }}"></i></div>
                         <div class="min-w-0">
-                            <div class="text-base font-bold mb-1">{!! $f[2] !!}</div>
-                            <div class="text-sm text-gray-400 leading-relaxed">{!! $f[3] !!}</div>
+                            <div class="text-base font-bold mb-1">{!! $f[1] !!}</div>
+                            <div class="text-sm text-gray-400 leading-relaxed">{!! $f[2] !!}</div>
                         </div>
                     </div>
                 @endforeach

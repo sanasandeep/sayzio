@@ -66,9 +66,15 @@ class MarketingPageCache
         'marketing_default_share_image',
         'marketing_features_testimonials',
         'marketing_ga4_id',
+        // The hero's capability marquee and the trust band's reliability
+        // signals are both read per render now, so they belong here for the
+        // same reason their neighbours do: an unlisted key costs a
+        // cross-region query on the first request after a deploy.
+        'marketing_hero_marquee',
         'marketing_meta_pixel_id',
         'marketing_play_store_url',
         'marketing_seo',
+        'marketing_trust_strip',
         'marketing_whatsapp_channel_url',
         'marketing_whatsapp_message',
         'marketing_whatsapp_number',

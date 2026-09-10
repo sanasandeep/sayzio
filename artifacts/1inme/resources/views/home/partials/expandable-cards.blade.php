@@ -124,6 +124,21 @@
     }
     html.light-mode .xc-body [data-expand-more] { border-top-color: #E6E8F2; }
 
+    /* ---- white text arriving from a card that used to sit on colour ----
+       A cloned card brings its own colour assumptions with it. `.card-lit`
+       and `text-white` are stripped from the clone's root in open(), but the
+       Tailwind `text-white/NN` utilities live on the DESCENDANTS -- the
+       eyebrow, the muted sub-labels -- and no amount of root surgery reaches
+       those. On the modal's white panel every one of them is invisible.
+
+       Scoped to light mode only: in dark mode the panel is near-black and
+       white is the correct colour, so this must not fire there. */
+    html.light-mode .xc-body [class*="text-white"] { color: #4E5680 !important; }
+    html.light-mode .xc-body :is(h1,h2,h3,h4)[class*="text-white"] { color: #0F172A !important; }
+    /* Chips and rails drawn as translucent white read as nothing on white. */
+    html.light-mode .xc-body [class*="bg-white/"] { background-color: rgba(15,23,42,.05) !important; }
+    html.light-mode .xc-body [class*="border-white/"] { border-color: #E6E8F2 !important; }
+
     .xm-lead {
         margin: 0 0 22px; max-width: 70ch;
         font-size: 16px !important; line-height: 1.65; opacity: .85;
@@ -131,6 +146,12 @@
     /* Two columns on a wide panel — "what you get" beside "why it matters" —
        so a long block reads as two short ones instead of one deep scroll. */
     .xm-cols { display: grid; gap: 26px 40px; }
+    /* In a cloned card the lead is followed by the card's own spacing. Inside
+       a purpose-built panel it is followed directly by these columns, so the
+       gap has to be stated -- without it the first column heading sits on the
+       last line of the paragraph. */
+    .xcd-main .xm-cols { margin-top: 26px; }
+    .xcd-main .xm-note { margin-top: 22px; }
     @media (min-width: 860px) { .xm-cols { grid-template-columns: 1fr 1fr; } }
 
     .xm-h {
@@ -219,6 +240,12 @@
         position: relative; overflow: hidden; border-radius: 14px;
         border: 1px solid rgba(255,255,255,.10);
         display: grid; place-items: center; padding: 34px 28px; min-height: 300px;
+        /* Sized to what it holds, then centred against the copy -- not
+           stretched to the copy's height. The copy column can run to a
+           thousand words; the visual cannot, and a panel stretched to match it
+           is a bordered box with a small drawing adrift in the middle of it.
+           That empty region is the "dead space" in these modals. */
+        align-self: center;
     }
     html.light-mode .xcd-visual { border-color: #E6E8F2; }
     /* The panel is tall — it matches the copy column — so the demo sits in a
@@ -243,6 +270,139 @@
     /* The demo is drawn at card size; in here it gets the room to be read. */
     .xcd-demo { position: relative; width: 100%; max-width: 340px; }
     @media (min-width: 900px) { .xcd-demo { transform: scale(1.12); } }
+
+    /* ---- a visual panel that keeps its own lit ground ----
+       Some product visuals are drawn FOR colour: the Coach ring, its glow and
+       the suggestion rows all assume a saturated blue behind them. Dropping
+       them onto the modal's panel would mean recolouring every part of them
+       for no gain, and in light mode it would mean recolouring them twice.
+       This variant gives that visual the ground it was drawn for, in both
+       modes, so the copy column can stay a plain reading surface. */
+    .xcd-visual--lit {
+        background: linear-gradient(152deg, #4E79FF 0%, #3d6bff 42%, #2C49D8 100%);
+        border-color: rgba(255,255,255,.16);
+        color: #fff;
+    }
+    html.light-mode .xcd-visual--lit { border-color: rgba(61,107,255,.28); }
+    /* The white-text neutraliser further up is for cloned CARDS landing on a
+       white panel. This panel is deliberately blue, so it opts back out --
+       otherwise the eyebrow and muted labels turn slate on blue. */
+    html.light-mode .xcd-visual--lit [class*="text-white"] { color: rgba(255,255,255,.82) !important; }
+    html.light-mode .xcd-visual--lit :is(h1,h2,h3,h4)[class*="text-white"] { color: #fff !important; }
+    html.light-mode .xcd-visual--lit [class*="bg-white/"] { background-color: rgba(255,255,255,.12) !important; }
+    html.light-mode .xcd-visual--lit [class*="border-white/"] { border-color: rgba(255,255,255,.18) !important; }
+
+    .coach-modal-demo { width: 100%; display: grid; gap: 16px; justify-items: center; }
+    /* The ring is the anchor, so it gets to be bigger here than on the card. */
+    .coach-modal-demo .coach-ring { width: min(210px, 62%); }
+    .coach-modal-tips { width: 100%; display: grid; gap: 10px; margin-top: 4px; }
+    /* Two rows, not the card's four: the modal's job is to explain the
+       Coach, and the copy column already lists what it suggests. Four would
+       be the card repeated next to its own explanation. */
+
+    /* ---------- the three domain panels ----------
+       Each card in the Domains band shows a small proof next to its copy: the
+       five branded hosts, a DNS record, three slugs. In the panel there is
+       room for the version the card could not fit -- the picker, the sequence,
+       the one page three URLs arrive at -- so `.dmv` is that, in three shapes
+       off one set of tokens. It sits inside `.xcd-visual`, which supplies the
+       panel, the border and the centring; `.dmv` only lays out its contents. */
+    .dmv { width: 100%; max-width: 380px; display: grid; gap: 12px; }
+    .dmv-cap {
+        margin: 0; font-size: 10.5px; font-weight: 700; letter-spacing: .16em;
+        text-transform: uppercase; opacity: .55;
+    }
+    .dmv-foot {
+        margin: 2px 0 0; font-size: 11.5px; opacity: .6;
+        display: flex; align-items: center; gap: 7px;
+    }
+    .dmv-foot i { font-size: 10px; color: var(--g1, #3d6bff); }
+
+    /* 1 · the picker */
+    .dmv-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+    .dmv-row {
+        display: flex; align-items: center; gap: 10px;
+        padding: 9px 12px; border-radius: 11px;
+        border: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.04);
+        font-size: 12.5px;
+    }
+    html.light-mode .dmv-row { border-color: #E6E8F2; background: #fff; }
+    .dmv-row.is-on {
+        border-color: color-mix(in srgb, var(--g1, #3d6bff) 55%, transparent);
+        background: color-mix(in srgb, var(--g1, #3d6bff) 12%, transparent);
+    }
+    html.light-mode .dmv-row.is-on { background: color-mix(in srgb, var(--g1, #3d6bff) 9%, #fff); }
+    .dmv-radio {
+        width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+        border: 2px solid currentColor; opacity: .32;
+    }
+    .dmv-row.is-on .dmv-radio {
+        opacity: 1; color: var(--g1, #3d6bff);
+        box-shadow: inset 0 0 0 3px currentColor, inset 0 0 0 4px transparent;
+        background: transparent;
+    }
+    .dmv-host { font-weight: 700; }
+    .dmv-slug { margin-left: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; opacity: .5; }
+
+    /* 2 · the setup sequence */
+    .dmv-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+    .dmv-step { display: flex; gap: 11px; padding-bottom: 16px; position: relative; }
+    .dmv-step:last-child { padding-bottom: 0; }
+    /* The connector is drawn from the step ABOVE, so the last step has none and
+       the line never overshoots into empty space. */
+    .dmv-step:not(:last-child)::before {
+        content: ""; position: absolute; left: 12px; top: 26px; bottom: 4px;
+        width: 2px; border-radius: 2px;
+        background: color-mix(in srgb, var(--g1, #3d6bff) 34%, transparent);
+    }
+    .dmv-dot {
+        width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 10px; color: #fff;
+        background: color-mix(in srgb, var(--g1, #3d6bff) 78%, transparent);
+        position: relative; z-index: 1;
+    }
+    .dmv-step.is-live .dmv-dot { background: var(--g1, #3d6bff); }
+    .dmv-step-b { display: grid; gap: 3px; min-width: 0; }
+    .dmv-step-t { font-size: 13px; font-weight: 700; }
+    .dmv-step-s { font-size: 11.5px; opacity: .62; }
+    .dmv-code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11.5px; padding: 3px 8px; border-radius: 7px;
+        border: 1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.05);
+        justify-self: start;
+    }
+    html.light-mode .dmv-code { border-color: #E6E8F2; background: #F6F7FB; }
+
+    /* 3 · three doors, one page */
+    .dmv-alias { justify-items: center; gap: 0; }
+    .dmv-alias-in { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; width: 100%; }
+    .dmv-alias-in li {
+        display: flex; align-items: center; gap: 9px;
+        padding: 8px 12px; border-radius: 10px;
+        border: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.04);
+    }
+    html.light-mode .dmv-alias-in li { border-color: #E6E8F2; background: #fff; }
+    .dmv-alias-in code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    .dmv-star { font-size: 10px; color: var(--g1, #3d6bff); }
+    .dmv-star--dim { opacity: .45; }
+    /* The three rows converge on one target: a short stem is all it takes to
+       say "these arrive here" without drawing three curves. */
+    .dmv-join {
+        width: 2px; height: 22px; margin: 10px 0;
+        background: linear-gradient(180deg, color-mix(in srgb, var(--g1, #3d6bff) 55%, transparent), var(--g1, #3d6bff));
+        border-radius: 2px;
+    }
+    .dmv-target {
+        display: grid; justify-items: center; gap: 3px; text-align: center;
+        padding: 14px 20px; border-radius: 14px; width: 100%;
+        border: 1px solid color-mix(in srgb, var(--g1, #3d6bff) 45%, transparent);
+        background: color-mix(in srgb, var(--g1, #3d6bff) 12%, transparent);
+    }
+    html.light-mode .dmv-target { background: color-mix(in srgb, var(--g1, #3d6bff) 9%, #fff); }
+    .dmv-target > i { font-size: 15px; color: var(--g1, #3d6bff); margin-bottom: 2px; }
+    .dmv-target-t { font-size: 13.5px; font-weight: 700; }
+    .dmv-target-s { font-size: 11px; opacity: .62; }
 
     /* ---------- the link-type modal ----------
        Two columns: what it is on the left, the thing itself on the right. */
@@ -659,6 +819,25 @@
         clone.querySelectorAll('[x-data]').forEach(function (n) { n.removeAttribute('x-data'); });
         clone.querySelectorAll('.xc-btn').forEach(function (n) { n.remove(); });
         clone.classList.remove('xc-host');
+
+        // `.card-lit` means "I am a card that stays blue while the page turns
+        // white", and the only thing it does in light mode is force every
+        // descendant to white text so the copy survives that blue ground.
+        //
+        // The flattening below takes the blue ground away. Keeping the class
+        // then leaves white text on the modal's white panel, which is exactly
+        // what happened: the Performance Coach modal rendered blank in light
+        // mode, with only the CTAs visible because they are the one thing that
+        // rule deliberately exempts.
+        //
+        // `text-white` goes for the same reason -- it is the dark-mode half of
+        // the same assumption.
+        clone.classList.remove('card-lit');
+        clone.classList.remove('text-white');
+        // The decorative bloom circles are drawn in white-on-blue and turn
+        // into grey smudges once the blue is gone.
+        clone.querySelectorAll('.bg-white\\/10, .bg-white\\/5').forEach(function (n) { n.remove(); });
+
         // Card chrome belongs to the card; inside the modal it would be a box
         // drawn inside a box.
         clone.style.background = 'none';

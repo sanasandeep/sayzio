@@ -20,33 +20,110 @@
 {{-- ==================== ZONE · WHO IT'S FOR & HOW IT WORKS ==================== --}}
 {{-- ============================ AUDIENCE (CREATORS / BUSINESSES / NETWORKING) ============================ --}}
 @php
+    /*
+     * Each audience carries the card's three lines AND the panel's content.
+     *
+     * The panel used to be a clone of the card, so opening one of these showed
+     * the same eyebrow, the same headline and the same sentence at a larger
+     * size -- an animation, not an answer. `lead`, `left`, `right` and `stats`
+     * are the modal's own, and `key` picks which product mock is drawn beside
+     * them.
+     *
+     * `g1`/`g2` are stated per audience rather than inherited from the row
+     * cycle: a panel is opened on its own, away from its neighbours, so the
+     * positional cycle that keeps a ROW varied has nothing to vary against.
+     */
     $__audiences = [
         [
+            'key'     => 'creators',
             'eyebrow' => 'Creators',
             'title'   => 'Turn followers into fans, and income.',
             'desc'    => 'One link for every drop, with tips, products, DMs, scheduled posts and an AI coach to keep you growing.',
             'icon'    => 'fa-microphone-lines',
-            'color'   => '#e94e8c',
             'cta'     => 'Build my creator page',
+            'g1' => '#1bd4d9', 'g2' => '#3d6bff',
+            'lead'    => 'A follower who taps your bio link has already decided they are interested. The question is what they find when they get there: a list of links pointing away from you, or somewhere they can actually buy the thing, tip you, or say something.',
+            'left'    => [
+                'h' => 'What goes on the page',
+                'i' => [
+                    ['fa-check', '<strong>Every drop in one place</strong>, reordered whenever you like, with no app update and no new URL to post.'],
+                    ['fa-check', '<strong>Tips and paid pages</strong>, so support does not have to leave your page to reach you.'],
+                    ['fa-check', '<strong>DMs built in.</strong> A message about a brand deal lands somewhere you can find it again, not in a request folder.'],
+                    ['fa-check', '<strong>Scheduled posts</strong>, so a launch goes live at the hour you planned it rather than the hour you remembered.'],
+                ],
+            ],
+            'right'   => [
+                'h' => 'What it does for you',
+                'i' => [
+                    ['fa-chart-line', '<strong>You find out which link earns.</strong> Per-block clicks, by source, so "post more" becomes "post more of that".'],
+                    ['fa-wand-magic-sparkles', '<strong>The AI Coach reads the week for you</strong> and hands back one change worth making, with the number behind it.'],
+                    ['fa-mobile-screen', '<strong>It looks like you.</strong> Themes, fonts and your own colours, not a template with your face on it.'],
+                    ['fa-link', '<strong>One URL, forever.</strong> Change everything behind it without reprinting a bio.'],
+                ],
+            ],
+            'stats'   => [['1', 'link in your bio'], ['0', 'code required'], ['Free', 'to start'] ],
         ],
         [
+            'key'     => 'business',
             'eyebrow' => 'Businesses',
             'title'   => 'A landing page, storefront &amp; CRM in one.',
             'desc'    => 'Branded short links, QR codes for packaging &amp; print, custom domains, forms and team workspaces.',
             'icon'    => 'fa-store',
-            'color'   => '#1bd4d9',
             'cta'     => 'Start my business page',
+            'g1' => '#3d6bff', 'g2' => '#7c5cff',
+            'lead'    => 'The awkward part of a small marketing stack is the seams: the link shortener does not know about the landing page, the form does not know about the CRM, and the QR code on the packaging cannot be changed once it is printed. Sayzio is the same object doing all four.',
+            'left'    => [
+                'h' => 'What you can run on it',
+                'i' => [
+                    ['fa-check', '<strong>Branded short links</strong> on your own domain, so a campaign URL reads as yours from the first character.'],
+                    ['fa-check', '<strong>Dynamic QR codes.</strong> Print once; change where it points whenever the offer does.'],
+                    ['fa-check', '<strong>Forms that collect leads</strong> straight into your contacts, with email, SMS or webhook on every submission.'],
+                    ['fa-check', '<strong>Team workspaces</strong>, so the intern who made the link is not the only person who can edit it.'],
+                ],
+            ],
+            'right'   => [
+                'h' => 'Why it holds up',
+                'i' => [
+                    ['fa-shield-halved', '<strong>Nothing to host.</strong> We serve the domain end to end and renew the certificate.'],
+                    ['fa-chart-simple', '<strong>Reporting that separates.</strong> A different alias per channel, one page behind all of them.'],
+                    ['fa-users', '<strong>Roles, not shared passwords.</strong> Add and remove people without rotating a login.'],
+                    ['fa-boxes-stacked', '<strong>It scales down too.</strong> One product, one page, one QR is a perfectly good use of it.'],
+                ],
+            ],
+            'stats'   => [['1', 'DNS record'], ['&#8734;', 'aliases per page'], ['5-30m', 'to go live']],
         ],
         [
+            'key'     => 'networking',
             'eyebrow' => 'Networking pros',
             'title'   => 'Your digital business card, and then some.',
             'desc'    => 'Tap-to-share NFC tags, dynamic QR codes, instant DMs and a live visitor map of who&rsquo;s engaging.',
             'icon'    => 'fa-id-badge',
-            'color'   => '#ff8a3c',
             'cta'     => 'Make my smart card',
+            'g1' => '#1bd4d9', 'g2' => '#3d6bff',
+            'lead'    => 'A paper card ends the moment it goes in a pocket. You do not know whether it was kept, and the other person has to type your details in by hand before anything happens. A tap does the typing, and tells you it happened.',
+            'left'    => [
+                'h' => 'How you hand it over',
+                'i' => [
+                    ['fa-check', '<strong>Tap an NFC tag</strong> and your card opens on their phone. No app on either side.'],
+                    ['fa-check', '<strong>Or show the QR</strong>, which works on any camera and can be reprinted without becoming wrong.'],
+                    ['fa-check', '<strong>They save you as a contact</strong> in one tap, as a proper vCard with your photo, not a screenshot.'],
+                    ['fa-check', '<strong>Message you from the card</strong>, so a follow-up does not depend on either of you remembering.'],
+                ],
+            ],
+            'right'   => [
+                'h' => 'What you get back',
+                'i' => [
+                    ['fa-map-location-dot', '<strong>You see who engaged</strong>, and roughly where, so the conference stand is worth measuring.'],
+                    ['fa-pen-to-square', '<strong>Change jobs without reprinting.</strong> The card updates; the tag stays the same.'],
+                    ['fa-clock', '<strong>It is current by definition.</strong> An old card in someone\'s wallet still opens today\'s details.'],
+                    ['fa-share-nodes', '<strong>One card, every channel.</strong> Email, phone, socials and calendar behind a single tap.'],
+                ],
+            ],
+            'stats'   => [['1', 'tap to share'], ['0', 'apps to install'], ['Live', 'visitor map']],
         ],
     ];
 @endphp
+@include('home.partials.audience-visual-style')
 <section id="audience" class="sec-rule py-20 lg:py-28 relative overflow-hidden" aria-labelledby="audience-h">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 max-w-2xl mx-auto">
@@ -59,17 +136,72 @@
 
         <div class="grid md:grid-cols-3 gap-5 card-row">
             @foreach($__audiences as $i => $a)
-                <article class="audience-card reveal rd-{{ $i + 1 }} glass rounded-3xl p-7 tilt relative overflow-hidden flex flex-col">
-                    <div class="aud-blob absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-25" style="background:{{ $a['color'] }};animation-delay:{{ $i * 1.2 }}s;"></div>
-                    <div class="card-ico aud-icon relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background: {{ $a['color'] }}; box-shadow: 0 12px 30px -10px {{ $a['color'] }};animation-delay:{{ $i * 0.4 }}s;">
+                {{-- One card per section carries the CTA ribbon, cut down to a
+                     corner wedge. The middle one here, so the accent lands in
+                     the centre of the row rather than at one end. --}}
+                <article class="audience-card reveal rd-{{ $i + 1 }} glass rounded-3xl p-7 tilt relative overflow-hidden flex flex-col{{ $i === 1 ? ' card-ribbon-host' : '' }}">
+                    @if($i === 1)
+                        @include('home.partials.card-ribbon', ['variant' => 'cool'])
+                    @endif
+                    {{-- The 192px blurred colour disc that used to sit in this
+                         corner is gone. It had already been switched off in
+                         `surfaces.blade.php` (`display:none !important`), so it
+                         was markup and an inline hex producing nothing. --}}
+                    <div class="card-ico aud-icon relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="animation-delay:{{ $i * 0.4 }}s;">
                         <i class="fas {{ $a['icon'] }} text-xl text-white" style="animation-delay:{{ $i * 0.5 }}s;"></i>
                     </div>
-                    <div class="relative text-[11px] font-bold uppercase tracking-wider mb-2" style="color: {{ $a['color'] }};">{{ $a['eyebrow'] }}</div>
+                    {{-- The eyebrow follows the card's own gradient rather than a
+                         third hue of its own, so the chip above it and the word
+                         under it agree. --}}
+                    <div class="relative text-[11px] font-bold uppercase tracking-wider mb-2" style="color: var(--g1, #3d6bff);">{{ $a['eyebrow'] }}</div>
                     <h3 class="relative text-xl font-bold mb-3 leading-snug">{!! $a['title'] !!}</h3>
                     <p class="relative text-sm text-gray-400 leading-relaxed mb-6 flex-1">{!! $a['desc'] !!}</p>
                     <button type="button" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','audience'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="relative btn-bounce inline-flex items-center justify-center gap-2 px-5 py-2.5 grad-bar text-white rounded-full text-sm font-bold self-start">
                         {{ $a['cta'] }} <i class="aud-arrow fas fa-arrow-right text-[10px]" style="animation-delay:{{ $i * 0.3 }}s;"></i>
                     </button>
+
+                    {{-- Opening one of these used to show the card again, larger.
+                         Same eyebrow, same headline, same one sentence -- the
+                         modal was an animation rather than an answer, which is
+                         what the generic clone path gives a card whose content
+                         is already only three lines. --}}
+                    <template class="xc-detail">
+                        <div class="xcd" style="--g1: {{ $a['g1'] }}; --g2: {{ $a['g2'] }};">
+                            <div class="xcd-main">
+                                <span class="xcd-ico" aria-hidden="true"><i class="fas {{ $a['icon'] }}"></i></span>
+                                <h3 class="xcd-title">{!! $a['title'] !!}</h3>
+                                <p class="xcd-lead">{!! $a['lead'] !!}</p>
+
+                                <div class="xm-cols">
+                                    @foreach([$a['left'], $a['right']] as $__col)
+                                        <div>
+                                            <h4 class="xm-h">{{ $__col['h'] }}</h4>
+                                            <ul class="xm-list">
+                                                @foreach($__col['i'] as [$__ic, $__tx])
+                                                    <li><i class="fas {{ $__ic }}"></i><span>{!! $__tx !!}</span></li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    @endforeach
+                                </div>
+
+                                <dl class="xcd-stats">
+                                    @foreach($a['stats'] as [$__v, $__l])
+                                        <div><dt>{!! $__v !!}</dt><dd>{{ $__l }}</dd></div>
+                                    @endforeach
+                                </dl>
+
+                                <button type="button" class="xcd-cta"
+                                        onclick="window.trackMarketingEvent&&window.trackMarketingEvent('home_audience_modal','{{ $a['key'] }}');window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))">
+                                    {{ $a['cta'] }} <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                </button>
+                            </div>
+
+                            <div class="xcd-visual" style="--g1: {{ $a['g1'] }}; --g2: {{ $a['g2'] }};">
+                                @include('home.partials.audience-visual', ['key' => $a['key']])
+                            </div>
+                        </div>
+                    </template>
                 </article>
             @endforeach
         </div>
@@ -131,14 +263,21 @@
 
         <div class="hiw-track card-row grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
             @foreach([
-                ['01','0:15','Sign up free','Email or one-tap Google. Pick your handle and you\'re in.','fa-user-plus','#1bd4d9'],
-                ['02','0:45','Build with AI','Let AI draft it, then drag-and-drop blocks for socials, music, shop, video.','fa-grip-vertical','#3d6bff'],
-                ['03','1:30','Share it everywhere','One link, branded short links and a dynamic QR for offline.','fa-share-nodes','#e94e8c'],
-                ['04','2:00','Watch it grow','Live analytics + an AI Coach that turns numbers into actions.','fa-chart-line','#ff8a3c'],
+                ['01','0:15','Sign up free','Email or one-tap Google. Pick your handle and you\'re in.','fa-user-plus'],
+                ['02','0:45','Build with AI','Let AI draft it, then drag-and-drop blocks for socials, music, shop, video.','fa-grip-vertical'],
+                ['03','1:30','Share it everywhere','One link, branded short links and a dynamic QR for offline.','fa-share-nodes'],
+                ['04','2:00','Watch it grow','Live analytics + an AI Coach that turns numbers into actions.','fa-chart-line'],
             ] as $i => $s)
-                <div class="reveal rd-{{ ($i % 4)+1 }} hiw-step glass rounded-3xl p-6 text-center" style="--hiw-color: {{ $s[5] }}">
+                {{-- `--hiw-color` drove this step's border, glow and number. It was a
+                     different hue on every step, so four steps meant four colours in
+                     one row; it now follows the card row's own gradient. --}}
+                {{-- No ribbon on these. The step number is a large translucent
+                     numeral in the top-right corner -- the same corner the wedge
+                     wants -- and the section already closes on a full-ribbon CTA
+                     card a few hundred pixels below. --}}
+                <div class="reveal rd-{{ ($i % 4)+1 }} hiw-step glass rounded-3xl p-6 text-center" style="--hiw-color: var(--g1, #3d6bff)">
                     <span class="hiw-num">{{ $s[0] }}</span>
-                    <div class="card-ico hiw-icon-wrap" style="background: {{ $s[5] }};"><i class="fas {{ $s[4] }} text-xl text-white"></i></div>
+                    <div class="card-ico hiw-icon-wrap"><i class="fas {{ $s[4] }} text-xl text-white"></i></div>
                     <span class="hiw-time"><i class="fas fa-stopwatch"></i>{{ $s[1] }}</span>
                     <h3 class="text-lg font-bold mb-1.5">{!! $s[2] !!}</h3>
                     <p class="text-sm text-gray-400 leading-relaxed">{!! $s[3] !!}</p>
@@ -810,7 +949,7 @@
                 ],
                 [
                     'key' => 'qr-codes', 'rd' => 3, 'icon' => 'fa-qrcode',
-                    'g1' => '#e94e8c', 'g2' => '#ff8a3c',
+                    'g1' => '#1bd4d9', 'g2' => '#3d6bff',
                     'title' => 'Dynamic QR codes',
                     'blurb' => 'Print once, redirect forever. Change the destination without reprinting.',
                     'lead'  => 'The code on the poster never changes. Where it sends people is yours to change whenever you like.',
@@ -825,7 +964,7 @@
                 ],
                 [
                     'key' => 'channels', 'rd' => 4, 'icon' => 'fa-share-nodes',
-                    'g1' => '#ff8a3c', 'g2' => '#ffc845',
+                    'g1' => '#3d6bff', 'g2' => '#7c5cff',
                     'title' => 'Channel-ready',
                     'blurb' => 'Pre-made share cards for every channel. Pixels, UTM and OG ready out of the box.',
                     'lead'  => 'Your link arrives looking right on every platform, without a design round for each one.',
@@ -882,41 +1021,88 @@
                         @endforeach
                     </div>
 
-                    {{-- Shown only inside the expand modal (see
-                         home/partials/expandable-cards.blade.php). Every claim
-                         below is the Domains & aliases FAQ copy in
-                         SitePagesContent, restated — the modal must not be the
-                         one place on the site making a promise nothing else
-                         makes. --}}
-                    <div data-expand-more style="--xm-accent: var(--c1)">
-                        <p class="xm-lead">Most link tools hand you a URL on their domain and stop there. Sayzio gives you five to choose from, so the address itself can suit the audience, a creator link that reads <span class="text-white font-semibold">1in.me</span>, a business one that reads <span class="text-white font-semibold">bizs.club</span>, and you pick it at the moment you create the link, not after a purchase.</p>
+                </div>
 
-                        <div class="xm-cols">
-                            <div>
-                                <h4 class="xm-h">What you get</h4>
-                                <ul class="xm-list">
-                                    <li><i class="fas fa-check"></i><span>All five branded domains: 1in.me, bizs.club, getbio.one, Sayzio.app and sayzio.link, <strong>free on every plan</strong>, including Free.</span></li>
-                                    <li><i class="fas fa-check"></i><span>No purchase, no registrar account and <strong>no DNS records</strong> to configure.</span></li>
-                                    <li><i class="fas fa-check"></i><span>Pick the domain when you create a link or Link in Bio, and it is live immediately.</span></li>
-                                    <li><i class="fas fa-check"></i><span>Each domain is its own namespace, so a slug someone else took on one is <strong>still free on another</strong>.</span></li>
-                                </ul>
+                {{-- The panel this card opens into.
+
+                     It used to be a `[data-expand-more]` block, which the modal
+                     appends to a CLONE of the card -- so the panel showed the
+                     card's own frame inside the modal's frame, the icon chip
+                     orphaned above a full-width paragraph, and two columns of
+                     list running to the bottom edge with no visual beside them.
+
+                     A `<template class="xc-detail">` replaces the clone
+                     outright and uses the same two-column `.xcd` grid the Share
+                     cards use: copy in a reading column, the thing itself on
+                     the right. Every claim below is the Domains & aliases FAQ
+                     copy in SitePagesContent, restated -- the modal must not be
+                     the one place on the site making a promise nothing else
+                     makes. --}}
+                <template class="xc-detail">
+                    <div class="xcd" style="--g1: #1bd4d9; --g2: #3d6bff;">
+                        <div class="xcd-main">
+                            <span class="xcd-ico" aria-hidden="true"><i class="fas fa-layer-group"></i></span>
+                            <h3 class="xcd-title">Multiple global domains</h3>
+                            <p class="xcd-lead">Most link tools hand you a URL on their domain and stop there. Sayzio gives you five to choose from, so the address itself can suit the audience: a creator link that reads <strong>1in.me</strong>, a business one that reads <strong>bizs.club</strong>. You pick it at the moment you create the link, not after a purchase.</p>
+
+                            <div class="xm-cols">
+                                <div>
+                                    <h4 class="xm-h">What you get</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-check"></i><span>All five branded domains, <strong>free on every plan</strong>, including Free.</span></li>
+                                        <li><i class="fas fa-check"></i><span>No purchase, no registrar account and <strong>no DNS records</strong> to configure.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Pick the domain as you create the link, and it is live immediately.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Each domain is its own namespace, so a slug taken on one is <strong>still free on another</strong>.</span></li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="xm-h">Why it matters</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-bolt"></i><span><strong>Nothing to wait for.</strong> No DNS propagation window between deciding to launch and being live.</span></li>
+                                        <li><i class="fas fa-tag"></i><span><strong>Nothing to renew.</strong> No annual registrar bill for a URL you are still testing.</span></li>
+                                        <li><i class="fas fa-arrows-left-right"></i><span><strong>Not a dead end.</strong> Start here and connect your own domain later.</span></li>
+                                        <li><i class="fas fa-lock"></i><span><strong>HTTPS from the first second</strong>, with no certificate to buy or install.</span></li>
+                                    </ul>
+                                </div>
                             </div>
-                            <div>
-                                <h4 class="xm-h">Why it matters</h4>
-                                <ul class="xm-list">
-                                    <li><i class="fas fa-bolt"></i><span><strong>Nothing to wait for.</strong> No DNS propagation window between deciding to launch and being live.</span></li>
-                                    <li><i class="fas fa-tag"></i><span><strong>Nothing to renew.</strong> No annual registrar bill for a URL you are still testing.</span></li>
-                                    <li><i class="fas fa-arrows-left-right"></i><span><strong>Not a dead end.</strong> Start on a shared domain and connect your own later, when the brand is worth the setup.</span></li>
-                                    <li><i class="fas fa-lock"></i><span><strong>HTTPS from the first second</strong>, with no certificate to buy or install.</span></li>
+
+                            <dl class="xcd-stats">
+                                <div><dt>5</dt><dd>branded domains</dd></div>
+                                <div><dt>&#8377;0</dt><dd>on every plan</dd></div>
+                                <div><dt>0</dt><dd>DNS records</dd></div>
+                            </dl>
+
+                            <button type="button" class="xcd-cta"
+                                    onclick="window.trackMarketingEvent&&window.trackMarketingEvent('home_domains_modal','shared');window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))">
+                                Claim a link <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                            </button>
+                        </div>
+
+                        <div class="xcd-visual">
+                            {{-- The card shows the five domains as a row of
+                                 chips. Here there is room to show what choosing
+                                 one actually looks like, so it is the picker. --}}
+                            <div class="dmv">
+                                <p class="dmv-cap">Choose your domain</p>
+                                <ul class="dmv-list">
+                                    @foreach(($showcaseDomains ?? \App\Modules\User\Models\Domain::SHOWCASE_FALLBACK) as $__i => $__dom)
+                                        <li class="dmv-row{{ $__i === 0 ? ' is-on' : '' }}">
+                                            <span class="dmv-radio" aria-hidden="true"></span>
+                                            <span class="dmv-host">{{ $__dom }}</span>
+                                            <span class="dmv-slug">/spring-drop</span>
+                                        </li>
+                                    @endforeach
                                 </ul>
+                                <p class="dmv-foot"><i class="fas fa-lock" aria-hidden="true"></i> HTTPS included &middot; live immediately</p>
                             </div>
                         </div>
                     </div>
-                </div>
+                </template>
             </div>
 
             {{-- 2 · Bring your own domain --}}
-            <div class="reveal rd-2 glass rounded-3xl p-7 tilt relative overflow-hidden">
+            <div class="reveal rd-2 glass rounded-3xl p-7 tilt relative overflow-hidden card-ribbon-host">
+                @include('home.partials.card-ribbon', ['variant' => 'cool'])
                 <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c2)"></div>
                 <div class="relative">
                     <div class="card-ico w-12 h-12 rounded-2xl flex items-center justify-center mb-4"><i class="fas fa-globe text-xl"></i></div>
@@ -936,35 +1122,81 @@
                     </div>
                     <p class="mt-4 text-[11px] text-gray-500"><i class="fas fa-crown text-[10px] mr-1" style="color:var(--c5)"></i> Custom domains are a paid-plan feature.</p>
 
-                    {{-- Modal-only detail. Sourced from the Domains & aliases
-                         and Custom domains FAQ entries in SitePagesContent. --}}
-                    <div data-expand-more style="--xm-accent: var(--c2)">
-                        <p class="xm-lead">A custom domain is the difference between a link that mentions your brand and a link that <em>is</em> your brand. Point one CNAME record at us from <span class="text-white font-semibold">links.yourbrand.com</span>, or any subdomain you like, and every URL you hand out from then on reads entirely as you, with nothing in it borrowed from us.</p>
+                </div>
 
-                        <div class="xm-cols">
-                            <div>
-                                <h4 class="xm-h">How the setup goes</h4>
-                                <ul class="xm-list">
-                                    <li><i class="fas fa-check"></i><span>Add <strong>one CNAME record</strong> at your registrar. That is the whole DNS change, no TXT tokens, no file uploads.</span></li>
-                                    <li><i class="fas fa-check"></i><span>We verify it automatically and provision a <strong>free SSL certificate</strong>, then renew it for you.</span></li>
-                                    <li><i class="fas fa-check"></i><span>Typically live in <strong>5–30 minutes</strong>; we keep retrying validation for up to 48 hours and email you when the certificate is ready.</span></li>
-                                    <li><i class="fas fa-check"></i><span>Each domain shows its <strong>verification status</strong>, so you always know which are healthy and serving.</span></li>
-                                </ul>
+                <template class="xc-detail">
+                    <div class="xcd" style="--g1: #3d6bff; --g2: #7c5cff;">
+                        <div class="xcd-main">
+                            <span class="xcd-ico" aria-hidden="true"><i class="fas fa-globe"></i></span>
+                            <h3 class="xcd-title">Bring your own domain</h3>
+                            <p class="xcd-lead">A custom domain is the difference between a link that mentions your brand and a link that <em>is</em> your brand. Point one CNAME record at us from <strong>links.yourbrand.com</strong>, or any subdomain you like, and every URL you hand out from then on reads entirely as you.</p>
+
+                            <div class="xm-cols">
+                                <div>
+                                    <h4 class="xm-h">How the setup goes</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-check"></i><span>Add <strong>one CNAME record</strong> at your registrar. That is the whole DNS change.</span></li>
+                                        <li><i class="fas fa-check"></i><span>We verify it and provision a <strong>free SSL certificate</strong>, then renew it for you.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Typically live in <strong>5-30 minutes</strong>; we retry validation for up to 48 hours and email you when the certificate is ready.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Each domain shows its <strong>verification status</strong>, so you know which are healthy and serving.</span></li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="xm-h">What it unlocks</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-link"></i><span><strong>Branded short links</strong> across every campaign, on the same domain as your Link in Bio.</span></li>
+                                        <li><i class="fas fa-layer-group"></i><span><strong>More than one domain</strong>, each assignable to a different workspace or page.</span></li>
+                                        <li><i class="fas fa-right-left"></i><span><strong>301 and 302 redirects</strong> from any path, so URLs you have already printed keep working.</span></li>
+                                        <li><i class="fas fa-server"></i><span><strong>Nothing to host.</strong> We serve the domain end to end; you touch DNS once.</span></li>
+                                    </ul>
+                                </div>
                             </div>
-                            <div>
-                                <h4 class="xm-h">What it unlocks</h4>
-                                <ul class="xm-list">
-                                    <li><i class="fas fa-link"></i><span><strong>Branded short links</strong> across every campaign, on the same domain as your Link in Bio.</span></li>
-                                    <li><i class="fas fa-layer-group"></i><span><strong>More than one domain</strong>, as many as your plan allows, each assignable to a different workspace or page.</span></li>
-                                    <li><i class="fas fa-right-left"></i><span><strong>301 and 302 redirects</strong> from any path on your domain, so old URLs you have already printed keep working.</span></li>
-                                    <li><i class="fas fa-server"></i><span><strong>Nothing to host.</strong> We serve the domain end to end; you only touch DNS once.</span></li>
-                                </ul>
-                            </div>
+
+                            <dl class="xcd-stats">
+                                <div><dt>1</dt><dd>DNS record</dd></div>
+                                <div><dt>5-30m</dt><dd>typical go-live</dd></div>
+                                <div><dt>Auto</dt><dd>SSL, renewed</dd></div>
+                            </dl>
+
+                            <p class="xm-note"><i class="fas fa-crown" style="color:var(--c5)"></i>Connecting your own domain is a paid-plan feature. Branded domains and custom URL aliases stay free on every plan, including Free.</p>
                         </div>
 
-                        <p class="xm-note"><i class="fas fa-crown" style="color:var(--c5)"></i>Connecting your own domain is a paid-plan feature. Branded domains and custom URL aliases stay free on every plan, including Free.</p>
+                        <div class="xcd-visual">
+                            {{-- The setup, as the three states it actually moves
+                                 through. The card can only show the finished
+                                 one; the panel has room for the sequence, which
+                                 is the part people want to know before they
+                                 touch their registrar. --}}
+                            <div class="dmv">
+                                <p class="dmv-cap">One record, three states</p>
+                                <ol class="dmv-steps">
+                                    <li class="dmv-step is-done">
+                                        <span class="dmv-dot" aria-hidden="true"><i class="fas fa-check"></i></span>
+                                        <span class="dmv-step-b">
+                                            <span class="dmv-step-t">Add the CNAME</span>
+                                            <code class="dmv-code">links &rarr; cname.1in.me</code>
+                                        </span>
+                                    </li>
+                                    <li class="dmv-step is-done">
+                                        <span class="dmv-dot" aria-hidden="true"><i class="fas fa-check"></i></span>
+                                        <span class="dmv-step-b">
+                                            <span class="dmv-step-t">We verify it</span>
+                                            <span class="dmv-step-s">Checked automatically, retried for 48h</span>
+                                        </span>
+                                    </li>
+                                    <li class="dmv-step is-live">
+                                        <span class="dmv-dot" aria-hidden="true"><i class="fas fa-lock"></i></span>
+                                        <span class="dmv-step-b">
+                                            <span class="dmv-step-t">Certificate issued</span>
+                                            <span class="dmv-step-s">links.yourbrand.com &middot; auto-SSL</span>
+                                        </span>
+                                    </li>
+                                </ol>
+                                <p class="dmv-foot"><i class="fas fa-server" aria-hidden="true"></i> Nothing to host &middot; nothing to renew</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </template>
             </div>
 
             {{-- 3 · Custom URL aliases --}}
@@ -989,33 +1221,63 @@
                         </div>
                     </div>
 
-                    {{-- Modal-only detail. Sourced from the Domains & aliases
-                         FAQ entries in SitePagesContent. --}}
-                    <div data-expand-more style="--xm-accent: var(--c3)">
-                        <p class="xm-lead">An alias is a second front door, not a forwarding address. Every extra alias you add opens the very same page directly, with no redirect hop in between, so nothing flashes, nothing is lost from the referrer, and the visitor never sees a URL they did not click.</p>
+                </div>
 
-                        <div class="xm-cols">
-                            <div>
-                                <h4 class="xm-h">How it works</h4>
-                                <ul class="xm-list">
-                                    <li><i class="fas fa-check"></i><span>Every link gets a <strong>memorable primary slug</strong> you choose, not a string of random characters.</span></li>
-                                    <li><i class="fas fa-check"></i><span>Add as many <strong>extra aliases</strong> as you need; each one opens the same page with <strong>no redirect</strong>.</span></li>
-                                    <li><i class="fas fa-check"></i><span>Aliases resolve <strong>whatever the casing</strong>, <span class="font-mono">SpringDrop</span> and <span class="font-mono">springdrop</span> reach the same page.</span></li>
-                                    <li><i class="fas fa-check"></i><span>Available on <strong>every plan, Free included</strong>. Aliases are not the paid part.</span></li>
-                                </ul>
+                <template class="xc-detail">
+                    <div class="xcd" style="--g1: #1bd4d9; --g2: #3d6bff;">
+                        <div class="xcd-main">
+                            <span class="xcd-ico" aria-hidden="true"><i class="fas fa-tags"></i></span>
+                            <h3 class="xcd-title">Custom URL aliases</h3>
+                            <p class="xcd-lead">An alias is a second front door, not a forwarding address. Every extra alias opens the very same page directly, with no redirect hop in between, so nothing flashes, nothing is lost from the referrer, and the visitor never sees a URL they did not click.</p>
+
+                            <div class="xm-cols">
+                                <div>
+                                    <h4 class="xm-h">How it works</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-check"></i><span>Every link gets a <strong>memorable primary slug</strong> you choose, not a string of random characters.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Add as many <strong>extra aliases</strong> as you need; each opens the same page with <strong>no redirect</strong>.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Aliases resolve <strong>whatever the casing</strong>: SpringDrop and springdrop reach the same page.</span></li>
+                                        <li><i class="fas fa-check"></i><span>Available on <strong>every plan, Free included</strong>. Aliases are not the paid part.</span></li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="xm-h">What people use them for</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-bullhorn"></i><span><strong>Campaign variants.</strong> One page, a different URL per campaign, so reporting separates cleanly.</span></li>
+                                        <li><i class="fas fa-share-nodes"></i><span><strong>Channel-specific URLs.</strong> A short one for print, a descriptive one for email.</span></li>
+                                        <li><i class="fas fa-spell-check"></i><span><strong>Catching typos.</strong> Register the misspelling people actually make and it works instead of 404-ing.</span></li>
+                                        <li><i class="fas fa-clock-rotate-left"></i><span><strong>Renaming without breaking.</strong> Move to a better slug and keep the old one alive.</span></li>
+                                    </ul>
+                                </div>
                             </div>
-                            <div>
-                                <h4 class="xm-h">What people use them for</h4>
-                                <ul class="xm-list">
-                                    <li><i class="fas fa-bullhorn"></i><span><strong>Campaign variants.</strong> One page, a different URL per campaign, so the reporting separates cleanly.</span></li>
-                                    <li><i class="fas fa-share-nodes"></i><span><strong>Channel-specific URLs.</strong> A short one for print, a descriptive one for email, both landing in the same place.</span></li>
-                                    <li><i class="fas fa-spell-check"></i><span><strong>Catching typos.</strong> Register the misspelling people actually make and it works instead of 404-ing.</span></li>
-                                    <li><i class="fas fa-clock-rotate-left"></i><span><strong>Renaming without breaking.</strong> Move to a better slug and keep the old one alive as an alias.</span></li>
+
+                            <dl class="xcd-stats">
+                                <div><dt>0</dt><dd>redirect hops</dd></div>
+                                <div><dt>Free</dt><dd>on every plan</dd></div>
+                                <div><dt>Any</dt><dd>casing resolves</dd></div>
+                            </dl>
+                        </div>
+
+                        <div class="xcd-visual">
+                            {{-- The card lists three slugs stacked. The point of
+                                 an alias is that they all arrive at ONE page, so
+                                 the panel draws that instead of listing them. --}}
+                            <div class="dmv dmv-alias">
+                                <ul class="dmv-alias-in">
+                                    <li><span class="dmv-star" aria-hidden="true"><i class="fas fa-star"></i></span><code>1in.me/spring-drop</code></li>
+                                    <li><span class="dmv-star dmv-star--dim" aria-hidden="true"><i class="fas fa-link"></i></span><code>1in.me/sale</code></li>
+                                    <li><span class="dmv-star dmv-star--dim" aria-hidden="true"><i class="fas fa-link"></i></span><code>1in.me/drop24</code></li>
                                 </ul>
+                                <span class="dmv-join" aria-hidden="true"></span>
+                                <div class="dmv-target">
+                                    <i class="fas fa-file-lines" aria-hidden="true"></i>
+                                    <span class="dmv-target-t">One page</span>
+                                    <span class="dmv-target-s">No redirect &middot; referrer intact</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </template>
             </div>
         </div>
 
@@ -1230,35 +1492,113 @@
                         </div>
                     </div>
 
-                    {{-- Modal-only detail. Restates the Analytics & AI Coach FAQ
-                         entries in SitePagesContent -- the card shows four
-                         suggestions without ever saying where they come from or
-                         what happens when you act on one. --}}
-                    <div data-expand-more style="--xm-accent: #9FD0FF">
-                        <p class="xm-lead">A health score on its own is a number telling you to feel bad. The Coach exists to make it actionable: it reads what your visitors actually did on your page this week, finds the specific thing costing you the most, and hands you the fix as one button rather than a report to interpret.</p>
+                </div>
 
-                        <div class="xm-cols">
-                            <div>
-                                <h4 class="xm-h">What it looks at</h4>
-                                <ul class="xm-list">
-                                    <li><i class="fas fa-check"></i><span><strong>Per-block click trends</strong>, so a link that has quietly stopped working is named rather than averaged away.</span></li>
-                                    <li><i class="fas fa-check"></i><span><strong>Where visitors come from and on what device</strong>, which is usually why a page underperforms.</span></li>
-                                    <li><i class="fas fa-check"></i><span><strong>Who is visiting</strong>: AI Audience Insights estimates whether you are reaching students, professionals, businesses or creators.</span></li>
-                                    <li><i class="fas fa-check"></i><span><strong>Your page against its own history</strong>, not against a generic benchmark for somebody else's audience.</span></li>
-                                </ul>
+                {{-- Modal content.
+
+                     This used to be a `[data-expand-more]` block, which meant
+                     the modal was a CLONE of the card with the extra copy
+                     appended. That clone is what broke: the card is a narrow
+                     column on saturated blue, and the modal is a wide panel
+                     that is white in light mode. Stretched to three times the
+                     width the ring collapsed and the suggestion rows pulled
+                     their labels away from their buttons; and because the
+                     card's whole light-mode contract is "force everything
+                     white so it survives the blue", the copy went white on a
+                     white panel and the modal rendered blank.
+
+                     A `<template class="xc-detail">` is the mechanism the
+                     Share cards already use for exactly this: purpose-built
+                     modal content instead of a resized card. The .xcd grid
+                     puts the copy in a column sized for reading and keeps the
+                     product visual on its own blue ground, where the ring and
+                     the suggestion rows still look like what they are. --}}
+                <template class="xc-detail">
+                    <div class="xcd">
+                        <div class="xcd-main">
+                            <span class="xcd-ico" aria-hidden="true"><i class="fas fa-gauge-high"></i></span>
+                            <h3 class="xcd-title">Performance Coach</h3>
+                            <p class="xcd-lead">A health score on its own is a number telling you to feel bad. The Coach exists to make it actionable: it reads what your visitors actually did on your page this week, finds the specific thing costing you the most, and hands you the fix as one button rather than a report to interpret.</p>
+
+                            <div class="xm-cols" style="margin-top:26px">
+                                <div>
+                                    <h4 class="xm-h">What it looks at</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-check"></i><span><strong>Per-block click trends</strong>, so a link that has quietly stopped working is named rather than averaged away.</span></li>
+                                        <li><i class="fas fa-check"></i><span><strong>Where visitors come from and on what device</strong>, which is usually why a page underperforms.</span></li>
+                                        <li><i class="fas fa-check"></i><span><strong>Who is visiting</strong>: AI Audience Insights estimates whether you are reaching students, professionals, businesses or creators.</span></li>
+                                        <li><i class="fas fa-check"></i><span><strong>Your page against its own history</strong>, not against a generic benchmark for somebody else's audience.</span></li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="xm-h">What you get back</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-bolt"></i><span><strong>One-click fixes.</strong> Reorder a block, add social proof, start an A/B test, without leaving the page.</span></li>
+                                        <li><i class="fas fa-flask"></i><span><strong>Tests that finish themselves.</strong> Run two variants and the winner is picked for you.</span></li>
+                                        <li><i class="fas fa-eye"></i><span><strong>A reason attached to every suggestion</strong>, so you can disagree with it. "CTR down 12% in 7 days" is checkable; "improve engagement" is not.</span></li>
+                                        <li><i class="fas fa-hand"></i><span><strong>Nothing changes on its own.</strong> Every fix waits for you to approve it.</span></li>
+                                    </ul>
+                                </div>
                             </div>
-                            <div>
-                                <h4 class="xm-h">What you get back</h4>
-                                <ul class="xm-list">
-                                    <li><i class="fas fa-bolt"></i><span><strong>One-click fixes.</strong> Reorder a block, add social proof, start an A/B test, without leaving the page.</span></li>
-                                    <li><i class="fas fa-flask"></i><span><strong>Tests that finish themselves.</strong> Run two variants and the winner is picked for you.</span></li>
-                                    <li><i class="fas fa-eye"></i><span><strong>A reason attached to every suggestion</strong>, so you can disagree with it. "CTR down 12% in 7 days" is checkable; "improve engagement" is not.</span></li>
-                                    <li><i class="fas fa-hand"></i><span><strong>Nothing changes on its own.</strong> Every fix waits for you to approve it.</span></li>
-                                </ul>
+
+                            <dl class="xcd-stats">
+                                <div><dt>87</dt><dd>Health score</dd></div>
+                                <div><dt>4</dt><dd>Fixes queued</dd></div>
+                                <div><dt>7d</dt><dd>Trend window</dd></div>
+                            </dl>
+
+                            <button type="button" class="xcd-cta"
+                                    onclick="window.trackMarketingEvent&&window.trackMarketingEvent('home_coach_modal','performance_coach');window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))">
+                                Get my health score <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                            </button>
+                        </div>
+
+                        {{-- The visual keeps the card's blue. The ring and the
+                             suggestion rows were drawn for that ground; on the
+                             modal's white panel they would need re-colouring
+                             for no gain. --}}
+                        <div class="xcd-visual xcd-visual--lit">
+                            <div class="coach-modal-demo">
+                                <div class="coach-ring">
+                                    <span class="glow" aria-hidden="true"></span>
+                                    <svg viewBox="0 0 100 100">
+                                        <circle class="track" cx="50" cy="50" r="40" fill="none" stroke-width="9"/>
+                                        <circle class="fill"  cx="50" cy="50" r="40" fill="none" stroke-width="9"/>
+                                    </svg>
+                                    <div class="num">
+                                        <span class="big">87</span>
+                                        <span class="lbl">Health</span>
+                                    </div>
+                                </div>
+
+                                <div class="coach-analyzing" aria-hidden="true">
+                                    <i class="fas fa-wand-magic-sparkles"></i>
+                                    <span>Coach is analyzing</span>
+                                    <span class="dots"><span></span><span></span><span></span></span>
+                                </div>
+
+                                <div class="coach-modal-tips">
+                                    <div class="coach-tip">
+                                        <span class="ic"><i class="fas fa-arrows-rotate"></i></span>
+                                        <div class="body">
+                                            <b>Swap your top block.</b> &ldquo;Free Templates&rdquo; CTR
+                                            <small><span class="spark dn" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>&minus;12% &middot; last 7d</span></small>
+                                        </div>
+                                        <span class="cta">Try fix</span>
+                                    </div>
+                                    <div class="coach-tip">
+                                        <span class="ic"><i class="fas fa-star"></i></span>
+                                        <div class="body">
+                                            <b>Add social proof.</b> Pages with reviews convert
+                                            <small><span class="spark up" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>1.7&times; higher</span></small>
+                                        </div>
+                                        <span class="cta">Add now</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </template>
             </div>
         </div>
     </div>
@@ -1291,8 +1631,13 @@
                         ['fa-user-shield','#e94e8c','Roles &amp; permissions','Owner, Admin, Editor, Viewer, locked down where it counts.'],
                         ['fa-credit-card','#ff8a3c','Billing per workspace','Separate plans &amp; invoices for each workspace.'],
                     ] as $i => $f)
-                        <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
-                            <div class="card-ico w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: {{ $f[1] }}; box-shadow: 0 12px 30px -12px {{ $f[1] }};">
+                        {{-- The first card in the grid carries the accent, the
+                             same wedge the CTA cards use at full size. --}}
+                        <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift{{ $i === 0 ? ' card-ribbon-host' : '' }}">
+                            @if($i === 0)
+                                @include('home.partials.card-ribbon', ['variant' => 'cool'])
+                            @endif
+                            <div class="card-ico w-11 h-11 rounded-xl flex items-center justify-center mb-3">
                                 <i class="fas {{ $f[0] }} text-white"></i>
                             </div>
                             <h3 class="text-base font-bold mb-1">{!! $f[2] !!}</h3>
@@ -1671,8 +2016,13 @@
                         ['fa-sliders','#e94e8c','Pick what shows','Choose events &amp; priorities; hide the rest.'],
                         ['fa-user-secret','#3d6bff','Privacy-first','Names masked, locations coarse, dismissible.'],
                     ] as $i => $f)
-                        <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
-                            <div class="card-ico w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: {{ $f[1] }}; box-shadow: 0 12px 30px -12px {{ $f[1] }};">
+                        {{-- The first card in the grid carries the accent, the
+                             same wedge the CTA cards use at full size. --}}
+                        <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift{{ $i === 0 ? ' card-ribbon-host' : '' }}">
+                            @if($i === 0)
+                                @include('home.partials.card-ribbon', ['variant' => 'cool'])
+                            @endif
+                            <div class="card-ico w-11 h-11 rounded-xl flex items-center justify-center mb-3">
                                 <i class="fas {{ $f[0] }} text-white"></i>
                             </div>
                             <h3 class="text-base font-bold mb-1">{!! $f[2] !!}</h3>
@@ -1692,77 +2042,82 @@
 
 {{-- ==================== ZONE · PROOF ==================== --}}
 {{-- ============================ TESTIMONIAL MARQUEE ============================ --}}
-<section id="proof" class="sec-rule py-20 lg:py-24 relative overflow-hidden">
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Social proof</div>
-            <h2 class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold">Built with AI, <span class="grad-text">loved by creators.</span></h2>
+{{-- A heading that says "loved by creators" over an empty strip is worse
+     than no band at all, so the whole section is gated on there being at
+     least one approved testimonial to show. The data block is hoisted above
+     the <section> because the guard has to read it. --}}
+@php
+    try {
+        $__allReviews    = \App\Modules\Admin\Models\Testimonial::cachedActive();
+        $__topReviews    = $__allReviews->where('row', 'top')->values();
+        $__bottomReviews = $__allReviews->where('row', 'bottom')->values();
+    } catch (\Throwable $e) {
+        $__topReviews = collect();
+        $__bottomReviews = collect();
+    }
+@endphp
+@if($__topReviews->isNotEmpty() || $__bottomReviews->isNotEmpty())
+    <section id="proof" class="sec-rule py-20 lg:py-24 relative overflow-hidden">
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Social proof</div>
+                <h2 class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold">Built with AI, <span class="grad-text">loved by creators.</span></h2>
+            </div>
         </div>
-    </div>
 
-    @php
-        try {
-            $__allReviews    = \App\Modules\Admin\Models\Testimonial::cachedActive();
-            $__topReviews    = $__allReviews->where('row', 'top')->values();
-            $__bottomReviews = $__allReviews->where('row', 'bottom')->values();
-        } catch (\Throwable $e) {
-            $__topReviews = collect();
-            $__bottomReviews = collect();
-        }
-    @endphp
-
-    @if($__topReviews->isNotEmpty())
-        <div class="overflow-hidden mb-4" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
-            <div class="flex whitespace-nowrap marquee">
-                @for($i = 0; $i < 2; $i++)
-                    @foreach($__topReviews as $r)
-                        <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
-                            <div class="glass rounded-3xl p-6 lift">
-                                <div class="flex text-base mb-3" style="color:var(--c5)">
-                                    @for($s = 0; $s < $r->rating; $s++)<i class="fas fa-star {{ $s ? 'ml-0.5' : '' }}"></i>@endfor
-                                </div>
-                                <p class="text-sm text-gray-200 mb-4 whitespace-normal">&ldquo;{{ $r->quote }}&rdquo;</p>
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r->accent_color }}, var(--c2));">{{ $r->initial() }}</div>
-                                    <div>
-                                        <div class="text-sm font-bold">{{ $r->author_name }}</div>
-                                        <div class="text-[11px] text-gray-500">{{ $r->author_role }}</div>
+        @if($__topReviews->isNotEmpty())
+            <div class="overflow-hidden mb-4" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
+                <div class="flex whitespace-nowrap marquee">
+                    @for($i = 0; $i < 2; $i++)
+                        @foreach($__topReviews as $r)
+                            <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
+                                <div class="glass rounded-3xl p-6 lift">
+                                    <div class="flex text-base mb-3" style="color:var(--c5)">
+                                        @for($s = 0; $s < $r->rating; $s++)<i class="fas fa-star {{ $s ? 'ml-0.5' : '' }}"></i>@endfor
+                                    </div>
+                                    <p class="text-sm text-gray-200 mb-4 whitespace-normal">&ldquo;{{ $r->quote }}&rdquo;</p>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r->accent_color }}, var(--c2));">{{ $r->initial() }}</div>
+                                        <div>
+                                            <div class="text-sm font-bold">{{ $r->author_name }}</div>
+                                            <div class="text-[11px] text-gray-500">{{ $r->author_role }}</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    @endforeach
-                @endfor
+                        @endforeach
+                    @endfor
+                </div>
             </div>
-        </div>
-    @endif
+        @endif
 
-    @if($__bottomReviews->isNotEmpty())
-        <div class="overflow-hidden" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
-            <div class="flex whitespace-nowrap marquee-rev">
-                @for($i = 0; $i < 2; $i++)
-                    @foreach($__bottomReviews as $r)
-                        <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
-                            <div class="glass rounded-3xl p-6 lift">
-                                <div class="flex text-base mb-3" style="color:var(--c5)">
-                                    @for($s = 0; $s < $r->rating; $s++)<i class="fas fa-star {{ $s ? 'ml-0.5' : '' }}"></i>@endfor
-                                </div>
-                                <p class="text-sm text-gray-200 mb-4 whitespace-normal">&ldquo;{{ $r->quote }}&rdquo;</p>
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r->accent_color }}, var(--c2));">{{ $r->initial() }}</div>
-                                    <div>
-                                        <div class="text-sm font-bold">{{ $r->author_name }}</div>
-                                        <div class="text-[11px] text-gray-500">{{ $r->author_role }}</div>
+        @if($__bottomReviews->isNotEmpty())
+            <div class="overflow-hidden" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
+                <div class="flex whitespace-nowrap marquee-rev">
+                    @for($i = 0; $i < 2; $i++)
+                        @foreach($__bottomReviews as $r)
+                            <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
+                                <div class="glass rounded-3xl p-6 lift">
+                                    <div class="flex text-base mb-3" style="color:var(--c5)">
+                                        @for($s = 0; $s < $r->rating; $s++)<i class="fas fa-star {{ $s ? 'ml-0.5' : '' }}"></i>@endfor
+                                    </div>
+                                    <p class="text-sm text-gray-200 mb-4 whitespace-normal">&ldquo;{{ $r->quote }}&rdquo;</p>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r->accent_color }}, var(--c2));">{{ $r->initial() }}</div>
+                                        <div>
+                                            <div class="text-sm font-bold">{{ $r->author_name }}</div>
+                                            <div class="text-[11px] text-gray-500">{{ $r->author_role }}</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    @endforeach
-                @endfor
+                        @endforeach
+                    @endfor
+                </div>
             </div>
-        </div>
-    @endif
-</section>
+        @endif
+    </section>
+@endif
 
 {{-- ==================== ZONE · COMPARE & PRICING ==================== --}}
 {{-- ============================ HOW WE COMPARE ============================ --}}
@@ -2035,6 +2390,9 @@
                 ],
                 'secondary' => ['label' => 'See features', 'href' => '#features'],
                 'ribbon'    => 'cool',
+                // Mirrored against the card higher up the page, so the two do
+                // not read as one composition used twice.
+                'side'      => 'left',
             ])
         </div>
     </div>
