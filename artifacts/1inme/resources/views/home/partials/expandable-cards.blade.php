@@ -124,6 +124,21 @@
     }
     html.light-mode .xc-body [data-expand-more] { border-top-color: #E6E8F2; }
 
+    /* ---- white text arriving from a card that used to sit on colour ----
+       A cloned card brings its own colour assumptions with it. `.card-lit`
+       and `text-white` are stripped from the clone's root in open(), but the
+       Tailwind `text-white/NN` utilities live on the DESCENDANTS -- the
+       eyebrow, the muted sub-labels -- and no amount of root surgery reaches
+       those. On the modal's white panel every one of them is invisible.
+
+       Scoped to light mode only: in dark mode the panel is near-black and
+       white is the correct colour, so this must not fire there. */
+    html.light-mode .xc-body [class*="text-white"] { color: #4E5680 !important; }
+    html.light-mode .xc-body :is(h1,h2,h3,h4)[class*="text-white"] { color: #0F172A !important; }
+    /* Chips and rails drawn as translucent white read as nothing on white. */
+    html.light-mode .xc-body [class*="bg-white/"] { background-color: rgba(15,23,42,.05) !important; }
+    html.light-mode .xc-body [class*="border-white/"] { border-color: #E6E8F2 !important; }
+
     .xm-lead {
         margin: 0 0 22px; max-width: 70ch;
         font-size: 16px !important; line-height: 1.65; opacity: .85;
@@ -243,6 +258,35 @@
     /* The demo is drawn at card size; in here it gets the room to be read. */
     .xcd-demo { position: relative; width: 100%; max-width: 340px; }
     @media (min-width: 900px) { .xcd-demo { transform: scale(1.12); } }
+
+    /* ---- a visual panel that keeps its own lit ground ----
+       Some product visuals are drawn FOR colour: the Coach ring, its glow and
+       the suggestion rows all assume a saturated blue behind them. Dropping
+       them onto the modal's panel would mean recolouring every part of them
+       for no gain, and in light mode it would mean recolouring them twice.
+       This variant gives that visual the ground it was drawn for, in both
+       modes, so the copy column can stay a plain reading surface. */
+    .xcd-visual--lit {
+        background: linear-gradient(152deg, #4E79FF 0%, #3d6bff 42%, #2C49D8 100%);
+        border-color: rgba(255,255,255,.16);
+        color: #fff;
+    }
+    html.light-mode .xcd-visual--lit { border-color: rgba(61,107,255,.28); }
+    /* The white-text neutraliser further up is for cloned CARDS landing on a
+       white panel. This panel is deliberately blue, so it opts back out --
+       otherwise the eyebrow and muted labels turn slate on blue. */
+    html.light-mode .xcd-visual--lit [class*="text-white"] { color: rgba(255,255,255,.82) !important; }
+    html.light-mode .xcd-visual--lit :is(h1,h2,h3,h4)[class*="text-white"] { color: #fff !important; }
+    html.light-mode .xcd-visual--lit [class*="bg-white/"] { background-color: rgba(255,255,255,.12) !important; }
+    html.light-mode .xcd-visual--lit [class*="border-white/"] { border-color: rgba(255,255,255,.18) !important; }
+
+    .coach-modal-demo { width: 100%; display: grid; gap: 16px; justify-items: center; }
+    /* The ring is the anchor, so it gets to be bigger here than on the card. */
+    .coach-modal-demo .coach-ring { width: min(210px, 62%); }
+    .coach-modal-tips { width: 100%; display: grid; gap: 10px; margin-top: 4px; }
+    /* Two rows, not the card's four: the modal's job is to explain the
+       Coach, and the copy column already lists what it suggests. Four would
+       be the card repeated next to its own explanation. */
 
     /* ---------- the link-type modal ----------
        Two columns: what it is on the left, the thing itself on the right. */
@@ -659,6 +703,25 @@
         clone.querySelectorAll('[x-data]').forEach(function (n) { n.removeAttribute('x-data'); });
         clone.querySelectorAll('.xc-btn').forEach(function (n) { n.remove(); });
         clone.classList.remove('xc-host');
+
+        // `.card-lit` means "I am a card that stays blue while the page turns
+        // white", and the only thing it does in light mode is force every
+        // descendant to white text so the copy survives that blue ground.
+        //
+        // The flattening below takes the blue ground away. Keeping the class
+        // then leaves white text on the modal's white panel, which is exactly
+        // what happened: the Performance Coach modal rendered blank in light
+        // mode, with only the CTAs visible because they are the one thing that
+        // rule deliberately exempts.
+        //
+        // `text-white` goes for the same reason -- it is the dark-mode half of
+        // the same assumption.
+        clone.classList.remove('card-lit');
+        clone.classList.remove('text-white');
+        // The decorative bloom circles are drawn in white-on-blue and turn
+        // into grey smudges once the blue is gone.
+        clone.querySelectorAll('.bg-white\\/10, .bg-white\\/5').forEach(function (n) { n.remove(); });
+
         // Card chrome belongs to the card; inside the modal it would be a box
         // drawn inside a box.
         clone.style.background = 'none';

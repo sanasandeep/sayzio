@@ -1230,35 +1230,113 @@
                         </div>
                     </div>
 
-                    {{-- Modal-only detail. Restates the Analytics & AI Coach FAQ
-                         entries in SitePagesContent -- the card shows four
-                         suggestions without ever saying where they come from or
-                         what happens when you act on one. --}}
-                    <div data-expand-more style="--xm-accent: #9FD0FF">
-                        <p class="xm-lead">A health score on its own is a number telling you to feel bad. The Coach exists to make it actionable: it reads what your visitors actually did on your page this week, finds the specific thing costing you the most, and hands you the fix as one button rather than a report to interpret.</p>
+                </div>
 
-                        <div class="xm-cols">
-                            <div>
-                                <h4 class="xm-h">What it looks at</h4>
-                                <ul class="xm-list">
-                                    <li><i class="fas fa-check"></i><span><strong>Per-block click trends</strong>, so a link that has quietly stopped working is named rather than averaged away.</span></li>
-                                    <li><i class="fas fa-check"></i><span><strong>Where visitors come from and on what device</strong>, which is usually why a page underperforms.</span></li>
-                                    <li><i class="fas fa-check"></i><span><strong>Who is visiting</strong>: AI Audience Insights estimates whether you are reaching students, professionals, businesses or creators.</span></li>
-                                    <li><i class="fas fa-check"></i><span><strong>Your page against its own history</strong>, not against a generic benchmark for somebody else's audience.</span></li>
-                                </ul>
+                {{-- Modal content.
+
+                     This used to be a `[data-expand-more]` block, which meant
+                     the modal was a CLONE of the card with the extra copy
+                     appended. That clone is what broke: the card is a narrow
+                     column on saturated blue, and the modal is a wide panel
+                     that is white in light mode. Stretched to three times the
+                     width the ring collapsed and the suggestion rows pulled
+                     their labels away from their buttons; and because the
+                     card's whole light-mode contract is "force everything
+                     white so it survives the blue", the copy went white on a
+                     white panel and the modal rendered blank.
+
+                     A `<template class="xc-detail">` is the mechanism the
+                     Share cards already use for exactly this: purpose-built
+                     modal content instead of a resized card. The .xcd grid
+                     puts the copy in a column sized for reading and keeps the
+                     product visual on its own blue ground, where the ring and
+                     the suggestion rows still look like what they are. --}}
+                <template class="xc-detail">
+                    <div class="xcd">
+                        <div class="xcd-main">
+                            <span class="xcd-ico" aria-hidden="true"><i class="fas fa-gauge-high"></i></span>
+                            <h3 class="xcd-title">Performance Coach</h3>
+                            <p class="xcd-lead">A health score on its own is a number telling you to feel bad. The Coach exists to make it actionable: it reads what your visitors actually did on your page this week, finds the specific thing costing you the most, and hands you the fix as one button rather than a report to interpret.</p>
+
+                            <div class="xm-cols" style="margin-top:26px">
+                                <div>
+                                    <h4 class="xm-h">What it looks at</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-check"></i><span><strong>Per-block click trends</strong>, so a link that has quietly stopped working is named rather than averaged away.</span></li>
+                                        <li><i class="fas fa-check"></i><span><strong>Where visitors come from and on what device</strong>, which is usually why a page underperforms.</span></li>
+                                        <li><i class="fas fa-check"></i><span><strong>Who is visiting</strong>: AI Audience Insights estimates whether you are reaching students, professionals, businesses or creators.</span></li>
+                                        <li><i class="fas fa-check"></i><span><strong>Your page against its own history</strong>, not against a generic benchmark for somebody else's audience.</span></li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h4 class="xm-h">What you get back</h4>
+                                    <ul class="xm-list">
+                                        <li><i class="fas fa-bolt"></i><span><strong>One-click fixes.</strong> Reorder a block, add social proof, start an A/B test, without leaving the page.</span></li>
+                                        <li><i class="fas fa-flask"></i><span><strong>Tests that finish themselves.</strong> Run two variants and the winner is picked for you.</span></li>
+                                        <li><i class="fas fa-eye"></i><span><strong>A reason attached to every suggestion</strong>, so you can disagree with it. "CTR down 12% in 7 days" is checkable; "improve engagement" is not.</span></li>
+                                        <li><i class="fas fa-hand"></i><span><strong>Nothing changes on its own.</strong> Every fix waits for you to approve it.</span></li>
+                                    </ul>
+                                </div>
                             </div>
-                            <div>
-                                <h4 class="xm-h">What you get back</h4>
-                                <ul class="xm-list">
-                                    <li><i class="fas fa-bolt"></i><span><strong>One-click fixes.</strong> Reorder a block, add social proof, start an A/B test, without leaving the page.</span></li>
-                                    <li><i class="fas fa-flask"></i><span><strong>Tests that finish themselves.</strong> Run two variants and the winner is picked for you.</span></li>
-                                    <li><i class="fas fa-eye"></i><span><strong>A reason attached to every suggestion</strong>, so you can disagree with it. "CTR down 12% in 7 days" is checkable; "improve engagement" is not.</span></li>
-                                    <li><i class="fas fa-hand"></i><span><strong>Nothing changes on its own.</strong> Every fix waits for you to approve it.</span></li>
-                                </ul>
+
+                            <dl class="xcd-stats">
+                                <div><dt>87</dt><dd>Health score</dd></div>
+                                <div><dt>4</dt><dd>Fixes queued</dd></div>
+                                <div><dt>7d</dt><dd>Trend window</dd></div>
+                            </dl>
+
+                            <button type="button" class="xcd-cta"
+                                    onclick="window.trackMarketingEvent&&window.trackMarketingEvent('home_coach_modal','performance_coach');window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))">
+                                Get my health score <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                            </button>
+                        </div>
+
+                        {{-- The visual keeps the card's blue. The ring and the
+                             suggestion rows were drawn for that ground; on the
+                             modal's white panel they would need re-colouring
+                             for no gain. --}}
+                        <div class="xcd-visual xcd-visual--lit">
+                            <div class="coach-modal-demo">
+                                <div class="coach-ring">
+                                    <span class="glow" aria-hidden="true"></span>
+                                    <svg viewBox="0 0 100 100">
+                                        <circle class="track" cx="50" cy="50" r="40" fill="none" stroke-width="9"/>
+                                        <circle class="fill"  cx="50" cy="50" r="40" fill="none" stroke-width="9"/>
+                                    </svg>
+                                    <div class="num">
+                                        <span class="big">87</span>
+                                        <span class="lbl">Health</span>
+                                    </div>
+                                </div>
+
+                                <div class="coach-analyzing" aria-hidden="true">
+                                    <i class="fas fa-wand-magic-sparkles"></i>
+                                    <span>Coach is analyzing</span>
+                                    <span class="dots"><span></span><span></span><span></span></span>
+                                </div>
+
+                                <div class="coach-modal-tips">
+                                    <div class="coach-tip">
+                                        <span class="ic"><i class="fas fa-arrows-rotate"></i></span>
+                                        <div class="body">
+                                            <b>Swap your top block.</b> &ldquo;Free Templates&rdquo; CTR
+                                            <small><span class="spark dn" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>&minus;12% &middot; last 7d</span></small>
+                                        </div>
+                                        <span class="cta">Try fix</span>
+                                    </div>
+                                    <div class="coach-tip">
+                                        <span class="ic"><i class="fas fa-star"></i></span>
+                                        <div class="body">
+                                            <b>Add social proof.</b> Pages with reviews convert
+                                            <small><span class="spark up" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>1.7&times; higher</span></small>
+                                        </div>
+                                        <span class="cta">Add now</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </template>
             </div>
         </div>
     </div>
@@ -1692,77 +1770,82 @@
 
 {{-- ==================== ZONE · PROOF ==================== --}}
 {{-- ============================ TESTIMONIAL MARQUEE ============================ --}}
-<section id="proof" class="sec-rule py-20 lg:py-24 relative overflow-hidden">
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Social proof</div>
-            <h2 class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold">Built with AI, <span class="grad-text">loved by creators.</span></h2>
+{{-- A heading that says "loved by creators" over an empty strip is worse
+     than no band at all, so the whole section is gated on there being at
+     least one approved testimonial to show. The data block is hoisted above
+     the <section> because the guard has to read it. --}}
+@php
+    try {
+        $__allReviews    = \App\Modules\Admin\Models\Testimonial::cachedActive();
+        $__topReviews    = $__allReviews->where('row', 'top')->values();
+        $__bottomReviews = $__allReviews->where('row', 'bottom')->values();
+    } catch (\Throwable $e) {
+        $__topReviews = collect();
+        $__bottomReviews = collect();
+    }
+@endphp
+@if($__topReviews->isNotEmpty() || $__bottomReviews->isNotEmpty())
+    <section id="proof" class="sec-rule py-20 lg:py-24 relative overflow-hidden">
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Social proof</div>
+                <h2 class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold">Built with AI, <span class="grad-text">loved by creators.</span></h2>
+            </div>
         </div>
-    </div>
 
-    @php
-        try {
-            $__allReviews    = \App\Modules\Admin\Models\Testimonial::cachedActive();
-            $__topReviews    = $__allReviews->where('row', 'top')->values();
-            $__bottomReviews = $__allReviews->where('row', 'bottom')->values();
-        } catch (\Throwable $e) {
-            $__topReviews = collect();
-            $__bottomReviews = collect();
-        }
-    @endphp
-
-    @if($__topReviews->isNotEmpty())
-        <div class="overflow-hidden mb-4" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
-            <div class="flex whitespace-nowrap marquee">
-                @for($i = 0; $i < 2; $i++)
-                    @foreach($__topReviews as $r)
-                        <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
-                            <div class="glass rounded-3xl p-6 lift">
-                                <div class="flex text-base mb-3" style="color:var(--c5)">
-                                    @for($s = 0; $s < $r->rating; $s++)<i class="fas fa-star {{ $s ? 'ml-0.5' : '' }}"></i>@endfor
-                                </div>
-                                <p class="text-sm text-gray-200 mb-4 whitespace-normal">&ldquo;{{ $r->quote }}&rdquo;</p>
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r->accent_color }}, var(--c2));">{{ $r->initial() }}</div>
-                                    <div>
-                                        <div class="text-sm font-bold">{{ $r->author_name }}</div>
-                                        <div class="text-[11px] text-gray-500">{{ $r->author_role }}</div>
+        @if($__topReviews->isNotEmpty())
+            <div class="overflow-hidden mb-4" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
+                <div class="flex whitespace-nowrap marquee">
+                    @for($i = 0; $i < 2; $i++)
+                        @foreach($__topReviews as $r)
+                            <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
+                                <div class="glass rounded-3xl p-6 lift">
+                                    <div class="flex text-base mb-3" style="color:var(--c5)">
+                                        @for($s = 0; $s < $r->rating; $s++)<i class="fas fa-star {{ $s ? 'ml-0.5' : '' }}"></i>@endfor
+                                    </div>
+                                    <p class="text-sm text-gray-200 mb-4 whitespace-normal">&ldquo;{{ $r->quote }}&rdquo;</p>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r->accent_color }}, var(--c2));">{{ $r->initial() }}</div>
+                                        <div>
+                                            <div class="text-sm font-bold">{{ $r->author_name }}</div>
+                                            <div class="text-[11px] text-gray-500">{{ $r->author_role }}</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    @endforeach
-                @endfor
+                        @endforeach
+                    @endfor
+                </div>
             </div>
-        </div>
-    @endif
+        @endif
 
-    @if($__bottomReviews->isNotEmpty())
-        <div class="overflow-hidden" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
-            <div class="flex whitespace-nowrap marquee-rev">
-                @for($i = 0; $i < 2; $i++)
-                    @foreach($__bottomReviews as $r)
-                        <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
-                            <div class="glass rounded-3xl p-6 lift">
-                                <div class="flex text-base mb-3" style="color:var(--c5)">
-                                    @for($s = 0; $s < $r->rating; $s++)<i class="fas fa-star {{ $s ? 'ml-0.5' : '' }}"></i>@endfor
-                                </div>
-                                <p class="text-sm text-gray-200 mb-4 whitespace-normal">&ldquo;{{ $r->quote }}&rdquo;</p>
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r->accent_color }}, var(--c2));">{{ $r->initial() }}</div>
-                                    <div>
-                                        <div class="text-sm font-bold">{{ $r->author_name }}</div>
-                                        <div class="text-[11px] text-gray-500">{{ $r->author_role }}</div>
+        @if($__bottomReviews->isNotEmpty())
+            <div class="overflow-hidden" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
+                <div class="flex whitespace-nowrap marquee-rev">
+                    @for($i = 0; $i < 2; $i++)
+                        @foreach($__bottomReviews as $r)
+                            <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
+                                <div class="glass rounded-3xl p-6 lift">
+                                    <div class="flex text-base mb-3" style="color:var(--c5)">
+                                        @for($s = 0; $s < $r->rating; $s++)<i class="fas fa-star {{ $s ? 'ml-0.5' : '' }}"></i>@endfor
+                                    </div>
+                                    <p class="text-sm text-gray-200 mb-4 whitespace-normal">&ldquo;{{ $r->quote }}&rdquo;</p>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r->accent_color }}, var(--c2));">{{ $r->initial() }}</div>
+                                        <div>
+                                            <div class="text-sm font-bold">{{ $r->author_name }}</div>
+                                            <div class="text-[11px] text-gray-500">{{ $r->author_role }}</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    @endforeach
-                @endfor
+                        @endforeach
+                    @endfor
+                </div>
             </div>
-        </div>
-    @endif
-</section>
+        @endif
+    </section>
+@endif
 
 {{-- ==================== ZONE · COMPARE & PRICING ==================== --}}
 {{-- ============================ HOW WE COMPARE ============================ --}}
