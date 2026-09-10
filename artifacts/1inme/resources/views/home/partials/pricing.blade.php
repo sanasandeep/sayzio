@@ -78,10 +78,22 @@
                 ['fa-shield-halved',     'Priority support'],
             ];
         @endphp
-        <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        {{-- Full content width, and an UNEVEN split: Free takes two columns of
+             five, Premium takes three.
+
+             At max-w-4xl the pair sat in an 896px box inside a 1280px section,
+             so the page's widest, most important decision was also its
+             narrowest band -- and the 50/50 split gave the plan being sold
+             exactly as much room as the plan being outgrown. Five columns is
+             the smallest ratio that reads as deliberate rather than as a
+             rounding error, and it gives Premium the space its six feature
+             tiles were already cramped in.
+
+             md: only. Below that they stack and the ratio is meaningless. --}}
+        <div class="grid md:grid-cols-5 gap-6 items-start">
             @foreach($freePlans as $i => $plan)
                 @php $featured = false; $f = $plan['features']; @endphp
-                <div class="reveal rd-{{ $i + 1 }} lift group relative rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 glass hover:shadow-xl hover:shadow-[#3d6bff]/10 overflow-hidden" style="border: 1px solid rgba(255,255,255,0.08);">
+                <div class="md:col-span-2 reveal rd-{{ $i + 1 }} lift group relative rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 glass hover:shadow-xl hover:shadow-[#3d6bff]/10 overflow-hidden" style="border: 1px solid rgba(255,255,255,0.08);">
                     {{-- Animated background blobs --}}
                     <div class="absolute -top-24 -right-24 w-72 h-72 rounded-full opacity-25 blur-3xl pointer-events-none" style="background: #3d6bff; animation: floatA 9s ease-in-out infinite;"></div>
                     <div class="absolute -bottom-24 -left-24 w-72 h-72 rounded-full opacity-20 blur-3xl pointer-events-none" style="background: #6e61ff; animation: floatB 11s ease-in-out infinite;"></div>
@@ -201,7 +213,11 @@
 
             {{-- Premium promo card. Outer wrapper isolates the badge so the inner
                  link can use overflow-hidden for blob effects without clipping it. --}}
-            <div class="relative reveal rd-2 md:scale-[1.03]">
+            {{-- The scale-up went with the column split. Scaling a card is how
+                 you fake prominence when you cannot give it more room; now it
+                 has more room, and 1.03 only blurred its text and pushed its
+                 edges a few pixels past the grid. --}}
+            <div class="md:col-span-3 relative reveal rd-2">
                 {{-- Floating badge --}}
                 <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
                     <div class="px-4 py-1.5 bg-white text-[#3d6bff] text-[11px] font-extrabold rounded-full uppercase tracking-wider shadow-lg flex items-center gap-1.5" style="box-shadow: 0 8px 24px -8px rgba(61,107,255,.6), 0 0 0 4px rgba(255,255,255,.08);">
@@ -212,8 +228,13 @@
 
                 <a href="{{ route('site.pricing') }}"
                    @click="trackMarketingEvent('plan_paid')"
-                   class="lift group relative block rounded-3xl p-8 pt-9 text-white shadow-2xl shadow-[#3d6bff]/40 hover:shadow-[#3d6bff]/60 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
-                   style="background: #3d6bff;">
+                   {{-- A lit gradient rather than a flat fill, and a ring that
+                        reads as light coming off the card rather than as a
+                        border drawn on it. Flat #3d6bff at this size was a
+                        large blue rectangle: nothing about it said "this is
+                        the one", it was just bigger. --}}
+                   class="lift group relative block rounded-3xl p-8 pt-9 text-white transition-all duration-300 hover:-translate-y-1 overflow-hidden prem-lit"
+                   style="background: linear-gradient(152deg, #4E79FF 0%, #3d6bff 42%, #2C49D8 100%);">
                     {{-- Ambient blobs --}}
                     <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-white/15 blur-3xl pointer-events-none" style="animation: floatA 10s ease-in-out infinite;"></div>
                     <div class="absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none" style="animation: floatB 12s ease-in-out infinite;"></div>
@@ -261,7 +282,11 @@
                             </div>
                         @endif
 
-                        <span class="btn-bounce inline-flex items-center justify-center gap-2 w-full py-3.5 text-center rounded-full text-sm font-bold bg-white text-[#3d6bff] hover:bg-gray-100 transition-transform group-hover:scale-[1.02]">
+                        {{-- prem-cta marks the one element inside the card that
+                             has its own (white) ground, so the light-mode rule
+                             that forces the rest of the card's text white does
+                             not turn this into white-on-white. --}}
+                        <span class="prem-cta btn-bounce inline-flex items-center justify-center gap-2 w-full py-3.5 text-center rounded-full text-sm font-bold bg-white text-[#3d6bff] hover:bg-gray-100 transition-transform group-hover:scale-[1.02]">
                             Explore premium plans <i class="fas fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
                         </span>
                     </div>

@@ -275,6 +275,68 @@
         }
 
         /* Premium feature blocks subtle entrance + icon halo on hover */
+        /* ─── Premium card: lit, not just filled ───
+           The card is the page's one "buy this" surface and it was a flat blue
+           rectangle made prominent by being scaled 3% larger. It carries its
+           weight properly now: a gradient with a light source, an inner top
+           highlight so the top edge catches, and a wide coloured glow beneath
+           so the card reads as sitting above the page rather than painted on
+           it. The glow warms on hover instead of the whole card lifting into a
+           heavier shadow. */
+        .prem-lit {
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.30),
+                0 2px 6px -2px rgba(28,48,140,.45),
+                0 28px 64px -28px rgba(61,107,255,.75);
+            transition: box-shadow .3s ease, transform .3s ease;
+        }
+        .prem-lit:hover {
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.38),
+                0 2px 6px -2px rgba(28,48,140,.5),
+                0 36px 80px -30px rgba(61,107,255,.95);
+        }
+        html.light-mode .prem-lit {
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.34),
+                0 2px 6px -2px rgba(28,48,140,.28),
+                0 30px 70px -30px rgba(61,107,255,.55);
+        }
+
+        /* ─── Premium card text, in light mode ───
+           A pre-existing bug, not a new one: measured before any of today's
+           changes, the card's heading computed to rgb(15,23,42) and its
+           feature tiles to rgb(31,41,55) -- near-black on a saturated blue.
+           The page's light mode paints every heading and most body text dark
+           for a white ground, and this card is the one surface on the page
+           that stays blue in both modes, so those rules land on exactly the
+           wrong surface.
+
+           Widening the card only made it easier to see. Setting the colour on
+           the card and letting it inherit fixes the whole subtree in one
+           place; the two elements with their own ground -- the white CTA and
+           the "cancel anytime" chip -- opt back out below.
+
+           !important is what it takes on the heading specifically: this rule
+           and `html.light-mode h3:not(.grad-text)` are both (0,2,2), so the
+           tie goes to source order, and that rule is ~2400 lines further down
+           this file. Raising specificity here would only invite the next
+           person to raise theirs. */
+        html.light-mode .prem-lit,
+        html.light-mode .prem-lit :is(h1,h2,h3,h4,p,span,div,b,strong,li) {
+            color: #fff !important;
+        }
+        /* Restore the deliberately-tinted text: these already set their own
+           colour against their own background and must keep it. All
+           !important, because the rule above is -- so the CTA went
+           white-on-white the moment that landed. An !important above forces
+           !important on everything that has to escape it. */
+        html.light-mode .prem-lit .prem-cta,
+        html.light-mode .prem-lit .prem-cta :is(span,i,div) { color: #3d6bff !important; }
+        /* Muted whites stay muted rather than snapping to full strength. */
+        html.light-mode .prem-lit :is(.text-white\/80, .text-white\/70, .text-white\/60) { color: rgba(255,255,255,.8) !important; }
+        html.light-mode .prem-lit .text-white\/45 { color: rgba(255,255,255,.45) !important; }
+
         .prem-feat { opacity: 0; transform: translateY(6px); animation: premFeatIn .55s ease-out forwards; }
         @keyframes premFeatIn { to { opacity: 1; transform: translateY(0); } }
         .prem-feat:hover .prem-feat-ico { box-shadow: 0 0 0 2px rgba(255,255,255,.25), 0 8px 22px -6px rgba(255,255,255,.35); transform: rotate(-6deg) scale(1.08); }
