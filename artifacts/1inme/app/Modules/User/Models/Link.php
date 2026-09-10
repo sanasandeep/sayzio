@@ -325,6 +325,21 @@ protected $fillable = [
         // the common, correctly-cased visit still uses the `alias` index; the
         // LOWER() fallback only runs when the exact lookup misses (e.g. the
         // visitor typed a different case, or the stored alias is mixed-case).
+        //
+        // The fallback is gated on the exact lookup MISSING, and on nothing
+        // else. It used to also require `$alias !== $lower`, on the reasoning
+        // that a request already in lowercase has nothing left to lower --
+        // which quietly reverses the two sides of the comparison. LOWER() is
+        // applied to the STORED column, not to the incoming string, so the
+        // case that needs the fallback most is exactly the one that guard
+        // excluded: alias stored as "SanaSandeep", visitor types the
+        // all-lowercase "sanasandeep". Every other casing the visitor could
+        // type -- "SANASANDEEP", "sanaSandeep" -- differs from its own
+        // lowercase form, passed the guard, and resolved; all-lowercase, the
+        // single most likely thing for a human to type, 404'd. Aliases keep
+        // whatever casing their owner chose (uniqueness is checked with
+        // LOWER(), but the typed value is what gets stored), so this was live
+        // for every mixed-case alias on the platform.
         $lower = mb_strtolower($alias);
 
         // Some public, anonymous callers (e.g. the retargeting-pixel fire
@@ -340,7 +355,7 @@ protected $fillable = [
             $query->where($scope);
         }
         $link = $query->first();
-        if (! $link && $alias !== $lower) {
+        if (! $link) {
             $ciQuery = $base()->whereRaw('LOWER(alias) = ?', [$lower]);
             if ($host !== null) {
                 $ciQuery->where($scope);
@@ -366,7 +381,10 @@ protected $fillable = [
             $extraQ->where($extraScope);
         }
         $extra = $extraQ->first();
-        if (! $extra && $alias !== $lower) {
+        if (! $extra) {
+            // Same reversal as above: an additional alias stored as "MyShop"
+            // was unreachable at the lowercase "myshop" it is most often
+            // typed as.
             $extraQ = LinkAlias::whereRaw('LOWER(alias) = ?', [$lower]);
             if ($host !== null) {
                 $extraQ->where($extraScope);
