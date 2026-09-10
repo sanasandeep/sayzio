@@ -116,7 +116,7 @@
      header's Alpine scope, because it shares the bar's `scrolled` flag: at
      the top of the page the bar is transparent so the hero can run under it,
      and a hard rule across the viewport there would cut the hero in half.
-     Styled in home/partials/rails.blade.php, which is only on the homepage,
+     Styled in public/partials/rails.blade.php, which every marketing page now loads,
      so this span is inert everywhere else. --}}
 <div class="mkt-nav-rule" :class="scrolled ? 'is-stuck' : ''" aria-hidden="true"></div>
 <nav class="{{ $fixed ? 'fixed' : 'sticky' }} top-0 inset-x-0 {{ $fixed ? 'z-50' : 'z-40' }} mkt-nav-autohide"

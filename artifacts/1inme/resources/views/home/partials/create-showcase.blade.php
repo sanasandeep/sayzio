@@ -267,7 +267,7 @@
             .lt-chip:hover .lt-chip-open,.lt-chip-open:focus-visible{
                 background:var(--lt-accent,#3E3AE0);color:#fff;transform:scale(1.06)
             }
-            /* flat-surfaces.blade.php forces every span inside a chip to the
+            /* public/partials/surfaces.blade.php forces every span inside a chip to the
                body ink in light mode so labels can never vanish; this control
                is the deliberate exception, and outranks it on specificity. */
             html.light-mode .lt-chip .lt-chip-open{color:var(--lt-accent,#3E3AE0) !important}
