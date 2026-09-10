@@ -1504,6 +1504,10 @@
         </div>
     </section>
 
+    {{-- The diagram goes first, before the individual coworkers get their own
+         bands: it is the map, and a map is only useful before the tour. --}}
+    @include('home.partials.zio-hub')
+
     @include('home.partials.ai-hero')
     @include('home.partials.ai-suite')
     @include('home.partials.ai-marketing-strategist')

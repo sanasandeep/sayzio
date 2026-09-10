@@ -240,6 +240,25 @@ html,html body,html.light-mode body{background:var(--fs-page) !important}
 @supports not (background-color: color-mix(in srgb, red 50%, transparent)){
   .mkt-navbar-bar.is-stuck{ background-color:var(--fs-chip) !important; }
 }
+
+/* While the nav is hidden the bar carries no body and no hairline.
+
+   The <nav> slides out over .3s; the bar's border and fill were left at
+   full strength for the whole slide, so the last thing to leave the
+   viewport was a 1px rule travelling up behind an already-invisible menu.
+   Caught mid-slide it reads exactly like what it is not: a stray border
+   under a bar that is not there.
+
+   Clearing both here lets the bar's own .28s colour transition fade them
+   out across the slide, so the bar leaves as one object. Specificity beats
+   `.mkt-navbar-bar.is-stuck` (0,3,0 against 0,2,0), which is what it takes
+   to win against that rule's !important. */
+.mkt-nav-autohide.mkt-nav-hidden .mkt-navbar-bar{
+  background-color:transparent !important;
+  border-color:transparent !important;
+  -webkit-backdrop-filter:none !important;
+          backdrop-filter:none !important;
+}
 @media (prefers-reduced-motion: reduce){
   .mkt-navbar-bar{ transition:none !important; }
 }
