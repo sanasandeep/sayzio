@@ -791,6 +791,100 @@ html.light-mode .cmp-group-head { background: rgba(15,23,42,.025); color: #47556
 }
 .cmp-cta:hover { transform: translateY(-1px); background-position: 100% 0; box-shadow: 0 18px 50px -16px rgba(144,172,255,.65); }
 
+/* ===== compare TEASER panel (cmpt-) =====
+   The homepage's version of this section. `cmp-` is the full comparison's
+   prefix and its rules assume the matrix layout, so this is its own.
+
+   Two columns: the argument on the left, the evidence on the right. The
+   panel matches the CTA cards' shape (pale card, one border, generous
+   padding) so the page reads as one system rather than as a stack of
+   differently-styled bands. */
+.cmpt {
+    display: grid;
+    gap: clamp(28px, 4vw, 52px);
+    align-items: center;
+    padding: clamp(26px, 3.4vw, 44px);
+    border-radius: 18px;
+    background: #12151F;
+    border: 1px solid rgba(255,255,255,.10);
+}
+html.light-mode .cmpt { background: #F6F7FB; border-color: #E6E8F2; }
+@media (min-width: 900px) { .cmpt { grid-template-columns: 1.05fr .95fr; } }
+
+.cmpt-eyebrow {
+    margin: 0 0 10px; font-size: 11px; font-weight: 700; letter-spacing: .2em;
+    text-transform: uppercase; color: #9098AB;
+}
+html.light-mode .cmpt-eyebrow { color: #6B7280; }
+
+.cmpt-lead {
+    margin: 0; font-size: clamp(20px, 2.2vw, 27px); line-height: 1.28;
+    letter-spacing: -.02em; color: #A8B0C6; text-wrap: balance;
+}
+html.light-mode .cmpt-lead { color: #4E5680; }
+/* The figure carries the sentence, so it is the only thing at full ink. */
+.cmpt-lead strong { color: #fff; font-weight: 800; }
+html.light-mode .cmpt-lead strong { color: #0F172A; }
+
+.cmpt-h {
+    margin: 24px 0 10px; font-size: 11px; font-weight: 700; letter-spacing: .14em;
+    text-transform: uppercase; color: #9098AB;
+}
+html.light-mode .cmpt-h { color: #6B7280; }
+
+.cmpt-only { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.cmpt-only li {
+    display: flex; align-items: baseline; gap: 10px;
+    font-size: 14.5px; line-height: 1.5; color: #C7CEE4;
+}
+html.light-mode .cmpt-only li { color: #2A3350; }
+.cmpt-only i { font-size: 10.5px; color: #3d6bff; flex-shrink: 0; }
+
+.cmpt-cta { margin-top: 26px; }
+
+/* ---- the scoreboard ---- */
+.cmpt-board { list-style: none; margin: 0; padding: 0; display: grid; gap: 11px; }
+.cmpt-row {
+    display: grid; grid-template-columns: 82px 1fr 26px;
+    align-items: center; gap: 12px;
+    font-size: 13px; color: #A8B0C6;
+}
+html.light-mode .cmpt-row { color: #4E5680; }
+.cmpt-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cmpt-num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+
+.cmpt-bar {
+    display: block; height: 8px; border-radius: 999px;
+    background: rgba(255,255,255,.07); overflow: hidden;
+}
+html.light-mode .cmpt-bar { background: #E6E8F2; }
+.cmpt-bar > span {
+    display: block; height: 100%; border-radius: inherit;
+    background: rgba(255,255,255,.22);
+}
+html.light-mode .cmpt-bar > span { background: #B9C0DA; }
+
+/* One row is the point of the chart, so it is the only one in colour and
+   the only one at full weight. Everything else is the baseline it beats. */
+.cmpt-row--ours { color: #fff; font-weight: 700; }
+html.light-mode .cmpt-row--ours { color: #0F172A; }
+.cmpt-row--ours .cmpt-bar > span,
+/* The light-mode neutral above is `html.light-mode .cmpt-bar > span`, which
+   outranks a single class on the row -- so in light mode the winning bar came
+   out the same grey as the ones it beats. Stated at the same depth here. */
+html.light-mode .cmpt-row--ours .cmpt-bar > span { background: linear-gradient(90deg, #1bd4d9, #3d6bff); }
+.cmpt-row--ours .cmpt-bar,
+html.light-mode .cmpt-row--ours .cmpt-bar { background: rgba(61,107,255,.16); }
+
+@media (prefers-reduced-motion: no-preference) {
+    /* The bars grow from nothing when the section arrives, which is the one
+       moment the gap between the rows is worth pointing at. `data-anim`
+       adds `is-in` on the panel; without JS they are simply already drawn. */
+    .cmpt[data-anim].is-in .cmpt-bar > span { animation: cmptGrow .9s cubic-bezier(.22,1,.36,1) both; }
+    @keyframes cmptGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .cmpt-bar > span { transform-origin: left center; }
+}
+
 /* Full matrix grid (CSS grid version, scrolls horizontally on small screens) */
 .cmp-matrix-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .cmp-matrix {
