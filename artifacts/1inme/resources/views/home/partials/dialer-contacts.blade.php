@@ -372,7 +372,7 @@
         <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {{-- LEFT: animated phone / dialer --}}
             <div class="reveal rd-3 dc-wrap relative flex justify-center">
-                <div class="dc-phone" role="img" aria-label="Zio dialer typing a phone number on a dual-SIM keypad, then flipping to a caller-ID screen that resolves the number into a verified Sayzio profile">
+                <div class="dc-phone surface-lit" role="img" aria-label="Zio dialer typing a phone number on a dual-SIM keypad, then flipping to a caller-ID screen that resolves the number into a verified Sayzio profile">
                     <div class="dc-stage" aria-hidden="true">
                         <div class="dc-flip">
 
@@ -393,7 +393,7 @@
                                 @endphp
                                 <div class="dc-numwrap">
                                     <div class="dc-match">
-                                        <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" onerror="this.remove()">
+                                        <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" decoding="async" width="192" height="192" onerror="this.remove()">
                                         Aisha Rahman <i class="fas fa-circle-check"></i>
                                     </div>
                                     {{-- Quick-channel icons appear with the T9 match --}}
@@ -454,7 +454,7 @@
                                     <div class="dc-cid-pill"><i class="fas fa-address-card"></i> Sayzio Caller ID</div>
                                     <div class="dc-avatar-lg">
                                         AR
-                                        <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" onerror="this.remove()">
+                                        <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" decoding="async" width="192" height="192" onerror="this.remove()">
                                     </div>
                                     <div class="dc-call-name">Aisha Rahman <i class="fas fa-circle-check"></i></div>
                                     <div class="dc-call-handle">@aisha &middot; on Sayzio</div>

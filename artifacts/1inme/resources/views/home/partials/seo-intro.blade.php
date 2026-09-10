@@ -58,7 +58,7 @@
     @keyframes seoIntroFloat { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-14px) rotate(3deg); } }
     @media (prefers-reduced-motion: reduce) { .seo-intro-float { animation: none; } }
 </style>
-<section @if(!empty($anchorId)) id="{{ $anchorId }}" @endif class="seo-intro pt-16 pb-6 lg:pt-20 overflow-hidden">
+<section @if(!empty($anchorId)) id="{{ $anchorId }}" @endif class="sec-rule seo-intro pt-16 pb-6 lg:pt-20 overflow-hidden">
     <div class="seo-intro-glow"></div>
     @php
         $__floats = $floats ?? [];

@@ -251,7 +251,7 @@
     }
 </style>
 
-<section class="zh-band pt-24 lg:pt-32 pb-20 lg:pb-28" aria-labelledby="zh-h">
+<section class="zh-band sec-ground pt-24 lg:pt-32 pb-20 lg:pb-28" aria-labelledby="zh-h">
 
     {{-- The AI zone's intro used to sit in its own section immediately above
          this band, on the page's normal ground. That put a hard seam between
@@ -319,7 +319,7 @@
             </svg>
 
             <div class="zh-hub">
-                <img src="{{ asset('branding/zio-bot.png') }}" alt="" width="52" height="52" decoding="async">
+                <img src="{{ asset('branding/zio-bot.png') }}" alt="" width="52" height="52" loading="lazy" decoding="async">
                 <b>Zio</b>
                 <span>your AI</span>
             </div>
@@ -334,7 +334,7 @@
         {{-- Narrow: same links, no diagram. --}}
         <div class="zh-list">
             <div class="zh-list-hub">
-                <img src="{{ asset('branding/zio-bot.png') }}" alt="" width="34" height="34" decoding="async">
+                <img src="{{ asset('branding/zio-bot.png') }}" alt="" width="34" height="34" loading="lazy" decoding="async">
                 <b>Zio</b>
             </div>
             @foreach($zioNodes as $n)

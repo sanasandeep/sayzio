@@ -21,7 +21,7 @@
     'pills' => ['Custom domains', 'Real-time analytics', 'Team workspaces', 'API access'],
 ])
 {{-- ============================ 2 · SHARE ============================ --}}
-<section id="share" class="py-24 lg:py-32 relative overflow-hidden">
+<section id="share" class="sec-rule py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Share</div>
@@ -57,7 +57,7 @@
                     <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(61,107,255,.22)"><i class="fas fa-globe text-xl" style="color:var(--c2)"></i></div>
                     <h3 class="text-xl font-bold mb-2">Custom domain</h3>
                     <p class="text-sm text-gray-400 mb-5">Bring your own domain like <span class="text-white">links.yourbrand.com</span>, auto-SSL, zero DNS headaches.</p>
-                    <div class="cd-stage">
+                    <div class="cd-stage surface-lit">
                         <div class="cd-bar">
                             <span class="lock"><i class="fas fa-lock"></i></span>
                             <span class="sub">https://</span><span class="brand">links.</span><span class="brand">yourbrand</span><span class="tld">.com</span><span class="path">/launch</span>
@@ -199,7 +199,7 @@
 @if($__faqNode)
 <script type="application/ld+json">{!! json_encode(\App\Modules\Common\Support\MarketingSchema::graph([$__faqNode]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 @endif
-<section id="faq" class="pt-16 pb-10 lg:pt-20 lg:pb-12 relative overflow-hidden">
+<section id="faq" class="sec-rule pt-16 pb-10 lg:pt-20 lg:pb-12 relative overflow-hidden">
     <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-8">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">FAQ</div>
@@ -234,7 +234,7 @@
 {{-- Visually distinct from the gradient hero blocks above: a single asymmetric
      glass card with a left-aligned headline + right-aligned action, so the
      closing run reads as "cards → trust strip → links → one final CTA". --}}
-<section id="cta-final" class="py-16 lg:py-20 relative overflow-hidden">
+<section id="cta-final" class="sec-rule py-16 lg:py-20 relative overflow-hidden">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="reveal glass rounded-[2rem] p-8 sm:p-12 relative overflow-hidden border border-white/10">
             <div class="absolute -top-24 -right-20 w-80 h-80 rounded-full opacity-30 blur-3xl" style="background: var(--c2);"></div>

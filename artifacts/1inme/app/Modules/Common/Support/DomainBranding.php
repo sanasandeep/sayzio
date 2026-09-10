@@ -211,6 +211,56 @@ class DomainBranding
     /**
      * @return array{logo_light:string,logo_dark:string,icon:string}
      */
+    /**
+     * The intrinsic pixel size of a logo, as `[width, height]`, or null when it
+     * cannot be read.
+     *
+     * The brand logo renders eight times on the homepage with no width or
+     * height attribute, so the browser cannot reserve its box and every row it
+     * sits in reflows once the image lands. It is the largest single source of
+     * layout shift left on the page.
+     *
+     * Hardcoding 1678x513 would be wrong: these URLs are host-aware and a
+     * global domain can carry its own wordmark of any proportion. So the size
+     * is read from the file when the URL points at one of ours, and omitted
+     * when it does not -- an absolute URL to somebody else's CDN gets no
+     * attributes rather than the platform logo's shape.
+     *
+     * getimagesize() opens the file, so the result is cached against the
+     * path's modification time: a re-uploaded logo of a different shape
+     * invalidates itself, and a warm page pays nothing.
+     *
+     * @return array{0:int,1:int}|null
+     */
+    public static function intrinsicSize(string $url): ?array
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+
+        if (! is_string($path) || $path === '') {
+            return null;
+        }
+
+        // Only our own public assets. A remote or storage-driver URL is not a
+        // file we can measure without a network round trip per render.
+        if (parse_url($url, PHP_URL_HOST) !== null && parse_url($url, PHP_URL_HOST) !== self::requestHost()) {
+            return null;
+        }
+
+        $file = public_path(ltrim($path, '/'));
+
+        if (! is_file($file)) {
+            return null;
+        }
+
+        $key = 'brand_logo_size:' . md5($file) . ':' . filemtime($file);
+
+        return Cache::rememberForever($key, function () use ($file) {
+            $size = @getimagesize($file);
+
+            return ($size && $size[0] > 0 && $size[1] > 0) ? [(int) $size[0], (int) $size[1]] : null;
+        });
+    }
+
     private static function platformDefaults(): array
     {
         return [

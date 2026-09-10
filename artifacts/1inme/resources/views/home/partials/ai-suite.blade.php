@@ -346,7 +346,7 @@
         .aisx .aisx-screen { transform: none !important; }
     }
 </style>
-<section id="ai-suite" class="aisx py-24 lg:py-32 relative overflow-hidden" aria-labelledby="ai-suite-h">
+<section id="ai-suite" class="sec-rule aisx py-24 lg:py-32 relative overflow-hidden" aria-labelledby="ai-suite-h">
     <div class="aisx-grid-bg" aria-hidden="true"></div>
     <div class="aisx-blob aisx-blob-a" aria-hidden="true"></div>
     <div class="aisx-blob aisx-blob-b" aria-hidden="true"></div>
@@ -403,7 +403,7 @@
             {{-- Live demo screen --}}
             <div class="aisx-demo-col reveal rd-3">
                 <div class="aisx-demo-wrap">
-                    <div class="aisx-screen" data-aisx-screen style="--c: {{ $__aiProducts[0]['color'] }};">
+                    <div class="aisx-screen surface-lit" data-aisx-screen style="--c: {{ $__aiProducts[0]['color'] }};">
                         <div class="aisx-bar">
                             <span class="aisx-dot" aria-hidden="true"></span>
                             <span class="aisx-dot" aria-hidden="true"></span>

@@ -285,11 +285,38 @@
            page ground has neither the class nor an entry in its opt-out
            list, so the next section added cannot quietly go without one.
 
-           Still deliberately NOT every section: the rule belongs at the
-           boundaries between bands that share the page's ground. Bands with
-           a ground of their own are opted out -- a hairline calibrated for
-           white is invisible on the Zio band and wrong on #buzz, and those
-           announce themselves by changing colour instead. */
+           Still deliberately NOT every section -- but which ones are exempt is
+           no longer a claim written down somewhere. It used to be: a list of
+           ids in HomepageSectionDividerTest, each with a prose reason of the
+           form "sits on its own tinted ground". Nothing checked the reason,
+           and the light-mode sheet (public/partials/surfaces.blade.php) had
+           quietly made half of them false -- it flattens every section wash on
+           the page, #buzz's included, so bands excused from carrying a rule
+           because they "announce themselves by changing colour" were sitting
+           on the same white as everything else. Seven consecutive bands, from
+           the top of the AI zone to the social-proof band, had no separator of
+           any kind: just under 8,000px of unbroken sheet.
+
+           So the exemption is now a class that PAINTS rather than a sentence
+           that asserts. A band is one of two things:
+
+             .sec-ground -- brings a ground of its own, in BOTH themes. The
+                            change of colour is the separator.
+             .sec-rule   -- sits on the page's ground and carries the hairline.
+
+           A band cannot claim a ground it does not have, because claiming it
+           is what draws it.
+
+           The separator belongs to the BOUNDARY, not to the band, so where a
+           grounded band is followed by one on the page ground, the colour
+           change has already marked that edge and the hairline underneath it
+           is one separator too many. `.sec-ground + .sec-rule` drops it.
+
+           A grounded ZONE is not an exception to this. #ai-zone is ~6,600px
+           across six bands; its ground separates the zone from the page, and
+           the bands inside it still share a ground with each other, so they
+           still carry rules. "Reads as one band" was never true of a quarter
+           of the page. */
         .sec-rule::before {
             content: "";
             position: absolute; top: 0; left: 50%; transform: translateX(-50%);
@@ -300,6 +327,51 @@
         html.light-mode .sec-rule::before { --sec-rule: rgba(15,23,42,.09); }
         @media (min-width: 640px)  { .sec-rule::before { width: min(1280px, 100% - 3rem); } }
         @media (min-width: 1024px) { .sec-rule::before { width: min(1280px, 100% - 4rem); } }
+
+        /* ─── .sec-ground: the page's second surface ───
+           One tint, used sparingly, so the page has a rhythm instead of
+           reading as a single 26,000px sheet with headings scattered down it.
+           Six bands take it: the trust band under the hero, How it works,
+           Grow, the AI zone, Buzz and pricing -- roughly every 4,000-7,000px,
+           which is what gives the page chapters.
+
+           Both values are #pricing's, which had already picked a pair by hand
+           and is the only band on the page that has read as its own surface in
+           both themes for a while. They are a token now so the next band that
+           wants a ground cannot invent a fourth shade of nearly-white.
+
+           `position: relative` is stated rather than assumed: several of these
+           bands (the trust band, the Zio hub band) do not carry Tailwind's
+           `relative`, and without it the ::before that some of them also need
+           would anchor to the wrong ancestor.
+
+           The light-mode value is wrapped in :where() so the whole selector
+           weighs nothing. Three bands want a ground of their own rather than
+           the shared tint -- the Zio hub is dark in both themes, the pricing
+           band has its own pair -- and at zero specificity a single class on
+           the band beats this in both directions without depending on which
+           <style> the browser happened to see last. Two of those bands live in
+           fragments injected after this file, so source order was doing the
+           work by accident. */
+        .sec-ground { position: relative; }
+        :where(.sec-ground) { background-color: var(--sec-ground, #0E1017); }
+        :where(html.light-mode) :where(.sec-ground) { --sec-ground: #F5F6FA; }
+        /* A hairline at a ground boundary was going to be suppressed -- the
+           colour change already marks that join -- and `.sec-ground +
+           .sec-rule::before { display: none }` is how. It does not survive
+           contact with the page: half the bands live in partials that emit a
+           <style> block immediately before their <section>, so the two
+           sections are not adjacent siblings and `+` never matches. It fired
+           at three boundaries out of six.
+
+           Inconsistent is worse than either option, and the ruled version is
+           the better of the two anyway: photographed at four boundaries, the
+           hairline lands exactly on the colour step and crisps it, where the
+           unruled ones read as a soft smear. It is also what #pricing had
+           already chosen for itself with `border-block`.
+
+           So every band keeps its rule, grounded neighbours included, and the
+           suppression is gone rather than left in place firing at random. */
 
         /* ─── .card-lit: a card that stays blue in BOTH modes ───
            The page has more than one of these -- the Premium plan and the
@@ -355,21 +427,63 @@
            and `html.light-mode h3:not(.grad-text)` are both (0,2,2), so the
            tie goes to source order, and that rule is ~2400 lines further down
            this file. Raising specificity here would only invite the next
-           person to raise theirs. */
-        html.light-mode .card-lit,
-        html.light-mode .card-lit :is(h1,h2,h3,h4,p,span,div,b,strong,li) {
+           person to raise theirs.
+
+           ─── and it is not only the cards ───
+           The comment above says the problem is a property of the SURFACE
+           rather than of any one card, and then the fix was scoped to
+           `.card-lit`, which also paints a blue gradient. So every other dark
+           surface on the page -- product mocks, phone frames, screens -- kept
+           the bug, because carrying `card-lit` would have repainted them blue.
+
+           Audited in Chromium: composite the real ground behind every element
+           in light mode, keep the ones that are still dark, and check the text
+           inside. Six mocks came back with near-black text on a near-black
+           ground: the notifications panel (11 nodes -- the reported one), the
+           marketing strategist card (14), the share stage (11), the dialer
+           phone (8), the biolink phone in Features (7) and the AI Suite screen
+           (3). Two more dark surfaces, the Zio hub band and the AI hero stage,
+           were fine -- somebody had fixed those two by hand, which is why this
+           read as one broken panel rather than a pattern.
+
+           `surface-lit` is the ink half on its own, for any surface that keeps
+           a dark ground while the page turns white. `.card-lit` is now that
+           plus the blue gradient. */
+        html.light-mode :is(.card-lit, .surface-lit),
+        html.light-mode :is(.card-lit, .surface-lit) :is(h1,h2,h3,h4,p,span,div,b,strong,li,a,td,th,label,small,time):not(.surface-lit-keep, .surface-lit-keep *, .card-lit-cta, .card-lit-cta *) {
             color: #fff !important;
         }
         /* Restore the deliberately-tinted text: these already set their own
            colour against their own background and must keep it. All
            !important, because the rule above is -- so the CTA went
            white-on-white the moment that landed. An !important above forces
-           !important on everything that has to escape it. */
+           !important on everything that has to escape it.
+
+           `.card-lit-cta` is also named in the :not() above, and has to be:
+           adding `.surface-lit-keep *` to that :not() raised the ink rule by
+           one class, past this one, and the pricing card's CTA went
+           white-on-white again -- the exact failure this rule was written for,
+           reintroduced by the fix for a different card. Excluding it up there
+           is what actually keeps it out; this rule only says what colour it
+           takes instead. */
         html.light-mode .card-lit .card-lit-cta,
         html.light-mode .card-lit .card-lit-cta :is(span,i,div) { color: #3d6bff !important; }
-        /* Muted whites stay muted rather than snapping to full strength. */
-        html.light-mode .card-lit :is(.text-white\/80, .text-white\/70, .text-white\/60) { color: rgba(255,255,255,.8) !important; }
-        html.light-mode .card-lit .text-white\/45 { color: rgba(255,255,255,.45) !important; }
+        /* Muted whites stay muted rather than snapping to full strength, and
+           the grey utilities the light-mode sheet rewrites to near-black
+           (marketing-anim.css: .text-gray-300/400/500 and the slate mirror)
+           come back as muted white instead -- inside these surfaces they were
+           always the secondary line, not the primary one. */
+        html.light-mode :is(.card-lit, .surface-lit) :is(.text-white\/80, .text-white\/70, .text-white\/60) { color: rgba(255,255,255,.8) !important; }
+        html.light-mode :is(.card-lit, .surface-lit) .text-white\/45 { color: rgba(255,255,255,.45) !important; }
+        html.light-mode .surface-lit :is(.text-gray-300, .text-gray-400, .text-slate-300, .text-slate-400) { color: rgba(255,255,255,.66) !important; }
+        html.light-mode .surface-lit :is(.text-gray-500, .text-slate-500) { color: rgba(255,255,255,.5) !important; }
+        /* A mock's own accent chips, badges and tinted labels set a colour
+           against their own fill and have to keep it -- the same escape
+           `.card-lit-cta` gets, available to any surface. It is a `:not()` on
+           the rule above rather than a rule that puts the colour back: once an
+           !important has landed, "inherit !important" only inherits the white
+           that landed on the parent. The subtree has to be excluded before the
+           fact, not repainted after it. */
 
         .prem-feat { opacity: 0; transform: translateY(6px); animation: premFeatIn .55s ease-out forwards; }
         @keyframes premFeatIn { to { opacity: 1; transform: translateY(0); } }

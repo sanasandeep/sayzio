@@ -50,7 +50,7 @@
         opacity:.18; filter: blur(20px);
     }
 </style>
-<section id="how-it-works" class="py-20 lg:py-28 relative overflow-hidden">
+<section id="how-it-works" class="sec-rule py-20 lg:py-28 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c2)">How it works</div>
@@ -155,13 +155,13 @@
         .ai-zone-aura, .ai-zone-pill-dot { animation: none !important; }
     }
 </style>
-<div id="ai-zone" class="ai-zone relative overflow-hidden">
+<div id="ai-zone" class="ai-zone sec-ground relative overflow-hidden">
     <div class="ai-zone-wash" aria-hidden="true"></div>
     <div class="ai-zone-aura ai-zone-aura-a" aria-hidden="true"></div>
     <div class="ai-zone-aura ai-zone-aura-b" aria-hidden="true"></div>
 
     {{-- Shared zone intro --}}
-    <section class="relative pt-24 lg:pt-32 pb-2" aria-labelledby="ai-zone-h">
+    <section class="sec-rule relative pt-24 lg:pt-32 pb-2" aria-labelledby="ai-zone-h">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div class="reveal inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-[.2em] ai-zone-pill">
                 <span class="ai-zone-pill-dot" aria-hidden="true"></span> Meet Zio
@@ -203,7 +203,7 @@
     }
 @endphp
 @if($__topReviews->isNotEmpty() || $__bottomReviews->isNotEmpty())
-    <section id="proof" class="py-20 lg:py-24 relative overflow-hidden">
+    <section id="proof" class="sec-rule py-20 lg:py-24 relative overflow-hidden">
         <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
                 <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Social proof</div>
@@ -277,7 +277,7 @@
 @if($__faqNode)
 <script type="application/ld+json">{!! json_encode(\App\Modules\Common\Support\MarketingSchema::graph([$__faqNode]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 @endif
-<section id="faq" class="pt-16 pb-10 lg:pt-20 lg:pb-12 relative overflow-hidden">
+<section id="faq" class="sec-rule pt-16 pb-10 lg:pt-20 lg:pb-12 relative overflow-hidden">
     <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-8">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">FAQ</div>
@@ -312,7 +312,7 @@
 {{-- Visually distinct from the gradient hero blocks above: a single asymmetric
      glass card with a left-aligned headline + right-aligned action, so the
      closing run reads as "cards → trust strip → links → one final CTA". --}}
-<section id="cta-final" class="py-16 lg:py-20 relative overflow-hidden">
+<section id="cta-final" class="sec-rule py-16 lg:py-20 relative overflow-hidden">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="reveal glass rounded-[2rem] p-8 sm:p-12 relative overflow-hidden border border-white/10">
             <div class="absolute -top-24 -right-20 w-80 h-80 rounded-full opacity-30 blur-3xl" style="background: var(--c2);"></div>

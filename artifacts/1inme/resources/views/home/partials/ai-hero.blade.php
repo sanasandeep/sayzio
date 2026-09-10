@@ -32,7 +32,7 @@
         '--d:460ms;--tx:-170px;--ty:8px;--rot:-5deg;',
     ];
 @endphp
-<section id="ai-hero" class="relative py-16 lg:py-24 overflow-hidden" aria-labelledby="ai-hero-h">
+<section id="ai-hero" class="sec-rule relative py-16 lg:py-24 overflow-hidden" aria-labelledby="ai-hero-h">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12">
         <div class="grid grid-cols-1 gap-y-12 lg:grid-cols-[1.05fr_1fr] lg:gap-x-12 xl:gap-x-16 lg:items-center">
             {{-- Copy column --}}
@@ -128,7 +128,7 @@
                                 <div class="aih-block aih-profile" style="--d:60ms;--tx:-22px;--ty:-120px;--rot:-5deg;">
                                     <span class="aih-avatar-wrap" aria-hidden="true">
                                         @if (!empty($aihEx['avatar']['img']))
-                                            <img src="{{ $aihEx['avatar']['img'] }}" alt="" loading="lazy" decoding="async" class="aih-avatar">
+                                            <img src="{{ $aihEx['avatar']['img'] }}" alt="" loading="lazy" decoding="async" width="240" height="240" class="aih-avatar">
                                         @else
                                             <span class="aih-avatar aih-avatar-icon grad-bar"><i class="fas {{ $aihEx['avatar']['icon'] ?? 'fa-user' }}"></i></span>
                                         @endif
@@ -154,7 +154,7 @@
                                 <div class="aih-block aih-gallery" style="--d:580ms;--tx:0;--ty:140px;--rot:3deg;">
                                     @if (!empty($aihEx['gallery']['imgs']))
                                         @foreach ($aihEx['gallery']['imgs'] as $aihG)
-                                            <img src="{{ $aihG }}" alt="" loading="lazy" decoding="async" class="aih-shot">
+                                            <img src="{{ $aihG }}" alt="" loading="lazy" decoding="async" width="240" height="240" class="aih-shot">
                                         @endforeach
                                     @else
                                         @foreach ($aihEx['gallery']['tiles'] ?? [] as $aihT)
@@ -434,7 +434,7 @@
 
             if (avatarWrap) {
                 if (ex.avatar.img) {
-                    avatarWrap.innerHTML = '<img src="' + ex.avatar.img + '" alt="" loading="lazy" decoding="async" class="aih-avatar">';
+                    avatarWrap.innerHTML = '<img src="' + ex.avatar.img + '" alt="" loading="lazy" decoding="async" width="240" height="240" class="aih-avatar">';
                 } else {
                     avatarWrap.innerHTML = '<span class="aih-avatar aih-avatar-icon grad-bar"><i class="fas ' + ex.avatar.icon + '"></i></span>';
                 }
@@ -464,7 +464,7 @@
             if (galleryEl) {
                 if (ex.gallery.imgs) {
                     galleryEl.innerHTML = ex.gallery.imgs.map(function (u) {
-                        return '<img src="' + u + '" alt="" loading="lazy" decoding="async" class="aih-shot">';
+                        return '<img src="' + u + '" alt="" loading="lazy" decoding="async" width="240" height="240" class="aih-shot">';
                     }).join('');
                 } else {
                     galleryEl.innerHTML = ex.gallery.tiles.map(function (t) {

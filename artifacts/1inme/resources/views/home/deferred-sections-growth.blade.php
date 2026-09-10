@@ -21,7 +21,7 @@
     'pills' => ['Real-time dashboard', 'Per-link breakdowns', 'CSV export', 'No extra tracking scripts to install'],
 ])
 {{-- ============================ 3 · GROW ============================ --}}
-<section class="py-24 lg:py-32 relative overflow-hidden">
+<section class="sec-rule py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Grow</div>
@@ -241,7 +241,7 @@
     }
 @endphp
 @if($__topReviews->isNotEmpty() || $__bottomReviews->isNotEmpty())
-    <section id="proof" class="py-20 lg:py-24 relative overflow-hidden">
+    <section id="proof" class="sec-rule py-20 lg:py-24 relative overflow-hidden">
         <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
                 <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Social proof</div>
@@ -310,7 +310,7 @@
 {{-- Visually distinct from the gradient hero blocks above: a single asymmetric
      glass card with a left-aligned headline + right-aligned action, so the
      closing run reads as "cards → trust strip → links → one final CTA". --}}
-<section id="cta-final" class="py-16 lg:py-20 relative overflow-hidden">
+<section id="cta-final" class="sec-rule py-16 lg:py-20 relative overflow-hidden">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="reveal glass rounded-[2rem] p-8 sm:p-12 relative overflow-hidden border border-white/10">
             <div class="absolute -top-24 -right-20 w-80 h-80 rounded-full opacity-30 blur-3xl" style="background: var(--c2);"></div>

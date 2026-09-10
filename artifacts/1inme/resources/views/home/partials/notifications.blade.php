@@ -111,7 +111,7 @@
 
             {{-- RIGHT: animated notification panel --}}
             <div class="reveal rd-3 nf-wrap relative order-1 lg:order-2">
-                <div class="nf-panel" role="img" aria-label="Notification feed preview">
+                <div class="nf-panel surface-lit" role="img" aria-label="Notification feed preview">
                     <div class="nf-panel-head">
                         <div class="nf-bell"><i class="fas fa-bell"></i></div>
                         <div>

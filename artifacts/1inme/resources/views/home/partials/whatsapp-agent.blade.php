@@ -2,7 +2,7 @@
 @php
     $waUrl = \Illuminate\Support\Facades\Route::has('site.whatsapp-agent') ? route('site.whatsapp-agent') : url('/whatsapp-agent');
 @endphp
-<section id="whatsapp-agent" class="wa-promo py-24 lg:py-32 relative overflow-hidden">
+<section id="whatsapp-agent" class="sec-rule wa-promo py-24 lg:py-32 relative overflow-hidden">
     <div class="wa-glow wa-glow-a" aria-hidden="true"></div>
     <div class="wa-glow wa-glow-b" aria-hidden="true"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

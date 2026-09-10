@@ -37,8 +37,11 @@
     @break
 
 @case('custom-domain')
-    <div class="cd-stage">
-        <div class="cd-bar">
+    <div class="cd-stage surface-lit">
+        {{-- The URL bar says what it means with colour -- scheme muted, brand
+             bright, tld and path each their own accent -- so it is one of the
+             places that has to escape `surface-lit`'s white. --}}
+        <div class="cd-bar surface-lit-keep">
             <span class="lock"><i class="fas fa-lock"></i></span>
             <span class="sub">https://</span><span class="brand">links.</span><span class="brand">yourbrand</span><span class="tld">.com</span><span class="path">/launch</span>
         </div>
