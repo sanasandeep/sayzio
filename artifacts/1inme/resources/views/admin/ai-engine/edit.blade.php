@@ -110,7 +110,7 @@
                                class="accent-blue-500">
                         {{ $label }}
                         @unless($providerHasKey[$slug] ?? false)
-                            <span class="ak-note text-[11px] text-amber-300">(no key — will be skipped)</span>
+                            <span class="ak-note text-[11px] text-amber-300">(no key, will be skipped)</span>
                         @endunless
                     </label>
                 @endforeach
