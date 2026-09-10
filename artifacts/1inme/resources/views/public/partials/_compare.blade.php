@@ -57,7 +57,7 @@
     $__cmpShowMatrix = !$compact && !$__cmpOnlyKey;
 @endphp
 
-<section id="{{ $anchorId }}" class="{{ $sectionClass ?? '' }} py-20 lg:py-28 relative overflow-hidden">
+<section id="{{ $anchorId }}" class="sec-rule {{ $sectionClass ?? '' }} py-20 lg:py-28 relative overflow-hidden">
     <div class="mesh-bg" aria-hidden="true"></div>
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 

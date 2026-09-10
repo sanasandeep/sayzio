@@ -10,7 +10,7 @@
 @endphp
 
 {{-- ─────────────  HERO  ───────────── --}}
-<section class="relative pt-20 pb-14 lg:pt-28 lg:pb-16 overflow-hidden">
+<section class="sec-first relative pt-20 pb-14 lg:pt-28 lg:pb-16 overflow-hidden">
     <div class="mesh-bg" aria-hidden="true"></div>
     <div class="absolute inset-0 grid-bg opacity-50 pointer-events-none" aria-hidden="true"></div>
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -37,7 +37,7 @@
 </section>
 
 {{-- ─────────────  COMPETITOR CARDS  ───────────── --}}
-<section class="relative pb-10">
+<section class="sec-rule relative pb-10">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 card-row" data-anim="fade-up" data-stagger>
             @foreach($competitors as $c)
@@ -76,7 +76,7 @@
 @include('public.partials._compare', ['compact' => false, 'anchorId' => 'compare', 'eyebrowOverride' => 'Side by side'])
 
 {{-- ─────────────  CTA BAND  ───────────── --}}
-<section class="pb-24">
+<section class="sec-rule pb-24">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
             <div class="mesh-bg opacity-50" aria-hidden="true"></div>

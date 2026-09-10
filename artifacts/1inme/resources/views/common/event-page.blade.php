@@ -286,7 +286,7 @@
 @endpush
 
 @section('content')
-<section class="relative pb-20">
+<section class="sec-first relative pb-20">
     <div class="mesh-bg"></div>
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 

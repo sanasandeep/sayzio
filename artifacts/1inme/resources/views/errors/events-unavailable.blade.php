@@ -21,7 +21,7 @@
 @endpush
 
 @section('content')
-<section class="relative pt-16 pb-12 lg:pt-24 lg:pb-16 overflow-hidden">
+<section class="sec-first relative pt-16 pb-12 lg:pt-24 lg:pb-16 overflow-hidden">
     <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full"
          style="background:radial-gradient(circle,rgba(61,107,255,0.18) 0%,transparent 70%);"></div>
     <div class="absolute -bottom-40 -right-40 w-[520px] h-[520px] rounded-full"
@@ -42,7 +42,7 @@
     </div>
 </section>
 
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="bg-gradient-to-br from-blue-500/[0.10] to-blue-500/[0.06] border border-blue-400/20 rounded-2xl p-6 sm:p-10 text-center">
             <h2 class="text-2xl sm:text-3xl font-bold text-white evun-card-heading">

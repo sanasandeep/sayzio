@@ -146,7 +146,7 @@
     </div>
 </section>
 
-<section class="pb-8">
+<section class="sec-rule pb-8">
     <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         @foreach($sections as $section)
             <div class="glass-panel rounded-2xl p-6 mb-6">

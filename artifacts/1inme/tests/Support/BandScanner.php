@@ -30,7 +30,15 @@ trait BandScanner
     {
         $bands = [];
 
-        preg_match_all('/<section\b[^>]*>/i', $source, $tags, PREG_OFFSET_CAPTURE);
+        // Attribute-aware, because `[^>]*` is not.
+        //
+        // features.blade.php has a <section> whose x-data holds
+        // `fn($c) => [...]`, and the `>` in that arrow ends the match early --
+        // the tag is truncated before `class=`, the band looks like it has no
+        // classes, and it is skipped silently. One band on a live page went
+        // undeclared for exactly that reason. Quoted values are consumed
+        // whole, so a `>` inside one is just a character.
+        preg_match_all('/<section\b(?:[^>"\']|"[^"]*"|\'[^\']*\')*>/i', $source, $tags, PREG_OFFSET_CAPTURE);
 
         foreach ($tags[0] as [$tag, $offset]) {
             // Single or double quotes: an earlier pattern accepted only
@@ -42,7 +50,13 @@ trait BandScanner
 
             $classes = $c[2];
 
-            if (! preg_match('/(?<![\w:-])(?:py|pt|pb)-(1[0-9]|[2-9]\d)\b/', $classes)) {
+            // Any vertical padding step from 8 up. The floor was 16, then 10,
+            // and each time a live band sat just under it: the trust band at
+            // py-14, the marketing pages at pb-20 with no py- at all, and the
+            // contact page at pb-8. The browser's own definition -- full width,
+            // over 120px tall -- is the one that matters, and 8 is where the
+            // static matcher stops disagreeing with it.
+            if (! preg_match('/(?<![\w:-])(?:py|pt|pb)-([89]|[1-9]\d)\b/', $classes)) {
                 continue;
             }
 

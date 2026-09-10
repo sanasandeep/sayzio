@@ -12,7 +12,7 @@
 @endpush
 
 @section('content')
-<section class="relative pt-20 pb-12 overflow-hidden">
+<section class="sec-first relative pt-20 pb-12 overflow-hidden">
     <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:rgba(61,107,255,.06);"></div>
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 text-center">
         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-blue-400">{{ $settings['hero_eyebrow'] }}</p>
@@ -52,7 +52,7 @@
 </section>
 
 @if($featured->count() && empty($q))
-    <section class="pb-12">
+    <section class="sec-rule pb-12">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
             <h2 class="text-xs font-semibold uppercase tracking-[0.2em] text-white/50 mb-4">Featured</h2>
             <div class="grid md:grid-cols-3 gap-6">
@@ -64,7 +64,7 @@
     </section>
 @endif
 
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-6xl mx-auto px-4 sm:px-6">
         @if($posts->total() === 0)
             <div class="text-center text-white/50 py-20">No articles found{{ $q ? ' for "' . e($q) . '"' : '' }}.</div>

@@ -8,7 +8,7 @@
         ? 'https://wa.me/' . preg_replace('/[^0-9]/', '', $waNumber) . '?text=' . rawurlencode('STOP')
         : '';
 @endphp
-<section class="pt-16 pb-10">
+<section class="sec-first pt-16 pb-10">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-400/30 text-[11px] font-bold uppercase tracking-wider text-blue-200 mb-3">
             <i class="fas fa-sliders"></i> Subscription Center
@@ -20,7 +20,7 @@
     </div>
 </section>
 
-<section class="pb-24">
+<section class="sec-rule pb-24">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid gap-4 md:grid-cols-3">
         {{-- Email newsletter --}}
         <div class="bg-blue-500/10 border border-blue-400/20 rounded-2xl p-6 flex flex-col">

@@ -138,7 +138,7 @@
 <section id="categories"
          x-data="featuresStickyNav({{ Js::from(collect($categories)->map(fn($c) => ['id' => 'cat-' . $c['id'], 'heading' => $c['heading'], 'icon' => $c['icon']])->values()) }})"
          x-init="init()"
-         class="relative pb-20">
+         class="sec-rule relative pb-20">
 
     {{-- Mobile/tablet: condensed sticky bar that opens a full category list. --}}
     <div class="lg:hidden sticky top-16 z-30 bg-[#1e2330]/95 backdrop-blur-xl border-y border-white/10 shadow-lg shadow-black/20"

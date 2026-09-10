@@ -5,14 +5,14 @@
 @section('title', $pageTitle)
 
 @section('content')
-<section class="pt-20 pb-10">
+<section class="sec-first pt-20 pb-10">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
         <p class="text-xs uppercase tracking-[0.2em] text-blue-400">Tag</p>
         <h1 class="mt-2 text-4xl sm:text-5xl font-bold tracking-tight">#{{ $tag->name }}</h1>
     </div>
 </section>
 
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-6xl mx-auto px-4 sm:px-6">
         @if($posts->count())
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -42,13 +42,37 @@ class MarketingPageSectionDividerTest extends TestCase
     use AssertsAgainstLargeSubjects;
     use BandScanner;
 
-    /** The page views that render through the shared marketing layout. */
+    /**
+     * Every view that renders through the shared marketing layout.
+     *
+     * Found by looking for the layout, not by globbing one directory. The
+     * first version globbed `views/public/*.blade.php` and missed fourteen
+     * pages living one level down -- pricing, compare, the blog index and its
+     * category and tag pages, the subscription manager -- along with the
+     * event pages under views/common. Ten bands stayed undeclared and the
+     * test said nothing, because it had never looked at the files.
+     */
     private function marketingPageViews(): array
     {
-        return array_values(array_filter(
-            glob(resource_path('views/public/*.blade.php')) ?: [],
-            fn ($p) => str_contains((string) file_get_contents($p), "@extends('public.layouts.site')")
-        ));
+        $found = [];
+
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator(resource_path('views'), \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($files as $file) {
+            if (! str_ends_with($file->getFilename(), '.blade.php')) {
+                continue;
+            }
+
+            if (str_contains((string) file_get_contents($file->getPathname()), "@extends('public.layouts.site')")) {
+                $found[] = $file->getPathname();
+            }
+        }
+
+        sort($found);
+
+        return $found;
     }
 
     /** Those pages plus everything they and the layout include. */
@@ -64,7 +88,11 @@ class MarketingPageSectionDividerTest extends TestCase
     {
         $pages = array_map(fn ($p) => basename($p, '.blade.php'), $this->marketingPageViews());
 
-        $this->assertGreaterThan(25, count($pages), 'the page scan collapsed; it is not reading views/public any more');
+        $this->assertGreaterThan(40, count($pages), 'the page scan collapsed; it is not finding the layout any more');
+
+        foreach (['plans', 'index', 'manage'] as $nested) {
+            $this->assertContains($nested, $pages, "the scan is not reaching views one level down (expected {$nested})");
+        }
 
         foreach (['about', 'features', 'domains', 'analytics', 'forms', 'notifications', 'workspace-team'] as $expected) {
             $this->assertContains($expected, $pages, "the scan never found the {$expected} page");

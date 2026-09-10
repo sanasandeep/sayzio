@@ -611,7 +611,7 @@
             io.observe(coinsEl);
         }
     "
-    class="relative pt-20 pb-12 lg:pt-28 lg:pb-16">
+    class="sec-first relative pt-20 pb-12 lg:pt-28 lg:pb-16">
     <div class="absolute inset-0 -z-10 overflow-hidden">
         <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[60rem] h-[60rem] rounded-full opacity-30 blur-[120px]"
              style="background: #3d6bff;"></div>
