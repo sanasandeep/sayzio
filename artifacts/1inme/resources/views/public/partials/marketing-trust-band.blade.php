@@ -236,7 +236,11 @@
 
             <h2 id="pb-h" class="pb-head">The engine behind every link you share</h2>
 
-            <p class="pb-sub">Analytics, AI, automation and rock-solid delivery at any scale — behind one link for everything you share.</p>
+            {{-- No em dash in this line: the em-dash copy guard bans U+2014
+                 from user-visible marketing copy, and this partial lives under
+                 resources/views/public/, which the guard scans. A colon does
+                 the same work here. --}}
+            <p class="pb-sub">One link for everything you share, with the engine behind it: analytics, AI, automation and rock-solid delivery at any scale.</p>
 
             @if($__heroStats->isNotEmpty())
                 <div class="pb-figures">
