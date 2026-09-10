@@ -54,6 +54,9 @@ class MarketingSettingsController extends Controller
             'browser_windows_url'      => (string) AppSetting::get(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_WIN_URL, ''),
             'browser_linux_appimage_url' => (string) AppSetting::get(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_LINUX_APPIMAGE_URL, ''),
             'browser_linux_deb_url'    => (string) AppSetting::get(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_LINUX_DEB_URL, ''),
+            'hero_marquee'             => SitePagesContent::normalizeHeroMarquee(
+                (array) AppSetting::get('marketing_hero_marquee', [])
+            ),
             'trust_strip'              => SitePagesContent::normalizeTrustStrip(
                 (array) AppSetting::get('marketing_trust_strip', [])
             ),
@@ -106,6 +109,9 @@ class MarketingSettingsController extends Controller
             'browser_windows_url'             => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             'browser_linux_appimage_url'      => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             'browser_linux_deb_url'           => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
+            'hero_marquee'                    => 'nullable|array|max:18',
+            'hero_marquee.*.icon'             => 'nullable|string|max:60',
+            'hero_marquee.*.label'            => 'nullable|string|max:60',
             'trust_strip'                     => 'nullable|array|max:6',
             'trust_strip.*.value'             => 'nullable|string|max:60',
             'trust_strip.*.label'             => 'nullable|string|max:120',
@@ -170,6 +176,9 @@ class MarketingSettingsController extends Controller
         AppSetting::put(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_LINUX_APPIMAGE_URL, trim((string) ($data['browser_linux_appimage_url'] ?? '')));
         AppSetting::put(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_LINUX_DEB_URL, trim((string) ($data['browser_linux_deb_url'] ?? '')));
 
+        AppSetting::put('marketing_hero_marquee',
+            SitePagesContent::normalizeHeroMarquee((array) ($data['hero_marquee'] ?? []))
+        );
         AppSetting::put('marketing_trust_strip',
             SitePagesContent::normalizeTrustStrip((array) ($data['trust_strip'] ?? []))
         );

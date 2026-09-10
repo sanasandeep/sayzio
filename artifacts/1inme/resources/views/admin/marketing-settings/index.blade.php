@@ -2,9 +2,11 @@
 @section('title', 'Marketing Settings')
 @section('content')
 @php
+    $defaultsMarquee = \App\Modules\Common\Support\SitePagesContent::heroMarqueeDefault();
     $defaultsTrust = \App\Modules\Common\Support\SitePagesContent::trustStripDefault();
     $defaultsTest = \App\Modules\Common\Support\SitePagesContent::testimonialsDefault();
     $defaultsWhy = \App\Modules\Common\Support\SitePagesContent::whyComparisonDefault();
+    $marqueeForJs = !empty($hero_marquee) ? $hero_marquee : $defaultsMarquee;
     $trustForJs = !empty($trust_strip) ? $trust_strip : $defaultsTrust;
     $landingForJs = !empty($landing_testimonials) ? $landing_testimonials : $defaultsTest;
     $featuresForJs = !empty($features_testimonials) ? $features_testimonials : $defaultsTest;
@@ -23,10 +25,12 @@
 
     <form method="POST" action="{{ route('admin.marketing-settings.update') }}"
           x-data='{
+              marquee: @json($marqueeForJs),
               trust: @json($trustForJs),
               landing: @json($landingForJs),
               features: @json($featuresForJs),
               why: @json($whyForJs),
+              marqueeDefaults: @json($defaultsMarquee),
               trustDefaults: @json($defaultsTrust),
               testDefaults: @json($defaultsTest),
               whyDefaults: @json($defaultsWhy),
@@ -292,6 +296,61 @@
                            class="ak-strong ak-input w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                     <p class="ak-note mt-1 text-[11px] text-white/40">Pre-fills the WhatsApp chat. Optional.</p>
                     @error('whatsapp_message')<p class="ak-red mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+            </div>
+        </div>
+
+        {{-- Hero capability marquee --}}
+        <div class="glass rounded-2xl p-6 space-y-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="ak-strong text-lg font-semibold text-white">Hero capability marquee</h2>
+                    <p class="ak-muted text-xs text-white/50">
+                        The band that scrolls slowly across the bottom of the landing hero. Up to 18 items; the order here is the order they scroll in.
+                        Deleting every row restores the shipped list, because the band's height is part of the hero's grid and an empty one would leave a gap.
+                        Icons are Font Awesome names, e.g. <span class="font-mono">fa-qrcode</span>.
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="resetTo('marquee', marqueeDefaults)"
+                            class="ak-strong text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg text-white/80">
+                        <i class="fas fa-rotate-left mr-1"></i> Reset to defaults
+                    </button>
+                    <button type="button" @click="if(marquee.length<18) marquee.push({icon:'fa-circle-check',label:''})"
+                            class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
+                        <i class="fas fa-plus mr-1"></i> Add item
+                    </button>
+                </div>
+            </div>
+            <template x-for="(m,i) in marquee" :key="i">
+                <div class="bg-white/5 border border-white/10 rounded-xl p-3 grid sm:grid-cols-[1fr_2fr_auto_auto_auto] gap-2 items-center">
+                    <input type="text" :name="'hero_marquee['+i+'][icon]'" x-model="m.icon" placeholder="fa-qrcode"
+                           class="ak-strong ak-input px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono">
+                    <input type="text" :name="'hero_marquee['+i+'][label]'" x-model="m.label" placeholder="Dynamic QR codes" maxlength="60"
+                           class="ak-strong ak-input px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    <button type="button" @click="if(i>0){ marquee.splice(i-1,0,marquee.splice(i,1)[0]) }" :disabled="i===0"
+                            class="ak-muted text-white/50 hover:text-white text-xs px-2 disabled:opacity-25" title="Move up"><i class="fas fa-arrow-up"></i></button>
+                    <button type="button" @click="if(i<marquee.length-1){ marquee.splice(i+1,0,marquee.splice(i,1)[0]) }" :disabled="i===marquee.length-1"
+                            class="ak-muted text-white/50 hover:text-white text-xs px-2 disabled:opacity-25" title="Move down"><i class="fas fa-arrow-down"></i></button>
+                    <button type="button" @click="marquee.splice(i,1)" class="ak-red text-red-400 hover:text-red-300 text-xs px-2" title="Remove"><i class="fas fa-trash"></i></button>
+                </div>
+            </template>
+            <p x-show="marquee.length===0" class="ak-note text-xs text-white/40">No items, so the shipped list will be used.</p>
+
+            {{-- Live preview. Deliberately NOT animated: the point of the
+                 preview is to read the wording, and a preview that scrolls
+                 away from you while you type is worse than a still one. --}}
+            <div x-show="marquee.length>0" class="mt-2 pt-4 border-t border-white/5">
+                <div class="ak-note text-[10px] uppercase tracking-wider text-white/40 mb-3">Live preview</div>
+                <div class="rounded-xl bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 px-4 py-4 overflow-x-auto">
+                    <div class="flex items-center gap-x-8 whitespace-nowrap text-sm">
+                        <template x-for="(m,i) in marquee" :key="'mp'+i">
+                            <span class="flex items-center gap-2 text-gray-400 ak-muted">
+                                <i class="fas text-[13px] opacity-70" :class="(m.icon || 'fa-circle-check').replace(/^fas?\s+/, '')"></i>
+                                <span class="ak-strong font-semibold text-white/70" x-text="m.label || '—'"></span>
+                            </span>
+                        </template>
+                    </div>
                 </div>
             </div>
         </div>

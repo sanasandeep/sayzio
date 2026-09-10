@@ -2928,6 +2928,59 @@ class SitePagesContent
     }
 
     /**
+     * The scrolling capability marquee that closes the landing hero.
+     *
+     * Not to be confused with `trustStripDefault()` above, which is the row of
+     * metrics in the trust band further down the page. This one is the band
+     * ruled into the hero's own lattice at the bottom of the fold: a plain
+     * list of what the product does, moving slowly past.
+     *
+     * The list was hardcoded in `home/partials/hero.blade.php`, which meant
+     * shipping a release to rename a feature. It is the first thing a visitor
+     * reads after the headline, so it is also the list most likely to go out
+     * of date.
+     */
+    public static function heroMarqueeDefault(): array
+    {
+        return [
+            ['icon' => 'fa-grip-vertical', 'label' => 'Drag & drop editor'],
+            ['icon' => 'fa-globe',         'label' => 'Live geo heatmap'],
+            ['icon' => 'fa-bolt',          'label' => 'Performance coach'],
+            ['icon' => 'fa-link',          'label' => 'Short links'],
+            ['icon' => 'fa-qrcode',        'label' => 'Dynamic QR codes'],
+            ['icon' => 'fa-users',         'label' => 'Follower system'],
+            ['icon' => 'fa-wpforms',       'label' => 'Form builder'],
+            ['icon' => 'fa-bullhorn',      'label' => 'Social proof'],
+            ['icon' => 'fa-address-book',  'label' => 'Contacts sync'],
+            ['icon' => 'fa-phone',         'label' => 'Built-in dialer'],
+        ];
+    }
+
+    /**
+     * Coerce admin input into a sane hero-marquee array.
+     *
+     * Capped at 18. The band scrolls two identical runs of the list side by
+     * side and translates by exactly half, so the seam only stays invisible
+     * while one run is at least as wide as the viewport -- a very long list
+     * costs nothing, but a very short one would show the loop.
+     */
+    public static function normalizeHeroMarquee(array $input): array
+    {
+        $out = [];
+        foreach (array_values($input) as $row) {
+            if (!is_array($row)) continue;
+            $label = trim((string) ($row['label'] ?? ''));
+            if ($label === '') continue;
+            $out[] = [
+                'icon'  => trim((string) ($row['icon'] ?? '')) ?: 'fa-circle-check',
+                'label' => mb_substr($label, 0, 60),
+            ];
+            if (count($out) >= 18) break;
+        }
+        return $out;
+    }
+
+    /**
      * Coerce admin input into a sane trust-strip array (drops empty rows,
      * trims, caps lengths). Returns at most 6 items.
      */
