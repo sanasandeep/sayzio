@@ -93,6 +93,49 @@ html.light-mode .sec-rule::before { --sec-rule: rgba(15,23,42,.09); }
 @media (min-width: 640px)  { .sec-rule::before { width: min(1280px, 100% - 3rem); } }
 @media (min-width: 1024px) { .sec-rule::before { width: min(1280px, 100% - 4rem); } }
 
+/* ─── a coloured button keeps its white label ───
+   The light-mode sheet rewrites `.text-white` to #1f2937 with !important and
+   no scope. That is right for the 95% of a page that turns white with it, and
+   wrong for anything that does not -- which includes every primary call to
+   action on the marketing site.
+
+   Measured in Chromium on /domains in light mode:
+
+       class  "px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white …"
+       background  oklch(0.546 0.245 262.881)   (blue-600)
+       color       rgb(31, 41, 55)              (near-black)
+
+   "Claim your link free", "Get started free", "See plans", "Subscribe" -- all
+   of them, on 94 views, 191 occurrences. Around 2.2:1 against a saturated
+   blue: readable if you look, and obviously not what the button was drawn to
+   be.
+
+   Fixed here rather than on 191 tags. The colour tokens are the ones actually
+   in the markup, listed exactly rather than matched by prefix: `bg-blue-50` is
+   a pale tint and `[class*="bg-blue-5"]` would match it, putting white text on
+   near-white. `~=` matches a whole class token, so `hover:bg-blue-700` is its
+   own token and does not trip this -- only the base state does.
+
+   `text-white` by substring on purpose, so `text-white/80` and its siblings
+   are covered too. Nothing else in the utility vocabulary contains it. */
+html.light-mode [class*="text-white"]:is(
+    [class~="bg-blue-500"], [class~="bg-blue-600"], [class~="bg-blue-700"], [class~="bg-blue-800"],
+    [class~="bg-indigo-500"], [class~="bg-indigo-600"], [class~="bg-indigo-700"],
+    [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-emerald-700"],
+    [class~="bg-green-600"], [class~="bg-green-700"],
+    [class~="bg-violet-600"], [class~="bg-rose-600"], [class~="bg-red-600"], [class~="bg-slate-900"],
+    /* Gradients too: the brand bar and Tailwind's own gradient utilities are
+       just as much a coloured fill, and the first pass missed them because
+       they are not `bg-<colour>-<step>` tokens. Six labels survived on three
+       pages until they were added -- "Try a template free", "Contact support",
+       "Customize my dashboard". */
+    [class~="grad-bar"], [class~="btn-cta"],
+    [class~="bg-gradient-to-r"], [class~="bg-gradient-to-l"],
+    [class~="bg-gradient-to-br"], [class~="bg-gradient-to-bl"],
+    [class~="bg-gradient-to-tr"], [class~="bg-gradient-to-tl"],
+    [class~="bg-gradient-to-t"], [class~="bg-gradient-to-b"]
+) { color: #fff !important; }
+
 /* ─── .sec-first: the band with nothing above it ───
    Every band declares how it separates from the one above. The first band on
    a page has no band above it, so it declares that instead.

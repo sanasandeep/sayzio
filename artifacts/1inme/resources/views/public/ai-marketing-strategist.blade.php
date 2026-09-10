@@ -427,7 +427,7 @@
             {{-- organic + paid plays --}}
             <div class="grid lg:grid-cols-2 gap-px bg-white/10">
                 {{-- organic column --}}
-                <div class="bg-[#0d0c18] p-7 sm:p-9">
+                <div class="bg-[#0d0c18] surface-lit p-7 sm:p-9">
                     <div class="flex items-center gap-2 mb-5">
                         <i class="fas fa-seedling text-sm" style="color: {{ $accent }};"></i>
                         <span class="text-xs font-bold uppercase tracking-[.14em]" style="color: {{ $accent }};">Organic plan</span>
@@ -457,7 +457,7 @@
                 </div>
 
                 {{-- paid column --}}
-                <div class="bg-[#0d0c18] p-7 sm:p-9">
+                <div class="bg-[#0d0c18] surface-lit p-7 sm:p-9">
                     <div class="flex items-center gap-2 mb-5">
                         <i class="fas fa-rectangle-ad text-sm" style="color: #ffb270;"></i>
                         <span class="text-xs font-bold uppercase tracking-[.14em]" style="color: #ffb270;">Paid plan</span>
