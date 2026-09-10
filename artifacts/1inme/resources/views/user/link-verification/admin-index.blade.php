@@ -80,7 +80,7 @@
                         {{ $req->category === 'artist_creator' ? 'Artist or creator' : 'Business or product' }}
                     </p>
                     <p class="text-xs mt-1 truncate" style="color: var(--text-faint);">
-                        <i class="fas fa-link text-[10px] mr-1"></i>{{ $req->link?->slug ? '/' . $req->link->slug : 'Page removed' }}
+                        <i class="fas fa-link text-[10px] mr-1"></i>{{ $req->link?->alias ? '/' . $req->link->alias : 'Page removed' }}
                         <span class="mx-1">&middot;</span>
                         <i class="fas fa-user text-[10px] mr-1"></i>{{ $req->user?->handle ? '@' . $req->user->handle : ($req->user?->email ?? 'Unknown user') }}
                     </p>

@@ -7,6 +7,7 @@ use App\Modules\Admin\Models\Role;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\VerificationRequest;
+use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -27,20 +28,41 @@ use Tests\TestCase;
  * one: it renders each page for real, so a template that stops matching what
  * its controller passes fails here instead of in front of a user.
  *
- * Deliberately not asserting on copy or markup -- the point is that the view
- * and its controller still agree on the data contract, which a 200 proves and
- * a 500 disproves. The sibling profile-verification pages are asserted too,
- * so a future fix to one feature cannot quietly re-break the other.
+ * Mostly these assert a 200, which is what a broken data contract turns into.
+ * Two of them also assert the link's alias appears, because a 200 alone is a
+ * weaker signal than it looks: the first cut of these pages read $link->slug,
+ * a column Link does not have, and Eloquent hands back null for a missing
+ * attribute rather than raising. Every row rendered its path as a bare "/"
+ * and every test still passed. Asserting on a value the page is supposed to
+ * show is what closes that gap.
+ *
+ * The sibling profile-verification pages are asserted too, so a future fix to
+ * one feature cannot quietly re-break the other.
  */
 class LinkVerificationPagesTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * A biolink the controller will actually find.
+     *
+     * Two things have to be right or the page renders its empty state and a
+     * status-code assertion passes while proving nothing:
+     *
+     *  - `type` must be in Link::BIOLINK_FAMILY, since that is what
+     *    VerificationController::index() filters on.
+     *  - `workspace_id` must be the user's active workspace. Rows created
+     *    outside a request get a NULL workspace_id, and the BelongsToWorkspace
+     *    global scope filters on the bound `current_workspace` during the
+     *    request -- so a NULL row is invisible to the controller even though
+     *    it belongs to the user.
+     */
     private function biolinkFor(User $user): Link
     {
         return Link::factory()->create([
-            'user_id' => $user->id,
-            'type'    => Link::BIOLINK_FAMILY[0],
+            'user_id'      => $user->id,
+            'type'         => Link::BIOLINK_FAMILY[0],
+            'workspace_id' => app(WorkspaceContext::class)->resolve($user)?->id,
         ]);
     }
 
@@ -66,11 +88,17 @@ class LinkVerificationPagesTest extends TestCase
     public function test_the_requests_list_renders(): void
     {
         $user = User::factory()->create();
-        $this->biolinkFor($user);
+        $link = $this->biolinkFor($user);
 
         $this->actingAs($user)
             ->get(route('user.verification.index'))
-            ->assertOk();
+            ->assertOk()
+            // A Link's public path is `alias`; there is no `slug` column.
+            // Reading a missing attribute off an Eloquent model is silently
+            // null, so the first cut of this page rendered every row's path
+            // as a bare "/" and still answered 200 -- a status-code-only
+            // assertion sailed straight past it.
+            ->assertSee($link->alias);
     }
 
     public function test_the_requests_list_renders_with_no_pages_and_no_requests(): void
@@ -112,7 +140,8 @@ class LinkVerificationPagesTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('user.verification.request', ['link_id' => $link->id]))
-            ->assertOk();
+            ->assertOk()
+            ->assertSee($link->alias);
     }
 
     public function test_the_admin_queue_renders(): void

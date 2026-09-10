@@ -67,12 +67,12 @@
                     <div class="flex flex-wrap items-center gap-3 rounded-xl p-3" style="background: var(--bg-subtle); border:1px solid var(--border-soft);">
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-1.5">
-                                <span class="text-sm font-semibold truncate" style="color: var(--text-primary);">{{ $link->title ?: $link->slug }}</span>
+                                <span class="text-sm font-semibold truncate" style="color: var(--text-primary);">{{ $link->title ?: $link->alias }}</span>
                                 @if($isApproved)
                                     <i class="fas fa-circle-check text-xs" style="color:#10b981;" title="Verified"></i>
                                 @endif
                             </div>
-                            <p class="text-xs mt-0.5 truncate" style="color: var(--text-faint);">/{{ $link->slug }}</p>
+                            <p class="text-xs mt-0.5 truncate" style="color: var(--text-faint);">/{{ $link->alias }}</p>
                         </div>
 
                         @if($isApproved)
@@ -111,7 +111,7 @@
                             <div class="min-w-0">
                                 <p class="text-sm font-semibold truncate" style="color: var(--text-primary);">{{ $req->display_name }}</p>
                                 <p class="text-xs mt-0.5" style="color: var(--text-muted);">
-                                    {{ $req->link?->title ?: ($req->link?->slug ? '/' . $req->link->slug : 'Page removed') }}
+                                    {{ $req->link?->title ?: ($req->link?->alias ? '/' . $req->link->alias : 'Page removed') }}
                                     <span style="color: var(--text-faint);">&middot;</span>
                                     {{ $req->category === 'artist_creator' ? 'Artist or creator' : 'Business or product' }}
                                 </p>

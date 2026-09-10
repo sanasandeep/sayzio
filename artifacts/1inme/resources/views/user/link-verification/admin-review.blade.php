@@ -83,9 +83,9 @@
             <div>
                 <dt class="text-[11px] font-bold uppercase tracking-wider mb-1" style="color: var(--text-faint);">Page</dt>
                 <dd class="text-sm" style="color: var(--text-primary);">
-                    @if($req->link?->slug)
-                        <a href="{{ url('/' . $req->link->slug) }}" target="_blank" rel="noopener" class="hover:underline">
-                            /{{ $req->link->slug }} <i class="fas fa-arrow-up-right-from-square text-[10px] ml-0.5"></i>
+                    @if($req->link?->alias)
+                        <a href="{{ url('/' . $req->link->alias) }}" target="_blank" rel="noopener" class="hover:underline">
+                            /{{ $req->link->alias }} <i class="fas fa-arrow-up-right-from-square text-[10px] ml-0.5"></i>
                         </a>
                     @else
                         <span style="color: var(--text-faint);">Page removed</span>

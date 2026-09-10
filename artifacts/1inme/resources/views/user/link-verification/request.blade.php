@@ -62,7 +62,7 @@
                     <option value="">Choose one of your pages</option>
                     @foreach($biolinks as $link)
                         <option value="{{ $link->id }}" {{ (string) old('link_id', $linkId) === (string) $link->id ? 'selected' : '' }}>
-                            {{ $link->title ?: $link->slug }} (/{{ $link->slug }})
+                            {{ $link->title ?: $link->alias }} (/{{ $link->alias }})
                         </option>
                     @endforeach
                 </select>
