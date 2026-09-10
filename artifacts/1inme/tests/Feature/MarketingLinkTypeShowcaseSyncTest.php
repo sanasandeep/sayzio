@@ -116,7 +116,16 @@ class MarketingLinkTypeShowcaseSyncTest extends TestCase
             ]
         );
 
-        $this->artisan('migrate', ['--path' => 'database/migrations/2028_09_10_000001_resync_features_link_type_count.php', '--force' => true]);
+        // The migration's own up(), not `artisan migrate`.
+        //
+        // RefreshDatabase has already migrated this database, so the
+        // migrations table lists this file and `migrate --path` is a no-op --
+        // which made this test pass alone and fail in a suite, the worst of
+        // both. Requiring the file hands back the anonymous migration class,
+        // and calling up() runs the thing being tested regardless of what has
+        // already been recorded.
+        $migration = require base_path('database/migrations/2028_09_10_000001_resync_features_link_type_count.php');
+        $migration->up();
 
         $html = $this->get('/features')->assertOk()->getContent();
 
