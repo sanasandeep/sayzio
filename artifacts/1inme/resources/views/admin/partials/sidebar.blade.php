@@ -486,6 +486,14 @@
             <span class="sidebar-tooltip">Marketing Stats</span>
         </a>
 
+        <a href="{{ route('admin.zio-lines.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.zio-lines.*') ? 'active' : '' }}"
+           style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div>
+            <span class="nav-label">Zio&rsquo;s lines</span>
+            <span class="sidebar-tooltip">Zio&rsquo;s lines</span>
+        </a>
+
         <a href="{{ route('admin.testimonials.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.testimonials.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
