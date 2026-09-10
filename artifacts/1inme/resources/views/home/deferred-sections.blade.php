@@ -141,7 +141,7 @@
                      the centre of the row rather than at one end. --}}
                 <article class="audience-card reveal rd-{{ $i + 1 }} glass rounded-3xl p-7 tilt relative overflow-hidden flex flex-col{{ $i === 1 ? ' card-ribbon-host' : '' }}">
                     @if($i === 1)
-                        @include('home.partials.card-ribbon', ['variant' => 'cool'])
+                        @include('home.partials.card-ribbon', ['shape' => 'steps', 'variant' => 'teal'])
                     @endif
                     {{-- The 192px blurred colour disc that used to sit in this
                          corner is gone. It had already been switched off in
@@ -1102,7 +1102,7 @@
 
             {{-- 2 · Bring your own domain --}}
             <div class="reveal rd-2 glass rounded-3xl p-7 tilt relative overflow-hidden card-ribbon-host">
-                @include('home.partials.card-ribbon', ['variant' => 'cool'])
+                @include('home.partials.card-ribbon', ['shape' => 'arc', 'variant' => 'violet'])
                 <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c2)"></div>
                 <div class="relative">
                     <div class="card-ico w-12 h-12 rounded-2xl flex items-center justify-center mb-4"><i class="fas fa-globe text-xl"></i></div>
@@ -1635,7 +1635,7 @@
                              same wedge the CTA cards use at full size. --}}
                         <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift{{ $i === 0 ? ' card-ribbon-host' : '' }}">
                             @if($i === 0)
-                                @include('home.partials.card-ribbon', ['variant' => 'cool'])
+                                @include('home.partials.card-ribbon', ['shape' => 'beam', 'variant' => 'indigo'])
                             @endif
                             <div class="card-ico w-11 h-11 rounded-xl flex items-center justify-center mb-3">
                                 <i class="fas {{ $f[0] }} text-white"></i>
@@ -2025,7 +2025,7 @@
                              same wedge the CTA cards use at full size. --}}
                         <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift{{ $i === 0 ? ' card-ribbon-host' : '' }}">
                             @if($i === 0)
-                                @include('home.partials.card-ribbon', ['variant' => 'cool'])
+                                @include('home.partials.card-ribbon', ['shape' => 'wedge', 'variant' => 'rose'])
                             @endif
                             <div class="card-ico w-11 h-11 rounded-xl flex items-center justify-center mb-3">
                                 <i class="fas {{ $f[0] }} text-white"></i>
