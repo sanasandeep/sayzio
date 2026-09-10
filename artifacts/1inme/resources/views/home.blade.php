@@ -275,6 +275,119 @@
         }
 
         /* Premium feature blocks subtle entrance + icon halo on hover */
+        /* ─── Section dividers ───
+           stripe.com separates its bands with a single hairline across the
+           content width, and that one line does a lot: it tells you a section
+           has ended before you have read a word of the next one. This page ran
+           its sections together, so a long scroll read as one continuous
+           surface with headings scattered through it.
+
+           Drawn as a ::before on the section rather than as a <hr> between
+           them, so the markup stays as it is and a reordered section keeps its
+           own rule. Inset to the content width (the same max-w-7xl plus
+           gutters the sections use) so it lines up with the text above it,
+           not with the viewport.
+
+           Named sections only, and deliberately NOT every section: the rule
+           belongs at the boundaries between the page's zones. Sections on a
+           coloured or dark ground are excluded -- a hairline calibrated for
+           white would be invisible on the Zio band and wrong on #buzz, and
+           those bands already announce themselves by changing colour. */
+        :is(#how-it-works, #features, #share, #domains, #workspace-team,
+            #proof, #compare-legacy, #pricing, #faq, #blog-featured)::before {
+            content: "";
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: min(1280px, 100% - 2rem); height: 1px;
+            background: var(--sec-rule, rgba(255,255,255,.08));
+            pointer-events: none;
+        }
+        html.light-mode :is(#how-it-works, #features, #share, #domains, #workspace-team,
+            #proof, #compare-legacy, #pricing, #faq, #blog-featured)::before {
+            --sec-rule: rgba(15,23,42,.09);
+        }
+        @media (min-width: 640px) {
+            :is(#how-it-works, #features, #share, #domains, #workspace-team,
+                #proof, #compare-legacy, #pricing, #faq, #blog-featured)::before {
+                width: min(1280px, 100% - 3rem);
+            }
+        }
+        @media (min-width: 1024px) {
+            :is(#how-it-works, #features, #share, #domains, #workspace-team,
+                #proof, #compare-legacy, #pricing, #faq, #blog-featured)::before {
+                width: min(1280px, 100% - 4rem);
+            }
+        }
+
+        /* ─── .card-lit: a card that stays blue in BOTH modes ───
+           The page has more than one of these -- the Premium plan and the
+           Performance Coach -- and each was a flat #3d6bff rectangle. They
+           carry their weight properly now: a gradient with a light source, an
+           inset top highlight so the top edge catches, and a wide coloured
+           glow beneath so the card sits above the page rather than being
+           painted on it. The glow warms on hover instead of the whole card
+           lifting into a heavier shadow.
+
+           One class rather than one per card, because the light-mode text
+           problem below is a property of the SURFACE, not of any one card:
+           anything that keeps a saturated fill while the page turns white
+           needs its text protected the same way. A second copy of this would
+           be a second place to forget. */
+        .card-lit {
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.30),
+                0 2px 6px -2px rgba(28,48,140,.45),
+                0 28px 64px -28px rgba(61,107,255,.75);
+            transition: box-shadow .3s ease, transform .3s ease;
+        }
+        .card-lit:hover {
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.38),
+                0 2px 6px -2px rgba(28,48,140,.5),
+                0 36px 80px -30px rgba(61,107,255,.95);
+        }
+        html.light-mode .card-lit {
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.34),
+                0 2px 6px -2px rgba(28,48,140,.28),
+                0 30px 70px -30px rgba(61,107,255,.55);
+        }
+
+        /* ─── .card-lit text, in light mode ───
+           A pre-existing bug, and not confined to one card. Measured before
+           any of today's changes: the Premium heading computed to
+           rgb(15,23,42) and its feature tiles to rgb(31,41,55); the
+           Performance Coach heading and eyebrow computed to the same
+           near-black. All of it on saturated blue.
+
+           The page's light mode darkens headings and body text for a white
+           ground, which is right everywhere except on the cards that do not
+           turn white with it. Widening the Premium card only made it easier
+           to see; the Coach card had it just as badly and nobody had noticed.
+
+           Setting the colour on the card and letting it inherit fixes each
+           subtree in one place; elements with their own ground -- a white
+           CTA, a tinted chip -- opt back out below.
+
+           !important is what it takes on the heading specifically: this rule
+           and `html.light-mode h3:not(.grad-text)` are both (0,2,2), so the
+           tie goes to source order, and that rule is ~2400 lines further down
+           this file. Raising specificity here would only invite the next
+           person to raise theirs. */
+        html.light-mode .card-lit,
+        html.light-mode .card-lit :is(h1,h2,h3,h4,p,span,div,b,strong,li) {
+            color: #fff !important;
+        }
+        /* Restore the deliberately-tinted text: these already set their own
+           colour against their own background and must keep it. All
+           !important, because the rule above is -- so the CTA went
+           white-on-white the moment that landed. An !important above forces
+           !important on everything that has to escape it. */
+        html.light-mode .card-lit .card-lit-cta,
+        html.light-mode .card-lit .card-lit-cta :is(span,i,div) { color: #3d6bff !important; }
+        /* Muted whites stay muted rather than snapping to full strength. */
+        html.light-mode .card-lit :is(.text-white\/80, .text-white\/70, .text-white\/60) { color: rgba(255,255,255,.8) !important; }
+        html.light-mode .card-lit .text-white\/45 { color: rgba(255,255,255,.45) !important; }
+
         .prem-feat { opacity: 0; transform: translateY(6px); animation: premFeatIn .55s ease-out forwards; }
         @keyframes premFeatIn { to { opacity: 1; transform: translateY(0); } }
         .prem-feat:hover .prem-feat-ico { box-shadow: 0 0 0 2px rgba(255,255,255,.25), 0 8px 22px -6px rgba(255,255,255,.35); transform: rotate(-6deg) scale(1.08); }

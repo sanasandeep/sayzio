@@ -76,8 +76,39 @@
     .xc-close:hover { background: rgba(255,255,255,.12); }
     html.light-mode .xc-close:hover { background: #EDEFF7; }
 
-    /* The clone sits at a comfortable reading size rather than card size. */
+    /* ---------- the clone, un-carded ----------
+       A card is a box that has to fill a fixed height in a grid, and it uses
+       flex to do it: `flex-1` on its inner column, `mt-auto` to push the
+       controls to the bottom edge. The modal is not that box. Cloning the
+       card carried those rules into a panel three times as wide and free to
+       be any height, so the flex pushed the two halves apart and left a band
+       of dead space through the middle of every modal, with the controls
+       stretched across the full width at the bottom of it.
+
+       Neutralising them here is the whole fix: inside the modal the content
+       simply stacks at its natural height, in reading order. */
     .xc-body { padding-right: 44px; }
+    .xc-body .mt-auto { margin-top: 0 !important; }
+    .xc-body .flex-1  { flex: 0 1 auto !important; }
+    .xc-body .h-full  { height: auto !important; }
+    /* Same reason: a card that sets its own min-height for grid alignment
+       has nothing to align with in here. */
+    .xc-body [class*="min-h-"] { min-height: 0 !important; }
+
+    /* Decorative card backdrops do not come along. They are sized and masked
+       for a 380px card, and stretched across a 1080px panel they read as a
+       smear across the text rather than as the card's own texture. The
+       Themes card's ribbon is the one that showed. */
+    .xc-body .th-ribbon { display: none !important; }
+
+    /* The card's OWN content keeps a card's measure; only the long-form block
+       uses the full panel. Left to stretch, a row built as `label ... value`
+       puts 900px of nothing between "CNAME" and "cname.1in.me", a swatch row
+       throws its active-theme pill against the far edge, and a 4px preview bar
+       becomes a stray full-width rule. None of that is a layout the card was
+       ever designed to produce -- it is the same layout at four times the
+       width. */
+    .xc-body .flex-col > *:not([data-expand-more]) { max-width: 660px; }
     .xc-body :is(h3, h4) { font-size: clamp(22px, 2.4vw, 30px); letter-spacing: -.03em; line-height: 1.15; }
     .xc-body p { font-size: 15.5px; line-height: 1.6; max-width: 68ch; }
     .xc-body [data-expand-more] { display: block; }
@@ -115,9 +146,15 @@
     .xm-list strong { font-weight: 700; }
 
     /* A closing note — plan availability, a caveat — set apart from the
-       claims above it so it does not read as one of them. */
+       claims above it so it does not read as one of them.
+
+       max-width is reset because .xc-body sets a 68ch reading measure on
+       every <p>, which is right for a paragraph and wrong for a full-width
+       tinted strip: it left the note boxed under the left column only,
+       looking like it belonged to that column's last bullet. */
     .xm-note {
         margin: 24px 0 0; padding: 12px 15px; border-radius: 10px;
+        max-width: none !important;
         font-size: 13px !important; line-height: 1.55;
         background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
     }
@@ -478,7 +515,10 @@
         // `.glass` or column position: the big editor card next to them is
         // also a .glass card, and it must NOT get a control — its content is
         // a live drag demo, not text that benefits from more room.
-        '#features [data-xc-card]'
+        // Anywhere a card opts in by hand. Scoped by the attribute rather than
+        // by section, so a card that moves keeps its control and a card that
+        // merely looks similar does not gain one.
+        '[data-xc-card]'
         // The link-type stage used to be listed here. It no longer exists:
         // the cards open a fetched modal directly, so there is no panel to
         // expand and nothing in #create for the generic injector to attach to.
