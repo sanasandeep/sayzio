@@ -80,6 +80,13 @@ class MarketingStrategistApiTest extends TestCase
 
     private function makeUser(?Plan $plan = null): User
     {
+        // The parameter is optional so a test that does not care about plan
+        // limits can just say makeUser(). Seventeen of them do -- and every
+        // one died on "Attempt to read property id on null", because the
+        // body dereferenced $plan without ever creating the default the
+        // signature promises. Only the cap test passes its own plan.
+        $plan ??= $this->plan();
+
         return User::factory()->create([
             'role' => 'user',
             'plan_id' => $plan->id,
