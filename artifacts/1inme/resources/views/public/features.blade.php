@@ -140,8 +140,14 @@
          x-init="init()"
          class="sec-rule relative pb-20">
 
-    {{-- Mobile/tablet: condensed sticky bar that opens a full category list. --}}
-    <div class="lg:hidden sticky top-16 z-30 bg-[#1e2330]/95 backdrop-blur-xl border-y border-white/10 shadow-lg shadow-black/20"
+    {{-- Mobile/tablet: condensed sticky bar that opens a full category list.
+
+         `surface-lit` on both halves because both paint their own dark ground
+         with an arbitrary hex, which the light-mode sheet does not rewrite --
+         so in light mode the bar stayed #1e2330 while its label went
+         near-black on it. Measured at 1.33:1 at 390px wide, which is the only
+         width this bar exists at, which is why a desktop pass never saw it. --}}
+    <div class="surface-lit lg:hidden sticky top-16 z-30 bg-[#1e2330]/95 backdrop-blur-xl border-y border-white/10 shadow-lg shadow-black/20"
          @click.outside="mobileOpen = false">
         <button type="button"
                 @click="mobileOpen = !mobileOpen"
@@ -161,7 +167,7 @@
              x-show="mobileOpen"
              x-cloak
              x-transition.opacity.duration.150ms
-             class="absolute inset-x-0 top-full bg-[#1e2330] border-b border-white/10 max-h-[60vh] overflow-y-auto shadow-2xl shadow-black/40">
+             class="surface-lit absolute inset-x-0 top-full bg-[#1e2330] border-b border-white/10 max-h-[60vh] overflow-y-auto shadow-2xl shadow-black/40">
             @foreach($categories as $i => $cat)
                 <a href="#cat-{{ $cat['id'] }}"
                    @click="mobileOpen = false; current = 'cat-{{ $cat['id'] }}'"
