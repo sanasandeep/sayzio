@@ -1153,8 +1153,13 @@
                 </div>
             </div>
 
-            {{-- Coach card --}}
-            <div class="reveal rd-2 lg:col-span-5 rounded-3xl p-7 tilt relative overflow-hidden text-white" style="background: #3d6bff;">
+            {{-- Coach card. .card-lit is the shared treatment for cards that
+                 stay blue while the page turns white: a lit gradient instead
+                 of a flat fill, and the light-mode text protection those
+                 surfaces need. Before it, this card's heading and eyebrow
+                 both computed to near-black on blue. See home.blade.php. --}}
+            <div data-xc-card class="card-lit reveal rd-2 lg:col-span-5 rounded-3xl p-7 tilt relative overflow-hidden text-white"
+                 style="background: linear-gradient(152deg, #4E79FF 0%, #3d6bff 42%, #2C49D8 100%);">
                 <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10"></div>
                 <div class="absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-white/5"></div>
                 <div class="relative">
@@ -1223,6 +1228,35 @@
                                 </small>
                             </div>
                             <a href="#" class="cta">See insights</a>
+                        </div>
+                    </div>
+
+                    {{-- Modal-only detail. Restates the Analytics & AI Coach FAQ
+                         entries in SitePagesContent -- the card shows four
+                         suggestions without ever saying where they come from or
+                         what happens when you act on one. --}}
+                    <div data-expand-more style="--xm-accent: #9FD0FF">
+                        <p class="xm-lead">A health score on its own is a number telling you to feel bad. The Coach exists to make it actionable: it reads what your visitors actually did on your page this week, finds the specific thing costing you the most, and hands you the fix as one button rather than a report to interpret.</p>
+
+                        <div class="xm-cols">
+                            <div>
+                                <h4 class="xm-h">What it looks at</h4>
+                                <ul class="xm-list">
+                                    <li><i class="fas fa-check"></i><span><strong>Per-block click trends</strong>, so a link that has quietly stopped working is named rather than averaged away.</span></li>
+                                    <li><i class="fas fa-check"></i><span><strong>Where visitors come from and on what device</strong>, which is usually why a page underperforms.</span></li>
+                                    <li><i class="fas fa-check"></i><span><strong>Who is visiting</strong>: AI Audience Insights estimates whether you are reaching students, professionals, businesses or creators.</span></li>
+                                    <li><i class="fas fa-check"></i><span><strong>Your page against its own history</strong>, not against a generic benchmark for somebody else's audience.</span></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="xm-h">What you get back</h4>
+                                <ul class="xm-list">
+                                    <li><i class="fas fa-bolt"></i><span><strong>One-click fixes.</strong> Reorder a block, add social proof, start an A/B test, without leaving the page.</span></li>
+                                    <li><i class="fas fa-flask"></i><span><strong>Tests that finish themselves.</strong> Run two variants and the winner is picked for you.</span></li>
+                                    <li><i class="fas fa-eye"></i><span><strong>A reason attached to every suggestion</strong>, so you can disagree with it. "CTR down 12% in 7 days" is checkable; "improve engagement" is not.</span></li>
+                                    <li><i class="fas fa-hand"></i><span><strong>Nothing changes on its own.</strong> Every fix waits for you to approve it.</span></li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -233,7 +233,7 @@
                         border drawn on it. Flat #3d6bff at this size was a
                         large blue rectangle: nothing about it said "this is
                         the one", it was just bigger. --}}
-                   class="lift group relative block rounded-3xl p-8 pt-9 text-white transition-all duration-300 hover:-translate-y-1 overflow-hidden prem-lit"
+                   class="lift group relative block rounded-3xl p-8 pt-9 text-white transition-all duration-300 hover:-translate-y-1 overflow-hidden card-lit"
                    style="background: linear-gradient(152deg, #4E79FF 0%, #3d6bff 42%, #2C49D8 100%);">
                     {{-- Ambient blobs --}}
                     <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-white/15 blur-3xl pointer-events-none" style="animation: floatA 10s ease-in-out infinite;"></div>
@@ -282,11 +282,11 @@
                             </div>
                         @endif
 
-                        {{-- prem-cta marks the one element inside the card that
+                        {{-- card-lit-cta marks the one element inside the card that
                              has its own (white) ground, so the light-mode rule
                              that forces the rest of the card's text white does
                              not turn this into white-on-white. --}}
-                        <span class="prem-cta btn-bounce inline-flex items-center justify-center gap-2 w-full py-3.5 text-center rounded-full text-sm font-bold bg-white text-[#3d6bff] hover:bg-gray-100 transition-transform group-hover:scale-[1.02]">
+                        <span class="card-lit-cta btn-bounce inline-flex items-center justify-center gap-2 w-full py-3.5 text-center rounded-full text-sm font-bold bg-white text-[#3d6bff] hover:bg-gray-100 transition-transform group-hover:scale-[1.02]">
                             Explore premium plans <i class="fas fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
                         </span>
                     </div>

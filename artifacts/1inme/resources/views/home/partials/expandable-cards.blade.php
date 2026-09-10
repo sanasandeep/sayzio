@@ -515,7 +515,10 @@
         // `.glass` or column position: the big editor card next to them is
         // also a .glass card, and it must NOT get a control — its content is
         // a live drag demo, not text that benefits from more room.
-        '#features [data-xc-card]'
+        // Anywhere a card opts in by hand. Scoped by the attribute rather than
+        // by section, so a card that moves keeps its control and a card that
+        // merely looks similar does not gain one.
+        '[data-xc-card]'
         // The link-type stage used to be listed here. It no longer exists:
         // the cards open a fetched modal directly, so there is no panel to
         // expand and nothing in #create for the generic injector to attach to.
