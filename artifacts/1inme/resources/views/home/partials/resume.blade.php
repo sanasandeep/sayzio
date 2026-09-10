@@ -184,19 +184,30 @@
     /* Feature pills column */
     .rb-feat { transition: transform .35s ease, background .35s ease, border-color .35s ease; }
     .rb-feat:hover { transform: translateX(6px); border-color: rgba(61,107,255,.45); background: rgba(61,107,255,.08); }
+    /* Feature-row icon tile.
+       This used to be a solid 44px block of saturated colour with a white
+       glyph, a coloured drop shadow and a ring pulsing around it -- and every
+       row in the list picked a different hue, so six features read as six
+       traffic lights competing with the product shot beside them.
+       It is now a soft tint of ONE accent per section, with the glyph in that
+       accent rather than white. The tile still separates each row and still
+       carries colour; it just stops being the loudest thing on the screen.
+       `--rb-c` is set once on the section, not per row -- shared with the
+       Forms and Notifications sections, which borrow this class. */
+    /* One accent for every row in this section (was one hue per row). */
+    .rb-feat-icon { --rb-c: #3d6bff; }
     .rb-feat-icon {
         width: 44px; height: 44px; border-radius: 14px;
         display:flex; align-items:center; justify-content:center; flex-shrink:0;
-        color: #fff; box-shadow: 0 12px 28px -10px var(--rb-c, #3d6bff);
-        background: var(--rb-c, #3d6bff);
+        color: var(--rb-c, #3d6bff);
+        background: color-mix(in srgb, var(--rb-c, #3d6bff) 15%, transparent);
+        border: 1px solid color-mix(in srgb, var(--rb-c, #3d6bff) 28%, transparent);
         position: relative;
     }
-    .rb-feat-icon::after {
-        content:""; position:absolute; inset:-5px; border-radius:18px;
-        border: 2px solid color-mix(in srgb, var(--rb-c, #3d6bff) 50%, transparent);
-        opacity:.35; animation: rbPulse 2.4s ease-in-out infinite;
+    html.light-mode .rb-feat-icon {
+        background: color-mix(in srgb, var(--rb-c, #3d6bff) 11%, #fff);
+        border-color: color-mix(in srgb, var(--rb-c, #3d6bff) 24%, transparent);
     }
-    @keyframes rbPulse { 0%,100% { transform: scale(1); opacity:.25; } 50% { transform: scale(1.08); opacity:.65; } }
 
     .rb-stat-bubble {
         position: absolute; padding: 8px 12px; border-radius: 14px;
@@ -342,18 +353,18 @@
             {{-- RIGHT: features --}}
             <div class="space-y-4">
                 @foreach([
-                    ['fa-wand-magic-sparkles', '#3d6bff', 'AI writes the boring parts',  'Paste your past role, we generate impact-first bullet points with metrics, action verbs and ATS keywords.'],
-                    ['fa-grip-vertical',       '#1bd4d9', 'Drag-and-drop sections',       'Reorder Experience, Education, Projects, Skills and custom blocks. Live preview, no save button.'],
-                    ['fa-palette',             '#e94e8c', '20+ recruiter-tested templates','Minimalist, design-led, classic ATS, all responsive, all printable, all yours to recolor.'],
-                    ['fa-link',                '#ff8a3c', 'Public portfolio link',        'Share <span class="text-white font-semibold">sayzio.app/you/resume</span> instantly. Embed projects, GitHub repos, Behance shots and case studies.'],
-                    ['fa-file-pdf',            '#22c55e', 'One-click PDF export',         'Pixel-perfect A4 / Letter export with selectable text and embedded fonts. ATS systems read it cleanly.'],
-                    ['fa-shield-halved',       '#22d3ee', 'Privacy-first',                'Toggle between public, unlisted (link-only) and private. Hide email/phone from public view in one tap.'],
+                    ['fa-wand-magic-sparkles', 'AI writes the boring parts',  'Paste your past role, we generate impact-first bullet points with metrics, action verbs and ATS keywords.'],
+                    ['fa-grip-vertical',       'Drag-and-drop sections',       'Reorder Experience, Education, Projects, Skills and custom blocks. Live preview, no save button.'],
+                    ['fa-palette',             '20+ recruiter-tested templates','Minimalist, design-led, classic ATS, all responsive, all printable, all yours to recolor.'],
+                    ['fa-link',                'Public portfolio link',        'Share <span class="text-white font-semibold">sayzio.app/you/resume</span> instantly. Embed projects, GitHub repos, Behance shots and case studies.'],
+                    ['fa-file-pdf',            'One-click PDF export',         'Pixel-perfect A4 / Letter export with selectable text and embedded fonts. ATS systems read it cleanly.'],
+                    ['fa-shield-halved',       'Privacy-first',                'Toggle between public, unlisted (link-only) and private. Hide email/phone from public view in one tap.'],
                 ] as $i => $f)
                     <div class="reveal rd-{{ ($i % 4) + 1 }} rb-feat glass rounded-2xl p-4 flex items-start gap-4">
-                        <div class="rb-feat-icon" style="--rb-c: {{ $f[1] }};"><i class="fas {{ $f[0] }}"></i></div>
+                        <div class="rb-feat-icon"><i class="fas {{ $f[0] }}"></i></div>
                         <div class="min-w-0">
-                            <div class="text-base font-bold mb-1">{!! $f[2] !!}</div>
-                            <div class="text-sm text-gray-400 leading-relaxed">{!! $f[3] !!}</div>
+                            <div class="text-base font-bold mb-1">{!! $f[1] !!}</div>
+                            <div class="text-sm text-gray-400 leading-relaxed">{!! $f[2] !!}</div>
                         </div>
                     </div>
                 @endforeach

@@ -111,7 +111,11 @@
             html.light-mode .lt-chip:hover{color:rgba(0,0,0,.8);border-color:rgba(0,0,0,.18);background:rgba(0,0,0,.06)}
             .lt-chip-on{color:#fff!important}
             html.light-mode .lt-chip-on{color:rgba(0,0,0,.85)!important}
-            .lt-chip-ico{width:22px;height:22px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px}
+            .lt-chip-ico{width:22px;height:22px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;
+                color:var(--lt-accent,#3E3AE0);
+                background:color-mix(in srgb,var(--lt-accent,#3E3AE0) 16%,transparent);
+                border:1px solid color-mix(in srgb,var(--lt-accent,#3E3AE0) 30%,transparent)}
+            html.light-mode .lt-chip-ico{background:color-mix(in srgb,var(--lt-accent,#3E3AE0) 12%,#fff)}
             .lt-chip-new{font-size:7px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 5px;border-radius:9999px;background:rgba(255,255,255,.1);border:1px solid;margin-left:2px;line-height:1.5}
             html.light-mode .lt-chip-new{background:rgba(0,0,0,.07)}
 
@@ -306,7 +310,15 @@
                         data-lt-slug="{{ \Illuminate\Support\Str::slug($lt['name']) }}"
                         aria-label="Preview {{ $lt['name'] }}">
                     <span class="lt-chip-head">
-                        <span class="lt-chip-ico" style="background:{{ $lt['color'] }}"><i class="fas {{ $lt['icon'] }}" style="color:#fff;font-size:10px"></i></span>
+                        {{-- Tinted, not filled. Nineteen link types means nineteen
+                             accents on screen at once, and as solid blocks with a
+                             white glyph they read as a colour chart. A 16% tint of
+                             the same accent with the glyph at full strength keeps
+                             each type identifiable while letting the wall read as
+                             one surface. The accents are admin-editable, so the
+                             calm has to come from how they are drawn, not from
+                             which hues the defaults happen to hold. --}}
+                        <span class="lt-chip-ico"><i class="fas {{ $lt['icon'] }}"></i></span>
                         <span class="lt-chip-name">{{ $lt['name'] }}</span>
                         @if($lt['new'])<span class="lt-chip-new" style="color:{{ $lt['color'] }};border-color:{{ $lt['color'] }}55">New</span>@endif
                     </span>

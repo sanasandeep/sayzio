@@ -110,16 +110,16 @@
             {{-- RIGHT: features --}}
             <div class="space-y-4">
                 @foreach([
-                    ['fa-shapes',          '#3d6bff', '21 field types',              'Text, email, phone, dropdowns, checkboxes, ratings, dates, file uploads, hidden fields and more, drag, drop, reorder.'],
-                    ['fa-palette',         '#1bd4d9', 'Designed to match',           'Colors, fonts, spacing, buttons and backgrounds, style every form to fit your brand, no code required.'],
-                    ['fa-bell-concierge',  '#e94e8c', 'Instant notifications',       'Get every submission by <span class="text-white font-semibold">email</span>, <span class="text-white font-semibold">SMS</span> or <span class="text-white font-semibold">webhook</span>, pipe leads straight into your tools.'],
-                    ['fa-link',            '#ff8a3c', 'Embed in any biolink',        'Drop a form block onto your Link in Bio page and start collecting responses the moment you publish.'],
+                    ['fa-shapes',          '21 field types',              'Text, email, phone, dropdowns, checkboxes, ratings, dates, file uploads, hidden fields and more, drag, drop, reorder.'],
+                    ['fa-palette',         'Designed to match',           'Colors, fonts, spacing, buttons and backgrounds, style every form to fit your brand, no code required.'],
+                    ['fa-bell-concierge',  'Instant notifications',       'Get every submission by <span class="text-white font-semibold">email</span>, <span class="text-white font-semibold">SMS</span> or <span class="text-white font-semibold">webhook</span>, pipe leads straight into your tools.'],
+                    ['fa-link',            'Embed in any biolink',        'Drop a form block onto your Link in Bio page and start collecting responses the moment you publish.'],
                 ] as $i => $f)
                     <div class="reveal rd-{{ ($i % 4) + 1 }} rb-feat glass rounded-2xl p-4 flex items-start gap-4">
-                        <div class="rb-feat-icon" style="--rb-c: {{ $f[1] }};"><i class="fas {{ $f[0] }}"></i></div>
+                        <div class="rb-feat-icon" style="--rb-c: #7c5cff;"><i class="fas {{ $f[0] }}"></i></div>
                         <div class="min-w-0">
-                            <div class="text-base font-bold mb-1">{!! $f[2] !!}</div>
-                            <div class="text-sm text-gray-400 leading-relaxed">{!! $f[3] !!}</div>
+                            <div class="text-base font-bold mb-1">{!! $f[1] !!}</div>
+                            <div class="text-sm text-gray-400 leading-relaxed">{!! $f[2] !!}</div>
                         </div>
                     </div>
                 @endforeach

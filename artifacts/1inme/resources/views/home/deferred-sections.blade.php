@@ -26,7 +26,6 @@
             'title'   => 'Turn followers into fans, and income.',
             'desc'    => 'One link for every drop, with tips, products, DMs, scheduled posts and an AI coach to keep you growing.',
             'icon'    => 'fa-microphone-lines',
-            'color'   => '#e94e8c',
             'cta'     => 'Build my creator page',
         ],
         [
@@ -34,7 +33,6 @@
             'title'   => 'A landing page, storefront &amp; CRM in one.',
             'desc'    => 'Branded short links, QR codes for packaging &amp; print, custom domains, forms and team workspaces.',
             'icon'    => 'fa-store',
-            'color'   => '#1bd4d9',
             'cta'     => 'Start my business page',
         ],
         [
@@ -42,7 +40,6 @@
             'title'   => 'Your digital business card, and then some.',
             'desc'    => 'Tap-to-share NFC tags, dynamic QR codes, instant DMs and a live visitor map of who&rsquo;s engaging.',
             'icon'    => 'fa-id-badge',
-            'color'   => '#ff8a3c',
             'cta'     => 'Make my smart card',
         ],
     ];
@@ -60,11 +57,17 @@
         <div class="grid md:grid-cols-3 gap-5 card-row">
             @foreach($__audiences as $i => $a)
                 <article class="audience-card reveal rd-{{ $i + 1 }} glass rounded-3xl p-7 tilt relative overflow-hidden flex flex-col">
-                    <div class="aud-blob absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-25" style="background:{{ $a['color'] }};animation-delay:{{ $i * 1.2 }}s;"></div>
-                    <div class="card-ico aud-icon relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background: {{ $a['color'] }}; box-shadow: 0 12px 30px -10px {{ $a['color'] }};animation-delay:{{ $i * 0.4 }}s;">
+                    {{-- The 192px blurred colour disc that used to sit in this
+                         corner is gone. It had already been switched off in
+                         `surfaces.blade.php` (`display:none !important`), so it
+                         was markup and an inline hex producing nothing. --}}
+                    <div class="card-ico aud-icon relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="animation-delay:{{ $i * 0.4 }}s;">
                         <i class="fas {{ $a['icon'] }} text-xl text-white" style="animation-delay:{{ $i * 0.5 }}s;"></i>
                     </div>
-                    <div class="relative text-[11px] font-bold uppercase tracking-wider mb-2" style="color: {{ $a['color'] }};">{{ $a['eyebrow'] }}</div>
+                    {{-- The eyebrow follows the card's own gradient rather than a
+                         third hue of its own, so the chip above it and the word
+                         under it agree. --}}
+                    <div class="relative text-[11px] font-bold uppercase tracking-wider mb-2" style="color: var(--g1, #3d6bff);">{{ $a['eyebrow'] }}</div>
                     <h3 class="relative text-xl font-bold mb-3 leading-snug">{!! $a['title'] !!}</h3>
                     <p class="relative text-sm text-gray-400 leading-relaxed mb-6 flex-1">{!! $a['desc'] !!}</p>
                     <button type="button" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','audience'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="relative btn-bounce inline-flex items-center justify-center gap-2 px-5 py-2.5 grad-bar text-white rounded-full text-sm font-bold self-start">
@@ -131,14 +134,17 @@
 
         <div class="hiw-track card-row grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
             @foreach([
-                ['01','0:15','Sign up free','Email or one-tap Google. Pick your handle and you\'re in.','fa-user-plus','#1bd4d9'],
-                ['02','0:45','Build with AI','Let AI draft it, then drag-and-drop blocks for socials, music, shop, video.','fa-grip-vertical','#3d6bff'],
-                ['03','1:30','Share it everywhere','One link, branded short links and a dynamic QR for offline.','fa-share-nodes','#e94e8c'],
-                ['04','2:00','Watch it grow','Live analytics + an AI Coach that turns numbers into actions.','fa-chart-line','#ff8a3c'],
+                ['01','0:15','Sign up free','Email or one-tap Google. Pick your handle and you\'re in.','fa-user-plus'],
+                ['02','0:45','Build with AI','Let AI draft it, then drag-and-drop blocks for socials, music, shop, video.','fa-grip-vertical'],
+                ['03','1:30','Share it everywhere','One link, branded short links and a dynamic QR for offline.','fa-share-nodes'],
+                ['04','2:00','Watch it grow','Live analytics + an AI Coach that turns numbers into actions.','fa-chart-line'],
             ] as $i => $s)
-                <div class="reveal rd-{{ ($i % 4)+1 }} hiw-step glass rounded-3xl p-6 text-center" style="--hiw-color: {{ $s[5] }}">
+                {{-- `--hiw-color` drove this step's border, glow and number. It was a
+                     different hue on every step, so four steps meant four colours in
+                     one row; it now follows the card row's own gradient. --}}
+                <div class="reveal rd-{{ ($i % 4)+1 }} hiw-step glass rounded-3xl p-6 text-center" style="--hiw-color: var(--g1, #3d6bff)">
                     <span class="hiw-num">{{ $s[0] }}</span>
-                    <div class="card-ico hiw-icon-wrap" style="background: {{ $s[5] }};"><i class="fas {{ $s[4] }} text-xl text-white"></i></div>
+                    <div class="card-ico hiw-icon-wrap"><i class="fas {{ $s[4] }} text-xl text-white"></i></div>
                     <span class="hiw-time"><i class="fas fa-stopwatch"></i>{{ $s[1] }}</span>
                     <h3 class="text-lg font-bold mb-1.5">{!! $s[2] !!}</h3>
                     <p class="text-sm text-gray-400 leading-relaxed">{!! $s[3] !!}</p>
@@ -810,7 +816,7 @@
                 ],
                 [
                     'key' => 'qr-codes', 'rd' => 3, 'icon' => 'fa-qrcode',
-                    'g1' => '#e94e8c', 'g2' => '#ff8a3c',
+                    'g1' => '#1bd4d9', 'g2' => '#3d6bff',
                     'title' => 'Dynamic QR codes',
                     'blurb' => 'Print once, redirect forever. Change the destination without reprinting.',
                     'lead'  => 'The code on the poster never changes. Where it sends people is yours to change whenever you like.',
@@ -825,7 +831,7 @@
                 ],
                 [
                     'key' => 'channels', 'rd' => 4, 'icon' => 'fa-share-nodes',
-                    'g1' => '#ff8a3c', 'g2' => '#ffc845',
+                    'g1' => '#3d6bff', 'g2' => '#7c5cff',
                     'title' => 'Channel-ready',
                     'blurb' => 'Pre-made share cards for every channel. Pixels, UTM and OG ready out of the box.',
                     'lead'  => 'Your link arrives looking right on every platform, without a design round for each one.',
@@ -1370,7 +1376,7 @@
                         ['fa-credit-card','#ff8a3c','Billing per workspace','Separate plans &amp; invoices for each workspace.'],
                     ] as $i => $f)
                         <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
-                            <div class="card-ico w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: {{ $f[1] }}; box-shadow: 0 12px 30px -12px {{ $f[1] }};">
+                            <div class="card-ico w-11 h-11 rounded-xl flex items-center justify-center mb-3">
                                 <i class="fas {{ $f[0] }} text-white"></i>
                             </div>
                             <h3 class="text-base font-bold mb-1">{!! $f[2] !!}</h3>
@@ -1750,7 +1756,7 @@
                         ['fa-user-secret','#3d6bff','Privacy-first','Names masked, locations coarse, dismissible.'],
                     ] as $i => $f)
                         <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
-                            <div class="card-ico w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: {{ $f[1] }}; box-shadow: 0 12px 30px -12px {{ $f[1] }};">
+                            <div class="card-ico w-11 h-11 rounded-xl flex items-center justify-center mb-3">
                                 <i class="fas {{ $f[0] }} text-white"></i>
                             </div>
                             <h3 class="text-base font-bold mb-1">{!! $f[2] !!}</h3>

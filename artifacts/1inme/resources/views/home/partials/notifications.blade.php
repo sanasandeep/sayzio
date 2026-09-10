@@ -88,16 +88,16 @@
             {{-- LEFT: features --}}
             <div class="space-y-4 order-2 lg:order-1">
                 @foreach([
-                    ['fa-bell',            '#1bd4d9', 'One unified feed',            'Every alert in one place, new followers, DMs, orders, mentions and system events. Mark all read, or dismiss and restore from a 30-day history.'],
-                    ['fa-sliders',         '#3d6bff', 'Per-event preferences',       'A full matrix of 20+ event types. Toggle <span class="text-white font-semibold">in-app</span>, <span class="text-white font-semibold">email</span> and <span class="text-white font-semibold">push</span> independently for each one.'],
-                    ['fa-paper-plane',     '#e94e8c', 'Email &amp; mobile push',     'Transactional emails, weekly digests you can schedule by day and hour, and mobile push that deep-links you straight to the action.'],
-                    ['fa-shield-halved',   '#ff8a3c', 'Stay ahead of problems',      'Proactive alerts for suspicious logins, broken social connections, custom-domain DNS drift and API usage thresholds.'],
+                    ['fa-bell',            'One unified feed',            'Every alert in one place, new followers, DMs, orders, mentions and system events. Mark all read, or dismiss and restore from a 30-day history.'],
+                    ['fa-sliders',         'Per-event preferences',       'A full matrix of 20+ event types. Toggle <span class="text-white font-semibold">in-app</span>, <span class="text-white font-semibold">email</span> and <span class="text-white font-semibold">push</span> independently for each one.'],
+                    ['fa-paper-plane',     'Email &amp; mobile push',     'Transactional emails, weekly digests you can schedule by day and hour, and mobile push that deep-links you straight to the action.'],
+                    ['fa-shield-halved',   'Stay ahead of problems',      'Proactive alerts for suspicious logins, broken social connections, custom-domain DNS drift and API usage thresholds.'],
                 ] as $i => $f)
                     <div class="reveal rd-{{ ($i % 4) + 1 }} rb-feat glass rounded-2xl p-4 flex items-start gap-4">
-                        <div class="rb-feat-icon" style="--rb-c: {{ $f[1] }};"><i class="fas {{ $f[0] }}"></i></div>
+                        <div class="rb-feat-icon" style="--rb-c: #3d6bff;"><i class="fas {{ $f[0] }}"></i></div>
                         <div class="min-w-0">
-                            <div class="text-base font-bold mb-1">{!! $f[2] !!}</div>
-                            <div class="text-sm text-gray-400 leading-relaxed">{!! $f[3] !!}</div>
+                            <div class="text-base font-bold mb-1">{!! $f[1] !!}</div>
+                            <div class="text-sm text-gray-400 leading-relaxed">{!! $f[2] !!}</div>
                         </div>
                     </div>
                 @endforeach

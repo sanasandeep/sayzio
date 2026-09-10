@@ -53,13 +53,15 @@
      data-voice-gate-url="{{ ($__sa_voice_available || $__sa_voice_gated) ? route('user.ai.voice.show') : '' }}">
 </div>
 <style>
-/* Brand-gradient launcher: chat-tag silhouette with aura, breath, sheen, sparkle, and tooltip.
-   IDLE = small + subtle (40px, ~55% opacity). HOVER = grows to full size (68px) with
-   100% opacity, sheen, and a satisfying spring-bounce. */
+/* Brand-gradient launcher: a chat button, with tooltip.
+   It used to be the Zio mascot's head floating with no button under it, which
+   is why the idle state shrank to ~60% and faded to .65 opacity -- a character
+   peeking is allowed to be faint. A chat button is not: it is the one control
+   that has to look pressable at a glance, so it now sits at full opacity and
+   only springs the last few percent on hover. */
 .sa-launcher-wrap{
   position:fixed;bottom:24px;z-index:99999;width:68px;height:68px;
-  /* Idle state: shrink the whole widget + fade aura/ring/sparkles together */
-  transform:scale(.6);transform-origin:bottom right;opacity:.65;
+  transform:scale(.92);transform-origin:bottom right;opacity:1;
   transition:transform .35s cubic-bezier(.34,1.56,.64,1), opacity .25s ease, bottom .3s ease;
   /* The wrapper is purely a positioning shell — its layout box, the decorative
      aura/ring pseudo-elements, and the idle scale() padding must NOT swallow
@@ -85,28 +87,22 @@
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;border:0;color:#fff;z-index:2;
   pointer-events:auto; /* re-enable clicks on the button itself (wrap is none) */
-  /* No background blob, ring, or glassy shadow — just the mascot head floating. */
-  background:transparent;box-shadow:none;
+  /* The mascot head was its own silhouette and needed no button behind it.
+     A glyph does: without a ground it reads as a stray icon rather than a
+     control. `--sa-accent` is the admin-set accent and stays the base of the
+     gradient, so an admin who changes it still changes this button. */
+  border-radius:50%;
+  background:linear-gradient(145deg, var(--sa-accent,#3d6bff) 0%, color-mix(in srgb, var(--sa-accent,#3d6bff) 62%, #6C4BFF) 100%);
+  box-shadow:0 10px 26px -8px color-mix(in srgb, var(--sa-accent,#3d6bff) 62%, transparent), 0 2px 6px rgba(15,23,42,.22);
+  transition:box-shadow .22s ease, transform .12s ease;
 }
+#sa-launcher:hover{box-shadow:0 14px 32px -8px color-mix(in srgb, var(--sa-accent,#3d6bff) 74%, transparent), 0 3px 8px rgba(15,23,42,.26)}
 #sa-launcher:active{transform:scale(.96)}
-#sa-launcher:focus-visible{outline:2px solid #90acff;outline-offset:3px;border-radius:16px}
-#sa-launcher .sa-icon-bubble{position:relative;z-index:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.25))}
-/* Zio Bot mascot — the entire launcher face, gentle float so the character
-   feels alive while floating on its own with no background behind it. */
-#sa-launcher .sa-icon-mascot{position:relative;z-index:1;width:64px;height:64px;object-fit:contain;filter:drop-shadow(0 3px 6px rgba(15,23,42,.3));pointer-events:none;animation:sa-mascot-float 4s ease-in-out infinite}
-@keyframes sa-mascot-float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-2px) rotate(-3deg)}}
-@media (prefers-reduced-motion:reduce){#sa-launcher .sa-icon-mascot{animation:none}}
-#sa-launcher .sa-spark{
-  position:absolute;color:#fff;filter:drop-shadow(0 0 6px rgba(255,255,255,.85));z-index:1;
-  animation:sa-spark-orbit 4.2s ease-in-out infinite;
-}
-#sa-launcher .sa-spark.s1{top:8px;right:11px;animation-delay:0s}
-#sa-launcher .sa-spark.s2{bottom:14px;left:10px;animation-delay:.9s;transform:scale(.7)}
-#sa-launcher .sa-spark.s3{top:18px;left:9px;animation-delay:1.7s;transform:scale(.55)}
-@keyframes sa-spark-orbit{
-  0%,100%{opacity:.25;transform:translate(0,0) scale(.7) rotate(0)}
-  50%{opacity:1;transform:translate(2px,-2px) scale(1.05) rotate(20deg)}
-}
+#sa-launcher:focus-visible{outline:2px solid #90acff;outline-offset:3px;border-radius:50%}
+/* The glyph is a speech bubble with a sparkle inside it: it says "chat", and
+   the sparkle says the thing answering is AI, which is what the three orbiting
+   sparks around the mascot used to say. One mark instead of four moving parts. */
+#sa-launcher .sa-icon-bubble{position:relative;z-index:1;filter:drop-shadow(0 1px 2px rgba(15,23,42,.28))}
 /* Speech-bubble tooltip popping out next to the launcher */
 .sa-tooltip{
   position:absolute;bottom:calc(100% + 14px);
@@ -145,7 +141,7 @@
   100%{transform:translateY(0) scale(1)}
 }
 @media (prefers-reduced-motion:reduce){
-  #sa-launcher,#sa-launcher .sa-spark,#sa-launcher .sa-icon-mascot{animation:none}
+  #sa-launcher{animation:none}
   .sa-tooltip,.sa-tooltip.sa-show{transition:none;animation:none}
 }
 #sa-panel-wrap{position:fixed;bottom:90px;width:380px;max-width:calc(100vw - 24px);z-index:99999;display:none;flex-direction:column;align-items:stretch}
@@ -535,21 +531,23 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   var launcherWrap=el('div',{class:'sa-launcher-wrap '+pos});
   var launcher=el('button',{id:'sa-launcher',class:pos,type:'button','aria-label':'Open assistant',
     style:{'--sa-accent':ds.accent||'#3d6bff'}}, '');
-  // Face of the assistant: the Zio Bot mascot rides on the brand-gradient
-  // button. When an admin hasn't set an avatar the resolver already hands
-  // us the bundled mascot, so ds.avatar is effectively always present; the
-  // chat-bubble glyph stays as a defensive fallback if it's ever empty.
-  var launcherFace = ds.avatar
-    ? '<img class="sa-icon-mascot" src="'+escapeHtml(ds.avatar)+'" alt="" aria-hidden="true">'
-    : '<svg class="sa-icon-bubble" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-      +  '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H12l-4 4v-4H6.5A2.5 2.5 0 0 1 4 13.5v-8z"/>'
-      +  '<path d="M12 6.2l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z" fill="currentColor" stroke="none"/>'
-      +'</svg>';
+  // Face of the launcher: a chat glyph, not the Zio mascot.
+  //
+  // The mascot's head was the whole button. It is a good mark, but it was
+  // also on the panel header, peeking over the panel's top edge, in the hero
+  // and in half the marketing sections -- so on the pages where the widget
+  // matters most, the same face appeared three or four times. It stays
+  // everywhere it identifies the assistant; here, where the job is "this is
+  // the button that opens a chat", a chat bubble says it without adding a
+  // fourth Zio to the screen.
+  //
+  // `ds.avatar` still drives the panel header, so an admin's own avatar is
+  // not lost -- it just no longer decides what the launcher looks like.
   launcher.innerHTML=''
-    +launcherFace
-    +'<svg class="sa-spark s1" width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0l2.5 9.5L24 12l-9.5 2.5L12 24l-2.5-9.5L0 12l9.5-2.5z"/></svg>'
-    +'<svg class="sa-spark s2" width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0l2.5 9.5L24 12l-9.5 2.5L12 24l-2.5-9.5L0 12l9.5-2.5z"/></svg>'
-    +'<svg class="sa-spark s3" width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0l2.5 9.5L24 12l-9.5 2.5L12 24l-2.5-9.5L0 12l9.5-2.5z"/></svg>';
+    +'<svg class="sa-icon-bubble" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    +  '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H12l-4 4v-4H6.5A2.5 2.5 0 0 1 4 13.5v-8z"/>'
+    +  '<path d="M12 6.2l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z" fill="currentColor" stroke="none"/>'
+    +'</svg>';
   var badge=el('span',{class:'sa-badge',style:{display:'none'}}, '0');
   launcher.appendChild(badge);
   launcherWrap.appendChild(launcher);
