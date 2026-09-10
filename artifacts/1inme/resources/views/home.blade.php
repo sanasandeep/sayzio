@@ -40,6 +40,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=18">
     @include('home.partials.flat-surfaces')
+    @include('home.partials.rails')
     @include('home.partials.expandable-cards')
     @vite(['resources/js/marketing-anim.js'])
     <script>

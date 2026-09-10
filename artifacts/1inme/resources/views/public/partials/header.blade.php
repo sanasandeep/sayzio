@@ -112,6 +112,13 @@
      @scroll.window.passive="let y = window.scrollY; scrolled = y > 8; let d = y - navLastY; if (y <= 96) { navHidden = false; navAccum = 0; } else if (d > 0) { navAccum += d; if (navAccum > 24) navHidden = true; } else if (d < 0) { navAccum = 0; navHidden = false; } navLastY = y"
      x-effect="document.body.style.overflow = (mobileOpen{{ $useModal ? ' || authOpen' : '' }}) ? 'hidden' : ''; document.documentElement.classList.toggle('mega-menu-open', openMenu !== null)"
      @keydown.escape.window="openMenu=null; mobileOpen=false; mobileGroup=null"{!! $useModal ? ' @open-auth.window="authTab = ($event.detail && $event.detail.tab) || \'register\'; authHandle = ($event.detail && $event.detail.handle) || \'\'; authOpen = true; mobileOpen = false"' : '' !!}>
+{{-- The full-bleed hairline under the nav band. It lives here, inside the
+     header's Alpine scope, because it shares the bar's `scrolled` flag: at
+     the top of the page the bar is transparent so the hero can run under it,
+     and a hard rule across the viewport there would cut the hero in half.
+     Styled in home/partials/rails.blade.php, which is only on the homepage,
+     so this span is inert everywhere else. --}}
+<div class="mkt-nav-rule" :class="scrolled ? 'is-stuck' : ''" aria-hidden="true"></div>
 <nav class="{{ $fixed ? 'fixed' : 'sticky' }} top-0 inset-x-0 {{ $fixed ? 'z-50' : 'z-40' }} mkt-nav-autohide"
      :class="{ 'mkt-nav-hidden': navHidden && openMenu === null && !mobileOpen, 'mkt-nav-drawer-open': mobileOpen }"
      style="top: var(--inme-anno-h, 0px);">
