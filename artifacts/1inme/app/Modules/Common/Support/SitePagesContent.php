@@ -2950,30 +2950,38 @@ class SitePagesContent
     }
 
     /**
-     * Default testimonials shown on the landing & Features pages.
+     * Fallback testimonials for the landing, Features, AI-product and
+     * use-case pages, used whenever the `marketing_features_testimonials`
+     * setting is empty.
+     *
+     * Deliberately empty, and it must stay that way.
+     *
+     * This used to return three invented people -- "Maya R., content creator
+     * · 240k followers", "Daniel K., founder", "Priya S., coach" -- one of
+     * them carrying a made-up result ("conversions went up 32% in two
+     * weeks"). Because it is a FALLBACK, those three appeared on every page
+     * that had no real testimonials configured: /features, every AI product
+     * page and every use-case page. They read as genuine customer reviews.
+     * They were not.
+     *
+     * Presenting invented reviews as real is not a placeholder problem, it is
+     * a legal one: the FTC's 2024 rule on fake consumer reviews carries civil
+     * penalties per violation, and India's consumer-protection framework
+     * covers fabricated reviews too.
+     *
+     * Every consumer of this array is guarded -- the section partials wrap in
+     * `@if($__items->isNotEmpty())` -- so an empty return renders no section
+     * at all rather than an empty shell. Real testimonials come from the
+     * admin-managed store (Admin -> Testimonials, which has a public
+     * submission form) and appear automatically once approved.
+     *
+     * If you are tempted to put sample copy back here so a page "looks
+     * finished": don't. Ship the page without the section until real quotes
+     * exist.
      */
     public static function testimonialsDefault(): array
     {
-        return [
-            [
-                'quote' => 'Sayzio replaced three different tools for me. The drag-and-drop Link in Bio and the live analytics map are honestly addictive.',
-                'name'  => 'Maya R.',
-                'role'  => 'Content creator · 240k followers',
-                'photo' => '',
-            ],
-            [
-                'quote' => 'We onboarded the whole team in an afternoon. Workspaces and per-link analytics make client reporting trivial.',
-                'name'  => 'Daniel K.',
-                'role'  => 'Founder, indie agency',
-                'photo' => '',
-            ],
-            [
-                'quote' => 'The Performance Coach actually finds the weak links. Conversions on my Link in Bio went up 32% in two weeks.',
-                'name'  => 'Priya S.',
-                'role'  => 'Coach & podcaster',
-                'photo' => '',
-            ],
-        ];
+        return [];
     }
 
     /**
