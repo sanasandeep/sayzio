@@ -401,7 +401,7 @@
                             @endphp
                             <div class="dcp-numwrap">
                                 <div class="dcp-match">
-                                    <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" onerror="this.remove()">
+                                    <img src="{{ asset('images/marketing/contact-aisha.jpg') }}"@imgSize(asset('images/marketing/contact-aisha.jpg')) alt="" loading="lazy" onerror="this.remove()">
                                     Aisha Rahman <i class="fas fa-circle-check"></i>
                                 </div>
                                 {{-- Quick-channel icons appear with the T9 match --}}
@@ -457,7 +457,7 @@
                                 <div class="dcp-cid-pill"><i class="fas fa-address-card"></i> Sayzio Caller ID</div>
                                 <div class="dcp-avatar-lg">
                                     AR
-                                    <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" onerror="this.remove()">
+                                    <img src="{{ asset('images/marketing/contact-aisha.jpg') }}"@imgSize(asset('images/marketing/contact-aisha.jpg')) alt="" loading="lazy" onerror="this.remove()">
                                 </div>
                                 <div class="dcp-call-name">Aisha Rahman <i class="fas fa-circle-check"></i></div>
                                 <div class="dcp-call-handle">@aisha &middot; on Sayzio</div>

@@ -230,35 +230,16 @@ class DomainBranding
      * path's modification time: a re-uploaded logo of a different shape
      * invalidates itself, and a warm page pays nothing.
      *
+     * The measuring itself now lives in AssetSize, because the same problem
+     * turned out to be everywhere: 107 marketing images with no reserved box,
+     * none of them logos. This stays as the name the logo partial calls, and
+     * as the place this reasoning is written down.
+     *
      * @return array{0:int,1:int}|null
      */
     public static function intrinsicSize(string $url): ?array
     {
-        $path = parse_url($url, PHP_URL_PATH);
-
-        if (! is_string($path) || $path === '') {
-            return null;
-        }
-
-        // Only our own public assets. A remote or storage-driver URL is not a
-        // file we can measure without a network round trip per render.
-        if (parse_url($url, PHP_URL_HOST) !== null && parse_url($url, PHP_URL_HOST) !== self::requestHost()) {
-            return null;
-        }
-
-        $file = public_path(ltrim($path, '/'));
-
-        if (! is_file($file)) {
-            return null;
-        }
-
-        $key = 'brand_logo_size:' . md5($file) . ':' . filemtime($file);
-
-        return Cache::rememberForever($key, function () use ($file) {
-            $size = @getimagesize($file);
-
-            return ($size && $size[0] > 0 && $size[1] > 0) ? [(int) $size[0], (int) $size[1]] : null;
-        });
+        return AssetSize::of($url);
     }
 
     private static function platformDefaults(): array

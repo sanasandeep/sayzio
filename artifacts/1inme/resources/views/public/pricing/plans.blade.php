@@ -925,6 +925,19 @@
                 return $groups;
             };
         @endphp
+        {{-- The plan cards are the page, and nothing named them.
+
+             Each card's tier is an <h3>, and the nearest heading above the
+             rail was the page's own <h1>, so the outline read h1 then h3 --
+             the one heading-level skip on /pricing, and the same one on
+             /coins, which renders this view too.
+
+             The heading is visually hidden rather than drawn because the rail
+             needs no title on screen: the cards say what they are. It exists
+             for the outline and for a screen reader, which can now jump to the
+             plans as a group instead of landing on "Starter" with nothing
+             saying what Starter is one of. --}}
+        <h2 class="sr-only">Plans</h2>
         <div data-anim="fade-up" class="plans-rail mt-8"
              x-data="{
                  scrollable: false,

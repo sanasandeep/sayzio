@@ -165,7 +165,7 @@
 <section class="sec-rule py-16 sm:py-20 relative">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
         <div data-anim="fade-right">
-            <img src="{{ asset('images/marketing/browser/hero-desktop.webp') }}"
+            <img src="{{ asset('images/marketing/browser/hero-desktop.webp') }}"@imgSize(asset('images/marketing/browser/hero-desktop.webp'))
                  alt="A maker working in Zio Browser on a large desktop monitor"
                  loading="lazy" decoding="async" class="zbp-photo">
         </div>
@@ -249,7 +249,7 @@
                  'Stay in the flow', 'A quiet, chrome-light interface and handle-aware address bar keep the path from "idea" to "published page" short, type the handle, see the page, make the change.'],
             ] as [$img, $alt, $title, $desc])
                 <div class="glass rounded-2xl overflow-hidden" data-anim="fade-up">
-                    <img src="{{ asset($img) }}" alt="{{ $alt }}" loading="lazy" decoding="async" class="w-full aspect-[4/3] object-cover">
+                    <img src="{{ asset($img) }}"@imgSize(asset($img)) alt="{{ $alt }}" loading="lazy" decoding="async" class="w-full aspect-[4/3] object-cover">
                     <div class="p-6">
                         <h3 class="text-base font-bold text-white">{{ $title }}</h3>
                         <p class="mt-1.5 text-sm text-gray-400 leading-relaxed">{{ $desc }}</p>

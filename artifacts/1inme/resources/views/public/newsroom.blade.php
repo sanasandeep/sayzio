@@ -45,7 +45,7 @@
         </div>
         <div data-anim="fade-left" data-tilt="5" class="relative">
             <div class="img-frame img-tilt aspect-[16/10]">
-                <img src="{{ asset('images/marketing/newsroom/hero.png') }}" alt="Press coverage and editorial features">
+                <img src="{{ asset('images/marketing/newsroom/hero.png') }}"@imgSize(asset('images/marketing/newsroom/hero.png')) alt="Press coverage and editorial features">
             </div>
             <div class="absolute -bottom-5 -right-5 bg-[#11101c] border border-white/10 rounded-2xl p-3 pr-4 flex items-center gap-3 shadow-2xl float-y">
                 <div class="w-10 h-10 rounded-xl bg-[#3d6bff] flex items-center justify-center text-white"><i class="fas fa-trophy"></i></div>
@@ -83,7 +83,7 @@
             @foreach($press as $p)
                 <a href="{{ $p['href'] }}" class="group bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 hover:border-blue-400/40 rounded-2xl overflow-hidden transition flex flex-col sm:flex-row">
                     <div class="img-frame rounded-none border-0 aspect-[16/10] sm:aspect-auto sm:w-44 shrink-0">
-                        <img src="{{ asset('images/marketing/newsroom/press.png') }}" alt="Press article preview">
+                        <img src="{{ asset('images/marketing/newsroom/press.png') }}"@imgSize(asset('images/marketing/newsroom/press.png')) alt="Press article preview">
                     </div>
                     <div class="p-5 flex-1 flex flex-col">
                         <div class="text-xs font-semibold uppercase tracking-wider text-blue-300">{{ $p['outlet'] }} · {{ $p['date'] }}</div>
@@ -119,7 +119,7 @@
             </div>
             <div data-anim="fade-left" data-tilt="6">
                 <div class="img-frame img-tilt aspect-[4/3]">
-                    <img src="{{ asset('images/marketing/newsroom/awards.png') }}" alt="Awards">
+                    <img src="{{ asset('images/marketing/newsroom/awards.png') }}"@imgSize(asset('images/marketing/newsroom/awards.png')) alt="Awards">
                 </div>
             </div>
         </div>

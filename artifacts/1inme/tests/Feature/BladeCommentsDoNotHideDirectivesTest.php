@@ -226,6 +226,176 @@ class BladeCommentsDoNotHideDirectivesTest extends TestCase
     }
 
     /**
+     * The third place this hides: a PHP comment inside a raw PHP block.
+     *
+     * Blade finds those blocks by matching an opening directive to the FIRST
+     * closing one after it. It does that on the raw source, so it cannot tell
+     * a closing directive in code from one written inside a `//` or `/* *​/`
+     * comment in the same block -- and the one in the comment comes first.
+     * The block ends there, the real closing directive leaks out as literal
+     * text, and every statement after the comment stops being code.
+     *
+     * Which is a slower failure than it sounds. The file still compiles. The
+     * page still returns 200. The variables those statements were assigning
+     * are simply never assigned, so the error surfaces wherever they are
+     * eventually read -- possibly a different file, three includes away.
+     *
+     * This is exactly what happened while writing the comment that explains
+     * why the site-assistant partial computes its mascot's size at the top of
+     * the file. The comment said the words. The two assignments below it fell
+     * outside the block. All 42 marketing pages returned 500, complaining
+     * about an undefined variable 340 lines further down.
+     *
+     * Only the two closing directives are scanned. An opening one inside a
+     * block is harmless -- the block is already open -- and describing "a
+     * [php] block" in a comment is a thing people reasonably do.
+     *
+     * The scan walks the directives rather than matching the block with one
+     * pattern, and that is not a stylistic choice. The first version of this
+     * test did use one pattern -- open, capture the body non-greedily, close.
+     * It reported nothing when the bug was deliberately reintroduced, because
+     * the body it captures STOPS at the offending closer: the very text being
+     * looked for is the thing that ends the capture, so it is never inside it.
+     * A guard that cannot see the defect it was written for is worse than no
+     * guard, since it also says everything is fine.
+     */
+    public function test_no_php_block_comment_closes_the_block_it_is_inside(): void
+    {
+        $at = '@';
+        $offenders = [];
+
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator(resource_path('views'), \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($files as $file) {
+            if (! str_ends_with($file->getFilename(), '.blade.php')) {
+                continue;
+            }
+
+            $source = (string) file_get_contents($file->getPathname());
+            $short = str_replace(resource_path('views/'), '', $file->getPathname());
+
+            // Raw PHP blocks only, not verbatim ones. A verbatim block holds
+            // arbitrary text -- JavaScript, usually -- and asking PHP's
+            // tokenizer whether a point in it is inside a comment is a
+            // question about the wrong language. The same trap is there in
+            // principle; it has never fired, and a guess would be worse than
+            // the silence.
+            preg_match_all(
+                '/(?<![\w@])' . $at . '(php|endphp)\b/',
+                $source,
+                $marks,
+                PREG_OFFSET_CAPTURE | PREG_SET_ORDER
+            );
+
+            $bodyStart = null;
+
+            foreach ($marks as $mark) {
+                [$text, $offset] = $mark[0];
+                $opening = $mark[1][0] === 'php';
+
+                if ($opening) {
+                    // Blade does not nest these: an opener inside an open
+                    // block is just text.
+                    $bodyStart ??= $offset + strlen($text);
+
+                    continue;
+                }
+
+                if ($bodyStart === null) {
+                    continue;
+                }
+
+                // This closer is the one that ends the block. Is it sitting
+                // inside a comment in the code above it?
+                if ($this->fallsInsideAComment(substr($source, $bodyStart, $offset - $bodyStart))) {
+                    $line = substr_count(substr($source, 0, $offset), "\n") + 1;
+                    $offenders[] = "{$short}:{$line}  names {$text} in a comment inside a raw PHP block";
+                }
+
+                $bodyStart = null;
+            }
+        }
+
+        $this->assertSame([], $offenders, sprintf(
+            "Blade closes a raw PHP block at the FIRST closing directive after the opening\n"
+            . "one, and it reads the raw source -- so one written inside a PHP comment in\n"
+            . "that block ends it right there. Every statement after the comment stops being\n"
+            . "code, silently: the file compiles, the page returns 200, and the failure\n"
+            . "surfaces as an undefined variable somewhere else entirely.\n\n"
+            . "Describe the directive instead of spelling it -- \"the closing tag of the\n"
+            . "block\", or [endphp] in square brackets.\n\n%d found:\n  %s",
+            count($offenders),
+            implode("\n  ", $offenders)
+        ));
+    }
+
+    /**
+     * Does the point just past this PHP source sit inside an open comment?
+     *
+     * `$body` is everything between the block's opening directive and the
+     * closer being judged, so "is that closer commented out" becomes "is this
+     * text still inside a comment when it runs out".
+     *
+     * Answered with PHP's own tokenizer, which is the only thing that reliably
+     * knows the difference between a comment and a comment's punctuation
+     * inside a string. Matching `/*` and `//` by pattern does not: the first
+     * version of this did, and reported four offenders that were nothing of
+     * the kind. `'image/*'` and `'* / *'` -- the MIME wildcards in the admin
+     * domain form and the file-field default -- contain the two characters
+     * that open a block comment, with nothing after them that closes it, so a
+     * pattern reads the rest of the file as commented out. The tokenizer sees
+     * a string.
+     */
+    private function fallsInsideAComment(string $body): bool
+    {
+        $tokens = @token_get_all('<?php ' . $body);
+        $last = end($tokens);
+
+        if (! is_array($last) || ! in_array($last[0], [T_COMMENT, T_DOC_COMMENT], true)) {
+            return false;
+        }
+
+        // A comment that ended properly took its terminator with it: a `//`
+        // one ends at its newline, which the token text includes, and a block
+        // one ends at its own closer. Anything else is still open where the
+        // body stops -- which is exactly where the directive was written.
+        $text = $last[1];
+
+        return ! str_ends_with($text, "\n") && ! str_ends_with(rtrim($text), '*/');
+    }
+
+    /** And that scan has to be looking at real blocks with real comments in them. */
+    public function test_the_php_block_scan_finds_blocks_with_comments_in_them(): void
+    {
+        $at = '@';
+        $withComments = 0;
+
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator(resource_path('views'), \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($files as $file) {
+            if (! str_ends_with($file->getFilename(), '.blade.php')) {
+                continue;
+            }
+
+            preg_match_all(
+                '/(?<![\w@])' . $at . 'php\b(.*?)(?<![\w@])' . $at . 'endphp\b/s',
+                (string) file_get_contents($file->getPathname()),
+                $blocks
+            );
+
+            foreach ($blocks[1] as $body) {
+                $withComments += preg_match('#//[^\n]*|/\*.*?\*/#s', $body);
+            }
+        }
+
+        $this->assertGreaterThan(50, $withComments, 'the raw-PHP-block scan is finding almost no commented blocks');
+    }
+
+    /**
      * The scan has to find stylesheet comments at all, or it passes by looking
      * at nothing -- which is how the guard it sits next to failed in the first
      * place.

@@ -28,7 +28,7 @@
                     <blockquote class="text-gray-200 text-sm leading-relaxed flex-1">{{ $t['quote'] }}</blockquote>
                     <figcaption class="mt-5 flex items-center gap-3">
                         @if(!empty($t['photo']))
-                            <img src="{{ $t['photo'] }}" alt="" loading="lazy"
+                            <img src="{{ $t['photo'] }}"@imgSize($t['photo']) alt="" loading="lazy"
                                  class="w-10 h-10 rounded-full object-cover border border-white/10">
                         @else
                             <div class="w-10 h-10 rounded-full grad-bar text-white text-sm font-bold flex items-center justify-center"

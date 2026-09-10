@@ -148,9 +148,9 @@
                     <a href="{{ url('/' . $hero->alias) }}" class="ehb-slide {{ $hi === 0 ? 'active' : '' }} sm:!block" data-slide="{{ $hi }}">
                         <div class="ehb-slide-media">
                             @if($hIcs && $hIcs->cover_image_url)
-                                <img src="{{ $hIcs->cover_image_url }}" alt="{{ $hero->title }}" class="ehb-slide-img">
+                                <img src="{{ $hIcs->cover_image_url }}"@imgSize($hIcs->cover_image_url) alt="{{ $hero->title }}" class="ehb-slide-img">
                             @else
-                                <img src="{{ asset('images/events/event-cover-placeholder.svg') }}" alt="{{ $hero->title }}" class="ehb-slide-img">
+                                <img src="{{ asset('images/events/event-cover-placeholder.svg') }}"@imgSize(asset('images/events/event-cover-placeholder.svg')) alt="{{ $hero->title }}" class="ehb-slide-img">
                             @endif
                             <div class="ehb-slide-scrim"></div>
                             <span class="ehb-price-badge inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold {{ $hPriceIsFree ? 'bg-emerald-500 text-white' : 'text-white' }}"

@@ -19,14 +19,32 @@
 
 <article id="{{ $id }}" class="endpoint-card scroll-mt-20 bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden">
 
-    <header class="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-white/5">
+    {{-- An <h3>, not a <header>.
+
+         This card had no heading at all. The method and the path -- the only
+         thing that names the endpoint -- sat in a <span> and a <code>, so the
+         API reference's outline went straight from the group's <h2> ("Links")
+         to the <h4> inside the card ("Parameters"), skipping a level nine
+         times on the page. That was the whole of /docs/api's heading defect.
+
+         Naming the card fixes the skip and does something the skip was hiding:
+         a screen reader can now move endpoint by endpoint through a 76-heading
+         page. The accessible name reads "GET /links Auth required", which is
+         how you would say it out loud.
+
+         Every class is the one <header> carried, so the row is laid out
+         exactly as before; `font-normal` is belt-and-braces in case Tailwind's
+         preflight (which already resets heading size and weight to inherit)
+         ever stops being loaded, since a bold heading would drag the <code>
+         bold with it. --}}
+    <h3 class="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-white/5 font-normal">
         <span class="doc-method {{ $methodClass }} text-[11px] px-2.5 py-1 rounded">{{ strtoupper($method) }}</span>
         <code class="text-sm font-mono text-gray-100 break-all">{{ $path }}</code>
         <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-{{ $authBadge[1] }}-500/10 text-{{ $authBadge[1] }}-300 border border-{{ $authBadge[1] }}-400/20 ml-auto">{{ $authBadge[0] }}</span>
         @if($id)
             <a href="#{{ $id }}" class="anchor-link text-gray-500 hover:text-blue-400 text-xs ml-1" aria-label="Anchor"><i class="fas fa-link"></i></a>
         @endif
-    </header>
+    </h3>
 
     @if($summary)
         <p class="px-5 pt-4 text-sm text-gray-300">{{ $summary }}</p>
@@ -49,8 +67,20 @@
     <div class="px-5 py-4 grid lg:grid-cols-2 gap-4">
         <div>
             <h4 class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">Request</h4>
+            {{-- `{!! !!}`, because the slot is escaped again downstream.
+
+                 x-doc-code ends in `{{ trim($slot) }}`, which escapes what it
+                 is given. Echoing the slot with `{{ }}` here escapes it first,
+                 so every quote in the sample went through twice and came out
+                 as literal `&#039;` and `&quot;` on the page -- 32 of them on
+                 /docs/api, in the curl commands and JSON bodies developers are
+                 meant to copy. The Copy button handed over the same text.
+
+                 The slot is Blade written in api-docs.blade.php, already
+                 rendered by the time it arrives; passing it through raw lets
+                 doc-code do the one escape the markup actually needs. --}}
             @isset($request)
-                <x-doc-code lang="bash">{{ trim($request) }}</x-doc-code>
+                <x-doc-code lang="bash">{!! trim($request) !!}</x-doc-code>
             @else
                 <x-doc-code lang="bash">curl {{ $base }}{{ $path }}{{ $auth === 'false' ? '' : ' \
   -H "Authorization: Bearer YOUR_TOKEN"' }} \
@@ -60,7 +90,7 @@
         <div>
             <h4 class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">Response <span class="text-gray-600 font-normal normal-case">— {{ $responseStatus }}</span></h4>
             @isset($response)
-                <x-doc-code lang="{{ $response->attributes->get('lang') ?? 'json' }}">{{ trim($response) }}</x-doc-code>
+                <x-doc-code lang="{{ $response->attributes->get('lang') ?? 'json' }}">{!! trim($response) !!}</x-doc-code>
             @elseif(str_starts_with((string) $responseStatus, '204'))
                 <div class="text-xs text-gray-500 italic px-1 py-3">No response body.</div>
             @else

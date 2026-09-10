@@ -55,6 +55,22 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
 
+        // @imgSize($url) -> ` width="1280" height="896"`, or nothing.
+        //
+        // An <img> with no width and height has no aspect ratio until the file
+        // lands, so the browser reserves no space and everything below it jumps
+        // down when it does. That was 107 images across the marketing site.
+        //
+        // A directive rather than a hand-written pair of numbers on each tag,
+        // because the numbers are read from the file: an image swapped for one
+        // of a different shape re-measures itself instead of reserving the old
+        // box, and a URL we cannot measure gets no attributes rather than a
+        // guess. See AssetSize for why that distinction matters.
+        \Illuminate\Support\Facades\Blade::directive(
+            'imgSize',
+            fn ($expression) => "<?php echo \\App\\Modules\\Common\\Support\\AssetSize::attributes({$expression}); ?>"
+        );
+
         // `php artisan serve` spawns a child `php -S` process to handle requests
         // and, by default, only forwards a small allowlist of env vars to it
         // (ServeCommand::$passthroughVariables) — every other $_ENV var is

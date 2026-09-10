@@ -88,7 +88,7 @@
             </div>
             <div data-anim="fade-left" data-tilt="6" class="relative">
                 <div class="img-frame img-tilt aspect-[16/10]">
-                    <img src="{{ asset('images/marketing/how-it-works/hero.png') }}" alt="Diagram of the Sayzio setup flow">
+                    <img src="{{ asset('images/marketing/how-it-works/hero.png') }}"@imgSize(asset('images/marketing/how-it-works/hero.png')) alt="Diagram of the Sayzio setup flow">
                 </div>
                 <div class="absolute -bottom-6 -left-6 bg-[#11101c] border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-2xl float-y">
                     <div class="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white">
@@ -132,7 +132,7 @@
                 </div>
                 <div class="{{ $reverse ? 'lg:order-1' : '' }}" data-anim="{{ $reverse ? 'fade-right' : 'fade-left' }}" data-tilt="5">
                     <div class="img-frame img-tilt aspect-[4/3]">
-                        <img src="{{ $step['img'] }}" alt="{{ $step['title'] }}">
+                        <img src="{{ $step['img'] }}"@imgSize($step['img']) alt="{{ $step['title'] }}">
                     </div>
                 </div>
             </div>

@@ -18,11 +18,11 @@
     <div class="mb-3 p-3 rounded-3" style="background:rgba(120,128,150,0.06); border:1px solid rgba(120,128,150,0.18);">
         <div class="d-flex align-items-start gap-3">
             @if($organizer['logo'])
-                <img src="{{ $organizer['logo'] }}" alt="" class="rounded-3 flex-shrink-0" style="width:56px;height:56px;object-fit:cover;box-shadow:0 0 0 3px rgba(61,107,255,0.12),0 0 0 1px rgba(61,107,255,0.4);">
+                <img src="{{ $organizer['logo'] }}"@imgSize($organizer['logo']) alt="" class="rounded-3 flex-shrink-0" style="width:56px;height:56px;object-fit:cover;box-shadow:0 0 0 3px rgba(61,107,255,0.12),0 0 0 1px rgba(61,107,255,0.4);">
             @elseif($host->avatar)
-                <img src="{{ \App\Support\PublicStorageUrl::resolve($host->avatar) }}" alt="" class="rounded-circle flex-shrink-0" style="width:56px;height:56px;object-fit:cover;box-shadow:0 0 0 3px rgba(61,107,255,0.12),0 0 0 1px rgba(61,107,255,0.4);">
+                <img src="{{ \App\Support\PublicStorageUrl::resolve($host->avatar) }}"@imgSize(\App\Support\PublicStorageUrl::resolve($host->avatar)) alt="" class="rounded-circle flex-shrink-0" style="width:56px;height:56px;object-fit:cover;box-shadow:0 0 0 3px rgba(61,107,255,0.12),0 0 0 1px rgba(61,107,255,0.4);">
             @else
-                <img src="{{ asset('images/events/host-avatar-placeholder.svg') }}" alt="" class="rounded-circle flex-shrink-0" style="width:56px;height:56px;object-fit:cover;box-shadow:0 0 0 3px rgba(61,107,255,0.12),0 0 0 1px rgba(61,107,255,0.4);">
+                <img src="{{ asset('images/events/host-avatar-placeholder.svg') }}"@imgSize(asset('images/events/host-avatar-placeholder.svg')) alt="" class="rounded-circle flex-shrink-0" style="width:56px;height:56px;object-fit:cover;box-shadow:0 0 0 3px rgba(61,107,255,0.12),0 0 0 1px rgba(61,107,255,0.4);">
             @endif
             <div class="flex-grow-1 min-w-0">
                 <div class="text-muted fw-semibold" style="font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;">Hosted by</div>
@@ -83,9 +83,9 @@
 @elseif($host)
     <div class="d-flex align-items-center gap-3 mb-3 p-2 rounded-3" style="background:rgba(120,128,150,0.06); border:1px solid rgba(120,128,150,0.18);">
         @if($host->avatar)
-            <img src="{{ \App\Support\PublicStorageUrl::resolve($host->avatar) }}" alt="" class="rounded-circle flex-shrink-0" style="width:44px;height:44px;object-fit:cover;box-shadow:0 0 0 3px rgba(61,107,255,0.12),0 0 0 1px rgba(61,107,255,0.4);">
+            <img src="{{ \App\Support\PublicStorageUrl::resolve($host->avatar) }}"@imgSize(\App\Support\PublicStorageUrl::resolve($host->avatar)) alt="" class="rounded-circle flex-shrink-0" style="width:44px;height:44px;object-fit:cover;box-shadow:0 0 0 3px rgba(61,107,255,0.12),0 0 0 1px rgba(61,107,255,0.4);">
         @else
-            <img src="{{ asset('images/events/host-avatar-placeholder.svg') }}" alt="" class="rounded-circle flex-shrink-0" style="width:44px;height:44px;object-fit:cover;box-shadow:0 0 0 3px rgba(61,107,255,0.12),0 0 0 1px rgba(61,107,255,0.4);">
+            <img src="{{ asset('images/events/host-avatar-placeholder.svg') }}"@imgSize(asset('images/events/host-avatar-placeholder.svg')) alt="" class="rounded-circle flex-shrink-0" style="width:44px;height:44px;object-fit:cover;box-shadow:0 0 0 3px rgba(61,107,255,0.12),0 0 0 1px rgba(61,107,255,0.4);">
         @endif
         <div>
             <div class="text-muted fw-semibold" style="font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;">Hosted by</div>

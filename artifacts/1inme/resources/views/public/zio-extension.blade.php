@@ -160,7 +160,7 @@
 <section class="sec-rule py-16 sm:py-20 relative">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
         <div data-anim="fade-right">
-            <img src="{{ asset('images/marketing/extension/hero-desk.webp') }}"
+            <img src="{{ asset('images/marketing/extension/hero-desk.webp') }}"@imgSize(asset('images/marketing/extension/hero-desk.webp'))
                  alt="A marketer at a desk shortening the page they're reading with the Zio Extension"
                  loading="lazy" decoding="async" class="zxp-photo">
         </div>
@@ -238,7 +238,7 @@
                  '3', 'Share it anywhere', 'Copy the short link, or generate a scannable QR code on the spot, then open it in QR Studio for full branding when you need print quality.'],
             ] as [$img, $alt, $step, $title, $desc])
                 <div class="glass rounded-2xl overflow-hidden" data-anim="fade-up">
-                    <img src="{{ asset($img) }}" alt="{{ $alt }}" loading="lazy" decoding="async" class="w-full aspect-[4/3] object-cover">
+                    <img src="{{ asset($img) }}"@imgSize(asset($img)) alt="{{ $alt }}" loading="lazy" decoding="async" class="w-full aspect-[4/3] object-cover">
                     <div class="p-6">
                         <span class="zxp-step-num">{{ $step }}</span>
                         <h3 class="mt-4 text-base font-bold text-white">{{ $title }}</h3>

@@ -98,7 +98,7 @@
             </div>
             <div data-anim="fade-left" data-tilt="6" class="relative">
                 <div class="img-frame img-tilt aspect-[5/4]">
-                    <img src="{{ asset('images/marketing/features/hero.png') }}" alt="Phone showing a Sayzio Link in Bio page">
+                    <img src="{{ asset('images/marketing/features/hero.png') }}"@imgSize(asset('images/marketing/features/hero.png')) alt="Phone showing a Sayzio Link in Bio page">
                 </div>
                 <div class="absolute -top-4 -left-4 bg-[#11101c] border border-white/10 rounded-2xl p-3 flex items-center gap-2 shadow-2xl float-y">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot text-emerald-400/40"></span>
@@ -122,7 +122,7 @@
             @foreach($showcase as $s)
                 <div class="group relative" data-tilt="4">
                     <div class="img-frame img-tilt aspect-[4/3]">
-                        <img src="{{ $s['img'] }}" alt="{{ $s['label'] }} preview">
+                        <img src="{{ $s['img'] }}"@imgSize($s['img']) alt="{{ $s['label'] }} preview">
                     </div>
                     <div class="absolute bottom-4 left-4 right-4 z-10">
                         <div class="text-sm font-bold text-white">{{ $s['label'] }}</div>

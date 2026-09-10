@@ -328,10 +328,10 @@
                         <div class="grid sm:grid-cols-2 gap-5 sm:gap-6 items-start">
                             <div class="relative rounded-2xl overflow-hidden">
                                 @if($ics && $ics->cover_image_url)
-                                    <img src="{{ $ics->cover_image_url }}" alt="{{ $link->title }}" class="w-full h-56 sm:h-full sm:min-h-[16rem] object-cover">
+                                    <img src="{{ $ics->cover_image_url }}"@imgSize($ics->cover_image_url) alt="{{ $link->title }}" class="w-full h-56 sm:h-full sm:min-h-[16rem] object-cover">
                                     <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
                                 @else
-                                    <img src="{{ asset('images/events/event-cover-placeholder.svg') }}" alt="{{ $link->title }}" class="w-full h-48 sm:h-full sm:min-h-[16rem] object-cover">
+                                    <img src="{{ asset('images/events/event-cover-placeholder.svg') }}"@imgSize(asset('images/events/event-cover-placeholder.svg')) alt="{{ $link->title }}" class="w-full h-48 sm:h-full sm:min-h-[16rem] object-cover">
                                     <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
                                 @endif
 
@@ -529,11 +529,11 @@
                                             <div x-show="qrOpen" style="display:none">
                                                 <div class="ev-qr-panel mt-2 rounded-2xl p-5 text-center">
                                                     <div class="ev-qr-frame relative inline-block rounded-2xl p-3">
-                                                        <img src="{{ route('qr.public.render', ['url' => $hostProfileUrl, 'size' => 400, 'error_correction' => 'H']) }}"
+                                                        <img src="{{ route('qr.public.render', ['url' => $hostProfileUrl, 'size' => 400, 'error_correction' => 'H']) }}"@imgSize(route('qr.public.render', ['url' => $hostProfileUrl, 'size' => 400, 'error_correction' => 'H']))
                                                              alt="QR code for {{ '@' . $host->handle }}'s profile"
                                                              class="block rounded-lg" style="width:180px;height:180px;" loading="lazy">
                                                         <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full p-1 bg-white shadow-lg">
-                                                            <img src="{{ $host->avatar ? \App\Support\PublicStorageUrl::resolve($host->avatar) : asset('images/events/host-avatar-placeholder.svg') }}"
+                                                            <img src="{{ $host->avatar ? \App\Support\PublicStorageUrl::resolve($host->avatar) : asset('images/events/host-avatar-placeholder.svg') }}"@imgSize($host->avatar ? \App\Support\PublicStorageUrl::resolve($host->avatar) : asset('images/events/host-avatar-placeholder.svg'))
                                                                  alt="" class="w-9 h-9 rounded-full object-cover">
                                                         </span>
                                                     </div>

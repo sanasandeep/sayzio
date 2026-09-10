@@ -131,7 +131,7 @@
         </div>
         <div data-anim="fade-left" data-tilt="5" class="relative">
             <div class="img-frame img-tilt aspect-[16/10]">
-                <img src="{{ $heroSideImage }}" alt="{{ $heroSideImageAlt }}">
+                <img src="{{ $heroSideImage }}"@imgSize($heroSideImage) alt="{{ $heroSideImageAlt }}">
             </div>
             @if($showFloatingCard)
                 <div class="absolute -bottom-5 -right-5 bg-[#11101c] border border-white/10 rounded-2xl p-3 pr-4 flex items-center gap-3 shadow-2xl float-y">
@@ -265,7 +265,7 @@
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-[1fr_1fr] gap-6 items-start">
         @if($officeImageUrl !== '')
             <div class="img-frame aspect-[4/3] hidden md:block" data-anim="fade-right" data-tilt="4">
-                <img src="{{ $officeImageUrl }}" alt="{{ $officeImageAlt }}">
+                <img src="{{ $officeImageUrl }}"@imgSize($officeImageUrl) alt="{{ $officeImageAlt }}">
             </div>
         @else
             {{-- Keep the 2-col grid even if the image is intentionally blank. --}}

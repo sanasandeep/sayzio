@@ -48,7 +48,7 @@
             </div>
             <div data-anim="fade-left" data-tilt="5" class="relative">
                 <div class="img-frame img-tilt aspect-[5/4]">
-                    <img src="{{ asset('images/marketing/workspace-team/hero.png') }}" alt="Team collaborating">
+                    <img src="{{ asset('images/marketing/workspace-team/hero.png') }}"@imgSize(asset('images/marketing/workspace-team/hero.png')) alt="Team collaborating">
                 </div>
                 <div class="absolute -bottom-5 -left-5 bg-[#11101c] border border-white/10 rounded-2xl p-3 pr-4 flex items-center gap-3 shadow-2xl float-y">
                     <div class="flex -space-x-2">
@@ -79,7 +79,7 @@
                 </div>
                 <div class="{{ $reverse ? 'lg:order-1' : '' }}" data-anim="{{ $reverse ? 'fade-right' : 'fade-left' }}" data-tilt="5">
                     <div class="img-frame img-tilt aspect-[4/3]">
-                        <img src="{{ $f['img'] }}" alt="{{ strip_tags($f['title']) }} preview">
+                        <img src="{{ $f['img'] }}"@imgSize($f['img']) alt="{{ strip_tags($f['title']) }} preview">
                     </div>
                 </div>
             </div>

@@ -85,10 +85,10 @@
         </div>
         <div data-anim="fade-left" class="relative">
             <div class="grid grid-cols-2 gap-3" data-stagger>
-                <div class="img-frame aspect-[4/5]" data-tilt="4"><img src="{{ $images[0] }}" alt="Content creator at work"></div>
-                <div class="img-frame aspect-[4/5] mt-8" data-tilt="4"><img src="{{ $images[1] }}" alt="Marketing agency team"></div>
-                <div class="img-frame aspect-[4/5] -mt-6" data-tilt="4"><img src="{{ $images[2] }}" alt="Small shop owner packing orders"></div>
-                <div class="img-frame aspect-[4/5] mt-2" data-tilt="4"><img src="{{ $images[3] }}" alt="Online coach on a video call"></div>
+                <div class="img-frame aspect-[4/5]" data-tilt="4"><img src="{{ $images[0] }}"@imgSize($images[0]) alt="Content creator at work"></div>
+                <div class="img-frame aspect-[4/5] mt-8" data-tilt="4"><img src="{{ $images[1] }}"@imgSize($images[1]) alt="Marketing agency team"></div>
+                <div class="img-frame aspect-[4/5] -mt-6" data-tilt="4"><img src="{{ $images[2] }}"@imgSize($images[2]) alt="Small shop owner packing orders"></div>
+                <div class="img-frame aspect-[4/5] mt-2" data-tilt="4"><img src="{{ $images[3] }}"@imgSize($images[3]) alt="Online coach on a video call"></div>
             </div>
         </div>
     </div>
@@ -132,7 +132,7 @@
             @foreach($useCases as $i => $uc)
                 <article class="relative group bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden flex flex-col hover:border-blue-400/40 hover:-translate-y-1 transition-all duration-300">
                     <div class="img-frame rounded-none border-0 aspect-[16/10]">
-                        <img src="{{ $images[$i % count($images)] }}" alt="{{ $uc['title'] ?? 'Sayzio use case' }}">
+                        <img src="{{ $images[$i % count($images)] }}"@imgSize($images[$i % count($images)]) alt="{{ $uc['title'] ?? 'Sayzio use case' }}">
                     </div>
                     <div class="relative flex-1 flex flex-col p-6 sm:p-7">
                         <div class="absolute -top-7 left-6 w-12 h-12 rounded-xl bg-[#3d6bff] border border-white/15 flex items-center justify-center text-white text-lg shadow-2xl">

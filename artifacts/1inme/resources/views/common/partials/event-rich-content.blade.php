@@ -24,7 +24,7 @@
 
 @if($ics && $ics->cover_image_url)
     <div class="mb-3">
-        <img src="{{ $ics->cover_image_url }}" alt="{{ $link->title }}" class="w-100 rounded-3" style="max-height:280px;object-fit:cover;">
+        <img src="{{ $ics->cover_image_url }}"@imgSize($ics->cover_image_url) alt="{{ $link->title }}" class="w-100 rounded-3" style="max-height:280px;object-fit:cover;">
     </div>
 @endif
 
@@ -44,7 +44,7 @@
     <div class="row g-2 mb-3">
         @foreach($gallery as $img)
             <div class="col-4">
-                <img src="{{ $img }}" alt="" class="w-100 rounded-2" style="height:90px;object-fit:cover;">
+                <img src="{{ $img }}"@imgSize($img) alt="" class="w-100 rounded-2" style="height:90px;object-fit:cover;">
             </div>
         @endforeach
     </div>

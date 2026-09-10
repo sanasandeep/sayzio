@@ -122,7 +122,7 @@
 <section class="sec-rule py-16 sm:py-20 relative">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
         <div data-anim="fade-right">
-            <img src="{{ asset('images/marketing/app/hero-creator.webp') }}"
+            <img src="{{ asset('images/marketing/app/hero-creator.webp') }}"@imgSize(asset('images/marketing/app/hero-creator.webp'))
                  alt="A creator in a cafe checking her Sayzio analytics on her phone"
                  loading="lazy" decoding="async" class="map-photo">
         </div>
@@ -199,7 +199,7 @@
                  'Evening: answer your people', 'New followers, messages, form entries and reviews land in the app with push notifications, reply from the couch instead of catching up at midnight.'],
             ] as [$img, $alt, $title, $desc])
                 <div class="glass rounded-2xl overflow-hidden" data-anim="fade-up">
-                    <img src="{{ asset($img) }}" alt="{{ $alt }}" loading="lazy" decoding="async" class="w-full aspect-[4/3] object-cover">
+                    <img src="{{ asset($img) }}"@imgSize(asset($img)) alt="{{ $alt }}" loading="lazy" decoding="async" class="w-full aspect-[4/3] object-cover">
                     <div class="p-6">
                         <h3 class="text-base font-bold text-white">{{ $title }}</h3>
                         <p class="mt-1.5 text-sm text-gray-400 leading-relaxed">{{ $desc }}</p>
