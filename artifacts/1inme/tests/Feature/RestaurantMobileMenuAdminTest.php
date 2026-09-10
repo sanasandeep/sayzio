@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\RestaurantMenu;
 use App\Modules\User\Models\RestaurantMenuCoupon;
+use App\Modules\User\Models\RestaurantMenuCategory;
 use App\Modules\User\Models\RestaurantMenuItem;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -64,8 +65,19 @@ class RestaurantMobileMenuAdminTest extends TestCase
 
     private function addItem(RestaurantMenu $menu, float $price, string $name = 'Item'): RestaurantMenuItem
     {
+        // restaurant_menu_items.category_id is NOT NULL -- menus grew a
+        // category layer, and production resolves one before creating an
+        // item (RestaurantMenuController::store). firstOrCreate so repeated
+        // calls in one test reuse the same default category rather than
+        // piling up duplicates.
+        $category = RestaurantMenuCategory::firstOrCreate(
+            ['menu_id' => $menu->id, 'name' => 'Menu'],
+            ['sort_order' => 0, 'is_active' => true]
+        );
+
         return RestaurantMenuItem::create([
-            'menu_id'   => $menu->id,
+            'menu_id'     => $menu->id,
+            'category_id' => $category->id,
             'name'      => $name,
             'price'     => $price,
             'is_active' => true,
