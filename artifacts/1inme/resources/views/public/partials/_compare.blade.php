@@ -66,7 +66,8 @@
         <div class="text-center mb-10 max-w-2xl mx-auto">
             <div data-anim="fade-up" class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">{{ $eyebrowOverride ?? 'How we compare' }}</div>
             <h2 data-anim="fade-up" class="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
-                More features. <span class="grad-text">Better deal.</span>
+                {{-- Rule 1: "Better deal." was gradient-clipped text. --}}
+                More features. Better deal.
             </h2>
             <p data-anim="fade-up" class="text-gray-400">
                 Pick any tool you already use: see exactly what Sayzio adds on top, including built-in AI, across
@@ -229,7 +230,7 @@
                     <div class="cmp-vs-name">Sayzio</div>
                     <div class="cmp-vs-tagline">The whole growth stack</div>
                     <div class="cmp-vs-meta">
-                        <span class="cmp-vs-score grad-text"><span x-text="ourAnim">{{ $__cmpScores['ours'] }}</span><span class="cmp-vs-score-total">/{{ $__cmpTotal }}</span></span>
+                        <span class="cmp-vs-score"><span x-text="ourAnim">{{ $__cmpScores['ours'] }}</span><span class="cmp-vs-score-total">/{{ $__cmpTotal }}</span></span>
                         <span class="cmp-vs-bar"><span class="cmp-vs-bar-fill cmp-vs-bar-ours" :style="`width:${(ourAnim/{{ $__cmpTotal }})*100}%`"></span></span>
                     </div>
                 </div>
@@ -240,7 +241,7 @@
                         <span>VS</span>
                     </div>
                     <div class="cmp-vs-wins" x-show="wins() > 0" x-cloak>
-                        <span class="cmp-vs-wins-num grad-text" x-text="winsAnim">0</span>
+                        <span class="cmp-vs-wins-num" x-text="winsAnim">0</span>
                         <span class="cmp-vs-wins-label">feature lead</span>
                     </div>
                 </div>
@@ -268,7 +269,7 @@
                         <div class="text-gray-400 text-xs uppercase tracking-wider font-bold">Head-to-head</div>
                         <div class="text-white font-semibold">
                             Sayzio wins
-                            <span class="grad-text font-extrabold text-lg" x-text="winsAnim">0</span>
+                            <span class="font-extrabold text-lg" x-text="winsAnim">0</span>
                             more features than
                             <span class="text-white" x-text="rivalName()"></span>
                         </div>

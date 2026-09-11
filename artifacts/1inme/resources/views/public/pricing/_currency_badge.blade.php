@@ -22,7 +22,7 @@
     @if($isCountry)
         <span class="text-[11px] text-gray-500">
             {{ $currency === 'INR' ? '₹ INR' : '$ USD' }}: set from your billing country (<span class="uppercase">{{ $user->country }}</span>).
-            <a href="{{ route('user.profile.edit') }}" class="text-blue-400 hover:underline">change</a>
+            <a href="{{ route('user.profile.edit') }}" class="sy-link">change</a>
         </span>
     @else
         <div class="inline-flex items-center gap-1">

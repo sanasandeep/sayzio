@@ -35,7 +35,8 @@
                 <i class="fas fa-gem text-[10px]"></i> Custom plans
             </div>
             <h2 class="text-3xl sm:text-4xl font-bold mb-3 hero-title" style="color:var(--text-main)">
-                Need something <span class="grad-text">tailored?</span>
+                {{-- Rule 1: "tailored?" was gradient-clipped text. --}}
+                Need something tailored?
             </h2>
             <p class="text-base leading-relaxed" style="color:var(--text-muted)">
                 Tell us about your requirements and we'll design a plan with the exact features, limits, and price that fits your business, with no compromise.

@@ -170,9 +170,14 @@ class HomepagePricingBandTest extends TestCase
     {
         $css = (string) file_get_contents(resource_path('views/home/partials/pricing-style.blade.php'));
 
-        $this->assertPatternFound('/\.pr-band\s*\{[^}]*--pr-ground:/s', $css);
-        $this->assertPatternFound('/html:not\(\.light-mode\)\s*\.pr-band\s*\{[^}]*--pr-ground:/s', $css);
-        $this->assertPatternFound('/html:not\(\.light-mode\)\s*\.pr-band\s*\{[^}]*--pr-ink:/s', $css);
+        // The selector these tokens hang on gained a second name -- /pricing
+        // wanted the card language without the band's wash, so the tokens
+        // were split onto `.pr-band, .pr-scope`. The rule this test exists
+        // for is unchanged: whatever the selector, both themes state a
+        // ground and both state ink.
+        $this->assertPatternFound('/\.pr-band[^{]*\{[^}]*--pr-ground:/s', $css);
+        $this->assertPatternFound('/html:not\(\.light-mode\)[^{]*\.pr-band[^{]*\{[^}]*--pr-ground:/s', $css);
+        $this->assertPatternFound('/html:not\(\.light-mode\)[^{]*\.pr-band[^{]*\{[^}]*--pr-ink:/s', $css);
 
         // In dark mode both cards are dark, so two filled white buttons would
         // leave the section with no hierarchy; the free plan's goes outline.

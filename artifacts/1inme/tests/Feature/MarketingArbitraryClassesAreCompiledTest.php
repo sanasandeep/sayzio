@@ -148,13 +148,16 @@ class MarketingArbitraryClassesAreCompiledTest extends TestCase
             $all += $this->arbitraryClasses($path);
         }
 
-        // Named, not counted. `min-h-[3.75rem]` is the clamp that holds the
-        // plan and coin description boxes to one height; if the scan stops
-        // seeing it, the scan is not reading these views any more.
+        // Named, not counted. This used to anchor on `min-h-[3.75rem]`, the
+        // clamp that held the description boxes to one height -- which the
+        // move onto the marketing system removed, along with the boxes. The
+        // matrix's own column width is the durable one: it is what makes the
+        // plan-vs-plan grid line up, and it is not going anywhere.
         $this->assertArrayHasKey(
-            'min-h-[3.75rem]',
+            'lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]',
             $all,
-            'the scan can no longer see min-h-[3.75rem] in the pricing views, so it is not reading them'
+            'the scan can no longer see the feature matrix column definition in the '
+            . 'pricing views, so it is not reading them'
         );
     }
 }

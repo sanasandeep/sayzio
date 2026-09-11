@@ -28,38 +28,42 @@
     ];
 @endphp
 
-<div class="mt-8 max-w-4xl mx-auto rounded-2xl border border-blue-400/20 bg-blue-500/[0.04] p-5 sm:p-6">
-    <div class="text-center mb-5">
-        <div class="text-[11px] font-bold uppercase tracking-[.2em] text-blue-300 mb-1">
-            <i class="fas fa-wand-magic-sparkles"></i> {{ $heading ?? 'Where your coins go on AI' }}
-        </div>
-        <p class="text-sm text-gray-400 max-w-xl mx-auto">
+{{-- Rebuilt on the marketing system. What changed and why, against
+     Sana's rules: the blue eyebrow, the blue "straight from your coin
+     wallet" and the grey-on-grey descriptions are all ink now (1); the
+     tinted blue panel and the tinted blue callout inside it are a bordered
+     card and a hairline row (2); the nine blue icon tiles are nine quiet
+     glyphs (7); and the list is the system grid (5). --}}
+<div class="sy-card mt-8 max-w-4xl mx-auto">
+    <div class="text-center" style="max-width: 34rem; margin-inline: auto;">
+        <div class="sy-eyebrow">{{ $heading ?? 'Where your coins go on AI' }}</div>
+        <p class="sy-blurb" style="margin-top: 6px;">
             Spend coins directly on these OpenAI-powered features. Each call
             draws on your own coin balance; you only pay for what you use,
             with no separate credits to buy or convert.
         </p>
     </div>
 
-    {{-- Plain-language reassurance so buyers can gauge value before paying. --}}
-    <div class="mb-5 rounded-xl border border-blue-400/25 bg-blue-500/[0.06] px-4 py-3 flex items-center justify-center gap-3 text-center flex-wrap">
-        <span class="w-8 h-8 shrink-0 rounded-lg bg-amber-400/15 ring-1 ring-amber-400/30 flex items-center justify-center">
-            <i class="fas fa-coins text-amber-300 text-sm"></i>
-        </span>
-        <span class="text-sm sm:text-base text-white">
-            AI usage is billed <span class="font-bold text-blue-200">straight from your coin wallet</span>, so you pay only for what you use.
-        </span>
+    {{-- The reassurance line. It was a tinted panel inside a tinted panel;
+         a rule above and below says the same thing and stays quiet. --}}
+    <div class="sy-cells" style="margin-top: 22px;">
+        <div class="sy-cell">
+            <i class="fas fa-coins" aria-hidden="true"></i>
+            <span class="sy-cell-body">
+                <b>Billed straight from your coin wallet</b>
+                <span class="sy-cell-sub">No separate AI credits to buy, and nothing to convert. You pay only for what you use.</span>
+            </span>
+        </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div class="sy-grid" style="--sy-min: 240px; gap: 0 28px; margin-top: 4px;">
         @foreach($aiCoinFeatures as $f)
-            <div class="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2.5">
-                <div class="w-8 h-8 shrink-0 rounded-lg bg-blue-500/15 ring-1 ring-blue-400/30 flex items-center justify-center">
-                    <i class="fas {{ $f['icon'] }} text-blue-300 text-sm"></i>
-                </div>
-                <div class="min-w-0">
-                    <div class="text-sm font-semibold text-white leading-tight">{{ $f['name'] }}</div>
-                    <div class="text-xs text-gray-500 leading-snug">{{ $f['desc'] }}</div>
-                </div>
+            <div class="sy-cell">
+                <i class="fas {{ $f['icon'] }}" aria-hidden="true"></i>
+                <span class="sy-cell-body">
+                    <b>{{ $f['name'] }}</b>
+                    <span class="sy-cell-sub">{{ $f['desc'] }}</span>
+                </span>
             </div>
         @endforeach
     </div>
