@@ -1022,7 +1022,7 @@
                 </div>
             </div>
             @if($planCount > 1)
-                <div x-show="scrollable" x-cloak class="mt-3 flex items-center justify-center gap-2 text-[11px] text-gray-500" aria-hidden="true">
+                <div x-show="scrollable" x-cloak class="mt-3 flex items-center justify-center gap-2 text-[11px] text-gray-400" aria-hidden="true">
                     <i class="fas fa-arrows-left-right sy-ico"></i>
                     Scroll to compare every plan
                 </div>
