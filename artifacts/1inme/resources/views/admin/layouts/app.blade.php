@@ -316,6 +316,47 @@
                     </div>
                 @endif
 
+                {{--
+                    Validation errors. There was no block for these anywhere in
+                    the admin, which is how /about came to be unsaveable for
+                    weeks without anyone being able to tell: the form failed on
+                    `extra.section_order` -- a hidden field, capped at 5 while
+                    the page rendered 6 -- and Laravel redirected back with the
+                    errors in the session, where nothing read them. Save,
+                    nothing happens, old values, no message.
+
+                    Individual screens do print @error() under their own
+                    inputs, but that only helps for a field the admin can see.
+                    The failure worth catching is the one on a field they
+                    cannot: it needs to be said out loud at the top of the
+                    page, naming the field, or it is indistinguishable from the
+                    save having silently worked.
+                --}}
+                {{-- `isset` first: $errors is shared by ShareErrorsFromSession,
+                     so it does not exist when an admin view is rendered outside
+                     the web middleware stack. Without the guard this line throws
+                     "Undefined variable $errors" and the page 500s -- which the
+                     suite caught on an admin screen that renders with
+                     withoutMiddleware(). --}}
+                @if(isset($errors) && $errors->any())
+                    <div class="mb-4 p-3.5 rounded-xl text-red-400 text-xs" role="alert"
+                         style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);">
+                        <div class="font-medium flex items-center gap-2.5">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            Nothing was saved &mdash; {{ $errors->count() }}
+                            {{ \Illuminate\Support\Str::plural('problem', $errors->count()) }} to fix:
+                        </div>
+                        <ul class="mt-2 ml-6 list-disc space-y-1 text-red-300/90">
+                            @foreach($errors->keys() as $field)
+                                <li>
+                                    <span class="opacity-60">{{ $field }}</span>
+                                    &mdash; {{ $errors->first($field) }}
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
                 @yield('content')
 
                 <footer class="mt-10 pt-5 pb-2 text-[11px] flex flex-col sm:flex-row items-center justify-between gap-3"
