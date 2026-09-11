@@ -712,10 +712,13 @@
     // The grids worth expanding. Everything else on the page is left alone.
     var SELECTORS = [
         '#audience .audience-card',
-        // Named rather than '#share .glass': the Share cards carry their own
-        // class now, and a selector that depends on a styling hook breaks the
-        // moment that hook moves.
-        '#share .share-card',
+        // '#share .share-card' was here. The Share section was removed from the
+        // classic homepage on 2026-09-11 -- it restated what a link is, one
+        // section after a grid of 18 things a link can be. The selector would
+        // have matched nothing and survived as a description of a section that
+        // no longer exists, which is the kind of thing that makes a file hard
+        // to trust. It still renders in deferred-sections-business, which does
+        // not load this injector.
         '#domains .glass',
         // The two proof cards beside the drag-and-drop demo in #features.
         // Marked with an explicit data attribute rather than matched by

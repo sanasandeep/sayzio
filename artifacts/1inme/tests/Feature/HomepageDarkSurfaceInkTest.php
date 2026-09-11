@@ -41,6 +41,63 @@ class HomepageDarkSurfaceInkTest extends TestCase
     use AssertsAgainstLargeSubjects;
 
     /**
+     * Render one of the homepage designs other than the active one.
+     *
+     * The admin picks the live design from an AppSetting; the others still
+     * ship and still have real visitors when the setting is flipped. A guard
+     * that only ever reads the active design silently stops covering anything
+     * that moves between them.
+     */
+    /** Every homepage design's below-the-fold fragment, concatenated. */
+    private function renderEveryDesign(): string
+    {
+        $html = '';
+
+        foreach (array_keys(\App\Modules\Common\Controllers\HomeController::DESIGNS) as $key) {
+            $html .= $this->renderDesign($key);
+        }
+
+        $this->assertNotSame('', $html, 'no homepage design rendered anything');
+
+        return $html;
+    }
+
+    private function renderDesign(string $key): string
+    {
+        $this->assertArrayHasKey(
+            $key,
+            \App\Modules\Common\Controllers\HomeController::DESIGNS,
+            "there is no homepage design called '{$key}'"
+        );
+
+        // Through the controller, not view()->render(). These fragments expect
+        // data the controller supplies ($plans and friends); rendering the
+        // view directly dies on an undefined variable, which reads like a
+        // broken page rather than a test taking a shortcut.
+        $previous = \App\Modules\Admin\Models\AppSetting::get(
+            \App\Modules\Common\Controllers\HomeController::DESIGN_SETTING_KEY,
+            'classic'
+        );
+
+        \App\Modules\Admin\Models\AppSetting::put(
+            \App\Modules\Common\Controllers\HomeController::DESIGN_SETTING_KEY,
+            $key
+        );
+
+        try {
+            return $this->get('/home/sections')->assertOk()->getContent();
+        } finally {
+            // Always put the setting back: leaving a test's design selection
+            // behind would make every later assertion in this class read the
+            // wrong page.
+            \App\Modules\Admin\Models\AppSetting::put(
+                \App\Modules\Common\Controllers\HomeController::DESIGN_SETTING_KEY,
+                $previous
+            );
+        }
+    }
+
+    /**
      * The stylesheet that defines the separator and lit-surface system.
      *
      * It moved out of home.blade.php when the marketing pages started using it
@@ -510,7 +567,38 @@ class HomepageDarkSurfaceInkTest extends TestCase
      */
     public function test_the_audited_mocks_still_carry_the_class(): void
     {
-        $html = $this->get('/home/sections')->assertOk()->getContent();
+        // Every design, concatenated.
+        //
+        // This used to read only the active one. Cutting the classic homepage
+        // from 25 sections to 15 on 2026-09-11 moved three of the five audited
+        // mocks out of it -- the notifications feed, the dialer, and the
+        // custom-domain DNS rows, which turned out to live inside the removed
+        // Share section rather than the domains section. Each of those still
+        // ships on some other design, so the contrast bug they were audited
+        // for is still reachable by real visitors.
+        //
+        // Patching this design by design would mean discovering the same
+        // problem again on the next cut. Reading every design means a mock can
+        // move freely between them and keep its guard, and a guard only
+        // disappears when the markup actually does.
+        //
+        // The failure this protects against is subtle: an assertion that finds
+        // nothing to check passes. That is what this whole file was rewritten
+        // for, so it must not be reintroduced by scoping.
+        $html = $this->renderEveryDesign()
+            // And the notifications partial's source.
+            //
+            // It is the one audited mock that now renders on NO design: it
+            // came off the classic homepage in the 25-to-15 cut and the
+            // business design never included it. The file still exists, so the
+            // contrast bug is one @include away from being live again, and
+            // dropping the guard because the section is currently unused is
+            // how a fixed bug comes back.
+            //
+            // Weaker than the rendered checks above -- it reads the template
+            // rather than the output -- and that is worth stating plainly
+            // rather than hiding behind an identical-looking assertion.
+            . file_get_contents(resource_path('views/home/partials/notifications.blade.php'));
 
         foreach ([
             'nf-panel' => 'the notifications feed (Priya started following you)',
