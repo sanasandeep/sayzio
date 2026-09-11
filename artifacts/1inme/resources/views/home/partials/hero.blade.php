@@ -152,12 +152,27 @@
                     <span class="grad-text">One Platform. Endless Conversations.</span>
                 </div>
 
+                {{-- Headline sells the outcome, not the behaviour.
+                     "Your link, now it talks back" described what the product
+                     DOES; a visitor deciding in five seconds is scanning for
+                     what they GET. Sana picked this direction after reading
+                     the three drafts.
+
+                     It also promotes the strongest claim on the page. "Picks
+                     up your calls" was the third item in a comma list in the
+                     old subhead, and it is the one thing no other link-in-bio
+                     tool does. A missed call is a loss every small business
+                     already has a number for.
+
+                     The headline is deliberately narrower than the base, which
+                     is mixed. That is the trade: the audience section below is
+                     what catches everyone this line does not speak to. --}}
                 <h1 id="hero-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.08] tracking-tight mb-6">
-                    Your link, now it <span class="grad-text">talks back</span>.
+                    Never miss another <span class="grad-text">customer</span>.
                 </h1>
 
                 <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-9 leading-relaxed">
-                    Meet <strong class="text-white">Zio</strong>, the AI behind Sayzio. It builds your Link in Bio pages, short links and QR codes, answers your visitors and picks up your calls, <strong class="text-white">24/7, free forever</strong>, no card required.
+                    Sayzio turns one link into your page, your QR codes and your short links, and <strong class="text-white">Zio, your AI, answers visitors and picks up calls</strong> while you are serving someone else. <strong class="text-white">Free forever</strong>, no card required.
                 </p>
 
                 @guest
@@ -219,7 +234,10 @@
                 <div class="reveal rd-4 flex flex-wrap items-center gap-x-6 gap-y-3 mt-12 justify-center lg:justify-start text-sm">
                     <span class="flex items-center gap-2 text-gray-400">
                         <span class="w-1.5 h-1.5 rounded-full" style="background:#1ed760"></span>
-                        <span class="font-bold text-white">375,000+</span><span class="text-gray-500">creators</span>
+                        {{-- "creators" alone under a headline about customers
+                             tells a business owner the proof is not about them.
+                             The base is mixed, so the line can say so. --}}
+                        <span class="font-bold text-white">375,000+</span><span class="text-gray-500">creators &amp; businesses</span>
                     </span>
                     <span class="flex items-center gap-2 text-gray-400">
                         <span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:var(--c2)"></span>
