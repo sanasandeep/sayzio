@@ -127,21 +127,57 @@
            wording will look on the site's dark hero. Previewing dark copy on a
            white card would defeat the point.
 
-           The ak-* rules above darken text so it reads on the LIGHT admin
-           surface. Inside one of these panels they do the exact opposite and
-           paint near-black text on near-black, which is how the trust-strip
-           values went invisible in light mode while their labels stayed
-           readable (those carried no ak-* class).
+           In light mode the text inside one of those panels was being painted
+           near-black on near-black. The trust-strip preview showed its labels
+           and not its values, which reads as half a row missing rather than as
+           a colour fault.
 
-           So: mark the panel .ak-on-dark and the overrides are lifted back to
-           dark-ground colours for everything inside it. Adding the class is
-           the whole fix for any future dark island -- no per-element edits.
+           TWO rules are doing it, and they need different answers.
 
-           These are the light-on-dark counterparts of the values above, not
-           the exact Tailwind shade each element asks for; a preview is read
-           for its wording, and one step of grey is not worth a rule per
-           element. */
+           1. The blanket light-mode repaint in common/partials/theme-styles:
+
+                  html.light-mode [class*="text-white"]:not(...20 more...) {
+                      color: var(--text-primary) !important;
+                  }
+
+              It is !important, and twenty :not() clauses give it a
+              specificity nothing sane can outrank -- a first attempt at this
+              fix lost to it silently, which is what let a "fixed" panel ship
+              still broken. It also explains the half-a-row symptom exactly:
+              the values carry `text-white` and were repainted; the labels
+              carry `text-gray-500`, which that selector never matches.
+
+              So do not fight it -- change what it resolves TO. Redefining the
+              text variables on the panel makes that !important rule, and its
+              text-white/NN siblings, land on dark-surface colours by
+              themselves. No specificity contest, and it covers every element
+              those rules touch, including ones added later.
+
+              These are the theme's own dark values, so the panel matches the
+              site surface it is previewing rather than a set invented here.
+
+           2. The ak-* rules above, which darken text for the LIGHT admin
+              surface and have the same problem in here. They cover elements
+              with no `text-white` class, so the variables alone do not reach
+              them and they still need their own overrides below.
+
+           Marking a panel .ak-on-dark applies both. That is the whole fix for
+           any future dark island -- no per-element edits. If the blanket rule
+           above ever stops going through var(--text-primary), half of this
+           stops working; AdminDarkPanelsStayReadableTest guards that. */
+        html.light-mode .ak-on-dark {
+            --text-primary: #f3f1f7;
+            --text-secondary: #d9d6e2;
+            --text-muted: #9b97ac;
+        }
         html.light-mode .ak-on-dark .ak-strong { color: #f1f5f9; }
+        html.light-mode .ak-on-dark .ak-muted  { color: #94a3b8; }
+        html.light-mode .ak-on-dark .ak-note   { color: #94a3b8; }
+        html.light-mode .ak-on-dark .ak-label  { color: #94a3b8; }
+        html.light-mode .ak-on-dark .ak-blue   { color: #93c5fd; }
+        html.light-mode .ak-on-dark .ak-green  { color: #6ee7b7; }
+        html.light-mode .ak-on-dark .ak-red    { color: #fca5a5; }
+        html.light-mode .ak-on-dark .ak-amber  { color: #fcd34d; }
         html.light-mode .ak-on-dark .ak-muted  { color: #94a3b8; }
         html.light-mode .ak-on-dark .ak-note   { color: #94a3b8; }
         html.light-mode .ak-on-dark .ak-label  { color: #94a3b8; }
