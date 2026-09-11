@@ -146,6 +146,42 @@
         <div class="zio-hero-grid grid grid-cols-1 gap-y-16 lg:gap-x-14 xl:gap-x-20 lg:items-center">
 
             {{-- Copy column (sits on the RIGHT at ≥lg via .zio-hero-copy order) --}}
+            @php
+                /**
+                 * Headline, subheading and proof badges, from Admin ->
+                 * Marketing Settings.
+                 *
+                 * Wrapped like the marquee read below: this partial renders on
+                 * every homepage request, and a settings-table hiccup should
+                 * cost the shipped copy, never the hero itself.
+                 *
+                 * `?:` on the normalised result for the same reason as the
+                 * marquee -- clearing every badge row gets the shipped three
+                 * back, because "a hero with no proof points" is not a state
+                 * anyone chooses on purpose, whereas an accidental empty save
+                 * is one keystroke away.
+                 */
+                try {
+                    $__heroCopy = \App\Modules\Common\Support\SitePagesContent::normalizeHeroCopy(
+                        (array) \App\Modules\Admin\Models\AppSetting::get('marketing_hero_copy', [])
+                    );
+                    $__heroBadges = \App\Modules\Common\Support\SitePagesContent::normalizeHeroBadges(
+                        (array) \App\Modules\Admin\Models\AppSetting::get('marketing_hero_badges', [])
+                    );
+                } catch (\Throwable $e) {
+                    $__heroCopy   = \App\Modules\Common\Support\SitePagesContent::heroCopyDefault();
+                    $__heroBadges = [];
+                }
+                $__heroBadges = $__heroBadges ?: \App\Modules\Common\Support\SitePagesContent::heroBadgesDefault();
+
+                // Dot colours are named tones, resolved here to the homepage's
+                // own palette rather than to hex typed into an admin box.
+                $__badgeTone = [
+                    'green'  => '#1ed760',
+                    'brand'  => 'var(--c2)',
+                    'accent' => 'var(--c1)',
+                ];
+            @endphp
             <div class="zio-hero-copy text-center lg:text-left lg:max-w-[600px]">
                 <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-8">
                     <i class="fas fa-wand-magic-sparkles text-[11px]" style="color:var(--c2)"></i>
@@ -167,8 +203,12 @@
                      The headline is deliberately narrower than the base, which
                      is mixed. That is the trade: the audience section below is
                      what catches everyone this line does not speak to. --}}
+                {{-- Both lines come from Marketing Settings. The helpers escape
+                     the admin's text before adding the gradient span and the
+                     bold runs, so {!! !!} here is printing markup this file
+                     built, never anything typed into the admin box. --}}
                 <h1 id="hero-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.08] tracking-tight mb-6">
-                    Never miss another <span class="grad-text">customer</span>.
+                    {!! \App\Modules\Common\Support\SitePagesContent::heroHeadlineHtml($__heroCopy) !!}
                 </h1>
 
                 <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-9 leading-relaxed">
@@ -178,7 +218,7 @@
                          buried its best line -- the bit where you are busy with
                          a customer -- in the back half. Reading it aloud as a
                          salon owner or a dentist is the test it failed. --}}
-                    One link for your page, your QR codes and your short links. And when you are busy, <strong class="text-white">Zio &mdash; your AI &mdash; answers your visitors and picks up your calls</strong>. <strong class="text-white">Free forever</strong>, no card.
+                    {!! \App\Modules\Common\Support\SitePagesContent::heroSubheadingHtml($__heroCopy) !!}
                 </p>
 
                 @guest
@@ -237,22 +277,22 @@
                     </div>
                 @endguest
 
+                {{-- Proof badges, from Marketing Settings.
+
+                     "creators" alone under a headline about customers tells a
+                     business owner the proof is not about them -- the base is
+                     mixed, so the shipped first badge says so. That reasoning
+                     now lives with the default in SitePagesContent, where
+                     whoever edits the line will actually see it. --}}
                 <div class="reveal rd-4 flex flex-wrap items-center gap-x-6 gap-y-3 mt-12 justify-center lg:justify-start text-sm">
-                    <span class="flex items-center gap-2 text-gray-400">
-                        <span class="w-1.5 h-1.5 rounded-full" style="background:#1ed760"></span>
-                        {{-- "creators" alone under a headline about customers
-                             tells a business owner the proof is not about them.
-                             The base is mixed, so the line can say so. --}}
-                        <span class="font-bold text-white">375,000+</span><span class="text-gray-500">creators &amp; businesses</span>
-                    </span>
-                    <span class="flex items-center gap-2 text-gray-400">
-                        <span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:var(--c2)"></span>
-                        <span class="font-bold text-white">Links, pages</span><span class="text-gray-500">&amp; QR codes</span>
-                    </span>
-                    <span class="flex items-center gap-2 text-gray-400">
-                        <span class="w-1.5 h-1.5 rounded-full" style="background:var(--c1)"></span>
-                        <span class="font-bold text-white">Free forever</span><span class="text-gray-500">· no card</span>
-                    </span>
+                    {{-- Written on one line on purpose. Blade's indentation
+                         inside a loop lands in the output, and the value and
+                         label spans were pushed far enough apart that a guard
+                         reading "375,000+ ... businesses" as one proof line
+                         stopped seeing them as one line. --}}
+                    @foreach($__heroBadges as $__badge)
+                        <span class="flex items-center gap-2 text-gray-400"><span class="w-1.5 h-1.5 rounded-full{{ $__badge['pulse'] ? ' pulse-dot' : '' }}" style="background:{{ $__badgeTone[$__badge['tone']] ?? $__badgeTone['green'] }}"></span>@if($__badge['value'] !== '')<span class="font-bold text-white">{{ $__badge['value'] }}</span>@endif @if($__badge['label'] !== '')<span class="text-gray-500">{{ $__badge['label'] }}</span>@endif</span>
+                    @endforeach
                 </div>
             </div>
 

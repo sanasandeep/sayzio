@@ -70,6 +70,8 @@ class MarketingPageCache
         // signals are both read per render now, so they belong here for the
         // same reason their neighbours do: an unlisted key costs a
         // cross-region query on the first request after a deploy.
+        'marketing_hero_badges',
+        'marketing_hero_copy',
         'marketing_hero_marquee',
         'marketing_meta_pixel_id',
         'marketing_play_store_url',

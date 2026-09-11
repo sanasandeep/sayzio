@@ -45,7 +45,7 @@
     {{-- Live preview --}}
     <div x-show="{{ $modelKey }}.length>0" class="mt-2 pt-4 border-t border-white/5">
         <div class="ak-note text-[10px] uppercase tracking-wider text-white/40 mb-3">Live preview</div>
-        <div class="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 p-4">
+        <div class="ak-on-dark rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 p-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <template x-for="(t,i) in {{ $modelKey }}" :key="'{{ $modelKey }}p'+i">
                     <figure x-show="(t.quote || '').trim() !== ''"
