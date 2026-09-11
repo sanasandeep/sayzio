@@ -137,7 +137,12 @@ class HomepageSectionDividerTest extends TestCase
             'home/partials/ai-suite.blade.php',
             'home/partials/zio-hub.blade.php',
             'home/partials/pricing.blade.php',
-            'home/partials/notifications.blade.php',
+            // Was home/partials/notifications.blade.php, which the classic
+            // homepage stopped including on 2026-09-11 (the 25-to-15 section
+            // cut). Any still-included partial serves this canary equally --
+            // the point is that the crawl finds nested includes at all, not
+            // which one it finds.
+            'home/partials/create-showcase.blade.php',
             'public/partials/marketing-trust-band.blade.php',
             'public/partials/_compare.blade.php',
         ] as $expected) {

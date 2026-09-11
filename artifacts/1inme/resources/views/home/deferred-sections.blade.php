@@ -900,97 +900,17 @@
 })();
 </script>
 
-{{-- ============================ 2 · SHARE ============================ --}}
-<section id="share" class="sec-rule py-24 lg:py-32 relative overflow-hidden">
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Share</div>
-            <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-                Share your Sayzio<br><span class="grad-text">anywhere you like.</span>
-            </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">Branded short links and dynamic QR codes you can repoint at any time. Add your link to bios, posters, business cards, packaging and anywhere else. Save links from any browser tab with the Zio Extension, or share straight from any mobile app into Sayzio.</p>
-        </div>
+{{-- ============================ 2 · SHARE ============================
 
-        @php
-            // The four cards, as data. Each carries what the card shows and
-            // what its panel adds, the blurb is the one-liner on the card,
-            // the lead is the sentence that opens the panel, and they are
-            // deliberately not the same words.
-            $shareCards = [
-                [
-                    'key' => 'short-links', 'rd' => 1, 'icon' => 'fa-link',
-                    'g1' => '#1bd4d9', 'g2' => '#3d6bff',
-                    'title' => 'Branded short links',
-                    'blurb' => 'Custom slugs, UTM-ready, click tracking. Looks like you, not a random shortener.',
-                    'lead'  => 'Every link you hand out carries your name on it, and reports back on what happened next.',
-                    'points' => [
-                        'Pick the slug yourself, <strong>1in.me/spring-drop</strong>, not a string of characters',
-                        'UTM parameters built in, with presets you save once and reuse',
-                        'Clicks broken down by country, device and referrer, in real time',
-                        'Create and edit in bulk, or from any browser tab with the Zio Extension',
-                    ],
-                    'stats' => [['1,284', 'clicks today'], ['38', 'countries'], ['0', 'setup steps']],
-                    'cta' => 'Claim your short link',
-                ],
-                [
-                    'key' => 'custom-domain', 'rd' => 2, 'icon' => 'fa-globe',
-                    'g1' => '#3d6bff', 'g2' => '#7c5cff',
-                    'title' => 'Custom domain',
-                    'blurb' => 'Bring your own domain like <span class="share-em">links.yourbrand.com</span>, auto-SSL, zero DNS headaches.',
-                    'lead'  => 'Put your links on a domain you own. One DNS record, and the certificate is handled for you from then on.',
-                    'points' => [
-                        'One CNAME to verify. We check it and tell you the moment it lands',
-                        "Let's Encrypt certificate issued and renewed automatically, forever",
-                        'Unlimited links and pages on the domain, at no extra cost',
-                        'Your existing website stays exactly where it is, untouched',
-                    ],
-                    'stats' => [['1', 'DNS record'], ['auto', 'SSL renewal'], ['~5 min', 'to go live']],
-                    'cta' => 'Connect a domain',
-                ],
-                [
-                    'key' => 'qr-codes', 'rd' => 3, 'icon' => 'fa-qrcode',
-                    'g1' => '#1bd4d9', 'g2' => '#3d6bff',
-                    'title' => 'Dynamic QR codes',
-                    'blurb' => 'Print once, redirect forever. Change the destination without reprinting.',
-                    'lead'  => 'The code on the poster never changes. Where it sends people is yours to change whenever you like.',
-                    'points' => [
-                        'Repoint any code at a new destination and the printed code keeps working',
-                        'Scans plotted by place and time, so you can see which poster is pulling',
-                        'Custom eyes, frames and colours, with your mark in the middle',
-                        'SVG and PNG export at print resolution, ready for the printer',
-                    ],
-                    'stats' => [['+128', 'scans today'], ['16', 'code styles'], ['SVG', 'print export']],
-                    'cta' => 'Make a QR code',
-                ],
-                [
-                    'key' => 'channels', 'rd' => 4, 'icon' => 'fa-share-nodes',
-                    'g1' => '#3d6bff', 'g2' => '#7c5cff',
-                    'title' => 'Channel-ready',
-                    'blurb' => 'Pre-made share cards for every channel. Pixels, UTM and OG ready out of the box.',
-                    'lead'  => 'Your link arrives looking right on every platform, without a design round for each one.',
-                    'points' => [
-                        'Open Graph and Twitter cards generated per link, with a live preview',
-                        'Meta, TikTok and LinkedIn pixels fire on the pages you choose',
-                        'A UTM preset per channel, so the report tells you where each visit came from',
-                        'Run two variants and keep the one that wins',
-                    ],
-                    'stats' => [['6', 'channels'], ['OG', '+ pixels'], ['A/B', 'built in']],
-                    'cta' => 'See the share cards',
-                ],
-            ];
-        @endphp
+     Removed 2026-09-11. 1.3 screens restating what a link is -- "share your
+     Sayzio anywhere you like" -- to a reader who has just been shown a grid of
+     18 things a link can be. The link-types section makes this point by
+     demonstrating it.
 
-        {{-- No `card-row` here: these four name their own colour pairs in the
-             $shareCards data, because each pair also has to reach the panel the
-             card expands into. Everywhere else on the page the row assigns them
-             by position — same signature either way. --}}
-        <div class="share-grid">
-            @foreach($shareCards as $card)
-                @include('home.partials.share-card', ['card' => $card])
-            @endforeach
-        </div>
-    </div>
-</section>
+     The `#share .share-card` entry has been taken out of the SELECTORS list in
+     home/partials/expandable-cards.blade.php at the same time: it would have
+     matched nothing and quietly outlived the thing it described.
+     ================================================================= --}}
 
 {{-- ============================ DOMAINS & URL ALIASES ============================ --}}
 <section id="domains" class="sec-rule py-24 lg:py-32 relative overflow-hidden" aria-labelledby="domains-h">
@@ -1604,11 +1524,26 @@
     </div>
 </section>
 
-{{-- ==================== ZONE · DEEPER FEATURE SHOWCASE ==================== --}}
-@include('home.partials.resume')
-@include('home.partials.dialer-contacts')
-@include('home.partials.forms')
-@include('home.partials.notifications')
+{{-- ==================== ZONE · DEEPER FEATURE SHOWCASE ====================
+
+     Four sections removed from the classic homepage, 2026-09-11. Together they
+     were 6.9 screens of a 37-screen page, and all four describe things the
+     visitor has already been shown:
+
+       resume           -- Resume is one of the 18 link types in the grid above,
+                           and /features covers it.
+       dialer-contacts  -- vCard is a link type; /features covers it.
+       forms            -- Forms are a link type; /features covers it.
+       notifications    -- Nobody chooses a product over its notification
+                           preferences. This belongs in the app, not in
+                           marketing.
+
+     Checked /features for each of the first three before removing: the content
+     genuinely exists there, so this is deduplication rather than deletion. The
+     partials themselves are UNTOUCHED and still render in
+     deferred-sections-business.blade.php, which is why this is four lines to
+     put back rather than a revert.
+     ======================================================================= --}}
 {{-- ============================ WORKSPACE & TEAM ============================ --}}
 <section id="workspace-team" class="sec-rule py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
