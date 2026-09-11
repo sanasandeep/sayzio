@@ -153,7 +153,20 @@ class SitePageController extends Controller
             // Render order for the lower /about sections (drag-to-reorder).
             // The list is canonicalised in normalizeAboutExtra(): unknown
             // and duplicate slugs are dropped, missing slugs are appended.
-            $rules['extra.section_order']   = 'nullable|array|max:5';
+            //
+            // The cap counts the slug list rather than stating a number. It
+            // used to say `max:5`, written when there were five sections.
+            // `eefind` made six, the editor rendered six rows, the form
+            // posted six -- and every single save of /about failed validation
+            // on a field no admin can see or touch. With no error UI in the
+            // admin layout (fixed alongside this), that failure was silent:
+            // Sana pressed Save, got no success message, no error, and the
+            // page reloaded with the old values. Every edit to this page,
+            // not just the parent-company block, has been discarded since
+            // the day the sixth section was added.
+            //
+            // Counting the list is what stops it happening on the seventh.
+            $rules['extra.section_order']   = 'nullable|array|max:' . count(SitePagesContent::aboutLowerSectionSlugs());
             $rules['extra.section_order.*'] = ['nullable', 'string', 'in:' . implode(',', SitePagesContent::aboutLowerSectionSlugs())];
             // Per-section visibility map (slug => bool). The map is
             // canonicalised in normalizeAboutExtra(): unknown keys are
