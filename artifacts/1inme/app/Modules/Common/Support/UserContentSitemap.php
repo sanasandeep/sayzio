@@ -116,7 +116,7 @@ class UserContentSitemap
                         return false;
                     }
                     $urls[] = [
-                        'loc' => url('/@' . $user->handle),
+                        'loc' => PlatformHosts::brandUrl('/@' . $user->handle),
                         'lastmod' => self::formatLastmod($user->updated_at),
                     ];
                 }
@@ -166,7 +166,7 @@ class UserContentSitemap
                         continue;
                     }
                     $urls[] = [
-                        'loc' => url('/' . $handle . '/resume'),
+                        'loc' => PlatformHosts::brandUrl('/' . $handle . '/resume'),
                         'lastmod' => self::formatLastmod($resume->updated_at),
                     ];
                 }
@@ -226,7 +226,7 @@ class UserContentSitemap
                         return false;
                     }
                     $urls[] = [
-                        'loc' => url('/' . $link->alias),
+                        'loc' => PlatformHosts::brandUrl('/' . $link->alias),
                         'lastmod' => self::formatLastmod($link->updated_at),
                     ];
                 }

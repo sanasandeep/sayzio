@@ -6,6 +6,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Resume;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Modules\Common\Support\PlatformHosts;
 use Tests\TestCase;
 
 /**
@@ -15,6 +16,11 @@ use Tests\TestCase;
  * biolink.blade.php's password wall and robots meta); the sitemap builder
  * must mirror those gates exactly or it hands crawlers URLs the app itself
  * refuses to let them index.
+ *
+ * URLs are asserted with PlatformHosts::brandUrl(), not url(): these sitemaps
+ * are cached and shared, so they are pinned to the canonical brand domain
+ * rather than following whichever host (or warmer run, which has no host at
+ * all) happened to build them.
  */
 class UserContentSitemapExclusionTest extends TestCase
 {
@@ -53,8 +59,8 @@ class UserContentSitemapExclusionTest extends TestCase
 
         $body = $this->get('/sitemap-resumes.xml')->getContent();
 
-        $this->assertStringContainsString(url('/' . $indexable->handle . '/resume'), $body);
-        $this->assertStringNotContainsString(url('/' . $noindexed->handle . '/resume'), $body);
+        $this->assertStringContainsString(PlatformHosts::brandUrl('/' . $indexable->handle . '/resume'), $body);
+        $this->assertStringNotContainsString(PlatformHosts::brandUrl('/' . $noindexed->handle . '/resume'), $body);
     }
 
     public function test_links_sitemap_excludes_password_protected_biolinks(): void
@@ -83,8 +89,8 @@ class UserContentSitemapExclusionTest extends TestCase
 
         $body = $this->get('/sitemap-links.xml')->getContent();
 
-        $this->assertStringContainsString(url('/' . $open->alias), $body);
-        $this->assertStringNotContainsString(url('/' . $locked->alias), $body);
+        $this->assertStringContainsString(PlatformHosts::brandUrl('/' . $open->alias), $body);
+        $this->assertStringNotContainsString(PlatformHosts::brandUrl('/' . $locked->alias), $body);
     }
 
     public function test_links_sitemap_excludes_noindex_biolinks(): void
@@ -118,7 +124,7 @@ class UserContentSitemapExclusionTest extends TestCase
 
         $body = $this->get('/sitemap-links.xml')->getContent();
 
-        $this->assertStringContainsString(url('/' . $open->alias), $body);
-        $this->assertStringNotContainsString(url('/' . $noindexed->alias), $body);
+        $this->assertStringContainsString(PlatformHosts::brandUrl('/' . $open->alias), $body);
+        $this->assertStringNotContainsString(PlatformHosts::brandUrl('/' . $noindexed->alias), $body);
     }
 }
