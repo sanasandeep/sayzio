@@ -56,9 +56,6 @@
         0%   { transform: translateY(6px); opacity: 0; }
         100% { transform: translateY(0); opacity: 1; }
     }
-    .coin-bg {
-        background: rgba(61,107,255,.06);
-    }
     .pulse-dot { animation: pulse 1.6s ease-in-out infinite; }
     @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:.5} }
     .float-coin { animation: floaty 3s ease-in-out infinite; }
@@ -272,6 +269,28 @@
     .plan-band-ico.is-current { background: linear-gradient(135deg,#10b981,#34d399); box-shadow: 0 10px 22px -10px rgba(16,185,129,.8), inset 0 1px 0 rgba(255,255,255,.3); }
     .plan-band-ico.is-accent  { background: linear-gradient(135deg,#3d6bff,#22d3ee); box-shadow: 0 12px 26px -10px rgba(34,211,238,.75), inset 0 1px 0 rgba(255,255,255,.32); }
     .plan-band-name { color: #fff; font-weight: 800; letter-spacing: -.01em; }
+    /* "Professional" rendered as "Pro..." -- on the most-popular card, the
+       one card the page most wants read, and "Enterprise API" was next in
+       line. The name was `truncate`d to leave room for the badge sitting
+       beside it, and there was no room to leave: measured, the name box was
+       56px wide for 118px of word. Wrapping it would not have helped.
+       So the badge moved to its own row above (see the markup) and the name
+       now gets the full card width. The clamp is a backstop for a longer
+       name an admin might type later, and one line of height is reserved so
+       short names don't leave a hole. */
+    .plan-band-name {
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        overflow: hidden; min-height: 1.25em;
+    }
+    /* Paid plans print a tax line under the billing note and the free plan
+       has none, which left the free card's CTA sitting 25px above every
+       other card's. Pre-existing; it is the kind of thing that reads as
+       "the columns look odd" without being nameable. */
+    /* Flex, not a plain block: the tax line inside carries `mt-2`, and out
+       of a block that margin collapses THROUGH the slot and lands on the
+       card below it -- so reserving the height alone still left the free
+       card's CTA 8px high. A flex container keeps the margin inside. */
+    .plan-tax-slot { min-height: 1.55rem; display: flex; flex-direction: column; }
     html.light-mode .plan-band-name { color: #0f172a !important; }
 
     /* Price block — a quiet inset panel so the headline number anchors
@@ -324,6 +343,100 @@
     html.light-mode .plan-price .price-num { color: #1f2937 !important; }
     /* Tax "Total" row inside the price block also uses text-white; keep it legible. */
     html.light-mode .plan-price .text-white { color: #1f2937 !important; }
+
+    /* ── Coin packages wear the plan card ──
+       They used to be a different object on the same page: a flat
+       glass panel with a 1rem radius against the plans' 1.75rem, a
+       small circular icon and a whispered grey name against the
+       plans' gradient chip and bold one, a bare price in a footer row
+       against the plans' inset price panel, and a little right-aligned
+       square button against the plans' full-width pill. Two designs,
+       one page.
+
+       Everything structural is shared now -- same .plan-card chrome,
+       same .plan-band header, same .plan-price panel, same pill CTA.
+       The one thing that stays coin-specific is the colour: amber is
+       what says "this is the wallet, not a subscription", and it earns
+       its keep. */
+    .plan-card.is-coin {
+        background: radial-gradient(140% 80% at 50% -10%, rgba(245,158,11,.07), transparent 60%), rgba(245,158,11,.03);
+    }
+    /* The plan card's own backdrop-filter runs saturate(180%), which is
+       tuned for a blue tint. Amber takes that far harder -- at 180% the
+       whole rail glowed like a hazard sign -- so the coin variant keeps
+       the blur and drops the saturation. */
+    @supports (backdrop-filter: blur(8px)) {
+        .plan-card.is-coin {
+            backdrop-filter: blur(6px) saturate(115%) brightness(1.02);
+            -webkit-backdrop-filter: blur(6px) saturate(115%) brightness(1.02);
+        }
+    }
+    .plan-card.is-coin:hover {
+        box-shadow: 0 34px 80px -34px rgba(245,158,11,.5), inset 0 0 0 1px rgba(251,191,36,.14), inset 1.5px 2px 0 -1px rgba(255,255,255,0.4), inset -1.5px -1.5px 0 -1px rgba(255,255,255,0.2), inset -3px -8px 1px -6px rgba(255,255,255,0.15);
+    }
+    /* A featured pack is marked by the ring and the badge, not by a
+       lift: several packs can carry a bonus at once, and three lifted
+       cards in a row is just a wobbly row. */
+    .grad-glow.is-coin::before { background: linear-gradient(135deg,#f59e0b 0%,#fbbf24 50%,#fcd34d 100%); }
+    .plan-band.is-coin {
+        background: linear-gradient(135deg, rgba(245,158,11,.17), rgba(251,191,36,.05));
+        border-bottom-color: rgba(251,191,36,.26);
+    }
+    .plan-band.is-coin::before {
+        content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px;
+        background: linear-gradient(90deg,#d97706,#f59e0b,#fcd34d);
+    }
+    .plan-band-ico.is-coin {
+        background: linear-gradient(135deg,#d97706,#fbbf24);
+        box-shadow: 0 10px 22px -10px rgba(245,158,11,.85), inset 0 1px 0 rgba(255,255,255,.3);
+    }
+    .plan-card.is-coin .plan-price {
+        background: linear-gradient(180deg, rgba(245,158,11,.10), rgba(245,158,11,.035));
+        border-color: rgba(251,191,36,.24);
+    }
+    /* Amber ink, one lever for both themes. #fcd34d on a white page is
+       1.6:1 -- the same defect the head-to-head card had -- so light
+       mode drops to amber-700, which is 4.9:1 on white. */
+    .coin-ink { color: #fcd34d; }
+    html.light-mode .coin-ink { color: #b45309; }
+    /* The coin CTA is the plans' pill in amber. Dark ink on amber is
+       ~10:1, so the same fill works on either theme. */
+    .btn-coin {
+        background: linear-gradient(115deg,#d97706 0%,#f59e0b 45%,#fbbf24 100%);
+        color: #1e2330 !important;
+        border-radius: 9999px !important;
+        transition: filter .25s, box-shadow .25s;
+        box-shadow: 0 8px 24px -10px rgba(245,158,11,.55);
+    }
+    .btn-coin:hover { filter: brightness(1.06); box-shadow: 0 10px 28px -10px rgba(245,158,11,.75); }
+    html.light-mode .btn-coin, html.light-mode .btn-coin i { color: #1e2330 !important; }
+    /* Light mode for the coin card, mirroring the plan card's own set. */
+    html.light-mode .plan-card.is-coin { background: rgba(255,251,235,.35); }
+    @supports (backdrop-filter: blur(8px)) {
+        html.light-mode .plan-card.is-coin {
+            background: linear-gradient(135deg, rgba(255,251,235,.5) 0%, rgba(255,251,235,.18) 100%);
+        }
+    }
+    html.light-mode .plan-band.is-coin {
+        background: linear-gradient(135deg, rgba(245,158,11,.16), rgba(251,191,36,.05));
+        border-bottom-color: rgba(245,158,11,.25);
+    }
+    html.light-mode .plan-card.is-coin .plan-price { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.22); }
+    /* The coin count is the headline and carries .price-num, so it
+       inherits the plans' fluid sizing and their light-mode ink rule.
+       The money is the second line and must NOT: `.plan-price .price-num`
+       is a two-class selector and beat Tailwind's `.text-xl`, so the
+       price rendered as large as the coin count and the card had no
+       hierarchy at all. Its own two-class selector settles it. */
+    .plan-price .coin-money {
+        font-variant-numeric: tabular-nums;
+        font-size: 1.4rem; line-height: 1.15; letter-spacing: -.01em;
+    }
+    .plan-price .coin-was {
+        font-variant-numeric: tabular-nums;
+        font-size: .875rem; line-height: 1.15;
+    }
+    .coin-rail > .plan-card { display: flex; }
 
     /* ── Single-row, horizontally-scrollable plan rail ──
        All plan cards sit on one row. Each keeps a readable min-width and
@@ -409,8 +522,6 @@
     html.light-mode .hover\:bg-white\/\[0\.08\]:hover,
     html.light-mode .hover\:bg-white\/\[0\.10\]:hover { background-color: rgba(15,23,42,.07) !important; }
 
-    /* Coin-package tint reads cleaner over the lighter surface. */
-    html.light-mode .coin-bg { background: rgba(61,107,255,.045); }
 
     /* ── Smart upgrade banner keeps its dark surface in BOTH modes, so its
        text and accents must stay light too — the global light-mode rules
@@ -610,6 +721,37 @@
             }, { rootMargin: '0px 0px -25% 0px' });
             io.observe(coinsEl);
         }
+
+        /* Level the description boxes to the tallest in each rail.
+           These blocks sit above the price panel, so a card whose copy runs a
+           line longer pushes its price and CTA below its neighbours'. The old
+           answer was a fixed three-line box, which lined the cards up by
+           cutting the longer descriptions mid-sentence.
+           Measuring costs nothing and guesses nothing: whatever an admin
+           writes, every card gets the same box and every sentence finishes.
+           The CSS min-height stays as the floor, so with JS off the page is
+           exactly what it was. */
+        const levelDescriptions = () => {
+            document.querySelectorAll('.plans-row, .coin-rail').forEach((rail) => {
+                const boxes = rail.querySelectorAll('.plan-band-desc');
+                if (boxes.length < 2) return;
+                boxes.forEach((b) => { b.style.minHeight = ''; });
+                let tallest = 0;
+                boxes.forEach((b) => { tallest = Math.max(tallest, b.getBoundingClientRect().height); });
+                boxes.forEach((b) => { b.style.minHeight = Math.ceil(tallest) + 'px'; });
+            });
+        };
+        /* After the webfont lands, or the measurement is of the fallback. */
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(levelDescriptions);
+        } else {
+            levelDescriptions();
+        }
+        let levelTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(levelTimer);
+            levelTimer = setTimeout(levelDescriptions, 150);
+        });
     "
     class="sec-first relative pt-20 pb-12 lg:pt-28 lg:pb-16">
     <div class="absolute inset-0 -z-10 overflow-hidden">
@@ -995,28 +1137,41 @@
 
                     {{-- ── Tinted header band: name + short description + badge ── --}}
                     <div class="plan-band {{ $bandClass }} px-5 sm:px-6 pt-5 pb-4">
-                        <div class="flex items-start justify-between gap-2.5">
-                            <div class="flex items-center gap-3 min-w-0">
-                                <span class="plan-band-ico {{ $bandClass }} shrink-0" aria-hidden="true">
-                                    <i class="fas {{ $tierIcon }}"></i>
-                                </span>
-                                <h3 class="plan-band-name text-xl leading-tight truncate">{{ $plan->name }}</h3>
-                            </div>
+                        {{-- The badge gets its own row. Beside the name it was
+                             taking so much of a 290px card that "Professional"
+                             had 56px to render 118px of word. The row is
+                             reserved on every card, badge or not, so the bands
+                             stay the same height down the rail. --}}
+                        <div class="min-h-[1.75rem] mb-1">
                             @if($isCurrent)
-                                <span class="shrink-0 inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 bg-emerald-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
+                                <span class="inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 bg-emerald-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
                                     <i class="fas fa-circle-check"></i> Your plan
                                 </span>
                             @elseif($isRecommended)
-                                <span class="shrink-0 inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 grad-bar text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
+                                <span class="inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 grad-bar text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
                                     <i class="fas fa-wand-magic-sparkles"></i> Recommended
                                 </span>
                             @elseif($isPopular)
-                                <span class="shrink-0 inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 grad-bar text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
+                                <span class="inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 grad-bar text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
                                     <i class="fas fa-star"></i> Most popular
                                 </span>
                             @endif
                         </div>
-                        <p class="text-sm text-gray-400 mt-1.5 leading-snug min-h-[3.75rem] line-clamp-3">{{ $plan->description }}</p>
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="plan-band-ico {{ $bandClass }} shrink-0" aria-hidden="true">
+                                <i class="fas {{ $tierIcon }}"></i>
+                            </span>
+                            <h3 class="plan-band-name text-xl leading-tight">{{ $plan->name }}</h3>
+                        </div>
+                        {{-- No clamp. It held every description to three lines and cut
+                             the two that ran longer mid-sentence -- "...getting started
+                             with their first bio..." -- so two cards in a row read as
+                             truncated and the rest read as finished copy. That is what
+                             "the columns look odd" was.
+                             The boxes are levelled to the tallest of them instead (see
+                             the equaliser below), so every card still lines up and every
+                             sentence still ends. --}}
+                        <p class="plan-band-desc text-sm text-gray-400 mt-1.5 leading-snug min-h-[3.75rem]">{{ $plan->description }}</p>
                     </div>
 
                     {{-- ── Body: price → billing note → CTA → feature list ── --}}
@@ -1103,6 +1258,7 @@
                                 {{-- Tax / fineprint blocks per currency × cycle, toggled by Alpine.
                                      Both currencies are pre-rendered so the instant switcher stays
                                      accurate for signed-in buyers with a billing address. --}}
+                                <div class="plan-tax-slot">
                                 @foreach(['USD','INR'] as $cur)
                                     @foreach(['monthly','annual'] as $c)
                                         @php $taxBlock = $row['tax'][$cur][$c] ?? null; @endphp
@@ -1122,6 +1278,7 @@
                                         @endif
                                     @endforeach
                                 @endforeach
+                                </div>
                             </div>
                         </div>
 
@@ -1497,72 +1654,130 @@
                         if ($total < 20000) return 'Coin top-ups for AI + a few add-on activations.';
                         return 'Power users who need months of AI generation, gifting coins, or running multiple add-ons in parallel.';
                     };
+                    // Does ANY pack earn a plan bonus for this visitor? The pill
+                    // slot is reserved across every card when one does, so the
+                    // headline coin count keeps a single baseline down the row —
+                    // the same trick the plan cards use for their intro badge.
+                    // `auth()->user()` on this public page can hand back an
+                    // Admin -- the admin guard shares the session -- and
+                    // CoinPlanBonus is typed `?User`. So /pricing was a 500 for
+                    // any signed-in admin who loaded it, which is also why
+                    // PricingPageCacheFlushOnCoinPackageSaveTest has been red.
+                    $coinUser = auth()->user() instanceof \App\Modules\User\Models\User
+                        ? auth()->user()
+                        : null;
+
+                    $anyPlanBonus = $packages->contains(
+                        fn ($r) => (\App\Services\Billing\CoinPlanBonus::breakdownFor($coinUser, $r['model'])['plan_bonus_pct'] ?? 0) > 0
+                    );
                 @endphp
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-10">
+                <div class="coin-rail grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-10 items-stretch">
                     @foreach($packages as $row)
-                        @php $pkg = $row['model']; $isFeat = $pkg->bonus_coins > 0; @endphp
+                        @php
+                            $pkg = $row['model'];
+                            $isFeat = $pkg->bonus_coins > 0;
+                            $planBonus = \App\Services\Billing\CoinPlanBonus::breakdownFor($coinUser, $pkg);
+                            // The coin count is this card's headline number, so it
+                            // takes the plan cards' own size buckets. It doesn't
+                            // change with currency, so unlike the plan price it
+                            // needs no reactive sizing.
+                            $coinTotal = number_format($row['total_coins']);
+                            $coinLen = mb_strlen($coinTotal);
+                            $coinSize = $coinLen >= 11 ? 'price-xs'
+                                : ($coinLen >= 9 ? 'price-sm'
+                                : ($coinLen >= 7 ? 'price-md' : ''));
+                        @endphp
                         <div x-data='{ prices: @json($row['prices']) }'
-                             class="grad-glow {{ $isFeat ? 'is-popular' : '' }} relative glass-panel rounded-2xl coin-bg p-6 flex flex-col {{ $isFeat ? '!border-amber-400/40' : '' }}">
-                            {{-- Background glow lives in its own clipped layer so it stays
-                                 contained inside the rounded card, while the "+X bonus"
-                                 badge below can render fully outside the card bounds
-                                 without being cut off. --}}
-                            <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
-                                <div class="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-amber-400/10 blur-2xl"></div>
-                            </div>
-                            @if($isFeat)
-                                <div class="absolute -top-3 right-6 z-10 px-3 py-1 bg-amber-400 text-[#1e2330] text-[10px] font-bold rounded-full uppercase tracking-wider shadow-lg shadow-amber-500/20">
-                                    +{{ number_format($pkg->bonus_coins) }} bonus
-                                </div>
-                            @endif
+                             class="plan-card grad-glow is-coin {{ $isFeat ? 'is-popular' : '' }} group relative border {{ $isFeat ? 'border-amber-400/40' : 'border-white/10' }} flex flex-col">
 
-                            <div class="relative flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-amber-400/15 ring-1 ring-amber-400/30 flex items-center justify-center float-coin">
-                                    <i class="fas fa-coins text-amber-300"></i>
+                            {{-- ── Header band: icon chip + name + bonus badge ── --}}
+                            <div class="plan-band is-coin px-5 sm:px-6 pt-5 pb-4">
+                                <div class="min-h-[1.75rem] mb-1">
+                                    @if($isFeat)
+                                        <span class="inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-1 bg-amber-400 text-[#1e2330] text-[10px] font-bold rounded-full uppercase tracking-wider">
+                                            <i class="fas fa-gift"></i> +{{ number_format($pkg->bonus_coins) }} bonus
+                                        </span>
+                                    @endif
                                 </div>
-                                <div class="text-xs uppercase tracking-wider text-gray-400">{{ $pkg->name }}</div>
-                            </div>
-
-                            <div class="mt-3 flex items-baseline gap-2">
-                                <span class="price-num text-4xl font-semibold text-white">{{ number_format($row['total_coins']) }}</span>
-                                <span class="text-amber-300 text-sm">coins</span>
-                            </div>
-                            @if($pkg->bonus_coins > 0)
-                                <div class="text-[11px] text-gray-500 mt-1">{{ number_format($pkg->coin_amount) }} base + <span class="text-amber-300">{{ number_format($pkg->bonus_coins) }} bonus</span></div>
-                            @endif
-                            @php $planBonus = \App\Services\Billing\CoinPlanBonus::breakdownFor(auth()->user(), $pkg); @endphp
-                            @if($planBonus['plan_bonus_pct'] > 0)
-                                <div class="mt-2 inline-flex items-center gap-1.5 self-start px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-400/30 text-[11px] text-blue-300 font-semibold">
-                                    <i class="fas fa-gift"></i>
-                                    +{{ $planBonus['plan_bonus_pct'] }}% {{ $planBonus['plan_name'] }} plan bonus ({{ number_format($planBonus['plan_bonus_coins']) }} extra coins &mdash; {{ number_format($planBonus['total_with_plan_bonus']) }} total)
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <span class="plan-band-ico is-coin shrink-0" aria-hidden="true">
+                                        <i class="fas fa-coins"></i>
+                                    </span>
+                                    <h3 class="plan-band-name text-xl leading-tight">{{ $pkg->name }}</h3>
                                 </div>
-                            @endif
-
-                            <div class="mt-3 rounded-lg bg-white/[0.03] border border-white/5 px-3 py-2">
-                                <div class="text-[10px] uppercase tracking-wider text-amber-300/80 font-bold mb-0.5">
-                                    <i class="fas fa-bullseye"></i> Best for
-                                </div>
-                                <div class="text-xs text-gray-300 leading-snug">{{ $pkg->best_for ?: $bestForFor($row) }}</div>
+                                <p class="plan-band-desc text-sm text-gray-400 mt-1.5 leading-snug min-h-[3.75rem]">{{ $pkg->description ?: ($pkg->best_for ?: $bestForFor($row)) }}</p>
                             </div>
 
-                            @if($pkg->description)
-                                <p class="text-sm text-gray-400 mt-3 flex-grow">{{ $pkg->description }}</p>
-                            @else
-                                <div class="flex-grow"></div>
-                            @endif
+                            {{-- ── Body: coins → price → CTA → what it's for ── --}}
+                            <div class="px-5 sm:px-6 pt-5 pb-6 flex flex-col flex-grow">
+                                <div class="plan-price px-4 py-4 flex flex-col">
+                                    <div class="{{ $anyPlanBonus ? 'min-h-[1.75rem] mb-2' : '' }}">
+                                        @if($planBonus['plan_bonus_pct'] > 0)
+                                            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-400/30 text-[10px] text-blue-300 font-bold uppercase tracking-wider">
+                                                <i class="fas fa-gift"></i>
+                                                +{{ $planBonus['plan_bonus_pct'] }}% {{ $planBonus['plan_name'] }} bonus
+                                            </div>
+                                        @endif
+                                    </div>
 
-                            <div class="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
-                                <span class="flex items-baseline gap-2">
-                                    <span class="text-sm text-gray-500 line-through price-num"
-                                          x-text="coinOriginal(prices)"
-                                          x-show="coinOriginal(prices)">{{ $row['prices'][$currency]['original_formatted'] ?? '' }}</span>
-                                    <span class="text-2xl font-bold text-white price-num" x-text="coinPrice(prices)">{{ $row['prices'][$currency]['formatted'] ?? '—' }}</span>
-                                </span>
-                                @auth
-                                    <a href="{{ route('user.wallet.buy') }}" class="px-4 py-2 bg-amber-400 text-[#1e2330] rounded-xl text-sm font-bold hover:bg-amber-300 transition shadow-lg shadow-amber-500/20">Buy now</a>
-                                @else
-                                    <a href="{{ route('user.register') }}" class="px-4 py-2 bg-amber-400 text-[#1e2330] rounded-xl text-sm font-bold hover:bg-amber-300 transition shadow-lg shadow-amber-500/20">Sign up to buy</a>
-                                @endauth
+                                    <div class="flex items-end gap-1.5 min-w-0 flex-wrap min-h-[3.25rem]">
+                                        <span class="price-num font-bold text-white tracking-tight {{ $coinSize }}">{{ $coinTotal }}</span>
+                                        <span class="price-suffix shrink-0 text-sm font-medium coin-ink pb-1">coins</span>
+                                    </div>
+
+                                    {{-- Reserved: a pack with no bonus (Starter) has
+                                         nothing to say here, and without the slot its
+                                         price panel came up a line short and its CTA
+                                         sat above its neighbours' in the row. --}}
+                                    <div class="min-h-[1.75rem] mt-1">
+                                        @if($planBonus['plan_bonus_pct'] > 0)
+                                            <div class="text-[11px] text-gray-400">
+                                                {{ number_format($planBonus['plan_bonus_coins']) }} extra on your plan &mdash;
+                                                <span class="coin-ink font-semibold">{{ number_format($planBonus['total_with_plan_bonus']) }} total</span>
+                                            </div>
+                                        @elseif($pkg->bonus_coins > 0)
+                                            <div class="text-[11px] text-gray-400">
+                                                {{ number_format($pkg->coin_amount) }} base + <span class="coin-ink font-semibold">{{ number_format($pkg->bonus_coins) }} bonus</span>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    {{-- Price pinned to the foot of the panel, exactly
+                                         where the plan cards put their billing note, so
+                                         the CTA beneath sits on one line across both
+                                         kinds of card. --}}
+                                    <div class="mt-auto pt-3">
+                                        <div class="flex items-baseline gap-2 flex-wrap">
+                                            <span class="coin-was text-gray-500 line-through"
+                                                  x-text="coinOriginal(prices)"
+                                                  x-show="coinOriginal(prices)">{{ $row['prices'][$currency]['original_formatted'] ?? '' }}</span>
+                                            <span class="coin-money font-bold text-white" x-text="coinPrice(prices)">{{ $row['prices'][$currency]['formatted'] ?? '—' }}</span>
+                                            <span class="text-xs text-gray-400">one-time</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Full-width CTA, the plans' pill in amber --}}
+                                <div class="mt-5">
+                                    @auth
+                                        <a href="{{ route('user.wallet.buy') }}" class="block text-center w-full px-4 py-2.5 rounded-full font-semibold btn-coin transition">
+                                            Buy {{ $pkg->name }} <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                                        </a>
+                                    @else
+                                        <a href="{{ route('user.register') }}" class="block text-center w-full px-4 py-2.5 rounded-full font-semibold btn-coin transition">
+                                            Sign up to buy <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                                        </a>
+                                    @endauth
+                                </div>
+
+                                {{-- Where the plan cards list features, this says what
+                                     the pack is for. Same position, same type scale. --}}
+                                <div class="mt-6 flex-grow">
+                                    <div class="text-[11px] font-bold uppercase tracking-wider coin-ink mb-2">
+                                        <i class="fas fa-bullseye"></i> Best for
+                                    </div>
+                                    <div class="text-sm text-gray-300 leading-snug">{{ $pkg->best_for ?: $bestForFor($row) }}</div>
+                                </div>
                             </div>
                         </div>
                     @endforeach
