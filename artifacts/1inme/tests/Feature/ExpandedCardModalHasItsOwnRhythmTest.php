@@ -153,6 +153,41 @@ class ExpandedCardModalHasItsOwnRhythmTest extends TestCase
     }
 
     /**
+     * The cloned card's own chrome is flattened hard enough to actually win.
+     *
+     * `public/partials/surfaces` asserts card chrome on every `.glass` with
+     * `!important` -- border, background and shadow. A plain inline style
+     * loses to an important author declaration, so open()'s flattening was
+     * being ignored and the modal drew a hairline box around its content,
+     * with no padding inside it (correctly, since the modal supplies its
+     * own 44px). Only an inline important declaration outranks an important
+     * author one.
+     *
+     * Asserted on the property list rather than the exact call, so the
+     * formatting can change; what must not change is that all four of these
+     * are set with priority.
+     */
+    public function test_the_clone_flattens_its_card_chrome_with_enough_force_to_win(): void
+    {
+        $html = $this->homepageCss();
+
+        $this->assertMatchesRegularExpression(
+            '/setProperty\(\s*prop\s*,[^)]*,\s*[\'"]important[\'"]\s*\)/',
+            $html,
+            'the clone no longer flattens its card chrome with an important inline declaration, '
+            . 'so the surfaces layer wins and the modal draws a box around its own content'
+        );
+
+        foreach (['background', 'border', 'box-shadow', 'padding'] as $property) {
+            $this->assertStringContainsString(
+                "'" . $property . "'",
+                $html,
+                "{$property} is no longer in the list of card chrome the clone flattens"
+            );
+        }
+    }
+
+    /**
      * And the card keeps its own spacing.
      *
      * Every rule above is scoped to .xc-body. If one ever lands unscoped it
