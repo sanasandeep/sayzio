@@ -422,7 +422,7 @@
                                     <div class="aisx-msg aisx-msg-out aisx-row" style="--d:0s">Do you take commissions right now?</div>
                                     <div class="aisx-msg aisx-msg-in aisx-row" style="--d:.5s"><span class="aisx-typing"><i></i><i></i><i></i></span></div>
                                     <div class="aisx-msg aisx-msg-in aisx-row" style="--d:1.1s">Yes! I've got 2 slots open in July. Want me to grab your email so we can lock one in?</div>
-                                    <div class="aisx-msg aisx-msg-out aisx-row" style="--d:1.7s">maya@studio.co</div>
+                                    <div class="aisx-msg aisx-msg-out aisx-row" style="--d:1.7s">maya@example.com</div>
                                 </div>
                                 <div class="aisx-chip aisx-row" style="--d:2.3s"><i class="fas fa-user-check"></i> Lead captured &amp; booking link sent</div>
                             </div>

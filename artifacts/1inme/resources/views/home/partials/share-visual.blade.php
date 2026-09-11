@@ -10,7 +10,7 @@
 @case('short-links')
     <div class="sl-pill">
         <i class="fas fa-link text-[10px]" style="color:var(--c1)"></i>
-        <span class="host">{{ $shareHost ?? '1inme.co/' }}</span><span class="slug">spring-drop</span>
+        <span class="host">{{ $shareHost ?? '1in.me/' }}</span><span class="slug">spring-drop</span>
     </div>
     <div class="sl-dest" aria-hidden="true">
         <i class="fas fa-arrow-turn-down"></i>
@@ -47,7 +47,7 @@
         </div>
         <div class="cd-rows" aria-hidden="true">
             @foreach([
-                ['CNAME', 'links → cname.1inme.co'],
+                ['CNAME', 'links → cname.1in.me'],
                 ['TXT',   '_1inme-verify=ok-91a2'],
                 ['SSL',   "Let's Encrypt · auto-renew"],
             ] as [$ty, $val])
@@ -159,7 +159,7 @@
     <div class="ch-og" aria-hidden="true">
         <div class="ch-og-img"><i class="fas fa-image"></i></div>
         <div class="ch-og-meta">
-            <span class="ch-og-site">1inme.co</span>
+            <span class="ch-og-site">1in.me</span>
             <span class="ch-og-title">Spring drop is live</span>
             <span class="ch-og-desc">Everything in one link, shop, playlist, tour dates.</span>
         </div>

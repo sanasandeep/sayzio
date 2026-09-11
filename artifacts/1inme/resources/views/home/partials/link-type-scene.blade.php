@@ -67,7 +67,7 @@
     </div>
     <div class="lts-arrow lts-pop" style="--d:.45s"><i class="fas fa-chevron-down"></i></div>
     <div class="lts-card lts-accent lts-pop" style="--d:.6s">
-        <div class="lts-url"><span class="lts-dim">syz.io/</span><strong>spring</strong></div>
+        <div class="lts-url"><span class="lts-dim">1in.me/</span><strong>spring</strong></div>
     </div>
     <div class="lts-stats lts-rise" style="--d:.85s">
         <div><b class="lts-num">2,841</b><span>clicks</span></div>

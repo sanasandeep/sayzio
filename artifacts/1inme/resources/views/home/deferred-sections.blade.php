@@ -360,7 +360,7 @@
                             <div class="build-row lift" data-bl-style="link">
                                 <i class="fas fa-grip-vertical bl-grip"></i>
                                 <div class="bl-ic" style="background:rgba(61,107,255,.25)"><i class="fas fa-link" style="color:var(--c2)"></i></div>
-                                <div class="flex-1 min-w-0"><div class="bl-title">Free Templates</div><div class="bl-sub font-mono">jane.co/templates</div></div>
+                                <div class="flex-1 min-w-0"><div class="bl-title">Free Templates</div><div class="bl-sub font-mono">1in.me/templates</div></div>
                                 <span class="bl-chip">Link</span>
                             </div>
                             {{-- 3. Shop Merch (selected/live) --}}
@@ -520,7 +520,7 @@
                                     <div class="bb-quote">"Best tool I've used all year" <div><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div></div>
                                     {{-- Socials --}}
                                     <div class="bb-socials"><i class="fab fa-instagram"></i><i class="fab fa-tiktok"></i><i class="fab fa-youtube"></i><i class="fab fa-x-twitter"></i><i class="fab fa-spotify"></i></div>
-                                    <div class="bb-foot">1inme.co/@jane</div>
+                                    <div class="bb-foot">1in.me/@jane</div>
                                   </div>
                                 </div>
                             </div>
@@ -924,7 +924,7 @@
                     'blurb' => 'Custom slugs, UTM-ready, click tracking. Looks like you, not a random shortener.',
                     'lead'  => 'Every link you hand out carries your name on it, and reports back on what happened next.',
                     'points' => [
-                        'Pick the slug yourself, <strong>1inme.co/spring-drop</strong>, not a string of characters',
+                        'Pick the slug yourself, <strong>1in.me/spring-drop</strong>, not a string of characters',
                         'UTM parameters built in, with presets you save once and reuse',
                         'Clicks broken down by country, device and referrer, in real time',
                         'Create and edit in bulk, or from any browser tab with the Zio Extension',

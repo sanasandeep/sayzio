@@ -62,7 +62,7 @@
                         <span class="wa-phone-name">Ask Zio<small>online</small></span>
                     </div>
                     <div class="wa-thread">
-                        <div class="wa-msg wa-msg-out">Make a short link for my new pricing page sayzio.com/pricing</div>
+                        <div class="wa-msg wa-msg-out">Make a short link for my new pricing page sayzio.app/pricing</div>
                         <div class="wa-msg wa-msg-in">Done! Your short link is <b>sayzio.app/pricing</b> 🎉 Want a QR code for it too?</div>
                         <div class="wa-msg wa-msg-out wa-voice">
                             <i class="fas fa-microphone"></i>
