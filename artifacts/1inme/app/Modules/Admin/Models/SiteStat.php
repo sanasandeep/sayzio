@@ -60,4 +60,45 @@ class SiteStat extends Model
         $clean = preg_replace('/[^0-9.]/', '', (string) $this->value);
         return $clean === '' ? null : (float) $clean;
     }
+
+    /**
+     * The value as it should be READ, with thousands grouped the way the
+     * audience groups them.
+     *
+     * The stored values were written with Indian grouping -- `3,75,000`,
+     * `1,05,000`, `1,50,000`. That is correct in Hyderabad and a typo
+     * everywhere else, and the homepage showed `375,000+` in the hero trust
+     * line a few hundred pixels above `3,75,000+` in the stats band. Two
+     * spellings of the same number on one screen is worse than either
+     * spelling alone: the reader does not conclude "different convention",
+     * they conclude one of them is wrong, and then quietly discount every
+     * other figure on the page.
+     *
+     * Grouping is presentation, so it is decided here rather than in the
+     * stored string -- an admin typing `3,75,000` into the stats screen gets
+     * `375,000` on the page, and the two can no longer drift apart.
+     *
+     * Only plain numbers are touched. A value an admin wrote as `1.5M`, `99.9%`
+     * or `24/7` is a deliberate format and passes through untouched.
+     */
+    public function displayValue(): string
+    {
+        $raw = trim((string) $this->value);
+
+        // Anything that is not digits and separators is a deliberate format.
+        if ($raw === '' || ! preg_match('/^[0-9][0-9,]*(\.[0-9]+)?$/', $raw)) {
+            return $raw;
+        }
+
+        $target = $this->numericTarget();
+        if ($target === null) {
+            return $raw;
+        }
+
+        $decimals = str_contains($raw, '.')
+            ? strlen(substr(strrchr($raw, '.'), 1))
+            : 0;
+
+        return number_format($target, $decimals);
+    }
 }
