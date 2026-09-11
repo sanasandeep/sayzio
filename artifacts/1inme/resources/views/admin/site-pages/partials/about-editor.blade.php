@@ -638,7 +638,7 @@
     </button>
 
     <div x-show="open" x-transition.opacity
-         class="fixed bottom-4 right-4 z-40 w-[min(440px,calc(100vw_-_2rem))] h-[min(78vh,720px)] rounded-2xl bg-[#0b0712] border border-white/10 shadow-2xl shadow-black/60 flex flex-col overflow-hidden">
+         class="ak-on-dark fixed bottom-4 right-4 z-40 w-[min(440px,calc(100vw_-_2rem))] h-[min(78vh,720px)] rounded-2xl bg-[#0b0712] border border-white/10 shadow-2xl shadow-black/60 flex flex-col overflow-hidden">
         <div class="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/10 bg-white/5">
             <div class="flex items-center gap-2 min-w-0">
                 <i class="fas fa-eye text-blue-400 text-xs ak-blue"></i>

@@ -54,6 +54,16 @@ class MarketingSettingsController extends Controller
             'browser_windows_url'      => (string) AppSetting::get(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_WIN_URL, ''),
             'browser_linux_appimage_url' => (string) AppSetting::get(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_LINUX_APPIMAGE_URL, ''),
             'browser_linux_deb_url'    => (string) AppSetting::get(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_LINUX_DEB_URL, ''),
+            // The hero's own copy. Unlike the repeaters below these two fall
+            // back to the shipped values for display, so the editor opens
+            // showing the line that is actually on the page rather than an
+            // empty box the admin has to guess the current wording for.
+            'hero_copy'                => SitePagesContent::normalizeHeroCopy(
+                (array) AppSetting::get('marketing_hero_copy', [])
+            ),
+            'hero_badges'              => SitePagesContent::normalizeHeroBadges(
+                (array) AppSetting::get('marketing_hero_badges', [])
+            ) ?: SitePagesContent::heroBadgesDefault(),
             'hero_marquee'             => SitePagesContent::normalizeHeroMarquee(
                 (array) AppSetting::get('marketing_hero_marquee', [])
             ),
@@ -109,6 +119,18 @@ class MarketingSettingsController extends Controller
             'browser_windows_url'             => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             'browser_linux_appimage_url'      => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             'browser_linux_deb_url'           => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
+            // Hero copy. Lengths match the normalizer's caps so an over-long
+            // headline is rejected with a message rather than silently
+            // truncated after the save.
+            'hero_copy'                       => 'nullable|array',
+            'hero_copy.headline'              => 'nullable|string|max:120',
+            'hero_copy.highlight'             => 'nullable|string|max:60',
+            'hero_copy.subheading'            => 'nullable|string|max:400',
+            'hero_badges'                     => 'nullable|array|max:4',
+            'hero_badges.*.value'             => 'nullable|string|max:40',
+            'hero_badges.*.label'             => 'nullable|string|max:60',
+            'hero_badges.*.tone'              => ['nullable', 'string', 'in:' . implode(',', SitePagesContent::HERO_BADGE_TONES)],
+            'hero_badges.*.pulse'             => 'nullable',
             'hero_marquee'                    => 'nullable|array|max:18',
             'hero_marquee.*.icon'             => 'nullable|string|max:60',
             'hero_marquee.*.label'            => 'nullable|string|max:60',
@@ -176,6 +198,12 @@ class MarketingSettingsController extends Controller
         AppSetting::put(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_LINUX_APPIMAGE_URL, trim((string) ($data['browser_linux_appimage_url'] ?? '')));
         AppSetting::put(\App\Modules\Common\Support\ProductDownloadLinks::BROWSER_LINUX_DEB_URL, trim((string) ($data['browser_linux_deb_url'] ?? '')));
 
+        AppSetting::put('marketing_hero_copy',
+            SitePagesContent::normalizeHeroCopy((array) ($data['hero_copy'] ?? []))
+        );
+        AppSetting::put('marketing_hero_badges',
+            SitePagesContent::normalizeHeroBadges((array) ($data['hero_badges'] ?? []))
+        );
         AppSetting::put('marketing_hero_marquee',
             SitePagesContent::normalizeHeroMarquee((array) ($data['hero_marquee'] ?? []))
         );

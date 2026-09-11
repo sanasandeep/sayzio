@@ -120,6 +120,36 @@
         html.light-mode .ak-btn-disabled { color: #94a3b8; background-color: rgba(15,23,42,.05); }
         html.light-mode .ak-open-link { color: #1d4ed8; }
 
+        /* ---- Deliberately dark islands inside a light admin page ----
+
+           A few screens embed a panel that stays dark in both themes: the
+           "Live preview" blocks on Marketing Settings, which exist to show how
+           wording will look on the site's dark hero. Previewing dark copy on a
+           white card would defeat the point.
+
+           The ak-* rules above darken text so it reads on the LIGHT admin
+           surface. Inside one of these panels they do the exact opposite and
+           paint near-black text on near-black, which is how the trust-strip
+           values went invisible in light mode while their labels stayed
+           readable (those carried no ak-* class).
+
+           So: mark the panel .ak-on-dark and the overrides are lifted back to
+           dark-ground colours for everything inside it. Adding the class is
+           the whole fix for any future dark island -- no per-element edits.
+
+           These are the light-on-dark counterparts of the values above, not
+           the exact Tailwind shade each element asks for; a preview is read
+           for its wording, and one step of grey is not worth a rule per
+           element. */
+        html.light-mode .ak-on-dark .ak-strong { color: #f1f5f9; }
+        html.light-mode .ak-on-dark .ak-muted  { color: #94a3b8; }
+        html.light-mode .ak-on-dark .ak-note   { color: #94a3b8; }
+        html.light-mode .ak-on-dark .ak-label  { color: #94a3b8; }
+        html.light-mode .ak-on-dark .ak-blue   { color: #93c5fd; }
+        html.light-mode .ak-on-dark .ak-green  { color: #6ee7b7; }
+        html.light-mode .ak-on-dark .ak-red    { color: #fca5a5; }
+        html.light-mode .ak-on-dark .ak-amber  { color: #fcd34d; }
+
         /* Admin header controls are 32px rounded-lg squares (switch-to-user,
            avatar) — size the shared theme-toggle button to match. */
         .header-icon-btn { width: 32px; height: 32px; border-radius: 8px; font-size: 12px; }

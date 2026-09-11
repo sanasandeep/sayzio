@@ -2,6 +2,9 @@
 @section('title', 'Marketing Settings')
 @section('content')
 @php
+    $defaultsHeroCopy = \App\Modules\Common\Support\SitePagesContent::heroCopyDefault();
+    $defaultsBadges = \App\Modules\Common\Support\SitePagesContent::heroBadgesDefault();
+    $badgesForJs = !empty($hero_badges) ? $hero_badges : $defaultsBadges;
     $defaultsMarquee = \App\Modules\Common\Support\SitePagesContent::heroMarqueeDefault();
     $defaultsTrust = \App\Modules\Common\Support\SitePagesContent::trustStripDefault();
     $defaultsTest = \App\Modules\Common\Support\SitePagesContent::testimonialsDefault();
@@ -29,6 +32,8 @@
      * attribute again. Same shape admin/plans/_form.blade.php already uses.
      */
     $alpineState = [
+        'badges'          => $badgesForJs,
+        'badgeDefaults'   => $defaultsBadges,
         'marquee'         => $marqueeForJs,
         'trust'           => $trustForJs,
         'landing'         => $landingForJs,
@@ -330,6 +335,128 @@
             </div>
         </div>
 
+        {{-- Hero headline, subheading and proof badges.
+
+             Placed above the marquee because that is the order a visitor reads
+             them in, and this screen is long enough that matching the page's
+             own order is the only navigation it has. --}}
+        <div class="glass rounded-2xl p-6 space-y-5">
+            <div>
+                <h2 class="ak-strong text-lg font-semibold text-white">Hero headline &amp; subheading</h2>
+                <p class="ak-muted text-xs text-white/50">
+                    The first two lines on the landing page, and the three proof badges under the buttons.
+                    Clearing the headline or the subheading restores the shipped wording rather than leaving the top of the page blank.
+                </p>
+            </div>
+
+            <div>
+                <label class="ak-muted block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Headline</label>
+                <input type="text" name="hero_copy[headline]"
+                       value="{{ old('hero_copy.headline', $hero_copy['headline']) }}"
+                       maxlength="120"
+                       placeholder="{{ $defaultsHeroCopy['headline'] }}"
+                       class="ak-strong ak-input w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-base text-white">
+                @error('hero_copy.headline')<p class="ak-red mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+
+            <div>
+                <label class="ak-muted block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Word to colour</label>
+                <input type="text" name="hero_copy[highlight]"
+                       value="{{ old('hero_copy.highlight', $hero_copy['highlight']) }}"
+                       maxlength="60"
+                       placeholder="customer"
+                       class="ak-strong ak-input w-full sm:w-72 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                <p class="ak-note mt-1 text-[11px] text-white/40">
+                    One word or phrase from the headline above, shown in the brand gradient. Leave it blank for a plain headline.
+                    If the word is not in the headline, nothing is coloured &mdash; the line still reads fine.
+                </p>
+                @error('hero_copy.highlight')<p class="ak-red mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+
+            <div>
+                <label class="ak-muted block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Subheading</label>
+                <textarea name="hero_copy[subheading]" rows="3" maxlength="400"
+                          placeholder="{{ $defaultsHeroCopy['subheading'] }}"
+                          class="ak-strong ak-input w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white leading-relaxed">{{ old('hero_copy.subheading', $hero_copy['subheading']) }}</textarea>
+                <p class="ak-note mt-1 text-[11px] text-white/40">
+                    Put <span class="font-mono">**two stars**</span> around anything you want in bold white, the same way WhatsApp does it.
+                    Everything else is plain text &mdash; typing a <span class="font-mono">&lt;</span> or an <span class="font-mono">&amp;</span> is safe.
+                </p>
+                @error('hero_copy.subheading')<p class="ak-red mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+
+            {{-- Badges --}}
+            <div class="pt-2 border-t border-white/5 space-y-3">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <h3 class="ak-strong text-sm font-semibold text-white">Proof badges</h3>
+                        <p class="ak-muted text-xs text-white/50">
+                            The dotted line under the two buttons. Up to 4; they sit on one row at desktop width.
+                            Deleting every row restores the shipped three.
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button type="button" @click="resetTo('badges', badgeDefaults)"
+                                class="ak-strong text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg text-white/80">
+                            <i class="fas fa-rotate-left mr-1"></i> Reset
+                        </button>
+                        <button type="button" @click="if(badges.length<4) badges.push({value:'',label:'',tone:'green',pulse:false})"
+                                class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
+                            <i class="fas fa-plus mr-1"></i> Add badge
+                        </button>
+                    </div>
+                </div>
+
+                <template x-for="(b,i) in badges" :key="'badge'+i">
+                    <div class="bg-white/5 border border-white/10 rounded-xl p-3 grid sm:grid-cols-[1fr_1.4fr_auto_auto_auto] gap-2 items-center">
+                        <input type="text" :name="'hero_badges['+i+'][value]'" x-model="b.value" maxlength="40" placeholder="375,000+"
+                               class="ak-strong ak-input px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                        <input type="text" :name="'hero_badges['+i+'][label]'" x-model="b.label" maxlength="60" placeholder="creators &amp; businesses"
+                               class="ak-strong ak-input px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                        <select :name="'hero_badges['+i+'][tone]'" x-model="b.tone"
+                                class="ak-strong ak-input px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                            <option value="green" class="bg-[#0d0818]">Green dot</option>
+                            <option value="brand" class="bg-[#0d0818]">Brand dot</option>
+                            <option value="accent" class="bg-[#0d0818]">Accent dot</option>
+                        </select>
+                        <label class="ak-muted flex items-center gap-2 text-xs text-white/60 px-1 whitespace-nowrap">
+                            {{-- Unchecked boxes are absent from the payload, so the
+                                 hidden field carries the "off" value for this row.
+                                 Without it, turning a pulse off would leave the row
+                                 with no `pulse` key and normalizeHeroBadges would
+                                 read it as false anyway -- but only by accident, and
+                                 only while the rows keep their indexes. --}}
+                            <input type="hidden" :name="'hero_badges['+i+'][pulse]'" value="0">
+                            <input type="checkbox" :name="'hero_badges['+i+'][pulse]'" value="1" x-model="b.pulse"
+                                   class="rounded border-white/20 bg-white/5">
+                            Pulse
+                        </label>
+                        <button type="button" @click="badges.splice(i,1)" class="ak-red text-red-400 hover:text-red-300 text-xs px-2" title="Remove">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </template>
+                <p x-show="badges.length===0" class="ak-note text-xs text-white/40">No badges, so the shipped three will be used.</p>
+
+                {{-- Live preview --}}
+                <div x-show="badges.length>0" class="mt-2 pt-4 border-t border-white/5">
+                    <div class="ak-note text-[10px] uppercase tracking-wider text-white/40 mb-3">Live preview</div>
+                    <div class="ak-on-dark rounded-xl bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 px-4 py-4">
+                        <div class="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
+                            <template x-for="(b,i) in badges" :key="'bp'+i">
+                                <span class="flex items-center gap-2 text-gray-400 ak-muted">
+                                    <span class="w-1.5 h-1.5 rounded-full shrink-0"
+                                          :style="'background:' + ({green:'#1ed760', brand:'#6366f1', accent:'#ec4899'}[b.tone] || '#1ed760')"></span>
+                                    <span class="ak-strong font-bold text-white" x-text="b.value"></span>
+                                    <span class="text-gray-500" x-text="b.label"></span>
+                                </span>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Hero capability marquee --}}
         <div class="glass rounded-2xl p-6 space-y-3">
             <div class="flex items-center justify-between">
@@ -372,7 +499,7 @@
                  away from you while you type is worse than a still one. --}}
             <div x-show="marquee.length>0" class="mt-2 pt-4 border-t border-white/5">
                 <div class="ak-note text-[10px] uppercase tracking-wider text-white/40 mb-3">Live preview</div>
-                <div class="rounded-xl bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 px-4 py-4 overflow-x-auto">
+                <div class="ak-on-dark rounded-xl bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 px-4 py-4 overflow-x-auto">
                     <div class="flex items-center gap-x-8 whitespace-nowrap text-sm">
                         <template x-for="(m,i) in marquee" :key="'mp'+i">
                             <span class="flex items-center gap-2 text-gray-400 ak-muted">
@@ -423,7 +550,7 @@
             {{-- Live preview --}}
             <div x-show="trust.length>0" class="mt-2 pt-4 border-t border-white/5">
                 <div class="ak-note text-[10px] uppercase tracking-wider text-white/40 mb-3">Live preview</div>
-                <div class="rounded-xl bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 px-4 py-4">
+                <div class="ak-on-dark rounded-xl bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 px-4 py-4">
                     <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
                         <template x-for="(t,i) in trust" :key="'tp'+i">
                             <span class="flex items-center gap-2 text-gray-400 ak-muted">
@@ -497,7 +624,7 @@
             {{-- Live preview --}}
             <div x-show="why.length>0" class="mt-2 pt-4 border-t border-white/5">
                 <div class="ak-note text-[10px] uppercase tracking-wider text-white/40 mb-3">Live preview</div>
-                <div class="rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-br from-slate-900 to-slate-950">
+                <div class="ak-on-dark rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-br from-slate-900 to-slate-950">
                     <div class="grid grid-cols-12 px-4 py-3 bg-white/[.04] text-[11px] font-bold uppercase tracking-wider text-gray-400 ak-muted">
                         <div class="col-span-6">Feature</div>
                         <div class="ak-strong col-span-3 text-center text-white">Sayzio</div>

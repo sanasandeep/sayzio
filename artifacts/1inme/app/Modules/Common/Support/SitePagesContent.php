@@ -3015,6 +3015,181 @@ class SitePagesContent
     }
 
     /**
+     * The headline, subheading and proof badges at the top of the landing
+     * hero -- the first three things anyone reads.
+     *
+     * These were hardcoded in `home/partials/hero.blade.php`, which made the
+     * page's single most-edited copy the only copy needing a deploy to
+     * change. Sana rewrites this block far more often than anything further
+     * down, so it is the worst possible thing to have behind a release.
+     *
+     * Two pieces of very small markup, because the live hero has emphasis
+     * that a plain textarea cannot express and losing it would be a
+     * downgrade:
+     *
+     *   - the headline carries ONE gradient word (`grad-text`), so the
+     *     highlight is a separate field rather than a syntax -- nothing to
+     *     learn, and a word that no longer appears simply stops highlighting
+     *     instead of breaking the line;
+     *   - the subheading carries bold-white runs, written `**like this**`,
+     *     the same convention as WhatsApp and every chat app he uses.
+     *
+     * Both are rendered through `heroHeadlineHtml()` / `heroSubheadingHtml()`,
+     * which escape first and add markup second. See those.
+     */
+    public static function heroCopyDefault(): array
+    {
+        return [
+            'headline'  => 'Never miss another customer.',
+            'highlight' => 'customer',
+            'subheading' => 'One link for your page, your QR codes and your short links. '
+                . 'And when you are busy, **your AI Zio answers your visitors and picks up '
+                . 'your calls**. **Free forever**, no card.',
+        ];
+    }
+
+    /**
+     * Coerce admin input into the hero copy array.
+     *
+     * A blank headline or subheading falls back to the shipped line rather
+     * than rendering an empty hero: this is the top of the homepage, and an
+     * admin who clears a field by accident should see the default return, not
+     * a blank page.
+     *
+     * The highlight is the one field where blank and absent mean different
+     * things, so it is keyed on PRESENCE rather than on emptiness. Nothing
+     * saved yet (no key) means the site has never been configured and should
+     * render the shipped headline complete with its coloured word. A key that
+     * is present but empty came from the form, where clearing the box is how
+     * you ask for a headline with no colour at all -- a real choice, and one
+     * that must survive the save.
+     */
+    public static function normalizeHeroCopy(array $input): array
+    {
+        $default = self::heroCopyDefault();
+
+        $headline   = trim((string) ($input['headline'] ?? ''));
+        $subheading = trim((string) ($input['subheading'] ?? ''));
+
+        $highlight = array_key_exists('highlight', $input)
+            ? trim((string) $input['highlight'])
+            : $default['highlight'];
+
+        return [
+            'headline'   => mb_substr($headline ?: $default['headline'], 0, 120),
+            'highlight'  => mb_substr($highlight, 0, 60),
+            'subheading' => mb_substr($subheading ?: $default['subheading'], 0, 400),
+        ];
+    }
+
+    /**
+     * The hero badges: the three proof points under the buttons.
+     *
+     * `tone` is a named choice, not a colour field. A free-form colour box on
+     * a dark hero is a way to ship an invisible badge, and these three dots
+     * exist to be glanced at; the palette they pick from is the homepage's
+     * own, so they stay correct when the theme changes.
+     */
+    public const HERO_BADGE_TONES = ['green', 'brand', 'accent'];
+
+    public static function heroBadgesDefault(): array
+    {
+        return [
+            ['value' => '375,000+',     'label' => 'creators & businesses', 'tone' => 'green',  'pulse' => false],
+            ['value' => 'Links, pages', 'label' => '& QR codes',            'tone' => 'brand',  'pulse' => true],
+            ['value' => 'Free forever', 'label' => '· no card',             'tone' => 'accent', 'pulse' => false],
+        ];
+    }
+
+    /**
+     * Coerce admin input into the hero badge array. At most 4: the row sits
+     * on one line under the buttons at desktop width, and a fifth wraps it
+     * onto a second line that reads as a list rather than a glance.
+     *
+     * An unknown tone becomes the first one rather than being dropped, so a
+     * hand-edited setting cannot produce a badge with no dot.
+     */
+    public static function normalizeHeroBadges(array $input): array
+    {
+        $out = [];
+        foreach (array_values($input) as $row) {
+            if (!is_array($row)) continue;
+            $value = trim((string) ($row['value'] ?? ''));
+            $label = trim((string) ($row['label'] ?? ''));
+            if ($value === '' && $label === '') continue;
+
+            $tone = trim((string) ($row['tone'] ?? ''));
+
+            $out[] = [
+                'value' => mb_substr($value, 0, 40),
+                'label' => mb_substr($label, 0, 60),
+                'tone'  => in_array($tone, self::HERO_BADGE_TONES, true)
+                    ? $tone
+                    : self::HERO_BADGE_TONES[0],
+                'pulse' => (bool) ($row['pulse'] ?? false),
+            ];
+            if (count($out) >= 4) break;
+        }
+        return $out;
+    }
+
+    /**
+     * The headline as HTML: escaped, with the first case-insensitive match of
+     * `$highlight` wrapped in the gradient span.
+     *
+     * Escaping happens FIRST and the span is added after, so no admin input
+     * can reach the page as markup. The search runs against the escaped
+     * string, which is why the needle is escaped too -- otherwise a headline
+     * containing `&` would never match a highlight containing `&`.
+     *
+     * Only the first occurrence is wrapped. Two gradient words in one
+     * headline is not a look anyone asked for, and highlighting every "a" in
+     * a sentence is what a global replace would do the first time someone
+     * typed a short word.
+     */
+    public static function heroHeadlineHtml(array $copy): string
+    {
+        $headline  = e((string) ($copy['headline'] ?? ''));
+        $highlight = e((string) ($copy['highlight'] ?? ''));
+
+        if ($highlight === '') {
+            return $headline;
+        }
+
+        $at = mb_stripos($headline, $highlight);
+        if ($at === false) {
+            return $headline;
+        }
+
+        $len = mb_strlen($highlight);
+
+        return mb_substr($headline, 0, $at)
+            . '<span class="grad-text">' . mb_substr($headline, $at, $len) . '</span>'
+            . mb_substr($headline, $at + $len);
+    }
+
+    /**
+     * The subheading as HTML: escaped, then `**runs**` turned into the
+     * bold-white emphasis the hero already used.
+     *
+     * Same order for the same reason -- escape, then add markup. The pattern
+     * is non-greedy and rejects a run containing `*`, so an unclosed marker
+     * is left on the page as literal asterisks. That is the right failure:
+     * visible, obviously a typo, and fixable from the same screen. A greedy
+     * pattern would silently bold the rest of the paragraph.
+     */
+    public static function heroSubheadingHtml(array $copy): string
+    {
+        $text = e((string) ($copy['subheading'] ?? ''));
+
+        return (string) preg_replace(
+            '/\*\*([^*]+)\*\*/u',
+            '<strong class="text-white">$1</strong>',
+            $text
+        );
+    }
+
+    /**
      * Fallback testimonials for the landing, Features, AI-product and
      * use-case pages, used whenever the `marketing_features_testimonials`
      * setting is empty.
