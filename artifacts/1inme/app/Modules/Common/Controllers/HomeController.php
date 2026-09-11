@@ -30,7 +30,20 @@ class HomeController extends Controller
     /**
      * Homepage design registry. Every design shares the classic animated
      * shell (hero, homeEnhance, marketingAnimScan); each one only swaps
-     * the deferred below-the-fold fragment. All designs except 'classic'
+     * the deferred below-the-fold fragment.
+     *
+     * 'above' is the optional view rendered into the INITIAL HTML, between
+     * the hero and the deferred placeholder. Only 'classic' has one: it is
+     * the live design, and it was the one shipping a homepage whose first
+     * server response carried no h2, no h3 and one internal link. A design
+     * without an 'above' key behaves exactly as it did before — everything
+     * below the hero arrives with the fetch.
+     *
+     * An 'above' view may only use data index() actually resolves (today:
+     * $linkTypes). It must never need $plans: the initial response does not
+     * pay for the plan matrix.
+     *
+     * All designs except 'classic'
      * are intentionally short and keyword-focused; their SEO title /
      * description / keywords override the generic home SEO defaults so
      * the picked design also targets its keyword cluster in search.
@@ -38,6 +51,7 @@ class HomeController extends Controller
     public const DESIGNS = [
         'classic' => [
             'fragment' => 'home.deferred-sections',
+            'above' => 'home.above-fold-sections',
             'label' => 'Classic (full page)',
             'seo' => null,
         ],
@@ -97,6 +111,15 @@ class HomeController extends Controller
         ],
     ];
 
+    /**
+     * The view server-rendered into the initial HTML for the active design,
+     * or null when that design defers everything below the hero.
+     */
+    public static function activeDesignAboveFold(): ?string
+    {
+        return self::DESIGNS[self::activeDesign()]['above'] ?? null;
+    }
+
     public static function activeDesign(): string
     {
         $design = (string) \App\Modules\Admin\Models\AppSetting::get(self::DESIGN_SETTING_KEY, 'classic');
@@ -126,15 +149,32 @@ class HomeController extends Controller
             return redirect()->away('https://' . PlatformHosts::primaryBrandDomain() . '/', 301);
         }
 
-        // The initial response is intentionally lean: header + hero + primary
-        // CTA only. Everything below the fold (plan teaser, link-types
-        // showcase, AI demos, featured posts…) is rendered by sections()
-        // and fetched by the homepage loader right after first paint, so the
-        // initial render needs NO plan/link-type/blog queries at all.
-        // Both designs share the classic animated shell (hero, homeEnhance,
-        // marketingAnimScan); "compact" only swaps in a trimmed deferred
-        // fragment (home/deferred-sections-b) with fewer, combined sections.
-        return view('home');
+        // The initial response is lean, but no longer empty below the hero.
+        //
+        // It used to be header + hero + CTA and nothing else: every heading,
+        // all the body copy and nearly every internal link on the homepage
+        // arrived in the sections() fetch after first paint. That cost
+        // nothing in render time and a great deal in search — measured live
+        // on 2026-09-11, the initial HTML had 0 h2s, 0 h3s and 1 internal
+        // link. A crawler's first pass saw a spinner.
+        //
+        // So the three sections that say what Sayzio is (proof band, what
+        // you can create, who it is for) are server-rendered now, and the
+        // rest — AI demos, plan teaser, featured posts, FAQ — is still
+        // fetched by the loader. The added cost is one cached link-type
+        // lookup on its own key; there is still no plan or blog query here.
+        //
+        // Design-scoped: only 'classic' declares an 'above' view. The other
+        // six tell a shorter, different story below the fold and would read
+        // as two pages stacked if these three were prepended to them.
+        $above = self::activeDesignAboveFold();
+
+        return view('home', [
+            'aboveFoldView' => $above,
+            // Only resolved when something above the fold renders it, so the
+            // six deferring designs keep their query-free first response.
+            'linkTypes' => $above ? HomePageCache::linkTypes() : [],
+        ]);
     }
 
     /**

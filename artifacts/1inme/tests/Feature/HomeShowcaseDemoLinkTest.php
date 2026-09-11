@@ -29,6 +29,12 @@ use Tests\TestCase;
  *     fallback ("Learn more") instead of a dead link;
  *  4. a cache failure while resolving the demo alias set degrades to the
  *     Features fallback for every card — it must never 500 the home page.
+ *
+ * The showcase renders in the homepage's initial HTML (`GET /`), not in the
+ * deferred /home/sections fragment: it was moved there so crawlers see the
+ * link types on the first pass. Point 4 is worth re-reading in that light —
+ * a cache failure now degrades the FIRST response, not a fragment nobody
+ * waits for, which is why it is tested against `/`.
  */
 class HomeShowcaseDemoLinkTest extends TestCase
 {
@@ -101,7 +107,7 @@ class HomeShowcaseDemoLinkTest extends TestCase
         Cache::flush();
         $this->makeDemoLink('demo-type-short-link', 'Short Link, explained');
 
-        $resp = $this->get(route('home.sections'));
+        $resp = $this->get('/');
         $resp->assertOk();
         // The card deep-links to the live explainer with the demo label…
         $resp->assertSee('See the live Short Link demo');
@@ -115,7 +121,7 @@ class HomeShowcaseDemoLinkTest extends TestCase
         Cache::flush();
         // No demo-type-* links exist at all.
 
-        $resp = $this->get(route('home.sections'));
+        $resp = $this->get('/');
         $resp->assertOk();
         // No card claims a live demo…
         $resp->assertDontSee('See the live Short Link demo');
@@ -146,7 +152,7 @@ class HomeShowcaseDemoLinkTest extends TestCase
             ->andReturnUsing(fn ($key, $ttl, $callback) => $callback());
         Cache::swap($mock);
 
-        $resp = $this->get(route('home.sections'));
+        $resp = $this->get('/');
         $resp->assertOk();
         $resp->assertDontSee('See the live Short Link demo');
         $resp->assertSee(route('site.features') . '#cat-link-types', false);

@@ -18,6 +18,11 @@ use Tests\TestCase;
  * There is no other automated coverage, so this guards the three moving
  * parts: the public fallback, the admin save/normalize path, and the
  * seeder's seed-only-when-missing behaviour.
+ *
+ * "Public home" here is `GET /`, not `GET /home/sections`. The showcase was
+ * moved into the initial HTML so search engines see the eighteen link types
+ * on the first pass instead of behind a JavaScript fetch; these assertions
+ * are about which cards render, not about which response carries them.
  */
 class HomeLinkTypesEditorTest extends TestCase
 {
@@ -56,7 +61,7 @@ class HomeLinkTypesEditorTest extends TestCase
         // must fall back to the shared SitePagesContent defaults.
         $this->makeHomePage([]);
 
-        $resp = $this->get(route('home.sections'));
+        $resp = $this->get('/');
         $resp->assertOk();
 
         $defaults = SitePagesContent::homeLinkTypesDefault();
@@ -79,7 +84,7 @@ class HomeLinkTypesEditorTest extends TestCase
         // also fall back to the defaults rather than render an empty grid.
         $this->makeHomePage(['link_types' => []]);
 
-        $resp = $this->get(route('home.sections'));
+        $resp = $this->get('/');
         $resp->assertOk();
         $resp->assertSee(SitePagesContent::homeLinkTypesDefault()[0]['desc'], false);
     }
@@ -158,7 +163,7 @@ class HomeLinkTypesEditorTest extends TestCase
 
         // Public home reflects the edits, in order, and no longer shows the
         // default first-card description.
-        $publicResp = $this->get(route('home.sections'));
+        $publicResp = $this->get('/');
         $publicResp->assertOk();
         $publicResp->assertSee('Zebra Link', false);
         $publicResp->assertSee('Apple Link', false);
@@ -259,7 +264,7 @@ class HomeLinkTypesEditorTest extends TestCase
         $this->assertFalse($stored[0]['featured']);
         $this->assertTrue($stored[6]['featured']);
 
-        $publicResp = $this->get(route('home.sections'));
+        $publicResp = $this->get('/');
         $publicResp->assertOk();
         $html = $publicResp->getContent();
 
@@ -342,7 +347,7 @@ class HomeLinkTypesEditorTest extends TestCase
         );
         $this->assertSame(['Split Type 1', 'Split Type 8', 'Split Type 9'], $expectedMore);
 
-        $publicResp = $this->get(route('home.sections'));
+        $publicResp = $this->get('/');
         $publicResp->assertOk();
         $html = $publicResp->getContent();
 

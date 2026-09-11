@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Admin\Models\SiteStat;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Tests\Support\RendersTheHomepage;
 use Tests\TestCase;
 
 /**
@@ -25,6 +26,7 @@ use Tests\TestCase;
 class HomepageNumbersAndBrandReadRightTest extends TestCase
 {
     use RefreshDatabase;
+    use RendersTheHomepage;
 
     protected function setUp(): void
     {
@@ -89,10 +91,14 @@ class HomepageNumbersAndBrandReadRightTest extends TestCase
      */
     public function test_the_count_up_animation_groups_the_same_way_the_page_does(): void
     {
-        // The trust band is below the fold and arrives through /home/sections,
-        // the deferred fragment the homepage fetches after first paint -- not
-        // through '/'. Asserting against '/' passes vacuously.
-        $html = $this->get('/home/sections')->assertOk()->getContent();
+        // The trust band is in the INITIAL HTML now. It used to arrive only
+        // through /home/sections, and these two tests carried a comment
+        // warning that asserting against '/' passed vacuously. That is
+        // exactly backwards today, and deliberately so: the band was moved
+        // into the first response so crawlers read the numbers. Asserting
+        // against '/' is now the assertion -- if the band slips back behind
+        // the fetch, this fails, which is the point.
+        $html = $this->initialHomepageHtml();
 
         $this->assertStringNotContainsString(
             "toLocaleString('en-IN')",
@@ -115,10 +121,14 @@ class HomepageNumbersAndBrandReadRightTest extends TestCase
      */
     public function test_the_old_brand_is_named_as_a_rename(): void
     {
-        // The trust band is below the fold and arrives through /home/sections,
-        // the deferred fragment the homepage fetches after first paint -- not
-        // through '/'. Asserting against '/' passes vacuously.
-        $html = $this->get('/home/sections')->assertOk()->getContent();
+        // The trust band is in the INITIAL HTML now. It used to arrive only
+        // through /home/sections, and these two tests carried a comment
+        // warning that asserting against '/' passed vacuously. That is
+        // exactly backwards today, and deliberately so: the band was moved
+        // into the first response so crawlers read the numbers. Asserting
+        // against '/' is now the assertion -- if the band slips back behind
+        // the fetch, this fails, which is the point.
+        $html = $this->initialHomepageHtml();
 
         if (! str_contains($html, '1IN.ME')) {
             $this->markTestSkipped('the brand lockup has been removed from the homepage');

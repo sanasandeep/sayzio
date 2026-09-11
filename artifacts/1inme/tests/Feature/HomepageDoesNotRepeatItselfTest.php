@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Tests\Support\RendersTheHomepage;
 use Tests\TestCase;
 
 /**
@@ -30,13 +31,21 @@ use Tests\TestCase;
  */
 class HomepageDoesNotRepeatItselfTest extends TestCase
 {
-    /** The classic homepage's below-the-fold content. */
+    use RendersTheHomepage;
+
+    /**
+     * Everything below the classic homepage's hero.
+     *
+     * That used to be one response. It is two now: the proof band, the
+     * showcase and the audience section are server-rendered into `/` for
+     * search engines, and the rest still arrives through /home/sections.
+     * A test about what was CUT from the page has to look at the whole page,
+     * or the split quietly turns "this section is gone" into "this section
+     * is in the other response".
+     */
     private function sections(): string
     {
-        $response = $this->get('/home/sections');
-        $response->assertOk();
-
-        return $response->getContent();
+        return $this->wholeHomepage();
     }
 
     public function test_the_removed_sections_are_gone(): void
@@ -83,12 +92,48 @@ class HomepageDoesNotRepeatItselfTest extends TestCase
      * A dead selector matches nothing and breaks nothing, which is what makes
      * it worth a test: it would have sat there describing a section that no
      * longer exists until somebody wasted an hour on it.
+     *
+     * THIS TEST USED TO PASS FOR THE WRONG REASON. It searched the
+     * /home/sections fragment for the selector string, and the injector is
+     * not in that fragment at all -- it is included from home.blade.php.
+     * The string was absent because the whole file was absent, so the
+     * assertion held no matter what the SELECTORS array said. Server-
+     * rendering the first sections put the injector in the haystack and the
+     * test failed on the explanatory comment, which is how the hole was
+     * found.
+     *
+     * So it reads the source and looks at the ACTIVE entries only. A
+     * selector named in a comment saying why it was removed is the file
+     * doing its job; one still in the array is the bug.
      */
     public function test_no_selector_points_at_a_removed_section(): void
     {
+        $source = (string) file_get_contents(
+            resource_path('views/home/partials/expandable-cards.blade.php')
+        );
+
+        $active = [];
+        foreach (preg_split('/\R/', $source) as $line) {
+            $trimmed = trim($line);
+            if ($trimmed === '' || str_starts_with($trimmed, '//') || str_starts_with($trimmed, '*')) {
+                continue;
+            }
+            $active[] = $trimmed;
+        }
+        $active = implode("\n", $active);
+
+        // Guard the guard: if the array is ever renamed or restructured, the
+        // loop above could silently have nothing to look at.
+        $this->assertStringContainsString(
+            "'#audience .audience-card'",
+            $active,
+            'the SELECTORS array no longer looks the way this test reads it -- '
+            . 'the check below would pass against anything'
+        );
+
         $this->assertStringNotContainsString(
             "'#share .share-card'",
-            $this->sections(),
+            $active,
             'the expandable-card injector still lists a selector for the removed Share section'
         );
     }
