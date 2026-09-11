@@ -11,7 +11,60 @@
     $landingForJs = !empty($landing_testimonials) ? $landing_testimonials : $defaultsTest;
     $featuresForJs = !empty($features_testimonials) ? $features_testimonials : $defaultsTest;
     $whyForJs = !empty($why_comparison) ? $why_comparison : $defaultsWhy;
+
+    /*
+     * Everything the Alpine component starts with, as ONE array.
+     *
+     * This used to be written straight into x-data='{ ... }' as an object
+     * literal, together with a resetTo() method. The method's strings are
+     * quoted with apostrophes -- title: 'Reset this section?' -- and the
+     * attribute itself is delimited by apostrophes, so the browser ended the
+     * attribute at the first one inside the method. Alpine then received a
+     * truncated expression with three unclosed braces, threw a SyntaxError,
+     * and initialised NOTHING on this page: every repeater below rendered
+     * zero rows and every button did nothing, with no visible error.
+     *
+     * Data goes through @json (which escapes apostrophes) and behaviour goes
+     * in a <script>, so no hand-written string ever sits inside the
+     * attribute again. Same shape admin/plans/_form.blade.php already uses.
+     */
+    $alpineState = [
+        'marquee'         => $marqueeForJs,
+        'trust'           => $trustForJs,
+        'landing'         => $landingForJs,
+        'features'        => $featuresForJs,
+        'why'             => $whyForJs,
+        'marqueeDefaults' => $defaultsMarquee,
+        'trustDefaults'   => $defaultsTrust,
+        'testDefaults'    => $defaultsTest,
+        'whyDefaults'     => $defaultsWhy,
+    ];
 @endphp
+
+@push('scripts')
+{{-- Defined in the body, where it runs while the document parses; Alpine is
+     loaded with `defer` in <head> and therefore executes later, so the
+     function is always in place before x-data is evaluated. --}}
+<script>
+    function marketingSettings(state) {
+        return Object.assign({}, state, {
+            resetTo(key, defaults) {
+                var self = this;
+                window.themedConfirm({
+                    title: 'Reset this section?',
+                    message: 'Your current rows will be replaced with the shipped defaults. You still need to click Save to keep the change.',
+                    confirmText: 'Reset',
+                    confirmIcon: 'fa-rotate-left',
+                    iconClass: 'fa-rotate-left',
+                    onConfirm: function () {
+                        self[key] = JSON.parse(JSON.stringify(defaults));
+                    },
+                });
+            },
+        });
+    }
+</script>
+@endpush
 <div class="max-w-4xl mx-auto space-y-6">
     <a href="{{ route('admin.site-pages.index') }}" class="ak-blue text-xs text-blue-400 hover:underline">
         <i class="fas fa-arrow-left mr-1"></i>Back to all pages
@@ -24,30 +77,7 @@
     @endif
 
     <form method="POST" action="{{ route('admin.marketing-settings.update') }}"
-          x-data='{
-              marquee: @json($marqueeForJs),
-              trust: @json($trustForJs),
-              landing: @json($landingForJs),
-              features: @json($featuresForJs),
-              why: @json($whyForJs),
-              marqueeDefaults: @json($defaultsMarquee),
-              trustDefaults: @json($defaultsTrust),
-              testDefaults: @json($defaultsTest),
-              whyDefaults: @json($defaultsWhy),
-              resetTo(key, defaults) {
-                  var self = this;
-                  window.themedConfirm({
-                      title: 'Reset this section?',
-                      message: 'Your current rows will be replaced with the shipped defaults. You still need to click Save to keep the change.',
-                      confirmText: 'Reset',
-                      confirmIcon: 'fa-rotate-left',
-                      iconClass: 'fa-rotate-left',
-                      onConfirm: function () {
-                          self[key] = JSON.parse(JSON.stringify(defaults));
-                      },
-                  });
-              },
-          }'
+          x-data='marketingSettings(@json($alpineState))'
           class="space-y-6">
         @csrf
         @method('PUT')
