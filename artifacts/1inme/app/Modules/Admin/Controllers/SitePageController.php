@@ -182,6 +182,35 @@ class SitePageController extends Controller
             $rules['extra.milestones.*.date']             = 'nullable|string|max:40';
             $rules['extra.milestones.*.title']            = 'nullable|string|max:200';
             $rules['extra.milestones.*.description']      = 'nullable|string|max:1000';
+
+            // About EEFind (parent company).
+            //
+            // These were missing, and `$request->validate()` returns only the
+            // keys it has rules for -- so the whole eefind block was stripped
+            // out of the payload on every save. normalizeAboutExtra() reads an
+            // absent `eefind` key as "this row predates the section" and
+            // substitutes the code defaults, which made the failure invisible:
+            // the editor had a full set of inputs, the save reported success,
+            // and the card came back showing the hardcoded phone number and
+            // the hardcoded 4K+/2K+/35+ stats. Nothing in that block could be
+            // changed, and an edit to one field silently reverted all nine.
+            //
+            // Lenient on purpose, matching the sections above: this is
+            // presence-and-length only, and normalizeAboutExtra() is what
+            // trims, clamps, drops blank stat rows and caps the repeater.
+            $rules['extra.eefind']                        = 'nullable|array';
+            $rules['extra.eefind.eyebrow']                = 'nullable|string|max:120';
+            $rules['extra.eefind.heading']                = 'nullable|string|max:200';
+            $rules['extra.eefind.body']                   = 'nullable|string|max:2000';
+            $rules['extra.eefind.address']                = 'nullable|string|max:300';
+            $rules['extra.eefind.email']                  = 'nullable|string|max:190';
+            $rules['extra.eefind.whatsapp']               = 'nullable|string|max:60';
+            $rules['extra.eefind.website']                = 'nullable|string|max:190';
+            $rules['extra.eefind.website_url']            = 'nullable|string|max:300';
+            $rules['extra.eefind.stats']                  = 'nullable|array|max:6';
+            $rules['extra.eefind.stats.*.value']          = 'nullable|string|max:40';
+            $rules['extra.eefind.stats.*.suffix']         = 'nullable|string|max:10';
+            $rules['extra.eefind.stats.*.label']          = 'nullable|string|max:120';
         }
         if ($slug === 'home') {
             // "What you can create" link-types showcase. Lenient validation
