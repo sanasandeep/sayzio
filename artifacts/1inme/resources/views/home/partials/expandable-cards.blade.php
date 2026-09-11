@@ -65,6 +65,25 @@
            fades, so the change of context still registers. */
     }
     html.light-mode .xc-modal { background: #fff; border-color: #E6E8F2; box-shadow: 0 40px 90px -46px rgba(11,16,51,.4); }
+    /* Two kinds of modal open from these cards, and only one of them wants
+       1080px.
+
+       A card that ships its own `<template class="xc-detail">` gets a real
+       two-column panel -- copy on the left, a live visual on the right --
+       and it fills that width.
+
+       A card without one opens a cleaned-up clone of itself, and everything
+       in a clone is capped at 660px on purpose (see the note below: a card
+       row stretched to 1080px puts 900px of nothing between a label and its
+       value). So that panel reserved 1080px and then used 660 of it, leaving
+       a 290px column of nothing down the right-hand side, and the content
+       sitting off-centre in its own box because .xc-body adds a further 44px
+       of padding on the right only.
+
+       Sizing the panel to the content it actually has is the fix: 660px of
+       content between two equal 44px gutters. */
+    .xc-modal--clone { width: min(748px, 100%); }
+    .xc-modal--clone .xc-body { padding-right: 0; }
     .xc-close {
         position: absolute; top: 14px; right: 14px; z-index: 2;
         width: 36px; height: 36px; border-radius: 10px;
@@ -855,7 +874,9 @@
         scrim.setAttribute('aria-label', titleOf(card));
 
         var modal = document.createElement('div');
-        modal.className = 'xc-modal';
+        // Narrower panel: a clone's content is capped at 660px, so a 1080px
+        // one is mostly empty.
+        modal.className = 'xc-modal xc-modal--clone';
 
         var closeBtn = document.createElement('button');
         closeBtn.type = 'button';
