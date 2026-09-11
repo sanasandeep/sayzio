@@ -143,6 +143,56 @@ class PlatformHosts
     }
 
     /**
+     * Every host we own and serve the marketing site on.
+     *
+     * PLATFORM_DOMAINS is a hardcoded pair, and the real list is longer and
+     * lives in the database: the admin manages it at /admin/domains, and as
+     * of 2026-09-11 it holds five — sayzio.app, 1in.me, bizs.club,
+     * getbio.one and sayzio.link.
+     *
+     * The three the constant did not know about were invisible to every
+     * consolidation path, so each served the whole marketing site with a
+     * canonical pointing at itself. Verified live: bizs.club/pricing and
+     * getbio.one/pricing both return the full Sayzio pricing page, titled
+     * identically, each claiming to be the original. Five copies of the
+     * marketing site, five claimants, one set of ranking signals split five
+     * ways.
+     *
+     * Reads Domain::platformHostMap(), which is already cached and already
+     * flushed on any domain write, so adding a sixth domain in admin needs no
+     * deploy. Unioned with the constant so the two brand hosts are recognised
+     * even if their rows are missing or the database is unreachable, and so
+     * this can never return an empty list.
+     *
+     * NOTE this is deliberately NOT wired into platformDomains(), which
+     * Link::resolveByAlias uses. Alias resolution already handles these
+     * hosts correctly through the domains table, by a different branch that
+     * additionally honours is_active/is_verified. Routing them down the
+     * platform-host branch instead would silently skip that check, so a
+     * domain an admin deactivated would keep resolving links. This function
+     * answers "is this host ours, for canonical purposes", nothing more.
+     *
+     * @return array<int,string>
+     */
+    public static function globalBrandHosts(): array
+    {
+        $hosts = self::brandDomains();
+
+        try {
+            foreach (array_keys(Domain::platformHostMap()) as $host) {
+                $normalized = self::normalize((string) $host);
+                if ($normalized !== null) {
+                    $hosts[] = $normalized;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Database unreachable — the constant pair still stands.
+        }
+
+        return array_values(array_unique($hosts));
+    }
+
+    /**
      * The bare brand domain this host stands for, or null.
      *
      * `www.sayzio.app` and `sayzio.app` both answer on the live site, neither
@@ -164,7 +214,9 @@ class PlatformHosts
             return null;
         }
 
-        $brands = self::brandDomains();
+        // Every host we own, not just the two in the constant -- see
+        // globalBrandHosts() for what that omission was costing.
+        $brands = self::globalBrandHosts();
         if (in_array($normalized, $brands, true)) {
             return $normalized;
         }

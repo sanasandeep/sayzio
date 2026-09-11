@@ -278,6 +278,109 @@ class AliasNamespacesAreNotCollapsedTest extends TestCase
         );
     }
 
+    // ------------------------------------------------- all five brand hosts
+
+    /**
+     * There are five brand domains, not the two in the constant.
+     *
+     * Sana: "1in.me / bizs.club / getbio.one / sayzio.app / sayzio.link -
+     * there all are global domains, managed by admin." PlatformHosts had two
+     * of them hardcoded, so the other three were invisible to every
+     * consolidation path and each served the whole marketing site
+     * canonicalising to itself. Verified live 2026-09-11: bizs.club/pricing
+     * and getbio.one/pricing both returned the full Sayzio pricing page,
+     * identically titled, each claiming to be the original.
+     *
+     * The list is read from the domains table, so a sixth domain added in
+     * admin is covered without a deploy -- which is why this test creates
+     * one rather than asserting today's five by name.
+     */
+    public function test_a_brand_domain_added_in_admin_consolidates_without_a_deploy(): void
+    {
+        Domain::firstOrCreate(
+            ['domain' => 'bizs.club'],
+            ['user_id' => null, 'type' => 'global', 'is_verified' => true, 'is_active' => true]
+        );
+        Cache::flush();
+
+        $this->assertTrue(
+            PlatformHosts::isNonPrimaryBrandDomain('bizs.club'),
+            'a global domain the admin manages is not recognised as ours, so its copy '
+            . 'of the marketing site competes with sayzio.app'
+        );
+
+        $this->assertSame(
+            'https://sayzio.app/pricing',
+            $this->withRequest(
+                'https://bizs.club/pricing',
+                fn () => PlatformHosts::canonicalUrl()
+            ),
+            'a marketing page on a brand domain still claims to be the original'
+        );
+    }
+
+    /** And the www variant of one of those domains folds too. */
+    public function test_the_www_variant_of_a_db_driven_brand_domain_folds(): void
+    {
+        Domain::firstOrCreate(
+            ['domain' => 'getbio.one'],
+            ['user_id' => null, 'type' => 'global', 'is_verified' => true, 'is_active' => true]
+        );
+        Cache::flush();
+
+        $this->assertSame(
+            'https://getbio.one/sana',
+            $this->hostScopedFor('https://www.getbio.one/sana'),
+            'www.getbio.one is a second canonical URL for the same alias namespace'
+        );
+    }
+
+    /**
+     * A brand domain keeps its OWN alias namespace, even now that the
+     * canonical layer recognises it.
+     *
+     * This is the line the previous fix drew, restated for the three domains
+     * that were just added to the brand list: recognising a host as ours
+     * means its MARKETING pages consolidate. It must not start collapsing its
+     * aliases onto sayzio.app, which is the exact bug this whole file exists
+     * for.
+     */
+    public function test_recognising_a_brand_domain_does_not_merge_its_aliases(): void
+    {
+        Domain::firstOrCreate(
+            ['domain' => 'bizs.club'],
+            ['user_id' => null, 'type' => 'global', 'is_verified' => true, 'is_active' => true]
+        );
+        Cache::flush();
+
+        $this->assertSame(
+            'https://bizs.club/sana',
+            $this->hostScopedFor('https://bizs.club/sana'),
+            'an alias page on bizs.club is canonicalising onto sayzio.app, where that '
+            . 'URL is a different page'
+        );
+    }
+
+    /** A customer's own domain is still not one of ours. */
+    public function test_a_custom_domain_is_not_treated_as_a_brand_host(): void
+    {
+        $owner = $this->makeUser();
+        Domain::create([
+            'user_id' => $owner->id,
+            'domain' => 'links.acme.example',
+            'type' => 'custom',
+            'is_verified' => true,
+            'is_active' => true,
+        ]);
+        Cache::flush();
+
+        $this->assertFalse(
+            PlatformHosts::isNonPrimaryBrandDomain('links.acme.example'),
+            "a customer's domain is being redirected to sayzio.app, which takes their "
+            . 'site down'
+        );
+    }
+
     private function hostScopedFor(string $url): string
     {
         return $this->withRequest($url, fn () => PlatformHosts::hostScopedCanonicalUrl());
