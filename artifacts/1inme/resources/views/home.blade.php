@@ -3219,12 +3219,28 @@
 {{-- ==================== ZONE · HOOK & CREDIBILITY ==================== --}}
 @include('home.partials.hero')
 
+{{-- ==================== SERVER-RENDERED SECTIONS ====================
+     The first sections below the hero, in the initial HTML rather than in
+     the fetch below, so a crawler's first pass finds the page's headings,
+     its body copy and its internal links instead of a spinner. Which view
+     (if any) is the active design's business: see the 'above' key in
+     HomeController::DESIGNS, and the reasoning in the view itself.
+
+     index() always passes $aboveFoldView, as a view name or as null. empty()
+     rather than isset() because it has to answer BOTH of those and the
+     undefined case — a design that defers everything passes null, and any
+     other renderer of this view (a test rendering it directly) passes
+     nothing at all. empty() is the one check that is safe on all three. --}}
+@if(!empty($aboveFoldView))
+    @include($aboveFoldView)
+@endif
+
 {{-- ==================== DEFERRED BELOW-THE-FOLD SECTIONS ====================
-     Everything after the hero (brand section, showcase, AI zone, pricing,
-     FAQ, final CTA…) is server-rendered by the /home/sections fragment and
-     injected here right after first paint. This keeps the initial response
-     to just header + hero + CTA (small HTML, no plan/link-type queries),
-     while the full brand story still arrives moments later — triggered by
+     Everything after the sections above (AI zone, pricing, FAQ, final CTA…)
+     is server-rendered by the /home/sections fragment and injected here
+     right after first paint. This keeps the initial response small — no
+     plan or blog queries — while the rest of the brand story still
+     arrives moments later — triggered by
      window load, first interaction, or a short failsafe timer, whichever
      comes first. Injected <script> tags are re-created so they execute;
      Alpine's mutation observer initializes injected x-data trees, and

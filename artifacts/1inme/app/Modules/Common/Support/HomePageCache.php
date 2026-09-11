@@ -59,6 +59,21 @@ class HomePageCache
     /** Live, publicly viewable AI-hero demo aliases. */
     public const AI_HERO_ALIASES_KEY = 'home:ai_hero_demo_aliases';
 
+    /**
+     * The "what you can create" link-type list, on its own key.
+     *
+     * It is also inside the per-currency payload, and that is deliberately
+     * not what the homepage's FIRST response reads. The showcase is
+     * server-rendered into the initial HTML now (see
+     * home/above-fold-sections.blade.php), and reaching for the payload to
+     * get it would make a cold key cost the entire plan matrix — a dozen
+     * queries and the tax maths — on the one response where time-to-first-
+     * byte is the whole point, for a section that shows no prices.
+     *
+     * One SitePage row, cached. A miss costs one query.
+     */
+    public const LINK_TYPES_CACHE_KEY = 'home:link_types';
+
     /** TTL for lazily rebuilt caches on the request path (seconds). */
     public const TTL = 300;
 
@@ -100,6 +115,7 @@ class HomePageCache
         // the lazy request-path rebuild for whatever stayed cold).
         $summary = [
             'payload_currencies' => [],
+            'link_types' => 0,
             'featured_posts' => 0,
             'ai_hero_aliases' => 0,
             'branding_hosts' => [],
@@ -119,6 +135,17 @@ class HomePageCache
             } catch (\Throwable $e) {
                 $summary['errors'][] = self::reportWarmFailure('payload:' . $currency, $e);
             }
+        }
+
+        // The homepage's FIRST response reads this one — it renders the
+        // showcase into the initial HTML — so a cold key here is felt at
+        // time-to-first-byte, not somewhere below the fold.
+        try {
+            $types = self::buildLinkTypes();
+            Cache::put(self::LINK_TYPES_CACHE_KEY, $types, self::WARM_TTL);
+            $summary['link_types'] = count($types);
+        } catch (\Throwable $e) {
+            $summary['errors'][] = self::reportWarmFailure('link_types', $e);
         }
 
         try {
@@ -412,23 +439,62 @@ class HomePageCache
             ];
         }
 
-        // "What you can create" link-types showcase. Admin-editable from the
-        // `home` SitePage row under extra.link_types; falls back to the shared
-        // SitePagesContent defaults when unset (or the table isn't migrated).
-        $linkTypes = SitePagesContent::homeLinkTypesDefault();
+        // "What you can create" link-types showcase. Shares one builder with
+        // the standalone LINK_TYPES_CACHE_KEY so the list the deferred
+        // fragment renders and the list the initial HTML renders can never
+        // drift into two different grids on one page.
+        $linkTypes = self::buildLinkTypes();
+
+        return compact('plans', 'linkTypes', 'cheapestPaid');
+    }
+
+    /**
+     * The admin-editable link-type list, cached on its own key.
+     *
+     * Read by HomeController::index() for the server-rendered showcase. Kept
+     * warm by `home:warm-caches`; a miss rebuilds lazily here.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function linkTypes(): array
+    {
+        try {
+            $cached = Cache::remember(
+                self::LINK_TYPES_CACHE_KEY,
+                self::TTL,
+                fn () => self::buildLinkTypes()
+            );
+
+            // A cache driver handing back something unexpected must not take
+            // the homepage down — the showcase has a complete default list.
+            return is_array($cached) && $cached !== [] ? $cached : SitePagesContent::homeLinkTypesDefault();
+        } catch (\Throwable $e) {
+            return SitePagesContent::homeLinkTypesDefault();
+        }
+    }
+
+    /**
+     * Admin-editable from the `home` SitePage row under extra.link_types;
+     * falls back to the shared SitePagesContent defaults when unset (or the
+     * table isn't migrated).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function buildLinkTypes(): array
+    {
         try {
             $homePage = SitePage::where('slug', 'home')->first();
             $saved = $homePage
                 ? SitePagesContent::normalizeHomeLinkTypes((array) data_get($homePage->extra, 'link_types', []))
                 : [];
             if (!empty($saved)) {
-                $linkTypes = $saved;
+                return $saved;
             }
         } catch (\Throwable $e) {
             // SitePages migration not run yet — use defaults.
         }
 
-        return compact('plans', 'linkTypes', 'cheapestPaid');
+        return SitePagesContent::homeLinkTypesDefault();
     }
 
     /**

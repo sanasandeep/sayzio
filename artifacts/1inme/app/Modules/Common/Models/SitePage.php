@@ -24,11 +24,37 @@ class SitePage extends Model
         static::saved(function (self $page) {
             \App\Modules\Common\Controllers\SitemapController::flushPublicCaches();
             $page->forgetSlugCache();
+            $page->forgetHomeLinkTypesCache();
         });
         static::deleted(function (self $page) {
             \App\Modules\Common\Controllers\SitemapController::flushPublicCaches();
             $page->forgetSlugCache();
+            $page->forgetHomeLinkTypesCache();
         });
+    }
+
+    /**
+     * The homepage's "what you can create" grid is edited on THIS row (the
+     * `home` page, under extra.link_types) and is now server-rendered into
+     * the homepage's initial HTML from its own cache key.
+     *
+     * Without this, an admin saving the grid watched the old cards for up to
+     * five minutes and reasonably concluded the save had not worked. Scoped
+     * to the `home` row because no other page feeds that key.
+     */
+    protected function forgetHomeLinkTypesCache(): void
+    {
+        if ($this->slug !== 'home' && $this->getOriginal('slug') !== 'home') {
+            return;
+        }
+
+        try {
+            \Illuminate\Support\Facades\Cache::forget(
+                \App\Modules\Common\Support\HomePageCache::LINK_TYPES_CACHE_KEY
+            );
+        } catch (\Throwable $e) {
+            // Cache flushing must never break the write path.
+        }
     }
 
     protected function forgetSlugCache(): void

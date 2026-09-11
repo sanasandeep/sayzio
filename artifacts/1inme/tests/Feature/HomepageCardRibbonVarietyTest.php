@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\AssertsAgainstLargeSubjects;
+use Tests\Support\RendersTheHomepage;
 use Tests\TestCase;
 
 /**
@@ -19,6 +20,11 @@ class HomepageCardRibbonVarietyTest extends TestCase
 {
     use RefreshDatabase;
     use AssertsAgainstLargeSubjects;
+    // The four ribboned bands are split across the two homepage responses
+    // now -- the audience band is server-rendered, the other three are
+    // deferred -- and "four different shapes on four different bands" is a
+    // claim about the page, not about either half of it.
+    use RendersTheHomepage;
 
     private function partial(): string
     {
@@ -150,7 +156,7 @@ class HomepageCardRibbonVarietyTest extends TestCase
             'the gradient id is not per-instance'
         );
 
-        $html = $this->get('/home/sections')->assertOk()->getContent();
+        $html = $this->wholeHomepage();
 
         preg_match_all('/<linearGradient id="(cr[0-9a-f]+)-a"/', $html, $ids);
 
@@ -192,7 +198,7 @@ class HomepageCardRibbonVarietyTest extends TestCase
     /** All four render, on four different bands. */
     public function test_four_ribbons_render_on_four_bands(): void
     {
-        $html = $this->get('/home/sections')->assertOk()->getContent();
+        $html = $this->wholeHomepage();
 
         foreach (array_column($this->placements(), 'shape') as $shape) {
             $this->assertSubjectContains(
