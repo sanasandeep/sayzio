@@ -133,12 +133,40 @@
     .xc-body [data-expand-more] { display: block; }
     .xc-host [data-expand-more] { display: none; }
 
+    /* ---------- rhythm, scaled with the type ----------
+       The line above takes a card's 18px heading to 30px and its 13px body
+       copy to 15.5px -- roughly two thirds bigger. The SPACING between those
+       pieces came along at card size: the icon's `mb-4`, the heading's
+       `mb-1.5`, the intro's `mb-5`. 6px under an 18px heading is a considered
+       gap; 6px under a 30px one reads as no gap at all, which is what Sana
+       saw and described as "spacing isnt there at all".
+
+       So the rhythm scales with the type. These target the pieces by what
+       they are -- the icon chip, a heading, the intro paragraph under it --
+       rather than by position, because the cards do not share a structure:
+       some nest their content in a flex column, some put it straight in the
+       card, and some carry an eyebrow above the heading. `!important` is
+       what it takes to beat a Tailwind margin utility.
+
+       Scoped to .xc-body throughout, so the cards themselves keep the
+       compact spacing they were designed with. */
+    .xc-body .card-ico { margin-bottom: 26px !important; }
+    .xc-body :is(h3, h4) { margin-bottom: 14px !important; }
+    .xc-body :is(h3, h4) + p { margin-bottom: 32px !important; }
+    /* A control strip cloned out of a card -- the swatch row, the font pills
+       -- is stacked on `space-y-2/3`, which is 8-12px. At this size those
+       rows touch. */
+    .xc-body :is(.space-y-2, .space-y-3) > * + * { margin-top: 16px !important; }
+
     /* ---------- richer modal copy (xm- = expand more) ----------
        Type and rhythm for the long-form block a card opts into. It only ever
        renders inside .xc-body, so everything here is scoped to that: the card
        itself keeps its own compact styling untouched. */
     .xc-body [data-expand-more] {
-        margin-top: 26px; padding-top: 24px;
+        /* 26/24 when the card's own content above it was still at card
+           spacing. Now that the rhythm above scales with the type, the rule
+           that separates the card from the long-form block has to clear it. */
+        margin-top: 34px; padding-top: 30px;
         border-top: 1px solid rgba(255,255,255,.10);
     }
     html.light-mode .xc-body [data-expand-more] { border-top-color: #E6E8F2; }
@@ -856,6 +884,29 @@
         // The decorative bloom circles are drawn in white-on-blue and turn
         // into grey smudges once the blue is gone.
         clone.querySelectorAll('.bg-white\\/10, .bg-white\\/5').forEach(function (n) { n.remove(); });
+
+        // The icon chip's gradient is painted by `html .card-row .card-ico`,
+        // off two custom properties set on the ROW. The modal is not in that
+        // row, so the clone's chip matched nothing: a bare 48px square with a
+        // dark glyph where the card had a coloured tile with a white one.
+        //
+        // Copying the computed values across is the fix that does not need to
+        // know which gradient this card uses, or that the pair lives on an
+        // ancestor at all -- whatever the card is actually painted with today
+        // is what the modal shows.
+        (function carryIconPaint() {
+            var srcIcos = card.querySelectorAll('.card-ico');
+            var dstIcos = clone.querySelectorAll('.card-ico');
+            for (var i = 0; i < srcIcos.length && i < dstIcos.length; i++) {
+                var sc = getComputedStyle(srcIcos[i]);
+                dstIcos[i].style.backgroundImage = sc.backgroundImage;
+                dstIcos[i].style.backgroundColor = sc.backgroundColor;
+                dstIcos[i].style.boxShadow = sc.boxShadow;
+                var sGlyph = srcIcos[i].querySelector('i, svg');
+                var dGlyph = dstIcos[i].querySelector('i, svg');
+                if (sGlyph && dGlyph) { dGlyph.style.color = getComputedStyle(sGlyph).color; }
+            }
+        })();
 
         // Card chrome belongs to the card; inside the modal it would be a box
         // drawn inside a box.
