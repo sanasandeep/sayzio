@@ -89,7 +89,7 @@
                         </div>
                         <div class="fb-field">
                             <span class="fb-label">Email address</span>
-                            <div class="fb-input">you@studio.com</div>
+                            <div class="fb-input">you@example.com</div>
                         </div>
                         <div class="fb-field">
                             <span class="fb-label">What do you need?</span>

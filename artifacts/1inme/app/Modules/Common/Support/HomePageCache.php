@@ -45,8 +45,13 @@ class HomePageCache
      * back to the old (wrong) figure for whatever remains of their TTL.
      * Changing the prefix retires them at deploy instead of leaving a live
      * pricing misstatement up for another cache window.
+     *
+     * v3 adds the annual price per currency. Same reasoning, and the same
+     * consequence if it is not bumped: a v2 payload has no annual figure, so
+     * the teaser would keep showing the wrong currency on the annual tab for
+     * the rest of its TTL, which is exactly the bug being fixed.
      */
-    public const ANON_PAYLOAD_PREFIX = 'home:anon:payload:v2:';
+    public const ANON_PAYLOAD_PREFIX = 'home:anon:payload:v3:';
 
     /** Featured blog-post carousel rows (plain attribute arrays). */
     public const FEATURED_CACHE_KEY = 'home:featured_blog_posts';
@@ -363,9 +368,41 @@ class HomePageCache
             if ($minor <= 0 || $minor >= $cheapestMinor) {
                 continue;
             }
+            // BOTH cadences, in every currency.
+            //
+            // This held monthly only, while the comment above claimed the
+            // teaser's currency switch "keeps working" -- and for monthly it
+            // did. The annual figure was computed once in the Blade, from
+            // whichever currency this shared cache happened to be warmed in,
+            // and then shown to everybody. So the homepage read Rs 167 on the
+            // monthly tab and $3.33 on the annual one, for the same plan, at
+            // the same moment.
             $pricesByCur = [];
             foreach (self::CURRENCIES as $cur) {
-                $pricesByCur[$cur] = ['monthly' => PricingResolver::priceForCurrency($p, $cur, 'monthly')];
+                $annual = PricingResolver::priceForCurrency($p, $cur, 'annual');
+                $annualMinor = (int) ($annual['amount_minor'] ?? 0);
+
+                // The teaser's headline reads "/mo, from", so an annual plan
+                // needs its monthly equivalent as well as its yearly total.
+                //
+                // Only when there IS an annual price. A currency with no
+                // annual row resolves to zero (buildPrice is explicit about
+                // that rather than falling back to USD), and "Rs 0.00/mo" is
+                // a worse answer than showing the monthly figure -- so the
+                // keys are left absent and the view falls through.
+                if ($annualMinor > 0) {
+                    $annual['per_month_formatted'] = PricingResolver::money(
+                        (int) round($annualMinor / 12),
+                        $cur
+                    );
+                } else {
+                    $annual = null;
+                }
+
+                $pricesByCur[$cur] = [
+                    'monthly' => PricingResolver::priceForCurrency($p, $cur, 'monthly'),
+                    'annual' => $annual,
+                ];
             }
             $cheapestMinor = $minor;
             $cheapestPaid = [

@@ -25,7 +25,13 @@
      <template>, where the whole block never reaches the document. --}}
 @once
 <style>
-    .pr-band {
+    /* The tokens and the band chrome are separate concerns. /pricing wants
+       the card language -- the light/dark pair, the hairline cells, the ink
+       pill -- on its own ground, with its own rail, and without this band's
+       wash and dotted verticals. `.pr-scope` is those tokens and nothing
+       else, so there is one definition of what a Sayzio pricing card looks
+       like rather than two that drift. */
+    .pr-band, .pr-scope {
         --pr-ground:   #F5F6FA;
         --pr-ink:      #0B1033;
         --pr-ink-2:    #4E5680;
@@ -35,11 +41,13 @@
         --pr-card:     #FFFFFF;
         --pr-dot:      rgba(15,23,42,.10);
         --pr-shadow:   0 24px 60px -34px rgba(11,16,48,.30);
+    }
+    .pr-band {
         position: relative;
         isolation: isolate;
         background-color: var(--pr-ground);
     }
-    html:not(.light-mode) .pr-band {
+    html:not(.light-mode) :is(.pr-band, .pr-scope) {
         --pr-ground:   #0E1017;
         --pr-ink:      #FFFFFF;
         --pr-ink-2:    #A9B0D0;

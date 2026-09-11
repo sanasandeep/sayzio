@@ -41,7 +41,7 @@
                     <p class="text-sm text-gray-400 mb-5">Custom slugs, UTM-ready, click tracking. Looks like you, not a random shortener.</p>
                     <div class="sl-pill">
                         <i class="fas fa-link text-[10px]" style="color:var(--c1)"></i>
-                        <span class="host">1inme.co/</span><span class="slug">spring-drop</span>
+                        <span class="host">1in.me/</span><span class="slug">spring-drop</span>
                     </div>
                     <div class="sl-counter">
                         <span><span class="num">1,284</span> clicks today</span>
@@ -65,7 +65,7 @@
                         <div class="cd-rows" aria-hidden="true">
                             <div class="cd-rec">
                                 <span class="ty">CNAME</span>
-                                <span class="val">links → cname.1inme.co</span>
+                                <span class="val">links → cname.1in.me</span>
                                 <span class="ok"><i class="fas fa-circle-check"></i></span>
                             </div>
                             <div class="cd-rec">

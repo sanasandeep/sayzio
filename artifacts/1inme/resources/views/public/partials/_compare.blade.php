@@ -66,7 +66,8 @@
         <div class="text-center mb-10 max-w-2xl mx-auto">
             <div data-anim="fade-up" class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">{{ $eyebrowOverride ?? 'How we compare' }}</div>
             <h2 data-anim="fade-up" class="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
-                More features. <span class="grad-text">Better deal.</span>
+                {{-- Rule 1: "Better deal." was gradient-clipped text. --}}
+                More features. Better deal.
             </h2>
             <p data-anim="fade-up" class="text-gray-400">
                 Pick any tool you already use: see exactly what Sayzio adds on top, including built-in AI, across
@@ -168,7 +169,17 @@
             class="cmp-h2h"
             x-data="{
                 rival: '{{ $__cmpInitialRival }}',
-                showAll: {{ $compact ? 'false' : 'true' }},
+                /* One table, not two. `showAll` used to decide whether a
+                   SECOND table appeared below the first, so /pricing showed
+                   the same 24 rows twice -- once as Sayzio vs the selected
+                   tool, and again as Sayzio vs all six. It now decides how
+                   many columns the one table has. */
+                showAll: false,
+                /* Most of these rows are ticked by everyone, and a row every
+                   tool has is not a comparison -- it is padding. This hides
+                   them, so what is left is only where the tools actually
+                   disagree. */
+                diffOnly: false,
                 rivals: @js(array_slice($__cmpCompetitors, 1)),
                 scores: @js($__cmpScores),
                 winsAnim: 0,
@@ -181,6 +192,24 @@
                 ourScore(){ return this.scores.ours || 0; },
                 rivalScore(){ return this.scores[this.rival] || 0; },
                 wins(){ return Math.max(0, this.ourScore() - this.rivalScore()); },
+                /* The table's own column count. Collapsed it is us and the
+                   selected tool; expanded, every tool. */
+                cols(){ return this.showAll ? {{ count($__cmpCompetitors) }} : 2; },
+                gridStyle(){ return 'grid-template-columns: minmax(200px, 1.6fr) repeat(' + this.cols() + ', minmax(94px, 1fr))'; },
+                spanStyle(){ return 'grid-column: span ' + (this.cols() + 1); },
+                colShown(key){ return key === 'ours' || this.showAll || key === this.rival; },
+                /* A row is interesting when somebody disagrees about it --
+                   measured against the tools currently on screen, so the
+                   filter means the same thing collapsed as expanded. */
+                rowDiffers(sup){
+                    const ours = !!sup.ours;
+                    if (this.showAll) {
+                        return this.rivals.some(r => !!sup[r.key] !== ours);
+                    }
+                    return !!sup[this.rival] !== ours;
+                },
+                rowShown(sup){ return !this.diffOnly || this.rowDiffers(sup); },
+                groupShown(sups){ return !this.diffOnly || sups.some(s => this.rowDiffers(s)); },
                 animateTo(targets){
                     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                         this.ourAnim = targets.ours; this.rivalAnim = targets.rival; this.winsAnim = targets.wins; return;
@@ -205,7 +234,7 @@
             {{-- Rival selector chips (hidden when locked to a single rival) --}}
             @unless($__cmpOnlyKey)
             <div class="cmp-tabs flex flex-wrap items-center justify-center gap-2 mb-6">
-                <span class="text-xs font-bold uppercase tracking-wider text-gray-500 mr-1">Compare Sayzio vs</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-gray-400 mr-1">Compare Sayzio vs</span>
                 @foreach(array_slice($__cmpCompetitors, 1) as $c)
                     <button
                         type="button"
@@ -224,12 +253,12 @@
                  style="grid-template-columns: 1fr auto 1fr;">
                 {{-- Our card --}}
                 <div class="cmp-vs-card cmp-vs-ours rounded-2xl p-4 sm:p-5">
-                    <div class="cmp-vs-name">
-                        <i class="fas fa-bolt"></i> Sayzio
-                    </div>
+                    {{-- No icon. The name carries itself, and a bolt in front
+                         of it was doing nothing the word was not. --}}
+                    <div class="cmp-vs-name">Sayzio</div>
                     <div class="cmp-vs-tagline">The whole growth stack</div>
                     <div class="cmp-vs-meta">
-                        <span class="cmp-vs-score grad-text"><span x-text="ourAnim">{{ $__cmpScores['ours'] }}</span><span class="cmp-vs-score-total">/{{ $__cmpTotal }}</span></span>
+                        <span class="cmp-vs-score"><span x-text="ourAnim">{{ $__cmpScores['ours'] }}</span><span class="cmp-vs-score-total">/{{ $__cmpTotal }}</span></span>
                         <span class="cmp-vs-bar"><span class="cmp-vs-bar-fill cmp-vs-bar-ours" :style="`width:${(ourAnim/{{ $__cmpTotal }})*100}%`"></span></span>
                     </div>
                 </div>
@@ -240,7 +269,7 @@
                         <span>VS</span>
                     </div>
                     <div class="cmp-vs-wins" x-show="wins() > 0" x-cloak>
-                        <span class="cmp-vs-wins-num grad-text" x-text="winsAnim">0</span>
+                        <span class="cmp-vs-wins-num" x-text="winsAnim">0</span>
                         <span class="cmp-vs-wins-label">feature lead</span>
                     </div>
                 </div>
@@ -268,7 +297,7 @@
                         <div class="text-gray-400 text-xs uppercase tracking-wider font-bold">Head-to-head</div>
                         <div class="text-white font-semibold">
                             Sayzio wins
-                            <span class="grad-text font-extrabold text-lg" x-text="winsAnim">0</span>
+                            <span class="font-extrabold text-lg" x-text="winsAnim">0</span>
                             more features than
                             <span class="text-white" x-text="rivalName()"></span>
                         </div>
@@ -280,184 +309,179 @@
                 </div>
             </div>
 
-            {{-- Two-column head-to-head matrix --}}
-            <div class="grad-border rounded-3xl overflow-hidden cmp-h2h-card">
-                {{-- Header --}}
-                <div class="grid items-center px-4 sm:px-6 py-5 bg-white/[.03] text-xs font-bold uppercase tracking-wider text-gray-400"
-                     style="grid-template-columns: minmax(0,1fr) 110px 110px;">
-                    <div>Feature</div>
-                    <div class="text-center">
-                        <span class="cmp-brand-ours text-[11px]"><i class="fas fa-bolt"></i> Sayzio</span>
-                    </div>
-                    <div class="text-center text-gray-300 normal-case tracking-normal text-sm font-semibold" x-text="rivalName()">Linktree</div>
-                </div>
+            {{-- ════════════════════════════════════════════════════════
+                 ONE TABLE.
 
-                {{-- Grouped rows --}}
-                @foreach($__cmpGroups as $groupName => $rows)
-                    <div class="px-4 sm:px-6 py-2.5 bg-white/[.015] border-t border-white/5 text-[11px] font-bold uppercase tracking-wider text-gray-500 cmp-group-head">
-                        {{ $groupName }}
-                    </div>
-                    <div class="cmp-stagger" data-anim="fade">
-                        @foreach($rows as [$label, $support])
-                            <div class="cmp-row grid items-center px-4 sm:px-6 py-3 border-t border-white/5 text-sm"
-                                 style="grid-template-columns: minmax(0,1fr) 110px 110px;">
-                                <div class="text-gray-200">{{ $label }}</div>
-                                <div class="text-center">
-                                    <span class="cmp-mark cmp-mark-yes-ours" aria-label="Included">
-                                        <svg class="cmp-draw" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <path d="M5 12.5l4.5 4.5L19 7"/>
-                                        </svg>
-                                    </span>
-                                </div>
-                                <div class="text-center">
-                                    {{-- One cell per rival, only the active one is shown --}}
-                                    @foreach(array_slice($__cmpCompetitors, 1) as $c)
-                                        <template x-if="rival === '{{ $c['key'] }}'">
-                                            <span>
-                                                @if(!empty($support[$c['key']]))
-                                                    <span class="cmp-mark cmp-mark-yes" aria-label="Included">
-                                                        <svg class="cmp-draw" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                                            <path d="M5 12.5l4.5 4.5L19 7"/>
-                                                        </svg>
-                                                    </span>
-                                                @else
-                                                    <span class="cmp-mark cmp-mark-no" aria-label="Not included">
-                                                        <svg class="cmp-draw" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
-                                                            <path d="M6 12h12"/>
-                                                        </svg>
-                                                    </span>
-                                                @endif
-                                            </span>
-                                        </template>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @endforeach
-            </div>
+                 There were two, stacked, showing the same 24 rows: a
+                 Sayzio-vs-selected-tool table, and directly under it the
+                 same rows again across all six. Sana: "both of them are
+                 same... need only 1".
 
-            {{-- Toggle / CTA row --}}
-            <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
-                @if($__cmpOnlyKey)
-                    {{-- Locked single-rival page: link out to the full index. --}}
-                    <a href="{{ url('/compare') }}" class="cmp-cta">
-                        <i class="fas fa-table-cells-large"></i>
-                        Compare Sayzio against every other tool
-                        <i class="fas fa-arrow-right text-xs"></i>
-                    </a>
-                @elseif($compact)
-                    <a href="{{ url('/pricing') }}#compare" class="cmp-cta">
-                        <i class="fas fa-table-cells-large"></i>
-                        See full feature breakdown across all {{ count($__cmpCompetitors) - 1 }} tools
-                        <i class="fas fa-arrow-right text-xs"></i>
-                    </a>
-                    {{-- Deep-link straight to the active rival's dedicated page. --}}
-                    @foreach(array_slice($__cmpCompetitors, 1) as $c)
-                        <template x-if="rival === '{{ $c['key'] }}'">
-                            <a href="{{ url('/compare/' . $c['key']) }}" class="cmp-cta">
-                                <i class="fas fa-arrow-up-right-from-square text-xs"></i>
-                                Read the full Sayzio vs {{ $c['name'] }} page
-                            </a>
-                        </template>
-                    @endforeach
-                @else
-                    <button type="button" @click="showAll = !showAll" class="cmp-cta">
-                        <i class="fas fa-table-cells-large"></i>
-                        <span x-text="showAll ? 'Hide full {{ count($__cmpCompetitors) - 1 }}-tool matrix' : 'Show full {{ count($__cmpCompetitors) - 1 }}-tool matrix'">Show full matrix</span>
-                        <i class="fas fa-chevron-down text-xs" :class="showAll ? 'rotate-180' : ''" style="transition:transform .25s ease"></i>
+                 So the toggle no longer reveals a second table -- it widens
+                 this one. Collapsed it is two columns, us and the tool you
+                 picked; expanded it is all of them. Same rows, same marks,
+                 same header, one object on the page.
+
+                 Two things the old pair could not do, and the reason this is
+                 worth more than a deletion:
+
+                   - "Only where they differ" hides every row all the tools
+                     tick. Fourteen of twenty-four rows are unanimous; they
+                     are not a comparison, they are padding around one.
+                   - A row only Sayzio has is MARKED as one. That is the most
+                     persuasive fact in the data and the table never said it
+                     -- you had to read twenty-four rows and notice.
+                 ════════════════════════════════════════════════════════ --}}
+            @php
+                // Per row: does anyone but us have it? Computed once here
+                // rather than re-derived in the browser.
+                $__rowMeta = [];
+                foreach ($__cmpGroups as $__g => $__rows) {
+                    foreach ($__rows as [$__label, $__support]) {
+                        $__rivalsWith = array_filter(array_diff_key($__support, ['ours' => 1]));
+                        $__rowMeta[$__g][$__label] = [
+                            'onlyOurs' => ! empty($__support['ours']) && count($__rivalsWith) === 0,
+                        ];
+                    }
+                }
+                $__onlyOursCount = 0;
+                foreach ($__rowMeta as $__g => $__rs) {
+                    foreach ($__rs as $__m) { if ($__m['onlyOurs']) { $__onlyOursCount++; } }
+                }
+            @endphp
+
+            {{-- The table's controls sit above the table, because that is
+                 what they control. They used to sit between the two tables,
+                 where the button read as a footer to one and a header to the
+                 other. --}}
+            <div class="cmp-controls">
+                <button type="button" class="cmp-switch" :class="diffOnly ? 'is-on' : ''"
+                        @click="diffOnly = !diffOnly" :aria-pressed="diffOnly">
+                    <span class="cmp-switch-track" aria-hidden="true"><span class="cmp-switch-dot"></span></span>
+                    Only where they differ
+                </button>
+
+                @if($__cmpShowMatrix)
+                    <button type="button" class="cmp-switch" :class="showAll ? 'is-on' : ''"
+                            @click="showAll = !showAll" :aria-pressed="showAll">
+                        <span class="cmp-switch-track" aria-hidden="true"><span class="cmp-switch-dot"></span></span>
+                        <span x-text="showAll ? 'All {{ count($__cmpCompetitors) - 1 }} tools' : 'All {{ count($__cmpCompetitors) - 1 }} tools'">All tools</span>
                     </button>
+                @endif
+
+                <span class="cmp-controls-spacer" aria-hidden="true"></span>
+
+                @if($__cmpOnlyKey)
+                    <a href="{{ url('/compare') }}" class="cmp-cta">
+                        Compare against every tool <i class="fas fa-arrow-right text-xs"></i>
+                    </a>
+                @else
                     @foreach(array_slice($__cmpCompetitors, 1) as $c)
                         <template x-if="rival === '{{ $c['key'] }}'">
                             <a href="{{ url('/compare/' . $c['key']) }}" class="cmp-cta">
-                                <i class="fas fa-arrow-up-right-from-square text-xs"></i>
-                                Full Sayzio vs {{ $c['name'] }} page
+                                Full Sayzio vs {{ $c['name'] }} page <i class="fas fa-arrow-right text-xs"></i>
                             </a>
                         </template>
                     @endforeach
                 @endif
             </div>
 
-            {{-- ========================================================
-                 FULL N-COMPETITOR MATRIX (only on /pricing or when toggled)
-                 ======================================================== --}}
-            @if($__cmpShowMatrix)
-                <div x-show="showAll" x-transition.duration.400ms x-cloak class="mt-8">
-                    <div class="cmp-wrap grad-border rounded-3xl overflow-hidden relative">
-                        <div class="cmp-matrix-scroll">
-                            <div class="cmp-matrix" style="grid-template-columns: minmax(220px, 1.6fr) repeat({{ count($__cmpCompetitors) }}, minmax(96px, 1fr));">
-                                {{-- Highlighted column band over Sayzio (col index 1) --}}
-                                <div class="cmp-ours-band cmp-ours-band-grid" aria-hidden="true"></div>
+            <div class="cmp-wrap">
+                <div class="cmp-matrix-scroll">
+                    <div class="cmp-matrix" :style="gridStyle()"
+                         style="grid-template-columns: minmax(200px, 1.6fr) repeat(2, minmax(94px, 1fr));">
 
-                                {{-- Header --}}
-                                <div class="cmp-cell cmp-head">Feature</div>
+                        {{-- The band behind our column. Not an animated glow
+                             any more -- a quiet tint with the brand ribbon
+                             along its top edge, which is rule 6. --}}
+                        <div class="cmp-ours-band cmp-ours-band-grid" aria-hidden="true"></div>
+
+                        {{-- Header --}}
+                        <div class="cmp-cell cmp-head">Feature</div>
+                        @foreach($__cmpCompetitors as $c)
+                            <div class="cmp-cell cmp-head text-center {{ $c['isOurs'] ? 'cmp-head-ours' : '' }}"
+                                 @unless($c['isOurs']) x-show="colShown('{{ $c['key'] }}')" @endunless>
+                                @if($c['isOurs'])
+                                    <span class="cmp-brand-ours">{{ $c['name'] }}</span>
+                                @else
+                                    <span class="cmp-head-rival">{{ $c['name'] }}</span>
+                                @endif
+                            </div>
+                        @endforeach
+
+                        {{-- Rows, grouped --}}
+                        @foreach($__cmpGroups as $groupName => $rows)
+                            @php $__groupSupports = array_map(fn ($r) => $r[1], $rows); @endphp
+                            <div class="cmp-cell cmp-group-head"
+                                 x-show="groupShown(@js($__groupSupports))"
+                                 :style="spanStyle()"
+                                 style="grid-column: span 3;">{{ $groupName }}</div>
+
+                            @foreach($rows as [$label, $support])
+                                @php $__only = $__rowMeta[$groupName][$label]['onlyOurs'] ?? false; @endphp
+                                <div class="cmp-cell cmp-row-cell {{ $__only ? 'is-only' : '' }}"
+                                     x-show="rowShown(@js($support))">
+                                    <span class="cmp-feature">
+                                        {{ $label }}
+                                        @if($__only)
+                                            <span class="cmp-only" title="No other tool on this list has it">only on Sayzio</span>
+                                        @endif
+                                    </span>
+                                </div>
                                 @foreach($__cmpCompetitors as $c)
-                                    <div class="cmp-cell cmp-head text-center">
-                                        @if($c['isOurs'])
-                                            <span class="cmp-brand-ours text-[11px]"><i class="fas fa-bolt"></i> {{ $c['name'] }}</span>
+                                    <div class="cmp-cell cmp-row-cell text-center {{ $__only ? 'is-only' : '' }}"
+                                         x-show="rowShown(@js($support)){{ $c['isOurs'] ? '' : " && colShown('" . $c['key'] . "')" }}">
+                                        @if(!empty($support[$c['key']]))
+                                            <span class="cmp-mark {{ $c['isOurs'] ? 'cmp-mark-yes-ours' : 'cmp-mark-yes' }}" aria-label="Included">
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                    <path d="M5 12.5l4.5 4.5L19 7"/>
+                                                </svg>
+                                            </span>
                                         @else
-                                            <span class="text-gray-200 text-sm font-semibold normal-case tracking-normal">{{ $c['name'] }}</span>
+                                            <span class="cmp-mark cmp-mark-no" aria-label="Not included">
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
+                                                    <path d="M6 12h12"/>
+                                                </svg>
+                                            </span>
                                         @endif
                                     </div>
                                 @endforeach
+                            @endforeach
+                        @endforeach
 
-                                {{-- Rows, grouped --}}
-                                @foreach($__cmpGroups as $groupName => $rows)
-                                    <div class="cmp-cell cmp-group-head" style="grid-column: span {{ count($__cmpCompetitors) + 1 }};">{{ $groupName }}</div>
-                                    @foreach($rows as [$label, $support])
-                                        <div class="cmp-cell cmp-row-cell text-gray-200">{{ $label }}</div>
-                                        @foreach($__cmpCompetitors as $c)
-                                            <div class="cmp-cell cmp-row-cell text-center">
-                                                @if(!empty($support[$c['key']]))
-                                                    <span class="cmp-mark {{ $c['isOurs'] ? 'cmp-mark-yes-ours' : 'cmp-mark-yes' }}" style="width:26px;height:26px;">
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                                            <path d="M5 12.5l4.5 4.5L19 7"/>
-                                                        </svg>
-                                                    </span>
-                                                @else
-                                                    <span class="cmp-mark cmp-mark-no" style="width:26px;height:26px;">
-                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
-                                                            <path d="M6 12h12"/>
-                                                        </svg>
-                                                    </span>
-                                                @endif
-                                            </div>
-                                        @endforeach
-                                    @endforeach
-                                @endforeach
-
-                                {{-- Bottom totals --}}
-                                <div class="cmp-cell cmp-row-cell text-xs font-bold uppercase tracking-wider text-gray-400">Total features</div>
-                                @foreach($__cmpCompetitors as $c)
-                                    <div class="cmp-cell cmp-row-cell text-center">
-                                        <span class="cmp-badge {{ $c['isOurs'] ? 'cmp-badge-ours' : '' }}">
-                                            {{ $__cmpScores[$c['key']] }}/{{ $__cmpTotal }}
-                                        </span>
-                                    </div>
-                                @endforeach
-
-                                <div class="cmp-cell cmp-row-cell text-xs font-bold uppercase tracking-wider text-gray-400">The bottom line</div>
-                                @foreach($__cmpCompetitors as $c)
-                                    <div class="cmp-cell cmp-row-cell text-center">
-                                        <span class="cmp-badge {{ $c['isOurs'] ? 'cmp-badge-ours' : '' }}">
-                                            @if($c['isOurs'])<i class="fas fa-star text-[10px]"></i>@endif
-                                            {{ $c['badge'] }}
-                                        </span>
-                                    </div>
-                                @endforeach
+                        {{-- Totals --}}
+                        <div class="cmp-cell cmp-row-cell cmp-total-label">Total features</div>
+                        @foreach($__cmpCompetitors as $c)
+                            <div class="cmp-cell cmp-row-cell text-center"
+                                 @unless($c['isOurs']) x-show="colShown('{{ $c['key'] }}')" @endunless>
+                                <span class="cmp-badge {{ $c['isOurs'] ? 'cmp-badge-ours' : '' }}">
+                                    {{ $__cmpScores[$c['key']] }}/{{ $__cmpTotal }}
+                                </span>
                             </div>
-                        </div>
-                        <div class="md:hidden text-center text-[11px] text-gray-500 px-4 py-3 bg-white/[.02] border-t border-white/5">
-                            <i class="fas fa-arrows-left-right"></i> Swipe to see all tools
-                        </div>
+                        @endforeach
+
+                        <div class="cmp-cell cmp-row-cell cmp-total-label">The bottom line</div>
+                        @foreach($__cmpCompetitors as $c)
+                            <div class="cmp-cell cmp-row-cell text-center"
+                                 @unless($c['isOurs']) x-show="colShown('{{ $c['key'] }}')" @endunless>
+                                <span class="cmp-badge {{ $c['isOurs'] ? 'cmp-badge-ours' : '' }}">{{ $c['badge'] }}</span>
+                            </div>
+                        @endforeach
                     </div>
                 </div>
-            @endif
+
+                <div class="cmp-foot">
+                    @if($__onlyOursCount > 0)
+                        <span><span class="cmp-only">only on Sayzio</span> marks the {{ $__onlyOursCount }} {{ \Illuminate\Support\Str::plural('feature', $__onlyOursCount) }} no other tool on this list has.</span>
+                    @endif
+                    <span class="cmp-foot-swipe"><i class="fas fa-arrows-left-right" aria-hidden="true"></i> Swipe to see every column</span>
+                </div>
+            </div>
         </div>
         @endif
 
         @unless($teaser)
-        <p data-anim="fade-up" class="text-center text-xs text-gray-500 mt-6">
+        <p data-anim="fade-up" class="text-center text-xs text-gray-400 mt-6">
             Comparison reflects publicly listed feature sets at time of writing. We never quote a competitor's price.
         </p>
         @endunless
