@@ -75,7 +75,11 @@ class MarketingSitemap
             }
 
             $urls[] = [
-                'loc' => url($entry['path']),
+                // Pinned to the brand domain, not url(): this XML is cached and
+                // shared, and url() answers with whatever host built it (or
+                // APP_URL, which production still points at the legacy domain,
+                // whenever the scheduled warmer builds it with no request).
+                'loc' => PlatformHosts::brandUrl($entry['path']),
                 'lastmod' => self::formatLastmod($lastmod),
             ];
         }
@@ -119,7 +123,7 @@ class MarketingSitemap
 
             $urls = [];
             foreach (MarketingSeo::sitemapPaths() as $entry) {
-                $urls[] = url($entry['path']);
+                $urls[] = PlatformHosts::brandUrl($entry['path']);
             }
             if (empty($urls)) {
                 return;
@@ -167,7 +171,10 @@ class MarketingSitemap
                 return;
             }
 
-            $host = parse_url(url('/'), PHP_URL_HOST);
+            // IndexNow verifies that every submitted URL is on the declared
+            // host, so submitting from a warmer run that resolved url() to the
+            // legacy domain would have every URL rejected.
+            $host = parse_url(PlatformHosts::brandUrl('/'), PHP_URL_HOST);
             if (empty($host)) {
                 return;
             }
@@ -178,7 +185,7 @@ class MarketingSitemap
                 ->post('https://api.indexnow.org/indexnow', [
                     'host' => $host,
                     'key' => $key,
-                    'keyLocation' => url('/' . $key . '.txt'),
+                    'keyLocation' => PlatformHosts::brandUrl('/' . $key . '.txt'),
                     'urlList' => array_values(array_slice($urls, 0, 10000)),
                 ]);
 

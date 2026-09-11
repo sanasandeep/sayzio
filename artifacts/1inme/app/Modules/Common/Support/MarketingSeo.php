@@ -186,6 +186,18 @@ class MarketingSeo
                 'description' => 'Manage everything from your pocket with the Sayzio mobile app: edit your Link in Bio, create short links and QR codes, chat with your audience and watch analytics in real time.',
                 'keywords' => 'sayzio app, mobile app download, link in bio app, android app, iphone app, link management app',
             ],
+            // The demos gallery shipped with no entry here at all, so it
+            // rendered with the bare site name as its title -- "SAYZIO" and
+            // nothing else, on a page whose whole job is to show what the
+            // eighteen link types look like in real life.
+            'demos' => [
+                'label' => 'Live demos',
+                'group' => 'Core',
+                'url' => '/demos',
+                'title' => 'Live Demos — See Every Sayzio Page Type in Action',
+                'description' => 'Open a real, working example of each Sayzio page type: link in bio, digital business card, restaurant menu, résumé, booking page, forms and more. No signup needed.',
+                'keywords' => 'link in bio examples, biolink demo, digital business card example, qr menu demo, sayzio demos, page templates',
+            ],
             'compare-index' => [
                 'label' => 'Compare overview',
                 'group' => 'Compare',

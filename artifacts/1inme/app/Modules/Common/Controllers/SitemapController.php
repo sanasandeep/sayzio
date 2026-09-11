@@ -8,6 +8,7 @@ use App\Modules\Common\Models\BlogPost;
 use App\Modules\Common\Models\SitePage;
 use App\Modules\Common\Support\MarketingSeo;
 use App\Modules\Common\Support\MarketingSitemap;
+use App\Modules\Common\Support\PlatformHosts;
 use App\Modules\Common\Support\UserContentSitemap;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -35,6 +36,39 @@ class SitemapController extends Controller
 
     /** TTL (seconds) for the sitemap index cache, matching the blog sitemap. */
     public const CACHE_TTL = 600;
+
+    /**
+     * An absolute sitemap URL on the primary brand domain.
+     *
+     * This used to be `url($path)`, and the result was wrong on the live
+     * site: on 2026-09-11 `sayzio.app/sitemap_index.xml` listed all five of
+     * its child sitemaps on `1in.me`. Two things combined to do that.
+     * Production APP_URL still points at the legacy domain, and `url()` falls
+     * back to APP_URL whenever it has no request to read a host from — which
+     * is exactly the case for the scheduled warmer. Then the result went into
+     * a SHARED cache, so one build from the wrong context served that answer
+     * to every visitor for the rest of the TTL.
+     *
+     * Google only follows a sitemap reference that crosses hosts when both
+     * are verified in Search Console, so this quietly risked the entire
+     * sitemap being ignored.
+     *
+     * Pinning to the primary brand domain fixes both halves: there is no host
+     * to vary by, so nothing host-specific can be baked into a shared cache.
+     * A host-dependent value and a shared cache should never have met.
+     */
+    private static function canonicalSitemapUrl(string $path): string
+    {
+        $primary = PlatformHosts::primaryBrandDomain();
+
+        // No brand domain configured (shouldn't happen; PLATFORM_DOMAINS is a
+        // constant) — fall back rather than emit a hostless <loc>.
+        if ($primary === null) {
+            return url($path);
+        }
+
+        return 'https://' . $primary . $path;
+    }
 
     /**
      * Invalidate every cached public sitemap artifact when marketing pages
@@ -82,23 +116,23 @@ class SitemapController extends Controller
         $body = Cache::remember(self::INDEX_CACHE_KEY, self::CACHE_TTL, function () {
             $sitemaps = [
                 [
-                    'loc' => url('/sitemap.xml'),
+                    'loc' => self::canonicalSitemapUrl('/sitemap.xml'),
                     'lastmod' => $this->formatLastmod($this->marketingLastmod()),
                 ],
                 [
-                    'loc' => url('/blogs/sitemap.xml'),
+                    'loc' => self::canonicalSitemapUrl('/blogs/sitemap.xml'),
                     'lastmod' => $this->formatLastmod($this->blogLastmod()),
                 ],
                 [
-                    'loc' => url('/sitemap-creators.xml'),
+                    'loc' => self::canonicalSitemapUrl('/sitemap-creators.xml'),
                     'lastmod' => $this->formatLastmod(UserContentSitemap::creatorsLastmod()),
                 ],
                 [
-                    'loc' => url('/sitemap-resumes.xml'),
+                    'loc' => self::canonicalSitemapUrl('/sitemap-resumes.xml'),
                     'lastmod' => $this->formatLastmod(UserContentSitemap::resumesLastmod()),
                 ],
                 [
-                    'loc' => url('/sitemap-links.xml'),
+                    'loc' => self::canonicalSitemapUrl('/sitemap-links.xml'),
                     'lastmod' => $this->formatLastmod(UserContentSitemap::linksLastmod()),
                 ],
             ];
@@ -227,7 +261,11 @@ class SitemapController extends Controller
             'Disallow: /companion/',
             'Disallow: /embed/',
             '',
-            'Sitemap: ' . url('/sitemap_index.xml'),
+            // Pinned to the primary brand domain, not url(): robots.txt is
+            // served on every brand host, and a crawler arriving on any of
+            // them should be pointed at the one sitemap index that is
+            // canonical -- never at a copy on the host it happened to land on.
+            'Sitemap: ' . self::canonicalSitemapUrl('/sitemap_index.xml'),
             '',
         ];
 

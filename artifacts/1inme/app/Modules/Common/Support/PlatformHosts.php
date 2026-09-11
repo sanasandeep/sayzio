@@ -3,6 +3,7 @@
 namespace App\Modules\Common\Support;
 
 use App\Modules\User\Models\Domain;
+use Illuminate\Http\Request;
 
 class PlatformHosts
 {
@@ -15,6 +16,152 @@ class PlatformHosts
      * @var array<int,string>
      */
     public const PLATFORM_DOMAINS = ['sayzio.app', '1in.me'];
+
+    /**
+     * Query parameters stripped from a canonical URL.
+     *
+     * Measured on the live site 2026-09-11: `sayzio.app/?utm_source=newsletter`
+     * declared its canonical as `https://sayzio.app/?utm_source=newsletter`.
+     * Every campaign, newsletter and ad link therefore told Google it was a
+     * distinct page that was its own original, splitting the homepage's
+     * ranking signals across as many URLs as there were campaigns.
+     *
+     * This is a DENY list, not an allow list, and deliberately so. An allow
+     * list is tidier right up until it silently swallows a parameter that
+     * genuinely changes the page — `?page=2` is the obvious one, and
+     * canonicalising page 2 onto page 1 tells Google not to index page 2's
+     * links at all. That failure is invisible and expensive; an unknown
+     * tracking parameter surviving into a canonical is neither.
+     *
+     * Anything matching `utm_*` is stripped by prefix; the rest are the
+     * click identifiers the major ad and social platforms append.
+     *
+     * @var array<int,string>
+     */
+    public const NON_CANONICAL_QUERY_PARAMS = [
+        'fbclid',      // Facebook / Instagram
+        'gclid',       // Google Ads
+        'dclid',       // Google Display
+        'gbraid',      // Google Ads (iOS, web-to-app)
+        'wbraid',      // Google Ads (iOS, app-to-web)
+        'gad_source',  // Google Ads
+        'msclkid',     // Microsoft Ads
+        'yclid',       // Yandex
+        'ttclid',      // TikTok
+        'twclid',      // X / Twitter
+        'li_fat_id',   // LinkedIn
+        'igshid',      // Instagram share
+        'igsh',        // Instagram share (newer)
+        'mc_cid',      // Mailchimp campaign
+        'mc_eid',      // Mailchimp recipient
+        '_hsenc',      // HubSpot
+        '_hsmi',       // HubSpot
+        'vero_id',     // Vero
+        'vero_conv',   // Vero
+        's_kwcid',     // Adobe
+        'ref',         // generic referrer tag
+        'ref_src',     // generic referrer tag
+        'source',      // generic campaign tag
+    ];
+
+    /**
+     * An absolute URL on the primary brand domain, independent of who is
+     * asking.
+     *
+     * Use this instead of url() for anything that is CACHED AND SHARED —
+     * sitemaps, robots.txt, IndexNow submissions. url() reads the current
+     * request's host and falls back to APP_URL when there is no request
+     * (the scheduled warmer, queued jobs, artisan). Production APP_URL still
+     * points at the legacy brand domain, so a value built in that context and
+     * then cached serves the wrong host to every visitor for the rest of the
+     * TTL. That is exactly how sayzio.app/sitemap_index.xml came to list all
+     * five of its child sitemaps on 1in.me.
+     *
+     * Not a replacement for url() generally: a per-request URL SHOULD follow
+     * the request's host, and a custom user domain must never be rewritten.
+     * This is for the narrow case of a shared, cached, crawler-facing URL
+     * that has exactly one correct answer.
+     */
+    public static function brandUrl(string $path = '/'): string
+    {
+        $primary = self::primaryBrandDomain();
+        if ($primary === null) {
+            return url($path);
+        }
+
+        if ($path === '' || ! str_starts_with($path, '/')) {
+            $path = '/' . $path;
+        }
+
+        return 'https://' . $primary . ($path === '/' ? '/' : rtrim($path, '/'));
+    }
+
+    /**
+     * The bare brand domain this host stands for, or null.
+     *
+     * `www.sayzio.app` and `sayzio.app` both answer on the live site, neither
+     * redirects to the other, and — because normalize() does not touch the
+     * `www.` prefix — the www host was recognised as no brand domain at all.
+     * It therefore fell through every consolidation path and served the
+     * entire site with canonicals pointing at itself, so every page existed
+     * twice, each claiming to be the original.
+     *
+     * The `www.` handling lives HERE and not in normalize() on purpose:
+     * normalize() is what custom user domains are matched with, and a
+     * customer whose domain is `www.example.com` must not be silently
+     * resolved to `example.com`. Only the brand's own hosts get this.
+     */
+    public static function brandDomainFor(?string $host): ?string
+    {
+        $normalized = self::normalize($host);
+        if ($normalized === null) {
+            return null;
+        }
+
+        $brands = self::brandDomains();
+        if (in_array($normalized, $brands, true)) {
+            return $normalized;
+        }
+
+        if (str_starts_with($normalized, 'www.')) {
+            $bare = substr($normalized, 4);
+            if (in_array($bare, $brands, true)) {
+                return $bare;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The request path with tracking parameters removed, ready to hang off a
+     * canonical host. Surviving parameters keep their given order.
+     */
+    private static function canonicalRequestUri(Request $request): string
+    {
+        $path = $request->getPathInfo();
+        $query = $request->query();
+        if (! is_array($query) || $query === []) {
+            return $path;
+        }
+
+        $kept = array_filter(
+            $query,
+            static function ($_value, $key): bool {
+                $key = strtolower((string) $key);
+
+                return ! str_starts_with($key, 'utm_')
+                    && ! in_array($key, self::NON_CANONICAL_QUERY_PARAMS, true);
+            },
+            ARRAY_FILTER_USE_BOTH
+        );
+
+        if ($kept === []) {
+            return $path;
+        }
+
+        return $path . '?' . http_build_query($kept);
+    }
 
     /** @var array<string,string>|null cached parent-process env */
     private static ?array $parentEnvCache = null;
@@ -143,11 +290,19 @@ class PlatformHosts
     }
 
     /**
-     * True when $host is a recognised brand domain that is NOT the canonical
-     * primary brand domain (e.g. the short-link domain 1in.me while sayzio.app
-     * is primary). Dev/preview hosts (Replit dev domain, localhost) and the
-     * primary brand domain itself return false, so callers can safely use this
-     * to gate a "consolidate onto the primary brand" redirect.
+     * True when $host is a recognised brand host that is NOT the canonical
+     * primary brand domain — the short-link domain 1in.me while sayzio.app is
+     * primary, or a `www.` variant of either.
+     *
+     * `www.sayzio.app` counts. It served the whole marketing site alongside
+     * the apex with no redirect between them, which is the duplicate-content
+     * split this method exists to prevent; that it happens to be the same
+     * registrable domain as the primary made it harder to notice, not less
+     * of a duplicate.
+     *
+     * Dev/preview hosts (Replit dev domain, localhost), custom user domains
+     * and the primary brand domain itself return false, so callers can safely
+     * use this to gate a "consolidate onto the primary brand" redirect.
      */
     public static function isNonPrimaryBrandDomain(?string $host): bool
     {
@@ -155,7 +310,7 @@ class PlatformHosts
         if ($normalized === null) return false;
         $primary = self::primaryBrandDomain();
         if ($primary !== null && $normalized === $primary) return false;
-        return in_array($normalized, self::brandDomains(), true);
+        return self::brandDomainFor($normalized) !== null;
     }
 
     /**
@@ -256,18 +411,27 @@ class PlatformHosts
     public static function canonicalUrl(): string
     {
         try {
-            $host = self::normalize(request()->getHost());
+            $request = request();
+            $brand = self::brandDomainFor($request->getHost());
         } catch (\Throwable) {
             return request()->fullUrl();
         }
 
         $primary = self::primaryBrandDomain();
-        if ($primary === null || $host === null || !in_array($host, self::brandDomains(), true)) {
-            return request()->fullUrl();
+
+        // Not a brand host at all (dev, preview, a custom user domain): leave
+        // the URL exactly as requested. Rewriting a customer's own domain onto
+        // sayzio.app would hand their page's ranking to us.
+        if ($primary === null || $brand === null) {
+            return $request->fullUrl();
         }
 
-        $uri = request()->getRequestUri(); // includes leading "/" + query string
-        return request()->getScheme() . '://' . $primary . $uri;
+        // Two rewrites, for the two ways this page could be a duplicate: the
+        // host (1in.me, or a www. variant of either brand) and the query
+        // string (campaign tags). getRequestUri() used to be used here, which
+        // carried the query string through verbatim -- see
+        // NON_CANONICAL_QUERY_PARAMS for what that cost.
+        return $request->getScheme() . '://' . $primary . self::canonicalRequestUri($request);
     }
 
     /**
