@@ -24,7 +24,7 @@
     .aud-pill i { color: #4ade80; font-size: 10px; }
     html.light-mode .aud-pill { color: #334155; border-color: rgba(15,23,42,.14); background: rgba(15,23,42,.03); }
 </style>
-<section class="pt-10 pb-14 lg:pb-16 relative overflow-hidden">
+<section class="sec-rule pt-10 pb-14 lg:pb-16 relative overflow-hidden">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
             <h2 class="reveal text-2xl sm:text-4xl font-bold tracking-tight mb-3">{!! $title !!}</h2>

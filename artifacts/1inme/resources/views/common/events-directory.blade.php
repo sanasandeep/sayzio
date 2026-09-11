@@ -305,9 +305,9 @@
                     <a href="{{ url('/' . $hero->alias) }}" class="hero-slide {{ $hi === 0 ? 'active' : '' }}" data-slide="{{ $hi }}">
                         <div class="hero-slide-media">
                             @if($hIcs && $hIcs->cover_image_url)
-                                <img src="{{ $hIcs->cover_image_url }}" alt="{{ $hero->title }}" class="hero-slide-img">
+                                <img src="{{ $hIcs->cover_image_url }}"@imgSize($hIcs->cover_image_url) alt="{{ $hero->title }}" class="hero-slide-img">
                             @else
-                                <img src="{{ asset('images/events/event-cover-placeholder.svg') }}" alt="{{ $hero->title }}" class="hero-slide-img">
+                                <img src="{{ asset('images/events/event-cover-placeholder.svg') }}"@imgSize(asset('images/events/event-cover-placeholder.svg')) alt="{{ $hero->title }}" class="hero-slide-img">
                             @endif
                             <div class="hero-slide-scrim"></div>
                             <span class="hero-slide-price ev-price-badge inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold {{ $hPriceIsFree ? 'bg-emerald-500 text-white' : 'text-white' }}"
@@ -575,9 +575,9 @@
                 <div class="event-card ev-card overflow-hidden">
                     <a href="{{ url('/' . $event->alias) }}" class="block relative aspect-[16/10] overflow-hidden">
                         @if($cover)
-                            <img src="{{ $cover }}" alt="{{ $event->title }}" loading="lazy" class="ev-card-img">
+                            <img src="{{ $cover }}"@imgSize($cover) alt="{{ $event->title }}" loading="lazy" class="ev-card-img">
                         @else
-                            <img src="{{ asset('images/events/event-cover-placeholder.svg') }}" alt="{{ $event->title }}" loading="lazy" class="ev-card-img">
+                            <img src="{{ asset('images/events/event-cover-placeholder.svg') }}"@imgSize(asset('images/events/event-cover-placeholder.svg')) alt="{{ $event->title }}" loading="lazy" class="ev-card-img">
                         @endif
                         @if($ics && $ics->start_date)
                             <div class="ev-card-date-chip absolute top-3 left-3 z-10 rounded-xl px-2.5 py-1.5 text-center shadow-sm leading-none">

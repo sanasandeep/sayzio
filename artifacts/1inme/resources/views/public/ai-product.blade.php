@@ -55,7 +55,7 @@
 @endphp
 
 {{-- ─────────────  HERO  ───────────── --}}
-<section class="relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
+<section class="sec-first relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="absolute inset-0 grid-bg opacity-50 pointer-events-none"></div>
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -113,7 +113,7 @@
 
 {{-- ─────────────  FEATURES (sections from page) ───────────── --}}
 @if($sections->isNotEmpty())
-<section class="relative pb-24">
+<section class="sec-rule relative pb-24">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid md:grid-cols-2 gap-5">
             @foreach($sections as $i => $s)
@@ -138,7 +138,7 @@
 @endif
 
 {{-- ─────────────  CROSS-SELL — other AI products ───────────── --}}
-<section class="pb-24">
+<section class="sec-rule pb-24">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $meta['accent'] }};">The rest of the AI suite</div>
@@ -176,7 +176,7 @@
 
 {{-- ─────────────  FAQ  ───────────── --}}
 @if(!empty($faqs))
-<section class="pb-24">
+<section class="sec-rule pb-24">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10" data-anim="fade-up">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $meta['accent'] }};">FAQ</div>
@@ -200,7 +200,7 @@
 @endif
 
 {{-- ─────────────  CTA BAND  ───────────── --}}
-<section class="pb-24">
+<section class="sec-rule pb-24">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
             <div class="mesh-bg opacity-50"></div>

@@ -20,7 +20,7 @@ class SitePagesContent
         return [
             'features' => [
                 'title' => 'Features',
-                'meta_description' => 'Everything you get with Sayzio: all 18 link types (short links, Link in Bio pages, conversational, slides, AI chatbot, restaurant menus, store menus, file shares, events, calendars, contact cards, resume / portfolio pages, Bizs Profiles, reviews, brand / press kits, paid pages, QR codes, forms), deep analytics, contacts, broadcasts and more.',
+                'meta_description' => 'Everything you get with Sayzio: all 19 link types (short links, Link in Bio pages, conversational, slides, AI chatbot, restaurant menus, store menus, file shares, events, calendars, contact cards, resume / portfolio pages, Bizs Profiles, reviews, brand / press kits, paid pages, QR codes, forms, text pages), deep analytics, contacts, broadcasts and more.',
                 'sections' => [
                     ['heading' => 'A drag & drop Link in Bio page', 'body' => "Stack blocks for text, images, video, audio, embeds, products, donations and forms. Reorder by dragging, swap themes in a click, and publish a polished page in minutes, no design skills needed."],
                     ['heading' => 'Branded short links', 'body' => "Turn long URLs into clean, on-brand short links you can repoint at any time. Add UTMs automatically, password-protect sensitive links, expire them on a date or after N clicks, and route visitors by country, device or language."],

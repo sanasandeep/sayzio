@@ -53,7 +53,14 @@ class VcfLinkController extends Controller
         $link = Link::create([
             'user_id'    => workspace_owner_id(),
             'type'       => 'vcf',
-            'alias'      => $validated['alias'] ?: Link::generateAlias(),
+            // `?? null` first: `alias` is nullable, and Laravel leaves a key
+            // out of the validated set entirely when the request never sent
+            // it -- so `?:` alone is an undefined-array-key fatal, not a
+            // fallback. Creating a contact card without an alias 500'd.
+            // FileLinkController and IcsLinkController::update already
+            // guard it this way; these two and IcsLinkController::store were
+            // the three that did not.
+            'alias'      => ($validated['alias'] ?? null) ?: Link::generateAlias(),
             'title'      => $this->buildLinkTitle($validated),
             'project_id' => $validated['project_id'] ?? null,
             'is_active'  => true,
@@ -96,7 +103,7 @@ class VcfLinkController extends Controller
         $newSettings = LinkController::mergeProtectionScheduling($newSettings, $ps['settings']);
 
         $link->update([
-            'alias'      => $validated['alias'] ?: $link->alias,
+            'alias'      => ($validated['alias'] ?? null) ?: $link->alias,
             'title'      => $this->buildLinkTitle($validated),
             'project_id' => $validated['project_id'] ?? null,
             'expires_at' => $ps['expires_at'],

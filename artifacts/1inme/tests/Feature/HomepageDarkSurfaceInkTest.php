@@ -40,6 +40,39 @@ class HomepageDarkSurfaceInkTest extends TestCase
     use RefreshDatabase;
     use AssertsAgainstLargeSubjects;
 
+    /**
+     * The stylesheet that defines the separator and lit-surface system.
+     *
+     * It moved out of home.blade.php when the marketing pages started using it
+     * too, and three guards went red on the move rather than on anything being
+     * wrong. They read the file the rules live in now, found by looking, so the
+     * next move does not break them either.
+     */
+    private function sectionSurfaceCss(): string
+    {
+        $candidates = [
+            resource_path('views/public/partials/section-surfaces.blade.php'),
+            resource_path('views/home.blade.php'),
+        ];
+
+        $css = '';
+
+        foreach ($candidates as $path) {
+            if (is_file($path)) {
+                $css .= "
+" . file_get_contents($path);
+            }
+        }
+
+        $this->assertStringContainsString(
+            '.sec-rule::before',
+            $css,
+            'the separator rules are in neither of the files this test knows about'
+        );
+
+        return $css;
+    }
+
     /** Anything at or below this relative luminance is "dark" for our purposes. */
     private const DARK = 0.12;
 
@@ -419,7 +452,7 @@ class HomepageDarkSurfaceInkTest extends TestCase
      */
     public function test_surface_lit_covers_what_the_light_mode_sheet_rewrites(): void
     {
-        $home = (string) file_get_contents(resource_path('views/home.blade.php'));
+        $home = $this->sectionSurfaceCss();
 
         $this->assertPatternFound(
             '/html\.light-mode\s*:is\([^)]*\.card-lit[^)]*\.surface-lit[^)]*\)[^{]*\{[^}]*color:\s*#fff\s*!important/s',
@@ -447,7 +480,7 @@ class HomepageDarkSurfaceInkTest extends TestCase
      */
     public function test_the_escape_excludes_rather_than_repaints(): void
     {
-        $home = (string) file_get_contents(resource_path('views/home.blade.php'));
+        $home = $this->sectionSurfaceCss();
 
         // Both escapes have to be in the :not(), each with its descendants.
         // `.card-lit-cta` is there because adding `.surface-lit-keep *` raised

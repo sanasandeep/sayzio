@@ -39,7 +39,7 @@
 
 @section('content')
 {{-- HERO --}}
-<section class="relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
+<section class="sec-first relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="absolute inset-0 grid-bg opacity-50 pointer-events-none"></div>
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -96,7 +96,7 @@
 </section>
 
 {{-- FEATURES --}}
-<section class="relative pb-20">
+<section class="sec-rule relative pb-20">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid md:grid-cols-2 gap-5">
             @foreach($features as $i => $f)
@@ -116,7 +116,7 @@
 </section>
 
 {{-- WORKS WITH YOUR PLAN --}}
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-10 relative overflow-hidden grid md:grid-cols-[1fr_auto] gap-6 items-center" data-anim="fade-up">
             <div class="mesh-bg opacity-50"></div>
@@ -133,7 +133,7 @@
 </section>
 
 {{-- FAQ TEASER --}}
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-8" data-anim="fade-up">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">FAQ</div>
@@ -156,7 +156,7 @@
 </section>
 
 {{-- CTA BAND --}}
-<section class="pb-24">
+<section class="sec-rule pb-24">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
             <div class="mesh-bg opacity-50"></div>

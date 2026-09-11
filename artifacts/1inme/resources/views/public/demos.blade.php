@@ -4,7 +4,7 @@
 
 @section('content')
 {{-- HERO --}}
-<section class="relative pt-20 pb-10 lg:pt-28 lg:pb-12 overflow-hidden">
+<section class="sec-first relative pt-20 pb-10 lg:pt-28 lg:pb-12 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="absolute inset-0 grid-bg opacity-40 pointer-events-none"></div>
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -29,7 +29,7 @@
 </section>
 
 {{-- GALLERY --}}
-<section class="relative pb-24">
+<section class="sec-rule relative pb-24">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         @if(empty($cards))
             <div class="max-w-xl mx-auto text-center rounded-3xl border border-white/10 bg-white/[0.02] p-10">
@@ -74,7 +74,7 @@
 </section>
 
 {{-- EMBED ANYWHERE --}}
-<section class="relative pb-24">
+<section class="sec-rule relative pb-24">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="rounded-3xl border border-white/10 bg-white/[0.02] p-8 sm:p-10" data-anim="fade-up">
             <div class="grid lg:grid-cols-2 gap-8 items-center">
@@ -108,7 +108,7 @@
 </section>
 
 {{-- CTA --}}
-<section class="relative pb-28">
+<section class="sec-rule relative pb-28">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="rounded-3xl border border-blue-400/20 bg-gradient-to-br from-blue-600/15 to-fuchsia-600/10 p-10 text-center">
             <h2 class="text-2xl sm:text-3xl font-bold text-white">Ready to make your own?</h2>

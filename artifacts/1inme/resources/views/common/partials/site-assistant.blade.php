@@ -24,6 +24,29 @@
                 && \App\Services\AI\AiEngineSettings::voiceEnabled();
         } catch (\Throwable $e) {}
     }
+
+    // The peek mascot's own pixel size, handed to the script below so the
+    // <img> it builds can carry width and height. `#sa-peek img` is
+    // `width:100%; height:auto`, which gives the browser no aspect ratio until
+    // the file lands, so the launcher stack jumps as the mascot pops in. It is
+    // on all 42 marketing pages -- the single most common image with no
+    // reserved box on the site.
+    //
+    // Measured rather than written down, for the reason in AssetSize; and
+    // computed up here rather than inline at the tag, because an inline raw
+    // PHP directive in this file is swallowed whole by the closing tag of the
+    // next raw PHP block, 340 lines below, and takes the rest of the partial
+    // with it.
+    //
+    // (This comment does not spell either directive's name, and that is not
+    // fussiness. Blade finds raw PHP blocks by matching the opening directive
+    // to the first closing one after it, before it knows anything about
+    // comments -- so a closing directive named inside a PHP comment ends the
+    // block right there. It did, on the first draft of this very comment: the
+    // two assignments below fell outside the block, stopped being code, and
+    // 500'd all 42 marketing pages.)
+    $__sa_peek_url = asset('branding/zio-bot-peek.png');
+    $__sa_peek = \App\Modules\Common\Support\AssetSize::of($__sa_peek_url);
 @endphp
 @if(\App\Services\AI\SiteAssistantSettings::isEnabledFor($__sa_surface) && !($__sa_route_hint && $__sa_route_hint->disable_widget))
 <div id="site-assistant-root"
@@ -35,7 +58,9 @@
      data-accent="{{ $__sa_cfg['accent_color'] }}"
      data-avatar="{{ \App\Services\AI\SiteAssistantSettings::avatarUrlFor($__sa_cfg) }}"
      data-brand="{{ \App\Services\AI\SiteAssistantSettings::brandNameFor($__sa_cfg) }}"
-     data-peek-avatar="{{ asset('branding/zio-bot-peek.png') }}"
+     data-peek-avatar="{{ $__sa_peek_url }}"
+     data-peek-w="{{ $__sa_peek[0] ?? '' }}"
+     data-peek-h="{{ $__sa_peek[1] ?? '' }}"
      data-bootstrap-url="{{ url('/assistant/bootstrap') }}"
      data-session-url="{{ url('/assistant/session') }}"
      data-message-url="{{ url('/assistant/message') }}"
@@ -569,7 +594,11 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   // panel (a flex sibling, not clipped by the panel's overflow:hidden) and dips
   // into the top edge so it reads as a character gripping the border.
   if(ds.peekAvatar){
-    var peek=el('div',{id:'sa-peek','aria-hidden':'true',html:'<img src="'+escapeHtml(ds.peekAvatar)+'" alt="">'});
+    // width/height from the markup so the browser knows the aspect ratio
+    // before the file lands; without them `height:auto` starts at zero and
+    // the launcher stack jumps when the mascot appears.
+    var peekDim=(ds.peekW&&ds.peekH)?(' width="'+escapeHtml(ds.peekW)+'" height="'+escapeHtml(ds.peekH)+'"'):'';
+    var peek=el('div',{id:'sa-peek','aria-hidden':'true',html:'<img src="'+escapeHtml(ds.peekAvatar)+'"'+peekDim+' alt="">'});
     panelWrap.appendChild(peek);
   }
   // Subheading is rendered server-side using the localized

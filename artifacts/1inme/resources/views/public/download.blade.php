@@ -65,7 +65,7 @@
 @endphp
 
 @section('content')
-<section class="relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
+<section class="sec-first relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="absolute inset-0 grid-bg opacity-50 pointer-events-none"></div>
     <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -99,8 +99,19 @@
     </div>
 </section>
 
-<section class="relative pb-16 lg:pb-24">
+<section class="sec-rule relative pb-16 lg:pb-24">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        {{-- Two card grids, neither of them named.
+
+             Each installer is an <h3> and so is each feature, and the nearest
+             heading above either grid was the page's <h1> -- the one
+             heading-level skip on /download, and an outline in which "Built
+             for creators" sat at the same level as "Mac: Apple Silicon" with
+             nothing to say they are different kinds of thing.
+
+             Hidden rather than drawn: the grids are self-evident on screen,
+             and this page's design has no room for a title above each one. --}}
+        <h2 class="sr-only">Installers</h2>
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             @foreach($downloads as $d)
                 <div class="rounded-2xl border border-white/10 bg-white/5 p-6 flex flex-col" data-zio-card="{{ $d['id'] }}">
@@ -137,6 +148,7 @@
             </div>
         @endif
 
+        <h2 class="sr-only">Why the Sayzio browser</h2>
         <div class="mt-14 grid sm:grid-cols-3 gap-5">
             @foreach($features as $f)
                 <div class="rounded-2xl border border-white/10 bg-white/5 p-6">

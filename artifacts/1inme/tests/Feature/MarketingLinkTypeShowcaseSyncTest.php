@@ -87,6 +87,69 @@ class MarketingLinkTypeShowcaseSyncTest extends TestCase
     }
 
     /**
+     * And the page has to say it too.
+     *
+     * The check above reads the code default. The page does not: when a
+     * site_pages row exists -- which it does on every install past its first
+     * day -- the row is what renders, and the default is only a fallback.
+     *
+     * So the two can disagree, and did. The default was corrected to 19 and
+     * this test went green while the live page still said 18, because nothing
+     * asked the page. It is the page Google reads.
+     */
+    public function test_the_rendered_features_page_says_the_real_count(): void
+    {
+        $count = count(SitePagesContent::homeLinkTypesDefault());
+
+        // With a stored row, because that is the case that goes wrong.
+        //
+        // A fresh test database has no site_pages rows, so the page falls
+        // back to the code default and this passes without touching the thing
+        // it is about. Every real install has the row, and the row is what
+        // renders. Seeded with a deliberately stale count so a page that
+        // echoes the row unchanged fails here.
+        \App\Modules\Common\Models\SitePage::updateOrCreate(
+            ['slug' => 'features'],
+            [
+                'title' => 'Features',
+                'meta_description' => 'Everything you get with Sayzio: all 3 link types (short links).',
+            ]
+        );
+
+        // The migration's own up(), not `artisan migrate`.
+        //
+        // RefreshDatabase has already migrated this database, so the
+        // migrations table lists this file and `migrate --path` is a no-op --
+        // which made this test pass alone and fail in a suite, the worst of
+        // both. Requiring the file hands back the anonymous migration class,
+        // and calling up() runs the thing being tested regardless of what has
+        // already been recorded.
+        $migration = require base_path('database/migrations/2028_09_10_000001_resync_features_link_type_count.php');
+        $migration->up();
+
+        $html = $this->get('/features')->assertOk()->getContent();
+
+        preg_match_all('/all (\d+) link types/i', (string) $html, $found);
+
+        $this->assertNotEmpty($found[1], '/features no longer states a link-type count at all');
+
+        $wrong = array_values(array_unique(array_filter(
+            $found[1],
+            fn ($n) => (int) $n !== $count
+        )));
+
+        $this->assertSame([], $wrong, sprintf(
+            "/features renders \"all %s link types\" but there are %d.\n\n"
+            . "The number lives in two places: the code default in SitePagesContent, and\n"
+            . "the site_pages row that actually renders. Correcting the default is not\n"
+            . "enough -- the row needs a migration to carry the change across, the way\n"
+            . "2028_09_10_000001 does.",
+            implode('/', $wrong),
+            $count
+        ));
+    }
+
+    /**
      * The LinkTypeExplainerSeeder::pages() definition is private; read it via
      * reflection so the test asserts against the real seeded aliases.
      *

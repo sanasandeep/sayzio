@@ -28,7 +28,7 @@
     .cpf-success { background: rgba(255,255,255,0.03); border: 1px solid rgba(61,107,255,0.25); }
     html.light-mode .cpf-success { background: #ffffff; border-color: rgba(61,107,255,0.3); box-shadow: 0 18px 40px -30px rgba(15,23,42,0.35); }
 </style>
-<section id="custom-plan-request" class="py-20 sm:py-28" style="background:linear-gradient(180deg,transparent 0%,rgba(110,97,255,0.05) 40%,rgba(61,107,255,0.04) 100%)">
+<section id="custom-plan-request" class="sec-rule py-20 sm:py-28" style="background:linear-gradient(180deg,transparent 0%,rgba(110,97,255,0.05) 40%,rgba(61,107,255,0.04) 100%)">
     <div class="max-w-3xl mx-auto px-4 sm:px-6" data-anim="fade-up">
         <div class="text-center mb-10">
             <div class="cpf-badge inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold uppercase tracking-wider mb-4">

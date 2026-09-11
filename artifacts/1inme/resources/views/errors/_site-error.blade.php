@@ -1,6 +1,6 @@
 @extends('public.layouts.site')
 @section('content')
-<section class="relative pt-16 pb-12 lg:pt-24 lg:pb-16 overflow-hidden">
+<section class="sec-first relative pt-16 pb-12 lg:pt-24 lg:pb-16 overflow-hidden">
     <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:radial-gradient(circle,rgba(61,107,255,0.18) 0%,transparent 70%);"></div>
     <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div class="text-xs uppercase tracking-[0.3em] text-blue-400 mb-3">Error {{ $statusCode ?? '' }}</div>
@@ -11,7 +11,7 @@
     </div>
 </section>
 
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         @foreach(($page->sections ?? []) as $section)
             <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 sm:p-8">

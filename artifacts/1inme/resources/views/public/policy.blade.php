@@ -5,7 +5,7 @@
     $showToc = ($page->show_toc ?? true) && count($sections) > 0;
     $lastUpdated = $page->last_updated_at;
 @endphp
-<section class="relative pt-16 pb-10 lg:pt-24 lg:pb-12 overflow-hidden">
+<section class="sec-first relative pt-16 pb-10 lg:pt-24 lg:pb-12 overflow-hidden">
     <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:rgba(61,107,255,.06);"></div>
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 class="text-4xl sm:text-5xl font-bold tracking-tight">{{ $page->title }}</h1>
@@ -30,7 +30,7 @@
     </div>
 </section>
 
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="lg:grid lg:grid-cols-12 lg:gap-10">
             @if($showToc)

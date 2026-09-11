@@ -11,7 +11,7 @@
      prefers-reduced-motion. CTAs keep the existing open-auth +
      trackMarketingEvent behaviour.
 --}}
-<section id="hero" class="relative z-10 overflow-hidden pt-28 pb-16 sm:pt-32 lg:pt-24 lg:pb-24 lg:min-h-[100svh] lg:flex lg:items-center" aria-labelledby="hero-h">
+<section id="hero" class="sec-first relative z-10 overflow-hidden pt-28 pb-16 sm:pt-32 lg:pt-24 lg:pb-24 lg:min-h-[100svh] lg:flex lg:items-center" aria-labelledby="hero-h">
     {{-- Square grid behind the hero, with a scatter of tiles that fade up and
          down. The positions are written out rather than randomised at request
          time: a fixed scatter looks the same as a random one to anyone

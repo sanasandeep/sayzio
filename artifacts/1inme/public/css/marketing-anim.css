@@ -27,6 +27,26 @@
     filter: none !important;
 }
 
+/* Below the two-column breakpoint, a sideways reveal comes in vertically.
+
+   Not a taste call. An unrevealed [data-anim] is invisible but still laid
+   out, so a fade-left rests 28px to the right of its own box and widens the
+   document by however much that exceeds the page gutter. The marketing
+   container is px-4 / sm:px-6 / lg:px-8 -- 16, 24, then 32 -- so from lg up
+   the gutter absorbs the 28 and below it never can. Measured at 390px:
+   /workspace-team scrolled sideways by 14px and /about by 12, both from a
+   band the reader had not reached yet, on a page with nothing visibly wrong
+   with it.
+
+   Clipping the page with overflow-x:hidden would have hidden this too, along
+   with the next real one, and would have broken the sticky category bar on
+   /features. Removing the sideways travel where there is no room for it
+   leaves the reveal doing what the rest of the page does. */
+@media (max-width: 1023.98px) {
+    [data-anim="fade-left"],
+    [data-anim="fade-right"] { transform: translateY(28px); }
+}
+
 /* Stagger children of any [data-stagger] ancestor */
 [data-stagger] > *           { transition-delay: 0ms; }
 [data-stagger] > *:nth-child(1) { transition-delay: 0ms; }

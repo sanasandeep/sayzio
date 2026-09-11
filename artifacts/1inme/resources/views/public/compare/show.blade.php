@@ -15,7 +15,7 @@
 @endphp
 
 {{-- ─────────────  HERO  ───────────── --}}
-<section class="relative pt-20 pb-14 lg:pt-28 lg:pb-16 overflow-hidden">
+<section class="sec-first relative pt-20 pb-14 lg:pt-28 lg:pb-16 overflow-hidden">
     <div class="mesh-bg" aria-hidden="true"></div>
     <div class="absolute inset-0 grid-bg opacity-50 pointer-events-none" aria-hidden="true"></div>
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -73,7 +73,7 @@
 ])
 
 {{-- ─────────────  WHERE EACH TOOL WINS  ───────────── --}}
-<section class="relative pb-20">
+<section class="sec-rule relative pb-20">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10" data-anim="fade-up">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">An honest take</div>
@@ -123,7 +123,7 @@
 </section>
 
 {{-- ─────────────  MIGRATION / SWITCH CTA  ───────────── --}}
-<section class="relative pb-20">
+<section class="sec-rule relative pb-20">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-10 relative overflow-hidden" data-anim="fade-up">
             <div class="mesh-bg opacity-40" aria-hidden="true"></div>
@@ -163,7 +163,7 @@
 
 {{-- ─────────────  FAQ  ───────────── --}}
 @if(!empty($faqs))
-<section class="relative pb-20">
+<section class="sec-rule relative pb-20">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10" data-anim="fade-up">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">FAQ</div>
@@ -188,7 +188,7 @@
 
 {{-- ─────────────  OTHER COMPARISONS  ───────────── --}}
 @if(!empty($others))
-<section class="relative pb-24">
+<section class="sec-rule relative pb-24">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">Keep comparing</div>

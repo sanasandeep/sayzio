@@ -86,7 +86,7 @@
             </div>
             <div data-anim="fade-left" data-tilt="5">
                 <div class="img-frame img-tilt aspect-[16/10]">
-                    <img src="{{ asset('images/marketing/api-docs/hero.png') }}" alt="Code editor showing the Sayzio REST API">
+                    <img src="{{ asset('images/marketing/api-docs/hero.png') }}"@imgSize(asset('images/marketing/api-docs/hero.png')) alt="Code editor showing the Sayzio REST API">
                 </div>
             </div>
         </div>

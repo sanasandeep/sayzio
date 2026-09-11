@@ -40,7 +40,7 @@
 @endphp
 
 {{-- ─────────────  HERO  ───────────── --}}
-<section class="relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
+<section class="sec-first relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="absolute inset-0 grid-bg opacity-50 pointer-events-none"></div>
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -88,7 +88,7 @@
             </div>
             <div data-anim="fade-left" data-tilt="6" class="relative">
                 <div class="img-frame img-tilt aspect-[16/10]">
-                    <img src="{{ asset('images/marketing/how-it-works/hero.png') }}" alt="Diagram of the Sayzio setup flow">
+                    <img src="{{ asset('images/marketing/how-it-works/hero.png') }}"@imgSize(asset('images/marketing/how-it-works/hero.png')) alt="Diagram of the Sayzio setup flow">
                 </div>
                 <div class="absolute -bottom-6 -left-6 bg-[#11101c] border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-2xl float-y">
                     <div class="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white">
@@ -109,7 +109,7 @@
 </section>
 
 {{-- ─────────────  STEPS  ───────────── --}}
-<section class="relative pb-24">
+<section class="sec-rule relative pb-24">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20">
         @foreach($steps as $i => $step)
             @php $reverse = $i % 2 === 1; @endphp
@@ -132,7 +132,7 @@
                 </div>
                 <div class="{{ $reverse ? 'lg:order-1' : '' }}" data-anim="{{ $reverse ? 'fade-right' : 'fade-left' }}" data-tilt="5">
                     <div class="img-frame img-tilt aspect-[4/3]">
-                        <img src="{{ $step['img'] }}" alt="{{ $step['title'] }}">
+                        <img src="{{ $step['img'] }}"@imgSize($step['img']) alt="{{ $step['title'] }}">
                     </div>
                 </div>
             </div>
@@ -141,7 +141,7 @@
 </section>
 
 {{-- Templates & link types --}}
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-8" data-anim="fade-up">
         <div class="grad-border rounded-3xl p-7 sm:p-8 relative overflow-hidden">
             <div class="mesh-bg opacity-50"></div>
@@ -192,7 +192,7 @@
 </section>
 
 {{-- ─────────────  CTA BAND  ───────────── --}}
-<section class="pb-24">
+<section class="sec-rule pb-24">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
             <div class="mesh-bg opacity-50"></div>

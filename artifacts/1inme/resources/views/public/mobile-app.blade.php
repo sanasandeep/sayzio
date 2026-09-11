@@ -50,7 +50,7 @@
 </style>
 
 {{-- ============ Hero ============ --}}
-<section class="relative overflow-hidden map-mesh pt-16 sm:pt-24 pb-16 sm:pb-20">
+<section class="sec-first relative overflow-hidden map-mesh pt-16 sm:pt-24 pb-16 sm:pb-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12 lg:gap-8 items-center relative">
         <div data-anim="fade-right">
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider"
@@ -119,10 +119,10 @@
 </section>
 
 {{-- ============ In real life (photo band) ============ --}}
-<section class="py-16 sm:py-20 relative">
+<section class="sec-rule py-16 sm:py-20 relative">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
         <div data-anim="fade-right">
-            <img src="{{ asset('images/marketing/app/hero-creator.webp') }}"
+            <img src="{{ asset('images/marketing/app/hero-creator.webp') }}"@imgSize(asset('images/marketing/app/hero-creator.webp'))
                  alt="A creator in a cafe checking her Sayzio analytics on her phone"
                  loading="lazy" decoding="async" class="map-photo">
         </div>
@@ -155,7 +155,7 @@
 </section>
 
 {{-- ============ Feature grid ============ --}}
-<section class="py-16 sm:py-20 relative">
+<section class="sec-rule py-16 sm:py-20 relative">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center max-w-2xl mx-auto" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl font-bold text-white">Not a companion app. The real thing.</h2>
@@ -183,7 +183,7 @@
 </section>
 
 {{-- ============ Photo gallery: a day with the app ============ --}}
-<section class="py-16 sm:py-20 relative">
+<section class="sec-rule py-16 sm:py-20 relative">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center max-w-2xl mx-auto" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl font-bold text-white">A day with Sayzio in your pocket</h2>
@@ -199,7 +199,7 @@
                  'Evening: answer your people', 'New followers, messages, form entries and reviews land in the app with push notifications, reply from the couch instead of catching up at midnight.'],
             ] as [$img, $alt, $title, $desc])
                 <div class="glass rounded-2xl overflow-hidden" data-anim="fade-up">
-                    <img src="{{ asset($img) }}" alt="{{ $alt }}" loading="lazy" decoding="async" class="w-full aspect-[4/3] object-cover">
+                    <img src="{{ asset($img) }}"@imgSize(asset($img)) alt="{{ $alt }}" loading="lazy" decoding="async" class="w-full aspect-[4/3] object-cover">
                     <div class="p-6">
                         <h3 class="text-base font-bold text-white">{{ $title }}</h3>
                         <p class="mt-1.5 text-sm text-gray-400 leading-relaxed">{{ $desc }}</p>
@@ -211,7 +211,7 @@
 </section>
 
 {{-- ============ FAQs ============ --}}
-<section class="py-16 sm:py-20">
+<section class="sec-rule py-16 sm:py-20">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl font-bold text-white">The app, answered</h2>
@@ -241,7 +241,7 @@
 </section>
 
 {{-- ============ Bottom CTA ============ --}}
-<section class="py-16 sm:py-24">
+<section class="sec-rule py-16 sm:py-24">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl font-bold text-white">Take Sayzio with you</h2>

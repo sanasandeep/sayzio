@@ -24,7 +24,7 @@
 @endphp
 
 {{-- HERO --}}
-<section class="relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
+<section class="sec-first relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
         <div data-anim="fade-right">
@@ -45,7 +45,7 @@
         </div>
         <div data-anim="fade-left" data-tilt="5" class="relative">
             <div class="img-frame img-tilt aspect-[16/10]">
-                <img src="{{ asset('images/marketing/newsroom/hero.png') }}" alt="Press coverage and editorial features">
+                <img src="{{ asset('images/marketing/newsroom/hero.png') }}"@imgSize(asset('images/marketing/newsroom/hero.png')) alt="Press coverage and editorial features">
             </div>
             <div class="absolute -bottom-5 -right-5 bg-[#11101c] border border-white/10 rounded-2xl p-3 pr-4 flex items-center gap-3 shadow-2xl float-y">
                 <div class="w-10 h-10 rounded-xl bg-[#3d6bff] flex items-center justify-center text-white"><i class="fas fa-trophy"></i></div>
@@ -56,7 +56,7 @@
 </section>
 
 {{-- LOGO MARQUEE --}}
-<section class="pb-16">
+<section class="sec-rule pb-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <p class="text-center text-xs font-semibold uppercase tracking-[.25em] text-gray-500 mb-6" data-anim="fade-up">As featured in</p>
         <div class="marquee-mask overflow-hidden">
@@ -70,7 +70,7 @@
 </section>
 
 {{-- PRESS GRID --}}
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between flex-wrap gap-4 mb-8" data-anim="fade-up">
             <div>
@@ -83,7 +83,7 @@
             @foreach($press as $p)
                 <a href="{{ $p['href'] }}" class="group bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 hover:border-blue-400/40 rounded-2xl overflow-hidden transition flex flex-col sm:flex-row">
                     <div class="img-frame rounded-none border-0 aspect-[16/10] sm:aspect-auto sm:w-44 shrink-0">
-                        <img src="{{ asset('images/marketing/newsroom/press.png') }}" alt="Press article preview">
+                        <img src="{{ asset('images/marketing/newsroom/press.png') }}"@imgSize(asset('images/marketing/newsroom/press.png')) alt="Press article preview">
                     </div>
                     <div class="p-5 flex-1 flex flex-col">
                         <div class="text-xs font-semibold uppercase tracking-wider text-blue-300">{{ $p['outlet'] }} · {{ $p['date'] }}</div>
@@ -97,7 +97,7 @@
 </section>
 
 {{-- AWARDS --}}
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid lg:grid-cols-[1fr_1.2fr] gap-10 items-center">
             <div data-anim="fade-right">
@@ -119,7 +119,7 @@
             </div>
             <div data-anim="fade-left" data-tilt="6">
                 <div class="img-frame img-tilt aspect-[4/3]">
-                    <img src="{{ asset('images/marketing/newsroom/awards.png') }}" alt="Awards">
+                    <img src="{{ asset('images/marketing/newsroom/awards.png') }}"@imgSize(asset('images/marketing/newsroom/awards.png')) alt="Awards">
                 </div>
             </div>
         </div>
@@ -127,7 +127,7 @@
 </section>
 
 {{-- TESTIMONIALS --}}
-<section class="pb-24">
+<section class="sec-rule pb-24">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Customer love</h2>
@@ -152,7 +152,7 @@
 </section>
 
 {{-- CTA --}}
-<section class="pb-24">
+<section class="sec-rule pb-24">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
             <div class="mesh-bg opacity-50"></div>

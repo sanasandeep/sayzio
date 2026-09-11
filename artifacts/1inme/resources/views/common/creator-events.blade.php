@@ -48,7 +48,7 @@
 
     <div class="flex items-center gap-3 mb-6">
         @if($creator->avatar)
-            <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->avatar) }}" alt="" class="w-12 h-12 rounded-xl object-cover">
+            <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->avatar) }}"@imgSize(\App\Support\PublicStorageUrl::resolve($creator->avatar)) alt="" class="w-12 h-12 rounded-xl object-cover">
         @else
             <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-extrabold text-sm">
                 {{ $creator->getInitials() }}
@@ -67,7 +67,7 @@
         <div class="ev-card p-4 sm:p-5 mb-6">
             <div class="flex items-start gap-3">
                 @if($organizer['logo'])
-                    <img src="{{ $organizer['logo'] }}" alt="" class="w-14 h-14 rounded-xl object-cover flex-shrink-0">
+                    <img src="{{ $organizer['logo'] }}"@imgSize($organizer['logo']) alt="" class="w-14 h-14 rounded-xl object-cover flex-shrink-0">
                 @else
                     <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-extrabold text-sm flex-shrink-0">
                         {{ $creator->getInitials() }}
@@ -157,9 +157,9 @@
                 <div class="event-card ev-card overflow-hidden">
                     <a href="{{ url('/' . $event->alias) }}" class="block relative aspect-[16/10] overflow-hidden">
                         @if($cover)
-                            <img src="{{ $cover }}" alt="{{ $event->title }}" loading="lazy" class="ev-card-img">
+                            <img src="{{ $cover }}"@imgSize($cover) alt="{{ $event->title }}" loading="lazy" class="ev-card-img">
                         @else
-                            <img src="{{ asset('images/events/event-cover-placeholder.svg') }}" alt="{{ $event->title }}" loading="lazy" class="ev-card-img">
+                            <img src="{{ asset('images/events/event-cover-placeholder.svg') }}"@imgSize(asset('images/events/event-cover-placeholder.svg')) alt="{{ $event->title }}" loading="lazy" class="ev-card-img">
                         @endif
                         @if($ics && $ics->start_date)
                             <div class="ev-card-date-chip absolute top-3 left-3 z-10 rounded-xl px-2.5 py-1.5 text-center shadow-sm leading-none" style="background:rgba(11,14,22,0.8);">

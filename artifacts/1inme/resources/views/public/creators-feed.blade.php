@@ -1,7 +1,7 @@
 @extends('public.layouts.site')
 @section('content')
 {{-- HERO --}}
-<section class="relative pt-20 pb-12 lg:pt-28 lg:pb-14 overflow-hidden">
+<section class="sec-first relative pt-20 pb-12 lg:pt-28 lg:pb-14 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
         <div data-anim="fade-right">
@@ -27,14 +27,14 @@
         </div>
         <div data-anim="fade-left" data-tilt="5">
             <div class="img-frame img-tilt aspect-[5/4]">
-                <img src="{{ asset('images/marketing/creators-feed/hero.png') }}" alt="Creators sharing posts on Sayzio">
+                <img src="{{ asset('images/marketing/creators-feed/hero.png') }}"@imgSize(asset('images/marketing/creators-feed/hero.png')) alt="Creators sharing posts on Sayzio">
             </div>
         </div>
     </div>
 </section>
 
 {{-- FEED --}}
-<section class="pb-24">
+<section class="sec-rule pb-24">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         @if($posts->isEmpty())
             <div class="text-center text-gray-500 text-sm py-16" data-anim="fade-up">No posts in the feed yet.</div>
@@ -45,7 +45,7 @@
                     <article class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 sm:p-6 hover:border-blue-400/40 transition">
                         <header class="flex items-center gap-3 mb-3">
                             @if($u && $u->avatar)
-                                <img src="{{ \App\Support\PublicStorageUrl::resolve($u->avatar) }}" alt="{{ $u?->name ?? 'Avatar' }}" class="w-10 h-10 rounded-full object-cover ring-2 ring-white/5">
+                                <img src="{{ \App\Support\PublicStorageUrl::resolve($u->avatar) }}"@imgSize(\App\Support\PublicStorageUrl::resolve($u->avatar)) alt="{{ $u?->name ?? 'Avatar' }}" class="w-10 h-10 rounded-full object-cover ring-2 ring-white/5">
                             @else
                                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-bold ring-2 ring-white/5">
                                     {{ strtoupper(mb_substr($u?->name ?? '?', 0, 1)) }}
@@ -68,7 +68,7 @@
                             <h2 class="text-lg sm:text-xl font-bold text-white mb-2">{{ $p->title }}</h2>
                         @endif
                         @if($p->image)
-                            <div class="img-frame mb-3 aspect-[16/10]"><img src="{{ \App\Support\PublicStorageUrl::resolve($p->image) }}" alt="{{ $p->title ?? 'Post image' }}"></div>
+                            <div class="img-frame mb-3 aspect-[16/10]"><img src="{{ \App\Support\PublicStorageUrl::resolve($p->image) }}"@imgSize(\App\Support\PublicStorageUrl::resolve($p->image)) alt="{{ $p->title ?? 'Post image' }}"></div>
                         @endif
                         @if($p->body)
                             <div class="prose-light text-gray-300 leading-relaxed text-sm">

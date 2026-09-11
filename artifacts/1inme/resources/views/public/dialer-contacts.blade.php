@@ -345,7 +345,7 @@
 </style>
 
 {{-- ============== HERO ============== --}}
-<section id="dcp-hero" class="relative pt-20 pb-20 lg:pt-28 lg:pb-28 overflow-hidden">
+<section id="dcp-hero" class="sec-first relative pt-20 pb-20 lg:pt-28 lg:pb-28 overflow-hidden">
     <div class="dcp-mesh absolute inset-0" aria-hidden="true"></div>
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12 items-center">
         <div data-anim="fade-right">
@@ -401,7 +401,7 @@
                             @endphp
                             <div class="dcp-numwrap">
                                 <div class="dcp-match">
-                                    <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" onerror="this.remove()">
+                                    <img src="{{ asset('images/marketing/contact-aisha.jpg') }}"@imgSize(asset('images/marketing/contact-aisha.jpg')) alt="" loading="lazy" onerror="this.remove()">
                                     Aisha Rahman <i class="fas fa-circle-check"></i>
                                 </div>
                                 {{-- Quick-channel icons appear with the T9 match --}}
@@ -457,7 +457,7 @@
                                 <div class="dcp-cid-pill"><i class="fas fa-address-card"></i> Sayzio Caller ID</div>
                                 <div class="dcp-avatar-lg">
                                     AR
-                                    <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" onerror="this.remove()">
+                                    <img src="{{ asset('images/marketing/contact-aisha.jpg') }}"@imgSize(asset('images/marketing/contact-aisha.jpg')) alt="" loading="lazy" onerror="this.remove()">
                                 </div>
                                 <div class="dcp-call-name">Aisha Rahman <i class="fas fa-circle-check"></i></div>
                                 <div class="dcp-call-handle">@aisha &middot; on Sayzio</div>
@@ -507,7 +507,7 @@
 </section>
 
 {{-- ============== STATS ============== --}}
-<section class="py-10 relative overflow-hidden">
+<section class="sec-rule py-10 relative overflow-hidden">
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-3">
         @foreach([
             ['6',    'Quick channels'],
@@ -524,7 +524,7 @@
 </section>
 
 {{-- ============== EVERYTHING GRID ============== --}}
-<section id="everything" class="py-20 lg:py-28 relative overflow-hidden">
+<section id="everything" class="sec-rule py-20 lg:py-28 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-2xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#1bd4d9">Everything in one place</div>
@@ -559,7 +559,7 @@
 </section>
 
 {{-- ============== QUICK CHANNELS ============== --}}
-<section class="py-20 lg:py-28 relative overflow-hidden">
+<section class="sec-rule py-20 lg:py-28 relative overflow-hidden">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
         <div data-anim="fade-right">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#3d6bff">One tap, right app</div>
@@ -613,7 +613,7 @@
 </section>
 
 {{-- ============== GOOGLE SYNC ============== --}}
-<section id="sync" class="py-20 lg:py-28 relative overflow-hidden">
+<section id="sync" class="sec-rule py-20 lg:py-28 relative overflow-hidden">
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 max-w-2xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#e94e8c">Always in sync</div>
@@ -655,7 +655,7 @@
 </section>
 
 {{-- ============== IMPORT & SCAN ============== --}}
-<section class="py-20 lg:py-28 relative overflow-hidden">
+<section class="sec-rule py-20 lg:py-28 relative overflow-hidden">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
         <div data-anim="fade-right">
             <div class="glass rounded-3xl p-6 sm:p-8 relative overflow-hidden">
@@ -712,7 +712,7 @@
 </section>
 
 {{-- ============== TAKE IT WITH YOU ============== --}}
-<section id="dcp-store" class="py-12 lg:py-16">
+<section id="dcp-store" class="sec-rule py-12 lg:py-16">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div class="text-[11px] font-bold uppercase tracking-[.14em] text-gray-500 mb-4" data-anim="fade-up">Take the dialer with you</div>
         <p class="text-sm text-gray-400 mb-5 max-w-xl mx-auto" data-anim="fade-up">
@@ -725,7 +725,7 @@
 </section>
 
 {{-- ============== CLOSING CTA ============== --}}
-<section class="py-20 lg:py-28 relative overflow-hidden">
+<section class="sec-rule py-20 lg:py-28 relative overflow-hidden">
     <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
             <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">

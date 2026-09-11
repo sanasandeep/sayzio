@@ -31,7 +31,7 @@
         ? 'md:grid-cols-1'
         : ($__sbCardCount === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3');
 @endphp
-<section class="pb-24" aria-labelledby="subscribe-block-h-{{ $__sbSource }}">
+<section class="sec-rule pb-24" aria-labelledby="subscribe-block-h-{{ $__sbSource }}">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-8">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-400/30 text-[11px] font-bold uppercase tracking-wider text-blue-200 mb-3">

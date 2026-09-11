@@ -38,7 +38,35 @@ class VoiceAssistantController extends Controller
      * Each entry is already lowercased + alphanumeric/space only so it
      * can be substring-matched against the normalised transcript.
      */
+    /**
+     * What someone can say to wake the assistant.
+     *
+     * The product's name is Sayzio and this list was every spelling of
+     * 1inme, so "Hey Sayzio" -- the phrase the app itself prompts for --
+     * woke nothing. The rename reached the interface and not the ear.
+     *
+     * The old phrases stay. Someone who learned "hey 1inme" and still says
+     * it should still be heard, and the cost of keeping them is a handful of
+     * strings.
+     *
+     * Both halves list the shapes a speech-to-text pass actually produces
+     * for a name it does not know: split across a space, and with the z
+     * heard as an s. Everything is matched after lowercasing and reducing
+     * runs of non-alphanumerics to a single space, so punctuation and
+     * capitals are already gone by the time these are compared.
+     */
     public const WAKE_PHRASES = [
+        'hey sayzio',
+        'hey say zio',
+        'hey saysio',
+        'hey say sio',
+        'hi sayzio',
+        'hi say zio',
+        'ok sayzio',
+        'okay sayzio',
+        'okay say zio',
+
+        // The original brand, kept for anyone who still says it.
         'hey 1inme',
         'hey one inme',
         'hey one in me',

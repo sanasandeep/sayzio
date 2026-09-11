@@ -196,7 +196,7 @@
 </style>
 
 {{-- ============== HERO ============== --}}
-<section id="rbp-hero" class="relative pt-20 pb-20 lg:pt-28 lg:pb-28 overflow-hidden">
+<section id="rbp-hero" class="sec-first relative pt-20 pb-20 lg:pt-28 lg:pb-28 overflow-hidden">
     <div class="rbp-mesh absolute inset-0" aria-hidden="true"></div>
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12 items-center">
         <div data-anim="fade-right">
@@ -292,7 +292,7 @@
 </section>
 
 {{-- ============== STATS ============== --}}
-<section class="py-10 relative overflow-hidden">
+<section class="sec-rule py-10 relative overflow-hidden">
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-3">
         @foreach([
             ['5 min',  'Average build time'],
@@ -309,7 +309,7 @@
 </section>
 
 {{-- ============== HOW IT WORKS ============== --}}
-<section class="py-20 lg:py-28 relative overflow-hidden">
+<section class="sec-rule py-20 lg:py-28 relative overflow-hidden">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-2xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#1bd4d9">How it works</div>
@@ -337,7 +337,7 @@
 </section>
 
 {{-- ============== TEMPLATES ============== --}}
-<section id="templates" class="py-20 lg:py-28 relative overflow-hidden">
+<section id="templates" class="sec-rule py-20 lg:py-28 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 max-w-2xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#e94e8c">Templates</div>
@@ -369,7 +369,7 @@
 </section>
 
 {{-- ============== COMPARISON ============== --}}
-<section class="py-20 lg:py-28 relative overflow-hidden">
+<section class="sec-rule py-20 lg:py-28 relative overflow-hidden">
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 max-w-2xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#22c55e">Why Sayzio</div>
@@ -403,7 +403,7 @@
 </section>
 
 {{-- ============== FAQS ============== --}}
-<section class="py-20 lg:py-24 relative overflow-hidden">
+<section class="sec-rule py-20 lg:py-24 relative overflow-hidden">
     <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#3d6bff">FAQs</div>
@@ -430,7 +430,7 @@
 </section>
 
 {{-- ============== FINAL CTA ============== --}}
-<section class="py-20 lg:py-24 relative overflow-hidden">
+<section class="sec-rule py-20 lg:py-24 relative overflow-hidden">
     <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="relative rounded-3xl p-10 text-center overflow-hidden" style="background: rgba(61,107,255,.16); border: 1px solid rgba(255,255,255,.08);">
             <div class="absolute inset-[-1px] rounded-[inherit] pointer-events-none" style="background: rgba(61,107,255,.45); opacity:.18; filter: blur(28px);"></div>

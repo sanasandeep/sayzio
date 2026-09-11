@@ -189,7 +189,7 @@
 @endphp
 
 {{-- HERO --}}
-<section class="relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
+<section class="sec-first relative pt-20 pb-16 lg:pt-28 lg:pb-20 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
         <div data-anim="fade-right">
@@ -230,7 +230,7 @@
         </div>
         <div data-anim="fade-left" data-tilt="5" class="relative">
             <div class="img-frame img-tilt aspect-[16/10]">
-                <img src="{{ $heroSideImage }}" alt="{{ $heroSideImageAlt }}">
+                <img src="{{ $heroSideImage }}"@imgSize($heroSideImage) alt="{{ $heroSideImageAlt }}">
             </div>
             @if($heroLocTitle !== '' || $heroLocSubtitle !== '')
                 <div class="absolute -bottom-5 -left-5 bg-[#11101c] border border-white/10 rounded-2xl p-3 pr-4 flex items-center gap-3 shadow-2xl float-y">
@@ -249,7 +249,7 @@
 
 {{-- VALUES --}}
 @if(!empty($valueCards))
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         @if($valuesHeading !== '' || $valuesSubheading !== '')
             <div class="text-center mb-10" data-anim="fade-up">
@@ -281,7 +281,7 @@
     @switch($lowerSlug)
         @case('story')
             @if(!empty($story))
-            <section class="pb-16">
+            <section class="sec-rule pb-16">
                 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-[1.1fr_1fr] gap-10 items-start">
                     <div class="space-y-6">
                         @foreach($story as $s)
@@ -295,10 +295,10 @@
                     </div>
                     <div class="space-y-5 lg:sticky lg:top-24">
                         <div class="img-frame aspect-[4/3]" data-anim="fade-left" data-tilt="4">
-                            <img src="{{ $officeUrl }}" alt="{{ $officeAlt }}">
+                            <img src="{{ $officeUrl }}"@imgSize($officeUrl) alt="{{ $officeAlt }}">
                         </div>
                         <div class="img-frame aspect-[4/3]" data-anim="fade-left" data-tilt="4">
-                            <img src="{{ $valuesUrl }}" alt="{{ $valuesAlt }}">
+                            <img src="{{ $valuesUrl }}"@imgSize($valuesUrl) alt="{{ $valuesAlt }}">
                         </div>
                     </div>
                 </div>
@@ -307,10 +307,10 @@
             @break
 
         @case('team_band')
-            <section class="pb-20">
+            <section class="sec-rule pb-20">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="img-frame aspect-[16/7]" data-anim="fade-up" data-tilt="3">
-                        <img src="{{ $teamBandUrl }}" alt="{{ $teamBandAlt }}">
+                        <img src="{{ $teamBandUrl }}"@imgSize($teamBandUrl) alt="{{ $teamBandAlt }}">
                     </div>
                 </div>
             </section>
@@ -318,7 +318,7 @@
 
         @case('founder')
             @if(!empty($founder['name']) || !empty($founder['bio']))
-            <section class="pb-16">
+            <section class="sec-rule pb-16">
                 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8" data-anim="fade-up">
                     @if($founderTitle !== '')
                         <h2 class="text-3xl sm:text-4xl font-bold text-center mb-8 tracking-tight">{{ $founderTitle }}</h2>
@@ -327,7 +327,7 @@
                         <div class="shrink-0 mx-auto sm:mx-0">
                             @php $founderPhoto = $personPhoto($founder) ?? $defaultFounderPhoto; @endphp
                             <div class="relative">
-                                <img src="{{ $founderPhoto }}" alt="{{ $founder['name'] ?? '' }}" class="w-40 h-40 rounded-full object-cover border-2 border-blue-400/40 shadow-2xl">
+                                <img src="{{ $founderPhoto }}"@imgSize($founderPhoto) alt="{{ $founder['name'] ?? '' }}" class="w-40 h-40 rounded-full object-cover border-2 border-blue-400/40 shadow-2xl">
                                 <div class="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-blue-500 border-4 border-[#1e2330] flex items-center justify-center text-white">
                                     <i class="fas fa-crown text-sm"></i>
                                 </div>
@@ -360,7 +360,7 @@
             @break
 
         @case('eefind')
-            <section class="pb-16">
+            <section class="sec-rule pb-16">
                 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8" data-anim="fade-up">
                     <div class="glass-panel rounded-3xl p-6 sm:p-10">
                         @if($eefindEyebrow !== '')
@@ -429,7 +429,7 @@
 
         @case('milestones')
             @if(!empty($milestones))
-            <section class="pb-24">
+            <section class="sec-rule pb-24">
                 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8" data-anim="fade-up">
                     @if($milestonesTitle !== '')
                         <h2 class="text-3xl sm:text-4xl font-bold text-center mb-2 tracking-tight">{{ $milestonesTitle }}</h2>
@@ -455,7 +455,7 @@
             @break
 
         @case('cta')
-            <section class="pb-24">
+            <section class="sec-rule pb-24">
                 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
                         <div class="mesh-bg opacity-50"></div>

@@ -91,7 +91,7 @@
                     <a href="{{ url('/' . $rec->alias) }}" class="text-decoration-none d-block">
                         <div class="border overflow-hidden h-100 position-relative ev-rec-card">
                             <div class="ratio ratio-16x9 position-relative ev-rec-thumb overflow-hidden">
-                                <img src="{{ $eventCardThumb($rec) }}" alt="{{ $rec->title }}" loading="lazy" class="w-100 h-100" style="object-fit: cover;">
+                                <img src="{{ $eventCardThumb($rec) }}"@imgSize($eventCardThumb($rec)) alt="{{ $rec->title }}" loading="lazy" class="w-100 h-100" style="object-fit: cover;">
                                 <span class="badge ev-rec-badge {{ $meta->isPaid ? 'ev-rec-badge-paid' : 'ev-rec-badge-free' }} position-absolute top-0 end-0 m-2">{{ $meta->priceLabel }}</span>
                             </div>
                             <div class="p-3">
@@ -133,7 +133,7 @@
                 <a href="{{ url('/' . $rec->alias) }}" class="text-decoration-none d-block">
                     <div class="border d-flex align-items-center gap-3 p-3 ev-rec-card ev-rec-card-list">
                         <div class="rounded-3 overflow-hidden flex-shrink-0 ev-rec-thumb ev-rec-card-list-thumb">
-                            <img src="{{ $eventCardThumb($rec) }}" alt="{{ $rec->title }}" loading="lazy" class="w-100 h-100" style="object-fit: cover;">
+                            <img src="{{ $eventCardThumb($rec) }}"@imgSize($eventCardThumb($rec)) alt="{{ $rec->title }}" loading="lazy" class="w-100 h-100" style="object-fit: cover;">
                         </div>
                         <div class="flex-grow-1 min-width-0">
                             <div class="small fw-semibold text-dark text-truncate ev-rec-title">{{ $rec->title }}</div>

@@ -49,7 +49,7 @@
                 @if($post->author)
                     @php $authorAvatar = $post->author->avatar ?? null; @endphp
                     @if($authorAvatar)
-                        <img src="{{ $authorAvatar }}" alt="{{ $post->author->name }}" class="w-10 h-10 rounded-full object-cover">
+                        <img src="{{ $authorAvatar }}"@imgSize($authorAvatar) alt="{{ $post->author->name }}" class="w-10 h-10 rounded-full object-cover">
                     @else
                         <div class="w-10 h-10 rounded-full flex items-center justify-center font-semibold text-white" style="background:#3d6bff;">{{ strtoupper(substr($post->author->name ?? '?', 0, 1)) }}</div>
                     @endif
@@ -83,7 +83,7 @@
 
         @if($post->cover_image)
             <div class="mt-8 rounded-2xl overflow-hidden">
-                <img src="{{ \App\Support\PublicStorageUrl::resolve($post->cover_image) }}" alt="{{ $post->title }}" class="w-full h-auto">
+                <img src="{{ \App\Support\PublicStorageUrl::resolve($post->cover_image) }}"@imgSize(\App\Support\PublicStorageUrl::resolve($post->cover_image)) alt="{{ $post->title }}" class="w-full h-auto">
             </div>
         @endif
 

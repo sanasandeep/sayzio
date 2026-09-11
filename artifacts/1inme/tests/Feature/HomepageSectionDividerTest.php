@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\AssertsAgainstLargeSubjects;
+use Tests\Support\BandScanner;
 use Tests\TestCase;
 
 /**
@@ -45,17 +46,53 @@ class HomepageSectionDividerTest extends TestCase
 {
     use RefreshDatabase;
     use AssertsAgainstLargeSubjects;
+    use BandScanner;
 
     /**
-     * Structural exceptions, and there are only two kinds now: a band with
-     * nothing above it to divide from, and an element that is not a band.
+     * The stylesheet that defines the separator and lit-surface system.
      *
-     * "It has its own background" is deliberately NOT expressible here any
-     * more -- that is what sec-ground is for, and sec-ground has to paint.
+     * It moved out of home.blade.php when the marketing pages started using it
+     * too, and three guards went red on the move rather than on anything being
+     * wrong. They read the file the rules live in now, found by looking, so the
+     * next move does not break them either.
      */
-    private const NOTHING_ABOVE_IT = [
-        'hero' => 'the first band on the page',
-    ];
+    private function sectionSurfaceCss(): string
+    {
+        $candidates = [
+            resource_path('views/public/partials/section-surfaces.blade.php'),
+            resource_path('views/home.blade.php'),
+        ];
+
+        $css = '';
+
+        foreach ($candidates as $path) {
+            if (is_file($path)) {
+                $css .= "
+" . file_get_contents($path);
+            }
+        }
+
+        $this->assertStringContainsString(
+            '.sec-rule::before',
+            $css,
+            'the separator rules are in neither of the files this test knows about'
+        );
+
+        return $css;
+    }
+
+    /*
+     * There is no exemption list any more.
+     *
+     * There used to be: `'hero' => 'the first band on the page'`, alongside
+     * nine entries that were claims about how the page LOOKED and had quietly
+     * stopped being true. Extending the same idea to 35 marketing heroes would
+     * have made it a 36-entry list, which is how the first one grew.
+     *
+     * The one real exemption -- a band with nothing above it to divide from --
+     * is a structural fact, so BandScanner computes it: the first band in a
+     * page view. Nothing to remember, nothing to let rot.
+     */
 
     /**
      * Every view that contributes a full-bleed band to a homepage, found the
@@ -77,41 +114,10 @@ class HomepageSectionDividerTest extends TestCase
      */
     private function homepageBandViews(): array
     {
-        $roots = array_merge(
+        return $this->viewsReachableFrom(array_merge(
             [resource_path('views/home.blade.php')],
-            glob(resource_path('views/home/deferred-sections*.blade.php'))
-        );
-
-        $seen = [];
-        $queue = $roots;
-
-        while ($queue) {
-            $path = array_shift($queue);
-
-            if (! is_file($path) || isset($seen[$path])) {
-                continue;
-            }
-
-            $seen[$path] = true;
-            $source = (string) file_get_contents($path);
-
-            // @include('a.b'), @includeIf('a.b'), @includeWhen($c, 'a.b'),
-            // @includeFirst([...]) -- every literal view name in the file.
-            preg_match_all(
-                '/@include(?:If|When|Unless|First)?\s*\(\s*(?:[^)\'"]*?,\s*)?([\'"])([a-z0-9_.\-]+)\1/i',
-                $source,
-                $m
-            );
-
-            foreach ($m[2] as $view) {
-                $queue[] = resource_path('views/' . str_replace('.', '/', $view) . '.blade.php');
-            }
-        }
-
-        $paths = array_keys($seen);
-        sort($paths);
-
-        return $paths;
+            glob(resource_path('views/home/deferred-sections*.blade.php')) ?: []
+        ));
     }
 
     /**
@@ -139,45 +145,6 @@ class HomepageSectionDividerTest extends TestCase
         }
 
         $this->assertGreaterThan(30, count($found), 'the crawl collapsed; it is not reading the page any more');
-    }
-
-    /**
-     * A band is a <section> that spans the page. Recognised by its vertical
-     * rhythm: any py-/pt- step from 12 up, which is what every band on the
-     * page uses and no card inside one does.
-     *
-     * The old matcher wanted `py-(16|20|24)` AND Tailwind's `relative`, and
-     * two live bands walked straight through it -- the trust band is
-     * `py-14 sm:py-20`, and the Zio hub band is `pt-24 ... pb-20` with no
-     * `relative` at all.
-     *
-     * @return list<array{0:string,1:string,2:int}> [tag, classes, line]
-     */
-    private function bandsIn(string $source): array
-    {
-        $bands = [];
-
-        preg_match_all('/<section\b[^>]*>/i', $source, $tags, PREG_OFFSET_CAPTURE);
-
-        foreach ($tags[0] as [$tag, $offset]) {
-            // Single or double quotes: the old pattern accepted only double,
-            // so one @class([...]) or a single-quoted list would have been
-            // invisible rather than reported.
-            if (! preg_match('/\bclass=(["\'])(.*?)\1/is', $tag, $c)) {
-                continue;
-            }
-
-            $classes = $c[2];
-
-            if (! preg_match('/(?<![\w:-])(?:py|pt)-(1[2-9]|[2-9]\d)\b/', $classes)) {
-                continue;
-            }
-
-            $line = substr_count(substr($source, 0, $offset), "\n") + 1;
-            $bands[] = [$tag, $classes, $line];
-        }
-
-        return $bands;
     }
 
     /**
@@ -224,19 +191,12 @@ class HomepageSectionDividerTest extends TestCase
             $source = (string) file_get_contents($path);
 
             foreach ($this->bandsIn($source) as [$tag, $classes, $line]) {
-                $hasRule = (bool) preg_match('/(?<![\w-])sec-rule(?![\w-])/', $classes);
-                $hasGround = (bool) preg_match('/(?<![\w-])sec-ground(?![\w-])/', $classes);
-
-                if ($hasRule || $hasGround) {
+                if ($this->declaresSeparator($classes)) {
                     continue;
                 }
 
                 preg_match('/\bid=(["\'])(.*?)\1/is', $tag, $idMatch);
                 $id = $idMatch[2] ?? '';
-
-                if ($id !== '' && array_key_exists($id, self::NOTHING_ABOVE_IT)) {
-                    continue;
-                }
 
                 // A shared partial can take its declaration from the caller:
                 // `class="{{ $sectionClass ?? '' }} py-20 ..."`. The compare
@@ -269,7 +229,8 @@ class HomepageSectionDividerTest extends TestCase
             "These homepage bands say nothing about how they separate from the band above.\n\n"
             . "Add ONE of:\n"
             . "  sec-rule    the band sits on the page's ground and carries the hairline\n"
-            . "  sec-ground  the band paints a ground of its own, in BOTH themes\n\n"
+            . "  sec-ground  the band paints a ground of its own, in BOTH themes\n"
+            . "  sec-first   nothing above it; it is the first band on the page\n\n"
             . "There is no third option and no opt-out list. If the band has a background,\n"
             . "sec-ground is how it says so -- and sec-ground is what draws it, so the claim\n"
             . "cannot drift away from the page the way the old prose reasons did.\n\n%d found:\n  %s",
@@ -305,7 +266,7 @@ class HomepageSectionDividerTest extends TestCase
      */
     public function test_both_separators_are_styled_in_both_themes(): void
     {
-        $home = (string) file_get_contents(resource_path('views/home.blade.php'));
+        $home = $this->sectionSurfaceCss();
 
         $this->assertSubjectContains('.sec-rule::before', $home, 'nothing draws the hairline');
         $this->assertPatternFound(
@@ -353,7 +314,7 @@ class HomepageSectionDividerTest extends TestCase
         $css = preg_replace(
             '#/\*.*?\*/#s',
             '',
-            (string) file_get_contents(resource_path('views/home.blade.php'))
+            $this->sectionSurfaceCss()
         );
 
         $this->assertPatternAbsent(

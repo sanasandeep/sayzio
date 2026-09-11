@@ -61,7 +61,7 @@
 @endphp
 
 {{-- HERO --}}
-<section class="relative pt-20 pb-12 lg:pt-28 lg:pb-16 overflow-hidden">
+<section class="sec-first relative pt-20 pb-12 lg:pt-28 lg:pb-16 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
         <div data-anim="fade-right">
@@ -85,17 +85,17 @@
         </div>
         <div data-anim="fade-left" class="relative">
             <div class="grid grid-cols-2 gap-3" data-stagger>
-                <div class="img-frame aspect-[4/5]" data-tilt="4"><img src="{{ $images[0] }}" alt="Content creator at work"></div>
-                <div class="img-frame aspect-[4/5] mt-8" data-tilt="4"><img src="{{ $images[1] }}" alt="Marketing agency team"></div>
-                <div class="img-frame aspect-[4/5] -mt-6" data-tilt="4"><img src="{{ $images[2] }}" alt="Small shop owner packing orders"></div>
-                <div class="img-frame aspect-[4/5] mt-2" data-tilt="4"><img src="{{ $images[3] }}" alt="Online coach on a video call"></div>
+                <div class="img-frame aspect-[4/5]" data-tilt="4"><img src="{{ $images[0] }}"@imgSize($images[0]) alt="Content creator at work"></div>
+                <div class="img-frame aspect-[4/5] mt-8" data-tilt="4"><img src="{{ $images[1] }}"@imgSize($images[1]) alt="Marketing agency team"></div>
+                <div class="img-frame aspect-[4/5] -mt-6" data-tilt="4"><img src="{{ $images[2] }}"@imgSize($images[2]) alt="Small shop owner packing orders"></div>
+                <div class="img-frame aspect-[4/5] mt-2" data-tilt="4"><img src="{{ $images[3] }}"@imgSize($images[3]) alt="Online coach on a video call"></div>
             </div>
         </div>
     </div>
 </section>
 
 {{-- Sayzio FOR… — deep-dive persona pages --}}
-<section class="pb-16">
+<section class="sec-rule pb-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10" data-anim="fade-up">
             <div class="text-xs font-bold uppercase tracking-[.2em] text-blue-300 mb-3">Sayzio for…</div>
@@ -126,13 +126,13 @@
 </section>
 
 {{-- USE CASE GRID --}}
-<section class="pb-20">
+<section class="sec-rule pb-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" data-anim="fade-up" data-stagger>
             @foreach($useCases as $i => $uc)
                 <article class="relative group bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden flex flex-col hover:border-blue-400/40 hover:-translate-y-1 transition-all duration-300">
                     <div class="img-frame rounded-none border-0 aspect-[16/10]">
-                        <img src="{{ $images[$i % count($images)] }}" alt="{{ $uc['title'] ?? 'Sayzio use case' }}">
+                        <img src="{{ $images[$i % count($images)] }}"@imgSize($images[$i % count($images)]) alt="{{ $uc['title'] ?? 'Sayzio use case' }}">
                     </div>
                     <div class="relative flex-1 flex flex-col p-6 sm:p-7">
                         <div class="absolute -top-7 left-6 w-12 h-12 rounded-xl bg-[#3d6bff] border border-white/15 flex items-center justify-center text-white text-lg shadow-2xl">

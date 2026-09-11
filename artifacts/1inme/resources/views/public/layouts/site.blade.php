@@ -140,6 +140,7 @@
          no decorative gradients. It shipped on the home page first and lived
          there alone, which is exactly why the rest of the site drifted. --}}
     @include('public.partials.surfaces')
+    @include('public.partials.section-surfaces')
 </head>
 <body class="min-h-screen flex flex-col">
 

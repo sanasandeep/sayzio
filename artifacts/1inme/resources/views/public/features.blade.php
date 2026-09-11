@@ -67,7 +67,7 @@
 
 @section('content')
 {{-- HERO --}}
-<section class="relative pt-20 pb-12 lg:pt-28 lg:pb-16 overflow-hidden">
+<section class="sec-first relative pt-20 pb-12 lg:pt-28 lg:pb-16 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="absolute inset-0 grid-bg opacity-40 pointer-events-none"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -98,7 +98,7 @@
             </div>
             <div data-anim="fade-left" data-tilt="6" class="relative">
                 <div class="img-frame img-tilt aspect-[5/4]">
-                    <img src="{{ asset('images/marketing/features/hero.png') }}" alt="Phone showing a Sayzio Link in Bio page">
+                    <img src="{{ asset('images/marketing/features/hero.png') }}"@imgSize(asset('images/marketing/features/hero.png')) alt="Phone showing a Sayzio Link in Bio page">
                 </div>
                 <div class="absolute -top-4 -left-4 bg-[#11101c] border border-white/10 rounded-2xl p-3 flex items-center gap-2 shadow-2xl float-y">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot text-emerald-400/40"></span>
@@ -116,13 +116,13 @@
 @include('public.partials.marketing-stats')
 
 {{-- SHOWCASE STRIP --}}
-<section class="pb-16">
+<section class="sec-rule pb-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid md:grid-cols-3 gap-5 card-row" data-anim="fade-up" data-stagger>
             @foreach($showcase as $s)
                 <div class="group relative" data-tilt="4">
                     <div class="img-frame img-tilt aspect-[4/3]">
-                        <img src="{{ $s['img'] }}" alt="{{ $s['label'] }} preview">
+                        <img src="{{ $s['img'] }}"@imgSize($s['img']) alt="{{ $s['label'] }} preview">
                     </div>
                     <div class="absolute bottom-4 left-4 right-4 z-10">
                         <div class="text-sm font-bold text-white">{{ $s['label'] }}</div>
@@ -138,10 +138,16 @@
 <section id="categories"
          x-data="featuresStickyNav({{ Js::from(collect($categories)->map(fn($c) => ['id' => 'cat-' . $c['id'], 'heading' => $c['heading'], 'icon' => $c['icon']])->values()) }})"
          x-init="init()"
-         class="relative pb-20">
+         class="sec-rule relative pb-20">
 
-    {{-- Mobile/tablet: condensed sticky bar that opens a full category list. --}}
-    <div class="lg:hidden sticky top-16 z-30 bg-[#1e2330]/95 backdrop-blur-xl border-y border-white/10 shadow-lg shadow-black/20"
+    {{-- Mobile/tablet: condensed sticky bar that opens a full category list.
+
+         `surface-lit` on both halves because both paint their own dark ground
+         with an arbitrary hex, which the light-mode sheet does not rewrite --
+         so in light mode the bar stayed #1e2330 while its label went
+         near-black on it. Measured at 1.33:1 at 390px wide, which is the only
+         width this bar exists at, which is why a desktop pass never saw it. --}}
+    <div class="surface-lit lg:hidden sticky top-16 z-30 bg-[#1e2330]/95 backdrop-blur-xl border-y border-white/10 shadow-lg shadow-black/20"
          @click.outside="mobileOpen = false">
         <button type="button"
                 @click="mobileOpen = !mobileOpen"
@@ -161,7 +167,7 @@
              x-show="mobileOpen"
              x-cloak
              x-transition.opacity.duration.150ms
-             class="absolute inset-x-0 top-full bg-[#1e2330] border-b border-white/10 max-h-[60vh] overflow-y-auto shadow-2xl shadow-black/40">
+             class="surface-lit absolute inset-x-0 top-full bg-[#1e2330] border-b border-white/10 max-h-[60vh] overflow-y-auto shadow-2xl shadow-black/40">
             @foreach($categories as $i => $cat)
                 <a href="#cat-{{ $cat['id'] }}"
                    @click="mobileOpen = false; current = 'cat-{{ $cat['id'] }}'"
@@ -279,7 +285,7 @@
 ])
 
 {{-- CTA --}}
-<section class="pb-12">
+<section class="sec-rule pb-12">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
             <div class="mesh-bg opacity-50"></div>
