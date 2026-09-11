@@ -65,6 +65,52 @@ class PlatformHosts
     ];
 
     /**
+     * The canonical URL for a page whose CONTENT DEPENDS ON THE HOST.
+     *
+     * canonicalUrl() rewrites every brand host onto the primary, which is
+     * right for the marketing pages -- sayzio.app/pricing and 1in.me/pricing
+     * are the same page, and one of them should win. It is wrong, and badly
+     * so, for anything under the alias namespace.
+     *
+     * Each global brand domain is its OWN alias namespace: an alias bound to
+     * sayzio.app does not resolve on 1in.me unless separately bound there
+     * (see Link::resolveByAlias). So sayzio.app/sana and 1in.me/sana are two
+     * different pages, owned by two possibly different people. Rewriting the
+     * host there does not consolidate a duplicate -- it points one user's
+     * page at another user's page and asks Google to treat them as one.
+     *
+     * Observed on 2026-09-11: 1in.me/demo-type-short-link is a 404, and that
+     * 404 rendered <link rel="canonical" href="https://sayzio.app/demo-type-
+     * short-link"> -- a live, unrelated page.
+     *
+     * So this keeps the host and strips only the tracking parameters. The one
+     * rewrite it does make is www.<brand> to <brand>, because those two ARE
+     * the same page: the www variant serves the same namespace.
+     */
+    public static function hostScopedCanonicalUrl(): string
+    {
+        try {
+            $request = request();
+        } catch (\Throwable) {
+            return '';
+        }
+
+        $host = self::normalize($request->getHost());
+        if ($host === null) {
+            return $request->fullUrl();
+        }
+
+        // Fold www.<brand> onto <brand>; leave every other host exactly as
+        // requested, custom user domains included.
+        $brand = self::brandDomainFor($host);
+        if ($brand !== null) {
+            $host = $brand;
+        }
+
+        return $request->getScheme() . '://' . $host . self::canonicalRequestUri($request);
+    }
+
+    /**
      * An absolute URL on the primary brand domain, independent of who is
      * asking.
      *
