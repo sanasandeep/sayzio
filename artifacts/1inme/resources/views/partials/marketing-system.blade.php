@@ -246,6 +246,52 @@
     .sy-more:hover { color: var(--sy-ink); }
 
     /* ---------------------------------------------------------------
+       FORMS
+       An input a person cannot see the edges of is an input they do not
+       know they can type in. The subscribe field was `bg-white/5` with a
+       15%-white border, which on a light page is a faint grey smudge --
+       in the live screenshots it reads as placeholder text floating on
+       the card with no box around it at all.
+       --------------------------------------------------------------- */
+    .sy-field { display: flex; flex-direction: column; gap: 10px; }
+    .sy-input {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 999px;
+        font-size: 14px; line-height: 1.4;
+        color: var(--sy-ink);
+        background: var(--sy-ground);
+        border: 1px solid var(--sy-rule-2);
+        transition: border-color .18s ease, box-shadow .18s ease;
+    }
+    .sy-input::placeholder { color: var(--sy-ink-3); opacity: 1; }
+    .sy-input:focus {
+        outline: none;
+        border-color: var(--sy-ink);
+        box-shadow: 0 0 0 3px rgba(61,107,255,.16);
+    }
+    .sy-input:disabled { opacity: .6; cursor: not-allowed; }
+
+    /* A result line, not a coloured box. Success and failure differ by the
+       word and the glyph; the emerald panel was a third card style. */
+    .sy-notice {
+        display: flex; align-items: baseline; gap: 9px;
+        padding: 11px 2px; margin-bottom: 4px;
+        border-top: 1px solid var(--sy-rule);
+        border-bottom: 1px solid var(--sy-rule);
+        font-size: 13px; line-height: 1.45; color: var(--sy-ink-2);
+    }
+    .sy-notice b { color: var(--sy-ink); font-weight: 650; }
+    .sy-notice i { font-size: 11px; color: var(--sy-ink-3); flex: none; position: relative; top: -1px; }
+    .sy-notice--bad { color: var(--sy-ink-2); }
+    .sy-notice--bad i { color: #b45309; }
+    html:not(.light-mode) .sy-notice--bad i { color: #FCD9A0; }
+
+    /* One card, centred, when a section only has one. A lone card stretched
+       across the full width is a banner, and it stops reading as a card. */
+    .sy-solo { max-width: 27rem; margin-inline: auto; }
+
+    /* ---------------------------------------------------------------
        RULE 4 — CTAs
        Three, and only three. Same pill, same padding, same weight.
        filled : the action being sold
