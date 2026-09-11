@@ -42,6 +42,21 @@
                 </p>
             </div>
         @else
+            {{-- Names the grid, so the cards' h3s have something above them.
+
+                 Each card's title is an h3 and the nearest heading above was
+                 the page's h1, so the outline read h1 then h3. The same skip
+                 as /pricing and /download, and it survived batch 15 for a
+                 reason worth recording: the branch above this one has its own
+                 h2 ("Demos are on their way"), and a development database
+                 with no demo links renders that branch. The page audited
+                 clean locally and was broken in production, where the cards
+                 exist.
+
+                 Hidden rather than drawn: the cards are self-evident on
+                 screen, and this page's design has no room for a title above
+                 the grid. --}}
+            <h2 class="sr-only">Live demos</h2>
             <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5" data-anim="fade-up" data-stagger>
                 @foreach($cards as $card)
                     <div class="demo-card group relative flex flex-col rounded-2xl border border-white/10 bg-white/[0.02] p-6 overflow-hidden">
