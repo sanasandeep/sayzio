@@ -49,7 +49,12 @@
     @if(!empty($metaSettings['rating']))
         <meta name="rating" content="{{ $metaSettings['rating'] }}">
     @endif
-    <link rel="canonical" href="{{ $metaSettings['canonical_url'] ?? \App\Modules\Common\Support\PlatformHosts::canonicalUrl() }}">
+    {{-- hostScopedCanonicalUrl(), NOT canonicalUrl(). Each global brand
+         domain is its own alias namespace, so sayzio.app/sana and 1in.me/sana
+         are different pages owned by possibly different people. canonicalUrl()
+         rewrites every brand host onto sayzio.app, which on this page would
+         tell Google that one user's page is a duplicate of another's. --}}
+    <link rel="canonical" href="{{ $metaSettings['canonical_url'] ?? \App\Modules\Common\Support\PlatformHosts::hostScopedCanonicalUrl() }}">
 
     <meta property="og:title" content="{{ $ogTitle }}">
     @if($ogDesc)

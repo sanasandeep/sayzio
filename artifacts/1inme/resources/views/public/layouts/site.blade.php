@@ -26,7 +26,11 @@
             'seoKey' => $seoKey ?? null,
             'page'   => $page ?? null,
             'title'  => $__seo['title'] ?? null,
-            'url'    => \App\Modules\Common\Support\PlatformHosts::canonicalUrl(),
+            // $shareUrl when the view set one, so a page that must NOT
+            // canonicalise onto the primary brand host (an alias-namespace
+            // 404, say) does not hand JSON-LD a different URL from the one
+            // its <link rel="canonical"> declares.
+            'url'    => $shareUrl ?? \App\Modules\Common\Support\PlatformHosts::canonicalUrl(),
         ]);
     @endphp
     <script type="application/ld+json">{!! json_encode($__schema, JSON_UNESCAPED_UNICODE) !!}</script>

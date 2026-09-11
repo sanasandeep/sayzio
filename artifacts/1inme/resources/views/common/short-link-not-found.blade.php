@@ -13,9 +13,28 @@
         ? route('user.register')
         : '/register';
     $homeUrl = url('/');
+
+    /*
+     * This page must canonicalise to ITSELF, on the host that served it.
+     *
+     * The shared layout's default is PlatformHosts::canonicalUrl(), which
+     * rewrites every brand host onto sayzio.app. On a marketing page that is
+     * right. Here it was actively wrong: each global brand domain is its own
+     * alias namespace, so 1in.me/demo-type-short-link is a 404 while
+     * sayzio.app/demo-type-short-link is a live page -- and this 404 was
+     * rendering that live page as its canonical, and as its JSON-LD url.
+     *
+     * Setting $shareUrl steers the canonical, og:url and the schema url
+     * together, so all three agree.
+     */
+    $shareUrl = \App\Modules\Common\Support\PlatformHosts::hostScopedCanonicalUrl();
 @endphp
 
 @push('head')
+{{-- A 404 already tells crawlers not to index; this says it in the one other
+     place they look, since the page renders a full marketing shell that
+     otherwise reads as ordinary content. --}}
+<meta name="robots" content="noindex,follow">
 <style>
     /* Light-mode legibility: the page is designed against the dark base, so
        pair each dark-only color with a light-mode rule (per-element, no
