@@ -169,27 +169,39 @@
                 <div class="pr-name">Premium</div>
 
                 @if($cheapestPaid)
-                    @php
-                        // Annual = 10x monthly (i.e. 2 months free) per the FAQ
-                        // promise. Pure UI estimate; checkout still controls
-                        // the actual cadence.
-                        $monthlyMinor  = (int) ($cheapestPaid['monthly']['amount_minor'] ?? 0);
-                        $currencyCode  = (string) ($cheapestPaid['monthly']['currency'] ?? 'USD');
-                        $annualEquiv   = \App\Services\PricingResolver::money((int) round($monthlyMinor * 10 / 12), $currencyCode);
-                        $annualTotal   = \App\Services\PricingResolver::money($monthlyMinor * 10, $currencyCode);
-                    @endphp
+                    {{-- Every figure here comes from the payload, in the
+                         currency the visitor is actually looking at.
+
+                         It used to be half and half: the monthly price read
+                         `cheapest[currency]` and followed the switcher, while
+                         the annual one was rendered server-side from whichever
+                         currency this SHARED cache was warmed in. The homepage
+                         showed Rs 167 monthly and $3.33 annual, same plan,
+                         same moment.
+
+                         The annual figure is also the real one now, not
+                         `monthly * 10 / 12`. The estimate was only ever as
+                         true as the assumption behind it, and the payload has
+                         carried the actual annual price all along -- so the
+                         page quotes what checkout charges rather than what the
+                         arithmetic hoped it would. --}}
                     <div class="pr-price" x-data='{ cheapest: @json($cheapestPaid['prices'] ?? []) }'>
                         <span x-show="billing === 'monthly'"
-                              x-text="(cheapest[currency] && cheapest[currency].monthly && cheapest[currency].monthly.formatted) || '{{ $cheapestPaid['monthly']['formatted'] }}'">{{ $cheapestPaid['monthly']['formatted'] }}</span>
-                        <span x-show="billing === 'annual'" x-cloak>{{ $annualEquiv }}</span>
+                              x-text="cheapest[currency]?.monthly?.formatted || '{{ $cheapestPaid['monthly']['formatted'] }}'">{{ $cheapestPaid['monthly']['formatted'] }}</span>
+                        <span x-show="billing === 'annual'" x-cloak
+                              x-text="cheapest[currency]?.annual?.per_month_formatted
+                                   || cheapest[currency]?.annual?.formatted
+                                   || cheapest[currency]?.monthly?.formatted"></span>
                         <span class="per">/mo, from</span>
                     </div>
                     <div class="pr-price-note" x-show="billing === 'monthly'">
                         + taxes as applicable, shown at checkout.
                     </div>
                     <div class="pr-price-note" x-show="billing === 'annual'" x-cloak>
-                        <span class="was">{{ $cheapestPaid['monthly']['formatted'] }}/mo</span>
-                        billed yearly at {{ $annualTotal }}.
+                        <span class="was" x-text="(cheapest[currency]?.monthly?.formatted || '') + '/mo'"></span>
+                        <span x-text="cheapest[currency]?.annual?.formatted
+                                      ? 'billed yearly at ' + cheapest[currency].annual.formatted + '.'
+                                      : ''"></span>
                     </div>
                 @else
                     <div class="pr-price">Premium<span class="per">plans</span></div>
