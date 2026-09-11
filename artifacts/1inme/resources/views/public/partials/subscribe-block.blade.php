@@ -1,5 +1,5 @@
 {{--
-    End-of-page 3-way "Subscribe" block. Inputs:
+    End-of-page "Subscribe" block. Inputs:
       $source   (required, string) — page slug used to tag submissions, e.g. 'features'.
                 Tagged in DB as `subscribe-block:<source>`. Also used to scope the
                 success flash so only the card the visitor just submitted shows the
@@ -7,11 +7,19 @@
       $heading  (optional)
       $subtext  (optional)
 
-    Renders three side-by-side channel cards (Email newsletter, WhatsApp Channel,
-    WhatsApp DM). WhatsApp cards self-hide when the admin hasn't configured that
-    channel yet, so the block degrades to email-only without breaking the layout.
-    A small "Manage subscriptions" link below the cards opens the Unsubscribe Center.
+    Renders one channel card per configured channel (Email newsletter, WhatsApp
+    Channel, WhatsApp DM). The WhatsApp cards self-hide when the admin has not
+    configured that channel, so the block degrades to email-only rather than
+    advertising a channel that does not exist. A "Manage subscriptions" link
+    below opens the Unsubscribe Center.
+
+    Rebuilt on the marketing system. What it was: a blue-tinted panel with a
+    blue icon disc, a blue eyebrow pill, an input with a 5%-white fill and a
+    15%-white border -- which on a light page is an invisible box -- and a
+    saturated blue button running the full width of the section. Five pieces of
+    colour for one email field.
 --}}
+@include('partials.marketing-system')
 @php
     $__sbSource   = $source ?? 'page';
     $__sbHeading  = $heading ?? 'Stay in the loop with Sayzio';
@@ -27,116 +35,134 @@
     $__sbHasWaChan = $__sbWaUrl !== '';
     $__sbHasWaDm   = $__sbWaDmHref !== '';
     $__sbCardCount = 1 + ($__sbHasWaChan ? 1 : 0) + ($__sbHasWaDm ? 1 : 0);
-    $__sbGridCols  = $__sbCardCount === 1
-        ? 'md:grid-cols-1'
-        : ($__sbCardCount === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3');
+
+    // Do not promise a channel that is not set up.
+    //
+    // Twelve pages pass their own subtext and almost all of them say some
+    // version of "pick email, WhatsApp Channel, or DM" -- copy written when
+    // all three were expected to exist. Neither WhatsApp channel is
+    // configured today, so every one of those pages offers the visitor a
+    // choice of three and then shows them one.
+    //
+    // Fixed here rather than in the twelve callers, because the callers are
+    // not wrong about anything they own: they describe what the newsletter
+    // CONTAINS, and the channel sentence rides along with it. This drops
+    // that sentence only while the channels are missing, so the day Sana
+    // configures WhatsApp the original copy becomes true again on its own.
+    if (! $__sbHasWaChan && ! $__sbHasWaDm && preg_match('/whatsapp/i', $__sbSubtext)) {
+        // Keep whole sentences that say nothing about channels; drop the
+        // ones that do.
+        $__sbKept = array_values(array_filter(
+            preg_split('/(?<=[.!?])\s+/', $__sbSubtext) ?: [],
+            fn ($__s) => ! preg_match('/whatsapp/i', $__s)
+        ));
+        $__sbSubtext = trim(implode(' ', $__sbKept));
+        if ($__sbSubtext === '') {
+            $__sbSubtext = 'Once a month, in your inbox. No spam, and you can opt out in one click.';
+        }
+    }
 @endphp
-<section class="sec-rule pb-24" aria-labelledby="subscribe-block-h-{{ $__sbSource }}">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-400/30 text-[11px] font-bold uppercase tracking-wider text-blue-200 mb-3">
-                <i class="fas fa-bell"></i> Subscribe
-            </div>
-            <h2 id="subscribe-block-h-{{ $__sbSource }}" class="text-2xl sm:text-3xl font-bold" style="color: var(--text-primary);">{{ $__sbHeading }}</h2>
-            <p class="mt-2 max-w-2xl mx-auto text-sm leading-relaxed" style="color: var(--text-muted);">{{ $__sbSubtext }}</p>
+<section class="sy sec-rule pb-24" aria-labelledby="subscribe-block-h-{{ $__sbSource }}">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <div class="text-center mb-9">
+            {{-- Rule 1: the eyebrow was blue text on a blue tint. --}}
+            <div class="sy-eyebrow">Subscribe</div>
+            <h2 id="subscribe-block-h-{{ $__sbSource }}" class="text-2xl sm:text-3xl font-bold tracking-tight" style="color: var(--sy-ink);">{{ $__sbHeading }}</h2>
+            <p class="mt-2.5 max-w-xl mx-auto text-sm leading-relaxed" style="color: var(--sy-ink-2);">{{ $__sbSubtext }}</p>
         </div>
 
-        <div class="grid grid-cols-1 {{ $__sbGridCols }} gap-4">
-            {{-- Card 1: Email newsletter --}}
-            <div class="bg-blue-500/10 border border-blue-400/20 rounded-2xl p-6 flex flex-col">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center bg-blue-500/20 text-blue-200">
-                        <i class="fas fa-envelope-open-text"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-base font-bold" style="color: var(--text-primary);">Email newsletter</h3>
-                        <p class="text-[11px]" style="color: var(--text-muted);">Monthly · in your inbox</p>
-                    </div>
+        {{-- One channel means one card, and a single card stretched across
+             the section is a banner rather than a card. --}}
+        <div class="sy-grid {{ $__sbCardCount === 1 ? 'sy-solo' : '' }}" style="--sy-min: 260px;">
+
+            {{-- Email newsletter --}}
+            <div class="sy-card">
+                <div class="sy-head">
+                    <span class="sy-eyebrow" style="display:inline-flex; align-items:center; gap:9px;">
+                        <i class="fas fa-envelope-open-text" aria-hidden="true" style="font-size:12px;"></i> Email newsletter
+                    </span>
                 </div>
-                <p class="text-xs leading-relaxed mb-4" style="color: var(--text-muted);">Long-form notes, playbooks, and templates. Once a month, easy to skim.</p>
+                <p class="sy-blurb" style="margin-top:0;">Long-form notes, playbooks, and templates. Once a month, easy to skim.</p>
 
                 @if(session($__sbFlashKey))
-                    <div class="mb-3 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 text-xs">
-                        <i class="fas fa-circle-check"></i> {{ session($__sbFlashKey) }}
+                    <div class="sy-notice" style="margin-top:18px;" role="status">
+                        <i class="fas fa-circle-check" aria-hidden="true"></i>
+                        <span><b>{{ session($__sbFlashKey) }}</b></span>
                     </div>
                 @endif
 
+                @if(old('source') === $__sbSubmitSource)
+                    @error('email')
+                        <div class="sy-notice sy-notice--bad" style="margin-top:18px;" role="alert">
+                            <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
+                            <span>{{ $message }}</span>
+                        </div>
+                    @enderror
+                @endif
+
                 <form method="POST" action="{{ route('site.newsletter.subscribe') }}"
-                      class="mt-auto flex flex-col gap-2"
-                      novalidate>
+                      class="sy-foot sy-field" novalidate>
                     @csrf
                     <input type="hidden" name="source" value="{{ $__sbSubmitSource }}">
+                    {{-- Honeypot. Hidden from people, filled by bots. --}}
                     <input type="text" name="website" value="" tabindex="-1" autocomplete="off"
                            class="hidden" aria-hidden="true">
                     <label class="sr-only" for="subscribe-email-{{ $__sbSource }}">Email address</label>
                     <input type="email" id="subscribe-email-{{ $__sbSource }}" name="email" required
+                           autocomplete="email"
                            placeholder="you@example.com"
                            value="{{ old('source') === $__sbSubmitSource ? old('email') : '' }}"
-                           class="theme-input px-4 py-2.5 rounded-full text-sm focus:outline-none focus:border-blue-400/60">
-                    <button type="submit"
-                            class="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold inline-flex items-center justify-center gap-2">
-                        <i class="fas fa-paper-plane text-xs"></i> Subscribe
+                           class="sy-input">
+                    <button type="submit" class="sy-cta">
+                        Subscribe <i class="fas fa-arrow-right"></i>
                     </button>
                 </form>
-                @if(old('source') === $__sbSubmitSource)
-                    @error('email')
-                        <p class="mt-2 text-xs text-red-300">{{ $message }}</p>
-                    @enderror
-                @endif
+                <div class="sy-foot-note">One email a month. Unsubscribe in one click.</div>
             </div>
 
             @if($__sbHasWaChan)
-                {{-- Card 2: WhatsApp Channel --}}
-                <div class="bg-emerald-500/10 border border-emerald-400/20 rounded-2xl p-6 flex flex-col">
-                    <div class="flex items-center gap-3 mb-3">
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-200">
-                            <i class="fab fa-whatsapp"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-base font-bold" style="color: var(--text-primary);">WhatsApp Channel</h3>
-                            <p class="text-[11px]" style="color: var(--text-muted);">Broadcast · read-only</p>
-                        </div>
+                {{-- WhatsApp Channel --}}
+                <div class="sy-card">
+                    <div class="sy-head">
+                        <span class="sy-eyebrow" style="display:inline-flex; align-items:center; gap:9px;">
+                            <i class="fab fa-whatsapp" aria-hidden="true" style="font-size:12px;"></i> WhatsApp Channel
+                        </span>
                     </div>
-                    <p class="text-xs leading-relaxed mb-4" style="color: var(--text-muted);">Quick announcements, drops and tips, straight to your WhatsApp. One tap to follow.</p>
-                    <a href="{{ $__sbWaUrl }}"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       data-source="{{ $__sbSubmitSource }}"
-                       class="mt-auto px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold inline-flex items-center justify-center gap-2">
-                        <i class="fab fa-whatsapp"></i> Follow channel
-                    </a>
+                    <p class="sy-blurb" style="margin-top:0;">Quick announcements, drops and tips, straight to your WhatsApp. One tap to follow, and we never see your number.</p>
+                    <div class="sy-foot">
+                        <a href="{{ $__sbWaUrl }}" target="_blank" rel="noopener noreferrer"
+                           data-source="{{ $__sbSubmitSource }}" class="sy-cta sy-cta--ghost">
+                            Follow channel <i class="fas fa-arrow-up-right-from-square"></i>
+                        </a>
+                        <div class="sy-foot-note">Broadcast only. You cannot reply.</div>
+                    </div>
                 </div>
             @endif
 
             @if($__sbHasWaDm)
-                {{-- Card 3: WhatsApp DM --}}
-                <div class="bg-emerald-500/10 border border-emerald-400/20 rounded-2xl p-6 flex flex-col">
-                    <div class="flex items-center gap-3 mb-3">
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-200">
-                            <i class="fas fa-comments"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-base font-bold" style="color: var(--text-primary);">Chat on WhatsApp</h3>
-                            <p class="text-[11px]" style="color: var(--text-muted);">1:1 · talk to a human</p>
-                        </div>
+                {{-- WhatsApp DM --}}
+                <div class="sy-card">
+                    <div class="sy-head">
+                        <span class="sy-eyebrow" style="display:inline-flex; align-items:center; gap:9px;">
+                            <i class="fas fa-comments" aria-hidden="true" style="font-size:12px;"></i> Chat on WhatsApp
+                        </span>
                     </div>
-                    <p class="text-xs leading-relaxed mb-4" style="color: var(--text-muted);">Questions, demo requests, partnership ideas? DM us and we'll get back fast.</p>
-                    <a href="{{ $__sbWaDmHref }}"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       data-source="{{ $__sbSubmitSource }}"
-                       class="mt-auto px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold inline-flex items-center justify-center gap-2">
-                        <i class="fas fa-paper-plane text-xs"></i> Start chat
-                    </a>
+                    <p class="sy-blurb" style="margin-top:0;">Questions, demo requests, partnership ideas? Message us and a person will get back to you.</p>
+                    <div class="sy-foot">
+                        <a href="{{ $__sbWaDmHref }}" target="_blank" rel="noopener noreferrer"
+                           data-source="{{ $__sbSubmitSource }}" class="sy-cta sy-cta--ghost">
+                            Start a chat <i class="fas fa-arrow-up-right-from-square"></i>
+                        </a>
+                        <div class="sy-foot-note">One to one, with a human.</div>
+                    </div>
                 </div>
             @endif
         </div>
 
-        <div class="text-center mt-5">
-            <a href="{{ route('site.subscriptions.manage') }}"
-               class="inline-flex items-center gap-1.5 text-[12px] hover:text-blue-300 underline-offset-2 hover:underline"
-               style="color: var(--text-muted);">
-                <i class="fas fa-sliders text-[10px]"></i> Already subscribed? Manage subscriptions
+        <div class="text-center mt-7">
+            <a href="{{ route('site.subscriptions.manage') }}" class="sy-link" style="font-size:13px;">
+                Already subscribed? Manage subscriptions
             </a>
         </div>
     </div>
