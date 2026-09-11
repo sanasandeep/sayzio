@@ -82,8 +82,23 @@
             @isset($request)
                 <x-doc-code lang="bash">{!! trim($request) !!}</x-doc-code>
             @else
-                <x-doc-code lang="bash">curl {{ $base }}{{ $path }}{{ $auth === 'false' ? '' : ' \
-  -H "Authorization: Bearer YOUR_TOKEN"' }} \
+                {{-- Raw here too, for the same reason and one I missed first time.
+
+                     Every echo inside this slot is escaped again by x-doc-code,
+                     so anything that escapes here comes out doubled. The
+                     Authorization header carries double quotes, which is why
+                     the fifteen endpoints that take this fallback -- the ones
+                     with no request example of their own -- showed
+                     `&quot;Authorization: Bearer YOUR_TOKEN&quot;` in the
+                     command you are meant to copy.
+
+                     They stayed broken after the first fix because the check
+                     that declared it fixed looked only for `&amp;#039;`, the
+                     single-quote form, and these are double quotes. The defect
+                     was found with one pattern and confirmed gone with a
+                     narrower one. --}}
+                <x-doc-code lang="bash">curl {!! $base !!}{!! $path !!}{!! $auth === 'false' ? '' : ' \
+  -H "Authorization: Bearer YOUR_TOKEN"' !!} \
   -H 'Accept: application/json'</x-doc-code>
             @endisset
         </div>
