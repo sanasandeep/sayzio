@@ -42,8 +42,8 @@
                             <div class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight grad-text leading-none whitespace-nowrap">
                                 <span class="js-stat-count"
                                       data-target="{{ $target !== null ? (int) $target : '' }}"
-                                      data-display="{{ $stat->value }}"
-                                      data-duration="1600">{{ $hasNumeric ? '0' : $stat->value }}</span><span class="text-white/80">{{ $stat->suffix }}</span>
+                                      data-display="{{ $stat->displayValue() }}"
+                                      data-duration="1600">{{ $hasNumeric ? '0' : $stat->displayValue() }}</span><span class="text-white/80">{{ $stat->suffix }}</span>
                             </div>
                             <div class="mt-1.5 sm:mt-2 text-[10px] sm:text-xs md:text-sm text-gray-400 uppercase tracking-wider leading-tight">{{ $stat->label }}</div>
                             <div class="mx-auto mt-2 sm:mt-3 h-1 w-10 sm:w-14 md:w-16 rounded-full" style="background: {{ $stat->color }};"></div>
@@ -65,7 +65,11 @@
         window.__inmeStatsCountupBound = true;
         const reduce = window.matchMedia &&
             window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const fmt = (n) => n.toLocaleString('en-IN');
+        // 'en-US', not the viewer's locale and not 'en-IN': this has to match what
+    // number_format() rendered server-side, or the figure regroups itself the
+    // moment the animation finishes. It was 'en-IN', so every visitor in the
+    // world watched the count group as 3,75,000 and then snap to something else.
+    const fmt = (n) => n.toLocaleString('en-US');
         const animate = (el) => {
             const target = parseInt(el.dataset.target || '', 10);
             const display = el.dataset.display || '';

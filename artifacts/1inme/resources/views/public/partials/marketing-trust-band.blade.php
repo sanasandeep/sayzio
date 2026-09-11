@@ -230,11 +230,21 @@
         <div class="reveal text-center">
 
             {{-- Brand lockup. The heading element is the claim below, not this
-                 line, so the marks stay decorative and the alt text stays empty. --}}
+                 line, so the marks stay decorative and the alt text stays empty.
+
+                 "is now", not "is". This line exists for the people who knew
+                 the product as 1IN.ME, and to them "1IN.ME is Sayzio" reads
+                 fine. To a first-time visitor it reads as two companies, and
+                 it is the second thing they see -- they are left wondering
+                 which one they would be buying from, three seconds in.
+
+                 One word settles it: "now" makes it a rename rather than a
+                 relationship, which is what it is, and it still does the job
+                 for the people it was written for. --}}
             <p class="pb-lockup">
                 <img src="{{ asset('branding/1inme-mark.png') }}" alt="" width="52" height="40" decoding="async">
                 <span class="pb-word">1IN.ME</span>
-                <span class="pb-is">is</span>
+                <span class="pb-is">is now</span>
                 <img src="{{ asset('branding/sayzio-card-icon.png') }}" alt="" width="52" height="52" decoding="async">
                 <span class="pb-word">Sayzio</span>
             </p>
@@ -259,8 +269,8 @@
                                      correct with JS off. --}}
                                 <span class="js-stat-count"
                                       data-target="{{ $target !== null ? (int) $target : '' }}"
-                                      data-display="{{ $stat->value }}"
-                                      data-duration="1800">{{ $target !== null ? '0' : $stat->value }}</span><span class="pb-suffix">{{ $stat->suffix }}</span>
+                                      data-display="{{ $stat->displayValue() }}"
+                                      data-duration="1800">{{ $target !== null ? '0' : $stat->displayValue() }}</span><span class="pb-suffix">{{ $stat->suffix }}</span>
                             </div>
                             <div class="pb-label">{{ $stat->label }}</div>
                         </div>
@@ -312,7 +322,11 @@
     window.__inmeStatsCountupBound = true;
     const reduce = window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const fmt = (n) => n.toLocaleString('en-IN');
+    // 'en-US', not the viewer's locale and not 'en-IN': this has to match what
+    // number_format() rendered server-side, or the figure regroups itself the
+    // moment the animation finishes. It was 'en-IN', so every visitor in the
+    // world watched the count group as 3,75,000 and then snap to something else.
+    const fmt = (n) => n.toLocaleString('en-US');
     const animate = (el) => {
         const target = parseInt(el.dataset.target || '', 10);
         const display = el.dataset.display || '';
