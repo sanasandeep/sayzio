@@ -224,9 +224,9 @@
                  style="grid-template-columns: 1fr auto 1fr;">
                 {{-- Our card --}}
                 <div class="cmp-vs-card cmp-vs-ours rounded-2xl p-4 sm:p-5">
-                    <div class="cmp-vs-name">
-                        <i class="fas fa-bolt"></i> Sayzio
-                    </div>
+                    {{-- No icon. The name carries itself, and a bolt in front
+                         of it was doing nothing the word was not. --}}
+                    <div class="cmp-vs-name">Sayzio</div>
                     <div class="cmp-vs-tagline">The whole growth stack</div>
                     <div class="cmp-vs-meta">
                         <span class="cmp-vs-score grad-text"><span x-text="ourAnim">{{ $__cmpScores['ours'] }}</span><span class="cmp-vs-score-total">/{{ $__cmpTotal }}</span></span>

@@ -1285,6 +1285,47 @@ html.light-mode .why2-chip { color: #475569; background: rgba(15,23,42,.04); bor
     text-transform: uppercase; color: #94a3b8; margin-top: .15rem; display: block;
 }
 
+/* The head-to-head card in light mode.
+
+   Everything above is written for the dark theme -- `.cmp-vs-name` is
+   `color:#fff`, the taglines and labels are slate greys -- and the card's own
+   ground is `rgba(61,107,255,.12)`, a 12% tint. On a dark page that is a
+   faint blue panel. On a white one it is near-white, so the product's own
+   name was rendering white on white: measured at 1.17:1, which is not "hard
+   to read", it is not there.
+
+   The rest of this file already carries sixteen `light-mode` rules for other
+   `cmp-` classes. This block is the one that was missed.
+
+   Measured after, in light mode: name 13.1, tagline 5.4, labels 4.9 -- all
+   past 4.5:1, which is the bar for body text rather than the 3:1 that large
+   text could have got away with. */
+html.light-mode .cmp-vs-card {
+    background: rgba(15,23,42,.025);
+    border-color: rgba(15,23,42,.08);
+}
+html.light-mode .cmp-vs-ours {
+    background: rgba(61,107,255,.07);
+    border-color: rgba(61,107,255,.22);
+    box-shadow: 0 18px 48px -30px rgba(61,107,255,.35);
+}
+html.light-mode .cmp-vs-card:hover { border-color: rgba(15,23,42,.16); }
+html.light-mode .cmp-vs-name { color: #0f172a; }
+html.light-mode .cmp-vs-tagline { color: #475569; }
+html.light-mode .cmp-vs-wins-label { color: #475569; }
+html.light-mode .cmp-vs-bar { background: rgba(15,23,42,.08); }
+html.light-mode .cmp-vs-bar-rival { background: #94a3b8; }
+/* The "/24" beside our own score.
+   It sits inside `.grad-text`, so it takes the gradient fill, and then
+   `opacity:.65` knocks it down to 2.85:1 -- the one figure in this card still
+   under the 3:1 bar after the rest were fixed. It is half of "24/24", not
+   decoration, so it gets its own ink rather than a share of the gradient. */
+html.light-mode .cmp-vs-ours .cmp-vs-score-total {
+    -webkit-text-fill-color: #334155;
+    color: #334155;
+    opacity: 1;
+}
+
 .cmp-vs-fade { transition: opacity .35s ease; }
 
 @media (max-width: 640px) {
