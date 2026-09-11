@@ -910,10 +910,33 @@
 
         // Card chrome belongs to the card; inside the modal it would be a box
         // drawn inside a box.
-        clone.style.background = 'none';
-        clone.style.border = '0';
-        clone.style.boxShadow = 'none';
-        clone.style.padding = '0';
+        //
+        // These have to be !important, which is unusual for an inline style
+        // and worth explaining. `public/partials/surfaces` is the site-wide
+        // surface layer, and it asserts card chrome on every `.glass` with
+        //
+        //     :is(.glass, .glass-2, …) { border: 1px solid var(--fs-rule)
+        //       !important; background-color: … !important; box-shadow: …
+        //       !important; }
+        //
+        // An important author declaration beats a plain inline one, so the
+        // four lines below were losing and the clone kept its hairline. The
+        // modal rendered as a rounded box hugging the text with nothing
+        // between the border and the content -- the card's own 24px padding
+        // having been (correctly) zeroed, since the modal supplies 44px of
+        // its own. That is the "card spacing isnt live" Sana is looking at:
+        // not a missing gap so much as a box that should never have been
+        // drawn around the gap.
+        //
+        // Only an inline important declaration outranks an author important
+        // one, so that is what this is. Everything not contested by that
+        // layer stays a plain assignment.
+        ['background', 'border', 'box-shadow', 'padding'].forEach(function (prop) {
+            clone.style.setProperty(prop, prop === 'padding' || prop === 'border' ? '0' : 'none', 'important');
+        });
+        // The radius goes with the border: a corner rounded around nothing
+        // clips the content instead of framing it.
+        clone.style.setProperty('border-radius', '0', 'important');
         clone.style.width = '100%';
         clone.style.maxWidth = 'none';
         clone.style.minHeight = '0';
