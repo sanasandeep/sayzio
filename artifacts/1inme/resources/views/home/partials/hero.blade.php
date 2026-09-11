@@ -172,7 +172,13 @@
                 </h1>
 
                 <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-9 leading-relaxed">
-                    Sayzio turns one link into your page, your QR codes and your short links, and <strong class="text-white">Zio, your AI, answers visitors and picks up calls</strong> while you are serving someone else. <strong class="text-white">Free forever</strong>, no card required.
+                    {{-- Three short sentences, not one long one. The previous
+                         version was a single 35-word sentence carrying three
+                         products, a named AI, a scenario and the price, and it
+                         buried its best line -- the bit where you are busy with
+                         a customer -- in the back half. Reading it aloud as a
+                         salon owner or a dentist is the test it failed. --}}
+                    One link for your page, your QR codes and your short links. And when you are busy, <strong class="text-white">Zio &mdash; your AI &mdash; answers your visitors and picks up your calls</strong>. <strong class="text-white">Free forever</strong>, no card.
                 </p>
 
                 @guest
