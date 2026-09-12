@@ -319,76 +319,12 @@
 </div>
 @endif
 
-@php
-    // Label + icon come from the shared link-type catalog so they never drift
-    // from the rest of the app; only the list-specific accent colours are kept
-    // here (the catalog carries Tailwind badge classes, not the rgba tones
-    // these rows use). Unknown/uncoloured types fall back to the violet accent
-    // but still get their real label/icon. Resolved once, outside the loop.
-    $linkTypes  = \App\Modules\User\Support\LinkTypeCategories::types();
-    $typeColors = [
-        'url'     => ['bg' => 'rgba(61,107,255,0.08)', 'border' => 'rgba(61,107,255,0.12)', 'color' => '#90acff'],
-        'biolink' => ['bg' => 'rgba(236,72,153,0.08)', 'border' => 'rgba(236,72,153,0.12)', 'color' => '#f472b6'],
-        'file'    => ['bg' => 'rgba(16,185,129,0.08)', 'border' => 'rgba(16,185,129,0.12)', 'color' => '#34d399'],
-        'ics'     => ['bg' => 'rgba(245,158,11,0.08)', 'border' => 'rgba(245,158,11,0.12)', 'color' => '#fbbf24'],
-        'vcf'     => ['bg' => 'rgba(6,182,212,0.08)',  'border' => 'rgba(6,182,212,0.12)',  'color' => '#22d3ee'],
-        'reviews' => ['bg' => 'rgba(234,179,8,0.08)',  'border' => 'rgba(234,179,8,0.12)',  'color' => '#fde047'],
-        'resume'  => ['bg' => 'rgba(99,102,241,0.08)', 'border' => 'rgba(99,102,241,0.12)', 'color' => '#a5b4fc'],
-    ];
-@endphp
+{{-- Icon, label and the tile's three colours all come from one resolver, so
+     the list rows and the grid tiles below cannot disagree about what a
+     Slides link looks like. See LinkTileStyle for why they used to. --}}
 <div class="space-y-2.5" x-show="view === 'list'">
     @foreach($links as $link)
-    @php
-        $typeMeta  = $linkTypes[$link->type] ?? $linkTypes['url'];
-        $typeColor = $typeColors[$link->type] ?? $typeColors['url'];
-        $ts = [
-            'icon'   => $typeMeta['icon'],
-            'label'  => $typeMeta['label'],
-            'bg'     => $typeColor['bg'],
-            'border' => $typeColor['border'],
-            'color'  => $typeColor['color'],
-        ];
-
-        // For File Share links, swap in an extension-aware icon + colour so
-        // a PDF looks like a PDF, an image looks like an image, etc.
-        if ($link->type === 'file' && $link->fileLink) {
-            $ext = strtolower(pathinfo($link->fileLink->original_name ?? '', PATHINFO_EXTENSION));
-            $fileIconMap = [
-                'pdf'                                  => ['fa-file-pdf',        '#ef4444', 'rgba(239,68,68,0.08)',  'rgba(239,68,68,0.12)'],
-                'doc'  => 'word', 'docx' => 'word', 'rtf' => 'word', 'odt' => 'word',
-                'xls'  => 'excel','xlsx' => 'excel','csv' => 'excel','ods' => 'excel',
-                'ppt'  => 'ppt',  'pptx' => 'ppt',  'odp' => 'ppt',
-                'jpg'  => 'img',  'jpeg' => 'img',  'png' => 'img',  'gif' => 'img', 'webp' => 'img', 'svg' => 'img', 'bmp' => 'img', 'avif' => 'img',
-                'mp4'  => 'video','mov'  => 'video','avi' => 'video','webm'=> 'video','mkv' => 'video',
-                'mp3'  => 'audio','wav'  => 'audio','ogg' => 'audio','flac'=> 'audio', 'm4a' => 'audio',
-                'zip'  => 'zip',  'rar'  => 'zip',  '7z'  => 'zip',  'tar' => 'zip', 'gz' => 'zip',
-                'txt'  => 'text', 'md'   => 'text', 'log' => 'text',
-                'js'   => 'code', 'ts'   => 'code', 'php' => 'code', 'py' => 'code', 'html' => 'code', 'css' => 'code', 'json' => 'code', 'xml' => 'code',
-            ];
-            $fileGroups = [
-                'word'  => ['fa-file-word',        '#3b82f6', 'rgba(59,130,246,0.08)', 'rgba(59,130,246,0.12)'],
-                'excel' => ['fa-file-excel',       '#10b981', 'rgba(16,185,129,0.08)', 'rgba(16,185,129,0.12)'],
-                'ppt'   => ['fa-file-powerpoint',  '#f97316', 'rgba(249,115,22,0.08)', 'rgba(249,115,22,0.12)'],
-                'img'   => ['fa-file-image',       '#ec4899', 'rgba(236,72,153,0.08)', 'rgba(236,72,153,0.12)'],
-                'video' => ['fa-file-video',       '#5c83ff', 'rgba(92,131,255,0.08)', 'rgba(92,131,255,0.12)'],
-                'audio' => ['fa-file-audio',       '#06b6d4', 'rgba(6,182,212,0.08)',  'rgba(6,182,212,0.12)'],
-                'zip'   => ['fa-file-zipper',      '#eab308', 'rgba(234,179,8,0.08)',  'rgba(234,179,8,0.12)'],
-                'text'  => ['fa-file-lines',       '#94a3b8', 'rgba(148,163,184,0.08)','rgba(148,163,184,0.12)'],
-                'code'  => ['fa-file-code',        '#6e61ff', 'rgba(110,97,255,0.08)', 'rgba(110,97,255,0.12)'],
-            ];
-            $hit = $fileIconMap[$ext] ?? null;
-            if (is_array($hit)) {
-                [$icon, $color, $bg, $border] = $hit;
-            } elseif (is_string($hit) && isset($fileGroups[$hit])) {
-                [$icon, $color, $bg, $border] = $fileGroups[$hit];
-            } else {
-                $icon = $color = $bg = $border = null;
-            }
-            if ($icon) {
-                $ts = ['icon' => $icon, 'color' => $color, 'bg' => $bg, 'border' => $border, 'label' => strtoupper($ext ?: 'FILE')];
-            }
-        }
-    @endphp
+    @php $ts = \App\Modules\User\Support\LinkTileStyle::for($link); @endphp
     <div class="card-premium p-4 group" data-link-id="{{ $link->id }}">
         <div class="flex items-start justify-between">
             <div class="flex items-start gap-3.5 flex-1 min-w-0">
@@ -577,16 +513,18 @@
     @endforeach
 </div>
 
-{{-- ===== GRID VIEW: Finder-style icon tiles, tinted by the folder colour ===== --}}
+{{-- ===== GRID VIEW: Finder-style icon tiles, tinted by the LINK TYPE ===== --}}
+{{-- The tile used to take the folder's colour, so the same Slides link was
+     fuchsia in the list and blue here, and every link outside a folder was
+     blue whatever it was. The folder is still shown, by its dot and name
+     under the title, which is where a folder belongs. --}}
 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" x-show="view === 'grid'" x-cloak>
     @foreach($links as $link)
     @php
-        $typeMeta = $linkTypes[$link->type] ?? $linkTypes['url'];
-        // Tile tint follows the folder (project) colour; default blue when the
-        // link is not in a folder or the folder has no colour set.
+        $ts = \App\Modules\User\Support\LinkTileStyle::for($link);
+        // The folder still colours its own dot below.
         $__pcHex = $link->project?->color ?: '#3b82f6';
         $__pcHex = preg_match('/^#[0-9a-fA-F]{6}$/', $__pcHex) ? $__pcHex : '#3b82f6';
-        [$__pr, $__pg, $__pb] = sscanf($__pcHex, '#%02x%02x%02x');
     @endphp
     <a href="{{ route('user.links.show', $link) }}"
        class="card-premium p-4 flex flex-col items-center text-center group relative transition-transform hover:-translate-y-0.5"
@@ -595,8 +533,9 @@
             <span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-400" title="Inactive"></span>
         @endif
         <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-2.5"
-             style="background: rgba({{ $__pr }},{{ $__pg }},{{ $__pb }},0.12); border: 1px solid rgba({{ $__pr }},{{ $__pg }},{{ $__pb }},0.25);">
-            <i class="fas {{ $typeMeta['icon'] }} text-xl" style="color: {{ $__pcHex }};"></i>
+             style="background: {{ $ts['bg'] }}; border: 1px solid {{ $ts['border'] }};"
+             title="{{ $ts['label'] }}">
+            <i class="fas {{ $ts['icon'] }} text-xl" style="color: {{ $ts['color'] }};"></i>
         </div>
         <p class="text-xs font-semibold w-full truncate" style="color: var(--text-primary);">{{ $link->title ?: $link->alias }}</p>
         <p class="text-[10px] w-full truncate mt-0.5 text-blue-400/60">{{ $link->getShortUrl() }}</p>
