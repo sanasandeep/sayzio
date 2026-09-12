@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\Admin\Models\SiteStat;
 use App\Modules\Common\Support\AboutFigures;
+use App\Modules\Common\Support\SitePagesContent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -143,6 +144,76 @@ class StatsAreRealInTheServedHtmlTest extends TestCase
             $creators['value'],
             'AboutFigures::creators() is reading SiteStat->value (what an admin '
             . 'typed) rather than displayValue() (how it should be read)'
+        );
+    }
+
+    /**
+     * The third place the same number appears: the green badge under the hero
+     * buttons. It was a hard-coded literal, so the page agreed with itself
+     * only until somebody edited Site Stats -- the next version of the bug
+     * above, waiting for the next update. It now reads the same row.
+     */
+    public function test_the_hero_badge_tracks_the_stats_row(): void
+    {
+        SiteStat::create([
+            'label' => 'Users Worldwide', 'value' => '4,20,000', 'suffix' => '+',
+            'icon' => 'fa-users', 'color' => '#3d6bff', 'is_active' => true, 'sort_order' => 1,
+        ]);
+
+        $badge = SitePagesContent::heroBadgesDefault()[0];
+
+        $this->assertSame(
+            '420,000+',
+            $badge['value'],
+            'the hero badge is printing a figure of its own instead of the one '
+            . 'in Site Stats, so the home page can show two different counts '
+            . 'of the same thing'
+        );
+    }
+
+    /**
+     * The shipped seed writes `3.75 Lakh`, and nothing understood it: the
+     * band printed the unit, and the count-up -- which reads the digits out
+     * of the string -- animated the headline figure up to three point seven
+     * five. Both now read it as the number it names.
+     */
+    public function test_an_indian_unit_is_read_as_the_number_it_names(): void
+    {
+        SiteStat::query()->delete();
+
+        $stat = SiteStat::create([
+            'label' => 'Users Worldwide', 'value' => '3.75 Lakh', 'suffix' => '+',
+            'icon' => 'fa-users', 'color' => '#3d6bff', 'is_active' => true, 'sort_order' => 1,
+        ]);
+
+        $this->assertSame('375,000', $stat->displayValue());
+        $this->assertSame(375000.0, $stat->numericTarget());
+    }
+
+    /**
+     * But a value with a separator in it is ambiguous -- `1,43 Lakh` is
+     * either 1.43 Lakh mistyped or 143 Lakh missing a zero -- so it is
+     * printed as written rather than multiplied by a guess.
+     */
+    public function test_an_ambiguous_unit_is_left_alone(): void
+    {
+        $stat = new SiteStat(['value' => '1,43 Lakh']);
+
+        $this->assertSame('1,43 Lakh', $stat->displayValue());
+    }
+
+    /**
+     * And it still says something on an install with no stats row at all,
+     * rather than shipping a badge with no figure in it.
+     */
+    public function test_the_hero_badge_has_a_figure_with_no_stats_row(): void
+    {
+        SiteStat::query()->delete();
+
+        $this->assertMatchesRegularExpression(
+            '/^[\d,]+\+$/',
+            SitePagesContent::heroBadgesDefault()[0]['value'],
+            'with no Site Stats row the hero badge has no figure to show'
         );
     }
 }
