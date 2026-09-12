@@ -264,13 +264,25 @@
                         <div class="pb-fig">
                             <div class="pb-num">
                                 {{-- data-target/data-display/.js-stat-count are the
-                                     contract the count-up runtime below reads; the
-                                     rendered text is the final value so the figure is
-                                     correct with JS off. --}}
+                                     contract the count-up runtime below reads.
+
+                                     The rendered text is the FINAL value, never
+                                     '0'. This comment used to say that while the
+                                     code did the opposite, and so the served HTML
+                                     read "0+ Users Worldwide", "0+ Biolinks
+                                     Created", "0+ Countries Reached" -- which is
+                                     what a crawler indexes, what a reader with no
+                                     JS sees, and what anyone reading the page
+                                     source concludes about the size of the
+                                     product.
+
+                                     Starting the animation from zero is the
+                                     runtime's job, and it does it at init below,
+                                     before any of this is on screen. --}}
                                 <span class="js-stat-count"
                                       data-target="{{ $target !== null ? (int) $target : '' }}"
                                       data-display="{{ $stat->displayValue() }}"
-                                      data-duration="1800">{{ $target !== null ? '0' : $stat->displayValue() }}</span><span class="pb-suffix">{{ $stat->suffix }}</span>
+                                      data-duration="1800">{{ $stat->displayValue() }}</span><span class="pb-suffix">{{ $stat->suffix }}</span>
                             </div>
                             <div class="pb-label">{{ $stat->label }}</div>
                         </div>
@@ -348,6 +360,15 @@
         els.forEach(el => { el.textContent = el.dataset.display || el.textContent; });
         return;
     }
+    // Zero the figures HERE rather than in the HTML. The markup carries the
+    // real number so crawlers and no-JS readers get it; this runs at parse
+    // time, long before the band scrolls into view, so nobody sees the value
+    // it replaces. Doing it the other way round is how the page came to serve
+    // "0+ Users Worldwide" to Google.
+    els.forEach(el => {
+        const target = parseInt(el.dataset.target || '', 10);
+        if (Number.isFinite(target) && target > 0) el.textContent = fmt(0);
+    });
     const io = new IntersectionObserver((entries) => {
         entries.forEach(en => {
             if (en.isIntersecting) {

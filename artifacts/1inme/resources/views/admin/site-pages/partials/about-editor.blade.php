@@ -189,7 +189,7 @@
                         <div class="grid sm:grid-cols-3 gap-2">
                             <input type="text" :name="'extra[hero][stats]['+i+'][value]'" x-model="s.value" maxlength="40" placeholder="120000" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white ak-strong ak-input">
                             <input type="text" :name="'extra[hero][stats]['+i+'][suffix]'" x-model="s.suffix" maxlength="10" placeholder="+" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white ak-strong ak-input">
-                            <input type="text" :name="'extra[hero][stats]['+i+'][label]'" x-model="s.label" maxlength="120" placeholder="Creators served" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white ak-strong ak-input">
+                            <input type="text" :name="'extra[hero][stats]['+i+'][label]'" x-model="s.label" maxlength="120" placeholder="Creators &amp; businesses served" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white ak-strong ak-input">
                         </div>
                     </div>
                 </template>

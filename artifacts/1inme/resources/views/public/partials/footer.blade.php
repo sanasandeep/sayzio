@@ -111,7 +111,14 @@
                 <a href="{{ route('home') }}" class="inline-flex items-center" aria-label="Sayzio home">
                     @include('common.partials.brand-logo', ['height' => 'h-9', 'loading' => 'lazy'])
                 </a>
-                <p class="ft-blurb">The all-in-one link platform: build a drag-and-drop Link in Bio, share it everywhere, and grow with live analytics and a built-in Performance Coach.</p>
+                {{-- "The all-in-one link platform" was true and a category
+                     behind: the product now answers visitors, picks up calls,
+                     chases leads and reads the numbers back. A footer blurb is
+                     where a reader checks what the thing IS, so it names the
+                     category the product is actually in. Colon, not a dash:
+                     this file is under resources/views/public/, which the
+                     em-dash copy guard scans. --}}
+                <p class="ft-blurb">The AI-powered digital presence platform: build your Link in Bio, smart links, QR codes and AI pages, then let Zio engage your visitors, capture leads and help you grow.</p>
 
                 <div class="mt-6">
                     <p class="ft-h">Get the app</p>
