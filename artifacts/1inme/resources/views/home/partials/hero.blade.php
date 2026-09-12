@@ -143,7 +143,11 @@
          read as debris. Removed. --}}
 
     <div class="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12">
-        <div class="zio-hero-grid grid grid-cols-1 gap-y-16 lg:gap-x-14 xl:gap-x-20 lg:items-center">
+        {{-- gap-y-16 is the space between the copy and Zio when they are side
+             by side; stacked on a phone it is 64px of nothing between the
+             badges and his speech bubble, on a screen that has none to spare.
+             40px there, the full gap from lg up. --}}
+        <div class="zio-hero-grid grid grid-cols-1 gap-y-10 lg:gap-y-16 lg:gap-x-14 xl:gap-x-20 lg:items-center">
 
             {{-- Copy column (sits on the RIGHT at ≥lg via .zio-hero-copy order) --}}
             @php
@@ -284,7 +288,21 @@
                      mixed, so the shipped first badge says so. That reasoning
                      now lives with the default in SitePagesContent, where
                      whoever edits the line will actually see it. --}}
-                <div class="reveal rd-4 flex flex-wrap items-center gap-x-6 gap-y-3 mt-12 justify-center lg:justify-start text-sm">
+                {{-- A row at desktop width, a STACK on a phone.
+
+                     Wrapping was the wrong behaviour here. Three badges of
+                     different widths (219 / 182 / 158px at 390px) cannot share
+                     a line, so each took its own and each was centred
+                     separately: three ragged fragments with their dots at
+                     three different x positions, which reads as leftovers
+                     rather than as a list of proof.
+
+                     A single-column grid, the column centred and the items
+                     started, lines the dots up and centres the block as a
+                     whole. `lg:flex` puts the row back where there is room for
+                     one. --}}
+                <div class="reveal rd-4 grid justify-center justify-items-start gap-y-2.5 mt-8 text-sm
+                            lg:flex lg:flex-wrap lg:items-center lg:gap-x-6 lg:gap-y-3 lg:mt-12 lg:justify-start">
                     {{-- Written on one line on purpose. Blade's indentation
                          inside a loop lands in the output, and the value and
                          label spans were pushed far enough apart that a guard
@@ -610,6 +628,23 @@
             .zio-hero-grid { grid-template-columns: 1fr 1.05fr; }
             .zio-hero-visual { order: 1; }
             .zio-hero-copy { order: 2; }
+        }
+
+        /* Room for Zio's speech bubble, which the grid gap cannot give him.
+           The bubble is absolutely positioned at `bottom: 100%` of the orbit,
+           so it hangs ABOVE this column's box and the gap between the two
+           stacked rows measures from the box, not from the bubble. Stacked,
+           that put the bubble 5px INTO the proof badges at 390px and 12px at
+           430px -- reserving the space here is what makes the gap mean what it
+           says.
+
+           32px, because that is the smallest value that clears the badges at
+           every width from 360px to the lg breakpoint (measured: 36px of
+           clearance at 360, 27 at 390, 20 at 430 and 600, 53 at 767). Not
+           needed at lg and up, where the two columns sit side by side and
+           there is nothing above the bubble to run into. */
+        @media (max-width: 1023px) {
+            .zio-hero-visual { padding-top: 32px; }
         }
 
         /* ============ Orbital Zio visual ============ */
