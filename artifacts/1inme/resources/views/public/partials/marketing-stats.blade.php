@@ -43,7 +43,14 @@
                                 <span class="js-stat-count"
                                       data-target="{{ $target !== null ? (int) $target : '' }}"
                                       data-display="{{ $stat->displayValue() }}"
-                                      data-duration="1600">{{ $hasNumeric ? '0' : $stat->displayValue() }}</span><span class="text-white/80">{{ $stat->suffix }}</span>
+                                      {{-- The real figure, never '0'. See the
+                                           note in marketing-trust-band: the
+                                           served HTML is what a crawler indexes
+                                           and what a no-JS reader sees, and
+                                           zeroing it there put "0+" in both.
+                                           The runtime below zeroes it at init
+                                           instead, before it is on screen. --}}
+                                      data-duration="1600">{{ $stat->displayValue() }}</span><span class="text-white/80">{{ $stat->suffix }}</span>
                             </div>
                             <div class="mt-1.5 sm:mt-2 text-[10px] sm:text-xs md:text-sm text-gray-400 uppercase tracking-wider leading-tight">{{ $stat->label }}</div>
                             <div class="mx-auto mt-2 sm:mt-3 h-1 w-10 sm:w-14 md:w-16 rounded-full" style="background: {{ $stat->color }};"></div>
@@ -99,6 +106,11 @@
             els.forEach(el => { el.textContent = el.dataset.display || el.textContent; });
             return;
         }
+        // Zero here, not in the HTML -- see the note on the span above.
+        els.forEach(el => {
+            const target = parseInt(el.dataset.target || '', 10);
+            if (Number.isFinite(target) && target > 0) el.textContent = fmt(0);
+        });
         els.forEach(el => io.observe(el));
     })();
     </script>

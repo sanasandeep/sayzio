@@ -35,7 +35,7 @@
     // typed in by hand: creators from Site Stats, years from the founding
     // date, teammates from the team-size setting. See AboutFigures.
     $defaultHeroStats = [
-        ['value' => 'auto', 'suffix' => '',  'label' => 'Creators served', 'visible' => true],
+        ['value' => 'auto', 'suffix' => '',  'label' => 'Creators & businesses served', 'visible' => true],
         ['value' => 'auto', 'suffix' => '',  'label' => 'Years young',     'visible' => true],
         ['value' => 'auto', 'suffix' => '',  'label' => 'Teammates',       'visible' => true],
     ];

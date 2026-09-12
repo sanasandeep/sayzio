@@ -47,8 +47,12 @@ class MarketingSeo
                 'group' => 'Core',
                 'url' => '/',
                 'title' => 'Link in Bio, Short Links & QR Codes',
-                'description' => 'Sayzio is the all-in-one link platform: build a drag-and-drop Link in Bio page, shorten links, generate dynamic QR codes, and grow with live analytics.',
-                'keywords' => 'link in bio, biolink, link management, short links, url shortener, qr code generator, link analytics, sayzio',
+                // Repositioned with the footer blurb, so the snippet Google
+                // shows and the line at the bottom of the page describe the
+                // same product. 152 characters, inside the ~155 a desktop
+                // result renders before it truncates.
+                'description' => 'Sayzio is the AI-powered digital presence platform: build your Link in Bio, short links and QR codes, then let Zio answer visitors and capture leads.',
+                'keywords' => 'link in bio, biolink, ai chatbot, ai agent, link management, short links, url shortener, qr code generator, link analytics, sayzio',
             ],
             'pricing' => [
                 'label' => 'Pricing',

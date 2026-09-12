@@ -84,7 +84,14 @@ class AboutFigures
         }
 
         return [
-            'value'  => (string) $stat->value,
+            // displayValue(), not ->value. The raw column holds what an admin
+            // typed, which for this row is `3,75,000` -- Indian grouping, and
+            // correct in Hyderabad. SiteStat::displayValue() exists to regroup
+            // it as `375,000` for everyone else, and the home page goes through
+            // it. Reading the column directly here is what put `375,000+` on
+            // the home page and `3,75,000+` on About: one number, two
+            // spellings, and a reader who concludes one of them is wrong.
+            'value'  => $stat->displayValue(),
             'suffix' => (string) $stat->suffix,
         ];
     }

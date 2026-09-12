@@ -2423,7 +2423,7 @@ class SitePagesContent
                 'location_subtitle'=> 'Remote-friendly',
                 'location_icon'    => 'fa-location-dot',
                 'stats' => [
-                    ['value' => 'auto', 'suffix' => '', 'label' => 'Creators served', 'visible' => true],
+                    ['value' => 'auto', 'suffix' => '', 'label' => 'Creators & businesses served', 'visible' => true],
                     ['value' => 'auto', 'suffix' => '', 'label' => 'Years young',     'visible' => true],
                     ['value' => 'auto', 'suffix' => '', 'label' => 'Teammates',       'visible' => true],
                 ],
