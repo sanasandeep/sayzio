@@ -4,11 +4,6 @@
 
 @section('content')
 <div class="space-y-6">
-    @if(session('success'))
-        <div class="ak-green glass rounded-xl p-3 border border-emerald-500/30 text-emerald-200 text-sm flex items-center gap-2">
-            <i class="fas fa-check-circle"></i> {{ session('success') }}
-        </div>
-    @endif
 
     {{-- Summary --}}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">

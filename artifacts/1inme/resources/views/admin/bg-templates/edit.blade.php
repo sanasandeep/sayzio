@@ -4,11 +4,6 @@
 
 @section('content')
 <div class="max-w-4xl">
-    @if(session('success'))
-        <div class="rounded-xl px-4 py-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-sm mb-4 ak-green">
-            {{ session('success') }}
-        </div>
-    @endif
     <div class="glass rounded-2xl border border-white/10 p-6">
         <form method="POST" action="{{ route('admin.bg-templates.update', $template) }}" class="space-y-5">
             @csrf

@@ -16,10 +16,6 @@
         </div>
     @endif
 
-    @if(session('success'))
-        <div class="mb-4 p-3 rounded-xl text-emerald-400 text-xs ak-green" style="background: rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.15);">{{ session('success') }}</div>
-    @endif
-
     {{-- ============ Add new global domain ============ --}}
     <div class="rounded-2xl mb-6 overflow-hidden" style="background: var(--bg-card); border:1px solid var(--border-strong);" x-data="{ open: {{ $errors->any() ? 'true' : 'false' }} }">
         <button type="button" @click="open = !open" class="w-full flex items-center justify-between px-6 py-4 text-left">

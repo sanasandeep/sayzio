@@ -8,8 +8,6 @@
         <a href="{{ route('admin.blogs.posts.index') }}" class="text-xs text-blue-400 hover:underline ak-blue">← Posts</a>
     </div>
 
-    @if(session('success'))<div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm ak-green">{{ session('success') }}</div>@endif
-
     @if(auth('admin')->user()->hasPermission('blogs.manage'))
     <form method="POST" action="{{ route('admin.blogs.tags.store') }}" class="glass rounded-2xl p-5 grid sm:grid-cols-3 gap-3">
         @csrf

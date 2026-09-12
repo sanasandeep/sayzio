@@ -99,11 +99,6 @@
             </button>
         </div>
 
-        @if(session('error'))
-        <div class="rounded-xl px-4 py-3 mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-200 text-sm ak-red">
-            <i class="fas fa-exclamation-circle mr-1.5"></i>{{ session('error') }}
-        </div>
-        @endif
         @if ($errors->any())
         <div class="rounded-xl px-4 py-3 mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-200 text-sm ak-red">
             <ul class="list-disc list-inside space-y-0.5">

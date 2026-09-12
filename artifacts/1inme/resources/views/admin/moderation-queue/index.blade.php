@@ -26,10 +26,6 @@
         </a>
     </div>
 
-    @if(session('success'))
-        <div class="mb-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm">{{ session('success') }}</div>
-    @endif
-
     {{-- Filters --}}
     <form method="GET" class="flex flex-wrap gap-2 mb-4 text-sm">
         <input type="hidden" name="tab" value="{{ $tab }}"/>

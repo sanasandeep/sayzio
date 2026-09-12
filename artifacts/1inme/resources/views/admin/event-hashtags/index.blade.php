@@ -21,12 +21,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="rounded-xl px-4 py-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-sm ak-green">
-            {{ session('success') }}
-        </div>
-    @endif
-
     <div class="glass rounded-2xl border border-white/10 overflow-hidden">
         <table class="w-full text-sm">
             <thead>

@@ -3,8 +3,6 @@
 
 @section('content')
 <div class="max-w-6xl mx-auto px-4 py-8 space-y-6">
-    @if(session('success'))<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm ak-green">{{ session('success') }}</div>@endif
-    @if(session('error'))<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm ak-red">{{ session('error') }}</div>@endif
 
     <div class="flex items-end justify-between gap-3">
         <div>

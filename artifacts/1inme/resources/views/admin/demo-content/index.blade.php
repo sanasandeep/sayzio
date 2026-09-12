@@ -11,17 +11,6 @@
         </p>
     </div>
 
-    @if(session('success'))
-        <div class="mb-4 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-sm ak-green">
-            {{ session('success') }}
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="mb-4 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-sm ak-red">
-            {{ session('error') }}
-        </div>
-    @endif
-
     {{-- Stats --}}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div class="rounded-2xl border p-4" style="background: var(--surface-1); border-color: var(--border-soft);">

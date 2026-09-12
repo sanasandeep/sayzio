@@ -260,12 +260,6 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
         </a>
     </div>
 
-    @if(session('success'))
-        <div class="mb-4 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 text-sm ak-green">
-            <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
-        </div>
-    @endif
-
     @if($errors->any())
         <div class="mb-4 p-3 rounded-xl border border-red-500/30 bg-red-500/10 text-red-300 text-sm ak-red">
             @foreach($errors->all() as $err)

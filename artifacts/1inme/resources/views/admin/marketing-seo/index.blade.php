@@ -15,12 +15,6 @@
         </p>
     </div>
 
-    @if(session('success'))
-        <div class="px-3 py-2 bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 rounded-lg text-sm ak-green">
-            {{ session('success') }}
-        </div>
-    @endif
-
     {{-- Code-driven pages: edited inline, persisted to the central registry. --}}
     <form method="POST" action="{{ route('admin.marketing-seo.update') }}" class="space-y-6">
         @csrf

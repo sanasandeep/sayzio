@@ -34,12 +34,6 @@
         blankValues() { return { ...(this.presets.creator || {}) }; }
      }">
 
-    @if(session('success'))
-        <div class="mb-4 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 text-sm ak-green">
-            <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
-        </div>
-    @endif
-
     <div class="glass rounded-2xl border border-white/10 p-6">
         <form method="POST" action="{{ route('admin.coach-defaults.update') }}">
             @csrf

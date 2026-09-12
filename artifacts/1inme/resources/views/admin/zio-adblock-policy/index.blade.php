@@ -16,16 +16,6 @@
         </p>
     </div>
 
-    @if(session('success'))
-        <div class="rounded-xl px-4 py-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-sm ak-green">
-            {{ session('success') }}
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="rounded-xl px-4 py-3 bg-red-500/10 border border-red-500/30 text-red-200 text-sm">
-            {{ session('error') }}
-        </div>
-    @endif
     @if($errors->any())
         <div class="rounded-xl px-4 py-3 bg-red-500/10 border border-red-500/30 text-red-200 text-sm">
             {{ $errors->first() }}

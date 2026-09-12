@@ -3,12 +3,6 @@
 @section('content')
 <div class="max-w-6xl mx-auto py-6 px-4">
 
-    @if(session('success'))
-        <div class="mb-4 px-4 py-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm">
-            {{ session('success') }}
-        </div>
-    @endif
-
     <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
         <div>
             <h1 class="text-xl font-bold text-slate-900">Adult content moderation</h1>

@@ -4,11 +4,6 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
-    @if(session('success'))
-        <div class="rounded-xl px-4 py-3 text-sm" style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.20); color: #86efac;">
-            {{ session('success') }}
-        </div>
-    @endif
 
     <div class="glass rounded-2xl p-6">
         <h2 class="text-lg font-semibold text-white mb-1 ak-strong">Brand logos &amp; icon</h2>

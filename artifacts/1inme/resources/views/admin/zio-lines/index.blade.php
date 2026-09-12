@@ -21,10 +21,6 @@
         </p>
     </div>
 
-    @if(session('success'))
-        <div class="mb-4 px-4 py-3 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 text-sm ak-green">{{ session('success') }}</div>
-    @endif
-
     @if($errors->any())
         <div class="mb-4 px-4 py-3 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-200 text-sm ak-red">
             @foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach

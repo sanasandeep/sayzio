@@ -30,10 +30,6 @@ html.light-mode .ons-empty { color: #94a3b8; }
     <a href="{{ route('admin.onboarding-slides.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"><i class="fas fa-plus mr-2"></i>Add Slide</a>
 </div>
 
-@if(session('success'))
-    <div class="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm ons-success ak-green">{{ session('success') }}</div>
-@endif
-
 @if($drifted->isNotEmpty())
     <div class="mb-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm ons-drift-banner ak-amber">
         <div class="flex items-start gap-3">

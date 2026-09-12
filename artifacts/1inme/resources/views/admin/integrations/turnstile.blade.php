@@ -38,10 +38,6 @@
             </ol>',
     ])
 
-    @if(session('success'))
-        <div class="ak-green p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs">{{ session('success') }}</div>
-    @endif
-
     @if ($errors->any())
         <div class="ak-red p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
             <ul class="list-disc pl-4 space-y-0.5">

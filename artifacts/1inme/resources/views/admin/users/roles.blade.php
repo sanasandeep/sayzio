@@ -16,12 +16,6 @@
             </a>
         </div>
 
-        @if(session('success'))
-            <div class="mb-4 p-3 rounded-xl bg-emerald-500/10 text-emerald-300 text-sm ak-green">
-                {{ session('success') }}
-            </div>
-        @endif
-
         <p class="text-xs text-white/50 mb-4 ak-muted">
             Roles below are scoped to the user pool (web guard). Each role
             grants a bundle of permissions used across the user-facing app.
@@ -75,9 +69,6 @@
          back-office role / revoke). Creating an admin record by matching
          email is what powers the seamless dashboard switch. --}}
     <div id="admin-access" class="glass rounded-2xl border border-blue-500/30 ring-1 ring-blue-500/20 p-6 mt-6 scroll-mt-24">
-        @if(session('error'))
-            <div class="mb-4 p-3 rounded-xl bg-rose-500/10 text-rose-300 text-sm ak-red">{{ session('error') }}</div>
-        @endif
 
         <div class="flex items-start justify-between gap-3 mb-1">
             <h3 class="text-lg font-semibold text-white flex items-center gap-2 ak-strong">

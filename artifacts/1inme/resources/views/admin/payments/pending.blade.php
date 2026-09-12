@@ -6,7 +6,6 @@
         <h1 class="text-2xl font-semibold text-white ak-strong">Pending Payments</h1>
         <p class="text-sm text-white/50 ak-muted">Offline / manual transfers and any gateway payment that needs a human second-look.</p>
     </div>
-    @if(session('success'))<div class="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 text-sm ak-green">{{ session('success') }}</div>@endif
 
     <div class="rounded-2xl border border-white/10 bg-white/[0.02] overflow-x-auto">
         <table class="min-w-full text-sm">

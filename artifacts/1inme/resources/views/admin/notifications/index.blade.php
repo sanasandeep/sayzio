@@ -9,12 +9,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="p-3 rounded-lg text-sm" style="background: rgba(16,185,129,0.10); color:#059669; border:1px solid rgba(16,185,129,0.25);">
-            {{ session('success') }}
-        </div>
-    @endif
-
     {{-- Compose -------------------------------------------------------- --}}
     <section class="rounded-2xl p-5"
              style="background: var(--bg-card); border:1px solid var(--border-strong);">

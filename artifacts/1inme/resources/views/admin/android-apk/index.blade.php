@@ -10,17 +10,6 @@
         Only one release can be <strong class="text-white/70 ak-strong">live</strong> at a time; that is the file served to the public from <code class="text-xs bg-white/5 px-1.5 py-0.5 rounded">/android/download</code>.
     </p>
 
-    @if(session('success'))
-        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2 ak-green">
-            <i class="fas fa-check-circle"></i> {{ session('success') }}
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs flex items-center gap-2 ak-red">
-            <i class="fas fa-triangle-exclamation"></i> {{ session('error') }}
-        </div>
-    @endif
-
     {{-- ============================================================ --}}
     {{-- Storage info banner                                          --}}
     {{-- ============================================================ --}}

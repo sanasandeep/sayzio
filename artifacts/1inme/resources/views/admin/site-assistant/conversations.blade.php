@@ -4,7 +4,6 @@
 
 @section('content')
 <div class="max-w-7xl space-y-6">
-    @if(session('success'))<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs ak-green">{{ session('success') }}</div>@endif
     <div class="text-sm text-white/60 ak-muted"><a href="{{ route('admin.site-assistant.edit') }}" class="hover:text-white">← Back to Site Assistant</a></div>
 
     <form method="GET" class="flex flex-wrap gap-2">

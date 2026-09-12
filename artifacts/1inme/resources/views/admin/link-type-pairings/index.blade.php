@@ -6,12 +6,6 @@
         <i class="fas fa-arrow-left mr-1"></i>Back to all pages
     </a>
 
-    @if(session('success'))
-        <div class="px-3 py-2 bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 rounded-lg text-sm ak-green">
-            {{ session('success') }}
-        </div>
-    @endif
-
     <div class="glass rounded-2xl p-6">
         <h1 class="text-lg font-semibold text-white ak-strong">Perfect Pairings</h1>
         <p class="text-xs text-white/50 mt-1 ak-muted">

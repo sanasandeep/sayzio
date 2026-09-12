@@ -11,8 +11,6 @@
         <a href="{{ route('admin.blogs.posts.index') }}" class="text-xs text-blue-400 hover:underline ak-blue">← Posts</a>
     </div>
 
-    @if(session('success'))<div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm ak-green">{{ session('success') }}</div>@endif
-
     <div class="flex flex-wrap gap-2 text-xs">
         @foreach(['pending'=>'Pending','approved'=>'Approved','spam'=>'Spam','trash'=>'Trash'] as $k=>$label)
             <a href="{{ route('admin.blogs.comments.index', ['status'=>$k]) }}" class="px-3 py-1.5 rounded-full {{ $status===$k ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10 ak-muted' }}">{{ $label }} <span class="opacity-60">({{ $counts[$k] ?? 0 }})</span></a>
