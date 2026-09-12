@@ -9,13 +9,30 @@
             <h1 class="text-2xl font-bold text-white ak-strong">Marketing Stats</h1>
             <p class="text-sm text-gray-400 mt-1 ak-muted">Numbers shown across the marketing site (homepage, About, Features, etc.).</p>
         </div>
-        <a href="{{ route('admin.site-stats.create') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-semibold hover:opacity-90">
-            <i class="fas fa-plus"></i> Add stat
-        </a>
+        <div class="flex items-center gap-2">
+            {{-- Saving a stat already drops the cached copy, so the public
+                 pages update immediately. This is the escape hatch for a
+                 change made elsewhere -- straight in the database, say. --}}
+            <form method="POST" action="{{ route('admin.marketing-cache.refresh') }}">
+                @csrf
+                <button type="submit"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/15 text-gray-300 text-sm font-semibold hover:bg-white/5 ak-muted"
+                        title="Clear and rebuild the cached copies of the public marketing pages">
+                    <i class="fas fa-rotate-right"></i> Rebuild public cache
+                </button>
+            </form>
+            <a href="{{ route('admin.site-stats.create') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-semibold hover:opacity-90">
+                <i class="fas fa-plus"></i> Add stat
+            </a>
+        </div>
     </div>
 
     @if(session('success'))
         <div class="mb-4 px-4 py-3 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 text-sm ak-green">{{ session('success') }}</div>
+    @endif
+
+    @if(session('error'))
+        <div class="mb-4 px-4 py-3 rounded-lg bg-red-500/15 border border-red-500/30 text-red-200 text-sm ak-red">{{ session('error') }}</div>
     @endif
 
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
