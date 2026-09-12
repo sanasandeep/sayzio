@@ -197,8 +197,23 @@
     /* ---------- the hub ---------- */
     .zh-hub {
         position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-        display: grid; place-items: center; gap: 4px;
-        width: 132px; height: 132px; border-radius: 26px;
+        display: grid; place-items: center;
+        /* align-content, and it matters more than it looks.
+
+           This is a grid with a FIXED height and auto rows, so the default
+           (`normal`, which behaves as stretch) hands each row a share of the
+           leftover space and then `place-items: center` centres the item
+           inside its own stretched row. The spacing you see is therefore
+           whatever is left over, not anything chosen: with Zio in the card
+           that came out as a 23px gap under him and a 21px gap between "Zio"
+           and "YOUR AI", while the artwork itself was pressed against the top
+           edge with 5px to spare and the antennae clipped by it.
+
+           `center` makes the rows hug their content and centres the group, so
+           the gaps below are the gaps that render and the block is optically
+           centred without a magic offset. */
+        align-content: center; gap: 0;
+        width: 144px; height: 144px; border-radius: 28px;
         background: linear-gradient(150deg, #2C3BA8, #1B2570);
         border: 1px solid rgba(160,180,255,.38);
         box-shadow: 0 0 0 10px rgba(61,107,255,.10), 0 22px 50px -18px rgba(0,0,0,.7);
@@ -209,9 +224,16 @@
        of it, and his eyes would blink somewhere beside his head. The card was
        built around a 52px head and still gets one; it just comes from --size
        now. */
-    .zh-hub .zio-face { margin-block: 2px; }
-    .zh-hub b { font-size: 14px; font-weight: 800; letter-spacing: -.01em; color: #fff; }
-    .zh-hub span { font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: #93A3DD; }
+    /* The three gaps in the card, now that align-content above lets them be
+       chosen: Zio, a breath, his name, a hair, his role. The name and the role
+       are one caption, so the space between them is the smallest on the card
+       -- otherwise they read as two separate labels that happen to be stacked,
+       which is how the old leftover spacing made them look. */
+    .zh-hub .zio-face { margin-bottom: 7px; }
+    .zh-hub b { font-size: 14px; font-weight: 800; letter-spacing: -.01em; line-height: 1; color: #fff; }
+    /* Was 9.5px at .16em, which made "YOUR AI" nearly as wide as the card and
+       gave a two-word role label the presence of a heading. */
+    .zh-hub span { margin-top: 4px; font-size: 8.5px; letter-spacing: .14em; text-transform: uppercase; color: #93A3DD; }
     /* A ring that breathes, so the centre is alive without anything moving. */
     .zh-hub::after {
         content: ""; position: absolute; inset: -14px; border-radius: 34px;
@@ -335,7 +357,7 @@
                  are none here, so he keeps the painted smile. --}}
             <div class="zh-hub">
                 @include('home.partials.zio-face', [
-                    'size'    => '156px',
+                    'size'    => '196px',
                     'mouth'   => false,
                     'loading' => 'lazy',
                 ])

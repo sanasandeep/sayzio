@@ -151,4 +151,40 @@ class HomepageZioIsAliveInBothPlacesTest extends TestCase
             . 'that is a small head jumping out of its card'
         );
     }
+
+    /**
+     * The hub card packs its rows instead of letting the grid scatter them.
+     *
+     * `.zh-hub` is a grid with a FIXED height and auto rows. The default
+     * align-content behaves as stretch, so each row takes a share of the
+     * leftover space and `place-items: center` then centres its item inside
+     * that stretched row. Nothing in the markup says so, and the result is
+     * spacing nobody chose: with Zio in the card it came out as a 23px gap
+     * under him and 21px between "Zio" and "YOUR AI", while the artwork was
+     * pressed against the top edge with 5px to spare and its antennae clipped.
+     * Sana's words for it were that the labels looked odd and Zio was not
+     * centred, which is exactly what leftover space looks like.
+     *
+     * This is a string assertion and it is worth saying why, because that is
+     * the weak kind: the symptom is purely visual, there is no DOM or HTTP
+     * signal to assert on, and computing a cascade needs a browser. So this
+     * pins the one declaration the layout depends on, and the real check was
+     * measuring the rendered card in Chromium -- 10.8px above Zio, 11.9px
+     * below the caption, 4.8px of clearance at the top of his bob.
+     */
+    public function test_the_hub_card_packs_its_rows(): void
+    {
+        $hub = (string) preg_replace('/\s+/', ' ', (string) file_get_contents(
+            resource_path('views/home/partials/zio-hub.blade.php')
+        ));
+
+        $this->assertMatchesRegularExpression(
+            '/\.zh-hub \{.{0,1600}?align-content: center/s',
+            $hub,
+            'The Zio hub card no longer sets align-content, so its fixed height '
+            . 'and auto rows are back to spreading Zio and his labels apart by '
+            . 'whatever space is left over, and the gaps in the CSS below stop '
+            . 'meaning anything.'
+        );
+    }
 }
