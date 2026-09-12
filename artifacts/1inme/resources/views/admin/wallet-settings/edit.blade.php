@@ -3,9 +3,6 @@
 @section('page-title', 'Wallet & Coins')
 
 @section('content')
-@if(session('success'))
-    <div class="ak-green mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('success') }}</div>
-@endif
 
 <form method="POST" action="{{ route('admin.wallet-settings.update') }}" class="max-w-2xl space-y-6">
     @csrf @method('PUT')

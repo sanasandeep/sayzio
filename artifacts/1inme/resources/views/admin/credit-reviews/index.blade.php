@@ -4,12 +4,6 @@
 
 @section('content')
 <div class="space-y-6">
-    @if(session('success'))
-        <div class="rounded-xl px-4 py-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-sm ak-green">{{ session('success') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="rounded-xl px-4 py-3 bg-rose-500/10 border border-rose-500/30 text-rose-200 text-sm ak-red">{{ session('error') }}</div>
-    @endif
 
     <div class="glass rounded-2xl border border-white/10 p-5">
         <h2 class="text-sm font-semibold text-white ak-strong">Upgrade credit reviews</h2>

@@ -18,12 +18,6 @@
         </form>
     </div>
 
-    @if(session('success'))
-        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm ak-green">
-            {{ session('success') }}
-        </div>
-    @endif
-
     {{-- Usage tiles --}}
     <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">

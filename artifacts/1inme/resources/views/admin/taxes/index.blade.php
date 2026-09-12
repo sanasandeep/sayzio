@@ -9,7 +9,6 @@
         </div>
         <a href="{{ route('admin.taxes.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700">+ Add jurisdiction</a>
     </div>
-    @if(session('success'))<div class="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 text-sm ak-green">{{ session('success') }}</div>@endif
 
     <div class="rounded-2xl border border-white/10 bg-white/[0.02] overflow-x-auto">
         <table class="min-w-full text-sm">

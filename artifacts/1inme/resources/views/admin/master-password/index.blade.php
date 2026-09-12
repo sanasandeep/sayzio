@@ -40,12 +40,6 @@ html.light-mode .admin-mp-tone-red      { color: #991b1b; }
         </p>
     </div>
 
-    @if (session('success'))
-        <div class="admin-mp-flash-success p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs ak-green">
-            {{ session('success') }}
-        </div>
-    @endif
-
     @if ($errors->any())
         <div class="admin-mp-flash-error p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs ak-red">
             <ul class="list-disc pl-4 space-y-0.5">

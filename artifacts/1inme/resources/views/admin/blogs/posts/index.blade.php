@@ -20,8 +20,6 @@
         </div>
     </div>
 
-    @if(session('success'))<div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm ak-green">{{ session('success') }}</div>@endif
-
     <div class="flex flex-wrap gap-2 text-xs">
         @foreach(['all'=>'All','draft'=>'Drafts','scheduled'=>'Scheduled','published'=>'Published','archived'=>'Archived'] as $key=>$label)
             @php $active = ($key==='all' && !request('status')) || request('status')===$key; @endphp

@@ -5,10 +5,6 @@
 @section('content')
 <div class="max-w-5xl space-y-6">
 
-    @if (session('success'))
-        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs ak-green">{{ session('success') }}</div>
-    @endif
-
     <p class="text-sm text-white/50 ak-muted">
         Every transactional email the platform sends is listed below, grouped by area. Edit any one to
         customise its subject and body &mdash; templates with no override keep sending their built-in

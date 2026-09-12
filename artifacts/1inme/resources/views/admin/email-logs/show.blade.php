@@ -9,13 +9,6 @@
         <i class="fas fa-arrow-left"></i> Back to log
     </a>
 
-    @if (session('success'))
-        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs ak-green">{{ session('success') }}</div>
-    @endif
-    @if (session('error'))
-        <div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs ak-red">{{ session('error') }}</div>
-    @endif
-
     <div class="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-2 text-xs">
         <div class="grid grid-cols-2 gap-2">
             <div><span class="text-white/40 ak-note">Recipient</span><div class="text-white/80 ak-strong">{{ $log->recipient }}</div></div>

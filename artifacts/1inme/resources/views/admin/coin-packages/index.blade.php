@@ -11,10 +11,6 @@
     </div>
 </div>
 
-@if(session('success'))
-    <div class="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm ak-green">{{ session('success') }}</div>
-@endif
-
 <div class="glass rounded-2xl border border-white/10 p-5 mb-6">
     <form method="POST" action="{{ route('admin.coin-packages.fx-rate') }}" class="flex flex-wrap items-end gap-4">
         @csrf

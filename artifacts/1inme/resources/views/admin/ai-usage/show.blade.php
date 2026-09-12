@@ -26,9 +26,6 @@
         @if($errors->any())
             <div class="text-xs text-red-300 ak-red">{{ $errors->first() }}</div>
         @endif
-        @if(session('error'))
-            <div class="text-xs text-red-300 ak-red">{{ session('error') }}</div>
-        @endif
         <div class="flex flex-wrap items-center gap-3">
             <input type="number" name="delta" required placeholder="±coins"
                    class="w-32 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm ak-strong ak-input">

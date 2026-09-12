@@ -15,17 +15,6 @@
         run one immediately in the background; cadences themselves are defined in code and are not editable.
     </p>
 
-    @if(session('success'))
-        <div class="rounded-2xl p-4 border border-emerald-500/20 bg-emerald-500/[0.07] text-sm text-emerald-100 ak-green">
-            <i class="fas fa-circle-check text-emerald-300 mr-1.5 ak-green"></i>{{ session('success') }}
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="rounded-2xl p-4 border border-rose-500/30 bg-rose-500/10 text-sm text-rose-100 ak-red">
-            <i class="fas fa-circle-xmark text-rose-300 mr-1.5 ak-red"></i>{{ session('error') }}
-        </div>
-    @endif
-
     {{-- Scheduler health banner: seeded server-side, then refreshed in place by
          the same polling loop that updates the job badges — so the banner can't
          contradict the live rows while a run is in flight. All three variants are

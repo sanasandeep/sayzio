@@ -5,12 +5,6 @@
 @section('content')
 <div class="max-w-6xl">
 
-    @if(session('success'))
-        <div class="mb-4 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 text-sm ak-green">
-            <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
-        </div>
-    @endif
-
     @if($errors->any())
         <div class="mb-4 p-3 rounded-xl border border-red-500/30 bg-red-500/10 text-red-200 text-sm ak-red">
             <i class="fas fa-exclamation-circle mr-1"></i> {{ $errors->first() }}

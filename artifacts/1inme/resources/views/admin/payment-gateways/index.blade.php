@@ -6,7 +6,6 @@
         <h1 class="ak-strong text-2xl font-semibold text-white">Payment Gateways</h1>
         <p class="ak-muted text-sm text-white/50">Enable or disable payment providers. Credentials are encrypted at rest; stored secrets are never displayed.</p>
     </div>
-    @if(session('success'))<div class="ak-green px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 text-sm">{{ session('success') }}</div>@endif
 
     <div class="rounded-2xl border border-white/10 bg-white/[0.02] overflow-x-auto">
         <table class="min-w-full text-sm">

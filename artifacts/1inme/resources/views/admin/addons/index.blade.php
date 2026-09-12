@@ -10,10 +10,6 @@
     </a>
 </div>
 
-@if(session('success'))
-    <div class="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm ak-green">{{ session('success') }}</div>
-@endif
-
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     @forelse($addons as $addon)
     <div class="glass rounded-2xl border border-white/10 p-6 {{ $addon->is_archived ? 'opacity-60' : '' }}">

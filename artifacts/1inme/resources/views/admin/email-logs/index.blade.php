@@ -5,13 +5,6 @@
 @section('content')
 <div class="max-w-6xl space-y-5">
 
-    @if (session('success'))
-        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs ak-green">{{ session('success') }}</div>
-    @endif
-    @if (session('error'))
-        <div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs ak-red">{{ session('error') }}</div>
-    @endif
-
     <p class="text-sm text-white/50 ak-muted">
         Every outbound email is recorded here. Search by recipient or subject, filter by area or status,
         and resend any individual message.

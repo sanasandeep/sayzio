@@ -63,18 +63,6 @@
             </div>
         </div>
 
-        @if(session('success'))
-            <div class="mb-4 px-3 py-2 bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 rounded-lg text-sm ak-green">
-                {{ session('success') }}
-            </div>
-        @endif
-
-        @if(session('error'))
-            <div class="mb-4 px-3 py-2 bg-red-500/10 border border-red-400/30 text-red-200 rounded-lg text-sm ak-red">
-                {{ session('error') }}
-            </div>
-        @endif
-
         <form method="GET" class="mb-4">
             <input type="search" name="q" value="{{ $q }}" placeholder="Search by email…"
                    class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">

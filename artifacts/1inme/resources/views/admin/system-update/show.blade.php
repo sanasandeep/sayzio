@@ -10,18 +10,6 @@
     </a>
 
     {{-- Session flash --}}
-    @if(session('success'))
-        <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3">
-            <i class="fas fa-check-circle text-emerald-400 shrink-0 ak-green"></i>
-            <p class="text-sm text-emerald-200 ak-green">{{ session('success') }}</p>
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-3">
-            <i class="fas fa-triangle-exclamation text-red-400 shrink-0 ak-red"></i>
-            <p class="text-sm text-red-200 ak-red">{{ session('error') }}</p>
-        </div>
-    @endif
 
     {{-- Replit / managed mode --}}
     @if($isReplit)

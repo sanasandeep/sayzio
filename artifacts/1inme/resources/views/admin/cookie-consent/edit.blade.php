@@ -31,11 +31,6 @@
 
 @section('content')
 <div class="max-w-6xl mx-auto space-y-6">
-    @if(session('success'))
-        <div class="rounded-xl px-4 py-3 text-sm" style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.20); color: #86efac;">
-            {{ session('success') }}
-        </div>
-    @endif
 
     @if($errors->any())
         <div class="rounded-xl px-4 py-3 text-sm" style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.20); color: #fca5a5;">

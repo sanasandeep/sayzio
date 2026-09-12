@@ -27,14 +27,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="mb-4 px-4 py-3 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 text-sm ak-green">{{ session('success') }}</div>
-    @endif
-
-    @if(session('error'))
-        <div class="mb-4 px-4 py-3 rounded-lg bg-red-500/15 border border-red-500/30 text-red-200 text-sm ak-red">{{ session('error') }}</div>
-    @endif
-
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
         <table class="w-full text-sm">
             <thead class="bg-white/[0.04] text-xs uppercase tracking-wider text-gray-400 ak-muted">

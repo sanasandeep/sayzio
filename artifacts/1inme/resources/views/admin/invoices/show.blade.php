@@ -4,7 +4,6 @@
 <div class="container py-4" style="max-width:900px">
   <h1 class="h4">Invoice {{ $invoice->number }}</h1>
   @if (session('status'))<div class="alert alert-success">{{ session('status') }}</div>@endif
-  @if (session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
 
   <div class="card mb-3"><div class="card-body">
     <div><strong>User:</strong> {{ $invoice->user?->email }}</div>

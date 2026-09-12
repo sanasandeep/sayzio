@@ -17,12 +17,6 @@
         @endif
     </div>
 
-    @if(session('success'))
-        <div class="mb-5 p-3.5 rounded-xl text-sm font-medium" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);color:#6ee7b7;">
-            <i class="fas fa-check-circle mr-2"></i>{{ session('success') }}
-        </div>
-    @endif
-
     {{-- Filters --}}
     <form method="GET" class="mb-5 flex flex-wrap gap-3 items-end">
         <div class="flex-1 min-w-[180px]">

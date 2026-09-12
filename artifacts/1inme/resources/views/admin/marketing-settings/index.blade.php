@@ -75,12 +75,6 @@
         <i class="fas fa-arrow-left mr-1"></i>Back to all pages
     </a>
 
-    @if(session('success'))
-        <div class="ak-green px-3 py-2 bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 rounded-lg text-sm">
-            {{ session('success') }}
-        </div>
-    @endif
-
     <form method="POST" action="{{ route('admin.marketing-settings.update') }}"
           x-data='marketingSettings(@json($alpineState))'
           class="space-y-6">
