@@ -3095,10 +3095,32 @@ class SitePagesContent
     public static function heroBadgesDefault(): array
     {
         return [
-            ['value' => '375,000+',     'label' => 'creators & businesses', 'tone' => 'green',  'pulse' => false],
+            ['value' => self::creatorsBadgeDefault(), 'label' => 'creators & businesses', 'tone' => 'green',  'pulse' => false],
             ['value' => 'Links, pages', 'label' => '& QR codes',            'tone' => 'brand',  'pulse' => true],
             ['value' => 'Free forever', 'label' => '· no card',             'tone' => 'accent', 'pulse' => false],
         ];
+    }
+
+    /**
+     * The badge figure reads from the same Site Stats row the "by the
+     * numbers" band and the About hero read, so the one number on this page
+     * cannot appear twice in two spellings -- which is exactly how the site
+     * came to say 375,000 in one place and 3,75,000 in another.
+     *
+     * The literal below is only the fallback for an install with no stats
+     * row yet, and a badge saved in admin is the admin's copy either way.
+     */
+    private static function creatorsBadgeDefault(): string
+    {
+        $creators = AboutFigures::creators();
+
+        if ($creators === null || trim($creators['value']) === '') {
+            return '375,000+';
+        }
+
+        $suffix = trim($creators['suffix']) !== '' ? trim($creators['suffix']) : '+';
+
+        return trim($creators['value']).$suffix;
     }
 
     /**

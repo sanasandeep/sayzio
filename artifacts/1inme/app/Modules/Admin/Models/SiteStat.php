@@ -57,8 +57,38 @@ class SiteStat extends Model
     /** Numeric portion stripped of commas/letters, for the count-up animation. */
     public function numericTarget(): ?float
     {
-        $clean = preg_replace('/[^0-9.]/', '', (string) $this->value);
+        $raw = trim((string) $this->value);
+
+        // `3.75 Lakh` means 375,000, and the strip below would have read it as
+        // 3.75 -- which is what the home page's count-up was animating to on
+        // any install still holding the shipped seed value.
+        $scaled = self::scaledValue($raw);
+        if ($scaled !== null) {
+            return $scaled;
+        }
+
+        $clean = preg_replace('/[^0-9.]/', '', $raw);
         return $clean === '' ? null : (float) $clean;
+    }
+
+    /**
+     * A value written with an Indian unit, as the number it names.
+     *
+     * Returns null for anything that is not exactly a plain number followed
+     * by the unit, so a value carrying a separator -- `1,43 Lakh`, which is
+     * either 1.43 Lakh mistyped or 143 Lakh missing a zero -- is passed
+     * through untouched rather than guessed at. Multiplying a figure by a
+     * hundred because of a typo is a worse outcome than printing the typo.
+     */
+    private static function scaledValue(string $raw): ?float
+    {
+        if (! preg_match('/^([0-9]+(?:\.[0-9]+)?)\s*(lakhs?|crores?)$/i', $raw, $m)) {
+            return null;
+        }
+
+        $factor = str_starts_with(strtolower($m[2]), 'lakh') ? 100000 : 10000000;
+
+        return (float) $m[1] * $factor;
     }
 
     /**
@@ -78,12 +108,22 @@ class SiteStat extends Model
      * stored string -- an admin typing `3,75,000` into the stats screen gets
      * `375,000` on the page, and the two can no longer drift apart.
      *
+     * Indian units are read the same way: `3.75 Lakh` -- the value this site
+     * shipped with -- is the same number as `375,000`, and printing it as the
+     * unit leaves most of the world doing arithmetic to find out how big the
+     * product is. It prints as `375,000`.
+     *
      * Only plain numbers are touched. A value an admin wrote as `1.5M`, `99.9%`
      * or `24/7` is a deliberate format and passes through untouched.
      */
     public function displayValue(): string
     {
         $raw = trim((string) $this->value);
+
+        $scaled = self::scaledValue($raw);
+        if ($scaled !== null) {
+            return number_format($scaled);
+        }
 
         // Anything that is not digits and separators is a deliberate format.
         if ($raw === '' || ! preg_match('/^[0-9][0-9,]*(\.[0-9]+)?$/', $raw)) {
