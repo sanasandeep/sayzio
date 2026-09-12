@@ -11,6 +11,7 @@ namespace App\Modules\User\Support;
  *   'value' => string,  // links.type value submitted by the form
  *   'icon'  => string,  // Font Awesome icon class (e.g. 'fa-link')
  *   'badge' => string,  // Tailwind badge classes (bg + text colour)
+ *   'tint'  => string,  // hex for the icon tile, same colour family as badge
  *   'label' => string,  // human-readable name
  *   'desc'  => string,  // one-line description
  * ].
@@ -54,42 +55,42 @@ class LinkTypeCategories
                 'label' => 'Everyday links',
                 'desc'  => 'Quick, single-purpose links you can share anywhere in seconds.',
                 'types' => [
-                    ['value' => 'url',  'icon' => 'fa-link',         'badge' => 'bg-violet-500/15 text-violet-300',  'label' => 'Short Link',   'desc' => 'Shorten any URL with a custom alias and click tracking.'],
-                    ['value' => 'file', 'icon' => 'fa-file',         'badge' => 'bg-emerald-500/15 text-emerald-300','label' => 'File Share',   'desc' => 'Share a downloadable file behind a short link.'],
-                    ['value' => 'ics',  'icon' => 'fa-calendar',     'badge' => 'bg-amber-500/15 text-amber-300',    'label' => 'Event',        'desc' => 'A calendar event visitors can add in a single tap.'],
-                    ['value' => 'vcf',  'icon' => 'fa-address-card', 'badge' => 'bg-cyan-500/15 text-cyan-300',      'label' => 'Contact Card', 'desc' => 'A digital business card visitors can save instantly.'],
-                    ['value' => 'text', 'icon' => 'fa-align-left',   'badge' => 'bg-sky-500/15 text-sky-300',        'label' => 'Text Page',    'desc' => 'Paste any text and share it as a clean page with a copy button.'],
+                    ['value' => 'url',  'icon' => 'fa-link',         'badge' => 'bg-violet-500/15 text-violet-300', 'tint' => '#a78bfa',  'label' => 'Short Link',   'desc' => 'Shorten any URL with a custom alias and click tracking.'],
+                    ['value' => 'file', 'icon' => 'fa-file',         'badge' => 'bg-emerald-500/15 text-emerald-300', 'tint' => '#34d399','label' => 'File Share',   'desc' => 'Share a downloadable file behind a short link.'],
+                    ['value' => 'ics',  'icon' => 'fa-calendar',     'badge' => 'bg-amber-500/15 text-amber-300', 'tint' => '#fbbf24',    'label' => 'Event',        'desc' => 'A calendar event visitors can add in a single tap.'],
+                    ['value' => 'vcf',  'icon' => 'fa-address-card', 'badge' => 'bg-cyan-500/15 text-cyan-300', 'tint' => '#22d3ee',      'label' => 'Contact Card', 'desc' => 'A digital business card visitors can save instantly.'],
+                    ['value' => 'text', 'icon' => 'fa-align-left',   'badge' => 'bg-sky-500/15 text-sky-300', 'tint' => '#38bdf8',        'label' => 'Text Page',    'desc' => 'Paste any text and share it as a clean page with a copy button.'],
                 ],
             ],
             [
                 'label' => 'Pages & mini-sites',
                 'desc'  => 'Full, customizable pages that live at a single link — no website needed.',
                 'types' => [
-                    ['value' => 'biolink',         'icon' => 'fa-id-card',    'badge' => 'bg-pink-500/15 text-pink-300',       'label' => 'Link in Bio',        'desc' => 'A mini-site of your links, blocks and media on one page.'],
-                    ['value' => 'slides',          'icon' => 'fa-clone',      'badge' => 'bg-fuchsia-500/15 text-fuchsia-300', 'label' => 'Slides',             'desc' => 'Present a swipeable deck of slides from a single link.'],
-                    ['value' => 'restaurant_menu', 'icon' => 'fa-utensils',   'badge' => 'bg-orange-500/15 text-orange-300',   'label' => 'Restaurant Menu',    'desc' => 'A digital menu with sections, items and prices.'],
-                    ['value' => 'store_menu',      'icon' => 'fa-store',      'badge' => 'bg-emerald-500/15 text-emerald-300', 'label' => 'Store Menu',         'desc' => 'A product catalog with categories and an order-request cart.'],
-                    ['value' => 'service_booking', 'icon' => 'fa-calendar-check', 'badge' => 'bg-cyan-500/15 text-cyan-300',   'label' => 'Service Booking',    'desc' => 'Bookable services with availability — visitors request a slot.'],
-                    ['value' => 'resume',          'icon' => 'fa-file-lines', 'badge' => 'bg-indigo-500/15 text-indigo-300',   'label' => 'Resume / Portfolio', 'desc' => 'A shareable resume / portfolio page with PDF download.'],
-                    ['value' => 'calendar',        'icon' => 'fa-calendar-days', 'badge' => 'bg-lime-500/15 text-lime-300',    'label' => 'Calendar',           'desc' => 'A followable calendar of events visitors can subscribe to.'],
+                    ['value' => 'biolink',         'icon' => 'fa-id-card',    'badge' => 'bg-pink-500/15 text-pink-300', 'tint' => '#f472b6',       'label' => 'Link in Bio',        'desc' => 'A mini-site of your links, blocks and media on one page.'],
+                    ['value' => 'slides',          'icon' => 'fa-clone',      'badge' => 'bg-fuchsia-500/15 text-fuchsia-300', 'tint' => '#e879f9', 'label' => 'Slides',             'desc' => 'Present a swipeable deck of slides from a single link.'],
+                    ['value' => 'restaurant_menu', 'icon' => 'fa-utensils',   'badge' => 'bg-orange-500/15 text-orange-300', 'tint' => '#fb923c',   'label' => 'Restaurant Menu',    'desc' => 'A digital menu with sections, items and prices.'],
+                    ['value' => 'store_menu',      'icon' => 'fa-store',      'badge' => 'bg-emerald-500/15 text-emerald-300', 'tint' => '#34d399', 'label' => 'Store Menu',         'desc' => 'A product catalog with categories and an order-request cart.'],
+                    ['value' => 'service_booking', 'icon' => 'fa-calendar-check', 'badge' => 'bg-cyan-500/15 text-cyan-300', 'tint' => '#22d3ee',   'label' => 'Service Booking',    'desc' => 'Bookable services with availability — visitors request a slot.'],
+                    ['value' => 'resume',          'icon' => 'fa-file-lines', 'badge' => 'bg-indigo-500/15 text-indigo-300', 'tint' => '#a5b4fc',   'label' => 'Resume / Portfolio', 'desc' => 'A shareable resume / portfolio page with PDF download.'],
+                    ['value' => 'calendar',        'icon' => 'fa-calendar-days', 'badge' => 'bg-lime-500/15 text-lime-300', 'tint' => '#a3e635',    'label' => 'Calendar',           'desc' => 'A followable calendar of events visitors can subscribe to.'],
                 ],
             ],
             [
                 'label' => 'Business & monetization',
                 'desc'  => 'Grow your reputation and earn from your audience.',
                 'types' => [
-                    ['value' => 'paid_page', 'icon' => 'fa-crown', 'badge' => 'bg-rose-500/15 text-rose-300',     'label' => 'Bizs Profile',  'desc' => 'A themeable home that automatically shows all your posts, tiers & tips — no linking needed.'],
-                    ['value' => 'reviews',   'icon' => 'fa-star',  'badge' => 'bg-yellow-500/15 text-yellow-300', 'label' => 'Reviews Page',  'desc' => 'Collect and showcase reviews from your audience.'],
-                    ['value' => 'brand_kit', 'icon' => 'fa-palette', 'badge' => 'bg-purple-500/15 text-purple-300', 'label' => 'Brand / Press Kit', 'desc' => 'A shareable press kit with logo downloads, colours, fonts and brand voice.'],
-                    ['value' => 'updates',   'icon' => 'fa-bullhorn', 'badge' => 'bg-sky-500/15 text-sky-300',    'label' => 'Updates Page',  'desc' => 'A public changelog where you post dated announcements — followers get notified.'],
+                    ['value' => 'paid_page', 'icon' => 'fa-crown', 'badge' => 'bg-rose-500/15 text-rose-300', 'tint' => '#fb7185',     'label' => 'Bizs Profile',  'desc' => 'A themeable home that automatically shows all your posts, tiers & tips — no linking needed.'],
+                    ['value' => 'reviews',   'icon' => 'fa-star',  'badge' => 'bg-yellow-500/15 text-yellow-300', 'tint' => '#fde047', 'label' => 'Reviews Page',  'desc' => 'Collect and showcase reviews from your audience.'],
+                    ['value' => 'brand_kit', 'icon' => 'fa-palette', 'badge' => 'bg-purple-500/15 text-purple-300', 'tint' => '#c084fc', 'label' => 'Brand / Press Kit', 'desc' => 'A shareable press kit with logo downloads, colours, fonts and brand voice.'],
+                    ['value' => 'updates',   'icon' => 'fa-bullhorn', 'badge' => 'bg-sky-500/15 text-sky-300', 'tint' => '#38bdf8',    'label' => 'Updates Page',  'desc' => 'A public changelog where you post dated announcements — followers get notified.'],
                 ],
             ],
             [
                 'label' => 'AI-powered',
                 'desc'  => 'Let AI answer and guide your visitors for you.',
                 'types' => [
-                    ['value' => 'ai_chat',        'icon' => 'fa-robot',    'badge' => 'bg-teal-500/15 text-teal-300', 'label' => 'AI Chatbot',     'desc' => 'An AI assistant that answers your visitors for you.'],
-                    ['value' => 'conversational', 'icon' => 'fa-comments', 'badge' => 'bg-sky-500/15 text-sky-300',   'label' => 'Conversational', 'desc' => 'A guided, chat-style page that responds as visitors tap.'],
+                    ['value' => 'ai_chat',        'icon' => 'fa-robot',    'badge' => 'bg-teal-500/15 text-teal-300', 'tint' => '#2dd4bf', 'label' => 'AI Chatbot',     'desc' => 'An AI assistant that answers your visitors for you.'],
+                    ['value' => 'conversational', 'icon' => 'fa-comments', 'badge' => 'bg-sky-500/15 text-sky-300', 'tint' => '#38bdf8',   'label' => 'Conversational', 'desc' => 'A guided, chat-style page that responds as visitors tap.'],
                 ],
             ],
         ];
