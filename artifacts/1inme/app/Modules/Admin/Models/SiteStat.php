@@ -39,6 +39,20 @@ class SiteStat extends Model
         return static::active()->ordered()->get()->map(fn ($m) => $m->getAttributes())->all();
     }
 
+    /**
+     * Drop the cached payload so the next render reads the table.
+     *
+     * Every admin write must call this. Zio Lines and Testimonials -- the
+     * two screens built to the same shape -- have always done so; Site Stats
+     * was the one that never did, so an edit here sat invisible behind the
+     * five-minute TTL while the admin reloaded the page wondering what they
+     * had got wrong.
+     */
+    public static function flushCache(): void
+    {
+        Cache::forget(self::ACTIVE_CACHE_KEY);
+    }
+
     protected $fillable = [
         'label', 'value', 'suffix', 'icon', 'color', 'is_active', 'sort_order',
     ];

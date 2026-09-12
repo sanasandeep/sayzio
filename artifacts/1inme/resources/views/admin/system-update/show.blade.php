@@ -217,6 +217,28 @@
     </div>
     @endif
 
+    {{-- Rebuild the public site cache. Nothing to do with deploys, but this
+         is the page people come to when the live site is not showing what
+         they expect, so the button belongs where they will look for it. --}}
+    <div class="glass rounded-xl p-4 border border-white/10">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+            <div class="min-w-0">
+                <p class="text-sm font-semibold text-white/80 ak-strong">Public site cache</p>
+                <p class="text-xs text-white/40 mt-0.5 ak-note">
+                    The marketing pages are cached and rebuilt automatically every few minutes.
+                    Rebuild now if the live site is not showing a change you made.
+                </p>
+            </div>
+            <form method="POST" action="{{ route('admin.marketing-cache.refresh') }}">
+                @csrf
+                <button type="submit"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/15 text-white/70 text-sm font-semibold hover:bg-white/5 ak-muted">
+                    <i class="fas fa-rotate-right"></i> Rebuild now
+                </button>
+            </form>
+        </div>
+    </div>
+
     {{-- Last deploy audit --}}
     @if($lastAudit)
     <div class="glass rounded-xl p-4 border border-white/10">
