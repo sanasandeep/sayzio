@@ -308,38 +308,18 @@
                     <div class="zio-core" aria-hidden="true">
                         <span class="zio-mascot-halo"></span>
 
-                        {{-- Zio, talking.
+                        {{-- Zio, talking. The markup moved to its own partial
+                             when the hub section below started using the same
+                             face; that file carries the notes on how the
+                             artwork is cut and how the lids and mouth are
+                             registered to it.
 
-                             Three images, not one. The artwork ships cut into a
-                             body and two antennae (branding/zio-body.png,
-                             zio-antenna-l.png, zio-antenna-r.png), all on the same
-                             512x512 canvas so they stack at inset:0 with nothing to
-                             line up by hand. The cut was made along the head's own
-                             outline, so each antenna is whole and the body keeps
-                             the little stubs where they join — which is what lets
-                             them sway from their bases without coming loose.
-
-                             Everything else — the lids, the mouth, the tongue — is
-                             CSS positioned in PERCENTAGES of the artwork, so it
-                             stays registered at every size. The numbers come from
-                             the pixels of the 758px master: left iris x 170-292,
-                             y 173-291; right iris x 409-542, y 201-323; the painted
-                             smile x 303-378, y 313-334.
-
-                             The mouth sits ON TOP of the painted smile rather than
-                             replacing it: between lines it is hidden and the
-                             original smile is Zio's resting face; while he is
-                             speaking it opens over it and the tongue shows. --}}
-                        <div class="zio-face">
-                            <img src="{{ asset('branding/zio-body.png') }}"
-                                 alt="Zio, the Sayzio AI mascot" class="zio-mascot"
-                                 width="220" height="220" loading="eager" decoding="async">
-                            <span class="zio-ant zio-ant--l"></span>
-                            <span class="zio-ant zio-ant--r"></span>
-                            <span class="zio-lid zio-lid--l"></span>
-                            <span class="zio-lid zio-lid--r"></span>
-                            <span class="zio-mouth-gate"><span class="zio-mouth"><i class="zio-tongue"></i></span></span>
-                        </div>
+                             No --size here: `.zio-orbit` already sets it for
+                             this whole box, and the partial inherits it. --}}
+                        @include('home.partials.zio-face', [
+                            'mouth' => true,
+                            'alt'   => 'Zio, the Sayzio AI mascot',
+                        ])
 
                         {{-- One line at a time, on a loop. Every bubble sits in the
                              same place and takes its turn via an animation-delay, so
@@ -985,9 +965,14 @@
                wide around the mascot, which on a white page is not white:
                the pixels beside his head measured #D1DBFF. */
         }
+        /* The rise is a fraction of the artwork, not a fixed 12px, because Zio
+           is now drawn at two sizes an order of magnitude apart. At the hero's
+           --size this still works out to the 12px it always was; at the hub's
+           124px it is 3px, which reads as the same gentle bob rather than a
+           small head jumping out of its card. */
         @keyframes zioFloat {
             0%,100% { transform: translateY(0) rotate(-1.5deg) scale(1); }
-            50%     { transform: translateY(-12px) rotate(1.5deg) scale(1.02); }
+            50%     { transform: translateY(calc(var(--size, 500px) * -0.024)) rotate(1.5deg) scale(1.02); }
         }
 
         /* ---- Antennae ----

@@ -203,7 +203,13 @@
         border: 1px solid rgba(160,180,255,.38);
         box-shadow: 0 0 0 10px rgba(61,107,255,.10), 0 22px 50px -18px rgba(0,0,0,.7);
     }
-    .zh-hub img { width: 52px; height: 52px; object-fit: contain; }
+    /* Zio sizes himself from the --size the include passes, and the antennae
+       and eyelids are absolutely positioned against that box -- so pinning the
+       <img> to 52px here would size the body without moving the layers on top
+       of it, and his eyes would blink somewhere beside his head. The card was
+       built around a 52px head and still gets one; it just comes from --size
+       now. */
+    .zh-hub .zio-face { margin-block: 2px; }
     .zh-hub b { font-size: 14px; font-weight: 800; letter-spacing: -.01em; color: #fff; }
     .zh-hub span { font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: #93A3DD; }
     /* A ring that breathes, so the centre is alive without anything moving. */
@@ -231,7 +237,8 @@
             background: linear-gradient(150deg, #2C3BA8, #1B2570);
             border: 1px solid rgba(160,180,255,.38);
         }
-        .zh-list-hub img { width: 34px; height: 34px; }
+        /* Same reason as .zh-hub .zio-face above: the face sizes itself. */
+        .zh-list-hub .zio-face { flex: 0 0 auto; }
         .zh-list-hub b { font-size: 15px; color: #fff; }
         .zh-list a {
             display: flex; align-items: center; gap: 10px;
@@ -318,8 +325,20 @@
                 @endforeach
             </svg>
 
+            {{-- The same Zio as the hero, not a still of him. This section's
+                 whole claim is that the eight chips around him are one AI, and
+                 a flat head at the centre of a diagram about a living assistant
+                 was arguing the opposite. 124px of canvas puts the face at the
+                 52px the card was already built for.
+
+                 No mouth: it is timed to the hero's speech bubbles and there
+                 are none here, so he keeps the painted smile. --}}
             <div class="zh-hub">
-                <img src="{{ asset('branding/zio-bot.png') }}" alt="" width="52" height="52" loading="lazy" decoding="async">
+                @include('home.partials.zio-face', [
+                    'size'    => '156px',
+                    'mouth'   => false,
+                    'loading' => 'lazy',
+                ])
                 <b>Zio</b>
                 <span>your AI</span>
             </div>
@@ -334,7 +353,11 @@
         {{-- Narrow: same links, no diagram. --}}
         <div class="zh-list">
             <div class="zh-list-hub">
-                <img src="{{ asset('branding/zio-bot.png') }}" alt="" width="34" height="34" loading="lazy" decoding="async">
+                @include('home.partials.zio-face', [
+                    'size'    => '102px',
+                    'mouth'   => false,
+                    'loading' => 'lazy',
+                ])
                 <b>Zio</b>
             </div>
             @foreach($zioNodes as $n)
