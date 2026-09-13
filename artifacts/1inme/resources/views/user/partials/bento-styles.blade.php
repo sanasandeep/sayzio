@@ -26,32 +26,14 @@
 --}}
 <style>
     /* ===================== Bento command center ===================== */
-    /* Localised aurora depth behind the whole grid (dark mode only). */
+    /* Two large animated radial blobs -- blue top-left, cyan right -- used to
+       drift behind every page that uses this stage. They were the reason the
+       dashboard read as coloured rather than dark: a wash with no meaning,
+       moving, behind content people are trying to read. The stage keeps its
+       stacking context, which the tiles and dropdowns rely on; the weather
+       is gone. */
     .bento-stage { position: relative; isolation: isolate; overflow-x: clip; }
     .bento-stage > * { position: relative; z-index: 1; }
-    html:not(.light-mode) .bento-stage::before,
-    html:not(.light-mode) .bento-stage::after {
-        content: '';
-        position: absolute;
-        border-radius: 50%;
-        filter: blur(90px);
-        pointer-events: none;
-        z-index: 0;
-        mix-blend-mode: screen;
-        opacity: 0.5;
-    }
-    html:not(.light-mode) .bento-stage::before {
-        top: -8%; left: -6%;
-        width: 44%; height: 54%;
-        background: radial-gradient(circle, rgba(61,107,255,0.32), transparent 70%);
-        animation: aurora 24s ease-in-out infinite;
-    }
-    html:not(.light-mode) .bento-stage::after {
-        top: 22%; right: -8%;
-        width: 42%; height: 62%;
-        background: radial-gradient(circle, rgba(34,211,238,0.24), transparent 70%);
-        animation: aurora 30s ease-in-out infinite reverse;
-    }
 
     /* Bento grid: single column on phones, 2-up on tablets, asymmetric 6-col on desktop. */
     .bento {
@@ -176,20 +158,10 @@
         background: linear-gradient(135deg, #eef3ff, #ffffff 62%);
         border-color: #d3e0ff;
     }
-    .bento-hero::before {
-        content: '';
-        position: absolute;
-        top: -45%; right: -8%;
-        width: 52%; height: 190%;
-        background: radial-gradient(circle at center, rgba(61,107,255,0.24), transparent 68%);
-        filter: blur(30px);
-        pointer-events: none;
-        z-index: 0;
-        animation: float-slow 20s ease-in-out infinite;
-    }
-    html.light-mode .bento-hero::before {
-        background: radial-gradient(circle at center, rgba(61,107,255,0.10), transparent 70%);
-    }
+    /* The hero carried a second animated wash of its own, drifting behind the
+       title on every page that uses one. Same objection as the stage blobs
+       above: colour that means nothing, in motion, behind text. The tiles
+       keep their small corner glow -- that one belongs to the tile. */
     .bento-hero > * { position: relative; z-index: 1; }
     .hero-grid {
         display: grid;
@@ -258,9 +230,6 @@
     @media (prefers-reduced-motion: reduce) {
         .bento-tile { transition: none; }
         .bento-tile:hover { transform: none; }
-        html:not(.light-mode) .bento-stage::before,
-        html:not(.light-mode) .bento-stage::after,
-        .bento-hero::before,
         .pulse-orb::before, .pulse-orb::after,
         .live-dot .dot { animation: none !important; }
         .pulse-orb::before { opacity: 0.4; }
@@ -281,11 +250,6 @@
        decides the tie. Nothing outside html.aurora is touched.
        =================================================================== */
 
-    /* The local blooms come out: body::after now lights the whole page, and
-       two aurora systems on one screen is one too many. */
-    html.aurora .bento-stage::before,
-    html.aurora .bento-stage::after { display: none; }
-
     /* Opaque, unblurred, lit only at the edge. The inset-shadow stack that
        built the glass bevel is replaced wholesale by one long shadow. */
     html.aurora .bento-tile,
@@ -303,11 +267,11 @@
         box-shadow: var(--lg-shadow);
     }
 
-    /* The white top-edge sheen and the hero wash both assume a translucent
-       surface underneath. On an opaque panel they just look like smudges. */
+    /* The white top-edge sheen assumes a translucent surface underneath. On
+       an opaque panel it just looks like a smudge. (The hero wash this rule
+       also used to switch off no longer exists anywhere.) */
     html.aurora .bento-tile::after,
-    html.aurora.light-mode .bento-tile::after,
-    html.aurora .bento-hero::before { display: none; }
+    html.aurora.light-mode .bento-tile::after { display: none; }
 
     /* The coloured bar and the glow orb are the six competing accents. One
        hue per meaning is the whole point of the palette, and a metric tile's
