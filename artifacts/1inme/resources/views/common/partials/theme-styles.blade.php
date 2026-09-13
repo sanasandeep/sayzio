@@ -313,22 +313,29 @@
         --c-teal:      #46d3d9;  --c-teal-soft:      rgba(70,211,217,0.16);
     }
 
-    /* Light Aurora is warm paper rather than a lighter copy of the dark set:
-       a blue-grey light mode under a blue aurora goes muddy, and the warm
-       ground is what keeps the wash reading as light instead of as haze. */
+    /* Light Aurora stands on the same white as the block above.
+       It used to be warm paper (#f6f5f2), on the argument that a blue-grey
+       light mode under a blue aurora goes muddy -- which was true of the
+       blue-grey, and stopped being the question once the ground went white.
+       This block is the one nearly everyone actually sees: `aurora` is on the
+       html element for every user with the Aurora UI, and being two class
+       names to the other block's one, it wins. So a ground set only up there
+       is a ground almost nobody gets. The two move together. */
     html.aurora.light-mode {
-        --bg-body: #f6f5f2;
+        --bg-body: #ffffff;
         --bg-sidebar: #ffffff;
         --bg-sidebar-mobile: #ffffff;
         --bg-dropdown: #ffffff;
         --bg-header: #ffffff;
         --bg-glass: #ffffff;
         --bg-glass-light: #ffffff;
-        --bg-glass-hover: #edebe6;
+        --bg-glass-hover: #f6f5f2;
         --bg-glass-input: #ffffff;
         --bg-glass-input-focus: #ffffff;
         --bg-card: #ffffff;
         --bg-card-hover: #ffffff;
+        /* Left as alphas: over white these land within a shade of the
+           #e3e0da set above, so they already carry a card edge on their own. */
         --border-glass: rgba(20,18,28,0.10);
         --border-glass-light: rgba(20,18,28,0.16);
         --border-subtle: rgba(20,18,28,0.055);
