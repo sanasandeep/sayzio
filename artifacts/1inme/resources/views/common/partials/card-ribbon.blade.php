@@ -32,7 +32,10 @@
       @include('common.partials.card-ribbon', ['tone' => 'warm'])
 
     Props:
-      $tone  'cool' (blue into cyan, default) | 'warm' (amber into violet)
+      $tone    'cool' (blue into cyan, default) | 'warm' (amber into violet)
+      $side    'right' (default) | 'left' -- which edge the ribbon bleeds off
+      $ribbon  false to render the lattice only, for a card whose width is
+               fully occupied and has no corner to give
 --}}
 @php
     $cribbonTone = ($tone ?? 'cool') === 'warm' ? 'warm' : 'cool';
@@ -40,6 +43,10 @@
     // the card's whole composition rather than just moving the artwork; the
     // SVG's slant is asymmetric, so the left variant is mirrored, not moved.
     $cribbonSide = ($side ?? 'right') === 'left' ? 'left' : 'right';
+    // Some cards have content across their whole width and so have no corner
+    // for a ribbon to bleed into. They can still take the lattice, which is
+    // what sits under the copy on the marketing card too.
+    $cribbonRibbon = ($ribbon ?? true) !== false;
     // Two ribbons can share a page and each needs its own gradient ids, or
     // the second silently reuses the first one's stops.
     $cribbonUid  = 'cr'.substr(md5($cribbonTone.uniqid('', true)), 0, 8);
@@ -115,6 +122,7 @@
 @endonce
 
 <span class="cribbon-grid{{ $cribbonSide === 'left' ? ' cribbon-grid--left' : '' }}" aria-hidden="true"></span>
+@if($cribbonRibbon)
 <span class="cribbon{{ $cribbonSide === 'left' ? ' cribbon--left' : '' }}" aria-hidden="true">
     <svg viewBox="0 0 400 460" preserveAspectRatio="xMidYMid slice" role="presentation" focusable="false">
         <defs>
@@ -144,3 +152,4 @@
         <polygon fill="#fff" opacity=".14" points="316,-40 356,-40 0,500 -40,500"/>
     </svg>
 </span>
+@endif

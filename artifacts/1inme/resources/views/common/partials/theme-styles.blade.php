@@ -31,7 +31,7 @@
            panels layered directly on the page canvas, but dropdowns float
            over arbitrary content and must not let it paint through. */
         --bg-dropdown: #12141c;
-        --bg-header: rgba(255,255,255,0.01);
+        --bg-header: #0b0a11;
         --bg-glass: rgba(255,255,255,0.03);
         --bg-glass-light: rgba(255,255,255,0.05);
         --bg-glass-hover: rgba(255,255,255,0.06);
@@ -230,7 +230,7 @@
         --bg-sidebar: #0b0a11;
         --bg-sidebar-mobile: rgba(11,10,17,0.92);
         --bg-dropdown: #14131d;
-        --bg-header: rgba(255,255,255,0.01);
+        --bg-header: #0b0a11;
         --bg-glass: #100f17;
         --bg-glass-light: #14131d;
         --bg-glass-hover: #14131d;
@@ -265,17 +265,14 @@
         --sidebar-active-border: rgba(110,140,255,0.55);
         --sidebar-active-text: #f3f1f7;
 
-        /* The aurora itself. Blue into violet into teal, wider and stronger
-           than the blooms they replace, because they are now the only source
-           of colour on the canvas rather than an accent on top of one. */
-        --glow-1: rgba(64,96,255,0.40);
-        --glow-2: rgba(150,80,255,0.30);
-        --glow-3: rgba(40,190,200,0.20);
-
-        /* Grain over the whole ground. body::before already draws this tile;
-           it only ever needed turning up and compositing properly. Without
-           it a blurred gradient at this scale reads as a flat wash. */
-        --noise-opacity: 0.045;
+        /* No ambient light on the canvas, matching light mode. Kept as
+           transparent rather than deleted: .bg-mesh and a handful of page
+           partials still read them, and a missing custom property there would
+           paint an invalid gradient rather than nothing. */
+        --glow-1: transparent;
+        --glow-2: transparent;
+        --glow-3: transparent;
+        --noise-opacity: 0;
 
         --scrollbar-thumb: rgba(255,255,255,0.10);
         --scrollbar-thumb-hover: rgba(255,255,255,0.22);
@@ -418,19 +415,19 @@
        z-index 0 is deliberate: the app shell is `relative z-10`, so content
        always paints above this, and the fixed position keeps the light still
        while the page scrolls under it. */
-    html.aurora body::after {
-        content: '';
-        position: fixed;
-        inset: -25% -12% auto -12%;
-        height: 135vh;
-        pointer-events: none;
-        z-index: 0;
-        background:
-            radial-gradient(46vw 42vh at 14% 4%,  var(--glow-1), transparent 68%),
-            radial-gradient(44vw 40vh at 88% 12%, var(--glow-2), transparent 66%),
-            radial-gradient(42vw 34vh at 54% 64%, var(--glow-3), transparent 70%);
-        filter: blur(64px);
-    }
+    /* The wash is gone in both themes.
+
+       Three blurred radial blooms, fixed to the viewport, 135vh tall, behind
+       every page. Light mode lost its equivalents three changes ago -- the
+       stage blobs, the hero wash, the layout tint -- and dark kept this one,
+       which is most of why the two themes stopped looking like one product.
+       Colour that means nothing, in front of everything, is the thing this
+       skin is built to not do; it does not get an exemption for being dark.
+
+       The grain goes with it: a noise tile exists to keep a large blurred
+       gradient from banding, and there is no longer a gradient to band. */
+    html.aurora body::after { display: none; }
+    html.aurora body::before { display: none; }
 
     /* ---- Lit panel edge ----
        The base .glass/.card-premium/.stat-card rule sets its surface with
