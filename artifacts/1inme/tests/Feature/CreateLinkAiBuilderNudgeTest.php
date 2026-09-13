@@ -58,6 +58,27 @@ class CreateLinkAiBuilderNudgeTest extends TestCase
         ]);
     }
 
+    /**
+     * Just the two "ways to start" cards at the top of the page.
+     *
+     * These assertions used to run against the whole document, which was fine
+     * until the sidebar started carrying a permanent plan card -- it links to
+     * the upgrade route on every authenticated page, so "the page does not link
+     * to upgrade" became impossible to satisfy and said nothing about the AI
+     * card either way. The question was always whether the AI BUILDER offers an
+     * upgrade CTA, so the answer is read from the AI builder.
+     */
+    private function startCards(string $html): string
+    {
+        $from = strpos($html, 'Guided wizard');
+        $to   = strpos($html, 'Or pick a link type');
+
+        $this->assertNotFalse($from, 'The start cards did not render.');
+        $this->assertNotFalse($to, 'The type picker did not render.');
+
+        return substr($html, $from, $to - $from);
+    }
+
     public function test_engine_on_renders_the_working_ai_builder_form(): void
     {
         AiEngineSettings::setEnabled(true);
@@ -76,7 +97,11 @@ class CreateLinkAiBuilderNudgeTest extends TestCase
         $resp->assertDontSee('Enable AI');
         $resp->assertDontSee('Available on a higher plan.');
         $resp->assertDontSee(route('admin.ai-engine.edit'), false);
-        $resp->assertDontSee('href="' . route('user.upgrade') . '"', false);
+        $this->assertStringNotContainsString(
+            'href="' . route('user.upgrade') . '"',
+            $this->startCards($resp->getContent()),
+            'The working AI builder is offering an upgrade CTA.'
+        );
     }
 
     public function test_engine_off_admin_sees_enable_ai_teaser(): void
@@ -97,7 +122,11 @@ class CreateLinkAiBuilderNudgeTest extends TestCase
         // It is a teaser, not the working submit form, and not the upgrade CTA.
         $resp->assertDontSee('name="start_mode" value="ai"', false);
         $resp->assertDontSee('Available on a higher plan.');
-        $resp->assertDontSee('href="' . route('user.upgrade') . '"', false);
+        $this->assertStringNotContainsString(
+            'href="' . route('user.upgrade') . '"',
+            $this->startCards($resp->getContent()),
+            'An admin who can switch the engine on is being sent to upgrade instead.'
+        );
     }
 
     public function test_engine_off_regular_user_sees_upgrade_teaser(): void
@@ -108,7 +137,11 @@ class CreateLinkAiBuilderNudgeTest extends TestCase
             ->get(route('user.links.create'))
             ->assertOk();
 
-        $resp->assertSee('href="' . route('user.upgrade') . '"', false);
+        $this->assertStringContainsString(
+            'href="' . route('user.upgrade') . '"',
+            $this->startCards($resp->getContent()),
+            'The locked AI card gives a plain user no way to upgrade.'
+        );
         $resp->assertSee('Available on a higher plan.');
 
         // No admin "Enable AI" path and no working builder form for a plain user.
