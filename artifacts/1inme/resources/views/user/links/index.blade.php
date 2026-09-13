@@ -53,7 +53,8 @@
          carries something the total beside it cannot say: the last seven
          days. ============================================================ --}}
     <div class="links-head">
-        <div class="min-w-0">
+        @include('common.partials.card-ribbon')
+        <div class="min-w-0 cribbon-copy">
             <h1 class="links-title">My Links</h1>
             <p class="links-facts">
                 <strong>{{ number_format($__summary['total']) }}</strong> {{ Str::plural('link', $__summary['total']) }}
@@ -90,7 +91,7 @@
             }
             $__line = implode(' L ', $__pts);
         @endphp
-        <div class="links-trend">
+        <div class="links-trend cribbon-copy">
             <p class="k">Total clicks</p>
             <p class="n">{{ number_format($__summary['clicks']) }}</p>
             @if(($trend['total'] ?? 0) > 0)
@@ -227,9 +228,20 @@
      the row: a row later in the DOM would otherwise paint over an open menu. --}}
 <style>
     /* ── Header ─────────────────────────────────────────────────────────── */
+    /* The header is the page's highlight, so it is the card that carries the
+       ribbon and the lattice -- which means it has to become a surface. It
+       was a bare flex row before: no ground, no edge, nothing for a ribbon to
+       bleed off. The card treatment comes from the same tokens every other
+       card uses, so it is one of them rather than a special case. */
     .links-head {
         display: flex; align-items: flex-start; justify-content: space-between;
         gap: 28px; flex-wrap: wrap; margin-bottom: 20px;
+        position: relative;
+        overflow: hidden;
+        padding: 22px 24px;
+        border-radius: var(--lg-radius, 14px);
+        border: 1px solid var(--border-glass);
+        background: var(--bg-card);
     }
     .links-title {
         margin: 0 0 6px; font-size: clamp(1.5rem, 3.2vw, 1.9rem); line-height: 1.1;
