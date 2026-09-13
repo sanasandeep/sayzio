@@ -440,7 +440,8 @@
        The two stacked backgrounds are the standard gradient-border trick. The
        first paints the panel colour clipped to the padding box, the second
        paints the gradient clipped to the border box, and the transparent 1px
-       border is the only place the second one shows. */
+       border is the only place the second one shows.
+
        At rest the second layer is a flat hairline, not the gradient: with a
        gradient on every card at once the colour stops being a highlight and
        becomes the background pattern of the page. The gradient is what hover
@@ -449,7 +450,8 @@
        Both states keep the same 1px transparent border and the same two
        stacked layers, so moving between them changes a colour and nothing
        else -- no border width to reflow, no transform to move the card under
-       the cursor. */
+       the cursor.
+
        All four card families are listed together deliberately. They are the
        same object wearing four class names, and the first attempt at this
        changed three of them: .bento-tile kept its own lift in bento-styles,
@@ -483,39 +485,25 @@
     }
 
     /* ---- The ribbon ----
-       The marketing site's signature is one gradient, blue into teal into
-       cyan (#3d6bff, #1bd4d9, #22d3ee). Bringing it inside gives the product
-       the same voice as the page people arrived from.
+       The gradient that lands on a card is the marketing site's ribbon --
+       three slanted bands bleeding off one edge -- rendered by
+       common/partials/card-ribbon.blade.php, which is the same geometry the
+       landing page's CTA uses rather than a lookalike.
 
-       It is deliberately not available to every card. A gradient behind one
-       panel is emphasis; a gradient behind nine is wallpaper, which is the
-       mistake the earlier skin made. So it is opt-in by class, applied to the
-       single card that opens a page, and it fades out well before the content
-       starts so text never sits on top of colour.
+       What stood here before was a soft gradient washed across the whole top
+       of the card. That is the treatment the marketing site itself replaced,
+       for the reason its own partial records: a wash reads as haze, puts
+       colour behind the words, and is the same ambient colour being taken off
+       everything else. A ribbon is hard-edged, confined to its own side, and
+       never under anything anyone has to read.
 
-       The card's base rule turns ::before off; this turns it back on for the
-       ribbon only, and the z-index pair keeps the card's own content above
-       it. */
-    html.aurora .card-premium.au-hero::before,
-    html.aurora .ribbon-card::before {
-        content: '' !important;
-        display: block !important;
-        position: absolute;
-        inset: 0 0 auto 0;
-        height: 200px;
-        border-radius: inherit;
-        background: linear-gradient(95deg,
-            color-mix(in srgb, #3d6bff 13%, transparent),
-            color-mix(in srgb, #1bd4d9 11%, transparent) 52%,
-            color-mix(in srgb, #22d3ee 7%, transparent) 78%,
-            transparent);
-        -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
-        mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
-        pointer-events: none;
-        z-index: 0;
+       All the host card needs from here is somewhere to bleed to. */
+    html.aurora .card-premium:has(> .cribbon),
+    html.aurora .glass:has(> .cribbon),
+    html.aurora .ribbon-card {
+        position: relative;
+        overflow: hidden;
     }
-    html.aurora .card-premium.au-hero > *,
-    html.aurora .ribbon-card > * { position: relative; z-index: 1; }
 
     /* ---- Chrome: the rail and the bar ----
        Both carry .dash-glass, whose light-mode rule paints a white inset
@@ -525,7 +513,8 @@
        nothing, each with its own soft edge.
 
        They are not panels. They are the page's own edges, so each gets one
-       hairline on the side that meets the content and no shadow at all. */
+       hairline on the side that meets the content and no shadow at all.
+
        Two things had to be checked against the rendered page rather than
        assumed, because the first pass at this got both wrong.
 

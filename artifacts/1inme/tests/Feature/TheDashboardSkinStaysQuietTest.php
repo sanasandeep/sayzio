@@ -289,6 +289,60 @@ class TheDashboardSkinStaysQuietTest extends TestCase
         );
     }
 
+    /**
+     * The one that would have caught three deploys' worth of silence.
+     *
+     * Editing a rule's explanation by replacing text that began AFTER the
+     * comment's closing marker leaves prose sitting in raw CSS, followed by a
+     * stray `*​/`. The browser then treats everything up to that marker as one
+     * malformed construct and drops the rule immediately after it -- no error,
+     * no warning, the file still "contains" the rule, and every source-level
+     * assertion in this class still passes. It happened three times in this
+     * file: the card rest rule, the card hover rule, and the rail's border.
+     *
+     * Balanced markers plus no prose outside a comment is the cheap check.
+     */
+    public function test_every_comment_in_the_stylesheet_is_closed_once(): void
+    {
+        foreach ([
+            'common/partials/theme-styles.blade.php',
+            'user/partials/bento-styles.blade.php',
+            'common/partials/card-ribbon.blade.php',
+        ] as $view) {
+            $css = $this->css($view);
+
+            $this->assertSame(
+                substr_count($css, '/*'),
+                substr_count($css, '*/'),
+                "$view has unbalanced CSS comment markers: a rule is being "
+                .'swallowed by a comment that opens or closes in the wrong place'
+            );
+
+            // With comments removed, nothing that reads as a sentence should
+            // be left standing where a declaration belongs. Blade's own
+            // comments go first: they are stripped before the browser ever
+            // sees the file, so prose inside one is not an orphan.
+            $stripped = preg_replace('#\{\{--.*?--\}\}#s', '', $css);
+            $stripped = preg_replace('#/\*.*?\*/#s', '', (string) $stripped);
+            $orphans  = [];
+            foreach (explode("\n", (string) $stripped) as $line) {
+                if (preg_match('/^\s*[A-Z][a-z]+ [a-z]+/', $line)
+                    && ! str_contains($line, '{')
+                    && ! str_contains($line, ':')
+                    && ! str_contains($line, '--}}')) {
+                    $orphans[] = trim($line);
+                }
+            }
+
+            $this->assertSame(
+                [],
+                $orphans,
+                "$view has prose outside a comment, which means the rule after "
+                .'it is being dropped by the CSS parser'
+            );
+        }
+    }
+
     public function test_no_ambient_washes_drift_behind_the_page(): void
     {
         $css = $this->css('user/partials/bento-styles.blade.php');
