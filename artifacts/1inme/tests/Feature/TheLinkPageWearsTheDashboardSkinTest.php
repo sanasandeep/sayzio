@@ -124,6 +124,29 @@ class TheLinkPageWearsTheDashboardSkinTest extends TestCase
         $this->assertStringContainsString('pc-insight-icon', $html);
     }
 
+    public function test_the_page_hero_carries_the_ribbon_and_casts_no_shadow(): void
+    {
+        $html = $this->page();
+
+        // The hero is the first card on every user page, so it is where the one
+        // gradient moment lives. Both layers, not just the ribbon: the lattice
+        // is what ties the card to the page behind it.
+        $this->assertStringContainsString('page-hero', $html);
+        $this->assertStringContainsString('cribbon-grid', $html);
+        $this->assertStringContainsString('cribbon-copy', $html);
+
+        // And it was the last card on the dashboard still casting one.
+        if (preg_match('/\.page-hero\s*\{(.*?)\}/s', $html, $m)) {
+            $this->assertStringNotContainsString(
+                'box-shadow',
+                $m[1],
+                'The page hero is casting a shadow again.'
+            );
+        } else {
+            $this->fail('The .page-hero rule did not render.');
+        }
+    }
+
     public function test_the_local_stylesheet_closes_every_comment_it_opens(): void
     {
         $css = $this->localCss($this->page());

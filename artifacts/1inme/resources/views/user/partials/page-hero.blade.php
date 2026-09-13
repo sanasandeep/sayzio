@@ -31,7 +31,8 @@
     $letter = strtoupper(mb_substr(preg_replace('/[^\p{L}\p{N}]+/u', '', $title) ?: $title, 0, 1));
 @endphp
 <div class="page-hero mb-6"@if($url) x-data="{ copied: false }"@endif>
-    <div class="flex flex-wrap items-start justify-between gap-5">
+    @include('common.partials.card-ribbon')
+    <div class="cribbon-copy flex flex-wrap items-start justify-between gap-5">
         <div class="flex items-start gap-4 min-w-0 flex-1">
             @if($back)
                 <a href="{{ $back }}" class="hero-back" title="Back" aria-label="Back">

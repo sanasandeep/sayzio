@@ -369,19 +369,47 @@
         .page-hero {
             background: var(--bg-card);
             border: 1px solid var(--border-glass);
-            border-radius: 16px;
+            border-radius: 18px;
             padding: 22px 28px;
-            box-shadow: var(--card-shadow);
+            /* No shadow. Every other card on the dashboard gave its up; this one
+               is the first thing on every page, so it was the most visible one
+               left. The border is the edge. */
             position: relative;
             overflow: hidden;
         }
-        html.light-mode .page-hero {
-            background: #ffffff;
-            box-shadow: var(--card-shadow);
-        }
+        html.light-mode .page-hero { background: #ffffff; }
         .page-hero::after { display: none; }
         .page-hero::before { display: none; }
         .page-hero > * { position: relative; z-index: 1; }
+        /* The hero is the first card on every user page, so it is where the
+           marketing ribbon and its lattice belong -- one gradient moment per
+           page, in the same place each time, rather than a different card per
+           screen. The rule above forces every direct child to position:relative,
+           which would drop the ribbon into the flow and break the layout, so
+           both layers are pinned back. */
+        .page-hero > .cribbon,
+        .page-hero > .cribbon-grid { position: absolute; z-index: 0; }
+        /* This card is wide and shallow. The shared geometry is cut for the
+           tall dashboard and stats heroes; here it is anchored past the bottom
+           corner so only a diagonal crossing that corner is ever inside the
+           card, and the copy column is held clear of it. */
+        @media (min-width: 901px) {
+            .page-hero > .cribbon {
+                top: auto; bottom: -46%; right: -4%;
+                width: min(24%, 280px); height: 175%;
+                /* Faded along its own diagonal rather than straight left: the
+                   action buttons sit in the top-right of this card, and a
+                   left-only fade leaves the ribbon running behind them. This
+                   dissolves the top as well, so the shape is only ever present
+                   in the bottom corner. */
+                -webkit-mask-image: linear-gradient(22deg, #000 0%, #000 46%, transparent 84%);
+                        mask-image: linear-gradient(22deg, #000 0%, #000 46%, transparent 84%);
+            }
+            .page-hero > .cribbon-grid {
+                -webkit-mask-image: linear-gradient(to right, #000 0%, rgba(0,0,0,.5) 52%, transparent 86%);
+                        mask-image: linear-gradient(to right, #000 0%, rgba(0,0,0,.5) 52%, transparent 86%);
+            }
+        }
         /* ----- Back chip ----- */
         .hero-back {
             width: 36px; height: 36px; border-radius: 12px;
