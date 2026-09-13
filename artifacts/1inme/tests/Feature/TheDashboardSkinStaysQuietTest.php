@@ -168,7 +168,7 @@ class TheDashboardSkinStaysQuietTest extends TestCase
 
         // The rule has to undo the older ones, not merely omit them.
         $this->assertStringContainsString('transform: none !important', $hover);
-        $this->assertStringContainsString('box-shadow: var(--lg-shadow) !important', $hover);
+        $this->assertStringContainsString('box-shadow: none !important', $hover);
     }
 
     /** Nothing may still reference the token that was deleted with the lift. */
@@ -220,17 +220,73 @@ class TheDashboardSkinStaysQuietTest extends TestCase
         $css = $this->css('common/partials/theme-styles.blade.php');
 
         foreach ([
-            'html.aurora .dash-glass' => 'the sidebar and header glass shadow',
-            'html.aurora header.header-v2' => 'the header shadow',
+            'html.aurora aside.sidebar-shell,' => 'the rail shadow',
+            'html.aurora header.header-v2,' => 'the header shadow',
         ] as $selector => $what) {
             $start = strpos($css, $selector);
             $this->assertNotFalse($start, "$selector is gone from the Aurora block");
+            $block = substr($css, $start, 260);
+
+            $this->assertStringContainsString('box-shadow: none !important', $block, $what.' is no longer being cleared');
+
+            // .dash-glass forces a transparent border-color with !important,
+            // twice, so the hairline only survives if this one is !important
+            // too -- which is the bug that shipped here once already.
             $this->assertStringContainsString(
-                'box-shadow: none',
-                substr($css, $start, 220),
-                $what.' is no longer being cleared'
+                'var(--border-glass) !important',
+                $block,
+                $what.": the hairline lost its !important, so .dash-glass's "
+                .'transparent border-color wins and the edge disappears'
             );
         }
+    }
+
+    /** Flat on the page. The hairline is the edge; a shadow drew it twice. */
+    public function test_cards_carry_no_shadow_at_all(): void
+    {
+        $css = $this->css('common/partials/theme-styles.blade.php');
+
+        $block = substr($css, strpos($css, 'html.aurora .glass,'), 1400);
+
+        $this->assertStringNotContainsString(
+            'box-shadow: var(--lg-shadow)',
+            $block,
+            'the card shadow is back at rest or on hover'
+        );
+        $this->assertSame(
+            2,
+            substr_count($block, 'box-shadow: none !important'),
+            'both the resting and the hover card rule must clear the shadow'
+        );
+    }
+
+    /**
+     * The rail's class is .sidebar-shell. Three separate rules were written
+     * against `aside.sidebar` and silently matched nothing -- the chrome kept
+     * its glass shadow and the rail kept its heavy dividers, through two
+     * deploys, while every source-level check passed.
+     *
+     * A selector that matches no element is the failure mode these guards
+     * exist for, so this one names the class that is actually in the markup.
+     */
+    public function test_the_chrome_rules_name_the_class_the_markup_uses(): void
+    {
+        $css = $this->css('common/partials/theme-styles.blade.php');
+        $layout = $this->css('user/layouts/app.blade.php');
+
+        $this->assertStringContainsString(
+            'sidebar-shell',
+            $layout,
+            'the rail no longer carries .sidebar-shell; the CSS below is '
+            .'keyed to it and would stop matching'
+        );
+
+        $this->assertStringContainsString('html.aurora aside.sidebar-shell', $css);
+        $this->assertStringNotContainsString(
+            'html.aurora aside.sidebar ',
+            $css,
+            'a rule is keyed to aside.sidebar again, which matches nothing'
+        );
     }
 
     public function test_no_ambient_washes_drift_behind_the_page(): void
