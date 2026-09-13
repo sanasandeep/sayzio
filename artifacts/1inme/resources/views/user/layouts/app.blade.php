@@ -37,19 +37,11 @@
            and device-preview height calcs — should reference this variable so a
            future header-height change keeps everything in lockstep. */
         :root { --app-header-h: 4rem; }
-        /* Dashboard ambient wash (very soft blue/cyan, low alpha, no heavy blur aurora) */
-        .dashboard-wash {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            z-index: 0;
-            background: radial-gradient(circle at 15% 20%, rgba(34, 211, 238, 0.03) 0%, transparent 60%),
-                        radial-gradient(circle at 85% 75%, rgba(61, 107, 255, 0.04) 0%, transparent 60%);
-        }
-        html.light-mode .dashboard-wash {
-            background: radial-gradient(circle at 15% 20%, rgba(34, 211, 238, 0.05) 0%, transparent 60%),
-                        radial-gradient(circle at 85% 75%, rgba(61, 107, 255, 0.06) 0%, transparent 60%);
-        }
+        /* The fourth wash. Three were in the bento partial and came out with
+           it; this one lived in the layout, fixed to the viewport rather than
+           to the page, which is why it survived and why it tinted every
+           screen -- a cyan cast at 15%/20% and a blue one at 85%/75%, under
+           everything, all the time. Low alpha is not the same as absent. */
 
         .sidebar-v2 {
             transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -495,7 +487,6 @@
     @stack('styles')
 </head>
 <body class="min-h-screen" data-app-layout style="color: var(--text-primary);">
-    <div class="dashboard-wash"></div>
     <div class="particles" id="particles"></div>
 
     <div class="flex h-screen relative z-10 overflow-hidden"
