@@ -297,7 +297,6 @@
            colour. This is the detail that reads as an object under a light
            source instead of a rectangle with a stroke. */
         --aurora-edge: linear-gradient(150deg, rgba(110,140,255,0.55), rgba(176,139,255,0.30) 42%, rgba(255,255,255,0.04) 78%);
-        --aurora-edge-hot: linear-gradient(150deg, rgba(110,140,255,0.95), rgba(176,139,255,0.55) 42%, rgba(255,255,255,0.10) 78%);
         --card-shadow: 0 30px 70px -40px rgba(0,0,0,0.95);
         --card-shadow-hover: 0 40px 90px -40px rgba(0,0,0,1), 0 0 0 1px rgba(255,255,255,0.14);
 
@@ -381,7 +380,6 @@
         --lg-shadow: 0 1px 2px rgba(20,18,28,0.04), 0 22px 44px -34px rgba(20,18,28,0.35);
         --lg-shadow-hover: 0 2px 4px rgba(20,18,28,0.05), 0 34px 60px -34px rgba(20,18,28,0.42), 0 0 0 1px rgba(20,18,28,0.10);
         --aurora-edge: linear-gradient(150deg, rgba(47,85,232,0.42), rgba(123,69,214,0.24) 42%, rgba(20,18,28,0.06) 78%);
-        --aurora-edge-hot: linear-gradient(150deg, rgba(47,85,232,0.72), rgba(123,69,214,0.42) 42%, rgba(20,18,28,0.12) 78%);
         --card-shadow: 0 1px 2px rgba(20,18,28,0.04), 0 22px 44px -34px rgba(20,18,28,0.35);
         --card-shadow-hover: 0 2px 4px rgba(20,18,28,0.05), 0 34px 60px -34px rgba(20,18,28,0.42);
 
@@ -443,26 +441,68 @@
        first paints the panel colour clipped to the padding box, the second
        paints the gradient clipped to the border box, and the transparent 1px
        border is the only place the second one shows. */
+       At rest the second layer is a flat hairline, not the gradient: with a
+       gradient on every card at once the colour stops being a highlight and
+       becomes the background pattern of the page. The gradient is what hover
+       says, so hover is where it lives.
+
+       Both states keep the same 1px transparent border and the same two
+       stacked layers, so moving between them changes a colour and nothing
+       else -- no border width to reflow, no transform to move the card under
+       the cursor. */
     html.aurora .glass,
     html.aurora .card-premium,
     html.aurora .stat-card {
         border: 1px solid transparent !important;
-        background-image: linear-gradient(var(--bg-card), var(--bg-card)), var(--aurora-edge) !important;
+        background-image: linear-gradient(var(--bg-card), var(--bg-card)), linear-gradient(var(--border-glass), var(--border-glass)) !important;
         background-origin: border-box !important;
         background-clip: padding-box, border-box !important;
         box-shadow: var(--lg-shadow) !important;
-        transition: transform .22s cubic-bezier(.2,.7,.3,1), box-shadow .22s ease, background-image .22s ease;
     }
     html.aurora .card-premium:hover,
     html.aurora .stat-card:hover {
-        transform: translateY(-2px);
-        background-image: linear-gradient(var(--bg-card), var(--bg-card)), var(--aurora-edge-hot) !important;
-        box-shadow: var(--lg-shadow-hover) !important;
+        background-image: linear-gradient(var(--bg-card), var(--bg-card)), var(--aurora-edge) !important;
     }
-    @media (prefers-reduced-motion: reduce) {
-        html.aurora .card-premium:hover,
-        html.aurora .stat-card:hover { transform: none; }
+
+    /* ---- Chrome: the rail and the bar ----
+       Both carry .dash-glass, whose light-mode rule paints a white inset
+       highlight plus a drop shadow, and the header adds a second shadow of
+       its own. That is the vocabulary of a panel floating above a page, and
+       on a white ground it reads as exactly that: two slabs hovering over
+       nothing, each with its own soft edge.
+
+       They are not panels. They are the page's own edges, so each gets one
+       hairline on the side that meets the content and no shadow at all. */
+    html.aurora .dash-glass { box-shadow: none !important; }
+    html.aurora header.header-v2 {
+        box-shadow: none !important;
+        border-bottom: 1px solid var(--border-glass);
     }
+    html.aurora aside.sidebar { border-right: 1px solid var(--border-glass); }
+
+    /* And every line inside the rail at one weight. The bare Tailwind border
+       utilities resolve to --border-strong (0.22), which is the weight for an
+       input outline; between two groups of nav links it reads as a rule drawn
+       across the sidebar. Only the colourless utilities are retargeted, so
+       anything that asks for a specific border colour still gets it. */
+    html.aurora aside.sidebar .border,
+    html.aurora aside.sidebar .border-t,
+    html.aurora aside.sidebar .border-b,
+    html.aurora aside.sidebar .border-l,
+    html.aurora aside.sidebar .border-r { border-color: var(--border-glass); }
+
+    /* The collapse toggle was the one circle in a product of rounded squares,
+       and it carried a drop shadow besides. Same radius ratio as the header
+       icon buttons (11px on 34px), same hairline, no shadow. */
+    html.aurora .sidebar-edge-toggle {
+        border-radius: 8px;
+        border-color: var(--border-glass);
+        box-shadow: none;
+    }
+
+    /* The header icon buttons were on Tailwind's slate-300, a cool blue-grey
+       left over from the old palette and the only cool line left on screen. */
+    html.aurora .header-icon-btn { border-color: var(--border-glass); }
 
     /* ---- Sidebar ----
        The rail was the last thing still speaking the old language: a red
@@ -530,8 +570,16 @@
         background: color-mix(in srgb, var(--accent) 16%, transparent);
     }
     html.aurora .upgrade-card .bg-blue-500 i { color: var(--accent); }
+    /* Shaped like the buttons it sits between -- the same 12px radius as
+       Switch to admin below it -- and with the hover shadow dropped, which
+       was the last thing in the rail that lifted under the cursor. The fill
+       stays accent-bordered rather than hairline: it is the one thing in the
+       sidebar asking to be clicked, and should not disappear into the
+       dividers. */
     html.aurora .upgrade-card a[class*="bg-blue-600"] {
         background: transparent;
+        border-radius: 12px;
+        box-shadow: none !important;
         border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
         color: var(--accent);
         box-shadow: none;
@@ -553,7 +601,7 @@
        the gradient. The button is the stable part. */
     html.aurora div:has(> .stats-monetize-btn) {
         background-color: var(--bg-card) !important;
-        background-image: linear-gradient(var(--bg-card), var(--bg-card)), var(--aurora-edge) !important;
+        background-image: linear-gradient(var(--bg-card), var(--bg-card)), linear-gradient(var(--border-glass), var(--border-glass)) !important;
         background-origin: border-box;
         background-clip: padding-box, border-box;
         border: 1px solid transparent;

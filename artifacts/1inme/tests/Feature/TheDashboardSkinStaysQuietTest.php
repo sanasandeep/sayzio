@@ -108,6 +108,82 @@ class TheDashboardSkinStaysQuietTest extends TestCase
         }
     }
 
+    /**
+     * Cards do not move under the cursor, and the gradient edge is something
+     * hover says rather than the page's resting decoration.
+     *
+     * The lift was translateY(-2px) plus a larger shadow, which together read
+     * as the card coming off the page -- on a white ground, with a gradient
+     * already on every card at once, that was three effects doing the job of
+     * none. At rest the edge is now a flat hairline; hover swaps that one
+     * layer for the gradient and changes nothing else, so there is no border
+     * width to reflow and nothing to shift under the pointer.
+     */
+    public function test_cards_do_not_lift_under_the_cursor(): void
+    {
+        $css = $this->css('common/partials/theme-styles.blade.php');
+
+        $start = strpos($css, 'html.aurora .card-premium:hover');
+        $this->assertNotFalse($start, 'the card hover rule is gone; if it moved, point this test at it');
+        $hover = substr($css, $start, 400);
+
+        $this->assertStringNotContainsString(
+            'translateY',
+            $hover,
+            'the card hover lift is back'
+        );
+        $this->assertStringNotContainsString(
+            'lg-shadow-hover',
+            $hover,
+            'the hover shadow is back: a bigger shadow on hover is the lift by '
+            .'another name'
+        );
+    }
+
+    public function test_the_gradient_edge_is_a_hover_state(): void
+    {
+        $css = $this->css('common/partials/theme-styles.blade.php');
+
+        // The resting rule for the three card classes.
+        $start = strpos($css, 'html.aurora .glass,');
+        $this->assertNotFalse($start);
+        $rest = substr($css, $start, 600);
+
+        $this->assertStringNotContainsString(
+            'var(--aurora-edge)',
+            $rest,
+            'cards are painting the gradient edge at rest again. On a page '
+            .'where every panel is a card, that is not a highlight, it is the '
+            .'background pattern -- the gradient belongs on hover.'
+        );
+        $this->assertStringContainsString(
+            'linear-gradient(var(--border-glass), var(--border-glass))',
+            $rest,
+            'the resting card edge is no longer the flat hairline'
+        );
+    }
+
+    /**
+     * The rail and the bar are the page's edges, not panels floating above it.
+     */
+    public function test_the_chrome_carries_no_shadow(): void
+    {
+        $css = $this->css('common/partials/theme-styles.blade.php');
+
+        foreach ([
+            'html.aurora .dash-glass' => 'the sidebar and header glass shadow',
+            'html.aurora header.header-v2' => 'the header shadow',
+        ] as $selector => $what) {
+            $start = strpos($css, $selector);
+            $this->assertNotFalse($start, "$selector is gone from the Aurora block");
+            $this->assertStringContainsString(
+                'box-shadow: none',
+                substr($css, $start, 220),
+                $what.' is no longer being cleared'
+            );
+        }
+    }
+
     public function test_no_ambient_washes_drift_behind_the_page(): void
     {
         $css = $this->css('user/partials/bento-styles.blade.php');
