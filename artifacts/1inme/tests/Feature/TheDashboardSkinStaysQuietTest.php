@@ -343,6 +343,44 @@ class TheDashboardSkinStaysQuietTest extends TestCase
         }
     }
 
+    /**
+     * Dark mode is the same skin, not a different one.
+     *
+     * Light lost its ambient colour in three separate changes -- the stage
+     * blobs, the hero wash, the viewport tint -- and dark kept `body::after`,
+     * three blurred blooms fixed to the viewport at 135vh behind every page.
+     * That single rule is most of why the two themes stopped looking like one
+     * product: one flat, one glassy.
+     *
+     * The grain went with it. A noise tile exists to stop a large blurred
+     * gradient banding, and there is no longer a gradient to band.
+     */
+    public function test_dark_mode_has_no_ambient_wash_either(): void
+    {
+        $css = $this->css('common/partials/theme-styles.blade.php');
+
+        $start = strpos($css, 'html.aurora body::after');
+        $this->assertNotFalse($start, 'the aurora body layer rule is gone entirely; check what replaced it');
+        $this->assertStringContainsString(
+            'display: none',
+            substr($css, $start, 120),
+            'the full-viewport aurora wash is painting again in dark mode'
+        );
+
+        $block = substr($css, strpos($css, 'html.aurora {'), 3000);
+        foreach (['--glow-1', '--glow-2', '--glow-3'] as $glow) {
+            $this->assertMatchesRegularExpression(
+                '/'.$glow.':\s*transparent;/',
+                $block,
+                "$glow has colour again: anything still reading it (.bg-mesh, "
+                .'page partials) will start painting ambient light on the dark '
+                .'canvas that light mode does not have'
+            );
+        }
+
+        $this->assertMatchesRegularExpression('/--noise-opacity:\s*0;/', $block);
+    }
+
     public function test_no_ambient_washes_drift_behind_the_page(): void
     {
         $css = $this->css('user/partials/bento-styles.blade.php');

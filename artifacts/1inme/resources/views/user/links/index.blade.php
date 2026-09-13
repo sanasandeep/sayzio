@@ -53,7 +53,13 @@
          carries something the total beside it cannot say: the last seven
          days. ============================================================ --}}
     <div class="links-head">
-        @include('common.partials.card-ribbon')
+        {{-- Lattice only. This header has content across its entire width --
+             title and buttons left, clicks and sparkline right -- so neither
+             corner is free: the ribbon crossed the sparkline on the right and
+             ran under the buttons on the left. Both were tried and looked at.
+             The lattice has no such problem; it is a 5%-alpha grid and sits
+             under copy on the marketing card by design. --}}
+        @include('common.partials.card-ribbon', ['ribbon' => false])
         <div class="min-w-0 cribbon-copy">
             <h1 class="links-title">My Links</h1>
             <p class="links-facts">
