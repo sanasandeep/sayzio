@@ -1185,8 +1185,15 @@
             </div>{{-- /.sidebar-nav-scroll --}}
             </nav>
 
+            {{-- The plan card is always in the rail now: which plan you are on
+                 is standing information, not a prompt, and hiding the whole
+                 card on the top tier meant the one place that answered "what
+                 am I paying for" disappeared exactly for the people paying
+                 most. What stays conditional is the ASK. canUpgradePlan() is
+                 false only when no higher plan exists, and showing Upgrade to
+                 someone with nothing to upgrade to is a dark pattern, so that
+                 account gets the plan name and a quiet line instead. --}}
             <div class="mx-3 mb-3" x-show="sidebarMode === 'full'" x-cloak x-transition.opacity>
-                @if(auth()->user()->canUpgradePlan())
                 <div class="upgrade-card">
                     <div class="relative z-10 upgrade-inner">
                         <div class="flex items-center gap-2 mb-2">
@@ -1195,13 +1202,16 @@
                             </div>
                             <span class="text-xs font-bold" style="color: var(--text-primary);">{{ auth()->user()->plan->name ?? 'Free' }} Plan</span>
                         </div>
-                        <p class="text-[10px] mb-3 leading-relaxed" style="color: var(--text-dimmed);">Unlock analytics, custom domains & more.</p>
-                        <a href="#" class="block text-center text-[10px] font-bold uppercase tracking-wider py-2 rounded-lg text-white transition-all bg-blue-600 hover:shadow-lg hover:shadow">
-                            Upgrade
-                        </a>
+                        @if(auth()->user()->canUpgradePlan())
+                            <p class="text-[10px] mb-3 leading-relaxed" style="color: var(--text-dimmed);">More links, analytics and custom domains on the higher plans.</p>
+                            <a href="{{ route('user.upgrade') }}" class="block text-center text-[10px] font-bold uppercase tracking-wider py-2 rounded-lg text-white transition-all bg-blue-600 hover:shadow-lg hover:shadow">
+                                Compare plans
+                            </a>
+                        @else
+                            <p class="text-[10px] leading-relaxed" style="color: var(--text-dimmed);">You are on the highest plan. Everything is unlocked.</p>
+                        @endif
                     </div>
                 </div>
-                @endif
             </div>
 
             @if(!session('impersonate_user_id') && auth()->user()->hasActiveAdminAccount())
@@ -1925,7 +1935,7 @@
                 <footer class="mt-10 pt-5 pb-2 text-[11px] flex flex-col sm:flex-row items-center justify-between gap-3"
                         style="border-top: 1px solid var(--border-glass); color: var(--text-dimmed);">
                     <div class="flex items-center gap-2">
-                        <span>&copy; {{ date('Y') }} <span style="color: var(--text-muted); font-weight: 600;">Sayzio</span></span>
+                        <span>&copy; {{ date('Y') }} <a href="{{ route('site.about') }}" class="hover:text-[color:var(--accent)] transition-colors" style="color: var(--text-muted); font-weight: 600;">Sayzio</a></span>
                         <span style="color: var(--border-glass-light);">•</span>
                         <span>All rights reserved</span>
                     </div>

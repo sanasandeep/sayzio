@@ -466,16 +466,56 @@
         background-image: linear-gradient(var(--bg-card), var(--bg-card)), linear-gradient(var(--border-glass), var(--border-glass)) !important;
         background-origin: border-box !important;
         background-clip: padding-box, border-box !important;
-        box-shadow: var(--lg-shadow) !important;
+        /* No shadow, at rest or on hover. A shadow is a claim that the card
+           sits above the page; on a white ground with a white card it was the
+           only thing still making that claim, and it made the edge read twice
+           -- once as a hairline and once as a smudge under it. The hairline
+           is the edge. */
+        box-shadow: none !important;
     }
     html.aurora .glass:hover,
     html.aurora .card-premium:hover,
     html.aurora .stat-card:hover,
     html.aurora .bento-tile:hover {
         transform: none !important;
-        box-shadow: var(--lg-shadow) !important;
+        box-shadow: none !important;
         background-image: linear-gradient(var(--bg-card), var(--bg-card)), var(--aurora-edge) !important;
     }
+
+    /* ---- The ribbon ----
+       The marketing site's signature is one gradient, blue into teal into
+       cyan (#3d6bff, #1bd4d9, #22d3ee). Bringing it inside gives the product
+       the same voice as the page people arrived from.
+
+       It is deliberately not available to every card. A gradient behind one
+       panel is emphasis; a gradient behind nine is wallpaper, which is the
+       mistake the earlier skin made. So it is opt-in by class, applied to the
+       single card that opens a page, and it fades out well before the content
+       starts so text never sits on top of colour.
+
+       The card's base rule turns ::before off; this turns it back on for the
+       ribbon only, and the z-index pair keeps the card's own content above
+       it. */
+    html.aurora .card-premium.au-hero::before,
+    html.aurora .ribbon-card::before {
+        content: '' !important;
+        display: block !important;
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 200px;
+        border-radius: inherit;
+        background: linear-gradient(95deg,
+            color-mix(in srgb, #3d6bff 13%, transparent),
+            color-mix(in srgb, #1bd4d9 11%, transparent) 52%,
+            color-mix(in srgb, #22d3ee 7%, transparent) 78%,
+            transparent);
+        -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+        mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+        pointer-events: none;
+        z-index: 0;
+    }
+    html.aurora .card-premium.au-hero > *,
+    html.aurora .ribbon-card > * { position: relative; z-index: 1; }
 
     /* ---- Chrome: the rail and the bar ----
        Both carry .dash-glass, whose light-mode rule paints a white inset
@@ -486,23 +526,48 @@
 
        They are not panels. They are the page's own edges, so each gets one
        hairline on the side that meets the content and no shadow at all. */
-    html.aurora .dash-glass { box-shadow: none !important; }
-    html.aurora header.header-v2 {
+       Two things had to be checked against the rendered page rather than
+       assumed, because the first pass at this got both wrong.
+
+       The rail's class is .sidebar-shell, not .sidebar -- so the earlier
+       rules, including the divider rules below, matched nothing at all.
+
+       And .dash-glass sets its shadow and a transparent border-color with
+       !important, once plainly and again under html.light-mode. That second
+       one is (0,2,0), exactly the weight of `html.aurora .dash-glass`, so
+       with both !important the later rule in the file won and the rail kept
+       its glass shadow while the header -- which had a more specific rule of
+       its own -- did not. Naming the element takes these to (0,2,1) and
+       (0,3,1), which is what actually settles it. */
+    html.aurora aside.sidebar-shell,
+    html.aurora.light-mode aside.sidebar-shell {
         box-shadow: none !important;
-        border-bottom: 1px solid var(--border-glass);
+        border-right: 1px solid var(--border-glass) !important;
     }
-    html.aurora aside.sidebar { border-right: 1px solid var(--border-glass); }
+    html.aurora header.header-v2,
+    html.aurora.light-mode header.header-v2 {
+        box-shadow: none !important;
+        border-bottom: 1px solid var(--border-glass) !important;
+    }
 
     /* And every line inside the rail at one weight. The bare Tailwind border
        utilities resolve to --border-strong (0.22), which is the weight for an
        input outline; between two groups of nav links it reads as a rule drawn
        across the sidebar. Only the colourless utilities are retargeted, so
        anything that asks for a specific border colour still gets it. */
-    html.aurora aside.sidebar .border,
-    html.aurora aside.sidebar .border-t,
-    html.aurora aside.sidebar .border-b,
-    html.aurora aside.sidebar .border-l,
-    html.aurora aside.sidebar .border-r { border-color: var(--border-glass); }
+    html.aurora aside.sidebar-shell .border,
+    html.aurora aside.sidebar-shell .border-t,
+    html.aurora aside.sidebar-shell .border-b,
+    html.aurora aside.sidebar-shell .border-l,
+    html.aurora aside.sidebar-shell .border-r { border-color: var(--border-glass) !important; }
+
+    /* The workspace switcher sets --border-strong inline, which no selector
+       can outrank without !important, and its trigger carried a slate fill --
+       a filled grey block sitting directly above the accent-tinted active
+       row, in the one colour family the palette had otherwise dropped. */
+    html.aurora #workspace-switcher { border-color: var(--border-glass) !important; }
+    html.aurora #workspace-switcher > button { background: transparent !important; }
+    html.aurora #workspace-switcher > button:hover { background: var(--bg-glass-hover) !important; }
 
     /* The collapse toggle was the one circle in a product of rounded squares,
        and it carried a drop shadow besides. Same radius ratio as the header
@@ -525,12 +590,29 @@
 
     /* One accent, not eight. The per-row tint stays in the markup and simply
        stops being read here, so nothing has to be edited out of the layout. */
+    /* The active row used to be a beige fill (#edebe6) with a dark icon --
+       the look of a selected row in a desktop file manager, which is what
+       read as dated. The selection is a state, so it is said in the accent
+       that means "this one": a low-alpha tint of it, the label in full
+       contrast, the icon in the accent itself. No fill at all on hover, just
+       the label coming up to full strength, so hover and selected cannot be
+       mistaken for each other. */
     html.aurora .sidebar-link.active {
-        background: var(--sidebar-active-bg);
+        background: color-mix(in srgb, var(--accent) 9%, transparent);
         color: var(--text-primary);
     }
-    html.aurora .sidebar-link.active .nav-icon-wrap,
-    html.aurora .sidebar-link:hover .nav-icon-wrap { color: var(--text-primary); }
+    html.aurora .sidebar-link.active .nav-icon-wrap { color: var(--accent); }
+    html.aurora .sidebar-link:hover:not(.active) {
+        background: transparent;
+        color: var(--text-primary);
+    }
+    html.aurora .sidebar-link:hover:not(.active) .nav-icon-wrap { color: var(--text-primary); }
+
+    /* Resting rows sit a step back from the active one rather than all
+       competing at --text-muted, which is what made the rail read as a flat
+       list of equals with one grey box on it. */
+    html.aurora .sidebar-link:not(.active) { color: var(--text-dimmed); }
+    html.aurora .sidebar-link:not(.active) .nav-icon-wrap { color: var(--text-faint); }
     html.aurora .sidebar-link.active::before {
         background: linear-gradient(var(--accent), var(--accent-light));
         height: 18px;
@@ -549,11 +631,14 @@
         justify-content: space-between;
         gap: 8px;
     }
+    /* Counts lose their outline. A bordered pill next to every row put a
+       second rectangle on each line; the number alone, in the same mono as
+       the rest of the microtype, is enough to read as a count. */
     html.aurora .sidebar-link .nav-label span[class*="bg-blue-500"],
     html.aurora .sidebar-link .nav-label span[class*="bg-rose-500"] {
-        background: var(--bg-glass-input);
-        border: 1px solid var(--border-subtle);
-        color: var(--text-muted);
+        background: transparent;
+        border: 0;
+        color: var(--text-faint);
         font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
         font-variant-numeric: tabular-nums;
         font-size: 9.5px;
