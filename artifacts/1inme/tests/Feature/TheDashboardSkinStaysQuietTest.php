@@ -66,6 +66,33 @@ class TheDashboardSkinStaysQuietTest extends TestCase
     }
 
     /**
+     * And the fourth one, which this guard originally missed because it was
+     * not in the partial with the other three. It sat in the layout, fixed to
+     * the viewport rather than to the page, so it tinted every screen at once
+     * -- and at 3-6% alpha it was quiet enough to survive a look but loud
+     * enough to see.
+     */
+    public function test_the_layout_does_not_tint_the_viewport(): void
+    {
+        $layout = $this->css('user/layouts/app.blade.php');
+
+        $this->assertStringNotContainsString(
+            'dashboard-wash',
+            $layout,
+            'the viewport-wide colour wash is back in the user layout'
+        );
+
+        // Anything else painting a full-viewport gradient would do the same
+        // job under a different name.
+        $this->assertDoesNotMatchRegularExpression(
+            '/position:\s*fixed;\s*inset:\s*0;[^}]*radial-gradient/s',
+            $layout,
+            'something in the layout is painting a fixed, full-viewport '
+            .'gradient over every page again'
+        );
+    }
+
+    /**
      * The stage itself has to stay -- the tiles and the row dropdowns depend
      * on its stacking context, so "delete the blobs" must not become "delete
      * the stage".
