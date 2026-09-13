@@ -67,34 +67,45 @@
         .cl-start:hover { background: var(--bg-glass-hover); border-color: var(--border-glass); }
 
         /* The shared ribbon is tuned for the tall heroes on the dashboard and
-           stats pages: a corner sweep that occupies the bottom 82% of a card
-           several hundred pixels deep. On a card this short that same sweep has
-           a visible top edge in the middle of the card, so it reads as a shard
-           dropped on the surface rather than something passing behind it -- and
-           it lands squarely on the second line of the description.
+           stats pages. This card is short and wide, and the SVG is drawn with
+           preserveAspectRatio="slice", so the box's ASPECT decides what you
+           actually see: give it a tall narrow box and slice crops away the
+           slants, leaving the dense middle of the artwork -- a flat blue slab
+           with one diagonal corner, which is what shipped and what reads as a
+           panel glued to the card rather than a shape passing behind it.
 
-           So: full bleed past both the top and bottom edges (no edge of the
-           shape is ever visible except where it leaves the card), and the copy
-           column is held clear of the right side so nothing has to be read
-           through it. Desktop only -- under 900px the partial turns the ribbon
-           into a top band and the copy runs full width, which is already right. */
+           So the box is sized near the artwork's own 400x460 ratio, which keeps
+           the three bands and their angle intact, and it is faded out along the
+           edge that faces the copy instead of across its own diagonal. The copy
+           column is held clear of it either way. Desktop only -- under 900px the
+           partial makes it a top band and the copy runs full width. */
         @media (min-width: 901px) {
             .cl-start .cribbon {
-                top: auto;
-                bottom: -46%;
-                right: -10%;
-                width: min(46%, 380px);
-                height: 150%;
-                opacity: .9;
-                -webkit-mask-image: linear-gradient(30deg, #000 0%, #000 32%, transparent 72%);
-                        mask-image: linear-gradient(30deg, #000 0%, #000 32%, transparent 72%);
+                top: -8%;
+                bottom: -8%;
+                height: auto;
+                right: -5%;
+                width: min(30%, 205px);
+                opacity: .95;
+                /* A short fade, not a long one. The ribbon's whole character is
+                   hard band edges at one angle; fading it over two-thirds of
+                   its width turns it back into the soft gradient wash this
+                   skin exists to remove. Only the last sliver dissolves. */
+                -webkit-mask-image: linear-gradient(to left, #000 0%, #000 64%, transparent 99%);
+                        mask-image: linear-gradient(to left, #000 0%, #000 64%, transparent 99%);
             }
+            /* No hard stop: the lattice should run out of the card, not end in
+               a visible vertical line halfway across it. */
             .cl-start .cribbon-grid {
-                -webkit-mask-image: linear-gradient(to right, #000 0%, #000 34%, transparent 62%);
-                        mask-image: linear-gradient(to right, #000 0%, #000 34%, transparent 62%);
+                -webkit-mask-image: linear-gradient(to right, #000 0%, rgba(0,0,0,.55) 46%, transparent 84%);
+                        mask-image: linear-gradient(to right, #000 0%, rgba(0,0,0,.55) 46%, transparent 84%);
             }
-            .cl-start .cribbon-copy { max-width: 74%; }
+            .cl-start .cribbon-copy { max-width: 72%; }
         }
+        /* One notch fainter than the marketing card's, because there it sits
+           under a headline at 40px and here it sits under 14px body copy. */
+        .cl-start .cribbon-grid { --cribbon-line: rgba(15, 23, 42, .035); }
+        html:not(.light-mode) .cl-start .cribbon-grid { --cribbon-line: rgba(255, 255, 255, .04); }
 
         /* ---------- icon plates ---------- */
         .cl-ico {
@@ -192,13 +203,29 @@
         }
         .cl-radio--on { border-color: var(--accent); background: var(--accent); }
 
-        /* ---------- section labels ---------- */
+        /* ---------- type ----------
+           The dashboard already has a type system -- Plus Jakarta Sans for
+           headings at -0.022em, Archivo for figures, IBM Plex Mono at 0.14em
+           for micro-labels. The stats page is built on it; this page was using
+           none of it, which is most of why it read as a different product's
+           screen wearing the same colours. These three rules adopt it. */
+        .cl-title {
+            font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+            font-size: 19px; font-weight: 700; letter-spacing: -.022em;
+            color: var(--text-primary);
+        }
+        .cl-lede {
+            font-size: 13.5px; line-height: 1.5; color: var(--text-dimmed);
+            max-width: 34ch;
+        }
         .cl-eyebrow {
-            font-size: 10.5px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
+            font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 10.5px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase;
             color: var(--text-faint);
-            display: flex; align-items: center; gap: 10px;
+            display: flex; align-items: center; gap: 12px;
         }
         .cl-eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--border-glass); }
+        .cl-pill { font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
 
         /* ---------- bulk & advanced ---------- */
         .cl-pick {
@@ -251,8 +278,8 @@
                     <span class="cl-pill cl-pill--on"><i class="fas fa-star text-[9px]"></i> Recommended</span>
                 </div>
                 <div class="flex-1">
-                    <div class="text-lg font-bold" style="color: var(--text-primary);">Guided wizard</div>
-                    <div class="text-sm mt-1" style="color: var(--text-dimmed);">Answer a few questions and we'll build your page for you.</div>
+                    <div class="cl-title">Guided wizard</div>
+                    <div class="cl-lede mt-1.5">Answer a few questions and we'll build your page for you.</div>
                 </div>
                 <div class="mt-5 cl-cta">Start building <i class="fas fa-arrow-right"></i></div>
             </div>
@@ -267,13 +294,14 @@
             <input type="hidden" name="start_mode" value="ai">
             <input type="hidden" name="alias" value="">
             <button type="submit" class="cl-card cl-start group">
-                <div class="flex items-start justify-between gap-3 mb-4">
+                @include('common.partials.card-ribbon', ['ribbon' => false])
+                <div class="cribbon-copy flex items-start justify-between gap-3 mb-4">
                     <span class="cl-ico cl-ico-lg"><i class="fas fa-wand-magic-sparkles"></i></span>
                     <span class="cl-pill"><i class="fas fa-bolt text-[9px]"></i> AI Powered</span>
                 </div>
                 <div class="flex-1">
-                    <div class="text-lg font-bold" style="color: var(--text-primary);">Build with AI</div>
-                    <div class="text-sm mt-1" style="color: var(--text-dimmed);">Describe your page and AI assembles it. Uses coins.</div>
+                    <div class="cl-title">Build with AI</div>
+                    <div class="cl-lede mt-1.5">Describe your page and AI assembles it. Uses coins.</div>
                 </div>
                 <div class="mt-5 cl-cta">Describe it <i class="fas fa-arrow-right"></i></div>
             </button>
@@ -288,13 +316,14 @@
             $aiTeaserCta = !empty($aiBuilderAdminCanEnable) ? 'Enable AI' : 'Upgrade';
         @endphp
         <a href="{{ $aiTeaserHref }}" class="cl-card cl-start group">
-            <div class="flex items-start justify-between gap-3 mb-4">
+            @include('common.partials.card-ribbon', ['ribbon' => false])
+            <div class="cribbon-copy flex items-start justify-between gap-3 mb-4">
                 <span class="cl-ico cl-ico-lg"><i class="fas fa-wand-magic-sparkles"></i></span>
                 <span class="cl-pill"><i class="fas fa-lock text-[9px]"></i> {{ !empty($aiBuilderAdminCanEnable) ? 'Currently off' : 'Locked' }}</span>
             </div>
             <div class="flex-1">
-                <div class="text-lg font-bold" style="color: var(--text-primary);">Build with AI</div>
-                <div class="text-sm mt-1" style="color: var(--text-dimmed);">Describe your page and AI assembles it for you.</div>
+                <div class="cl-title">Build with AI</div>
+                <div class="cl-lede mt-1.5">Describe your page and AI assembles it for you.</div>
                 {{-- Why it is locked. The teaser showed a disabled-looking card
                      and a bare "Upgrade" with no reason, which reads as a wall;
                      CreateLinkAiBuilderNudgeTest has been asserting this line
@@ -347,8 +376,15 @@
           ">
         @csrf
 
-        {{-- MANUAL PICKER --}}
-        <div class="cl-card p-6 mb-6">
+        {{-- MANUAL PICKER
+
+             Deliberately NOT inside a card. Everything from the address field
+             to the last link type used to sit in one bordered panel six hundred
+             pixels tall, so the page read as a form in a box with a second box
+             on top of it. The group rules already say where one section ends
+             and the next begins; a border around all of them says nothing and
+             flattens the whole page into one object. --}}
+        <div class="mb-6">
 
             {{-- SHARED LINK ADDRESS: applies to every link type, so it sits at
                  the top of the picker as one compact input. Optional — blank
@@ -482,7 +518,7 @@
                  Continue is disabled (real `disabled`, so it can't submit and is
                  announced as such) until a link type is selected; the alias guard
                  and server-side `type` validation remain as additional gates. --}}
-            <div class="cl-bar sticky bottom-0 z-20 -mx-6 -mb-6 mt-6 px-6 py-4 rounded-b-2xl">
+            <div class="cl-bar sticky bottom-0 z-20 mt-8 py-4">
                 <div class="flex items-center justify-between gap-3">
                     <div class="min-w-0 flex items-center gap-2.5">
                         <template x-if="type">
