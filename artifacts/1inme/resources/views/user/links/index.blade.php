@@ -44,84 +44,81 @@
 
 <div class="bento-stage">
 
-    {{-- ===================== LIVE-PULSE HERO ===================== --}}
-    <div class="bento-hero">
-        <div class="hero-grid">
-            <div class="min-w-0">
-                <div class="flex items-center gap-2 flex-wrap mb-2">
-                    <span class="hero-chip"><i class="fas fa-layer-group"></i> {{ number_format($__summary['total']) }} links</span>
-                    @if($__summary['active'] !== $__summary['total'])
-                        <span class="hero-chip"><i class="fas fa-circle text-emerald-400" style="font-size:6px;"></i> {{ number_format($__summary['active']) }} active</span>
-                    @endif
-                    <a href="{{ route('user.projects.index') }}" class="hero-chip"><i class="fas fa-folder"></i> {{ number_format($projects->count()) }} {{ Str::plural('folder', $projects->count()) }}</a>
-                </div>
-                <h1 class="hero-title gradient-text truncate" style="font-size: clamp(1.5rem, 3.2vw, 2.1rem);">My Links</h1>
-                <p class="hero-subtitle">Manage, track and organise every link you've created.</p>
-                @if(!empty($__heroActions))
-                <div class="flex items-center gap-2 flex-wrap mt-4">
-                    @foreach($__heroActions as $a)
-                        <a href="{{ $a['url'] ?? '#' }}" class="{{ $a['class'] ?? 'btn-primary' }} text-xs py-2">
-                            @if(!empty($a['icon']))<i class="fas {{ $a['icon'] }} text-[10px]"></i>@endif
-                            {{ $a['label'] ?? '' }}
-                        </a>
-                    @endforeach
-                </div>
-                @endif
-            </div>
-
-            {{-- Live pulse: total clicks across all links --}}
-            <div class="flex items-center gap-4">
-                <div class="pulse-orb">
-                    <span class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($__summary['clicks']) }}</span>
-                    <span class="text-[9px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">clicks</span>
-                </div>
-                <div>
-                    <span class="live-dot"><span class="dot"></span> Live</span>
-                    <p class="text-sm font-semibold mt-1.5" style="color: var(--text-primary);">Total clicks</p>
-                    <p class="text-xs mt-0.5" style="color: var(--text-muted);">
-                        across <strong style="color: var(--text-secondary);">{{ number_format($__summary['total']) }}</strong> links
-                    </p>
-                    <a href="{{ route('user.stats.index') }}" class="text-[11px] text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1 mt-2">
-                        View stats <i class="fas fa-arrow-right text-[9px]"></i>
+    {{-- ===================== HEADER =====================
+         Six boxes used to stand here: two chips, a ring, and three metric
+         tiles. Between them they printed the same two numbers up to three
+         times each, and pushed the first link about a thousand pixels down a
+         page whose entire job is listing links. Every figure is still on
+         screen -- as one line of text -- and the space the ring occupied now
+         carries something the total beside it cannot say: the last seven
+         days. ============================================================ --}}
+    <div class="links-head">
+        <div class="min-w-0">
+            <h1 class="links-title">My Links</h1>
+            <p class="links-facts">
+                <strong>{{ number_format($__summary['total']) }}</strong> {{ Str::plural('link', $__summary['total']) }}
+                <span class="sep">&middot;</span>
+                <strong>{{ number_format($__summary['active']) }}</strong> active
+                <span class="sep">&middot;</span>
+                <a href="{{ route('user.projects.index') }}">
+                    <strong>{{ number_format($projects->count()) }}</strong> {{ Str::plural('folder', $projects->count()) }}
+                </a>
+            </p>
+            @if(!empty($__heroActions))
+            <div class="links-actions">
+                @foreach($__heroActions as $a)
+                    <a href="{{ $a['url'] ?? '#' }}" class="{{ $a['class'] ?? 'btn-primary' }} text-xs py-2">
+                        @if(!empty($a['icon']))<i class="fas {{ $a['icon'] }} text-[10px]"></i>@endif
+                        {{ $a['label'] ?? '' }}
                     </a>
-                </div>
+                @endforeach
             </div>
-        </div>
-    </div>
-
-    {{-- ===================== METRIC BENTO ===================== --}}
-    <div class="bento mb-5">
-        <div class="bento-tile accent b-2 justify-between p-5" style="--tile-accent: linear-gradient(90deg, #5c83ff, #90acff); --tile-glow: rgba(61,107,255,0.16);">
-            <span class="tile-orb"></span>
-            <div class="flex items-center justify-between">
-                <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Total Links</p>
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.2);">
-                    <i class="fas fa-link text-blue-400 text-xs"></i>
-                </div>
-            </div>
-            <p class="text-2xl font-bold mt-2" style="color: var(--text-primary);">{{ number_format($__summary['total']) }}</p>
+            @endif
         </div>
 
-        <div class="bento-tile accent b-2 justify-between p-5" style="--tile-accent: linear-gradient(90deg, #10b981, #34d399); --tile-glow: rgba(16,185,129,0.18);">
-            <span class="tile-orb"></span>
-            <div class="flex items-center justify-between">
-                <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Active</p>
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.2);">
-                    <i class="fas fa-circle-check text-emerald-400 text-xs"></i>
-                </div>
-            </div>
-            <p class="text-2xl font-bold mt-2" style="color: var(--text-primary);">{{ number_format($__summary['active']) }}</p>
-        </div>
+        @php
+            $__days  = $trend['days'] ?? [];
+            $__peak  = max(1, (int) ($trend['max'] ?? 0));
+            // One scale for the whole drawing: 0 sits on the baseline, the
+            // busiest day touches the top. Points are spaced across the full
+            // width so the last one lands on the emphasised endpoint.
+            $__pts = [];
+            foreach ($__days as $__i => $__n) {
+                $__x = count($__days) > 1 ? round(3 + ($__i * (214 / (count($__days) - 1))), 1) : 110;
+                $__y = round(42 - (($__n / $__peak) * 34), 1);
+                $__pts[] = $__x . ' ' . $__y;
+            }
+            $__line = implode(' L ', $__pts);
+        @endphp
+        <div class="links-trend">
+            <p class="k">Total clicks</p>
+            <p class="n">{{ number_format($__summary['clicks']) }}</p>
+            @if(($trend['total'] ?? 0) > 0)
+                <p class="d"><strong>+{{ number_format($trend['total']) }}</strong> in the last 7 days</p>
+            @else
+                <p class="d">No clicks in the last 7 days</p>
+            @endif
 
-        <div class="bento-tile accent b-2 justify-between p-5" style="--tile-accent: linear-gradient(90deg, #f59e0b, #fbbf24); --tile-glow: rgba(245,158,11,0.18);">
-            <span class="tile-orb"></span>
-            <div class="flex items-center justify-between">
-                <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Total Clicks</p>
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.2);">
-                    <i class="fas fa-mouse-pointer text-amber-400 text-xs"></i>
-                </div>
-            </div>
-            <p class="text-2xl font-bold mt-2" style="color: var(--text-primary);">{{ number_format($__summary['clicks']) }}</p>
+            {{-- A flat line through zero is not a trend, it is noise. --}}
+            @if(count($__pts) > 1 && ($trend['total'] ?? 0) > 0)
+            <svg class="spark" width="220" height="46" viewBox="0 0 220 46" role="img"
+                 aria-label="Clicks per day over the last seven days. Busiest day {{ number_format($trend['max']) }}.">
+                <defs>
+                    <linearGradient id="linksSpark" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="currentColor" stop-opacity=".26"/>
+                        <stop offset="100%" stop-color="currentColor" stop-opacity="0"/>
+                    </linearGradient>
+                </defs>
+                <path d="M {{ $__line }} L 217 44 L 3 44 Z" fill="url(#linksSpark)"/>
+                <path d="M {{ $__line }}" fill="none" stroke="currentColor" stroke-width="1.75"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="{{ explode(' ', end($__pts))[0] }}" cy="{{ explode(' ', end($__pts))[1] }}" r="3" fill="currentColor"/>
+            </svg>
+            @endif
+
+            <a href="{{ route('user.stats.index') }}" class="links-stats-link">
+                View stats <i class="fas fa-arrow-right text-[9px]"></i>
+            </a>
         </div>
     </div>
 
@@ -132,63 +129,60 @@
 </div>
 @endunless
 
-<div class="card-premium mb-5">
-    <form method="GET" class="p-4 flex flex-wrap items-end gap-3">
-        <div class="flex-1 min-w-[200px]">
-            <label class="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Search</label>
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="Search links..."
-                   class="theme-input w-full">
-        </div>
-        <div>
-            <label class="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Type</label>
-            <select name="type" class="theme-input appearance-none pr-8">
-                <option value="" class="bg-[#0a0612]">All Types</option>
-                @foreach(\App\Modules\User\Support\LinkTypeCategories::categories() as $__typeCat)
-                    <optgroup label="{{ $__typeCat['label'] }}">
-                        @foreach($__typeCat['types'] as $__type)
-                            <option value="{{ $__type['value'] }}" {{ request('type') === $__type['value'] ? 'selected' : '' }} class="bg-[#0a0612]">{{ $__type['label'] }}</option>
-                        @endforeach
-                    </optgroup>
+{{-- The five filters used to sit in their own card, each under a stacked
+     uppercase label, which made a permanent 120px block out of controls most
+     visits never touch. Same form, same fields, one row. --}}
+<form method="GET" class="links-toolbar">
+    <div class="links-search">
+        <i class="fas fa-search" aria-hidden="true"></i>
+        <input type="text" name="search" value="{{ request('search') }}"
+               aria-label="Search links"
+               placeholder="Search {{ number_format($__summary['total']) }} {{ Str::plural('link', $__summary['total']) }}&hellip;">
+    </div>
+
+    <select name="type" class="links-pill" aria-label="Filter by type" onchange="this.form.submit()">
+        <option value="" class="bg-[#0a0612]">All types</option>
+        @foreach(\App\Modules\User\Support\LinkTypeCategories::categories() as $__typeCat)
+            <optgroup label="{{ $__typeCat['label'] }}">
+                @foreach($__typeCat['types'] as $__type)
+                    <option value="{{ $__type['value'] }}" {{ request('type') === $__type['value'] ? 'selected' : '' }} class="bg-[#0a0612]">{{ $__type['label'] }}</option>
                 @endforeach
-            </select>
-        </div>
-        <div>
-            <label class="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Folder</label>
-            <select name="project_id" class="theme-input appearance-none pr-8">
-                <option value="" class="bg-[#0a0612]">All Folders</option>
-                @foreach($projects as $project)
-                    <option value="{{ $project->id }}" {{ request('project_id') == $project->id ? 'selected' : '' }} class="bg-[#0a0612]">{{ $project->name }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label class="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Status</label>
-            <select name="status" class="theme-input appearance-none pr-8">
-                <option value="" class="bg-[#0a0612]">All</option>
-                <option value="active" {{ request('status') === 'active' ? 'selected' : '' }} class="bg-[#0a0612]">Active</option>
-                <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }} class="bg-[#0a0612]">Inactive</option>
-            </select>
-        </div>
-        <div>
-            <label class="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Sort by</label>
-            <select name="sort" class="theme-input appearance-none pr-8">
-                @foreach([
-                    'newest'      => 'Newest first',
-                    'oldest'      => 'Oldest first',
-                    'clicks_desc' => 'Most clicks',
-                    'clicks_asc'  => 'Fewest clicks',
-                    'title_asc'   => 'Title A to Z',
-                    'title_desc'  => 'Title Z to A',
-                ] as $sortValue => $sortLabel)
-                    <option value="{{ $sortValue }}" @selected(($sort ?? 'newest') === $sortValue) class="bg-[#0a0612]">{{ $sortLabel }}</option>
-                @endforeach
-            </select>
-        </div>
-        <button type="submit" class="btn-ghost text-xs py-2">
-            <i class="fas fa-search text-[10px]"></i> Filter
-        </button>
-    </form>
-</div>
+            </optgroup>
+        @endforeach
+    </select>
+
+    <select name="project_id" class="links-pill" aria-label="Filter by folder" onchange="this.form.submit()">
+        <option value="" class="bg-[#0a0612]">All folders</option>
+        @foreach($projects as $project)
+            <option value="{{ $project->id }}" {{ request('project_id') == $project->id ? 'selected' : '' }} class="bg-[#0a0612]">{{ $project->name }}</option>
+        @endforeach
+    </select>
+
+    <select name="status" class="links-pill" aria-label="Filter by status" onchange="this.form.submit()">
+        <option value="" class="bg-[#0a0612]">Any status</option>
+        <option value="active" {{ request('status') === 'active' ? 'selected' : '' }} class="bg-[#0a0612]">Active</option>
+        <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }} class="bg-[#0a0612]">Inactive</option>
+    </select>
+
+    <select name="sort" class="links-pill" aria-label="Sort" onchange="this.form.submit()">
+        @foreach([
+            'newest'      => 'Newest first',
+            'oldest'      => 'Oldest first',
+            'clicks_desc' => 'Most clicks',
+            'clicks_asc'  => 'Fewest clicks',
+            'title_asc'   => 'Title A to Z',
+            'title_desc'  => 'Title Z to A',
+        ] as $sortValue => $sortLabel)
+            <option value="{{ $sortValue }}" @selected(($sort ?? 'newest') === $sortValue) class="bg-[#0a0612]">{{ $sortLabel }}</option>
+        @endforeach
+    </select>
+
+    {{-- The selects submit on change; this is the keyboard path and the
+         fallback with JavaScript off. --}}
+    <button type="submit" class="links-pill links-pill--go">
+        <i class="fas fa-search text-[10px]"></i> Search
+    </button>
+</form>
 
 @if($links->isEmpty())
 <div class="card-premium p-14 text-center">
@@ -230,11 +224,118 @@
     }">
 
 {{-- Row action dropdowns (move to folder / workspace / transfer) must escape
-     the card: .card-premium clips with overflow:hidden, and sibling cards
-     later in the DOM would otherwise paint over an open menu. --}}
+     the row: a row later in the DOM would otherwise paint over an open menu. --}}
 <style>
-    .card-premium[data-link-id] { overflow: visible; }
-    .card-premium[data-link-id]:has([data-menu-open="true"]) { z-index: 40; }
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    .links-head {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 28px; flex-wrap: wrap; margin-bottom: 20px;
+    }
+    .links-title {
+        margin: 0 0 6px; font-size: clamp(1.5rem, 3.2vw, 1.9rem); line-height: 1.1;
+        font-weight: 750; letter-spacing: -.03em; color: var(--text-primary);
+    }
+    .links-facts {
+        margin: 0; font-size: 13px; color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+    }
+    .links-facts strong { color: var(--text-primary); font-weight: 650; }
+    .links-facts a { color: inherit; text-decoration: none; }
+    .links-facts a:hover strong { color: var(--accent); }
+    .links-facts .sep { color: var(--text-faint); margin: 0 5px; }
+    .links-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+
+    .links-trend { text-align: right; min-width: 232px; color: var(--accent); }
+    .links-trend .k {
+        margin: 0; font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+        font-weight: 700; color: var(--text-faint);
+    }
+    .links-trend .n {
+        margin: 4px 0 2px; font-size: 34px; font-weight: 750; line-height: 1.05;
+        letter-spacing: -.035em; color: var(--text-primary);
+        font-variant-numeric: tabular-nums;
+    }
+    .links-trend .d { margin: 0; font-size: 12px; color: var(--text-muted); }
+    .links-trend .d strong { color: #34d399; font-weight: 650; }
+    .links-trend .spark { display: block; margin: 8px 0 0 auto; max-width: 100%; }
+    .links-stats-link {
+        display: inline-flex; align-items: center; gap: 5px; margin-top: 8px;
+        font-size: 11px; font-weight: 600; color: var(--accent); text-decoration: none;
+    }
+
+    /* ── Toolbar ────────────────────────────────────────────────────────── */
+    .links-toolbar {
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        padding-bottom: 14px; margin-bottom: 6px;
+        border-bottom: 1px solid var(--border-glass, rgba(128,128,128,0.16));
+    }
+    .links-search { position: relative; flex: 1 1 220px; min-width: 170px; max-width: 340px; }
+    .links-search i {
+        position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+        font-size: 11px; color: var(--text-faint); pointer-events: none;
+    }
+    .links-search input {
+        width: 100%; font-size: 13px; color: var(--text-primary);
+        background: var(--bg-card); border: 1px solid var(--border-strong);
+        border-radius: 9px; padding: 8px 11px 8px 30px;
+    }
+    .links-search input::placeholder { color: var(--text-faint); }
+    .links-pill {
+        font-size: 12.5px; font-weight: 550; color: var(--text-secondary);
+        background: var(--bg-card); border: 1px solid var(--border-strong);
+        border-radius: 8px; padding: 8px 11px; cursor: pointer; max-width: 190px;
+    }
+    .links-pill--go { color: var(--text-muted); }
+    .links-search input:focus, .links-pill:focus-visible {
+        outline: 2px solid var(--accent); outline-offset: -1px;
+    }
+
+    /* ── Rows ───────────────────────────────────────────────────────────── */
+    .links-list { display: flex; flex-direction: column; }
+    .link-row {
+        padding: 11px 10px; border-radius: 10px;
+        border-bottom: 1px solid var(--border-glass, rgba(128,128,128,0.12));
+        transition: background-color .12s ease;
+    }
+    .link-row:hover { background: var(--bg-card); }
+    .link-row:has([data-menu-open="true"]) { position: relative; z-index: 40; }
+
+    .link-row-meta {
+        display: flex; align-items: center; gap: 5px; margin-top: 2px;
+        font-size: 11.5px; color: var(--text-muted); min-width: 0;
+    }
+    .link-row-meta .url { color: var(--accent); }
+    .link-row-meta .copy { flex: none; color: var(--text-faint); }
+    .link-row-meta .copy:hover { color: var(--accent); }
+    .link-row-meta .sep { color: var(--text-faint); }
+    .link-row-meta .folder { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+    .link-row-meta .folder .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .link-row-meta .age { color: var(--text-faint); white-space: nowrap; }
+
+    .link-row-clicks { text-align: right; font-variant-numeric: tabular-nums; }
+    .link-row-clicks b {
+        display: block; font-size: 14px; font-weight: 650;
+        letter-spacing: -.01em; color: var(--text-primary);
+    }
+    .link-row-clicks span {
+        font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+        color: var(--text-faint);
+    }
+
+    .link-row-acts { display: flex; align-items: center; gap: 1px; }
+    @media (hover: hover) and (min-width: 900px) {
+        .link-row-acts { opacity: 0; transition: opacity .12s ease; }
+        .link-row:hover .link-row-acts,
+        .link-row:focus-within .link-row-acts,
+        .link-row:has([data-menu-open="true"]) .link-row-acts { opacity: 1; }
+    }
+
+    @media (max-width: 700px) {
+        .links-trend { text-align: left; min-width: 0; }
+        .links-trend .spark { margin-left: 0; }
+        .link-row-meta .folder, .link-row-meta .age,
+        .link-row-meta .sep { display: none; }
+    }
 </style>
 
 {{-- ===== View toggle: list (rows) vs grid (folder-coloured icon tiles) ===== --}}
@@ -322,23 +423,23 @@
 {{-- Icon, label and the tile's three colours all come from one resolver, so
      the list rows and the grid tiles below cannot disagree about what a
      Slides link looks like. See LinkTileStyle for why they used to. --}}
-<div class="space-y-2.5" x-show="view === 'list'">
+<div class="links-list" x-show="view === 'list'">
     @foreach($links as $link)
     @php $ts = \App\Modules\User\Support\LinkTileStyle::for($link); @endphp
-    <div class="card-premium p-4 group" data-link-id="{{ $link->id }}">
-        <div class="flex items-start justify-between">
-            <div class="flex items-start gap-3.5 flex-1 min-w-0">
+    <div class="link-row group" data-link-id="{{ $link->id }}">
+        <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
                 @if($__canMove || $__canBulkDelete || $__canBulkFolder)
-                <label class="flex-shrink-0 pt-1.5 cursor-pointer" title="Select link">
+                <label class="flex-shrink-0 cursor-pointer" title="Select link">
                     <input type="checkbox" :value="{{ $link->id }}" x-model.number="selected"
                            class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">
                 </label>
                 @endif
-                <div class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center" style="background: {{ $ts['bg'] }}; border: 1px solid {{ $ts['border'] }};">
-                    <i class="fas {{ $ts['icon'] }} text-sm" style="color: {{ $ts['color'] }};"></i>
+                <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style="background: {{ $ts['bg'] }}; border: 1px solid {{ $ts['border'] }};">
+                    <i class="fas {{ $ts['icon'] }} text-xs" style="color: {{ $ts['color'] }};"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-0.5">
+                    <div class="flex items-center gap-2">
                         <a href="{{ route('user.links.show', $link) }}" class="text-sm font-semibold truncate transition-colors hover:text-blue-400" style="color: var(--text-primary);">
                             {{ $link->title ?: $link->alias }}
                         </a>
@@ -353,35 +454,35 @@
                             <i class="fas fa-clock text-[9px]" style="color: var(--text-faint);" title="Expires {{ $link->expires_at->format('M d, Y') }}"></i>
                         @endif
                     </div>
-                    <div class="flex items-center gap-1.5 text-xs text-blue-400/60 mb-0.5" x-data="{ copied: false }">
-                        <span class="truncate">{{ $link->getShortUrl() }}</span>
-                        <button @click="navigator.clipboard.writeText('{{ $link->getShortUrl() }}'); copied = true; setTimeout(() => copied = false, 2000)"
-                                class="flex-shrink-0 transition-colors hover:text-blue-400" style="color: var(--text-faint);">
+                    <div class="link-row-meta" x-data="{ copied: false }">
+                        <span class="url truncate">{{ $link->getShortUrl() }}</span>
+                        <button type="button" aria-label="Copy link"
+                                @click="navigator.clipboard.writeText('{{ $link->getShortUrl() }}'); copied = true; setTimeout(() => copied = false, 2000)"
+                                class="copy">
                             <i x-show="!copied" class="fas fa-copy text-[10px]"></i>
                             <i x-show="copied" x-cloak class="fas fa-check text-emerald-400 text-[10px]"></i>
                         </button>
-                    </div>
-                    @if($link->long_url)
-                    <p class="text-[11px] truncate" style="color: var(--text-faint);">{{ $link->long_url }}</p>
-                    @endif
-                    <div class="flex items-center gap-3 mt-1.5 text-[10px]" style="color: var(--text-faint);">
                         @if($link->project)
-                            <span class="flex items-center gap-1">
-                                <span class="w-1.5 h-1.5 rounded-full" style="background-color: {{ $link->project->color }}"></span>
-                                {{ $link->project->name }}
-                            </span>
+                        <span class="sep">&middot;</span>
+                        <span class="folder">
+                            <span class="dot" style="background-color: {{ $link->project->color ?: '#3b82f6' }}"></span>{{ $link->project->name }}
+                        </span>
                         @endif
-                        <span>{{ $link->created_at->diffForHumans() }}</span>
+                        <span class="sep">&middot;</span>
+                        <span class="age">{{ $link->created_at->diffForHumans() }}</span>
                     </div>
+
                 </div>
             </div>
 
-            <div class="flex items-center gap-4 ml-4">
-                <div class="text-center">
-                    <div class="text-lg font-bold" style="color: var(--text-primary);">{{ number_format($link->total_clicks) }}</div>
-                    <div class="text-[10px]" style="color: var(--text-faint);">clicks</div>
+            <div class="flex items-center gap-3 flex-shrink-0">
+                <div class="link-row-clicks">
+                    <b>{{ number_format($link->total_clicks) }}</b>
+                    <span>{{ Str::plural('click', $link->total_clicks) }}</span>
                 </div>
-                <div class="flex items-center gap-0.5 opacity-40 group-hover:opacity-100 transition-opacity">
+                {{-- On a pointer device these arrive on hover; on touch, where
+                     there is no hover to arrive on, they stay put. --}}
+                <div class="link-row-acts">
                     <a href="{{ route('user.links.show', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-blue-500/10" style="color: var(--text-faint);" title="View">
                         <i class="fas fa-chart-bar text-xs hover:text-blue-400"></i>
                     </a>
