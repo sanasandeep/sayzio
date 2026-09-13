@@ -61,6 +61,53 @@ class TheDashboardSkinStaysQuietTest extends TestCase
         );
     }
 
+    /**
+     * And the block that actually reaches people.
+     *
+     * `aurora` is added to the html element for every user with the Aurora UI,
+     * so their dashboard matches `html.aurora.light-mode` -- two class names
+     * against the other block's one, which wins on specificity. The first pass
+     * at the white ground changed only `html.light-mode`, shipped green, and
+     * changed nothing at all for anyone on Aurora. The guard above passed the
+     * whole way, because it was reading the block being edited rather than the
+     * block being rendered.
+     *
+     * So: whichever light block sets the ground, it sets it to white.
+     */
+    public function test_the_aurora_light_ground_is_white_too(): void
+    {
+        $css = $this->css('common/partials/theme-styles.blade.php');
+
+        $start = strpos($css, 'html.aurora.light-mode {');
+        $this->assertNotFalse($start, 'the Aurora light block is gone; if it was renamed, point this test at the new name');
+        $block = substr($css, $start, 2600);
+
+        $this->assertMatchesRegularExpression(
+            '/--bg-body:\s*#ffffff;/',
+            $block,
+            'the Aurora light ground is not white. This is the block nearly '
+            .'every signed-in user renders, so a ground set only on '
+            .'html.light-mode never reaches them.'
+        );
+    }
+
+    /**
+     * The same point without naming a block, so a third light scope added
+     * later cannot quietly reintroduce a grey ground.
+     */
+    public function test_no_light_scope_stands_on_a_retired_ground(): void
+    {
+        $css = $this->css('common/partials/theme-styles.blade.php');
+
+        foreach (['#f4f6fa' => 'the blue-grey', '#fbfaf8' => 'the near-white half-measure', '#f6f5f2' => 'the warm paper'] as $hex => $what) {
+            $this->assertStringNotContainsString(
+                '--bg-body: '.$hex.';',
+                $css,
+                $what.' ground is back in one of the light scopes'
+            );
+        }
+    }
+
     public function test_no_ambient_washes_drift_behind_the_page(): void
     {
         $css = $this->css('user/partials/bento-styles.blade.php');
