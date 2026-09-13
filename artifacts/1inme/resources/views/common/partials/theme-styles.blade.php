@@ -128,25 +128,32 @@
     html.light-mode {
         /* Switch native UI controls back to the light variant in light mode. */
         color-scheme: light;
-        /* Metronic demo1 inspired — flat, clean, ultra-light surfaces.
-           Body is a soft neutral gray so pure-white cards visibly lift off the
-           page; borders are darker than before so card edges are obvious. */
-        --bg-body: #f4f6fa;
+        /* Flat, clean, ultra-light surfaces.
+           The ground used to be #f4f6fa -- a blue-grey chosen so pure-white
+           cards would lift off it. It did that, but on a screen whose content
+           is rows rather than cards it buys nothing and simply reads as grey.
+           This is the near-white the marketing site stands on, warm rather
+           than blue: white cards still lift, and the page reads as white.
+           Card edges come from the borders below, which is where a card edge
+           belongs. */
+        --bg-body: #fbfaf8;
         --bg-sidebar: #ffffff;
         --bg-sidebar-mobile: #ffffff;
         --bg-dropdown: #ffffff;
         --bg-header: #ffffff;
         --bg-glass: #ffffff;
         --bg-glass-light: #ffffff;
-        --bg-glass-hover: #f4f5f9;
+        --bg-glass-hover: #f4f3f0;
         --bg-glass-input: #ffffff;
         --bg-glass-input-focus: #ffffff;
         --bg-card: #ffffff;
         --bg-card-hover: #ffffff;
-        --border-glass: #dbdfe9;
-        --border-glass-light: #c4c8d3;
-        --border-subtle: #e1e3ea;
-        --border-strong: #cbd5e1;
+        /* A touch darker than the old blue-greys: on a near-white ground a
+           card's edge is the only thing separating it from the page. */
+        --border-glass: #d7d4cd;
+        --border-glass-light: #c5c1b8;
+        --border-subtle: #e7e4de;
+        --border-strong: #c5c1b8;
         --text-primary: #071437;
         --text-secondary: #252f4a;
         --text-muted: #4b5675;
