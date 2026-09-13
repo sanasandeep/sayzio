@@ -16,6 +16,14 @@
     landing page cannot drift apart. It is aria-hidden because it says nothing
     the copy does not.
 
+    It renders two layers, in the order the landing page uses them: a faint
+    square lattice under the copy, and the ribbon bleeding off the far edge.
+    The lattice is the same device as the CTA card's -- the page's own grid
+    cell carried under the card, so the card reads as part of the page rather
+    than a panel dropped on it -- and it is masked to stop well before the
+    ribbon, because a grid running under a gradient is two textures fighting
+    over the same space.
+
     Usage: put it as the first child of a card that is position:relative and
     overflow:hidden, then give the card's content wrapper `.cribbon-copy`
     (or any positioned element) so the words sit above it.
@@ -39,24 +47,53 @@
 
 @once
 <style>
+    /* A corner sweep, not a wall. The first pass gave it 42% of the card and
+       full height, which on a hero whose right half is a chart buried the
+       chart and put white label text on a blue field. Anchored to the bottom
+       corner and masked back along its own angle, it reads as the marketing
+       hero's ribbon does -- something passing through the corner -- and the
+       top of the card, where headings and eyebrows live, stays clear. */
     .cribbon {
         position: absolute;
-        top: -14%;
-        right: -6%;
-        width: min(42%, 460px);
-        height: 128%;
+        bottom: -12%;
+        right: -7%;
+        width: min(26%, 320px);
+        height: 82%;
         pointer-events: none;
         z-index: 0;
+        -webkit-mask-image: linear-gradient(20deg, #000 0%, #000 52%, transparent 88%);
+                mask-image: linear-gradient(20deg, #000 0%, #000 52%, transparent 88%);
     }
-    .cribbon--left { right: auto; left: -6%; transform: scaleX(-1); }
+    .cribbon--left {
+        right: auto; left: -7%; transform: scaleX(-1);
+    }
     .cribbon svg { width: 100%; height: 100%; display: block; }
 
-    /* Anything that has to be read sits above the ribbon and is capped well
-       clear of it. The cap is belt-and-braces beside the card's own padding:
-       a padding can be overridden by a page rule reaching in by class, and a
-       heading sliding under the gradient is the one failure that must not
-       happen. */
-    .cribbon-copy { position: relative; z-index: 1; max-width: 58ch; }
+    /* ---------- the lattice under the copy ---------- */
+    .cribbon-grid {
+        position: absolute; inset: 0; pointer-events: none; z-index: 0;
+        --cribbon-line: rgba(15, 23, 42, .05);
+        background-image:
+            linear-gradient(to right,  var(--cribbon-line) 1px, transparent 1px),
+            linear-gradient(to bottom, var(--cribbon-line) 1px, transparent 1px);
+        background-size: 46px 46px;
+        background-position: 50% 0;
+        -webkit-mask-image: linear-gradient(to right, #000 0%, #000 40%, transparent 66%);
+                mask-image: linear-gradient(to right, #000 0%, #000 40%, transparent 66%);
+    }
+    html:not(.light-mode) .cribbon-grid { --cribbon-line: rgba(255, 255, 255, .055); }
+    .cribbon-grid--left {
+        -webkit-mask-image: linear-gradient(to left, #000 0%, #000 40%, transparent 66%);
+                mask-image: linear-gradient(to left, #000 0%, #000 40%, transparent 66%);
+    }
+
+    /* Anything that has to be read sits above both layers. No width cap
+       here: this class goes on whatever wrapper a page already has, and on
+       several of them that wrapper is the card's own grid -- capping it would
+       collapse the layout rather than protect the copy. Keeping text clear of
+       the ribbon is the host's job, and every card this is used on already
+       has its content in a left column. */
+    .cribbon-copy { position: relative; z-index: 1; }
 
     @media (max-width: 900px) {
         /* On a phone the card is one column, so the ribbon becomes a band
@@ -64,13 +101,20 @@
            competing with the copy for width. */
         .cribbon,
         .cribbon--left {
-            top: -24%; right: -10%; left: auto;
-            width: 74%; height: 132px; transform: none;
+            bottom: auto; top: -20%; right: -12%; left: auto;
+            width: 62%; height: 150px; transform: none;
+        }
+        /* The copy runs the full width here, so the lattice does too. */
+        .cribbon-grid,
+        .cribbon-grid--left {
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 28%);
+                    mask-image: linear-gradient(to bottom, transparent 0%, #000 28%);
         }
     }
 </style>
 @endonce
 
+<span class="cribbon-grid{{ $cribbonSide === 'left' ? ' cribbon-grid--left' : '' }}" aria-hidden="true"></span>
 <span class="cribbon{{ $cribbonSide === 'left' ? ' cribbon--left' : '' }}" aria-hidden="true">
     <svg viewBox="0 0 400 460" preserveAspectRatio="xMidYMid slice" role="presentation" focusable="false">
         <defs>

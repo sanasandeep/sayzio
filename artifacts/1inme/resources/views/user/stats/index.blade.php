@@ -54,7 +54,8 @@
 
     {{-- ===================== LIVE-PULSE HERO ===================== --}}
     <div class="bento-hero">
-        <div class="hero-grid">
+        @include('common.partials.card-ribbon')
+        <div class="hero-grid cribbon-copy">
             <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap mb-2">
                     <span class="hero-chip"><i class="fas fa-calendar-day"></i> {{ $rangeLabel }}</span>

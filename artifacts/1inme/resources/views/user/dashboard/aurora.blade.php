@@ -263,7 +263,8 @@
 
     {{-- ============ HERO: greeting, today, and the link graph ============ --}}
     <section class="card-premium au-hero c12">
-        <div class="au-hero-left">
+        @include('common.partials.card-ribbon')
+        <div class="au-hero-left cribbon-copy">
             <div class="au-chips">
                 <span class="au-chip">{{ $nowLocal->format('l') }}</span>
                 <span class="au-chip">{{ number_format($totalLinks) }} links</span>

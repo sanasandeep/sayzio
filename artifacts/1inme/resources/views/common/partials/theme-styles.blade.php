@@ -500,10 +500,20 @@
        All the host card needs from here is somewhere to bleed to. */
     html.aurora .card-premium:has(> .cribbon),
     html.aurora .glass:has(> .cribbon),
+    html.aurora .bento-tile:has(> .cribbon),
+    html.aurora section:has(> .cribbon),
+    html.aurora div:has(> .cribbon),
     html.aurora .ribbon-card {
         position: relative;
         overflow: hidden;
     }
+
+    /* Both layers stay out of the flow whatever the host card's display is.
+       A ribbon dropped into a grid card that had `> *` forced to
+       position:relative became a grid item and pushed the columns apart --
+       which is how the first attempt at this broke the dashboard hero. */
+    html.aurora .cribbon,
+    html.aurora .cribbon-grid { position: absolute !important; }
 
     /* ---- Chrome: the rail and the bar ----
        Both carry .dash-glass, whose light-mode rule paints a white inset
