@@ -8,12 +8,14 @@ use App\Modules\Common\Services\AppLinkResolver;
 use App\Modules\User\Concerns\RespondsWithUploadErrors;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\LinkClick;
 use App\Modules\User\Models\PollVote;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Services\BlockAnalyticsAggregator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
@@ -124,7 +126,56 @@ class LinkController extends Controller
             'clicks'  => (int) $owner->links()->sum('total_clicks'),
         ];
 
-        return view('user.links.index', compact('links', 'projects', 'summary', 'sort'));
+        $trend = $this->clickTrend($owner);
+
+        return view('user.links.index', compact('links', 'projects', 'summary', 'sort', 'trend'));
+    }
+
+    /**
+     * Clicks per day for the last seven days, for the sparkline beside the
+     * total on My Links.
+     *
+     * The header used to spend its most prominent element -- a large ring --
+     * on the same figure printed next to it. A total says how big the account
+     * is; it cannot say whether last week was better than the one before,
+     * which is the question somebody opening this page actually has.
+     *
+     * Cached for five minutes and fault-isolated: this is decoration on a
+     * page whose job is listing links, so a slow or failing analytics query
+     * must cost the list nothing.
+     *
+     * @return array{days: list<int>, total: int, max: int}
+     */
+    private function clickTrend(User $owner): array
+    {
+        $empty = ['days' => [], 'total' => 0, 'max' => 0];
+
+        try {
+            return Cache::remember('links:trend:'.$owner->id, 300, function () use ($owner) {
+                $rows = LinkClick::query()
+                    ->whereIn('link_id', function ($q) use ($owner) {
+                        $q->from('links')->select('id')->where('user_id', $owner->id);
+                    })
+                    ->where('clicked_at', '>=', now()->subDays(6)->startOfDay())
+                    ->selectRaw('DATE(clicked_at) as d, COUNT(*) as n')
+                    ->groupBy(DB::raw('DATE(clicked_at)'))
+                    ->pluck('n', 'd');
+
+                $days = [];
+                for ($i = 6; $i >= 0; $i--) {
+                    $key = now()->subDays($i)->toDateString();
+                    $days[] = (int) ($rows[$key] ?? 0);
+                }
+
+                return [
+                    'days'  => $days,
+                    'total' => array_sum($days),
+                    'max'   => max($days),
+                ];
+            });
+        } catch (\Throwable $e) {
+            return $empty;
+        }
     }
 
     /** The sort options offered on My Links, in the order the select lists them. */
