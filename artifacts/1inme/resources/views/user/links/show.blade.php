@@ -88,57 +88,46 @@
 
     /* ============ Period Pills ============ */
     .period-bar {
-        background: var(--bg-glass);
+        background: var(--bg-card);
         border: 1px solid var(--border-glass);
         border-radius: 18px;
         padding: 10px 14px;
-        box-shadow: var(--card-shadow);
-        backdrop-filter: blur(20px);
     }
+    /* A filter is a filter, not a call to action. These were solid blue
+       gradient chips with a coloured glow under them -- the loudest thing on a
+       page whose subject is the numbers. Selected now reads as an accent
+       outline and a wash, the same way the type filters on Create Link do, and
+       the border is declared on every state so selecting one does not shift
+       the row by a pixel. */
     .pill {
-        padding: 7px 13px;
-        border-radius: 11px;
+        padding: 6px 12px;
+        border-radius: 9px;
         font-size: 11px;
         font-weight: 600;
-        transition: all .2s ease;
+        border: 1px solid transparent;
+        transition: background .16s, color .16s, border-color .16s;
         color: var(--text-muted);
     }
-    .pill:hover { background: var(--bg-glass-hover); color: var(--text-primary); transform: translateY(-1px); }
-    .pill-active {
-        background: linear-gradient(135deg, #3d6bff, #5c83ff);
-        color: #fff !important;
-        box-shadow: 0 6px 18px rgba(61,107,255,0.4);
-    }
+    .pill:hover { background: var(--bg-glass-hover); color: var(--text-primary); }
+    .pill-active,
     .pill-active-soft {
-        background: rgba(61,107,255,0.18);
-        border: 1px solid rgba(61,107,255,0.4);
-        color: #dbe4ff !important;
+        background: color-mix(in srgb, var(--accent) 9%, transparent);
+        border-color: var(--accent);
+        color: var(--text-primary) !important;
+        box-shadow: none;
     }
-    html.light-mode .pill-active-soft { color: #2342c7 !important; background: rgba(61,107,255,0.14); }
 
     /* ============ Stat Tile ============ */
+    /* Each tile carried a tinted ground, a coloured top rail, a blurred orb
+       in the corner and a lift on hover -- four devices to say "this is a
+       number". The number says that. */
     .stat-tile {
         position: relative;
         padding: 18px 18px 16px;
-        border-radius: 20px;
-        background: linear-gradient(160deg, var(--tile-bg-from, rgba(61,107,255,0.10)) 0%, var(--bg-glass) 70%);
-        border: 1px solid var(--tile-border, rgba(61,107,255,0.22));
+        border-radius: 18px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-glass);
         overflow: hidden;
-        transition: transform .25s ease, box-shadow .25s ease;
-    }
-    .stat-tile:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 18px 48px rgba(0,0,0,0.28), 0 0 32px var(--tile-glow, rgba(61,107,255,0.18));
-    }
-    .stat-tile::before {
-        content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-        background: var(--tile-accent, linear-gradient(90deg, #5c83ff, #90acff));
-    }
-    .stat-tile::after {
-        content: ""; position: absolute; right: -30px; bottom: -30px;
-        width: 120px; height: 120px; border-radius: 50%;
-        background: var(--tile-accent, linear-gradient(135deg,#5c83ff,#90acff));
-        opacity: 0.08; filter: blur(20px); pointer-events: none;
     }
     .stat-tile-head {
         display: flex; align-items: center; justify-content: space-between;
@@ -148,18 +137,25 @@
         font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
         color: var(--text-faint);
     }
+    /* Quiet at rest, brand gradient under the pointer -- the one accent
+       moment, the same as a link type on Create Link. */
     .stat-tile-icon {
         width: 32px; height: 32px; border-radius: 10px;
         display: flex; align-items: center; justify-content: center;
-        background: var(--tile-accent, linear-gradient(135deg,#5c83ff,#90acff));
-        color: #fff; font-size: 12px;
-        box-shadow: 0 8px 20px var(--tile-glow, rgba(61,107,255,0.35)), inset 0 1px 0 rgba(255,255,255,0.25);
+        background: var(--bg-glass-hover);
+        color: var(--text-dimmed); font-size: 12px;
+        transition: background .2s cubic-bezier(.22,.8,.3,1), color .2s;
     }
+    .stat-tile:hover .stat-tile-icon {
+        background: linear-gradient(135deg, #3E3AE0 0%, #3D6BFF 55%, #1BD4D9 100%);
+        color: #fff;
+    }
+    /* A figure printed in a gradient is a figure you read second. */
     .stat-tile-value {
         font-size: 26px; font-weight: 800; line-height: 1.05;
-        background: var(--tile-accent, linear-gradient(135deg,#5c83ff,#90acff));
-        -webkit-background-clip: text; background-clip: text; color: transparent;
-        letter-spacing: -0.02em;
+        color: var(--text-primary);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.025em;
     }
     .stat-tile-sub { font-size: 10px; color: var(--text-faint); margin-top: 4px; }
     html.light-mode .stat-tile-label { color: rgba(26,16,37,0.7); }
@@ -172,11 +168,9 @@
         border: 1px solid var(--border-glass);
         border-radius: 18px;
         padding: 18px 20px;
-        box-shadow: var(--card-shadow);
-        backdrop-filter: blur(20px);
-        transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        transition: background .18s ease;
     }
-    .kpi-hero:hover { transform: translateY(-2px); border-color: rgba(61,107,255,0.25); box-shadow: var(--card-shadow-hover); }
+    .kpi-hero:hover { background: var(--bg-glass-hover); }
     .kpi-hero-head {
         display: flex; align-items: center; justify-content: space-between;
         margin-bottom: 10px;
@@ -188,8 +182,8 @@
     .kpi-hero-icon {
         width: 28px; height: 28px; border-radius: 9px;
         display: flex; align-items: center; justify-content: center;
-        background: rgba(61,107,255,0.1);
-        color: var(--accent);
+        background: var(--bg-glass-hover);
+        color: var(--text-dimmed);
         font-size: 11px;
     }
     .kpi-hero-value {
@@ -263,7 +257,7 @@
         backdrop-filter: blur(14px);
         transition: all .18s ease;
     }
-    .cmp-tile:hover { border-color: rgba(92,131,255,0.35); transform: translateY(-1px); }
+    .cmp-tile:hover { background: var(--bg-glass-hover); }
     .cmp-tile-head {
         font-size: 10px; font-weight: 700;
         text-transform: uppercase; letter-spacing: 0.08em;
@@ -311,19 +305,20 @@
     html.light-mode .delta-flat { color: #475569; background: rgba(148,163,184,0.12); }
 
     /* ============ Section Card ============ */
+    /* Every section on this page set its own --sc-accent inline: blue, indigo,
+       emerald, amber, cyan, violet, orange, slate. Twelve sections, twelve
+       accent colours, each with a rail across the top of its card and a
+       glowing icon plate to match. Nothing about a section's subject is
+       encoded in whether it is teal or amber, so the colour was decoration
+       carrying no information -- the same problem the eighteen link types had.
+       The inline variables are left in place and simply no longer consumed. */
     .section-card {
         position: relative;
-        background: var(--bg-glass);
+        background: var(--bg-card);
         border: 1px solid var(--border-glass);
-        border-radius: 14px;
-        padding: 28px 32px;
-        box-shadow: var(--card-shadow);
+        border-radius: 18px;
+        padding: 26px 28px;
         overflow: hidden;
-    }
-    .section-card::before {
-        content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-        background: var(--sc-accent, linear-gradient(90deg, #5c83ff, #90acff));
-        opacity: 0.7;
     }
     .section-head {
         display: flex; align-items: center; justify-content: space-between;
@@ -334,22 +329,16 @@
         font-size: 13px; font-weight: 700; color: var(--text-primary);
     }
     .section-icon {
-        width: 36px; height: 36px; border-radius: 12px;
+        width: 34px; height: 34px; border-radius: 10px;
         display: flex; align-items: center; justify-content: center;
-        color: #fff; font-size: 13px;
-        background: var(--sc-accent, linear-gradient(135deg, #5c83ff, #90acff));
-        box-shadow: 0 8px 22px var(--sc-glow, rgba(61,107,255,0.35)), inset 0 1px 0 rgba(255,255,255,0.25);
+        color: var(--text-dimmed); font-size: 13px;
+        background: var(--bg-glass-hover);
     }
     .section-pill {
-        font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
-        background: var(--sc-glow, rgba(61,107,255,0.12));
-        color: var(--sc-color, #dbe4ff);
-        border: 1px solid var(--sc-border, rgba(61,107,255,0.25));
-    }
-    html.light-mode .section-pill {
-        background: rgba(61,107,255,0.10);
-        color: #2342c7;
-        border-color: rgba(61,107,255,0.25);
+        font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 8px;
+        background: transparent;
+        color: var(--text-faint);
+        border: 1px solid var(--border-glass);
     }
     /* Light-mode overrides for inline pastel text colors so badges stay legible on white cards */
     html.light-mode [style*="color: #86efac"],
@@ -400,9 +389,12 @@
         border: 1px solid var(--border-glass);
         margin-right: 8px;
     }
-    .rank-1 { background: linear-gradient(135deg,#fbbf24,#f59e0b); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(245,158,11,0.5); }
-    .rank-2 { background: linear-gradient(135deg,#cbd5e1,#94a3b8); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(148,163,184,0.4); }
-    .rank-3 { background: linear-gradient(135deg,#f97316,#ea580c); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(234,88,12,0.4); }
+    /* These three keep their colour: gold, silver and bronze are the one
+       place on this page where the colour IS the information. The glow under
+       them was not. */
+    .rank-1 { background: #f59e0b; color: #fff; border-color: transparent; }
+    .rank-2 { background: #94a3b8; color: #fff; border-color: transparent; }
+    .rank-3 { background: #ea580c; color: #fff; border-color: transparent; }
 
     /* Inline horizontal bar inside a table cell */
     .bar-cell { position: relative; min-width: 120px; }
@@ -412,8 +404,7 @@
     }
     .bar-fill {
         position: absolute; top: 0; left: 0; bottom: 0; border-radius: 999px;
-        background: var(--bar-color, linear-gradient(90deg, #5c83ff, #ec4899));
-        box-shadow: 0 0 12px var(--bar-glow, rgba(61,107,255,0.5));
+        background: var(--accent);
     }
 
     /* List rows with progress bar (referrers, UTM) */
@@ -424,13 +415,13 @@
         background: var(--bg-glass-input);
         border: 1px solid var(--border-glass);
         overflow: hidden;
-        transition: transform .15s ease;
+        transition: background .15s ease;
     }
-    .progress-row:hover { transform: translateX(2px); }
+    .progress-row:hover { background: var(--bg-glass-hover); }
     .progress-row::before {
         content: ""; position: absolute; left: 0; top: 0; bottom: 0;
         width: var(--pr-width, 0%);
-        background: var(--pr-color, linear-gradient(90deg, rgba(61,107,255,0.18), rgba(236,72,153,0.10)));
+        background: color-mix(in srgb, var(--accent) 10%, transparent);
         z-index: 0;
     }
     .progress-row > * { position: relative; z-index: 1; }
@@ -454,7 +445,7 @@
         color: var(--text-muted);
         transition: all .2s ease;
     }
-    .table-action:hover { background: linear-gradient(135deg,#3d6bff,#5c83ff); color: #fff; border-color: transparent; box-shadow: 0 6px 18px rgba(61,107,255,0.4); }
+    .table-action:hover { background: var(--bg-glass-hover); color: var(--text-primary); border-color: var(--accent); }
 
     .stat-tile-value-sm { font-size: 22px; }
     @media (max-width: 640px) {
