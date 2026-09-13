@@ -29,7 +29,7 @@ class TheDashboardSkinStaysQuietTest extends TestCase
         return (string) file_get_contents(resource_path('views/'.$view));
     }
 
-    public function test_the_light_ground_is_near_white(): void
+    public function test_the_light_ground_is_white(): void
     {
         $css = $this->css('common/partials/theme-styles.blade.php');
 
@@ -37,16 +37,27 @@ class TheDashboardSkinStaysQuietTest extends TestCase
         $block = substr($css, strpos($css, 'html.light-mode {'), 2600);
 
         $this->assertMatchesRegularExpression(
-            '/--bg-body:\s*#fbfaf8;/',
+            '/--bg-body:\s*#ffffff;/',
             $block,
-            'the dashboard light ground has moved off its near-white; if that '
-            .'is deliberate, change it here too and say why'
+            'the dashboard light ground is no longer white; if that is '
+            .'deliberate, change it here too and say why'
         );
 
-        $this->assertStringNotContainsString(
-            '--bg-body: #f4f6fa;',
+        foreach (['#f4f6fa' => 'the blue-grey ground', '#fbfaf8' => 'the near-white half-measure'] as $hex => $what) {
+            $this->assertStringNotContainsString(
+                '--bg-body: '.$hex.';',
+                $block,
+                $what.' is back'
+            );
+        }
+
+        // A white card on a white page has nothing but its border. If the
+        // hairline ever goes back to a wash of the ground, the cards vanish.
+        $this->assertMatchesRegularExpression(
+            '/--border-glass:\s*#e3e0da;/',
             $block,
-            'the blue-grey ground is back'
+            'the card hairline changed: on a white page it is the entire card '
+            .'edge, so it cannot be softened without the cards disappearing'
         );
     }
 

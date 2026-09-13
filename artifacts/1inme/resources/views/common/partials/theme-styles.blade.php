@@ -132,28 +132,35 @@
            The ground used to be #f4f6fa -- a blue-grey chosen so pure-white
            cards would lift off it. It did that, but on a screen whose content
            is rows rather than cards it buys nothing and simply reads as grey.
-           This is the near-white the marketing site stands on, warm rather
-           than blue: white cards still lift, and the page reads as white.
-           Card edges come from the borders below, which is where a card edge
-           belongs. */
-        --bg-body: #fbfaf8;
+           It then spent a day at #fbfaf8, which was three percent off the
+           white of a card -- not enough separation to read as layering, and
+           not clean enough to read as white. The half-measure was the worst
+           of the three, so the page is white and the card's edge is the
+           border, which is where a card edge belongs anyway. */
+        --bg-body: #ffffff;
         --bg-sidebar: #ffffff;
         --bg-sidebar-mobile: #ffffff;
         --bg-dropdown: #ffffff;
         --bg-header: #ffffff;
         --bg-glass: #ffffff;
         --bg-glass-light: #ffffff;
-        --bg-glass-hover: #f4f3f0;
+        --bg-glass-hover: #f6f5f2;
         --bg-glass-input: #ffffff;
         --bg-glass-input-focus: #ffffff;
         --bg-card: #ffffff;
         --bg-card-hover: #ffffff;
-        /* A touch darker than the old blue-greys: on a near-white ground a
-           card's edge is the only thing separating it from the page. */
-        --border-glass: #d7d4cd;
-        --border-glass-light: #c5c1b8;
-        --border-subtle: #e7e4de;
-        --border-strong: #c5c1b8;
+        /* On a white page the border is the entire card edge -- there is no
+           tonal step behind it doing part of the work -- so it has to read on
+           its own. It is a shade lighter than the #d7d4cd set that sat on the
+           near-white, not heavier: with every surface now the same white, that
+           line appears on every edge at once, and at #d7d4cd the page starts
+           to read as a wireframe. #e3e0da is the weight that separates a card
+           without drawing a box around it. Warm neutral, to stay off the blue
+           the rest of the palette left behind. */
+        --border-glass: #e3e0da;
+        --border-glass-light: #c9c5bc;
+        --border-subtle: #edeae4;
+        --border-strong: #c9c5bc;
         --text-primary: #071437;
         --text-secondary: #252f4a;
         --text-muted: #4b5675;
