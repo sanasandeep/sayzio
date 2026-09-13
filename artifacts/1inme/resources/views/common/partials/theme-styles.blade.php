@@ -450,17 +450,30 @@
        stacked layers, so moving between them changes a colour and nothing
        else -- no border width to reflow, no transform to move the card under
        the cursor. */
+       All four card families are listed together deliberately. They are the
+       same object wearing four class names, and the first attempt at this
+       changed three of them: .bento-tile kept its own lift in bento-styles,
+       and the unscoped .card-premium:hover / .stat-card:hover rules below
+       kept setting --lg-shadow-hover with !important, so the shadow still
+       bloomed under the cursor even after the transform was gone. Hence the
+       explicit transform: none and the pinned resting shadow on hover: this
+       rule has to actively undo the older ones, not merely omit them. */
     html.aurora .glass,
     html.aurora .card-premium,
-    html.aurora .stat-card {
+    html.aurora .stat-card,
+    html.aurora .bento-tile {
         border: 1px solid transparent !important;
         background-image: linear-gradient(var(--bg-card), var(--bg-card)), linear-gradient(var(--border-glass), var(--border-glass)) !important;
         background-origin: border-box !important;
         background-clip: padding-box, border-box !important;
         box-shadow: var(--lg-shadow) !important;
     }
+    html.aurora .glass:hover,
     html.aurora .card-premium:hover,
-    html.aurora .stat-card:hover {
+    html.aurora .stat-card:hover,
+    html.aurora .bento-tile:hover {
+        transform: none !important;
+        box-shadow: var(--lg-shadow) !important;
         background-image: linear-gradient(var(--bg-card), var(--bg-card)), var(--aurora-edge) !important;
     }
 

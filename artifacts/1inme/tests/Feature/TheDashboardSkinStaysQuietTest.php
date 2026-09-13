@@ -140,6 +140,55 @@ class TheDashboardSkinStaysQuietTest extends TestCase
         );
     }
 
+    /**
+     * The first attempt at removing the lift changed three of the four card
+     * families and left .bento-tile lifting in bento-styles, while two
+     * unscoped rules kept setting --lg-shadow-hover with !important -- so on
+     * the real dashboard the shadow still bloomed under the cursor and the
+     * change read as nothing having happened.
+     *
+     * The families are one object with four class names. They get one rule.
+     */
+    public function test_every_card_family_shares_the_one_hover_rule(): void
+    {
+        $css = $this->css('common/partials/theme-styles.blade.php');
+
+        $start = strpos($css, 'html.aurora .glass:hover');
+        $this->assertNotFalse($start, 'the shared card hover rule is gone');
+        $hover = substr($css, $start, 500);
+
+        foreach (['.card-premium:hover', '.stat-card:hover', '.bento-tile:hover'] as $family) {
+            $this->assertStringContainsString(
+                'html.aurora '.$family,
+                $hover,
+                "$family dropped out of the shared hover rule: it will fall "
+                .'back to whatever unscoped rule still lifts it'
+            );
+        }
+
+        // The rule has to undo the older ones, not merely omit them.
+        $this->assertStringContainsString('transform: none !important', $hover);
+        $this->assertStringContainsString('box-shadow: var(--lg-shadow) !important', $hover);
+    }
+
+    /** Nothing may still reference the token that was deleted with the lift. */
+    public function test_the_hot_edge_token_has_no_orphaned_users(): void
+    {
+        foreach ([
+            'common/partials/theme-styles.blade.php',
+            'user/partials/bento-styles.blade.php',
+            'user/layouts/app.blade.php',
+        ] as $view) {
+            $this->assertStringNotContainsString(
+                'aurora-edge-hot',
+                $this->css($view),
+                "$view still reads --aurora-edge-hot, which is no longer "
+                .'defined: the whole background-image declaration is invalid '
+                .'at computed-value time, so the card loses its surface'
+            );
+        }
+    }
+
     public function test_the_gradient_edge_is_a_hover_state(): void
     {
         $css = $this->css('common/partials/theme-styles.blade.php');

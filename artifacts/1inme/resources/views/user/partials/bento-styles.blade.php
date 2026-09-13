@@ -279,12 +279,11 @@
     html.aurora .bento-tile.accent::before,
     html.aurora .bento-tile.accent .tile-orb { display: none; }
 
-    html.aurora .bento-tile:hover,
-    html.aurora.light-mode .bento-tile:hover {
-        transform: translateY(-2px);
-        background-image: linear-gradient(var(--bg-card), var(--bg-card)), var(--aurora-edge-hot);
-        box-shadow: var(--lg-shadow-hover);
-    }
+    /* The tile's rest and hover states live with the other card families in
+       theme-styles now, so that .bento-tile, .card-premium, .stat-card and
+       .glass cannot drift apart again. The rule that stood here set its own
+       lift and its own hotter gradient, and was missed when those two things
+       were removed from the others. */
 
     /* Figures in Archivo with tabular digits, microlabels in mono at wide
        tracking. Sizes are set inline on the elements, so this changes the face
