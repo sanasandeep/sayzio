@@ -6,10 +6,10 @@
     $pcPreset  = \App\Modules\User\Services\LinkPerformanceCoach::resolvePreset($link);
     $pcEffective = \App\Modules\User\Services\LinkPerformanceCoach::resolveConfig($link);
     $sevMap = [
-        'critical' => ['bg' => 'rgba(239,68,68,0.12)',  'border' => 'rgba(239,68,68,0.35)',  'color' => '#fca5a5', 'icon' => 'fa-triangle-exclamation'],
-        'warning'  => ['bg' => 'rgba(245,158,11,0.12)', 'border' => 'rgba(245,158,11,0.35)', 'color' => '#fcd34d', 'icon' => 'fa-circle-exclamation'],
-        'tip'      => ['bg' => 'rgba(59,130,246,0.12)', 'border' => 'rgba(59,130,246,0.35)', 'color' => '#bccfff', 'icon' => 'fa-lightbulb'],
-        'win'      => ['bg' => 'rgba(16,185,129,0.12)', 'border' => 'rgba(16,185,129,0.35)', 'color' => '#6ee7b7', 'icon' => 'fa-circle-check'],
+        'critical' => ['bg' => 'transparent', 'border' => 'var(--border-glass)', 'color' => '#ef4444', 'icon' => 'fa-triangle-exclamation'],
+        'warning'  => ['bg' => 'transparent', 'border' => 'var(--border-glass)', 'color' => '#d97706', 'icon' => 'fa-circle-exclamation'],
+        'tip'      => ['bg' => 'transparent', 'border' => 'var(--border-glass)', 'color' => 'var(--accent)', 'icon' => 'fa-lightbulb'],
+        'win'      => ['bg' => 'transparent', 'border' => 'var(--border-glass)', 'color' => '#10b981', 'icon' => 'fa-circle-check'],
     ];
     $deltaPct = $p['delta_pct'] ?? null;
     $deltaUp  = $deltaPct !== null && $deltaPct > 0.001;
@@ -121,7 +121,7 @@
             </div>
             <div class="flex-1 min-w-0">
                 <div class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">
-                    <i class="fas fa-wand-magic-sparkles text-blue-400"></i> {{ $p['headline'] }}
+                    <i class="fas fa-wand-magic-sparkles" style="color: var(--text-faint);"></i> {{ $p['headline'] }}
                 </div>
                 <div class="text-lg font-semibold mt-0.5" style="color: var(--text-primary);">{{ $p['label'] }}</div>
                 @if(!empty($sparkPoints))
@@ -242,8 +242,11 @@
                 <div class="flex flex-col gap-2">
                     @foreach($p['insights'] as $ins)
                         @php $s = $sevMap[$ins['severity']] ?? $sevMap['tip']; @endphp
-                        <div class="pc-insight"
-                             style="background: {{ $s['bg'] }}; border-color: {{ $s['border'] }};">
+                        {{-- Ground and border come from the stylesheet, not from
+                             the severity map: an inline background here would
+                             outrank the rule and take the hover state with it.
+                             Severity rides the icon. --}}
+                        <div class="pc-insight">
                             <div class="pc-insight-icon" style="color: {{ $s['color'] }};">
                                 <i class="fas {{ $ins['icon'] ?? $s['icon'] }}"></i>
                             </div>
@@ -254,7 +257,7 @@
                                     @php $th = $ins['threshold']; @endphp
                                     <button type="button"
                                             class="pc-threshold-chip"
-                                            style="color: {{ $s['color'] }}; border-color: {{ $s['border'] }}; background: {{ $s['bg'] }};"
+                                            style="color: {{ $s['color'] }};"
                                             title="Click to tune this threshold"
                                             @click="pcSettingsOpen = true; $nextTick(() => { const el = $root.querySelector('[name=&quot;overrides[{{ $th['key'] }}]&quot;]'); if (el) { el.scrollIntoView({behavior:'smooth', block:'center'}); el.focus(); el.select && el.select(); } })">
                                         <i class="fas fa-sliders text-[9px] mr-1"></i>
@@ -378,7 +381,6 @@
         background:
             conic-gradient(var(--pc-ring) var(--pc-gauge-deg), rgba(148,163,184,0.18) 0);
         display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 0 20px -6px var(--pc-ring);
         position: relative;
     }
     .perf-coach .pc-gauge::before {
@@ -402,11 +404,12 @@
     }
     .perf-coach .pc-insight {
         display: flex; align-items: center; gap: 12px;
-        padding: 10px 12px; border-radius: 12px;
-        border: 1px solid;
-        transition: transform .15s ease;
+        padding: 11px 12px; border-radius: 12px;
+        border: 1px solid var(--border-glass);
+        background: var(--bg-card);
+        transition: background .15s ease;
     }
-    .perf-coach .pc-insight:hover { transform: translateY(-1px); }
+    .perf-coach .pc-insight:hover { background: var(--bg-glass-hover); }
     .perf-coach .pc-insight-icon {
         width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
         border-radius: 8px; background: var(--bg-glass-hover); font-size: 14px; flex-shrink: 0;
@@ -423,8 +426,9 @@
     .perf-coach .pc-threshold-chip {
         display: inline-flex; align-items: center; gap: 4px;
         margin-top: 6px;
-        padding: 3px 8px; border-radius: 999px;
-        border: 1px solid;
+        padding: 3px 8px; border-radius: 8px;
+        border: 1px solid var(--border-glass);
+        background: transparent;
         font-size: 10px; font-weight: 600;
         letter-spacing: .02em;
         cursor: pointer; max-width: 100%;
@@ -593,11 +597,11 @@
     }
     .perf-coach .pc-btn-ghost:hover { background: var(--bg-glass-hover); color: var(--text-primary); }
     .perf-coach .pc-btn-save {
-        background: linear-gradient(135deg, rgba(92,131,255,0.9), rgba(99,102,241,0.9));
-        /* White text intentional: button bg is the dark violet/indigo accent gradient in both light & dark modes. */
-        color: #fff; border-color: rgba(92,131,255,0.6);
+        background: var(--accent);
+        /* White text intentional: the button ground is the accent in both modes. */
+        color: #fff; border-color: var(--accent);
     }
-    .perf-coach .pc-btn-save:hover { filter: brightness(1.1); }
+    .perf-coach .pc-btn-save:hover { filter: brightness(1.08); }
     [x-cloak] { display: none !important; }
 </style>
 @endif
