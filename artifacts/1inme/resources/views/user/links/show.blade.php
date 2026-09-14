@@ -78,8 +78,15 @@
         }
         return ['name' => $name, 'flag' => $flagStr, 'region' => $region];
     };
-    function _fmtSecs($s){ $s=(int)$s; if($s<60) return $s.'s'; $m=intdiv($s,60); $r=$s%60; if($m<60) return $m.'m '.$r.'s'; $h=intdiv($m,60); return $h.'h '.($m%60).'m'; }
-    function _fmtMs($ms){ return _fmtSecs(intdiv((int)$ms,1000)); }
+    // Guarded like _blockDeltaPill below. A Blade template's body runs on every
+    // render, so a bare `function` here is a fatal redeclare the second time
+    // this page is rendered in one PHP process -- which never happens under
+    // php-fpm, and happens immediately under a persistent worker or in a test
+    // that renders the page more than once.
+    if (!function_exists('_fmtSecs')) {
+        function _fmtSecs($s){ $s=(int)$s; if($s<60) return $s.'s'; $m=intdiv($s,60); $r=$s%60; if($m<60) return $m.'m '.$r.'s'; $h=intdiv($m,60); return $h.'h '.($m%60).'m'; }
+        function _fmtMs($ms){ return _fmtSecs(intdiv((int)$ms,1000)); }
+    }
 @endphp
 
 @push('styles')
@@ -447,6 +454,71 @@
     }
     .table-action:hover { background: var(--bg-glass-hover); color: var(--text-primary); border-color: var(--accent); }
 
+    /* Download / Copy on a chart card. Smaller than a table action because it
+       sits on the title row beside the period pill, and the chart is what the
+       eye should land on first. */
+    .chart-actions { display: inline-flex; align-items: center; gap: 6px; }
+    .chart-actions .table-action { padding: 5px 10px; font-size: 10.5px; }
+
+    /* ---- When this link gets clicked ----
+       Twelve two-hour columns plus a day letter, the same grid the dashboard
+       draws so the two read as one picture.
+
+       The width cap is the whole trick. The dashboard's copy lives in a narrow
+       sidebar column, so 1fr columns land at a tidy ~26px. Dropped into a
+       full-width card the same rule gives square cells over 100px across and
+       the chart stops looking like a heatmap and starts looking like a wall.
+       Capped and centred, it keeps the dashboard's proportions on a wide
+       screen and still collapses to fit a phone. */
+    .when-heat {
+        display: grid;
+        grid-template-columns: 18px repeat(12, 1fr);
+        gap: 4px;
+        align-items: center;
+        max-width: 560px;
+        margin-inline: auto;
+    }
+    .when-heat-day {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--text-faint);
+        text-align: center;
+    }
+    .when-heat-cell {
+        aspect-ratio: 1 / 1;
+        border-radius: 6px;
+        min-height: 22px;
+    }
+    .when-heat-hours {
+        display: grid;
+        grid-template-columns: 18px repeat(12, 1fr);
+        gap: 4px;
+        margin: 6px auto 0;
+        max-width: 560px;
+        font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 9.5px;
+        color: var(--text-faint);
+        text-align: center;
+    }
+    .when-heat-scale {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 14px;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: var(--text-faint);
+    }
+    .when-heat-steps { display: inline-flex; gap: 3px; }
+    .when-heat-steps i { width: 13px; height: 13px; border-radius: 4px; display: inline-block; }
+    @media (max-width: 560px) {
+        .when-heat-cell { min-height: 15px; }
+        .when-heat-hours { font-size: 8px; }
+    }
+
     .stat-tile-value-sm { font-size: 22px; }
     @media (max-width: 640px) {
         .stat-tile-value { font-size: 22px; }
@@ -474,7 +546,24 @@
     $canExportStats = (bool) (workspace_owner()?->getPlanFeature('analytics_export', true));
     $heroActions = [];
     if ($canExportStats) {
-        $heroActions[] = ['label' => 'Export CSV', 'url' => route('user.links.clicks.export', $link).'?'.http_build_query($qs), 'icon' => 'fa-file-csv', 'class' => 'btn-ghost'];
+        // One Export action with the formats behind it, rather than a button
+        // per format eating the hero. The period and filters currently on
+        // screen ride along in $qs, so an export matches what is being looked
+        // at instead of silently dumping all time.
+        $exportBase = route('user.links.clicks.export', $link);
+        $heroActions[] = [
+            'label' => 'Export', 'icon' => 'fa-download', 'class' => 'btn-ghost',
+            'title' => 'Download this link\'s clicks for the selected period',
+            'menu'  => [
+                ['label' => 'CSV',  'note' => 'Spreadsheet', 'icon' => 'fa-file-csv',
+                 'url' => $exportBase.'?'.http_build_query($qs)],
+                ['label' => 'JSON', 'note' => 'Developers',  'icon' => 'fa-file-code',
+                 'url' => $exportBase.'?'.http_build_query($qs + ['format' => 'json'])],
+                ['label' => 'CSV with bots', 'note' => 'Raw', 'icon' => 'fa-robot',
+                 'title' => 'Includes scraper and bot hits, which every other number on this page excludes.',
+                 'url' => $exportBase.'?'.http_build_query($qs + ['include_bots' => 1])],
+            ],
+        ];
     } else {
         $heroActions[] = ['label' => 'Upgrade to export', 'url' => route('user.upgrade'), 'icon' => 'fa-lock', 'class' => 'btn-ghost', 'title' => 'CSV export is a paid feature, upgrade your plan to download stats.'];
     }
@@ -868,11 +957,23 @@
 </div>
 @endif
 
+{{-- Printed under every exported chart. A chart pasted into a deck with no
+     caption is a shape; with the link and the period on it, it is evidence. --}}
+@php
+    $chartFooter = trim(($link->title ?: $link->alias) . ' · '
+        . $startDate->format('M j, Y') . ' – ' . $endDate->format('M j, Y'));
+@endphp
+
 {{-- ===================== CLICKS OVER TIME ===================== --}}
 <div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#3d6bff,#ec4899); --sc-glow: rgba(61,107,255,0.35); --sc-color: #dbe4ff; --sc-border: rgba(61,107,255,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-chart-line"></i></div> Clicks Over Time <span class="text-[11px] font-medium ml-1" style="color:var(--text-faint);">({{ ucfirst($groupBy) }})</span></div>
-        <span class="section-pill"><i class="fas fa-calendar-week"></i> {{ $startDate->format('M d, Y') }} → {{ $endDate->format('M d, Y') }}</span>
+        <div class="flex items-center gap-2 flex-wrap">
+            <span class="section-pill"><i class="fas fa-calendar-week"></i> {{ $startDate->format('M d, Y') }} → {{ $endDate->format('M d, Y') }}</span>
+            @if(!$clicksOverTime->isEmpty())
+                @include('user.links.partials.chart-actions', ['target' => 'clicksChart', 'title' => 'Clicks Over Time', 'slug' => 'clicks-over-time', 'footer' => $chartFooter])
+            @endif
+        </div>
     </div>
     @if($clicksOverTime->isEmpty())
         <p class="text-sm text-center py-12" style="color: var(--text-faint);">No click data in this range</p>
@@ -881,14 +982,90 @@
     @endif
 </div>
 
+{{-- ===================== WHEN THIS LINK GETS CLICKED =====================
+     The dashboard draws this for the whole account. Per link it answers a
+     different and more actionable question -- when to post, when to send --
+     because the pattern for one link is rarely the pattern for all of them.
+     Same grid and same scale as the dashboard's so the two read as one
+     picture: ISO weekday down, two-hour blocks across, alpha on the square
+     root of the count so one busy hour does not flatten everything else to
+     the same faint tint.                                                 --}}
+@php
+    $heatMax = 1;
+    $heatPeak = 0;
+    $heatPeakLabel = '';
+    foreach ($clickHeat as $d => $blocks) {
+        foreach ($blocks as $b => $n) {
+            $heatMax = max($heatMax, (int) $n);
+            if ($n > $heatPeak) {
+                $heatPeak = (int) $n;
+                $heatPeakLabel = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][$d]
+                    . ' ' . str_pad((string) ($b * 2), 2, '0', STR_PAD_LEFT) . ':00';
+            }
+        }
+    }
+@endphp
+<div class="section-card mb-7" id="when-card">
+    <div class="section-head">
+        <div class="section-title">
+            <div class="section-icon"><i class="fas fa-clock"></i></div>
+            When This Link Gets Clicked
+            <span class="text-[11px] font-medium ml-1" style="color:var(--text-faint);">(2-hour blocks)</span>
+        </div>
+        @if($heatPeak > 0)
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="section-pill">Peak {{ number_format($heatPeak) }} &middot; {{ $heatPeakLabel }}</span>
+                @include('user.links.partials.chart-actions', ['target' => 'when-heat-grid', 'title' => 'When This Link Gets Clicked', 'slug' => 'click-times', 'footer' => $chartFooter])
+            </div>
+        @endif
+    </div>
+    @if($heatPeak < 1)
+        <p class="text-sm text-center py-12" style="color: var(--text-faint);">No clicks in this range, so there is no pattern to draw yet.</p>
+    @else
+        <div class="when-heat" id="when-heat-grid" role="img"
+             aria-label="Click density by day and hour. Busiest at {{ $heatPeakLabel }} with {{ $heatPeak }} clicks.">
+            @foreach($clickHeat as $d => $blocks)
+                <span class="when-heat-day">{{ ['M','T','W','T','F','S','S'][$d] }}</span>
+                @foreach($blocks as $b => $n)
+                    @php $alpha = $n > 0 ? 0.12 + (sqrt($n / $heatMax) * 0.76) : 0.05; @endphp
+                    <span class="when-heat-cell"
+                          style="background: color-mix(in srgb, var(--accent) {{ round($alpha * 100) }}%, transparent)"
+                          title="{{ ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][$d] }} {{ str_pad((string) ($b * 2), 2, '0', STR_PAD_LEFT) }}:00 &middot; {{ number_format($n) }} {{ \Illuminate\Support\Str::plural('click', $n) }}"></span>
+                @endforeach
+            @endforeach
+        </div>
+        <div class="when-heat-hours">
+            {{-- One spacer for the day-letter column, then twelve labels for
+                 twelve cells. See the dashboard's copy: leading with a blank
+                 puts every label one two-hour block to the right. --}}
+            <span></span>
+            @foreach(['00','','04','','08','','12','','16','','20',''] as $h)<span>{{ $h }}</span>@endforeach
+        </div>
+        <div class="when-heat-scale">
+            <span>Quiet</span>
+            <span class="when-heat-steps">
+                @foreach([5, 24, 43, 62, 88] as $step)
+                    <i style="background: color-mix(in srgb, var(--accent) {{ $step }}%, transparent)"></i>
+                @endforeach
+            </span>
+            <span>Busy</span>
+        </div>
+    @endif
+</div>
+
 {{-- ===================== BROWSER / OS / DEVICE ===================== --}}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-7">
     <div class="section-card" style="--sc-accent: linear-gradient(90deg,#6366f1,#818cf8); --sc-glow: rgba(99,102,241,0.35); --sc-color: #a5b4fc; --sc-border: rgba(99,102,241,0.3);">
         <div class="section-head">
             <div class="section-title"><div class="section-icon"><i class="fas fa-globe"></i></div> Browsers</div>
-            @if(!empty($browserFilter))
-                <a href="{{ $buildUrl(['browser' => null]) }}" class="section-pill" title="Clear browser filter"><i class="fas fa-times mr-1"></i>{{ $browserFilter }}</a>
-            @endif
+            <div class="flex items-center gap-2 flex-wrap">
+                @if(!empty($browserFilter))
+                    <a href="{{ $buildUrl(['browser' => null]) }}" class="section-pill" title="Clear browser filter"><i class="fas fa-times mr-1"></i>{{ $browserFilter }}</a>
+                @endif
+                @if(!$browserStats->isEmpty())
+                    @include('user.links.partials.chart-actions', ['target' => 'browserChart', 'title' => 'Browsers', 'slug' => 'browsers', 'footer' => $chartFooter])
+                @endif
+            </div>
         </div>
         @if($browserStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
         @else
@@ -906,9 +1083,14 @@
     <div class="section-card" style="--sc-accent: linear-gradient(90deg,#10b981,#34d399); --sc-glow: rgba(16,185,129,0.35); --sc-color: #6ee7b7; --sc-border: rgba(16,185,129,0.3);">
         <div class="section-head">
             <div class="section-title"><div class="section-icon"><i class="fas fa-laptop"></i></div> Operating Systems</div>
-            @if(!empty($osFilter))
-                <a href="{{ $buildUrl(['os' => null]) }}" class="section-pill" title="Clear OS filter"><i class="fas fa-times mr-1"></i>{{ $osFilter }}</a>
-            @endif
+            <div class="flex items-center gap-2 flex-wrap">
+                @if(!empty($osFilter))
+                    <a href="{{ $buildUrl(['os' => null]) }}" class="section-pill" title="Clear OS filter"><i class="fas fa-times mr-1"></i>{{ $osFilter }}</a>
+                @endif
+                @if(!$osStats->isEmpty())
+                    @include('user.links.partials.chart-actions', ['target' => 'osChart', 'title' => 'Operating Systems', 'slug' => 'operating-systems', 'footer' => $chartFooter])
+                @endif
+            </div>
         </div>
         @if($osStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
         @else
@@ -926,9 +1108,14 @@
     <div class="section-card" style="--sc-accent: linear-gradient(90deg,#f59e0b,#fbbf24); --sc-glow: rgba(245,158,11,0.35); --sc-color: #fcd34d; --sc-border: rgba(245,158,11,0.3);">
         <div class="section-head">
             <div class="section-title"><div class="section-icon"><i class="fas fa-mobile-alt"></i></div> Devices</div>
-            @if(!empty($deviceFilter))
-                <a href="{{ $buildUrl(['device' => null]) }}" class="section-pill" title="Clear device filter"><i class="fas fa-times mr-1"></i>{{ ucfirst($deviceFilter) }}</a>
-            @endif
+            <div class="flex items-center gap-2 flex-wrap">
+                @if(!empty($deviceFilter))
+                    <a href="{{ $buildUrl(['device' => null]) }}" class="section-pill" title="Clear device filter"><i class="fas fa-times mr-1"></i>{{ ucfirst($deviceFilter) }}</a>
+                @endif
+                @if(!$deviceStats->isEmpty())
+                    @include('user.links.partials.chart-actions', ['target' => 'deviceChart', 'title' => 'Devices', 'slug' => 'devices', 'footer' => $chartFooter])
+                @endif
+            </div>
         </div>
         @if($deviceStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
         @else
@@ -3159,5 +3346,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 })();
 </script>
+
+{{-- Download / copy any chart on this page as a PNG. Last in the push so the
+     Chart.js canvases it reads from already exist when it binds. --}}
+@include('user.links.partials.chart-export')
 @endpush
 @endsection

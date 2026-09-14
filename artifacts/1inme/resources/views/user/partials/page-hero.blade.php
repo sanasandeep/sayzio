@@ -83,13 +83,43 @@
         @if(!empty($actions))
             <div class="flex items-center gap-2 flex-wrap">
                 @foreach($actions as $a)
-                    <a href="{{ $a['url'] ?? '#' }}"
-                       @if(!empty($a['target']))target="{{ $a['target'] }}" rel="noopener noreferrer"@endif
-                       class="{{ $a['class'] ?? 'btn-primary' }} text-xs py-2"
-                       @if(!empty($a['title']))title="{{ $a['title'] }}"@endif>
-                        @if(!empty($a['icon']))<i class="fas {{ $a['icon'] }} text-[10px]"></i>@endif
-                        @if(!empty($a['label'])){{ $a['label'] }}@endif
-                    </a>
+                    @if(!empty($a['menu']))
+                        {{-- An action with more than one destination. Built on
+                             <details> rather than a JS dropdown: it opens on
+                             click, closes on Escape and is keyboard-reachable
+                             without a line of script, and every page that does
+                             not pass `menu` renders exactly as before. --}}
+                        <details class="hero-menu">
+                            <summary class="{{ $a['class'] ?? 'btn-primary' }} text-xs py-2"
+                                     @if(!empty($a['title']))title="{{ $a['title'] }}"@endif>
+                                @if(!empty($a['icon']))<i class="fas {{ $a['icon'] }} text-[10px]"></i>@endif
+                                @if(!empty($a['label'])){{ $a['label'] }}@endif
+                                <i class="fas fa-chevron-down text-[8px] hero-menu-caret"></i>
+                            </summary>
+                            <div class="hero-menu-list" role="menu">
+                                @foreach($a['menu'] as $m)
+                                    <a href="{{ $m['url'] ?? '#' }}" role="menuitem"
+                                       {{-- The space before @endif is load-bearing: Blade's directive
+                                            pattern needs a non-word character in front of the @, so
+                                            `download@endif` leaves the @if hanging open. --}}
+                                       @if(!empty($m['download']))download @endif
+                                       @if(!empty($m['title']))title="{{ $m['title'] }}"@endif>
+                                        @if(!empty($m['icon']))<i class="fas {{ $m['icon'] }}"></i>@endif
+                                        <span>{{ $m['label'] ?? '' }}</span>
+                                        @if(!empty($m['note']))<span class="hero-menu-note">{{ $m['note'] }}</span>@endif
+                                    </a>
+                                @endforeach
+                            </div>
+                        </details>
+                    @else
+                        <a href="{{ $a['url'] ?? '#' }}"
+                           @if(!empty($a['target']))target="{{ $a['target'] }}" rel="noopener noreferrer"@endif
+                           class="{{ $a['class'] ?? 'btn-primary' }} text-xs py-2"
+                           @if(!empty($a['title']))title="{{ $a['title'] }}"@endif>
+                            @if(!empty($a['icon']))<i class="fas {{ $a['icon'] }} text-[10px]"></i>@endif
+                            @if(!empty($a['label'])){{ $a['label'] }}@endif
+                        </a>
+                    @endif
                 @endforeach
             </div>
         @endif

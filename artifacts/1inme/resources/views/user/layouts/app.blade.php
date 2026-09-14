@@ -410,6 +410,49 @@
                         mask-image: linear-gradient(to right, #000 0%, rgba(0,0,0,.5) 52%, transparent 86%);
             }
         }
+        /* ----- Action menu (an action with more than one destination) ----- */
+        .hero-menu { position: relative; }
+        .hero-menu > summary {
+            list-style: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .hero-menu > summary::-webkit-details-marker { display: none; }
+        .hero-menu-caret { transition: transform .15s ease; opacity: .6; }
+        .hero-menu[open] .hero-menu-caret { transform: rotate(180deg); }
+        .hero-menu-list {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            z-index: 30;
+            min-width: 208px;
+            padding: 5px;
+            border-radius: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            /* The one shadow left in the chrome, and it earns it: this panel
+               floats over content, so it has to read as above the page rather
+               than punched into it. */
+            box-shadow: 0 12px 32px -8px rgba(9, 9, 16, 0.28);
+        }
+        .hero-menu-list a {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+        .hero-menu-list a:hover { background: var(--bg-glass-hover); }
+        .hero-menu-list a i { width: 13px; font-size: 11px; color: var(--text-faint); }
+        .hero-menu-list a:hover i { color: var(--accent); }
+        .hero-menu-note { margin-left: auto; font-size: 10.5px; color: var(--text-faint); }
+
         /* ----- Back chip ----- */
         .hero-back {
             width: 36px; height: 36px; border-radius: 12px;
