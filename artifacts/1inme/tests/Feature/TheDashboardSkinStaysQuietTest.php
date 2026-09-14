@@ -302,6 +302,70 @@ class TheDashboardSkinStaysQuietTest extends TestCase
      *
      * Balanced markers plus no prose outside a comment is the cheap check.
      */
+    public function test_the_analytics_card_families_share_the_one_treatment(): void
+    {
+        $css = $this->css('common/partials/theme-styles.blade.php');
+
+        // The analytics pages each carry a private copy of one card system,
+        // and every copy paints a coloured rail across the top of the card.
+        // Seven files at the last count, and a new analytics page starts by
+        // pasting an eighth -- so the rule that overrides them lives here,
+        // once, rather than being chased page by page.
+        // The selector list of the shared rule, not the whole file: several of
+        // these class names appear elsewhere too, and matching those would let
+        // the rule itself go missing while the test stayed green.
+        $start = strpos($css, 'html.aurora .section-card,');
+        $this->assertNotFalse($start, 'The shared card treatment is gone.');
+
+        $selectors = substr($css, $start, (int) (strpos($css, '{', $start) - $start));
+
+        foreach (['.section-card', '.stat-tile', '.kpi-hero', '.cmp-tile', '.period-bar', '.page-hero'] as $family) {
+            $this->assertStringContainsString(
+                'html.aurora ' . $family,
+                $selectors,
+                "{$family} is not in the shared card treatment, so its page's own copy still wins."
+            );
+        }
+
+        // Scoping matters as much as the rule: html.aurora .section-card is
+        // (0,2,0) against a page's bare .section-card at (0,1,0), which is the
+        // only reason this outranks seven local stylesheets without editing
+        // any of them.
+        $this->assertStringContainsString('html.aurora .section-card::before', $css);
+        $this->assertStringContainsString('html.aurora .stat-tile::before', $css);
+        $this->assertStringContainsString('html.aurora .stat-tile::after', $css);
+    }
+
+    public function test_the_rails_are_switched_off_not_merely_omitted(): void
+    {
+        $css = $this->css('common/partials/theme-styles.blade.php');
+
+        // A rail is drawn by a ::before the local sheet owns. Leaving a
+        // property out does not override anything; it has to say display:none.
+        $start = strpos($css, 'html.aurora .section-card::before');
+        $this->assertNotFalse($start, 'The rail override is gone.');
+
+        $this->assertStringContainsString(
+            'display: none !important',
+            substr($css, $start, 240),
+            'The top rails are no longer actively switched off.'
+        );
+    }
+
+    public function test_a_selected_filter_is_an_outline_not_a_gradient(): void
+    {
+        $css = $this->css('common/partials/theme-styles.blade.php');
+
+        $start = strpos($css, 'html.aurora .pill-active,');
+        $this->assertNotFalse($start, 'The shared pill rule is gone; eight local copies win again.');
+
+        $rule = substr($css, $start, 400);
+
+        $this->assertStringContainsString('border-color: var(--accent)', $rule);
+        $this->assertStringNotContainsString('linear-gradient', $rule, 'A selected filter is painting a gradient again.');
+        $this->assertStringContainsString('box-shadow: none', $rule, 'The coloured glow is back under the selected filter.');
+    }
+
     public function test_every_comment_in_the_stylesheet_is_closed_once(): void
     {
         foreach ([

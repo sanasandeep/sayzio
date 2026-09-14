@@ -61,8 +61,13 @@ class TheLinkPageWearsTheDashboardSkinTest extends TestCase
     {
         preg_match_all('/<style>(.*?)<\/style>/s', $html, $m);
 
-        $mine = array_filter($m[1], static fn (string $css): bool => str_contains($css, '.stat-tile')
-            || str_contains($css, '.section-card')
+        // Keyed on class names only THIS page invented. .section-card and
+        // .stat-tile are no longer safe markers: the shared theme now names
+        // them too, in order to override the copies these pages carry, so
+        // matching on them pulls the layout's whole stylesheet in here and
+        // fails the page for someone else's hover rule.
+        $mine = array_filter($m[1], static fn (string $css): bool => str_contains($css, '.bar-cell')
+            || str_contains($css, '.rank-badge')
             || str_contains($css, '.perf-coach'));
 
         $this->assertNotEmpty($mine, "The link page's own stylesheet did not render.");
@@ -135,15 +140,25 @@ class TheLinkPageWearsTheDashboardSkinTest extends TestCase
         $this->assertStringContainsString('cribbon-grid', $html);
         $this->assertStringContainsString('cribbon-copy', $html);
 
-        // And it was the last card on the dashboard still casting one.
-        if (preg_match('/\.page-hero\s*\{(.*?)\}/s', $html, $m)) {
-            $this->assertStringNotContainsString(
-                'box-shadow',
-                $m[1],
+        // And it was the last card on the dashboard still casting one. Every
+        // .page-hero rule is checked rather than the first one found: the
+        // shadow survived two earlier sweeps precisely because it was declared
+        // twice, and the shared theme now carries a third rule for this class.
+        // A rule that says box-shadow: none is the fix, not the offence.
+        if (!preg_match_all('/\.page-hero\s*\{([^}]*)\}/', $html, $m)) {
+            $this->fail('The .page-hero rule did not render.');
+        }
+
+        foreach ($m[1] as $rule) {
+            if (!str_contains($rule, 'box-shadow')) {
+                continue;
+            }
+
+            $this->assertMatchesRegularExpression(
+                '/box-shadow:\s*none/',
+                $rule,
                 'The page hero is casting a shadow again.'
             );
-        } else {
-            $this->fail('The .page-hero rule did not render.');
         }
     }
 
