@@ -481,6 +481,97 @@
         background-image: linear-gradient(var(--bg-card), var(--bg-card)), var(--aurora-edge) !important;
     }
 
+    /* ---- The same treatment for the cards the analytics pages invented ----
+
+       Those pages each carry a private copy of one card system -- .section-card,
+       .stat-tile, .kpi-hero, .cmp-tile, .period-bar -- and every copy paints a
+       two-pixel coloured rail across the top of the card and a gradient plate
+       behind the section icon. Seven files, seven copies, and a new analytics
+       page starts by pasting an eighth: fixing them one at a time is how the
+       rail kept reappearing on whichever page neither of us had opened yet.
+
+       So the rule lives here instead, where the four marketing-side families
+       already live, and says the same thing to all of them: a hairline at rest,
+       the ribbon's gradient only under the pointer. Being scoped to html.aurora
+       it outranks the page-level copies (0,2,0 against 0,1,0) wherever they are
+       declared, so none of them have to be touched.
+
+       The rail has to be switched off explicitly rather than merely left out --
+       it is drawn by a ::before the local sheets own, and an unset property is
+       not an override. */
+    html.aurora .section-card,
+    html.aurora .stat-tile,
+    html.aurora .kpi-hero,
+    html.aurora .cmp-tile,
+    html.aurora .period-bar,
+    html.aurora .page-hero {
+        border: 1px solid transparent !important;
+        background-image: linear-gradient(var(--bg-card), var(--bg-card)), linear-gradient(var(--border-glass), var(--border-glass)) !important;
+        background-origin: border-box !important;
+        background-clip: padding-box, border-box !important;
+        box-shadow: none !important;
+    }
+    /* The rails, and the blurred orb the stat tiles tucked in one corner. */
+    html.aurora .section-card::before,
+    html.aurora .stat-tile::before,
+    html.aurora .stat-tile::after { display: none !important; }
+
+    /* Hover belongs to cards you can act on. The page hero is a full-width
+       header and the period bar is a row of filters; lighting either one up as
+       the pointer crosses it is movement that means nothing. */
+    html.aurora .section-card:hover,
+    html.aurora .stat-tile:hover,
+    html.aurora .kpi-hero:hover,
+    html.aurora .cmp-tile:hover {
+        transform: none !important;
+        box-shadow: none !important;
+        background-image: linear-gradient(var(--bg-card), var(--bg-card)), var(--aurora-edge) !important;
+    }
+
+    /* The icon plates that came with those cards: a gradient square with a
+       coloured glow dropped under it, in whatever colour the section declared
+       inline. Quiet plate, and the figure reads as a figure rather than as
+       artwork. */
+    html.aurora .section-icon,
+    html.aurora .stat-tile-icon {
+        background: var(--bg-glass-hover) !important;
+        color: var(--text-dimmed) !important;
+        box-shadow: none !important;
+    }
+    html.aurora .stat-tile-value {
+        background: none !important;
+        -webkit-background-clip: border-box !important;
+                background-clip: border-box !important;
+        color: var(--text-primary) !important;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* The filter pills those pages share, in eight files for the same reason.
+       A selected filter is a state, not a call to action: it was a solid blue
+       gradient chip with a coloured glow under it, which on a page whose
+       subject is the numbers was the loudest thing on screen. An accent
+       outline and a wash says selected just as clearly.
+
+       The border is declared on every state, so choosing one does not move
+       the row by a pixel. */
+    html.aurora .pill {
+        border: 1px solid transparent !important;
+        box-shadow: none !important;
+        transform: none !important;
+    }
+    html.aurora .pill:hover {
+        background: var(--bg-glass-hover) !important;
+        color: var(--text-primary) !important;
+        transform: none !important;
+    }
+    html.aurora .pill-active,
+    html.aurora .pill-active-soft {
+        background: color-mix(in srgb, var(--accent) 9%, transparent) !important;
+        border-color: var(--accent) !important;
+        color: var(--text-primary) !important;
+        box-shadow: none !important;
+    }
+
     /* ---- The ribbon ----
        The gradient that lands on a card is the marketing site's ribbon --
        three slanted bands bleeding off one edge -- rendered by
