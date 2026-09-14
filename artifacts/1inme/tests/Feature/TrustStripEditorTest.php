@@ -26,6 +26,18 @@ class TrustStripEditorTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * The page that actually renders the band.
+     *
+     * These assertions used to hit /home/sections, the deferred fragment. The
+     * band is not there any more: under the default "classic" design it moved
+     * into home.above-fold-sections, which only the landing page itself
+     * renders. So every test here failed against a page that was never going
+     * to contain a trust band -- and the band on the real landing page has
+     * been unguarded ever since.
+     */
+    private const BAND_URL = '/';
+
     private function makeAdmin(): Admin
     {
         $role = Role::firstOrCreate(
@@ -44,7 +56,7 @@ class TrustStripEditorTest extends TestCase
 
     public function test_band_renders_the_shipped_signals_when_nothing_is_saved(): void
     {
-        $this->get('/home/sections')
+        $this->get(self::BAND_URL)
             ->assertOk()
             ->assertSee('multi-region edge')
             ->assertSee('EU/UK SCCs in place');
@@ -58,7 +70,7 @@ class TrustStripEditorTest extends TestCase
      */
     public function test_the_shipped_defaults_are_what_the_band_renders(): void
     {
-        $html = $this->get('/home/sections')->assertOk()->getContent();
+        $html = $this->get(self::BAND_URL)->assertOk()->getContent();
 
         foreach (SitePagesContent::trustStripDefault() as $row) {
             $this->assertStringContainsString($row['value'], $html);
@@ -79,7 +91,7 @@ class TrustStripEditorTest extends TestCase
             ->assertSessionHasNoErrors()
             ->assertRedirect();
 
-        $this->get('/home/sections')
+        $this->get(self::BAND_URL)
             ->assertOk()
             ->assertSee('SOC 2 Type II')
             ->assertSee('audited annually')
@@ -102,7 +114,7 @@ class TrustStripEditorTest extends TestCase
             ->put('/admin/marketing-settings', ['home_design' => 'classic', 'trust_strip' => []])
             ->assertSessionHasNoErrors();
 
-        $this->get('/home/sections')
+        $this->get(self::BAND_URL)
             ->assertOk()
             ->assertSee('multi-region edge')
             ->assertDontSee('Temporary');
@@ -138,7 +150,7 @@ class TrustStripEditorTest extends TestCase
             ['value' => 'Signal row only', 'label' => 'not a figure', 'icon' => 'fa-star'],
         ]);
 
-        $this->get('/home/sections')
+        $this->get(self::BAND_URL)
             ->assertOk()
             ->assertSee('Creators on board')
             ->assertSee('Signal row only');

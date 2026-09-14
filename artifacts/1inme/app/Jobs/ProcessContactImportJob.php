@@ -11,6 +11,7 @@ use App\Modules\User\Models\GoogleContactsAccount;
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\Contacts\BiolinkAttachResolver;
 use App\Modules\User\Services\Contacts\GoogleContactsSyncService;
+use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -49,6 +50,23 @@ class ProcessContactImportJob implements ShouldQueue
 
         $userId = $import->user_id;
         $rows   = (array) ($import->rows ?? []);
+
+        // Bind the importer's workspace for the life of this job.
+        //
+        // BelongsToWorkspace fills workspace_id from the container-bound
+        // `current_workspace`, which request middleware sets and a queue worker
+        // does not. Without this, every Contact below was written with a NULL
+        // workspace_id and then hidden from its owner by the same trait's read
+        // scope: the import reported "completed" and the contacts never
+        // appeared. The count above already worked around the missing binding
+        // with withoutGlobalScope; binding it properly fixes the writes too,
+        // and the phones/emails rows synced alongside each contact.
+        if ($owner = User::find($userId)) {
+            if ($workspace = app(WorkspaceContext::class)->resolve($owner)) {
+                app()->instance('current_workspace', $workspace);
+                app()->instance('workspace_owner', $owner);
+            }
+        }
         // Resume support: skip rows already processed if the worker died midway.
         $alreadyDone = (int) $import->processed_rows;
 
