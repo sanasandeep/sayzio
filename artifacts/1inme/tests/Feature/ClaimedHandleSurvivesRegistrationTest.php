@@ -63,6 +63,14 @@ class ClaimedHandleSurvivesRegistrationTest extends TestCase
             // local part lowercase (Str::random can emit uppercase) or the
             // case-sensitive User::where('email', ...) lookups below miss it.
             'email' => 'claimer' . Str::lower(Str::random(8)) . '@example.com',
+            // register() requires a confirmed password whenever email+password
+            // sign-in is enabled, which is the default. Without these the post
+            // never reaches the handle-claiming code this suite is about: it
+            // fails validation and redirects home, and the assertion that
+            // reports it dies inside Laravel's own failure-message helper
+            // rather than saying "password is required".
+            'password'              => 'Passw0rd!secure',
+            'password_confirmation' => 'Passw0rd!secure',
         ], $overrides);
     }
 

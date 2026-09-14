@@ -8,8 +8,9 @@ use App\Modules\User\Models\BiolinkWizardDraft;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\WalletTransaction;
+use App\Modules\User\Services\BiolinkWizardQuestions;
 use App\Modules\User\Services\WorkspaceContext;
-use App\Services\AI\AiBiolinkBuilderService;
+use App\Services\Biolink\AiBiolinkBuilderService;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AiUsageCharger;
 use App\Services\Billing\WalletService;
@@ -94,10 +95,52 @@ class BiolinkWizardAiCreditTest extends TestCase
         app(WalletService::class)->credit($user, $coins, ['reason' => 'test seed']);
     }
 
-    /** A complete, valid business answer set the wizard accepts. */
+    /**
+     * A complete, valid business answer set the wizard accepts.
+     *
+     * Built FROM the question catalog rather than hard-coded. This fixture was
+     * hard-coded as business_name + address, and when the four-step redesign
+     * made display_name and headline required for every combo, every test that
+     * used it started getting a 422 instead of a 201 -- for a contract change,
+     * not a regression. Asking the catalog what it requires means the next
+     * question added cannot silently rot these tests.
+     *
+     * The catalog is not under test here (BiolinkWizardValidationTest owns
+     * that, with explicit fixtures); what is under test is what happens AFTER
+     * a valid answer set arrives -- credits, plan gates, the draft itself.
+     */
     private function businessAnswers(): array
     {
-        return ['business_name' => 'Bob Bakes', 'address' => '1 Pastry Lane'];
+        return self::completeAnswersFor('business', 'local_shop');
+    }
+
+    /** @return array<string, string> every required key, filled plausibly. */
+    public static function completeAnswersFor(string $category, string $pageType): array
+    {
+        $known = [
+            'display_name'  => 'Bob Bakes',
+            'business_name' => 'Bob Bakes',
+            'headline'      => 'Fresh bread, every morning',
+            'address'       => '1 Pastry Lane',
+        ];
+
+        $answers = [];
+
+        foreach (BiolinkWizardQuestions::questions($category, $pageType, null) as $q) {
+            if (empty($q['required']) || empty($q['key'])) {
+                continue;
+            }
+
+            $key = (string) $q['key'];
+            $answers[$key] = $known[$key] ?? match ($q['type'] ?? 'text') {
+                'url'   => 'https://example.com',
+                'email' => 'bob@example.com',
+                'tel'   => '+15551234567',
+                default => 'Bob Bakes',
+            };
+        }
+
+        return $answers;
     }
 
     /** A well-formed OpenAI chat-completion envelope wrapping $content. */
@@ -133,15 +176,37 @@ class BiolinkWizardAiCreditTest extends TestCase
         ], JSON_THROW_ON_ERROR);
     }
 
-    /** Fake the OpenAI chat endpoint with a single response body. */
+    /**
+     * Fake the OpenAI endpoints this flow touches.
+     *
+     * The image endpoint matters as much as the chat one. When the user
+     * attaches no images the builder auto-sources them: it AI-generates an
+     * avatar and a cover, charging for each. With only chat/completions faked,
+     * both image calls got a chat envelope back, failed, and were refunded --
+     * two `biolink_builder` refunds on a build that had otherwise succeeded.
+     * That is the code behaving correctly; the fake was simply older than the
+     * auto-sourcing feature, and it made "a successful build must not be
+     * refunded" fail for a reason that has nothing to do with refunds.
+     */
     private function fakeOpenAi(string $content): void
     {
         Http::fake([
             'api.openai.com/v1/chat/completions' => Http::response($this->fakeChatEnvelope($content)),
+            'api.openai.com/v1/images/generations' => Http::response([
+                'data' => [['b64_json' => base64_encode($this->onePixelPng())]],
+            ]),
             // mind-grounding embedding isn't reached here (no Brains selected),
             // but stub it defensively so any incidental call never hits network.
             'api.openai.com/*' => Http::response($this->fakeChatEnvelope($content)),
         ]);
+    }
+
+    /** The smallest valid PNG, so image auto-sourcing has real bytes to store. */
+    private function onePixelPng(): string
+    {
+        return base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+        );
     }
 
     private function aiSpend(User $user): int
