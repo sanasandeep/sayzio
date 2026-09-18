@@ -62,18 +62,18 @@
     </div>
 
     <div class="glass rounded-2xl overflow-hidden p-3">
-        <table class="enhanced-table min-w-full divide-y divide-white/5">
+        <table class="enhanced-table min-w-full divide-y divide-white/5" data-server-paginated>
             <thead class="bg-white/5">
                 <tr>
                     <th class="px-4 py-3 text-left" data-no-sort>
                         <input type="checkbox" id="selectAll" class="rounded border-white/10 text-blue-400 focus:ring-blue-500/40 ak-blue">
                     </th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Link</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">@include('common.partials.sort-link', ['key' => 'link', 'label' => 'Link'])</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">User</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Type</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Clicks</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Status</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Created</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">@include('common.partials.sort-link', ['key' => 'type', 'label' => 'Type'])</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">@include('common.partials.sort-link', ['key' => 'clicks', 'label' => 'Clicks'])</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">@include('common.partials.sort-link', ['key' => 'status', 'label' => 'Status'])</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">@include('common.partials.sort-link', ['key' => 'created', 'label' => 'Created'])</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-white/40 uppercase ak-note" data-no-sort>Actions</th>
                 </tr>
             </thead>

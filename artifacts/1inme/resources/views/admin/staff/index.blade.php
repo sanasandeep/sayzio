@@ -35,14 +35,14 @@
 </div>
 
 <div class="glass rounded-2xl border border-white/10 overflow-hidden p-3">
-    <table class="enhanced-table w-full">
+    <table class="enhanced-table w-full" data-server-paginated>
         <thead class="bg-white/5">
             <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Name</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Email</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">@include('common.partials.sort-link', ['key' => 'name', 'label' => 'Name'])</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">@include('common.partials.sort-link', ['key' => 'email', 'label' => 'Email'])</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Role</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Status</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Last Login</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">@include('common.partials.sort-link', ['key' => 'status', 'label' => 'Status'])</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">@include('common.partials.sort-link', ['key' => 'last_login', 'label' => 'Last Login'])</th>
                 <th class="px-6 py-3 text-right text-xs font-medium text-white/40 uppercase ak-note" data-no-sort>Actions</th>
             </tr>
         </thead>

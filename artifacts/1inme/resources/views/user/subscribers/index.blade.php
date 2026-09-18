@@ -147,14 +147,14 @@
     @if($subscribers->count())
     <div class="glass rounded-2xl overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="enhanced-table w-full text-sm">
+            <table class="enhanced-table w-full text-sm" data-server-paginated>
                 <thead>
                     <tr style="border-bottom: 1px solid var(--border-subtle);">
-                        <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">Lead</th>
-                        <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">Type</th>
-                        <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">Source</th>
-                        <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">Status</th>
-                        <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">Date</th>
+                        <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">@include('common.partials.sort-link', ['key' => 'lead', 'label' => 'Lead'])</th>
+                        <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">@include('common.partials.sort-link', ['key' => 'type', 'label' => 'Type'])</th>
+                        <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">@include('common.partials.sort-link', ['key' => 'source', 'label' => 'Source'])</th>
+                        <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">@include('common.partials.sort-link', ['key' => 'status', 'label' => 'Status'])</th>
+                        <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">@include('common.partials.sort-link', ['key' => 'date', 'label' => 'Date'])</th>
                         <th class="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);" data-no-sort>Actions</th>
                     </tr>
                 </thead>

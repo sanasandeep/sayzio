@@ -35,7 +35,16 @@ class SubscriberController
             $query->where('visitor_type', $request->visitor_type);
         }
 
-        $subscribers = $query->orderByDesc('subscribed_at')->paginate(25)->withQueryString();
+        // Sorted by the query, not the browser: only one page is ever on screen.
+        $sort = \App\Support\TableSort::apply($query, $request, [
+            'lead'   => ['name', 'email'],
+            'type'   => 'type',
+            'source' => 'source',
+            'status' => 'status',
+            'date'   => 'subscribed_at',
+        ], defaultKey: 'date', defaultDir: 'desc');
+
+        $subscribers = $query->paginate(25)->withQueryString();
 
         $stats = [
             'total' => Subscriber::where('user_id', $user->id)->count(),
@@ -47,7 +56,7 @@ class SubscriberController
 
         $links = Link::where('user_id', $user->id)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->get(['id', 'alias']);
 
-        return view('user.subscribers.index', compact('subscribers', 'stats', 'links'));
+        return view('user.subscribers.index', compact('subscribers', 'stats', 'links', 'sort'));
     }
 
     public function show(Request $request, Subscriber $subscriber)

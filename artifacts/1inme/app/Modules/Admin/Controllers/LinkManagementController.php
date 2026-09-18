@@ -38,7 +38,16 @@ class LinkManagementController extends Controller
             $query->where('user_id', $userId);
         }
 
-        $links = $query->latest()->paginate(20)->withQueryString();
+        // Sorted by the query, not the browser: only one page is ever on screen.
+        $sort = \App\Support\TableSort::apply($query, $request, [
+            'link'    => ['title', 'alias'],
+            'type'    => 'type',
+            'clicks'  => 'total_clicks',
+            'status'  => 'is_active',
+            'created' => 'created_at',
+        ], defaultKey: 'created', defaultDir: 'desc');
+
+        $links = $query->paginate(20)->withQueryString();
 
         $stats = [
             'total' => Link::count(),
@@ -47,7 +56,7 @@ class LinkManagementController extends Controller
             'types' => Link::selectRaw('type, COUNT(*) as count')->groupBy('type')->pluck('count', 'type'),
         ];
 
-        return view('admin.links.index', compact('links', 'stats'));
+        return view('admin.links.index', compact('links', 'stats', 'sort'));
     }
 
     public function show(Link $link)
