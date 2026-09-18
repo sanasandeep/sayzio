@@ -6,7 +6,7 @@
 @if($leads->count())
 <div class="glass rounded-2xl overflow-hidden">
     <div class="overflow-x-auto">
-        <table class="enhanced-table w-full text-sm">
+        <table class="enhanced-table w-full text-sm" data-server-paginated>
             <thead>
                 <tr>
                     <th class="w-8">

@@ -36,7 +36,18 @@ class StaffController extends Controller
             $query->where('status', $request->status);
         }
 
-        $staff = $query->latest()->paginate(15)->withQueryString();
+        // Sorted by the query, not the browser: only one page is ever on screen.
+        $sort = \App\Support\TableSort::apply($query, $request, [
+            'name'       => 'name',
+            'email'      => 'email',
+            'status'     => 'status',
+            'last_login' => 'last_login_at',
+            // Not a column header; it is the list's resting order, kept as a
+            // named key so the default goes through the same allow-list.
+            'created'    => 'created_at',
+        ], defaultKey: 'created', defaultDir: 'desc');
+
+        $staff = $query->paginate(15)->withQueryString();
         $roles = Role::all();
 
         // Lowercased set of protected emails on this page so the view can
@@ -62,7 +73,7 @@ class StaffController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('admin.staff.index', compact('staff', 'roles', 'adminRoles', 'protectedEmails'));
+        return view('admin.staff.index', compact('staff', 'roles', 'adminRoles', 'protectedEmails', 'sort'));
     }
 
     /**

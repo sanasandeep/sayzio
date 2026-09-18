@@ -50,7 +50,19 @@ class UserManagementController extends Controller
 
         $query->with('accountBadges');
 
-        $users = $query->latest()->paginate(15)->withQueryString();
+        // Column sorting happens in the query, not in the browser: the table
+        // only ever holds one page of this result, so sorting it client-side
+        // would order fifteen rows and call it the account list.
+        $sort = \App\Support\TableSort::apply($query, $request, [
+            'user'   => ['name', 'email'],
+            // Sorting by plan_id would order by an internal id nobody sees.
+            // The subquery sorts by the plan's own name instead.
+            'plan'   => Plan::select('name')->whereColumn('plans.id', 'users.plan_id'),
+            'status' => 'status',
+            'joined' => 'created_at',
+        ], defaultKey: 'joined', defaultDir: 'desc');
+
+        $users = $query->paginate(15)->withQueryString();
         $plans = Plan::active()->ordered()->get();
         $badges = \App\Modules\Admin\Models\AccountBadge::orderBy('name')->get();
 
@@ -99,7 +111,7 @@ class UserManagementController extends Controller
             ->pluck('user_id')
             ->flip();
 
-        return view('admin.users.index', compact('users', 'plans', 'badges', 'adminAccounts', 'canManageAdminAccess', 'protectedEmails', 'protectedUserIds'));
+        return view('admin.users.index', compact('users', 'plans', 'badges', 'adminAccounts', 'canManageAdminAccess', 'protectedEmails', 'protectedUserIds', 'sort'));
     }
 
     public function show(Request $request, User $user)

@@ -125,7 +125,9 @@ html.light-mode .admin-users-protected { color: #065f46; }
 @endif
 
 <div class="glass rounded-2xl border border-white/10 overflow-hidden p-3">
-    <table class="enhanced-table w-full">
+    {{-- Paginated by the query, so the client-side enhancer stands down: its
+         search and sort would only ever see this page's fifteen rows. --}}
+    <table class="enhanced-table w-full" data-server-paginated>
         <thead class="bg-white/5">
             <tr>
                 @if($canBulk)
@@ -134,10 +136,10 @@ html.light-mode .admin-users-protected { color: #065f46; }
                            @change="toggleAll($event)" title="Select all on this page">
                 </th>
                 @endif
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">User</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Plan</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Status</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Joined</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">@include('common.partials.sort-link', ['key' => 'user', 'label' => 'User'])</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">@include('common.partials.sort-link', ['key' => 'plan', 'label' => 'Plan'])</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">@include('common.partials.sort-link', ['key' => 'status', 'label' => 'Status'])</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">@include('common.partials.sort-link', ['key' => 'joined', 'label' => 'Joined'])</th>
                 <th class="px-6 py-3 text-right text-xs font-medium text-white/40 uppercase ak-note" data-no-sort>Actions</th>
             </tr>
         </thead>

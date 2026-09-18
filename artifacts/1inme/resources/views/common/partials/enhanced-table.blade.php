@@ -81,6 +81,20 @@
         box-shadow: 0 4px 12px rgba(61,107,255,0.35);
     }
     .et-page-btn.dots { background: transparent; border: 0; cursor: default; }
+    /* Sort headers on a server-paginated table. These are real links, so they
+       need to inherit the header's colour rather than the document's link
+       colour, and they must fill the cell so the whole header stays clickable. */
+    .et-sort-link {
+        display: inline-flex; align-items: center; gap: 6px;
+        color: inherit; text-decoration: none;
+    }
+    .et-sort-link .et-sort-ind { opacity: .35; font-size: 10px; margin-left: 0; transition: opacity .15s ease; }
+    .et-sort-link:hover .et-sort-ind { opacity: .8; }
+    .et-sort-link.is-active .et-sort-ind { opacity: 1; color: #90acff; }
+    .et-sort-link:focus-visible {
+        outline: 2px solid rgba(61,107,255,0.6);
+        outline-offset: 2px; border-radius: 4px;
+    }
 </style>
 @endpush
 
@@ -171,6 +185,21 @@
     function enhance(table) {
         if (table._etInited) return;
         table._etInited = true;
+
+        // A table the SERVER paginates gets none of this.
+        //
+        // Everything below operates on the rows already in the DOM. When the
+        // database has sent one page of a larger set, that is a lie with a
+        // confident face: the search box reports "2 of 2" while the query
+        // behind the page holds 126 rows and the two matches on page 4 are
+        // simply never found. Sorting has the same flaw, and the page-size
+        // picker cannot show more rows than were sent.
+        //
+        // Those tables carry data-server-paginated. Their search is the form
+        // above the table, their pagination is the paginator below it, and
+        // their column sorting is a link (common/partials/sort-link) that puts
+        // ?sort= in the URL for the query to honour.
+        if (table.hasAttribute('data-server-paginated')) return;
 
         var tbody = table.tBodies[0];
         if (!tbody) return;
