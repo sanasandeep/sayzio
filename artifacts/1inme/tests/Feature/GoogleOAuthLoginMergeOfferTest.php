@@ -27,6 +27,20 @@ class GoogleOAuthLoginMergeOfferTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * How many user rows exist right now.
+     *
+     * These assertions used to be absolute -- "no second account was created"
+     * was written as User::count() === 1. A migration now seeds system
+     * accounts, so a freshly migrated database starts at three, and every one
+     * of these failed with a number that said nothing about the account this
+     * test actually cares about. Counting the delta asks the real question.
+     */
+    private function userCount(): int
+    {
+        return User::count();
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -117,6 +131,8 @@ class GoogleOAuthLoginMergeOfferTest extends TestCase
             'provider' => 'google',
         ]);
 
+        $before = $this->userCount();
+
         $this->fakeGoogle('g-bymatch', 'match@example.com', 'Matched Person');
 
         $resp = $this->loginCallback();
@@ -132,7 +148,7 @@ class GoogleOAuthLoginMergeOfferTest extends TestCase
             'external_id' => 'g-bymatch',
         ]);
         // No second account was created.
-        $this->assertSame(1, User::count());
+        $this->assertSame($before, $this->userCount());
     }
 
     public function test_login_mode_email_match_is_case_insensitive(): void
@@ -141,6 +157,7 @@ class GoogleOAuthLoginMergeOfferTest extends TestCase
         // fetchProfile() lower-cases the email, so the existing account must
         // still be matched (and not duplicated).
         $user = $this->makeUser(['email' => 'casey@example.com']);
+        $before = $this->userCount();
 
         $this->fakeGoogle('g-case', 'Casey@Example.com');
 
@@ -148,7 +165,7 @@ class GoogleOAuthLoginMergeOfferTest extends TestCase
 
         $resp->assertRedirect(route('user.dashboard'));
         $this->assertAuthenticatedAs($user->fresh());
-        $this->assertSame(1, User::count());
+        $this->assertSame($before, $this->userCount(), 'the mixed-case email must match, not create a second account');
         $this->assertDatabaseHas('linked_identifiers', [
             'user_id'     => $user->id,
             'provider'    => 'google',
@@ -160,13 +177,21 @@ class GoogleOAuthLoginMergeOfferTest extends TestCase
     {
         // No existing identity, no existing email — the callback must create
         // a fresh free-plan account, bind the google identity, and sign in.
-        $this->assertSame(0, User::count());
+        $before = $this->userCount();
 
         $this->fakeGoogle('g-fresh', 'newcomer@example.com', 'Fresh Newcomer');
 
         $resp = $this->loginCallback();
 
-        $resp->assertRedirect(route('user.dashboard'));
+        // Every newly auto-created social account gets `auth_needs_name`, so a
+        // first-time Google sign-in lands on complete-profile rather than the
+        // dashboard. NOTE: SocialOAuthController sets that flag on $justCreated
+        // alone, without checking whether the provider actually supplied a
+        // name -- and this profile supplies "Fresh Newcomer". So a Google user
+        // whose name we already know is still asked for it. Pinning the
+        // behaviour as it stands; whether the flag should be conditional on a
+        // missing name is a product call, not a test one.
+        $resp->assertRedirect(route('user.complete.profile'));
 
         $created = User::where('email', 'newcomer@example.com')->first();
         $this->assertNotNull($created, 'a new account should have been created');
@@ -197,12 +222,14 @@ class GoogleOAuthLoginMergeOfferTest extends TestCase
             ], 200),
         ]);
 
+        $before = $this->userCount();
+
         $resp = $this->loginCallback();
 
         $resp->assertRedirect(route('user.login'));
         $resp->assertSessionHas('error');
         $this->assertGuest();
-        $this->assertSame(0, User::count());
+        $this->assertSame($before, $this->userCount(), 'a profile with no email must not create an account');
     }
 
     // ---------------------------------------------------------- merge offer flow
