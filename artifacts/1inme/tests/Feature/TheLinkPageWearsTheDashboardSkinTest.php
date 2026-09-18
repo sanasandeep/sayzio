@@ -20,10 +20,15 @@ use Tests\TestCase;
 class TheLinkPageWearsTheDashboardSkinTest extends TestCase
 {
     /**
-     * Rendered once and reused. This page is three thousand lines of Blade over
-     * a dozen analytics queries; rendering it per test exhausts the worker
-     * before the suite finishes, and every test here asks about the same
-     * response anyway.
+     * Rendered once and reused, because every test here asks about the same
+     * response and the page is three thousand lines of Blade over a dozen
+     * analytics queries.
+     *
+     * This started life as a workaround: a second render used to kill the PHP
+     * process outright. That turned out to be a bare `function _fmtSecs()` at
+     * the top of the template -- a fatal redeclare on the second render -- and
+     * it is fixed at the source now. The cache stays for the speed, not to
+     * dodge a crash.
      */
     private static ?string $rendered = null;
 

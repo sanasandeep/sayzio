@@ -483,8 +483,12 @@
                 @endforeach
             </div>
             <div class="au-heat-hours">
+                {{-- One spacer for the day-letter column, then twelve labels
+                     for twelve cells. The list used to lead with a blank,
+                     which pushed every label one block right: "00" sat under
+                     the 02:00 column and "20" under 22:00. --}}
                 <span></span>
-                @foreach(['','00','','04','','08','','12','','16','','20'] as $h)<span>{{ $h }}</span>@endforeach
+                @foreach(['00','','04','','08','','12','','16','','20',''] as $h)<span>{{ $h }}</span>@endforeach
             </div>
             <div class="au-heat-scale">
                 <span class="au-label">Quiet</span>

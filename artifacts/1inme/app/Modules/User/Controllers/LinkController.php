@@ -1461,6 +1461,26 @@ class LinkController extends Controller
             ->orderBy('bucket')
             ->get();
 
+        // When this link gets clicked, as a 7 x 12 grid: ISO weekday down,
+        // two-hour blocks across. The dashboard draws the same picture for the
+        // whole account; this is the per-link one, and unlike the dashboard's
+        // fixed "last seven days" it honours the period and filters already on
+        // screen, because the rest of this page does.
+        //
+        // Bucketed in SQL, so at most 84 rows come back whatever the traffic.
+        $clickHeat = array_fill(0, 7, array_fill(0, 12, 0));
+        (clone $clicksQuery)
+            ->selectRaw('EXTRACT(ISODOW FROM clicked_at)::int AS dow, (EXTRACT(HOUR FROM clicked_at)::int / 2) AS blk, COUNT(*) AS c')
+            ->groupBy('dow', 'blk')
+            ->get()
+            ->each(function ($r) use (&$clickHeat) {
+                $d = ((int) $r->dow) - 1;   // ISODOW is 1..7, Monday first
+                $b = min(11, max(0, (int) $r->blk));
+                if ($d >= 0 && $d < 7) {
+                    $clickHeat[$d][$b] = (int) $r->c;
+                }
+            });
+
         // Bot hits per bucket — same period/dimension filters as the main chart,
         // but bypasses the global "no bots" scope so creators can spot scraper
         // spikes over time alongside the human series.
@@ -1883,7 +1903,7 @@ class LinkController extends Controller
         $blockSummaryAll = BlockAnalyticsAggregator::blockSummary($link, $startDate, $endDate);
 
         return view('user.links.show', compact(
-            'link', 'clicksOverTime', 'botClicksOverTime', 'topReferrers',
+            'link', 'clicksOverTime', 'botClicksOverTime', 'topReferrers', 'clickHeat',
             'blockSummaryAll',
             'browserStats', 'osStats', 'countryStats', 'cityStats',
             'deviceStats', 'sourceStats', 'channelStats', 'languageStats', 'blockStats', 'utmStats',
@@ -2980,10 +3000,19 @@ class LinkController extends Controller
         // traffic (debugging, audits) can opt in with `?include_bots=1`.
         $includeBots = filter_var($request->query('include_bots'), FILTER_VALIDATE_BOOL);
 
+        // CSV for spreadsheets, JSON for anything that reads the export
+        // programmatically. Both are streamed row by row: a busy link's click
+        // log runs to hundreds of thousands of rows, and building either
+        // format in memory first is how an export turns into a 502.
+        $format = strtolower((string) $request->query('format', 'csv'));
+        if (!in_array($format, ['csv', 'json'], true)) {
+            $format = 'csv';
+        }
+
         $suffix = $includeBots ? '-with-bots' : '';
-        $filename = 'clicks-' . $link->alias . $suffix . '-' . now()->format('Y-m-d-His') . '.csv';
+        $filename = 'clicks-' . $link->alias . $suffix . '-' . now()->format('Y-m-d-His') . '.' . $format;
         $headers = [
-            'Content-Type' => 'text/csv',
+            'Content-Type' => $format === 'json' ? 'application/json' : 'text/csv',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ];
 
@@ -2992,13 +3021,50 @@ class LinkController extends Controller
             $columns[] = 'Is Bot';
         }
 
+        // JSON keys, positionally matched to $columns so the two formats can
+        // never drift: add a column above and its key is derived here.
+        $keys = array_map(
+            static fn (string $c): string => str_replace([' ', '-'], '_', strtolower($c)),
+            $columns
+        );
+
         $linkTypeLabel = \App\Modules\User\Models\Link::typeLabel($link->type);
         $linkTypeSlug = (string) $link->type;
 
-        return response()->stream(function () use ($link, $startDate, $endDate, $columns, $linkTypeLabel, $linkTypeSlug, $includeBots) {
-            $h = fopen('php://output', 'w');
-            fputcsv($h, $columns);
+        // One row builder for both formats. When this was CSV-only the row was
+        // assembled inline; duplicating it per format is how an export starts
+        // reporting different data depending on which button you pressed.
+        $buildRow = static function ($r) use ($linkTypeLabel, $linkTypeSlug, $includeBots): array {
+            $u = $r->utm_params ?? [];
+            $blockTypeSlug = (string) ($r->block_type ?? '');
+            $blockTypeLabel = $blockTypeSlug !== ''
+                ? (\App\Modules\User\Models\BiolinkBlock::TYPES[$blockTypeSlug]['label'] ?? ucfirst(str_replace('_', ' ', $blockTypeSlug)))
+                : '';
 
+            $row = [
+                optional($r->clicked_at)->format('Y-m-d H:i:s'),
+                $linkTypeLabel, $linkTypeSlug,
+                $r->ip_address, $r->country_code, $r->city,
+                $r->channel ? \App\Modules\Common\Services\ChannelClassifier::labelFor($r->channel) : '',
+                $r->channel ?? '',
+                $r->browser, $r->os, $r->device_type, $r->language,
+                $r->referrer, $r->block_id, $blockTypeLabel, $blockTypeSlug, $r->destination_url,
+                $u['utm_source'] ?? '', $u['utm_medium'] ?? '', $u['utm_campaign'] ?? '',
+            ];
+            if ($includeBots) {
+                $row[] = $r->is_bot ? 'yes' : 'no';
+            }
+
+            // Every cell as a string. A CSV cannot express null, so it was
+            // already writing '' for one; leaving the JSON branch to pass the
+            // raw column through meant the two formats disagreed, and worse,
+            // a single JSON row carried two spellings of "nothing" -- null for
+            // referrer, '' for channel -- depending on which line above built
+            // it. One representation, the same in both formats.
+            return array_map(static fn ($v): string => $v === null ? '' : (string) $v, $row);
+        };
+
+        $rowQuery = static function () use ($includeBots, $link, $startDate, $endDate) {
             // Without `include_bots`, rely on the LinkClick global scope to
             // strip bot rows. With it, drop the scope and append the flag
             // column so reviewers can still tell humans from scrapers.
@@ -3006,32 +3072,55 @@ class LinkController extends Controller
                 ? \App\Modules\User\Models\LinkClick::withBots()->where('link_id', $link->id)
                 : $link->clicks();
 
-            $query
+            return $query
                 ->whereBetween('clicked_at', [$startDate, $endDate])
-                ->orderByDesc('clicked_at')
-                ->chunk(500, function ($rows) use ($h, $linkTypeLabel, $linkTypeSlug, $includeBots) {
+                ->orderByDesc('clicked_at');
+        };
+
+        if ($format === 'json') {
+            return response()->stream(function () use ($link, $startDate, $endDate, $keys, $buildRow, $rowQuery, $includeBots) {
+                // Written by hand rather than collected and json_encode()d, so
+                // the response starts flowing on the first chunk and peak
+                // memory stays at one chunk regardless of the log's size.
+                echo '{"link":' . json_encode([
+                    'alias' => $link->alias,
+                    'title' => $link->title,
+                    'type'  => (string) $link->type,
+                ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                echo ',"range":' . json_encode([
+                    'from' => $startDate->format('Y-m-d H:i:s'),
+                    'to'   => $endDate->format('Y-m-d H:i:s'),
+                    'includes_bots' => $includeBots,
+                ], JSON_UNESCAPED_SLASHES);
+                echo ',"clicks":[';
+
+                $first = true;
+                $rowQuery()->chunk(500, function ($rows) use (&$first, $keys, $buildRow) {
                     foreach ($rows as $r) {
-                        $u = $r->utm_params ?? [];
-                        $blockTypeSlug = (string) ($r->block_type ?? '');
-                        $blockTypeLabel = $blockTypeSlug !== ''
-                            ? (\App\Modules\User\Models\BiolinkBlock::TYPES[$blockTypeSlug]['label'] ?? ucfirst(str_replace('_', ' ', $blockTypeSlug)))
-                            : '';
-                        $row = [
-                            optional($r->clicked_at)->format('Y-m-d H:i:s'),
-                            $linkTypeLabel, $linkTypeSlug,
-                            $r->ip_address, $r->country_code, $r->city,
-                            $r->channel ? \App\Modules\Common\Services\ChannelClassifier::labelFor($r->channel) : '',
-                            $r->channel ?? '',
-                            $r->browser, $r->os, $r->device_type, $r->language,
-                            $r->referrer, $r->block_id, $blockTypeLabel, $blockTypeSlug, $r->destination_url,
-                            $u['utm_source'] ?? '', $u['utm_medium'] ?? '', $u['utm_campaign'] ?? '',
-                        ];
-                        if ($includeBots) {
-                            $row[] = $r->is_bot ? 'yes' : 'no';
-                        }
-                        fputcsv($h, $row);
+                        echo $first ? '' : ',';
+                        $first = false;
+                        echo json_encode(
+                            array_combine($keys, $buildRow($r)),
+                            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                        );
                     }
+                    if (function_exists('ob_flush')) { @ob_flush(); }
+                    flush();
                 });
+
+                echo ']}';
+            }, 200, $headers);
+        }
+
+        return response()->stream(function () use ($columns, $buildRow, $rowQuery) {
+            $h = fopen('php://output', 'w');
+            fputcsv($h, $columns);
+
+            $rowQuery()->chunk(500, function ($rows) use ($h, $buildRow) {
+                foreach ($rows as $r) {
+                    fputcsv($h, $buildRow($r));
+                }
+            });
             fclose($h);
         }, 200, $headers);
     }
