@@ -289,7 +289,11 @@ html.light-mode .sa-gate-note{color:#475569}
 html.light-mode .sa-gate-input{background:#fff;border-color:#cbd5e1;color:#0f172a}
 html.light-mode .sa-gate-input::placeholder{color:#94a3b8}
 html.light-mode .sa-gate-tab{background:#f1f5f9;border-color:#cbd5e1;color:#475569}
-html.light-mode .sa-gate-tab.sa-gate-on{color:#fff}
+/* The selected tab has to restate its background here, not just its text
+   colour. `html.light-mode .sa-gate-tab` (0,2,1) outranks the base
+   `.sa-gate-tab.sa-gate-on` (0,2,0) that paints the accent, so in light mode
+   the pale resting fill won and white-on-#f1f5f9 left "Email" invisible. */
+html.light-mode .sa-gate-tab.sa-gate-on{background:var(--sa-accent,#3d6bff);border-color:var(--sa-accent,#3d6bff);color:#fff}
 html.light-mode .sa-gate-hint{color:#4f6bd8}
 html.light-mode .sa-gate-alt{color:#64748b}
 html.light-mode .sa-low-balance{background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4);color:#92400e}
@@ -320,6 +324,9 @@ html.light-mode .sa-badge{border:2px solid #ffffff}
 .sa-vision-note{font-size:11px;color:#94a3b8;padding:2px 6px 0;font-style:italic}
 html.light-mode .sa-snap{background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.12);color:#475569}
 html.light-mode .sa-snap:hover{background:rgba(15,23,42,.1);color:#0f172a}
+/* Same swallow as the mic: the "snapshot attached" state needs its green
+   restated, darkened for a light ground so the glyph keeps its contrast. */
+html.light-mode .sa-snap.sa-snap-on{background:rgba(16,185,129,.16);border:1px solid rgba(16,185,129,.45);color:#047857}
 html.light-mode .sa-snap-chip{background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.12);color:#334155}
 html.light-mode .sa-snap-chip button{color:#64748b}
 html.light-mode .sa-snap-chip button:hover{color:#0f172a}
@@ -355,6 +362,11 @@ html.light-mode .sa-vision-note{color:#64748b}
 @media (prefers-reduced-motion:reduce){.sa-mic.sa-mic-rec{animation:none}}
 html.light-mode .sa-mic{background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.12);color:#475569}
 html.light-mode .sa-mic:hover{background:rgba(15,23,42,.08);color:#0f172a}
+/* Recording has to restate its fill AND its border here. The rule above is
+   (0,2,1) and uses the `border` shorthand, so without this the light-mode
+   resting style wins and a live mic looks exactly like an idle one -- the
+   one state a person must never have to guess at. */
+html.light-mode .sa-mic.sa-mic-rec{background:#ef4444;border:1px solid #ef4444;color:#fff}
 html.light-mode .sa-mic-lock{border-color:#fff}
 html.light-mode .sa-voice-tool{background:rgba(15,23,42,.05);border-color:rgba(15,23,42,.12);color:#475569}
 html.light-mode .sa-voice-tool:hover{background:rgba(15,23,42,.1);color:#0f172a}
