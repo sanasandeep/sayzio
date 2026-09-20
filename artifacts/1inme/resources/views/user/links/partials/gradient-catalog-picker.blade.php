@@ -1,91 +1,69 @@
 @php
     /**
-     * Preset gradient catalog for the Colour tab's gradient builder.
+     * Quick starts for the Colour tab's gradient builder.
      *
-     * Lives INSIDE the bgSettings() Alpine scope (rendered from the page
-     * background card), so it can mutate `gradientStops`, `gradientType` and
-     * `gradientAngle` directly when the user picks a preset. Also writes the
-     * chosen preset id into a hidden input so the server can re-render the
-     * highlight on edit and surface the same preset elsewhere.
+     * This used to be the whole preset catalog -- 166 gradients behind a
+     * chip row of eleven mood categories, inside a card, under the builder.
+     * That is what "these cats and design seems repeate" was pointing at:
+     * Colour and Style each opened on a chip row over a swatch grid, so they
+     * read as one feature shown twice, and two of the chip names (Neon,
+     * Abstract) appeared in BOTH rows over different sets of gradients.
      *
-     * Task #6233 -- this was the last picker still drawing its own geometry.
-     * It declared `aspect-square` with a fixed `grid-cols-3/4/5`, which made
-     * its swatches roughly twice the size of every other background swatch
-     * on the same panel, in the wrong shape, in a grid that went ragged
-     * whenever the aspect utility did not apply. It now uses the shared
-     * .bg-swatch-grid / .bg-lib-swatch / .bg-lib-chip rules from the
-     * background card, so it sizes and reads like everything else and cannot
-     * drift again.
+     * There is one place to browse now, and it is the Style library, where
+     * all 166 live as ordinary Gradients entries alongside every other
+     * ready-made look. Picking one there loads it into this builder, so
+     * nothing is lost by moving them -- it gained the edit step the separate
+     * surfaces never had.
      *
-     * These presets are STARTING POINTS for the builder above, not finished
-     * backgrounds -- picking one loads its stops so they can be edited. The
-     * heading says so, because the chip names (Neon, Abstract, Dark) also
-     * exist as categories in the Style library and would otherwise look like
-     * the same thing in two places.
+     * What stays here is what a BUILDER needs: a short row of starting
+     * points for someone who just wants to begin. One row, no chips, no
+     * grid -- a different shape from the library, because it does a
+     * different job.
+     *
+     * Lives INSIDE the bgSettings() Alpine scope, so it assigns
+     * `gradientStops`, `gradientType`, `gradientAngle` and
+     * `gradientPresetId` directly. The hidden input for the preset id is at
+     * the top of the card, not here: the library writes that field too.
      */
     use App\Modules\User\Support\GradientCatalog;
-    $gradientPresets  = GradientCatalog::all();
-    $gradientCats     = GradientCatalog::CATEGORIES;
-    $selectedPresetId = $bs['gradient_preset_id'] ?? '';
 
-    $gradientCatCounts = [];
-    foreach ($gradientPresets as $p) {
-        $gradientCatCounts[$p['category']] = ($gradientCatCounts[$p['category']] ?? 0) + 1;
-    }
+    $allPresets  = GradientCatalog::all();
+    $quickStarts = array_values(array_filter(
+        $allPresets,
+        fn ($p) => $p['category'] === 'featured'
+    ));
 @endphp
 
-<div class="rounded-xl p-3" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"
-     x-data="{ presetCat: 'all', presetSearch: '', presetId: @js($selectedPresetId) }">
+<div>
+    {{-- No "scroll →" hint: twelve of these fit a desktop panel without
+         scrolling, and a hint for a scrollbar that isn't there is noise. --}}
+    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Quick starts</label>
 
-    <div class="flex items-center justify-between gap-2 flex-wrap mb-2">
-        <label class="block text-xs font-medium" style="color: var(--text-muted);">
-            Start from a preset <span class="opacity-60">{{ count($gradientPresets) }}</span>
-        </label>
-        <input type="text" x-model="presetSearch" placeholder="Search all {{ count($gradientPresets) }}…"
-               class="text-[11px] px-2 py-1 rounded-md flex-1 max-w-[190px]"
-               style="background: var(--bg-glass); border: 1px solid var(--border-glass); color: var(--text-primary);">
-    </div>
-
-    <div class="bg-lib-chips mb-2">
-        <button type="button" @click="presetCat = 'all'"
-                class="bg-lib-chip" :class="presetCat === 'all' ? 'is-on' : ''">
-            All <span class="bg-lib-n">{{ count($gradientPresets) }}</span>
-        </button>
-        @foreach($gradientCats as $catKey => $catLabel)
-            @if(($gradientCatCounts[$catKey] ?? 0) > 0)
-            <button type="button" @click="presetCat = '{{ $catKey }}'"
-                    class="bg-lib-chip" :class="presetCat === '{{ $catKey }}' ? 'is-on' : ''">
-                {{ $catLabel }} <span class="bg-lib-n">{{ $gradientCatCounts[$catKey] }}</span>
-            </button>
-            @endif
-        @endforeach
-    </div>
-
-    <input type="hidden" name="gradient_preset_id" :value="presetId">
-
-    <div class="bg-swatch-grid max-h-[300px] overflow-y-auto pr-1">
-        @foreach($gradientPresets as $p)
-        @php $css = GradientCatalog::toCss($p); @endphp
+    <div class="bg-quick-strip">
+        @foreach($quickStarts as $p)
         <button type="button"
                 title="{{ $p['name'] }}"
-                x-show="(presetCat === 'all' || presetCat === '{{ $p['category'] }}')
-                        && (!presetSearch || {{ Illuminate\Support\Js::from(mb_strtolower($p['name'])) }}.includes(presetSearch.toLowerCase()))"
                 @click="
-                    gradientStops = @js($p['stops']);
-                    gradientType  = {{ Illuminate\Support\Js::from($p['type']) }};
-                    gradientAngle = {{ (int) $p['angle'] }};
-                    presetId      = {{ Illuminate\Support\Js::from($p['id']) }};
+                    gradientStops    = @js($p['stops']);
+                    gradientType     = {{ Illuminate\Support\Js::from($p['type']) }};
+                    gradientAngle    = {{ (int) $p['angle'] }};
+                    gradientPresetId = {{ Illuminate\Support\Js::from($p['id']) }};
                     $nextTick(() => $dispatch('change'));
                 "
-                :class="presetId === {{ Illuminate\Support\Js::from($p['id']) }} ? 'is-picked' : ''"
+                :class="gradientPresetId === {{ Illuminate\Support\Js::from($p['id']) }} ? 'is-picked' : ''"
                 class="bg-lib-swatch">
-            <span class="bg-lib-fill" style="background: {{ $css }};"></span>
+            <span class="bg-lib-fill" style="background: {{ GradientCatalog::toCss($p) }};"></span>
             <span class="bg-lib-tick" aria-hidden="true"><i class="fas fa-check"></i></span>
         </button>
         @endforeach
     </div>
 
-    <p class="text-[10px] mt-1.5" style="color: var(--text-dimmed);">
-        Picking one loads its colours into the stops above, where you can change them.
+    {{-- Says where the rest went, and takes you there filtered. Without
+         this line the 166 presets would just look deleted. --}}
+    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">
+        All {{ count($allPresets) }} ready-made gradients live in
+        <button type="button" class="font-semibold underline underline-offset-2" style="color:#90acff;"
+                @click="activeGroup = 'style'; window.dispatchEvent(new CustomEvent('bg-browse', { detail: 'gradients' }))">Style &rarr; Gradients</button>.
+        Picking one there loads it into these stops.
     </p>
 </div>

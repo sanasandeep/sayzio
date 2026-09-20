@@ -27,7 +27,15 @@ use Illuminate\Support\Collection;
  * `background_type` plus the same key field it always did. No migration, and
  * the public renderer is untouched.
  *
- * `thumb` describes how to paint the swatch, because the six sources paint
+ * Task #6234 -- the 166 gradient PRESETS joined too. They were browsed in
+ * the Colour tab, behind a chip row of their own, which made Colour and
+ * Style read as the same feature twice and put "Neon" and "Abstract" in
+ * both. There is one place to browse now. Colour keeps a short quick-start
+ * strip and is otherwise a builder. A gradient entry carries its stops, so
+ * picking one in the library loads it into that builder, editable -- which
+ * the two separate surfaces never did.
+ *
+ * `thumb` describes how to paint the swatch, because the sources paint
  * differently: a template needs its generated class, a preset carries inline
  * CSS, tiles are a four-up of gradients, a torn look is clipped sheets of
  * paper over a backdrop.
@@ -142,6 +150,31 @@ class BackgroundLibrary
             ];
         }
 
+        // The gradient presets. Their mood categories (Warm, Cool, Pastel,
+        // Monochrome, Tropical, Metal, Classic...) are NOT chips -- that
+        // second chip row is what made this look like a second library --
+        // but they ride along in `search`, so typing "pastel" still finds
+        // them. Every one lands under Gradients.
+        foreach (GradientCatalog::all() as $preset) {
+            $mood = GradientCatalog::CATEGORIES[$preset['category']] ?? '';
+
+            $items[] = [
+                'type'     => 'gradient',
+                'value'    => (string) $preset['id'],
+                'label'    => (string) $preset['name'],
+                'category' => 'gradients',
+                'search'   => mb_strtolower(trim($preset['name'].' '.$mood)),
+                'thumb'    => ['kind' => 'css', 'css' => 'background: '.GradientCatalog::toCss($preset)],
+                // Carried so a pick can load the builder rather than just
+                // paint a fixed background.
+                'gradient' => [
+                    'stops' => $preset['stops'],
+                    'type'  => $preset['type'],
+                    'angle' => (int) $preset['angle'],
+                ],
+            ];
+        }
+
         // A torn LOOK is a tear shape plus a paper/backdrop colourway, which
         // is what PRESETS already holds. Choosing one sets four fields, so it
         // carries them rather than a single key.
@@ -164,6 +197,12 @@ class BackgroundLibrary
                     'backdrop2' => $combo['backdrop'][1],
                 ],
             ];
+        }
+
+        // Everything is searchable by its own name unless a source gave
+        // richer words.
+        foreach ($items as $i => $item) {
+            $items[$i]['search'] = $item['search'] ?? mb_strtolower($item['label']);
         }
 
         return $items;
@@ -201,6 +240,7 @@ class BackgroundLibrary
     public static function selectedValue(array $bs): ?string
     {
         return match ($bs['background_type'] ?? null) {
+            'gradient' => ($bs['gradient_preset_id'] ?? '') ?: null,
             'template' => isset($bs['bg_template_id']) ? (string) $bs['bg_template_id'] : null,
             'preset'   => ($bs['bg_preset_key'] ?? '') ?: null,
             'mesh'     => ($bs['mesh_preset'] ?? '') ?: null,

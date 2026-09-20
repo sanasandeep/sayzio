@@ -49,8 +49,8 @@ class BackgroundPickerIsOneSystemTest extends TestCase
         preg_match_all('/class="[^"]*grid-cols-[^"]*"/', $card, $m);
 
         $offenders = array_values(array_filter($m[0], function (string $cls) {
-            // The type-tile grid is a row of labelled buttons, not swatches.
-            if (str_contains($cls, 'grid-cols-3 sm:grid-cols-6 gap-2')) return false;
+            // The type row stopped being a grid of utility classes entirely
+            // -- it is .bg-type-row now -- so there is nothing to except.
             // Two-up and three-up form rows are layout, not pickers.
             return (bool) preg_match('/grid-cols-(4|5|6|7|9|10|12)\b/', $cls);
         }));

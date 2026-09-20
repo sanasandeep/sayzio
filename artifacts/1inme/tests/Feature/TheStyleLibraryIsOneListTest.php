@@ -151,9 +151,17 @@ class TheStyleLibraryIsOneListTest extends TestCase
         }
 
         $this->assertEqualsCanonicalizing(
-            ['template', 'preset', 'mesh', 'pattern', 'tiles', 'torn'],
+            ['template', 'preset', 'mesh', 'pattern', 'tiles', 'torn', 'gradient'],
             array_keys($byType),
             'every retired picker must still be reachable through the library'
+        );
+
+        // A gradient entry carries its stops, because picking one loads the
+        // Colour builder instead of freezing a background -- the one thing
+        // the two separate surfaces could never do.
+        $this->assertSame(
+            ['stops', 'type', 'angle'],
+            array_keys($byType['gradient']['gradient'])
         );
 
         // A template value is the row id the radio used to post.

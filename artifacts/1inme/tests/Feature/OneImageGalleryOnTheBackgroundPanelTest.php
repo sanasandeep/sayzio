@@ -49,15 +49,30 @@ class OneImageGalleryOnTheBackgroundPanelTest extends TestCase
         }
     }
 
-    /** The two pickers are one, and the accordion is gone. */
+    /**
+     * The two pickers are one.
+     *
+     * An earlier version of this test also forbade a disclosure, on the
+     * reasoning that the old accordion was where the second picker hid.
+     * That was the wrong half to forbid. The bug was TWO pickers, not a
+     * fold: with one picker, folding ours away is what lets the tab named
+     * "use your own" lead with the user's own file -- and it means the 440
+     * images are fetched only when someone asks for them, which the
+     * always-open grid could not do.
+     *
+     * What must stay true is that opening it reveals the SAME single
+     * picker, so the assertions below are about there being one.
+     */
     public function test_the_background_panel_has_a_single_image_picker(): void
     {
         $card = $this->card();
 
         $this->assertStringNotContainsString('Or choose from our gallery', $card,
             'the accordion was the second picker');
-        $this->assertStringNotContainsString('galOpen', $card,
-            'nothing should be hidden behind an open/closed toggle any more');
+        $this->assertSame(1, substr_count($card, 'x-for="a in galVisible()"'),
+            'one grid of platform images, however it is revealed');
+        $this->assertSame(1, substr_count($card, "name=\"background_image_asset\""),
+            'two inputs for the same field is how the two pickers disagreed');
         $this->assertStringContainsString('galFolder', $card,
             'the merged picker filters by folder chip');
 
