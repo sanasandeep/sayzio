@@ -100,6 +100,16 @@ class UploadPolicy
         $extensions = array_values(array_unique(array_map('strtolower', $base['extensions'] ?? [])));
         $multiple   = (bool) ($base['multiple'] ?? false);
 
+        // What this field is FOR, taken from the context's own extension list
+        // before any user override touches it. That is a different question
+        // from what this user is ALLOWED to upload, and conflating the two is
+        // why the image-only affordances vanished for privileged accounts: the
+        // access_any branch below blanks both `extensions` and `accept`, so
+        // anything inferring "this is an image field" from them got nothing.
+        // `kind` survives every override, because a background image field is
+        // an image field no matter who is looking at it.
+        $kind = self::kindOf($base['extensions'] ?? []);
+
         // Holders of `user.files.access_any` get an effectively unlimited
         // upload policy: 10 GB cap (well above any reverse-proxy upload
         // limit) and no extension filter.
@@ -111,6 +121,8 @@ class UploadPolicy
                 'extensions' => [],
                 'multiple'   => $multiple,
                 'accept'     => '',
+                // Unfiltered uploads, but still an image field.
+                'kind'       => $kind,
             ];
         }
 
@@ -151,7 +163,36 @@ class UploadPolicy
             'extensions' => $extensions,
             'multiple'   => $multiple,
             'accept'     => self::buildAccept($extensions),
+            'kind'       => $kind,
         ];
+    }
+
+    /**
+     * What a field is for, from its context's own extension list.
+     *
+     * Deliberately reads the CONTEXT definition rather than the resolved
+     * policy: overrides may widen or blank the allowed extensions, and a
+     * field's purpose does not change when they do.
+     *
+     * @param  string[]  $extensions
+     * @return string  image|video|audio|document|all
+     */
+    public static function kindOf(array $extensions): string
+    {
+        $exts = array_map(fn ($e) => ltrim(strtolower((string) $e), '.'), $extensions);
+
+        foreach ([
+            'image'    => ['jpg','jpeg','png','webp','gif','svg','avif','ico'],
+            'video'    => ['mp4','webm','mov','m4v'],
+            'audio'    => ['mp3','wav','ogg','m4a','aac','flac'],
+            'document' => ['pdf','doc','docx','xls','xlsx','ppt','pptx','csv','txt'],
+        ] as $kind => $known) {
+            if (array_intersect($exts, $known)) {
+                return $kind;
+            }
+        }
+
+        return 'all';
     }
 
     /**
