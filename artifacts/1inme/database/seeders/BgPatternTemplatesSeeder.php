@@ -730,8 +730,20 @@ class BgPatternTemplatesSeeder extends Seeder
     private function svgEncode(string $svg): string
     {
         // Inline-friendly URL encoding for SVG data URIs.
+        //
+        // The percent sign MUST be escaped on its own pass, before the
+        // others. str_replace() with array arguments applies each pair in
+        // order over the whole string, so listing '%' => '%25' last meant
+        // it re-encoded the escapes the earlier pairs had just written:
+        // '<' became '%3C' and then '%253C'. The browser got no parseable
+        // document and painted the ground colour alone, which is why 25 of
+        // these templates shipped as identical dark rectangles. Rows
+        // already in the database are repaired by the accompanying
+        // migration; this is the source that produced them.
         $svg = str_replace(["\n", "\r", "\t"], '', $svg);
-        $svg = str_replace(['"', '<', '>', '#', '%'], ['%22', '%3C', '%3E', '%23', '%25'], $svg);
+        $svg = str_replace('%', '%25', $svg);
+        $svg = str_replace(['"', '<', '>', '#'], ['%22', '%3C', '%3E', '%23'], $svg);
+
         return "data:image/svg+xml;utf8,{$svg}";
     }
 

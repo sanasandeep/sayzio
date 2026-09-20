@@ -89,7 +89,7 @@ class LightBgTemplatesSeeder extends Seeder
             ['Mint Halo',       'radial-gradient(circle at 30% 30%, #d1fae5 0%, #ecfdf5 60%, #fff 100%)'],
             ['Pearl Dome',      'radial-gradient(circle at center, #ffffff 0%, #f5f7fa 60%, #e2e8f0 100%)'],
             ['Sky Bloom',       'radial-gradient(ellipse at center, #dbeafe 0%, #eff6ff 60%, #fff 100%)'],
-            ['Conic Pastel',    'conic-gradient(from 90deg at 50% 50%, #fbc7d4, #c7d2fe, #d1fae5, #fef3c7, #fbc7d4)'],
+            ['Conic Pastel Light','conic-gradient(from 90deg at 50% 50%, #fbc7d4, #c7d2fe, #d1fae5, #fef3c7, #fbc7d4)'],
             ['Conic Bubblegum', 'conic-gradient(from 0deg, #fce7f3, #ddd6fe, #cffafe, #fef9c3, #fce7f3)'],
             ['Ivory Beam',      'radial-gradient(circle at 50% 100%, #fef3c7 0%, #fffbeb 60%, #fff 100%)'],
             ['Rose Beam',       'radial-gradient(circle at 50% 100%, #fbcfe8 0%, #fce7f3 60%, #fff 100%)'],
@@ -146,7 +146,7 @@ class LightBgTemplatesSeeder extends Seeder
 
         // ───────────────── 4. Light geometric patterns (16) ─────────────────
         $patterns = [
-            ['Polka Pink',
+            ['Polka Pink Light',
              '#fff1f2',
              "background-color:#fff1f2;background-image:radial-gradient(#fbcfe8 1.5px, transparent 1.5px);background-size:20px 20px;"],
             ['Polka Mint',
