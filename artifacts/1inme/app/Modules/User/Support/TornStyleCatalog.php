@@ -139,15 +139,85 @@ class TornStyleCatalog
         'clay_tear' => ['label' => 'Clay Tear', 'style' => 'diagonal', 'paper' => '#f5e9e2', 'backdrop' => ['#c19a84', '#6f4a38']],
         'clay_hem' => ['label' => 'Clay Hem', 'style' => 'bottom', 'paper' => '#f5e9e2', 'backdrop' => ['#c19a84', '#6f4a38']],    ];
 
+    /** The tear shapes compiled into this file, before any admin row. */
+    public static function shippedStyles(): array
+    {
+        return self::STYLES;
+    }
+
+    /**
+     * The tear SHAPES -- shipped, plus any an admin has added or
+     * overridden. A shape with no sheets clips nothing and would render a
+     * blank page, so an empty one falls back to the shipped shape it
+     * overrides and is otherwise dropped.
+     *
+     * @return array<string, array{label: string, sheets: list<array{clip: string, shade: float}>}>
+     */
+    public static function allStyles(): array
+    {
+        $out = self::shippedStyles();
+
+        foreach (CatalogOverrides::for('torn_style') as $key => $row) {
+            $sheets = [];
+            foreach ((array) ($row['payload']['sheets'] ?? []) as $sheet) {
+                $clip = trim((string) ($sheet['clip'] ?? ''));
+                if ($clip === '') {
+                    continue;
+                }
+                $sheets[] = ['clip' => $clip, 'shade' => (float) ($sheet['shade'] ?? 1.0)];
+            }
+            if ($sheets === []) {
+                $sheets = self::STYLES[$key]['sheets'] ?? [];
+            }
+            if ($sheets === []) {
+                continue;
+            }
+            $out[$key] = ['label' => $row['label'], 'sheets' => $sheets];
+        }
+
+        return $out;
+    }
+
+    /**
+     * The torn LOOKS -- a tear shape plus a paper/backdrop colourway.
+     * Shipped, plus any an admin has added or overridden.
+     *
+     * @return array<string, array{label: string, style: string, paper: string, backdrop: list<string>}>
+     */
+    /** The torn looks compiled into this file, before any admin row. */
+    public static function shippedPresets(): array
+    {
+        return self::PRESETS;
+    }
+
+    public static function presets(): array
+    {
+        $out = self::shippedPresets();
+
+        foreach (CatalogOverrides::for('torn') as $key => $row) {
+            $style = (string) ($row['payload']['style'] ?? self::DEFAULT);
+            $out[$key] = [
+                'label'    => $row['label'],
+                // A look pointing at a shape that has since been deleted
+                // would clip nothing; the classic tear is the safe answer.
+                'style'    => self::isValidStyle($style) ? $style : self::DEFAULT,
+                'paper'    => (string) ($row['payload']['paper'] ?? '#cfe0e6'),
+                'backdrop' => array_values(array_map('strval', (array) ($row['payload']['backdrop'] ?? []))),
+            ];
+        }
+
+        return $out;
+    }
+
     /** @return array<string, string> style key => label */
     public static function styles(): array
     {
-        return array_map(fn ($s) => $s['label'], self::STYLES);
+        return array_map(fn ($s) => $s['label'], self::allStyles());
     }
 
     public static function isValidStyle(string $key): bool
     {
-        return isset(self::STYLES[$key]);
+        return isset(self::allStyles()[$key]);
     }
 
     /**
@@ -158,7 +228,9 @@ class TornStyleCatalog
      */
     public static function sheets(?string $key): array
     {
-        return (self::STYLES[$key ?? ''] ?? self::STYLES[self::DEFAULT])['sheets'];
+        $styles = self::allStyles();
+
+        return ($styles[$key ?? ''] ?? $styles[self::DEFAULT] ?? self::STYLES[self::DEFAULT])['sheets'];
     }
 
     /** Darken a 6-digit hex color toward black by the sheet shade factor. */

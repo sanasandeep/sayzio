@@ -441,15 +441,49 @@ class TilesBgCatalog
         'brick'   => [[2, 1], [2, 1], [1, 1], [2, 1], [1, 1], [2, 1]],
     ];
 
-    /** @return array<string, array{label: string, tiles: list<string>, colors: list<string>}> */
-    public static function palettes(): array
+    /** The palettes compiled into this file, before any admin row. */
+    public static function shipped(): array
     {
         return self::PALETTES;
     }
 
+    /**
+     * The shipped palettes, plus any an admin has added or overridden.
+     *
+     * A row with no tile gradients at all would render 24 empty tiles, so
+     * one that arrives empty keeps the shipped palette's tiles when it is
+     * overriding one, and is otherwise dropped.
+     *
+     * @return array<string, array{label: string, tiles: list<string>, colors: list<string>}>
+     */
+    public static function palettes(): array
+    {
+        $out = self::shipped();
+
+        foreach (CatalogOverrides::for('tiles') as $key => $row) {
+            $tiles = array_values(array_filter(array_map(
+                fn ($t) => trim((string) $t),
+                (array) ($row['payload']['tiles'] ?? [])
+            )));
+            if ($tiles === []) {
+                $tiles = self::PALETTES[$key]['tiles'] ?? [];
+            }
+            if ($tiles === []) {
+                continue;
+            }
+            $out[$key] = [
+                'label'  => $row['label'],
+                'tiles'  => $tiles,
+                'colors' => array_values(array_map('strval', (array) ($row['payload']['colors'] ?? []))),
+            ];
+        }
+
+        return $out;
+    }
+
     public static function isValidPalette(string $key): bool
     {
-        return isset(self::PALETTES[$key]);
+        return isset(self::palettes()[$key]);
     }
 
     public static function isValidLayout(string $key): bool
@@ -465,7 +499,7 @@ class TilesBgCatalog
      */
     public static function tiles(string $palette, string $layout): array
     {
-        $p = self::PALETTES[$palette] ?? null;
+        $p = self::palettes()[$palette] ?? null;
         if (!$p) {
             return [];
         }
@@ -485,6 +519,6 @@ class TilesBgCatalog
     /** @return list<string> representative colors for the mobile fallback */
     public static function colors(string $palette): array
     {
-        return self::PALETTES[$palette]['colors'] ?? [];
+        return self::palettes()[$palette]['colors'] ?? [];
     }
 }

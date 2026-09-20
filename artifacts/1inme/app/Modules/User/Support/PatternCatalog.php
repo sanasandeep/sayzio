@@ -39,25 +39,45 @@ class PatternCatalog
             'css' => 'background-color: #2e1065;background-image: linear-gradient(135deg, rgba(167,139,250,0.16) 25%, transparent 25%), linear-gradient(225deg, rgba(167,139,250,0.16) 25%, transparent 25%), linear-gradient(315deg, rgba(167,139,250,0.16) 25%, transparent 25%), linear-gradient(45deg, rgba(167,139,250,0.16) 25%, transparent 25%);background-size: 30px 30px'],
     ];
 
-    /** @return array<string, array{label: string, css: string, colors: list<string>}> */
-    public static function all(): array
+    /** The presets compiled into this file, before any admin row. */
+    public static function shipped(): array
     {
         return self::PRESETS;
     }
 
+    /**
+     * The shipped presets, plus any an admin has added or overridden.
+     *
+     * @return array<string, array{label: string, css: string, colors: list<string>}>
+     */
+    public static function all(): array
+    {
+        $out = self::shipped();
+
+        foreach (CatalogOverrides::for('pattern') as $key => $row) {
+            $out[$key] = [
+                'label'  => $row['label'],
+                'css'    => (string) ($row['payload']['css'] ?? ''),
+                'colors' => array_values(array_map('strval', (array) ($row['payload']['colors'] ?? []))),
+            ];
+        }
+
+        return $out;
+    }
+
     public static function isValidKey(string $key): bool
     {
-        return isset(self::PRESETS[$key]);
+        return isset(self::all()[$key]);
     }
 
     public static function css(string $key): ?string
     {
-        return self::PRESETS[$key]['css'] ?? null;
+        return self::all()[$key]['css'] ?? null;
     }
 
     /** @return list<string> */
     public static function colors(string $key): array
     {
-        return self::PRESETS[$key]['colors'] ?? [];
+        return self::all()[$key]['colors'] ?? [];
     }
 }

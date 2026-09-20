@@ -178,7 +178,16 @@ class BackgroundLibrary
         // A torn LOOK is a tear shape plus a paper/backdrop colourway, which
         // is what PRESETS already holds. Choosing one sets four fields, so it
         // carries them rather than a single key.
-        foreach (TornStyleCatalog::PRESETS as $key => $combo) {
+        foreach (TornStyleCatalog::presets() as $key => $combo) {
+            // A colourway is two colours. An admin-made row that arrives
+            // with fewer repeats what it has rather than reading past the
+            // end of the array.
+            $backdrop = array_values((array) $combo['backdrop']);
+            if ($backdrop === []) {
+                continue;
+            }
+            $backdrop[1] ??= $backdrop[0];
+
             $items[] = [
                 'type'     => 'torn',
                 'value'    => $key,
@@ -187,16 +196,32 @@ class BackgroundLibrary
                 'thumb'    => [
                     'kind'     => 'torn',
                     'paper'    => $combo['paper'],
-                    'backdrop' => $combo['backdrop'],
+                    'backdrop' => $backdrop,
                     'sheets'   => TornStyleCatalog::sheets($combo['style']),
                 ],
                 'torn' => [
                     'style'     => $combo['style'],
                     'paper'     => $combo['paper'],
-                    'backdrop'  => $combo['backdrop'][0],
-                    'backdrop2' => $combo['backdrop'][1],
+                    'backdrop'  => $backdrop[0],
+                    'backdrop2' => $backdrop[1],
                 ],
             ];
+        }
+
+        // Anything an admin has hidden comes out of the LIBRARY and stays in
+        // the renderer, so a page that already chose it keeps rendering it.
+        // (Templates are filtered upstream by BgTemplate::active().)
+        $hidden = [];
+        foreach (['preset', 'gradient', 'mesh', 'pattern', 'tiles', 'torn'] as $kind) {
+            foreach (CatalogOverrides::hidden($kind) as $key => $_) {
+                $hidden[$kind.'/'.$key] = true;
+            }
+        }
+        if ($hidden !== []) {
+            $items = array_values(array_filter(
+                $items,
+                fn ($item) => ! isset($hidden[$item['type'].'/'.$item['value']])
+            ));
         }
 
         // Everything is searchable by its own name unless a source gave
@@ -256,7 +281,7 @@ class BackgroundLibrary
 
     private static function matchTornCombo(array $bs): ?string
     {
-        foreach (TornStyleCatalog::PRESETS as $key => $combo) {
+        foreach (TornStyleCatalog::presets() as $key => $combo) {
             if (($bs['torn_style'] ?? TornStyleCatalog::DEFAULT) === $combo['style']
                 && strcasecmp($bs['torn_paper_color'] ?? '', $combo['paper']) === 0
                 && strcasecmp($bs['torn_backdrop_color'] ?? '', $combo['backdrop'][0]) === 0

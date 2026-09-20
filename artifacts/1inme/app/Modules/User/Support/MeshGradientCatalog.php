@@ -49,21 +49,46 @@ class MeshGradientCatalog
         ]],
     ];
 
-    /** @return array<string, array{label: string, base: string, blobs: list<array{string, int, int, int}>}> */
-    public static function all(): array
+    /** The presets compiled into this file, before any admin row. */
+    public static function shipped(): array
     {
         return self::PRESETS;
     }
 
+    /**
+     * The shipped presets, plus any an admin has added or overridden.
+     *
+     * @return array<string, array{label: string, base: string, blobs: list<array{string, int, int, int}>}>
+     */
+    public static function all(): array
+    {
+        $out = self::shipped();
+
+        foreach (CatalogOverrides::for('mesh') as $key => $row) {
+            $blobs = [];
+            foreach ((array) ($row['payload']['blobs'] ?? []) as $b) {
+                $b = array_values((array) $b);
+                $blobs[] = [(string) ($b[0] ?? '#ffffff'), (int) ($b[1] ?? 50), (int) ($b[2] ?? 50), (int) ($b[3] ?? 50)];
+            }
+            $out[$key] = [
+                'label' => $row['label'],
+                'base'  => (string) ($row['payload']['base'] ?? '#0a0612'),
+                'blobs' => $blobs,
+            ];
+        }
+
+        return $out;
+    }
+
     public static function isValidKey(string $key): bool
     {
-        return isset(self::PRESETS[$key]);
+        return isset(self::all()[$key]);
     }
 
     /** Full CSS declaration block for a preset key, or null. */
     public static function css(string $key): ?string
     {
-        $p = self::PRESETS[$key] ?? null;
+        $p = self::all()[$key] ?? null;
         if (!$p) {
             return null;
         }
@@ -81,7 +106,7 @@ class MeshGradientCatalog
      */
     public static function colors(string $key): array
     {
-        $p = self::PRESETS[$key] ?? null;
+        $p = self::all()[$key] ?? null;
         if (!$p) {
             return [];
         }

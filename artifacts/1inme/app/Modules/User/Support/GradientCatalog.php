@@ -37,6 +37,46 @@ class GradientCatalog
      */
     public static function all(): array
     {
+        $out = self::shipped();
+
+        // Admin additions and overrides. Unlike the other catalogs this one
+        // is a LIST, so an override has to replace in place rather than
+        // reassign a key -- otherwise editing a shipped gradient would move
+        // it to the end of the picker.
+        $byId = array_flip(array_column($out, 'id'));
+        foreach (CatalogOverrides::for('gradient') as $id => $row) {
+            $stops = [];
+            foreach ((array) ($row['payload']['stops'] ?? []) as $s) {
+                $color = trim((string) ($s['color'] ?? ''));
+                if ($color === '') {
+                    continue;
+                }
+                $stops[] = ['color' => $color, 'pos' => (int) ($s['pos'] ?? 0)];
+            }
+            if (count($stops) < 2) {
+                continue; // A gradient needs two stops; one is a colour.
+            }
+            $entry = [
+                'id' => $id,
+                'name' => $row['label'],
+                'category' => (string) ($row['payload']['category'] ?? 'featured'),
+                'angle' => (int) ($row['payload']['angle'] ?? 135),
+                'type' => (string) ($row['payload']['type'] ?? 'linear'),
+                'stops' => $stops,
+            ];
+            if (isset($byId[$id])) {
+                $out[$byId[$id]] = $entry;
+            } else {
+                $out[] = $entry;
+            }
+        }
+
+        return $out;
+    }
+
+    /** The gradients compiled into this file, before any admin row. */
+    public static function shipped(): array
+    {
         // Compact builder: [id, name, category, angle, type, [stops...]]
         // type defaults to 'linear' when omitted.
         $raw = [
@@ -255,6 +295,7 @@ class GradientCatalog
                 'stops' => $stops,
             ];
         }
+
         return $out;
     }
 
