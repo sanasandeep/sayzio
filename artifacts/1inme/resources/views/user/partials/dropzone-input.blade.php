@@ -60,6 +60,12 @@
     $form        = $form        ?? null;
     $extraInput  = $extraInput  ?? null;
     $allowAlternateSources = $allowAlternateSources ?? true;
+    // Task #6232: the page-background field replaces this Stock tab with the
+    // merged gallery below it -- one grid over all three S3 folders, in the
+    // 9/14 shape every other background swatch uses, and picked by reference
+    // rather than copied into the user's vault. Two image pickers on one
+    // panel was the same duplication the Style library just removed.
+    $allowStock  = $allowStock  ?? true;
     $inputName   = $multiple ? rtrim($name, '[]') . '[]' : $name;
 
     // Vault browse type filter — derived from accept patterns. Callers can
@@ -147,7 +153,7 @@
                 :class="mode === 'vault' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'dz-ink-muted hover:dz-ink-dim'">
             <i class="fas fa-folder-open mr-1"></i>My Files
         </button>
-        @if($browseType === 'image')
+        @if($browseType === 'image' && $allowStock)
         <button type="button" @click="mode = 'stock'; if (stockAssets.length === 0) loadStock()"
                 class="text-[10px] px-2 py-0.5 rounded-md transition-all font-medium"
                 :class="mode === 'stock' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'dz-ink-muted hover:dz-ink-dim'">
@@ -306,7 +312,7 @@
          (grid-images + hand-drawn) listed live from S3, every plan. A pick
          is fetched as a Blob and injected into the underlying file input,
          exactly like a vault pick, so consumers keep working unchanged. --}}
-    @if($browseType === 'image')
+    @if($browseType === 'image' && $allowStock)
     <div x-show="mode === 'stock'" x-cloak>
         <div class="rounded-xl overflow-hidden" style="background: var(--bg-glass, rgba(255,255,255,0.04)); border: 1px solid var(--border-glass, rgba(255,255,255,0.10));">
             <div class="p-2 flex items-center gap-2" style="border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.06));">
