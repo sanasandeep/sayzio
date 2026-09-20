@@ -1,62 +1,91 @@
 @php
     /**
-     * Preset gradient catalog grid for the appearance settings page.
+     * Preset gradient catalog for the Colour tab's gradient builder.
      *
-     * Lives INSIDE the bgSettings() Alpine scope (rendered from
-     * appearance.blade.php), so it can mutate `gradientStops`, `gradientType`
-     * and `gradientAngle` directly when the user picks a preset. Also writes
-     * the chosen preset id into a hidden input so the server can re-render
-     * the highlight on edit and surface the same preset elsewhere.
+     * Lives INSIDE the bgSettings() Alpine scope (rendered from the page
+     * background card), so it can mutate `gradientStops`, `gradientType` and
+     * `gradientAngle` directly when the user picks a preset. Also writes the
+     * chosen preset id into a hidden input so the server can re-render the
+     * highlight on edit and surface the same preset elsewhere.
+     *
+     * Task #6233 -- this was the last picker still drawing its own geometry.
+     * It declared `aspect-square` with a fixed `grid-cols-3/4/5`, which made
+     * its swatches roughly twice the size of every other background swatch
+     * on the same panel, in the wrong shape, in a grid that went ragged
+     * whenever the aspect utility did not apply. It now uses the shared
+     * .bg-swatch-grid / .bg-lib-swatch / .bg-lib-chip rules from the
+     * background card, so it sizes and reads like everything else and cannot
+     * drift again.
+     *
+     * These presets are STARTING POINTS for the builder above, not finished
+     * backgrounds -- picking one loads its stops so they can be edited. The
+     * heading says so, because the chip names (Neon, Abstract, Dark) also
+     * exist as categories in the Style library and would otherwise look like
+     * the same thing in two places.
      */
     use App\Modules\User\Support\GradientCatalog;
-    $gradientPresets = GradientCatalog::all();
-    $gradientCats = GradientCatalog::CATEGORIES;
+    $gradientPresets  = GradientCatalog::all();
+    $gradientCats     = GradientCatalog::CATEGORIES;
     $selectedPresetId = $bs['gradient_preset_id'] ?? '';
+
+    $gradientCatCounts = [];
+    foreach ($gradientPresets as $p) {
+        $gradientCatCounts[$p['category']] = ($gradientCatCounts[$p['category']] ?? 0) + 1;
+    }
 @endphp
 
 <div class="rounded-xl p-3" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"
-     x-data="{ presetCat: 'featured', presetSearch: '', presetId: '{{ addslashes($selectedPresetId) }}' }">
-    <div class="flex items-center justify-between mb-2">
-        <p class="text-[11px] font-bold uppercase tracking-wider" style="color: var(--text-muted);">
-            <i class="fas fa-th text-[10px] mr-1"></i>Preset Gradients ({{ count($gradientPresets) }})
-        </p>
-        <input type="text" x-model="presetSearch" placeholder="Search…"
-               class="text-[11px] px-2 py-1 rounded"
-               style="background: var(--bg-glass); border: 1px solid var(--border-glass); color: var(--text-primary); width: 130px;">
+     x-data="{ presetCat: 'all', presetSearch: '', presetId: @js($selectedPresetId) }">
+
+    <div class="flex items-center justify-between gap-2 flex-wrap mb-2">
+        <label class="block text-xs font-medium" style="color: var(--text-muted);">
+            Start from a preset <span class="opacity-60">{{ count($gradientPresets) }}</span>
+        </label>
+        <input type="text" x-model="presetSearch" placeholder="Search all {{ count($gradientPresets) }}…"
+               class="text-[11px] px-2 py-1 rounded-md flex-1 max-w-[190px]"
+               style="background: var(--bg-glass); border: 1px solid var(--border-glass); color: var(--text-primary);">
     </div>
 
-    <div class="flex flex-wrap gap-1 mb-3">
+    <div class="bg-lib-chips mb-2">
+        <button type="button" @click="presetCat = 'all'"
+                class="bg-lib-chip" :class="presetCat === 'all' ? 'is-on' : ''">
+            All <span class="bg-lib-n">{{ count($gradientPresets) }}</span>
+        </button>
         @foreach($gradientCats as $catKey => $catLabel)
-        <button type="button" @click="presetCat = '{{ $catKey }}'"
-                :class="presetCat === '{{ $catKey }}' ? 'bg-blue-600 text-white' : ''"
-                class="text-[10px] font-semibold px-2 py-1 rounded"
-                style="background: var(--bg-glass); color: var(--text-faint);">{{ $catLabel }}</button>
+            @if(($gradientCatCounts[$catKey] ?? 0) > 0)
+            <button type="button" @click="presetCat = '{{ $catKey }}'"
+                    class="bg-lib-chip" :class="presetCat === '{{ $catKey }}' ? 'is-on' : ''">
+                {{ $catLabel }} <span class="bg-lib-n">{{ $gradientCatCounts[$catKey] }}</span>
+            </button>
+            @endif
         @endforeach
     </div>
 
     <input type="hidden" name="gradient_preset_id" :value="presetId">
 
-    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-[280px] overflow-y-auto pr-1">
+    <div class="bg-swatch-grid max-h-[300px] overflow-y-auto pr-1">
         @foreach($gradientPresets as $p)
         @php $css = GradientCatalog::toCss($p); @endphp
         <button type="button"
-                x-show="(presetCat === '{{ $p['category'] }}' || presetSearch !== '') && (presetSearch === '' || '{{ strtolower($p['name']) }}'.includes(presetSearch.toLowerCase()))"
+                title="{{ $p['name'] }}"
+                x-show="(presetCat === 'all' || presetCat === '{{ $p['category'] }}')
+                        && (!presetSearch || {{ Illuminate\Support\Js::from(mb_strtolower($p['name'])) }}.includes(presetSearch.toLowerCase()))"
                 @click="
                     gradientStops = @js($p['stops']);
-                    gradientType = '{{ $p['type'] }}';
-                    gradientAngle = {{ $p['angle'] }};
-                    presetId = '{{ $p['id'] }}';
+                    gradientType  = {{ Illuminate\Support\Js::from($p['type']) }};
+                    gradientAngle = {{ (int) $p['angle'] }};
+                    presetId      = {{ Illuminate\Support\Js::from($p['id']) }};
+                    $nextTick(() => $dispatch('change'));
                 "
-                :class="presetId === '{{ $p['id'] }}' ? 'ring-2 ring-blue-400' : ''"
-                class="aspect-square rounded-lg relative overflow-hidden hover:scale-105 transition-transform"
-                style="background: {{ $css }}; border: 1px solid var(--border-glass);"
-                title="{{ $p['name'] }}">
-            <span class="absolute inset-x-0 bottom-0 text-[8px] font-semibold py-0.5 px-1 truncate"
-                  style="background: rgba(0,0,0,0.55); color: #fff;">{{ $p['name'] }}</span>
+                :class="presetId === {{ Illuminate\Support\Js::from($p['id']) }} ? 'is-picked' : ''"
+                class="bg-lib-swatch">
+            <span class="bg-lib-fill" style="background: {{ $css }};"></span>
+            <span class="bg-lib-tick" aria-hidden="true"><i class="fas fa-check"></i></span>
         </button>
         @endforeach
     </div>
-    <p class="text-[10px] mt-2" style="color: var(--text-dimmed);">
-        Pick a preset to load its colors, or fine-tune the stops above.
+
+    <p class="text-[10px] mt-1.5" style="color: var(--text-dimmed);">
+        Picking one loads its colours into the stops above, where you can change them.
     </p>
 </div>
