@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class Resume extends Model
 {
     protected $fillable = [
-        'user_id', 'template_id', 'color_theme_id', 'sections',
+        'user_id', 'template_id', 'color_theme_id', 'sections', 'page_background',
         'is_public', 'visibility', 'password',
         'expires_at', 'share_revision',
         'allow_indexing', 'view_count', 'meta_description',
@@ -25,6 +25,7 @@ class Resume extends Model
     {
         return [
             'sections'        => 'array',
+            'page_background' => 'array',
             'is_public'       => 'boolean',
             'allow_indexing'  => 'boolean',
             'view_count'      => 'integer',

@@ -523,6 +523,29 @@
                                     @click="setColorTheme(theme.id)"></button>
                         </template>
                     </div>
+
+                    {{-- The desk, not the paper.
+
+                         Template and colour theme above style the SHEET. This
+                         is the surface it sits on, which was a fixed #f3f4f6
+                         nobody could change. It is the same picker every other
+                         page type uses -- passed a settings array instead of a
+                         link, because a resume has no link at its @handle URL. --}}
+                    <form method="POST" action="{{ route('user.resume.page-background.update') }}" class="mt-6">
+                        @csrf
+                        @include('user.links.partials.biolink-background-card', [
+                            'bs'   => is_array($resume->page_background ?? null) ? $resume->page_background : [],
+                            'link' => null,
+                        ])
+                        <div class="mt-3 flex items-center gap-3">
+                            <button type="submit" class="btn-primary px-5 py-2 text-xs font-semibold inline-flex items-center gap-2">
+                                <i class="fas fa-save text-[10px]"></i> Save page background
+                            </button>
+                            <span class="text-[11px]" style="color: var(--text-muted,#9ca3af);">
+                                Applies to both of this r&eacute;sum&eacute;'s public links.
+                            </span>
+                        </div>
+                    </form>
                 </div>
             </div>
 
