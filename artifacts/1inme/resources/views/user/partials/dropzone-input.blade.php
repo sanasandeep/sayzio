@@ -67,6 +67,19 @@
     // the extension list (accept ''), which would otherwise hide the
     // image-only tabs (e.g. Stock) on clearly image-typed dropzones.
     $browseType = $browseType ?? 'all';
+    if ($browseType === 'all' && $extensions) {
+        // UploadPolicy describes a field with `extensions`, never `accept`, so
+        // $accept above falls back to '*/*' and the sniff below never matched.
+        // That is why Stock only ever appeared on background_image -- the one
+        // include that passes browseType by hand -- while the fallback image,
+        // the torn-paper backdrop and every other image field silently lost it.
+        // Sniff the extension list first, and the policy speaks for itself.
+        $exts = array_map('strtolower', (array) $extensions);
+        if (array_intersect($exts, ['jpg','jpeg','png','webp','gif','svg','avif','ico'])) $browseType = 'image';
+        elseif (array_intersect($exts, ['mp4','webm','mov','m4v']))                       $browseType = 'video';
+        elseif (array_intersect($exts, ['mp3','wav','ogg','m4a','aac','flac']))           $browseType = 'audio';
+        elseif (array_intersect($exts, ['pdf','doc','docx','xls','xlsx','ppt','pptx']))   $browseType = 'document';
+    }
     if ($browseType === 'all' && is_string($accept)) {
         $a = strtolower($accept);
         // Policy-driven accepts are extension lists (".jpg,.png,…"), so match
@@ -78,32 +91,57 @@
     }
 @endphp
 
+@once
+@push('styles')
+<style>
+    /* Ink for this partial.
+     *
+     * Every label, tab and hint in here used to be a hard-coded
+     * text-white/xx. That is invisible on a light ground, and this partial
+     * appears on the appearance settings page, which is light: the source
+     * tabs, the size hints and the vault empty state all rendered white on
+     * white. These four classes take the same values from the theme's own
+     * tokens, so the partial follows whichever mode the page is in and there
+     * is one place to change them. Class, rather than inline style, because
+     * half the usages sit inside an Alpine :class expression.
+     */
+    .dz-ink-faint  { color: var(--text-faint, rgba(255,255,255,0.30)); }
+    .dz-ink-muted  { color: var(--text-muted, rgba(255,255,255,0.40)); }
+    .dz-ink-dim    { color: var(--text-dimmed, rgba(255,255,255,0.60)); }
+    .dz-ink-strong { color: var(--text-secondary, rgba(255,255,255,0.80)); }
+    .hover\:dz-ink-dim:hover { color: var(--text-dimmed, rgba(255,255,255,0.60)); }
+    .hover\:dz-ink-strong:hover { color: var(--text-secondary, rgba(255,255,255,0.80)); }
+    .dz-surface-soft { background: var(--bg-glass, rgba(255,255,255,0.05)); }
+</style>
+@endpush
+@endonce
+
 <div x-data="dropzoneInput_{{ $dzId }}()" class="dz-wrap">
     @if($label)
-        <label class="block text-xs font-medium text-white/60 mb-1.5">{{ $label }}@if($required)<span class="text-red-400 ml-0.5">*</span>@endif</label>
+        <label class="block text-xs font-medium dz-ink-dim mb-1.5">{{ $label }}@if($required)<span class="text-red-400 ml-0.5">*</span>@endif</label>
     @endif
 
-    @if($allowAlternateSources && !$multiple)
+    @if($allowAlternateSources)
     <div class="flex items-center gap-1 mb-1.5">
         <button type="button" @click="mode = 'upload'"
                 class="text-[10px] px-2 py-0.5 rounded-md transition-all font-medium"
-                :class="mode === 'upload' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/40 hover:text-white/60'">
+                :class="mode === 'upload' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'dz-ink-muted hover:dz-ink-dim'">
             <i class="fas fa-cloud-upload-alt mr-1"></i>Upload
         </button>
         <button type="button" @click="mode = 'url'"
                 class="text-[10px] px-2 py-0.5 rounded-md transition-all font-medium"
-                :class="mode === 'url' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/40 hover:text-white/60'">
+                :class="mode === 'url' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'dz-ink-muted hover:dz-ink-dim'">
             <i class="fas fa-link mr-1"></i>URL
         </button>
         <button type="button" @click="mode = 'vault'; if (vaultFiles.length === 0) loadVault()"
                 class="text-[10px] px-2 py-0.5 rounded-md transition-all font-medium"
-                :class="mode === 'vault' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/40 hover:text-white/60'">
+                :class="mode === 'vault' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'dz-ink-muted hover:dz-ink-dim'">
             <i class="fas fa-folder-open mr-1"></i>My Files
         </button>
         @if($browseType === 'image')
         <button type="button" @click="mode = 'stock'; if (stockAssets.length === 0) loadStock()"
                 class="text-[10px] px-2 py-0.5 rounded-md transition-all font-medium"
-                :class="mode === 'stock' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/40 hover:text-white/60'">
+                :class="mode === 'stock' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'dz-ink-muted hover:dz-ink-dim'">
             <i class="fas fa-images mr-1"></i>Stock
         </button>
         @endif
@@ -115,7 +153,7 @@
     <div x-show="mode === 'upload'" x-cloak>
     <div class="relative rounded-xl overflow-hidden transition-all"
          :class="{ 'ring-2 ring-blue-500/60 bg-blue-500/5': dragging, 'ring-2 ring-red-500/60 bg-red-500/5': error, 'bg-white/5': !dragging && !error }"
-         style="border: 1.5px dashed rgba(255,255,255,0.18);"
+         style="border: 1.5px dashed var(--border-glass, rgba(255,255,255,0.18));"
          @dragover.prevent="dragging = true"
          @dragleave.prevent="dragging = false"
          @drop.prevent="onDrop($event)">
@@ -139,9 +177,9 @@
                         <i class="fas fa-cloud-upload-alt text-blue-400 text-sm"></i>
                     </div>
                     <div class="text-left">
-                        <p class="text-xs text-white/80"><span class="text-blue-300 font-medium">Drop {{ $multiple ? 'files' : 'a file' }}</span> or click to browse</p>
+                        <p class="text-xs dz-ink-strong"><span class="text-blue-300 font-medium">Drop {{ $multiple ? 'files' : 'a file' }}</span> or click to browse</p>
                         @if($hint || $maxMb)
-                            <p class="text-[10px] text-white/30 mt-0.5">{{ $hint }}@if($hint && $maxMb) · @endif @if($maxMb) Max {{ $maxMb }} MB @endif</p>
+                            <p class="text-[10px] dz-ink-faint mt-0.5">{{ $hint }}@if($hint && $maxMb) · @endif @if($maxMb) Max {{ $maxMb }} MB @endif</p>
                         @endif
                     </div>
                 </div>
@@ -152,7 +190,7 @@
             <div class="flex items-center gap-3 p-2.5 pointer-events-none">
                 @if($previewKind === 'image')
                     <template x-if="currentUrl">
-                        <img :src="currentUrl" alt="Current" class="w-12 h-12 rounded-lg object-cover bg-white/5 flex-shrink-0">
+                        <img :src="currentUrl" alt="Current" class="w-12 h-12 rounded-lg object-cover dz-surface-soft flex-shrink-0">
                     </template>
                 @endif
                 <template x-if="!currentUrl || '{{ $previewKind }}' !== 'image'">
@@ -161,8 +199,8 @@
                     </div>
                 </template>
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs text-white/80 truncate" x-text="currentName || 'Current file'"></p>
-                    <p class="text-[10px] text-white/40">Drop a new file to replace · or click</p>
+                    <p class="text-xs dz-ink-strong truncate" x-text="currentName || 'Current file'"></p>
+                    <p class="text-[10px] dz-ink-muted">Drop a new file to replace · or click</p>
                 </div>
             </div>
         </template>
@@ -170,7 +208,7 @@
         <template x-if="files.length > 0">
             <div class="p-2 space-y-1.5">
                 <template x-for="(f, i) in files" :key="i">
-                    <div class="flex items-center gap-2.5 p-2 rounded-lg bg-white/5 border border-white/5 pointer-events-none">
+                    <div class="flex items-center gap-2.5 p-2 rounded-lg dz-surface-soft border border-white/5 pointer-events-none">
                         <template x-if="f.preview">
                             <img :src="f.preview" :alt="f.name" class="w-10 h-10 rounded-md object-cover flex-shrink-0">
                         </template>
@@ -181,9 +219,9 @@
                         </template>
                         <div class="flex-1 min-w-0">
                             <p class="text-xs text-white truncate" x-text="f.name"></p>
-                            <p class="text-[10px] text-white/40" x-text="formatSize(f.size) + (f.source ? ' · ' + f.source : '')"></p>
+                            <p class="text-[10px] dz-ink-muted" x-text="formatSize(f.size) + (f.source ? ' · ' + f.source : '')"></p>
                         </div>
-                        <button type="button" @click.stop="removeAt(i)" class="pointer-events-auto w-6 h-6 rounded-md flex items-center justify-center text-white/40 hover:text-red-400 hover:bg-red-500/10 transition" title="Remove">
+                        <button type="button" @click.stop="removeAt(i)" class="pointer-events-auto w-6 h-6 rounded-md flex items-center justify-center dz-ink-muted hover:text-red-400 hover:bg-red-500/10 transition" title="Remove">
                             <i class="fas fa-times text-[11px]"></i>
                         </button>
                     </div>
@@ -194,7 +232,7 @@
     </div>
 
     {{-- URL mode --}}
-    @if($allowAlternateSources && !$multiple)
+    @if($allowAlternateSources)
     <div x-show="mode === 'url'" x-cloak>
         <div class="rounded-xl p-2.5" style="background: var(--bg-glass, rgba(255,255,255,0.04)); border: 1px solid var(--border-glass, rgba(255,255,255,0.10));">
             <div class="flex gap-2">
@@ -204,12 +242,12 @@
                        @keydown.enter.prevent="importFromUrl()">
                 <button type="button" @click="importFromUrl()" :disabled="urlImporting || !urlInput"
                         class="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
-                        :class="urlImporting || !urlInput ? 'opacity-50 cursor-not-allowed bg-white/5 text-white/40' : 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30 hover:bg-blue-500/30'">
+                        :class="urlImporting || !urlInput ? 'opacity-50 cursor-not-allowed dz-surface-soft dz-ink-muted' : 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30 hover:bg-blue-500/30'">
                     <template x-if="!urlImporting"><span><i class="fas fa-download mr-1"></i>Use</span></template>
                     <template x-if="urlImporting"><span><i class="fas fa-spinner fa-spin mr-1"></i>Fetching</span></template>
                 </button>
             </div>
-            <p class="text-[10px] text-white/30 mt-1.5">The file is downloaded into your vault and counts toward your storage quota.</p>
+            <p class="text-[10px] dz-ink-faint mt-1.5">The file is downloaded into your vault and counts toward your storage quota.</p>
         </div>
     </div>
 
@@ -227,7 +265,7 @@
                     <div class="py-6 text-center"><i class="fas fa-spinner fa-spin text-blue-400/60"></i></div>
                 </template>
                 <template x-if="!vaultLoading && vaultFiles.length === 0">
-                    <div class="py-6 text-center text-xs text-white/30">No files in your vault yet</div>
+                    <div class="py-6 text-center text-xs dz-ink-faint">No files in your vault yet</div>
                 </template>
                 <div class="grid grid-cols-4 gap-1.5">
                     <template x-for="f in filteredVault" :key="f.id">
@@ -240,9 +278,9 @@
                             </template>
                             <template x-if="f.type !== 'image'">
                                 <div class="w-full aspect-square flex flex-col items-center justify-center p-1">
-                                    <i class="text-lg text-white/20"
+                                    <i class="text-lg dz-ink-faint"
                                        :class="f.type === 'video' ? 'fas fa-video' : f.type === 'audio' ? 'fas fa-music' : 'fas fa-file'"></i>
-                                    <span class="text-[8px] text-white/30 mt-1 truncate w-full text-center" x-text="f.original_name"></span>
+                                    <span class="text-[8px] dz-ink-faint mt-1 truncate w-full text-center" x-text="f.original_name"></span>
                                 </div>
                             </template>
                         </button>
@@ -265,10 +303,10 @@
             <div class="p-2 flex items-center gap-2" style="border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.06));">
                 <button type="button" @click="stockTab = 'grid-images'"
                         class="text-[10px] px-2 py-1 rounded-md font-medium transition-all"
-                        :class="stockTab === 'grid-images' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/40 hover:text-white/60'">Photos</button>
+                        :class="stockTab === 'grid-images' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'dz-ink-muted hover:dz-ink-dim'">Photos</button>
                 <button type="button" @click="stockTab = 'hand-drawn'"
                         class="text-[10px] px-2 py-1 rounded-md font-medium transition-all"
-                        :class="stockTab === 'hand-drawn' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/40 hover:text-white/60'">Hand-drawn</button>
+                        :class="stockTab === 'hand-drawn' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'dz-ink-muted hover:dz-ink-dim'">Hand-drawn</button>
                 <input type="text" x-model="stockSearch" placeholder="Search…"
                        class="flex-1 text-xs px-2.5 py-1.5 rounded-lg outline-none min-w-0"
                        style="background: var(--bg-glass-input, rgba(0,0,0,0.20)); color: var(--text-primary, #fff); border: 1px solid var(--border-glass, rgba(255,255,255,0.10));">
@@ -278,7 +316,7 @@
                     <div class="py-6 text-center"><i class="fas fa-spinner fa-spin text-blue-400/60"></i></div>
                 </template>
                 <template x-if="!stockLoading && filteredStock.length === 0">
-                    <div class="py-6 text-center text-xs text-white/30">No stock images available right now</div>
+                    <div class="py-6 text-center text-xs dz-ink-faint">No stock images available right now</div>
                 </template>
                 <div class="grid grid-cols-4 gap-1.5">
                     <template x-for="a in visibleStock" :key="a.key">
