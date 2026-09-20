@@ -10,7 +10,6 @@
                    — auto-loaded from the database if not passed in.
 --}}
 @php
-    use App\Modules\User\Support\BgPresetCatalog;
     $bs = $link->settings['biolink'] ?? [];
     $bgType            = $bs['background_type']     ?? 'color';
     $bgColor           = $bs['background_color']    ?? '#0a0612';
@@ -31,11 +30,6 @@
     $bgOverlayOpacity  = $bs['bg_overlay_opacity']  ?? 0;
     $bgPresetKey       = $bs['bg_preset_key']       ?? '';
     $tornPaperColor    = $bs['torn_paper_color']    ?? '#cfe0e6';
-    // Task #6204: the Presets tab only shows picker-visible groups —
-    // gradients moved to the Gradient tab ("Classic"), torn to the
-    // standalone Torn Paper type. Legacy saved keys still render publicly.
-    $bgPresets         = BgPresetCatalog::pickerPresets();
-    $bgPresetGroups    = BgPresetCatalog::pickerGroups();
     $tornStyleVal      = $bs['torn_style']          ?? \App\Modules\User\Support\TornStyleCatalog::DEFAULT;
     // Color inputs always submit a value, so seed pleasant defaults
     // (the legacy dusty-blue backdrop) instead of browser-default black.
@@ -50,15 +44,13 @@
     // Lazy-load bg templates if the parent didn't pass them in.
     $bgTemplates = $bgTemplates ?? \App\Modules\Admin\Models\BgTemplate::active()->get();
 
-    $tplCategories = $bgTemplates->groupBy(fn ($t) => $t->category ?: 'pattern')->map->count();
-    $tplCategoryLabels = [
-        'animated' => 'Animated',
-        'gradient' => 'Gradients',
-        'mesh'     => 'Mesh',
-        'pattern'  => 'Patterns',
-        'svg'      => 'SVG',
-        'neon'     => 'Neon',
-    ];
+    // Task #6231: one library over every ready-made look, replacing the six
+    // pickers. Categories describe what a look IS, so "Mesh" is one chip over
+    // both sources instead of a picker AND a chip inside Template.
+    $library         = \App\Modules\User\Support\BackgroundLibrary::items($bgTemplates);
+    $libraryCounts   = \App\Modules\User\Support\BackgroundLibrary::counts($library);
+    $libraryLabels   = \App\Modules\User\Support\BackgroundLibrary::CATEGORIES;
+    $librarySelected = \App\Modules\User\Support\BackgroundLibrary::selectedValue($bs);
 @endphp
 
 <div class="card-premium p-6" x-data="bgSettings()" x-init="init()">
@@ -84,8 +76,13 @@
                 </template>
             </div>
             <p class="text-[10px] mb-2" style="color: var(--text-faint);" x-text="groups.find(g => g.key === activeGroup)?.hint"></p>
+            {{-- Colour and Media still choose between a handful of unlike
+                 things, so they keep their tiles. Style does not: every one
+                 of its options was "pick a ready-made look", which is why the
+                 same category names kept turning up at two levels. It gets
+                 the library below instead. --}}
             <template x-for="g in groups" :key="g.key">
-            <div x-show="activeGroup === g.key">
+            <div x-show="activeGroup === g.key && g.key !== 'style'">
             <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
                 <template x-for="t in typesIn(g.key)" :key="t.key">
                     <button type="button" @click="bgType = t.key"
@@ -102,8 +99,94 @@
             </div>
             </div>
             </template>
+
+            {{-- THE STYLE LIBRARY (Task #6231) --------------------------------
+                 One grid over every ready-made look. The chips filter that one
+                 set, so a category name exists exactly once. Picking a look
+                 still writes the same background_type and key field its old
+                 picker wrote -- see BackgroundLibrary -- so nothing stored
+                 changes and the renderer is untouched. --}}
+            <div x-show="activeGroup === 'style'" x-data="{ libCat: 'all', libSearch: '', picked: @js($librarySelected) }">
+                <div class="flex items-center justify-between gap-2 flex-wrap mb-2">
+                    <label class="block text-xs font-medium" style="color: var(--text-muted);">
+                        Choose a look <span class="opacity-60">{{ count($library) }}</span>
+                    </label>
+                    <input type="text" x-model="libSearch" placeholder="Search all {{ count($library) }}…"
+                           class="text-[11px] px-2 py-1 rounded-md flex-1 max-w-[190px]"
+                           style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                </div>
+
+                <div class="bg-lib-chips mb-2">
+                    <button type="button" @click="libCat = 'all'"
+                            class="bg-lib-chip" :class="libCat === 'all' ? 'is-on' : ''">
+                        All <span class="bg-lib-n">{{ count($library) }}</span>
+                    </button>
+                    @foreach($libraryCounts as $catKey => $catCount)
+                    <button type="button" @click="libCat = '{{ $catKey }}'"
+                            class="bg-lib-chip" :class="libCat === '{{ $catKey }}' ? 'is-on' : ''">
+                        {{ $libraryLabels[$catKey] }} <span class="bg-lib-n">{{ $catCount }}</span>
+                    </button>
+                    @endforeach
+                </div>
+
+                <div class="bg-swatch-grid max-h-[420px] overflow-y-auto pr-1">
+                    @foreach($library as $item)
+                    @php
+                        $detail = ['type' => $item['type'], 'value' => $item['value']] + ($item['torn'] ?? []);
+                    @endphp
+                    <button type="button"
+                            title="{{ $item['label'] }}"
+                            x-show="(libCat === 'all' || libCat === '{{ $item['category'] }}')
+                                    && (!libSearch || {{ Illuminate\Support\Js::from(mb_strtolower($item['label'])) }}.includes(libSearch.toLowerCase()))"
+                            @click="picked = {{ Illuminate\Support\Js::from($item['value']) }};
+                                    bgType = {{ Illuminate\Support\Js::from($item['type']) }};
+                                    window.dispatchEvent(new CustomEvent('bg-pick', {{ Illuminate\Support\Js::from(['detail' => $detail]) }}));
+                                    $nextTick(() => $dispatch('change'))"
+                            :class="picked === {{ Illuminate\Support\Js::from($item['value']) }} && bgType === {{ Illuminate\Support\Js::from($item['type']) }} ? 'is-picked' : ''"
+                            class="bg-lib-swatch">
+                        @switch($item['thumb']['kind'])
+                            @case('class')
+                                <span class="bg-lib-fill" style="background: {{ $item['thumb']['ground'] }};">
+                                    <span class="{{ $item['thumb']['class'] }}" style="position:absolute;inset:0;"></span>
+                                </span>
+                                @break
+                            @case('tiles')
+                                <span class="bg-lib-fill bg-lib-tiles">
+                                    @foreach($item['thumb']['tiles'] as $tileCss)
+                                    <i style="background: {{ $tileCss }};"></i>
+                                    @endforeach
+                                </span>
+                                @break
+                            @case('torn')
+                                <span class="bg-lib-fill" style="background: linear-gradient(140deg, {{ $item['thumb']['backdrop'][0] }}, {{ $item['thumb']['backdrop'][1] }});">
+                                    @foreach($item['thumb']['sheets'] as $sheet)
+                                    <i style="position:absolute;inset:0;clip-path:{{ $sheet['clip'] }};background: {{ \App\Modules\User\Support\TornStyleCatalog::shadeHex($item['thumb']['paper'], $sheet['shade']) }};"></i>
+                                    @endforeach
+                                </span>
+                                @break
+                            @default
+                                <span class="bg-lib-fill" style="{{ $item['thumb']['css'] }}; background-size: cover; background-position: center;"></span>
+                        @endswitch
+                        <span class="bg-lib-tick" aria-hidden="true"><i class="fas fa-check"></i></span>
+                    </button>
+                    @endforeach
+                </div>
+                <p class="text-[10px] mt-1.5" style="color: var(--text-dimmed);">
+                    Search covers every look at once. Options for the one you pick appear below.
+                </p>
+            </div>
+
             <input type="hidden" name="background_type" :value="bgType">
         </div>
+
+        {{-- The generated thumbnail classes for the library's template
+             entries. Lifted out of the old Template panel so the swatches
+             paint wherever the library is shown. --}}
+        <style>
+        @foreach($bgTemplates as $tpl)
+        {!! str_replace(['.bg-template-', 'position:fixed', 'position: fixed', 'z-index:-1', 'z-index: -1'], ['.bg-thumb-', 'position:absolute', 'position:absolute', 'z-index:0', 'z-index:0'], $tpl->css) !!}
+        @endforeach
+        </style>
 
         {{-- SOLID COLOR --}}
         <div x-show="bgType === 'color'" x-transition class="space-y-3">
@@ -319,40 +402,22 @@
                 'hint'        => 'Peeks out beyond the torn edge of the paper',
                 'compact'     => true,
             ])
-            {{-- Tear style (Task #6204): 6 catalog variants; only the key is
-                 stored, clip paths always resolve server-side. --}}
-            <div x-data="{ tornStyle: @js($tornStyleVal) }" @torn-style-combo.window="tornStyle = $event.detail">
-                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Tear Style</label>
+            {{-- The tear shape and the colourway are chosen together in the
+                 library, because a shape with no colourway is not something
+                 anyone picks. Both still store exactly what they always did:
+                 the style KEY, whose clip paths resolve server-side, and the
+                 three colours. The colours stay editable here afterwards. --}}
+            <div x-data="{ tornStyle: @js($tornStyleVal) }"
+                 @torn-style-combo.window="tornStyle = $event.detail"
+                 @bg-pick.window="if ($event.detail.type === 'torn') tornStyle = $event.detail.style">
                 <input type="hidden" name="torn_style" :value="tornStyle">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                    @foreach(\App\Modules\User\Support\TornStyleCatalog::styles() as $styleKey => $styleLabel)
-                    <button type="button"
-                            @click="tornStyle = '{{ $styleKey }}'; $nextTick(() => $dispatch('change'))"
-                            class="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap transition-all"
-                            :style="tornStyle === '{{ $styleKey }}' ? 'background: rgba(61,107,255,0.25); color:#bccfff; border:1px solid rgba(61,107,255,0.5)' : 'background: var(--bg-glass-input); color: var(--text-muted); border:1px solid var(--border-glass)'">
-                        {{ $styleLabel }}
-                    </button>
-                    @endforeach
-                </div>
             </div>
-            <div x-data="{ tornPaper: @js($tornPaperColor), tornBd: @js($tornBdColor), tornBd2: @js($tornBdColor2) }" class="space-y-3">
-                {{-- Quick combos: the first three mirror the retired torn
-                     presets so those looks stay one click away. --}}
-                <div>
-                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Quick Combos</label>
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        @foreach(\App\Modules\User\Support\TornStyleCatalog::PRESETS as $comboKey => $combo)
-                        <button type="button"
-                                @click="tornPaper = '{{ $combo['paper'] }}'; tornBd = '{{ $combo['backdrop'][0] }}'; tornBd2 = '{{ $combo['backdrop'][1] }}'; window.dispatchEvent(new CustomEvent('torn-style-combo', { detail: '{{ $combo['style'] }}' })); $nextTick(() => $dispatch('change'))"
-                                class="flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-full transition-all"
-                                style="background: var(--bg-glass-input); color: var(--text-muted); border:1px solid var(--border-glass);"
-                                title="{{ $combo['label'] }}">
-                            <span class="w-4 h-4 rounded-full flex-shrink-0" style="background: linear-gradient(115deg, {{ $combo['paper'] }} 0%, {{ $combo['paper'] }} 55%, {{ $combo['backdrop'][0] }} 55%, {{ $combo['backdrop'][1] }} 100%); border:1px solid var(--border-subtle);"></span>
-                            {{ $combo['label'] }}
-                        </button>
-                        @endforeach
-                    </div>
-                </div>
+            <div x-data="{ tornPaper: @js($tornPaperColor), tornBd: @js($tornBdColor), tornBd2: @js($tornBdColor2) }" class="space-y-3"
+                 @bg-pick.window="if ($event.detail.type === 'torn') {
+                    tornPaper = $event.detail.paper;
+                    tornBd    = $event.detail.backdrop;
+                    tornBd2   = $event.detail.backdrop2;
+                 }">
                 <div class="grid grid-cols-3 gap-3">
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Paper Color</label>
@@ -373,27 +438,11 @@
 
         {{-- TILES (Task #6204) --}}
         <div x-show="bgType === 'tiles'" x-transition class="space-y-3"
-             x-data="{ tilesPalette: @js($tilesPaletteVal), tilesLayout: @js($tilesLayoutVal), tilesAnimate: @js($tilesAnimateVal) }">
+             x-data="{ tilesPalette: @js($tilesPaletteVal), tilesLayout: @js($tilesLayoutVal), tilesAnimate: @js($tilesAnimateVal) }"
+             @bg-pick.window="if ($event.detail.type === 'tiles') tilesPalette = $event.detail.value">
             <input type="hidden" name="tiles_palette" :value="tilesPalette">
-            <div>
-                <label class="block text-xs font-medium mb-2" style="color: var(--text-muted);">Palette</label>
-                <div class="bg-swatch-grid">
-                    @foreach(\App\Modules\User\Support\TilesBgCatalog::palettes() as $palKey => $pal)
-                    <button type="button"
-                            @click="tilesPalette = '{{ $palKey }}'; $nextTick(() => $dispatch('change'))"
-                            :class="tilesPalette === '{{ $palKey }}' ? 'ring-2 ring-blue-400' : ''"
-                            class="rounded-md overflow-hidden transition-all hover:scale-[1.05]"
-                            style="aspect-ratio: 9/14; border: 1px solid var(--border-glass);"
-                            title="{{ $pal['label'] }}">
-                        <span class="grid grid-cols-2 w-full h-full" style="gap:2px; padding:2px; display:grid;">
-                            @foreach(array_slice($pal['tiles'], 0, 4) as $tileCss)
-                            <span style="background: {{ $tileCss }}; border-radius: 2px; display:block;"></span>
-                            @endforeach
-                        </span>
-                    </button>
-                    @endforeach
-                </div>
-            </div>
+            {{-- The palette is picked in the library; layout and animation are
+                 settings on top of it, so they stay here. --}}
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Layout</label>
@@ -418,85 +467,34 @@
             <p class="text-[10px]" style="color: var(--text-dimmed);">A full-page grid of gradient tiles. The pulse animation is automatically disabled for visitors who prefer reduced motion.</p>
         </div>
 
-        {{-- MESH (Task #6204) --}}
+        {{-- MESH -- the swatches moved into the library; the field it writes
+             did not change, so pages saved before the merge still resolve. --}}
         <div x-show="bgType === 'mesh'" x-transition class="space-y-3"
-             x-data="{ meshPreset: @js($meshPresetVal) }">
+             x-data="{ meshPreset: @js($meshPresetVal) }"
+             @bg-pick.window="if ($event.detail.type === 'mesh') meshPreset = $event.detail.value">
             <input type="hidden" name="mesh_preset" :value="meshPreset">
-            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Mesh Gradient</label>
-            <div class="bg-swatch-grid">
-                @foreach(\App\Modules\User\Support\MeshGradientCatalog::all() as $meshKey => $mesh)
-                <button type="button"
-                        @click="meshPreset = meshPreset === '{{ $meshKey }}' ? '' : '{{ $meshKey }}'; $nextTick(() => $dispatch('change'))"
-                        :class="meshPreset === '{{ $meshKey }}' ? 'ring-2 ring-blue-400' : ''"
-                        class="rounded-md overflow-hidden transition-all hover:scale-[1.05]"
-                        style="{{ \App\Modules\User\Support\MeshGradientCatalog::css($meshKey) }}; aspect-ratio: 9/14; border: 1px solid var(--border-glass);"
-                        title="{{ $mesh['label'] }}"></button>
-                @endforeach
-            </div>
-            <p class="text-[10px]" style="color: var(--text-dimmed);">Soft multi-point color blends. Click a swatch to select, click again to deselect.</p>
+            <p class="text-[10px]" style="color: var(--text-dimmed);">Soft multi-point color blends.</p>
         </div>
 
-        {{-- PATTERN (Task #6204) --}}
+        {{-- PATTERN --}}
         <div x-show="bgType === 'pattern'" x-transition class="space-y-3"
-             x-data="{ patternPreset: @js($patternPresetVal) }">
+             x-data="{ patternPreset: @js($patternPresetVal) }"
+             @bg-pick.window="if ($event.detail.type === 'pattern') patternPreset = $event.detail.value">
             <input type="hidden" name="pattern_preset" :value="patternPreset">
-            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Pattern</label>
-            <div class="bg-swatch-grid">
-                @foreach(\App\Modules\User\Support\PatternCatalog::all() as $patKey => $pat)
-                <button type="button"
-                        @click="patternPreset = patternPreset === '{{ $patKey }}' ? '' : '{{ $patKey }}'; $nextTick(() => $dispatch('change'))"
-                        :class="patternPreset === '{{ $patKey }}' ? 'ring-2 ring-blue-400' : ''"
-                        class="rounded-md overflow-hidden transition-all hover:scale-[1.05]"
-                        style="{{ $pat['css'] }}; aspect-ratio: 9/14; border: 1px solid var(--border-glass);"
-                        title="{{ $pat['label'] }}"></button>
-                @endforeach
-            </div>
-            <p class="text-[10px]" style="color: var(--text-dimmed);">Subtle geometric textures. Click a swatch to select, click again to deselect.</p>
+            <p class="text-[10px]" style="color: var(--text-dimmed);">Subtle geometric textures.</p>
         </div>
 
-        {{-- PRESET --}}
+        {{-- PRESET -- the swatches and the group chips moved into the
+             library, where "Patterns" is one chip rather than a preset group
+             that also had its own picker. Transparency is a setting on top of
+             the chosen preset, so it stays. --}}
         <div x-show="bgType === 'preset'" x-transition class="space-y-3"
-             x-data="{ presetGroup: @js(array_key_first($bgPresetGroups) ?? 'abstract'), presetSearch: '', selectedKey: @js($bgPresetKey) }">
-            <div class="flex items-center justify-between gap-2 flex-wrap">
-                <label class="block text-xs font-medium" style="color: var(--text-muted);">Choose a Preset <span class="opacity-60">({{ count($bgPresets) }})</span></label>
-                <input type="text" x-model="presetSearch" placeholder="Search…"
-                       class="text-[11px] px-2 py-1 rounded-md flex-1 max-w-[160px]"
-                       style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
-            </div>
-            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
-                @foreach($bgPresetGroups as $groupKey => $groupLabel)
-                <button type="button" @click="presetGroup = '{{ $groupKey }}'"
-                        class="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap transition-all"
-                        :style="presetGroup === '{{ $groupKey }}' ? 'background: rgba(61,107,255,0.25); color:#bccfff; border:1px solid rgba(61,107,255,0.5)' : 'background: var(--bg-glass-input); color: var(--text-muted); border:1px solid var(--border-glass)'">
-                    {{ $groupLabel }}
-                    <span class="opacity-60">{{ collect($bgPresets)->where('group', $groupKey)->count() }}</span>
-                </button>
-                @endforeach
-            </div>
+             x-data="{ selectedKey: @js($bgPresetKey) }"
+             @bg-pick.window="if ($event.detail.type === 'preset') selectedKey = $event.detail.value">
+            {{-- The library dispatches a synthetic change event after picking so
+                 the live draft-preview push fires: this hidden input is updated
+                 via :value, which emits no input/change of its own. --}}
             <input type="hidden" name="bg_preset_key" :value="selectedKey">
-            <div class="bg-swatch-grid max-h-[480px] overflow-y-auto pr-1">
-                @foreach($bgPresets as $presetId => $preset)
-                <button type="button"
-                        x-show="(presetGroup === '{{ $preset['group'] }}') && (!presetSearch || '{{ strtolower($preset['label']) }}'.includes(presetSearch.toLowerCase()))"
-                        {{-- $dispatch bubbles a synthetic change event up to the form so the
-                             live draft-preview push fires (the hidden bg_preset_key input is
-                             updated via :value binding, which emits no input/change events). --}}
-                        @click="selectedKey = selectedKey === '{{ $presetId }}' ? '' : '{{ $presetId }}'; $nextTick(() => $dispatch('change'))"
-                        :class="selectedKey === '{{ $presetId }}' ? 'ring-2 ring-blue-400 ring-offset-1 ring-offset-transparent' : ''"
-                        class="rounded-md overflow-hidden relative transition-all hover:scale-[1.08] hover:z-10 hover:shadow-lg"
-                        style="{{ $preset['css'] }}; width:100%; aspect-ratio:9/14; border:1px solid var(--border-glass); background-size: cover; background-position: center;"
-                        title="{{ $preset['label'] }}">
-                    <div x-show="selectedKey === '{{ $presetId }}'"
-                         class="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center"
-                         style="background: rgba(61,107,255,0.95); color:#fff; font-size:7px;">
-                        <i class="fas fa-check" style="font-size:6px;"></i>
-                    </div>
-                </button>
-                @endforeach
-            </div>
-            <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">
-                Click a swatch to select it. Click again to deselect.
-            </p>
             {{-- Preset transparency (Task #5970): fades the preset layer itself
                  (0 = invisible, 100 = fully opaque); page content is unaffected. --}}
             <div x-data="{ presetOpacity: {{ max(0, min(100, (int) ($bs['bg_preset_opacity'] ?? 100))) }} }">
@@ -508,63 +506,16 @@
             </div>
         </div>
 
-        {{-- TEMPLATE --}}
-        <div x-show="bgType === 'template'" x-transition class="space-y-3"
-             x-data="{ tplCat: 'all', tplSearch: '', selectedTpl: {{ $bgTemplateId ?? 'null' }} }">
-            <div class="flex items-center justify-between gap-2 flex-wrap">
-                <label class="block text-xs font-medium" style="color: var(--text-muted);">Choose a Template <span class="opacity-60">({{ $bgTemplates->count() }})</span></label>
-                <input type="text" x-model="tplSearch" placeholder="Search…"
-                       class="text-[11px] px-2 py-1 rounded-md flex-1 max-w-[160px]"
-                       style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
-            </div>
-            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
-                <button type="button" @click="tplCat = 'all'"
-                        class="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap transition-all"
-                        :style="tplCat === 'all' ? 'background: rgba(61,107,255,0.25); color:#bccfff; border:1px solid rgba(61,107,255,0.5)' : 'background: var(--bg-glass-input); color: var(--text-muted); border:1px solid var(--border-glass)'">
-                    All <span class="opacity-60">{{ $bgTemplates->count() }}</span>
-                </button>
-                @foreach($tplCategoryLabels as $catKey => $catLabel)
-                    @if(($tplCategories[$catKey] ?? 0) > 0)
-                    <button type="button" @click="tplCat = '{{ $catKey }}'"
-                            class="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap transition-all"
-                            :style="tplCat === '{{ $catKey }}' ? 'background: rgba(61,107,255,0.25); color:#bccfff; border:1px solid rgba(61,107,255,0.5)' : 'background: var(--bg-glass-input); color: var(--text-muted); border:1px solid var(--border-glass)'">
-                        {{ $catLabel }} <span class="opacity-60">{{ $tplCategories[$catKey] }}</span>
-                    </button>
-                    @endif
-                @endforeach
-            </div>
-            <style>
-            @foreach($bgTemplates as $tpl)
-            {!! str_replace(['.bg-template-', 'position:fixed', 'position: fixed', 'z-index:-1', 'z-index: -1'], ['.bg-thumb-', 'position:absolute', 'position:absolute', 'z-index:0', 'z-index:0'], $tpl->css) !!}
-            @endforeach
-            </style>
-            <div class="bg-swatch-grid max-h-[560px] overflow-y-auto pr-1">
-                @foreach($bgTemplates as $tpl)
-                @php
-                    $tplCat = $tpl->category ?: 'pattern';
-                    $previewIsDecl = str_contains($tpl->preview_color, ':');
-                    $previewBg = $previewIsDecl ? '#0f172a' : $tpl->preview_color;
-                @endphp
-                <label class="cursor-pointer group block"
-                       title="{{ $tpl->name }}"
-                       x-show="(tplCat === 'all' || tplCat === '{{ $tplCat }}') && (!tplSearch || '{{ strtolower(addslashes($tpl->name)) }}'.includes(tplSearch.toLowerCase()))">
-                    <input type="radio" name="bg_template_id" value="{{ $tpl->id }}" {{ $bgTemplateId == $tpl->id ? 'checked' : '' }} class="hidden peer" @click="selectedTpl = {{ $tpl->id }}">
-                    <div class="rounded-md overflow-hidden relative transition-all hover:scale-[1.08] hover:z-10 hover:shadow-lg peer-checked:ring-2 peer-checked:ring-blue-400 peer-checked:ring-offset-1 peer-checked:ring-offset-transparent"
-                         style="width:100%;aspect-ratio:9/14;background:{{ $previewBg }};border:1px solid var(--border-glass);"
-                         :style="{ boxShadow: selectedTpl === {{ $tpl->id }} ? '0 0 0 2px rgba(144,172,255,0.9), 0 4px 12px rgba(0,0,0,.4)' : '' }">
-                        <div class="bg-thumb-{{ $tpl->slug }}" style="position:absolute;inset:0;"></div>
-                        <div class="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full items-center justify-center hidden peer-checked:flex"
-                             style="background: rgba(61,107,255,0.95); color:#fff; font-size:7px;"
-                             :class="selectedTpl === {{ $tpl->id }} ? '!flex' : ''">
-                            <i class="fas fa-check" style="font-size:6px;"></i>
-                        </div>
-                    </div>
-                </label>
-                @endforeach
-            </div>
-            @if($bgTemplates->isEmpty())
-            <p class="text-[11px] p-3 rounded-lg text-center" style="color: var(--text-dimmed); background: var(--bg-glass);">No templates available yet.</p>
-            @endif
+        {{-- TEMPLATE -- there is no "Template" tab any more. These were
+             never templates, they were a background library, and their six
+             category chips were the other half of the duplication: Mesh and
+             Patterns appeared here AND as pickers of their own. They are now
+             ordinary entries in the one library. The stored field is
+             unchanged, so every saved page still resolves. --}}
+        <div x-show="bgType === 'template'" x-transition
+             x-data="{ selectedTpl: {{ $bgTemplateId ? (int) $bgTemplateId : "''" }} }"
+             @bg-pick.window="if ($event.detail.type === 'template') selectedTpl = $event.detail.value">
+            <input type="hidden" name="bg_template_id" :value="selectedTpl">
         </div>
 
         {{-- SHARED EFFECTS --}}
@@ -694,6 +645,72 @@
     @media (min-width: 640px) {
         .bg-swatch-grid { grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); }
     }
+
+    /* ---- Style library (Task #6231) ---------------------------------- */
+    /* Chips scroll on a phone and wrap once there is room, so all nine
+       categories are visible at once rather than hiding the last few off
+       the right edge -- which is how "Tiles" and "Torn paper" went unseen. */
+    .bg-lib-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; }
+    @media (min-width: 640px) {
+        .bg-lib-chips { flex-wrap: wrap; overflow: visible; }
+    }
+    .bg-lib-chip {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 5px 11px;
+        border-radius: 999px;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: background .15s ease, color .15s ease, border-color .15s ease;
+        background: var(--bg-glass-input);
+        border: 1px solid var(--border-glass);
+        color: var(--text-muted);
+    }
+    .bg-lib-chip:hover { color: var(--text-primary); }
+    .bg-lib-chip.is-on {
+        background: rgba(61, 107, 255, 0.25);
+        border-color: rgba(61, 107, 255, 0.5);
+        color: #bccfff;
+    }
+    html.light-mode .bg-lib-chip.is-on {
+        background: rgba(61, 107, 255, 0.12);
+        color: #2544b8;
+    }
+    .bg-lib-n { opacity: .6; font-weight: 500; margin-left: 2px; }
+
+    .bg-lib-swatch {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 9 / 14;
+        padding: 0;
+        border: 1px solid var(--border-glass);
+        border-radius: 6px;
+        overflow: hidden;
+        cursor: pointer;
+        background: var(--bg-glass-input);
+        transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .bg-lib-swatch:hover { transform: scale(1.08); z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,.4); }
+    .bg-lib-swatch:focus-visible { outline: 2px solid #5c83ff; outline-offset: 2px; }
+    .bg-lib-swatch.is-picked { box-shadow: 0 0 0 2px rgba(144,172,255,.95), 0 4px 12px rgba(0,0,0,.4); }
+    .bg-lib-fill { position: absolute; inset: 0; display: block; }
+    .bg-lib-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 2px; }
+    .bg-lib-tiles i { display: block; border-radius: 2px; }
+    .bg-lib-tick {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(61,107,255,.95);
+        color: #fff;
+        font-size: 6px;
+    }
+    .bg-lib-swatch.is-picked .bg-lib-tick { display: flex; }
 </style>
 <script>
 function bgSettings() {
@@ -703,17 +720,15 @@ function bgSettings() {
         gradientType: @json($gradientTypeVal),
         gradientAngle: @json((int) $gradientAngle),
         gradientStops: @json($gradientColors),
-        // Eleven flat tiles read as eleven unrelated choices, and six of them
-        // ("Presets", "Template", "Pattern", "Mesh", "Tiles", "Gradient") are
-        // all the same request: pick a ready-made look. Grouping says which
-        // are alternatives to each other. Nothing about what gets SAVED
-        // changes -- each button still sets its own background_type -- so
-        // existing pages and the renderer are untouched.
         groups: [
             { key: 'colour', label: 'Colour', hint: 'A flat colour or a gradient you build' },
-            { key: 'style',  label: 'Style',  hint: 'Ready-made looks' },
+            { key: 'style',  label: 'Style',  hint: 'Ready-made looks — one library, search or filter' },
             { key: 'media',  label: 'Media',  hint: 'Your own image or video' },
         ],
+        // Style's six entries no longer render as tiles -- the library
+        // replaced them -- but they stay in this list because it is what maps
+        // a saved background_type back to its group, so opening the panel on
+        // a saved template still lands on Style rather than a default tab.
         types: [
             { key: 'color',     group: 'colour', label: 'Solid Color', icon: 'fa-fill',    preview: 'linear-gradient(135deg, #2139a1, #3b0764)' },
             { key: 'gradient',  group: 'colour', label: 'Gradient',    icon: 'fa-rainbow', preview: 'linear-gradient(135deg, #ec4899, #5c83ff, #06b6d4)' },
