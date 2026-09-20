@@ -79,7 +79,7 @@ class BiolinkBlockController extends Controller
 
     public function settingsAppearance(Link $link)
     {
-        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
+        abort_if($link->user_id !== workspace_owner_id() || !$link->supportsPageBackground(), 403);
         if ($link->isDesignLocked()) {
             return redirect()->route('user.links.settings.advanced', $link);
         }
@@ -1254,7 +1254,7 @@ class BiolinkBlockController extends Controller
 
     public function updatePageSettings(Request $request, Link $link)
     {
-        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
+        abort_if($link->user_id !== workspace_owner_id() || !$link->supportsPageBackground(), 403);
 
         $validated = $request->validate([
             'biolink_title' => 'nullable|string|max:100',
@@ -1604,6 +1604,31 @@ class BiolinkBlockController extends Controller
         unset($validated['text_overlays']);
         if ($request->has('text_overlays') && !$link->isDesignLocked()) {
             $settings['biolink']['text_overlays'] = $this->sanitizeTextOverlays($textOverlaysInput);
+        }
+
+        /*
+         * A type that only has a BACKGROUND saves only its background.
+         *
+         * This endpoint validates and persists the whole biolink page
+         * surface -- menu bar, share button, stickers, branding, and
+         * custom CSS and JS. Opening it to Reviews and Updates pages so
+         * they could save a background would also let them store all of
+         * that, on renderers that read none of it. Storing dead settings
+         * is the small problem; custom_css and custom_js_head on a page
+         * that was never designed to carry them is the real one.
+         *
+         * So the gate decides WHO may post here, and this decides WHAT
+         * each type may write. The biolink family keeps the full surface
+         * it has always had.
+         */
+        if (!$link->isBiolinkFamily()) {
+            $validated = array_intersect_key(
+                $validated,
+                array_flip([
+                    ...\App\Modules\User\Support\PageBackground::FIELDS,
+                    'biolink_title', 'biolink_description',
+                ])
+            );
         }
 
         $settings['biolink'] = array_merge($settings['biolink'] ?? [], $validated);
