@@ -135,6 +135,18 @@
         <div>
             <div class="sb-card">
                 <h5>Settings</h5>
+                {{-- The page background lives on the shared Appearance panel,
+                     not here: it is the same picker every other page type uses,
+                     and duplicating it per editor is how this app ended up with
+                     six background pickers in the first place. --}}
+                <a href="{{ route('user.links.settings.appearance', $link) }}"
+                   class="no-underline"
+                   style="display:flex;align-items:center;gap:10px;padding:11px 13px;margin:10px 0 14px;border-radius:12px;background:var(--bg-glass-input,rgba(127,127,127,.06));border:1px solid var(--border-glass,rgba(127,127,127,.18));color:inherit;">
+                    <i class="fas fa-fill-drip text-[11px]" style="color:#7f9cff;"></i>
+                    <span style="font-size:13px;font-weight:600;">Page background</span>
+                    <span style="font-size:11px;opacity:.65;">Colour, gradient or one of 941 ready-made looks</span>
+                    <i class="fas fa-arrow-right text-[10px]" style="margin-left:auto;opacity:.5;"></i>
+                </a>
                 <div class="sb-row">
                     <label class="sb-label">Mode</label>
                     <div class="sb-mode-toggle">

@@ -77,6 +77,47 @@ class PageBackground
     }
 
     /**
+     * Does this page's ink read as light (i.e. it sits on a dark page)?
+     *
+     * Pages that switch on `prefers-color-scheme` have a problem the
+     * biolink never had: their CARDS switch too. Once a creator picks a
+     * background, the visitor's OS must stop deciding, or a dark
+     * background lands light-mode cards on a light-OS visitor and the page
+     * is unreadable -- the picker would look broken in a way that depends
+     * on who is looking.
+     *
+     * The ink is the signal, because it is a real choice the creator makes
+     * in the same panel, and nobody picks white text for a white page.
+     * Inferring from the background itself does not work: the one colour
+     * that always renders is `bg_fallback_color`, which defaults to dark
+     * and is usually left alone behind a light gradient.
+     */
+    public static function inkIsLight(array $bs): bool
+    {
+        $font = is_string($bs['font_color'] ?? null) ? $bs['font_color'] : '#ffffff';
+        $lum  = self::luminance($font);
+
+        // Unreadable or unset ink: assume the biolink default, which is
+        // white on dark -- the same assumption the renderer already makes.
+        return $lum === null ? true : $lum >= 0.18;
+    }
+
+    /** WCAG relative luminance of a 6-digit hex colour, or null. */
+    private static function luminance(string $color): ?float
+    {
+        $h = ltrim($color, '#');
+        if (strlen($h) !== 6 || !ctype_xdigit($h)) {
+            return null;
+        }
+        $r = hexdec(substr($h, 0, 2)) / 255;
+        $g = hexdec(substr($h, 2, 2)) / 255;
+        $b = hexdec(substr($h, 4, 2)) / 255;
+        $lin = fn ($v) => $v <= 0.03928 ? $v / 12.92 : (($v + 0.055) / 1.055) ** 2.4;
+
+        return 0.2126 * $lin($r) + 0.7152 * $lin($g) + 0.0722 * $lin($b);
+    }
+
+    /**
      * Resolve a biolink settings array into everything the views need.
      *
      * @param  array  $bs  the `settings['biolink']` array
@@ -215,23 +256,10 @@ class PageBackground
      */
     public static function readableFontColor(string $fontColor, string $fallbackColor): string
     {
-        $lum = static function (string $c): ?float {
-            $h = ltrim($c, '#');
-            if (strlen($h) !== 6 || !ctype_xdigit($h)) {
-                return null;
-            }
-            $r = hexdec(substr($h, 0, 2)) / 255;
-            $g = hexdec(substr($h, 2, 2)) / 255;
-            $b = hexdec(substr($h, 4, 2)) / 255;
-            $lin = fn ($v) => $v <= 0.03928 ? $v / 12.92 : (($v + 0.055) / 1.055) ** 2.4;
-
-            return 0.2126 * $lin($r) + 0.7152 * $lin($g) + 0.0722 * $lin($b);
-        };
-
         // bgLum default 0.0016 is #0a0612 -- the effective background-color
         // that always renders, with gradient/image layers sitting on top.
-        $bgLum   = $lum($fallbackColor) ?? 0.0016;
-        $fontLum = $lum($fontColor);
+        $bgLum   = self::luminance($fallbackColor) ?? 0.0016;
+        $fontLum = self::luminance($fontColor);
 
         if ($fontLum === null) {
             return $bgLum < 0.18 ? '#ffffff' : '#212529';
