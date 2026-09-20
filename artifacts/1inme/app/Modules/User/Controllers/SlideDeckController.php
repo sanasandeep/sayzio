@@ -697,7 +697,23 @@ class SlideDeckController extends Controller
                 'id'         => $slide->id,
                 'sort_order' => (int) $slide->sort_order,
                 'title'      => $slide->title,
-                'background' => $slide->background ?? ['type' => 'color', 'color' => '#0f172a'],
+                /*
+                 * A slide with no background of its own stays null here.
+                 *
+                 * This used to fabricate ['type'=>'color','color'=>'#0f172a'],
+                 * which erased the difference between "this slide has no
+                 * background" and "this slide is explicitly that shade of
+                 * navy". Two consequences: the deck theme's own "Default
+                 * slide background" control had no effect on published
+                 * slides, because every slide arrived carrying a colour; and
+                 * a deck-level page background had nothing to show through.
+                 *
+                 * Each consumer applies its own default -- the web renderer
+                 * falls back to the deck colour, the mobile API to the same
+                 * literal it always did -- so nothing downstream changes
+                 * shape, only the snapshot stops inventing intent.
+                 */
+                'background' => $slide->background,
                 'animation'  => $slide->animation ?? ['enter' => 'fade', 'duration_ms' => 400],
                 'transition' => $slide->transition ?? 'slide',
                 'settings'   => $slide->settings ?? [],

@@ -49,12 +49,45 @@
 @if($link->favicon)
     <link rel="icon" href="{{ \App\Support\PublicStorageUrl::resolve($link->favicon) }}">
 @endif
+@php
+    /*
+     * Deck background (shared renderer).
+     *
+     * Slides are the one type where the unit is not the page. Every slide
+     * already carries its own background -- colour, image, gradient,
+     * slideshow, video or template -- and the deck theme's `background` is
+     * only the colour a slide falls back to when it sets none.
+     *
+     * So the shared picker applies to the DECK BASE, not to each slide:
+     * the creator gets the 941 looks as the canvas their deck sits on, and
+     * a slide that sets its own background still paints over it. Giving
+     * every slide its own copy of the picker would be a different and much
+     * larger change, and one the per-slide controls already half cover.
+     *
+     * Opt-in. With nothing chosen, every slide falls back to the deck
+     * colour exactly as it always has.
+     */
+    $pbBs = $link->settings['biolink'] ?? [];
+    $pbOn = \App\Modules\User\Support\PageBackground::chosen($pbBs);
+    $pb   = $pbOn ? \App\Modules\User\Support\PageBackground::resolve($pbBs) : null;
+@endphp
 <style>
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; overflow: hidden;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: {{ $bg }}; color: {{ $text }};
+        color: {{ $text }};
+        @if($pbOn)
+            @include('common.page-background.body-declarations')
+        @else
+            background: {{ $bg }};
+        @endif
         overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+    @if($pbOn)
+    @include('common.page-background.css')
+    {{-- The deck sits ON the background rather than over it, so the
+         background layers must not be hidden behind the fixed deck. --}}
+    .sl-deck { background: transparent; }
+    @endif
     .sl-deck { position: fixed; inset: 0; }
     .sl-stage { position: absolute; inset: 0; overflow: hidden; }
     .sl-slide {
@@ -172,6 +205,7 @@
 </style>
 </head>
 <body>
+@if($pbOn)@include('common.page-background.layers')@endif
 <div class="sl-deck {{ $showArrows ? '' : 'no-arrows' }}" id="sl-deck">
     @if(empty($slides))
         <div class="sl-empty">
@@ -260,7 +294,15 @@
                         $bgInline = "background:" . e($tpl->preview_color ?: '#0f172a') . ";";
                         $bgLayerHtml = '<div class="sl-bg-layer sl-bg-tpl-' . e($tpl->slug) . '"></div>';
                     } else {
-                        $bgInline = "background:" . e($bgConf['color'] ?? $bg) . ";";
+                        // No background on this slide. Normally it falls back
+                        // to the deck colour; with a chosen deck background it
+                        // goes transparent instead, so that background is what
+                        // shows through. A slide that DID set one still paints
+                        // over it, which is the whole point of per-slide
+                        // backgrounds.
+                        $bgInline = ($pbOn && !isset($bgConf['color']))
+                            ? "background: transparent;"
+                            : "background:" . e($bgConf['color'] ?? $bg) . ";";
                     }
                     $tr = $s['transition'] ?? $defaultTransition;
                 @endphp
