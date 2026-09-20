@@ -40,6 +40,7 @@
     $tilesAnimateVal   = (string) ($bs['tiles_animate'] ?? '0');
     $meshPresetVal     = $bs['mesh_preset']         ?? '';
     $patternPresetVal  = $bs['pattern_preset']      ?? '';
+    $gradientPresetIdVal = $bs['gradient_preset_id'] ?? '';
 
     // Lazy-load bg templates if the parent didn't pass them in.
     $bgTemplates = $bgTemplates ?? \App\Modules\Admin\Models\BgTemplate::active()->get();
@@ -64,36 +65,39 @@
             {{-- Three groups as a segmented control, then only that group's
                  types. Switching a group shows different options; it never
                  changes what is saved. Only clicking a type does that. --}}
+            {{-- Each tab carries what it is FOR under its name. Colour and
+                 Style both used to open on a chip row over a swatch grid,
+                 which is what made them read as one feature done twice; the
+                 sub-line is the first thing that tells them apart. --}}
             <div class="bg-group-switch mb-3" role="group" aria-label="Background kind">
                 <template x-for="g in groups" :key="g.key">
                     <button type="button" @click="activeGroup = g.key"
                             :aria-current="activeGroup === g.key ? 'true' : 'false'"
                             :class="activeGroup === g.key ? 'is-on' : ''"
                             class="bg-group-btn">
-                        <span x-text="g.label"></span>
+                        <span class="bg-group-name" x-text="g.label"></span>
+                        <span class="bg-group-sub" x-text="g.sub"></span>
                         <span class="bg-group-dot" x-show="typesIn(g.key).some(t => t.key === bgType)" aria-hidden="true"></span>
                     </button>
                 </template>
             </div>
-            <p class="text-[10px] mb-2" style="color: var(--text-faint);" x-text="groups.find(g => g.key === activeGroup)?.hint"></p>
             {{-- Colour and Media still choose between a handful of unlike
-                 things, so they keep their tiles. Style does not: every one
-                 of its options was "pick a ready-made look", which is why the
-                 same category names kept turning up at two levels. It gets
-                 the library below instead. --}}
+                 things, so they keep their tiles -- now wide, named rows,
+                 because two or three of them never needed a six-up grid of
+                 icons. Style does not: every one of its options was "pick a
+                 ready-made look", which is why the same category names kept
+                 turning up at two levels. It gets the library below instead. --}}
             <template x-for="g in groups" :key="g.key">
             <div x-show="activeGroup === g.key && g.key !== 'style'">
-            <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            <div class="bg-type-row">
                 <template x-for="t in typesIn(g.key)" :key="t.key">
                     <button type="button" @click="bgType = t.key"
-                        :class="bgType === t.key ? 'ring-2 ring-blue-500' : ''"
-                        class="flex flex-col items-center gap-1 p-2.5 rounded-xl transition-all text-center"
-                        style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"
-                        :style="bgType === t.key ? 'border-color: rgba(61,107,255,0.5); background: rgba(61,107,255,0.08);' : ''">
-                        <div class="w-7 h-7 rounded-lg flex items-center justify-center" :style="'background:' + t.preview">
+                        :class="bgType === t.key ? 'is-on' : ''"
+                        class="bg-type-card">
+                        <span class="bg-type-chip" :style="'background:' + t.preview">
                             <i :class="'fas ' + t.icon" class="text-[9px] text-white/80"></i>
-                        </div>
-                        <span class="text-[9px] font-semibold leading-tight" style="color: var(--text-muted);" x-text="t.label"></span>
+                        </span>
+                        <span class="bg-type-label" x-text="t.label"></span>
                     </button>
                 </template>
             </div>
@@ -106,7 +110,8 @@
                  still writes the same background_type and key field its old
                  picker wrote -- see BackgroundLibrary -- so nothing stored
                  changes and the renderer is untouched. --}}
-            <div x-show="activeGroup === 'style'" x-data="{ libCat: 'all', libSearch: '', picked: @js($librarySelected) }">
+            <div x-show="activeGroup === 'style'" x-data="{ libCat: 'all', libSearch: '', picked: @js($librarySelected) }"
+                 @bg-browse.window="libCat = $event.detail; libSearch = ''">
                 <div class="flex items-center justify-between gap-2 flex-wrap mb-2">
                     <label class="block text-xs font-medium" style="color: var(--text-muted);">
                         Choose a look <span class="opacity-60">{{ count($library) }}</span>
@@ -137,10 +142,20 @@
                     <button type="button"
                             title="{{ $item['label'] }}"
                             x-show="(libCat === 'all' || libCat === '{{ $item['category'] }}')
-                                    && (!libSearch || {{ Illuminate\Support\Js::from(mb_strtolower($item['label'])) }}.includes(libSearch.toLowerCase()))"
+                                    && (!libSearch || {{ Illuminate\Support\Js::from($item['search']) }}.includes(libSearch.toLowerCase()))"
                             @click="picked = {{ Illuminate\Support\Js::from($item['value']) }};
                                     bgType = {{ Illuminate\Support\Js::from($item['type']) }};
+                                    @if($item['type'] === 'gradient')
+                                    {{-- A gradient is the one look that stays editable: picking
+                                         it loads the Colour builder rather than freezing a
+                                         background, which the two separate surfaces never did. --}}
+                                    gradientStops    = {{ Illuminate\Support\Js::from($item['gradient']['stops']) }};
+                                    gradientType     = {{ Illuminate\Support\Js::from($item['gradient']['type']) }};
+                                    gradientAngle    = {{ (int) $item['gradient']['angle'] }};
+                                    gradientPresetId = {{ Illuminate\Support\Js::from($item['value']) }};
+                                    @else
                                     window.dispatchEvent(new CustomEvent('bg-pick', {{ Illuminate\Support\Js::from(['detail' => $detail]) }}));
+                                    @endif
                                     $nextTick(() => $dispatch('change'))"
                             :class="picked === {{ Illuminate\Support\Js::from($item['value']) }} && bgType === {{ Illuminate\Support\Js::from($item['type']) }} ? 'is-picked' : ''"
                             class="bg-lib-swatch">
@@ -172,11 +187,16 @@
                     @endforeach
                 </div>
                 <p class="text-[10px] mt-1.5" style="color: var(--text-dimmed);">
-                    Search covers every look at once. Options for the one you pick appear below.
+                    Search covers every look at once — moods too, so &ldquo;pastel&rdquo; or &ldquo;warm&rdquo;
+                    finds gradients. Options for the one you pick appear below.
                 </p>
             </div>
 
             <input type="hidden" name="background_type" :value="bgType">
+            {{-- The chosen gradient preset lives at the top of the card, not
+                 inside the Colour panel: the Style library sets it too now,
+                 and one field written from two places needs one input. --}}
+            <input type="hidden" name="gradient_preset_id" :value="gradientPresetId">
         </div>
 
         {{-- The generated thumbnail classes for the library's template
@@ -199,32 +219,39 @@
             </div>
         </div>
 
-        {{-- GRADIENT --}}
+        {{-- GRADIENT -- a BUILDER, not a second library.
+             The 166 presets that used to sit under here behind a chip row of
+             their own now live in the Style library with every other
+             ready-made look. What stays is the thing this tab is for:
+             building one. The result comes first and the stops are the
+             biggest control on it; the presets are one scrolling row of
+             starting points at the bottom. --}}
         <div x-show="bgType === 'gradient'" x-transition class="space-y-3">
+            <div class="bg-grad-preview" :style="'background:' + buildGradientCSS()"></div>
+
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Gradient Type</label>
-                    <select name="gradient_type" x-model="gradientType" class="theme-input w-full">
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Type</label>
+                    <select name="gradient_type" x-model="gradientType" @change="gradientPresetId = ''" class="theme-input w-full">
                         <option value="linear">Linear</option>
                         <option value="radial">Radial</option>
                         <option value="conic">Conic</option>
                     </select>
                 </div>
                 <div x-show="gradientType === 'linear' || gradientType === 'conic'">
-                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Angle (<span x-text="gradientAngle"></span>&deg;)</label>
-                    <input type="range" name="gradient_angle" x-model="gradientAngle" min="0" max="360" class="w-full accent-indigo-500">
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Angle <span class="opacity-60"><span x-text="gradientAngle"></span>&deg;</span></label>
+                    <input type="range" name="gradient_angle" x-model="gradientAngle" @input="gradientPresetId = ''" min="0" max="360" class="w-full accent-indigo-500">
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-medium mb-2" style="color: var(--text-muted);">Color Stops</label>
-                <div class="h-8 rounded-xl mb-3" :style="'background:' + buildGradientCSS()"></div>
+                <label class="block text-xs font-medium mb-2" style="color: var(--text-muted);">Colour stops</label>
                 <div class="space-y-2">
                     <template x-for="(stop, idx) in gradientStops" :key="idx">
                         <div class="flex items-center gap-2 p-2 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-                            <input type="color" :value="stop.color" @input="stop.color = $event.target.value" class="w-8 h-8 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-subtle);">
+                            <input type="color" :value="stop.color" @input="stop.color = $event.target.value; gradientPresetId = ''" class="w-8 h-8 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-subtle);">
                             <div class="flex-1">
-                                <input type="range" :value="stop.pos" @input="stop.pos = parseInt($event.target.value)" min="0" max="100" class="w-full accent-indigo-500">
+                                <input type="range" :value="stop.pos" @input="stop.pos = parseInt($event.target.value); gradientPresetId = ''" min="0" max="100" class="w-full accent-indigo-500">
                             </div>
                             <span class="text-[10px] font-mono w-8 text-center" style="color: var(--text-faint);" x-text="stop.pos + '%'"></span>
                             <button type="button" @click="removeStop(idx)" x-show="gradientStops.length > 2" class="w-6 h-6 rounded flex items-center justify-center hover:bg-red-500/10 transition-colors" style="color: var(--text-faint);">
@@ -234,15 +261,13 @@
                     </template>
                 </div>
                 <button type="button" @click="addStop()" class="mt-2 text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-all hover:bg-blue-500/10" style="color: #90acff; border: 1px dashed rgba(61,107,255,0.3);">
-                    <i class="fas fa-plus text-[9px] mr-1"></i> Add Color Stop
+                    <i class="fas fa-plus text-[9px] mr-1"></i> Add stop
                 </button>
                 <input type="hidden" name="gradient_colors" :value="JSON.stringify(gradientStops)">
                 <input type="hidden" name="background_gradient" :value="buildGradientCSS()">
             </div>
 
-            <div class="mt-4">
-                @include('user.links.partials.gradient-catalog-picker')
-            </div>
+            @include('user.links.partials.gradient-catalog-picker')
         </div>
 
         {{-- IMAGE --}}
@@ -277,8 +302,9 @@
                  gallery path already worked this way, and the Stock tab's
                  blob-copy did not. Now all three folders take the better one. --}}
             <div x-data="{
+                    galShow: false,
                     galFolder: 'all',
-                    galLoading: true,
+                    galLoading: false,
                     galFailed: false,
                     galAssets: [],
                     galSearch: '',
@@ -311,13 +337,24 @@
                             ? this.galAssets.length
                             : this.galAssets.filter(a => a.folder === folder).length;
                     }
-                }" x-init="galLoad()" class="space-y-2">
+                }" class="space-y-2 pt-3" style="border-top: 1px solid var(--border-subtle);">
                 <input type="hidden" name="background_image_asset" :value="galSelected">
 
-                <div class="flex items-center justify-between gap-2 flex-wrap">
-                    <label class="block text-xs font-medium" style="color: var(--text-muted);">
-                        Or choose one of ours <span class="opacity-60" x-text="galAssets.length || ''"></span>
-                    </label>
+                {{-- This tab is called "use your own", so the file goes
+                     first and ours sits behind one line. It is still ONE
+                     picker -- the duplicate Stock tab is gone -- and the
+                     440 images are only fetched once someone asks for them,
+                     which the always-open grid could not do. --}}
+                <button type="button" class="bg-disclosure"
+                        :aria-expanded="galShow ? 'true' : 'false'"
+                        @click="galShow = !galShow; if (galShow && !galAssets.length && !galLoading) galLoad()">
+                    <i class="fas fa-chevron-right text-[8px] bg-disclosure-caret" :class="galShow ? 'is-open' : ''"></i>
+                    Or choose one of ours
+                    <span class="opacity-60" x-text="galAssets.length ? galAssets.length + ' images' : ''"></span>
+                </button>
+
+                <div x-show="galShow" x-transition class="space-y-2">
+                <div class="flex items-center justify-end gap-2 flex-wrap">
                     <input type="text" x-model="galSearch" placeholder="Search images…"
                            class="text-[11px] px-2 py-1 rounded-md flex-1 max-w-[190px]"
                            style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
@@ -366,6 +403,7 @@
                             class="text-[10px] font-semibold px-2 py-1 rounded-md" style="color:#90acff; border: 1px dashed rgba(61,107,255,0.3);">
                         Show more
                     </button>
+                </div>
                 </div>
             </div>
         </div>
@@ -639,13 +677,13 @@
     }
     .bg-group-btn {
         position: relative;
-        padding: 8px 6px;
+        display: block;
+        width: 100%;
+        padding: 7px 6px 8px;
         border: 0;
         border-radius: 9px;
         background: transparent;
         color: var(--text-muted);
-        font-size: 12px;
-        font-weight: 600;
         cursor: pointer;
         transition: background .15s ease, color .15s ease;
     }
@@ -653,9 +691,99 @@
     .bg-group-btn.is-on {
         background: var(--bg-glass);
         color: var(--text-primary);
-        font-weight: 700;
         box-shadow: inset 0 0 0 1px var(--border-glass);
     }
+    .bg-group-name { display: block; font-size: 12px; font-weight: 600; line-height: 1.25; }
+    .bg-group-btn.is-on .bg-group-name { font-weight: 700; }
+    /* What the tab is FOR. Colour and Style looked identical without it. */
+    .bg-group-sub {
+        display: block;
+        font-size: 9.5px;
+        font-weight: 500;
+        line-height: 1.3;
+        margin-top: 1px;
+        opacity: .62;
+    }
+
+    /* ---- Type row --------------------------------------------------- */
+    /* Two or three unlike things, named. The old six-up grid of icon
+       tiles was sized for six; Colour only ever had two in it, and a
+       9px caption under a 28px icon is not what a choice looks like. */
+    .bg-type-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+        gap: 8px;
+    }
+    .bg-type-card {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 9px 11px;
+        border-radius: 12px;
+        text-align: left;
+        cursor: pointer;
+        background: var(--bg-glass-input);
+        border: 1px solid var(--border-glass);
+        transition: border-color .15s ease, background .15s ease;
+    }
+    .bg-type-card:hover { border-color: rgba(61,107,255,.35); }
+    .bg-type-card:focus-visible { outline: 2px solid #5c83ff; outline-offset: 2px; }
+    .bg-type-card.is-on {
+        border-color: rgba(61,107,255,.55);
+        background: rgba(61,107,255,.09);
+    }
+    .bg-type-chip {
+        flex: 0 0 auto;
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .bg-type-label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+    .bg-type-card.is-on .bg-type-label { color: #90acff; font-weight: 700; }
+    html.light-mode .bg-type-card.is-on .bg-type-label { color: #2544b8; }
+
+    /* ---- Gradient builder ------------------------------------------- */
+    /* The result, before the controls that make it. */
+    .bg-grad-preview {
+        height: 64px;
+        border-radius: 14px;
+        border: 1px solid var(--border-glass);
+    }
+    /* Starting points, one row. A grid here is what made Colour look like
+       a second copy of the Style library. */
+    .bg-quick-strip {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        /* overflow-x also clips vertically, so leave room for the selected
+           swatch's ring and the hover lift. */
+        padding: 3px 0 7px;
+    }
+    .bg-quick-strip .bg-lib-swatch {
+        flex: 0 0 auto;
+        width: 46px;
+    }
+    .bg-quick-strip .bg-lib-swatch:hover { transform: scale(1.06); }
+
+    /* ---- Disclosure -------------------------------------------------- */
+    .bg-disclosure {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+    }
+    .bg-disclosure:hover { color: var(--text-primary); }
+    .bg-disclosure-caret { transition: transform .15s ease; }
+    .bg-disclosure-caret.is-open { transform: rotate(90deg); }
     /* Marks the group the saved background belongs to, so switching tabs
        never loses track of which one is actually in use. */
     .bg-group-dot {
@@ -750,17 +878,22 @@ function bgSettings() {
         gradientType: @json($gradientTypeVal),
         gradientAngle: @json((int) $gradientAngle),
         gradientStops: @json($gradientColors),
+        // Hoisted out of the gradient picker: the Style library writes this
+        // too now, and a field written from two places needs one home.
+        gradientPresetId: @json($gradientPresetIdVal),
+        // The sub-line is what stops Colour and Style reading as the same
+        // feature: one BUILDS a background, the other PICKS a finished one.
         groups: [
-            { key: 'colour', label: 'Colour', hint: 'A flat colour or a gradient you build' },
-            { key: 'style',  label: 'Style',  hint: 'Ready-made looks — one library, search or filter' },
-            { key: 'media',  label: 'Media',  hint: 'Your own image or video' },
+            { key: 'colour', label: 'Colour', sub: 'build one' },
+            { key: 'style',  label: 'Style',  sub: 'pick one' },
+            { key: 'media',  label: 'Media',  sub: 'use your own' },
         ],
         // Style's six entries no longer render as tiles -- the library
         // replaced them -- but they stay in this list because it is what maps
         // a saved background_type back to its group, so opening the panel on
         // a saved template still lands on Style rather than a default tab.
         types: [
-            { key: 'color',     group: 'colour', label: 'Solid Color', icon: 'fa-fill',    preview: 'linear-gradient(135deg, #2139a1, #3b0764)' },
+            { key: 'color',     group: 'colour', label: 'Solid colour', icon: 'fa-fill',   preview: 'linear-gradient(135deg, #2139a1, #3b0764)' },
             { key: 'gradient',  group: 'colour', label: 'Gradient',    icon: 'fa-rainbow', preview: 'linear-gradient(135deg, #ec4899, #5c83ff, #06b6d4)' },
 
             { key: 'template',  group: 'style',  label: 'Template',    icon: 'fa-magic',   preview: 'linear-gradient(135deg, #0f0c29, #302b63)' },

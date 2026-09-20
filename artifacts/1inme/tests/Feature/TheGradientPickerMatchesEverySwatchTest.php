@@ -2,22 +2,34 @@
 
 namespace Tests\Feature;
 
+use App\Modules\User\Support\BackgroundLibrary;
 use App\Modules\User\Support\GradientCatalog;
 use Tests\TestCase;
 
 /**
- * The last picker drawing its own geometry.
+ * The Colour tab's gradient presets: first a size bug, then a shape bug.
  *
- * Every background swatch on this panel is a 9/14 portrait sized by one
- * shared auto-fill rule. The gradient preset catalog was not: it declared
- * `aspect-square` inside `grid-cols-3 sm:grid-cols-4 md:grid-cols-5`, so on
- * a desktop panel its swatches came out about twice the size of the ones
- * directly above them, in a different shape, and the grid went ragged
- * whenever that aspect utility did not apply.
+ * ROUND ONE (#6233) was geometry. This picker declared `aspect-square`
+ * inside `grid-cols-3 sm:grid-cols-4 md:grid-cols-5`, so on a desktop panel
+ * its swatches came out about twice the size of the ones directly above
+ * them, in the wrong shape, and the grid went ragged whenever that aspect
+ * utility did not apply. The fix was to use the card's shared rules.
  *
- * Same fix as the rest: use the shared rules rather than restate them. A
- * fixed column count is exactly what drifted the first time, which is why
- * the guard below is against declaring one at all.
+ * ROUND TWO is why that fix was not enough. Making every picker draw alike
+ * is what finally made the real problem visible: Colour and Style now
+ * opened on the SAME shape -- a chip row over a scrolling swatch grid -- so
+ * they read as one feature shown twice. Worse, two of the chip names were
+ * literally in both rows over different sets of gradients: Neon and
+ * Abstract. Consistency did not cause the duplication, but it was what made
+ * the duplication impossible to miss.
+ *
+ * So the 166 presets moved into the Style library, where all the other
+ * ready-made looks already live, and this partial became what a BUILDER
+ * actually needs: one short row of starting points. A different shape,
+ * because it does a different job.
+ *
+ * These tests guard both rounds: no private geometry (round one), and one
+ * row rather than a second library (round two).
  */
 class TheGradientPickerMatchesEverySwatchTest extends TestCase
 {
@@ -37,14 +49,14 @@ class TheGradientPickerMatchesEverySwatchTest extends TestCase
         return $end === false ? $source : substr($source, $end + 7);
     }
 
-    /** It draws with the shared rules, not its own. */
-    public function test_it_uses_the_shared_swatch_and_chip_rules(): void
+    /** It draws with the card's shared swatch rules, not its own. */
+    public function test_it_uses_the_shared_swatch_rules(): void
     {
         $picker = $this->picker();
 
-        foreach (['bg-swatch-grid', 'bg-lib-swatch', 'bg-lib-chip', 'bg-lib-fill'] as $shared) {
+        foreach (['bg-lib-swatch', 'bg-lib-fill', 'bg-lib-tick'] as $shared) {
             $this->assertStringContainsString($shared, $picker,
-                "the picker should reuse {$shared} rather than restate the geometry");
+                "the strip should reuse {$shared} rather than restate the geometry");
         }
     }
 
@@ -65,44 +77,125 @@ class TheGradientPickerMatchesEverySwatchTest extends TestCase
             'a fixed column count is what drifted the pickers apart the first time');
     }
 
-    /** Chips carry counts and an All, like every other chip row. */
-    public function test_the_chips_read_like_the_library_chips(): void
+    /**
+     * ROUND TWO. One row of starting points, not a second library.
+     *
+     * The chip row and the scrolling grid are the two things that made this
+     * look like the Style library wearing a different hat. Both are gone,
+     * and the card must hold exactly one chip row now -- the library's.
+     */
+    public function test_it_is_a_strip_rather_than_a_second_library(): void
     {
-        $picker = $this->picker();
+        $picker = $this->markup();
 
-        $this->assertStringContainsString("presetCat = 'all'", $picker, 'an All chip');
-        $this->assertStringContainsString('bg-lib-n', $picker, 'each chip shows its count');
+        $this->assertStringContainsString('bg-quick-strip', $picker,
+            'the starting points are one scrolling row');
+        $this->assertStringNotContainsString('bg-swatch-grid', $picker,
+            'a grid here is what made Colour read as a copy of Style');
+        $this->assertStringNotContainsString('bg-lib-chip', $picker,
+            'the card may hold exactly one chip row, and it belongs to the library');
 
-        // Every catalog category that has presets must be offered.
-        $counts = [];
-        foreach (GradientCatalog::all() as $p) {
-            $counts[$p['category']] = ($counts[$p['category']] ?? 0) + 1;
+        // And in the card: the Colour and Style half holds exactly one chip
+        // row, the library's. (Media has one too, over image folders, but
+        // that is a different tab and a different vocabulary.)
+        $card = file_get_contents(
+            base_path('resources/views/user/links/partials/biolink-background-card.blade.php')
+        );
+        $styleHalf = substr($card, 0, strpos($card, "bgType === 'image'"));
+
+        $this->assertSame(1, substr_count($styleHalf, 'class="bg-lib-chips'),
+            'two chip rows over two sets of gradients is the reported duplication');
+    }
+
+    /** A short row. Showing all 166 in it would just be the grid again. */
+    public function test_the_row_is_short_enough_to_be_a_row(): void
+    {
+        $featured = array_filter(GradientCatalog::all(), fn ($p) => $p['category'] === 'featured');
+
+        $this->assertNotEmpty($featured, 'the strip is built from the featured presets');
+        $this->assertLessThanOrEqual(20, count($featured),
+            'more than a row of starting points is a grid wearing a scrollbar');
+    }
+
+    /**
+     * Nothing was lost by moving them: every preset is in the library, under
+     * Gradients, carrying the stops that load this builder.
+     */
+    public function test_every_preset_still_exists_in_the_style_library(): void
+    {
+        $inLibrary = [];
+        foreach (BackgroundLibrary::items(collect()) as $item) {
+            if ($item['type'] === 'gradient') {
+                $inLibrary[$item['value']] = $item;
+            }
         }
-        $this->assertNotEmpty($counts);
 
-        foreach (array_keys($counts) as $category) {
-            $this->assertArrayHasKey($category, GradientCatalog::CATEGORIES,
-                "presets are categorised '{$category}' but no chip label exists for it");
+        foreach (GradientCatalog::all() as $preset) {
+            $this->assertArrayHasKey($preset['id'], $inLibrary,
+                "{$preset['id']} vanished when the presets moved into the library");
+            $this->assertSame('gradients', $inLibrary[$preset['id']]['category']);
+            $this->assertSame($preset['stops'], $inLibrary[$preset['id']]['gradient']['stops'],
+                'a library pick must load the same colours the preset always had');
+        }
+    }
+
+    /**
+     * The mood names (Warm, Cool, Pastel...) stopped being chips. They must
+     * still be findable, or dropping that row would have lost a way in.
+     */
+    public function test_the_mood_names_survive_as_search_words(): void
+    {
+        $bySearch = [];
+        foreach (BackgroundLibrary::items(collect()) as $item) {
+            if ($item['type'] === 'gradient') {
+                $bySearch[$item['value']] = $item['search'];
+            }
+        }
+
+        foreach (GradientCatalog::all() as $preset) {
+            $mood = mb_strtolower(GradientCatalog::CATEGORIES[$preset['category']] ?? '');
+
+            $this->assertStringContainsString($mood, $bySearch[$preset['id']],
+                "typing \"{$mood}\" has to keep finding {$preset['id']}");
         }
     }
 
     /**
      * The point of these presets is unchanged: they load stops into the
-     * builder. Losing that would turn the picker into a dead grid.
+     * builder. Losing that would turn the strip into a dead row.
      */
     public function test_picking_still_loads_the_stops_into_the_builder(): void
     {
         $picker = $this->picker();
 
-        foreach (['gradientStops =', 'gradientType  =', 'gradientAngle =', 'presetId      ='] as $assignment) {
+        foreach ([
+            'gradientStops    =', 'gradientType     =',
+            'gradientAngle    =', 'gradientPresetId =',
+        ] as $assignment) {
             $this->assertStringContainsString($assignment, $picker,
-                'picking a preset must still drive the gradient builder');
+                'picking a start must still drive the gradient builder');
         }
 
-        $this->assertStringContainsString('name="gradient_preset_id"', $picker,
-            'the chosen preset id is what re-highlights the selection on edit');
         $this->assertStringContainsString("\$dispatch('change')", $picker,
             'without this the live preview never hears about the pick');
+    }
+
+    /**
+     * The preset id is written from two places now -- this strip and the
+     * library -- so it needs exactly one input, on the card.
+     */
+    public function test_the_preset_id_has_one_home(): void
+    {
+        $card = file_get_contents(
+            base_path('resources/views/user/links/partials/biolink-background-card.blade.php')
+        );
+
+        $this->assertStringNotContainsString('name="gradient_preset_id"', $this->picker(),
+            'the field moved to the card when the library started writing it too');
+        $this->assertSame(1, substr_count($card, 'name="gradient_preset_id"'),
+            'one field written from two places still needs one input');
+        $this->assertStringContainsString('gradientPresetId: @json($gradientPresetIdVal)', $card,
+            'the id belongs to the shared bgSettings() state, not a nested scope');
     }
 
     /** Every preset resolves to CSS, so no swatch can paint blank. */
