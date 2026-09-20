@@ -1155,6 +1155,9 @@ class BiolinkBlockController extends Controller
      * intentionally skipped — they only become previewable once persisted by
      * the regular save flow. Everything else (colours, gradients, fonts,
      * theme, layout, meta, etc.) flows straight through into the preview.
+     *
+     * A gallery pick is NOT a file, though, and used to be skipped anyway.
+     * See resolveDraftAssetKeys() below.
      */
     public function previewDraft(Request $request, Link $link)
     {
@@ -1166,6 +1169,7 @@ class BiolinkBlockController extends Controller
         foreach (array_keys($request->allFiles()) as $key) {
             unset($input[$key]);
         }
+        $input = $this->resolveDraftAssetKeys($input);
         // Scalar booleans coming from checkboxes are sent as "1" — leave
         // them as-is; merge into existing settings so unrelated keys keep
         // their saved values.
@@ -1176,6 +1180,41 @@ class BiolinkBlockController extends Controller
         );
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Translate curated-gallery picks into the fields the renderer reads.
+     *
+     * Picking a gallery image posts `background_image_asset`, an S3 object
+     * KEY. The save path resolves that to a public CDN URL and stores it as
+     * `background_image`; the preview path did not, so it cached a key under
+     * a name the renderer never looks at and the preview simply did not
+     * change. The badge still flipped to "Unsaved preview", which made it
+     * look like the pick had been registered and then ignored.
+     *
+     * That was true of the old gallery accordion too — merging the two image
+     * pickers into one just made it the main way to choose an image, so it
+     * stopped being easy to miss.
+     *
+     * The key comes from the form, so it is untrusted: it is validated
+     * exactly as the save path validates it, by folder prefix and safe
+     * filename, before being resolved. An unrecognised key is dropped rather
+     * than rendered, so this cannot be used to point the preview at an
+     * arbitrary object.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    private function resolveDraftAssetKeys(array $input): array
+    {
+        $key = $input['background_image_asset'] ?? null;
+        unset($input['background_image_asset']);
+
+        if (is_string($key) && \App\Modules\User\Support\BackgroundImageGallery::accepts($key)) {
+            $input['background_image'] = \App\Modules\User\Support\PlatformAssetCatalog::urlForKey($key);
+        }
+
+        return $input;
     }
 
     /**
