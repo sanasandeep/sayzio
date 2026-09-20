@@ -43,7 +43,7 @@ class EachBackgroundTabHasItsOwnShapeTest extends TestCase
     {
         $card = $this->card();
 
-        return substr($card, 0, strpos($card, "bgType === 'image'"));
+        return substr($card, 0, strpos($card, '{{-- IMAGE --}}'));
     }
 
     /**
@@ -83,8 +83,8 @@ class EachBackgroundTabHasItsOwnShapeTest extends TestCase
     {
         $card = $this->card();
 
-        $gradient = substr($card, strpos($card, "bgType === 'gradient'"));
-        $gradient = substr($gradient, 0, strpos($gradient, "bgType === 'image'"));
+        $gradient = substr($card, strpos($card, '{{-- GRADIENT'));
+        $gradient = substr($gradient, 0, strpos($gradient, '{{-- IMAGE --}}'));
 
         $this->assertStringContainsString('bg-grad-preview', $gradient,
             'a builder shows what it is building');
@@ -109,8 +109,8 @@ class EachBackgroundTabHasItsOwnShapeTest extends TestCase
     public function test_media_leads_with_your_own_file(): void
     {
         $card  = $this->card();
-        $image = substr($card, strpos($card, "bgType === 'image'"));
-        $image = substr($image, 0, strpos($image, "bgType === 'slideshow'"));
+        $image = substr($card, strpos($card, '{{-- IMAGE --}}'));
+        $image = substr($image, 0, strpos($image, '{{-- SLIDESHOW --}}'));
 
         $this->assertLessThan(
             strpos($image, 'galVisible()'),

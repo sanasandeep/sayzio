@@ -192,6 +192,16 @@
                 </p>
             </div>
 
+            {{-- A tab whose options are not on screen says why, rather than
+                 ending in blank space. The dot on the other tab is where the
+                 page's background actually lives. --}}
+            <p class="text-[10px] mt-2" style="color: var(--text-dimmed);"
+               x-show="activeGroup !== 'style' && !typesIn(activeGroup).some(t => t.key === bgType)">
+                Your page is using <span class="font-semibold" x-text="currentLabel()"></span>,
+                over in <span class="font-semibold" x-text="currentGroupLabel()"></span>.
+                Pick one above to change it.
+            </p>
+
             <input type="hidden" name="background_type" :value="bgType">
             {{-- The chosen gradient preset lives at the top of the card, not
                  inside the Colour panel: the Style library sets it too now,
@@ -209,7 +219,7 @@
         </style>
 
         {{-- SOLID COLOR --}}
-        <div x-show="bgType === 'color'" x-transition class="space-y-3">
+        <div x-show="panelFor('color')" x-transition class="space-y-3">
             <div>
                 <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Background Color</label>
                 <div class="flex items-center gap-2">
@@ -226,7 +236,7 @@
              building one. The result comes first and the stops are the
              biggest control on it; the presets are one scrolling row of
              starting points at the bottom. --}}
-        <div x-show="bgType === 'gradient'" x-transition class="space-y-3">
+        <div x-show="panelFor('gradient')" x-transition class="space-y-3">
             <div class="bg-grad-preview" :style="'background:' + buildGradientCSS()"></div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -271,7 +281,7 @@
         </div>
 
         {{-- IMAGE --}}
-        <div x-show="bgType === 'image'" x-transition class="space-y-3">
+        <div x-show="panelFor('image')" x-transition class="space-y-3">
             @include('user.partials.dropzone-input', [
                 'name'        => 'background_image',
                 'label'       => 'Background Image',
@@ -409,7 +419,7 @@
         </div>
 
         {{-- SLIDESHOW --}}
-        <div x-show="bgType === 'slideshow'" x-transition class="space-y-3">
+        <div x-show="panelFor('slideshow')" x-transition class="space-y-3">
             <div>
                 @include('user.partials.dropzone-input', [
                     'name'     => 'slideshow_images',
@@ -441,7 +451,7 @@
         </div>
 
         {{-- VIDEO --}}
-        <div x-show="bgType === 'video'" x-transition class="space-y-3">
+        <div x-show="panelFor('video')" x-transition class="space-y-3">
             <div>
                 <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Video URL</label>
                 <input type="url" name="video_url" value="{{ $videoUrl }}" class="theme-input w-full" placeholder="https://example.com/video.mp4">
@@ -460,7 +470,7 @@
         </div>
 
         {{-- TORN PAPER --}}
-        <div x-show="bgType === 'torn'" x-transition class="space-y-3">
+        <div x-show="panelFor('torn')" x-transition class="space-y-3">
             @include('user.partials.dropzone-input', [
                 'name'        => 'torn_image',
                 'label'       => 'Backdrop Photo',
@@ -505,7 +515,7 @@
         </div>
 
         {{-- TILES (Task #6204) --}}
-        <div x-show="bgType === 'tiles'" x-transition class="space-y-3"
+        <div x-show="panelFor('tiles')" x-transition class="space-y-3"
              x-data="{ tilesPalette: @js($tilesPaletteVal), tilesLayout: @js($tilesLayoutVal), tilesAnimate: @js($tilesAnimateVal) }"
              @bg-pick.window="if ($event.detail.type === 'tiles') tilesPalette = $event.detail.value">
             <input type="hidden" name="tiles_palette" :value="tilesPalette">
@@ -537,7 +547,7 @@
 
         {{-- MESH -- the swatches moved into the library; the field it writes
              did not change, so pages saved before the merge still resolve. --}}
-        <div x-show="bgType === 'mesh'" x-transition class="space-y-3"
+        <div x-show="panelFor('mesh')" x-transition class="space-y-3"
              x-data="{ meshPreset: @js($meshPresetVal) }"
              @bg-pick.window="if ($event.detail.type === 'mesh') meshPreset = $event.detail.value">
             <input type="hidden" name="mesh_preset" :value="meshPreset">
@@ -545,7 +555,7 @@
         </div>
 
         {{-- PATTERN --}}
-        <div x-show="bgType === 'pattern'" x-transition class="space-y-3"
+        <div x-show="panelFor('pattern')" x-transition class="space-y-3"
              x-data="{ patternPreset: @js($patternPresetVal) }"
              @bg-pick.window="if ($event.detail.type === 'pattern') patternPreset = $event.detail.value">
             <input type="hidden" name="pattern_preset" :value="patternPreset">
@@ -556,7 +566,7 @@
              library, where "Patterns" is one chip rather than a preset group
              that also had its own picker. Transparency is a setting on top of
              the chosen preset, so it stays. --}}
-        <div x-show="bgType === 'preset'" x-transition class="space-y-3"
+        <div x-show="panelFor('preset')" x-transition class="space-y-3"
              x-data="{ selectedKey: @js($bgPresetKey) }"
              @bg-pick.window="if ($event.detail.type === 'preset') selectedKey = $event.detail.value">
             {{-- The library dispatches a synthetic change event after picking so
@@ -580,7 +590,7 @@
              Patterns appeared here AND as pickers of their own. They are now
              ordinary entries in the one library. The stored field is
              unchanged, so every saved page still resolves. --}}
-        <div x-show="bgType === 'template'" x-transition
+        <div x-show="panelFor('template')" x-transition
              x-data="{ selectedTpl: {{ $bgTemplateId ? (int) $bgTemplateId : "''" }} }"
              @bg-pick.window="if ($event.detail.type === 'template') selectedTpl = $event.detail.value">
             <input type="hidden" name="bg_template_id" :value="selectedTpl">
@@ -908,6 +918,30 @@ function bgSettings() {
             { key: 'video',     group: 'media',  label: 'Video',       icon: 'fa-film',    preview: 'rgba(61,107,255,0.15)' }
         ],
         typesIn(group) { return this.types.filter(t => t.group === group); },
+        /**
+         * Whether a type's options pane belongs on screen.
+         *
+         * The panes used to key on the saved type ALONE, so opening Media
+         * while the page was on a gradient drew Media's three tiles with the
+         * whole Colour builder underneath them -- two tabs' worth of
+         * controls in one tab, which is the confusion this card has been
+         * working its way out of. A tab shows its own options or none.
+         *
+         * Switching tabs still changes nothing that is saved: the hidden
+         * inputs are inside these panes and x-show only hides them.
+         */
+        panelFor(type) {
+            const t = this.types.find(x => x.key === type);
+            return this.bgType === type && (!t || t.group === this.activeGroup);
+        },
+        /** What the page is using, for the note shown on an empty tab. */
+        currentLabel() {
+            return (this.types.find(t => t.key === this.bgType) || {}).label || '';
+        },
+        currentGroupLabel() {
+            const t = this.types.find(x => x.key === this.bgType);
+            return t ? (this.groups.find(g => g.key === t.group) || {}).label : '';
+        },
         // Opens on the group holding the saved background, so the panel
         // always shows what is actually in use rather than a default tab.
         activeGroup: (function () { return 'style'; })(),
