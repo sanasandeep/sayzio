@@ -125,14 +125,14 @@ class TheStyleLibraryIsOneListTest extends TestCase
         // Everything before the Image panel is the Style half of the card;
         // exactly one grid of looks may live in it. Count the markup rather
         // than the class name, which also appears in the stylesheet.
-        $styleHalf = substr($card, 0, strpos($card, "bgType === 'image'"));
+        $styleHalf = substr($card, 0, strpos($card, '{{-- IMAGE --}}'));
 
         $this->assertSame(1, substr_count($styleHalf, 'class="bg-swatch-grid'),
             'six pickers meant six grids of looks; the library is one');
         $this->assertStringContainsString('bg-lib-swatch', $styleHalf);
 
         // And the one that remains further down is the photo gallery.
-        $rest = substr($card, strpos($card, "bgType === 'image'"));
+        $rest = substr($card, strpos($card, '{{-- IMAGE --}}'));
         $this->assertSame(1, substr_count($rest, 'class="bg-swatch-grid'));
         $this->assertStringContainsString('galVisible()', $rest,
             'the only other grid should be the stock image gallery');

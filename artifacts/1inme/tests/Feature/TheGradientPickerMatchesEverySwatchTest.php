@@ -101,7 +101,7 @@ class TheGradientPickerMatchesEverySwatchTest extends TestCase
         $card = file_get_contents(
             base_path('resources/views/user/links/partials/biolink-background-card.blade.php')
         );
-        $styleHalf = substr($card, 0, strpos($card, "bgType === 'image'"));
+        $styleHalf = substr($card, 0, strpos($card, '{{-- IMAGE --}}'));
 
         $this->assertSame(1, substr_count($styleHalf, 'class="bg-lib-chips'),
             'two chip rows over two sets of gradients is the reported duplication');
