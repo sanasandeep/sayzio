@@ -66,23 +66,41 @@ class BiolinkThemeResolver
     }
 
     /**
-     * Whitelist of biolink-settings keys a theme captures. Limiting
-     * this keeps the snapshot focused on look-and-feel and avoids
-     * scheduling a theme that accidentally toggles unrelated wiring
-     * like analytics or share-button config.
+     * Look-and-feel keys a theme captures, OTHER than the background.
+     *
+     * Limiting the snapshot keeps it focused and avoids scheduling a theme
+     * that accidentally toggles unrelated wiring like analytics or
+     * share-button config.
+     *
+     * @var list<string>
      */
-    public const THEMABLE_KEYS = [
-        'background_type', 'background_color', 'background_gradient',
-        'background_image', 'gradient_colors', 'gradient_angle',
-        'gradient_type', 'gradient_preset_id',
-        'slideshow_images', 'slideshow_interval', 'video_url', 'video_file',
-        'bg_template_id', 'bg_attachment',
-        'bg_fallback_color', 'bg_fallback_image',
-        'bg_blur', 'bg_overlay_color', 'bg_overlay_opacity',
+    private const THEMABLE_NON_BACKGROUND_KEYS = [
         'font_family', 'font_color',
         'button_style', 'button_color', 'button_text_color',
         'biolink_title', 'biolink_description',
         'block_theme',
+    ];
+
+    /**
+     * Every biolink-settings key a theme captures.
+     *
+     * The background half is taken from the renderer's own field list
+     * rather than restated here. It used to be restated, was written
+     * before presets, mesh, pattern, tiles and torn paper existed, and
+     * never caught up: a theme captured from a page with a Tiles
+     * background stored `background_type: tiles` and none of the eleven
+     * fields that say WHICH tiles. Activating or reverting that schedule
+     * therefore restored a background nobody had chosen.
+     *
+     * Deriving it means the next background field is themable the day it
+     * is added, and ScheduledThemesCaptureTheWholeBackgroundTest fails if
+     * anyone reintroduces a hand-maintained copy.
+     *
+     * @var list<string>
+     */
+    public const THEMABLE_KEYS = [
+        ...\App\Modules\User\Support\PageBackground::FIELDS,
+        ...self::THEMABLE_NON_BACKGROUND_KEYS,
     ];
 
     /**

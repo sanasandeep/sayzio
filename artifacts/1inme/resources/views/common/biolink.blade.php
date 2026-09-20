@@ -111,129 +111,33 @@
         $bs = $link->settings['biolink'] ?? [];
         $fontFamily = $bs['font_family'] ?? 'Space Grotesk';
         $fontColor = $bs['font_color'] ?? '#ffffff';
-        $bgType = $bs['background_type'] ?? 'gradient';
-        $bgColor = $bs['background_color'] ?? '#0a0612';
-        $bgGradient = $bs['background_gradient'] ?? 'linear-gradient(135deg, #0a0612 0%, #1a0533 50%, #0a0612 100%)';
-        $bgImage = $bs['background_image'] ?? '';
-        $bgAttachment = $bs['bg_attachment'] ?? 'fixed';
-        $bgFallbackColor = $bs['bg_fallback_color'] ?? '#0a0612';
-        $bgFallbackImage = $bs['bg_fallback_image'] ?? '';
-        // Preset CSS background: resolved server-side from the catalog by key.
-        $bgPresetCss = null;
-        // Torn-paper composite: a backdrop layer (photo or preset gradient)
-        // behind a solid paper sheet whose right edge is a jagged torn
-        // diagonal. Active either as its own background_type ('torn' with a
-        // user backdrop photo + paper color) or via a torn-group preset.
-        $tornActive = false;
-        $tornPaper = '#cfe0e6';
-        $tornBackdropCss = null;   // full CSS declaration(s) for the backdrop layer
-        $tornBackdropImage = '';   // user-uploaded backdrop photo URL
-        if ($bgType === 'preset' && !empty($bs['bg_preset_key'])) {
-            $presetKey = (string) $bs['bg_preset_key'];
-            if (\App\Modules\User\Support\BgPresetCatalog::isTorn($presetKey)) {
-                $tornActive = true;
-                $tornPaper = \App\Modules\User\Support\BgPresetCatalog::tornPaper($presetKey) ?? $tornPaper;
-                $tornBackdropCss = \App\Modules\User\Support\BgPresetCatalog::tornBackdrop($presetKey);
-            } else {
-                $bgPresetCss = \App\Modules\User\Support\BgPresetCatalog::css($presetKey);
-            }
-        } elseif ($bgType === 'torn') {
-            $tornActive = true;
-            $tornPaper = is_string($bs['torn_paper_color'] ?? null) && $bs['torn_paper_color'] !== '' ? $bs['torn_paper_color'] : $tornPaper;
-            $tornBackdropImage = is_string($bs['torn_image'] ?? null) ? $bs['torn_image'] : '';
-            // Backdrop colors (Task #6204): validated hex pair -> gradient,
-            // only when no backdrop photo was uploaded (photo wins).
-            $tornBdC1 = is_string($bs['torn_backdrop_color'] ?? null) ? $bs['torn_backdrop_color'] : '';
-            $tornBdC2 = is_string($bs['torn_backdrop_color2'] ?? null) ? $bs['torn_backdrop_color2'] : '';
-            if ($tornBackdropImage === '' && $tornBdC1 !== '') {
-                $tornBackdropCss = 'background: linear-gradient(150deg, '.$tornBdC1.' 0%, '.($tornBdC2 !== '' ? $tornBdC2 : $tornBdC1).' 100%)';
-            }
-        } elseif ($bgType === 'mesh' && !empty($bs['mesh_preset'])) {
-            // Mesh / Pattern (Task #6204) reuse the preset render path:
-            // CSS is resolved server-side from the catalogs by key.
-            $bgPresetCss = \App\Modules\User\Support\MeshGradientCatalog::css((string) $bs['mesh_preset']);
-        } elseif ($bgType === 'pattern' && !empty($bs['pattern_preset'])) {
-            $bgPresetCss = \App\Modules\User\Support\PatternCatalog::css((string) $bs['pattern_preset']);
-        }
-        // Tiles background (Task #6204): a dedicated grid layer of catalog
-        // gradients. Resolved fully server-side; the optional pulse
-        // animation is gated behind prefers-reduced-motion below.
-        $bgTiles = [];
-        $tilesAnimate = false;
-        if ($bgType === 'tiles' && !empty($bs['tiles_palette'])) {
-            $bgTiles = \App\Modules\User\Support\TilesBgCatalog::tiles(
-                (string) $bs['tiles_palette'],
-                (string) ($bs['tiles_layout'] ?? 'uniform')
-            );
-            $tilesAnimate = !empty($bs['tiles_animate']) && $bs['tiles_animate'] !== '0';
-        }
-        $tilesActive = $bgTiles !== [];
-        // Jagged torn clip paths now live in TornStyleCatalog (Task #6204);
-        // the legacy diagonal tear is its 'diagonal' default style.
+        // Page background: resolved by PageBackground so every page type can
+        // paint one, not just this file. $pb carries everything the CSS and
+        // layer partials need; the handful of locals below are kept because
+        // the rest of this 2,400-line view still reads them by name.
+        $pb = \App\Modules\User\Support\PageBackground::resolve($bs);
+        $bgType          = $pb['type'];
+        $bgFixed         = $pb['fixed'];
+        $bgFallbackColor = $pb['fallbackColor'];
+        $bgFallbackImage = $pb['fallbackImage'];
+        $bgTemplate      = $pb['template'];
+        $bgBlur          = $pb['blur'];
+        $bgOverlayOpacity = $pb['overlayOpacity'];
+        $slideshowImages  = $pb['slideshowImages'];
+        $slideshowInterval = $pb['slideshowInterval'];
+        $hasPageBgLayer  = $pb['hasLayer'];
+        $tornActive      = $pb['tornActive'];
+        $tilesActive     = $pb['tilesActive'];
 
-        // Contrast safeguard: when no explicit background_type has been saved the
-        // page falls back to the dark default gradient (#0a0612 / $bgFallbackColor).
-        // A stale or mis-matched font_color (e.g. dark #212529 left over from a
-        // cleared theme) can produce unreadable text.  We compute the WCAG contrast
-        // ratio between the effective background and the stored font color; if it is
-        // below 3:1 we override the font to white (dark bg) or near-black (light bg).
-        // Intentionally-themed biolinks (explicit background_type key present in
-        // saved settings) are never touched — this guard only fires on the no-theme path.
+        // Contrast safeguard: a page that was never themed falls back to the
+        // dark default, where a stale light-on-light font_color is unreadable.
+        // Intentionally-themed pages (background_type present) are untouched.
         if (!isset($bs['background_type'])) {
-            // Helper: relative luminance of a 6-digit hex color (returns null on bad input).
-            $__lum = function(string $color): ?float {
-                $h = ltrim($color, '#');
-                if (strlen($h) !== 6 || !ctype_xdigit($h)) {
-                    return null;
-                }
-                $r = hexdec(substr($h, 0, 2)) / 255;
-                $g = hexdec(substr($h, 2, 2)) / 255;
-                $b = hexdec(substr($h, 4, 2)) / 255;
-                $lin = fn($c) => $c <= 0.03928 ? $c / 12.92 : (($c + 0.055) / 1.055) ** 2.4;
-                return 0.2126 * $lin($r) + 0.7152 * $lin($g) + 0.0722 * $lin($b);
-            };
-            // Effective background: bgFallbackColor is the CSS background-color
-            // that always renders (gradient/image layers sit on top of it).
-            // Default is #0a0612 (luminance ≈ 0.0016 — very dark).
-            $__bgLum   = $__lum(is_string($bgFallbackColor) ? $bgFallbackColor : '') ?? 0.0016;
-            $__fontLum = $__lum(is_string($fontColor) ? $fontColor : '');
-            if ($__fontLum !== null) {
-                $__lighter = max($__bgLum, $__fontLum);
-                $__darker  = min($__bgLum, $__fontLum);
-                $__ratio   = ($__lighter + 0.05) / ($__darker + 0.05);
-                if ($__ratio < 3.0) {
-                    // Insufficient contrast — pick a readable override for the bg tone.
-                    $fontColor = $__bgLum < 0.18 ? '#ffffff' : '#212529';
-                }
-            } else {
-                // Unparseable font color — safe default based on effective bg tone.
-                $fontColor = $__bgLum < 0.18 ? '#ffffff' : '#212529';
-            }
+            $fontColor = \App\Modules\User\Support\PageBackground::readableFontColor(
+                is_string($fontColor) ? $fontColor : '',
+                is_string($bgFallbackColor) ? $bgFallbackColor : ''
+            );
         }
-        // Fixed/Scroll background position. "Fixed" backgrounds are rendered on a
-        // dedicated position:fixed full-viewport layer behind the content instead
-        // of relying on `background-attachment: fixed`, which iOS/mobile Safari
-        // does not support. "Scroll" keeps the background on the scrolling body.
-        $bgFixed = ($bgAttachment !== 'scroll');
-        // Preset background transparency (Task #5970): 0–100, 100 = opaque.
-        // A translucent preset can't be painted on the body itself (opacity
-        // would fade the whole page), so it always renders on the dedicated
-        // background layer — position:fixed for "Fixed", absolute for "Scroll".
-        $bgPresetOpacity = max(0, min(100, (int) ($bs['bg_preset_opacity'] ?? 100)));
-        $presetTranslucent = ($bgType === 'preset' && $bgPresetCss && $bgPresetOpacity < 100);
-        // Torn composites always render on their own dedicated layers
-        // (backdrop + clipped paper), so they never use the generic
-        // .bg-page-fixed layer nor an inline body background.
-        $hasPageBgLayer = !$tornActive && ($bgFixed || $presetTranslucent) && in_array($bgType, ['color', 'gradient', 'preset', 'image', 'mesh', 'pattern'], true);
-        $bgBlur = (int)($bs['bg_blur'] ?? 0);
-        $bgOverlayColor = $bs['bg_overlay_color'] ?? '#000000';
-        $bgOverlayOpacity = (int)($bs['bg_overlay_opacity'] ?? 0);
-        $slideshowImages = $bs['slideshow_images'] ?? [];
-        $slideshowInterval = (int)($bs['slideshow_interval'] ?? 5);
-        $videoUrl = $bs['video_url'] ?? '';
-        $videoFileSrc = $bs['video_file'] ?? '';
-        $bgTemplateId = $bs['bg_template_id'] ?? null;
-        $bgTemplate = $bgTemplateId ? \App\Modules\Admin\Models\BgTemplate::find($bgTemplateId) : null;
         $btnColor = $bs['button_color'] ?? '#3d6bff';
         $btnTextColor = $bs['button_text_color'] ?? '#ffffff';
         $btnStyle = $bs['button_style'] ?? 'rounded';
@@ -407,181 +311,11 @@
             {{-- Custom-uploaded fonts come through as "custom:Family" tokens; strip the prefix before emitting. --}}
             font-family: '{{ str_starts_with((string) $fontFamily, 'custom:') ? substr($fontFamily, 7) : $fontFamily }}', sans-serif;
             color: {{ $fontColor }};
-            background-color: {{ $bgFallbackColor }};
-            @if(!$hasPageBgLayer && !$tornActive)
-                @if($bgType === 'color')
-                    background-color: {{ $bgColor }};
-                @elseif($bgType === 'gradient')
-                    background: {{ $bgGradient }};
-                @elseif($bgType === 'preset' && $bgPresetCss)
-                    {{-- Always terminate the inlined preset CSS: many catalog entries have no
-                         trailing semicolon, and without one the following declaration
-                         (min-height) glues onto the preset's last declaration, silently
-                         invalidating both in the browser. --}}
-                    {!! rtrim($bgPresetCss, "; \t\n\r") !!};
-                    {{-- User chose "Scroll": neutralize any attachment hardcoded in catalog CSS. --}}
-                    background-attachment: scroll !important;
-                @elseif($bgType === 'preset')
-                    background-color: {{ $bgFallbackColor }};
-                @elseif(($bgType === 'mesh' || $bgType === 'pattern') && $bgPresetCss)
-                    {{-- Mesh/Pattern (Task #6204): catalog CSS resolved by key. --}}
-                    {!! rtrim($bgPresetCss, "; \t\n\r") !!};
-                    background-attachment: scroll !important;
-                @elseif($bgType === 'mesh' || $bgType === 'pattern' || $bgType === 'tiles')
-                    background-color: {{ $bgFallbackColor }};
-                @elseif($bgType === 'image' && $bgImage)
-                    background: {{ $bgFallbackColor }} url('{{ $bgImage }}') center/cover no-repeat scroll;
-                @elseif($bgType === 'slideshow' || $bgType === 'video' || $bgType === 'template')
-                    background-color: {{ $bgFallbackColor }};
-                    @if($bgFallbackImage)
-                        background-image: url('{{ $bgFallbackImage }}');
-                        background-size: cover;
-                        background-position: center;
-                    @endif
-                @endif
-            @endif
+            @include('common.page-background.body-declarations')
             min-height: 100vh;
             position: relative;
         }
-        @if($hasPageBgLayer)
-        {{-- Mobile-Safari-safe "Fixed" background: a fixed-position layer behind the
-             content instead of `background-attachment: fixed` on the body. --}}
-        .bg-page-fixed {
-            {{-- Translucent presets on "Scroll" still use this layer (opacity
-                 can't be applied to the body background itself); absolute
-                 positioning keeps the layer scrolling with the page. --}}
-            position: {{ $bgFixed ? 'fixed' : 'absolute' }};
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            @if($presetTranslucent)
-                opacity: {{ $bgPresetOpacity / 100 }};
-            @endif
-            @if($bgType === 'color')
-                background-color: {{ $bgColor }};
-            @elseif($bgType === 'gradient')
-                background: {{ $bgGradient }};
-            @elseif($bgType === 'preset' && $bgPresetCss)
-                {!! rtrim($bgPresetCss, "; \t\n\r") !!};
-            @elseif($bgType === 'preset')
-                background-color: {{ $bgFallbackColor }};
-            @elseif(($bgType === 'mesh' || $bgType === 'pattern') && $bgPresetCss)
-                {!! rtrim($bgPresetCss, "; \t\n\r") !!};
-            @elseif($bgType === 'mesh' || $bgType === 'pattern')
-                background-color: {{ $bgFallbackColor }};
-            @elseif($bgType === 'image' && $bgImage)
-                background: {{ $bgFallbackColor }} url('{{ $bgImage }}') center/cover no-repeat;
-            @elseif($bgType === 'image')
-                background-color: {{ $bgFallbackColor }};
-            @endif
-        }
-        @endif
-        @if($tilesActive)
-        {{-- Tiles background (Task #6204): a full-viewport grid of catalog
-             gradient tiles on its own dedicated layer. "Fixed" pins it to
-             the viewport (mobile-Safari-safe); "Scroll" absolutely positions
-             it over the body. The optional pulse animation only runs when
-             the visitor allows motion. --}}
-        .bg-tiles {
-            position: {{ $bgFixed ? 'fixed' : 'absolute' }};
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            overflow: hidden;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            grid-auto-rows: minmax(14vh, 1fr);
-            grid-auto-flow: dense;
-            gap: 6px;
-            padding: 6px;
-            background-color: {{ $bgFallbackColor }};
-        }
-        .bg-tiles span {
-            border-radius: 10px;
-            display: block;
-        }
-        @if($tilesAnimate)
-        @media (prefers-reduced-motion: no-preference) {
-            @keyframes bgTilePulse {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.55; }
-            }
-            .bg-tiles span {
-                animation: bgTilePulse 6s ease-in-out infinite;
-            }
-        }
-        @endif
-        @endif
-        @if($bgBlur > 0 || $bgOverlayOpacity > 0)
-        body::after {
-            content: '';
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            @if($bgBlur > 0)
-                backdrop-filter: blur({{ $bgBlur }}px);
-                -webkit-backdrop-filter: blur({{ $bgBlur }}px);
-            @endif
-            @if($bgOverlayOpacity > 0)
-                @php
-                    $r = hexdec(substr($bgOverlayColor, 1, 2));
-                    $g = hexdec(substr($bgOverlayColor, 3, 2));
-                    $b = hexdec(substr($bgOverlayColor, 5, 2));
-                @endphp
-                background: rgba({{ $r }},{{ $g }},{{ $b }},{{ $bgOverlayOpacity / 100 }});
-            @endif
-        }
-        @endif
-        @if($bgBlur > 0 || $bgOverlayOpacity > 0 || $hasPageBgLayer || $tornActive || $tilesActive)
-        body > *:not(.bg-layer):not(script):not(style) {
-            position: relative;
-            z-index: 1;
-        }
-        @endif
-        @if($tornActive)
-        {{-- Torn-paper composite: full backdrop layer (photo or preset
-             gradient) with a solid paper sheet clipped by a jagged torn
-             diagonal on top. "Fixed" pins both layers to the viewport
-             (mobile-Safari-safe, no background-attachment); "Scroll" makes
-             them absolutely-positioned over the whole (relative) body so
-             they move with the content. --}}
-        .bg-torn-backdrop {
-            position: {{ $bgFixed ? 'fixed' : 'absolute' }};
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            @if($tornBackdropImage)
-                background: {{ $bgFallbackColor }} url('{{ $tornBackdropImage }}') center/cover no-repeat;
-            @elseif($tornBackdropCss)
-                {!! rtrim($tornBackdropCss, "; \t\n\r") !!};
-            @else
-                background-color: {{ $bgFallbackColor }};
-            @endif
-        }
-        .bg-torn-paper {
-            position: {{ $bgFixed ? 'fixed' : 'absolute' }};
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            {{-- drop-shadow on the wrapper follows the clip-path silhouette
-                 of the inner sheet (box-shadow would hug the clipped box). --}}
-            filter: drop-shadow(4px 0 10px rgba(0,0,0,0.28));
-        }
-        {{-- Tear variant sheets (Task #6204): each style resolves to one or
-             more clipped paper sheets from TornStyleCatalog (legacy pages
-             without a torn_style render the classic diagonal default).
-             Clip paths and shade factors come only from the catalog. --}}
-        @foreach(\App\Modules\User\Support\TornStyleCatalog::sheets($bs['torn_style'] ?? null) as $__i => $__sheet)
-        .bg-torn-paper .torn-sheet-{{ $__i }} {
-            position: absolute;
-            inset: 0;
-            background-color: {{ \App\Modules\User\Support\TornStyleCatalog::shadeHex($tornPaper, $__sheet['shade']) }};
-            clip-path: {{ $__sheet['clip'] }};
-            -webkit-clip-path: {{ $__sheet['clip'] }};
-        }
-        @endforeach
-        @endif
+        @include('common.page-background.css')
         @if(count($pageStickers))
         {{-- Page stickers: purely decorative fixed-viewport layers. Both carry
              the .bg-layer class so the generic content z-index rule above skips
@@ -637,29 +371,6 @@
         @keyframes st-spin   { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes st-float  { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
         @keyframes st-glow   { 0%,100% { filter: drop-shadow(0 0 0 rgba(255,255,255,0)); } 50% { filter: drop-shadow(0 0 10px rgba(255,255,255,0.85)) brightness(1.15); } }
-        @endif
-        @if($bgType === 'slideshow' && count($slideshowImages) > 0)
-        {{-- "Fixed": the slideshow layer pins to the viewport. "Scroll": it becomes an
-             absolutely-positioned layer covering the whole (relative) body so it moves
-             with the content. Both are mobile-Safari-safe (no background-attachment). --}}
-        .bg-slideshow { position:{{ $bgFixed ? 'fixed' : 'absolute' }}; inset:0; z-index:0; overflow:hidden; }
-        .bg-slideshow img {
-            position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
-            opacity:0; transition:opacity 1.5s ease-in-out;
-        }
-        .bg-slideshow img.active { opacity:1; }
-        @endif
-        @if($bgType === 'video')
-        .bg-video-wrap { position:fixed; inset:0; z-index:0; overflow:hidden; }
-        .bg-video-wrap video {
-            min-width:100%; min-height:100%; width:auto; height:auto;
-            position:absolute; top:50%; left:50%;
-            transform:translate(-50%,-50%);
-            object-fit:cover;
-        }
-        @endif
-        @if($bgTemplate)
-        {!! $bgTemplate->css !!}
         @endif
         .bio-btn {
             background: {{ $btnColor }};
@@ -1062,17 +773,6 @@
             margin-left: {{ $pagePadX }}px;
             margin-right: {{ $pagePadX }}px;
         }
-        /* Keep the fixed bg-template layer behind everything else. */
-        .bg-template.bg-layer { z-index: 0 !important; }
-        @if($bgTemplate && !$bgFixed)
-        /* User chose "Scroll": the template layer covers the whole (relative) body
-           and moves with the content instead of pinning to the viewport. Catalog
-           CSS hardcodes position:fixed / background-attachment:fixed, so override. */
-        .bg-template.bg-layer {
-            position: absolute !important;
-            background-attachment: scroll !important;
-        }
-        @endif
         @media (min-width: 768px) {
             .biolink-container { max-width: {{ $maxTablet }}px; }
         }
@@ -1247,51 +947,7 @@
     </nav>
     @endif
 
-    @if($hasPageBgLayer)
-    <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
-    @endif
-
-    @if($tilesActive)
-    <div class="bg-tiles bg-layer" aria-hidden="true">
-        @foreach($bgTiles as $__tile)
-            <span style="background: {{ $__tile['css'] }}; grid-column: span {{ $__tile['col'] }}; grid-row: span {{ $__tile['row'] }};"></span>
-        @endforeach
-    </div>
-    @endif
-
-    @if($tornActive)
-    <div class="bg-torn-backdrop bg-layer" aria-hidden="true"></div>
-    <div class="bg-torn-paper bg-layer" aria-hidden="true">
-        @foreach(\App\Modules\User\Support\TornStyleCatalog::sheets($bs['torn_style'] ?? null) as $__i => $__sheet)
-            <span class="torn-sheet-{{ $__i }}"></span>
-        @endforeach
-    </div>
-    @endif
-
-    @if($bgType === 'slideshow' && count($slideshowImages) > 0)
-    <div class="bg-slideshow bg-layer">
-        @foreach($slideshowImages as $si => $sImg)
-        <img src="{{ $sImg }}" alt="" loading="eager" class="{{ $si === 0 ? 'active' : '' }}">
-        @endforeach
-    </div>
-    @endif
-
-    @if($bgType === 'video')
-    <div class="bg-video-wrap bg-layer">
-        <video autoplay muted loop playsinline @if($bgFallbackImage) poster="{{ $bgFallbackImage }}" @endif>
-            @if($videoFileSrc)
-            <source src="{{ $videoFileSrc }}" type="{{ str_ends_with(strtolower($videoFileSrc), '.webm') ? 'video/webm' : 'video/mp4' }}">
-            @endif
-            @if($videoUrl)
-            <source src="{{ $videoUrl }}" type="{{ str_ends_with(strtolower($videoUrl), '.webm') ? 'video/webm' : 'video/mp4' }}">
-            @endif
-        </video>
-    </div>
-    @endif
-
-    @if($bgType === 'template' && $bgTemplate)
-    <div class="bg-template bg-layer bg-template-{{ $bgTemplate->slug }}" style="position:{{ $bgFixed ? 'fixed' : 'absolute' }};inset:0;z-index:0;overflow:hidden;"></div>
-    @endif
+    @include('common.page-background.layers')
 
     {{-- Page stickers — decorative emoji/image overlays (BiolinkStickers).
          Rendered as two fixed pointer-events-none layers: "back" with the

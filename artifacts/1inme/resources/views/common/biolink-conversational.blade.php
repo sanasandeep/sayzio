@@ -1,24 +1,54 @@
 @php
     $flow = \App\Modules\User\Models\ConversationFlow::where('link_id', $link->id)->where('is_published', true)->first();
     $alias = $link->alias;
-    $theme = $link->settings['biolink']['theme'] ?? [];
-    $bg = $theme['background'] ?? '#0f172a';
+    $title = $link->title ?: $link->alias;
+
+    $bs = $link->settings['biolink'] ?? [];
+
+    /*
+     * The page background, from the same settings the Appearance picker
+     * writes -- all of them, not two.
+     *
+     * This page has always shown the full background picker. It honoured
+     * `image` and `slideshow`, hand-rolled, and dropped everything else on
+     * the floor: colour, gradient and all 941 ready-made looks rendered as
+     * a flat #0f172a, because $bg read `settings.biolink.theme.background`,
+     * a key with one reader (this line) and zero writers anywhere in the
+     * app. Nobody spotted it because there was no shared renderer to
+     * compare against -- the whole translation lived inside
+     * common/biolink.blade.php. Now it does not.
+     */
+    $pb = \App\Modules\User\Support\PageBackground::resolve($bs);
+
+    // Text has to follow the background it sits on. A creator who picks a
+    // pale background must not get white-on-white, which is exactly what a
+    // hardcoded $textColor would now produce.
+    $textColor = $bs['font_color'] ?? '#f8fafc';
+
+    /*
+     * A readability scrim over photo backgrounds.
+     *
+     * The old hand-rolled path always laid rgba(0,0,0,0.55) over an image
+     * or slideshow so the chat bubbles stayed legible. The shared system
+     * exposes that as the creator-controlled "Dim" setting instead. Keep
+     * the automatic scrim ONLY when they have not set their own dim, so
+     * pages that look right today keep looking right, and anyone who
+     * chooses a dim gets theirs rather than both.
+     */
+    $cvPhotoBg  = in_array($pb['type'], ['image', 'slideshow', 'video'], true);
+    $cvAutoScrim = $cvPhotoBg && $pb['overlayOpacity'] === 0;
+
+    /*
+     * TODO: accent and the two bubble colours still read that same dead
+     * `theme` key, so they are always the defaults below. They are legible
+     * on their own bubbles, so this change leaves them alone rather than
+     * quietly restyling every conversational page; mapping them onto the
+     * button colours the Appearance page really writes is its own change.
+     */
+    $theme = $bs['theme'] ?? [];
     $accent = $theme['accent'] ?? '#5c83ff';
     $bubbleBot = $theme['bubble_bot'] ?? '#1e293b';
     $bubbleUser = $theme['bubble_user'] ?? '#3d6bff';
-    $textColor = $theme['text'] ?? '#f8fafc';
-    $title = $link->title ?: $link->alias;
-
-    // Honor the same background settings the list-mode renderer uses so
-    // a creator can run conversational mode on top of a slideshow / image
-    // background. Falls back to the flat $bg when no media is configured.
-    $cvBs               = $link->settings['biolink'] ?? [];
-    $cvBgType           = $cvBs['background_type'] ?? null;
-    $cvSlideshowImages  = is_array($cvBs['slideshow_images'] ?? null) ? array_values($cvBs['slideshow_images']) : [];
-    $cvSlideshowInterval = (int) ($cvBs['slideshow_interval'] ?? 5);
-    $cvBgImage          = (string) ($cvBs['background_image'] ?? '');
-    $cvHasSlideshow     = $cvBgType === 'slideshow' && count($cvSlideshowImages) > 0;
-    $cvHasBgImage       = $cvBgType === 'image' && $cvBgImage !== '';
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -32,19 +62,21 @@
 <style>
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-    body { background: {{ $bg }}; color: {{ $textColor }}; min-height: 100vh; display: flex; justify-content: center; position: relative; }
-    @if($cvHasSlideshow)
-    body { background: #000; }
-    .cv-bg-slideshow { position: fixed; inset: 0; z-index: 0; }
-    .cv-bg-slideshow img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.2s ease-in-out; }
-    .cv-bg-slideshow img.active { opacity: 1; }
+    body {
+        color: {{ $textColor }};
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        position: relative;
+        @include('common.page-background.body-declarations')
+    }
+    @include('common.page-background.css')
+    @if($cvAutoScrim)
+    {{-- See $cvAutoScrim: preserves the scrim photo backgrounds have always
+         had here, and steps aside the moment the creator sets their own Dim. --}}
     .cv-bg-overlay { position: fixed; inset: 0; z-index: 0; background: rgba(0,0,0,0.55); }
-    .cv-shell { position: relative; z-index: 1; }
-    @elseif($cvHasBgImage)
-    body { background: #000 url('{{ $cvBgImage }}') center/cover no-repeat fixed; }
-    .cv-bg-overlay { position: fixed; inset: 0; z-index: 0; background: rgba(0,0,0,0.55); }
-    .cv-shell { position: relative; z-index: 1; }
     @endif
+    .cv-shell { position: relative; z-index: 1; }
     .cv-shell { width: 100%; max-width: 460px; display: flex; flex-direction: column; min-height: 100vh; padding: 16px; }
     .cv-header { display: flex; align-items: center; gap: 12px; padding: 8px 4px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; }
     .cv-avatar { width: 40px; height: 40px; border-radius: 50%; background: {{ $accent }}; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; }
@@ -99,14 +131,8 @@
 </style>
 </head>
 <body>
-@if($cvHasSlideshow)
-<div class="cv-bg-slideshow" aria-hidden="true">
-    @foreach($cvSlideshowImages as $si => $sImg)
-    <img src="{{ $sImg }}" alt="" loading="eager" class="{{ $si === 0 ? 'active' : '' }}">
-    @endforeach
-</div>
-<div class="cv-bg-overlay" aria-hidden="true"></div>
-@elseif($cvHasBgImage)
+@include('common.page-background.layers')
+@if($cvAutoScrim)
 <div class="cv-bg-overlay" aria-hidden="true"></div>
 @endif
 <div class="cv-shell" role="main">
@@ -451,17 +477,17 @@
     });
 })();
 </script>
-@if($cvHasSlideshow && count($cvSlideshowImages) > 1)
+@if($pb['type'] === 'slideshow' && count($pb['slideshowImages']) > 1)
 <script>
 (function () {
-    var imgs = document.querySelectorAll('.cv-bg-slideshow img');
+    var imgs = document.querySelectorAll('.bg-slideshow img');
     if (imgs.length < 2) return;
     var i = 0;
     setInterval(function () {
         imgs[i].classList.remove('active');
         i = (i + 1) % imgs.length;
         imgs[i].classList.add('active');
-    }, {{ $cvSlideshowInterval * 1000 }});
+    }, {{ $pb['slideshowInterval'] * 1000 }});
 })();
 </script>
 @endif
