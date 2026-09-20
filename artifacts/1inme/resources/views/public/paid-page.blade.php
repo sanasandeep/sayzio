@@ -22,6 +22,20 @@
 <link href="https://fonts.googleapis.com/css2?family={{ urlencode($template['font']) }}:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
 <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
+@php
+    /*
+     * Page background (shared renderer) -- an OVERRIDE, not a replacement.
+     *
+     * This page's template is a design system, not a background: its hero,
+     * cards, accent, fonts and motion are all chosen AGAINST its page_bg.
+     * So a creator's background replaces the page_bg token only, and every
+     * other token stays as the template's designer intended. Opt-in: with
+     * nothing chosen, the template renders exactly as it always has.
+     */
+    $pbBs = $link->settings['biolink'] ?? [];
+    $pbOn = \App\Modules\User\Support\PageBackground::chosen($pbBs);
+    $pb   = $pbOn ? \App\Modules\User\Support\PageBackground::resolve($pbBs) : null;
+@endphp
 <style>
     :root{
         --pp-page-bg: {{ $template['page_bg'] }};
@@ -40,7 +54,13 @@
         --pp-font: '{{ $template['font'] }}', system-ui, sans-serif;
     }
     [x-cloak]{display:none!important}
+    @if($pbOn)
+    html,body{color: var(--pp-text); font-family: var(--pp-font);}
+    body{ @include('common.page-background.body-declarations') }
+    @include('common.page-background.css')
+    @else
     html,body{background: var(--pp-page-bg); background-attachment: fixed; color: var(--pp-text); font-family: var(--pp-font);}
+    @endif
 
     /* ── Fixed full-page background layer stack ───────────────── */
     .pp-bg{position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none;}
@@ -135,6 +155,7 @@
 </style>
 </head>
 <body class="min-h-screen {{ ($template['card_glass'] ?? false) ? 'pp-cardglass' : '' }}">
+@if($pbOn)@include('common.page-background.layers')@endif
 
 {{-- ── Fixed full-page background: image / video / animated pattern ── --}}
 @php

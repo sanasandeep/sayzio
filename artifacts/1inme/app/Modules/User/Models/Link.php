@@ -902,6 +902,12 @@ protected $fillable = [
         self::TYPE_REVIEWS,
         self::TYPE_UPDATES,
         self::TYPE_CALENDAR,
+        // These two keep their own design templates -- a paid page's is
+        // twenty-five tokens covering hero, cards, accent, fonts and
+        // motion, all chosen against its page_bg. A chosen background
+        // overrides that ONE token and leaves the rest coherent.
+        self::TYPE_PAID_PAGE,
+        self::TYPE_BRAND_KIT,
     ];
 
     /** May this link's owner choose a page background? */

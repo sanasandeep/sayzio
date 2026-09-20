@@ -43,6 +43,20 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family={{ $fontParam }}&display=swap" rel="stylesheet">
+@php
+    /*
+     * Page background (shared renderer) -- an OVERRIDE, not a replacement.
+     *
+     * This page's template is a design system, not a background: its hero,
+     * cards, accent, fonts and motion are all chosen AGAINST its page_bg.
+     * So a creator's background replaces the page_bg token only, and every
+     * other token stays as the template's designer intended. Opt-in: with
+     * nothing chosen, the template renders exactly as it always has.
+     */
+    $pbBs = $link->settings['biolink'] ?? [];
+    $pbOn = \App\Modules\User\Support\PageBackground::chosen($pbBs);
+    $pb   = $pbOn ? \App\Modules\User\Support\PageBackground::resolve($pbBs) : null;
+@endphp
 <style>
     :root{
         --bk-page-bg: {{ $template['page_bg'] }};
@@ -57,7 +71,13 @@
         --bk-body: '{{ $bodyFont }}', system-ui, sans-serif;
     }
     *{box-sizing:border-box;}
+    @if($pbOn)
+    body{margin:0; color:var(--bk-text); font-family:var(--bk-body); -webkit-font-smoothing:antialiased; line-height:1.55;
+         @include('common.page-background.body-declarations') }
+    @include('common.page-background.css')
+    @else
     body{margin:0; background:var(--bk-page-bg); color:var(--bk-text); font-family:var(--bk-body); -webkit-font-smoothing:antialiased; line-height:1.55;}
+    @endif
     h1,h2,h3{font-family:var(--bk-heading); margin:0; line-height:1.15;}
     a{color:inherit;}
     .bk-wrap{max-width:920px; margin:0 auto; padding:48px 20px 80px;}
@@ -105,6 +125,7 @@
 </style>
 </head>
 <body>
+@if($pbOn)@include('common.page-background.layers')@endif
 <div class="bk-wrap">
 
     {{-- Hero --}}
