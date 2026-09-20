@@ -204,7 +204,12 @@ class BiolinkBackgroundTypesTest extends TestCase
     {
         $u    = $this->user();
 
-        foreach (['gradient_zero', 'torn_paper_1'] as $legacyKey) {
+        // `torn_paper_1` was here for years and is not a key in the catalog
+        // at all, so the torn-preset half of this test rendered a page with
+        // no background and asserted 200. The real torn presets live in the
+        // `torn` group, hidden from the picker but still rendering for pages
+        // saved before it was retired -- `torn_dusty_blue` is one.
+        foreach (['gradient_zero', 'torn_dusty_blue'] as $legacyKey) {
             $link = $this->biolink($u);
             $link->update([
                 'settings' => array_merge($link->settings ?? [], [
