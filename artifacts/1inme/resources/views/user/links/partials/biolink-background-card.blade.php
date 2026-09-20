@@ -255,87 +255,117 @@
                 'currentName' => !empty($bs['background_image']) ? 'Saved background image' : null,
                 'compact'     => true,
                 'browseType'  => 'image',
+                // The merged gallery below covers the same S3 folders, in the
+                // right shape and by reference rather than by copy.
+                'allowStock'  => false,
             ])
 
-            {{-- Curated background gallery (Task #6015) — platform-provided
-                 photos listed live from S3, available on every plan. Picking
-                 one submits its S3 key via the hidden input; the server
-                 resolves + stores the public CDN URL (an uploaded file, if
-                 any, still wins server-side). --}}
+            {{-- THE IMAGE GALLERY (Task #6232) ------------------------------
+                 One grid over all three curated S3 folders, replacing the
+                 Stock tab above it and the separate "Or choose from our
+                 gallery" accordion below. Two image pickers on one panel was
+                 the same duplication the Style library removed -- and they
+                 disagreed on shape too: Stock drew 152px squares while the
+                 gallery drew 9/14 portraits, on the same screen.
+
+                 9/14 wins, because that is the shape of the page the image
+                 will fill. A square crop of a background is a preview of
+                 something the user never gets.
+
+                 Picking stores the S3 KEY, so the server resolves the public
+                 CDN URL and nothing is copied into the user's vault -- the
+                 gallery path already worked this way, and the Stock tab's
+                 blob-copy did not. Now all three folders take the better one. --}}
             <div x-data="{
-                    galOpen: false,
-                    galLoading: false,
+                    galFolder: 'all',
+                    galLoading: true,
                     galFailed: false,
                     galAssets: [],
                     galSearch: '',
-                    galLimit: 36,
+                    galLimit: 48,
                     galSelected: '',
+                    folders: @js(\App\Modules\User\Support\BackgroundImageGallery::FOLDERS),
                     async galLoad() {
-                        this.galOpen = !this.galOpen;
-                        if (!this.galOpen || this.galAssets.length || this.galLoading) return;
                         this.galLoading = true; this.galFailed = false;
                         try {
-                            const r = await fetch('{{ route('user.platform-assets.index', 'biolink-backgrounds') }}', { headers: { 'Accept': 'application/json' } });
-                            const j = await r.json();
-                            this.galAssets = (j && j.success && Array.isArray(j.assets)) ? j.assets : [];
-                            this.galFailed = !r.ok;
+                            const all = await Promise.all(Object.keys(this.folders).map(async (folder) => {
+                                const r = await fetch('{{ route('user.platform-assets.index', '__F__') }}'.replace('__F__', folder), { headers: { 'Accept': 'application/json' } });
+                                const j = await r.json();
+                                if (!r.ok || !j || !j.success || !Array.isArray(j.assets)) return [];
+                                return j.assets.map(a => ({ ...a, folder }));
+                            }));
+                            this.galAssets = all.flat();
                         } catch (e) { this.galFailed = true; }
                         this.galLoading = false;
                     },
-                    galVisible() {
+                    galMatching() {
                         const q = this.galSearch.trim().toLowerCase();
-                        const all = q ? this.galAssets.filter(a => a.label.toLowerCase().includes(q)) : this.galAssets;
-                        return all.slice(0, this.galLimit);
+                        return this.galAssets.filter(a =>
+                            (this.galFolder === 'all' || a.folder === this.galFolder) &&
+                            (!q || a.label.toLowerCase().includes(q))
+                        );
                     },
-                    galCount() {
-                        const q = this.galSearch.trim().toLowerCase();
-                        return q ? this.galAssets.filter(a => a.label.toLowerCase().includes(q)).length : this.galAssets.length;
+                    galVisible() { return this.galMatching().slice(0, this.galLimit); },
+                    galCountIn(folder) {
+                        return folder === 'all'
+                            ? this.galAssets.length
+                            : this.galAssets.filter(a => a.folder === folder).length;
                     }
-                }" class="space-y-2">
+                }" x-init="galLoad()" class="space-y-2">
                 <input type="hidden" name="background_image_asset" :value="galSelected">
-                <button type="button" @click="galLoad()"
-                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all"
-                        style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-                    <span class="text-xs font-semibold" style="color: var(--text-primary);">
-                        <i class="fas fa-images text-blue-400 text-[10px] mr-1.5"></i> Or choose from our gallery
-                    </span>
-                    <i class="fas text-[10px]" :class="galOpen ? 'fa-chevron-up' : 'fa-chevron-down'" style="color: var(--text-faint);"></i>
-                </button>
-                <div x-show="galOpen" x-transition class="space-y-2" style="display: none;">
-                    <template x-if="galLoading"><p class="text-[11px] text-center py-3" style="color: var(--text-dimmed);">Loading gallery…</p></template>
-                    <template x-if="!galLoading && galFailed"><p class="text-[11px] text-center py-3" style="color: var(--text-dimmed);">Couldn't load the gallery right now. Try again in a minute.</p></template>
-                    <template x-if="!galLoading && !galFailed && galAssets.length === 0"><p class="text-[11px] text-center py-3" style="color: var(--text-dimmed);">No gallery backgrounds available yet.</p></template>
-                    <template x-if="galAssets.length > 0">
-                        <div class="space-y-2">
-                            <input type="text" x-model="galSearch" placeholder="Search backgrounds…"
-                                   class="text-[11px] px-2.5 py-1.5 rounded-md w-full"
-                                   style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
-                            <div class="bg-swatch-grid max-h-[380px] overflow-y-auto pr-1">
-                                <template x-for="a in galVisible()" :key="a.key">
-                                    <button type="button"
-                                            @click="galSelected = galSelected === a.key ? '' : a.key; $nextTick(() => $dispatch('change'))"
-                                            :class="galSelected === a.key ? 'ring-2 ring-blue-400' : ''"
-                                            class="rounded-md overflow-hidden relative transition-all hover:scale-[1.05] hover:z-10"
-                                            style="aspect-ratio: 9/14; border: 1px solid var(--border-glass);"
-                                            :title="a.label">
-                                        <img :src="a.url" :alt="a.label" loading="lazy" class="absolute inset-0 w-full h-full object-cover">
-                                        <div x-show="galSelected === a.key"
-                                             class="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center"
-                                             style="background: rgba(61,107,255,0.95); color:#fff;">
-                                            <i class="fas fa-check" style="font-size:6px;"></i>
-                                        </div>
-                                    </button>
-                                </template>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <p class="text-[10px]" style="color: var(--text-dimmed);">Click to select, click again to deselect. Save to apply.</p>
-                                <button type="button" x-show="galCount() > galLimit" @click="galLimit += 36"
-                                        class="text-[10px] font-semibold px-2 py-1 rounded-md" style="color:#90acff; border: 1px dashed rgba(61,107,255,0.3);">
-                                    Show more
-                                </button>
-                            </div>
-                        </div>
+
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <label class="block text-xs font-medium" style="color: var(--text-muted);">
+                        Or choose one of ours <span class="opacity-60" x-text="galAssets.length || ''"></span>
+                    </label>
+                    <input type="text" x-model="galSearch" placeholder="Search images…"
+                           class="text-[11px] px-2 py-1 rounded-md flex-1 max-w-[190px]"
+                           style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                </div>
+
+                <div class="bg-lib-chips" x-show="galAssets.length > 0">
+                    <button type="button" @click="galFolder = 'all'; galLimit = 48"
+                            class="bg-lib-chip" :class="galFolder === 'all' ? 'is-on' : ''">
+                        All <span class="bg-lib-n" x-text="galCountIn('all')"></span>
+                    </button>
+                    <template x-for="(label, key) in folders" :key="key">
+                        <button type="button" @click="galFolder = key; galLimit = 48"
+                                x-show="galCountIn(key) > 0"
+                                class="bg-lib-chip" :class="galFolder === key ? 'is-on' : ''">
+                            <span x-text="label"></span> <span class="bg-lib-n" x-text="galCountIn(key)"></span>
+                        </button>
                     </template>
+                </div>
+
+                <template x-if="galLoading">
+                    <p class="text-[11px] text-center py-3" style="color: var(--text-dimmed);">Loading images…</p>
+                </template>
+                <template x-if="!galLoading && galFailed">
+                    <p class="text-[11px] text-center py-3" style="color: var(--text-dimmed);">Couldn't load the gallery right now. Try again in a minute.</p>
+                </template>
+                <template x-if="!galLoading && !galFailed && galAssets.length === 0">
+                    <p class="text-[11px] text-center py-3" style="color: var(--text-dimmed);">No gallery images available yet.</p>
+                </template>
+
+                <div class="bg-swatch-grid max-h-[380px] overflow-y-auto pr-1" x-show="galAssets.length > 0">
+                    <template x-for="a in galVisible()" :key="a.key">
+                        <button type="button"
+                                @click="galSelected = galSelected === a.key ? '' : a.key; $nextTick(() => $dispatch('change'))"
+                                :class="galSelected === a.key ? 'is-picked' : ''"
+                                class="bg-lib-swatch"
+                                :title="a.label">
+                            <img :src="a.url" :alt="a.label" loading="lazy" class="bg-lib-fill" style="width:100%;height:100%;object-fit:cover;">
+                            <span class="bg-lib-tick" aria-hidden="true"><i class="fas fa-check"></i></span>
+                        </button>
+                    </template>
+                </div>
+
+                <div class="flex items-center justify-between" x-show="galAssets.length > 0">
+                    <p class="text-[10px]" style="color: var(--text-dimmed);">Click to select, click again to deselect. Save to apply.</p>
+                    <button type="button" x-show="galMatching().length > galLimit" @click="galLimit += 48"
+                            class="text-[10px] font-semibold px-2 py-1 rounded-md" style="color:#90acff; border: 1px dashed rgba(61,107,255,0.3);">
+                        Show more
+                    </button>
                 </div>
             </div>
         </div>

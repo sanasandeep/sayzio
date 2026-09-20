@@ -1235,12 +1235,18 @@ class BiolinkBlockController extends Controller
             'background_gradient' => 'nullable|string|max:500',
             'background_image' => \App\Services\UploadPolicy::rule('link.background_image', $request->user()),
             // Platform gallery pick (Task #6015): S3 object key from the
-            // curated `assets/biolink-backgrounds/` folder. Validated by
+            // curated `assets/` gallery folders. Validated by
             // prefix + safe filename (no S3 round-trip); resolved to the
             // public CDN URL below. Available on every plan.
             'background_image_asset' => ['nullable', 'string', 'max:300',
                 function ($attribute, $value, $fail) {
-                    if ($value && !\App\Modules\User\Support\PlatformAssetCatalog::isValidKey('biolink-backgrounds', $value)) {
+                    // Task #6232: the picker now spans every curated folder a
+                    // background may come from, not just biolink-backgrounds,
+                    // because the Stock tab that served the other two was
+                    // merged into it. Still validated by prefix + safe
+                    // filename, so a request cannot point this at an
+                    // arbitrary S3 object.
+                    if ($value && !\App\Modules\User\Support\BackgroundImageGallery::accepts($value)) {
                         $fail('The selected gallery background is not valid.');
                     }
                 }
