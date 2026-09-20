@@ -143,4 +143,67 @@ class UploaderOffersEverySourceItCanTest extends TestCase
             . 'for no reason: all three append correctly'
         );
     }
+
+    /**
+     * The case that only showed up on the live site.
+     *
+     * A holder of `user.files.access_any` -- an owner, or anyone on an
+     * unlimited plan -- gets a policy with `extensions => []` and
+     * `accept => ''`, because their uploads are not filtered. Every sniff for
+     * "is this an image field" therefore came back empty, and Stock vanished
+     * for exactly the accounts most likely to be using it. The suite missed it
+     * because a factory user holds no such permission.
+     *
+     * `kind` is read from the CONTEXT rather than the resolved policy, so it
+     * survives the override: a background image field is an image field no
+     * matter who is looking at it.
+     */
+    public function test_an_unrestricted_account_still_sees_the_image_library(): void
+    {
+        $this->assertSame('image', UploadPolicy::kindOf(
+            UploadPolicy::CONTEXTS['link.bg_fallback_image']['extensions']
+        ));
+        $this->assertSame('video', UploadPolicy::kindOf(
+            UploadPolicy::CONTEXTS['link.video_file']['extensions']
+        ));
+
+        // An unfiltered policy keeps its kind even with nothing else to go on.
+        $unfiltered = [
+            'key' => 'link.bg_fallback_image',
+            'max_mb' => 10240,
+            'extensions' => [],
+            'multiple' => false,
+            'accept' => '',
+            'kind' => 'image',
+        ];
+
+        $html = view('user.partials.dropzone-input', [
+            'name'   => 'bg_fallback_image',
+            'policy' => $unfiltered,
+        ])->render();
+
+        $this->assertStringContainsString(
+            'fa-images mr-1"></i>Stock',
+            $html,
+            'blanking the extension list must not take the image library with it'
+        );
+    }
+
+    /** Every context resolves to a kind, and it never changes per user. */
+    public function test_every_upload_context_declares_what_it_is_for(): void
+    {
+        $unclassified = [];
+        foreach (UploadPolicy::CONTEXTS as $key => $ctx) {
+            if (empty($ctx['extensions'])) {
+                continue; // deliberately open-ended, e.g. link.file_share
+            }
+            if (UploadPolicy::kindOf($ctx['extensions']) === 'all') {
+                $unclassified[] = $key;
+            }
+        }
+
+        $this->assertSame([], $unclassified,
+            'these contexts list extensions but map to no kind: '
+            . implode(', ', $unclassified));
+    }
 }

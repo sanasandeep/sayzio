@@ -67,6 +67,15 @@
     // the extension list (accept ''), which would otherwise hide the
     // image-only tabs (e.g. Stock) on clearly image-typed dropzones.
     $browseType = $browseType ?? 'all';
+    // The policy now says what the field is FOR, independent of what this
+    // user may upload. That is the only signal that survives the
+    // `user.files.access_any` branch, which blanks extensions AND accept --
+    // so on an owner or unlimited account every sniff below came back empty
+    // and the image-only tabs disappeared for precisely the people most
+    // likely to be looking at them.
+    if ($browseType === 'all' && !empty($policy['kind']) && $policy['kind'] !== 'all') {
+        $browseType = $policy['kind'];
+    }
     if ($browseType === 'all' && $extensions) {
         // UploadPolicy describes a field with `extensions`, never `accept`, so
         // $accept above falls back to '*/*' and the sniff below never matched.
