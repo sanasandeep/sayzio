@@ -15,9 +15,28 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+@php
+    /*
+     * Page background (shared renderer).
+     *
+     * Opt-in by design: this page had its own colours long before it had
+     * a picker, so a link with NO saved background_type must render
+     * exactly as it always has. Only an explicit choice takes over.
+     */
+    $pbBs = $link->settings['biolink'] ?? [];
+    $pbOn = \App\Modules\User\Support\PageBackground::chosen($pbBs);
+    $pb   = $pbOn ? \App\Modules\User\Support\PageBackground::resolve($pbBs) : null;
+@endphp
 <style>
     :root{ --cal-accent: {{ $calendar->accent_color ?: '#3d6bff' }}; }
-    body{ font-family:'Space Grotesk',sans-serif; background:#0b0e16; color:#e8eaf0; min-height:100vh; }
+    body{ font-family:'Space Grotesk',sans-serif; color:#e8eaf0; min-height:100vh;
+    @if($pbOn)
+        @include('common.page-background.body-declarations')
+    @else
+        background:#0b0e16;
+    @endif
+    }
+    @if($pbOn)@include('common.page-background.css')@endif
     .cal-card{ background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:1rem; }
     .cal-accent-bg{ background:var(--cal-accent); }
     .cal-accent-text{ color:var(--cal-accent); }
@@ -27,6 +46,7 @@
 </style>
 </head>
 <body>
+@if($pbOn)@include('common.page-background.layers')@endif
 <div class="max-w-2xl mx-auto px-4 py-10">
 
     {{-- ── Header ────────────────────────────────────────────── --}}

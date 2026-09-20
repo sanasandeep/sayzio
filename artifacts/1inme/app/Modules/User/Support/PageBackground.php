@@ -59,6 +59,24 @@ class PageBackground
     public const DEFAULT_PAPER    = '#cfe0e6';
 
     /**
+     * Has the owner actually chosen a background?
+     *
+     * resolve() defaults an absent type to 'gradient', which is right for
+     * the biolink -- that IS its default look. It is wrong for every page
+     * type that had its own hardcoded colours long before it had a picker:
+     * a Reviews page with no saved background must keep the radial it has
+     * always had, not acquire the biolink's purple gradient because a
+     * default fired.
+     *
+     * So those renderers ask this first. No choice means their own CSS
+     * stands untouched; a choice means the shared background takes over.
+     */
+    public static function chosen(array $bs): bool
+    {
+        return isset($bs['background_type']) && $bs['background_type'] !== '';
+    }
+
+    /**
      * Resolve a biolink settings array into everything the views need.
      *
      * @param  array  $bs  the `settings['biolink']` array

@@ -39,10 +39,29 @@
     @endif
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+@php
+    /*
+     * Page background (shared renderer).
+     *
+     * Opt-in by design: this page had its own colours long before it had
+     * a picker, so a link with NO saved background_type must render
+     * exactly as it always has. Only an explicit choice takes over.
+     */
+    $pbBs = $link->settings['biolink'] ?? [];
+    $pbOn = \App\Modules\User\Support\PageBackground::chosen($pbBs);
+    $pb   = $pbOn ? \App\Modules\User\Support\PageBackground::resolve($pbBs) : null;
+@endphp
     <style>
         :root { --bg:#0b0b13; --card:#15151f; --line:rgba(255,255,255,.08); --ink:#f4f4f8; --muted:#9aa0ad; --accent:#5c83ff; --star:#fbbf24; }
         * { box-sizing:border-box; }
-        body { margin:0; font-family:'Space Grotesk',system-ui,sans-serif; background:radial-gradient(1200px 600px at 50% -10%, #1c1430 0%, var(--bg) 60%); color:var(--ink); min-height:100vh; }
+        body { margin:0; font-family:'Space Grotesk',system-ui,sans-serif; color:var(--ink); min-height:100vh;
+        @if($pbOn)
+            @include('common.page-background.body-declarations')
+        @else
+            background:radial-gradient(1200px 600px at 50% -10%, #1c1430 0%, var(--bg) 60%);
+        @endif
+        }
+        @if($pbOn)@include('common.page-background.css')@endif
         .wrap { max-width:880px; margin:0 auto; padding:40px 20px 80px; }
         .head { text-align:center; margin-bottom:28px; }
         .head h1 { font-size:30px; font-weight:700; margin:0 0 6px; }
@@ -99,6 +118,7 @@
     </style>
 </head>
 <body>
+@if($pbOn)@include('common.page-background.layers')@endif
 @php
     $renderStars = function ($rating) {
         $r = (int) round($rating);

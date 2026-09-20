@@ -71,6 +71,12 @@
                                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Page Title @if($link->is_verified)<span class="text-[10px] px-1.5 py-0.5 rounded ml-1" style="background: rgba(29,155,240,0.1); color: #1d9bf0;"><i class="fas fa-lock text-[8px]"></i> Verified</span>@endif</label>
                                     <input type="text" name="biolink_title" value="{{ $bs['biolink_title'] ?? $link->title }}" class="theme-input w-full" placeholder="My Link in Bio" {{ $link->is_verified ? 'disabled' : '' }}>
                                 </div>
+                                @if($link->isBiolinkFamily())
+                                {{-- A page type that only has a BACKGROUND cannot save a
+                                     font: updatePageSettings narrows its key set to the
+                                     background fields. Showing the control anyway would
+                                     be a setting that silently does nothing, which is
+                                     the exact complaint this whole run of work is about. --}}
                                 <div>
                                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Font Family</label>
                                     @include('user.links.partials.font-picker', [
@@ -80,6 +86,7 @@
                                         'allowInherit' => false,
                                     ])
                                 </div>
+                                @endif
                             </div>
                             <div>
                                 <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Description</label>
@@ -97,6 +104,7 @@
 
                     @include('user.links.partials.biolink-background-card', ['link' => $link, 'bgTemplates' => $bgTemplates])
 
+                    @if($link->isBiolinkFamily())
                     @include('user.links.partials.page-stickers-card', ['link' => $link, 'bs' => $bs])
                     {{-- ── Floating text overlays (Task #5954) ─────────────────
                          Free-placed captions layered over the whole page.
@@ -253,6 +261,7 @@
                         </div>
                         @endif
                     </div>
+                    @endif
 
                 </div>
 
@@ -263,7 +272,11 @@
                         <i class="fas fa-save text-xs"></i> Save Appearance Settings
                     </button>
                     <span class="text-[11px]" style="color: var(--text-faint);">
-                        Saves background, template, font and theme choices.
+                        @if($link->isBiolinkFamily())
+                            Saves background, template, font and theme choices.
+                        @else
+                            Saves your page background.
+                        @endif
                     </span>
                 </div>
             </form>

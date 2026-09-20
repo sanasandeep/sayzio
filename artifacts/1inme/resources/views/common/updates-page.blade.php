@@ -33,18 +33,43 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
+@php
+    /*
+     * Page background (shared renderer).
+     *
+     * Opt-in by design: this page had its own colours long before it had
+     * a picker, so a link with NO saved background_type must render
+     * exactly as it always has. Only an explicit choice takes over --
+     * including over the light/dark rules below, which is the point: a
+     * creator who chose a background means it, in either scheme.
+     */
+    $pbBs = $link->settings['biolink'] ?? [];
+    $pbOn = \App\Modules\User\Support\PageBackground::chosen($pbBs);
+    $pb   = $pbOn ? \App\Modules\User\Support\PageBackground::resolve($pbBs) : null;
+@endphp
         *, *::before, *::after { box-sizing: border-box; }
         body {
             margin: 0;
             min-height: 100vh;
             font-family: 'Inter', system-ui, sans-serif;
-            background: #0e0c1a;
             color: #e8e6f0;
+            @if($pbOn)
+                @include('common.page-background.body-declarations')
+            @else
+                background: #0e0c1a;
+            @endif
         }
+        @if($pbOn)
+        @include('common.page-background.css')
+        {{-- A chosen background wins in both schemes; only the ink follows
+             light mode, so the page stays readable either way. --}}
+        html.light-mode body { color: #18172b; }
+        @else
         html.light-mode body {
             background: #f7f7fb;
             color: #18172b;
         }
+        @endif
         .updates-container { max-width: 720px; margin: 0 auto; padding: 48px 20px 80px; }
         .page-header { margin-bottom: 48px; }
         .page-heading { font-size: 2rem; font-weight: 700; margin: 0 0 8px; line-height: 1.2; }
@@ -159,6 +184,7 @@
     @endif
 </head>
 <body>
+@if($pbOn)@include('common.page-background.layers')@endif
 <div class="updates-container">
 
     {{-- Page header --}}

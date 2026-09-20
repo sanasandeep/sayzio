@@ -877,6 +877,40 @@ protected $fillable = [
     }
 
     /**
+     * Page types whose owner can choose a page background.
+     *
+     * Deliberately NOT BIOLINK_FAMILY, though it starts as a superset of
+     * it. "Rendered by the biolink page engine" gates fifty-odd call sites
+     * -- blocks, page templates, verification, the performance coach --
+     * and widening it to give a Reviews page a background would drag all
+     * of that along with it. The two questions only looked like the same
+     * question because, until the background renderer was extracted, they
+     * had the same answer.
+     *
+     * AI Chat is deliberately absent despite being in BIOLINK_FAMILY for
+     * other purposes -- it is, so it can already post here; what it lacks
+     * is a renderer that honours the result. Its page colour is decided by
+     * the COMPANION's own light/dark control, stored on the companion
+     * rather than the link, so giving it a background is a conflict to
+     * resolve rather than a renderer to swap. Same shape as the three menu
+     * types, and it ships with them.
+     *
+     * @var list<string>
+     */
+    public const PAGE_BACKGROUND_TYPES = [
+        ...self::BIOLINK_FAMILY,
+        self::TYPE_REVIEWS,
+        self::TYPE_UPDATES,
+        self::TYPE_CALENDAR,
+    ];
+
+    /** May this link's owner choose a page background? */
+    public function supportsPageBackground(): bool
+    {
+        return in_array($this->type, self::PAGE_BACKGROUND_TYPES, true);
+    }
+
+    /**
      * UpdateEntry relationship — changelog entries on this Updates-page link.
      */
     public function updateEntries()
