@@ -69,9 +69,25 @@
 
     <div class="space-y-5">
         <div>
-            <label class="block text-xs font-medium mb-2" style="color: var(--text-muted);">Background Type</label>
+            {{-- Three groups as a segmented control, then only that group's
+                 types. Switching a group shows different options; it never
+                 changes what is saved. Only clicking a type does that. --}}
+            <div class="bg-group-switch mb-3" role="group" aria-label="Background kind">
+                <template x-for="g in groups" :key="g.key">
+                    <button type="button" @click="activeGroup = g.key"
+                            :aria-current="activeGroup === g.key ? 'true' : 'false'"
+                            :class="activeGroup === g.key ? 'is-on' : ''"
+                            class="bg-group-btn">
+                        <span x-text="g.label"></span>
+                        <span class="bg-group-dot" x-show="typesIn(g.key).some(t => t.key === bgType)" aria-hidden="true"></span>
+                    </button>
+                </template>
+            </div>
+            <p class="text-[10px] mb-2" style="color: var(--text-faint);" x-text="groups.find(g => g.key === activeGroup)?.hint"></p>
+            <template x-for="g in groups" :key="g.key">
+            <div x-show="activeGroup === g.key">
             <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                <template x-for="t in types" :key="t.key">
+                <template x-for="t in typesIn(g.key)" :key="t.key">
                     <button type="button" @click="bgType = t.key"
                         :class="bgType === t.key ? 'ring-2 ring-blue-500' : ''"
                         class="flex flex-col items-center gap-1 p-2.5 rounded-xl transition-all text-center"
@@ -84,6 +100,8 @@
                     </button>
                 </template>
             </div>
+            </div>
+            </template>
             <input type="hidden" name="background_type" :value="bgType">
         </div>
 
@@ -209,7 +227,7 @@
                             <input type="text" x-model="galSearch" placeholder="Search backgrounds…"
                                    class="text-[11px] px-2.5 py-1.5 rounded-md w-full"
                                    style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
-                            <div class="grid grid-cols-4 sm:grid-cols-6 gap-1.5 max-h-[380px] overflow-y-auto pr-1">
+                            <div class="bg-swatch-grid max-h-[380px] overflow-y-auto pr-1">
                                 <template x-for="a in galVisible()" :key="a.key">
                                     <button type="button"
                                             @click="galSelected = galSelected === a.key ? '' : a.key; $nextTick(() => $dispatch('change'))"
@@ -359,7 +377,7 @@
             <input type="hidden" name="tiles_palette" :value="tilesPalette">
             <div>
                 <label class="block text-xs font-medium mb-2" style="color: var(--text-muted);">Palette</label>
-                <div class="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                <div class="bg-swatch-grid">
                     @foreach(\App\Modules\User\Support\TilesBgCatalog::palettes() as $palKey => $pal)
                     <button type="button"
                             @click="tilesPalette = '{{ $palKey }}'; $nextTick(() => $dispatch('change'))"
@@ -405,7 +423,7 @@
              x-data="{ meshPreset: @js($meshPresetVal) }">
             <input type="hidden" name="mesh_preset" :value="meshPreset">
             <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Mesh Gradient</label>
-            <div class="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
+            <div class="bg-swatch-grid">
                 @foreach(\App\Modules\User\Support\MeshGradientCatalog::all() as $meshKey => $mesh)
                 <button type="button"
                         @click="meshPreset = meshPreset === '{{ $meshKey }}' ? '' : '{{ $meshKey }}'; $nextTick(() => $dispatch('change'))"
@@ -423,7 +441,7 @@
              x-data="{ patternPreset: @js($patternPresetVal) }">
             <input type="hidden" name="pattern_preset" :value="patternPreset">
             <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Pattern</label>
-            <div class="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+            <div class="bg-swatch-grid">
                 @foreach(\App\Modules\User\Support\PatternCatalog::all() as $patKey => $pat)
                 <button type="button"
                         @click="patternPreset = patternPreset === '{{ $patKey }}' ? '' : '{{ $patKey }}'; $nextTick(() => $dispatch('change'))"
@@ -456,7 +474,7 @@
                 @endforeach
             </div>
             <input type="hidden" name="bg_preset_key" :value="selectedKey">
-            <div class="grid grid-cols-6 xs:grid-cols-7 sm:grid-cols-9 md:grid-cols-10 lg:grid-cols-12 gap-1 max-h-[480px] overflow-y-auto pr-1">
+            <div class="bg-swatch-grid max-h-[480px] overflow-y-auto pr-1">
                 @foreach($bgPresets as $presetId => $preset)
                 <button type="button"
                         x-show="(presetGroup === '{{ $preset['group'] }}') && (!presetSearch || '{{ strtolower($preset['label']) }}'.includes(presetSearch.toLowerCase()))"
@@ -520,7 +538,7 @@
             {!! str_replace(['.bg-template-', 'position:fixed', 'position: fixed', 'z-index:-1', 'z-index: -1'], ['.bg-thumb-', 'position:absolute', 'position:absolute', 'z-index:0', 'z-index:0'], $tpl->css) !!}
             @endforeach
             </style>
-            <div class="grid grid-cols-6 xs:grid-cols-7 sm:grid-cols-9 md:grid-cols-10 lg:grid-cols-12 gap-1 max-h-[560px] overflow-y-auto pr-1">
+            <div class="bg-swatch-grid max-h-[560px] overflow-y-auto pr-1">
                 @foreach($bgTemplates as $tpl)
                 @php
                     $tplCat = $tpl->category ?: 'pattern';
@@ -553,12 +571,12 @@
         <div class="pt-4" style="border-top: 1px solid var(--border-subtle);">
             <div class="flex items-center gap-2 mb-3">
                 <i class="fas fa-sliders-h text-[10px] text-blue-400"></i>
-                <span class="text-xs font-semibold" style="color: var(--text-primary);">Background Effects</span>
+                <span class="text-xs font-semibold" style="color: var(--text-primary);">Finish</span>
             </div>
             <div class="space-y-4">
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Position</label>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Scrolling</label>
                         <div class="flex gap-2" x-data="{ attach: '{{ $bgAttachment }}' }">
                             <button type="button" @click="attach = 'fixed'" :class="attach === 'fixed' ? 'ring-2 ring-blue-500' : ''" class="flex-1 py-2 text-[10px] font-semibold rounded-lg transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
                                 <i class="fas fa-thumbtack text-[9px] mr-1"></i> Fixed
@@ -570,7 +588,7 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Fallback Color</label>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Colour behind it</label>
                         <div class="flex items-center gap-2">
                             <input type="color" name="bg_fallback_color" value="{{ $bgFallbackColor }}" class="w-8 h-8 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-subtle);">
                             <span class="text-[10px] font-mono" style="color: var(--text-faint);">{{ $bgFallbackColor }}</span>
@@ -586,14 +604,14 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Overlay Color</label>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Dim colour</label>
                         <div class="flex items-center gap-2">
                             <input type="color" name="bg_overlay_color" value="{{ $bgOverlayColor }}" class="w-8 h-8 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-subtle);">
                             <span class="text-[10px] font-mono" style="color: var(--text-faint);">{{ $bgOverlayColor }}</span>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Overlay Opacity (<span class="font-mono">{{ $bgOverlayOpacity }}%</span>)</label>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Dim (<span class="font-mono">{{ $bgOverlayOpacity }}%</span>)</label>
                         <input type="range" name="bg_overlay_opacity" value="{{ $bgOverlayOpacity }}" min="0" max="100" class="w-full accent-indigo-500" oninput="this.previousElementSibling.querySelector('span').textContent = this.value + '%'">
                     </div>
                 </div>
@@ -615,6 +633,68 @@
 </div>
 
 @once
+<style>
+    /* One rule for every swatch grid in this card.
+     *
+     * All five pickers already draw a 9/14 swatch, so the aspect was never
+     * the problem -- the column counts were, and they had drifted apart as
+     * each picker was added: Pattern at 6 columns, Tiles at 7, Mesh at 10,
+     * Presets and Templates at 12. Same markup, same aspect, and a Pattern
+     * swatch rendering at 102px next to a Template swatch at 50px.
+     *
+     * auto-fill with a min track size means one rule fits every picker and
+     * every width: the swatch keeps a usable size and the column count falls
+     * out of the space available, so a new picker cannot drift again.
+     */
+    /* Three-way switch over the background kinds. */
+    .bg-group-switch {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 3px;
+        padding: 3px;
+        border-radius: 12px;
+        background: var(--bg-glass-input);
+        border: 1px solid var(--border-glass);
+    }
+    .bg-group-btn {
+        position: relative;
+        padding: 8px 6px;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .15s ease, color .15s ease;
+    }
+    .bg-group-btn:hover { color: var(--text-dimmed); }
+    .bg-group-btn.is-on {
+        background: var(--bg-glass);
+        color: var(--text-primary);
+        font-weight: 700;
+        box-shadow: inset 0 0 0 1px var(--border-glass);
+    }
+    /* Marks the group the saved background belongs to, so switching tabs
+       never loses track of which one is actually in use. */
+    .bg-group-dot {
+        position: absolute;
+        top: 6px;
+        right: 8px;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #5c83ff;
+    }
+    .bg-swatch-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+        gap: 6px;
+    }
+    @media (min-width: 640px) {
+        .bg-swatch-grid { grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); }
+    }
+</style>
 <script>
 function bgSettings() {
     return {
@@ -623,20 +703,42 @@ function bgSettings() {
         gradientType: @json($gradientTypeVal),
         gradientAngle: @json((int) $gradientAngle),
         gradientStops: @json($gradientColors),
-        types: [
-            { key: 'color',     label: 'Solid Color', icon: 'fa-fill',    preview: 'linear-gradient(135deg, #2139a1, #3b0764)' },
-            { key: 'gradient',  label: 'Gradient',    icon: 'fa-rainbow', preview: 'linear-gradient(135deg, #ec4899, #5c83ff, #06b6d4)' },
-            { key: 'preset',    label: 'Presets',     icon: 'fa-th-large', preview: 'linear-gradient(135deg, #f97316, #ec4899, #06b6d4)' },
-            { key: 'image',     label: 'Image',       icon: 'fa-image',   preview: 'rgba(99,102,241,0.15)' },
-            { key: 'slideshow', label: 'Slideshow',   icon: 'fa-images',  preview: 'rgba(236,72,153,0.15)' },
-            { key: 'video',     label: 'Video',       icon: 'fa-film',    preview: 'rgba(61,107,255,0.15)' },
-            { key: 'template',  label: 'Template',    icon: 'fa-magic',   preview: 'linear-gradient(135deg, #0f0c29, #302b63)' },
-            { key: 'torn',      label: 'Torn Paper',  icon: 'fa-scroll',  preview: 'linear-gradient(115deg, #cfe0e6 0%, #cfe0e6 60%, #5d7d8e 60%)' },
-            { key: 'tiles',     label: 'Tiles',       icon: 'fa-border-all', preview: 'conic-gradient(from 45deg, #1d4ed8 25%, #0ea5e9 25% 50%, #312e81 50% 75%, #334155 75%)' },
-            { key: 'mesh',      label: 'Mesh',        icon: 'fa-braille', preview: 'radial-gradient(circle at 30% 30%, #22d3ee, transparent 60%), radial-gradient(circle at 75% 70%, #a78bfa, transparent 60%), #0b1026' },
-            { key: 'pattern',   label: 'Pattern',     icon: 'fa-th',      preview: 'repeating-linear-gradient(45deg, #4338ca 0 4px, #1e1b4b 4px 10px)' }
+        // Eleven flat tiles read as eleven unrelated choices, and six of them
+        // ("Presets", "Template", "Pattern", "Mesh", "Tiles", "Gradient") are
+        // all the same request: pick a ready-made look. Grouping says which
+        // are alternatives to each other. Nothing about what gets SAVED
+        // changes -- each button still sets its own background_type -- so
+        // existing pages and the renderer are untouched.
+        groups: [
+            { key: 'colour', label: 'Colour', hint: 'A flat colour or a gradient you build' },
+            { key: 'style',  label: 'Style',  hint: 'Ready-made looks' },
+            { key: 'media',  label: 'Media',  hint: 'Your own image or video' },
         ],
+        types: [
+            { key: 'color',     group: 'colour', label: 'Solid Color', icon: 'fa-fill',    preview: 'linear-gradient(135deg, #2139a1, #3b0764)' },
+            { key: 'gradient',  group: 'colour', label: 'Gradient',    icon: 'fa-rainbow', preview: 'linear-gradient(135deg, #ec4899, #5c83ff, #06b6d4)' },
+
+            { key: 'template',  group: 'style',  label: 'Template',    icon: 'fa-magic',   preview: 'linear-gradient(135deg, #0f0c29, #302b63)' },
+            { key: 'preset',    group: 'style',  label: 'Presets',     icon: 'fa-th-large', preview: 'linear-gradient(135deg, #f97316, #ec4899, #06b6d4)' },
+            { key: 'mesh',      group: 'style',  label: 'Mesh',        icon: 'fa-braille', preview: 'radial-gradient(circle at 30% 30%, #22d3ee, transparent 60%), radial-gradient(circle at 75% 70%, #a78bfa, transparent 60%), #0b1026' },
+            { key: 'pattern',   group: 'style',  label: 'Pattern',     icon: 'fa-th',      preview: 'repeating-linear-gradient(45deg, #4338ca 0 4px, #1e1b4b 4px 10px)' },
+            { key: 'tiles',     group: 'style',  label: 'Tiles',       icon: 'fa-border-all', preview: 'conic-gradient(from 45deg, #1d4ed8 25%, #0ea5e9 25% 50%, #312e81 50% 75%, #334155 75%)' },
+            { key: 'torn',      group: 'style',  label: 'Torn Paper',  icon: 'fa-scroll',  preview: 'linear-gradient(115deg, #cfe0e6 0%, #cfe0e6 60%, #5d7d8e 60%)' },
+
+            { key: 'image',     group: 'media',  label: 'Image',       icon: 'fa-image',   preview: 'rgba(99,102,241,0.15)' },
+            { key: 'slideshow', group: 'media',  label: 'Slideshow',   icon: 'fa-images',  preview: 'rgba(236,72,153,0.15)' },
+            { key: 'video',     group: 'media',  label: 'Video',       icon: 'fa-film',    preview: 'rgba(61,107,255,0.15)' }
+        ],
+        typesIn(group) { return this.types.filter(t => t.group === group); },
+        // Opens on the group holding the saved background, so the panel
+        // always shows what is actually in use rather than a default tab.
+        activeGroup: (function () { return 'style'; })(),
+        syncActiveGroup() {
+            const t = this.types.find(t => t.key === this.bgType);
+            if (t) this.activeGroup = t.group;
+        },
         init() {
+            this.syncActiveGroup();
             if (!this.gradientStops || this.gradientStops.length < 2) {
                 this.gradientStops = [
                     { color: '#0a0612', pos: 0 },
