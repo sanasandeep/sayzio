@@ -28,6 +28,22 @@ class AppServiceProvider extends ServiceProvider
 
     public function register(): void
     {
+        // Same construction as Illuminate\View\ViewServiceProvider, with a
+        // compiler that cannot 500 a page when a compiled view is owned by
+        // another user (deploy user vs PHP-FPM). See the class for why.
+        $this->app->singleton('blade.compiler', function ($app) {
+            return tap(new \App\Support\View\OwnershipTolerantBladeCompiler(
+                $app['files'],
+                $app['config']['view.compiled'],
+                $app['config']->get('view.relative_hash', false) ? $app->basePath() : '',
+                $app['config']->get('view.cache', true),
+                $app['config']->get('view.compiled_extension', 'php'),
+                $app['config']->get('view.check_cache_timestamps', true),
+            ), function ($blade) {
+                $blade->component('dynamic-component', \Illuminate\View\DynamicComponent::class);
+            });
+        });
+
         $this->app->singleton(CalendarProviderRegistry::class, function () {
             $r = new CalendarProviderRegistry();
             $r->register('google', fn () => new GoogleCalendarProvider());
