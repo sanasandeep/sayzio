@@ -33,10 +33,36 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title }}</title>
     <style>
+@php
+    /*
+     * Page background (shared renderer).
+     *
+     * Opt-in: this page had its own colours long before it had a picker, so
+     * a link with NO saved background_type renders exactly as it always has.
+     *
+     * When a background IS chosen the page also COMMITS to a colour scheme,
+     * because this page's cards, sheets and borders switch on
+     * prefers-color-scheme too. Leaving the visitor's OS in charge of those
+     * would land light-mode cards on a creator's dark background for half
+     * the audience. $pbInkLight reads the creator's own font colour, which
+     * is the one signal they actually set in that same panel.
+     */
+    $pbBs      = $link->settings['biolink'] ?? [];
+    $pbOn      = \App\Modules\User\Support\PageBackground::chosen($pbBs);
+    $pb        = $pbOn ? \App\Modules\User\Support\PageBackground::resolve($pbBs) : null;
+    $pbInkLight = $pbOn && \App\Modules\User\Support\PageBackground::inkIsLight($pbBs);
+    $pbInk     = $pbBs['font_color'] ?? ($pbInkLight ? '#f5f5f7' : '#111');
+@endphp
         :root { color-scheme: light dark; --accent: {{ $accent }}; }
         * { box-sizing: border-box; }
+        @if($pbOn)
+        html, body { margin:0; padding:0; min-height:100%; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:{{ $pbInk }}; }
+        body { @include('common.page-background.body-declarations') }
+        @include('common.page-background.css')
+        @else
         html, body { margin:0; padding:0; min-height:100%; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:#f6f6f9; color:#111; }
         @media (prefers-color-scheme: dark) { html, body { background:#0b0b10; color:#f5f5f7; } }
+        @endif
         .page { max-width:760px; margin:0 auto; padding:0 16px 120px; }
         .hero { padding:28px 4px 18px; }
         .hero h1 { margin:0; font-size:26px; font-weight:800; letter-spacing:-.02em; }
@@ -88,9 +114,16 @@
         .note { font-size:12.5px; opacity:.6; text-align:center; margin-top:10px; }
         .status-pill { display:inline-block; padding:4px 11px; border-radius:999px; font-size:12.5px; font-weight:700; background:var(--accent); color:#fff; }
         .empty { text-align:center; opacity:.5; padding:40px 0; }
-    </style>
+            @if($pbOn)
+        {{-- The page has committed to a scheme (see $pbInkLight): restate the
+             surface rules unconditionally so the visitor's OS stops deciding
+             what the cards look like. Emitted last, so it wins by order. --}}
+        @include('common.page-background.'.($pbInkLight ? 'dark' : 'light').'-surfaces')
+        @endif
+</style>
 </head>
 <body>
+@if($pbOn)@include('common.page-background.layers')@endif
 <div class="page">
     <div class="hero">
         <h1>{{ $title }}</h1>

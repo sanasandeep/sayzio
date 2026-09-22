@@ -54,6 +54,19 @@
                     </label>
                 @endforeach
             </div>
+            {{-- The background picker is the shared one on Appearance, and it
+                 OVERRIDES this template's page colour only -- everything else
+                 the template sets stays as designed. Linking rather than
+                 embedding: one picker, reached from wherever you are. --}}
+            <a href="{{ route('user.links.settings.appearance', $link) }}"
+               class="no-underline"
+               style="display:flex;align-items:center;gap:10px;padding:11px 13px;margin:14px 0 4px;border-radius:12px;background:rgba(127,127,127,.08);border:1px solid rgba(127,127,127,.2);color:inherit;">
+                <i class="fas fa-fill-drip text-[11px]" style="color:#7f9cff;"></i>
+                <span style="font-size:13px;font-weight:600;">Page background</span>
+                <span style="font-size:11px;opacity:.65;">Optional &mdash; overrides this theme's page colour only</span>
+                <i class="fas fa-arrow-right text-[10px]" style="margin-left:auto;opacity:.5;"></i>
+            </a>
+
 
             <label class="flex items-center gap-3 mt-5 cursor-pointer">
                 <input type="checkbox" name="is_public" value="1" @checked($isPublic) class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">

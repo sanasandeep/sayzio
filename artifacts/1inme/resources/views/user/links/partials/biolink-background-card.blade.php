@@ -5,12 +5,20 @@
     Alpine state machine. Renders ONLY the inner card markup — the parent view
     wraps it in whatever <form> + submit handler is appropriate for that page.
 
-    Required vars: $link
+    Required vars: $link  -- OR $bs, for a surface that has a background but
+                  no Link behind it (a resume is reachable at @handle/slug
+                  with no link in scope at all). Passing $bs is what keeps
+                  this the only background picker in the app; the alternative
+                  was a second one for resumes, and six of those is how this
+                  work started.
     Optional:      $bgTemplates (Collection of \App\Modules\Admin\Models\BgTemplate)
                    — auto-loaded from the database if not passed in.
 --}}
 @php
-    $bs = $link->settings['biolink'] ?? [];
+    $bs = $bs ?? ($link->settings['biolink'] ?? []);
+    // $link is still used for the image-gallery route and the design lock;
+    // a Link-less surface passes neither and gets the picker without them.
+    $link = $link ?? null;
     $bgType            = $bs['background_type']     ?? 'color';
     $bgColor           = $bs['background_color']    ?? '#0a0612';
     $bgGradient        = $bs['background_gradient'] ?? 'linear-gradient(135deg, #0a0612 0%, #1a0533 50%, #0a0612 100%)';

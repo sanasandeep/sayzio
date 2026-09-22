@@ -88,7 +88,21 @@
                 {{-- Custom background media --}}
                 <div class="glass rounded-2xl p-6">
                     <h2 class="text-sm font-semibold text-white mb-1">Your own background <span class="text-white/30 font-normal">(optional)</span></h2>
-                    <p class="text-xs text-white/40 mb-4">Paste a full image or video URL to override the theme's background. Leave blank to use the theme's built-in look.</p>
+                    <p class="text-xs text-white/40 mb-3">Paste a full image or video URL to override the theme's background. Leave blank to use the theme's built-in look.</p>
+                    {{-- The shared picker lives here rather than as a rival
+                         section: this IS the "override the theme's background"
+                         idea, and a second box making the same offer is how
+                         this app ended up with six background pickers. An
+                         image or video URL above still wins, because it paints
+                         its own layer over everything. --}}
+                    <a href="{{ route('user.links.settings.appearance', $link) }}"
+                       class="no-underline"
+                       style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:14px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#fff;">
+                        <i class="fas fa-fill-drip text-[11px]" style="color:#7f9cff;"></i>
+                        <span style="font-size:12.5px;font-weight:600;">Or pick a colour, gradient or ready-made look</span>
+                        <span style="font-size:11px;opacity:.5;">941 of them</span>
+                        <i class="fas fa-arrow-right text-[10px]" style="margin-left:auto;opacity:.5;"></i>
+                    </a>
                     <div class="space-y-3">
                         <div>
                             <label class="block text-xs font-semibold text-white/70 mb-1"><i class="fas fa-image mr-1 text-blue-300"></i> Background image URL</label>

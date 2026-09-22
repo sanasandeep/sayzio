@@ -161,7 +161,11 @@ class MorePageTypesCanChooseABackgroundTest extends TestCase
     /** A type that did NOT gain it still cannot. */
     public function test_a_type_without_the_capability_is_still_refused(): void
     {
-        foreach (['url', 'resume', 'paid_page', 'brand_kit'] as $type) {
+        // paid_page and brand_kit gained the capability in a later slice --
+        // as an override of one token in their design templates, not a
+        // replacement for them. resume is still outside: it is served by a
+        // different controller entirely.
+        foreach (['url', 'resume', 'file', 'text'] as $type) {
             $user = $this->user();
             $link = $this->link($user, $type);
 

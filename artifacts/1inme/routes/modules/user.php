@@ -664,6 +664,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::put  ('summary',           [\App\Modules\User\Controllers\ResumeController::class, 'updateSummary'])->name('summary.update');
             Route::put  ('template',          [\App\Modules\User\Controllers\ResumeController::class, 'updateTemplate'])->name('template.update');
             Route::put  ('color-theme',       [\App\Modules\User\Controllers\ResumeController::class, 'updateColorTheme'])->name('color-theme.update');
+            Route::post ('page-background',   [\App\Modules\User\Controllers\ResumeController::class, 'updatePageBackground'])->name('page-background.update');
             Route::put  ('public-pdf',        [\App\Modules\User\Controllers\ResumeController::class, 'updatePublicPdf'])->name('public-pdf.update');
 
             Route::post  ('sections',         [\App\Modules\User\Controllers\ResumeController::class, 'addCustomSection'])->name('sections.store');

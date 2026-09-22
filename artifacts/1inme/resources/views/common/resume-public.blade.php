@@ -65,16 +65,42 @@
     <script type="application/ld+json">{!! json_encode($person, JSON_UNESCAPED_UNICODE) !!}</script>
 
     @include('common.partials.fontawesome')
+@php
+    /*
+     * Page background (shared renderer) -- the desk, not the paper.
+     *
+     * A resume already has a template and a colour theme; those style the
+     * SHEET. This is the surface it sits on, which until now was a fixed
+     * #f3f4f6 nobody could change.
+     *
+     * It is stored on the resume rather than on a link because a resume is
+     * reachable at @handle/{slug} with no link in scope -- hanging it off
+     * the link would make the same resume look different depending on which
+     * of its two URLs you opened.
+     *
+     * Opt-in: nothing chosen and the desk stays exactly as it always was.
+     */
+    $pbBs = is_array($resume->page_background ?? null) ? $resume->page_background : [];
+    $pbOn = \App\Modules\User\Support\PageBackground::chosen($pbBs);
+    $pb   = $pbOn ? \App\Modules\User\Support\PageBackground::resolve($pbBs) : null;
+@endphp
     <style>
         :root { color-scheme: light; }
         * { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; }
         body {
-            background: #f3f4f6;
             font-family: 'Inter','Helvetica Neue',Arial,sans-serif;
             min-height: 100vh;
             color: #111827;
+            @if($pbOn)
+                @include('common.page-background.body-declarations')
+            @else
+                background: #f3f4f6;
+            @endif
         }
+        @if($pbOn)
+        @include('common.page-background.css')
+        @endif
         .resume-page-wrap { max-width: 880px; margin: 0 auto; padding: 32px 16px 64px; }
         .resume-paper {
             background: #fff; border-radius: 16px; overflow: hidden;
@@ -146,6 +172,7 @@
     @include('common.partials.resume-styles')
 </head>
 <body>
+@if($pbOn)@include('common.page-background.layers')@endif
 <main class="resume-page-wrap">
     @if (!empty($isOwner))
         <div class="resume-owner-banner">

@@ -430,6 +430,55 @@ class ResumeController extends Controller
     }
 
     /**
+     * POST — set the page background (the desk the resume sheet sits on).
+     *
+     * Stored on the resume rather than on a link: a resume is reachable at
+     * @handle/{slug} with no link in scope, as well as through a resume
+     * link's alias, and the same resume must not look different depending
+     * on which of its two URLs was opened.
+     *
+     * Only the renderer's own field list is accepted, and each value goes
+     * through the same validation the biolink page-settings path uses, so
+     * this cannot become a second, laxer way into the same renderer.
+     */
+    public function updatePageBackground(Request $request)
+    {
+        $rules = [];
+        foreach (\App\Modules\User\Support\PageBackground::FIELDS as $field) {
+            $rules[$field] = match ($field) {
+                'background_type' => 'nullable|string|in:color,gradient,image,slideshow,video,template,preset,torn,tiles,mesh,pattern',
+                'background_color', 'bg_fallback_color', 'bg_overlay_color',
+                'torn_paper_color', 'torn_backdrop_color', 'torn_backdrop_color2'
+                    => ['nullable', 'string', 'max:20', 'regex:/^#[0-9a-fA-F]{3,8}$/'],
+                'bg_blur', 'bg_overlay_opacity', 'bg_preset_opacity',
+                'gradient_angle', 'slideshow_interval'
+                    => 'nullable|integer|min:0|max:360',
+                'bg_template_id' => 'nullable|integer|exists:bg_templates,id',
+                'gradient_colors', 'slideshow_images' => 'nullable|array|max:10',
+                default => 'nullable|string|max:2048',
+            };
+        }
+        $data = $request->validate($rules);
+
+        // Drop nulls so an absent background stays absent: PageBackground
+        // reads a missing background_type as "nothing chosen", which is
+        // what keeps every existing resume on its original desk.
+        $data = array_filter($data, fn ($v) => $v !== null && $v !== '');
+
+        $resume = $request->user()->resolveResume($request);
+        $resume->update(['page_background' => $data ?: null]);
+
+        // The editor's other controls speak JSON; the background card is a
+        // plain form, because it is the same markup every other page type
+        // posts and rewriting it as an Alpine payload would fork the picker.
+        if (!$request->expectsJson()) {
+            return back()->with('success', 'Page background saved.');
+        }
+
+        return response()->json(['resume' => $this->present($resume->fresh('items'))]);
+    }
+
+    /**
      * POST — add a custom section. Custom sections only declare a
      * key + title; their items are stored as ResumeSectionItem rows of
      * type "custom" with `data.custom_section_key` matching the key.
