@@ -328,6 +328,23 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post  ('{bgTemplate}/toggle', [BgTemplateController::class, 'toggleActive'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
         });
 
+        // The other 485 looks -- the ones that lived in PHP constants.
+        // Same permission, same shape, one screen along from the templates.
+        Route::prefix('bg-catalog')->name('bg-catalog.')
+            ->middleware(CheckPermission::class . ':settings.manage')
+            ->where(['kind' => '[a-z_]+', 'key' => '[a-z0-9][a-z0-9_\-]*'])
+            ->group(function () {
+                $c = \App\Modules\Admin\Controllers\BgCatalogEntryController::class;
+                Route::get   ('/',                    [$c, 'index'])->name('index.default');
+                Route::get   ('{kind}',               [$c, 'index'])->name('index');
+                Route::get   ('{kind}/new',           [$c, 'create'])->name('create');
+                Route::post  ('{kind}',               [$c, 'store'])->name('store');
+                Route::get   ('{kind}/{key}/edit',    [$c, 'edit'])->name('edit');
+                Route::put   ('{kind}/{key}',         [$c, 'update'])->name('update');
+                Route::post  ('{kind}/{key}/toggle',  [$c, 'toggle'])->name('toggle');
+                Route::delete('{kind}/{key}',         [$c, 'destroy'])->name('destroy');
+            });
+
         Route::prefix('taxes')->name('taxes.')->group(function () {
             Route::get('/', [TaxController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::get('create', [TaxController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');

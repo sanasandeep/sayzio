@@ -19,6 +19,12 @@ class BgPresetCatalog
         'torn'      => 'Torn paper',
     ];
 
+    /** The presets compiled into this file, before any admin row. */
+    public static function shipped(): array
+    {
+        return self::$presets;
+    }
+
     /**
      * All presets indexed by stable key.
      * Each entry: ['group' => string, 'label' => string, 'css' => string]
@@ -27,12 +33,31 @@ class BgPresetCatalog
      */
     public static function all(): array
     {
-        return self::$presets;
+        $out = self::shipped();
+
+        foreach (CatalogOverrides::for('preset') as $key => $row) {
+            $group = (string) ($row['payload']['group'] ?? 'abstract');
+            $entry = [
+                'group' => isset(self::GROUPS[$group]) ? $group : 'abstract',
+                'label' => $row['label'],
+                'css'   => (string) ($row['payload']['css'] ?? ''),
+            ];
+            // A torn preset is a paper sheet over a backdrop; the flat css
+            // above only exists so the swatch pipeline keeps working.
+            foreach (['paper', 'backdrop'] as $extra) {
+                if (! empty($row['payload'][$extra])) {
+                    $entry[$extra] = (string) $row['payload'][$extra];
+                }
+            }
+            $out[$key] = $entry;
+        }
+
+        return $out;
     }
 
     public static function findByKey(string $key): ?array
     {
-        return self::$presets[$key] ?? null;
+        return self::all()[$key] ?? null;
     }
 
     /**
@@ -52,13 +77,13 @@ class BgPresetCatalog
     /** @return array<string, array{group: string, label: string, css: string}> picker-visible presets */
     public static function pickerPresets(): array
     {
-        return array_filter(self::$presets, fn ($p) => !in_array($p['group'], self::HIDDEN_PICKER_GROUPS, true));
+        return array_filter(self::all(), fn ($p) => !in_array($p['group'], self::HIDDEN_PICKER_GROUPS, true));
     }
 
     /** Return the raw CSS string for a preset key, or null if not found. */
     public static function css(string $key): ?string
     {
-        $p = self::$presets[$key] ?? null;
+        $p = self::all()[$key] ?? null;
         return $p ? $p['css'] : null;
     }
 
@@ -71,19 +96,19 @@ class BgPresetCatalog
      */
     public static function isTorn(string $key): bool
     {
-        return (self::$presets[$key]['group'] ?? null) === 'torn';
+        return (self::all()[$key]['group'] ?? null) === 'torn';
     }
 
     /** Solid paper-sheet color for a torn preset, or null. */
     public static function tornPaper(string $key): ?string
     {
-        return self::$presets[$key]['paper'] ?? null;
+        return self::all()[$key]['paper'] ?? null;
     }
 
     /** Backdrop CSS (the layer visible beyond the tear) for a torn preset, or null. */
     public static function tornBackdrop(string $key): ?string
     {
-        return self::$presets[$key]['backdrop'] ?? null;
+        return self::all()[$key]['backdrop'] ?? null;
     }
 
     /**
@@ -119,7 +144,7 @@ class BgPresetCatalog
         $manifest = self::swatchManifest();
 
         $presets = [];
-        foreach (self::$presets as $key => $p) {
+        foreach (self::all() as $key => $p) {
             $presets[] = [
                 'key'    => $key,
                 'group'  => $p['group'],

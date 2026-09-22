@@ -146,6 +146,14 @@
             <span class="sidebar-tooltip">Background Templates</span>
         </a>
 
+        <a href="{{ route('admin.bg-catalog.index', 'preset') }}"
+           class="sidebar-link {{ request()->routeIs('admin.bg-catalog.*') ? 'active' : '' }}"
+           style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-swatchbook"></i></div>
+            <span class="nav-label">Background Library</span>
+            <span class="sidebar-tooltip">Background Library</span>
+        </a>
+
         <a href="{{ route('admin.onboarding-slides.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.onboarding-slides.*') ? 'active' : '' }}"
            style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
