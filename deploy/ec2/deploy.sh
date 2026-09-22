@@ -84,7 +84,29 @@ log "Clearing compiled Blade views BEFORE the asset build..."
 php artisan view:clear
 
 log "Building Vite/Tailwind assets..."
-pnpm --dir "$LARAVEL_DIR" run build
+# VITE_KEEP_OUTDIR=1: build OVER the live public/build instead of emptying it
+# first. Vite's default empties the folder, and for the second or two the
+# build takes, public/build/manifest.json does not exist -- every page that
+# uses @vite 500s with "Vite manifest not found". That happened on
+# 2026-09-22 at 12:11:38 when two PRs merged back to back. vite.config.js
+# already honours this flag for exactly this reason in dev; production now
+# gets the same gap-free swap: the old hashed files keep serving until the
+# new manifest lands, and the manifest is written last.
+VITE_KEEP_OUTDIR=1 pnpm --dir "$LARAVEL_DIR" run build
+
+# Keeping the folder means old hashed files accumulate. Prune the ones the new
+# manifest no longer references -- but only after a week, so a visitor whose
+# tab loaded the previous deploy's HTML can still fetch its CSS/JS.
+if [ -f public/build/manifest.json ]; then
+  _pruned=0
+  while IFS= read -r -d '' _f; do
+    _rel="${_f#public/build/}"
+    if ! grep -qF "\"$_rel\"" public/build/manifest.json; then
+      rm -f "$_f" && _pruned=$((_pruned + 1))
+    fi
+  done < <(find public/build/assets -type f -mtime +7 -print0 2>/dev/null)
+  log "Pruned $_pruned stale build asset(s) older than 7 days."
+fi
 
 log "Installing PHP dependencies (production)..."
 composer install --no-dev --optimize-autoloader --no-interaction
