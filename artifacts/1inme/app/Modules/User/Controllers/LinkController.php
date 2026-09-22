@@ -88,7 +88,14 @@ class LinkController extends Controller
         }
 
         if ($projectId = $request->get('project_id')) {
-            $query->where('project_id', $projectId);
+            // 'none' is the dashboard's Unfiled tile: links in no folder.
+            // Anything else non-numeric is ignored rather than handed to an
+            // integer column, where Postgres would reject it with a 500.
+            if ($projectId === 'none') {
+                $query->whereNull('project_id');
+            } elseif (ctype_digit((string) $projectId)) {
+                $query->where('project_id', (int) $projectId);
+            }
         }
 
         if ($request->get('status') === 'active') {

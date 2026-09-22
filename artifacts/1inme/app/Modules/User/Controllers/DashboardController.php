@@ -44,6 +44,9 @@ class DashboardController extends Controller
                 'links as links_count',
                 'links as active_links_count' => fn ($q) => $q->where('is_active', true),
             ])
+            // Lifetime clicks per folder, so the Folders panel can say which
+            // folder is working, not just how full it is.
+            ->withSum('links as clicks_sum', 'total_clicks')
             ->orderByDesc('updated_at')
             ->get();
 
@@ -135,6 +138,12 @@ class DashboardController extends Controller
             ->pluck('c', 'd');
 
         $clicksSparkline = $zeroFillSeries($clicksByDay);
+        // The calendar day each sparkline point is, in the same server-clock
+        // buckets the counts use, so a chart can say which day it is showing.
+        $sparklineDays = [];
+        for ($i = 0; $i < 7; $i++) {
+            $sparklineDays[] = $sparklineSince->copy()->addDays($i)->toDateString();
+        }
         $linksSparkline = $zeroFillSeries($linksByDay);
         $projectsSparkline = $zeroFillSeries($projectsByDay);
 
@@ -276,7 +285,7 @@ class DashboardController extends Controller
             'dashboardWidgets', 'dashboardTabs', 'dashboardCurrentPreset',
             'dashboardIsCustom', 'dashboardCatalog', 'dashboardGroupedCatalog', 'dashboardPresets',
             'dashboardAiAllowed', 'dashboardLayoutLabel', 'dashboardTrimmedTabs',
-            'clicksSparkline', 'linksSparkline', 'projectsSparkline'
+            'clicksSparkline', 'linksSparkline', 'projectsSparkline', 'sparklineDays'
         );
 
         // The Aurora dashboard is a preview behind an opt-in flag, so a fault

@@ -107,6 +107,26 @@
     .au-ticks { display: flex; justify-content: space-between; margin-top: 6px; }
     .au-ticks span { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9px; color: var(--text-faint); }
 
+    /* Day axis under the week chart: every day named and dated, with the
+       point for that day sitting on the line above it. */
+    .au-days { position: relative; height: 28px; margin-top: -92px; padding-top: 92px; box-sizing: content-box; }
+    .au-day {
+        position: absolute; bottom: 0; transform: translateX(-50%);
+        display: flex; flex-direction: column; align-items: center; gap: 1px;
+        font-family: 'IBM Plex Mono', ui-monospace, monospace; line-height: 1.1;
+        cursor: default;
+    }
+    .au-day b { font-size: 9px; font-weight: 500; color: var(--text-faint); letter-spacing: .04em; }
+    .au-day em { font-style: normal; font-size: 10.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .au-day i {
+        position: absolute; left: 50%; top: auto; width: 7px; height: 7px; margin-left: -3.5px;
+        transform: translateY(50%);
+        border-radius: 50%; background: var(--bg-card, #fff);
+        border: 1.5px solid var(--accent);
+    }
+    .au-day.is-peak i { background: var(--accent); width: 9px; height: 9px; margin-left: -4.5px; }
+    .au-day.is-today b, .au-day.is-today em { color: var(--text-primary); }
+
     .au-ring-wrap { display: flex; align-items: center; gap: 18px; }
     .au-ring { width: 106px; height: 106px; flex: 0 0 auto; }
     .au-legend { display: flex; flex-direction: column; gap: 7px; min-width: 0; flex: 1 1 auto; }
@@ -115,6 +135,87 @@
     .au-legend b {
         margin-left: auto; font-family: 'IBM Plex Mono', ui-monospace, monospace;
         font-size: 11px; font-weight: 500; color: var(--text-primary); font-variant-numeric: tabular-nums;
+    }
+
+    /* Folders drawer */
+    .au-drawer-all { text-decoration: none; }
+    .au-drawer-all:hover { color: var(--accent); }
+    .au-strip {
+        display: flex; gap: 2px; height: 10px; border-radius: 999px; overflow: hidden;
+        background: var(--bg-glass-input);
+    }
+    .au-strip i { display: block; min-width: 3px; flex-basis: 0; }
+    .au-strip i.is-unfiled {
+        background: repeating-linear-gradient(135deg,
+            color-mix(in srgb, var(--text-faint) 45%, transparent) 0 3px,
+            transparent 3px 6px);
+    }
+    .au-strip-cap { display: flex; justify-content: space-between; margin: 7px 0 10px; }
+    .au-strip-cap b { color: var(--text-primary); font-weight: 600; }
+
+    .au-folders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 8px; margin-top: 6px; }
+    .au-folder {
+        position: relative; display: flex; flex-direction: column; gap: 2px;
+        padding: 10px 11px 9px; margin-top: 7px;
+        border-radius: 3px 10px 10px 10px; text-decoration: none; color: inherit;
+        background: color-mix(in srgb, var(--f) 9%, transparent);
+        border: 1px solid color-mix(in srgb, var(--f) 26%, transparent);
+        transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    /* The tab that makes it a folder. */
+    .au-folder::before {
+        content: ''; position: absolute; left: -1px; top: -8px;
+        width: 42%; height: 8px; border-radius: 6px 8px 0 0;
+        background: var(--f);
+        clip-path: polygon(0 0, 82% 0, 100% 100%, 0 100%);
+    }
+    .au-folder:hover, .au-folder:focus-visible {
+        transform: translateY(-2px);
+        background: color-mix(in srgb, var(--f) 15%, transparent);
+        box-shadow: 0 8px 20px -12px color-mix(in srgb, var(--f) 70%, transparent);
+        outline: none;
+    }
+    .au-folder:focus-visible { box-shadow: 0 0 0 2px var(--f); }
+    .au-folder-name {
+        font-size: 12.5px; font-weight: 600; color: var(--text-primary);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 16px;
+    }
+    .au-folder-fig {
+        font-family: 'Archivo', 'Inter', system-ui, sans-serif; font-weight: 600;
+        font-size: 21px; letter-spacing: -0.04em; line-height: 1.05;
+        color: var(--text-primary); font-variant-numeric: tabular-nums; margin-top: 4px;
+    }
+    .au-folder-meta {
+        font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px;
+        color: var(--text-muted);
+    }
+    .au-go {
+        font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px;
+        color: var(--text-faint); transition: transform .15s ease, color .15s ease;
+    }
+    .au-folder .au-go { position: absolute; right: 10px; top: 10px; }
+    .au-folder:hover .au-go { transform: translateX(2px); color: var(--f); }
+
+    .au-unfiled {
+        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        margin-top: 10px; padding: 9px 12px; border-radius: 10px;
+        border: 1px dashed var(--border-glass); text-decoration: none;
+        font-size: 12.5px; color: var(--text-muted);
+        transition: border-color .15s ease, background .15s ease;
+    }
+    .au-unfiled b { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+    .au-unfiled:hover, .au-unfiled:focus-visible {
+        border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); outline: none;
+    }
+    .au-unfiled:hover .au-go { color: var(--accent); transform: translateX(2px); }
+    .au-drawer-rest { margin-top: 10px; }
+    .au-drawer-rest summary { cursor: pointer; list-style: none; }
+    .au-drawer-rest summary::-webkit-details-marker { display: none; }
+    .au-drawer-rest summary:hover { color: var(--accent); }
+    .au-drawer-rest[open] summary { margin-bottom: 4px; }
+    @media (prefers-reduced-motion: reduce) {
+        .au-folder, .au-go, .au-unfiled { transition: none; }
+        .au-folder:hover { transform: none; }
     }
 
     .au-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 10px 0; border-bottom: 1px solid var(--border-subtle); }
@@ -142,10 +243,14 @@
     .au-empty { font-size: 12.5px; color: var(--text-muted); padding: 6px 0 2px; }
 
     /* Heatmap: 7 rows down, 12 two-hour blocks across. */
-    .au-heat { display: grid; grid-template-columns: 18px repeat(12, minmax(0, 1fr)); gap: 3px; align-items: center; }
-    .au-heat-day { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9px; color: var(--text-faint); }
-    .au-heat-cell { aspect-ratio: 1 / 1; border-radius: 3px; }
-    .au-heat-hours { display: grid; grid-template-columns: 18px repeat(12, minmax(0, 1fr)); gap: 3px; margin-top: 6px; }
+    .au-heat { display: grid; grid-template-columns: 46px repeat(12, minmax(0, 1fr)); gap: 3px; align-items: center; }
+    .au-heat-day { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9px; color: var(--text-faint); white-space: nowrap; }
+    .au-heat-day em { font-style: normal; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .au-heat-day.is-today, .au-heat-day.is-today em { color: var(--text-primary); }
+    /* A fixed height, not a square: at card width a square cell was ~50px,
+       which made seven rows a 400px panel. */
+    .au-heat-cell { height: 22px; border-radius: 3px; }
+    .au-heat-hours { display: grid; grid-template-columns: 46px repeat(12, minmax(0, 1fr)); gap: 3px; margin-top: 6px; }
     .au-heat-hours span { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 8.5px; color: var(--text-faint); text-align: center; }
     .au-heat-scale { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
     .au-heat-steps { display: flex; gap: 3px; }
@@ -197,6 +302,16 @@
     $unfiledCount = max(0, (int) $totalLinks - $filedCount);
     $maxFolder    = max(1, (int) $deskFolders->max('links_count'));
 
+    // Folders panel: the busiest folders first -- by clicks, then by size --
+    // because "which folder is working" is the question the panel answers.
+    // Four fit; the rest are counted, not dropped silently.
+    $folderTiles = $deskFolders
+        ->sortByDesc(fn ($f) => [(int) ($f->clicks_sum ?? 0), (int) $f->links_count])
+        ->values();
+    $shownFolders  = $folderTiles->take(4);
+    $hiddenFolders = max(0, $folderTiles->count() - $shownFolders->count());
+    $filedPct = $totalLinks > 0 ? round(($filedCount / $totalLinks) * 100) : 0;
+
     // Graph payload: one node per link, coloured by folder, sized by clicks.
     $graphNodes = $auroraLinks->map(fn ($l) => [
         'p' => $l->project_id,
@@ -230,12 +345,18 @@
     $heatMax  = max(1, (int) $heatRows->flatten()->max());
     $heatPeak = 0;
     $heatPeakLabel = '';
+    // Which date each ISO weekday is this week, for the peak label.
+    $heatDateFor = [];
+    for ($back = 6; $back >= 0; $back--) {
+        $day = now()->subDays($back);
+        $heatDateFor[$day->dayOfWeekIso - 1] = $day;
+    }
     foreach (($auroraHeat ?? []) as $d => $blocks) {
         foreach ($blocks as $b => $n) {
             if ($n > $heatPeak) {
                 $heatPeak = (int) $n;
-                $heatPeakLabel = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][$d]
-                    . ' ' . str_pad((string) ($b * 2), 2, '0', STR_PAD_LEFT) . ':00';
+                $heatPeakLabel = (isset($heatDateFor[$d]) ? $heatDateFor[$d]->format('D j M') : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][$d])
+                    . ' · ' . str_pad((string) ($b * 2), 2, '0', STR_PAD_LEFT) . ':00';
             }
         }
     }
@@ -243,8 +364,28 @@
     $spark    = collect($clicksSparkline)->values();
     $sparkMax = max(1, (int) $spark->max());
     $peakIdx  = $spark->search($spark->max());
-    $dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    $peakDay  = $nowLocal->copy()->subDays(max(0, $spark->count() - 1 - (int) $peakIdx))->format('D');
+    $weekClicks = (int) $spark->sum();
+
+    // The day each point is. The counts are bucketed by the server's calendar
+    // day, so the labels are too; labelling server buckets with the viewer's
+    // local dates would put a click on the wrong day near midnight.
+    $sparkDays = collect($sparklineDays ?? [])->map(fn ($d) => \Illuminate\Support\Carbon::parse($d));
+    if ($sparkDays->count() !== $spark->count()) {
+        $sparkDays = collect(range($spark->count() - 1, 0))->map(fn ($back) => now()->subDays($back)->startOfDay());
+    }
+    $peakDay  = $sparkDays[(int) $peakIdx] ?? now();
+    $rangeLabel = $sparkDays->isNotEmpty()
+        ? ($sparkDays->first()->format('M') === $sparkDays->last()->format('M')
+            ? $sparkDays->first()->format('j') . '–' . $sparkDays->last()->format('j M')
+            : $sparkDays->first()->format('j M') . ' – ' . $sparkDays->last()->format('j M'))
+        : '';
+
+    // The heatmap's seven rows are the same seven days, oldest first, so it
+    // reads as a week ending today rather than as a Monday-first calendar
+    // with today somewhere in the middle. $auroraHeat is keyed by ISO weekday
+    // and each of the last seven days has a different one, so every row maps
+    // to exactly one date.
+    $heatDays = $sparkDays->map(fn ($day) => ['date' => $day, 'row' => $day->dayOfWeekIso - 1]);
 
     $planPrice = $user->plan
         ? \App\Services\PricingResolver::priceFor($user->plan, $user, 'monthly')
@@ -266,7 +407,7 @@
         @include('common.partials.card-ribbon')
         <div class="au-hero-left cribbon-copy">
             <div class="au-chips">
-                <span class="au-chip">{{ $nowLocal->format('l') }}</span>
+                <span class="au-chip">{{ $nowLocal->format('l, j M') }}</span>
                 <span class="au-chip">{{ number_format($totalLinks) }} links</span>
                 <span class="au-chip">{{ $deskFolders->count() }} folders</span>
             </div>
@@ -316,24 +457,29 @@
         </div>
     </section>
 
-    {{-- ============ TOTAL CLICKS ============ --}}
+    {{-- ============ CLICKS, LAST 7 DAYS ============ --}}
+    {{-- The headline used to be the lifetime total under a "Last 7 days"
+         label -- 6,123 on a card whose chart covered 2,578 of them. It is the
+         seven-day sum now, with every day named and dated underneath. --}}
     <section class="card-premium au-pad c4">
         <div class="au-ph">
-            <span class="au-label">Total clicks</span>
-            <span class="au-note">Last 7 days</span>
+            <span class="au-label">Clicks this week</span>
+            <span class="au-note">{{ $rangeLabel }}</span>
         </div>
-        <div class="au-fig">{{ number_format($totalClicks) }}</div>
+        <div class="au-fig">{{ number_format($weekClicks) }}</div>
         @php
             $pts = [];
             foreach ($spark as $i => $v) {
-                $x = $spark->count() > 1 ? ($i / ($spark->count() - 1)) * 300 : 0;
+                $x = $spark->count() > 1 ? 14 + ($i / ($spark->count() - 1)) * 272 : 150;
                 $y = 84 - (((int) $v) / $sparkMax) * 66;
-                $pts[] = round($x, 1) . ' ' . round($y, 1);
+                $pts[] = ['x' => round($x, 1), 'y' => round($y, 1), 'v' => (int) $v];
             }
-            $line = 'M' . implode(' L', $pts);
+            $line = 'M' . implode(' L', array_map(fn ($p) => $p['x'] . ' ' . $p['y'], $pts));
+            $lastX = $pts ? end($pts)['x'] : 294;
+            $firstX = $pts ? $pts[0]['x'] : 6;
         @endphp
         <svg class="au-area" viewBox="0 0 300 92" preserveAspectRatio="none" role="img"
-             aria-label="Clicks per day over the last seven days, peaking at {{ (int) $spark->max() }}.">
+             aria-label="Clicks per day, {{ $rangeLabel }}. Peak {{ number_format((int) $spark->max()) }} on {{ $peakDay->format('l j F') }}.">
             <defs>
                 <linearGradient id="auArea" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.34"></stop>
@@ -342,14 +488,28 @@
             </defs>
             <line x1="0" y1="30" x2="300" y2="30" stroke="var(--border-subtle)" stroke-width="1"></line>
             <line x1="0" y1="60" x2="300" y2="60" stroke="var(--border-subtle)" stroke-width="1"></line>
-            <path d="{{ $line }} L300 92 L0 92 Z" fill="url(#auArea)"></path>
-            <path d="{{ $line }}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+            <path d="{{ $line }} L{{ $lastX }} 92 L{{ $firstX }} 92 Z" fill="url(#auArea)"></path>
+            <path d="{{ $line }}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></path>
         </svg>
-        <div class="au-ticks">
-            <span>{{ $nowLocal->copy()->subDays(6)->format('D') }}</span>
-            <span>{{ $nowLocal->format('D') }}</span>
+        {{-- Points and day labels are HTML over the chart, not SVG circles:
+             the SVG stretches to the card, which would squash a circle into
+             an oval. Each point is positioned on the same x the line uses. --}}
+        <div class="au-days" style="--n: {{ max(1, $spark->count()) }}">
+            @foreach($pts as $i => $p)
+                @php $day = $sparkDays[$i] ?? null; $isPeak = $i === (int) $peakIdx && $p['v'] > 0; @endphp
+                <span class="au-day{{ $isPeak ? ' is-peak' : '' }}{{ $loop->last ? ' is-today' : '' }}"
+                      style="left: {{ round($p['x'] / 3, 2) }}%"
+                      title="{{ $day ? $day->format('l j F') : '' }}: {{ number_format($p['v']) }} {{ Str::plural('click', $p['v']) }}">
+                    <i style="bottom: {{ round(92 - $p['y'] + 28, 1) }}px"></i>
+                    <b>{{ $day ? $day->format('D') : '' }}</b>
+                    <em>{{ $day ? $day->format('j') : '' }}</em>
+                </span>
+            @endforeach
         </div>
-        <div class="au-mono" style="margin-top:8px">Peak {{ (int) $spark->max() }} &middot; {{ $peakDay }}</div>
+        <div class="au-mono" style="margin-top:10px">
+            Peak {{ number_format((int) $spark->max()) }} &middot; {{ $peakDay->format('D j M') }}
+            <span style="color: var(--text-faint)">&middot; {{ number_format($totalClicks) }} all-time</span>
+        </div>
     </section>
 
     {{-- ============ WHERE CLICKS COME FROM ============ --}}
@@ -390,20 +550,80 @@
     </section>
 
     {{-- ============ FOLDERS ============ --}}
-    <section class="card-premium au-pad c4">
+    {{-- A drawer of folders. The strip on top is every link you have, split
+         by the folder it is filed in, with the unfiled remainder hatched --
+         so "how organised am I" is one glance. Below it, each folder is a
+         folder: a tab in its colour, its clicks as the figure, and the whole
+         tile opens that folder's links. The unfiled links get a tile of
+         their own, because they are usually most of the list. --}}
+    {{-- id="folders": /user/projects redirects here, so this panel is the
+         folders page and has to show every folder, not a top five. --}}
+    <section class="card-premium au-pad c4 au-drawer" id="folders">
         <div class="au-ph">
             <span class="au-label">Folders</span>
-            <span class="au-note">{{ number_format($filedCount) }} of {{ number_format($totalLinks) }} filed</span>
+            <a class="au-note au-drawer-all" href="{{ route('user.projects.create') }}">+ New folder</a>
         </div>
-        @forelse($deskFolders->take(5) as $f)
-            <a href="{{ route('user.projects.show', $f) }}" class="au-row" style="text-decoration:none">
-                <span class="au-row-name"><i class="au-dot" style="background: {{ $folderColour[$f->id] }}"></i>{{ Str::limit($f->name, 20) }}</span>
-                <span class="au-mono">{{ $f->links_count }} {{ Str::plural('link', $f->links_count) }}</span>
-                <span class="au-bar"><i style="width: {{ round(($f->links_count / $maxFolder) * 100) }}%; background: {{ $folderColour[$f->id] }}"></i></span>
-            </a>
-        @empty
-            <p class="au-empty">No folders yet. Group your links to see them here.</p>
-        @endforelse
+
+        @if($folderTiles->isEmpty())
+            <p class="au-empty">No folders yet. Group your links into folders and they will show up here.</p>
+            @if($totalLinks > 0)
+                <a class="au-unfiled" href="{{ route('user.links.index', ['project_id' => 'none']) }}">
+                    <span><b>{{ number_format($unfiledCount) }}</b> unfiled {{ Str::plural('link', $unfiledCount) }}</span>
+                    <span class="au-go" aria-hidden="true">&rarr;</span>
+                </a>
+            @endif
+        @else
+            <div class="au-strip" role="img"
+                 aria-label="{{ number_format($filedCount) }} of {{ number_format($totalLinks) }} links are in a folder.">
+                @foreach($folderTiles as $f)
+                    @if($f->links_count > 0 && $totalLinks > 0)
+                        <i style="flex-grow: {{ (int) $f->links_count }}; background: {{ $folderColour[$f->id] }}"
+                           title="{{ $f->name }}: {{ $f->links_count }} {{ Str::plural('link', $f->links_count) }}"></i>
+                    @endif
+                @endforeach
+                @if($unfiledCount > 0)
+                    <i class="is-unfiled" style="flex-grow: {{ $unfiledCount }}"
+                       title="Unfiled: {{ number_format($unfiledCount) }} {{ Str::plural('link', $unfiledCount) }}"></i>
+                @endif
+            </div>
+            <div class="au-strip-cap au-mono">
+                <span><b>{{ $filedPct }}%</b> filed</span>
+                <span>{{ number_format($filedCount) }} of {{ number_format($totalLinks) }} links</span>
+            </div>
+
+            <div class="au-folders">
+                @foreach($folderTiles as $f)
+                    @if($loop->index === 4)
+                        </div>
+                        <details class="au-drawer-rest">
+                            <summary class="au-mono">Show {{ $hiddenFolders }} more {{ Str::plural('folder', $hiddenFolders) }}</summary>
+                            <div class="au-folders">
+                    @endif
+                    <a class="au-folder" href="{{ route('user.projects.show', $f) }}"
+                       style="--f: {{ $folderColour[$f->id] }}"
+                       aria-label="{{ $f->name }}: {{ $f->links_count }} {{ Str::plural('link', $f->links_count) }}, {{ number_format((int) ($f->clicks_sum ?? 0)) }} clicks. Open folder.">
+                        <span class="au-folder-name">{{ Str::limit($f->name, 18) }}</span>
+                        <span class="au-folder-fig">{{ number_format((int) ($f->clicks_sum ?? 0)) }}</span>
+                        <span class="au-folder-meta">
+                            {{ Str::plural('click', (int) ($f->clicks_sum ?? 0)) }} &middot; {{ $f->links_count }} {{ Str::plural('link', $f->links_count) }}
+                        </span>
+                        <span class="au-go" aria-hidden="true">&rarr;</span>
+                    </a>
+                @endforeach
+                @if($hiddenFolders > 0)
+                            </div>
+                        </details>
+                @else
+            </div>
+                @endif
+
+            @if($unfiledCount > 0)
+                <a class="au-unfiled" href="{{ route('user.links.index', ['project_id' => 'none']) }}">
+                    <span><b>{{ number_format($unfiledCount) }}</b> unfiled {{ Str::plural('link', $unfiledCount) }}</span>
+                    <span class="au-go" aria-hidden="true">Sort them &rarr;</span>
+                </a>
+            @endif
+        @endif
     </section>
 
     {{-- ============ TOP LINKS ============ --}}
@@ -468,17 +688,21 @@
     <section class="card-premium au-pad c8">
         <div class="au-ph">
             <span class="au-label">When your links get clicked</span>
-            <span class="au-note">7 days &middot; 2-hour blocks</span>
+            <span class="au-note">{{ $rangeLabel }} &middot; 2-hour blocks</span>
         </div>
         @if($heatPeak < 1)
             <p class="au-empty">No clicks in the last seven days, so there is no pattern to draw yet.</p>
         @else
             <div class="au-heat" role="img" aria-label="Click density by day and hour. Busiest at {{ $heatPeakLabel }} with {{ $heatPeak }} clicks.">
-                @foreach(($auroraHeat ?? []) as $d => $blocks)
-                    <span class="au-heat-day">{{ ['M','T','W','T','F','S','S'][$d] }}</span>
-                    @foreach($blocks as $n)
+                {{-- Oldest day first, today last, each row named and dated. --}}
+                @foreach($heatDays as $hd)
+                    @php $blocks = $auroraHeat[$hd['row']] ?? array_fill(0, 12, 0); @endphp
+                    <span class="au-heat-day{{ $loop->last ? ' is-today' : '' }}">{{ $hd['date']->format('D') }} <em>{{ $hd['date']->format('j') }}</em></span>
+                    @foreach($blocks as $b => $n)
                         @php $alpha = $n > 0 ? 0.12 + (sqrt($n / $heatMax) * 0.76) : 0.05; @endphp
-                        <span class="au-heat-cell" style="background: color-mix(in srgb, var(--accent) {{ round($alpha * 100) }}%, transparent)"></span>
+                        <span class="au-heat-cell"
+                              title="{{ $hd['date']->format('D j M') }}, {{ str_pad((string) ($b * 2), 2, '0', STR_PAD_LEFT) }}:00–{{ str_pad((string) ($b * 2 + 2), 2, '0', STR_PAD_LEFT) }}:00: {{ number_format($n) }} {{ Str::plural('click', $n) }}"
+                              style="background: color-mix(in srgb, var(--accent) {{ round($alpha * 100) }}%, transparent)"></span>
                     @endforeach
                 @endforeach
             </div>
@@ -514,7 +738,7 @@
                 <i class="dot"></i>
                 @php $where = $ev->city ?: $ev->country_code; @endphp
                 <span class="au-fev-main">@if($where){{ $where }} opened @else Opened @endif<em>/{{ $ev->alias }}</em></span>
-                <span class="au-fev-t">{{ $ev->clicked_at ? $ev->clicked_at->diffForHumans(null, true, true) : '' }}</span>
+                <span class="au-fev-t" @if($ev->clicked_at) title="{{ $ev->clicked_at->copy()->setTimezone($tz)->format('D j M, H:i') }}" @endif>{{ $ev->clicked_at ? $ev->clicked_at->diffForHumans(null, true, true) . ' ago' : '' }}</span>
             </div>
         @empty
             <p class="au-empty">No clicks recorded yet.</p>
