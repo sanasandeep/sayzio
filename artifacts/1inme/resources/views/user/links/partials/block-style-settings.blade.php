@@ -21,7 +21,7 @@
     // (iframe_embed, custom_html) or has nothing for typography/colours
     // to bite into (spacer, divider).
     $noStyleBlocks = ['spacer', 'iframe_embed', 'custom_html'];
-    // Divider (Task #6581): shows ONLY the Designs gallery — its curated
+    // Divider (Task #6581): shows ONLY the Styles gallery — its curated
     // line looks. Typography/Look/Layout still make no sense on a bare
     // line, so those tabs stay hidden and the block stays out of the
     // unified _style chrome panel.
@@ -38,7 +38,7 @@
     ];
     $showText = !in_array($block->type, $noTextBlocks);
     $showStyle = !in_array($block->type, $noStyleBlocks);
-    // Design-locked pages: per-block styling (Designs/Text/Look/Layout) is
+    // Design-locked pages: per-block styling (Styles/Text/Look/Layout) is
     // owned by the template — hide the whole section and show a lock note.
     $designLocked = method_exists($link, 'isDesignLocked') && $link->isDesignLocked();
 
@@ -116,7 +116,7 @@
                     :class="activeStyleTab === 'designs' ? 'text-white shadow-sm' : ''"
                     :style="activeStyleTab === 'designs' ? 'background: linear-gradient(135deg, #5c83ff, #3d6bff);' : 'color: var(--text-faint);'"
                     class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
-                <i class="fas fa-shapes mr-1"></i>Designs
+                <i class="fas fa-shapes mr-1"></i>Styles
                 <span class="ml-1 inline-block px-1 rounded-full text-[8px]" style="background: rgba(61,107,255,0.18); color: #90acff;">{{ count($variants) }}</span>
             </button>
             @if($showText)
@@ -167,13 +167,13 @@
             <div class="p-2.5 rounded-lg flex items-start gap-2" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.2);">
                 <i class="fas fa-shapes text-[12px] mt-0.5" style="color: #90acff;"></i>
                 <div class="flex-1">
-                    <div class="text-[11px] font-bold leading-tight" style="color: var(--text-primary);">One-click skins for this block</div>
+                    <div class="text-[11px] font-bold leading-tight" style="color: var(--text-primary);">One-click styles for this block</div>
                     <div class="text-[10px] mt-0.5" style="color: var(--text-dimmed);">Pick a shape and theme, your text, link and image stay the same. Use <b>Reset</b> to undo or <b>Surprise me</b> to spin a random look.</div>
                 </div>
             </div>
 
             <div class="flex items-center justify-end gap-1">
-                {{-- "Saving design…" pill — visible whenever any of the
+                {{-- "Saving style…" pill — visible whenever any of the
                      gallery's apply / restore / reset / apply-to-all
                      requests is in flight. Closes the loop between the
                      optimistic selection swap and the eventual toast so
@@ -184,11 +184,11 @@
                       class="mr-auto inline-flex items-center gap-1 text-[10px] font-bold py-1 px-2 rounded-md"
                       style="background: rgba(61,107,255,0.14); border: 1px solid rgba(61,107,255,0.35); color: #bccfff;">
                     <i class="fas fa-circle-notch fa-spin text-[10px]"></i>
-                    <span>Saving design…</span>
+                    <span>Saving style…</span>
                 </span>
                 {{-- Inline error chip — shown when an apply / restore /
                      reset / apply-to-all request fails. Sits in the same
-                     spot as the "Saving design…" pill so the feedback
+                     spot as the "Saving style…" pill so the feedback
                      loop closes in the same place creators were just
                      watching. The retry button re-runs the failed
                      action; the chip auto-clears after ~6s or on the
@@ -214,7 +214,7 @@
                         :disabled="_busy"
                         :style="_busy ? 'opacity:0.5;cursor:not-allowed;background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);'"
                         class="text-[10px] font-bold py-1 px-2 rounded-md transition-all"
-                        title="Reset this block's styling to the default">
+                        title="Reset this block's style to the default">
                     <i class="fas fa-rotate-left mr-1"></i>Reset
                 </button>
                 <button type="button" @click="surpriseMe()"
@@ -301,7 +301,7 @@
                     </div>
                     <div class="flex-1">
                         <div class="text-[11px] font-bold" style="color: var(--text-primary);">Custom</div>
-                        <div class="text-[9px]" style="color: var(--text-dimmed);">Your tweaked styling, pick a design below to swap.</div>
+                        <div class="text-[9px]" style="color: var(--text-dimmed);">Your tweaked styling, pick a style below to swap.</div>
                     </div>
                 </div>
             </template>
@@ -310,7 +310,7 @@
                  snapshot exists from the first time this block was skinned
                  with a curated variant. Clicking restores those handcrafted
                  styles in place of the current variant, so creators never
-                 lose work by exploring designs. --}}
+                 lose work by exploring styles. --}}
             @if(!empty($customSnapshot))
             <button type="button" @click="restoreCustom()"
                     :disabled="_busy"
@@ -354,7 +354,7 @@
                         :style="(currentVariant === '{{ $v['key'] }}' ? 'background: rgba(61,107,255,0.12); border: 2px solid rgba(61,107,255,0.6); box-shadow: 0 0 12px rgba(61,107,255,0.18);' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass);') + (_busy && _busyKey !== '{{ $v['key'] }}' ? ' opacity:0.5;cursor:not-allowed;' : '') + (_busy && _busyKey === '{{ $v['key'] }}' ? ' cursor:wait;' : '')">
                     {{-- Per-card "Saving…" overlay — shown only on the
                          exact variant card that was just clicked, so the
-                         creator can see which design is being applied
+                         creator can see which style is being applied
                          while the request is in flight. --}}
                     <div x-show="_busyKey === '{{ $v['key'] }}'" x-cloak
                          class="absolute inset-0 rounded-xl flex flex-col items-center justify-center gap-1 z-10"
@@ -488,7 +488,7 @@
 
             {{-- Empty state when filter shows nothing --}}
             <div x-show="visibleCount() === 0" class="text-center py-4 text-[10px]" style="color: var(--text-dimmed);">
-                <i class="fas fa-search-minus mr-1"></i>No designs match this filter yet.
+                <i class="fas fa-search-minus mr-1"></i>No styles match this filter yet.
             </div>
 
             {{-- Apply to all --}}
@@ -499,8 +499,8 @@
                     :style="(_busy ? 'opacity:0.6;cursor:not-allowed;' : '') + 'background: var(--bg-glass-input); border: 1px dashed var(--border-glass); color: var(--text-muted);'">
                 <i x-show="_busyKey !== '__all'" class="fas fa-clone text-[9px]"></i>
                 <i x-show="_busyKey === '__all'" x-cloak class="fas fa-circle-notch fa-spin text-[9px]"></i>
-                <span x-show="_busyKey !== '__all'">Apply this design to all <span x-text="blockTypeLabel"></span> blocks</span>
-                <span x-show="_busyKey === '__all'" x-cloak>Saving design…</span>
+                <span x-show="_busyKey !== '__all'">Apply this style to all <span x-text="blockTypeLabel"></span> blocks</span>
+                <span x-show="_busyKey === '__all'" x-cloak>Saving style…</span>
             </button>
 
             {{-- Reset to default for ALL blocks of this type. Separate from
@@ -514,7 +514,7 @@
                 <i x-show="_busyKey !== '__reset'" class="fas fa-rotate-left text-[9px]"></i>
                 <i x-show="_busyKey === '__reset'" x-cloak class="fas fa-circle-notch fa-spin text-[9px]"></i>
                 <span x-show="_busyKey !== '__reset'">Reset all <span x-text="blockTypeLabel"></span> blocks to default</span>
-                <span x-show="_busyKey === '__reset'" x-cloak>Saving design…</span>
+                <span x-show="_busyKey === '__reset'" x-cloak>Saving style…</span>
             </button>
         </div>
 
@@ -1025,7 +1025,7 @@
         {{-- LAYOUT TAB (Spacing + Grid) --}}
         <div x-show="activeStyleTab === 'spacing'" class="space-y-4">
             {{-- Icon Position — link-family blocks only.
-                 The Designs gallery already ships "Icon Left"/"Icon Right"/
+                 The Styles gallery already ships "Icon Left"/"Icon Right"/
                  "Icon Both Sides"/"Icon Only" presets, but applying one also
                  overwrites bg_color, radius, shadow, padding and text colour,
                  so a creator lost their custom look just to move the icon.
@@ -1067,7 +1067,7 @@
                 </div>
                 @if($__iconPosValue === null)
                     <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">
-                        This block uses the &ldquo;{{ ucfirst(str_replace('_', ' ', $__currentIconPos)) }}&rdquo; layout from the Designs gallery. Picking an icon position here switches it to a standard button layout; your colours, font and shape are kept.
+                        This block uses the &ldquo;{{ ucfirst(str_replace('_', ' ', $__currentIconPos)) }}&rdquo; layout from the Styles gallery. Picking an icon position here switches it to a standard button layout; your colours, font and shape are kept.
                     </p>
                 @else
                     <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Moves the icon without touching your colours, font or shape.</p>
@@ -1339,7 +1339,7 @@ window.blockDesignsGallery = function(opts) {
         blockType: opts.blockType,
         currentVariant: opts.currentVariant || '',
         customSnapshot: opts.customSnapshot || null,
-        // Reactive busy flags so the gallery can render a "Saving design…"
+        // Reactive busy flags so the gallery can render a "Saving style…"
         // pill and a spinner overlay on the just-clicked card while an
         // apply / restore / reset / apply-to-all request is in flight.
         // _busyKey is the variant key being applied (or one of the
@@ -1375,7 +1375,7 @@ window.blockDesignsGallery = function(opts) {
             } catch (e) { this.favorites = []; }
             // Bind once so add/remove pair to the same function reference.
             // While _error is set the gallery installs a beforeunload guard
-            // so creators don't silently lose their last failed design click
+            // so creators don't silently lose their last failed style click
             // by closing the tab or navigating away. The handler is removed
             // again the moment _error clears (success, retry, dismiss, or
             // the 6s auto-clear timer).
@@ -1453,18 +1453,26 @@ window.blockDesignsGallery = function(opts) {
                 .then(function(data) {
                     if (!data || !Array.isArray(data.previews)) return;
                     self._previewsLoaded = true;
+                    // The ground every tile is drawn on: this page's own
+                    // background and font colour. A checkerboard was used
+                    // before, which told you nothing about whether a style
+                    // would be readable on YOUR page — and left variants
+                    // with a transparent background or inherited text
+                    // colour with no silhouette at all.
+                    self._ground = data.ground || {};
+                    var groundBg  = self._ground.bg || '#0a0612';
+                    var groundInk = self._ground.ink || '#ffffff';
+                    // Hairline in the opposite direction to the ink, so the
+                    // tile has an edge on a dark page and on a light one.
+                    var edge = self._ground.ink_is_light
+                        ? 'rgba(255,255,255,0.12)'
+                        : 'rgba(0,0,0,0.14)';
+
                     data.previews.forEach(function(p) {
                         var slot = self.$el.querySelector('[data-variant-preview="' + p.key + '"]');
                         if (!slot) return;
-                        // The chrome wrapper keeps a subtle dark-modal-
-                        // safe frame so every variant — including
-                        // transparent / outline / plain-text ones — has
-                        // a visible silhouette. The inner element gets
-                        // the variant's real inline_style (bg, border,
-                        // radius, shadow, colour) so the preview looks
-                        // like the live block.
-                        slot.setAttribute('style', 'height:80px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:12px 0 8px;padding:8px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0.04) 0 6px,rgba(255,255,255,0.015) 6px 12px);border:1px solid rgba(255,255,255,0.08);border-radius:8px;');
-                        slot.innerHTML = self.buildLivePreviewInner(p, rawLabel);
+                        slot.setAttribute('style', 'height:80px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:12px 0 8px;padding:8px;background:' + groundBg + ';border:1px solid ' + edge + ';border-radius:8px;');
+                        slot.innerHTML = self.buildLivePreviewInner(p, rawLabel, groundInk);
                     });
                 })
                 .catch(function() {})
@@ -1478,11 +1486,16 @@ window.blockDesignsGallery = function(opts) {
         // an underlined snippet, and everything else gets a tiny text
         // sample. This is the fix for non-button blocks — previously
         // every shape collapsed to "tiny text chip" which made the
-        // Designs gallery look broken on image / avatar / heading /
+        // Styles gallery look broken on image / avatar / heading /
         // divider blocks.
-        buildLivePreviewInner(p, rawLabel) {
+        buildLivePreviewInner(p, rawLabel, groundInk) {
             var inline = p.inline_style || '';
-            var color = p.text_color || '#ffffff';
+            // A variant that sets no text colour inherits the page's font
+            // colour on the real page, so the preview inherits it too. It
+            // used to fall back to white, which is invisible on a light
+            // page — half the gallery looked empty for anyone not using a
+            // dark background.
+            var color = p.text_color || groundInk || '#ffffff';
             var safe = String(rawLabel || '').replace(/[<>&"]/g, '').slice(0, 18);
             var label = safe || p.name || 'Preview';
             // Retro browser-window variants (Task #6568): wrap the sketch
@@ -1632,7 +1645,7 @@ window.blockDesignsGallery = function(opts) {
                 .then(function(data) {
                     if (data && data.success) {
                         self.clearError();
-                        if (typeof showToast === 'function') showToast('Design applied', 'success');
+                        if (typeof showToast === 'function') showToast('Style applied', 'success');
                         // Refresh the form once so any granular controls
                         // (Look/Layout/Text tabs) reflect the new style
                         // payload that the server just wrote.
@@ -1756,7 +1769,7 @@ window.blockDesignsGallery = function(opts) {
         applyToAll() {
             if (this._busy) return;
             if (!this.currentVariant) return;
-            if (typeof confirm === 'function' && !confirm('Apply this design to every ' + this.blockTypeLabel + ' block on this page?')) return;
+            if (typeof confirm === 'function' && !confirm('Apply this style to every ' + this.blockTypeLabel + ' block on this page?')) return;
             this._busy = true;
             this._busyKey = '__all';
             var self = this;
@@ -1795,6 +1808,6 @@ window.blockDesignsGallery = function(opts) {
     };
 };
 
-{{-- Presets feature was removed by user request; the Designs / Text / Look / Layout
+{{-- Presets feature was removed by user request; the Styles / Text / Look / Layout
      tabs cover all styling needs without the rigid preset grid. --}}
 </script>

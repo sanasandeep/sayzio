@@ -845,11 +845,30 @@ class BiolinkBlockController extends Controller
         abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
 
         $variants = BlockVariantCatalog::forType($block->type);
-        $globalTheme = $link->settings ?? [];
+
+        // The page's Block Theme, read exactly where the public renderer
+        // reads it (common/biolink.blade.php: `$bs['block_theme']`). This
+        // used to pass the whole `$link->settings` blob, which has no
+        // `apply_to_all` key at the top level -- so the page's own theme
+        // never reached a single preview tile.
+        $bs          = (array) ($link->settings['biolink'] ?? []);
+        $globalTheme = (array) ($bs['block_theme'] ?? []);
+
+        // The ground each tile is drawn on. Without it a tile is a style
+        // floating on nothing: a variant whose background is transparent or
+        // whose text colour is inherited had no silhouette and no contrast,
+        // so it read as blank however carefully it was designed.
+        $ground = \App\Modules\User\Support\PageBackground::previewGround($bs);
+
         $previews = [];
         foreach ($variants as $v) {
-            $style = array_merge(BiolinkBlock::STYLE_DEFAULTS, $v['style']);
-            $resolved = BiolinkBlock::getBlockStyle($style, is_array($globalTheme) ? $globalTheme : []);
+            // getBlockStyle() takes a block's SETTINGS and reads `_style`
+            // out of it. Handing it a flat style map meant `_style` was
+            // missing, the variant's payload was silently dropped, and
+            // every tile resolved to bare STYLE_DEFAULTS -- which is why
+            // the whole gallery rendered as the same blank sketch however
+            // different the styles actually were.
+            $resolved = BiolinkBlock::getBlockStyle(['_style' => $v['style'] ?? []], $globalTheme);
             $previews[] = [
                 'key' => $v['key'],
                 'name' => $v['name'],
@@ -872,7 +891,11 @@ class BiolinkBlockController extends Controller
             ];
         }
 
-        return response()->json(['previews' => $previews]);
+        return response()->json([
+            'previews' => $previews,
+            // Sent once, not per tile: every tile sits on the same page.
+            'ground'   => $ground,
+        ]);
     }
 
     public function editForm(Link $link, BiolinkBlock $block)
