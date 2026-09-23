@@ -244,12 +244,22 @@ class ResumeImportService
             throw new RuntimeException('Pick at least one section to draft.');
         }
 
+        // The prompt box now takes 10,000 characters -- a whole career
+        // rather than two paragraphs -- so the list cap and the output
+        // budget below had to move with it. Leaving them where they were
+        // is what makes a model weld three jobs into one entry: it is
+        // asked for everything and given room for a third of it.
         $schemaHint = "Return strict JSON with optional keys: " .
             "summary (string), experience (array of {company,role,location,start_date YYYY-MM,end_date YYYY-MM,is_current,description}), " .
             "skills (array of {name, level 1-5, group}), " .
             "projects (array of {name,role,url,description}). " .
             "Only include the keys: " . implode(', ', $sections) . ". " .
-            "Use empty strings rather than nulls. Limit each list to 6 items.";
+            "Use empty strings rather than nulls. Limit each list to 15 items. " .
+            "ONE ENTRY PER ROLE: never merge two jobs, two companies or two date ranges " .
+            "into a single experience entry, and never put a second role inside a " .
+            "description. If a role is unclear, emit it on its own with whatever is known. " .
+            "Write each description as newline-separated bullets prefixed with \"- \", " .
+            "one accomplishment per bullet, so the result stays readable to an ATS.";
 
         $contextLine = '';
         if (!empty($context['header']['name'])) $contextLine .= "Name: " . $context['header']['name'] . "\n";
@@ -265,10 +275,13 @@ class ResumeImportService
                 "User prompt:\n{$prompt}"],
         ];
 
+        // Output budget scales with how much was actually written, so a
+        // long prompt is not silently truncated into one merged entry --
+        // while a two-line prompt still costs what it always did.
         $model  = AiEngineSettings::featureModel('resume_import', $user);
         $result = $this->openai->chat($user, $model, $messages, [
             'temperature'     => 0.5,
-            'max_tokens'      => 1200,
+            'max_tokens'      => max(1200, min(4000, (int) ceil(mb_strlen($prompt) / 2) + 800)),
             'response_format' => ['type' => 'json_object'],
             'feature'         => 'resume_import',
             'reason'          => 'Resume AI draft',
@@ -570,34 +583,116 @@ class ResumeImportService
     }
 
     /** Return [section_kind => body_text] keyed by canonical kind. */
+    /**
+     * Cut the text into its sections by their headings.
+     *
+     * This used to require a heading line to be EXACTLY one of the
+     * aliases once lowercased -- so "EXPERIENCE" matched and
+     * "PROFESSIONAL EXPERIENCE" matched, but "WORK EXPERIENCE:",
+     * "Experience ────────", "• Experience" and "EXPERIENCE (8 YEARS)"
+     * all did not. When nothing matched, every section came back empty
+     * and the import produced nothing at all.
+     *
+     * A heading is now recognised by what a heading looks like: a short
+     * line, no sentence punctuation, that begins with a known alias once
+     * the decoration is stripped off it.
+     *
+     * @return array<string, string>
+     */
     protected function splitSections(string $text, bool $linkedinHint): array
     {
         $headings = [
-            'experience'     => ['experience', 'work experience', 'professional experience', 'employment', 'work history', 'career'],
-            'education'      => ['education', 'academic background', 'studies'],
-            'skills'         => ['skills', 'technical skills', 'core skills', 'competencies', 'technologies'],
-            'certifications' => ['certifications', 'certificates', 'licenses', 'licenses & certifications'],
-            'languages'      => ['languages'],
-            'projects'       => ['projects', 'portfolio', 'selected projects'],
-            'summary'        => ['summary', 'about', 'profile', 'objective'],
+            'experience'     => ['experience', 'work experience', 'professional experience', 'employment',
+                                 'employment history', 'work history', 'career', 'career history',
+                                 'professional background', 'relevant experience'],
+            'education'      => ['education', 'academic background', 'studies', 'academics',
+                                 'education and training', 'qualifications'],
+            'skills'         => ['skills', 'technical skills', 'core skills', 'competencies', 'technologies',
+                                 'core competencies', 'key skills', 'areas of expertise', 'expertise'],
+            'certifications' => ['certifications', 'certificates', 'licenses', 'licenses & certifications',
+                                 'licenses and certifications', 'accreditations'],
+            'languages'      => ['languages', 'language skills'],
+            'projects'       => ['projects', 'portfolio', 'selected projects', 'key projects', 'personal projects'],
+            'summary'        => ['summary', 'about', 'profile', 'objective', 'professional summary',
+                                 'career summary', 'about me', 'personal statement'],
         ];
 
-        $lines = preg_split('/\r?\n/', $text);
+        $lines   = preg_split('/\r?\n/', $text);
         $current = null;
         $buckets = [];
+
         foreach ($lines as $line) {
-            $trim = trim($line);
-            $matched = null;
-            $low = mb_strtolower(rtrim($trim, ":"));
-            foreach ($headings as $kind => $aliases) {
-                foreach ($aliases as $a) {
-                    if ($low === $a) { $matched = $kind; break 2; }
+            $matched = $this->headingKind(trim($line), $headings);
+
+            if ($matched !== null) {
+                $current = $matched;
+                $buckets[$current] = $buckets[$current] ?? '';
+
+                continue;
+            }
+
+            if ($current) {
+                $buckets[$current] .= $line."\n";
+            }
+        }
+
+        return array_map('trim', $buckets);
+    }
+
+    /**
+     * Which section, if any, this line is the heading of.
+     *
+     * Deliberately strict about SHAPE and forgiving about decoration: a
+     * heading is short, is not a sentence, and starts with a known word.
+     * Being strict about shape is what stops a bullet reading "Experience
+     * with Kubernetes and Terraform across three teams" from opening a
+     * new section in the middle of someone's job description.
+     *
+     * @param  array<string, array<int, string>>  $headings
+     */
+    protected function headingKind(string $line, array $headings): ?string
+    {
+        if ($line === '') {
+            return null;
+        }
+
+        // Strip leading bullets/numbers and trailing rules, colons and
+        // parenthetical asides: "• 2. WORK EXPERIENCE (2015-2024) ────"
+        // is a heading wearing four kinds of decoration.
+        $clean = preg_replace('/^\s*(?:[•·▪◦‣∙*+]|[-–—]|\d+[.)])\s*/u', '', $line);
+        $clean = preg_replace('/[\s:_=~.\-–—─━▬]+$/u', '', (string) $clean);
+        $clean = preg_replace('/\s*\([^)]*\)\s*$/u', '', (string) $clean);
+        $clean = trim((string) $clean);
+
+        // A heading is short and is not a sentence. Both guards matter:
+        // without them, any line opening with the word "Summary" would
+        // cut the resume in half.
+        if ($clean === '' || mb_strlen($clean) > 48 || preg_match('/[.!?,;]/u', $clean)) {
+            return null;
+        }
+
+        $low = mb_strtolower($clean);
+
+        foreach ($headings as $kind => $aliases) {
+            foreach ($aliases as $alias) {
+                if ($low === $alias) {
+                    return $kind;
                 }
             }
-            if ($matched) { $current = $matched; $buckets[$current] = $buckets[$current] ?? ''; continue; }
-            if ($current) $buckets[$current] .= $line . "\n";
         }
-        return array_map('trim', $buckets);
+
+        // "EXPERIENCE" written as "EXPERIENCE  |  2015 - 2024", or a
+        // heading with one extra word after it, still names its section
+        // -- as long as the whole line stayed short enough to be one.
+        foreach ($headings as $kind => $aliases) {
+            foreach ($aliases as $alias) {
+                if (str_starts_with($low, $alias.' ') && mb_strlen($low) <= mb_strlen($alias) + 16) {
+                    return $kind;
+                }
+            }
+        }
+
+        return null;
     }
 
     protected function guessSummary(array $sections, string $text): string
@@ -609,57 +704,337 @@ class ResumeImportService
     }
 
     /**
-     * Very forgiving experience parser: split body on blank lines, treat
-     * each block as one entry, mine date ranges + a "Role at Company"
-     * line out of the first two lines.
+     * Where one entry ends and the next begins.
+     *
+     * Sana, 2026-09-23: "Parser not working correctly... combining
+     * multiple thing in same point. ATS friendly resumes should work".
+     *
+     * Both of those were the same line of code. The parser split entries
+     * on BLANK LINES -- and text pulled out of a PDF or a .docx very
+     * often has none. Seven jobs arrived as one block: line one became
+     * the role, line two became the company, and the entire rest of the
+     * career became that first job's description. Exactly one bullet
+     * containing everything.
+     *
+     * And it failed worst on precisely the resumes it should handle best.
+     * An ATS-friendly resume is plain, single-column, tightly set, no
+     * tables and no decorative spacing -- which is to say, no blank lines.
+     * The prettier the layout, the better this used to work.
+     *
+     * So boundaries are found by structure instead, in this order:
+     *
+     *   1. a blank line, when the text has them and they actually
+     *      separate entries (the old behaviour, still the best signal);
+     *   2. a non-bullet line that follows a bullet -- bullets belong to
+     *      the entry above them, so plain text after them starts a new
+     *      one;
+     *   3. a second date range -- one entry has one span of employment,
+     *      so a line carrying another one begins the next job.
+     *
+     * @param  string  $body  one section's text
+     * @return array<int, array<int, string>>  entries, each a list of lines
+     */
+    protected function splitEntries(string $body): array
+    {
+        $lines = [];
+        foreach (preg_split('/\r?\n/', $body) as $raw) {
+            $lines[] = rtrim($raw);
+        }
+
+        // Rule 1. Blank lines, when they separate more than one block.
+        // A resume laid out with spacing is unambiguous, and nothing
+        // below reads it better than the author's own paragraphing.
+        $byBlank = array_values(array_filter(
+            array_map('trim', preg_split('/\n\s*\n/', $body)),
+            fn ($b) => $b !== ''
+        ));
+        if (count($byBlank) > 1) {
+            return array_map(
+                fn ($b) => array_values(array_filter(array_map('trim', preg_split('/\r?\n/', $b)), fn ($l) => $l !== '')),
+                $byBlank
+            );
+        }
+
+        // Rules 2 and 3, walking the lines.
+        $entries      = [];
+        $current      = [];
+        $sawBullet    = false;
+        $sawDate      = false;
+        $headerLines  = 0;      // non-bullet, non-date lines seen in this entry
+        $prevWasDate  = false;
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
+
+            $isBullet   = $this->looksLikeBullet($line);
+            $isDateOnly = $this->isDateOnlyLine($line);
+            $hasDate    = $this->extractDateRange($line) !== [];
+
+            // Rule 2: bullets belong to the entry above them, so a plain
+            // line after a bullet opens the next one.
+            $starts = $current !== [] && ! $isBullet && $sawBullet;
+
+            // Rule 3: an entry has one span of employment. Once this one
+            // has its dates, a line that LOOKS like a header -- short, no
+            // sentence-ending punctuation -- starts the next entry.
+            //
+            // The two extra clauses are what separate the two layouts
+            // that are otherwise identical in shape:
+            //
+            //   School / Degree / 2015-2017 / School / Degree / 2011-2015
+            //   Role / Feb 2020 - Present / Company / Led the redesign.
+            //
+            // In the first, the line after the dates is a new entry. In
+            // the second it is this entry's company. The difference is
+            // that the first already had two header lines before its
+            // dates -- so a header-like line directly after the date row
+            // stays with the entry unless the header is already complete.
+            if (! $starts && $current !== [] && $sawDate && ! $isBullet
+                && $this->looksLikeEntryHeader($line)
+                && ($headerLines >= 2 || ! $prevWasDate)) {
+                $starts = true;
+            }
+
+            if ($starts) {
+                $entries[]   = $current;
+                $current     = [];
+                $sawBullet   = false;
+                $sawDate     = false;
+                $headerLines = 0;
+            }
+
+            $current[] = $line;
+            $sawBullet = $sawBullet || $isBullet;
+            $sawDate   = $sawDate || $hasDate;
+            if (! $isBullet && ! $isDateOnly) {
+                $headerLines++;
+            }
+            $prevWasDate = $isDateOnly;
+        }
+
+        if ($current !== []) {
+            $entries[] = $current;
+        }
+
+        return $entries;
+    }
+
+    /**
+     * A bullet, in any of the shapes a PDF extractor emits.
+     *
+     * Includes a bare "o " and a lone hyphen, because Word's bullet
+     * characters land as those often enough to matter.
+     */
+    protected function looksLikeBullet(string $line): bool
+    {
+        // A bare glyph on its own line counts too: an empty bullet is
+        // still a bullet, and treating it as text turns it into a job.
+        return preg_match('/^\s*(?:[•·▪◦‣∙*+]|[-–—](?:\s|$)|o\s)/u', $line) === 1;
+    }
+
+    /**
+     * Does this line read as the start of a new entry rather than as
+     * prose belonging to the one above it?
+     *
+     * A company or a school is short and does not end in a full stop. A
+     * description sentence does. That is the whole discriminator, and it
+     * is the one that keeps "Led the redesign of the account switching
+     * flow." attached to the job it describes.
+     */
+    protected function looksLikeEntryHeader(string $line): bool
+    {
+        $line = trim($line);
+
+        return $line !== ''
+            && mb_strlen($line) <= 70
+            && ! preg_match('/[.!?;]$/u', $line)
+            && ! $this->isDateOnlyLine($line);
+    }
+
+    /** A line that is nothing but a date range, e.g. "Jan 2023 - Present". */
+    protected function isDateOnlyLine(string $line): bool
+    {
+        if ($this->extractDateRange($line) === []) {
+            return false;
+        }
+
+        // Strip everything a date line is made of; if what is left is
+        // shorter than a word, the line carried no other information.
+        $rest = preg_replace(
+            '/(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*|\d{4}|present|now|current|[-–—|,()·•]|\s|to\b/i',
+            '',
+            $line
+        );
+
+        return mb_strlen(trim((string) $rest)) < 3;
+    }
+
+    /**
+     * One job.
+     *
+     * The header of an entry is its first line or two; the description is
+     * what follows. Two things that used to go wrong here:
+     *
+     *  - a date-only line ("Jan 2023 - Present" on its own row, which is
+     *    how most two-column layouts extract) was taken as the company;
+     *  - the description kept the raw bullet glyphs, so an entry that had
+     *    been a tidy list arrived as one paragraph of dots.
      */
     protected function parseExperienceBlock(string $body): array
     {
         $entries = [];
-        foreach (preg_split('/\n\s*\n/', $body) as $block) {
-            $block = trim($block);
-            if ($block === '') continue;
-            $lines = array_values(array_filter(array_map('trim', preg_split('/\r?\n/', $block))));
-            if (!$lines) continue;
 
-            $dates  = $this->extractDateRange($block);
-            $first  = $lines[0];
-            $second = $lines[1] ?? '';
+        foreach ($this->splitEntries($body) as $lines) {
+            if ($lines === []) {
+                continue;
+            }
 
-            $role = '';
-            $company = '';
-            if (preg_match('/^(.+?)\s+(?:at|@|\-|\|)\s+(.+)$/i', $first, $m)) {
-                $role = trim($m[1]); $company = trim($m[2]);
+            $dates = $this->extractDateRange(implode("\n", $lines));
+
+            // Header lines are the leading non-bullet, non-date-only rows.
+            // Everything from the first bullet (or the third header line)
+            // onwards is the description.
+            $header = [];
+            $rest   = [];
+            foreach ($lines as $line) {
+                // A date row is never content. It is read once, off the
+                // whole entry, and then it is out of the way -- wherever
+                // it sits, which in two-column layouts is anywhere.
+                if ($this->isDateOnlyLine($line)) {
+                    continue;
+                }
+
+                // The first line is always the header. A second one only
+                // joins it if it still READS like a header -- otherwise a
+                // resume with no bullets hands its opening sentence over
+                // as the company name.
+                $canHead = $header === [] || $this->looksLikeEntryHeader($line);
+
+                if ($rest === [] && count($header) < 2 && $canHead && ! $this->looksLikeBullet($line)) {
+                    $header[] = $line;
+
+                    continue;
+                }
+
+                $rest[] = $line;
+            }
+
+            $first  = $header[0] ?? '';
+            $second = $header[1] ?? '';
+
+            // "Role, Company" on one line is as common as "Role at
+            // Company", but a comma only means that when no second header
+            // line is offering itself as the company -- otherwise
+            // "Founder, CEO and Chairman" would import a company called
+            // "CEO and Chairman".
+            $sep = $second === ''
+                ? '/^(.+?)\s*(?:\s(?:at|@)\s|[,\|·—–]|\s-\s)\s*(.+)$/iu'
+                : '/^(.+?)\s+(?:at|@|\-|\||·|—|–)\s+(.+)$/iu';
+
+            if (preg_match($sep, $first, $m)) {
+                $role    = trim($m[1]);
+                $company = trim($m[2]);
+                // "Role at Company" already names both, so the second
+                // header line is part of the description, not the company.
+                if ($second !== '') {
+                    array_unshift($rest, $second);
+                }
             } else {
-                $role = $first;
+                $role    = $first;
                 $company = $second;
             }
-            $description = trim(implode("\n", array_slice($lines, ($company === $second && $second !== '') ? 2 : 1)));
-            $description = preg_replace('/^•\s*/m', '- ', $description);
 
-            $entries[] = array_filter([
+            // A company cell often carries its location after a separator.
+            $location = '';
+            if ($company !== '' && preg_match('/^(.+?)\s*[·|,]\s*(.+)$/u', $company, $m)) {
+                $company  = trim($m[1]);
+                $location = trim($m[2]);
+            }
+
+            $description = $this->cleanDescription($rest);
+
+            $row = array_filter([
                 'role'        => mb_substr($role, 0, 160),
                 'company'     => mb_substr($company, 0, 160),
+                'location'    => mb_substr($location, 0, 160),
                 'start_date'  => $dates['start'] ?? null,
                 'end_date'    => $dates['end'] ?? null,
                 'is_current'  => $dates['current'] ?? false,
                 'description' => mb_substr($description, 0, 2000),
-            ], fn ($v) => $v !== null && $v !== '');
+            ], fn ($v) => $v !== null && $v !== '' && $v !== false);
+
+            // An entry with neither a role nor a company is a stray line,
+            // not a job. Dropping it beats importing an empty card --
+            // and a row of leftover punctuation counts as nothing.
+            $named = trim(preg_replace('/[^\p{L}\p{N}]+/u', '', ($row['role'] ?? '').($row['company'] ?? '')));
+            if ($named === '') {
+                continue;
+            }
+
+            $entries[] = $row;
         }
+
         return $entries;
+    }
+
+    /**
+     * Description lines, as one bullet per line.
+     *
+     * Every bullet glyph becomes "- " so the editor and the renderer see
+     * one list rather than a paragraph with dots in it -- which is the
+     * visible half of "combining multiple thing in same point".
+     *
+     * @param  array<int, string>  $lines
+     */
+    protected function cleanDescription(array $lines): string
+    {
+        $out = [];
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
+            if ($this->looksLikeBullet($line)) {
+                $line = '- '.trim(preg_replace('/^\s*(?:[•·▪◦‣∙*+]|[-–—]\s|o\s)\s*/u', '', $line));
+            }
+            $out[] = $line;
+        }
+
+        return trim(implode("\n", $out));
     }
 
     protected function parseEducationBlock(string $body): array
     {
         $entries = [];
-        foreach (preg_split('/\n\s*\n/', $body) as $block) {
-            $block = trim($block);
-            if ($block === '') continue;
-            $lines = array_values(array_filter(array_map('trim', preg_split('/\r?\n/', $block))));
-            if (!$lines) continue;
-            $dates = $this->extractDateRange($block);
-            $school = $lines[0];
-            $degree = $lines[1] ?? '';
+
+        foreach ($this->splitEntries($body) as $lines) {
+            if ($lines === []) {
+                continue;
+            }
+
+            $dates  = $this->extractDateRange(implode("\n", $lines));
+            $header = array_values(array_filter(
+                $lines,
+                fn ($l) => ! $this->looksLikeBullet($l) && ! $this->isDateOnlyLine($l)
+            ));
+
+            $school = $header[0] ?? '';
+            $degree = $header[1] ?? '';
+
+            // "University of X - B.Sc Computer Science" on one line is as
+            // common as two lines, and used to import with no degree.
+            if ($degree === '' && preg_match('/^(.+?)\s+(?:[-–—|·]|,)\s+(.+)$/u', $school, $m)) {
+                $school = trim($m[1]);
+                $degree = trim($m[2]);
+            }
+
+            if ($school === '') {
+                continue;
+            }
+
             $entries[] = array_filter([
                 'school'     => mb_substr($school, 0, 160),
                 'degree'     => mb_substr($degree, 0, 160),
@@ -667,6 +1042,7 @@ class ResumeImportService
                 'end_date'   => $dates['end'] ?? null,
             ], fn ($v) => $v !== null && $v !== '');
         }
+
         return $entries;
     }
 
@@ -738,13 +1114,20 @@ class ResumeImportService
                 "skills (array of {name, level 1-5}), " .
                 "certifications (array of {name,issuer,issued_on}), " .
                 "languages (array of {name,proficiency}). " .
+                "ONE ENTRY PER ROLE: never merge two jobs, two companies or two date " .
+                "ranges into a single experience entry, and never leave a second role " .
+                "inside another entry's description. " .
+                "Write each description as newline-separated bullets prefixed with \"- \". " .
                 "Output JSON only. Use empty strings for unknown values."],
             ['role' => 'user', 'content' => $text],
         ];
+        // Same reasoning as importFromAi(): a fixed ceiling under a long
+        // resume is what makes a model merge entries rather than drop
+        // them, and merged entries are the harder failure to spot.
         $model = AiEngineSettings::featureModel('coach', $user);
         $result = $this->openai->chat($user, $model, $messages, [
             'temperature'     => 0.1,
-            'max_tokens'      => 1800,
+            'max_tokens'      => max(1800, min(4000, (int) ceil(mb_strlen($text) / 4) + 800)),
             'response_format' => ['type' => 'json_object'],
             'feature'         => 'resume_import',
             'reason'          => 'Resume parse fallback',

@@ -91,7 +91,11 @@ class ResumeImportController extends Controller
     public function ai(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'prompt'     => ['required', 'string', 'min:10', 'max:1500'],
+            // Sana, 2026-09-23: "Text should have atleast 10000 chars".
+            // 1,500 was about two paragraphs -- not enough to describe one
+            // job properly, let alone a career. The draft budget on the
+            // other side went up with it; see ResumeImportService.
+            'prompt'     => ['required', 'string', 'min:10', 'max:10000'],
             'sections'   => ['nullable', 'array'],
             'sections.*' => ['string', Rule::in(['summary', 'experience', 'skills', 'projects'])],
         ]);
