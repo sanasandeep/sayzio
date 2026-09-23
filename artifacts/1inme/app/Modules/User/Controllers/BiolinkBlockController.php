@@ -14,6 +14,7 @@ use App\Modules\User\Support\FontCatalog;
 use App\Services\OgMetadataService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -919,9 +920,211 @@ class BiolinkBlockController extends Controller
         return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Block deleted.');
     }
 
-    public function bulkDestroy(Link $link)
+
+    /**
+     * Copy a block, and everything inside it, in place below the original.
+     *
+     * Sana, 2026-09-23: "i am not able to add duplicate blocks.. it will work
+     * good for maintaining theme structure." That is the real use: you style
+     * one link button exactly how you want it and then want five more of it,
+     * rather than adding five plain ones and restyling each.
+     *
+     * So the copy is byte-for-byte on `settings` -- every design key, the
+     * chosen variant, the width, the schedule -- with four deliberate
+     * exceptions, each of which would be a lie on a copy:
+     *
+     *   _fixed            pinned position belongs to the template's prefix,
+     *                     not to a block the creator just made.
+     *   _starter_seed     marks a block WE put on a new page. A duplicate is
+     *                     the creator building, so the copy is theirs and the
+     *                     page publishes (see Link::isUntouchedStarterPage).
+     *   click_count       the copy has never been clicked.
+     *   id / timestamps   new row.
+     *
+     * `_placeholder` is kept: duplicating "My Link" twice leaves two blocks
+     * that still say what they always said, and editing either still clears
+     * its own flag.
+     */
+    public function duplicate(Request $request, Link $link, BiolinkBlock $block)
+    {
+        abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
+
+        $fail = function (string $message, int $status = 403) use ($request) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'error' => $message], $status);
+            }
+            return back()->with('error', $message);
+        };
+
+        // A page carries exactly one verified badge; two would make the badge
+        // meaningless, which is the whole reason it cannot be deleted either.
+        if (in_array($block->type, ['verified_heading', 'verified_avatar'], true)) {
+            return $fail('Verified blocks cannot be duplicated.');
+        }
+
+        // Same plan gate the palette enforces, so a downgraded account cannot
+        // multiply a block it is no longer entitled to add.
+        if (! workspace_owner()->userCanUseBlockType($block->type)) {
+            return $fail("The '" . $block->type . "' block isn't available on your current plan. Upgrade to unlock it.");
+        }
+
+        $copy = null;
+        DB::transaction(function () use ($link, $block, &$copy) {
+            $parentId = $block->parent_id;
+            $at       = $block->sort_order + 1;
+
+            // Design lock: the fixed template blocks are a contiguous prefix
+            // at the top of the page and an unpinned block can never land
+            // inside it, so a copy of a fixed block goes after the whole
+            // prefix -- the same clamp store() applies to an insert.
+            if ($parentId === null && $this->fixedRulesApply($link) && ! empty(($block->settings ?? [])['_fixed'])) {
+                $lastFixed = $link->biolinkBlocks()->whereNull('parent_id')
+                    ->orderBy('sort_order')->get()
+                    ->filter(fn ($b) => ! empty(($b->settings ?? [])['_fixed']))
+                    ->last();
+                if ($lastFixed) {
+                    $at = $lastFixed->sort_order + 1;
+                }
+            }
+
+            if ($parentId) {
+                BiolinkBlock::where('parent_id', $parentId)
+                    ->where('link_id', $link->id)
+                    ->where('sort_order', '>=', $at)
+                    ->increment('sort_order');
+            } else {
+                $link->biolinkBlocks()
+                    ->whereNull('parent_id')
+                    ->where('sort_order', '>=', $at)
+                    ->increment('sort_order');
+            }
+
+            $copy = $this->copyBlockTree($link, $block, $parentId, $at);
+        });
+
+        $this->recordBlockActivity('biolink.block.create', $link, $copy);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            $copy->load('children');
+            $viewData = [
+                'link'        => $link,
+                'blockTypes'  => BiolinkBlock::TYPES,
+                'catColors'   => BiolinkBlock::CATEGORY_COLORS,
+                'pollTallies' => [],
+            ];
+
+            $payload = [
+                'success'      => true,
+                'block'        => $copy,
+                // The client inserts the new card after this one, exactly as
+                // it does for an "insert block after this" from the palette.
+                'insert_after' => $block->id,
+            ];
+
+            if ($copy->parent_id) {
+                $payload['parent_id']  = $copy->parent_id;
+                $payload['child_html'] = view('user.links.partials.block-child-card', array_merge($viewData, ['child' => $copy]))->render();
+            } else {
+                $payload['html'] = view('user.links.partials.block-card', array_merge($viewData, ['block' => $copy]))->render();
+            }
+
+            return response()->json($payload);
+        }
+
+        return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Block duplicated.');
+    }
+
+    /**
+     * One block plus its children, recursively. Children keep their own order
+     * and are re-parented onto the copy.
+     */
+    private function copyBlockTree(Link $link, BiolinkBlock $source, ?int $parentId, int $sortOrder): BiolinkBlock
+    {
+        $settings = $source->settings ?? [];
+        unset($settings['_fixed'], $settings['_starter_seed']);
+
+        $copy = $link->biolinkBlocks()->create([
+            'type'        => $source->type,
+            'settings'    => $settings,
+            'sort_order'  => $sortOrder,
+            'is_active'   => $source->is_active,
+            'parent_id'   => $parentId,
+            'start_date'  => $source->start_date,
+            'end_date'    => $source->end_date,
+            'max_clicks'  => $source->max_clicks,
+            'click_count' => 0,
+        ]);
+
+        foreach ($source->children()->orderBy('sort_order')->get() as $i => $child) {
+            $this->copyBlockTree($link, $child, $copy->id, $i);
+        }
+
+        return $copy;
+    }
+
+    /**
+     * Show or hide several blocks at once.
+     *
+     * Sana: "need options to select multiple blocks to move as a group up
+     * down as well as to delete or hide." Moving a group reuses reorder()
+     * (the client posts the whole new order), and deleting reuses
+     * bulkDestroy() with an id list -- this is the only genuinely new verb.
+     */
+    public function bulkToggle(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== workspace_owner_id() || ! $link->isBiolinkFamily(), 403);
+
+        $validated = $request->validate([
+            'ids'       => ['required', 'array', 'min:1'],
+            'ids.*'     => ['integer'],
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        // Scoped to this link's own blocks: an id from someone else's page is
+        // simply not found, never touched.
+        $blocks = $link->biolinkBlocks()->whereIn('id', $validated['ids'])->get();
+
+        $changed = 0;
+        foreach ($blocks as $b) {
+            if ((bool) $b->is_active === (bool) $validated['is_active']) {
+                continue;
+            }
+            $b->is_active = (bool) $validated['is_active'];
+            $b->save();
+            $changed++;
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success'   => true,
+                'changed'   => $changed,
+                'is_active' => (bool) $validated['is_active'],
+                'ids'       => $blocks->pluck('id')->all(),
+            ]);
+        }
+
+        return redirect()->route('user.links.blocks.editor', $link)
+            ->with('success', $changed . ' block(s) updated.');
+    }
+
+    /**
+     * Delete blocks. With no `ids`, every block on the page (the "Delete all"
+     * button); with `ids`, just those -- the multi-select bar's Delete.
+     *
+     * One method rather than two because the protections are identical and
+     * must never drift: verified blocks, the cards holding them, and a
+     * locked template's fixed blocks survive a selected delete exactly as
+     * they survive a delete-all.
+     */
+    public function bulkDestroy(Request $request, Link $link)
     {
         abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
+
+        $validated = $request->validate([
+            'ids'   => ['nullable', 'array'],
+            'ids.*' => ['integer'],
+        ]);
+        $onlyIds = array_values(array_filter((array) ($validated['ids'] ?? []), 'is_int'));
 
         // Verified blocks (verified_heading / verified_avatar) are protected and
         // must survive a "delete all" just like they survive a single delete.
@@ -949,6 +1152,8 @@ class BiolinkBlockController extends Controller
 
         $deletable = $link->biolinkBlocks()
             ->when($protectedIds, fn ($q) => $q->whereNotIn('id', $protectedIds))
+            ->when($onlyIds, fn ($q) => $q->whereIn('id', $onlyIds))
+            
             ->get();
 
         $deleted = 0;

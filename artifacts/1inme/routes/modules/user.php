@@ -1072,6 +1072,11 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/blocks/{block}/edit-form', [BiolinkBlockController::class, 'editForm'])->middleware('workspace.can:links.view')->name('links.blocks.editForm');
         Route::delete('links/{link}/blocks/{block}', [BiolinkBlockController::class, 'destroy'])->middleware('workspace.can:links.edit')->name('links.blocks.destroy');
         Route::delete('links/{link}/blocks', [BiolinkBlockController::class, 'bulkDestroy'])->middleware('workspace.can:links.edit')->name('links.blocks.bulkDestroy');
+        // Multi-select bar: show/hide a selection in one call. Moving a
+        // selection reuses reorder() and deleting it reuses bulkDestroy(),
+        // so this is the only verb the selection bar needed of its own.
+        Route::post('links/{link}/blocks/bulk-toggle', [BiolinkBlockController::class, 'bulkToggle'])->middleware('workspace.can:links.edit')->name('links.blocks.bulkToggle');
+        Route::post('links/{link}/blocks/{block}/duplicate', [BiolinkBlockController::class, 'duplicate'])->middleware('workspace.can:links.edit')->name('links.blocks.duplicate');
         Route::post('links/{link}/blocks/reorder', [BiolinkBlockController::class, 'reorder'])->middleware('workspace.can:links.edit')->name('links.blocks.reorder');
         Route::post('links/{link}/blocks/{block}/toggle', [BiolinkBlockController::class, 'toggleActive'])->middleware('workspace.can:links.edit')->name('links.blocks.toggle');
         Route::post('links/{link}/blocks/{block}/toggle-fixed', [BiolinkBlockController::class, 'toggleFixed'])->middleware('workspace.can:links.edit')->name('links.blocks.toggleFixed');

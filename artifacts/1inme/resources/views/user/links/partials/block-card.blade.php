@@ -28,6 +28,14 @@
     @endunless
     <div class="block-card {{ $block->isContainer() ? 'card-container-block' : '' }}" data-block-id="{{ $block->id }}" data-grid-span="{{ $curSpan }}" style="{{ $block->is_active ? '' : 'opacity:0.5;' }}">
         <div class="flex items-center gap-2 p-3">
+            {{-- Multi-select. Ticking any box reveals the selection bar at the
+                 foot of the canvas; shift-click ticks a whole run. Always in
+                 the markup (not hover-only) so it is discoverable and so a
+                 keyboard or touch user can reach it. --}}
+            <label class="block-select" title="Select this block">
+                <input type="checkbox" class="block-select-box" data-select-id="{{ $block->id }}" aria-label="Select {{ $typeInfo['label'] }} block">
+            </label>
+
             @if($isLockedFixed)
             <div class="flex-shrink-0 w-5 flex items-center justify-center" title="Fixed by the template: this block can't be moved or removed">
                 <i class="fas fa-thumbtack text-[11px]" style="color: var(--text-faint);"></i>
@@ -90,6 +98,11 @@
                 <button class="block-action-btn edit-btn" title="Edit" onclick="toggleEditInline({{ $block->id }})">
                     <i class="fas fa-pen"></i>
                 </button>
+                @unless(in_array($block->type, ['verified_heading', 'verified_avatar']))
+                <button class="block-action-btn duplicate-btn" title="Duplicate — copies the styling too" onclick="ajaxDuplicateBlock(this, '{{ route('user.links.blocks.duplicate', [$link, $block]) }}', {{ $block->id }})">
+                    <i class="fas fa-clone"></i>
+                </button>
+                @endunless
                 <button class="block-action-btn toggle-btn" title="{{ $block->is_active ? 'Hide' : 'Show' }}" onclick="ajaxToggleBlock(this, '{{ route('user.links.blocks.toggle', [$link, $block]) }}', {{ $block->id }})">
                     <i class="fas {{ $block->is_active ? 'fa-eye' : 'fa-eye-slash' }}"></i>
                 </button>
