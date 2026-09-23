@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Resume;
 use App\Modules\User\Models\ResumeSectionItem;
 use App\Modules\User\Support\PageBackgroundInput;
+use App\Modules\User\Support\ShareButton;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\ResumeAtsChecker;
@@ -426,6 +427,45 @@ class ResumeController extends Controller
 
         $resume = $request->user()->resolveResume($request);
         $resume->update(['color_theme_id' => $data['color_theme_id']]);
+
+        return response()->json(['resume' => $this->present($resume->fresh('items'))]);
+    }
+
+    /**
+     * POST — the share button and its QR.
+     *
+     * Sana, 2026-09-23: "share button should be visible or not,
+     * customizable options should be there in settings on that link".
+     *
+     * Stored on the resume rather than on a link, for the same reason
+     * the background is: a resume is reachable at @handle/{slug} with no
+     * Link in scope as well as through a resume link's alias, and the
+     * same resume must not carry a share button at one URL and not the
+     * other.
+     *
+     * Same rule set as every other page type -- ShareButton::rules().
+     */
+    public function updateShareButton(Request $request)
+    {
+        $data = $request->validate(ShareButton::rules());
+        $input = (array) ($data['share_button'] ?? []);
+
+        // Both toggles are checkboxes, and HTML omits an unchecked box
+        // from the payload -- so they are written explicitly, or turning
+        // one off would read as "never configured", which means on.
+        $input['enabled'] = ! empty($input['enabled']);
+        $input['show_qr'] = ! empty($input['show_qr']);
+        $input['networks'] = array_values(array_filter(
+            (array) ($input['networks'] ?? []),
+            fn ($n) => is_string($n) && $n !== ''
+        ));
+
+        $resume = $request->user()->resolveResume($request);
+        $resume->update(['share_button' => $input]);
+
+        if (! $request->expectsJson()) {
+            return back()->with('success', 'Share button saved.');
+        }
 
         return response()->json(['resume' => $this->present($resume->fresh('items'))]);
     }

@@ -824,6 +824,26 @@
                             Set a handle on your profile to get a shareable link.
                         </p>
                     </template>
+
+                    {{-- The share button, same card every other page type
+                         gets. It is a plain form for the same reason the
+                         background card is: it is shared markup, and
+                         rewriting it as an Alpine payload per page type is
+                         how the two would drift. --}}
+                    <form method="POST" action="{{ route('user.resume.share-button.update') }}" class="mt-6">
+                        @csrf
+                        @include('user.links.partials.share-button-settings', [
+                            'shareBtn' => is_array($resume->share_button ?? null) ? $resume->share_button : [],
+                        ])
+                        <div class="mt-3 flex items-center gap-3">
+                            <button type="submit" class="btn-primary px-5 py-2 text-xs font-semibold inline-flex items-center gap-2">
+                                <i class="fas fa-save text-[10px]"></i> Save share button
+                            </button>
+                            <span class="text-[11px]" style="color: var(--text-muted,#9ca3af);">
+                                Applies to both of this resume's public links.
+                            </span>
+                        </div>
+                    </form>
                 </div>
             </div>
 

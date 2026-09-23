@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class Resume extends Model
 {
     protected $fillable = [
-        'user_id', 'template_id', 'color_theme_id', 'sections', 'page_background',
+        'user_id', 'template_id', 'color_theme_id', 'sections', 'page_background', 'share_button',
         'is_public', 'visibility', 'password',
         'expires_at', 'share_revision',
         'allow_indexing', 'view_count', 'meta_description',
@@ -26,6 +26,10 @@ class Resume extends Model
         return [
             'sections'        => 'array',
             'page_background' => 'array',
+            // The share button + QR, kept here rather than on a link for the
+            // same reason as the background: a resume has two public URLs
+            // and only one of them has a Link in scope.
+            'share_button'    => 'array',
             'is_public'       => 'boolean',
             'allow_indexing'  => 'boolean',
             'view_count'      => 'integer',

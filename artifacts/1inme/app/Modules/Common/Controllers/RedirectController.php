@@ -295,12 +295,24 @@ class RedirectController extends Controller
             && $request->hasValidSignatureWhileIgnoring(['_draft', '_t', '_sim_country', '_sim_device'], false);
         $trackedClick = null;
         if (!$previewEnabled && !$request->boolean('_web') && !$isOwnerPreview) {
-            // Event Connect QR (Task #6685): visits arriving via the Connect
-            // QR carry ?src=connect_qr — record the click with that source so
-            // scans are countable and distinguishable from normal visits
-            // (scan count works even when the visitor never signs in).
-            $trackSource = ($link->type === 'ics' && $request->query('src') === 'connect_qr')
-                ? 'connect_qr' : 'web';
+            // Where the visit came from, recorded on the click row so the
+            // owner's analytics can separate a QR scan from a tap from a
+            // forward. Two sources use ?src= today:
+            //
+            //  - the Event Connect QR (Task #6685), ?src=connect_qr;
+            //  - the share button on any page type, whose QR and each of
+            //    whose share links carry their own tag.
+            //
+            // Anything else is ignored rather than trusted: this value
+            // ends up in an indexed column that owners group by, so an
+            // open field would let a visitor invent categories in it.
+            $rawSrc = (string) $request->query('src', '');
+            $trackSource = 'web';
+            if ($link->type === 'ics' && $rawSrc === 'connect_qr') {
+                $trackSource = 'connect_qr';
+            } elseif (in_array($rawSrc, \App\Modules\User\Support\ShareButton::sourceTags(), true)) {
+                $trackSource = $rawSrc;
+            }
             $trackedClick = $this->trackingService->track($link, $request, $alias, $trackSource);
         }
 

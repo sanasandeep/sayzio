@@ -80,7 +80,15 @@ class BiolinkBlockController extends Controller
 
     public function settingsAppearance(Link $link)
     {
-        abort_if($link->user_id !== workspace_owner_id() || !$link->supportsPageBackground(), 403);
+        // The gate used to be "can this type have a background?". A share
+        // button is offered to more types than a background is, and this
+        // is the endpoint its card posts to, so the gate is now either.
+        abort_if(
+            $link->user_id !== workspace_owner_id()
+                || ! ($link->supportsPageBackground()
+                      || \App\Modules\User\Support\ShareButton::supports($link->type)),
+            403
+        );
         if ($link->isDesignLocked()) {
             return redirect()->route('user.links.settings.advanced', $link);
         }
@@ -1547,18 +1555,9 @@ class BiolinkBlockController extends Controller
             'manifest.start_url' => 'nullable|string|max:200',
             'manifest.categories' => 'nullable|string|max:200',
 
-            'share_button' => 'nullable|array',
-            'share_button.enabled' => 'boolean',
-            'share_button.show_qr' => 'boolean',
-            'share_button.style' => 'nullable|string|in:fab,bar,icon',
-            'share_button.position' => 'nullable|string|in:bottom-right,bottom-left,bottom-center,top-right,top-left',
-            'share_button.color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
-            'share_button.text_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
-            'share_button.size' => 'nullable|string|in:sm,md,lg',
-            'share_button.qr_size' => 'nullable|integer|min:100|max:400',
-            'share_button.qr_fg_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
-            'share_button.qr_bg_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
-            'share_button.label' => 'nullable|string|max:30',
+            // Share button + QR: one shared rule set, so every page type
+            // that renders the card accepts exactly what it sends.
+            ...\App\Modules\User\Support\ShareButton::rules(),
 
             'menu_bar' => 'nullable|array',
             'menu_bar.enabled' => 'boolean',
@@ -1830,8 +1829,19 @@ class BiolinkBlockController extends Controller
 
         if ($shareButtonInput !== null) {
             $settings['biolink']['share_button'] = $nullifyEmpty($shareButtonInput);
+            // Both are checkboxes, and HTML omits an unchecked box from
+            // the payload entirely -- so they are written explicitly or
+            // turning one OFF would read as "not configured", which now
+            // means on.
             $settings['biolink']['share_button']['enabled'] = !empty($shareButtonInput['enabled']);
             $settings['biolink']['share_button']['show_qr'] = !empty($shareButtonInput['show_qr']);
+            // The network list posts with a leading empty value so that
+            // unticking every box still sends the key; an empty list is
+            // stored as "none", not as "unset" (which would restore all).
+            $settings['biolink']['share_button']['networks'] = array_values(array_filter(
+                (array) ($shareButtonInput['networks'] ?? []),
+                fn ($n) => is_string($n) && $n !== ''
+            ));
         }
 
         if ($menuBarInput !== null) {
