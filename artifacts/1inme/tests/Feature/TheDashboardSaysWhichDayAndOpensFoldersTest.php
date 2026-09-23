@@ -160,7 +160,7 @@ class TheDashboardSaysWhichDayAndOpensFoldersTest extends TestCase
 
         $html = $this->dashboard();
 
-        preg_match_all('/class="au-heat-day[^"]*">(\w+) <em>(\d+)<\/em>/', $html, $m, PREG_SET_ORDER);
+        preg_match_all('/class="hm-day[^"]*">(\w+) <em>(\d+)<\/em>/', $html, $m, PREG_SET_ORDER);
         $rows = array_map(fn ($x) => $x[1].' '.$x[2], $m);
 
         $this->assertSame(
@@ -170,8 +170,50 @@ class TheDashboardSaysWhichDayAndOpensFoldersTest extends TestCase
         );
 
         // And the clicks land on the right row: today's row, the 14:00 block.
-        $this->assertStringContainsString('title="Tue 22 Sep, 14:00–16:00: 4 clicks"', $html);
-        $this->assertStringContainsString('Peak 4 &middot; Tue 22 Sep · 14:00', $html);
+        $this->assertStringContainsString('title="Tue 22 Sep, 14:00–16:00 &middot; 4 clicks"', $html);
+        $this->assertStringContainsString('Peak <b>4</b> clicks &middot; Tue 22 Sep · 14:00', $html);
+    }
+
+    /**
+     * The dashboard and the link stats page draw the same heatmap.
+     *
+     * They did not: the dashboard tinted the user's accent colour by alpha
+     * and the stats page had its own six-step ramp, and neither agreed on
+     * cell size, row labels or what happened on hover. Sana asked for "better
+     * and similar look for both places", so both now include one partial --
+     * which is the only way the two stay alike after the next change.
+     */
+    public function test_the_dashboard_draws_the_shared_heatmap(): void
+    {
+        $l = $this->link();
+        $this->clicks($l, '2026-09-22 14:30', 4);
+
+        $html = $this->dashboard();
+
+        $this->assertStringContainsString('class="hm-wrap"', $html);
+        $this->assertStringContainsString('id="au-heat-grid"', $html);
+        $this->assertStringContainsString('class="hm-cell"', $html);
+        $this->assertStringContainsString('data-level=', $html,
+            'the shared ramp is stepped, not an alpha blend of the accent colour');
+        $this->assertStringNotContainsString('au-heat-cell', $html,
+            'the old accent-alpha heatmap must be gone, not sitting beside the new one');
+
+        // The readout the stats page has is here too, so a block can be read
+        // out on the dashboard as well.
+        $this->assertStringContainsString('id="au-heat-readout"', $html);
+        $this->assertStringContainsString("grid.addEventListener('mouseover'", $html);
+        $this->assertStringContainsString("grid.addEventListener('click'", $html);
+
+        // Both pages include the same file, so there is one ramp to change.
+        $partial = (string) file_get_contents(resource_path('views/user/partials/click-heatmap.blade.php'));
+        $this->assertStringContainsString('--hl6', $partial);
+        foreach (['user/dashboard/aurora.blade.php', 'user/links/show.blade.php'] as $page) {
+            $this->assertStringContainsString(
+                "@include('user.partials.click-heatmap'",
+                (string) file_get_contents(resource_path('views/'.$page)),
+                $page.' must draw the heatmap from the shared partial'
+            );
+        }
     }
 
     // ===== 2. Folders =====

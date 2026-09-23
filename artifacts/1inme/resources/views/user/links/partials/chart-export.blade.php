@@ -109,13 +109,20 @@
 
     function fromHeatGrid(grid, opts) {
         var ink = themeInk();
-        var cells = grid.querySelectorAll('.when-heat-cell');
+        var cells = grid.querySelectorAll('.hm-cell');
         if (!cells.length) return null;
 
-        var size = 26, gap = 4, labelW = 24;
+        // The row labels come off the grid rather than a hardcoded list, so
+        // an export matches the rows actually drawn -- the dashboard's copy
+        // is dated ("Tue 22"), the link page's is not.
+        var days = Array.prototype.map.call(
+            grid.querySelectorAll('.hm-day'),
+            function (el) { return (el.textContent || '').trim(); }
+        );
+        var rows = Math.max(1, Math.ceil(cells.length / 12));
+        var size = 26, gap = 4, labelW = 46;
         var w = labelW + (12 * size) + (11 * gap);
-        var h = (7 * size) + (6 * gap) + 22;
-        var days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+        var h = (rows * size) + ((rows - 1) * gap) + 22;
 
         return frame(function (x) {
             for (var i = 0; i < cells.length; i++) {
@@ -125,7 +132,7 @@
                     x.font = '600 10px Inter, system-ui, sans-serif';
                     x.textAlign = 'center';
                     x.textBaseline = 'middle';
-                    x.fillText(days[d], labelW / 2, d * (size + gap) + size / 2);
+                    x.fillText(days[d] || '', labelW / 2, d * (size + gap) + size / 2);
                 }
                 // The rendered colour, so the exported image matches what is
                 // on screen instead of re-deriving the scale here and drifting.
