@@ -110,8 +110,21 @@
         $expBlock = function (array $arr) use ($tokens, $dateRange) {
             $out = '';
             foreach ($arr as $d) {
+                // Company, then the things that qualify it. Employment
+                // type and workplace only appear when they are worth
+                // saying: nobody writes "Full-time, On-site" on a resume
+                // where every role is, so they read as noise unless the
+                // creator chose them deliberately.
                 $sub = e($d['company'] ?? '');
-                if (!empty($d['location'])) $sub .= '<span style="color:'.$tokens['muted'].'"> · '.e($d['location']).'</span>';
+                $qual = array_filter([
+                    $d['location'] ?? null,
+                    ['full_time' => 'Full-time', 'part_time' => 'Part-time', 'contract' => 'Contract',
+                     'freelance' => 'Freelance', 'internship' => 'Internship', 'temporary' => 'Temporary',
+                     'apprenticeship' => 'Apprenticeship', 'self_employed' => 'Self-employed',
+                    ][$d['employment_type'] ?? ''] ?? null,
+                    ['on_site' => 'On-site', 'hybrid' => 'Hybrid', 'remote' => 'Remote'][$d['work_mode'] ?? ''] ?? null,
+                ]);
+                if ($qual) $sub .= '<span style="color:'.$tokens['muted'].'"> · '.e(implode(' · ', $qual)).'</span>';
                 $out .= '<div class="pv-item"><div class="pv-item-row">'
                     . '<div><div class="pv-item-title">'.e($d['role'] ?? '').'</div>'
                     . '<div class="pv-item-sub" style="color:'.$tokens['accent'].'">'.$sub.'</div></div>'
@@ -126,10 +139,14 @@
         $eduBlock = function (array $arr) use ($tokens, $dateRange) {
             $out = '';
             foreach ($arr as $d) {
-                $sub = trim(implode(', ', array_filter([$d['degree'] ?? null, $d['field'] ?? null])));
+                // Built as HTML (the qualifiers carry their own muted
+                // span), so every value is escaped as it goes in.
+                $sub = e(trim(implode(', ', array_filter([$d['degree'] ?? null, $d['field'] ?? null]))));
+                $eduQual = array_filter([$d['location'] ?? null, $d['grade'] ?? null]);
+                if ($eduQual) $sub .= ' <span style="color:'.$tokens['muted'].'">· '.e(implode(' · ', $eduQual)).'</span>';
                 $out .= '<div class="pv-item"><div class="pv-item-row">'
                     . '<div><div class="pv-item-title">'.e($d['school'] ?? '').'</div>'
-                    . '<div class="pv-item-sub" style="color:'.$tokens['accent'].'">'.e($sub).'</div></div>'
+                    . '<div class="pv-item-sub" style="color:'.$tokens['accent'].'">'.$sub.'</div></div>'
                     . '<div class="pv-item-meta" style="color:'.$tokens['muted'].'">'.e($dateRange($d['start_date'] ?? null, $d['end_date'] ?? null, false)).'</div>'
                     . '</div>';
                 if (!empty($d['description'])) $out .= '<div class="pv-item-desc">'.e($d['description']).'</div>';
