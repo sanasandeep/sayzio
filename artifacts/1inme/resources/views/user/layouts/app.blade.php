@@ -410,6 +410,30 @@
                         mask-image: linear-gradient(to right, #000 0%, rgba(0,0,0,.5) 52%, transparent 86%);
             }
         }
+        /* The hero has two parts: who this page is about, and what you can do
+           with it. They used to share one flex row with no minimum on the
+           identity side, so on a laptop-width window six action buttons
+           squeezed the title to "Sa..." and broke the chips into one word per
+           line -- while sitting on top of the ribbon, white buttons on blue.
+           The identity column now claims 340px before anything wraps, and the
+           actions drop to their own row below that width. */
+        .hero-row {
+            display: flex; flex-wrap: wrap; align-items: flex-start;
+            justify-content: space-between; gap: 20px;
+        }
+        .hero-main { display: flex; align-items: flex-start; gap: 16px; flex: 1 1 340px; min-width: 0; }
+        .hero-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        @media (max-width: 900px) {
+            .hero-actions { width: 100%; }
+            /* Below the ribbon's own breakpoint it is drawn full size, which
+               puts a blue diagonal straight behind those buttons. */
+            .page-hero > .cribbon { display: none; }
+        }
+        @media (max-width: 560px) {
+            .page-hero { padding: 18px 16px; }
+            .hero-actions > * { flex: 1 1 auto; justify-content: center; }
+        }
+
         /* ----- Action menu (an action with more than one destination) ----- */
         .hero-menu { position: relative; }
         .hero-menu > summary {

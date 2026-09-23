@@ -191,8 +191,15 @@ class LinkAnalyticsExportAndHeatmapTest extends TestCase
             ->get(route('user.links.show', $link))->assertOk()->getContent();
 
         $this->assertStringContainsString('When This Link Gets Clicked', $html);
-        $this->assertStringContainsString('Wed 14:00 &middot; 6 clicks', $html, 'The spike landed in the wrong cell.');
-        $this->assertStringContainsString('Peak 6', $html);
+        // The cell used to carry only a title; it now carries the numbers the
+        // hover readout reads out, so this asserts those instead -- same
+        // claim, one step closer to what a person sees.
+        $this->assertMatchesRegularExpression(
+            '/data-when="Wed 14:00–16:00"\s+data-count="6"/',
+            $html,
+            'The spike landed in the wrong cell.'
+        );
+        $this->assertStringContainsString('Peak <b>6</b> clicks', $html);
     }
 
     public function test_a_link_with_no_clicks_says_so_instead_of_drawing_an_empty_grid(): void
