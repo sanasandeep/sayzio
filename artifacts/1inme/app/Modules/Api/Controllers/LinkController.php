@@ -540,6 +540,16 @@ class LinkController extends Controller
             $link->save();
         }
 
+        // A brand-new Link in Bio opens with a starter set of blocks (an
+        // admin-marked starter template, or the built-in five) so its owner
+        // can see what a page is made of instead of an empty canvas. The
+        // blocks are placeholders, so the PUBLIC page stays on its "being set
+        // up" notice until the owner edits one -- see
+        // Link::isUntouchedStarterPage().
+        if ($link->isBiolinkFamily()) {
+            app(\App\Modules\User\Services\StarterPageService::class)->seed($link, $request->user());
+        }
+
         // Paid Page links seed a default design template into settings so the
         // public render always resolves a theme even before the owner opens
         // the editor — mirrors the web LinkController::store() behavior.

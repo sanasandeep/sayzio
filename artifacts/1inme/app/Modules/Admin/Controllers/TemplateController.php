@@ -59,6 +59,7 @@ class TemplateController extends Controller
             'is_active' => 'nullable|boolean',
             'design_locked' => 'nullable|boolean',
             'sort_order' => 'nullable|integer',
+            'starter_weight' => 'nullable|integer|min:0|max:1000',
             'source_link_id' => 'nullable|integer|exists:links,id',
             'source_card_id' => 'nullable|integer|exists:biolink_blocks,id',
             'snapshot_json' => 'nullable|string',
@@ -92,6 +93,9 @@ class TemplateController extends Controller
             $payload['recommended_personas'] = $validated['recommended_personas'] ?? [];
             $payload['design_locked'] = (bool) ($validated['design_locked'] ?? false);
             $payload['color_palettes'] = $this->parsePalettes($validated['color_palettes_json'] ?? null);
+            // 0 = gallery only; above 0 the template is also drawn as the
+            // starter set for brand-new pages, and the number is its weight.
+            $payload['starter_weight'] = max(0, (int) ($validated['starter_weight'] ?? 0));
         }
         $modelClass::create($payload);
 
@@ -128,6 +132,7 @@ class TemplateController extends Controller
             'is_active' => 'nullable|boolean',
             'design_locked' => 'nullable|boolean',
             'sort_order' => 'nullable|integer',
+            'starter_weight' => 'nullable|integer|min:0|max:1000',
             'source_link_id' => 'nullable|integer|exists:links,id',
             'source_card_id' => 'nullable|integer|exists:biolink_blocks,id',
             'recapture' => 'nullable|boolean',
@@ -162,6 +167,9 @@ class TemplateController extends Controller
             $fillPayload['recommended_personas'] = $validated['recommended_personas'] ?? [];
             $fillPayload['design_locked'] = (bool) ($validated['design_locked'] ?? false);
             $fillPayload['color_palettes'] = $this->parsePalettes($validated['color_palettes_json'] ?? null);
+            // 0 = gallery only; above 0 the template is also drawn as the
+            // starter set for brand-new pages, and the number is its weight.
+            $fillPayload['starter_weight'] = max(0, (int) ($validated['starter_weight'] ?? 0));
         }
         $tpl->fill($fillPayload)->save();
 

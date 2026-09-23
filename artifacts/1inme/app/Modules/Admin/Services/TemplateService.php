@@ -70,9 +70,17 @@ class TemplateService
 
     private function serializeBlock(BiolinkBlock $b, bool $includeChildren): array
     {
+        // `_starter_seed` is provenance, not design: it records that
+        // StarterPageService put a block on a page. Capturing a template from
+        // a page must not carry it, or every page built from that template
+        // would look like an untouched starter and stay hidden from visitors
+        // (see Link::isUntouchedStarterPage). Only the seeder sets it.
+        $settings = $b->settings ?? [];
+        unset($settings['_starter_seed']);
+
         $data = [
             'type' => $b->type,
-            'settings' => $b->settings ?? [],
+            'settings' => $settings,
             'is_active' => (bool) $b->is_active,
         ];
         if ($includeChildren && $b->isContainer()) {

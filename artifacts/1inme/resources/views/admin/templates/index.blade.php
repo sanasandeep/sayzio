@@ -314,6 +314,12 @@
                             <i class="fas fa-lock mr-1 text-[9px]"></i>Design locked
                         </span>
                     @endif
+                    @if($tab === 'page' && ($tpl->starter_weight ?? 0) > 0)
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-500/10 text-violet-300 ak-blue"
+                              title="Brand-new Link in Bio pages start from this template. Weight {{ $tpl->starter_weight }} — a higher number is drawn more often.">
+                            <i class="fas fa-seedling mr-1 text-[9px]"></i>Starter &times;{{ $tpl->starter_weight }}
+                        </span>
+                    @endif
                     @if($tab === 'page' && $tplCustomized)
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-300 ak-blue"
                               title="Edited in admin on {{ optional($tpl->updated_at)->format('M j, Y') }} (vs created {{ optional($tpl->created_at)->format('M j, Y') }})">

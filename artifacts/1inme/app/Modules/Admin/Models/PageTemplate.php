@@ -11,13 +11,14 @@ class PageTemplate extends Model
     protected $fillable = [
         'name', 'slug', 'category', 'description', 'thumbnail_url',
         'plan_tier', 'recommended_personas', 'is_active', 'sort_order', 'snapshot',
-        'design_locked', 'color_palettes',
+        'design_locked', 'color_palettes', 'starter_weight',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'design_locked' => 'boolean',
         'sort_order' => 'integer',
+        'starter_weight' => 'integer',
         'snapshot' => 'array',
         'recommended_personas' => 'array',
         'color_palettes' => 'array',
@@ -123,6 +124,19 @@ class PageTemplate extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true)->orderBy('sort_order');
+    }
+
+    /**
+     * Templates eligible to seed a brand-new Link in Bio.
+     *
+     * `starter_weight` is both the switch and the dial: 0 means gallery-only,
+     * anything above is a candidate and the number is its weight in the draw.
+     * Inactive templates are never starters -- one checkbox takes a template
+     * out of both places.
+     */
+    public function scopeStarter($query)
+    {
+        return $query->where('is_active', true)->where('starter_weight', '>', 0);
     }
 
     /**

@@ -214,7 +214,11 @@ class LinkTemplateController extends Controller
 
         // Server-side overwrite guard: if the link already has any blocks,
         // require explicit confirmation (UI sets the flag from a JS confirm).
-        $hasBlocks = $link->biolinkBlocks()->exists();
+        // A page still carrying only its untouched starter blocks has nothing
+        // to lose, so it is treated as empty -- otherwise every brand-new
+        // page would demand a "replace your blocks?" confirmation on the very
+        // first template it is offered.
+        $hasBlocks = $link->biolinkBlocks()->exists() && !$link->isUntouchedStarterPage();
         if ($hasBlocks && empty($validated['confirm_overwrite'])) {
             return back()->with('error', 'Applying this template will replace your existing blocks. Confirm to proceed.');
         }

@@ -1033,6 +1033,16 @@ class LinkController extends Controller
             $link->save();
         }
 
+        // A brand-new Link in Bio opens with a starter set of blocks (an
+        // admin-marked starter template, or the built-in five) so its owner
+        // can see what a page is made of instead of an empty canvas. The
+        // blocks are placeholders, so the PUBLIC page stays on its "being set
+        // up" notice until the owner edits one -- see
+        // Link::isUntouchedStarterPage().
+        if ($link->isBiolinkFamily()) {
+            app(\App\Modules\User\Services\StarterPageService::class)->seed($link, workspace_owner());
+        }
+
         // Paid Page links bridge to the creator's existing monetized feed
         // (posts / tiers / PPV / tipping). Seed the chosen starting template
         // into settings['paid_page'] and default the page to public; the
