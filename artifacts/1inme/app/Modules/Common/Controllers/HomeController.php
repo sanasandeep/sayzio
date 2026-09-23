@@ -218,7 +218,7 @@ class HomeController extends Controller
         // (resolved against actually-published demo pages, briefly cached).
         $aiHeroExamples = $this->withAiHeroDemoUrls(AiHeroExamples::all());
 
-        // Personas the home résumé-builder demo cycles through (designer,
+        // Personas the home resume-builder demo cycles through (designer,
         // developer, marketer, student) to show the builder works for any
         // career. The first entry is also the resting/no-JS state. Static data
         // (no per-request variance), mirrors AiHeroExamples.

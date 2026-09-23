@@ -61,22 +61,22 @@ class ResumeController extends Controller
                 // the presenter payload above.
                 'public_url' => url('/' . $user->publicHandle() . '/resume'),
             ],
-            // Short `resume` links that surface this résumé, so the builder
+            // Short `resume` links that surface this resume, so the builder
             // can show their public URL + a jump to click analytics. A link
             // with no resume_id falls back to the owner's default version,
-            // so include those when the resolved résumé is the default.
+            // so include those when the resolved resume is the default.
             'resumeLinks' => $this->resumeLinksFor($resume),
         ]);
     }
 
     /**
-     * Short `resume`-type links that surface the given résumé. Returns a
+     * Short `resume`-type links that surface the given resume. Returns a
      * plain array with the public short URL and a deep-link to each link's
      * click-analytics page so the builder can cross-link back to the link.
      *
      * A `resume` link with no `resume_id` falls back to the owner's default
-     * version, so those are included only when the résumé being edited is
-     * the default. Scoped to the résumé owner so no foreign links leak.
+     * version, so those are included only when the resume being edited is
+     * the default. Scoped to the resume owner so no foreign links leak.
      *
      * @return array<int, array{title: string, public_url: string, analytics_url: string}>
      */

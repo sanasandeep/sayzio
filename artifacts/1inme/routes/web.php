@@ -317,7 +317,7 @@ Route::middleware('brand.primary')->controller(\App\Modules\Common\Controllers\S
     Route::get('/whatsapp-agent',     fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('whatsapp-agent'))->name('site.whatsapp-agent');
     Route::get('/ai-dashboard',       fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('ai-dashboard'))->name('site.ai-dashboard');
     Route::view('/docs/api', 'public.api-docs', ['seoKey' => 'api-docs'])->name('site.api-docs');
-    // Standalone marketing page for the Résumé / Portfolio Builder module.
+    // Standalone marketing page for the Resume / Portfolio Builder module.
     Route::view('/resume-builder', 'public.resume-builder', ['seoKey' => 'resume-builder'])->name('site.resume-builder');
     // Standalone marketing page for the Dialer & Contacts module.
     Route::view('/dialer-contacts', 'public.dialer-contacts', ['seoKey' => 'dialer-contacts'])->name('site.dialer-contacts');

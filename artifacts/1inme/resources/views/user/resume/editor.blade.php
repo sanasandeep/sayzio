@@ -542,7 +542,7 @@
                                 <i class="fas fa-save text-[10px]"></i> Save page background
                             </button>
                             <span class="text-[11px]" style="color: var(--text-muted,#9ca3af);">
-                                Applies to both of this r&eacute;sum&eacute;'s public links.
+                                Applies to both of this resume's public links.
                             </span>
                         </div>
                     </form>
@@ -563,8 +563,8 @@
                     {{-- Toggle row --}}
                     <div class="flex items-start justify-between gap-3 mb-4">
                         <div>
-                            <p class="text-sm font-semibold" style="color: var(--text-primary,#fff);">Public résumé page</p>
-                            <p class="text-xs" style="color: var(--text-muted,#9ca3af);">When on, your résumé is reachable at the link below and can be embedded in your Link in Bio.</p>
+                            <p class="text-sm font-semibold" style="color: var(--text-primary,#fff);">Public resume page</p>
+                            <p class="text-xs" style="color: var(--text-muted,#9ca3af);">When on, your resume is reachable at the link below and can be embedded in your Link in Bio.</p>
                         </div>
                         <label class="inline-flex items-center cursor-pointer shrink-0">
                             <input type="checkbox" class="sr-only peer"
@@ -683,15 +683,15 @@
                         </button>
                     </div>
 
-                    {{-- Short links surfacing this résumé — public URL + a jump
+                    {{-- Short links surfacing this resume — public URL + a jump
                          to the link's click analytics. Shown whenever a
-                         `resume`-type short link points at this résumé so the
+                         `resume`-type short link points at this resume so the
                          builder ↔ link bridge is discoverable from both sides. --}}
                     @if(!empty($resumeLinks))
                     <div class="resume-field" style="margin-top: 16px; border-top: 1px solid var(--border-glass, rgba(255,255,255,0.08)); padding-top: 14px;">
-                        <label><i class="fas fa-link"></i> Short {{ count($resumeLinks) > 1 ? 'links' : 'link' }} for this résumé</label>
+                        <label><i class="fas fa-link"></i> Short {{ count($resumeLinks) > 1 ? 'links' : 'link' }} for this resume</label>
                         <p class="text-[11px] mb-2" style="color: var(--text-muted,#9ca3af);">
-                            This résumé is surfaced through {{ count($resumeLinks) > 1 ? 'these short links' : 'a short link' }}. Open the public page or jump to its click analytics.
+                            This resume is surfaced through {{ count($resumeLinks) > 1 ? 'these short links' : 'a short link' }}. Open the public page or jump to its click analytics.
                         </p>
                         @foreach($resumeLinks as $rl)
                         <div class="flex items-center gap-2 mb-2 flex-wrap">
@@ -2901,7 +2901,7 @@ function resumeEditor() {
             switch (this.coverTone) {
                 case 'warm':    return 'Personable and slightly conversational. Shows enthusiasm without being overfamiliar.';
                 case 'concise': return 'No-fluff voice with short sentences. Body is kept to two paragraphs maximum.';
-                default:        return 'Professional and confident. Focused paragraphs, free of clichés.';
+                default:        return 'Professional and confident. Focused paragraphs, free of stock phrases.';
             }
         },
 

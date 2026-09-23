@@ -3175,7 +3175,7 @@ class LinkController extends Controller
 
         $defaultDomainId = $domains->firstWhere('is_primary', true)?->id;
 
-        // Resume links can point at a specific named résumé version. Surface
+        // Resume links can point at a specific named resume version. Surface
         // every version the owner has so the edit form can offer a picker
         // (empty selection falls back to the default version).
         $resumeVersions = $link->type === Link::TYPE_RESUME
@@ -3235,7 +3235,7 @@ class LinkController extends Controller
         unset($validated['text_content']);
 
         // Resume version pick. Only meaningful for resume links: the owner
-        // chooses which named résumé version the short link resolves to.
+        // chooses which named resume version the short link resolves to.
         // An empty selection clears resume_id so the public page falls back
         // to the owner's default version. For any non-resume link, strip the
         // field entirely so it can never be stamped onto the wrong type.

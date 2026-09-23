@@ -111,11 +111,11 @@ class MarketingSeo
                 'keywords' => 'api documentation, rest api, developer api, link api, biolink api, qr code api, sayzio api',
             ],
             'resume-builder' => [
-                'label' => 'Résumé builder',
+                'label' => 'Resume builder',
                 'group' => 'Capabilities',
                 'url' => '/resume-builder',
-                'title' => 'Résumé & Portfolio Builder — A Shareable CV Link',
-                'description' => 'Build a polished online résumé and portfolio with Sayzio and share it from a single link or QR code. Export to PDF and keep it always up to date.',
+                'title' => 'Resume & Portfolio Builder — A Shareable CV Link',
+                'description' => 'Build a polished online resume and portfolio with Sayzio and share it from a single link or QR code. Export to PDF and keep it always up to date.',
                 'keywords' => 'resume builder, online cv, portfolio builder, shareable resume, pdf resume, personal page',
             ],
             'dialer-contacts' => [
@@ -199,7 +199,7 @@ class MarketingSeo
                 'group' => 'Core',
                 'url' => '/demos',
                 'title' => 'Live Demos — See Every Sayzio Page Type in Action',
-                'description' => 'Open a real, working example of each Sayzio page type: link in bio, digital business card, restaurant menu, résumé, booking page, forms and more. No signup needed.',
+                'description' => 'Open a real, working example of each Sayzio page type: link in bio, digital business card, restaurant menu, resume, booking page, forms and more. No signup needed.',
                 'keywords' => 'link in bio examples, biolink demo, digital business card example, qr menu demo, sayzio demos, page templates',
             ],
             'compare-index' => [

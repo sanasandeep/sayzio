@@ -199,7 +199,7 @@ class ResumeCoverLetterService
         $toneHint = match ($tone) {
             'warm'    => 'Use a warm, personable, slightly conversational voice. Show genuine enthusiasm for the role and team without being overfamiliar.',
             'concise' => 'Use a tight, no-fluff voice. Prefer short sentences. Keep the body to two paragraphs maximum.',
-            default   => 'Use a professional, confident voice. Keep paragraphs focused and free of clichés.',
+            default   => 'Use a professional, confident voice. Keep paragraphs focused and free of stock phrases.',
         };
 
         $schemaHint = "Return strict JSON with this shape (no extra keys, no markdown, no commentary):\n"
