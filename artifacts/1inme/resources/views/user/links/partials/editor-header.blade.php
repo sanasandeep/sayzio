@@ -62,6 +62,33 @@
             <i class="fas fa-robot text-[10px]"></i>
             <span>AI Chat</span>
         </a>
+        {{-- Sana, 2026-09-23: "no option to go back to menu items to
+             update... fix this bug too".
+
+             Conversational, Slides and AI Chat each had a tab here and the
+             three page types with their own editor screen -- restaurant
+             menu, store menu, service booking -- did not. So once you
+             opened Settings on a menu there was no way back to the items
+             except the browser's back button. Not a styling problem; the
+             link had never been written. --}}
+        @elseif($link->type === 'restaurant_menu')
+        <a href="{{ route('user.links.restaurant.editor', $link) }}"
+           class="editor-tab no-underline {{ $activeMainTab === 'restaurant' ? 'is-active' : '' }}">
+            <i class="fas fa-utensils text-[10px]"></i>
+            <span>Menu</span>
+        </a>
+        @elseif($link->type === 'store_menu')
+        <a href="{{ route('user.links.store.editor', $link) }}"
+           class="editor-tab no-underline {{ $activeMainTab === 'store' ? 'is-active' : '' }}">
+            <i class="fas fa-bag-shopping text-[10px]"></i>
+            <span>Products</span>
+        </a>
+        @elseif($link->type === 'service_booking')
+        <a href="{{ route('user.links.service-booking.editor', $link) }}"
+           class="editor-tab no-underline {{ $activeMainTab === 'service_booking' ? 'is-active' : '' }}">
+            <i class="fas fa-calendar-check text-[10px]"></i>
+            <span>Services</span>
+        </a>
         @endif
     </div>
 </div>

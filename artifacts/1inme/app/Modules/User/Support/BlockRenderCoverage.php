@@ -224,15 +224,32 @@ class BlockRenderCoverage
             return self::$topLevel;
         }
 
-        $publicSrc = self::readView('common/biolink.blade.php');
-        $cov = self::parseBladeTypeBranches($publicSrc);
+        // Both files, because the top-level loop now lives in the list
+        // partial rather than inline in the page. That move is what lets a
+        // menu or a review wall render blocks at all -- they include the
+        // list, not the biolink page -- and this coverage is derived by
+        // READING whichever file does the delegating, so it has to follow.
+        //
+        // Reading the page too keeps a legacy or partial reintroduction of
+        // inline per-type branches credited, which is the original reason
+        // this parses Blade rather than trusting a hand-kept list.
+        $sources = [
+            self::readView('common/biolink.blade.php'),
+            self::readView('common/partials/biolink-block-list.blade.php'),
+        ];
 
-        // The partial is reachable at TOP LEVEL only when the public view
-        // delegates the top-level $block to it (the card/grid child loop
-        // delegates $childBlock and must NOT count). \b keeps $childBlock from
-        // matching.
-        if (preg_match('/biolink-block-render\'[^)]*\'block\'\s*=>\s*\$block\b/', $publicSrc)) {
-            $cov = self::mergeCoverage($cov, self::partialCoverage());
+        $cov = self::parseBladeTypeBranches($sources[0]);
+
+        // The dispatch partial is reachable at TOP LEVEL only where the
+        // top-level $block is delegated to it; the card/grid child loop
+        // delegates $childBlock and must NOT count. \b keeps $childBlock
+        // from matching.
+        foreach ($sources as $src) {
+            $cov = self::mergeCoverage($cov, self::parseBladeTypeBranches($src));
+
+            if (preg_match('/biolink-block-render\'[^)]*\'block\'\s*=>\s*\$block\b/', $src)) {
+                $cov = self::mergeCoverage($cov, self::partialCoverage());
+            }
         }
 
         return self::$topLevel = $cov;

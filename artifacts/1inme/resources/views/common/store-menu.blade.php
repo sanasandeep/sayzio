@@ -55,7 +55,17 @@
              safe to echo because MenuPresentation::cleanFamily only ever
              returns a family that FontCatalog::isKnown() recognises -- no
              creator input reaches this string. --}}
-        :root { color-scheme: light dark; --accent: {{ $accent }}; }
+        {{-- The colours a creator chose, as variables. Each one is only
+             emitted when it was actually picked, so an unset colour keeps
+             inheriting the page ink exactly as this page did before. --}}
+        :root {
+            color-scheme: light dark; --accent: {{ $accent }};
+            --ink-head:  {{ $mp['heading_color'] ?: 'inherit' }};
+            --ink-item:  {{ $mp['item_color']    ?: 'inherit' }};
+            --ink-desc:  {{ $mp['desc_color']    ?: 'inherit' }};
+            --ink-price: {{ $mp['price_color']   ?: 'var(--accent)' }};
+            --rule:      {{ $mp['divider_color'] ?: 'rgba(0,0,0,.07)' }};
+        }
         * { box-sizing: border-box; }
         @if($pbOn)
         html, body { margin:0; padding:0; min-height:100%; font-family:{!! $mp['font_css'] !!}; color:{{ $pbInk }}; }
@@ -71,15 +81,15 @@
         .hero p { margin:6px 0 0; opacity:.65; font-size:14px; }
         .badge { display:inline-block; margin-top:12px; padding:6px 12px; border-radius:999px; background:var(--accent); color:#fff; font-size:12.5px; font-weight:600; }
         .cat { margin-top:26px; }
-        .cat h2 { font-size:18px; font-weight:700; margin:0 0 4px; font-family:{!! $mp['heading_css'] !!}; }
+        .cat h2 { font-size:18px; font-weight:700; margin:0 0 4px; font-family:{!! $mp['heading_css'] !!}; color:var(--ink-head); }
         .cat .cdesc { font-size:13px; opacity:.6; margin:0 0 12px; }
-        .item { display:flex; gap:14px; padding:14px 0; border-top:1px solid rgba(0,0,0,.07); }
-        @media (prefers-color-scheme: dark) { .item { border-color:rgba(255,255,255,.08); } }
+        .item { display:flex; gap:14px; padding:14px 0; border-top:1px solid var(--rule); }
+        @media (prefers-color-scheme: dark) { .item { border-color:{{ $mp['divider_color'] ?: 'rgba(255,255,255,.08)' }}; } }
         .item .photo { width:74px; height:74px; border-radius:14px; object-fit:cover; flex:0 0 auto; background:rgba(0,0,0,.05); }
         .item .info { flex:1; min-width:0; }
-        .item .name { font-weight:650; font-size:15.5px; }
-        .item .desc { font-size:13px; opacity:.62; margin-top:3px; line-height:1.4; }
-        .item .price { font-weight:700; font-size:14.5px; margin-top:6px; color:var(--accent); }
+        .item .name { font-weight:650; font-size:15.5px; color:var(--ink-item); }
+        .item .desc { font-size:13px; opacity:.62; margin-top:3px; line-height:1.4; color:var(--ink-desc); }
+        .item .price { font-weight:700; font-size:14.5px; margin-top:6px; color:var(--ink-price); }
         .soldout { opacity:.45; }
         .soldout .name::after { content:" · Out of stock"; color:#b91c1c; font-size:12px; font-weight:600; }
         .addrow { margin-top:8px; }
@@ -131,6 +141,20 @@
         @endif
     </div>
 
+
+    {{-- Blocks a creator added to this page. They save through the shared
+         block editor and, until now, nothing on the public menu rendered
+         them. Each block picks its side; the default is below, because the
+         menu is what the page is for. --}}
+    @include('common.partials.biolink-block-list', [
+        'link'           => $link,
+        'blkFontColor'   => $pbInk,
+        'blkGlobalTheme' => $pbBs['block_theme'] ?? [],
+        'blkBtnInline'   => '',
+        'blkSlot'        => 'above',
+        'blkEmpty'       => false,
+    ])
+
     @forelse($cats as $cat)
         <div class="cat">
             <h2>{{ $cat->name }}</h2>
@@ -164,6 +188,15 @@
     @empty
         <div class="empty">This store is being set up. Check back soon.</div>
     @endforelse
+
+    @include('common.partials.biolink-block-list', [
+        'link'           => $link,
+        'blkFontColor'   => $pbInk,
+        'blkGlobalTheme' => $pbBs['block_theme'] ?? [],
+        'blkBtnInline'   => '',
+        'blkSlot'        => 'below',
+        'blkEmpty'       => false,
+    ])
 </div>
 
 @if($isOrder)
