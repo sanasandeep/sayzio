@@ -32,8 +32,8 @@
 @endphp
 <div class="page-hero mb-6"@if($url) x-data="{ copied: false }"@endif>
     @include('common.partials.card-ribbon')
-    <div class="cribbon-copy flex flex-wrap items-start justify-between gap-5">
-        <div class="flex items-start gap-4 min-w-0 flex-1">
+    <div class="cribbon-copy hero-row">
+        <div class="hero-main">
             @if($back)
                 <a href="{{ $back }}" class="hero-back" title="Back" aria-label="Back">
                     <i class="fas fa-arrow-left"></i>
@@ -81,7 +81,7 @@
             </div>
         </div>
         @if(!empty($actions))
-            <div class="flex items-center gap-2 flex-wrap">
+            <div class="hero-actions">
                 @foreach($actions as $a)
                     @if(!empty($a['menu']))
                         {{-- An action with more than one destination. Built on

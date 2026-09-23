@@ -470,28 +470,84 @@
        the chart stops looking like a heatmap and starts looking like a wall.
        Capped and centred, it keeps the dashboard's proportions on a wide
        screen and still collapses to fit a phone. */
+    /* ---- The heat ramp -------------------------------------------------
+       Six steps, light -> dark, blue -> indigo -> violet -> magenta. It is
+       deliberately NOT one hue: Sana asked for colour, and a ramp that also
+       turns is easier to read a value off than six tints of the same blue.
+       What makes it safe is that LIGHTNESS still falls in order (validated:
+       monotone, every adjacent gap >= 0.06 OKLab L), so it stays ordered for
+       colour-blind readers and in greyscale -- the thing a rainbow ramp
+       breaks. The lightest step is allowed to recede toward the card, which
+       is how "almost no clicks" should read. */
+    #when-card {
+        --hl0: #f1f3f9;
+        --hl1: #dbe5fc;
+        --hl2: #aec6f6;
+        --hl3: #7ea0ec;
+        --hl4: #5f6fe0;
+        --hl5: #6d28d9;
+        --hl6: #5b1064;
+        --hl-ink: #1a1025;
+    }
     .when-heat {
         display: grid;
-        grid-template-columns: 18px repeat(12, 1fr);
+        grid-template-columns: 26px repeat(12, minmax(0, 1fr));
         gap: 4px;
         align-items: center;
         max-width: 560px;
         margin-inline: auto;
+    }
+    html:not(.light-mode) #when-card {
+        --hl0: rgba(255,255,255,0.05);
+        --hl1: #16224a;
+        --hl2: #26408f;
+        --hl3: #4165d4;
+        --hl4: #8a6cf6;
+        --hl5: #cf86f2;
+        --hl6: #f7cdf8;
+        --hl-ink: #ffffff;
     }
     .when-heat-day {
         font-size: 10px;
         font-weight: 600;
         color: var(--text-faint);
         text-align: center;
+        font-variant-numeric: tabular-nums;
     }
     .when-heat-cell {
         aspect-ratio: 1 / 1;
         border-radius: 6px;
         min-height: 22px;
+        position: relative;
+        background: var(--hl0);
+        transition: transform .12s ease, box-shadow .12s ease;
     }
+    .when-heat-cell[data-level="1"] { background: var(--hl1); }
+    .when-heat-cell[data-level="2"] { background: var(--hl2); }
+    .when-heat-cell[data-level="3"] { background: var(--hl3); }
+    .when-heat-cell[data-level="4"] { background: var(--hl4); }
+    .when-heat-cell[data-level="5"] { background: var(--hl5); }
+    .when-heat-cell[data-level="6"] { background: var(--hl6); }
+    /* Hover/tap: lift the cell and ring it in the page ink, so the one you
+       are reading is unmistakable even against its neighbours. */
+    .when-heat-cell:hover, .when-heat-cell.is-on {
+        transform: scale(1.18);
+        z-index: 2;
+        box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 3.5px var(--hl-ink), 0 6px 16px -6px rgba(0,0,0,.5);
+    }
+    /* The value itself, in the card header, updated on hover. Reserved
+       height so the card does not jump as the text changes. */
+    .when-readout {
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        justify-content: center; min-height: 22px; margin: 0 0 12px;
+        font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px; color: var(--text-muted); text-align: center;
+    }
+    .when-readout b { color: var(--text-primary); font-weight: 600; font-size: 14px; }
+    .when-readout .when-readout-hint { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-faint); }
     .when-heat-hours {
         display: grid;
-        grid-template-columns: 18px repeat(12, 1fr);
+        grid-template-columns: 26px repeat(12, minmax(0, 1fr));
         gap: 4px;
         margin: 6px auto 0;
         max-width: 560px;
@@ -515,8 +571,24 @@
     .when-heat-steps { display: inline-flex; gap: 3px; }
     .when-heat-steps i { width: 13px; height: 13px; border-radius: 4px; display: inline-block; }
     @media (max-width: 560px) {
-        .when-heat-cell { min-height: 15px; }
+        .when-heat, .when-heat-hours { grid-template-columns: 22px repeat(12, minmax(0, 1fr)); gap: 3px; }
+        .when-heat-cell { min-height: 15px; border-radius: 4px; }
         .when-heat-hours { font-size: 8px; }
+        .when-heat-day { font-size: 9px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .when-heat-cell { transition: none; }
+        .when-heat-cell:hover, .when-heat-cell.is-on { transform: none; }
+    }
+
+    .period-dates {
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        margin-left: auto; min-width: 0;
+    }
+    .period-dates input[type="date"] { min-width: 0; flex: 1 1 130px; }
+    @media (max-width: 640px) {
+        .period-dates { margin-left: 0; width: 100%; }
+        .period-dates button { flex: 1 1 100%; justify-content: center; }
     }
 
     .stat-tile-value-sm { font-size: 22px; }
@@ -645,12 +717,15 @@
             <a href="{{ $buildUrl(['source' => $sk === '' ? null : $sk]) }}" class="pill {{ (($sourceFilter ?? '') === $sk) ? 'pill-active' : '' }}">{{ $slbl }}</a>
         @endforeach
         <span class="mx-3 h-5 w-px hidden md:inline-block" style="background: var(--border-glass);"></span>
-        <form method="GET" class="flex items-center gap-2 ml-auto">
+        {{-- On a phone this row used to run off the right edge, taking the
+             Apply button with it: fixed-width date inputs in a nowrap row.
+             It wraps now, and the inputs share whatever width there is. --}}
+        <form method="GET" class="period-dates">
             <input type="hidden" name="period" value="custom">
             <input type="hidden" name="group" value="{{ $groupBy }}">
-            <input type="date" name="from" value="{{ request('from', $startDate->format('Y-m-d')) }}" class="theme-input text-xs py-1.5 px-2">
+            <input type="date" name="from" value="{{ request('from', $startDate->format('Y-m-d')) }}" class="theme-input text-xs py-1.5 px-2" aria-label="From date">
             <span class="text-xs" style="color:var(--text-faint);">to</span>
-            <input type="date" name="to" value="{{ request('to', $endDate->format('Y-m-d')) }}" class="theme-input text-xs py-1.5 px-2">
+            <input type="date" name="to" value="{{ request('to', $endDate->format('Y-m-d')) }}" class="theme-input text-xs py-1.5 px-2" aria-label="To date">
             <button class="pill pill-active"><i class="fas fa-check text-[9px]"></i> Apply</button>
         </form>
     </div>
@@ -1013,8 +1088,9 @@
             <span class="text-[11px] font-medium ml-1" style="color:var(--text-faint);">(2-hour blocks)</span>
         </div>
         @if($heatPeak > 0)
+            {{-- The peak used to be a pill here; it is the readout under the
+                 title now, where it is replaced by whatever you hover. --}}
             <div class="flex items-center gap-2 flex-wrap">
-                <span class="section-pill">Peak {{ number_format($heatPeak) }} &middot; {{ $heatPeakLabel }}</span>
                 @include('user.links.partials.chart-actions', ['target' => 'when-heat-grid', 'title' => 'When This Link Gets Clicked', 'slug' => 'click-times', 'footer' => $chartFooter])
             </div>
         @endif
@@ -1022,34 +1098,90 @@
     @if($heatPeak < 1)
         <p class="text-sm text-center py-12" style="color: var(--text-faint);">No clicks in this range, so there is no pattern to draw yet.</p>
     @else
+        @php
+            $dayNamesFull = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+            $dayNamesAbbr = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+        @endphp
+        {{-- The value, spelled out. The grid alone could only say "darker
+             than that one"; this says 457. It follows the cursor, and a tap
+             works the same way on a phone. --}}
+        <p class="when-readout" id="when-readout"
+           data-idle="Peak <b>{{ number_format($heatPeak) }}</b> clicks &middot; {{ $heatPeakLabel }}">
+            Peak <b>{{ number_format($heatPeak) }}</b> clicks &middot; {{ $heatPeakLabel }}
+            <span class="when-readout-hint">hover a block</span>
+        </p>
         <div class="when-heat" id="when-heat-grid" role="img"
              aria-label="Click density by day and hour. Busiest at {{ $heatPeakLabel }} with {{ $heatPeak }} clicks.">
             @foreach($clickHeat as $d => $blocks)
-                <span class="when-heat-day">{{ ['M','T','W','T','F','S','S'][$d] }}</span>
+                <span class="when-heat-day">{{ substr($dayNamesAbbr[$d], 0, 2) }}</span>
                 @foreach($blocks as $b => $n)
-                    @php $alpha = $n > 0 ? 0.12 + (sqrt($n / $heatMax) * 0.76) : 0.05; @endphp
-                    <span class="when-heat-cell"
-                          style="background: color-mix(in srgb, var(--accent) {{ round($alpha * 100) }}%, transparent)"
-                          title="{{ ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][$d] }} {{ str_pad((string) ($b * 2), 2, '0', STR_PAD_LEFT) }}:00 &middot; {{ number_format($n) }} {{ \Illuminate\Support\Str::plural('click', $n) }}"></span>
+                    @php
+                        // Six steps on the square root of the share, so one
+                        // runaway hour does not flatten the rest to one tint.
+                        $level = $n > 0 ? max(1, min(6, (int) ceil(sqrt($n / $heatMax) * 6))) : 0;
+                        $from  = str_pad((string) ($b * 2), 2, '0', STR_PAD_LEFT);
+                        $to    = str_pad((string) ((($b * 2) + 2) % 24), 2, '0', STR_PAD_LEFT);
+                        $label = $dayNamesAbbr[$d].' '.$from.':00–'.$to.':00';
+                    @endphp
+                    <span class="when-heat-cell" data-level="{{ $level }}"
+                          data-when="{{ $label }}"
+                          data-count="{{ number_format($n) }}"
+                          data-unit="{{ \Illuminate\Support\Str::plural('click', $n) }}"
+                          title="{{ $dayNamesFull[$d] }} {{ $from }}:00–{{ $to }}:00 &middot; {{ number_format($n) }} {{ \Illuminate\Support\Str::plural('click', $n) }}"></span>
                 @endforeach
             @endforeach
         </div>
         <div class="when-heat-hours">
-            {{-- One spacer for the day-letter column, then twelve labels for
-                 twelve cells. See the dashboard's copy: leading with a blank
-                 puts every label one two-hour block to the right. --}}
+            {{-- One spacer for the day column, then twelve labels for twelve
+                 cells. See the dashboard's copy: leading with a blank puts
+                 every label one two-hour block to the right. --}}
             <span></span>
             @foreach(['00','','04','','08','','12','','16','','20',''] as $h)<span>{{ $h }}</span>@endforeach
         </div>
         <div class="when-heat-scale">
             <span>Quiet</span>
             <span class="when-heat-steps">
-                @foreach([5, 24, 43, 62, 88] as $step)
-                    <i style="background: color-mix(in srgb, var(--accent) {{ $step }}%, transparent)"></i>
+                @foreach([1, 2, 3, 4, 5, 6] as $step)
+                    <i style="background: var(--hl{{ $step }})"></i>
                 @endforeach
             </span>
             <span>Busy</span>
         </div>
+        @push('scripts')
+        <script>
+        (function () {
+            var grid = document.getElementById('when-heat-grid');
+            var out  = document.getElementById('when-readout');
+            if (!grid || !out) return;
+            var idle = out.getAttribute('data-idle');
+            var on   = null;
+
+            function show(cell) {
+                if (on && on !== cell) on.classList.remove('is-on');
+                on = cell;
+                cell.classList.add('is-on');
+                out.innerHTML = cell.dataset.when + ' &middot; <b>' + cell.dataset.count + '</b> ' + cell.dataset.unit;
+            }
+            function clear() {
+                if (on) { on.classList.remove('is-on'); on = null; }
+                out.innerHTML = idle + ' <span class="when-readout-hint">hover a block</span>';
+            }
+
+            grid.addEventListener('mouseover', function (e) {
+                var cell = e.target.closest('.when-heat-cell');
+                if (cell) show(cell);
+            });
+            grid.addEventListener('mouseleave', clear);
+            // Touch: a tap reads the block out and keeps it marked until the
+            // next tap, because there is no hover to fall back on.
+            grid.addEventListener('click', function (e) {
+                var cell = e.target.closest('.when-heat-cell');
+                if (!cell) return;
+                if (cell === on) { clear(); } else { show(cell); }
+            });
+        })();
+        </script>
+        @endpush
     @endif
 </div>
 
