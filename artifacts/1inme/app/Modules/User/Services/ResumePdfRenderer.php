@@ -114,7 +114,9 @@ class ResumePdfRenderer
             'header'  => $header,
             'summary' => $merged['summary'] ?? '',
             'customSections' => $merged['custom_sections'] ?? [],
-            'itemsByType'    => $resume->items->groupBy('section_type'),
+            // Hidden items stay out of the PDF too -- it is the same
+            // resume, printed.
+            'itemsByType'    => $resume->publicItemsByType(),
             'template'       => $resume->templateMeta(),
             'theme'          => $resume->colorThemeMeta()['tokens'] ?? [],
             'paperSize'      => $size,

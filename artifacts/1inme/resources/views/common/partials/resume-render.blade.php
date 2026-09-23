@@ -32,7 +32,10 @@
     $summary  = (string) ($sections['summary'] ?? '');
     $custom   = $sections['custom_sections'] ?? [];
 
-    $items = $resume->items->groupBy('section_type');
+    // Hidden items are off every public surface; see
+    // Resume::publicItemsByType(), which the PDF and the ATS checker
+    // read through as well so the three cannot disagree.
+    $items = $resume->publicItemsByType();
     $get = fn (string $t) => ($items[$t] ?? collect())->map(fn ($i) => $i->data ?? [])->all();
 
     $fmtMonth = function ($s) {

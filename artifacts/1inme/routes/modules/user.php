@@ -675,6 +675,11 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::put   ('items/{item}',     [\App\Modules\User\Controllers\ResumeController::class, 'updateItem'])->whereNumber('item')->name('items.update');
             Route::delete('items/{item}',     [\App\Modules\User\Controllers\ResumeController::class, 'destroyItem'])->whereNumber('item')->name('items.destroy');
             Route::post  ('items/reorder',    [\App\Modules\User\Controllers\ResumeController::class, 'reorderItems'])->name('items.reorder');
+            // Hide / unhide a single item. Separate from items.update so
+            // toggling visibility never has to round-trip the item's whole
+            // payload -- and so a hide cannot fail validation on a field
+            // the creator has not filled in yet.
+            Route::post  ('items/{item}/visibility', [\App\Modules\User\Controllers\ResumeController::class, 'toggleItemVisibility'])->whereNumber('item')->name('items.visibility');
 
             // Polished PDF export for the signed-in owner. Throttled so
             // headless rendering can't be weaponised against the worker.

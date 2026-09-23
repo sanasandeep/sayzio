@@ -334,6 +334,23 @@ class ResumeController extends Controller
         return $this->ok(['item' => ResumePresenter::presentItem($item->fresh())]);
     }
 
+    /**
+     * PUT /resume/items/{item}/visibility — hide or unhide one item.
+     *
+     * Parity with the web builder. Kept off updateItem() for the same
+     * reason: a visibility toggle must not have to resend the item's whole
+     * payload, nor be able to fail on a field that is not filled in yet.
+     */
+    public function toggleItemVisibility(Request $request, ResumeSectionItem $item)
+    {
+        $this->authorizeItem($request, $item);
+
+        $data = $request->validate(['is_hidden' => ['required', 'boolean']]);
+        $item->update(['is_hidden' => (bool) $data['is_hidden']]);
+
+        return $this->ok(['item' => ResumePresenter::presentItem($item->fresh())]);
+    }
+
     /** DELETE /resume/items/{item} — remove an item. */
     public function destroyItem(Request $request, ResumeSectionItem $item)
     {

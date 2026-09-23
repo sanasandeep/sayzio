@@ -176,6 +176,28 @@ class Resume extends Model
     }
 
     /**
+     * Items grouped by section, with hidden ones left out.
+     *
+     * The one thing the three public renderers -- the page, the PDF and
+     * the ATS checker -- must agree on. They each used to call
+     * `$resume->items->groupBy('section_type')` for themselves, which is
+     * exactly the shape that lets a fourth renderer be added later and
+     * quietly show what the other three hide.
+     *
+     * The builder deliberately does NOT call this: a hidden item stays
+     * fully editable, which is the point of hiding it rather than
+     * deleting it.
+     *
+     * @return \Illuminate\Support\Collection<string, \Illuminate\Support\Collection<int, ResumeSectionItem>>
+     */
+    public function publicItemsByType()
+    {
+        return $this->items
+            ->reject(fn (ResumeSectionItem $i) => (bool) $i->is_hidden)
+            ->groupBy('section_type');
+    }
+
+    /**
      * Merged view of `sections` JSON (always returns every default key
      * even when the row stored a partial blob).
      */

@@ -475,7 +475,10 @@ class ResumeCoverLetterService
         $sections = $resume->getMergedSections();
         $header   = (array) ($sections['header'] ?? []);
 
+        // A hidden item is not on the resume being sent, so it has no
+        // business in the letter that accompanies it.
         $experience = $resume->itemsOfType('experience')
+            ->where('is_hidden', false)
             ->orderBy('position')
             ->limit(self::MAX_EXPERIENCE_ITEMS)
             ->get()
@@ -491,6 +494,7 @@ class ResumeCoverLetterService
             })->all();
 
         $skills = $resume->itemsOfType('skills')
+            ->where('is_hidden', false)
             ->orderBy('position')
             ->get()
             ->map(fn(ResumeSectionItem $i) => (string) ((is_array($i->data) ? $i->data : [])['name'] ?? ''))

@@ -13,14 +13,17 @@ class ResumeSectionItem extends Model
     ];
 
     protected $fillable = [
-        'resume_id', 'section_type', 'position', 'data',
+        'resume_id', 'section_type', 'position', 'data', 'is_hidden',
     ];
 
     protected function casts(): array
     {
         return [
-            'data'     => 'array',
-            'position' => 'integer',
+            'data'      => 'array',
+            'position'  => 'integer',
+            // Hidden items stay in the builder and stay off every public
+            // surface. See Resume::publicItemsByType().
+            'is_hidden' => 'boolean',
         ];
     }
 

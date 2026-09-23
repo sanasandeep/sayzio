@@ -35,6 +35,15 @@
     .resume-icon-btn { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; color: var(--text-muted,#9ca3af); border:1px solid transparent; background:transparent; cursor:pointer; font-size:11px; transition: all .15s; }
     .resume-icon-btn:hover { background: rgba(61,107,255,0.1); color:#90acff; }
     .resume-icon-btn.danger:hover { background: rgba(239,68,68,0.1); color:#f87171; }
+
+    /* A hidden entry: still editable, visibly not on the resume. Dimmed
+       rather than removed, and the dimming stops at the row head so the
+       controls (including the one that brings it back) stay legible. */
+    .resume-card-item.item-hidden { border-style: dashed; opacity: .62; }
+    .resume-card-item.item-hidden .resume-card-item-head { opacity: 1; }
+    .resume-card-item.item-hidden .resume-card-item-title { text-decoration: line-through; text-decoration-thickness: 1px; }
+    .resume-icon-btn.is-hidden-toggle { color: #f0b429; }
+    .resume-icon-btn.is-hidden-toggle:hover { background: rgba(240,180,41,0.12); color: #f0b429; }
     .resume-add-btn { display:inline-flex; align-items:center; gap:6px; padding: 7px 12px; border-radius: 10px; background: rgba(61,107,255,0.12); color: #bccfff; font-size: 11px; font-weight: 600; border: 1px dashed rgba(61,107,255,0.3); cursor: pointer; transition: all .15s; }
     .resume-add-btn:hover { background: rgba(61,107,255,0.18); border-style: solid; }
     .resume-pill { display:inline-flex; align-items:center; gap: 4px; padding: 4px 9px; border-radius:999px; font-size:10px; font-weight:600; background: rgba(61,107,255,0.12); color:#bccfff; border: 1px solid rgba(61,107,255,0.2); }
@@ -984,7 +993,7 @@
                     <div class="resume-section-body" x-show="open[def.key]" x-collapse>
                         <div :data-section="def.key" x-init="$nextTick(() => initSortable($el, def.key))">
                             <template x-for="(item, idx) in (items[def.key] || [])" :key="item.id">
-                                <div class="resume-card-item" :data-id="item.id">
+                                <div class="resume-card-item" :class="{ 'item-hidden': item.is_hidden }" :data-id="item.id">
                                     <div class="resume-card-item-head">
                                         <i class="fas fa-grip-vertical text-xs" style="color: var(--text-muted,#9ca3af);"></i>
                                         <span class="resume-card-item-title" x-text="itemLabel(def.key, item)"></span>
@@ -998,6 +1007,12 @@
                                         </button>
                                         <button type="button" class="resume-icon-btn" title="Move down" @click="moveItem(def.key, idx, 1)">
                                             <i class="fas fa-arrow-down"></i>
+                                        </button>
+                                        <button type="button" class="resume-icon-btn"
+                                                :class="{ 'is-hidden-toggle': item.is_hidden }"
+                                                :title="item.is_hidden ? 'Hidden \u2014 click to show on the resume' : 'Visible \u2014 click to hide'"
+                                                @click="toggleItemHidden(def.key, item)">
+                                            <i class="fas" :class="item.is_hidden ? 'fa-eye-slash' : 'fa-eye'"></i>
                                         </button>
                                         <button type="button" class="resume-icon-btn danger" title="Delete" @click="removeItem(def.key, item)">
                                             <i class="fas fa-trash"></i>
@@ -1037,12 +1052,18 @@
                             </div>
                             <div :data-section="'custom:'+cs.key" x-init="$nextTick(() => initSortable($el, 'custom', cs.key))">
                                 <template x-for="(item, idx) in customItems(cs.key)" :key="item.id">
-                                    <div class="resume-card-item" :data-id="item.id" style="background: rgba(144,172,255,0.04);">
+                                    <div class="resume-card-item" :class="{ 'item-hidden': item.is_hidden }" :data-id="item.id" style="background: rgba(144,172,255,0.04);">
                                         <div class="resume-card-item-head">
                                             <i class="fas fa-grip-vertical text-xs" style="color: var(--text-muted,#9ca3af);"></i>
                                             <span class="resume-card-item-title" x-text="item.data.title || 'Untitled entry'"></span>
                                             <button type="button" class="resume-icon-btn" @click="item._open = !item._open">
                                                 <i class="fas" :class="item._open ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                                            </button>
+                                            <button type="button" class="resume-icon-btn"
+                                                    :class="{ 'is-hidden-toggle': item.is_hidden }"
+                                                    :title="item.is_hidden ? 'Hidden \u2014 click to show on the resume' : 'Visible \u2014 click to hide'"
+                                                    @click="toggleItemHidden('custom', item)">
+                                                <i class="fas" :class="item.is_hidden ? 'fa-eye-slash' : 'fa-eye'"></i>
                                             </button>
                                             <button type="button" class="resume-icon-btn danger" @click="removeItem('custom', item)">
                                                 <i class="fas fa-trash"></i>
@@ -2038,6 +2059,26 @@ function resumeEditor() {
                 this.markSaved();
             } catch (e) { this.markError(e.message); }
         },
+        /**
+         * Hide or unhide one entry.
+         *
+         * Optimistic: the row dims immediately and reverts if the save
+         * fails, because the whole value of this control is that it is
+         * quick to try a version of the resume with something off.
+         */
+        async toggleItemHidden(type, item) {
+            const next = !item.is_hidden;
+            item.is_hidden = next;
+            try {
+                this.markSaving();
+                await this.http('POST', '/user/resume/items/' + item.id + '/visibility', { is_hidden: next });
+                this.renderPreview();
+                this.markSaved();
+            } catch (e) {
+                item.is_hidden = !next;
+                this.markError(e.message);
+            }
+        },
         moveItem(type, idx, dir) {
             const arr = this.items[type] || [];
             const target = idx + dir;
@@ -2258,7 +2299,13 @@ function resumeEditor() {
 
             const h = sections.header || {};
             const summary = sections.summary || '';
-            const items = itemsArg;
+            // Hidden entries are off the resume, so they are off the
+            // preview -- otherwise the pane stops being a preview of the
+            // page the reader gets. They stay in the builder above.
+            const items = {};
+            for (const k of Object.keys(itemsArg || {})) {
+                items[k] = (itemsArg[k] || []).filter(i => !i.is_hidden);
+            }
 
             const sectionBox = (title, body, key='') =>
                 body ? `<section class="pv-section" data-key="${esc(key)}"><h2 style="color:${theme.primary}; border-color:${theme.primary}">${esc(title)}</h2>${body}</section>` : '';

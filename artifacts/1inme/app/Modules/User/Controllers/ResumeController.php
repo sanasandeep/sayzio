@@ -620,6 +620,35 @@ class ResumeController extends Controller
         return response()->json(['item' => $this->presentItem($item->fresh())]);
     }
 
+    /**
+     * POST — hide or unhide one item.
+     *
+     * Sana, 2026-09-23: "here resume items can be also hidden... like hide
+     * unhide". A resume accumulates, and which entries belong on the
+     * version you are sending today is a different question from which of
+     * them happened -- so the alternative to hiding was deleting, which
+     * loses the entry for every other version too.
+     *
+     * Deliberately not part of updateItem(): toggling visibility must not
+     * have to round-trip the item's whole payload, and must not be able to
+     * fail validation on a field the creator has not filled in yet.
+     */
+    public function toggleItemVisibility(Request $request, ResumeSectionItem $item): JsonResponse
+    {
+        $this->authorizeItem($request, $item);
+
+        $data = $request->validate([
+            'is_hidden' => ['required', 'boolean'],
+        ]);
+
+        $item->update(['is_hidden' => (bool) $data['is_hidden']]);
+
+        return response()->json([
+            'item'   => $this->presentItem($item->fresh()),
+            'resume' => $this->present($item->resume->fresh('items')),
+        ]);
+    }
+
     /** DELETE — remove an item. */
     public function destroyItem(Request $request, ResumeSectionItem $item): JsonResponse
     {
