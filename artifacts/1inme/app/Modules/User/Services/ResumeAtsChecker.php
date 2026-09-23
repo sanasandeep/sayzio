@@ -63,7 +63,10 @@ class ResumeAtsChecker
         $header   = $sections['header'] ?? [];
         $summary  = (string) ($sections['summary'] ?? '');
         $tplStyle = (array) (($resume->templateMeta()['style'] ?? []));
-        $itemsByType = $resume->items->groupBy('section_type');
+        // The check is about what an employer's parser sees, so it
+        // reads the same list the public page does -- a hidden item
+        // must neither help nor hurt the score.
+        $itemsByType = $resume->publicItemsByType();
 
         $bodyText = self::collectBodyText($summary, $itemsByType);
         $checks = [];

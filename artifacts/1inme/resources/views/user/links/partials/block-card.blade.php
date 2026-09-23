@@ -99,7 +99,7 @@
                     <i class="fas fa-pen"></i>
                 </button>
                 @unless(in_array($block->type, ['verified_heading', 'verified_avatar']))
-                <button class="block-action-btn duplicate-btn" title="Duplicate — copies the styling too" onclick="ajaxDuplicateBlock(this, '{{ route('user.links.blocks.duplicate', [$link, $block]) }}', {{ $block->id }})">
+                <button class="block-action-btn duplicate-btn" title="Duplicate (copies the styling too)" onclick="ajaxDuplicateBlock(this, '{{ route('user.links.blocks.duplicate', [$link, $block]) }}', {{ $block->id }})">
                     <i class="fas fa-clone"></i>
                 </button>
                 @endunless

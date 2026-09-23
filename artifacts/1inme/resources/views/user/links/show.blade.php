@@ -611,7 +611,10 @@
 </div>
 
 @php
-    $sourceLabels = ['mobile_app' => 'Mobile app', 'web' => 'Web'];
+    // Share-button traffic gets proper names rather than the generic
+    // underscore-to-space fallback; see ShareButton::sourceLabels().
+    $sourceLabels = ['mobile_app' => 'Mobile app', 'web' => 'Web']
+        + \App\Modules\User\Support\ShareButton::sourceLabels();
     $activeFilters = [];
     if (!empty($aliasFilter)) {
         $activeFilters[] = ['key' => 'alias', 'label' => 'Alias', 'value' => '/' . $aliasFilter, 'icon' => 'fa-link', 'clearUrl' => $buildUrl(['alias' => null])];
@@ -1077,7 +1080,8 @@
 
 {{-- ===================== TRAFFIC SOURCE (mobile app vs web) ===================== --}}
 @php
-    $sourceLabelMap = ['mobile_app' => 'Mobile app', 'web' => 'Web', 'unknown' => 'Unknown'];
+    $sourceLabelMap = ['mobile_app' => 'Mobile app', 'web' => 'Web', 'unknown' => 'Unknown']
+        + \App\Modules\User\Support\ShareButton::sourceLabels();
     $sourceTotal = (int) $sourceStats->sum('count');
 @endphp
 <div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#06b6d4,#22d3ee); --sc-glow: rgba(6,182,212,0.35); --sc-color: #67e8f9; --sc-border: rgba(6,182,212,0.3);">
@@ -3224,7 +3228,8 @@ document.addEventListener('DOMContentLoaded', function () {
     @if(!$osStats->isEmpty())doughnut('osChart', @json($osStats->pluck('os')), @json($osStats->pluck('count')));@endif
     @if(!$deviceStats->isEmpty())doughnut('deviceChart', @json($deviceStats->pluck('device_type')), @json($deviceStats->pluck('count')));@endif
     @php
-        $__sourceLabelMap = ['mobile_app' => 'Mobile app', 'web' => 'Web', 'unknown' => 'Unknown'];
+        $__sourceLabelMap = ['mobile_app' => 'Mobile app', 'web' => 'Web', 'unknown' => 'Unknown']
+            + \App\Modules\User\Support\ShareButton::sourceLabels();
         $__sourceChartLabels = $sourceStats->pluck('source')->map(fn($s) => $__sourceLabelMap[$s] ?? ucfirst(str_replace('_', ' ', $s)))->values();
     @endphp
     @if(!$sourceStats->isEmpty())doughnut('sourceChart', @json($__sourceChartLabels), @json($sourceStats->pluck('count')));@endif

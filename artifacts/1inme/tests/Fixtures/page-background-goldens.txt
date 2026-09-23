@@ -2,14 +2,14 @@
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(135deg, #0a0612 0%, #1a0533 50%, #0a0612 100%); }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
-body > *:not(.bg-layer):not(script):not(style) { position: relative; z-index: 1; }
+body > *:not(.bg-layer):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== color-fixed =====
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #123456; }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
-body > *:not(.bg-layer):not(script):not(style) { position: relative; z-index: 1; }
+body > *:not(.bg-layer):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #123456; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== color-scroll =====
@@ -20,21 +20,21 @@ html { scroll-behavior: smooth; }
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(135deg, #ff6b6b 0%, #feca57 50%, #48dbfb 100%); }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
-body > *:not(.bg-layer):not(script):not(style) { position: relative; z-index: 1; }
+body > *:not(.bg-layer):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== image =====
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: #0a0612 url('https://cdn.example.com/bg.jpg') center/cover no-repeat; }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
-body > *:not(.bg-layer):not(script):not(style) { position: relative; z-index: 1; }
+body > *:not(.bg-layer):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== image-blur-and-dim =====
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: #0a0612 url('https://cdn.example.com/bg.jpg') center/cover no-repeat; }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
-body > *:not(.bg-layer):not(script):not(style) { position: relative; z-index: 1; }
+body > *:not(.bg-layer):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 body::after { content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); background: rgba(16,24,32,0.45); }
 html { scroll-behavior: smooth; }
@@ -57,14 +57,14 @@ html { scroll-behavior: smooth; }
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(120deg, #FF00C7 0%, #51003F 100%), linear-gradient(120deg, #0030AD 0%, #00071A 100%), linear-gradient(180deg, #000346 0%, #FF0000 100%), linear-gradient(60deg, #0029FF 0%, #AA0014 100%), radial-gradient(100% 165% at 100% 100%, #FF00A8 0%, #00FF47 100%), radial-gradient(100% 150% at 0% 0%, #FFF500 0%, #51D500 100%);background-blend-mode: overlay, color-dodge, overlay, overlay, difference, normal; }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
-body > *:not(.bg-layer):not(script):not(style) { position: relative; z-index: 1; }
+body > *:not(.bg-layer):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== preset-translucent =====
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.4; background: linear-gradient(120deg, #FF00C7 0%, #51003F 100%), linear-gradient(120deg, #0030AD 0%, #00071A 100%), linear-gradient(180deg, #000346 0%, #FF0000 100%), linear-gradient(60deg, #0029FF 0%, #AA0014 100%), radial-gradient(100% 165% at 100% 100%, #FF00A8 0%, #00FF47 100%), radial-gradient(100% 150% at 0% 0%, #FFF500 0%, #51D500 100%);background-blend-mode: overlay, color-dodge, overlay, overlay, difference, normal; }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
-body > *:not(.bg-layer):not(script):not(style) { position: relative; z-index: 1; }
+body > *:not(.bg-layer):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== preset-torn-legacy =====
@@ -74,28 +74,28 @@ html { scroll-behavior: smooth; }
 .bg-torn-paper { position: fixed; inset: 0; z-index: 0; pointer-events: none; filter: drop-shadow(4px 0 10px rgba(0,0,0,0.28)); }
 <div class="bg-torn-backdrop bg-layer" aria-hidden="true"></div>
 <div class="bg-torn-paper bg-layer" aria-hidden="true"> <span class="torn-sheet-0"></span> </div>
-body > *:not(.bg-layer):not(script):not(style) { position: relative; z-index: 1; }
+body > *:not(.bg-layer):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== preset-gradient-legacy =====
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #4158D0;background-image: linear-gradient(43deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%); }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
-body > *:not(.bg-layer):not(script):not(style) { position: relative; z-index: 1; }
+body > *:not(.bg-layer):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== mesh =====
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #0b1026;background-image: radial-gradient(at 15% 20%, #22d3ee 0%, transparent 55%), radial-gradient(at 80% 15%, #a78bfa 0%, transparent 50%), radial-gradient(at 70% 80%, #34d399 0%, transparent 55%), radial-gradient(at 20% 85%, #f472b6 0%, transparent 45%); }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
-body > *:not(.bg-layer):not(script):not(style) { position: relative; z-index: 1; }
+body > *:not(.bg-layer):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== pattern =====
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #111827;background-image: radial-gradient(rgba(148,163,184,0.35) 1.5px, transparent 1.5px);background-size: 22px 22px; }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
-body > *:not(.bg-layer):not(script):not(style) { position: relative; z-index: 1; }
+body > *:not(.bg-layer):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== tiles =====
@@ -104,7 +104,7 @@ html { scroll-behavior: smooth; }
 .bg-tiles { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: minmax(14vh, 1fr); grid-auto-flow: dense; gap: 6px; padding: 6px; background-color: #0a0612; }
 <div class="bg-tiles bg-layer" aria-hidden="true"> <span style="background: linear-gradient(135deg, #1e293b, #0f172a); grid-column: span 2; grid-row: span 2;"></span> <span style="background: linear-gradient(135deg, #1d4ed8, #1e3a8a); grid-column: span 1; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #334155, #1e293b); grid-column: span 1; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #0ea5e9, #0369a1); grid-column: span 2; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #312e81, #1e1b4b); grid-column: span 1; grid-row: span 2;"></span> <span style="background: linear-gradient(135deg, #475569, #1f2937); grid-column: span 1; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #1e293b, #0f172a); grid-column: span 2; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #1d4ed8, #1e3a8a); grid-column: span 1; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #334155, #1e293b); grid-column: span 2; grid-row: span 2;"></span> <span style="background: linear-gradient(135deg, #0ea5e9, #0369a1); grid-column: span 1; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #312e81, #1e1b4b); grid-column: span 1; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #475569, #1f2937); grid-column: span 2; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #1e293b, #0f172a); grid-column: span 1; grid-row: span 2;"></span> <span style="background: linear-gradient(135deg, #1d4ed8, #1e3a8a); grid-column: span 1; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #334155, #1e293b); grid-column: span 2; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #0ea5e9, #0369a1); grid-column: span 1; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #312e81, #1e1b4b); grid-column: span 2; grid-row: span 2;"></span> <span style="background: linear-gradient(135deg, #475569, #1f2937); grid-column: span 1; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #1e293b, #0f172a); grid-column: span 1; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #1d4ed8, #1e3a8a); grid-column: span 2; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #334155, #1e293b); grid-column: span 1; grid-row: span 2;"></span> <span style="background: linear-gradient(135deg, #0ea5e9, #0369a1); grid-column: span 1; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #312e81, #1e1b4b); grid-column: span 2; grid-row: span 1;"></span> <span style="background: linear-gradient(135deg, #475569, #1f2937); grid-column: span 1; grid-row: span 1;"></span> </div>
 @media (prefers-reduced-motion: no-preference) { @keyframes bgTilePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } } .bg-tiles span { animation: bgTilePulse 6s ease-in-out infinite; } }
-body > *:not(.bg-layer):not(script):not(style) { position: relative; z-index: 1; }
+body > *:not(.bg-layer):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== torn-colors =====
@@ -114,7 +114,7 @@ html { scroll-behavior: smooth; }
 .bg-torn-paper { position: fixed; inset: 0; z-index: 0; pointer-events: none; filter: drop-shadow(4px 0 10px rgba(0,0,0,0.28)); }
 <div class="bg-torn-backdrop bg-layer" aria-hidden="true"></div>
 <div class="bg-torn-paper bg-layer" aria-hidden="true"> <span class="torn-sheet-0"></span> </div>
-body > *:not(.bg-layer):not(script):not(style) { position: relative; z-index: 1; }
+body > *:not(.bg-layer):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== torn-photo =====
@@ -124,7 +124,7 @@ html { scroll-behavior: smooth; }
 .bg-torn-paper { position: fixed; inset: 0; z-index: 0; pointer-events: none; filter: drop-shadow(4px 0 10px rgba(0,0,0,0.28)); }
 <div class="bg-torn-backdrop bg-layer" aria-hidden="true"></div>
 <div class="bg-torn-paper bg-layer" aria-hidden="true"> <span class="torn-sheet-0"></span> </div>
-body > *:not(.bg-layer):not(script):not(style) { position: relative; z-index: 1; }
+body > *:not(.bg-layer):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== template =====

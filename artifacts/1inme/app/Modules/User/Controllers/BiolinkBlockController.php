@@ -80,7 +80,15 @@ class BiolinkBlockController extends Controller
 
     public function settingsAppearance(Link $link)
     {
-        abort_if($link->user_id !== workspace_owner_id() || !$link->supportsPageBackground(), 403);
+        // The gate used to be "can this type have a background?". A share
+        // button is offered to more types than a background is, and this
+        // is the endpoint its card posts to, so the gate is now either.
+        abort_if(
+            $link->user_id !== workspace_owner_id()
+                || ! ($link->supportsPageBackground()
+                      || \App\Modules\User\Support\ShareButton::supports($link->type)),
+            403
+        );
         if ($link->isDesignLocked()) {
             return redirect()->route('user.links.settings.advanced', $link);
         }
@@ -1487,101 +1495,10 @@ class BiolinkBlockController extends Controller
         $validated = $request->validate([
             'biolink_title' => 'nullable|string|max:100',
             'biolink_description' => 'nullable|string|max:500',
-            'background_type' => 'nullable|string|in:color,gradient,image,slideshow,video,template,preset,torn,tiles,mesh,pattern',
-            // CSS background preset key from BgPresetCatalog. Only stored when
-            // background_type === 'preset'; the public renderer resolves CSS from the
-            // catalog server-side, so raw CSS is never accepted from the client.
-            'bg_preset_key' => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9_]+$/',
-                function ($attribute, $value, $fail) {
-                    if ($value && !\App\Modules\User\Support\BgPresetCatalog::findByKey($value)) {
-                        $fail('The selected background preset is not valid.');
-                    }
-                }
-            ],
-            'background_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
-            'background_gradient' => 'nullable|string|max:500',
-            'background_image' => \App\Services\UploadPolicy::rule('link.background_image', $request->user()),
-            // Platform gallery pick (Task #6015): S3 object key from the
-            // curated `assets/` gallery folders. Validated by
-            // prefix + safe filename (no S3 round-trip); resolved to the
-            // public CDN URL below. Available on every plan.
-            'background_image_asset' => ['nullable', 'string', 'max:300',
-                function ($attribute, $value, $fail) {
-                    // Task #6232: the picker now spans every curated folder a
-                    // background may come from, not just biolink-backgrounds,
-                    // because the Stock tab that served the other two was
-                    // merged into it. Still validated by prefix + safe
-                    // filename, so a request cannot point this at an
-                    // arbitrary S3 object.
-                    if ($value && !\App\Modules\User\Support\BackgroundImageGallery::accepts($value)) {
-                        $fail('The selected gallery background is not valid.');
-                    }
-                }
-            ],
-            // Torn-paper composite: backdrop photo visible beyond the jagged
-            // torn edge of a solid paper sheet.
-            'torn_image' => \App\Services\UploadPolicy::rule('link.background_image', $request->user()),
-            'torn_paper_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
-            // Tear variant key (Task #6204): clip paths are resolved
-            // server-side from TornStyleCatalog, never from client input.
-            'torn_style' => ['nullable', 'string', 'max:30',
-                function ($attribute, $value, $fail) {
-                    if ($value && !\App\Modules\User\Support\TornStyleCatalog::isValidStyle($value)) {
-                        $fail('The selected tear style is not valid.');
-                    }
-                }
-            ],
-            // Backdrop colors beyond the tear (hex only — the renderer
-            // builds the gradient itself; a backdrop photo wins over these).
-            'torn_backdrop_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
-            'torn_backdrop_color2' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
-            // Tiles / Mesh / Pattern background types (Task #6204): only
-            // catalog KEYS are accepted; all CSS resolves server-side.
-            'tiles_palette' => ['nullable', 'string', 'max:40',
-                function ($attribute, $value, $fail) {
-                    if ($value && !\App\Modules\User\Support\TilesBgCatalog::isValidPalette($value)) {
-                        $fail('The selected tile palette is not valid.');
-                    }
-                }
-            ],
-            'tiles_layout' => 'nullable|string|in:uniform,metro,brick',
-            'tiles_animate' => 'nullable|string|in:0,1',
-            'mesh_preset' => ['nullable', 'string', 'max:40',
-                function ($attribute, $value, $fail) {
-                    if ($value && !\App\Modules\User\Support\MeshGradientCatalog::isValidKey($value)) {
-                        $fail('The selected mesh gradient is not valid.');
-                    }
-                }
-            ],
-            'pattern_preset' => ['nullable', 'string', 'max:40',
-                function ($attribute, $value, $fail) {
-                    if ($value && !\App\Modules\User\Support\PatternCatalog::isValidKey($value)) {
-                        $fail('The selected pattern is not valid.');
-                    }
-                }
-            ],
-            'gradient_colors' => 'nullable|string|max:2000',
-            'gradient_angle' => 'nullable|integer|min:0|max:360',
-            'gradient_type' => 'nullable|string|in:linear,radial,conic',
-            // Preset id from the GradientCatalog grid. Empty = custom (the
-            // user manually edited stops). Stored alongside gradient_colors
-            // so the picker can re-highlight the chosen preset on edit.
-            'gradient_preset_id' => 'nullable|string|max:60|regex:/^[a-z0-9\-]+$/',
-            'slideshow_images' => 'nullable|array|max:10',
-            'slideshow_images.*' => \App\Services\UploadPolicy::rule('link.slideshow_image', $request->user(), true),
-            'slideshow_interval' => 'nullable|integer|min:1|max:30',
-            'video_url' => 'nullable|string|max:500',
-            'video_file' => \App\Services\UploadPolicy::rule('link.video_file', $request->user()),
-            'bg_template_id' => 'nullable|integer|exists:bg_templates,id',
-            'bg_attachment' => 'nullable|string|in:fixed,scroll',
-            'bg_fallback_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
-            'bg_fallback_image' => \App\Services\UploadPolicy::rule('link.bg_fallback_image', $request->user()),
-            'bg_blur' => 'nullable|integer|min:0|max:100',
-            'bg_overlay_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
-            'bg_overlay_opacity' => 'nullable|integer|min:0|max:100',
-            // Transparency of the page preset background itself (Task #5970),
-            // distinct from the overlay opacity above. 100 = fully opaque.
-            'bg_preset_opacity' => 'nullable|integer|min:0|max:100',
+            // Background fields: one shared definition, so this path and
+            // every other page type that renders the same picker cannot
+            // drift apart again. See PageBackgroundInput::rules().
+            ...\App\Modules\User\Support\PageBackgroundInput::rules($request->user()),
             'font_family' => 'nullable|string|max:100',
             'font_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'button_style' => 'nullable|string|in:rounded,pill,square,outline,shadow',
@@ -1638,18 +1555,9 @@ class BiolinkBlockController extends Controller
             'manifest.start_url' => 'nullable|string|max:200',
             'manifest.categories' => 'nullable|string|max:200',
 
-            'share_button' => 'nullable|array',
-            'share_button.enabled' => 'boolean',
-            'share_button.show_qr' => 'boolean',
-            'share_button.style' => 'nullable|string|in:fab,bar,icon',
-            'share_button.position' => 'nullable|string|in:bottom-right,bottom-left,bottom-center,top-right,top-left',
-            'share_button.color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
-            'share_button.text_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
-            'share_button.size' => 'nullable|string|in:sm,md,lg',
-            'share_button.qr_size' => 'nullable|integer|min:100|max:400',
-            'share_button.qr_fg_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
-            'share_button.qr_bg_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
-            'share_button.label' => 'nullable|string|max:30',
+            // Share button + QR: one shared rule set, so every page type
+            // that renders the card accepts exactly what it sends.
+            ...\App\Modules\User\Support\ShareButton::rules(),
 
             'menu_bar' => 'nullable|array',
             'menu_bar.enabled' => 'boolean',
@@ -1730,9 +1638,6 @@ class BiolinkBlockController extends Controller
         $autoTranslateInput = $validated['auto_translate'] ?? null;
         $privacyInput = $validated['privacy'] ?? null;
         unset($validated['privacy']);
-        $slideshowFiles = $request->file('slideshow_images');
-        $videoFile = $request->file('video_file');
-        $fallbackImageFile = $request->file('bg_fallback_image');
         unset($validated['block_theme'], $validated['layout'], $validated['meta'], $validated['og'], $validated['twitter'], $validated['favicons'], $validated['manifest'], $validated['share_button'], $validated['menu_bar'], $validated['auto_translate'], $validated['og_image_upload'], $validated['apple_touch_upload'], $validated['icon_512_upload'], $validated['slideshow_images'], $validated['video_file'], $validated['bg_fallback_image'], $validated['torn_image']);
 
         // Design lock: strip every design surface from the save — background,
@@ -1745,9 +1650,6 @@ class BiolinkBlockController extends Controller
             }
             $blockTheme = null;
             $layoutInput = null;
-            $slideshowFiles = null;
-            $videoFile = null;
-            $fallbackImageFile = null;
             $request->files->remove('background_image');
             unset($validated['background_image_asset']);
             $request->files->remove('torn_image');
@@ -1927,8 +1829,19 @@ class BiolinkBlockController extends Controller
 
         if ($shareButtonInput !== null) {
             $settings['biolink']['share_button'] = $nullifyEmpty($shareButtonInput);
+            // Both are checkboxes, and HTML omits an unchecked box from
+            // the payload entirely -- so they are written explicitly or
+            // turning one OFF would read as "not configured", which now
+            // means on.
             $settings['biolink']['share_button']['enabled'] = !empty($shareButtonInput['enabled']);
             $settings['biolink']['share_button']['show_qr'] = !empty($shareButtonInput['show_qr']);
+            // The network list posts with a leading empty value so that
+            // unticking every box still sends the key; an empty list is
+            // stored as "none", not as "unset" (which would restore all).
+            $settings['biolink']['share_button']['networks'] = array_values(array_filter(
+                (array) ($shareButtonInput['networks'] ?? []),
+                fn ($n) => is_string($n) && $n !== ''
+            ));
         }
 
         if ($menuBarInput !== null) {
@@ -2042,55 +1955,16 @@ class BiolinkBlockController extends Controller
 
         try {
 
-        if ($request->hasFile('background_image')) {
-            $settings['biolink']['background_image'] = $vault($request->file('background_image'), ['max_width' => 1920, 'max_height' => 1920]);
-        } elseif (!empty($validated['background_image_asset'])) {
-            // Platform gallery pick — store the public CDN URL directly.
-            // No copy into the user's vault: platform assets never count
-            // against user storage.
-            $settings['biolink']['background_image'] = \App\Modules\User\Support\PlatformAssetCatalog::urlForKey($validated['background_image_asset']);
-        }
+        // Background media: uploads, the platform-gallery pick and the
+        // gradient stop list. Shared with every other page type that
+        // renders this picker, so none of them can quietly accept less
+        // than the picker sends -- which is exactly what the resume path
+        // was doing. A design-locked link has already had these files
+        // removed from the request above, so absorb() sees none of them.
+        $settings['biolink'] = \App\Modules\User\Support\PageBackgroundInput::absorb(
+            $request, $validated, $user, $settings['biolink'] ?? []
+        );
         unset($validated['background_image_asset']);
-
-        if ($request->hasFile('torn_image')) {
-            $settings['biolink']['torn_image'] = $vault($request->file('torn_image'), ['max_width' => 1920, 'max_height' => 1920]);
-        }
-
-        if (!empty($validated['gradient_colors'])) {
-            $decoded = json_decode($validated['gradient_colors'], true);
-            if (is_array($decoded)) {
-                $settings['biolink']['gradient_colors'] = $decoded;
-            }
-        }
-
-        // Track which preset (if any) the user picked. Stored alongside
-        // the resolved stops so the picker can re-highlight on edit, even
-        // if the catalog itself is later expanded with new entries.
-        if (array_key_exists('gradient_preset_id', $validated)) {
-            $settings['biolink']['gradient_preset_id'] = (string) ($validated['gradient_preset_id'] ?? '');
-        }
-
-        if ($slideshowFiles && is_array($slideshowFiles)) {
-            $existingSlides = $settings['biolink']['slideshow_images'] ?? [];
-            foreach ($slideshowFiles as $file) {
-                $existingSlides[] = $vault($file, ['max_width' => 1600, 'max_height' => 1600]);
-            }
-            $settings['biolink']['slideshow_images'] = array_slice($existingSlides, 0, 10);
-        }
-
-        if ($videoFile) {
-            $settings['biolink']['video_file'] = $vault($videoFile);
-        }
-
-        if ($fallbackImageFile) {
-            $settings['biolink']['bg_fallback_image'] = $vault($fallbackImageFile, ['max_width' => 1920, 'max_height' => 1920]);
-        }
-
-        if ($request->has('remove_slideshow_images')) {
-            $removeIndexes = array_map('intval', (array) $request->input('remove_slideshow_images', []));
-            $existing = $settings['biolink']['slideshow_images'] ?? [];
-            $settings['biolink']['slideshow_images'] = array_values(array_diff_key($existing, array_flip($removeIndexes)));
-        }
 
         // Favicon single source of truth: the primary favicon lives on the
         // Link.favicon column (shared with short links). We intentionally no

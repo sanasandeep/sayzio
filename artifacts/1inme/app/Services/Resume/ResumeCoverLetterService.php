@@ -199,7 +199,7 @@ class ResumeCoverLetterService
         $toneHint = match ($tone) {
             'warm'    => 'Use a warm, personable, slightly conversational voice. Show genuine enthusiasm for the role and team without being overfamiliar.',
             'concise' => 'Use a tight, no-fluff voice. Prefer short sentences. Keep the body to two paragraphs maximum.',
-            default   => 'Use a professional, confident voice. Keep paragraphs focused and free of clichés.',
+            default   => 'Use a professional, confident voice. Keep paragraphs focused and free of stock phrases.',
         };
 
         $schemaHint = "Return strict JSON with this shape (no extra keys, no markdown, no commentary):\n"
@@ -475,7 +475,10 @@ class ResumeCoverLetterService
         $sections = $resume->getMergedSections();
         $header   = (array) ($sections['header'] ?? []);
 
+        // A hidden item is not on the resume being sent, so it has no
+        // business in the letter that accompanies it.
         $experience = $resume->itemsOfType('experience')
+            ->where('is_hidden', false)
             ->orderBy('position')
             ->limit(self::MAX_EXPERIENCE_ITEMS)
             ->get()
@@ -491,6 +494,7 @@ class ResumeCoverLetterService
             })->all();
 
         $skills = $resume->itemsOfType('skills')
+            ->where('is_hidden', false)
             ->orderBy('position')
             ->get()
             ->map(fn(ResumeSectionItem $i) => (string) ((is_array($i->data) ? $i->data : [])['name'] ?? ''))

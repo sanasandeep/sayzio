@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class Resume extends Model
 {
     protected $fillable = [
-        'user_id', 'template_id', 'color_theme_id', 'sections', 'page_background',
+        'user_id', 'template_id', 'color_theme_id', 'sections', 'page_background', 'share_button',
         'is_public', 'visibility', 'password',
         'expires_at', 'share_revision',
         'allow_indexing', 'view_count', 'meta_description',
@@ -26,6 +26,10 @@ class Resume extends Model
         return [
             'sections'        => 'array',
             'page_background' => 'array',
+            // The share button + QR, kept here rather than on a link for the
+            // same reason as the background: a resume has two public URLs
+            // and only one of them has a Link in scope.
+            'share_button'    => 'array',
             'is_public'       => 'boolean',
             'allow_indexing'  => 'boolean',
             'view_count'      => 'integer',
@@ -173,6 +177,28 @@ class Resume extends Model
     public function itemsOfType(string $type)
     {
         return $this->items()->where('section_type', $type);
+    }
+
+    /**
+     * Items grouped by section, with hidden ones left out.
+     *
+     * The one thing the three public renderers -- the page, the PDF and
+     * the ATS checker -- must agree on. They each used to call
+     * `$resume->items->groupBy('section_type')` for themselves, which is
+     * exactly the shape that lets a fourth renderer be added later and
+     * quietly show what the other three hide.
+     *
+     * The builder deliberately does NOT call this: a hidden item stays
+     * fully editable, which is the point of hiding it rather than
+     * deleting it.
+     *
+     * @return \Illuminate\Support\Collection<string, \Illuminate\Support\Collection<int, ResumeSectionItem>>
+     */
+    public function publicItemsByType()
+    {
+        return $this->items
+            ->reject(fn (ResumeSectionItem $i) => (bool) $i->is_hidden)
+            ->groupBy('section_type');
     }
 
     /**

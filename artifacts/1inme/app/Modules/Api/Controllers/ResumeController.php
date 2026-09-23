@@ -334,6 +334,23 @@ class ResumeController extends Controller
         return $this->ok(['item' => ResumePresenter::presentItem($item->fresh())]);
     }
 
+    /**
+     * PUT /resume/items/{item}/visibility — hide or unhide one item.
+     *
+     * Parity with the web builder. Kept off updateItem() for the same
+     * reason: a visibility toggle must not have to resend the item's whole
+     * payload, nor be able to fail on a field that is not filled in yet.
+     */
+    public function toggleItemVisibility(Request $request, ResumeSectionItem $item)
+    {
+        $this->authorizeItem($request, $item);
+
+        $data = $request->validate(['is_hidden' => ['required', 'boolean']]);
+        $item->update(['is_hidden' => (bool) $data['is_hidden']]);
+
+        return $this->ok(['item' => ResumePresenter::presentItem($item->fresh())]);
+    }
+
     /** DELETE /resume/items/{item} — remove an item. */
     public function destroyItem(Request $request, ResumeSectionItem $item)
     {
@@ -559,6 +576,14 @@ class ResumeController extends Controller
                 'end_date'    => ['nullable', 'date_format:Y-m', 'after_or_equal:start_date'],
                 'is_current'  => ['nullable', 'boolean'],
                 'description' => ['nullable', 'string', 'max:2000'],
+                // Sana, 2026-09-23: "see if u can add more options in
+                // sections and inside it". Employment type and workplace
+                // are two things every job board asks for and this form
+                // had no room for; the company link is what a reader
+                // reaches for when the name is unfamiliar.
+                'employment_type' => ['nullable', 'string', Rule::in(['full_time', 'part_time', 'contract', 'freelance', 'internship', 'temporary', 'apprenticeship', 'self_employed'])],
+                'work_mode'   => ['nullable', 'string', Rule::in(['on_site', 'hybrid', 'remote'])],
+                'url'         => ['nullable', 'string', 'url', 'max:255'],
             ],
             'education' => [
                 'school'      => ['required', 'string', 'max:160'],
@@ -567,6 +592,11 @@ class ResumeController extends Controller
                 'start_date'  => ['nullable', 'date_format:Y-m'],
                 'end_date'    => ['nullable', 'date_format:Y-m', 'after_or_equal:start_date'],
                 'description' => ['nullable', 'string', 'max:1000'],
+                'location'    => ['nullable', 'string', 'max:160'],
+                // Free text rather than a number: a GPA, a class, a
+                // percentage and a "Distinction" are all the same field
+                // to a reader and none of them share a format.
+                'grade'       => ['nullable', 'string', 'max:40'],
             ],
             'skills' => [
                 'name'  => ['required', 'string', 'max:80'],
@@ -580,6 +610,7 @@ class ResumeController extends Controller
                 'description' => ['nullable', 'string', 'max:2000'],
                 'start_date'  => ['nullable', 'date_format:Y-m'],
                 'end_date'    => ['nullable', 'date_format:Y-m', 'after_or_equal:start_date'],
+                'tech'        => ['nullable', 'string', 'max:160'],
             ],
             'certifications' => [
                 'name'         => ['required', 'string', 'max:160'],
@@ -593,6 +624,7 @@ class ResumeController extends Controller
                 'issuer'      => ['nullable', 'string', 'max:160'],
                 'date'        => ['nullable', 'date_format:Y-m'],
                 'description' => ['nullable', 'string', 'max:1000'],
+                'url'         => ['nullable', 'string', 'url', 'max:255'],
             ],
             'languages' => [
                 'name'        => ['required', 'string', 'max:80'],

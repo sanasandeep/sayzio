@@ -3,9 +3,9 @@
 namespace App\Modules\Common\Support;
 
 /**
- * Single source of truth for the personas the homepage résumé-builder demo
+ * Single source of truth for the personas the homepage resume-builder demo
  * (home.partials.resume) cycles through. Mirrors Common\Support\AiHeroExamples:
- * the résumé "watch it build" animation rotates through a few professions
+ * the resume "watch it build" animation rotates through a few professions
  * (designer, developer, marketer, student) so the demo shows the builder works
  * for any career, not just one.
  *

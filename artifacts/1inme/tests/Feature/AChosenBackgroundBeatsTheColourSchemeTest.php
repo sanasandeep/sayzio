@@ -290,7 +290,15 @@ class AChosenBackgroundBeatsTheColourSchemeTest extends TestCase
 
             $this->assertStringContainsString("route('user.links.settings.appearance', \$link)", $body,
                 "{$editor} offers no way to reach the background picker");
-            $this->assertStringContainsString('Page background', $body);
+            // The label differs by editor -- the menu editors say
+            // "Background & fonts" since their font control started
+            // working (PR #158). What matters is that the row NAMES the
+            // panel it links to, not that every screen uses one wording.
+            $this->assertMatchesRegularExpression(
+                '/Background(?:\s|&amp;|&)|Page background/i',
+                $body,
+                $editor.' links to Appearance without saying what is there'
+            );
 
             // ...and it must LINK there rather than grow its own copy.
             $this->assertStringNotContainsString('biolink-background-card', $body,

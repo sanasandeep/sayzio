@@ -415,5 +415,15 @@
 </script>
 @endif
 @include('common.partials.link-type-pairings', ['pairingType' => 'restaurant_menu', 'theme' => 'light'])
+
+{{-- The same share button every other page type carries. It reads the
+     link's own settings, so whether it appears at all, and what it looks
+     like, is decided on that link's settings screen. --}}
+@include('common.partials.share-button', [
+    'sbLink'  => $link,
+    'sbUrl'   => $link->getShortUrl(),
+    'sbTitle' => $link->title ?: config('app.name'),
+])
+
 </body>
 </html>

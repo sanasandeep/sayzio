@@ -4,7 +4,6 @@
     $twSettings = $link->settings['biolink']['twitter'] ?? [];
     $manifestSettings = $link->settings['biolink']['manifest'] ?? [];
     $faviconSettings = $link->settings['biolink']['favicons'] ?? [];
-    $shareBtnSettings = $link->settings['biolink']['share_button'] ?? [];
     $menuBarSettings = $link->settings['biolink']['menu_bar'] ?? [];
     $autoTranslateSettings = $link->settings['biolink']['auto_translate'] ?? [];
     $__biolinkOwnerName = $link->user?->name ?? null;
@@ -409,13 +408,6 @@
             $mbStyle = $menuBarSettings['style'] ?? 'pills';
             $mbIconColor = $menuBarSettings['icon_color'] ?? '#ffffff';
             $mbOverlayBg = $menuBarSettings['overlay_bg'] ?? '#0a0612';
-            $sbEnabled = !empty($shareBtnSettings['enabled']);
-            $sbColor = $shareBtnSettings['color'] ?? '#3d6bff';
-            $sbTextColor = $shareBtnSettings['text_color'] ?? '#ffffff';
-            $sbPos = $shareBtnSettings['position'] ?? 'bottom-right';
-            $sbSize = $shareBtnSettings['size'] ?? 'md';
-            $sbBtnDim = match($sbSize) { 'sm' => '40px', 'lg' => '60px', default => '50px' };
-            $sbIconSize = match($sbSize) { 'sm' => '14px', 'lg' => '22px', default => '18px' };
             $atEnabled = !empty($autoTranslateSettings['enabled']);
             $atPos = $autoTranslateSettings['position'] ?? 'top-right';
             $atBg = $autoTranslateSettings['bg_color'] ?? '#1a1a2e';
@@ -579,57 +571,6 @@
             background: {{ $mbActive }};
             box-shadow: 0 0 8px {{ $mbActive }}60;
         }
-        @endif
-        @if($sbEnabled)
-        .share-fab {
-            position: fixed;
-            z-index: 100;
-            @if(str_contains($sbPos, 'bottom')) bottom: 24px; @else top: 24px; @endif
-            @if(str_contains($sbPos, 'right')) right: 24px; @elseif(str_contains($sbPos, 'left')) left: 24px; @else left: 50%; transform: translateX(-50%); @endif
-        }
-        .share-fab-btn {
-            width: {{ $sbBtnDim }};
-            height: {{ $sbBtnDim }};
-            border-radius: 50%;
-            background: {{ $sbColor }};
-            color: {{ $sbTextColor }};
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: {{ $sbIconSize }};
-            box-shadow: 0 8px 30px {{ $sbColor }}40;
-            transition: all 0.3s;
-        }
-        .share-fab-btn:hover {
-            transform: scale(1.08);
-            box-shadow: 0 12px 40px {{ $sbColor }}60;
-        }
-        .share-popup {
-            position: absolute;
-            @if(str_contains($sbPos, 'bottom')) bottom: calc({{ $sbBtnDim }} + 12px); @else top: calc({{ $sbBtnDim }} + 12px); @endif
-            @if(str_contains($sbPos, 'right')) right: 0; @elseif(str_contains($sbPos, 'left')) left: 0; @else left: 50%; transform: translateX(-50%); @endif
-            background: {{ $sbColor }}15;
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 16px;
-            padding: 20px;
-            min-width: 240px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-            display: none;
-        }
-        .share-popup.open { display: block; animation: fadeUp 0.25s ease; }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        .share-popup-actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
-        .share-popup-actions a {
-            width: 40px; height: 40px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            background: rgba(255,255,255,0.08); color: #fff;
-            transition: all 0.2s; font-size: 16px; text-decoration: none;
-        }
-        .share-popup-actions a:hover { background: {{ $sbColor }}; transform: translateY(-2px); }
         @endif
         @if($atEnabled)
         .translate-widget {
@@ -1487,69 +1428,14 @@
     </script>
     @endif
 
-    @if($sbEnabled)
-    @php
-        $showQr = $shareBtnSettings['show_qr'] ?? true;
-        $sbLabel = $shareBtnSettings['label'] ?? 'Share';
-        $sbStyleType = $shareBtnSettings['style'] ?? 'fab';
-        $qrSize = $shareBtnSettings['qr_size'] ?? 200;
-        $qrFg = urlencode($shareBtnSettings['qr_fg_color'] ?? '#000000');
-        $qrBg = urlencode($shareBtnSettings['qr_bg_color'] ?? '#ffffff');
-        $shareUrl = request()->url();
-        $qrApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size={$qrSize}x{$qrSize}&data=" . urlencode($shareUrl) . "&color=" . ltrim($qrFg, '%23') . "&bgcolor=" . ltrim($qrBg, '%23');
-    @endphp
-    <div class="share-fab" id="shareFab">
-        @if($sbStyleType === 'bar')
-        <button type="button" onclick="document.getElementById('sharePopup').classList.toggle('open')" title="{{ $sbLabel }}"
-                style="display:flex;align-items:center;gap:8px;padding:10px 20px;border-radius:12px;background:{{ $sbColor }};color:{{ $sbTextColor }};border:none;cursor:pointer;font-size:13px;font-weight:600;box-shadow:0 8px 30px {{ $sbColor }}40;transition:all 0.3s;">
-            <i class="fas fa-share-alt"></i>
-            <span>{{ $sbLabel }}</span>
-        </button>
-        @elseif($sbStyleType === 'icon')
-        <button type="button" onclick="document.getElementById('sharePopup').classList.toggle('open')" title="{{ $sbLabel }}"
-                style="background:transparent;border:none;cursor:pointer;color:{{ $sbColor }};font-size:{{ $sbIconSize }};padding:8px;transition:all 0.3s;opacity:0.7;"
-                onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
-            <i class="fas fa-share-alt"></i>
-        </button>
-        @else
-        <button type="button" class="share-fab-btn" onclick="document.getElementById('sharePopup').classList.toggle('open')" title="{{ $sbLabel }}">
-            <i class="fas fa-share-alt"></i>
-        </button>
-        @endif
-        <div class="share-popup" id="sharePopup">
-            @if($showQr)
-            <div style="text-align:center; margin-bottom: 12px;">
-                <img src="{{ $qrApiUrl }}" alt="QR Code" style="width: {{ min($qrSize, 200) }}px; height: {{ min($qrSize, 200) }}px; border-radius: 8px; margin: 0 auto;">
-                <p style="font-size: 10px; margin-top: 6px; opacity: 0.5;">Scan to visit</p>
-            </div>
-            @endif
-            <div style="margin-bottom: 10px;">
-                <div style="display: flex; gap: 6px; align-items: center;">
-                    <input type="text" value="{{ $shareUrl }}" readonly id="shareUrlInput" style="flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 7px 10px; font-size: 11px; color: #fff; outline: none; min-width: 0;">
-                    <button type="button" onclick="navigator.clipboard.writeText('{{ $shareUrl }}'); this.innerHTML='<i class=\'fas fa-check\'></i>'; setTimeout(() => this.innerHTML='<i class=\'fas fa-copy\'></i>', 1500);"
-                            style="background: rgba(255,255,255,0.08); border: none; border-radius: 8px; padding: 7px 10px; color: #fff; cursor: pointer; font-size: 13px;">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="share-popup-actions">
-                <a href="https://twitter.com/intent/tweet?url={{ urlencode($shareUrl) }}" target="_blank" rel="noopener" title="Twitter"><i class="fab fa-x-twitter"></i></a>
-                <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode($shareUrl) }}" target="_blank" rel="noopener" title="Facebook"><i class="fab fa-facebook-f"></i></a>
-                <a href="https://wa.me/?text={{ urlencode($shareUrl) }}" target="_blank" rel="noopener" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
-                <a href="https://t.me/share/url?url={{ urlencode($shareUrl) }}" target="_blank" rel="noopener" title="Telegram"><i class="fab fa-telegram"></i></a>
-                <a href="mailto:?body={{ urlencode($shareUrl) }}" title="Email"><i class="fas fa-envelope"></i></a>
-            </div>
-        </div>
-    </div>
-    <script>
-    document.addEventListener('click', function(e) {
-        var fab = document.getElementById('shareFab');
-        if (fab && !fab.contains(e.target)) {
-            document.getElementById('sharePopup').classList.remove('open');
-        }
-    });
-    </script>
-    @endif
+    {{-- The share button + QR now lives in one partial, so the menu,
+         the resume, the event page and the review wall can carry the
+         same one. See common/partials/share-button.blade.php. --}}
+    @include('common.partials.share-button', [
+        'sbLink'  => $link,
+        'sbUrl'   => $link->getShortUrl(),
+        'sbTitle' => $link->title ?: config('app.name'),
+    ])
 
     @if($atEnabled)
     @php

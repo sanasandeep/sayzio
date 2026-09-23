@@ -592,6 +592,14 @@
         </footer>
     </div>
 </section>
+
+{{-- The same share button every other page type carries; whether it
+     appears, and how it looks, is decided on this link's settings. --}}
+@include('common.partials.share-button', [
+    'sbLink'  => $link,
+    'sbUrl'   => $link->getShortUrl(),
+    'sbTitle' => $link->title ?: config('app.name'),
+])
 @endsection
 
 @push('scripts')

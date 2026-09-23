@@ -127,6 +127,7 @@ class ResumePresenter
             'id'           => $item->id,
             'section_type' => $item->section_type,
             'position'     => $item->position,
+            'is_hidden'    => (bool) $item->is_hidden,
             'data'         => $item->data ?? [],
         ];
     }

@@ -76,6 +76,11 @@ class ResumeVersionService
                 'is_public_pdf'    => false,
                 'meta_description' => $source->meta_description,
                 'view_count'       => 0,
+                // Look, as opposed to sharing state: a duplicate that
+                // came back on the default desk with a different share
+                // button reads as a bug, not as a fresh start.
+                'page_background'  => $source->page_background,
+                'share_button'     => $source->share_button,
             ]);
 
             // Clone every item, preserving order. We re-create rather
@@ -86,6 +91,10 @@ class ResumeVersionService
                     'section_type' => $item->section_type,
                     'position'     => $item->position,
                     'data'         => $item->data,
+                    // Hidden stays hidden: a tailored copy starts from
+                    // what the source shows, not from everything the
+                    // source has ever held.
+                    'is_hidden'    => (bool) $item->is_hidden,
                 ]);
             }
 

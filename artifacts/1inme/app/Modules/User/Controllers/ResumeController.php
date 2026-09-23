@@ -5,6 +5,8 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Resume;
 use App\Modules\User\Models\ResumeSectionItem;
+use App\Modules\User\Support\PageBackgroundInput;
+use App\Modules\User\Support\ShareButton;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\ResumeAtsChecker;
@@ -60,22 +62,22 @@ class ResumeController extends Controller
                 // the presenter payload above.
                 'public_url' => url('/' . $user->publicHandle() . '/resume'),
             ],
-            // Short `resume` links that surface this résumé, so the builder
+            // Short `resume` links that surface this resume, so the builder
             // can show their public URL + a jump to click analytics. A link
             // with no resume_id falls back to the owner's default version,
-            // so include those when the resolved résumé is the default.
+            // so include those when the resolved resume is the default.
             'resumeLinks' => $this->resumeLinksFor($resume),
         ]);
     }
 
     /**
-     * Short `resume`-type links that surface the given résumé. Returns a
+     * Short `resume`-type links that surface the given resume. Returns a
      * plain array with the public short URL and a deep-link to each link's
      * click-analytics page so the builder can cross-link back to the link.
      *
      * A `resume` link with no `resume_id` falls back to the owner's default
-     * version, so those are included only when the résumé being edited is
-     * the default. Scoped to the résumé owner so no foreign links leak.
+     * version, so those are included only when the resume being edited is
+     * the default. Scoped to the resume owner so no foreign links leak.
      *
      * @return array<int, array{title: string, public_url: string, analytics_url: string}>
      */
@@ -430,6 +432,45 @@ class ResumeController extends Controller
     }
 
     /**
+     * POST — the share button and its QR.
+     *
+     * Sana, 2026-09-23: "share button should be visible or not,
+     * customizable options should be there in settings on that link".
+     *
+     * Stored on the resume rather than on a link, for the same reason
+     * the background is: a resume is reachable at @handle/{slug} with no
+     * Link in scope as well as through a resume link's alias, and the
+     * same resume must not carry a share button at one URL and not the
+     * other.
+     *
+     * Same rule set as every other page type -- ShareButton::rules().
+     */
+    public function updateShareButton(Request $request)
+    {
+        $data = $request->validate(ShareButton::rules());
+        $input = (array) ($data['share_button'] ?? []);
+
+        // Both toggles are checkboxes, and HTML omits an unchecked box
+        // from the payload -- so they are written explicitly, or turning
+        // one off would read as "never configured", which means on.
+        $input['enabled'] = ! empty($input['enabled']);
+        $input['show_qr'] = ! empty($input['show_qr']);
+        $input['networks'] = array_values(array_filter(
+            (array) ($input['networks'] ?? []),
+            fn ($n) => is_string($n) && $n !== ''
+        ));
+
+        $resume = $request->user()->resolveResume($request);
+        $resume->update(['share_button' => $input]);
+
+        if (! $request->expectsJson()) {
+            return back()->with('success', 'Share button saved.');
+        }
+
+        return response()->json(['resume' => $this->present($resume->fresh('items'))]);
+    }
+
+    /**
      * POST — set the page background (the desk the resume sheet sits on).
      *
      * Stored on the resume rather than on a link: a resume is reachable at
@@ -437,52 +478,75 @@ class ResumeController extends Controller
      * link's alias, and the same resume must not look different depending
      * on which of its two URLs was opened.
      *
-     * Only the renderer's own field list is accepted, and each value goes
-     * through the same validation the biolink page-settings path uses, so
-     * this cannot become a second, laxer way into the same renderer.
+     * This used to declare its own validation rules for the shared picker,
+     * and they were wrong in two ways that made most of the picker a no-op
+     * -- see PageBackgroundInput, which is now the single definition both
+     * this and the Link in Bio path validate against.
      */
     public function updatePageBackground(Request $request)
     {
-        $rules = [];
-        foreach (\App\Modules\User\Support\PageBackground::FIELDS as $field) {
-            $rules[$field] = match ($field) {
-                'background_type' => 'nullable|string|in:color,gradient,image,slideshow,video,template,preset,torn,tiles,mesh,pattern',
-                'background_color', 'bg_fallback_color', 'bg_overlay_color',
-                'torn_paper_color', 'torn_backdrop_color', 'torn_backdrop_color2'
-                    => ['nullable', 'string', 'max:20', 'regex:/^#[0-9a-fA-F]{3,8}$/'],
-                'bg_blur', 'bg_overlay_opacity', 'bg_preset_opacity',
-                'gradient_angle', 'slideshow_interval'
-                    => 'nullable|integer|min:0|max:360',
-                'bg_template_id' => 'nullable|integer|exists:bg_templates,id',
-                'gradient_colors', 'slideshow_images' => 'nullable|array|max:10',
-                default => 'nullable|string|max:2048',
-            };
+        $user = $request->user();
+
+        // One rule set, shared with every other page type that renders this
+        // picker. The copy that used to live here validated `gradient_colors`
+        // as an array (the picker posts JSON) and `background_image` as a
+        // string (it is a file) -- so gradients 422'd and uploads vanished.
+        $data = $request->validate(PageBackgroundInput::rules($user));
+
+        $resume   = $user->resolveResume($request);
+        $existing = is_array($resume->page_background ?? null) ? $resume->page_background : [];
+
+        // Scalars come from THIS submit only, never merged: the card is a
+        // plain form that posts all of its controls every time, so a key
+        // the creator cleared has to disappear rather than linger.
+        $settings = [];
+        foreach (PageBackgroundInput::scalarKeys() as $field) {
+            if (array_key_exists($field, $data) && $data[$field] !== null && $data[$field] !== '') {
+                $settings[$field] = $data[$field];
+            }
         }
-        $data = $request->validate($rules);
 
-        // Drop nulls so an absent background stays absent: PageBackground
-        // reads a missing background_type as "nothing chosen", which is
-        // what keeps every existing resume on its original desk.
-        $data = array_filter($data, fn ($v) => $v !== null && $v !== '');
+        // The media keys are the exception, and have to be: a stored photo
+        // lives in the settings as a URL and the form cannot re-post the
+        // file it came from. Without carrying these, changing the blur
+        // would throw away the picture it was blurring.
+        foreach (PageBackgroundInput::MEDIA_KEYS as $field) {
+            if (isset($existing[$field])) {
+                $settings[$field] = $existing[$field];
+            }
+        }
 
-        $resume = $request->user()->resolveResume($request);
-        $resume->update(['page_background' => $data ?: null]);
+        try {
+            $settings = PageBackgroundInput::absorb($request, $data, $user, $settings);
+        } catch (\RuntimeException $e) {
+            // Vault quota / size failures. The picker posts a plain form,
+            // so the creator needs to land back on it with the reason.
+            if (! $request->expectsJson()) {
+                return back()->withErrors(['background_image' => $e->getMessage()]);
+            }
+
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        // A background type is what PageBackground::chosen() keys on. Clear
+        // it and the resume goes back to the desk it always had, rather
+        // than keeping a half-set of orphan keys.
+        if (($settings['background_type'] ?? '') === '') {
+            $settings = [];
+        }
+
+        $resume->update(['page_background' => $settings ?: null]);
 
         // The editor's other controls speak JSON; the background card is a
         // plain form, because it is the same markup every other page type
         // posts and rewriting it as an Alpine payload would fork the picker.
-        if (!$request->expectsJson()) {
+        if (! $request->expectsJson()) {
             return back()->with('success', 'Page background saved.');
         }
 
         return response()->json(['resume' => $this->present($resume->fresh('items'))]);
     }
 
-    /**
-     * POST — add a custom section. Custom sections only declare a
-     * key + title; their items are stored as ResumeSectionItem rows of
-     * type "custom" with `data.custom_section_key` matching the key.
-     */
     public function addCustomSection(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -594,6 +658,35 @@ class ResumeController extends Controller
         $item->update(['data' => $payload]);
 
         return response()->json(['item' => $this->presentItem($item->fresh())]);
+    }
+
+    /**
+     * POST — hide or unhide one item.
+     *
+     * Sana, 2026-09-23: "here resume items can be also hidden... like hide
+     * unhide". A resume accumulates, and which entries belong on the
+     * version you are sending today is a different question from which of
+     * them happened -- so the alternative to hiding was deleting, which
+     * loses the entry for every other version too.
+     *
+     * Deliberately not part of updateItem(): toggling visibility must not
+     * have to round-trip the item's whole payload, and must not be able to
+     * fail validation on a field the creator has not filled in yet.
+     */
+    public function toggleItemVisibility(Request $request, ResumeSectionItem $item): JsonResponse
+    {
+        $this->authorizeItem($request, $item);
+
+        $data = $request->validate([
+            'is_hidden' => ['required', 'boolean'],
+        ]);
+
+        $item->update(['is_hidden' => (bool) $data['is_hidden']]);
+
+        return response()->json([
+            'item'   => $this->presentItem($item->fresh()),
+            'resume' => $this->present($item->resume->fresh('items')),
+        ]);
     }
 
     /** DELETE — remove an item. */
@@ -946,6 +1039,14 @@ class ResumeController extends Controller
                 'end_date'    => ['nullable', 'date_format:Y-m', 'after_or_equal:start_date'],
                 'is_current'  => ['nullable', 'boolean'],
                 'description' => ['nullable', 'string', 'max:2000'],
+                // Sana, 2026-09-23: "see if u can add more options in
+                // sections and inside it". Employment type and workplace
+                // are two things every job board asks for and this form
+                // had no room for; the company link is what a reader
+                // reaches for when the name is unfamiliar.
+                'employment_type' => ['nullable', 'string', Rule::in(['full_time', 'part_time', 'contract', 'freelance', 'internship', 'temporary', 'apprenticeship', 'self_employed'])],
+                'work_mode'   => ['nullable', 'string', Rule::in(['on_site', 'hybrid', 'remote'])],
+                'url'         => ['nullable', 'string', 'url', 'max:255'],
             ],
             'education' => [
                 'school'      => ['required', 'string', 'max:160'],
@@ -954,6 +1055,11 @@ class ResumeController extends Controller
                 'start_date'  => ['nullable', 'date_format:Y-m'],
                 'end_date'    => ['nullable', 'date_format:Y-m', 'after_or_equal:start_date'],
                 'description' => ['nullable', 'string', 'max:1000'],
+                'location'    => ['nullable', 'string', 'max:160'],
+                // Free text rather than a number: a GPA, a class, a
+                // percentage and a "Distinction" are all the same field
+                // to a reader and none of them share a format.
+                'grade'       => ['nullable', 'string', 'max:40'],
             ],
             'skills' => [
                 'name'  => ['required', 'string', 'max:80'],
@@ -967,6 +1073,7 @@ class ResumeController extends Controller
                 'description' => ['nullable', 'string', 'max:2000'],
                 'start_date'  => ['nullable', 'date_format:Y-m'],
                 'end_date'    => ['nullable', 'date_format:Y-m', 'after_or_equal:start_date'],
+                'tech'        => ['nullable', 'string', 'max:160'],
             ],
             'certifications' => [
                 'name'         => ['required', 'string', 'max:160'],
@@ -980,6 +1087,7 @@ class ResumeController extends Controller
                 'issuer'      => ['nullable', 'string', 'max:160'],
                 'date'        => ['nullable', 'date_format:Y-m'],
                 'description' => ['nullable', 'string', 'max:1000'],
+                'url'         => ['nullable', 'string', 'url', 'max:255'],
             ],
             'languages' => [
                 'name'        => ['required', 'string', 'max:80'],

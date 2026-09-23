@@ -28,13 +28,41 @@
     .resume-input:focus, .resume-textarea:focus, .resume-select:focus { border-color: rgba(61,107,255,0.5); box-shadow: 0 0 0 3px rgba(61,107,255,0.08); }
     .resume-textarea { min-height: 70px; resize: vertical; font-family: inherit; }
     .resume-card-item { background: rgba(61,107,255,0.04); border: 1px solid var(--border-glass, #2a2a32); border-radius: 12px; padding: 10px 12px 12px; margin-bottom: 10px; }
-    .resume-card-item-head { display:flex; align-items:center; justify-content:space-between; gap:8px; padding: 2px 0 8px; cursor: grab; }
-    .resume-card-item-title { font-size: 12px; font-weight: 600; color: var(--text-primary,#fff); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    /* Sana, 2026-09-23: "fix ui in resume manage tab as it looks ugly".
+
+       The row was a truncated title and five icon buttons fighting for
+       one line, which is a lot of furniture around very little
+       information. It carries two lines of content now -- what the entry
+       is and when it was -- and the actions sit in one quiet group that
+       comes forward on hover, so the list reads as a list of entries
+       rather than as a wall of controls. The whole head opens the entry;
+       the actions stop that from firing. */
+    .resume-card-item-head { display:flex; align-items:center; gap:10px; padding: 4px 0 10px; cursor: pointer; }
+    .resume-grip { font-size: 11px; color: var(--text-muted,#9ca3af); cursor: grab; opacity:.55; flex:0 0 auto; }
+    .resume-card-item:hover .resume-grip { opacity: 1; }
+    .resume-card-item-text { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+    .resume-card-item-title { font-size: 12.5px; font-weight: 600; color: var(--text-primary,#fff); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .resume-card-item-meta { font-size: 10.5px; color: var(--text-muted,#9ca3af); font-variant-numeric: tabular-nums; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .resume-item-actions { display:flex; align-items:center; gap:2px; flex:0 0 auto; opacity:.42; transition: opacity .15s; }
+    .resume-card-item:hover .resume-item-actions,
+    .resume-item-actions:focus-within { opacity: 1; }
+    .resume-card-chev { font-size: 10px; color: var(--text-muted,#9ca3af); flex:0 0 auto; }
+    /* On a touch screen there is no hover, so the actions stay legible. */
+    @media (hover: none) { .resume-item-actions { opacity: 1; } }
     .resume-card-item.sortable-ghost { opacity: 0.4; }
     .resume-card-item.sortable-chosen { box-shadow: 0 4px 18px rgba(61,107,255,0.18); }
     .resume-icon-btn { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; color: var(--text-muted,#9ca3af); border:1px solid transparent; background:transparent; cursor:pointer; font-size:11px; transition: all .15s; }
     .resume-icon-btn:hover { background: rgba(61,107,255,0.1); color:#90acff; }
     .resume-icon-btn.danger:hover { background: rgba(239,68,68,0.1); color:#f87171; }
+
+    /* A hidden entry: still editable, visibly not on the resume. Dimmed
+       rather than removed, and the dimming stops at the row head so the
+       controls (including the one that brings it back) stay legible. */
+    .resume-card-item.item-hidden { border-style: dashed; opacity: .62; }
+    .resume-card-item.item-hidden .resume-card-item-head { opacity: 1; }
+    .resume-card-item.item-hidden .resume-card-item-title { text-decoration: line-through; text-decoration-thickness: 1px; }
+    .resume-icon-btn.is-hidden-toggle { color: #f0b429; }
+    .resume-icon-btn.is-hidden-toggle:hover { background: rgba(240,180,41,0.12); color: #f0b429; }
     .resume-add-btn { display:inline-flex; align-items:center; gap:6px; padding: 7px 12px; border-radius: 10px; background: rgba(61,107,255,0.12); color: #bccfff; font-size: 11px; font-weight: 600; border: 1px dashed rgba(61,107,255,0.3); cursor: pointer; transition: all .15s; }
     .resume-add-btn:hover { background: rgba(61,107,255,0.18); border-style: solid; }
     .resume-pill { display:inline-flex; align-items:center; gap: 4px; padding: 4px 9px; border-radius:999px; font-size:10px; font-weight:600; background: rgba(61,107,255,0.12); color:#bccfff; border: 1px solid rgba(61,107,255,0.2); }
@@ -395,17 +423,29 @@
          resolveResume() honours the selection. The default version
          is marked with a star and powers the bare /{handle}/resume URL.
          --}}
-    <div class="resume-pane mb-3 p-3 flex flex-wrap items-center gap-2" x-show="versions.length">
+    {{-- Sana, 2026-09-23: "Resume Product Designer/Resume Growth marketer
+         i didnt understand concept. update in better way".
+
+         The row showed a set of names and nothing else -- not what a
+         version IS, not which one a visitor gets, not where the others
+         live. So it says all three now, in the row itself rather than
+         behind a Manage button nobody has a reason to press. --}}
+    <div class="resume-pane mb-3 p-3" x-show="versions.length">
+        <div class="flex flex-wrap items-center gap-2">
         <span class="text-[10px] uppercase font-semibold tracking-wide" style="color: var(--text-muted,#9ca3af);">Version</span>
         <div class="flex flex-wrap items-center gap-2 grow">
             <template x-for="v in versions" :key="v.id">
                 <button type="button"
                         class="resume-add-btn"
                         :class="v.id === resume.id ? '' : 'opacity-70'"
-                        :title="v.is_default ? 'Default version (powers your public link)' : ''"
+                        :title="v.is_default
+                            ? 'This is the one people get at your main resume link'
+                            : 'A tailored copy, with its own link'"
                         @click="switchVersion(v)">
                     <i class="fas" :class="v.is_default ? 'fa-star' : 'fa-file-lines'"></i>
                     <span x-text="v.name"></span>
+                    <span x-show="v.is_default" class="resume-pill"
+                          style="background:#16a34a; color:#fff; margin-left:6px;">Live</span>
                 </button>
             </template>
         </div>
@@ -413,9 +453,78 @@
             <button type="button" class="resume-add-btn" @click="versionDialogOpen = true" title="Manage versions">
                 <i class="fas fa-layer-group"></i> Manage
             </button>
-            <button type="button" class="resume-add-btn" @click="createVersion()" :disabled="versionsBusy">
+            <button type="button" class="resume-add-btn" @click="openNewVersion()" :disabled="versionsBusy">
                 <i class="fas fa-plus"></i> New version
             </button>
+        </div>
+        </div>
+        <p class="text-[11px] mt-2" style="color: var(--text-muted,#9ca3af);">
+            A version is a separate copy of this resume for a different kind of role, with its own
+            link. The one marked <strong style="color:#16a34a;">Live</strong> is what people get at
+            your main resume link; every other version is only reachable at its own link, so you can
+            send a tailored one to a specific employer without changing what anyone else sees.
+        </p>
+    </div>
+
+    {{-- New version dialog.
+
+         This used to be a window.prompt asking for a name, and the
+         version it made was EMPTY -- so the obvious thing to do with
+         "New version" produced a blank resume and no hint of why you
+         would want one. It starts from a copy of what you have now by
+         default, which is what tailoring actually means, and it suggests
+         names that say what a version is for. --}}
+    <div class="resume-modal-backdrop" x-show="newVersionOpen" x-cloak @click.self="newVersionOpen = false">
+        <div class="resume-modal" style="max-width: 460px;">
+            <div class="resume-modal-head">
+                <h3><i class="fas fa-plus"></i> New version</h3>
+                <button type="button" @click="newVersionOpen = false"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="resume-modal-body">
+                <p class="text-xs mb-3" style="color: var(--text-muted,#9ca3af);">
+                    A tailored copy of your resume with its own link. Applying for two different kinds
+                    of role is the usual reason: you lead with different work in each.
+                </p>
+
+                <label class="block text-[10px] uppercase font-semibold mb-1.5" style="color: var(--text-muted,#9ca3af);">What is it for?</label>
+                <input class="resume-input mb-2" type="text" maxlength="60" x-model="newVersionName"
+                       placeholder="e.g. Product design roles"
+                       @keydown.enter.prevent="confirmNewVersion()">
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <template x-for="hint in versionNameHints" :key="hint">
+                        <button type="button" class="resume-add-btn" style="font-size:10px;"
+                                @click="newVersionName = hint" x-text="hint"></button>
+                    </template>
+                </div>
+
+                <label class="flex items-start gap-2 mb-2 cursor-pointer">
+                    <input type="radio" value="copy" x-model="newVersionFrom" style="margin-top:3px;">
+                    <span>
+                        <span class="text-xs font-semibold" style="color: var(--text-primary,#fff);">Start from this resume</span>
+                        <span class="block text-[11px]" style="color: var(--text-muted,#9ca3af);">
+                            Copies everything you have now, then you trim and reorder it for the role.
+                        </span>
+                    </span>
+                </label>
+                <label class="flex items-start gap-2 mb-4 cursor-pointer">
+                    <input type="radio" value="blank" x-model="newVersionFrom" style="margin-top:3px;">
+                    <span>
+                        <span class="text-xs font-semibold" style="color: var(--text-primary,#fff);">Start empty</span>
+                        <span class="block text-[11px]" style="color: var(--text-muted,#9ca3af);">
+                            A blank resume. You will be typing it from scratch.
+                        </span>
+                    </span>
+                </label>
+
+                <div class="flex items-center gap-2">
+                    <button type="button" class="btn-primary px-4 py-2 text-xs font-semibold"
+                            :disabled="versionsBusy || !newVersionName.trim()"
+                            @click="confirmNewVersion()">
+                        <i class="fas fa-plus text-[10px]"></i> Create version
+                    </button>
+                    <button type="button" class="resume-add-btn" @click="newVersionOpen = false">Cancel</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -457,7 +566,8 @@
                         </li>
                     </template>
                 </ul>
-                <button type="button" class="resume-add-btn mt-3" @click="createVersion()" :disabled="versionsBusy">
+                <button type="button" class="resume-add-btn mt-3"
+                        @click="versionDialogOpen = false; openNewVersion()" :disabled="versionsBusy">
                     <i class="fas fa-plus"></i> Create new version
                 </button>
             </div>
@@ -542,7 +652,7 @@
                                 <i class="fas fa-save text-[10px]"></i> Save page background
                             </button>
                             <span class="text-[11px]" style="color: var(--text-muted,#9ca3af);">
-                                Applies to both of this r&eacute;sum&eacute;'s public links.
+                                Applies to both of this resume's public links.
                             </span>
                         </div>
                     </form>
@@ -563,8 +673,8 @@
                     {{-- Toggle row --}}
                     <div class="flex items-start justify-between gap-3 mb-4">
                         <div>
-                            <p class="text-sm font-semibold" style="color: var(--text-primary,#fff);">Public résumé page</p>
-                            <p class="text-xs" style="color: var(--text-muted,#9ca3af);">When on, your résumé is reachable at the link below and can be embedded in your Link in Bio.</p>
+                            <p class="text-sm font-semibold" style="color: var(--text-primary,#fff);">Public resume page</p>
+                            <p class="text-xs" style="color: var(--text-muted,#9ca3af);">When on, your resume is reachable at the link below and can be embedded in your Link in Bio.</p>
                         </div>
                         <label class="inline-flex items-center cursor-pointer shrink-0">
                             <input type="checkbox" class="sr-only peer"
@@ -683,15 +793,15 @@
                         </button>
                     </div>
 
-                    {{-- Short links surfacing this résumé — public URL + a jump
+                    {{-- Short links surfacing this resume — public URL + a jump
                          to the link's click analytics. Shown whenever a
-                         `resume`-type short link points at this résumé so the
+                         `resume`-type short link points at this resume so the
                          builder ↔ link bridge is discoverable from both sides. --}}
                     @if(!empty($resumeLinks))
                     <div class="resume-field" style="margin-top: 16px; border-top: 1px solid var(--border-glass, rgba(255,255,255,0.08)); padding-top: 14px;">
-                        <label><i class="fas fa-link"></i> Short {{ count($resumeLinks) > 1 ? 'links' : 'link' }} for this résumé</label>
+                        <label><i class="fas fa-link"></i> Short {{ count($resumeLinks) > 1 ? 'links' : 'link' }} for this resume</label>
                         <p class="text-[11px] mb-2" style="color: var(--text-muted,#9ca3af);">
-                            This résumé is surfaced through {{ count($resumeLinks) > 1 ? 'these short links' : 'a short link' }}. Open the public page or jump to its click analytics.
+                            This resume is surfaced through {{ count($resumeLinks) > 1 ? 'these short links' : 'a short link' }}. Open the public page or jump to its click analytics.
                         </p>
                         @foreach($resumeLinks as $rl)
                         <div class="flex items-center gap-2 mb-2 flex-wrap">
@@ -815,6 +925,26 @@
                             Set a handle on your profile to get a shareable link.
                         </p>
                     </template>
+
+                    {{-- The share button, same card every other page type
+                         gets. It is a plain form for the same reason the
+                         background card is: it is shared markup, and
+                         rewriting it as an Alpine payload per page type is
+                         how the two would drift. --}}
+                    <form method="POST" action="{{ route('user.resume.share-button.update') }}" class="mt-6">
+                        @csrf
+                        @include('user.links.partials.share-button-settings', [
+                            'shareBtn' => is_array($resume->share_button ?? null) ? $resume->share_button : [],
+                        ])
+                        <div class="mt-3 flex items-center gap-3">
+                            <button type="submit" class="btn-primary px-5 py-2 text-xs font-semibold inline-flex items-center gap-2">
+                                <i class="fas fa-save text-[10px]"></i> Save share button
+                            </button>
+                            <span class="text-[11px]" style="color: var(--text-muted,#9ca3af);">
+                                Applies to both of this resume's public links.
+                            </span>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -984,24 +1114,33 @@
                     <div class="resume-section-body" x-show="open[def.key]" x-collapse>
                         <div :data-section="def.key" x-init="$nextTick(() => initSortable($el, def.key))">
                             <template x-for="(item, idx) in (items[def.key] || [])" :key="item.id">
-                                <div class="resume-card-item" :data-id="item.id">
-                                    <div class="resume-card-item-head">
-                                        <i class="fas fa-grip-vertical text-xs" style="color: var(--text-muted,#9ca3af);"></i>
-                                        <span class="resume-card-item-title" x-text="itemLabel(def.key, item)"></span>
-                                        <button type="button" class="resume-icon-btn"
-                                                :title="item._open ? 'Collapse' : 'Expand'"
-                                                @click="item._open = !item._open">
-                                            <i class="fas" :class="item._open ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                                        </button>
-                                        <button type="button" class="resume-icon-btn" title="Move up" @click="moveItem(def.key, idx, -1)">
-                                            <i class="fas fa-arrow-up"></i>
-                                        </button>
-                                        <button type="button" class="resume-icon-btn" title="Move down" @click="moveItem(def.key, idx, 1)">
-                                            <i class="fas fa-arrow-down"></i>
-                                        </button>
-                                        <button type="button" class="resume-icon-btn danger" title="Delete" @click="removeItem(def.key, item)">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                <div class="resume-card-item" :class="{ 'item-hidden': item.is_hidden }" :data-id="item.id">
+                                    <div class="resume-card-item-head" @click="item._open = !item._open">
+                                        <i class="fas fa-grip-vertical resume-grip" title="Drag to reorder"></i>
+                                        <span class="resume-card-item-text">
+                                            <span class="resume-card-item-title" x-text="itemLabel(def.key, item)"></span>
+                                            <span class="resume-card-item-meta"
+                                                  x-show="itemMeta(def.key, item)"
+                                                  x-text="itemMeta(def.key, item)"></span>
+                                        </span>
+                                        <span class="resume-item-actions" @click.stop>
+                                            <button type="button" class="resume-icon-btn" title="Move up" @click="moveItem(def.key, idx, -1)">
+                                                <i class="fas fa-arrow-up"></i>
+                                            </button>
+                                            <button type="button" class="resume-icon-btn" title="Move down" @click="moveItem(def.key, idx, 1)">
+                                                <i class="fas fa-arrow-down"></i>
+                                            </button>
+                                            <button type="button" class="resume-icon-btn"
+                                                    :class="{ 'is-hidden-toggle': item.is_hidden }"
+                                                    :title="item.is_hidden ? 'Hidden \u2014 click to show on the resume' : 'Visible \u2014 click to hide'"
+                                                    @click="toggleItemHidden(def.key, item)">
+                                                <i class="fas" :class="item.is_hidden ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                            </button>
+                                            <button type="button" class="resume-icon-btn danger" title="Delete" @click="removeItem(def.key, item)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </span>
+                                        <i class="fas resume-card-chev" :class="item._open ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                                     </div>
                                     <div x-show="item._open" x-collapse>
                                         <div x-html="renderItemForm(def.key, item)"></div>
@@ -1037,12 +1176,18 @@
                             </div>
                             <div :data-section="'custom:'+cs.key" x-init="$nextTick(() => initSortable($el, 'custom', cs.key))">
                                 <template x-for="(item, idx) in customItems(cs.key)" :key="item.id">
-                                    <div class="resume-card-item" :data-id="item.id" style="background: rgba(144,172,255,0.04);">
+                                    <div class="resume-card-item" :class="{ 'item-hidden': item.is_hidden }" :data-id="item.id" style="background: rgba(144,172,255,0.04);">
                                         <div class="resume-card-item-head">
                                             <i class="fas fa-grip-vertical text-xs" style="color: var(--text-muted,#9ca3af);"></i>
                                             <span class="resume-card-item-title" x-text="item.data.title || 'Untitled entry'"></span>
                                             <button type="button" class="resume-icon-btn" @click="item._open = !item._open">
                                                 <i class="fas" :class="item._open ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                                            </button>
+                                            <button type="button" class="resume-icon-btn"
+                                                    :class="{ 'is-hidden-toggle': item.is_hidden }"
+                                                    :title="item.is_hidden ? 'Hidden \u2014 click to show on the resume' : 'Visible \u2014 click to hide'"
+                                                    @click="toggleItemHidden('custom', item)">
+                                                <i class="fas" :class="item.is_hidden ? 'fa-eye-slash' : 'fa-eye'"></i>
                                             </button>
                                             <button type="button" class="resume-icon-btn danger" @click="removeItem('custom', item)">
                                                 <i class="fas fa-trash"></i>
@@ -1065,6 +1210,25 @@
                         <button type="button" class="resume-add-btn" @click="createCustomSection()">
                             <i class="fas fa-plus"></i> Add section
                         </button>
+                    </div>
+
+                    {{-- Sana, 2026-09-23: "see if u can add more options in
+                         sections and inside it".
+
+                         A custom section could always be anything, but a
+                         blank box asking for a name is not an offer -- you
+                         have to already know what belongs on a resume to
+                         fill it in. These are the sections people most
+                         often add, one tap each, and each is hidden once
+                         that section exists. --}}
+                    <div class="flex flex-wrap gap-2 mt-2" x-show="unusedSectionPresets.length">
+                        <span class="text-[10px] uppercase font-semibold self-center" style="color: var(--text-muted,#9ca3af);">Or add</span>
+                        <template x-for="preset in unusedSectionPresets" :key="preset">
+                            <button type="button" class="resume-add-btn" style="font-size:10px;"
+                                    @click="newCustomTitle = preset; createCustomSection()">
+                                <i class="fas fa-plus text-[9px]"></i> <span x-text="preset"></span>
+                            </button>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -1223,6 +1387,21 @@ function resumeEditor() {
         versions: window.__resumeBootstrap.versions || [],
         versionDialogOpen: false,
         versionsBusy: false,
+        newVersionOpen: false,
+        newVersionName: '',
+        // Deliberately phrased as "what it is for" rather than as job
+        // titles: "Product design roles" reads as a purpose, where
+        // "Product Designer" reads as a job someone had -- which is the
+        // confusion Sana reported.
+        versionNameHints: ['Product design roles', 'Growth marketing roles', 'Short one-pager', 'Consulting work'],
+        newVersionFrom: 'copy',
+        // The sections people most often add beyond the built-in ones.
+        // Offered as one-tap buttons rather than left to a blank field:
+        // a name box only helps someone who already knows the answer.
+        sectionPresets: [
+            'Volunteering', 'Publications', 'Courses', 'Speaking',
+            'Patents', 'Interests', 'References', 'Achievements',
+        ],
         items: {},
         open: { design: true, publishing: false, sharing: false, header: true, summary: true,
             experience: true, education: true, skills: true, projects: true,
@@ -1626,13 +1805,34 @@ function resumeEditor() {
             u.searchParams.set('resume_id', String(v.id));
             window.location.assign(u.toString());
         },
-        async createVersion() {
-            const name = window.prompt('Name this resume version', 'New version');
+        get unusedSectionPresets() {
+            const taken = (this.resume.sections.custom_sections || [])
+                .map(cs => (cs.title || '').trim().toLowerCase());
+
+            return this.sectionPresets.filter(p => !taken.includes(p.toLowerCase()));
+        },
+        openNewVersion() {
+            this.newVersionName = '';
+            this.newVersionFrom = 'copy';
+            this.newVersionOpen = true;
+        },
+        /**
+         * Create a version, from a copy of the current resume or empty.
+         *
+         * "Copy" is the default because it is what tailoring means -- the
+         * old flow made an EMPTY version, so the obvious button produced
+         * a blank resume and left you wondering what a version was for.
+         */
+        async confirmNewVersion() {
+            const name = (this.newVersionName || '').trim();
             if (!name) return;
             this.versionsBusy = true;
             try {
-                const r = await this.http('POST', '{{ route('user.resume.versions.store') }}', { name });
+                const r = this.newVersionFrom === 'copy'
+                    ? await this.http('POST', '/user/resume/versions/' + this.resume.id + '/duplicate', { name })
+                    : await this.http('POST', '{{ route('user.resume.versions.store') }}', { name });
                 this.versions = r.versions || this.versions;
+                this.newVersionOpen = false;
                 this.showToast('Version created.');
                 if (r.version && r.version.id) this.switchVersion(r.version);
             } catch (e) { this.showToast(e.message || 'Could not create version.', 'error'); }
@@ -2038,6 +2238,26 @@ function resumeEditor() {
                 this.markSaved();
             } catch (e) { this.markError(e.message); }
         },
+        /**
+         * Hide or unhide one entry.
+         *
+         * Optimistic: the row dims immediately and reverts if the save
+         * fails, because the whole value of this control is that it is
+         * quick to try a version of the resume with something off.
+         */
+        async toggleItemHidden(type, item) {
+            const next = !item.is_hidden;
+            item.is_hidden = next;
+            try {
+                this.markSaving();
+                await this.http('POST', '/user/resume/items/' + item.id + '/visibility', { is_hidden: next });
+                this.renderPreview();
+                this.markSaved();
+            } catch (e) {
+                item.is_hidden = !next;
+                this.markError(e.message);
+            }
+        },
         moveItem(type, idx, dir) {
             const arr = this.items[type] || [];
             const target = idx + dir;
@@ -2065,7 +2285,10 @@ function resumeEditor() {
             if (this.sortInstances[key]) return;
             this.sortInstances[key] = new Sortable(el, {
                 animation: 150,
-                handle: '.resume-card-item-head',
+                // The grip, not the whole head: the head is now the
+                // click target that opens an entry, and a drag handle
+                // that is also a button makes both feel unreliable.
+                handle: '.resume-grip',
                 draggable: '.resume-card-item',
                 ghostClass: 'sortable-ghost',
                 chosenClass: 'sortable-chosen',
@@ -2102,6 +2325,40 @@ function resumeEditor() {
                 const r = await this.http('PUT', '/user/resume/items/' + id, { data: item.data });
                 if (r && r.item) item.data = r.item.data;
             });
+        },
+
+        /**
+         * The second line of an entry's row.
+         *
+         * Sana, 2026-09-23: "fix ui in resume manage tab as it looks
+         * ugly". Part of why it did: every row was one truncated string
+         * and five icon buttons, so the list carried almost no
+         * information for the space it took. The dates are the thing you
+         * scan a resume's list FOR -- which job was when, in what order.
+         */
+        itemMeta(type, item) {
+            const d = item.data || {};
+            const month = (s) => {
+                if (!s) return '';
+                const m = /^(\d{4})-(\d{2})$/.exec(s);
+                if (!m) return s;
+                return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m[2]-1] + ' ' + m[1];
+            };
+            const span = (a, b, current) => {
+                const parts = [month(a), current ? 'Present' : month(b)].filter(Boolean);
+                return parts.join(' – ');
+            };
+            switch (type) {
+                case 'experience':     return span(d.start_date, d.end_date, d.is_current);
+                case 'education':      return [span(d.start_date, d.end_date, false), d.grade].filter(Boolean).join(' · ');
+                case 'projects':       return span(d.start_date, d.end_date, false);
+                case 'certifications': return [d.issuer, month(d.issued_on)].filter(Boolean).join(' · ');
+                case 'awards':         return [d.issuer, month(d.date)].filter(Boolean).join(' · ');
+                case 'skills':         return d.group || '';
+                case 'languages':      return d.proficiency ? d.proficiency[0].toUpperCase() + d.proficiency.slice(1) : '';
+                case 'links':          return d.url || '';
+                default:               return d.subtitle || '';
+            }
         },
 
         itemLabel(type, item) {
@@ -2143,19 +2400,40 @@ function resumeEditor() {
             const tUrl = (label, field) =>
                 `<div class="resume-field"><label>${label}</label>
                   <input class="resume-input" type="url" placeholder="https://…" value="${v(d[field])}" ${onInput(field)}></div>`;
+            // Sana, 2026-09-23: "see if u can add more options in sections
+            // and inside it". Each of the fields below is one an employer
+            // or an ATS actually looks for and the form had no place for.
+            const tSelect = (label, field, choices, blank='') => {
+                const opts = [['', blank]].concat(choices)
+                    .map(([val, text]) => `<option value="${v(val)}" ${String(d[field]||'')===val?'selected':''}>${v(text)}</option>`)
+                    .join('');
+                return `<div class="resume-field"><label>${label}</label>
+                  <select class="resume-select" onchange="window.__resumeBus.update(${id},'${type}','${field}',this.value)">${opts}</select></div>`;
+            };
 
             switch (type) {
                 case 'experience':
                     return `<div class="resume-field-row">${tInput('Role','role','maxlength="160"')}${tInput('Company','company','maxlength="160"')}</div>
                             <div class="resume-field-row">${tInput('Location','location','maxlength="160"')}
+                              ${tSelect('Employment type','employment_type', [
+                                  ['full_time','Full-time'], ['part_time','Part-time'], ['contract','Contract'],
+                                  ['freelance','Freelance'], ['internship','Internship'], ['temporary','Temporary'],
+                                  ['apprenticeship','Apprenticeship'], ['self_employed','Self-employed'],
+                              ], 'Not specified')}</div>
+                            <div class="resume-field-row">
+                              ${tSelect('Workplace','work_mode', [
+                                  ['on_site','On-site'], ['hybrid','Hybrid'], ['remote','Remote'],
+                              ], 'Not specified')}
                               <div class="resume-field"><label>Currently working here</label>
                                 <input type="checkbox" ${d.is_current ? 'checked' : ''} ${onCheck('is_current')}></div></div>
                             <div class="resume-field-row">${tMonth('Start date','start_date')}${tMonth('End date','end_date')}</div>
+                            ${tUrl('Company website','url')}
                             ${tArea('Description','description')}`;
                 case 'education':
                     return `<div class="resume-field-row">${tInput('School','school','maxlength="160"')}${tInput('Degree','degree','maxlength="160"')}</div>
-                            <div class="resume-field-row">${tInput('Field of study','field','maxlength="160"')}<div></div></div>
+                            <div class="resume-field-row">${tInput('Field of study','field','maxlength="160"')}${tInput('Location','location','maxlength="160"')}</div>
                             <div class="resume-field-row">${tMonth('Start date','start_date')}${tMonth('End date','end_date')}</div>
+                            ${tInput('Grade or GPA','grade','maxlength="40" placeholder="e.g. 3.8 / 4.0 or First Class"')}
                             ${tArea('Description','description', 1000)}`;
                 case 'skills':
                     const stars = [1,2,3,4,5].map(n =>
@@ -2165,7 +2443,7 @@ function resumeEditor() {
                             <div class="resume-field"><label>Proficiency</label><div class="level-stars">${stars}</div></div>`;
                 case 'projects':
                     return `<div class="resume-field-row">${tInput('Project name','name','maxlength="160"')}${tInput('Your role','role','maxlength="160"')}</div>
-                            ${tUrl('URL','url')}
+                            <div class="resume-field-row">${tUrl('URL','url')}${tInput('Built with','tech','maxlength="160" placeholder="e.g. Laravel, Postgres, Alpine"')}</div>
                             <div class="resume-field-row">${tMonth('Start date','start_date')}${tMonth('End date','end_date')}</div>
                             ${tArea('Description','description')}`;
                 case 'certifications':
@@ -2174,7 +2452,7 @@ function resumeEditor() {
                             ${tUrl('Credential URL','credential_url')}`;
                 case 'awards':
                     return `<div class="resume-field-row">${tInput('Title','title','maxlength="160"')}${tInput('Issuer','issuer','maxlength="160"')}</div>
-                            <div class="resume-field-row">${tMonth('Date','date')}<div></div></div>
+                            <div class="resume-field-row">${tMonth('Date','date')}${tUrl('Link','url')}</div>
                             ${tArea('Description','description', 1000)}`;
                 case 'languages':
                     const opts = ['basic','conversational','professional','fluent','native']
@@ -2258,7 +2536,13 @@ function resumeEditor() {
 
             const h = sections.header || {};
             const summary = sections.summary || '';
-            const items = itemsArg;
+            // Hidden entries are off the resume, so they are off the
+            // preview -- otherwise the pane stops being a preview of the
+            // page the reader gets. They stay in the builder above.
+            const items = {};
+            for (const k of Object.keys(itemsArg || {})) {
+                items[k] = (itemsArg[k] || []).filter(i => !i.is_hidden);
+            }
 
             const sectionBox = (title, body, key='') =>
                 body ? `<section class="pv-section" data-key="${esc(key)}"><h2 style="color:${theme.primary}; border-color:${theme.primary}">${esc(title)}</h2>${body}</section>` : '';
@@ -2901,7 +3185,7 @@ function resumeEditor() {
             switch (this.coverTone) {
                 case 'warm':    return 'Personable and slightly conversational. Shows enthusiasm without being overfamiliar.';
                 case 'concise': return 'No-fluff voice with short sentences. Body is kept to two paragraphs maximum.';
-                default:        return 'Professional and confident. Focused paragraphs, free of clichés.';
+                default:        return 'Professional and confident. Focused paragraphs, free of stock phrases.';
             }
         },
 

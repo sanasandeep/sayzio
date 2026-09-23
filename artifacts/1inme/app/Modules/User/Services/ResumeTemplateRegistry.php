@@ -212,7 +212,7 @@ class ResumeTemplateRegistry
              'style' => ['layout' => 'single', 'headings' => 'mono', 'density' => 'tight',
                          'header_style' => 'rule', 'divider' => 'rule', 'title_style' => 'bracket']],
             ['id' => 'tech-monospace', 'cat' => 'technical', 'name' => 'Monospace',
-             'desc' => 'Pure monospace résumé with hairline rules.',
+             'desc' => 'Pure monospace resume with hairline rules.',
              'style' => ['layout' => 'single', 'headings' => 'mono', 'density' => 'comfortable',
                          'header_style' => 'underline', 'divider' => 'rule', 'title_style' => 'plain']],
             ['id' => 'terminal', 'cat' => 'technical', 'name' => 'Terminal',

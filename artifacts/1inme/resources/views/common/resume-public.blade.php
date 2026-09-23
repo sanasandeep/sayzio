@@ -238,5 +238,18 @@
         Powered by <a href="{{ url('/') }}" style="color:#94a3b8;">Sayzio</a>
     </p>
 </main>
+
+{{-- A resume reached at @handle/resume has no Link in scope at all, so
+     the partial is handed resolved settings rather than a link. The
+     resume's own `share_button` blob is the source, which keeps the two
+     public URLs of one resume looking the same -- the same reason its
+     background lives on the resume rather than on a link. --}}
+@include('common.partials.share-button', [
+    'sb'      => \App\Modules\User\Support\ShareButton::resolve(
+        is_array($resume->share_button ?? null) ? ['share_button' => $resume->share_button] : []
+    ),
+    'sbUrl'   => $publicUrl ?? url()->current(),
+    'sbTitle' => $title ?? config('app.name'),
+])
 </body>
 </html>

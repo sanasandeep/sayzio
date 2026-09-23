@@ -100,7 +100,11 @@ body::after {
 }
 @endif
 @if($pb['blur'] > 0 || $pb['overlayOpacity'] > 0 || $pb['hasLayer'] || $pb['tornActive'] || $pb['tilesActive'])
-body > *:not(.bg-layer):not(script):not(style) {
+/* Lift page CONTENT above the background layers. `.sz-share` is excluded
+   for the same reason `.bg-layer` is: it is a viewport-pinned overlay,
+   not content, and this rule's `position: relative` would otherwise beat
+   its own `position: fixed` on specificity and drop it into the flow. */
+body > *:not(.bg-layer):not(.sz-share):not(script):not(style) {
     position: relative;
     z-index: 1;
 }

@@ -88,9 +88,12 @@
                             Describe yourself, your role and your wins. AI will draft a summary, experience bullets and
                             skills you can review before merging. Uses your coins.
                         </p>
-                        <textarea class="resume-textarea mb-3" rows="5" maxlength="1500" id="resume-import-ai-prompt"
-                                  placeholder="e.g. Senior product designer with 8 years in fintech. Led the redesign of…"
+                        <textarea class="resume-textarea mb-2" rows="9" maxlength="10000" id="resume-import-ai-prompt"
+                                  placeholder="e.g. Senior product designer with 8 years in fintech. Led the redesign of…&#10;&#10;Paste as much as you like: every role, the wins, the numbers. The more you give it, the less it has to guess."
                                   x-model="importAiPrompt"></textarea>
+                        <p class="resume-import-help mb-3" style="text-align:right;">
+                            <span x-text="importAiPrompt.length.toLocaleString()"></span> / 10,000
+                        </p>
                         <div class="flex flex-wrap gap-3 mb-3">
                             <template x-for="s in ['summary','experience','skills','projects']" :key="s">
                                 <label class="resume-import-chip">

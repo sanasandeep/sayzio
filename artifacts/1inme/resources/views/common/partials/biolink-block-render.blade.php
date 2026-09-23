@@ -134,8 +134,8 @@
                     $__rResume = $__rOwner ? $__rOwner->resume : null;
                     $__rUrl = $__rOwner ? url('/' . $__rOwner->publicHandle() . '/resume') : null;
                     $__rDisplay = $s['display'] ?? 'card'; // card | inline
-                    $__rTitle = $s['title'] ?? 'My résumé';
-                    $__rCta   = $s['cta_label'] ?? 'View full résumé';
+                    $__rTitle = $s['title'] ?? 'My resume';
+                    $__rCta   = $s['cta_label'] ?? 'View full resume';
                     $__rDesc  = $s['description'] ?? null;
                     if ($__rResume && empty($__rDesc)) {
                         $__rh = $__rResume->getMergedSections()['header'] ?? [];

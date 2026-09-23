@@ -5,19 +5,19 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * A résumé's page background.
+ * A resume's page background.
  *
  * Every other surface in this rollout stores its background in
- * `links.settings['biolink']`. A résumé cannot: it is reachable at
+ * `links.settings['biolink']`. A resume cannot: it is reachable at
  * `@handle/{slug}` with no Link in scope at all, as well as through a
- * résumé link's alias. Hanging the background off the link would make the
- * same résumé look different depending on which of its two URLs you
+ * resume link's alias. Hanging the background off the link would make the
+ * same resume look different depending on which of its two URLs you
  * opened, which is worse than not having the feature.
  *
- * So it lives on the résumé, and both routes render the same page.
+ * So it lives on the resume, and both routes render the same page.
  *
  * Nullable with no default: absent means "not chosen", which is what the
- * renderer's opt-in check reads. Every existing résumé therefore keeps the
+ * renderer's opt-in check reads. Every existing resume therefore keeps the
  * light desk it has always had.
  */
 return new class extends Migration

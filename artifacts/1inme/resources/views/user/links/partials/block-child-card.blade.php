@@ -25,7 +25,7 @@
         </div>
         <div class="flex items-center gap-0.5 flex-shrink-0">
             <button class="block-action-btn edit-btn" style="width:22px;height:22px;" title="Edit" onclick="toggleEditInline({{ $child->id }})"><i class="fas fa-pen" style="font-size:8px;"></i></button>
-            <button class="block-action-btn duplicate-btn" style="width:22px;height:22px;" title="Duplicate — copies the styling too" onclick="ajaxDuplicateBlock(this, '{{ route('user.links.blocks.duplicate', [$link, $child]) }}', {{ $child->id }})"><i class="fas fa-clone" style="font-size:8px;"></i></button>
+            <button class="block-action-btn duplicate-btn" style="width:22px;height:22px;" title="Duplicate (copies the styling too)" onclick="ajaxDuplicateBlock(this, '{{ route('user.links.blocks.duplicate', [$link, $child]) }}', {{ $child->id }})"><i class="fas fa-clone" style="font-size:8px;"></i></button>
             <button class="block-action-btn toggle-btn" style="width:22px;height:22px;" title="{{ $child->is_active ? 'Hide' : 'Show' }}" onclick="ajaxToggleBlock(this, '{{ route('user.links.blocks.toggle', [$link, $child]) }}', {{ $child->id }})"><i class="fas {{ $child->is_active ? 'fa-eye' : 'fa-eye-slash' }}" style="font-size:8px;"></i></button>
             <button class="block-action-btn delete-btn" style="width:22px;height:22px;" title="Delete" onclick="ajaxDeleteBlock(this, '{{ route('user.links.blocks.destroy', [$link, $child]) }}', {{ $child->id }})"><i class="fas fa-trash" style="font-size:8px;"></i></button>
         </div>
