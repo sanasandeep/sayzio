@@ -113,8 +113,8 @@
                    class="no-underline"
                    style="display:flex;align-items:center;gap:10px;padding:11px 13px;margin:10px 0 14px;border-radius:12px;background:var(--bg-glass-input,rgba(127,127,127,.06));border:1px solid var(--border-glass,rgba(127,127,127,.18));color:inherit;">
                     <i class="fas fa-fill-drip text-[11px]" style="color:#7f9cff;"></i>
-                    <span style="font-size:13px;font-weight:600;">Page background</span>
-                    <span style="font-size:11px;opacity:.65;">Colour, gradient or one of 941 ready-made looks</span>
+                    <span style="font-size:13px;font-weight:600;">Background &amp; fonts</span>
+                    <span style="font-size:11px;opacity:.65;">Colour, gradient, 941 ready-made looks &mdash; and the page font</span>
                     <i class="fas fa-arrow-right text-[10px]" style="margin-left:auto;opacity:.5;"></i>
                 </a>
                 <div class="rm-row">
@@ -138,6 +138,23 @@
                 <div class="rm-row">
                     <label class="rm-label">Accent color</label>
                     <input type="color" class="rm-input" x-model="menu.accent_color" @change="saveSettings()" style="height:42px;padding:4px">
+                </div>
+                <div class="rm-row">
+                    <label class="rm-label">Layout</label>
+                    {{-- Five ways to draw the same items. The page had one
+                         hardcoded column before this; the choice is saved on
+                         the menu and read by the public template. --}}
+                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;">
+                        @foreach(\App\Modules\User\Support\MenuPresentation::LAYOUTS as $lk => $lv)
+                        <label style="display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid var(--border-glass,rgba(127,127,127,.18));"
+                               :style="menu.layout === '{{ $lk }}' ? 'border-color:#7f9cff;background:rgba(127,156,255,.1);' : ''"
+                               title="{{ $lv['hint'] }}">
+                            <input type="radio" value="{{ $lk }}" x-model="menu.layout" @change="saveSettings()">
+                            <span style="font-size:12.5px;font-weight:600;">{{ $lv['label'] }}</span>
+                        </label>
+                        @endforeach
+                    </div>
+                    <p class="text-xs mt-2" style="color:var(--text-muted)" x-text="layoutHint"></p>
                 </div>
                 <div class="rm-row" x-show="menu.mode === 'order'">
                     <label class="rm-label">WhatsApp number (optional)</label>
@@ -241,6 +258,7 @@
         'accent_color' => $menu->accent_color,
         'whatsapp_number' => $menu->settings['whatsapp_number'] ?? '',
         'accepting_orders' => (bool) ($menu->settings['accepting_orders'] ?? true),
+        'layout' => \App\Modules\User\Support\MenuPresentation::layout($menu->settings['layout'] ?? null),
     ];
     $storeBase = rtrim(url('/user/links/'.$link->id.'/store'), '/');
 @endphp
@@ -250,6 +268,10 @@ function storeEditor() {
         categories: @json($menuCategories),
         products: @json($menuProducts),
         savedMsg: '',
+        // The chosen layout's one-line description, so the panel explains
+        // itself instead of making the creator click five radios to find out.
+        layoutHints: @json(collect(\App\Modules\User\Support\MenuPresentation::LAYOUTS)->map(fn ($l) => $l['hint'])),
+        get layoutHint(){ return this.layoutHints[this.menu.layout] || ''; },
         catModal: { open:false, id:null, name:'', description:'' },
         productModal: { open:false, id:null, category_id:null, name:'', description:'', price:'', photo_url:'', is_out_of_stock:false },
         base: @json($storeBase),
@@ -300,6 +322,7 @@ function storeEditor() {
                 accent_color:this.menu.accent_color,
                 whatsapp_number:this.menu.whatsapp_number||'',
                 accepting_orders:!!this.menu.accepting_orders,
+                layout:this.menu.layout||'list',
             });
             this.savedMsg = 'Saved ✓'; setTimeout(()=>this.savedMsg='', 1500);
         },

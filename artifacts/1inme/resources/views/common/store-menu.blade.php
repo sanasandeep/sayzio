@@ -10,6 +10,15 @@
     $productsByCat = $menu->products->where('is_active', true)->sortBy('sort_order')->groupBy('category_id');
 
     $fmt = fn ($n) => $currency . ' ' . number_format((float) $n, 2);
+
+    // How this page paints itself: the font the creator picked on the
+    // Appearance screen (which this template used to save and then ignore),
+    // and which of the five layouts to draw the items in.
+    $mp = \App\Modules\User\Support\MenuPresentation::resolve(
+        $link->settings['biolink'] ?? [],
+        (array) ($menu->settings ?? []),
+        (string) $accent
+    );
 @endphp
 <!doctype html>
 <html lang="en">
@@ -19,6 +28,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title }}</title>
+    @if($mp['font_href'])<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="{{ $mp['font_href'] }}">@endif
     <style>
 @php
     /*
@@ -40,23 +50,28 @@
     $pbInkLight = $pbOn && \App\Modules\User\Support\PageBackground::inkIsLight($pbBs);
     $pbInk     = $pbBs['font_color'] ?? ($pbInkLight ? '#f5f5f7' : '#111');
 @endphp
+        {{-- The font stacks below are echoed raw: {{ }} turns the quotes
+             around a family name into &#039;, which is not CSS. They are
+             safe to echo because MenuPresentation::cleanFamily only ever
+             returns a family that FontCatalog::isKnown() recognises -- no
+             creator input reaches this string. --}}
         :root { color-scheme: light dark; --accent: {{ $accent }}; }
         * { box-sizing: border-box; }
         @if($pbOn)
-        html, body { margin:0; padding:0; min-height:100%; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:{{ $pbInk }}; }
+        html, body { margin:0; padding:0; min-height:100%; font-family:{!! $mp['font_css'] !!}; color:{{ $pbInk }}; }
         body { @include('common.page-background.body-declarations') }
         @include('common.page-background.css')
         @else
-        html, body { margin:0; padding:0; min-height:100%; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:#f6f6f9; color:#111; }
+        html, body { margin:0; padding:0; min-height:100%; font-family:{!! $mp['font_css'] !!}; background:#f6f6f9; color:#111; }
         @media (prefers-color-scheme: dark) { html, body { background:#0b0b10; color:#f5f5f7; } }
         @endif
         .page { max-width:760px; margin:0 auto; padding:0 16px 120px; }
         .hero { padding:28px 4px 18px; }
-        .hero h1 { margin:0; font-size:26px; font-weight:800; letter-spacing:-.02em; }
+        .hero h1 { margin:0; font-size:26px; font-weight:800; letter-spacing:-.02em; font-family:{!! $mp['heading_css'] !!}; }
         .hero p { margin:6px 0 0; opacity:.65; font-size:14px; }
         .badge { display:inline-block; margin-top:12px; padding:6px 12px; border-radius:999px; background:var(--accent); color:#fff; font-size:12.5px; font-weight:600; }
         .cat { margin-top:26px; }
-        .cat h2 { font-size:18px; font-weight:700; margin:0 0 4px; }
+        .cat h2 { font-size:18px; font-weight:700; margin:0 0 4px; font-family:{!! $mp['heading_css'] !!}; }
         .cat .cdesc { font-size:13px; opacity:.6; margin:0 0 12px; }
         .item { display:flex; gap:14px; padding:14px 0; border-top:1px solid rgba(0,0,0,.07); }
         @media (prefers-color-scheme: dark) { .item { border-color:rgba(255,255,255,.08); } }
@@ -94,6 +109,7 @@
         .note { font-size:12.5px; opacity:.6; text-align:center; margin-top:10px; }
         .status-pill { display:inline-block; padding:4px 11px; border-radius:999px; font-size:12.5px; font-weight:700; background:var(--accent); color:#fff; }
         .empty { text-align:center; opacity:.5; padding:40px 0; }
+@include('common.partials.menu-layout-css')
             @if($pbOn)
         {{-- The page has committed to a scheme (see $pbInkLight): restate the
              surface rules unconditionally so the visitor's OS stops deciding
@@ -104,7 +120,9 @@
 </head>
 <body>
 @if($pbOn)@include('common.page-background.layers')@endif
-<div class="page">
+{{-- The side-by-side layouts get a wider column; the reading layouts
+     keep the narrow one they were designed for. --}}
+<div class="page{{ in_array($mp['layout'], ['cards', 'grid'], true) ? ' wide' : '' }}">
     <div class="hero">
         <h1>{{ $title }}</h1>
         @if($desc = $link->description)<p>{{ $desc }}</p>@endif
@@ -117,6 +135,9 @@
         <div class="cat">
             <h2>{{ $cat->name }}</h2>
             @if($cat->description)<p class="cdesc">{{ $cat->description }}</p>@endif
+            {{-- One class decides the layout; the markup below is the
+                 same for all five. See common/partials/menu-layout-css. --}}
+            <div class="items lay-{{ $mp['layout'] }}">
             @foreach(($productsByCat[$cat->id] ?? collect()) as $product)
                 <div class="item {{ $product->is_out_of_stock ? 'soldout' : '' }}">
                     @if($product->photo_url)<img class="photo" src="{{ $product->photo_url }}" alt="" loading="lazy">@endif
@@ -138,6 +159,7 @@
                     </div>
                 </div>
             @endforeach
+            </div>
         </div>
     @empty
         <div class="empty">This store is being set up. Check back soon.</div>
