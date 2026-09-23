@@ -59,6 +59,7 @@ class RestaurantMenuController extends Controller
             'accent_color'    => 'nullable|string|max:16',
             'whatsapp_number' => 'nullable|string|max:32',
             'settings'        => 'nullable|array',
+            'layout'          => 'nullable|string|max:24',
             'tax_enabled'     => 'sometimes|boolean',
             'tax_rate'        => 'nullable|numeric|min:0|max:100',
             'tax_inclusive'   => 'sometimes|boolean',
@@ -66,6 +67,13 @@ class RestaurantMenuController extends Controller
         ]);
 
         $settings = $data['settings'] ?? ($menu->settings ?? []);
+
+        // Which of the five layouts draws the items. Validated against the
+        // catalog rather than trusted, so an unknown key falls back to the
+        // list layout this page has always had instead of rendering nothing.
+        if ($request->has('layout')) {
+            $settings['layout'] = \App\Modules\User\Support\MenuPresentation::layout($data['layout'] ?? null);
+        }
 
         // Optional WhatsApp click-to-chat number for order confirmations. Stored
         // in the menu's settings JSON, normalized to the digits-only form

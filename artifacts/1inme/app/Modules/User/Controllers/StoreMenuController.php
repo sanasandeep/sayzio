@@ -65,9 +65,17 @@ class StoreMenuController extends Controller
             'whatsapp_number'  => 'nullable|string|max:32',
             'accepting_orders' => 'sometimes|boolean',
             'settings'         => 'nullable|array',
+            'layout'           => 'nullable|string|max:24',
         ]);
 
         $settings = $data['settings'] ?? ($menu->settings ?? []);
+
+        // Which of the five layouts draws the products. Validated against
+        // the catalog rather than trusted, so an unknown key falls back to
+        // the list layout this page has always had.
+        if ($request->has('layout')) {
+            $settings['layout'] = \App\Modules\User\Support\MenuPresentation::layout($data['layout'] ?? null);
+        }
 
         // Optional WhatsApp click-to-chat number for order confirmations. Stored
         // in the store's settings JSON, normalized to the digits-only form
