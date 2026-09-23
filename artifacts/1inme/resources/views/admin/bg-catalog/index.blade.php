@@ -10,7 +10,7 @@
                 <h2 class="text-lg font-semibold text-white/90 ak-strong">The looks that used to need a deploy</h2>
                 <p class="text-xs text-white/50 mt-1 max-w-3xl ak-muted">
                     Presets, gradients, mesh, patterns, tiles and torn paper all ship compiled into the code.
-                    Editing one here creates an override, and deleting that override puts the shipped version back —
+                    Editing one here creates an override, and deleting that override puts the shipped version back,
                     so nothing you do on this page can lose a default.
                     <strong class="text-white/70 ak-strong">Hiding</strong> takes a look out of the picker and leaves it
                     rendering on pages that already chose it.

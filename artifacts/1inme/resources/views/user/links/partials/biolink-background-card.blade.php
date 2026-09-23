@@ -195,7 +195,7 @@
                     @endforeach
                 </div>
                 <p class="text-[10px] mt-1.5" style="color: var(--text-dimmed);">
-                    Search covers every look at once — moods too, so &ldquo;pastel&rdquo; or &ldquo;warm&rdquo;
+                    Search covers every look at once, moods too, so &ldquo;pastel&rdquo; or &ldquo;warm&rdquo;
                     finds gradients. Options for the one you pick appear below.
                 </p>
             </div>
