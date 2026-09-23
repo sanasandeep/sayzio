@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Resume;
 use App\Modules\User\Models\ResumeSectionItem;
+use App\Modules\User\Support\PageBackgroundInput;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\ResumeAtsChecker;
@@ -437,52 +438,75 @@ class ResumeController extends Controller
      * link's alias, and the same resume must not look different depending
      * on which of its two URLs was opened.
      *
-     * Only the renderer's own field list is accepted, and each value goes
-     * through the same validation the biolink page-settings path uses, so
-     * this cannot become a second, laxer way into the same renderer.
+     * This used to declare its own validation rules for the shared picker,
+     * and they were wrong in two ways that made most of the picker a no-op
+     * -- see PageBackgroundInput, which is now the single definition both
+     * this and the Link in Bio path validate against.
      */
     public function updatePageBackground(Request $request)
     {
-        $rules = [];
-        foreach (\App\Modules\User\Support\PageBackground::FIELDS as $field) {
-            $rules[$field] = match ($field) {
-                'background_type' => 'nullable|string|in:color,gradient,image,slideshow,video,template,preset,torn,tiles,mesh,pattern',
-                'background_color', 'bg_fallback_color', 'bg_overlay_color',
-                'torn_paper_color', 'torn_backdrop_color', 'torn_backdrop_color2'
-                    => ['nullable', 'string', 'max:20', 'regex:/^#[0-9a-fA-F]{3,8}$/'],
-                'bg_blur', 'bg_overlay_opacity', 'bg_preset_opacity',
-                'gradient_angle', 'slideshow_interval'
-                    => 'nullable|integer|min:0|max:360',
-                'bg_template_id' => 'nullable|integer|exists:bg_templates,id',
-                'gradient_colors', 'slideshow_images' => 'nullable|array|max:10',
-                default => 'nullable|string|max:2048',
-            };
+        $user = $request->user();
+
+        // One rule set, shared with every other page type that renders this
+        // picker. The copy that used to live here validated `gradient_colors`
+        // as an array (the picker posts JSON) and `background_image` as a
+        // string (it is a file) -- so gradients 422'd and uploads vanished.
+        $data = $request->validate(PageBackgroundInput::rules($user));
+
+        $resume   = $user->resolveResume($request);
+        $existing = is_array($resume->page_background ?? null) ? $resume->page_background : [];
+
+        // Scalars come from THIS submit only, never merged: the card is a
+        // plain form that posts all of its controls every time, so a key
+        // the creator cleared has to disappear rather than linger.
+        $settings = [];
+        foreach (PageBackgroundInput::scalarKeys() as $field) {
+            if (array_key_exists($field, $data) && $data[$field] !== null && $data[$field] !== '') {
+                $settings[$field] = $data[$field];
+            }
         }
-        $data = $request->validate($rules);
 
-        // Drop nulls so an absent background stays absent: PageBackground
-        // reads a missing background_type as "nothing chosen", which is
-        // what keeps every existing resume on its original desk.
-        $data = array_filter($data, fn ($v) => $v !== null && $v !== '');
+        // The media keys are the exception, and have to be: a stored photo
+        // lives in the settings as a URL and the form cannot re-post the
+        // file it came from. Without carrying these, changing the blur
+        // would throw away the picture it was blurring.
+        foreach (PageBackgroundInput::MEDIA_KEYS as $field) {
+            if (isset($existing[$field])) {
+                $settings[$field] = $existing[$field];
+            }
+        }
 
-        $resume = $request->user()->resolveResume($request);
-        $resume->update(['page_background' => $data ?: null]);
+        try {
+            $settings = PageBackgroundInput::absorb($request, $data, $user, $settings);
+        } catch (\RuntimeException $e) {
+            // Vault quota / size failures. The picker posts a plain form,
+            // so the creator needs to land back on it with the reason.
+            if (! $request->expectsJson()) {
+                return back()->withErrors(['background_image' => $e->getMessage()]);
+            }
+
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        // A background type is what PageBackground::chosen() keys on. Clear
+        // it and the resume goes back to the desk it always had, rather
+        // than keeping a half-set of orphan keys.
+        if (($settings['background_type'] ?? '') === '') {
+            $settings = [];
+        }
+
+        $resume->update(['page_background' => $settings ?: null]);
 
         // The editor's other controls speak JSON; the background card is a
         // plain form, because it is the same markup every other page type
         // posts and rewriting it as an Alpine payload would fork the picker.
-        if (!$request->expectsJson()) {
+        if (! $request->expectsJson()) {
             return back()->with('success', 'Page background saved.');
         }
 
         return response()->json(['resume' => $this->present($resume->fresh('items'))]);
     }
 
-    /**
-     * POST — add a custom section. Custom sections only declare a
-     * key + title; their items are stored as ResumeSectionItem rows of
-     * type "custom" with `data.custom_section_key` matching the key.
-     */
     public function addCustomSection(Request $request): JsonResponse
     {
         $data = $request->validate([
