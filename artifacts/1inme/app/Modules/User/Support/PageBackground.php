@@ -102,6 +102,50 @@ class PageBackground
         return $lum === null ? true : $lum >= 0.18;
     }
 
+    /**
+     * A flat stand-in for this page's background, for preview thumbnails.
+     *
+     * NOT a renderer, and deliberately not one: resolve() has nineteen
+     * branches, several of which are layered composites, and none of that
+     * is legible in a 100x70 tile. What a tile needs is a ground close
+     * enough that a creator can judge contrast -- whether this style's text
+     * will be readable on THEIR page -- so:
+     *
+     *   solid / gradient   the real value, which is already one CSS value;
+     *   everything else    `bg_fallback_color`, which resolve() documents as
+     *                      "the one colour that always renders" behind a
+     *                      photo, preset, mesh, pattern, torn sheet or video.
+     *
+     * `ink` is exact, not an approximation: it is the colour a block's text
+     * actually inherits on the page, and using it instead of a hardcoded
+     * white is what stops a light-page preview rendering white-on-white.
+     *
+     * @param  array  $bs  the `settings['biolink']` array
+     * @return array{bg: string, ink: string, ink_is_light: bool}
+     */
+    public static function previewGround(array $bs): array
+    {
+        $type = $bs['background_type'] ?? 'gradient';
+
+        if ($type === 'color') {
+            $bg = (string) ($bs['background_color'] ?? self::DEFAULT_COLOR);
+        } elseif ($type === 'gradient') {
+            $bg = (string) ($bs['background_gradient'] ?? self::DEFAULT_GRADIENT);
+        } else {
+            $bg = (string) ($bs['bg_fallback_color'] ?? self::DEFAULT_COLOR);
+        }
+
+        if (trim($bg) === '') {
+            $bg = self::DEFAULT_COLOR;
+        }
+
+        $ink = is_string($bs['font_color'] ?? null) && $bs['font_color'] !== ''
+            ? $bs['font_color']
+            : '#ffffff';
+
+        return ['bg' => $bg, 'ink' => $ink, 'ink_is_light' => self::inkIsLight($bs)];
+    }
+
     /** WCAG relative luminance of a 6-digit hex colour, or null. */
     private static function luminance(string $color): ?float
     {
