@@ -687,6 +687,44 @@ $catColors = [
 <div x-data="biolinkEditor()" class="max-w-7xl mx-auto">
     @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'blocks'])
 
+{{-- ============ MULTI-SELECT BAR ============
+     Sana, 2026-09-23: "need options to select multiple blocks to move as a
+     group up down as well as to delete or hide."
+
+     Sticky at the foot of the viewport so it stays reachable however far
+     down the page you have scrolled, and hidden entirely until something is
+     ticked — an empty toolbar is just noise on a page you are only reading.
+     Move up/down is only offered when the whole selection shares one parent,
+     because "up" has no meaning across two different lists.                --}}
+<div id="blockSelectBar" class="block-select-bar" hidden aria-live="polite">
+    <span class="bsb-count"><strong data-selected-count>0</strong> selected</span>
+    <div class="bsb-actions">
+        <button type="button" class="bsb-btn" data-sel-action="up" title="Move the selection up one place">
+            <i class="fas fa-arrow-up"></i><span>Up</span>
+        </button>
+        <button type="button" class="bsb-btn" data-sel-action="down" title="Move the selection down one place">
+            <i class="fas fa-arrow-down"></i><span>Down</span>
+        </button>
+        <span class="bsb-sep"></span>
+        <button type="button" class="bsb-btn" data-sel-action="duplicate" title="Duplicate every selected block, styling and all">
+            <i class="fas fa-clone"></i><span>Duplicate</span>
+        </button>
+        <button type="button" class="bsb-btn" data-sel-action="hide" title="Hide every selected block from the public page">
+            <i class="fas fa-eye-slash"></i><span>Hide</span>
+        </button>
+        <button type="button" class="bsb-btn" data-sel-action="show" title="Show every selected block again">
+            <i class="fas fa-eye"></i><span>Show</span>
+        </button>
+        <span class="bsb-sep"></span>
+        <button type="button" class="bsb-btn bsb-btn--danger" data-sel-action="delete" title="Delete every selected block">
+            <i class="fas fa-trash"></i><span>Delete</span>
+        </button>
+    </div>
+    <button type="button" class="bsb-clear" data-sel-action="clear" title="Clear the selection (Esc)">
+        <i class="fas fa-times"></i>
+    </button>
+</div>
+
     <div class="flex items-center justify-end gap-2 mb-4">
         <button type="button" id="deleteAllBlocksBtn"
                 onclick="ajaxDeleteAllBlocks(this)"
@@ -702,6 +740,99 @@ $catColors = [
         </span>
     </div>
     <style>
+        /* ---- Multi-select ------------------------------------------- */
+        /* The tick box sits at the far left of every card, ahead of the
+           drag handle. Dim until it matters: faint at rest, full colour
+           once ticked, so an unused feature does not shout at someone who
+           is just editing one block. */
+        .block-select {
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; width: 18px; height: 18px; cursor: pointer;
+        }
+        .block-select--sm { width: 14px; height: 14px; }
+        .block-select-box {
+            appearance: none; -webkit-appearance: none;
+            width: 15px; height: 15px; margin: 0; cursor: pointer;
+            border-radius: 5px;
+            border: 1.5px solid var(--border-glass);
+            background: transparent;
+            transition: border-color .12s ease, background .12s ease;
+            position: relative;
+        }
+        .block-select--sm .block-select-box { width: 13px; height: 13px; border-radius: 4px; }
+        .block-select-box:hover { border-color: #5c83ff; }
+        .block-select-box:checked { background: #3d6bff; border-color: #3d6bff; }
+        .block-select-box:checked::after {
+            content: ''; position: absolute; left: 4px; top: 1px;
+            width: 4px; height: 8px;
+            border: solid #fff; border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+        .block-select--sm .block-select-box:checked::after { left: 3.5px; top: 0.5px; width: 3.5px; height: 7px; }
+        .block-select-box:focus-visible { outline: 2px solid #5c83ff; outline-offset: 2px; }
+        /* A ticked card is ringed, so the selection is obvious from the
+           card itself and not only from the box. */
+        .block-card.is-selected, .child-block-card.is-selected {
+            box-shadow: 0 0 0 1.5px #3d6bff inset;
+        }
+
+        /* Fixed, not sticky: the bar is declared near the top of the
+           editor's markup, and a sticky element that high in the document
+           never reaches its bottom offset -- it would just sit above the
+           toolbar. Fixed puts it where it is actually useful, in reach of
+           the thumb, however far down the canvas you have scrolled. */
+        .block-select-bar {
+            position: fixed; z-index: 60;
+            left: 50%; transform: translateX(-50%);
+            bottom: 16px; width: max-content; max-width: min(calc(100vw - 24px), 900px);
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+            padding: 8px 10px 8px 16px;
+            border-radius: 14px;
+            background: var(--bg-card, rgba(20,22,34,0.92));
+            border: 1px solid rgba(61,107,255,0.35);
+            box-shadow: 0 12px 32px -12px rgba(0,0,0,.55);
+            backdrop-filter: blur(16px) saturate(150%);
+            -webkit-backdrop-filter: blur(16px) saturate(150%);
+        }
+        .bsb-count { font-size: 11.5px; color: var(--text-muted); white-space: nowrap; }
+        .bsb-count strong { color: var(--text-primary); font-weight: 700; font-variant-numeric: tabular-nums; }
+        .bsb-actions { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; flex: 1 1 auto; }
+        .bsb-sep { width: 1px; height: 18px; background: var(--border-glass); margin: 0 4px; }
+        .bsb-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 11px; border-radius: 9px;
+            font-size: 11px; font-weight: 600;
+            color: var(--text-primary); cursor: pointer;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-glass);
+            transition: background .12s ease, border-color .12s ease, opacity .12s ease;
+        }
+        .bsb-btn:hover:not(:disabled) { background: rgba(61,107,255,0.16); border-color: rgba(61,107,255,0.4); }
+        .bsb-btn:disabled { opacity: .35; cursor: not-allowed; }
+        .bsb-btn--danger { color: #f87171; border-color: rgba(239,68,68,0.3); }
+        .bsb-btn--danger:hover:not(:disabled) { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.5); }
+        .bsb-clear {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; border-radius: 9px; flex-shrink: 0;
+            color: var(--text-faint); cursor: pointer;
+            background: transparent; border: 1px solid transparent;
+        }
+        .bsb-clear:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+        /* On a phone the labels go and the icons carry it, so the bar stays
+           one row instead of wrapping into a wall. */
+        @media (max-width: 560px) {
+            /* Not centred on a phone: the support bubble owns the bottom
+               right corner, so the bar spans from the left edge and stops
+               short of it rather than sliding underneath. */
+            .block-select-bar {
+                left: 12px; right: 84px; transform: none;
+                width: auto; max-width: none;
+                padding: 8px 8px 8px 12px; gap: 8px; bottom: 12px;
+            }
+            .bsb-btn span { display: none; }
+            .bsb-btn { padding: 7px 9px; }
+            .bsb-sep { margin: 0 1px; }
+        }
         .block-count-chip {
             display: inline-flex; align-items: center; gap: 8px;
             padding: 6px 12px; border-radius: 9999px;
@@ -1145,6 +1276,14 @@ $catColors = [
      Retry action if the request fails. --}}
 
 <script>
+// Endpoints the multi-select bar and the duplicate button talk to. Declared
+// here rather than inlined into each handler so the route() helper runs once
+// and the JS below stays plain JavaScript the blade-script guard can parse.
+window.__blockReorderUrl     = @json(route('user.links.blocks.reorder', $link));
+window.__blockBulkToggleUrl  = @json(route('user.links.blocks.bulkToggle', $link));
+window.__blockBulkDestroyUrl = @json(route('user.links.blocks.bulkDestroy', $link));
+window.__blockDuplicateUrl   = @json(route('user.links.blocks.duplicate', [$link, '__ID__']));
+
 function biolinkEditor() {
     return {
         // Inline "Templates, forms & more" panel (replaces the old gallery modal).
@@ -1920,6 +2059,305 @@ function ajaxToggleFixed(btn, url, blockId, fixed) {
     }).catch(function() { btn.disabled = false; showToast('Failed to update pin', 'error'); });
 }
 
+// ============ DUPLICATE A BLOCK ============
+// Copies the block and everything inside it, styling and all, and drops the
+// copy directly below the original -- the same DOM insertion the palette's
+// "insert after this" uses, so one card appears in place rather than the
+// page reloading.
+function ajaxDuplicateBlock(btn, url, blockId) {
+    btn.disabled = true;
+    var icon = btn.querySelector('i');
+    var was = icon ? icon.className : '';
+    if (icon) icon.className = 'fas fa-spinner fa-spin';
+
+    fetch(url, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': _csrfToken(), 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: '{}'
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        btn.disabled = false;
+        if (icon) icon.className = was;
+        if (!data.success) {
+            showToast(data.error || 'Could not duplicate', 'error');
+            return;
+        }
+        // The editor's own inserter: it places the card, wires its drag
+        // handles and span buttons, updates the counts and refreshes the
+        // preview -- a second copy of that logic would drift.
+        if (typeof window.__editorInsertBlockCard === 'function' && (data.html || data.child_html)) {
+            window.__editorInsertBlockCard(data, {});
+            if (typeof window.__syncBlockSelection === 'function') window.__syncBlockSelection();
+            showToast('Block duplicated', 'success');
+        } else {
+            showToast('Block duplicated', 'success');
+            setTimeout(function () { window.location.reload(); }, 400);
+        }
+    }).catch(function() {
+        btn.disabled = false;
+        if (icon) icon.className = was;
+        showToast('Could not duplicate', 'error');
+    });
+}
+
+// ============ MULTI-SELECT ============
+// Tick boxes on the cards, one bar of actions at the foot of the canvas.
+//
+// Two rules make the rest fall out:
+//   * a selection is just a set of block ids, read from the DOM on demand --
+//     no parallel state to drift out of sync with cards that get added,
+//     duplicated or deleted while the bar is open;
+//   * "up" and "down" are only offered when every selected block shares one
+//     parent, because moving a block out of a card by pressing Up is not
+//     what anyone means.
+(function () {
+    var bar, countEl;
+
+    function boxes() {
+        return Array.prototype.slice.call(document.querySelectorAll('.block-select-box'));
+    }
+    function checked() {
+        return boxes().filter(function (b) { return b.checked; });
+    }
+    function cardOf(box) {
+        return box.closest('.block-card') || box.closest('.child-block-card');
+    }
+    // null for a top-level block, the card id for a child.
+    function parentOf(box) {
+        return box.dataset.parentId || '';
+    }
+
+    function sameParent(list) {
+        if (list.length < 1) return false;
+        var p = parentOf(list[0]);
+        return list.every(function (b) { return parentOf(b) === p; });
+    }
+
+    function sync() {
+        bar = bar || document.getElementById('blockSelectBar');
+        if (!bar) return;
+        countEl = countEl || bar.querySelector('[data-selected-count]');
+
+        boxes().forEach(function (b) {
+            var card = cardOf(b);
+            if (card) card.classList.toggle('is-selected', b.checked);
+        });
+
+        var sel = checked();
+        if (!sel.length) { bar.hidden = true; return; }
+
+        bar.hidden = false;
+        if (countEl) countEl.textContent = sel.length;
+
+        // Move is a same-list operation only.
+        var movable = sameParent(sel);
+        ['up', 'down'].forEach(function (a) {
+            var btn = bar.querySelector('[data-sel-action="' + a + '"]');
+            if (!btn) return;
+            btn.disabled = !movable;
+            btn.title = movable
+                ? 'Move the selection ' + a + ' one place'
+                : 'Pick blocks from one list to move them together';
+        });
+    }
+
+    // Shift-click ticks the whole run between the last box you touched and
+    // this one, the way a file list does.
+    var _anchor = null;
+    function onBoxClick(e) {
+        var box = e.target;
+        if (!box.classList || !box.classList.contains('block-select-box')) return;
+
+        if (e.shiftKey && _anchor && _anchor !== box) {
+            var all = boxes();
+            var a = all.indexOf(_anchor), b = all.indexOf(box);
+            if (a > -1 && b > -1) {
+                var lo = Math.min(a, b), hi = Math.max(a, b);
+                for (var i = lo; i <= hi; i++) { all[i].checked = box.checked; }
+            }
+        }
+        _anchor = box;
+        sync();
+    }
+
+    function ids(list) {
+        return list.map(function (b) { return parseInt(b.dataset.selectId, 10); });
+    }
+
+    function clearAll() {
+        boxes().forEach(function (b) { b.checked = false; });
+        _anchor = null;
+        sync();
+    }
+
+    function post(url, body, method) {
+        return fetch(url, {
+            method: method || 'POST',
+            headers: {
+                'X-CSRF-TOKEN': _csrfToken(),
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body || {})
+        }).then(function (r) { return r.json(); });
+    }
+
+    // Move the selection one place, keeping its blocks in their own order and
+    // stepping over the neighbour above/below as a unit. Reordering is a
+    // whole-list operation on the server, so the client rebuilds the list and
+    // posts it -- which is also what makes the template fixed-prefix check on
+    // the server apply to a group move for free.
+    function moveSelection(dir) {
+        var sel = checked();
+        if (!sel.length || !sameParent(sel)) return;
+
+        var parent = parentOf(sel[0]);
+        var listEl = parent
+            ? document.querySelector('.card-child-list[data-card-id="' + parent + '"]')
+            : document.getElementById('blockList');
+        if (!listEl) return;
+
+        var sel2 = parent ? '.child-block-card' : '.block-card-wrapper';
+        var nodes = Array.prototype.slice.call(listEl.querySelectorAll(':scope > ' + sel2));
+        var chosen = ids(sel);
+        var isSel = function (n) {
+            var card = parent ? n : n.querySelector('.block-card');
+            return chosen.indexOf(parseInt((card || n).dataset.blockId, 10)) > -1;
+        };
+
+        var order = nodes.slice();
+        if (dir === 'up') {
+            for (var i = 0; i < order.length; i++) {
+                if (isSel(order[i]) && i > 0 && !isSel(order[i - 1])) {
+                    var t = order[i - 1]; order[i - 1] = order[i]; order[i] = t;
+                }
+            }
+        } else {
+            for (var j = order.length - 1; j >= 0; j--) {
+                if (isSel(order[j]) && j < order.length - 1 && !isSel(order[j + 1])) {
+                    var u = order[j + 1]; order[j + 1] = order[j]; order[j] = u;
+                }
+            }
+        }
+
+        if (order.every(function (n, k) { return n === nodes[k]; })) {
+            return;   // already at the end of the list
+        }
+
+        order.forEach(function (n) { listEl.appendChild(n); });
+
+        var newIds = order.map(function (n) {
+            var card = parent ? n : n.querySelector('.block-card');
+            return parseInt((card || n).dataset.blockId, 10);
+        });
+
+        post(window.__blockReorderUrl, { blocks: newIds }).then(function (d) {
+            if (d && d.success === false) {
+                showToast(d.message || 'Could not move those blocks', 'error');
+                window.location.reload();
+                return;
+            }
+            refreshPreview();
+        }).catch(function () { showToast('Could not move those blocks', 'error'); });
+    }
+
+    function setVisibility(visible) {
+        var sel = checked();
+        if (!sel.length) return;
+
+        post(window.__blockBulkToggleUrl, { ids: ids(sel), is_active: visible })
+            .then(function (d) {
+                if (!d.success) { showToast('Could not update those blocks', 'error'); return; }
+                (d.ids || []).forEach(function (id) {
+                    var card = document.querySelector('.block-card[data-block-id="' + id + '"]')
+                        || document.querySelector('.child-block-card[data-block-id="' + id + '"]');
+                    if (!card) return;
+                    card.style.opacity = visible ? '1' : '0.5';
+                    var tb = card.querySelector('.toggle-btn i');
+                    if (tb) tb.className = 'fas ' + (visible ? 'fa-eye' : 'fa-eye-slash');
+                    var badge = card.querySelector('.editor-pill-badge--hidden');
+                    if (visible && badge) badge.remove();
+                });
+                showToast(d.changed + ' block(s) ' + (visible ? 'shown' : 'hidden'), 'success');
+                // A HIDDEN badge has to be added by the server's own markup,
+                // so a hide refreshes rather than half-updating the card.
+                if (!visible && d.changed) { setTimeout(function () { window.location.reload(); }, 600); }
+                else { refreshPreview(); }
+            }).catch(function () { showToast('Could not update those blocks', 'error'); });
+    }
+
+    function deleteSelection() {
+        var sel = checked();
+        if (!sel.length) return;
+        var n = sel.length;
+
+        window.themedConfirm({
+            title: 'Delete ' + n + ' block' + (n === 1 ? '' : 's') + '?',
+            message: 'This permanently removes them from your page. Verified blocks are kept. This cannot be undone.',
+            confirmText: 'Delete ' + n,
+            confirmIcon: 'fa-trash',
+            iconClass: 'fa-trash',
+            onConfirm: function () {
+                post(window.__blockBulkDestroyUrl, { ids: ids(sel) }, 'DELETE').then(function (d) {
+                    if (!d.success) { showToast('Could not delete those blocks', 'error'); return; }
+                    showToast('Deleted ' + d.deleted + ' block(s)', 'success');
+                    window.location.reload();
+                }).catch(function () { showToast('Could not delete those blocks', 'error'); });
+            }
+        });
+    }
+
+    function duplicateSelection() {
+        var sel = checked();
+        if (!sel.length) return;
+
+        // One at a time and in order, so each copy lands directly below its
+        // own original instead of the whole batch racing for the same slot.
+        var queue = ids(sel);
+        var done = 0;
+        (function next() {
+            if (!queue.length) {
+                showToast('Duplicated ' + done + ' block(s)', 'success');
+                window.location.reload();
+                return;
+            }
+            var id = queue.shift();
+            post(window.__blockDuplicateUrl.replace('__ID__', id), {}).then(function (d) {
+                if (d && d.success) { done++; }
+                next();
+            }).catch(next);
+        })();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        bar = document.getElementById('blockSelectBar');
+        if (!bar) return;
+
+        document.addEventListener('click', onBoxClick, true);
+
+        bar.addEventListener('click', function (e) {
+            var btn = e.target.closest('[data-sel-action]');
+            if (!btn || btn.disabled) return;
+            var a = btn.dataset.selAction;
+            if (a === 'clear') { clearAll(); }
+            else if (a === 'up' || a === 'down') { moveSelection(a); }
+            else if (a === 'hide') { setVisibility(false); }
+            else if (a === 'show') { setVisibility(true); }
+            else if (a === 'delete') { deleteSelection(); }
+            else if (a === 'duplicate') { duplicateSelection(); }
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !bar.hidden) { clearAll(); }
+        });
+
+        sync();
+    });
+
+    // Cards added after load (palette insert, duplicate) arrive with their
+    // own tick box; re-running sync keeps the ringing and the count honest.
+    window.__syncBlockSelection = sync;
+})();
+
 function ajaxDeleteBlock(btn, url, blockId) {
     window.themedConfirm({
         title: 'Delete this block?',
@@ -2231,6 +2669,9 @@ document.addEventListener('DOMContentLoaded', function() {
             _activateNode(node);
             updateBlockChrome();
         }
+        // A card added after load brings its own tick box; re-running the
+        // selection sync keeps the bar's count and the ringing honest.
+        if (typeof window.__syncBlockSelection === 'function') window.__syncBlockSelection();
         _refreshPreviewSafe();
     };
 
