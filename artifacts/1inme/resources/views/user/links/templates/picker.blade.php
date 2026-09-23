@@ -121,7 +121,11 @@
         // Computed ONCE for the whole page: with ~400 template cards, running
         // this ->exists() inside the card loop meant 400 identical round-trips
         // to the (distant) database and a page render measured in minutes.
-        $hasBlocks = $link->biolinkBlocks()->exists();
+        // New pages now open with five untouched starter blocks. Those are
+        // not the creator's work, so picking a template here must not warn
+        // about replacing them -- only blocks the owner has actually edited
+        // count as "existing".
+        $hasBlocks = $link->biolinkBlocks()->exists() && !$link->isUntouchedStarterPage();
     @endphp
 
     @if(!$pageTemplates->isEmpty())

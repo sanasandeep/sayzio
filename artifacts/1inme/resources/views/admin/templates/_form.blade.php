@@ -10,6 +10,7 @@
     $planTier = old('plan_tier', $isEdit ? $tpl->plan_tier : '');
     $isActive = old('is_active', $isEdit ? ($tpl->is_active ? '1' : '0') : '1');
     $sortOrder = old('sort_order', $isEdit ? $tpl->sort_order : 0);
+    $starterWeight = old('starter_weight', $isEdit ? ($tpl->starter_weight ?? 0) : 0);
 @endphp
 @if($isEdit)
     <div class="glass rounded-2xl border border-white/10 p-5 mb-5">
@@ -118,6 +119,28 @@
                     <span class="text-sm text-white/70 ak-strong">Active (visible to users)</span>
                 </label>
             </div>
+            @if($kind === 'page')
+                {{-- Starter weight: what a brand-new Link in Bio opens with.
+                     One number doing two jobs, so there is no second switch to
+                     forget: 0 keeps the template gallery-only, anything above
+                     puts it in the draw for new pages AND sets how often it
+                     wins. --}}
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-medium text-white/60 mb-1.5 ak-muted">Default for new pages &mdash; weight</label>
+                    <input type="number" name="starter_weight" min="0" max="1000" value="{{ $starterWeight }}"
+                           class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white ak-strong ak-input">
+                    <p class="text-[11px] text-white/40 mt-1 ak-note">
+                        <b>0</b> &mdash; gallery only, new pages never start from this one.
+                        <b>1 or more</b> &mdash; this template is one of the sets a brand-new Link in Bio
+                        opens with, and the number is how often it is drawn: a <b>3</b> comes up three
+                        times as often as a <b>1</b>. Only active templates are drawn, and a user is never
+                        given a starter their plan cannot use. When a template is tagged for a persona,
+                        users with that persona get it first.
+                        With every template at 0, new pages fall back to the built-in five
+                        (picture, name, bio, socials, one link).
+                    </p>
+                </div>
+            @endif
             @if($kind === 'page')
                 @php
                     $designLocked = old('design_locked', $isEdit ? (($tpl->design_locked ?? false) ? '1' : '0') : '0');

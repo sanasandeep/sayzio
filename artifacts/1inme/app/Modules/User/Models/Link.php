@@ -403,6 +403,47 @@ protected $fillable = [
     }
 
     /**
+     * True when this page is still exactly the starter set it was created
+     * with -- nothing added, nothing edited.
+     *
+     * New pages open with five starter blocks so the editor shows what a Link
+     * in Bio is made of. Those blocks carry placeholder content ("My Link",
+     * example.com), and a visitor must never be shown that as though it were
+     * the owner's page: until the owner makes the page theirs, the public
+     * page keeps the same "being set up" notice an empty page always had.
+     *
+     * Both halves of the test matter, and each rules out a different way of
+     * getting this wrong:
+     *
+     *   `_starter_seed`  StarterPageService put this block here. A block the
+     *                    USER added never has it, so dragging in one block of
+     *                    your own publishes the page immediately -- even if
+     *                    you have not typed into it yet.
+     *   `_placeholder`   the block's content is still the seeded content.
+     *                    BiolinkBlockController::update clears it the moment
+     *                    saved content differs from the seed, so editing one
+     *                    starter block publishes the page. Styling a block is
+     *                    deliberately not enough on its own; changing what it
+     *                    SAYS is.
+     *
+     * A page with no blocks at all is not an untouched starter -- it is
+     * empty, and the caller's existing empty branch already covers it.
+     */
+    public function isUntouchedStarterPage(): bool
+    {
+        $blocks = $this->relationLoaded('biolinkBlocks')
+            ? $this->biolinkBlocks
+            : $this->biolinkBlocks()->get(['id', 'settings']);
+
+        if ($blocks->isEmpty()) {
+            return false;
+        }
+
+        return $blocks->every(fn (BiolinkBlock $b) => ! empty($b->settings['_starter_seed'])
+            && ! empty($b->settings['_placeholder']));
+    }
+
+    /**
      * Layout A/B tests for this biolink. Most links never have one, but
      * when present the public renderer prefers the variant snapshots
      * over the live `biolink_blocks` rows.

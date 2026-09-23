@@ -997,6 +997,16 @@
             $blocks = ($link->_abVariantBlocks instanceof \Illuminate\Support\Collection)
                 ? $link->_abVariantBlocks->filter(fn($b) => $b->isVisible())
                 : $link->activeBiolinkBlocks()->get()->filter(fn($b) => $b->isVisible());
+
+            // A page created today opens with five starter blocks so its
+            // owner can see what a Link in Bio is made of. Those blocks say
+            // "My Link" and point at example.com. A VISITOR must never be
+            // shown that as though it were the owner's page, so until the
+            // owner edits at least one block this renders as the same
+            // "being set up" page an empty one always did.
+            if ($blocks->isNotEmpty() && $link->isUntouchedStarterPage()) {
+                $blocks = collect();
+            }
             $pageTitle = $bs['biolink_title'] ?? $link->title ?: 'Link in Bio';
             $pageDescription = $bs['biolink_description'] ?? $link->seo_description ?? '';
             $globalTheme = $bs['block_theme'] ?? [];
