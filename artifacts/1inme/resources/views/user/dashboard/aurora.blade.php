@@ -242,20 +242,6 @@
 
     .au-empty { font-size: 12.5px; color: var(--text-muted); padding: 6px 0 2px; }
 
-    /* Heatmap: 7 rows down, 12 two-hour blocks across. */
-    .au-heat { display: grid; grid-template-columns: 46px repeat(12, minmax(0, 1fr)); gap: 3px; align-items: center; }
-    .au-heat-day { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9px; color: var(--text-faint); white-space: nowrap; }
-    .au-heat-day em { font-style: normal; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-    .au-heat-day.is-today, .au-heat-day.is-today em { color: var(--text-primary); }
-    /* A fixed height, not a square: at card width a square cell was ~50px,
-       which made seven rows a 400px panel. */
-    .au-heat-cell { height: 22px; border-radius: 3px; }
-    .au-heat-hours { display: grid; grid-template-columns: 46px repeat(12, minmax(0, 1fr)); gap: 3px; margin-top: 6px; }
-    .au-heat-hours span { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 8.5px; color: var(--text-faint); text-align: center; }
-    .au-heat-scale { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-    .au-heat-steps { display: flex; gap: 3px; }
-    .au-heat-steps i { width: 11px; height: 11px; border-radius: 3px; }
-
     /* Activity feed */
     .au-fev { display: grid; grid-template-columns: 7px 1fr auto; gap: 10px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--border-subtle); }
     .au-fev:last-child { border-bottom: 0; }
@@ -339,28 +325,6 @@
         ->values();
     $sourceTotal = (int) $sourceRows->sum('count');
 
-    // Heatmap scale. Alpha is on the square root of the count so a single
-    // busy hour does not flatten every other cell to the same faint tint.
-    $heatRows = collect($auroraHeat ?? []);
-    $heatMax  = max(1, (int) $heatRows->flatten()->max());
-    $heatPeak = 0;
-    $heatPeakLabel = '';
-    // Which date each ISO weekday is this week, for the peak label.
-    $heatDateFor = [];
-    for ($back = 6; $back >= 0; $back--) {
-        $day = now()->subDays($back);
-        $heatDateFor[$day->dayOfWeekIso - 1] = $day;
-    }
-    foreach (($auroraHeat ?? []) as $d => $blocks) {
-        foreach ($blocks as $b => $n) {
-            if ($n > $heatPeak) {
-                $heatPeak = (int) $n;
-                $heatPeakLabel = (isset($heatDateFor[$d]) ? $heatDateFor[$d]->format('D j M') : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][$d])
-                    . ' · ' . str_pad((string) ($b * 2), 2, '0', STR_PAD_LEFT) . ':00';
-            }
-        }
-    }
-
     $spark    = collect($clicksSparkline)->values();
     $sparkMax = max(1, (int) $spark->max());
     $peakIdx  = $spark->search($spark->max());
@@ -385,7 +349,29 @@
     // with today somewhere in the middle. $auroraHeat is keyed by ISO weekday
     // and each of the last seven days has a different one, so every row maps
     // to exactly one date.
-    $heatDays = $sparkDays->map(fn ($day) => ['date' => $day, 'row' => $day->dayOfWeekIso - 1]);
+    // The heatmap's rows for the shared partial: one per day, oldest first,
+    // each labelled and dated. The peak is found on the way through, so the
+    // readout names a real date rather than a bare weekday.
+    $heatPeak = 0;
+    $heatPeakLabel = '';
+    $heatRows = [];
+    foreach ($sparkDays as $i => $day) {
+        $blocks = $auroraHeat[$day->dayOfWeekIso - 1] ?? array_fill(0, 12, 0);
+        $heatRows[] = [
+            'day'    => $day->format('D'),
+            'date'   => $day->format('j'),
+            'today'  => $i === ($sparkDays->count() - 1),
+            'full'   => $day->format('D j M') . ',',
+            'blocks' => $blocks,
+        ];
+        foreach ($blocks as $b => $n) {
+            if ($n > $heatPeak) {
+                $heatPeak = (int) $n;
+                $heatPeakLabel = $day->format('D j M')
+                    . ' · ' . str_pad((string) ($b * 2), 2, '0', STR_PAD_LEFT) . ':00';
+            }
+        }
+    }
 
     $planPrice = $user->plan
         ? \App\Services\PricingResolver::priceFor($user->plan, $user, 'monthly')
@@ -693,37 +679,12 @@
         @if($heatPeak < 1)
             <p class="au-empty">No clicks in the last seven days, so there is no pattern to draw yet.</p>
         @else
-            <div class="au-heat" role="img" aria-label="Click density by day and hour. Busiest at {{ $heatPeakLabel }} with {{ $heatPeak }} clicks.">
-                {{-- Oldest day first, today last, each row named and dated. --}}
-                @foreach($heatDays as $hd)
-                    @php $blocks = $auroraHeat[$hd['row']] ?? array_fill(0, 12, 0); @endphp
-                    <span class="au-heat-day{{ $loop->last ? ' is-today' : '' }}">{{ $hd['date']->format('D') }} <em>{{ $hd['date']->format('j') }}</em></span>
-                    @foreach($blocks as $b => $n)
-                        @php $alpha = $n > 0 ? 0.12 + (sqrt($n / $heatMax) * 0.76) : 0.05; @endphp
-                        <span class="au-heat-cell"
-                              title="{{ $hd['date']->format('D j M') }}, {{ str_pad((string) ($b * 2), 2, '0', STR_PAD_LEFT) }}:00–{{ str_pad((string) ($b * 2 + 2), 2, '0', STR_PAD_LEFT) }}:00: {{ number_format($n) }} {{ Str::plural('click', $n) }}"
-                              style="background: color-mix(in srgb, var(--accent) {{ round($alpha * 100) }}%, transparent)"></span>
-                    @endforeach
-                @endforeach
-            </div>
-            <div class="au-heat-hours">
-                {{-- One spacer for the day-letter column, then twelve labels
-                     for twelve cells. The list used to lead with a blank,
-                     which pushed every label one block right: "00" sat under
-                     the 02:00 column and "20" under 22:00. --}}
-                <span></span>
-                @foreach(['00','','04','','08','','12','','16','','20',''] as $h)<span>{{ $h }}</span>@endforeach
-            </div>
-            <div class="au-heat-scale">
-                <span class="au-label">Quiet</span>
-                <span class="au-heat-steps">
-                    @foreach([5, 24, 43, 62, 88] as $step)
-                        <i style="background: color-mix(in srgb, var(--accent) {{ $step }}%, transparent)"></i>
-                    @endforeach
-                </span>
-                <span class="au-label">Busy</span>
-                <span class="au-mono" style="margin-left:auto">Peak {{ $heatPeak }} &middot; {{ $heatPeakLabel }}</span>
-            </div>
+            @include('user.partials.click-heatmap', [
+                'hmId'        => 'au-heat',
+                'hmRows'      => $heatRows,
+                'hmPeak'      => $heatPeak,
+                'hmPeakLabel' => $heatPeakLabel,
+            ])
         @endif
     </section>
 

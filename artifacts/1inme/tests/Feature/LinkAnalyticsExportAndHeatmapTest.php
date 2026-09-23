@@ -212,9 +212,9 @@ class LinkAnalyticsExportAndHeatmapTest extends TestCase
 
         $this->assertStringContainsString('no pattern to draw yet', $html);
 
-        // The markup, not the bare class name: the page's own stylesheet
-        // names .when-heat-cell whether or not a single square is drawn.
-        $this->assertStringNotContainsString('class="when-heat-cell"', $html);
+        // The markup, not the bare class name: the shared partial's
+        // stylesheet names .hm-cell whether or not a square is drawn.
+        $this->assertStringNotContainsString('class="hm-cell"', $html);
     }
 
     // ===== the affordances on the page =====

@@ -27,6 +27,13 @@ use Tests\TestCase;
  *    squeezed the hero title to "Sa..." and broke the chips into one word per
  *    line, on top of the ribbon; on a phone the date filter ran off the right
  *    edge with the Apply button.
+ *
+ * Then, on 2026-09-23: "Colours still seem off -- is it because of values or
+ * some issue? Main dashboard page also same issue. I need better and similar
+ * look for both places." It was the VALUES: binning on the square root of the
+ * share is still dominated by one outlier, so on a week with a 465-click hour
+ * almost every block sat on step 1 or 2. The scale is a log now, and both
+ * pages draw the grid from one shared partial.
  */
 class TheClickHeatmapSaysItsNumbersTest extends TestCase
 {
@@ -106,7 +113,7 @@ class TheClickHeatmapSaysItsNumbersTest extends TestCase
         $html = $this->stats();
 
         $this->assertMatchesRegularExpression(
-            '/id="when-readout"[^>]*data-idle="Peak <b>40<\/b> clicks &middot; Tue 12:00"/',
+            '/id="when-heat-readout"[^>]*data-idle="Peak <b>40<\/b> clicks &middot; Tue 12:00"/',
             $html,
             'the readout must default to the busiest block'
         );
@@ -153,6 +160,52 @@ class TheClickHeatmapSaysItsNumbersTest extends TestCase
     }
 
     /**
+     * An ordinary hour reads as an ordinary hour, not as nearly empty.
+     *
+     * This is the actual complaint, and the answer to "is it the values or a
+     * bug" is: the values, through the scale I picked. Sana's busiest hour is
+     * 465 clicks. On the old square-root scale an hour with a TENTH of that --
+     * 46 clicks, a good hour by any measure -- came out sqrt(0.1) * 6 = 1.9,
+     * so step 2 of 6: the palest blue but one. Nearly every real block sat
+     * there, which is why the card looked like one colour with a blob in it.
+     * A log scale puts that hour in the middle of the ramp, where it belongs,
+     * without changing what the colours mean: more clicks is still always
+     * further up.
+     */
+    public function test_an_ordinary_hour_lands_in_the_middle_of_the_ramp(): void
+    {
+        $this->clicks('2026-09-22 13:10', 465);   // the peak
+        $this->clicks('2026-09-21 09:10', 46);    // a tenth of it
+        $this->clicks('2026-09-20 09:10', 5);     // a quiet hour
+        $this->clicks('2026-09-19 09:10', 1);     // one click
+
+        $html = $this->stats();
+        preg_match_all('/data-level="(\d)"\s+data-when="([^"]+)"\s+data-count="([^"]+)"/', $html, $m, PREG_SET_ORDER);
+
+        $byWhen = [];
+        foreach ($m as $row) {
+            $byWhen[$row[2]] = ['level' => (int) $row[1], 'count' => (int) str_replace(',', '', $row[3])];
+        }
+
+        $peak    = $byWhen['Tue 12:00–14:00']['level'];
+        $tenth   = $byWhen['Mon 08:00–10:00']['level'];
+        $quiet   = $byWhen['Sun 08:00–10:00']['level'];
+        $single  = $byWhen['Sat 08:00–10:00']['level'];
+
+        $this->assertSame(6, $peak, 'the busiest block is the top step');
+        $this->assertGreaterThanOrEqual(4, $tenth,
+            'a tenth of the peak is a busy hour and must not read as almost empty');
+        $this->assertLessThan($peak, $tenth, 'and it is still clearly below the peak');
+        $this->assertGreaterThan($single, $quiet, 'five clicks outrank one');
+        $this->assertGreaterThan(0, $single, 'one click is never invisible');
+
+        // The old scale is what put that busy hour near the bottom. If this
+        // ever stops being true, the test above is proving nothing.
+        $this->assertLessThanOrEqual(2, (int) ceil(sqrt(46 / 465) * 6),
+            'the square-root scale this replaced should still rank 46/465 as step 2');
+    }
+
+    /**
      * The ramp is multi-colour, and it is ordered.
      *
      * Both halves matter. Six tints of one blue was the complaint; a rainbow
@@ -162,10 +215,10 @@ class TheClickHeatmapSaysItsNumbersTest extends TestCase
      */
     public function test_the_ramp_is_multi_colour_and_still_ordered(): void
     {
-        $css = (string) file_get_contents(resource_path('views/user/links/show.blade.php'));
+        $css = (string) file_get_contents(resource_path('views/user/partials/click-heatmap.blade.php'));
 
-        preg_match('/#when-card \{(.+?)\}/s', $css, $light);
-        preg_match('/html:not\(\.light-mode\) #when-card \{(.+?)\}/s', $css, $dark);
+        preg_match('/\n\.hm-wrap \{(.+?)\}/s', $css, $light);
+        preg_match('/html:not\(\.light-mode\) \.hm-wrap \{(.+?)\}/s', $css, $dark);
 
         foreach (['light' => $light[1] ?? '', 'dark' => $dark[1] ?? ''] as $mode => $block) {
             preg_match_all('/--hl([1-6]): (#[0-9a-f]{6})/i', $block, $steps, PREG_SET_ORDER);
@@ -259,12 +312,18 @@ class TheClickHeatmapSaysItsNumbersTest extends TestCase
     /** The grid narrows on a phone instead of overflowing its card. */
     public function test_the_grid_narrows_on_a_phone(): void
     {
-        $css = (string) file_get_contents(resource_path('views/user/links/show.blade.php'));
+        $css = (string) file_get_contents(resource_path('views/user/partials/click-heatmap.blade.php'));
 
         $this->assertMatchesRegularExpression(
-            '/@media \(max-width: 560px\) \{\s*\.when-heat, \.when-heat-hours \{ grid-template-columns: 22px repeat\(12, minmax\(0, 1fr\)\)/',
+            '/@media \(max-width: 560px\) \{\s*\.hm-wrap \{ --hm-label: \d+px; --hm-gap: \d+px; \}/',
             $css,
-            'the day column and the twelve blocks must both shrink, together'
+            'the day column and the gaps must both shrink on a phone'
+        );
+        $this->assertMatchesRegularExpression(
+            '/\.hm, \.hm-hours \{.*?grid-template-columns: var\(--hm-label\) repeat\(12, minmax\(0, 1fr\)\)/s',
+            $css,
+            'the grid and the hour strip must share one column template, or the '
+            .'labels drift out from under the blocks they name'
         );
         $this->assertStringContainsString('repeat(12, minmax(0, 1fr))', $css,
             '1fr tracks do not shrink below their content; minmax(0, 1fr) does');
