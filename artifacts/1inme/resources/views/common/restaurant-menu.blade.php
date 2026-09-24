@@ -13,8 +13,10 @@
         $activeTable = $menu->tables()->where('code', $tableCode)->first();
     }
 
-    $cats = $menu->categories->where('is_active', true)->sortBy('sort_order')->values();
-    $itemsByCat = $menu->items->where('is_active', true)->sortBy('sort_order')->groupBy('category_id');
+    // Sections, their sub-sections and their items -- and which of those a
+    // visitor may see. One definition, shared with the store menu and with
+    // the editor, so "hidden" means the same thing in all three.
+    $tree = \App\Modules\User\Support\MenuTree::build($menu->categories, $menu->items);
 
     $fmt = fn ($n) => $currency . ' ' . number_format((float) $n, 2);
 
@@ -177,39 +179,16 @@
         'blkEmpty'       => false,
     ])
 
-    @forelse($cats as $cat)
-        <div class="cat">
-            <h2>{{ $cat->name }}</h2>
-            @if($cat->description)<p class="cdesc">{{ $cat->description }}</p>@endif
-            {{-- One class decides the layout; the markup below is the
-                 same for all five. See common/partials/menu-layout-css. --}}
-            <div class="items lay-{{ $mp['layout'] }}">
-            @foreach(($itemsByCat[$cat->id] ?? collect()) as $item)
-                <div class="item {{ $item->is_sold_out ? 'soldout' : '' }}">
-                    @if($item->photo_url)<img class="photo" src="{{ $item->photo_url }}" alt="" loading="lazy">@endif
-                    <div class="info">
-                        <div class="name">{{ $item->name }}</div>
-                        @if($item->description)<div class="desc">{{ $item->description }}</div>@endif
-                        <div class="price">{{ $fmt($item->price) }}</div>
-                        @if($isOrder && !$item->is_sold_out)
-                            <div class="addrow" data-add="{{ $item->id }}"
-                                 data-name="{{ e($item->name) }}" data-price="{{ $item->price }}">
-                                <button class="add" type="button" onclick="RM.add({{ $item->id }})">Add</button>
-                                <span data-stepper="{{ $item->id }}" style="display:none;">
-                                    <button class="qbtn" type="button" onclick="RM.dec({{ $item->id }})">−</button>
-                                    <span class="qty" data-qty="{{ $item->id }}">0</span>
-                                    <button class="qbtn" type="button" onclick="RM.inc({{ $item->id }})">+</button>
-                                </span>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            @endforeach
-            </div>
-        </div>
-    @empty
-        <div class="empty">This menu is being prepared. Check back soon.</div>
-    @endforelse
+    @include('common.partials.menu-section-list', [
+        'msTree'    => $tree,
+        'msLayout'  => $mp['layout'],
+        'msFmt'     => $fmt,
+        'msOrder'   => $isOrder,
+        'msNs'      => 'RM',
+        'msSoldKey' => 'is_sold_out',
+        'msDivider' => $mp['divider'],
+        'msEmpty'   => 'This menu is being prepared. Check back soon.',
+    ])
 
     @include('common.partials.biolink-block-list', [
         'link'           => $link,

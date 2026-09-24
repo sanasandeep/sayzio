@@ -60,6 +60,7 @@ class RestaurantMenuController extends Controller
             'whatsapp_number' => 'nullable|string|max:32',
             'settings'        => 'nullable|array',
             'layout'          => 'nullable|string|max:24',
+            'divider'         => 'nullable|string|max:16',
             // Menu colours (Sana, 2026-09-23: "i cannot change colors of
             // menu items and all"). Each is optional; an absent one keeps
             // inheriting the page ink, which is what the page did before.
@@ -81,6 +82,13 @@ class RestaurantMenuController extends Controller
         // list layout this page has always had instead of rendering nothing.
         if ($request->has('layout')) {
             $settings['layout'] = \App\Modules\User\Support\MenuPresentation::layout($data['layout'] ?? null);
+        }
+
+        // Divider shape between items. Same treatment as the layout: the
+        // catalog decides what is valid, so an unknown key falls back to
+        // the hairline every menu already draws rather than to nothing.
+        if ($request->has('divider')) {
+            $settings['divider'] = \App\Modules\User\Support\MenuPresentation::divider($data['divider'] ?? null);
         }
 
         // Colours are stored only when the form sent them, and an empty
@@ -211,13 +219,31 @@ class RestaurantMenuController extends Controller
         $data = $request->validate([
             'name'        => 'required|string|max:120',
             'description' => 'nullable|string|max:500',
+            'parent_id'   => 'nullable|integer',
+            'is_active'   => 'sometimes|boolean',
         ]);
+
+        $parentId = $data['parent_id'] ?? null;
+
+        if ($reason = \App\Modules\User\Support\MenuTree::rejectParent(
+            RestaurantMenuCategory::class, (int) $menu->id, null, $parentId ? (int) $parentId : null
+        )) {
+            return response()->json(['message' => $reason, 'errors' => ['parent_id' => [$reason]]], 422);
+        }
+
+        // A sub-section is ordered among its siblings, not among the
+        // sections -- otherwise the first one added lands at the end of the
+        // whole menu and the creator has to drag it back.
+        $siblings = RestaurantMenuCategory::where('menu_id', $menu->id);
+        $parentId ? $siblings->where('parent_id', $parentId) : $siblings->whereNull('parent_id');
 
         $category = RestaurantMenuCategory::create([
             'menu_id'     => $menu->id,
+            'parent_id'   => $parentId,
             'name'        => $data['name'],
             'description' => $data['description'] ?? null,
-            'sort_order'  => (int) RestaurantMenuCategory::where('menu_id', $menu->id)->max('sort_order') + 1,
+            'is_active'   => (bool) ($data['is_active'] ?? true),
+            'sort_order'  => (int) $siblings->max('sort_order') + 1,
         ]);
 
         return response()->json(['data' => ['category' => $category]], 201);
@@ -231,8 +257,21 @@ class RestaurantMenuController extends Controller
         $data = $request->validate([
             'name'        => 'sometimes|required|string|max:120',
             'description' => 'nullable|string|max:500',
+            'parent_id'   => 'sometimes|nullable|integer',
             'is_active'   => 'sometimes|boolean',
         ]);
+
+        if ($request->has('parent_id')) {
+            $parentId = $data['parent_id'] ? (int) $data['parent_id'] : null;
+
+            if ($reason = \App\Modules\User\Support\MenuTree::rejectParent(
+                RestaurantMenuCategory::class, (int) $menu->id, (int) $category->id, $parentId
+            )) {
+                return response()->json(['message' => $reason, 'errors' => ['parent_id' => [$reason]]], 422);
+            }
+
+            $data['parent_id'] = $parentId;
+        }
 
         $category->update($data);
 
@@ -244,8 +283,17 @@ class RestaurantMenuController extends Controller
         $menu = $this->menuFor($link);
         $this->assertOwns($menu, $category);
 
-        // Items in the category go with it.
-        RestaurantMenuItem::where('category_id', $category->id)->delete();
+        // Sub-sections go with the section, and their items with them. The
+        // alternative is orphan rows that MenuTree has to promote back to
+        // top level, which is a creator seeing "Idli" reappear as its own
+        // heading after deleting "Tiffins".
+        $childIds = RestaurantMenuCategory::where('menu_id', $menu->id)
+            ->where('parent_id', $category->id)->pluck('id')->all();
+
+        $doomed = array_merge([$category->id], $childIds);
+
+        RestaurantMenuItem::whereIn('category_id', $doomed)->delete();
+        RestaurantMenuCategory::whereIn('id', $childIds)->delete();
         $category->delete();
 
         return response()->json(['data' => ['deleted' => true]]);
@@ -276,6 +324,7 @@ class RestaurantMenuController extends Controller
             'currency'    => 'nullable|string|size:3',
             'photo_url'   => 'nullable|string|max:1024',
             'is_sold_out' => 'sometimes|boolean',
+            'is_active'   => 'sometimes|boolean',
         ]);
 
         $category = RestaurantMenuCategory::where('menu_id', $menu->id)->findOrFail($data['category_id']);
@@ -289,6 +338,7 @@ class RestaurantMenuController extends Controller
             'currency'    => isset($data['currency']) ? strtoupper($data['currency']) : null,
             'photo_url'   => $data['photo_url'] ?? null,
             'is_sold_out' => (bool) ($data['is_sold_out'] ?? false),
+            'is_active'   => (bool) ($data['is_active'] ?? true),
             'sort_order'  => (int) RestaurantMenuItem::where('category_id', $category->id)->max('sort_order') + 1,
         ]);
 

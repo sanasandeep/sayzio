@@ -192,7 +192,7 @@ class MenuPagesHonourTheirThemeAndLayoutTest extends TestCase
         foreach (array_keys(MenuPresentation::LAYOUTS) as $key) {
             $html = $this->page($this->restaurant([], ['layout' => $key]));
 
-            $this->assertStringContainsString('class="items lay-'.$key.'"', $html,
+            $this->assertStringContainsString('class="items lay-'.$key.' div-', $html,
                 $key.' must reach the item list');
             $this->assertStringContainsString('.items.lay-'.$key, $html,
                 $key.' is named but has no CSS, so it would render as the default');
@@ -203,13 +203,13 @@ class MenuPagesHonourTheirThemeAndLayoutTest extends TestCase
     public function test_the_store_page_takes_a_layout_too(): void
     {
         $html = $this->page($this->store([], ['layout' => 'grid']));
-        $this->assertStringContainsString('class="items lay-grid"', $html);
+        $this->assertStringContainsString('class="items lay-grid div-', $html);
     }
 
     /** A page that never chose one renders exactly as it always did. */
     public function test_an_unset_layout_stays_on_the_original_list(): void
     {
-        $this->assertStringContainsString('class="items lay-list"', $this->page($this->restaurant()));
+        $this->assertStringContainsString('class="items lay-list div-', $this->page($this->restaurant()));
     }
 
     /** Junk falls back rather than rendering an unstyled page. */
@@ -217,7 +217,7 @@ class MenuPagesHonourTheirThemeAndLayoutTest extends TestCase
     {
         $html = $this->page($this->restaurant([], ['layout' => '../../etc/passwd']));
 
-        $this->assertStringContainsString('class="items lay-list"', $html);
+        $this->assertStringContainsString('class="items lay-list div-', $html);
         $this->assertStringNotContainsString('etc/passwd', $html);
     }
 
@@ -263,7 +263,7 @@ class MenuPagesHonourTheirThemeAndLayoutTest extends TestCase
             ])->assertOk();
 
         $this->assertSame('showcase', $link->fresh()->restaurantMenu->settings['layout']);
-        $this->assertStringContainsString('class="items lay-showcase"', $this->page($link));
+        $this->assertStringContainsString('class="items lay-showcase div-', $this->page($link));
     }
 
     /** And a junk one saved through the API is corrected, not stored. */
