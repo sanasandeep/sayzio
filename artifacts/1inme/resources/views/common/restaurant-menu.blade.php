@@ -18,7 +18,12 @@
     // the editor, so "hidden" means the same thing in all three.
     $tree = \App\Modules\User\Support\MenuTree::build($menu->categories, $menu->items);
 
-    $fmt = fn ($n) => $currency . ' ' . number_format((float) $n, 2);
+    // How this menu writes a price -- the code, a symbol, or nothing; before
+    // or after; with the decimals the currency actually has. One definition,
+    // shared with the cart JavaScript below and with the WhatsApp message,
+    // so the three can never disagree about what a number looks like.
+    $money = \App\Modules\User\Support\MenuMoney::resolve($currency, (array) ($menu->settings ?? []));
+    $fmt = fn ($n) => \App\Modules\User\Support\MenuMoney::format($n, $money);
 
     // How this page paints itself: the font the creator picked on the
     // Appearance screen (which this template used to save and then ignore),
@@ -258,7 +263,10 @@
     const ORDER_URL = @json(route('rm.public.order', ['alias' => $link->alias]));
     const QUOTE_URL = @json(route('rm.public.quote', ['alias' => $link->alias]));
     const STATUS_BASE = @json(url('/rm/order'));
-    const CURRENCY = @json($currency);
+    // The page's money format, handed to the cart rather than re-derived.
+    // The cart total and the item prices used to be two independent copies
+    // of "code, space, two decimals", which is how they drift.
+    const MONEY = @json($money);
     const TABLE_CODE = @json($activeTable->code ?? null);
     let appliedCoupon = '';
     let lastBill = null;
@@ -268,7 +276,10 @@
         const id = el.getAttribute('data-add');
         ITEMS[id] = { id: +id, name: el.getAttribute('data-name'), price: parseFloat(el.getAttribute('data-price')), qty: 0 };
     });
-    const fmt = n => CURRENCY + ' ' + (Math.round(n * 100) / 100).toFixed(2);
+    const fmt = n => MONEY.prefix
+        + (Math.round(n * 100) / 100).toLocaleString('en-US', {
+            minimumFractionDigits: MONEY.decimals, maximumFractionDigits: MONEY.decimals })
+        + MONEY.suffix;
     let pollTimer = null;
 
     function render() {

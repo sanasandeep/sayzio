@@ -69,6 +69,9 @@ class StoreMenuController extends Controller
             'divider'          => 'nullable|string|max:16',
             'heading_style'          => 'nullable|string|max:16',
             'price_style'            => 'nullable|string|max:16',
+            'price_display'          => 'nullable|string|max:16',
+            'price_position'         => 'nullable|string|max:16',
+            'price_decimals'         => 'sometimes|boolean',
             // Menu colours (Sana, 2026-09-23: "i cannot change colors of
             // menu items and all"). Each is optional; an absent one keeps
             // inheriting the page ink, which is what the page did before.
@@ -113,6 +116,32 @@ class StoreMenuController extends Controller
                 $settings['price_style'] = $key;
             } else {
                 unset($settings['price_style']);
+            }
+        }
+
+        // How a price is WRITTEN, as opposed to where it sits: the code, a
+        // symbol or nothing, before or after, with or without decimals.
+        // Sana, 2026-09-23: "prices should have options like INR, [Rs.] USD
+        // or $ like that... before or after number..."
+        foreach (['price_display' => \App\Modules\User\Support\MenuMoney::DISPLAYS,
+                  'price_position' => \App\Modules\User\Support\MenuMoney::POSITIONS] as $mk => $catalog) {
+            if (! $request->has($mk)) {
+                continue;
+            }
+            if (isset($catalog[$data[$mk] ?? null])) {
+                $settings[$mk] = $data[$mk];
+            } else {
+                unset($settings[$mk]);
+            }
+        }
+        if ($request->has('price_decimals')) {
+            // Stored only when it is OFF. An absent key means "whatever the
+            // currency does", which is what every existing menu wants and
+            // what it would keep if the currency were later changed.
+            if ($data['price_decimals'] ?? true) {
+                unset($settings['price_decimals']);
+            } else {
+                $settings['price_decimals'] = false;
             }
         }
 
