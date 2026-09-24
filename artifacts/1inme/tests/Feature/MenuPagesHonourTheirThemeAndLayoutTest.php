@@ -224,12 +224,15 @@ class MenuPagesHonourTheirThemeAndLayoutTest extends TestCase
     /** The side-by-side layouts get a wider column; the reading ones do not. */
     public function test_the_column_widens_only_for_the_side_by_side_layouts(): void
     {
+        // The wrapper also carries how the card is SET (heading style,
+        // price placement), so these look for `wide` in the class list
+        // rather than pinning the whole attribute.
         foreach (['cards', 'grid'] as $wide) {
-            $this->assertStringContainsString('class="page wide"', $this->page($this->restaurant([], ['layout' => $wide])),
+            $this->assertStringContainsString('class="page wide ', $this->page($this->restaurant([], ['layout' => $wide])),
                 $wide.' puts items side by side and needs the room');
         }
         foreach (['list', 'compact', 'showcase'] as $narrow) {
-            $this->assertStringContainsString('class="page"', $this->page($this->restaurant([], ['layout' => $narrow])),
+            $this->assertStringContainsString('class="page head-', $this->page($this->restaurant([], ['layout' => $narrow])),
                 $narrow.' is a reading layout and keeps its narrow column');
         }
     }
