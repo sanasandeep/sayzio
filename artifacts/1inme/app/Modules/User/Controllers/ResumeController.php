@@ -98,6 +98,18 @@ class ResumeController extends Controller
                 'title'         => $link->title ?: $link->alias,
                 'public_url'    => $link->getShortUrl(),
                 'analytics_url' => route('user.links.show', $link),
+                'edit_url'      => route('user.links.edit', $link),
+                // Sana, 2026-09-23: "i created resume... with custom url
+                // /sana-resume -- automatically other urls are created...
+                // why?"
+                //
+                // They were not created by making the resume. A resume
+                // link with no version bound to it resolves to whichever
+                // version is the DEFAULT, so every unbound resume link on
+                // the account turns up in the default's list. That is the
+                // right behaviour and it looked like the page inventing
+                // URLs, because the list never said which was which.
+                'is_bound'      => $link->resume_id !== null,
             ])
             ->all();
     }

@@ -3,6 +3,15 @@
 @section('breadcrumb_parent', 'Links')
 @section('breadcrumb_parent_url', route('user.links.index'))
 @section('content')
+@php
+    // Built here rather than inline in @json: that directive reads to the
+    // first balancing ')', so a multi-line expression with array brackets
+    // in it compiles to broken PHP.
+    $menuColourFields = collect(\App\Modules\User\Support\MenuPresentation::COLOURS)
+        ->map(fn ($c, $k) => ['key' => $k, 'label' => $c['label'], 'hint' => $c['hint']])
+        ->values()
+        ->all();
+@endphp
 <style>
     .rm-grid { display:grid; grid-template-columns: minmax(0,1fr) 320px; gap:20px; align-items:start; }
     @media (max-width:1100px){ .rm-grid { grid-template-columns: minmax(0,1fr); } }
@@ -132,6 +141,33 @@
                 <div class="rm-row">
                     <label class="rm-label">Accent color</label>
                     <input type="color" class="rm-input" x-model="menu.accent_color" @change="saveSettings()" style="height:42px;padding:4px">
+                </div>
+                <div class="rm-row">
+                    {{-- Sana, 2026-09-23: "i cannot change colors of menu
+                         items and all". He could not: the page read the
+                         accent and hardcoded every other colour. Each of
+                         these is optional, and clearing one puts that part
+                         back to inheriting the page text colour. --}}
+                    <label class="rm-label">Item colours</label>
+                    <p style="font-size:11px;opacity:.6;margin:-2px 0 8px;">
+                        Leave one blank to inherit the page text colour.
+                    </p>
+                    <template x-for="c in colourFields" :key="c.key">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                            <input type="color" class="rm-input"
+                                   :value="menu[c.key] || '#888888'"
+                                   @change="menu[c.key] = $event.target.value; saveSettings()"
+                                   style="height:34px;width:46px;padding:3px;flex:0 0 auto;">
+                            <span style="flex:1;min-width:0;">
+                                <span style="font-size:12px;font-weight:600;" x-text="c.label"></span>
+                                <span style="display:block;font-size:10.5px;opacity:.55;" x-text="c.hint"></span>
+                            </span>
+                            <button type="button" class="rm-btn-ghost"
+                                    x-show="menu[c.key]"
+                                    @click="menu[c.key] = ''; saveSettings()"
+                                    style="flex:0 0 auto;font-size:10px;">Clear</button>
+                        </div>
+                    </template>
                 </div>
                 <div class="rm-row">
                     <label class="rm-label">Layout</label>
@@ -368,6 +404,10 @@ function restaurantEditor() {
         savedMsg: '',
         // The chosen layout's one-line description, so the panel explains
         // itself instead of making the creator click five radios to find out.
+        // The optional item colours, with their labels, straight from the
+        // one place that defines them. A field the creator has not set is
+        // an empty string, which the save path reads as "clear it".
+        colourFields: @json($menuColourFields),
         layoutHints: @json(collect(\App\Modules\User\Support\MenuPresentation::LAYOUTS)->map(fn ($l) => $l['hint'])),
         get layoutHint(){ return this.layoutHints[this.menu.layout] || ''; },
         catModal: { open:false, id:null, name:'', description:'' },
@@ -422,6 +462,11 @@ function restaurantEditor() {
                 accent_color:this.menu.accent_color,
                 whatsapp_number:this.menu.whatsapp_number||'',
                 layout:this.menu.layout||'list',
+                heading_color:this.menu.heading_color||'',
+                item_color:this.menu.item_color||'',
+                desc_color:this.menu.desc_color||'',
+                price_color:this.menu.price_color||'',
+                divider_color:this.menu.divider_color||'',
                 tax_enabled:!!this.tax.enabled,
                 tax_rate:parseFloat(this.tax.rate||0),
                 tax_inclusive:!!this.tax.inclusive,

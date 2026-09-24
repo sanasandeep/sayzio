@@ -67,6 +67,48 @@ class MenuPresentation
 
     public const DEFAULT_LAYOUT = 'list';
 
+    /**
+     * The colours a menu page can be given, and what each one paints.
+     *
+     * Sana, 2026-09-23: "while managing design for restaurent menu... i
+     * cannot change colors of menu items and all".
+     *
+     * He was right. This template read exactly ONE colour out of the
+     * creator's settings -- the accent -- and hardcoded everything else
+     * (`color:#111`, with a prefers-color-scheme swap to `#f5f5f7`). So a
+     * menu could be given a background, a font and a layout, and its item
+     * names stayed whatever the browser's colour scheme decided.
+     *
+     * Each of these is optional. An unset colour inherits the page ink the
+     * background picker already resolves, which is what the page did
+     * before -- so a menu nobody has recoloured looks exactly as it does
+     * today.
+     *
+     * @var array<string, array{label: string, hint: string}>
+     */
+    public const COLOURS = [
+        'heading_color' => [
+            'label' => 'Category headings',
+            'hint'  => 'The name above each group of items.',
+        ],
+        'item_color' => [
+            'label' => 'Item names',
+            'hint'  => 'Inherits the page text colour when unset.',
+        ],
+        'desc_color' => [
+            'label' => 'Descriptions',
+            'hint'  => 'The small print under an item. Defaults to a faded version of the item colour.',
+        ],
+        'price_color' => [
+            'label' => 'Prices',
+            'hint'  => 'Defaults to the accent colour.',
+        ],
+        'divider_color' => [
+            'label' => 'Dividers',
+            'hint'  => 'The hairline between items.',
+        ],
+    ];
+
     /** A layout key that exists, falling back rather than rendering nothing. */
     public static function layout(?string $key): string
     {
@@ -97,7 +139,15 @@ class MenuPresentation
         // same screen. Falls back to the page font so one picker is enough.
         $heading = self::cleanFamily(($bs['block_theme']['font_family'] ?? '')) ?: $body;
 
-        return [
+        // Colours the creator chose, each one optional. Anything unset is
+        // returned as an empty string and the template falls back to what
+        // it painted before -- so this cannot change an existing menu.
+        $colours = [];
+        foreach (array_keys(self::COLOURS) as $key) {
+            $colours[$key] = self::hex($menuSettings[$key] ?? null);
+        }
+
+        return $colours + [
             'layout'         => self::layout($menuSettings['layout'] ?? null),
             'font_family'    => $body,
             'font_css'       => self::cssStack($body),
@@ -153,5 +203,19 @@ class MenuPresentation
         $families = array_values(array_unique(array_filter($families)));
 
         return $families === [] ? null : FontCatalog::googleHrefCombined($families);
+    }
+
+    /**
+     * A hex colour, or an empty string when nothing valid was chosen.
+     *
+     * Empty rather than a default on purpose: the template needs to tell
+     * "the creator picked black" from "the creator picked nothing", because
+     * the second case has to keep inheriting the page ink.
+     */
+    public static function hex(mixed $value): string
+    {
+        $value = is_string($value) ? trim($value) : '';
+
+        return preg_match('/^#[0-9a-fA-F]{3,8}$/', $value) === 1 ? $value : '';
     }
 }

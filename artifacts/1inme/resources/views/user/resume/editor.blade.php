@@ -800,14 +800,39 @@
                     @if(!empty($resumeLinks))
                     <div class="resume-field" style="margin-top: 16px; border-top: 1px solid var(--border-glass, rgba(255,255,255,0.08)); padding-top: 14px;">
                         <label><i class="fas fa-link"></i> Short {{ count($resumeLinks) > 1 ? 'links' : 'link' }} for this resume</label>
+                        {{-- Sana, 2026-09-23: "i created resume... with custom
+                             url /sana-resume -- automatically other urls are
+                             created... why?"
+
+                             They were not. A resume link with no version bound
+                             to it resolves to whichever version is the DEFAULT,
+                             so every unbound resume link on the account appears
+                             under the default's list. Correct behaviour, and it
+                             read as the page inventing URLs because the list
+                             never said which was which. It says now, and each
+                             row links to where that link is edited. --}}
                         <p class="text-[11px] mb-2" style="color: var(--text-muted,#9ca3af);">
-                            This resume is surfaced through {{ count($resumeLinks) > 1 ? 'these short links' : 'a short link' }}. Open the public page or jump to its click analytics.
+                            @if($resume->is_default && collect($resumeLinks)->contains(fn ($l) => ! $l['is_bound']))
+                                Links marked <strong>any version</strong> were not created here. They are
+                                short links on your account that were never tied to one version, so they
+                                open whichever resume is live. Open a link to change that.
+                            @else
+                                This resume is surfaced through {{ count($resumeLinks) > 1 ? 'these short links' : 'a short link' }}. Open the public page or jump to its click analytics.
+                            @endif
                         </p>
                         @foreach($resumeLinks as $rl)
                         <div class="flex items-center gap-2 mb-2 flex-wrap">
                             <input class="resume-input" type="text" readonly value="{{ $rl['public_url'] }}" onfocus="this.select()" style="flex: 1 1 200px;">
+                            <span class="resume-pill shrink-0"
+                                  style="background: {{ $rl['is_bound'] ? 'rgba(22,163,74,.18)' : 'rgba(148,163,184,.18)' }}; color: {{ $rl['is_bound'] ? '#16a34a' : '#94a3b8' }};"
+                                  title="{{ $rl['is_bound'] ? 'Tied to this version' : 'Not tied to a version, so it opens whichever resume is live' }}">
+                                {{ $rl['is_bound'] ? 'This version' : 'Any version' }}
+                            </span>
                             <a class="resume-add-btn shrink-0" href="{{ $rl['public_url'] }}" target="_blank" rel="noopener">
                                 <i class="fas fa-external-link-alt"></i> Open
+                            </a>
+                            <a class="resume-add-btn shrink-0" href="{{ $rl['edit_url'] }}" title="Change this link's address or which version it opens">
+                                <i class="fas fa-pen"></i> Edit
                             </a>
                             <a class="resume-add-btn shrink-0" href="{{ $rl['analytics_url'] }}">
                                 <i class="fas fa-chart-line"></i> Analytics

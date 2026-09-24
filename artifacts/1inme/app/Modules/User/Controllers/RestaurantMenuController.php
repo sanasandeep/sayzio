@@ -60,6 +60,14 @@ class RestaurantMenuController extends Controller
             'whatsapp_number' => 'nullable|string|max:32',
             'settings'        => 'nullable|array',
             'layout'          => 'nullable|string|max:24',
+            // Menu colours (Sana, 2026-09-23: "i cannot change colors of
+            // menu items and all"). Each is optional; an absent one keeps
+            // inheriting the page ink, which is what the page did before.
+            'heading_color'   => ['nullable', 'string', 'max:16'],
+            'item_color'      => ['nullable', 'string', 'max:16'],
+            'desc_color'      => ['nullable', 'string', 'max:16'],
+            'price_color'     => ['nullable', 'string', 'max:16'],
+            'divider_color'   => ['nullable', 'string', 'max:16'],
             'tax_enabled'     => 'sometimes|boolean',
             'tax_rate'        => 'nullable|numeric|min:0|max:100',
             'tax_inclusive'   => 'sometimes|boolean',
@@ -73,6 +81,21 @@ class RestaurantMenuController extends Controller
         // list layout this page has always had instead of rendering nothing.
         if ($request->has('layout')) {
             $settings['layout'] = \App\Modules\User\Support\MenuPresentation::layout($data['layout'] ?? null);
+        }
+
+        // Colours are stored only when the form sent them, and an empty
+        // value CLEARS the key rather than storing '' -- otherwise a
+        // creator could never go back to inheriting the page ink.
+        foreach (array_keys(\App\Modules\User\Support\MenuPresentation::COLOURS) as $ck) {
+            if (! $request->has($ck)) {
+                continue;
+            }
+            $hex = \App\Modules\User\Support\MenuPresentation::hex($data[$ck] ?? null);
+            if ($hex === '') {
+                unset($settings[$ck]);
+            } else {
+                $settings[$ck] = $hex;
+            }
         }
 
         // Optional WhatsApp click-to-chat number for order confirmations. Stored
