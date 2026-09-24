@@ -34,6 +34,14 @@
     .rm-cat-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
     .rm-cat-head .ct { font-weight:700; color:var(--text-primary); font-size:16px; }
     .rm-pill { font-size:11px; padding:3px 9px; border-radius:999px; background:rgba(239,68,68,.15); color:#ef4444; font-weight:600; }
+    .rm-pill.off { background:rgba(148,163,184,.18); color:#94a3b8; }
+    /* A sub-section sits inside its section, and says so by indent plus a
+       rail -- the indent alone is ambiguous once a card is 16px padded. */
+    .rm-sub { margin-left:22px; border-left:2px solid #5c83ff44; border-radius:0 1rem 1rem 0; }
+    /* Hidden means hidden, not deleted: the row stays legible and editable,
+       it just stops looking like something a visitor can see. */
+    .rm-off { opacity:.5; }
+    .rm-note { font-size:11.5px; color:var(--text-muted); margin-top:4px; }
     .rm-table-row { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px dashed var(--border-glass); }
     .rm-mode-toggle { display:flex; gap:8px; }
     .rm-mode-toggle label { flex:1; text-align:center; padding:10px; border:1px solid var(--border-glass); border-radius:.75rem; cursor:pointer; font-size:13px; font-weight:600; color:var(--text-muted); }
@@ -62,52 +70,13 @@
 
     <div class="rm-grid">
         <div>
-            <!-- Categories + items -->
-            <div class="flex justify-between items-center mb-3">
-                <h2 class="font-bold text-lg" style="color:var(--text-primary)">Menu</h2>
-                <button class="rm-btn sm" @click="openCategory()"><i class="fas fa-plus"></i> Category</button>
-            </div>
-
-            <template x-if="categories.length === 0">
-                <div class="rm-card" style="text-align:center;color:var(--text-muted)">
-                    No categories yet. Add one to start building your menu.
-                </div>
-            </template>
-
-            <template x-for="(cat, ci) in categories" :key="cat.id">
-                <div class="rm-cat">
-                    <div class="rm-cat-head">
-                        <div class="ct" x-text="cat.name"></div>
-                        <div class="flex gap-2">
-                            <button class="rm-btn sm ghost" title="Move up" :disabled="ci===0" @click="moveCategory(cat,-1)"><i class="fas fa-arrow-up"></i></button>
-                            <button class="rm-btn sm ghost" title="Move down" :disabled="ci===categories.length-1" @click="moveCategory(cat,1)"><i class="fas fa-arrow-down"></i></button>
-                            <button class="rm-btn sm" @click="openItem(cat.id)"><i class="fas fa-plus"></i> Item</button>
-                            <button class="rm-btn sm ghost" @click="openCategory(cat)"><i class="fas fa-pen"></i></button>
-                            <button class="rm-btn sm danger" @click="deleteCategory(cat)"><i class="fas fa-trash"></i></button>
-                        </div>
-                    </div>
-                    <template x-for="(item, ii) in itemsFor(cat.id)" :key="item.id">
-                        <div class="rm-item" :style="item.is_sold_out ? 'opacity:.55' : ''">
-                            <img x-show="item.photo_url" :src="item.photo_url" alt="" style="width:56px;height:56px;border-radius:10px;object-fit:cover;">
-                            <div class="meta">
-                                <div class="nm" x-text="item.name"></div>
-                                <div class="ds" x-show="item.description" x-text="item.description"></div>
-                                <div class="pr"><span x-text="menu.currency"></span> <span x-text="(+item.price).toFixed(2)"></span>
-                                    <span x-show="item.is_sold_out" class="rm-pill" style="margin-left:6px">Sold out</span></div>
-                            </div>
-                            <div class="flex flex-col gap-1">
-                                <button class="rm-btn sm ghost" title="Move up" :disabled="ii===0" @click="moveItem(cat.id,item,-1)"><i class="fas fa-arrow-up"></i></button>
-                                <button class="rm-btn sm ghost" title="Move down" :disabled="ii===itemsFor(cat.id).length-1" @click="moveItem(cat.id,item,1)"><i class="fas fa-arrow-down"></i></button>
-                                <button class="rm-btn sm ghost" @click="openItem(cat.id, item)"><i class="fas fa-pen"></i></button>
-                                <button class="rm-btn sm danger" @click="deleteItem(item)"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </div>
-                    </template>
-                    <template x-if="itemsFor(cat.id).length === 0">
-                        <p class="text-sm" style="color:var(--text-muted)">No items in this category yet.</p>
-                    </template>
-                </div>
-            </template>
+            @include('user.links.partials.menu-structure-editor', [
+                'meNoun'      => 'item',
+                'meNounTitle' => 'Item',
+                'meSoldLabel' => 'Sold out',
+                'meSoldKey'   => 'is_sold_out',
+                'meEmpty'     => 'No sections yet. Add one to start building your menu.',
+            ])
         </div>
 
         <!-- Settings + tables -->
@@ -186,6 +155,7 @@
                     </div>
                     <p class="text-xs mt-2" style="color:var(--text-muted)" x-text="layoutHint"></p>
                 </div>
+                @include('user.links.partials.menu-divider-picker')
                 <div class="rm-row" x-show="menu.mode === 'order'">
                     <label class="rm-label">WhatsApp number (optional)</label>
                     <input class="rm-input" x-model="menu.whatsapp_number" @change="saveSettings()" placeholder="e.g. +1 555 123 4567" inputmode="tel">
@@ -270,17 +240,7 @@
     </div>
 
     <!-- Category modal -->
-    <div class="rm-modal-bg" x-show="catModal.open" x-cloak @click.self="catModal.open=false">
-        <div class="rm-modal">
-            <h5 style="color:var(--text-primary);font-weight:700;margin-bottom:14px" x-text="catModal.id ? 'Edit category' : 'New category'"></h5>
-            <div class="rm-row"><label class="rm-label">Name</label><input class="rm-input" x-model="catModal.name"></div>
-            <div class="rm-row"><label class="rm-label">Description</label><textarea class="rm-textarea" x-model="catModal.description"></textarea></div>
-            <div class="flex justify-end gap-2">
-                <button class="rm-btn ghost" @click="catModal.open=false">Cancel</button>
-                <button class="rm-btn" @click="saveCategory()">Save</button>
-            </div>
-        </div>
-    </div>
+    @include('user.links.partials.menu-section-modal', ['mmNoun' => 'menu'])
 
     <!-- Coupon modal -->
     <div class="rm-modal-bg" x-show="couponModal.open" x-cloak @click.self="couponModal.open=false">
@@ -381,11 +341,11 @@
 
 <script>
 @php
-    $menuCategories = $menu->categories->map(fn($c)=>['id'=>$c->id,'name'=>$c->name,'description'=>$c->description])->values();
-    $menuItems = $menu->items->map(fn($i)=>['id'=>$i->id,'category_id'=>$i->category_id,'name'=>$i->name,'description'=>$i->description,'price'=>$i->price,'photo_url'=>$i->photo_url,'is_sold_out'=>$i->is_sold_out])->values();
+    $menuCategories = $menu->categories->map(fn($c)=>['id'=>$c->id,'parent_id'=>$c->parent_id,'name'=>$c->name,'description'=>$c->description,'is_active'=>(bool) $c->is_active,'sort_order'=>(int) $c->sort_order])->values();
+    $menuItems = $menu->items->map(fn($i)=>['id'=>$i->id,'category_id'=>$i->category_id,'name'=>$i->name,'description'=>$i->description,'price'=>$i->price,'photo_url'=>$i->photo_url,'is_sold_out'=>$i->is_sold_out,'is_active'=>(bool) $i->is_active,'sort_order'=>(int) $i->sort_order])->values();
     $menuTables = $menu->tables->map(fn($t)=>['id'=>$t->id,'label'=>$t->label,'code'=>$t->code])->values();
     $menuCoupons = $menu->coupons->map(fn($c)=>['id'=>$c->id,'code'=>$c->code,'discount_type'=>$c->discount_type,'discount_value'=>$c->discount_value,'min_subtotal'=>$c->min_subtotal,'is_active'=>$c->is_active])->values();
-    $menuData = ['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color, 'whatsapp_number' => $menu->settings['whatsapp_number'] ?? '', 'layout' => \App\Modules\User\Support\MenuPresentation::layout($menu->settings['layout'] ?? null)];
+    $menuData = ['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color, 'whatsapp_number' => $menu->settings['whatsapp_number'] ?? '', 'layout' => \App\Modules\User\Support\MenuPresentation::layout($menu->settings['layout'] ?? null), 'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null)];
     $menuTax = [
         'enabled'   => $menu->taxEnabled(),
         'rate'      => $menu->taxRate(),
@@ -410,7 +370,9 @@ function restaurantEditor() {
         colourFields: @json($menuColourFields),
         layoutHints: @json(collect(\App\Modules\User\Support\MenuPresentation::LAYOUTS)->map(fn ($l) => $l['hint'])),
         get layoutHint(){ return this.layoutHints[this.menu.layout] || ''; },
-        catModal: { open:false, id:null, name:'', description:'' },
+        dividerHints: @json(collect(\App\Modules\User\Support\MenuPresentation::DIVIDERS)->map(fn ($d) => $d['hint'])),
+        get dividerHint(){ return this.dividerHints[this.menu.divider] || ''; },
+        catModal: { open:false, id:null, parent_id:null, name:'', description:'' },
         couponModal: { open:false, id:null, code:'', discount_type:'percent', discount_value:'', min_subtotal:'', is_active:true },
         itemModal: { open:false, id:null, category_id:null, name:'', description:'', price:'', photo_url:'', is_sold_out:false },
         base: @json(rtrim(url('/user/links/'.$link->id.'/restaurant'), '/')),
@@ -462,6 +424,7 @@ function restaurantEditor() {
                 accent_color:this.menu.accent_color,
                 whatsapp_number:this.menu.whatsapp_number||'',
                 layout:this.menu.layout||'list',
+                divider:this.menu.divider||'line',
                 heading_color:this.menu.heading_color||'',
                 item_color:this.menu.item_color||'',
                 desc_color:this.menu.desc_color||'',
@@ -486,22 +449,86 @@ function restaurantEditor() {
             this.couponModal.open = false;
         },
         async deleteCoupon(c){ if(!confirm('Delete coupon "'+c.code+'"?')) return; await this.api('DELETE','/coupons/'+c.id); this.coupons=this.coupons.filter(x=>x.id!==c.id); },
-        openCategory(cat){ this.catModal = cat ? {open:true,id:cat.id,name:cat.name,description:cat.description||''} : {open:true,id:null,name:'',description:''}; },
+        // ---- Structure -------------------------------------------------
+        // Sections in order, each followed by its own sub-sections. Flat
+        // rather than nested so the row markup exists once; `depth` is what
+        // the template indents on. Mirrors MenuTree on the server, which is
+        // what the public page and this screen must agree about.
+        sections(){ return this.categories.filter(c => !c.parent_id).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)); },
+        // Only what the save path will actually accept as a parent.
+        parentChoices(){
+            const self = this.catModal.id;
+            if (self && this.subsFor(self).length > 0) return [];
+            return this.sections().filter(c => c.id !== self);
+        },
+        subsFor(id){ return this.categories.filter(c => c.parent_id === id).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)); },
+        groups(){
+            const out = [];
+            for (const cat of this.sections()) {
+                const hidden = cat.is_active === false;
+                out.push({ cat, depth:0, hidden, parentHidden:false });
+                for (const sub of this.subsFor(cat.id)) {
+                    out.push({ cat: sub, depth:1, hidden: hidden || sub.is_active === false, parentHidden: hidden });
+                }
+            }
+            return out;
+        },
+        // An item in a hidden section is hidden whatever its own flag says.
+        rowHidden(row, g){ return g.hidden || row.is_active === false; },
+        rowsFor(catId){ return this.itemsFor(catId); },
+        openRow(catId, row){ return this.openItem(catId, row); },
+        deleteRow(row){ return this.deleteItem(row); },
+        moveRow(catId, row, dir){ return this.moveItem(catId, row, dir); },
+        async toggleCategory(cat){
+            const next = !(cat.is_active !== false);
+            const d = await this.api('PUT','/categories/'+cat.id, { is_active: next });
+            const i = this.categories.findIndex(c=>c.id===cat.id); this.categories[i] = d.category;
+        },
+        async toggleRow(row){
+            const next = !(row.is_active !== false);
+            const d = await this.api('PUT','/items/'+row.id, { is_active: next });
+            const i = this.items.findIndex(x=>x.id===row.id); this.items[i] = d.item;
+        },
+        openCategory(cat, parentId){
+            this.catModal = cat
+                ? {open:true,id:cat.id,parent_id:cat.parent_id||null,name:cat.name,description:cat.description||''}
+                : {open:true,id:null,parent_id:parentId||null,name:'',description:''};
+        },
         async saveCategory(){
             if (!this.catModal.name.trim()) return;
-            const payload = { name:this.catModal.name, description:this.catModal.description };
-            if (this.catModal.id) { const d = await this.api('PUT','/categories/'+this.catModal.id, payload); const i=this.categories.findIndex(c=>c.id===this.catModal.id); this.categories[i]=d.category; }
-            else { const d = await this.api('POST','/categories', payload); this.categories.push(d.category); }
+            const payload = { name:this.catModal.name, description:this.catModal.description, parent_id:this.catModal.parent_id||null };
+            try {
+                if (this.catModal.id) { const d = await this.api('PUT','/categories/'+this.catModal.id, payload); const i=this.categories.findIndex(c=>c.id===this.catModal.id); this.categories[i]=d.category; }
+                else { const d = await this.api('POST','/categories', payload); this.categories.push(d.category); }
+            } catch (e) {
+                // The server refuses a move that would nest three deep or
+                // strand a sub-section, and api() has already shown the
+                // reason it gave. Leave the dialog open on what they typed
+                // rather than closing it over a change that did not happen.
+                return;
+            }
             this.catModal.open = false;
         },
-        async deleteCategory(cat){ if(!confirm('Delete "'+cat.name+'" and its items?')) return; await this.api('DELETE','/categories/'+cat.id); this.categories=this.categories.filter(c=>c.id!==cat.id); this.items=this.items.filter(i=>i.category_id!==cat.id); },
+        async deleteCategory(cat){
+            const subs = this.subsFor(cat.id);
+            const what = subs.length
+                ? '"'+cat.name+'", its '+subs.length+' sub-section(s) and everything in them?'
+                : '"'+cat.name+'" and its items?';
+            if(!confirm('Delete '+what)) return;
+            await this.api('DELETE','/categories/'+cat.id);
+            const gone = [cat.id].concat(subs.map(s=>s.id));
+            this.categories = this.categories.filter(c=>!gone.includes(c.id));
+            this.items = this.items.filter(i=>!gone.includes(i.category_id));
+        },
         async moveCategory(cat, dir){
-            const idx = this.categories.findIndex(c=>c.id===cat.id);
+            // Among its OWN siblings. A sub-section moving past the end of
+            // its section would otherwise land between two unrelated ones.
+            const arr = cat.parent_id ? this.subsFor(cat.parent_id) : this.sections();
+            const idx = arr.findIndex(c=>c.id===cat.id);
             const to = idx + dir;
-            if (idx<0 || to<0 || to>=this.categories.length) return;
-            const arr = this.categories.slice();
+            if (idx<0 || to<0 || to>=arr.length) return;
             arr.splice(to, 0, arr.splice(idx, 1)[0]);
-            this.categories = arr;
+            arr.forEach((c,i)=>{ const j=this.categories.findIndex(x=>x.id===c.id); this.categories[j].sort_order = i; });
             await this.api('POST','/categories/reorder', { order: arr.map(c=>c.id) });
         },
         async moveItem(catId, item, dir){

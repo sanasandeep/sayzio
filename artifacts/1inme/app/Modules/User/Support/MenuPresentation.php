@@ -109,10 +109,47 @@ class MenuPresentation
         ],
     ];
 
+    /**
+     * How one item is separated from the next.
+     *
+     * Sana, 2026-09-23, listing what his printed card has and the product
+     * does not: "menu dividers". PR A gave the divider a COLOUR; it still
+     * had exactly one shape, a hairline, and no way to turn it off. A
+     * pricier card uses a dotted rule or nothing at all, and both of those
+     * are one CSS block rather than a template fork.
+     *
+     * `line` is the default because it is what every existing menu already
+     * draws -- picking nothing must not change a live page.
+     *
+     * @var array<string, array{label: string, hint: string}>
+     */
+    public const DIVIDERS = [
+        'line' => [
+            'label' => 'Hairline',
+            'hint'  => 'A thin rule between items. What menus draw today.',
+        ],
+        'dotted' => [
+            'label' => 'Dotted',
+            'hint'  => 'A dotted rule, the way a printed card is usually set.',
+        ],
+        'none' => [
+            'label' => 'None',
+            'hint'  => 'Space alone separates the items. Cleanest with photos.',
+        ],
+    ];
+
+    public const DEFAULT_DIVIDER = 'line';
+
     /** A layout key that exists, falling back rather than rendering nothing. */
     public static function layout(?string $key): string
     {
         return isset(self::LAYOUTS[$key]) ? $key : self::DEFAULT_LAYOUT;
+    }
+
+    /** A divider key that exists, falling back to the hairline every menu has. */
+    public static function divider(?string $key): string
+    {
+        return isset(self::DIVIDERS[$key]) ? $key : self::DEFAULT_DIVIDER;
     }
 
     /**
@@ -149,6 +186,7 @@ class MenuPresentation
 
         return $colours + [
             'layout'         => self::layout($menuSettings['layout'] ?? null),
+            'divider'        => self::divider($menuSettings['divider'] ?? null),
             'font_family'    => $body,
             'font_css'       => self::cssStack($body),
             'font_href'      => self::googleHref(array_filter([$body, $heading])),

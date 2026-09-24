@@ -11,7 +11,8 @@
     one of those, so a page that picks nothing renders exactly as it always
     did.
 
-    Parameters: none. Emitted inside the page's own <style>.
+    Parameters: $mp (MenuPresentation::resolve), for the heading font on
+    a sub-section. Emitted inside the page's own <style>.
 --}}
 
 /* ---- Shared -------------------------------------------------------- */
@@ -102,3 +103,27 @@
 /* A wider page for the layouts that put things side by side; the reading
    layouts keep the narrow column they were designed for. */
 .page.wide { max-width: 1020px; }
+
+/* ---- Sub-sections --------------------------------------------------- */
+/* Sana, 2026-09-23: "cats and sub cats". A sub-section is a heading one
+   step quieter than the section above it, indented just enough to read as
+   belonging to it and not so far that a phone loses the item photos. The
+   rule on its left is what carries the nesting at narrow widths, where
+   14px of indent alone is ambiguous. */
+.subcat { margin-top: 16px; padding-left: 12px; border-left: 2px solid var(--rule, rgba(0,0,0,.07)); }
+.subcat > h3 { font-size: 14.5px; font-weight: 700; margin: 0 0 3px; letter-spacing: .01em;
+               font-family: {!! $mp['heading_css'] !!}; color: var(--ink-head, inherit); opacity: .86; }
+.subcat > .cdesc { font-size: 12.5px; opacity: .55; margin: 0 0 8px; }
+
+/* ---- Dividers -------------------------------------------------------- */
+/* The hairline between items got a colour in the last change and still had
+   exactly one shape. Scoped to `lay-list`, and deliberately: the other four
+   layouts do not have a divider to restyle. Cards, Photo grid and Showcase
+   draw each item as a bordered card, where a "divider style" would be
+   editing the card's edge; Compact already sets `border: 0` and separates
+   its rows with leader dots. Offering the control everywhere and having it
+   do nothing in four places out of five is the bug this week has been
+   about, so the editor only offers it for List. */
+.items.lay-list.div-line .item { border-top-style: solid; }
+.items.lay-list.div-dotted .item { border-top-style: dotted; border-top-width: 2px; }
+.items.lay-list.div-none .item { border-top-style: none; }
