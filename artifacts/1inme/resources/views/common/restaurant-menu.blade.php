@@ -154,7 +154,11 @@
 @if($pbOn)@include('common.page-background.layers')@endif
 {{-- The side-by-side layouts get a wider column; the reading layouts
      keep the narrow one they were designed for. --}}
-<div class="page{{ in_array($mp['layout'], ['cards', 'grid'], true) ? ' wide' : '' }}">
+{{-- Two classes decide how the card is SET, as opposed to how its items
+     are laid out: where the section titles sit, and where the prices do.
+     Both live on the wrapper so one choice paints sections and
+     sub-sections together. See common/partials/menu-layout-css. --}}
+<div class="page{{ in_array($mp['layout'], ['cards', 'grid'], true) ? ' wide' : '' }} head-{{ $mp['heading_style'] }} price-{{ $mp['price_style'] }}">
     <div class="hero">
         <h1>{{ $title }}</h1>
         @if($desc = $link->description)<p>{{ $desc }}</p>@endif

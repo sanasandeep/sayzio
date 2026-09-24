@@ -140,6 +140,73 @@ class MenuPresentation
 
     public const DEFAULT_DIVIDER = 'line';
 
+    /**
+     * How a section title is set.
+     *
+     * Sana, 2026-09-23: "design and style of cats and sub cats" and "design
+     * looks of menu section". Both pages had exactly one: left-aligned,
+     * bold, 18px, no rule, forever. A printed card almost never looks like
+     * that -- it centres its headings between rules, or sets them as a
+     * small letter-spaced label, or runs them across a filled band.
+     *
+     * The same choice paints sub-section headings one step quieter, so a
+     * card reads as one design rather than two.
+     *
+     * @var array<string, array{label: string, hint: string}>
+     */
+    public const HEADINGS = [
+        'plain' => [
+            'label' => 'Plain',
+            'hint'  => 'Left, bold, no rule. What menus draw today.',
+        ],
+        'underline' => [
+            'label' => 'Underlined',
+            'hint'  => 'A rule under the title, across the column.',
+        ],
+        'centered' => [
+            'label' => 'Centred',
+            'hint'  => 'Centred with a rule either side, the way a printed card is set.',
+        ],
+        'label' => [
+            'label' => 'Small caps',
+            'hint'  => 'A small letter-spaced label over a rule. Quiet, for a long card.',
+        ],
+        'banner' => [
+            'label' => 'Banner',
+            'hint'  => 'The title on a filled band in the accent colour.',
+        ],
+    ];
+
+    public const DEFAULT_HEADING = 'plain';
+
+    /**
+     * Where an item's price sits.
+     *
+     * Sana, 2026-09-23: "pricing on same column or new column".
+     *
+     * Leader dots existed already -- and were welded to the Compact layout,
+     * so the one thing his printed card does on every line was unreachable
+     * from the other four. Placement is its own axis now, which is what it
+     * always was: a card with photos can still run its prices down the
+     * right edge.
+     *
+     * @var array<string, array{label: string, hint: string}>
+     */
+    public const PRICES = [
+        'inline' => [
+            'label' => 'Under the name',
+            'hint'  => 'The price sits below the item, in the text column.',
+        ],
+        'right' => [
+            'label' => 'Right column',
+            'hint'  => 'Prices line up down the right edge, level with each name.',
+        ],
+        'dots' => [
+            'label' => 'Right, with dots',
+            'hint'  => 'Prices on the right with leader dots running to them.',
+        ],
+    ];
+
     /** A layout key that exists, falling back rather than rendering nothing. */
     public static function layout(?string $key): string
     {
@@ -150,6 +217,32 @@ class MenuPresentation
     public static function divider(?string $key): string
     {
         return isset(self::DIVIDERS[$key]) ? $key : self::DEFAULT_DIVIDER;
+    }
+
+    /** A heading key that exists, falling back to what menus draw today. */
+    public static function heading(?string $key): string
+    {
+        return isset(self::HEADINGS[$key]) ? $key : self::DEFAULT_HEADING;
+    }
+
+    /**
+     * A price placement that exists.
+     *
+     * The default DEPENDS ON THE LAYOUT, and that is the whole care here.
+     * Leader dots used to be part of what "Compact" meant -- welded into
+     * that layout's CSS with no way to ask for them elsewhere and no way to
+     * turn them off. Pulling them out into their own axis would silently
+     * restyle every Compact menu on the platform unless an unset value
+     * still means dots THERE and inline everywhere else, which is what this
+     * does.
+     */
+    public static function price(?string $key, string $layout): string
+    {
+        if (isset(self::PRICES[$key])) {
+            return $key;
+        }
+
+        return $layout === 'compact' ? 'dots' : 'inline';
     }
 
     /**
@@ -184,9 +277,13 @@ class MenuPresentation
             $colours[$key] = self::hex($menuSettings[$key] ?? null);
         }
 
+        $layout = self::layout($menuSettings['layout'] ?? null);
+
         return $colours + [
-            'layout'         => self::layout($menuSettings['layout'] ?? null),
+            'layout'         => $layout,
             'divider'        => self::divider($menuSettings['divider'] ?? null),
+            'heading_style'  => self::heading($menuSettings['heading_style'] ?? null),
+            'price_style'    => self::price($menuSettings['price_style'] ?? null, $layout),
             'font_family'    => $body,
             'font_css'       => self::cssStack($body),
             'font_href'      => self::googleHref(array_filter([$body, $heading])),

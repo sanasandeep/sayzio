@@ -165,6 +165,7 @@
                     <p class="text-xs mt-2" style="color:var(--text-muted)" x-text="layoutHint"></p>
                 </div>
                 @include('user.links.partials.menu-divider-picker')
+                @include('user.links.partials.menu-card-design')
                 <div class="rm-row" x-show="menu.mode === 'order'">
                     <label class="rm-label">WhatsApp number (optional)</label>
                     <input class="rm-input" x-model="menu.whatsapp_number" @change="saveSettings()" placeholder="e.g. +1 555 123 4567" inputmode="tel">
@@ -249,6 +250,9 @@
 
 <script>
 @php
+    // Price placement falls back differently per layout (Compact keeps
+    // its leader dots), so the layout is resolved once and both read it.
+    $menuLayoutKey = \App\Modules\User\Support\MenuPresentation::layout($menu->settings['layout'] ?? null);
     $menuCategories = $menu->categories->map(fn($c)=>['id'=>$c->id,'parent_id'=>$c->parent_id,'name'=>$c->name,'description'=>$c->description,'is_active'=>(bool) $c->is_active,'sort_order'=>(int) $c->sort_order])->values();
     $menuProducts = $menu->products->map(fn($p)=>['id'=>$p->id,'category_id'=>$p->category_id,'name'=>$p->name,'description'=>$p->description,'price'=>$p->price,'photo_url'=>$p->photo_url,'is_out_of_stock'=>$p->is_out_of_stock,'is_active'=>(bool) $p->is_active,'sort_order'=>(int) $p->sort_order])->values();
     $menuState = [
@@ -257,8 +261,10 @@
         'accent_color' => $menu->accent_color,
         'whatsapp_number' => $menu->settings['whatsapp_number'] ?? '',
         'accepting_orders' => (bool) ($menu->settings['accepting_orders'] ?? true),
-        'layout' => \App\Modules\User\Support\MenuPresentation::layout($menu->settings['layout'] ?? null),
+        'layout' => $menuLayoutKey,
         'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null),
+        'heading_style' => \App\Modules\User\Support\MenuPresentation::heading($menu->settings['heading_style'] ?? null),
+        'price_style' => \App\Modules\User\Support\MenuPresentation::price($menu->settings['price_style'] ?? null, $menuLayoutKey),
     ];
     $storeBase = rtrim(url('/user/links/'.$link->id.'/store'), '/');
 @endphp
@@ -278,6 +284,10 @@ function storeEditor() {
         get layoutHint(){ return this.layoutHints[this.menu.layout] || ''; },
         dividerHints: @json(collect(\App\Modules\User\Support\MenuPresentation::DIVIDERS)->map(fn ($d) => $d['hint'])),
         get dividerHint(){ return this.dividerHints[this.menu.divider] || ''; },
+        headingHints: @json(collect(\App\Modules\User\Support\MenuPresentation::HEADINGS)->map(fn ($h) => $h['hint'])),
+        get headingHint(){ return this.headingHints[this.menu.heading_style] || ''; },
+        priceHints: @json(collect(\App\Modules\User\Support\MenuPresentation::PRICES)->map(fn ($x) => $x['hint'])),
+        get priceHint(){ return this.priceHints[this.menu.price_style] || ''; },
         catModal: { open:false, id:null, parent_id:null, name:'', description:'' },
         productModal: { open:false, id:null, category_id:null, name:'', description:'', price:'', photo_url:'', is_out_of_stock:false },
         base: @json($storeBase),
@@ -330,6 +340,8 @@ function storeEditor() {
                 accepting_orders:!!this.menu.accepting_orders,
                 layout:this.menu.layout||'list',
                 divider:this.menu.divider||'line',
+                heading_style:this.menu.heading_style||'plain',
+                price_style:this.menu.price_style||'inline',
                 heading_color:this.menu.heading_color||'',
                 item_color:this.menu.item_color||'',
                 desc_color:this.menu.desc_color||'',

@@ -61,6 +61,8 @@ class RestaurantMenuController extends Controller
             'settings'        => 'nullable|array',
             'layout'          => 'nullable|string|max:24',
             'divider'         => 'nullable|string|max:16',
+            'heading_style'         => 'nullable|string|max:16',
+            'price_style'           => 'nullable|string|max:16',
             // Menu colours (Sana, 2026-09-23: "i cannot change colors of
             // menu items and all"). Each is optional; an absent one keeps
             // inheriting the page ink, which is what the page did before.
@@ -89,6 +91,27 @@ class RestaurantMenuController extends Controller
         // the hairline every menu already draws rather than to nothing.
         if ($request->has('divider')) {
             $settings['divider'] = \App\Modules\User\Support\MenuPresentation::divider($data['divider'] ?? null);
+        }
+
+        // How the card is SET: where the section titles sit, and where the
+        // prices do. Same treatment as the layout -- the catalog decides
+        // what is valid, so an unknown key falls back to what the page
+        // already draws rather than to nothing.
+        if ($request->has('heading_style')) {
+            $settings['heading_style'] = \App\Modules\User\Support\MenuPresentation::heading($data['heading_style'] ?? null);
+        }
+        if ($request->has('price_style')) {
+            // Price placement is validated against the catalog alone. Its
+            // LAYOUT-dependent default lives in the resolver, because an
+            // unset value has to keep meaning "dots" for a Compact menu --
+            // storing a resolved value here would freeze that in and change
+            // what the menu looks like if the layout is switched later.
+            $key = $data['price_style'] ?? null;
+            if (isset(\App\Modules\User\Support\MenuPresentation::PRICES[$key])) {
+                $settings['price_style'] = $key;
+            } else {
+                unset($settings['price_style']);
+            }
         }
 
         // Colours are stored only when the form sent them, and an empty
