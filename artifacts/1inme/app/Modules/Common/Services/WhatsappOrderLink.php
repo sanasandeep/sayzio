@@ -71,7 +71,7 @@ class WhatsappOrderLink
 
         $message = $order instanceof ServiceBookingRequest
             ? self::bookingMessage($menu, $order, $linkTitle)
-            : self::message($order, $linkTitle);
+            : self::message($order, $linkTitle, $menu);
 
         return [
             'number'  => $number,
@@ -93,7 +93,7 @@ class WhatsappOrderLink
      * order reference, table (if scanned), customer name, an itemized list
      * with quantities, the total, and any kitchen note.
      */
-    public static function message(RestaurantOrder|StoreOrder $order, ?string $linkTitle = null): string
+    public static function message(RestaurantOrder|StoreOrder $order, ?string $linkTitle = null, RestaurantMenu|StoreMenu|null $menu = null): string
     {
         $lines = [];
         $lines[] = $linkTitle ? "New order · {$linkTitle}" : 'New order';
@@ -112,13 +112,49 @@ class WhatsappOrderLink
             $lines[] = 'Contact: ' . $order->customer_contact;
         }
 
+        $money = fn ($n) => \App\Modules\User\Support\MenuMoney::plain($n, $order->currency);
+
         $lines[] = '';
         foreach ($order->items as $item) {
-            $lines[] = $item->quantity . '× ' . $item->name;
+            // With the line prices in, the number at the bottom is one the
+            // person reading this on their phone can check.
+            $lines[] = $item->quantity . '× ' . $item->name . ' · ' . $money($item->line_total);
         }
 
         $lines[] = '';
-        $lines[] = 'Total: ' . $order->currency . ' ' . number_format((float) $order->subtotal, 2);
+
+        // THE BUG THIS FIXES: this line said "Total" and printed the
+        // SUBTOTAL. Tax and coupons arrived after this message format did,
+        // and nothing came back to update it -- so every order with GST on
+        // or a discount code applied told the restaurant a smaller number
+        // than the guest owed, and the restaurant charged it. The owner's
+        // email notification and the booking version of this message both
+        // already used `total ?: subtotal`; only this one was left behind.
+        $discount = (float) ($order->discount_amount ?? 0);
+        $tax      = (float) ($order->tax_amount ?? 0);
+        $total    = (float) ($order->total ?: $order->subtotal);
+
+        // The breakdown is only shown when there IS one, so a plain order
+        // still reads as three lines rather than a receipt.
+        if ($discount > 0 || $tax > 0) {
+            $lines[] = 'Subtotal: ' . $money($order->subtotal);
+
+            if ($discount > 0) {
+                $label = $order->coupon_code ? ('Discount (' . $order->coupon_code . ')') : 'Discount';
+                $lines[] = $label . ': -' . $money($discount);
+            }
+            if ($tax > 0) {
+                // The order row carries the tax AMOUNT but not its NAME --
+                // the menu owns that, and "GST" reading as "Tax" on an
+                // Indian restaurant's order is the kind of small wrongness
+                // that makes an owner distrust the whole message.
+                $taxLabel = ($menu instanceof RestaurantMenu) ? $menu->taxLabel() : 'Tax';
+                $lines[] = $taxLabel . ': ' . $money($tax)
+                    . (($order->tax_inclusive ?? false) ? ' (included)' : '');
+            }
+        }
+
+        $lines[] = 'Total: ' . $money($total);
 
         if ($order->customer_note) {
             $lines[] = '';
@@ -154,14 +190,18 @@ class WhatsappOrderLink
             $lines[] = 'Email: ' . $request->customer_email;
         }
 
+        $money = fn ($n) => \App\Modules\User\Support\MenuMoney::plain($n, $request->currency);
+
         $lines[] = '';
         foreach ($request->items as $item) {
-            $lines[] = $item->quantity . '× ' . $item->name;
+            $lines[] = $item->quantity . '× ' . $item->name . ' · ' . $money($item->line_total);
         }
 
         $lines[] = '';
-        $estimated = (float) ($request->total ?: $request->subtotal);
-        $lines[] = 'Estimated total: ' . $request->currency . ' ' . number_format($estimated, 2);
+        // This one already read `total ?: subtotal` -- it is only routed
+        // through the shared formatter so there is no hand-written money
+        // format left in this file for the next one to be copied from.
+        $lines[] = 'Estimated total: ' . $money((float) ($request->total ?: $request->subtotal));
 
         if ($request->customer_note) {
             $lines[] = '';

@@ -115,6 +115,7 @@
                     <label class="rm-label">Currency</label>
                     <input class="rm-input" x-model="menu.currency" maxlength="3" @change="saveSettings()" style="text-transform:uppercase">
                 </div>
+                @include('user.links.partials.menu-money-picker')
                 <div class="rm-row">
                     <label class="rm-label">Accent color</label>
                     <input type="color" class="rm-input" x-model="menu.accent_color" @change="saveSettings()" style="height:42px;padding:4px">
@@ -253,6 +254,9 @@
     // Price placement falls back differently per layout (Compact keeps
     // its leader dots), so the layout is resolved once and both read it.
     $menuLayoutKey = \App\Modules\User\Support\MenuPresentation::layout($menu->settings['layout'] ?? null);
+    // The resolved price format, so the editor opens on what the page
+    // actually prints rather than on a guess at the defaults.
+    $menuMoney = \App\Modules\User\Support\MenuMoney::resolve($menu->currency, (array) ($menu->settings ?? []));
     $menuCategories = $menu->categories->map(fn($c)=>['id'=>$c->id,'parent_id'=>$c->parent_id,'name'=>$c->name,'description'=>$c->description,'is_active'=>(bool) $c->is_active,'sort_order'=>(int) $c->sort_order])->values();
     $menuProducts = $menu->products->map(fn($p)=>['id'=>$p->id,'category_id'=>$p->category_id,'name'=>$p->name,'description'=>$p->description,'price'=>$p->price,'photo_url'=>$p->photo_url,'is_out_of_stock'=>$p->is_out_of_stock,'is_active'=>(bool) $p->is_active,'sort_order'=>(int) $p->sort_order])->values();
     $menuState = [
@@ -263,6 +267,7 @@
         'accepting_orders' => (bool) ($menu->settings['accepting_orders'] ?? true),
         'layout' => $menuLayoutKey,
         'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null),
+        'price_display' => $menuMoney['display'], 'price_position' => $menuMoney['position'], 'price_decimals' => $menuMoney['decimals'] > 0,
         'heading_style' => \App\Modules\User\Support\MenuPresentation::heading($menu->settings['heading_style'] ?? null),
         'price_style' => \App\Modules\User\Support\MenuPresentation::price($menu->settings['price_style'] ?? null, $menuLayoutKey),
     ];
@@ -283,6 +288,30 @@ function storeEditor() {
         layoutHints: @json(collect(\App\Modules\User\Support\MenuPresentation::LAYOUTS)->map(fn ($l) => $l['hint'])),
         get layoutHint(){ return this.layoutHints[this.menu.layout] || ''; },
         dividerHints: @json(collect(\App\Modules\User\Support\MenuPresentation::DIVIDERS)->map(fn ($d) => $d['hint'])),
+        // ---- Price format ----------------------------------------------
+        // Mirrors MenuMoney on the server so the sample below the controls
+        // is the real thing rather than an approximation of it. The tables
+        // come straight from that class, so a currency added there shows up
+        // here without a second edit.
+        moneySymbols: @json(\App\Modules\User\Support\MenuMoney::SYMBOLS),
+        moneyZeroDecimal: @json(\App\Modules\User\Support\MenuMoney::ZERO_DECIMAL),
+        get currencyCode(){ return (this.menu.currency || 'USD').toUpperCase(); },
+        get currencyHasSymbol(){ return !!this.moneySymbols[this.currencyCode]; },
+        get zeroDecimalCurrency(){ return this.moneyZeroDecimal.includes(this.currencyCode); },
+        get priceSample(){
+            const code = this.currencyCode;
+            let token = this.menu.price_display === 'symbol'
+                ? (this.moneySymbols[code] || code)
+                : (this.menu.price_display === 'none' ? '' : code);
+            token = token.trim();
+            const decimals = (this.zeroDecimalCurrency || this.menu.price_decimals === false) ? 0 : 2;
+            const n = (1234.5).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+            if (token === '') return n;
+            // A token ending in a letter needs a gap or it runs into the
+            // digits; one ending in punctuation or a glyph does not.
+            const gap = /[A-Za-z]$/.test(token) ? ' ' : '';
+            return this.menu.price_position === 'after' ? (n + ' ' + token) : (token + gap + n);
+        },
         get dividerHint(){ return this.dividerHints[this.menu.divider] || ''; },
         headingHints: @json(collect(\App\Modules\User\Support\MenuPresentation::HEADINGS)->map(fn ($h) => $h['hint'])),
         get headingHint(){ return this.headingHints[this.menu.heading_style] || ''; },
@@ -342,6 +371,9 @@ function storeEditor() {
                 divider:this.menu.divider||'line',
                 heading_style:this.menu.heading_style||'plain',
                 price_style:this.menu.price_style||'inline',
+                price_display:this.menu.price_display||'code',
+                price_position:this.menu.price_position||'before',
+                price_decimals:this.menu.price_decimals !== false,
                 heading_color:this.menu.heading_color||'',
                 item_color:this.menu.item_color||'',
                 desc_color:this.menu.desc_color||'',
