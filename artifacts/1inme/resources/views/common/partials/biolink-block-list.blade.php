@@ -30,6 +30,28 @@
                                  content, so it passes false -- an empty
                                  block list there is normal, not an empty
                                  page.
+    ---- The renderer needs a stylesheet, and CI now checks for it --------
+
+    Sana, 2026-09-27, of a menu page: "CSS seems broken in page demo".
+
+    It was, and this partial is why. Moving the loop here let a menu render
+    its blocks; it did not bring what the block markup is written in. Every
+    block in common/blocks/* is Tailwind utility classes, and a menu page
+    has no @vite -- so on a menu each one rendered as unstyled flow content:
+    a Heading block at the browser's default h2 (42px, 35px margins) instead
+    of 24px, a full-width button collapsed to the width of its own label, no
+    icons at all. The blocks were on the page and looked broken, which is
+    worse than the bug this partial was written to fix.
+
+    That stylesheet has to load in the HEAD -- a <link> emitted down here
+    beside the blocks would repaint them mid-scroll on every menu open, and
+    a menu is read on a phone on restaurant wifi. So it cannot travel inside
+    this file, and "the host page remembers" is exactly the arrangement that
+    just failed. Instead it is one partial, common/partials/biolink-block-
+    assets, and scripts/check-block-assets.php fails the build when a
+    template includes this loop without it. The next page type to render
+    blocks cannot forget, because forgetting is now a red check rather than
+    a page that looks broken to its visitors.
 
     The starter-page gate lives here rather than in each caller: a page
     whose five example blocks have never been edited must not show them to

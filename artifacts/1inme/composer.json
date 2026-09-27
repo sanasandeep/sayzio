@@ -107,6 +107,9 @@
         "check:view-references": [
             "@php scripts/check-view-references.php"
         ],
+        "check:block-assets": [
+            "@php scripts/check-block-assets.php"
+        ],
         "check:migration-ordering": [
             "@php artisan db:check-migration-ordering"
         ],
