@@ -793,54 +793,73 @@
                         </button>
                     </div>
 
-                    {{-- Short links surfacing this resume — public URL + a jump
-                         to the link's click analytics. Shown whenever a
-                         `resume`-type short link points at this resume so the
-                         builder ↔ link bridge is discoverable from both sides. --}}
-                    @if(!empty($resumeLinks))
-                    <div class="resume-field" style="margin-top: 16px; border-top: 1px solid var(--border-glass, rgba(255,255,255,0.08)); padding-top: 14px;">
-                        <label><i class="fas fa-link"></i> Short {{ count($resumeLinks) > 1 ? 'links' : 'link' }} for this resume</label>
-                        {{-- Sana, 2026-09-23: "i created resume... with custom
-                             url /sana-resume -- automatically other urls are
-                             created... why?"
+                    {{-- The URL, where the resume is built.
 
-                             They were not. A resume link with no version bound
-                             to it resolves to whichever version is the DEFAULT,
-                             so every unbound resume link on the account appears
-                             under the default's list. Correct behaviour, and it
-                             read as the page inventing URLs because the list
-                             never said which was which. It says now, and each
-                             row links to where that link is edited. --}}
-                        <p class="text-[11px] mb-2" style="color: var(--text-muted,#9ca3af);">
+                         Sana, 2026-09-23: "custom link and aliases need to
+                         work just like in link in bio.... again... those urls
+                         are currently non editable... it should be editable..."
+
+                         He was standing here when he wrote that, and from here
+                         he was right. A resume link's address IS editable -- on
+                         the link's own edit screen, two clicks away. And a new
+                         one CAN be made -- through Create Link, which binds it
+                         to the DEFAULT version, so pointing a URL at a tailored
+                         version took three screens and the middle one looked
+                         like a bug.
+
+                         Both are here now. The alias saves through the link
+                         module's own endpoint rather than a second one that
+                         would have to keep its uniqueness rules in step. --}}
+                    <div class="resume-field" style="margin-top: 16px; border-top: 1px solid var(--border-glass, rgba(255,255,255,0.08)); padding-top: 14px;"
+                         x-data="resumeLinks(@js($resumeLinks), @js(route('user.resume.versions.link', ['version' => $resume->id])), @js($resume->name ?: 'Resume'))">
+                        <label><i class="fas fa-link"></i> Short <span x-text="links.length === 1 ? 'link' : 'links'"></span> for this resume</label>
+
+                        <p class="text-[11px] mb-2" style="color: var(--text-muted,#9ca3af);" x-show="links.length">
                             @if($resume->is_default && collect($resumeLinks)->contains(fn ($l) => ! $l['is_bound']))
                                 Links marked <strong>any version</strong> were not created here. They are
                                 short links on your account that were never tied to one version, so they
                                 open whichever resume is live. Open a link to change that.
                             @else
-                                This resume is surfaced through {{ count($resumeLinks) > 1 ? 'these short links' : 'a short link' }}. Open the public page or jump to its click analytics.
+                                Edit an address here and it changes everywhere. Additional aliases for the
+                                same link live on its own edit screen.
                             @endif
                         </p>
-                        @foreach($resumeLinks as $rl)
-                        <div class="flex items-center gap-2 mb-2 flex-wrap">
-                            <input class="resume-input" type="text" readonly value="{{ $rl['public_url'] }}" onfocus="this.select()" style="flex: 1 1 200px;">
-                            <span class="resume-pill shrink-0"
-                                  style="background: {{ $rl['is_bound'] ? 'rgba(22,163,74,.18)' : 'rgba(148,163,184,.18)' }}; color: {{ $rl['is_bound'] ? '#16a34a' : '#94a3b8' }};"
-                                  title="{{ $rl['is_bound'] ? 'Tied to this version' : 'Not tied to a version, so it opens whichever resume is live' }}">
-                                {{ $rl['is_bound'] ? 'This version' : 'Any version' }}
-                            </span>
-                            <a class="resume-add-btn shrink-0" href="{{ $rl['public_url'] }}" target="_blank" rel="noopener">
-                                <i class="fas fa-external-link-alt"></i> Open
-                            </a>
-                            <a class="resume-add-btn shrink-0" href="{{ $rl['edit_url'] }}" title="Change this link's address or which version it opens">
-                                <i class="fas fa-pen"></i> Edit
-                            </a>
-                            <a class="resume-add-btn shrink-0" href="{{ $rl['analytics_url'] }}">
-                                <i class="fas fa-chart-line"></i> Analytics
-                            </a>
+
+                        <template x-for="(rl, li) in links" :key="rl.id">
+                            <div class="flex items-center gap-2 mb-2 flex-wrap">
+                                <input class="resume-input" type="text" x-model="rl.alias"
+                                       @keydown.enter.prevent="saveAlias(rl)" @blur="saveAlias(rl)"
+                                       style="flex: 1 1 160px;">
+                                <span class="resume-pill shrink-0"
+                                      :style="rl.is_bound
+                                        ? 'background:rgba(22,163,74,.18);color:#16a34a;'
+                                        : 'background:rgba(148,163,184,.18);color:#94a3b8;'"
+                                      :title="rl.is_bound ? 'Tied to this version' : 'Not tied to a version, so it opens whichever resume is live'"
+                                      x-text="rl.is_bound ? 'This version' : 'Any version'"></span>
+                                <a class="resume-add-btn shrink-0" :href="rl.public_url" target="_blank" rel="noopener">
+                                    <i class="fas fa-external-link-alt"></i> Open
+                                </a>
+                                <a class="resume-add-btn shrink-0" :href="rl.edit_url" title="Additional aliases, which version it opens, and the rest of this link's settings">
+                                    <i class="fas fa-sliders-h"></i> More
+                                </a>
+                                <a class="resume-add-btn shrink-0" :href="rl.analytics_url">
+                                    <i class="fas fa-chart-line"></i> Analytics
+                                </a>
+                            </div>
+                        </template>
+
+                        {{-- A version with no link of its own is not reachable
+                             at all, which is worth more than a note saying so. --}}
+                        <div class="flex items-center gap-2 mt-2 flex-wrap">
+                            <input class="resume-input" type="text" x-model="newAlias"
+                                   :placeholder="links.length ? 'another-address' : 'your-name-resume'"
+                                   @keydown.enter.prevent="createLink()" style="flex: 1 1 160px;">
+                            <button type="button" class="resume-add-btn shrink-0" @click="createLink()" :disabled="busy">
+                                <i class="fas fa-plus"></i> <span x-text="links.length ? 'Add link' : 'Give this version a link'"></span>
+                            </button>
                         </div>
-                        @endforeach
+                        <p class="text-[11px] mt-1" style="color:#ef4444" x-show="error" x-text="error"></p>
                     </div>
-                    @endif
                 </div>
             </div>
 
@@ -1399,6 +1418,80 @@ function toLocalDt(iso) {
         const pad = (n) => String(n).padStart(2, '0');
         return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     } catch (e) { return ''; }
+}
+
+/**
+ * The short links for this resume: editable in place, and creatable from
+ * here for a version that has none.
+ *
+ * The alias save goes to the LINK module's own endpoint. That endpoint
+ * already enforces the per-plan length floor, the reserved-name list, the
+ * banned-name list and cross-table uniqueness; a second endpoint here would
+ * have to keep all four in step forever, and the way anyone would find out
+ * it had not is two links quietly claiming the same address.
+ */
+function resumeLinks(initial, createUrl, versionName) {
+    return {
+        links: (initial || []).map(l => ({ ...l, savedAlias: l.alias })),
+        createUrl,
+        versionName,
+        newAlias: '',
+        busy: false,
+        error: '',
+        csrf: document.querySelector('meta[name=csrf-token]').content,
+
+        async saveAlias(rl) {
+            const next = (rl.alias || '').trim();
+            // Blur fires on every tab-through; only a real change is a save.
+            if (!next || next === rl.savedAlias) { rl.alias = rl.savedAlias; return; }
+            this.error = '';
+            try {
+                const r = await fetch(rl.update_alias_url, {
+                    method: 'PUT',
+                    headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': this.csrf, 'Accept':'application/json' },
+                    body: JSON.stringify({ alias: next })
+                });
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok || d.errors) {
+                    // Put back what was live. An input left showing an
+                    // address that is not the page's address is worse than
+                    // the edit not happening.
+                    this.error = d.errors?.alias?.[0] || d.message || 'That address could not be used.';
+                    rl.alias = rl.savedAlias;
+                    return;
+                }
+                rl.savedAlias = next;
+                rl.public_url = rl.public_url.replace(/[^/]+$/, next);
+            } catch (e) {
+                this.error = 'That address could not be saved.';
+                rl.alias = rl.savedAlias;
+            }
+        },
+
+        async createLink() {
+            const alias = (this.newAlias || '').trim();
+            if (!alias || this.busy) return;
+            this.busy = true; this.error = '';
+            try {
+                const r = await fetch(this.createUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': this.csrf, 'Accept':'application/json' },
+                    body: JSON.stringify({ alias })
+                });
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok || d.errors) {
+                    this.error = d.errors?.alias?.[0] || d.message || 'That address could not be used.';
+                    return;
+                }
+                this.links.push({ ...d.link, savedAlias: d.link.alias });
+                this.newAlias = '';
+            } catch (e) {
+                this.error = 'That link could not be created.';
+            } finally {
+                this.busy = false;
+            }
+        },
+    };
 }
 
 function resumeEditor() {

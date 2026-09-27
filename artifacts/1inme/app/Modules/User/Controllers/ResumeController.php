@@ -67,6 +67,13 @@ class ResumeController extends Controller
             // with no resume_id falls back to the owner's default version,
             // so include those when the resolved resume is the default.
             'resumeLinks' => $this->resumeLinksFor($resume),
+            // The view has referenced $resume since the short-links card was
+            // added, and it was never passed. The reference sat inside an
+            // `@if(!empty($resumeLinks))` guard, so it only ever evaluated
+            // for an account that HAD a resume link -- which is why no test
+            // and no empty account ever hit it, and why Sana would have, the
+            // moment he made /sana-resume.
+            'resume'      => $resume,
         ]);
     }
 
@@ -94,24 +101,45 @@ class ResumeController extends Controller
             })
             ->latest()
             ->get()
-            ->map(fn (\App\Modules\User\Models\Link $link) => [
-                'title'         => $link->title ?: $link->alias,
-                'public_url'    => $link->getShortUrl(),
-                'analytics_url' => route('user.links.show', $link),
-                'edit_url'      => route('user.links.edit', $link),
-                // Sana, 2026-09-23: "i created resume... with custom url
-                // /sana-resume -- automatically other urls are created...
-                // why?"
-                //
-                // They were not created by making the resume. A resume
-                // link with no version bound to it resolves to whichever
-                // version is the DEFAULT, so every unbound resume link on
-                // the account turns up in the default's list. That is the
-                // right behaviour and it looked like the page inventing
-                // URLs, because the list never said which was which.
-                'is_bound'      => $link->resume_id !== null,
-            ])
+            ->map(fn (\App\Modules\User\Models\Link $link) => $this->presentResumeLink($link))
             ->all();
+    }
+
+    /**
+     * One resume link, as the builder needs it.
+     *
+     * Extracted so the list and the just-created link are the same shape --
+     * a newly made link that came back missing `is_bound` would show up in
+     * the row as "Any version", which is the exact confusion this list was
+     * rewritten to remove.
+     *
+     * @return array{id:int, title:string, alias:string, public_url:string, analytics_url:string, edit_url:string, update_alias_url:string, is_bound:bool}
+     */
+    private function presentResumeLink(\App\Modules\User\Models\Link $link): array
+    {
+        return [
+            'id'            => $link->id,
+            'title'         => $link->title ?: $link->alias,
+            'alias'         => $link->alias,
+            'public_url'    => $link->getShortUrl(),
+            'analytics_url' => route('user.links.show', $link),
+            'edit_url'      => route('user.links.edit', $link),
+            // The builder edits the alias in place through the link
+            // module's own endpoint rather than growing a second one that
+            // would have to keep its uniqueness rules in step.
+            'update_alias_url' => route('user.links.update-alias', $link),
+            // Sana, 2026-09-23: "i created resume... with custom url
+            // /sana-resume -- automatically other urls are created...
+            // why?"
+            //
+            // They were not created by making the resume. A resume link
+            // with no version bound to it resolves to whichever version is
+            // the DEFAULT, so every unbound resume link on the account
+            // turns up in the default's list. That is the right behaviour
+            // and it looked like the page inventing URLs, because the list
+            // never said which was which.
+            'is_bound'      => $link->resume_id !== null,
+        ];
     }
 
     /**
@@ -207,6 +235,94 @@ class ResumeController extends Controller
         return response()->json([
             'versions' => ResumePresenter::presentVersions($request->user()->resumes()->get()),
         ]);
+    }
+
+    /**
+     * POST /resume/versions/{version}/link — give this version its own
+     * short link, from the builder.
+     *
+     * Sana, 2026-09-23: "custom link and aliases need to work just like in
+     * link in bio.... again... those urls are currently non editable... it
+     * should be editable..."
+     *
+     * He was standing in the resume builder when he wrote that, and from
+     * there he was right. A resume link CAN be created and its alias CAN be
+     * edited -- on the Create Link screen and then the link's own edit
+     * screen. But a link made that way is bound to the DEFAULT version
+     * (LinkController::store does that deliberately), so giving a tailored
+     * version its own URL meant: create a link, notice it shows the wrong
+     * resume, open the link editor, change the version. Three screens for
+     * one idea, and the middle step looks like a bug.
+     *
+     * This is that idea as one action, from where the version lives.
+     */
+    public function versionCreateLink(Request $request, Resume $version, ResumeVersionService $svc): JsonResponse
+    {
+        abort_if($version->user_id !== workspace_owner_id(), 403);
+
+        $owner = workspace_owner();
+
+        // A non-default version with no slug of its own resolves through
+        // Resume::effectiveSlug()'s DEFAULT_SLUG fallback, so a link bound
+        // to it would open the DEFAULT resume -- tied in the database and
+        // untied on the page. Give it one before hanging a URL on it.
+        $svc->ensureSlug($owner, $version);
+
+        // Same plan ceiling the Create Link flow enforces. Checked here
+        // rather than trusted, because this is a second door into the same
+        // room.
+        $maxLinks = (int) $owner->getPlanFeature('max_links', 5);
+        if ($maxLinks !== -1 && $owner->links()->count() >= $maxLinks) {
+            return response()->json([
+                'message' => "You've reached your plan's limit of {$maxLinks} links.",
+            ], 422);
+        }
+
+        $limits = $owner->getAliasLengthLimits();
+
+        $data = $request->validate([
+            'alias' => [
+                'required', 'string',
+                'min:'.$limits['min'], 'max:'.$limits['max'],
+                new \App\Modules\User\Rules\AliasFormat(),
+                // Uniqueness across links.alias AND link_aliases.alias, on
+                // the domain this is being bound to -- the same rule the
+                // primary-alias editor uses, so the two doors cannot
+                // disagree about what is taken.
+                new \App\Modules\User\Rules\UniqueAliasCi(null, $request->input('domain_id')),
+                function ($attr, $value, $fail) {
+                    $reserved = \App\Modules\User\Controllers\LinkAliasController::reservedAliases();
+                    if (in_array(strtolower($value), $reserved, true)) {
+                        $fail("'{$value}' is a reserved name and cannot be used.");
+                    }
+                },
+                new \App\Modules\Admin\Rules\NotBannedName(),
+            ],
+            'domain_id' => ['nullable', 'integer'],
+        ]);
+
+        $domainId = $data['domain_id'] ?? null;
+        if ($domainId !== null) {
+            // Only a domain this user may actually publish on.
+            $allowed = \App\Modules\User\Models\Domain::availableTo($request->user())
+                ->pluck('id')->map(fn ($i) => (int) $i)->all();
+            if (! in_array((int) $domainId, $allowed, true)) {
+                return response()->json(['message' => 'That domain is not available to you.'], 422);
+            }
+        }
+
+        $link = \App\Modules\User\Models\Link::create([
+            'user_id'   => $owner->id,
+            'type'      => \App\Modules\User\Models\Link::TYPE_RESUME,
+            'alias'     => $data['alias'],
+            'domain_id' => $domainId,
+            'title'     => $version->name ?: 'Resume',
+            'is_active' => true,
+            // THE POINT: bound to THIS version, not to the default.
+            'resume_id' => $version->id,
+        ]);
+
+        return response()->json(['link' => $this->presentResumeLink($link)], 201);
     }
 
     /** PUT — update header. */
