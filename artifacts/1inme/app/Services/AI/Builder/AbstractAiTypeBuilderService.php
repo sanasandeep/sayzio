@@ -70,6 +70,34 @@ abstract class AbstractAiTypeBuilderService
         return true;
     }
 
+    /**
+     * Whether this builder can READ pictures, as opposed to referencing
+     * them.
+     *
+     * These are two different jobs and conflating them is why the feature
+     * Sana asked for looked like it already existed. `supportsImages()`
+     * means "the user can hand me photo URLs to hang on the dishes"; the
+     * model never looks at those, it just quotes them back. This means
+     * "the user can hand me a photograph of their actual menu card and I
+     * will read what is on it" -- which needs the picture to travel as a
+     * vision content part rather than as a line of text saying its
+     * address.
+     */
+    public function readsImages(): bool
+    {
+        return false;
+    }
+
+    /**
+     * How many scans of a card this builder will look at in one go.
+     *
+     * A real menu card is one to four sides. The cap is low on purpose:
+     * every image is charged for, and a creator who uploads twelve photos
+     * of the same laminated sheet should be stopped before the charge,
+     * not after it.
+     */
+    public const MAX_SCANS = 4;
+
     /** Whether the intake should offer a URL list for this type. */
     public function supportsLinks(): bool
     {
@@ -77,9 +105,9 @@ abstract class AbstractAiTypeBuilderService
     }
 
     /** Coin estimate for the given inputs (same model the generation will use). */
-    public function estimateCredits(User $user, string $description, array $links, array $images): int
+    public function estimateCredits(User $user, string $description, array $links, array $images, array $scans = []): int
     {
-        $messages = $this->buildMessages($user, $description, $this->cleanUrls($links), $this->cleanImageUrls($images));
+        $messages = $this->buildMessages($user, $description, $this->cleanUrls($links), $this->cleanImageUrls($images), $this->cleanScans($scans));
         $model    = AiEngineSettings::featureModel($this->feature(), $user);
 
         return $this->openai->estimateChatCoins($model, $messages, static::MAX_OUTPUT_TOKENS, $user);
@@ -92,12 +120,13 @@ abstract class AbstractAiTypeBuilderService
      * @throws \RuntimeException when the response can't be turned into content
      *         (the charge is refunded first).
      */
-    public function generate(User $user, Link $link, string $description, array $links, array $images): array
+    public function generate(User $user, Link $link, string $description, array $links, array $images, array $scans = []): array
     {
         $links  = $this->cleanUrls($links);
         $images = $this->supportsImages() ? $this->cleanImageUrls($images) : [];
+        $scans  = $this->cleanScans($scans);
 
-        $messages = $this->buildMessages($user, $description, $links, $images);
+        $messages = $this->buildMessages($user, $description, $links, $images, $scans);
         $model    = AiEngineSettings::featureModel($this->feature(), $user);
 
         $response = $this->openai->chat($user, $model, $messages, [
@@ -152,7 +181,7 @@ abstract class AbstractAiTypeBuilderService
     }
 
     /** Chat messages: shared framing + subclass contract + the user's brief. */
-    protected function buildMessages(User $user, string $description, array $links, array $images): array
+    protected function buildMessages(User $user, string $description, array $links, array $images, array $scans = []): array
     {
         $userParts = [
             "Brief:\n" . mb_substr(trim($description), 0, self::MAX_DESCRIPTION),
@@ -170,10 +199,84 @@ abstract class AbstractAiTypeBuilderService
             }
         }
 
+        $text = implode("\n\n", $userParts);
+
+        // No scans: the message is a plain string, exactly as before. Every
+        // existing builder and every existing estimate is unchanged.
+        if (! $scans || ! $this->readsImages()) {
+            return [
+                ['role' => 'system', 'content' => $this->systemPrompt($user)],
+                ['role' => 'user',   'content' => $text],
+            ];
+        }
+
+        // With scans, the user turn becomes content parts so the model
+        // actually SEES the card. The instruction goes first: a model given
+        // pictures and then told what to do with them reads better than one
+        // told afterwards.
+        $parts = [['type' => 'text', 'text' => $text . "\n\n" . $this->scanInstruction()]];
+        foreach ($scans as $scan) {
+            $parts[] = ['type' => 'image_url', 'image_url' => ['url' => $scan]];
+        }
+
         return [
             ['role' => 'system', 'content' => $this->systemPrompt($user)],
-            ['role' => 'user',   'content' => implode("\n\n", $userParts)],
+            ['role' => 'user',   'content' => $parts],
         ];
+    }
+
+    /**
+     * What to do with the pictures. Overridden by builders that read them.
+     *
+     * The default says "transcribe, do not invent", because the failure
+     * that matters here is a model filling gaps: a menu card with a smudged
+     * price becomes a confidently wrong price on a live page, and the
+     * creator has no way to tell which lines were read and which were
+     * guessed.
+     */
+    protected function scanInstruction(): string
+    {
+        return 'The attached images are photographs or scans of a real document. '
+            .'Transcribe what is actually printed on them. Do not invent entries, '
+            .'prices or descriptions that are not there, and omit anything you '
+            .'cannot read rather than guessing at it.';
+    }
+
+    /**
+     * Scans the model may be shown: http(s) URLs or data URLs, capped.
+     *
+     * Data URLs are allowed because a vault on a local disk has no publicly
+     * fetchable address, and a scan the model cannot fetch is a charge for
+     * nothing.
+     *
+     * @return array<int, string>
+     */
+    protected function cleanScans(array $urls): array
+    {
+        if (! $this->readsImages()) {
+            return [];
+        }
+
+        $out = [];
+
+        foreach ($urls as $url) {
+            if (! is_string($url)) {
+                continue;
+            }
+            $url = trim($url);
+            if ($url === '') {
+                continue;
+            }
+            $isData = str_starts_with($url, 'data:image/');
+            $isHttp = (bool) filter_var($url, FILTER_VALIDATE_URL)
+                && in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true);
+            if (! $isData && ! $isHttp) {
+                continue;
+            }
+            $out[] = $url;
+        }
+
+        return array_slice(array_values(array_unique($out)), 0, static::MAX_SCANS);
     }
 
     /** Decode the model output, tolerating fenced code blocks. */
