@@ -14,14 +14,70 @@ use Illuminate\Routing\Controller;
  * No authentication and no online payment — this is an order *request*
  * flow; the owner arranges fulfilment and payment directly.
  *
- * Unlike the restaurant flow there is NO quote endpoint: with no coupons or
- * tax to validate server-side, the total is simply the sum of line prices.
+ * There is a quote endpoint, though a narrow one. The store has no coupons
+ * and no tax, so for most of this page's life the total really was the sum
+ * of the line prices and the browser could work it out. Charges changed
+ * that: which ones apply depends on the handover the customer picked, and
+ * having the browser decide that would be a second copy of a rule the
+ * server already owns -- the exact shape of bug this whole week has been
+ * about. So the shown estimate is quoted, the same way the restaurant's is.
  */
 class PublicStoreController extends Controller
 {
     public function __construct(
         protected StoreOrderService $orders,
     ) {
+    }
+
+    /**
+     * The estimated total for a cart, given how the customer wants it
+     * handed over. Same figures the order will be stored with, because the
+     * same code produces both.
+     */
+    public function quote(Request $request, string $alias)
+    {
+        [$link, $menu] = $this->resolveMenu($alias);
+
+        if (!$link || !$menu) {
+            return response()->json(['error' => ['message' => 'Store not found', 'code' => 'not_found']], 404);
+        }
+
+        $data = $request->validate([
+            'fulfilment'          => 'nullable|string|max:16',
+            'items'               => 'required|array|min:1',
+            'items.*.product_id'  => 'required|integer',
+            'items.*.quantity'    => 'required|integer|min:1|max:99',
+        ]);
+
+        $ids = collect($data['items'])->pluck('product_id')->map(fn ($i) => (int) $i)->all();
+        $rows = \App\Modules\User\Models\StoreProduct::where('menu_id', $menu->id)
+            ->whereIn('id', $ids)->where('is_active', true)->get()->keyBy('id');
+
+        $subtotal = 0.0;
+        foreach ($data['items'] as $row) {
+            $product = $rows->get((int) $row['product_id']);
+            if (!$product || $product->is_out_of_stock) {
+                continue;
+            }
+            $subtotal += round(((float) $product->price) * max(1, (int) $row['quantity']), 2);
+        }
+        $subtotal = round($subtotal, 2);
+
+        $modes  = \App\Modules\User\Support\MenuFulfilment::modesFor((array) ($menu->settings ?? []), false);
+        $chosen = in_array($data['fulfilment'] ?? null, $modes, true) ? $data['fulfilment'] : ($modes[0] ?? null);
+
+        $charges = \App\Modules\User\Support\MenuFulfilment::applicable((array) ($menu->settings ?? []), $chosen, $subtotal);
+        $amount  = \App\Modules\User\Support\MenuFulfilment::total($charges);
+
+        return response()->json(['data' => ['bill' => [
+            'subtotal'       => $subtotal,
+            'fulfilment'     => $chosen,
+            'charges'        => $charges,
+            'charges_amount' => $amount,
+            'total'          => round($subtotal + $amount, 2),
+            'currency'       => $menu->currency,
+            'is_estimate'    => true,
+        ]]]);
     }
 
     protected function resolveMenu(string $alias): array
@@ -94,6 +150,14 @@ class PublicStoreController extends Controller
             'customer_name'       => 'nullable|string|max:120',
             'customer_contact'    => 'nullable|string|max:160',
             'customer_note'       => 'nullable|string|max:1000',
+            'fulfilment'          => 'nullable|string|max:16',
+            // Only required when the chosen handover needs somewhere to go.
+            'customer_address'    => [
+                'nullable', 'string', 'max:500',
+                \Illuminate\Validation\Rule::requiredIf(fn () =>
+                    \App\Modules\User\Support\MenuFulfilment::needsAddress($request->input('fulfilment'))
+                ),
+            ],
             'items'               => 'required|array|min:1',
             'items.*.product_id'  => 'required|integer',
             'items.*.quantity'    => 'required|integer|min:1|max:99',
@@ -123,6 +187,9 @@ class PublicStoreController extends Controller
             'status'       => $order->status,
             'status_label' => $order->status_label,
             'subtotal'     => $order->subtotal,
+            'fulfilment'   => $order->fulfilment,
+            'charges'      => $order->charges ?: [],
+            'charges_amount' => $order->charges_amount,
             'total'        => $order->total,
             'currency'     => $order->currency,
             'is_estimate'  => true,

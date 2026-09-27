@@ -72,9 +72,17 @@ class RestaurantOrderService
         // Re-compute the estimated bill server-side from the live subtotal so a
         // tampered or stale coupon/total can never be trusted. The same figures
         // feed the staff dashboard and the guest's order-status view.
-        $bill = $this->calculator->compute($menu, $subtotal, $data['coupon_code'] ?? null);
+        // The guest's choice decides which charges apply, so it has to reach
+        // the calculator that produces the number they are shown AND the
+        // number the restaurant is told. Those being one call is the point.
+        $fulfilment = \App\Modules\User\Support\MenuFulfilment::modesFor((array) ($menu->settings ?? []), true);
+        $chosen = in_array($data['fulfilment'] ?? null, $fulfilment, true)
+            ? $data['fulfilment']
+            : ($fulfilment[0] ?? null);
 
-        $order = DB::transaction(function () use ($menu, $link, $table, $data, $lines, $subtotal, $bill) {
+        $bill = $this->calculator->compute($menu, $subtotal, $data['coupon_code'] ?? null, $chosen);
+
+        $order = DB::transaction(function () use ($menu, $link, $table, $data, $lines, $subtotal, $bill, $chosen) {
             $order = RestaurantOrder::create([
                 'menu_id'         => $menu->id,
                 'link_id'         => $link->id,
@@ -89,6 +97,14 @@ class RestaurantOrderService
                 'tax_rate'        => $bill['tax_rate'],
                 'tax_inclusive'   => $bill['tax_inclusive'],
                 'tax_amount'      => $bill['tax_amount'],
+                'fulfilment'      => $chosen,
+                'customer_address' => \App\Modules\User\Support\MenuFulfilment::needsAddress($chosen)
+                    ? ($data['customer_address'] ?? null) : null,
+                // The charges are SNAPSHOT, not referenced: the owner will
+                // edit or delete one, and an order whose total no longer
+                // adds up is the thing a guest queries.
+                'charges'         => $bill['charges'],
+                'charges_amount'  => $bill['charges_amount'],
                 'total'           => $bill['total'],
                 'currency'        => $menu->currency,
             ]);

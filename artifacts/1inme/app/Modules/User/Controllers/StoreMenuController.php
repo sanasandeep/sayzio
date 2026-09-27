@@ -72,6 +72,14 @@ class StoreMenuController extends Controller
             'price_display'          => 'nullable|string|max:16',
             'price_position'         => 'nullable|string|max:16',
             'price_decimals'         => 'sometimes|boolean',
+            'fulfilment_modes'      => 'sometimes|array',
+            'fulfilment_modes.*'    => 'string|max:16',
+            'charges'         => 'sometimes|array',
+            'charges.*.label'       => 'nullable|string|max:60',
+            'charges.*.type'        => 'nullable|string|in:fixed,percent',
+            'charges.*.amount'      => 'nullable|numeric|min:0|max:999999',
+            'charges.*.modes'       => 'nullable|array',
+            'charges.*.modes.*'     => 'nullable|string|max:16',
             // Menu colours (Sana, 2026-09-23: "i cannot change colors of
             // menu items and all"). Each is optional; an absent one keeps
             // inheriting the page ink, which is what the page did before.
@@ -142,6 +150,24 @@ class StoreMenuController extends Controller
                 unset($settings['price_decimals']);
             } else {
                 $settings['price_decimals'] = false;
+            }
+        }
+
+        // How an order is handed over, and what that adds to it. Both are
+        // validated against MenuFulfilment rather than trusted, so an
+        // unknown mode or a malformed charge is dropped instead of being
+        // stored and then silently ignored by the calculator.
+        if ($request->has('fulfilment_modes')) {
+            $settings['fulfilment_modes'] = \App\Modules\User\Support\MenuFulfilment::modesFor(
+                ['fulfilment_modes' => $data['fulfilment_modes'] ?? []], false
+            );
+        }
+        if ($request->has('charges')) {
+            $clean = \App\Modules\User\Support\MenuFulfilment::charges(['charges' => $data['charges'] ?? []]);
+            if ($clean === []) {
+                unset($settings['charges']);
+            } else {
+                $settings['charges'] = $clean;
             }
         }
 

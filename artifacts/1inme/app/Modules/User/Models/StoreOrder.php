@@ -69,6 +69,7 @@ class StoreOrder extends Model
         'menu_id', 'link_id', 'public_token', 'status',
         'customer_name', 'customer_contact', 'customer_note',
         'subtotal', 'total', 'currency', 'meta',
+        'fulfilment', 'customer_address', 'charges_amount', 'charges',
     ];
 
     protected function casts(): array
@@ -76,6 +77,8 @@ class StoreOrder extends Model
         return [
             'subtotal' => 'decimal:2',
             'total'    => 'decimal:2',
+            'charges_amount' => 'decimal:2',
+            'charges'        => 'array',
             'meta'     => 'array',
         ];
     }

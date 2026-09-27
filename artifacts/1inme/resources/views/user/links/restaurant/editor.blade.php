@@ -108,6 +108,7 @@
                     <input class="rm-input" x-model="menu.currency" maxlength="3" @change="saveSettings()" style="text-transform:uppercase">
                 </div>
                 @include('user.links.partials.menu-money-picker')
+                @include('user.links.partials.menu-fulfilment-panel', ['fpIsRestaurant' => true])
                 <div class="rm-row">
                     <label class="rm-label">Accent color</label>
                     <input type="color" class="rm-input" x-model="menu.accent_color" @change="saveSettings()" style="height:42px;padding:4px">
@@ -349,12 +350,15 @@
     // The resolved price format, so the editor opens on what the page
     // actually prints rather than on a guess at the defaults.
     $menuMoney = \App\Modules\User\Support\MenuMoney::resolve($menu->currency, (array) ($menu->settings ?? []));
+    // What this menu offers as a handover, and what each handover adds.
+    $menuModes   = \App\Modules\User\Support\MenuFulfilment::modesFor((array) ($menu->settings ?? []), true);
+    $menuCharges = \App\Modules\User\Support\MenuFulfilment::charges((array) ($menu->settings ?? []));
     $menuCategories = $menu->categories->map(fn($c)=>['id'=>$c->id,'parent_id'=>$c->parent_id,'name'=>$c->name,'description'=>$c->description,'is_active'=>(bool) $c->is_active,'sort_order'=>(int) $c->sort_order])->values();
     $menuItems = $menu->items->map(fn($i)=>['id'=>$i->id,'category_id'=>$i->category_id,'name'=>$i->name,'description'=>$i->description,'price'=>$i->price,'photo_url'=>$i->photo_url,'is_sold_out'=>$i->is_sold_out,'is_active'=>(bool) $i->is_active,'sort_order'=>(int) $i->sort_order])->values();
     $menuTables = $menu->tables->map(fn($t)=>['id'=>$t->id,'label'=>$t->label,'code'=>$t->code])->values();
     $menuCoupons = $menu->coupons->map(fn($c)=>['id'=>$c->id,'code'=>$c->code,'discount_type'=>$c->discount_type,'discount_value'=>$c->discount_value,'min_subtotal'=>$c->min_subtotal,'is_active'=>$c->is_active])->values();
     $menuData = ['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color, 'whatsapp_number' => $menu->settings['whatsapp_number'] ?? '', 'layout' => $menuLayoutKey, 'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null),
-        'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null), 'price_display' => $menuMoney['display'], 'price_position' => $menuMoney['position'], 'price_decimals' => $menuMoney['decimals'] > 0, 'heading_style' => \App\Modules\User\Support\MenuPresentation::heading($menu->settings['heading_style'] ?? null), 'price_style' => \App\Modules\User\Support\MenuPresentation::price($menu->settings['price_style'] ?? null, $menuLayoutKey)];
+        'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null), 'fulfilment_modes' => $menuModes, 'charges' => $menuCharges, 'price_display' => $menuMoney['display'], 'price_position' => $menuMoney['position'], 'price_decimals' => $menuMoney['decimals'] > 0, 'heading_style' => \App\Modules\User\Support\MenuPresentation::heading($menu->settings['heading_style'] ?? null), 'price_style' => \App\Modules\User\Support\MenuPresentation::price($menu->settings['price_style'] ?? null, $menuLayoutKey)];
     $menuTax = [
         'enabled'   => $menu->taxEnabled(),
         'rate'      => $menu->taxRate(),
@@ -380,6 +384,13 @@ function restaurantEditor() {
         layoutHints: @json(collect(\App\Modules\User\Support\MenuPresentation::LAYOUTS)->map(fn ($l) => $l['hint'])),
         get layoutHint(){ return this.layoutHints[this.menu.layout] || ''; },
         dividerHints: @json(collect(\App\Modules\User\Support\MenuPresentation::DIVIDERS)->map(fn ($d) => $d['hint'])),
+        // ---- Handover and charges ---------------------------------------
+        addCharge(){
+            if (!Array.isArray(this.menu.charges)) this.menu.charges = [];
+            if (this.menu.charges.length >= 8) return;
+            this.menu.charges.push({ label:'', type:'fixed', amount:'', modes:[] });
+        },
+        removeCharge(i){ this.menu.charges.splice(i, 1); this.saveSettings(); },
         // ---- Price format ----------------------------------------------
         // Mirrors MenuMoney on the server so the sample below the controls
         // is the real thing rather than an approximation of it. The tables
@@ -467,6 +478,8 @@ function restaurantEditor() {
                 price_display:this.menu.price_display||'code',
                 price_position:this.menu.price_position||'before',
                 price_decimals:this.menu.price_decimals !== false,
+                fulfilment_modes:this.menu.fulfilment_modes || [],
+                charges:this.menu.charges || [],
                 heading_color:this.menu.heading_color||'',
                 item_color:this.menu.item_color||'',
                 desc_color:this.menu.desc_color||'',

@@ -17,6 +17,11 @@
     // shared with the cart JavaScript below and with the WhatsApp message,
     // so the three can never disagree about what a number looks like.
     $money = \App\Modules\User\Support\MenuMoney::resolve($currency, (array) ($menu->settings ?? []));
+    // The handovers this store offers, and which of them needs an address.
+    $fulModes = \App\Modules\User\Support\MenuFulfilment::modesFor((array) ($menu->settings ?? []), false);
+    $fulNeedsAddress = collect($fulModes)
+        ->mapWithKeys(fn ($m) => [$m => \App\Modules\User\Support\MenuFulfilment::needsAddress($m)])
+        ->all();
     $fmt = fn ($n) => \App\Modules\User\Support\MenuMoney::format($n, $money);
 
     // How this page paints itself: the font the creator picked on the
@@ -127,6 +132,11 @@
         .note { font-size:12.5px; opacity:.6; text-align:center; margin-top:10px; }
         .status-pill { display:inline-block; padding:4px 11px; border-radius:999px; font-size:12.5px; font-weight:700; background:var(--accent); color:#fff; }
         .empty { text-align:center; opacity:.5; padding:40px 0; }
+        .bill-row { display:flex; justify-content:space-between; font-size:13.5px; margin-top:8px; opacity:.85; }
+        .ful-row { display:flex; gap:8px; margin-top:12px; }
+        .ful-opt { flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:10px 8px; border:1px solid rgba(0,0,0,.18); border-radius:11px; font-size:13.5px; font-weight:600; cursor:pointer; }
+        .ful-opt:has(input:checked) { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); }
+        @media (prefers-color-scheme: dark) { .ful-opt { border-color:rgba(255,255,255,.2); } }
 @include('common.partials.menu-layout-css')
             @if($pbOn)
         {{-- The page has committed to a scheme (see $pbInkLight): restate the
@@ -200,7 +210,20 @@
     <div class="sheet">
         <h3>Your request</h3>
         <div id="cartLines"></div>
+        <div id="billBreakdown"></div>
         <div class="total"><span>Estimated total</span><span id="modalTotal">{{ $fmt(0) }}</span></div>
+        @if(count($fulModes) > 1)
+            <div class="ful-row">
+                @foreach($fulModes as $fm)
+                    <label class="ful-opt">
+                        <input type="radio" name="ful" value="{{ $fm }}" {{ $loop->first ? 'checked' : '' }}
+                               onchange="SM.setFulfilment(this.value)">
+                        <span>{{ \App\Modules\User\Support\MenuFulfilment::label($fm, false) }}</span>
+                    </label>
+                @endforeach
+            </div>
+        @endif
+        <textarea class="field" id="fAddress" rows="2" placeholder="Delivery address" style="display:none"></textarea>
         <input class="field" id="fName" placeholder="Your name (optional)">
         <input class="field" id="fContact" placeholder="Phone or email so we can reach you (optional)">
         <textarea class="field" id="fNote" rows="2" placeholder="Notes for your order (optional)"></textarea>
@@ -233,6 +256,12 @@
     // The cart total and the item prices used to be two independent copies
     // of "code, space, two decimals", which is how they drift.
     const MONEY = @json($money);
+    const QUOTE_URL = @json(route('sm.public.quote', ['alias' => $link->alias]));
+    const FUL_MODES = @json($fulModes);
+    const FUL_ADDRESS = @json((object) $fulNeedsAddress);
+    let fulfilment = FUL_MODES[0] || null;
+    let lastBill = null;
+    let quoteSeq = 0;
     const ITEMS = {};
     document.querySelectorAll('[data-add]').forEach(el => {
         const id = el.getAttribute('data-add');
@@ -257,7 +286,9 @@
         });
         document.getElementById('cartCount').textContent = count;
         document.getElementById('cartTotal').textContent = fmt(total);
-        document.getElementById('modalTotal').textContent = fmt(total);
+        // The line sum until the server answers; the quote replaces it with
+        // the figure that includes whatever charges the handover adds.
+        if (!lastBill) document.getElementById('modalTotal').textContent = fmt(total);
         document.getElementById('cartbar').classList.toggle('show', count > 0);
         return { count, total };
     }
@@ -275,11 +306,56 @@
         return Object.values(ITEMS).filter(i => i.qty > 0).map(i => ({ product_id: i.id, quantity: i.qty }));
     }
 
+    function cartItems() {
+        return Object.values(ITEMS).filter(it => it.qty > 0)
+            .map(it => ({ product_id: it.id, quantity: it.qty }));
+    }
+    async function refreshQuote() {
+        const items = cartItems();
+        const box = document.getElementById('billBreakdown');
+        const fallback = Object.values(ITEMS).reduce((s, it) => s + it.qty * it.price, 0);
+        if (!items.length) { lastBill = null; if (box) box.innerHTML = ''; document.getElementById('modalTotal').textContent = fmt(0); return; }
+        const seq = ++quoteSeq;
+        try {
+            const r = await fetch(QUOTE_URL, {
+                method:'POST',
+                headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'X-Requested-With':'XMLHttpRequest'},
+                body: JSON.stringify({ items, fulfilment })
+            });
+            const j = await r.json();
+            if (seq !== quoteSeq) return;
+            if (!r.ok) { lastBill = null; document.getElementById('modalTotal').textContent = fmt(fallback); return; }
+            lastBill = j.data.bill;
+            if (box) {
+                box.innerHTML = '';
+                const add = (label, value) => {
+                    const row = document.createElement('div');
+                    row.className = 'bill-row';
+                    row.innerHTML = '<span>' + label + '</span><span>' + value + '</span>';
+                    box.appendChild(row);
+                };
+                if ((lastBill.charges || []).length) {
+                    add('Subtotal', fmt(lastBill.subtotal));
+                    lastBill.charges.forEach(c => { if (c && c.amount > 0) add(c.label, fmt(c.amount)); });
+                }
+            }
+            document.getElementById('modalTotal').textContent = fmt(lastBill.total);
+        } catch(e) {
+            if (seq !== quoteSeq) return;
+            document.getElementById('modalTotal').textContent = fmt(fallback);
+        }
+    }
     window.SM = {
         add(id){ ITEMS[id].qty = 1; render(); },
         inc(id){ ITEMS[id].qty++; render(); },
         dec(id){ ITEMS[id].qty = Math.max(0, ITEMS[id].qty - 1); render(); },
-        openCart(){ lines('cartLines'); render(); document.getElementById('cartModal').classList.add('show'); },
+        openCart(){ lines('cartLines'); render(); refreshQuote(); document.getElementById('cartModal').classList.add('show'); },
+        setFulfilment(mode){
+            fulfilment = mode;
+            const box = document.getElementById('fAddress');
+            if (box) box.style.display = FUL_ADDRESS[mode] ? '' : 'none';
+            refreshQuote();
+        },
         closeCart(){ document.getElementById('cartModal').classList.remove('show'); },
         reset(){ if(pollTimer) clearInterval(pollTimer); location.href = location.pathname; },
         async place(){
@@ -294,6 +370,9 @@
                     body: JSON.stringify({
                         customer_name: document.getElementById('fName').value || null,
                         customer_contact: document.getElementById('fContact').value || null,
+                        fulfilment,
+                        customer_address: FUL_ADDRESS[fulfilment]
+                            ? (document.getElementById('fAddress').value || null) : null,
                         customer_note: document.getElementById('fNote').value || null,
                         items
                     })

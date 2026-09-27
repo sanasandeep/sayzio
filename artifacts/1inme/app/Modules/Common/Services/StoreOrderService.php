@@ -70,7 +70,19 @@ class StoreOrderService
 
         $subtotal = round($subtotal, 2);
 
-        $order = DB::transaction(function () use ($menu, $link, $data, $lines, $subtotal) {
+        // The store has no tax and no coupons, so its bill is the subtotal
+        // plus whatever charges the chosen handover adds. Same definition
+        // as the restaurant's, called directly rather than through a
+        // calculator this page type does not otherwise need.
+        $modes = \App\Modules\User\Support\MenuFulfilment::modesFor((array) ($menu->settings ?? []), false);
+        $chosen = in_array($data['fulfilment'] ?? null, $modes, true)
+            ? $data['fulfilment']
+            : ($modes[0] ?? null);
+
+        $chargeLines   = \App\Modules\User\Support\MenuFulfilment::applicable((array) ($menu->settings ?? []), $chosen, round($subtotal, 2));
+        $chargesAmount = \App\Modules\User\Support\MenuFulfilment::total($chargeLines);
+
+        $order = DB::transaction(function () use ($menu, $link, $data, $lines, $subtotal, $chosen, $chargeLines, $chargesAmount) {
             $order = StoreOrder::create([
                 'menu_id'          => $menu->id,
                 'link_id'          => $link->id,
@@ -79,7 +91,15 @@ class StoreOrderService
                 'customer_contact' => $data['customer_contact'] ?? null,
                 'customer_note'    => $data['customer_note'] ?? null,
                 'subtotal'         => $subtotal,
-                'total'            => $subtotal,
+                'fulfilment'       => $chosen,
+                'customer_address' => \App\Modules\User\Support\MenuFulfilment::needsAddress($chosen)
+                    ? ($data['customer_address'] ?? null) : null,
+                // Snapshot, not a reference: the owner will edit the
+                // delivery fee and an order whose total no longer adds up
+                // is exactly what a customer writes in about.
+                'charges'          => $chargeLines,
+                'charges_amount'   => $chargesAmount,
+                'total'            => round($subtotal + $chargesAmount, 2),
                 'currency'         => $menu->currency,
             ]);
 

@@ -116,6 +116,7 @@
                     <input class="rm-input" x-model="menu.currency" maxlength="3" @change="saveSettings()" style="text-transform:uppercase">
                 </div>
                 @include('user.links.partials.menu-money-picker')
+                @include('user.links.partials.menu-fulfilment-panel', ['fpIsRestaurant' => false])
                 <div class="rm-row">
                     <label class="rm-label">Accent color</label>
                     <input type="color" class="rm-input" x-model="menu.accent_color" @change="saveSettings()" style="height:42px;padding:4px">
@@ -257,6 +258,9 @@
     // The resolved price format, so the editor opens on what the page
     // actually prints rather than on a guess at the defaults.
     $menuMoney = \App\Modules\User\Support\MenuMoney::resolve($menu->currency, (array) ($menu->settings ?? []));
+    // What this menu offers as a handover, and what each handover adds.
+    $menuModes   = \App\Modules\User\Support\MenuFulfilment::modesFor((array) ($menu->settings ?? []), false);
+    $menuCharges = \App\Modules\User\Support\MenuFulfilment::charges((array) ($menu->settings ?? []));
     $menuCategories = $menu->categories->map(fn($c)=>['id'=>$c->id,'parent_id'=>$c->parent_id,'name'=>$c->name,'description'=>$c->description,'is_active'=>(bool) $c->is_active,'sort_order'=>(int) $c->sort_order])->values();
     $menuProducts = $menu->products->map(fn($p)=>['id'=>$p->id,'category_id'=>$p->category_id,'name'=>$p->name,'description'=>$p->description,'price'=>$p->price,'photo_url'=>$p->photo_url,'is_out_of_stock'=>$p->is_out_of_stock,'is_active'=>(bool) $p->is_active,'sort_order'=>(int) $p->sort_order])->values();
     $menuState = [
@@ -267,7 +271,7 @@
         'accepting_orders' => (bool) ($menu->settings['accepting_orders'] ?? true),
         'layout' => $menuLayoutKey,
         'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null),
-        'price_display' => $menuMoney['display'], 'price_position' => $menuMoney['position'], 'price_decimals' => $menuMoney['decimals'] > 0,
+        'fulfilment_modes' => $menuModes, 'charges' => $menuCharges, 'price_display' => $menuMoney['display'], 'price_position' => $menuMoney['position'], 'price_decimals' => $menuMoney['decimals'] > 0,
         'heading_style' => \App\Modules\User\Support\MenuPresentation::heading($menu->settings['heading_style'] ?? null),
         'price_style' => \App\Modules\User\Support\MenuPresentation::price($menu->settings['price_style'] ?? null, $menuLayoutKey),
     ];
@@ -288,6 +292,13 @@ function storeEditor() {
         layoutHints: @json(collect(\App\Modules\User\Support\MenuPresentation::LAYOUTS)->map(fn ($l) => $l['hint'])),
         get layoutHint(){ return this.layoutHints[this.menu.layout] || ''; },
         dividerHints: @json(collect(\App\Modules\User\Support\MenuPresentation::DIVIDERS)->map(fn ($d) => $d['hint'])),
+        // ---- Handover and charges ---------------------------------------
+        addCharge(){
+            if (!Array.isArray(this.menu.charges)) this.menu.charges = [];
+            if (this.menu.charges.length >= 8) return;
+            this.menu.charges.push({ label:'', type:'fixed', amount:'', modes:[] });
+        },
+        removeCharge(i){ this.menu.charges.splice(i, 1); this.saveSettings(); },
         // ---- Price format ----------------------------------------------
         // Mirrors MenuMoney on the server so the sample below the controls
         // is the real thing rather than an approximation of it. The tables
@@ -374,6 +385,8 @@ function storeEditor() {
                 price_display:this.menu.price_display||'code',
                 price_position:this.menu.price_position||'before',
                 price_decimals:this.menu.price_decimals !== false,
+                fulfilment_modes:this.menu.fulfilment_modes || [],
+                charges:this.menu.charges || [],
                 heading_color:this.menu.heading_color||'',
                 item_color:this.menu.item_color||'',
                 desc_color:this.menu.desc_color||'',

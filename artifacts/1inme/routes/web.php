@@ -759,7 +759,10 @@ Route::get('/rm/order/{token}/status', [\App\Modules\Common\Controllers\PublicRe
 
 // ── Store Menu visitor endpoints (Task #3072) ────────────────────
 // Use the /sm/ prefix so they don't collide with the catch-all /{alias}.
-// No quote endpoint — the store has no coupons/tax, total is the line sum.
+// The quote endpoint exists for one reason: which charges apply depends on
+// the handover the customer picked, and that rule lives on the server.
+Route::post('/sm/{alias}/quote', [\App\Modules\Common\Controllers\PublicStoreController::class, 'quote'])
+    ->where('alias', '[^/]+')->middleware('throttle:120,1')->name('sm.public.quote');
 Route::post('/sm/{alias}/order', [\App\Modules\Common\Controllers\PublicStoreController::class, 'placeOrder'])
     ->where('alias', '[^/]+')->middleware('throttle:20,1')->name('sm.public.order');
 Route::get('/sm/order/{token}/status', [\App\Modules\Common\Controllers\PublicStoreController::class, 'orderStatus'])
