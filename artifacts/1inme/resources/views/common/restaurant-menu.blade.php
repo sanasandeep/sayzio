@@ -23,6 +23,13 @@
     // shared with the cart JavaScript below and with the WhatsApp message,
     // so the three can never disagree about what a number looks like.
     $money = \App\Modules\User\Support\MenuMoney::resolve($currency, (array) ($menu->settings ?? []));
+    // The handovers this menu offers, and which of them needs an address.
+    // Resolved once here so the radio list, the address field and the
+    // charges quote all read the same answer.
+    $fulModes = \App\Modules\User\Support\MenuFulfilment::modesFor((array) ($menu->settings ?? []), true);
+    $fulNeedsAddress = collect($fulModes)
+        ->mapWithKeys(fn ($m) => [$m => \App\Modules\User\Support\MenuFulfilment::needsAddress($m)])
+        ->all();
     $fmt = fn ($n) => \App\Modules\User\Support\MenuMoney::format($n, $money);
 
     // How this page paints itself: the font the creator picked on the
@@ -146,6 +153,10 @@
         .note { font-size:12.5px; opacity:.6; text-align:center; margin-top:10px; }
         .status-pill { display:inline-block; padding:4px 11px; border-radius:999px; font-size:12.5px; font-weight:700; background:var(--accent); color:#fff; }
         .empty { text-align:center; opacity:.5; padding:40px 0; }
+        .ful-row { display:flex; gap:8px; margin-top:12px; }
+        .ful-opt { flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:10px 8px; border:1px solid rgba(0,0,0,.18); border-radius:11px; font-size:13.5px; font-weight:600; cursor:pointer; }
+        .ful-opt:has(input:checked) { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); }
+        @media (prefers-color-scheme: dark) { .ful-opt { border-color:rgba(255,255,255,.2); } }
 @include('common.partials.menu-layout-css')
             @if($pbOn)
         {{-- The page has committed to a scheme (see $pbInkLight): restate the
@@ -228,6 +239,22 @@
         <p class="coupon-msg" id="couponMsg"></p>
         <div id="billBreakdown"></div>
         <div class="total"><span>Estimated total</span><span id="modalTotal">{{ $fmt(0) }}</span></div>
+        @if(count($fulModes) > 1)
+            {{-- Only shown when there is a choice. A restaurant that takes
+                 dine-in orders only should not make every guest at a table
+                 confirm that they are dining in. --}}
+            <div class="ful-row">
+                @foreach($fulModes as $fm)
+                    <label class="ful-opt">
+                        <input type="radio" name="ful" value="{{ $fm }}" {{ $loop->first ? 'checked' : '' }}
+                               onchange="RM.setFulfilment(this.value)">
+                        <span>{{ \App\Modules\User\Support\MenuFulfilment::label($fm, true) }}</span>
+                    </label>
+                @endforeach
+            </div>
+        @endif
+        <textarea class="field" id="fAddress" rows="2" placeholder="Delivery address"
+                  style="display:none"></textarea>
         @unless($activeTable)
             <input class="field" id="fTable" placeholder="Table number (optional)">
         @endunless
@@ -268,6 +295,9 @@
     // of "code, space, two decimals", which is how they drift.
     const MONEY = @json($money);
     const TABLE_CODE = @json($activeTable->code ?? null);
+    const FUL_MODES = @json($fulModes);
+    const FUL_ADDRESS = @json((object) $fulNeedsAddress);
+    let fulfilment = FUL_MODES[0] || null;
     let appliedCoupon = '';
     let lastBill = null;
     let quoteSeq = 0;
@@ -333,6 +363,9 @@
             const label = (bill.tax_label || 'Tax') + ' (' + (+bill.tax_rate) + '%)' + (bill.tax_inclusive ? ' incl.' : '');
             add(label, fmt(bill.tax_amount));
         }
+        // Each charge by its own name, because "Charges" is the line
+        // somebody asks about at the counter.
+        (bill.charges || []).forEach(c => { if (c && c.amount > 0) add(c.label, fmt(c.amount)); });
         const totalEl = document.getElementById(totalId);
         if (totalEl) totalEl.textContent = fmt(bill.total);
     }
@@ -346,7 +379,7 @@
             const r = await fetch(QUOTE_URL, {
                 method:'POST',
                 headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'X-Requested-With':'XMLHttpRequest'},
-                body: JSON.stringify({ items, coupon_code: appliedCoupon || null })
+                body: JSON.stringify({ items, coupon_code: appliedCoupon || null, fulfilment })
             });
             const j = await r.json();
             if (seq !== quoteSeq) return;
@@ -368,6 +401,14 @@
         inc(id){ ITEMS[id].qty++; render(); },
         dec(id){ ITEMS[id].qty = Math.max(0, ITEMS[id].qty - 1); render(); },
         openCart(){ lines('cartLines'); refreshQuote(); document.getElementById('cartModal').classList.add('show'); },
+        // Changing the handover changes which charges apply, so the shown
+        // total has to be re-quoted rather than recomputed in the browser.
+        setFulfilment(mode){
+            fulfilment = mode;
+            const box = document.getElementById('fAddress');
+            if (box) box.style.display = FUL_ADDRESS[mode] ? '' : 'none';
+            refreshQuote();
+        },
         closeCart(){ document.getElementById('cartModal').classList.remove('show'); },
         applyCoupon(){
             appliedCoupon = (document.getElementById('fCoupon').value || '').trim().toUpperCase();
@@ -388,6 +429,9 @@
                         table_code: TABLE_CODE,
                         customer_name: document.getElementById('fName').value || null,
                         customer_note: document.getElementById('fNote').value || null,
+                        fulfilment,
+                        customer_address: FUL_ADDRESS[fulfilment]
+                            ? (document.getElementById('fAddress').value || null) : null,
                         coupon_code: appliedCoupon || null,
                         items
                     })

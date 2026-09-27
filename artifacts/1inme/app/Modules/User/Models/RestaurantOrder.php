@@ -70,6 +70,7 @@ class RestaurantOrder extends Model
         'table_label', 'customer_name', 'customer_note', 'subtotal',
         'coupon_code', 'discount_amount', 'tax_rate', 'tax_inclusive',
         'tax_amount', 'total', 'currency', 'meta',
+        'fulfilment', 'customer_address', 'charges_amount', 'charges',
     ];
 
     protected function casts(): array
@@ -81,6 +82,8 @@ class RestaurantOrder extends Model
             'tax_inclusive'   => 'boolean',
             'tax_amount'      => 'decimal:2',
             'total'           => 'decimal:2',
+            'charges_amount'  => 'decimal:2',
+            'charges'         => 'array',
             'meta'            => 'array',
         ];
     }

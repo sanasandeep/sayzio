@@ -111,6 +111,15 @@ class WhatsappOrderLink
         if (!empty($order->customer_contact)) {
             $lines[] = 'Contact: ' . $order->customer_contact;
         }
+        if (!empty($order->fulfilment)) {
+            $lines[] = 'How: ' . \App\Modules\User\Support\MenuFulfilment::label(
+                $order->fulfilment, $order instanceof RestaurantOrder
+            );
+        }
+        // The one line a delivery order is useless without.
+        if (!empty($order->customer_address)) {
+            $lines[] = 'Address: ' . $order->customer_address;
+        }
 
         $money = fn ($n) => \App\Modules\User\Support\MenuMoney::plain($n, $order->currency);
 
@@ -132,11 +141,13 @@ class WhatsappOrderLink
         // already used `total ?: subtotal`; only this one was left behind.
         $discount = (float) ($order->discount_amount ?? 0);
         $tax      = (float) ($order->tax_amount ?? 0);
+        $chargeLines = is_array($order->charges) ? $order->charges : [];
+        $charges  = (float) ($order->charges_amount ?? 0);
         $total    = (float) ($order->total ?: $order->subtotal);
 
         // The breakdown is only shown when there IS one, so a plain order
         // still reads as three lines rather than a receipt.
-        if ($discount > 0 || $tax > 0) {
+        if ($discount > 0 || $tax > 0 || $charges > 0) {
             $lines[] = 'Subtotal: ' . $money($order->subtotal);
 
             if ($discount > 0) {
@@ -151,6 +162,14 @@ class WhatsappOrderLink
                 $taxLabel = ($menu instanceof RestaurantMenu) ? $menu->taxLabel() : 'Tax';
                 $lines[] = $taxLabel . ': ' . $money($tax)
                     . (($order->tax_inclusive ?? false) ? ' (included)' : '');
+            }
+            // Each charge by its own name. "Charges: 70" is the line a
+            // customer rings up about.
+            foreach ($chargeLines as $charge) {
+                if (! is_array($charge) || ($charge['amount'] ?? 0) <= 0) {
+                    continue;
+                }
+                $lines[] = ($charge['label'] ?? 'Charge') . ': ' . $money($charge['amount']);
             }
         }
 

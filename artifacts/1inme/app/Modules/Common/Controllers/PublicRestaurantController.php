@@ -38,13 +38,14 @@ class PublicRestaurantController extends Controller
 
         $data = $request->validate([
             'coupon_code'      => 'nullable|string|max:64',
+            'fulfilment'       => 'nullable|string|max:16',
             'items'            => 'required|array|min:1',
             'items.*.item_id'  => 'required|integer',
             'items.*.quantity' => 'required|integer|min:1|max:99',
         ]);
 
         $subtotal = $this->subtotalFor($menu, $data['items']);
-        $bill = $this->calculator->compute($menu, $subtotal, $data['coupon_code'] ?? null);
+        $bill = $this->calculator->compute($menu, $subtotal, $data['coupon_code'] ?? null, $data['fulfilment'] ?? null);
 
         return response()->json(['data' => ['bill' => $this->serializeBill($bill)]]);
     }
@@ -76,6 +77,9 @@ class PublicRestaurantController extends Controller
     {
         return [
             'subtotal'        => round($bill['subtotal'], 2),
+            'fulfilment'      => $bill['fulfilment'] ?? null,
+            'charges'         => $bill['charges'] ?? [],
+            'charges_amount'  => round($bill['charges_amount'] ?? 0, 2),
             'coupon_code'     => $bill['coupon_code'],
             'coupon_applied'  => $bill['coupon_applied'],
             'coupon_error'    => $bill['coupon_error'],
@@ -159,6 +163,16 @@ class PublicRestaurantController extends Controller
             'customer_name'   => 'nullable|string|max:120',
             'customer_note'   => 'nullable|string|max:1000',
             'coupon_code'     => 'nullable|string|max:64',
+            'fulfilment'      => 'nullable|string|max:16',
+            // Only required when the chosen mode needs somewhere to go.
+            // Making it always-required would put an address field in front
+            // of every dine-in guest at a table.
+            'customer_address' => [
+                'nullable', 'string', 'max:500',
+                \Illuminate\Validation\Rule::requiredIf(fn () =>
+                    \App\Modules\User\Support\MenuFulfilment::needsAddress($request->input('fulfilment'))
+                ),
+            ],
             'items'           => 'required|array|min:1',
             'items.*.item_id' => 'required|integer',
             'items.*.quantity'=> 'required|integer|min:1|max:99',
@@ -188,6 +202,9 @@ class PublicRestaurantController extends Controller
             'status'       => $order->status,
             'status_label' => $order->status_label,
             'subtotal'     => $order->subtotal,
+            'fulfilment'   => $order->fulfilment,
+            'charges'      => $order->charges ?: [],
+            'charges_amount' => $order->charges_amount,
             'coupon_code'  => $order->coupon_code,
             'discount_amount' => $order->discount_amount,
             'tax_inclusive'   => (bool) $order->tax_inclusive,
