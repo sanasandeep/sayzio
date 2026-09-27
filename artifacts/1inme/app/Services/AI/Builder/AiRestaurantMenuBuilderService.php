@@ -42,6 +42,9 @@ Schema:
           "price": 12.5,
           "photo_url": "ONLY a supplied image URL, else omit"
         }
+      ],
+      "subcategories": [
+        { "name": "sub-section name", "description": "optional", "items": [ ...same shape... ] }
       ]
     }
   ]
@@ -49,6 +52,9 @@ Schema:
 
 Rules:
 - 2 to 12 categories, 2 to 25 items per category.
+- Use "subcategories" only when the source genuinely groups dishes under a
+  heading inside a section ("Tiffins" holding "Steamed" and "Fried"). One
+  level only. A flat section is normal; do not invent groupings.
 - Realistic prices consistent with the brief's cuisine and market.
 - Only reference image URLs the user explicitly supplied; keep them EXACTLY as given.
 - Write real menu copy from the brief — never lorem ipsum.
@@ -58,6 +64,39 @@ PROMPT;
     public function supportsLinks(): bool
     {
         return false;
+    }
+
+    /**
+     * Sana, 2026-09-23: "here it should have modified version of extracting
+     * content with pdf or multiple scanned images of menu card.... thats
+     * usuall used by restro".
+     *
+     * He is right about what restaurants actually have: a laminated card, a
+     * PDF the designer sent, photos taken on a phone. Typing it in again is
+     * the reason a menu never gets onto the platform.
+     */
+    public function readsImages(): bool
+    {
+        return true;
+    }
+
+    /**
+     * The scan instruction matters more here than for most things, because
+     * a menu is a list of PRICES. A model that fills a smudged line with a
+     * plausible number produces a live page that charges the wrong amount,
+     * and nothing on the screen says which lines were read and which were
+     * invented.
+     */
+    protected function scanInstruction(): string
+    {
+        return 'The attached images are photographs or scans of a real menu card. '
+            .'Transcribe the sections, dishes and prices exactly as printed. '
+            .'Keep the card\'s own order and its own groupings -- if dishes sit '
+            .'under a heading inside a section, use "subcategories" for that. '
+            .'Do NOT invent dishes, descriptions or prices. If a price is '
+            .'unreadable, set it to 0 rather than guessing; a zero is visible '
+            .'to the owner and a plausible wrong number is not. If the images '
+            .'are not a menu, return an empty categories array.';
     }
 
     protected function materialize(User $user, Link $link, array $parsed, array $links, array $images): array
@@ -96,24 +135,26 @@ PROMPT;
             ]);
             $catCount++;
 
-            $itemsIn = is_array($catIn['items'] ?? null) ? $catIn['items'] : [];
-            foreach (array_slice(array_values(array_filter($itemsIn, 'is_array')), 0, self::MAX_ITEMS_PER_CATEGORY) as $ii => $itemIn) {
-                $itemName = $this->str($itemIn['name'] ?? null, 160);
-                if ($itemName === null) continue;
+            $itemCount += $this->fillItems($menu, $category, $catIn['items'] ?? null, $currency, $images);
 
-                RestaurantMenuItem::create([
+            // Sub-sections, one level deep, in the card's own order. A
+            // printed card that groups "Idli" and "Dosa" under "Tiffins"
+            // now survives the trip.
+            $subsIn = is_array($catIn['subcategories'] ?? null) ? $catIn['subcategories'] : [];
+            foreach (array_slice(array_values(array_filter($subsIn, 'is_array')), 0, self::MAX_CATEGORIES) as $si => $subIn) {
+                $subName = $this->str($subIn['name'] ?? null, 120);
+                if ($subName === null) continue;
+
+                $sub = RestaurantMenuCategory::create([
                     'menu_id'     => $menu->id,
-                    'category_id' => $category->id,
-                    'name'        => $itemName,
-                    'description' => $this->str($itemIn['description'] ?? null, 500),
-                    'price'       => $this->price($itemIn['price'] ?? 0),
-                    'currency'    => $currency,
-                    'photo_url'   => $this->suppliedImage($itemIn['photo_url'] ?? null, $images),
-                    'sort_order'  => $ii,
-                    'is_sold_out' => false,
+                    'parent_id'   => $category->id,
+                    'name'        => $subName,
+                    'description' => $this->str($subIn['description'] ?? null, 500),
+                    'sort_order'  => $si,
                     'is_active'   => true,
                 ]);
-                $itemCount++;
+                $catCount++;
+                $itemCount += $this->fillItems($menu, $sub, $subIn['items'] ?? null, $currency, $images);
             }
         }
 
@@ -122,5 +163,37 @@ PROMPT;
         }
 
         return ['categories' => $catCount, 'items' => $itemCount];
+    }
+
+    /**
+     * Write one section's items. Shared by sections and their
+     * sub-sections, because the two differ only in which row they hang off
+     * and a second copy is how the sub-sections end up missing a field.
+     */
+    private function fillItems(RestaurantMenu $menu, RestaurantMenuCategory $category, mixed $itemsIn, string $currency, array $images): int
+    {
+        $itemsIn = is_array($itemsIn) ? $itemsIn : [];
+        $written = 0;
+
+        foreach (array_slice(array_values(array_filter($itemsIn, 'is_array')), 0, self::MAX_ITEMS_PER_CATEGORY) as $ii => $itemIn) {
+            $itemName = $this->str($itemIn['name'] ?? null, 160);
+            if ($itemName === null) continue;
+
+            RestaurantMenuItem::create([
+                'menu_id'     => $menu->id,
+                'category_id' => $category->id,
+                'name'        => $itemName,
+                'description' => $this->str($itemIn['description'] ?? null, 500),
+                'price'       => $this->price($itemIn['price'] ?? 0),
+                'currency'    => $currency,
+                'photo_url'   => $this->suppliedImage($itemIn['photo_url'] ?? null, $images),
+                'sort_order'  => $ii,
+                'is_sold_out' => false,
+                'is_active'   => true,
+            ]);
+            $written++;
+        }
+
+        return $written;
     }
 }

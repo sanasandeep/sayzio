@@ -57,6 +57,8 @@ class AiTypeBuilderController extends Controller
             'maxImages'      => AbstractAiTypeBuilderService::MAX_IMAGES,
             'supportsLinks'  => $service->supportsLinks(),
             'supportsImages' => $service->supportsImages(),
+            'readsImages'    => $service->readsImages(),
+            'maxScans'       => AbstractAiTypeBuilderService::MAX_SCANS,
             'editorUrl'      => $this->editorUrl($link),
             'typeLabel'      => $this->typeLabel($link->type),
         ]);
@@ -68,7 +70,7 @@ class AiTypeBuilderController extends Controller
         $data    = $this->validatePayload($request);
 
         try {
-            $cost = $service->estimateCredits($request->user(), $data['description'], $data['links'], $data['images']);
+            $cost = $service->estimateCredits($request->user(), $data['description'], $data['links'], $data['images'], $data['scans']);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -106,7 +108,7 @@ class AiTypeBuilderController extends Controller
         }
 
         try {
-            $result = $service->generate($request->user(), $link, $data['description'], $data['links'], $data['images']);
+            $result = $service->generate($request->user(), $link, $data['description'], $data['links'], $data['images'], $data['scans']);
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
                 'message'  => 'Not enough coins to build this page.',
@@ -155,21 +157,38 @@ class AiTypeBuilderController extends Controller
         return $service;
     }
 
-    /** @return array{description:string,links:array,images:array} */
+    /** @return array{description:string,links:array,images:array,scans:array} */
     private function validatePayload(Request $request): array
     {
         $data = $request->validate([
-            'description' => ['required', 'string', 'min:10', 'max:' . AbstractAiTypeBuilderService::MAX_DESCRIPTION],
+            // A brief is required when there is nothing to read. When the
+            // creator has handed over a photograph of their card, the card
+            // IS the brief -- demanding ten words of description first is
+            // the kind of gate that stops a feature being used.
+            'description' => [
+                $request->filled('scans') ? 'nullable' : 'required',
+                'string', 'max:' . AbstractAiTypeBuilderService::MAX_DESCRIPTION,
+            ],
             'links'       => ['sometimes', 'array', 'max:' . AbstractAiTypeBuilderService::MAX_LINKS],
             'links.*'     => ['string', 'max:2048'],
             'images'      => ['sometimes', 'array', 'max:' . AbstractAiTypeBuilderService::MAX_IMAGES],
             'images.*'    => ['string', 'max:2048'],
+            // Scans of a real card. Long because a data URL is the only
+            // address a vault on a local disk has.
+            'scans'       => ['sometimes', 'array', 'max:' . AbstractAiTypeBuilderService::MAX_SCANS],
+            'scans.*'     => ['string', 'max:8000000'],
         ]);
 
+        $description = trim((string) ($data['description'] ?? ''));
+        if ($description === '' && $request->filled('scans')) {
+            $description = 'Read the attached card and reproduce exactly what is on it.';
+        }
+
         return [
-            'description' => $data['description'],
+            'description' => $description,
             'links'       => array_values($data['links'] ?? []),
             'images'      => array_values($data['images'] ?? []),
+            'scans'       => array_values($data['scans'] ?? []),
         ];
     }
 

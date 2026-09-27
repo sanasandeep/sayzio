@@ -22,9 +22,59 @@
     @else
     <form @submit.prevent="generate">
         <div class="glass rounded-2xl p-6 mb-5 space-y-5">
+            @if($readsImages)
+            {{-- Photograph the card you already have.
+
+                 Sana, 2026-09-23: "here it should have modified version of
+                 extracting content with pdf or multiple scanned images of
+                 menu card.... thats usuall used by restro"
+
+                 A restaurant has a laminated card, not a brief. Typing it in
+                 again is the reason the menu never gets onto the platform.
+
+                 These are read, not referenced. The image URLs further down
+                 are a different thing entirely: those get hung on dishes as
+                 photos and the model never looks at them. --}}
+            <div>
+                <label class="block text-sm font-medium text-white/70 mb-1.5">
+                    Photograph of your menu <span class="text-white/30 font-normal">(optional)</span>
+                </label>
+                <p class="text-xs text-white/30 mb-2">
+                    Up to {{ $maxScans }} photos or scans of the card you already have. It is read
+                    as printed, so check the prices afterwards.
+                </p>
+                <input type="file" accept="image/png,image/jpeg,image/webp" multiple
+                       @change="addScans($event)"
+                       class="block w-full text-xs text-white/60 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-medium file:bg-white/10 file:text-white/80 hover:file:bg-white/15 cursor-pointer">
+                <div class="flex flex-wrap gap-2 mt-3" x-show="scans.length">
+                    <template x-for="(sc, si) in scans" :key="si">
+                        <div class="relative">
+                            <img :src="sc" alt="" class="w-20 h-20 object-cover rounded-xl border border-white/10">
+                            <button type="button" @click="scans.splice(si, 1); estimate = null"
+                                    class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-black/80 border border-white/20 text-white/70 hover:text-red-400 text-xs"
+                                    title="Remove">&times;</button>
+                        </div>
+                    </template>
+                </div>
+                <p class="text-[11px] mt-2 text-amber-300/80" x-show="scans.length">
+                    Anything unreadable comes back priced at zero rather than guessed at, so it
+                    is obvious what to fix.
+                </p>
+                <p class="text-[11px] mt-2 text-red-400" x-show="scanError" x-text="scanError"></p>
+            </div>
+            @endif
+
             {{-- Description --}}
             <div>
-                <label class="block text-sm font-medium text-white/70 mb-1.5">What should it contain? <span class="text-red-400">*</span></label>
+                <label class="block text-sm font-medium text-white/70 mb-1.5">
+                    What should it contain?
+                    @if($readsImages)
+                        <span class="text-red-400" x-show="!scans.length">*</span>
+                        <span class="text-white/30 font-normal" x-show="scans.length" x-cloak>(optional when you have uploaded a card)</span>
+                    @else
+                        <span class="text-red-400">*</span>
+                    @endif
+                </label>
                 <textarea x-model="description" rows="5" maxlength="4000"
                           placeholder="{{ $link->type === 'restaurant_menu' ? 'e.g. A cozy Italian trattoria: antipasti, fresh pasta, wood-fired pizza, desserts and a small wine list. Mid-range prices in EUR.' : ($link->type === 'store_menu' ? 'e.g. A small handmade-candle store: scented candles, gift sets and wax melts, prices around $10-40.' : ($link->type === 'service_booking' ? 'e.g. A barbershop: haircuts, beard trims, hot-towel shaves and kids cuts. 30-60 minute slots, prices in USD.' : ($link->type === 'resume' ? 'e.g. Senior frontend engineer, 8 years experience with React and TypeScript, led a team of 5 at Acme Corp, based in Berlin…' : 'e.g. A 6-slide pitch for my freelance photography business: intro, portfolio highlights, services, pricing, testimonials, contact.'))) }}"
                           class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none transition-all resize-y"></textarea>
@@ -119,6 +169,8 @@ function aiTypeBuilder() {
         description: '',
         links: [],
         images: [],
+        scans: [],
+        scanError: '',
         estimate: null,
         estimating: false,
         generating: false,
@@ -131,7 +183,38 @@ function aiTypeBuilder() {
             return this.images.map(i => i.trim()).filter(i => i.length > 0);
         },
         get canSubmit() {
-            return this.description.trim().length >= 10;
+            // A card IS a brief. Requiring ten words on top of a photograph
+            // of the thing is a gate with nothing behind it.
+            return this.description.trim().length >= 10 || this.scans.length > 0;
+        },
+
+        async addScans(e) {
+            const files = Array.from(e.target.files || []);
+            e.target.value = '';
+            this.scanError = '';
+            for (const file of files) {
+                if (this.scans.length >= {{ $maxScans ?? 4 }}) {
+                    this.scanError = 'That is as many as can be read in one go.';
+                    break;
+                }
+                // 6MB, because the whole thing travels in the request body.
+                if (file.size > 6 * 1024 * 1024) {
+                    this.scanError = file.name + ' is too large. 6MB each.';
+                    continue;
+                }
+                try {
+                    this.scans.push(await new Promise((resolve, reject) => {
+                        const r = new FileReader();
+                        r.onload = () => resolve(r.result);
+                        r.onerror = reject;
+                        r.readAsDataURL(file);
+                    }));
+                } catch (err) {
+                    this.scanError = 'That image could not be read.';
+                }
+            }
+            // The estimate was for a different set of inputs.
+            this.estimate = null;
         },
 
         async runEstimate() {
@@ -187,6 +270,7 @@ function aiTypeBuilder() {
                     description: this.description.trim(),
                     links: this.cleanLinks,
                     images: this.cleanImages,
+                    scans: this.scans,
                 }),
             });
             const body = await res.json().catch(() => ({}));
