@@ -753,6 +753,11 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::delete('versions/{version}',                      [\App\Modules\User\Controllers\ResumeController::class, 'versionDestroy'])->whereNumber('version')->name('versions.destroy');
             Route::post  ('versions/{version}/duplicate',            [\App\Modules\User\Controllers\ResumeController::class, 'versionDuplicate'])->whereNumber('version')->name('versions.duplicate');
             Route::post  ('versions/{version}/default',              [\App\Modules\User\Controllers\ResumeController::class, 'versionSetDefault'])->whereNumber('version')->name('versions.default');
+            // Give a version its own short link, from the builder. The
+            // Create Link flow binds every resume link to the DEFAULT
+            // version, so this is the only one-step way to point a URL at a
+            // tailored one.
+            Route::post  ('versions/{version}/link',                 [\App\Modules\User\Controllers\ResumeController::class, 'versionCreateLink'])->whereNumber('version')->name('versions.link');
         });
 
         // ---- Forms ----

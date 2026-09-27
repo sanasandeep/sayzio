@@ -151,6 +151,32 @@ class ResumeVersionService
     }
 
     /**
+     * Make sure a non-default version has a slug of its own.
+     *
+     * `Resume::effectiveSlug()` falls back to DEFAULT_SLUG when a version
+     * has none, which is the right answer for the default version and a
+     * quiet disaster for any other one: a link bound to a slug-less version
+     * resolves through that fallback and opens the DEFAULT resume instead.
+     * The link looks tied and behaves untied.
+     *
+     * create() and duplicate() both assign a slug, so a version made the
+     * normal way is fine. This exists for the other doors -- the API, an
+     * import, a row written before slugs existed -- and is called wherever
+     * something is about to depend on a version being reachable.
+     */
+    public function ensureSlug(User $user, Resume $version): Resume
+    {
+        if ($version->is_default || trim((string) $version->slug) !== '') {
+            return $version;
+        }
+
+        $version->slug = $this->uniqueSlug($user, (string) ($version->name ?: 'v'));
+        $version->save();
+
+        return $version;
+    }
+
+    /**
      * Generate a slug that's unique among the user's existing versions.
      * Falls back to a numeric suffix on collision so two versions named
      * "Design" land on "design" + "design-2" rather than failing the
