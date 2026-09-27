@@ -89,19 +89,30 @@
                 <div class="meta">
                     <div class="nm" x-text="row.name"></div>
                     <div class="ds" x-show="row.description" x-text="row.description"></div>
-                    <div class="pr"><span x-text="menu.currency"></span> <span x-text="(+row.price).toFixed(2)"></span>
+                    {{-- Through the same formatter as the page. This line used
+                         to print the currency code and two decimals on its own,
+                         so it contradicted the price format three controls
+                         away from it. --}}
+                    <div class="pr"><span x-text="money(row.price)"></span>
                         <span x-show="row.{{ $meSoldKey }}" class="rm-pill" style="margin-left:6px">{{ $meSoldLabel }}</span>
                         <span x-show="row.is_active === false" class="rm-pill off" style="margin-left:6px">Hidden</span>
                     </div>
                 </div>
-                <div class="flex flex-col gap-1">
-                    <button class="rm-btn sm ghost" title="Move up" :disabled="ri===0" @click="moveRow(g.cat.id,row,-1)"><i class="fas fa-arrow-up"></i></button>
-                    <button class="rm-btn sm ghost" title="Move down" :disabled="ri===rowsFor(g.cat.id).length-1" @click="moveRow(g.cat.id,row,1)"><i class="fas fa-arrow-down"></i></button>
-                    <button class="rm-btn sm ghost" :title="row.is_active === false ? 'Show on the page' : 'Hide from the page'" @click="toggleRow(row)">
+                {{-- Sana, 2026-09-27: "Menu items looks too big... fix the look"
+
+                     These five were stacked in a column, so every row in the
+                     list was five buttons tall whatever it held -- a one-line
+                     dish took about 200px, and a section of eight filled the
+                     screen. They are icon buttons in a row now, and the row is
+                     the height of the dish again. --}}
+                <div class="rm-acts">
+                    <button class="rm-act" title="Move up" :disabled="ri===0" @click="moveRow(g.cat.id,row,-1)"><i class="fas fa-arrow-up"></i></button>
+                    <button class="rm-act" title="Move down" :disabled="ri===rowsFor(g.cat.id).length-1" @click="moveRow(g.cat.id,row,1)"><i class="fas fa-arrow-down"></i></button>
+                    <button class="rm-act" :title="row.is_active === false ? 'Show on the page' : 'Hide from the page'" @click="toggleRow(row)">
                         <i class="fas" :class="row.is_active === false ? 'fa-eye-slash' : 'fa-eye'"></i>
                     </button>
-                    <button class="rm-btn sm ghost" @click="openRow(g.cat.id, row)"><i class="fas fa-pen"></i></button>
-                    <button class="rm-btn sm danger" @click="deleteRow(row)"><i class="fas fa-trash"></i></button>
+                    <button class="rm-act" title="Edit" @click="openRow(g.cat.id, row)"><i class="fas fa-pen"></i></button>
+                    <button class="rm-act danger" title="Delete" @click="deleteRow(row)"><i class="fas fa-trash"></i></button>
                 </div>
             </div>
         </template>
