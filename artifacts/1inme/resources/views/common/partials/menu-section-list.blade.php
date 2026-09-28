@@ -27,6 +27,10 @@
       $msSoldKey  'is_sold_out' | 'is_out_of_stock'
       $msDivider  divider key
       $msEmpty    what to say when there is nothing to show
+      $msBlockSlot  (?callable) given a category id, draws the blocks a
+                    creator pinned after that section. Null on a page that
+                    has no blocks to place, which keeps this partial usable
+                    without them.
 --}}
 @forelse($msTree as $msSection)
     @php $msCat = $msSection['category']; @endphp
@@ -65,6 +69,20 @@
             </div>
         @endforeach
     </div>
+
+    {{-- The gap after this section, where a creator can put a block.
+
+         Sana, 2026-09-28: "how to add blocks on top of menu or in betweel
+         somwhere like end of each sec section?" -- he could not, because
+         the only two positions the renderer knew were before and after the
+         WHOLE menu, and nothing wrote even those.
+
+         Outside the .cat wrapper on purpose: a block placed here sits
+         between two sections rather than inside the one above it, which is
+         what "end of each section" means on the page. --}}
+    @if(isset($msBlockSlot) && $msBlockSlot)
+        {!! $msBlockSlot($msCat->id) !!}
+    @endif
 @empty
     <div class="empty">{{ $msEmpty }}</div>
 @endforelse

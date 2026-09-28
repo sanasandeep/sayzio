@@ -248,6 +248,19 @@ class BlockStyleSanitizer
                 // dropped silently.
                 $clean = self::sanitizePhotoTextStickers($val);
                 if ($clean !== []) $result[$key] = $clean;
+            } elseif ($key === '_menu_slot') {
+                // Where this block sits on a menu page: 'above', 'below' or
+                // 'section:<id>'. Only the SHAPE is checked here -- whether
+                // that section exists, and belongs to this link's menu, is
+                // decided in BiolinkBlockController where the link is known.
+                // This sanitizer is shared with the admin Block Designs
+                // manager, which has no link in hand.
+                $slot = trim((string) $val);
+                if ($slot === MenuBlockSlot::ABOVE
+                    || $slot === MenuBlockSlot::BELOW
+                    || MenuBlockSlot::sectionId($slot) !== null) {
+                    $result[$key] = $slot;
+                }
             } elseif (in_array($key, ['_animation', '_gallery_layout', '_social_set', '_profile_layout', '_window_chrome', '_ltg_layout', '_ltg_align'], true)) {
                 // Opaque slug-shaped variant metadata hooks (Task #1041).
                 // The renderer is free to ignore unknown values; we only

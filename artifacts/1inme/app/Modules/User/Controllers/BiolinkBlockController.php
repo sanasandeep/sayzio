@@ -65,8 +65,13 @@ class BiolinkBlockController extends Controller
         $userBuzz = \App\Modules\User\Support\EditorPaletteLists::buzz();
         $userCompanions = \App\Modules\User\Support\EditorPaletteLists::companions();
 
+        // The menu's sections, so each block card can offer "After
+        // <section>" as a position. Empty on a page that has no menu, which
+        // is what hides the control there.
+        $menuSections = $this->menuSections($link);
+
         return view('user.links.biolink-editor', compact(
-            'link', 'blocks', 'blockTypes', 'blockCategories', 'userForms', 'userBuzz', 'userCompanions', 'pollTallies'
+            'link', 'blocks', 'blockTypes', 'blockCategories', 'userForms', 'userBuzz', 'userCompanions', 'pollTallies', 'menuSections'
         ));
     }
 
@@ -447,6 +452,11 @@ class BiolinkBlockController extends Controller
                 'blockTypes'  => BiolinkBlock::TYPES,
                 'catColors'   => BiolinkBlock::CATEGORY_COLORS,
                 'pollTallies' => [],
+                // A card rendered here -- a new block, a duplicate, a fresh
+                // re-render -- gets the same position control as one drawn
+                // on page load. Leaving it out is how a new block would be
+                // the only one on the page you could not place.
+                'menuSections' => $this->menuSections($link),
             ];
 
             // The RESOLVED position, not what was asked for. A top insert on
@@ -654,6 +664,21 @@ class BiolinkBlockController extends Controller
         }
 
         $sanitized = $this->sanitizeBlockStyle(array_merge($existingStyle, $incomingStyle));
+
+        // Where this block sits on a menu page. The style sanitizer checked
+        // the SHAPE; only here is the link in hand, so only here can we say
+        // whether that section is one of this menu's own. A slot naming
+        // someone else's section -- or one that has since been deleted --
+        // falls back to the default rather than being stored, so the block
+        // renders at the bottom of the page instead of nowhere.
+        if (array_key_exists('_menu_slot', $sanitized)) {
+            $sanitized['_menu_slot'] = \App\Modules\User\Support\MenuBlockSlot::isValid(
+                $sanitized['_menu_slot'],
+                $this->menuSectionIdsFor($link)
+            )
+                ? $sanitized['_menu_slot']
+                : \App\Modules\User\Support\MenuBlockSlot::DEFAULT;
+        }
 
         // Variant application now flows through the dedicated
         // applyVariant endpoint (full _style replace, snapshot-aware).
@@ -1076,6 +1101,11 @@ class BiolinkBlockController extends Controller
                 'blockTypes'  => BiolinkBlock::TYPES,
                 'catColors'   => BiolinkBlock::CATEGORY_COLORS,
                 'pollTallies' => [],
+                // A card rendered here -- a new block, a duplicate, a fresh
+                // re-render -- gets the same position control as one drawn
+                // on page load. Leaving it out is how a new block would be
+                // the only one on the page you could not place.
+                'menuSections' => $this->menuSections($link),
             ];
 
             $payload = [
@@ -1345,10 +1375,11 @@ class BiolinkBlockController extends Controller
         $fresh = $block->fresh();
         $fresh->load('children');
         $viewData = [
-            'link'        => $link,
-            'blockTypes'  => BiolinkBlock::TYPES,
-            'catColors'   => BiolinkBlock::CATEGORY_COLORS,
-            'pollTallies' => [],
+            'link'         => $link,
+            'blockTypes'   => BiolinkBlock::TYPES,
+            'catColors'    => BiolinkBlock::CATEGORY_COLORS,
+            'pollTallies'  => [],
+            'menuSections' => $this->menuSections($link),
         ];
 
         $payload = ['success' => true, 'block' => $fresh, 'parent_id' => $newParentId];
@@ -2679,6 +2710,40 @@ class BiolinkBlockController extends Controller
     private function templateDefaultColorStyleFor(Link $link, string $type): array
     {
         return \App\Modules\User\Support\TemplateDefaultColors::styleFor($link, $type);
+    }
+
+    /**
+     * The top-level sections of this link's menu, in page order.
+     *
+     * Empty for a page that is not a menu, which is the right answer: on a
+     * Link in Bio there is no section for a block to sit after, so every
+     * section slot is invalid and falls back to the default.
+     *
+     * Top level only. A sub-section is drawn inside its parent, so a block
+     * between the two would land in the middle of one card's worth of
+     * dishes rather than between two headings.
+     *
+     * @return \Illuminate\Support\Collection
+     */
+    private function menuSections(\App\Modules\User\Models\Link $link)
+    {
+        $menu = $link->restaurantMenu ?: $link->storeMenu;
+        if (! $menu) {
+            return collect();
+        }
+
+        return $menu->categories()
+            ->where(function ($q) {
+                $q->whereNull('parent_id')->orWhere('parent_id', 0);
+            })
+            ->orderBy('sort_order')->orderBy('id')
+            ->get();
+    }
+
+    /** Just the ids, for the slot validator. */
+    private function menuSectionIdsFor(\App\Modules\User\Models\Link $link): array
+    {
+        return $this->menuSections($link)->map(fn ($c) => (int) $c->id)->all();
     }
 
     private function sanitizeBlockStyle(array $input): array
