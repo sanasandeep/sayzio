@@ -335,6 +335,12 @@
     }
     function lines(container) {
         const box = document.getElementById(container);
+        // A missing container used to throw here, and the throw landed
+        // inside showDone() -- which is called AFTER the order is already
+        // placed, so the order went through and the guest was left looking
+        // at a button that said "Placing..." forever. Never again: a panel
+        // that has lost a box renders without it.
+        if (!box) { return; }
         box.innerHTML = '';
         Object.values(ITEMS).filter(i => i.qty > 0).forEach(it => {
             const row = document.createElement('div');
@@ -432,7 +438,15 @@
             }
             const order = res.data.data.order;
             menuWhatsappHandoff(waWin, order.whatsapp);
-            this.showDone(order);
+            // The order EXISTS by now. If painting the confirmation fails
+            // for any reason, the one thing the guest must not be left with
+            // is a button that still says it is working.
+            try {
+                this.showDone(order);
+            } catch (e) {
+                btn.disabled = false; btn.textContent = 'Send order request';
+                orderError('Your request went through, but this page could not show the confirmation. Please check with us before ordering again.');
+            }
         },
         showDone(order){
             this.closeCart();
