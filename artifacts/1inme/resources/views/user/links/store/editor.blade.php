@@ -340,6 +340,23 @@
                 </template>
             </div>
             <div class="rm-row"><label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)"><input type="checkbox" x-model="productModal.is_out_of_stock"> Out of stock</label></div>
+            {{-- The way to choices from here.
+
+                 Choices shipped reachable only from a card down in the
+                 settings column, and Sana looked for them on the item --
+                 the eighth working feature this month with no way in from
+                 where somebody would go looking. So the dialog says what
+                 this product already asks and hands over to the panel,
+                 which stays the one place that knows anything about it. --}}
+            <div class="rm-row" x-show="productModal.id">
+                <label class="rm-label">Choices</label>
+                <p class="text-xs" style="color:var(--text-muted)" x-text="(window.menuChoicesOn || (() => 'None yet'))(productModal.id)"></p>
+                <button class="rm-btn sm ghost mt-2" type="button"
+                        @click="productModal.open = false; $dispatch('menu-choices-open', { itemId: productModal.id })">
+                    <i class="fas fa-sliders-h"></i> Spice level, size, toppings…
+                </button>
+            </div>
+
             <div class="flex justify-end gap-2">
                 <button class="rm-btn ghost" @click="productModal.open=false">Cancel</button>
                 <button class="rm-btn" @click="saveProduct()">Save</button>

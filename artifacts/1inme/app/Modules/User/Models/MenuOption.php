@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class MenuOption extends Model
 {
     protected $fillable = [
-        'group_id', 'name', 'price_delta', 'sort_order', 'is_sold_out', 'is_active',
+        'group_id', 'name', 'icon', 'icon_repeat', 'price_delta', 'sort_order', 'is_sold_out', 'is_active',
     ];
 
     protected function casts(): array
@@ -16,9 +16,22 @@ class MenuOption extends Model
         return [
             'price_delta' => 'decimal:2',
             'sort_order'  => 'integer',
+            'icon_repeat' => 'integer',
             'is_sold_out' => 'boolean',
             'is_active'   => 'boolean',
         ];
+    }
+
+    /** A catalogue key we can draw, or null. Never whatever is in the row. */
+    public function iconKey(): ?string
+    {
+        return \App\Modules\User\Support\MenuOptionIcon::sanitize($this->icon);
+    }
+
+    /** How many times to draw it: 1 when there is no icon. */
+    public function iconRepeat(): int
+    {
+        return \App\Modules\User\Support\MenuOptionIcon::repeat($this->icon, $this->icon_repeat);
     }
 
     public function group()

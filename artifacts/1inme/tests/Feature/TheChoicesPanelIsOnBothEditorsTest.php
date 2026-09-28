@@ -220,6 +220,31 @@ class TheChoicesPanelIsOnBothEditorsTest extends TestCase
         $this->assertStringNotContainsString("this.noun + 's'", $partial);
     }
 
+    public function test_the_sheet_is_teleported_out_of_the_settings_column(): void
+    {
+        // Sana, 2026-09-28, with a screenshot: the sheet laid itself out
+        // INSIDE the settings column, overlapping the cards above and below
+        // and clipped at the right edge.
+        //
+        // `position: fixed` resolves against the nearest ancestor with a
+        // transform, filter or contain, and that column has one. Same
+        // symptom as the public pages' pinned-overlay bug, different cause.
+        // x-teleport moves it to the body, which is the house fix -- the
+        // paid-page editor already does this.
+        $partial = file_get_contents(resource_path('views/user/links/partials/menu-choices-panel.blade.php'));
+
+        $this->assertStringContainsString('x-teleport="body"', $partial,
+            'The sheet will render inside the settings column and overlap the cards around it.');
+        // And the teleport has to wrap the sheet, not sit somewhere after it.
+        $this->assertLessThan(
+            strpos($partial, 'class="mc-modal"'),
+            strpos($partial, 'x-teleport="body"'),
+            'The teleport does not contain the sheet.'
+        );
+        // Above the support widget, since it is what the owner just opened.
+        $this->assertStringContainsString('z-index: 9999;', $partial);
+    }
+
     public function test_a_group_has_to_be_created_before_it_can_hold_choices(): void
     {
         $partial = file_get_contents(resource_path('views/user/links/partials/menu-choices-panel.blade.php'));

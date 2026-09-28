@@ -80,6 +80,8 @@
             'options'        => $g->options->filter(fn ($o) => $o->is_active)->map(fn ($o) => [
                 'id'          => (int) $o->id,
                 'name'        => $o->name,
+                'icon'        => $o->iconKey(),
+                'icon_repeat' => $o->iconRepeat(),
                 'price_delta' => (float) $o->price_delta,
                 'is_sold_out' => (bool) $o->is_sold_out,
             ])->values(),

@@ -237,7 +237,7 @@ class ACustomerCanAnswerTheQuestionTest extends TestCase
         $shared = $this->shared();
 
         $this->assertStringContainsString('if (o.is_sold_out) { return; }', $shared);
-        $this->assertStringContainsString("' — sold out'", $shared);
+        $this->assertStringContainsString("' (sold out)'", $shared);
     }
 
     public function test_one_copy_of_the_chooser_for_both_pages(): void
