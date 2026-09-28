@@ -264,6 +264,8 @@
                 </div>
                 <p class="text-xs" style="color:var(--text-faint)" x-text="savedMsg"></p>
             </div>
+
+            @include('user.links.partials.menu-confirmation-panel', ['confirmHeadlinePlaceholder' => 'Request sent 🎉'])
         </div>
     </div>
 
@@ -364,11 +366,19 @@
         'heading_style' => \App\Modules\User\Support\MenuPresentation::heading($menu->settings['heading_style'] ?? null),
         'price_style' => \App\Modules\User\Support\MenuPresentation::price($menu->settings['price_style'] ?? null, $menuLayoutKey),
     ];
+    $menuConfirm = \App\Modules\User\Support\MenuConfirmation::resolve((array) ($menu->settings ?? []));
+    // The editor holds the mode as SAVED, not as resolved: someone who picks
+    // "send them to my page" and saves before typing the URL should find
+    // that choice still selected, rather than silently back on the default.
+    $menuConfirm['mode'] = \App\Modules\User\Support\MenuConfirmation::mode(
+        $menu->settings['confirmation']['mode'] ?? null
+    );
     $storeBase = rtrim(url('/user/links/'.$link->id.'/store'), '/');
 @endphp
 function storeEditor() {
     return {
         menu: @json($menuState),
+        confirm: @json($menuConfirm),
         categories: @json($menuCategories),
         products: @json($menuProducts),
         savedMsg: '',
@@ -489,6 +499,10 @@ function storeEditor() {
                 currency:(this.menu.currency||'USD').toUpperCase(),
                 accent_color:this.menu.accent_color,
                 whatsapp_number:this.menu.whatsapp_number||'',
+                confirm_mode:this.confirm.mode||'bill',
+                confirm_url:this.confirm.url||'',
+                confirm_message:this.confirm.message||'',
+                confirm_headline:this.confirm.headline||'',
                 accepting_orders:!!this.menu.accepting_orders,
                 layout:this.menu.layout||'list',
                 divider:this.menu.divider||'line',

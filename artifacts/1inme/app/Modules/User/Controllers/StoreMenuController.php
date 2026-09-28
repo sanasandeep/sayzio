@@ -88,6 +88,14 @@ class StoreMenuController extends Controller
             'desc_color'       => ['nullable', 'string', 'max:16'],
             'price_color'      => ['nullable', 'string', 'max:16'],
             'divider_color'    => ['nullable', 'string', 'max:16'],
+            // What the guest sees once the order goes through (Sana,
+            // 2026-09-28). The mode is validated against the catalog rather
+            // than here, so an unknown value falls back rather than 422s a
+            // save that came from an older client.
+            'confirm_mode'     => 'nullable|string|max:16',
+            'confirm_url'      => 'nullable|string|max:2048',
+            'confirm_message'  => 'nullable|string|max:600',
+            'confirm_headline' => 'nullable|string|max:80',
         ]);
 
         $settings = $data['settings'] ?? ($menu->settings ?? []);
@@ -201,6 +209,18 @@ class StoreMenuController extends Controller
         // Order-accepting toggle lives in the settings JSON (no migration).
         if ($request->has('accepting_orders')) {
             $settings['accepting_orders'] = (bool) $data['accepting_orders'];
+        }
+
+        // What the guest sees the moment the order goes through. Written as
+        // one block so the mode and the thing that mode needs can never be
+        // saved apart from one another.
+        if ($request->hasAny(['confirm_mode', 'confirm_url', 'confirm_message', 'confirm_headline'])) {
+            $settings['confirmation'] = \App\Modules\User\Support\MenuConfirmation::sanitize([
+                'mode'     => $data['confirm_mode'] ?? null,
+                'url'      => $data['confirm_url'] ?? null,
+                'message'  => $data['confirm_message'] ?? null,
+                'headline' => $data['confirm_headline'] ?? null,
+            ]);
         }
 
         $menu->update([
