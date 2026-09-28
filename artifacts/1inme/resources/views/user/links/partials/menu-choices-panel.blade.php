@@ -52,9 +52,18 @@
 
     {{-- The editor for one group. Everything about it is here rather than
          spread across the card, so a half-finished group is never saved in
-         pieces. --}}
+         pieces.
+
+         TELEPORTED TO BODY, and it has to be. `position: fixed` resolves
+         against the nearest ancestor with a transform, filter or contain --
+         and the settings column has one -- so left where it was written the
+         sheet laid itself out INSIDE the column, overlapping the cards above
+         and below it and clipped at the right edge. Same trap as the public
+         pages' pinned overlays, different cause, same symptom. --}}
+    <template x-teleport="body">
+    <div>
     <template x-if="draft">
-        <div class="mc-modal" @click.self="draft = null">
+        <div class="mc-modal" x-cloak @click.self="draft = null" @keydown.escape.window="draft = null">
             <div class="mc-sheet">
                 <h5 x-text="draft.id ? 'Edit choices' : 'New choices'"></h5>
 
@@ -138,6 +147,8 @@
             </div>
         </div>
     </template>
+    </div>
+    </template>
 </div>
 
 <style>
@@ -156,7 +167,9 @@
     .mc-modal {
         position: fixed;
         inset: 0;
-        z-index: 70;
+        /* Above the support widget: a sheet the owner just opened is the
+           thing they are looking at. */
+        z-index: 9999;
         background: rgba(0,0,0,.45);
         display: flex;
         align-items: center;
