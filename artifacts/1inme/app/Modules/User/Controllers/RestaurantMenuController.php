@@ -86,6 +86,7 @@ class RestaurantMenuController extends Controller
             'tax_rate'        => 'nullable|numeric|min:0|max:100',
             'tax_inclusive'   => 'sometimes|boolean',
             'tax_label'       => 'nullable|string|max:24',
+            'charges_before_tax' => 'sometimes|boolean',
             // What the guest sees once the order goes through (Sana,
             // 2026-09-28). The mode is validated against the catalog rather
             // than here, so an unknown value falls back rather than 422s a
@@ -214,6 +215,17 @@ class RestaurantMenuController extends Controller
                 'inclusive' => (bool) ($data['tax_inclusive'] ?? false),
                 'label'     => trim((string) ($data['tax_label'] ?? 'GST')) ?: 'GST',
             ];
+        }
+
+        // Whether tax applies to the charges. The owner's tax position,
+        // so it is theirs to set; default off keeps every existing menu's
+        // totals exactly where they are.
+        if ($request->has('charges_before_tax')) {
+            if ($data['charges_before_tax'] ?? false) {
+                $settings['charges_before_tax'] = true;
+            } else {
+                unset($settings['charges_before_tax']);
+            }
         }
 
         // What the guest sees the moment the order goes through. Written as
