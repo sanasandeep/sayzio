@@ -222,6 +222,23 @@
         .insert-rail, .insert-rail-line, .insert-rail-dot { transition: none; }
     }
 
+    /* The position picker, sized to sit in the same thin strip as the
+       Width row rather than looking like a form field dropped into a card. */
+    .menu-slot-select {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 6px;
+        border-radius: 6px;
+        border: 1px solid var(--border-strong);
+        background: var(--bg-glass-input);
+        color: var(--text-primary);
+        cursor: pointer;
+        max-width: 100%;
+    }
+    .menu-slot-select:hover { border-color: #9db0ff; }
+    .menu-slot-select:focus-visible { outline: 2px solid rgba(61,107,255,0.5); outline-offset: 1px; }
+    .menu-slot-select:disabled { opacity: .55; cursor: progress; }
+
     .card-container-block {
         border-color: rgba(61,107,255,0.2);
         background: linear-gradient(135deg, var(--bg-card), rgba(61,107,255,0.03));
@@ -1308,7 +1325,7 @@ $catColors = [
                 </button>
                 <div id="blockList" class="grid gap-2" style="grid-template-columns: repeat(12, 1fr); padding-right: 16px;">
                     @foreach($blocks as $block)
-                    @include('user.links.partials.block-card', ['block' => $block, 'link' => $link, 'blockTypes' => $blockTypes, 'catColors' => $catColors, 'pollTallies' => $pollTallies ?? []])
+                    @include('user.links.partials.block-card', ['block' => $block, 'link' => $link, 'blockTypes' => $blockTypes, 'catColors' => $catColors, 'pollTallies' => $pollTallies ?? [], 'menuSections' => $menuSections ?? collect()])
                     @endforeach
                     <div id="blockListEmpty" class="flex flex-col items-center justify-center text-center rounded-2xl px-6 py-12 lg:min-h-[420px]"
                          style="grid-column: span 12; background: var(--bg-glass); border: 1px dashed var(--border-glass); {{ $blocks->count() ? 'display:none;' : '' }}">
@@ -2032,6 +2049,40 @@ function showToast(msg, type) {
     setTimeout(function() { toast.style.opacity = '0'; setTimeout(function() { toast.remove(); }, 300); }, 2500);
 }
 
+
+// Where a block sits relative to the menu: above it, below it, or after one
+// of its sections. The value travels in _style because that is where the
+// public renderer has always read it from; the server re-checks that the
+// section is one of THIS menu's before storing it.
+function setMenuSlot(blockId, slot, sel) {
+    var prev = sel.dataset.prevValue || '';
+    var url = '{{ route("user.links.blocks.update", [$link, "__ID__"]) }}'.replace('__ID__', blockId);
+    sel.disabled = true;
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': _csrfToken(),
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-HTTP-Method-Override': 'PUT'
+        },
+        body: JSON.stringify({ style: { _menu_slot: slot } })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data && data.success) {
+            sel.dataset.prevValue = slot;
+            showToast('Position updated', 'success');
+            refreshPreview();
+        } else {
+            // Put the control back where it was rather than leaving it
+            // showing a position the block is not in.
+            if (prev) sel.value = prev;
+            showToast((data && data.error) || 'Failed to move block', 'error');
+        }
+    }).catch(function() {
+        if (prev) sel.value = prev;
+        showToast('Failed to move block', 'error');
+    }).finally(function() { sel.disabled = false; });
+}
 
 function setGridSpan(blockId, span, btn) {
     var card = btn.closest('.block-card');

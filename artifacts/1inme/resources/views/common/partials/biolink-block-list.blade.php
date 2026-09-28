@@ -21,10 +21,14 @@
       $blkFontColor    (string)  page ink, for blocks that inherit it
       $blkGlobalTheme  (array)   settings.biolink.block_theme
       $blkBtnInline    (string)  inline button CSS the page computed
-      $blkSlot         (?string) 'above' | 'below' to draw only the blocks
-                                 assigned to that side of a menu; null for
-                                 every block, which is what a Link in Bio
-                                 passes since it has no menu to sit around
+      $blkSlot         (?string) which slot to draw: 'above', 'below', or
+                                 'section:<id>' for the gap after one
+                                 section. Null draws every block, which is
+                                 what a Link in Bio passes since it has no
+                                 menu to sit around.
+      $blkSectionIds   (array)   the menu's live top-level section ids, so a
+                                 block pinned after a deleted section falls
+                                 back to the bottom instead of disappearing
       $blkEmpty        (bool)    draw the "being set up" placeholder when
                                  there is nothing. A menu has its own
                                  content, so it passes false -- an empty
@@ -66,13 +70,22 @@
         $blocks = collect();
     }
 
-    // Which side of the menu a block sits on. Only menus pass a slot;
-    // everything else draws the lot. A block that has never been given a
-    // side counts as "below", because the menu is what the page is for
-    // and blocks around it are extras.
+    // Where on a menu page this block sits: above the menu, below it, or
+    // after one of its sections. Only menus pass a slot; everything else
+    // draws the lot.
+    //
+    // MenuBlockSlot::resolve is what makes a block pinned after a DELETED
+    // section fall back to the bottom of the page rather than vanish from
+    // it -- comparing the stored string directly, as this did, would drop
+    // the creator's content the moment they reorganised their menu, with
+    // nothing anywhere saying why.
     if (isset($blkSlot) && $blkSlot) {
+        $blkLiveIds = $blkSectionIds ?? [];
         $blocks = $blocks->filter(
-            fn ($b) => (($b->settings['_style']['_menu_slot'] ?? 'below') === $blkSlot)
+            fn ($b) => \App\Modules\User\Support\MenuBlockSlot::resolve(
+                \App\Modules\User\Support\MenuBlockSlot::of($b->settings ?? []),
+                $blkLiveIds
+            ) === $blkSlot
         );
     }
 

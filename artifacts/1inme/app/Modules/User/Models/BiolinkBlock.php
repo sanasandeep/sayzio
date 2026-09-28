@@ -492,6 +492,12 @@ class BiolinkBlock extends Model
         // they exist so heading animations, gallery layouts, and social
         // icon sets can be carried by a variant without re-shaping the
         // editor schema. Empty string = no override.
+        // Where this block sits on a MENU page: 'above', 'below', or
+        // 'section:<id>' for the gap after one section. Empty means the
+        // default, which MenuBlockSlot resolves to 'below' -- the position
+        // every block on every menu page has rendered in until now.
+        // Ignored entirely on a page with no menu.
+        '_menu_slot' => '',
         '_animation' => '',        // heading animation hint (shimmer, glitch, ...)
         '_gallery_layout' => '',   // gallery layout (grid_2, masonry, ...)
         '_social_set' => '',       // social icon style set (mono_line, glassy, ...)

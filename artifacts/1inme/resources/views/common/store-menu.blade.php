@@ -12,6 +12,11 @@
     // three.
     $tree = \App\Modules\User\Support\MenuTree::build($menu->categories, $menu->products);
 
+    // The sections a block may be pinned after -- top level only, because a
+    // sub-section is drawn inside its parent and a block between the two
+    // would land in the middle of one card's worth of dishes.
+    $blkSectionIds = collect($tree)->map(fn ($n) => (int) $n['category']->id)->all();
+
     // How this menu writes a price -- the code, a symbol, or nothing; before
     // or after; with the decimals the currency actually has. One definition,
     // shared with the cart JavaScript below and with the WhatsApp message,
@@ -175,6 +180,7 @@
         'blkGlobalTheme' => $pbBs['block_theme'] ?? [],
         'blkBtnInline'   => '',
         'blkSlot'        => 'above',
+        'blkSectionIds'  => $blkSectionIds,
         'blkEmpty'       => false,
     ])
 
@@ -187,6 +193,15 @@
         'msSoldKey' => 'is_out_of_stock',
         'msDivider' => $mp['divider'],
         'msEmpty'   => 'This store is being set up. Check back soon.',
+        'msBlockSlot' => fn ($catId) => view('common.partials.biolink-block-list', [
+            'link'           => $link,
+            'blkFontColor'   => $pbInk,
+            'blkGlobalTheme' => $pbBs['block_theme'] ?? [],
+            'blkBtnInline'   => '',
+            'blkSlot'        => \App\Modules\User\Support\MenuBlockSlot::forSection((int) $catId),
+            'blkSectionIds'  => $blkSectionIds,
+            'blkEmpty'       => false,
+        ])->render(),
     ])
 
     @include('common.partials.biolink-block-list', [
@@ -195,6 +210,7 @@
         'blkGlobalTheme' => $pbBs['block_theme'] ?? [],
         'blkBtnInline'   => '',
         'blkSlot'        => 'below',
+        'blkSectionIds'  => $blkSectionIds,
         'blkEmpty'       => false,
     ])
 </div>

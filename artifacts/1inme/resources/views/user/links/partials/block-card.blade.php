@@ -144,6 +144,49 @@
         </div>
         @endif
 
+        {{-- Where this block sits relative to the menu.
+
+             Sana, 2026-09-28: "how to add blocks on top of menu or in
+             betweel somwhere like end of each sec section?"
+
+             He could not. settings._style._menu_slot was read by one filter
+             on the public page and written by nothing at all -- no control,
+             no API field, no default -- so every block fell through to
+             "below" and the "above the menu" position the renderer knew
+             about had never been reachable by anyone.
+
+             Only drawn on a page that HAS a menu: on a Link in Bio there is
+             no menu to sit around, and an empty picker is worse than none.
+
+             The current value comes through MenuBlockSlot::resolve, so a
+             block pinned after a section the creator has since deleted
+             shows as "Bottom of page" -- which is where it actually
+             renders -- rather than as a position that no longer exists. --}}
+        @php
+            $menuSections = $menuSections ?? collect();
+            $slotOptions = $menuSections->isNotEmpty()
+                ? \App\Modules\User\Support\MenuBlockSlot::options($menuSections)
+                : [];
+            $curSlot = \App\Modules\User\Support\MenuBlockSlot::resolve(
+                \App\Modules\User\Support\MenuBlockSlot::of($s),
+                $menuSections->map(fn ($c) => (int) $c->id)->all()
+            );
+        @endphp
+        @if($slotOptions !== [])
+        <div class="menu-slot-row px-3 pb-2" data-slot-row="{{ $block->id }}">
+            <div class="flex items-center gap-1.5">
+                <span class="text-[9px] font-semibold flex-shrink-0" style="color: var(--text-faint);"><i class="fas fa-arrows-up-down mr-1"></i>Position</span>
+                <select class="menu-slot-select flex-1 min-w-0"
+                        aria-label="Where this block sits on the page"
+                        onchange="setMenuSlot({{ $block->id }}, this.value, this)">
+                    @foreach($slotOptions as $opt)
+                    <option value="{{ $opt['value'] }}" @selected($curSlot === $opt['value'])>{{ $opt['label'] }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+        @endif
+
         <div class="grid-span-row px-3 pb-2" data-span-row="{{ $block->id }}">
             <div class="flex items-center gap-1.5">
                 <span class="text-[9px] font-semibold flex-shrink-0" style="color: var(--text-faint);"><i class="fas fa-columns mr-1"></i>Width</span>
