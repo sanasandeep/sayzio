@@ -259,6 +259,12 @@ class BiolinkBlockController extends Controller
             'is_active' => 'boolean',
             'parent_id' => 'nullable|integer|exists:biolink_blocks,id',
             'insert_after' => 'nullable|integer|exists:biolink_blocks,id',
+            // The one position insert_after cannot name. Every gap in the
+            // list is "after the card above it" except the first, so without
+            // this there was no way to put a block at the top of a page at
+            // all -- you added it at the bottom and dragged it up past
+            // everything else.
+            'insert_at_top' => 'nullable|boolean',
         ]);
 
         // Plan gating: block_types_allowed restricts the catalog of block
@@ -289,8 +295,31 @@ class BiolinkBlockController extends Controller
 
         $parentId = $validated['parent_id'] ?? null;
         $insertAfterId = $validated['insert_after'] ?? null;
+        $insertAtTop = (bool) ($validated['insert_at_top'] ?? false);
 
-        if ($insertAfterId) {
+        // "At the top" of a design-locked page means after the fixed prefix,
+        // not above it. Resolving that here to an ordinary insert_after keeps
+        // one placement path below and one copy of the clamp, instead of a
+        // second branch that has to remember the same rule.
+        $topOfEmptyPage = false;
+        if ($insertAtTop && ! $insertAfterId && ! $parentId) {
+            if ($link->isDesignLocked()) {
+                $lastFixed = $link->biolinkBlocks()->whereNull('parent_id')
+                    ->orderBy('sort_order')->get()
+                    ->filter(fn ($b) => ! empty(($b->settings ?? [])['_fixed']))
+                    ->last();
+                if ($lastFixed) {
+                    $insertAfterId = $lastFixed->id;
+                }
+            }
+            // Nothing pinned above it, so the top really is position zero.
+            $topOfEmptyPage = ! $insertAfterId;
+        }
+
+        if ($topOfEmptyPage) {
+            $link->biolinkBlocks()->whereNull('parent_id')->increment('sort_order');
+            $sortOrder = 0;
+        } elseif ($insertAfterId) {
             $afterBlock = BiolinkBlock::where('id', $insertAfterId)->where('link_id', $link->id)->firstOrFail();
 
             // Design lock: fixed template blocks form a contiguous prefix at
@@ -420,10 +449,15 @@ class BiolinkBlockController extends Controller
                 'pollTallies' => [],
             ];
 
+            // The RESOLVED position, not what was asked for. A top insert on
+            // a design-locked page lands after the fixed prefix, so echoing
+            // the request would have the editor draw the card somewhere the
+            // server did not put it.
             $payload = [
-                'success'      => true,
-                'block'        => $block,
-                'insert_after' => $request->input('insert_after'),
+                'success'       => true,
+                'block'         => $block,
+                'insert_after'  => $insertAfterId,
+                'insert_at_top' => $topOfEmptyPage,
             ];
 
             if ($parentId) {
