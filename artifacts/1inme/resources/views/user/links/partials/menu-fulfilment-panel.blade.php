@@ -19,13 +19,13 @@
 --}}
 <div class="rm-row" x-show="menu.mode === 'order'" x-cloak>
     <label class="rm-label">How orders are handed over</label>
-    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;">
+    <div class="rm-opts">
         @foreach(\App\Modules\User\Support\MenuFulfilment::MODES as $mk => $mv)
             @if($fpIsRestaurant || ! $mv['restaurant_only'])
-            <label style="display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid var(--border-glass,rgba(127,127,127,.18));"
-                   :style="(menu.fulfilment_modes || []).includes('{{ $mk }}') ? 'border-color:#7f9cff;background:rgba(127,156,255,.1);' : ''">
+            <label class="rm-opt"
+                   :class="{ 'on': (menu.fulfilment_modes || []).includes('{{ $mk }}') }">
                 <input type="checkbox" value="{{ $mk }}" x-model="menu.fulfilment_modes" @change="saveSettings()">
-                <span style="font-size:12.5px;font-weight:600;">{{ $fpIsRestaurant ? $mv['label'] : $mv['store_label'] }}</span>
+                <span>{{ $fpIsRestaurant ? $mv['label'] : $mv['store_label'] }}</span>
             </label>
             @endif
         @endforeach

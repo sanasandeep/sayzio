@@ -30,6 +30,50 @@
        every row no matter how little it held; they are icon buttons on one
        line now and the text decides the height. `align-items:center` keeps
        them beside the name rather than pinned to the top of a tall row. */
+    /* One option chip, used by every picker on this panel.
+
+       There were seven copies of this markup inline across four partials,
+       each restating the same padding, radius and border. They drifted in
+       the ways copies do: a fixed 3-column grid on a ~330px panel cut
+       "Just the number" in half, and the border -- var(--border-glass),
+       #e3e0da in light mode -- is invisible enough on white that the
+       unselected options read as loose radio buttons with a stray blue
+       rectangle behind whichever one was picked, rather than as a set of
+       chips with one of them on. */
+    .rm-opts { display:grid; grid-template-columns:repeat(auto-fit,minmax(92px,1fr)); gap:6px; }
+    .rm-opts.two { grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); }
+    .rm-opt {
+        display:flex; align-items:center; gap:7px;
+        padding:8px 10px; border-radius:10px; cursor:pointer;
+        /* --border-strong, not --border-glass: the panel's own theme already
+           carries a weight for "this is an edge you are meant to see", and
+           --border-glass at #e3e0da on white is not it. */
+        border:1px solid var(--border-strong);
+        background:var(--bg-glass-input);
+        transition:border-color .15s ease, background .15s ease;
+        min-width:0;
+    }
+    .rm-opt:hover { border-color:#9db0ff; }
+    .rm-opt input { flex:0 0 auto; margin:0; }
+    /* Wraps instead of being clipped: a label is the only thing telling a
+       creator what the option does. */
+    .rm-opt span { font-size:12.5px; font-weight:600; line-height:1.25; min-width:0; }
+    .rm-opt.on { border-color:#7f9cff; background:rgba(127,156,255,.12); }
+    .rm-opt.on span { color:#3d6bff; }
+    html:not(.light-mode) .rm-opt.on span { color:#9db0ff; }
+
+    /* A colour row: swatch, what it is, and a way to clear it. Accent color
+       was a full-width 42px bar two rows above four of these, which is the
+       same control drawn two different ways within one card. */
+    /* A heading for a second group of chips under one rm-label. */
+    .rm-sublabel { font-size:11px; font-weight:600; color:var(--text-muted); opacity:.85; margin:9px 0 5px; }
+
+    .rm-colour { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+    .rm-colour input[type=color] { height:34px; width:46px; padding:3px; flex:0 0 auto; border-radius:9px; border:1px solid var(--border-strong); background:var(--bg-glass-input); cursor:pointer; }
+    .rm-colour .txt { flex:1; min-width:0; }
+    .rm-colour .txt b { display:block; font-size:12px; font-weight:600; color:var(--text-primary); }
+    .rm-colour .txt small { display:block; font-size:10.5px; opacity:.6; }
+
     .rm-item { display:flex; gap:12px; align-items:center; padding:10px 12px; border:1px solid var(--border-glass); border-radius:.85rem; margin-bottom:8px; background:var(--bg-glass-input); }
     .rm-item .meta { flex:1; min-width:0; }
     .rm-item .nm { font-weight:650; color:var(--text-primary); font-size:14.5px; }
@@ -55,7 +99,7 @@
     .rm-off { opacity:.5; }
     .rm-note { font-size:11.5px; color:var(--text-muted); margin-top:4px; }
     .rm-mode-toggle { display:flex; gap:8px; }
-    .rm-mode-toggle label { flex:1; text-align:center; padding:10px; border:1px solid var(--border-glass); border-radius:.75rem; cursor:pointer; font-size:13px; font-weight:600; color:var(--text-muted); }
+    .rm-mode-toggle label { flex:1; text-align:center; padding:10px; border:1px solid var(--border-strong); border-radius:.75rem; cursor:pointer; font-size:13px; font-weight:600; color:var(--text-muted); }
     .rm-mode-toggle input { display:none; }
     .rm-mode-toggle input:checked + span { color:#5c83ff; }
     .rm-modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:60; padding:16px; }
@@ -94,7 +138,10 @@
         </div>
 
         <!-- Settings -->
-        <div>
+        {{-- The support bubble is fixed to the bottom-right, which is where
+             this column ends. Without the gutter it sits on the last control
+             in the card. --}}
+        <div style="padding-bottom:72px;">
             <div class="rm-card">
                 <h5>Settings</h5>
                 {{-- The page background lives on the shared Appearance panel,
@@ -130,8 +177,17 @@
                 @include('user.links.partials.menu-money-picker')
                 @include('user.links.partials.menu-fulfilment-panel', ['fpIsRestaurant' => false])
                 <div class="rm-row">
+                    {{-- Drawn as a colour row, the same as the four below it.
+                         It was a full-width 42px bar -- the same control, two
+                         shapes, inside one card. --}}
                     <label class="rm-label">Accent color</label>
-                    <input type="color" class="rm-input" x-model="menu.accent_color" @change="saveSettings()" style="height:42px;padding:4px">
+                    <div class="rm-colour">
+                        <input type="color" x-model="menu.accent_color" @change="saveSettings()">
+                        <span class="txt">
+                            <b>Accent</b>
+                            <small>Buttons, prices and highlights on the page.</small>
+                        </span>
+                    </div>
                 </div>
                 <div class="rm-row">
                     {{-- Sana, 2026-09-23: "i cannot change colors of menu
@@ -144,19 +200,17 @@
                         Leave one blank to inherit the page text colour.
                     </p>
                     <template x-for="c in colourFields" :key="c.key">
-                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                            <input type="color" class="rm-input"
+                        <div class="rm-colour">
+                            <input type="color"
                                    :value="menu[c.key] || '#888888'"
-                                   @change="menu[c.key] = $event.target.value; saveSettings()"
-                                   style="height:34px;width:46px;padding:3px;flex:0 0 auto;">
-                            <span style="flex:1;min-width:0;">
-                                <span style="font-size:12px;font-weight:600;" x-text="c.label"></span>
-                                <span style="display:block;font-size:10.5px;opacity:.55;" x-text="c.hint"></span>
+                                   @change="menu[c.key] = $event.target.value; saveSettings()">
+                            <span class="txt">
+                                <b x-text="c.label"></b>
+                                <small x-text="c.hint"></small>
                             </span>
-                            <button type="button" class="rm-btn-ghost"
+                            <button type="button" class="rm-act" title="Back to inheriting the page text colour"
                                     x-show="menu[c.key]"
-                                    @click="menu[c.key] = ''; saveSettings()"
-                                    style="flex:0 0 auto;font-size:10px;">Clear</button>
+                                    @click="menu[c.key] = ''; saveSettings()"><i class="fas fa-rotate-left"></i></button>
                         </div>
                     </template>
                 </div>
@@ -166,13 +220,13 @@
                     {{-- Five ways to draw the same items. The page had one
                          hardcoded column before this; the choice is saved on
                          the menu and read by the public template. --}}
-                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;">
+                    <div class="rm-opts two">
                         @foreach(\App\Modules\User\Support\MenuPresentation::LAYOUTS as $lk => $lv)
-                        <label style="display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid var(--border-glass,rgba(127,127,127,.18));"
-                               :style="menu.layout === '{{ $lk }}' ? 'border-color:#7f9cff;background:rgba(127,156,255,.1);' : ''"
+                        <label class="rm-opt"
+                               :class="{ 'on': menu.layout === '{{ $lk }}' }"
                                title="{{ $lv['hint'] }}">
                             <input type="radio" value="{{ $lk }}" x-model="menu.layout" @change="saveSettings()">
-                            <span style="font-size:12.5px;font-weight:600;">{{ $lv['label'] }}</span>
+                            <span>{{ $lv['label'] }}</span>
                         </label>
                         @endforeach
                     </div>

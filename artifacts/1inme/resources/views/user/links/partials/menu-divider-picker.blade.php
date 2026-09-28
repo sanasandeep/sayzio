@@ -17,13 +17,13 @@
 --}}
 <div class="rm-row" x-show="menu.layout === 'list'" x-cloak>
     <label class="rm-label">Divider</label>
-    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;">
+    <div class="rm-opts">
         @foreach(\App\Modules\User\Support\MenuPresentation::DIVIDERS as $dk => $dv)
-        <label style="display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid var(--border-glass,rgba(127,127,127,.18));"
-               :style="menu.divider === '{{ $dk }}' ? 'border-color:#7f9cff;background:rgba(127,156,255,.1);' : ''"
+        <label class="rm-opt"
+               :class="{ 'on': menu.divider === '{{ $dk }}' }"
                title="{{ $dv['hint'] }}">
             <input type="radio" value="{{ $dk }}" x-model="menu.divider" @change="saveSettings()">
-            <span style="font-size:12.5px;font-weight:600;">{{ $dv['label'] }}</span>
+            <span>{{ $dv['label'] }}</span>
         </label>
         @endforeach
     </div>
