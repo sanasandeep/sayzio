@@ -42,34 +42,37 @@ class PublicRestaurantController extends Controller
             'items'            => 'required|array|min:1',
             'items.*.item_id'  => 'required|integer',
             'items.*.quantity' => 'required|integer|min:1|max:99',
+            'items.*.options'             => 'nullable|array|max:40',
+            'items.*.options.*.option_id' => 'required|integer',
+            'items.*.options.*.quantity'  => 'nullable|integer|min:1|max:20',
         ]);
 
-        $subtotal = $this->subtotalFor($menu, $data['items']);
-        $bill = $this->calculator->compute($menu, $subtotal, $data['coupon_code'] ?? null, $data['fulfilment'] ?? null);
+        // The quote and the order price through the same function, so a
+        // cart quoted at one number cannot be charged at another.
+        try {
+            $priced = app(\App\Modules\Common\Services\MenuCartPricer::class)->price($menu, $data['items']);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'error' => ['message' => $e->getMessage(), 'code' => 'invalid_cart'],
+            ], 422);
+        }
+
+        $bill = $this->calculator->compute($menu, $priced['subtotal'], $data['coupon_code'] ?? null, $data['fulfilment'] ?? null);
 
         return response()->json(['data' => ['bill' => $this->serializeBill($bill)]]);
     }
 
-    /** Sum the live price of the requested cart lines for an order menu. */
+    /**
+     * Sum the live price of the requested cart lines.
+     *
+     * Kept as a method because other code calls it, but it is one caller of
+     * MenuCartPricer now rather than a second implementation of it -- the
+     * arithmetic that used to live here is the arithmetic the order used,
+     * written twice.
+     */
     protected function subtotalFor(RestaurantMenu $menu, array $items): float
     {
-        $ids = collect($items)->pluck('item_id')->map(fn ($i) => (int) $i)->all();
-        $rows = RestaurantMenuItem::where('menu_id', $menu->id)
-            ->whereIn('id', $ids)
-            ->where('is_active', true)
-            ->get()
-            ->keyBy('id');
-
-        $subtotal = 0.0;
-        foreach ($items as $row) {
-            $item = $rows->get((int) $row['item_id']);
-            if (!$item || $item->is_sold_out) {
-                continue;
-            }
-            $subtotal += round(((float) $item->price) * max(1, (int) $row['quantity']), 2);
-        }
-
-        return round($subtotal, 2);
+        return app(\App\Modules\Common\Services\MenuCartPricer::class)->price($menu, $items)['subtotal'];
     }
 
     /** Shape a calculator breakdown into the public estimate payload. */
@@ -177,6 +180,9 @@ class PublicRestaurantController extends Controller
             'items.*.item_id' => 'required|integer',
             'items.*.quantity'=> 'required|integer|min:1|max:99',
             'items.*.note'    => 'nullable|string|max:300',
+            'items.*.options'             => 'nullable|array|max:40',
+            'items.*.options.*.option_id' => 'required|integer',
+            'items.*.options.*.quantity'  => 'nullable|integer|min:1|max:20',
         ]);
 
         try {
@@ -219,6 +225,8 @@ class PublicRestaurantController extends Controller
                     'name'       => $i->name,
                     'quantity'   => $i->quantity,
                     'line_total' => $i->line_total,
+                    'options'    => $i->options ?: null,
+                    'options_label' => \App\Modules\Common\Services\MenuCartPricer::describe($i->options),
                 ])->all()
                 : [],
         ];

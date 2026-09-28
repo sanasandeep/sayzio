@@ -47,21 +47,21 @@ class PublicStoreController extends Controller
             'items'               => 'required|array|min:1',
             'items.*.product_id'  => 'required|integer',
             'items.*.quantity'    => 'required|integer|min:1|max:99',
+            'items.*.options'             => 'nullable|array|max:40',
+            'items.*.options.*.option_id' => 'required|integer',
+            'items.*.options.*.quantity'  => 'nullable|integer|min:1|max:20',
         ]);
 
-        $ids = collect($data['items'])->pluck('product_id')->map(fn ($i) => (int) $i)->all();
-        $rows = \App\Modules\User\Models\StoreProduct::where('menu_id', $menu->id)
-            ->whereIn('id', $ids)->where('is_active', true)->get()->keyBy('id');
-
-        $subtotal = 0.0;
-        foreach ($data['items'] as $row) {
-            $product = $rows->get((int) $row['product_id']);
-            if (!$product || $product->is_out_of_stock) {
-                continue;
-            }
-            $subtotal += round(((float) $product->price) * max(1, (int) $row['quantity']), 2);
+        // The quote and the order price through the same function, so a
+        // cart quoted at one number cannot be charged at another.
+        try {
+            $subtotal = app(\App\Modules\Common\Services\MenuCartPricer::class)
+                ->price($menu, $data['items'])['subtotal'];
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'error' => ['message' => $e->getMessage(), 'code' => 'invalid_cart'],
+            ], 422);
         }
-        $subtotal = round($subtotal, 2);
 
         $modes  = \App\Modules\User\Support\MenuFulfilment::modesFor((array) ($menu->settings ?? []), false);
         $chosen = in_array($data['fulfilment'] ?? null, $modes, true) ? $data['fulfilment'] : ($modes[0] ?? null);
@@ -162,6 +162,9 @@ class PublicStoreController extends Controller
             'items.*.product_id'  => 'required|integer',
             'items.*.quantity'    => 'required|integer|min:1|max:99',
             'items.*.note'        => 'nullable|string|max:300',
+            'items.*.options'             => 'nullable|array|max:40',
+            'items.*.options.*.option_id' => 'required|integer',
+            'items.*.options.*.quantity'  => 'nullable|integer|min:1|max:20',
         ]);
 
         try {
@@ -198,6 +201,8 @@ class PublicStoreController extends Controller
                     'name'       => $i->name,
                     'quantity'   => $i->quantity,
                     'line_total' => $i->line_total,
+                    'options'    => $i->options ?: null,
+                    'options_label' => \App\Modules\Common\Services\MenuCartPricer::describe($i->options),
                 ])->all()
                 : [],
         ];
