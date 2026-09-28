@@ -256,6 +256,8 @@
                 <p class="text-xs" style="color:var(--text-faint)" x-text="savedMsg"></p>
             </div>
 
+            @include('user.links.partials.menu-confirmation-panel', ['confirmHeadlinePlaceholder' => 'Order placed 🎉'])
+
             <!-- GST / tax estimate -->
             <div class="rm-card" x-show="menu.mode === 'order'">
                 <h5>Estimated tax (GST)</h5>
@@ -448,6 +450,13 @@
     $menuCoupons = $menu->coupons->map(fn($c)=>['id'=>$c->id,'code'=>$c->code,'discount_type'=>$c->discount_type,'discount_value'=>$c->discount_value,'min_subtotal'=>$c->min_subtotal,'is_active'=>$c->is_active])->values();
     $menuData = ['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color, 'whatsapp_number' => $menu->settings['whatsapp_number'] ?? '', 'layout' => $menuLayoutKey, 'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null),
         'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null), 'fulfilment_modes' => $menuModes, 'charges' => $menuCharges, 'price_display' => $menuMoney['display'], 'price_position' => $menuMoney['position'], 'price_decimals' => $menuMoney['decimals'] > 0, 'heading_style' => \App\Modules\User\Support\MenuPresentation::heading($menu->settings['heading_style'] ?? null), 'price_style' => \App\Modules\User\Support\MenuPresentation::price($menu->settings['price_style'] ?? null, $menuLayoutKey)];
+    $menuConfirm = \App\Modules\User\Support\MenuConfirmation::resolve((array) ($menu->settings ?? []));
+    // The editor holds the mode as SAVED, not as resolved: someone who picks
+    // "send them to my page" and saves before typing the URL should find
+    // that choice still selected, rather than silently back on the default.
+    $menuConfirm['mode'] = \App\Modules\User\Support\MenuConfirmation::mode(
+        $menu->settings['confirmation']['mode'] ?? null
+    );
     $menuTax = [
         'enabled'   => $menu->taxEnabled(),
         'rate'      => $menu->taxRate(),
@@ -459,6 +468,7 @@ function restaurantEditor() {
     return {
         menu: @json($menuData),
         tax: @json($menuTax),
+        confirm: @json($menuConfirm),
         categories: @json($menuCategories),
         items: @json($menuItems),
         tables: @json($menuTables),
@@ -583,6 +593,10 @@ function restaurantEditor() {
                 currency:(this.menu.currency||'USD').toUpperCase(),
                 accent_color:this.menu.accent_color,
                 whatsapp_number:this.menu.whatsapp_number||'',
+                confirm_mode:this.confirm.mode||'bill',
+                confirm_url:this.confirm.url||'',
+                confirm_message:this.confirm.message||'',
+                confirm_headline:this.confirm.headline||'',
                 layout:this.menu.layout||'list',
                 divider:this.menu.divider||'line',
                 heading_style:this.menu.heading_style||'plain',

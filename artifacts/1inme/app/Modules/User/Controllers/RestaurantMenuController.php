@@ -86,6 +86,14 @@ class RestaurantMenuController extends Controller
             'tax_rate'        => 'nullable|numeric|min:0|max:100',
             'tax_inclusive'   => 'sometimes|boolean',
             'tax_label'       => 'nullable|string|max:24',
+            // What the guest sees once the order goes through (Sana,
+            // 2026-09-28). The mode is validated against the catalog rather
+            // than here, so an unknown value falls back rather than 422s a
+            // save that came from an older client.
+            'confirm_mode'     => 'nullable|string|max:16',
+            'confirm_url'      => 'nullable|string|max:2048',
+            'confirm_message'  => 'nullable|string|max:600',
+            'confirm_headline' => 'nullable|string|max:80',
         ]);
 
         $settings = $data['settings'] ?? ($menu->settings ?? []);
@@ -206,6 +214,18 @@ class RestaurantMenuController extends Controller
                 'inclusive' => (bool) ($data['tax_inclusive'] ?? false),
                 'label'     => trim((string) ($data['tax_label'] ?? 'GST')) ?: 'GST',
             ];
+        }
+
+        // What the guest sees the moment the order goes through. Written as
+        // one block so the mode and the thing that mode needs can never be
+        // saved apart from one another.
+        if ($request->hasAny(['confirm_mode', 'confirm_url', 'confirm_message', 'confirm_headline'])) {
+            $settings['confirmation'] = \App\Modules\User\Support\MenuConfirmation::sanitize([
+                'mode'     => $data['confirm_mode'] ?? null,
+                'url'      => $data['confirm_url'] ?? null,
+                'message'  => $data['confirm_message'] ?? null,
+                'headline' => $data['confirm_headline'] ?? null,
+            ]);
         }
 
         $menu->update([
