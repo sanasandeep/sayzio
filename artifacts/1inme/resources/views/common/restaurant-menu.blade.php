@@ -77,6 +77,30 @@
      * the audience. $pbInkLight reads the creator's own font colour, which
      * is the one signal they actually set in that same panel.
      */
+    // Every item's choices in ONE query rather than one per item: a forty
+    // item menu must not mean forty-one round trips on a page a guest is
+    // waiting for.
+    $rmChoices = [];
+    if ($menu->isOrderMode()) {
+        $rmChoices = collect(\App\Modules\User\Support\MenuOptionSelection::groupsForMany(
+            \App\Modules\User\Models\MenuItemOptionGroup::RESTAURANT_ITEM,
+            $menu->items->pluck('id')->map(fn ($i) => (int) $i)->all()
+        ))->map(fn ($groups) => $groups->map(fn ($g) => [
+            'id'             => (int) $g->id,
+            'name'           => $g->name,
+            'hint'           => $g->hint,
+            'is_required'    => (bool) $g->is_required,
+            'min_select'     => (int) $g->min_select,
+            'max_select'     => $g->max_select === null ? null : (int) $g->max_select,
+            'max_per_option' => $g->perOptionCap(),
+            'options'        => $g->options->filter(fn ($o) => $o->is_active)->map(fn ($o) => [
+                'id'          => (int) $o->id,
+                'name'        => $o->name,
+                'price_delta' => (float) $o->price_delta,
+                'is_sold_out' => (bool) $o->is_sold_out,
+            ])->values(),
+        ])->values())->all();
+    }
     $pbBs      = $link->settings['biolink'] ?? [];
     $pbOn      = \App\Modules\User\Support\PageBackground::chosen($pbBs);
     $pb        = $pbOn ? \App\Modules\User\Support\PageBackground::resolve($pbBs) : null;
@@ -322,6 +346,7 @@
 </div>
 
 @include('common.partials.menu-guest-post')
+@include('common.partials.menu-chooser')
 @include('common.partials.menu-confirmation')
 <script>
 (function () {
@@ -336,6 +361,8 @@
     const TABLE_CODE = @json($activeTable->code ?? null);
     const FUL_MODES = @json($fulModes);
     const FUL_ADDRESS = @json((object) $fulNeedsAddress);
+    const CHOICES = @json((object) $rmChoices);
+
     // What the owner chose to happen once the order goes through, resolved
     // server-side so the page never sees a half-configured mode.
     const CONFIRM = @json(\App\Modules\User\Support\MenuConfirmation::resolve((array) ($menu->settings ?? [])));
@@ -346,11 +373,19 @@
     let appliedCoupon = '';
     let lastBill = null;
     let quoteSeq = 0;
+    // ITEMS is the CATALOG: what the menu offers. The cart is LINES,
+    // because one dish can be in it twice with different choices -- one
+    // mild and two hot is the first thing anybody orders once spice levels
+    // exist, and a single qty per item cannot hold it.
     const ITEMS = {};
     document.querySelectorAll('[data-add]').forEach(el => {
         const id = el.getAttribute('data-add');
-        ITEMS[id] = { id: +id, name: el.getAttribute('data-name'), price: parseFloat(el.getAttribute('data-price')), qty: 0 };
+        ITEMS[id] = { id: +id, name: el.getAttribute('data-name'), price: parseFloat(el.getAttribute('data-price')) };
     });
+    menuChooser.install(CHOICES, n => fmt(n));
+    let LINES = [];
+    const qtyOf = id => LINES.filter(l => l.id === +id).reduce((n, l) => n + l.qty, 0);
+    const plainLine = id => LINES.find(l => l.id === +id && !l.opts.length);
     const fmt = n => MONEY.prefix
         + (Math.round(n * 100) / 100).toLocaleString('en-US', {
             minimumFractionDigits: MONEY.decimals, maximumFractionDigits: MONEY.decimals })
@@ -359,13 +394,28 @@
 
     function render() {
         let count = 0, total = 0;
+        LINES.forEach(l => { count += l.qty; total += l.qty * l.perUnit; });
+
         Object.values(ITEMS).forEach(it => {
-            count += it.qty; total += it.qty * it.price;
+            const n = qtyOf(it.id);
             const step = document.querySelector('[data-stepper="' + it.id + '"]');
             const addBtn = document.querySelector('[data-add="' + it.id + '"] .add');
             const qEl = document.querySelector('[data-qty="' + it.id + '"]');
-            if (qEl) qEl.textContent = it.qty;
-            if (it.qty > 0) { if (step) step.style.display='inline'; if (addBtn) addBtn.style.display='none'; }
+            if (qEl) qEl.textContent = n;
+
+            // A dish with choices cannot use the +/- stepper: plus WHICH
+            // one? So it keeps its Add button, which opens the chooser
+            // again, and says how many are already in the order.
+            if (menuChooser.asks(it.id)) {
+                if (step) step.style.display = 'none';
+                if (addBtn) {
+                    addBtn.style.display = 'inline-block';
+                    addBtn.textContent = n > 0 ? ('Add · ' + n + ' in order') : 'Add';
+                }
+                return;
+            }
+
+            if (n > 0) { if (step) step.style.display='inline'; if (addBtn) addBtn.style.display='none'; }
             else { if (step) step.style.display='none'; if (addBtn) addBtn.style.display='inline-block'; }
         });
         document.getElementById('cartCount').textContent = count;
@@ -383,15 +433,36 @@
         // that has lost a box renders without it.
         if (!box) { return; }
         box.innerHTML = '';
-        Object.values(ITEMS).filter(i => i.qty > 0).forEach(it => {
+        LINES.forEach(l => {
             const row = document.createElement('div');
             row.className = 'line';
-            row.innerHTML = '<span>' + it.qty + '× ' + it.name + '</span><span>' + fmt(it.qty * it.price) + '</span>';
+
+            const left = document.createElement('span');
+            const title = document.createElement('span');
+            title.textContent = l.qty + '× ' + l.name;
+            left.appendChild(title);
+            if (l.opts.length) {
+                const sub = document.createElement('small');
+                sub.className = 'line-opts';
+                sub.textContent = menuChooser.label(l.opts);
+                left.appendChild(document.createElement('br'));
+                left.appendChild(sub);
+            }
+
+            const right = document.createElement('span');
+            right.textContent = fmt(l.qty * l.perUnit);
+
+            row.appendChild(left);
+            row.appendChild(right);
             box.appendChild(row);
         });
     }
     function cartItems() {
-        return Object.values(ITEMS).filter(i => i.qty > 0).map(i => ({ item_id: i.id, quantity: i.qty }));
+        return LINES.map(l => ({
+            item_id: l.id,
+            quantity: l.qty,
+            options: menuChooser.payload(l.opts),
+        }));
     }
     // Render the itemised estimate from a calculator breakdown into a target box,
     // and set the matching "estimated total" element.
@@ -454,9 +525,38 @@
     }
 
     window.RM = {
-        add(id){ ITEMS[id].qty = 1; render(); },
-        inc(id){ ITEMS[id].qty++; render(); },
-        dec(id){ ITEMS[id].qty = Math.max(0, ITEMS[id].qty - 1); render(); },
+        add(id){
+            const it = ITEMS[id];
+            if (!menuChooser.asks(id)) { this.put(it, []); return; }
+            menuChooser.open({ id: it.id, name: it.name, base: it.price }, (item, opts) => {
+                this.put(ITEMS[item.id], opts);
+            });
+        },
+        // One line per distinct set of choices; adding the same set again
+        // is one more of that line rather than a second identical one.
+        put(it, opts){
+            const key = menuChooser.key(it.id, opts);
+            const found = LINES.find(l => l.key === key);
+            if (found) { found.qty++; }
+            else {
+                LINES.push({
+                    key, id: it.id, name: it.name, opts,
+                    perUnit: Math.round((it.price + menuChooser.extraFor(opts)) * 100) / 100,
+                    qty: 1,
+                });
+            }
+            render();
+            if (document.getElementById('cartModal').classList.contains('show')) { lines('cartLines'); refreshQuote(); }
+        },
+        // The +/- on a dish with no choices: there is only ever one line.
+        inc(id){ const l = plainLine(id); if (l) { l.qty++; render(); } else { this.add(id); } },
+        dec(id){
+            const l = plainLine(id);
+            if (!l) { return; }
+            l.qty--;
+            if (l.qty <= 0) { LINES = LINES.filter(x => x !== l); }
+            render();
+        },
         openCart(){ lines('cartLines'); refreshQuote(); document.getElementById('cartModal').classList.add('show'); },
         // Changing the handover changes which charges apply, so the shown
         // total has to be re-quoted rather than recomputed in the browser.
