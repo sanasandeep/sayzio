@@ -176,7 +176,7 @@
         <div class="menu-slot-row px-3 pb-2" data-slot-row="{{ $block->id }}">
             <div class="flex items-center gap-1.5">
                 <span class="text-[9px] font-semibold flex-shrink-0" style="color: var(--text-faint);"><i class="fas fa-arrows-up-down mr-1"></i>Position</span>
-                <select class="menu-slot-select flex-1 min-w-0"
+                <select class="menu-slot-select min-w-0"
                         aria-label="Where this block sits on the page"
                         onchange="setMenuSlot({{ $block->id }}, this.value, this)">
                     @foreach($slotOptions as $opt)

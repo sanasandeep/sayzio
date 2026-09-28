@@ -185,6 +185,21 @@
      Both live on the wrapper so one choice paints sections and
      sub-sections together. See common/partials/menu-layout-css. --}}
 <div class="page{{ in_array($mp['layout'], ['cards', 'grid'], true) ? ' wide' : '' }} head-{{ $mp['heading_style'] }} price-{{ $mp['price_style'] }}">
+
+    {{-- Before the hero. Sana, 2026-09-28, of a block set to "Top of page":
+         "its not going top of table.. still i see more heading and sub
+         heading" -- the one slot above the menu rendered AFTER the title
+         and description, so a block claiming to be at the top of the page
+         had the restaurant's name above it. --}}
+    @include('common.partials.biolink-block-list', [
+        'link'           => $link,
+        'blkFontColor'   => $pbInk,
+        'blkGlobalTheme' => $pbBs['block_theme'] ?? [],
+        'blkBtnInline'   => '',
+        'blkSlot'        => \App\Modules\User\Support\MenuBlockSlot::TOP,
+        'blkSectionIds'  => $blkSectionIds,
+        'blkEmpty'       => false,
+    ])
     <div class="hero">
         <h1>{{ $title }}</h1>
         @if($desc = $link->description)<p>{{ $desc }}</p>@endif

@@ -300,7 +300,10 @@ class ABlockCanSitBetweenTwoMenuSectionsTest extends TestCase
 
         $html = $this->editor($link->fresh());
 
-        $this->assertStringContainsString('Top of page', $html);
+        // "Top of page" was renamed once it turned out to render below the
+        // hero: it is two positions now, each saying which it is.
+        $this->assertStringContainsString('Very top, above the title', $html);
+        $this->assertStringContainsString('Above the menu', $html);
         $this->assertStringContainsString('After Starters', $html);
         $this->assertStringContainsString('After Mains', $html);
         $this->assertStringContainsString('Bottom of page', $html);
