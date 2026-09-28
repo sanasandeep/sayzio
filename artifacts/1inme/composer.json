@@ -110,6 +110,9 @@
         "check:block-assets": [
             "@php scripts/check-block-assets.php"
         ],
+        "check:menu-dom-ids": [
+            "@php scripts/check-menu-dom-ids.php"
+        ],
         "check:migration-ordering": [
             "@php artisan db:check-migration-ordering"
         ],
