@@ -44,8 +44,10 @@ class MenuMoney
             'hint'  => 'Rs.120 · $12. Shorter, and what a printed card uses.',
         ],
         'none' => [
-            'label' => 'Just the number',
-            'hint'  => '120 · 12. For a card that states its currency once at the top.',
+            // "Just the number" wrapped in the editor's chip and stretched
+            // the whole row with it; the hint below carries the long form.
+            'label' => 'Number',
+            'hint'  => '120 · 12. Just the number, for a card that states its currency once at the top.',
         ],
     ];
 

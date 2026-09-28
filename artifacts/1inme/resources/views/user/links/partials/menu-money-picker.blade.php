@@ -21,25 +21,32 @@
 <div class="rm-row">
     <label class="rm-label">Price format</label>
 
-    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;">
+    <div class="rm-opts">
         @foreach(\App\Modules\User\Support\MenuMoney::DISPLAYS as $dk => $dv)
-        <label style="display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid var(--border-glass,rgba(127,127,127,.18));"
-               :style="menu.price_display === '{{ $dk }}' ? 'border-color:#7f9cff;background:rgba(127,156,255,.1);' : ''"
+        <label class="rm-opt"
+               :class="{ 'on': menu.price_display === '{{ $dk }}' }"
                title="{{ $dv['hint'] }}">
             <input type="radio" value="{{ $dk }}" x-model="menu.price_display" @change="saveSettings()">
-            <span style="font-size:12.5px;font-weight:600;">{{ $dv['label'] }}</span>
+            <span>{{ $dv['label'] }}</span>
         </label>
         @endforeach
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:6px;"
+    {{-- These two rows are the same shape, so without a heading of its own
+         the second reads as three more options in the first -- five ways to
+         write a price rather than two questions about one. The labels are
+         short enough to fit a chip now, which is what makes the heading
+         necessary: "Before" alone does not say before what. --}}
+    <div class="rm-sublabel" x-show="menu.price_display !== 'none'" x-cloak>Which side of the number</div>
+
+    <div class="rm-opts two"
          x-show="menu.price_display !== 'none'" x-cloak>
         @foreach(\App\Modules\User\Support\MenuMoney::POSITIONS as $pk => $pv)
-        <label style="display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid var(--border-glass,rgba(127,127,127,.18));"
-               :style="menu.price_position === '{{ $pk }}' ? 'border-color:#7f9cff;background:rgba(127,156,255,.1);' : ''"
+        <label class="rm-opt"
+               :class="{ 'on': menu.price_position === '{{ $pk }}' }"
                title="{{ $pv['hint'] }}">
             <input type="radio" value="{{ $pk }}" x-model="menu.price_position" @change="saveSettings()">
-            <span style="font-size:12.5px;font-weight:600;">{{ $pv['label'] }} the number</span>
+            <span>{{ $pv['label'] }}</span>
         </label>
         @endforeach
     </div>

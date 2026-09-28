@@ -19,13 +19,13 @@
 --}}
 <div class="rm-row">
     <label class="rm-label">Section titles</label>
-    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;">
+    <div class="rm-opts two">
         @foreach(\App\Modules\User\Support\MenuPresentation::HEADINGS as $hk => $hv)
-        <label style="display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid var(--border-glass,rgba(127,127,127,.18));"
-               :style="menu.heading_style === '{{ $hk }}' ? 'border-color:#7f9cff;background:rgba(127,156,255,.1);' : ''"
+        <label class="rm-opt"
+               :class="{ 'on': menu.heading_style === '{{ $hk }}' }"
                title="{{ $hv['hint'] }}">
             <input type="radio" value="{{ $hk }}" x-model="menu.heading_style" @change="saveSettings()">
-            <span style="font-size:12.5px;font-weight:600;">{{ $hv['label'] }}</span>
+            <span>{{ $hv['label'] }}</span>
         </label>
         @endforeach
     </div>
@@ -40,13 +40,13 @@
 
 <div class="rm-row">
     <label class="rm-label">Prices</label>
-    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;">
+    <div class="rm-opts">
         @foreach(\App\Modules\User\Support\MenuPresentation::PRICES as $pk => $pv)
-        <label style="display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:10px;cursor:pointer;border:1px solid var(--border-glass,rgba(127,127,127,.18));"
-               :style="menu.price_style === '{{ $pk }}' ? 'border-color:#7f9cff;background:rgba(127,156,255,.1);' : ''"
+        <label class="rm-opt"
+               :class="{ 'on': menu.price_style === '{{ $pk }}' }"
                title="{{ $pv['hint'] }}">
             <input type="radio" value="{{ $pk }}" x-model="menu.price_style" @change="saveSettings()">
-            <span style="font-size:12.5px;font-weight:600;">{{ $pv['label'] }}</span>
+            <span>{{ $pv['label'] }}</span>
         </label>
         @endforeach
     </div>
