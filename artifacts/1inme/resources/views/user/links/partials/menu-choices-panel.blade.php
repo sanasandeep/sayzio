@@ -13,13 +13,15 @@
       $choiceBase   the option-groups endpoint for this menu
       $choiceItems  [{id, name}] -- the items a group can be put on
       $choiceNoun   "dish" or "product", for the copy
+      $choiceNounPlural  its plural. Not noun + "s": that gives "dishs",
+                         which is what shipped and what this fixes.
 --}}
-<div class="rm-card" x-data="menuChoices(@js($choiceBase), @js($choiceItems), @js($choiceNoun ?? 'item'))" x-init="load()">
+<div class="rm-card" x-data="menuChoices(@js($choiceBase), @js($choiceItems), @js($choiceNoun ?? 'item'), @js($choiceNounPlural ?? (($choiceNoun ?? 'item').'s')))" x-init="load()">
     <h5 style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <span>Choices <button class="rm-btn sm" type="button" @click="newGroup()"><i class="fas fa-plus"></i></button></span>
     </h5>
     <p class="text-xs mb-3" style="color:var(--text-muted)">
-        Questions a customer answers when they add something: spice level, size, toppings, add-ons. Define a set once and put it on as many <span x-text="noun + 's'"></span> as it applies to.
+        Questions a customer answers when they add something: spice level, size, toppings, add-ons. Define a set once and put it on as many <span x-text="nouns"></span> as it applies to.
     </p>
 
     <template x-if="!loaded">
@@ -113,7 +115,7 @@
 
                 <template x-if="draft.id">
                     <div class="mc-items">
-                        <label class="rm-label" x-text="'Which ' + noun + 's is this on?'"></label>
+                        <label class="rm-label" x-text="'Which ' + nouns + ' is this on?'"></label>
                         <div class="mc-item-list">
                             <template x-for="it in items" :key="it.id">
                                 <label class="mc-item">
@@ -222,9 +224,9 @@
 </style>
 
 <script>
-function menuChoices(base, items, noun) {
+function menuChoices(base, items, noun, nouns) {
     return {
-        base, items, noun,
+        base, items, noun, nouns,
         groups: [],
         loaded: false,
         draft: null,
@@ -263,7 +265,7 @@ function menuChoices(base, items, noun) {
         onLabel(g) {
             const n = (g.item_ids || []).length;
             if (n === 0) { return 'Not on anything yet'; }
-            return 'On ' + n + ' ' + this.noun + (n === 1 ? '' : 's');
+            return 'On ' + n + ' ' + (n === 1 ? this.noun : this.nouns);
         },
 
         blank() {

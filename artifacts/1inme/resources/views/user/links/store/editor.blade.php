@@ -271,6 +271,7 @@
                 'choiceBase'  => rtrim(url('/user/links/'.$link->id.'/store/option-groups'), '/'),
                 'choiceItems' => $menu->products->map(fn ($i) => ['id' => (int) $i->id, 'name' => $i->name])->values(),
                 'choiceNoun'  => 'product',
+                'choiceNounPlural' => 'products',
             ])
         </div>
     </div>
