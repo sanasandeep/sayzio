@@ -90,6 +90,39 @@ class MenuMoney
     ];
 
     /**
+     * The currencies to offer in the editor's picker, each labelled with
+     * what a price will actually look like.
+     *
+     * Sana, 2026-09-28: "currency symbol, can u make it dropdown?"
+     *
+     * It was a three-character text box, so the only way to find out
+     * whether a currency had a symbol on file was to type it and watch the
+     * sample. The label carries the symbol for exactly that reason -- "INR
+     * · Rs." answers the question the picker is being asked.
+     *
+     * A creator using a currency that is not on this list keeps their
+     * setting: the editor offers an "Other" escape back to a free text box
+     * rather than silently rewriting what they had. Anything not listed
+     * still formats correctly, it just prints its code.
+     *
+     * @return array<int, array{code: string, label: string}>
+     */
+    public static function options(): array
+    {
+        $out = [];
+        foreach (self::SYMBOLS as $code => $symbol) {
+            $token = trim($symbol);
+            $out[] = [
+                'code' => $code,
+                // A symbol equal to the code adds nothing to the label.
+                'label' => ($token === '' || $token === $code) ? $code : $code.' · '.$token,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
      * Currencies with no minor unit. Printing "¥1,200.00" is not a style
      * choice, it is wrong.
      *

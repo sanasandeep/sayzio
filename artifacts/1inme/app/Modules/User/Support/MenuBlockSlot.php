@@ -36,6 +36,21 @@ use Illuminate\Support\Collection;
  */
 class MenuBlockSlot
 {
+    /**
+     * Before the page's hero -- its title, description and order badge.
+     *
+     * Sana, 2026-09-28, having set a block to "Top of page": "its not going
+     * top of table.. still i see more heading and sub heading".
+     *
+     * He was right and the label was wrong. There was one slot above the
+     * menu and it rendered AFTER the hero, so a block that said it was at
+     * the top of the page had the restaurant's name and description above
+     * it. Those are two different places and a creator may reasonably want
+     * either, so they are two slots and each one says which it is.
+     */
+    public const TOP = 'top';
+
+    /** After the hero, before the first section. */
     public const ABOVE = 'above';
 
     public const BELOW = 'below';
@@ -81,8 +96,8 @@ class MenuBlockSlot
      */
     public static function resolve(?string $slot, $liveCategoryIds): string
     {
-        if ($slot === self::ABOVE) {
-            return self::ABOVE;
+        if ($slot === self::TOP || $slot === self::ABOVE) {
+            return $slot;
         }
 
         $sectionId = self::sectionId($slot);
@@ -119,7 +134,7 @@ class MenuBlockSlot
      */
     public static function isValid(?string $slot, $liveCategoryIds): bool
     {
-        if ($slot === self::ABOVE || $slot === self::BELOW) {
+        if ($slot === self::TOP || $slot === self::ABOVE || $slot === self::BELOW) {
             return true;
         }
 
@@ -147,10 +162,16 @@ class MenuBlockSlot
      */
     public static function options(Collection $categories): array
     {
-        $out = [[
-            'value' => self::ABOVE,
-            'label' => 'Top of page',
-        ]];
+        $out = [
+            [
+                'value' => self::TOP,
+                'label' => 'Very top, above the title',
+            ],
+            [
+                'value' => self::ABOVE,
+                'label' => 'Above the menu',
+            ],
+        ];
 
         foreach ($categories as $category) {
             $out[] = [

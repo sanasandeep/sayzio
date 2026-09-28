@@ -171,8 +171,31 @@
                     <p class="text-xs mt-1" style="color:var(--text-muted)">Turn off to pause new requests without switching back to display only.</p>
                 </div>
                 <div class="rm-row">
+                    {{-- Sana, 2026-09-28: "currency symbol, can u make it
+                         dropdown?"
+
+                         It was a three-character text box, so the only way
+                         to learn whether a currency had a symbol on file was
+                         to type it and watch the sample below. Each option
+                         is labelled with the symbol it will print.
+
+                         A creator already on a currency that is not listed
+                         keeps it: "Other" drops back to the text box rather
+                         than silently rewriting their setting. --}}
                     <label class="rm-label">Currency</label>
-                    <input class="rm-input" x-model="menu.currency" maxlength="3" @change="saveSettings()" style="text-transform:uppercase">
+                    <select class="rm-input" x-show="!currencyIsOther" x-cloak
+                            x-model="menu.currency" @change="onCurrencyPicked($event)">
+                        @foreach(\App\Modules\User\Support\MenuMoney::options() as $c)
+                        <option value="{{ $c['code'] }}">{{ $c['label'] }}</option>
+                        @endforeach
+                        <option value="__other">Other…</option>
+                    </select>
+                    <div x-show="currencyIsOther" x-cloak style="display:flex;gap:6px;align-items:center;">
+                        <input class="rm-input" x-model="menu.currency" maxlength="3"
+                               @change="saveSettings()" style="text-transform:uppercase" placeholder="e.g. GHS">
+                        <button type="button" class="rm-act" title="Back to the list"
+                                @click="currencyOther = false; if (!currencyKnown) { menu.currency = 'USD'; } saveSettings()"><i class="fas fa-list"></i></button>
+                    </div>
                 </div>
                 @include('user.links.partials.menu-money-picker')
                 @include('user.links.partials.menu-fulfilment-panel', ['fpIsRestaurant' => false])
@@ -371,6 +394,23 @@ function storeEditor() {
         // come straight from that class, so a currency added there shows up
         // here without a second edit.
         moneySymbols: @json(\App\Modules\User\Support\MenuMoney::SYMBOLS),
+        // The picker lists the currencies we carry a symbol for. A menu
+        // already set to one we don't carry opens on the text box rather
+        // than being quietly moved to USD.
+        currencyOther: false,
+        get currencyKnown(){ return Object.prototype.hasOwnProperty.call(this.moneySymbols, this.currencyCode); },
+        get currencyIsOther(){ return this.currencyOther || !this.currencyKnown; },
+        onCurrencyPicked(e){
+            if (e.target.value === '__other') {
+                this.currencyOther = true;
+                // Leave the code alone so the box opens on what they had.
+                this.menu.currency = this.currencyCode;
+                return;
+            }
+            this.currencyOther = false;
+            this.menu.currency = e.target.value;
+            this.saveSettings();
+        },
         moneyZeroDecimal: @json(\App\Modules\User\Support\MenuMoney::ZERO_DECIMAL),
         get currencyCode(){ return (this.menu.currency || 'USD').toUpperCase(); },
         get currencyHasSymbol(){ return !!this.moneySymbols[this.currencyCode]; },

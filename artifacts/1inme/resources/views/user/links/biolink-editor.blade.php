@@ -227,13 +227,25 @@
     .menu-slot-select {
         font-size: 10px;
         font-weight: 600;
-        padding: 2px 6px;
+        /* Room on the right for the chevron we draw, since appearance:none
+           removes the platform one. */
+        padding: 3px 20px 3px 7px;
         border-radius: 6px;
         border: 1px solid var(--border-strong);
         background: var(--bg-glass-input);
         color: var(--text-primary);
         cursor: pointer;
         max-width: 100%;
+        /* A full-width native select with a fat platform chevron reads as a
+           form field dropped into the card. This is a chip that happens to
+           be a select, the same weight as the Width buttons beside it. */
+        appearance: none;
+        -webkit-appearance: none;
+        width: auto;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M1 1l3 3 3-3' fill='none' stroke='%23888' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 7px center;
+        text-overflow: ellipsis;
     }
     .menu-slot-select:hover { border-color: #9db0ff; }
     .menu-slot-select:focus-visible { outline: 2px solid rgba(61,107,255,0.5); outline-offset: 1px; }
