@@ -35,6 +35,10 @@ final class ReservedAlias
         'compare', 'for', 'demos', 'dialer-contacts', 'events',
         'android', 'digest',
         'dialer', 'browser', 'extension', 'app',
+        // A guest menu page mints a fresh token here when its session has
+        // lapsed. Reserved so the catch-all never captures it and so no
+        // creator can take an alias that would shadow it.
+        'csrf-token',
     ];
 
     /**
