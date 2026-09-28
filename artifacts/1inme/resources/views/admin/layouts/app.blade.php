@@ -333,6 +333,7 @@
 
                     {{-- System --}}
                     <div class="section-header pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">System</div>
+                    <a href="{{ route('admin.menu-item-marks.index') }}" class="sidebar-link {{ request()->routeIs('admin.menu-item-marks.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-utensils"></i></div><span>Menu Marks</span></a>
                     <a href="{{ route('admin.domains.index') }}" class="sidebar-link {{ request()->routeIs('admin.domains.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-globe"></i></div><span>Domains</span></a>
                     <a href="{{ route('admin.integrations.index') }}" class="sidebar-link {{ request()->routeIs('admin.integrations.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-puzzle-piece"></i></div><span>Integrations</span></a>
                     <a href="{{ route('admin.feature-states.index') }}" class="sidebar-link {{ request()->routeIs('admin.feature-states.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-clock"></i></div><span>Feature States</span></a>

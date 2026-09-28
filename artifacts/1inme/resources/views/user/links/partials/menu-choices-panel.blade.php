@@ -22,7 +22,7 @@
     // editor that includes this partial to forget.
     $choiceIcons = [
         'list'  => \App\Modules\User\Support\MenuOptionIcon::forPicker(),
-        'paths' => \App\Modules\User\Support\MenuOptionIcon::paths(),
+        'paths' => \App\Modules\User\Support\MenuOptionIcon::shapes(),
         'max'   => \App\Modules\User\Support\MenuOptionIcon::MAX_REPEAT,
     ];
 @endphp
@@ -434,9 +434,13 @@ function menuChoices(base, items, noun, nouns, iconset) {
         },
 
         iconMarkup(key, times) {
-            const path = this.iconPaths[key];
-            if (!path) { return '<span class="mc-ico-none">+</span>'; }
+            const shape = this.iconPaths[key];
+            if (!shape) { return '<span class="mc-ico-none">+</span>'; }
 
+            // Only ever catalogue data, never anything the owner typed.
+            const solid = shape.solid
+                ? '<path d="' + shape.solid + '" fill="currentColor" stroke="none"/>'
+                : '';
             const n = Math.max(1, Math.min(this.maxRepeat, +times || 1));
             let out = '';
             for (let i = 0; i < n; i++) {
@@ -444,7 +448,7 @@ function menuChoices(base, items, noun, nouns, iconset) {
                 // 15px the customer sees it at.
                 out += '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"'
                     + ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="'
-                    + path + '"/></svg>';
+                    + shape.path + '"/>' + solid + '</svg>';
             }
             return out;
         },

@@ -42,7 +42,12 @@ class MenuOptionIcon
      * STROKED, not filled: an outline at 2px holds its shape at 15px where
      * a filled glyph turns into a blob.
      *
-     * @return array<string, array{label: string, hint: string, path: string}>
+     * `solid` is optional and is drawn FILLED on top of the outline. Only
+     * a shape that genuinely has a solid part carries one -- the dot in
+     * the veg/non-veg square, a fish's eye. Faking those with a very thick
+     * stroke works at 44px and turns into a smudge at 15.
+     *
+     * @return array<string, array{label: string, hint: string, path: string, solid?: string}>
      */
     public static function catalogue(): array
     {
@@ -96,6 +101,31 @@ class MenuOptionIcon
                 'hint'  => 'Takes longer, slow-cooked, made to order.',
                 'path'  => 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7.3V12l3.6 2.1',
             ],
+
+            // ---- The ones item marks needed --------------------------
+            //
+            // The square-and-dot is the mark on every packaged food and
+            // most menus in India, and a diner reads it before they read
+            // the dish name. Its meaning is entirely in the COLOUR --
+            // green vegetarian, red non-vegetarian, amber egg -- so it is
+            // one drawing here and the colour lives on the mark.
+            'diet-mark' => [
+                'label' => 'Veg / non-veg square',
+                'hint'  => 'The square-and-dot mark. Its colour is what it means.',
+                'path'  => 'M5 5h14v14H5z',
+                'solid' => 'M12 8.3a3.7 3.7 0 1 0 0 7.4 3.7 3.7 0 0 0 0-7.4z',
+            ],
+            'fish' => [
+                'label' => 'Fish',
+                'hint'  => 'Seafood.',
+                'path'  => 'M20.2 12c-2.4 3.2-5.2 4.8-8.1 4.8S6.4 15.2 4 12c2.4-3.2 5.2-4.8 8.1-4.8s5.7 1.6 8.1 4.8z M4 12 1.6 8.9v6.2L4 12z',
+                'solid' => 'M16.4 10.9a1 1 0 1 0 0 2 1 1 0 0 0 0-2z',
+            ],
+            'steam' => [
+                'label' => 'Steam',
+                'hint'  => 'Served hot.',
+                'path'  => 'M3.5 13.5h17a8.5 8.5 0 0 1-17 0z M9 3c-1 1.2-1 2.2 0 3.4s1 2.2 0 3.4 M15 3c-1 1.2-1 2.2 0 3.4s1 2.2 0 3.4',
+            ],
         ];
     }
 
@@ -136,15 +166,30 @@ class MenuOptionIcon
     }
 
     /**
-     * Just the path data, keyed by name -- what the pages need. The labels
+     * Just the drawing, keyed by name -- what the pages need. The labels
      * and hints are for the editor's picker and stay out of the public
      * payload.
      *
-     * @return array<string, string>
+     * Always both keys, `solid` empty when there is none, so every caller
+     * draws the same two elements rather than each one deciding what to do
+     * about a missing key.
+     *
+     * @return array<string, array{path: string, solid: string}>
      */
-    public static function paths(): array
+    public static function shapes(): array
     {
-        return array_map(fn ($icon) => $icon['path'], self::catalogue());
+        return array_map(fn ($icon) => [
+            'path'  => $icon['path'],
+            'solid' => $icon['solid'] ?? '',
+        ], self::catalogue());
+    }
+
+    /** One shape, or null when nothing can be drawn for that key. */
+    public static function shape(?string $key): ?array
+    {
+        $key = self::sanitize($key);
+
+        return $key === null ? null : self::shapes()[$key];
     }
 
     /**

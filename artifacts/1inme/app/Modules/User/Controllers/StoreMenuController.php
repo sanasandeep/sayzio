@@ -7,6 +7,7 @@ use App\Modules\User\Models\StoreCategory;
 use App\Modules\User\Models\StoreMenu;
 use App\Modules\User\Models\StoreOrder;
 use App\Modules\User\Models\StoreProduct;
+use App\Modules\User\Support\MenuItemMarks;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
@@ -345,6 +346,7 @@ class StoreMenuController extends Controller
             'currency'        => 'nullable|string|size:3',
             'photo_url'       => 'nullable|string|max:1024',
             'is_out_of_stock' => 'sometimes|boolean',
+            'marks'           => 'sometimes|array|max:40',
             'is_active'       => 'sometimes|boolean',
         ]);
 
@@ -359,6 +361,8 @@ class StoreMenuController extends Controller
             'currency'        => isset($data['currency']) ? strtoupper($data['currency']) : null,
             'photo_url'       => $data['photo_url'] ?? null,
             'is_out_of_stock' => (bool) ($data['is_out_of_stock'] ?? false),
+            // Never what the browser sent: see the restaurant's copy.
+            'marks'           => MenuItemMarks::sanitize($data['marks'] ?? []),
             'sort_order'      => (int) StoreProduct::where('category_id', $category->id)->max('sort_order') + 1,
         ]);
 
@@ -378,6 +382,7 @@ class StoreMenuController extends Controller
             'currency'        => 'nullable|string|size:3',
             'photo_url'       => 'nullable|string|max:1024',
             'is_out_of_stock' => 'sometimes|boolean',
+            'marks'           => 'sometimes|array|max:40',
             'is_active'       => 'sometimes|boolean',
         ]);
 
@@ -386,6 +391,10 @@ class StoreMenuController extends Controller
         }
         if (isset($data['currency'])) {
             $data['currency'] = strtoupper($data['currency']);
+        }
+
+        if (array_key_exists('marks', $data)) {
+            $data['marks'] = MenuItemMarks::sanitize($data['marks']);
         }
 
         $product->update($data);

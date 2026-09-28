@@ -36,6 +36,7 @@ use App\Modules\Admin\Controllers\PendingPaymentController;
 use App\Modules\Admin\Controllers\DemoContentController;
 use App\Modules\Admin\Controllers\ProtectedAccountController;
 use App\Modules\Admin\Controllers\AccountBadgeController;
+use App\Modules\Admin\Controllers\MenuItemMarkController;
 use App\Modules\Admin\Controllers\TestimonialController;
 use App\Modules\Admin\Controllers\SiteStatController;
 use App\Modules\Admin\Controllers\ZioLineController;
@@ -187,6 +188,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{kind}/{id}/thumbnail', [TemplateController::class, 'uploadThumbnail'])->middleware(CheckPermission::class . ':settings.manage')->name('thumbnail.upload');
             Route::delete('{kind}/{id}/thumbnail', [TemplateController::class, 'removeThumbnail'])->middleware(CheckPermission::class . ':settings.manage')->name('thumbnail.remove');
             Route::delete('{kind}/{id}', [TemplateController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+        });
+
+        // The admin-managed vocabulary of dish marks: veg, spicy, no
+        // garlic. Owners pick from this list and cannot add to it.
+        Route::prefix('menu-item-marks')->name('menu-item-marks.')->group(function () {
+            Route::get('/', [MenuItemMarkController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::post('/', [MenuItemMarkController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::put('{mark}', [MenuItemMarkController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('mark')->name('update');
+            Route::post('{mark}/toggle', [MenuItemMarkController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('mark')->name('toggle');
+            Route::delete('{mark}', [MenuItemMarkController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('mark')->name('destroy');
         });
 
         Route::prefix('domains')->name('domains.')->group(function () {
