@@ -9,6 +9,7 @@ use App\Modules\User\Models\RestaurantMenuCoupon;
 use App\Modules\User\Models\RestaurantMenuItem;
 use App\Modules\User\Models\RestaurantOrder;
 use App\Modules\User\Models\RestaurantTable;
+use App\Modules\User\Support\MenuItemMarks;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -434,6 +435,7 @@ class RestaurantMenuController extends Controller
             'currency'    => 'nullable|string|size:3',
             'photo_url'   => 'nullable|string|max:1024',
             'is_sold_out' => 'sometimes|boolean',
+            'marks'       => 'sometimes|array|max:40',
             'is_active'   => 'sometimes|boolean',
         ]);
 
@@ -448,6 +450,10 @@ class RestaurantMenuController extends Controller
             'currency'    => isset($data['currency']) ? strtoupper($data['currency']) : null,
             'photo_url'   => $data['photo_url'] ?? null,
             'is_sold_out' => (bool) ($data['is_sold_out'] ?? false),
+            // Never what the browser sent: an unknown key, a grade of
+            // forty and a dish wearing thirty marks are each one PUT
+            // away, and every one of them draws on a public page.
+            'marks'       => MenuItemMarks::sanitize($data['marks'] ?? []),
             'is_active'   => (bool) ($data['is_active'] ?? true),
             'sort_order'  => (int) RestaurantMenuItem::where('category_id', $category->id)->max('sort_order') + 1,
         ]);
@@ -468,6 +474,7 @@ class RestaurantMenuController extends Controller
             'currency'    => 'nullable|string|size:3',
             'photo_url'   => 'nullable|string|max:1024',
             'is_sold_out' => 'sometimes|boolean',
+            'marks'       => 'sometimes|array|max:40',
             'is_active'   => 'sometimes|boolean',
         ]);
 
@@ -476,6 +483,10 @@ class RestaurantMenuController extends Controller
         }
         if (isset($data['currency'])) {
             $data['currency'] = strtoupper($data['currency']);
+        }
+
+        if (array_key_exists('marks', $data)) {
+            $data['marks'] = MenuItemMarks::sanitize($data['marks']);
         }
 
         $item->update($data);

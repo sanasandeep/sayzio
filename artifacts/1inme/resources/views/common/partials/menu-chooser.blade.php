@@ -94,7 +94,7 @@
     // The icon catalogue, as path data keyed by name. It comes from
     // MenuOptionIcon rather than being written out again here, so a shape
     // the owner picked in the editor is the shape their customer sees.
-    var ICONS = @json(\App\Modules\User\Support\MenuOptionIcon::paths());
+    var ICONS = @json(\App\Modules\User\Support\MenuOptionIcon::shapes());
     var MAX_REPEAT = {{ \App\Modules\User\Support\MenuOptionIcon::MAX_REPEAT }};
 
     // Set by the page: CHOICES[itemId] = [group, ...]; fmt() formats money.
@@ -210,8 +210,8 @@
      * readers rather than given a label that duplicates the name.
      */
     function iconFor(o) {
-        var path = ICONS[o.icon];
-        if (!path) { return null; }
+        var shape = ICONS[o.icon];
+        if (!shape) { return null; }
 
         var times = Math.max(1, Math.min(MAX_REPEAT, o.icon_repeat || 1));
         var wrap = document.createElement('span');
@@ -229,8 +229,20 @@
             svg.setAttribute('stroke-linecap', 'round');
             svg.setAttribute('stroke-linejoin', 'round');
             var d = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            d.setAttribute('d', path);
+            d.setAttribute('d', shape.path);
             svg.appendChild(d);
+
+            // A shape with a genuinely solid part -- the dot in the
+            // veg square -- carries it separately, because a very thick
+            // stroke standing in for it smudges at this size.
+            if (shape.solid) {
+                var f = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                f.setAttribute('d', shape.solid);
+                f.setAttribute('fill', 'currentColor');
+                f.setAttribute('stroke', 'none');
+                svg.appendChild(f);
+            }
+
             wrap.appendChild(svg);
         }
 

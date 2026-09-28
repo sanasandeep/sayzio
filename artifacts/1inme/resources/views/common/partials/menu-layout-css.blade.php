@@ -19,6 +19,31 @@
 .items { display: block; }
 .item .photo { background: rgba(0,0,0,.05); object-fit: cover; }
 
+/* ---- Marks on a dish ------------------------------------------------ */
+/* Veg, spicy, no garlic. They sit with the name and wrap under it on a
+   narrow phone rather than squeezing the name into two characters, and
+   they never push the price out of line, because the name is what a diner
+   is reading first. Each mark's colour comes from the mark itself -- a
+   green square means vegetarian everywhere, which is the only reason it
+   means anything. */
+.item .marks { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.item .marks .mk { display: inline-flex; align-items: center; gap: 1px; }
+.item .marks .mk svg { display: block; }
+.item .marks .mk-chip {
+    font-size: 10.5px; font-weight: 600; letter-spacing: .02em;
+    padding: 2px 7px; border-radius: 999px;
+    background: rgba(0,0,0,.06); color: inherit; opacity: .75;
+    white-space: nowrap;
+}
+@media (prefers-color-scheme: dark) { .item .marks .mk-chip { background: rgba(255,255,255,.1); } }
+/* A sold-out dish is dimmed as a whole; its marks should not fight that. */
+.item.soldout .marks { opacity: .6; }
+.sr-only {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
 /* ---- 1. List (the original) ---------------------------------------- */
 /* Photo left, text right, one per row. Nothing here changes what this
    page has always looked like -- it is written out so the other four have
@@ -173,8 +198,9 @@
 .price-dots .item .info { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
 .price-right .item .name, .price-dots .item .name { order: 1; flex: 0 1 auto; }
 .price-right .item .price, .price-dots .item .price { order: 3; margin-top: 0; white-space: nowrap; }
-.price-right .item .desc, .price-dots .item .desc { order: 4; flex: 1 0 100%; margin-top: 2px; }
-.price-right .item .addrow, .price-dots .item .addrow { order: 5; flex: 1 0 100%; margin-top: 6px; }
+.price-right .item .marks, .price-dots .item .marks { order: 4; flex: 1 0 100%; margin-top: 4px; }
+.price-right .item .desc, .price-dots .item .desc { order: 5; flex: 1 0 100%; margin-top: 2px; }
+.price-right .item .addrow, .price-dots .item .addrow { order: 6; flex: 1 0 100%; margin-top: 6px; }
 /* The spacer is what pushes the price to the edge; in `dots` it also
    carries the rule. One flexing pseudo-element, so it stretches to whatever
    gap is left at any width. */

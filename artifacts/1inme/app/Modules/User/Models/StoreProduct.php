@@ -8,13 +8,14 @@ class StoreProduct extends Model
 {
     protected $fillable = [
         'menu_id', 'category_id', 'name', 'description', 'price', 'currency',
-        'photo_url', 'sort_order', 'is_out_of_stock', 'is_active',
+        'photo_url', 'marks', 'sort_order', 'is_out_of_stock', 'is_active',
     ];
 
     protected function casts(): array
     {
         return [
             'price'           => 'decimal:2',
+            'marks'           => 'array',
             'is_out_of_stock' => 'boolean',
             'is_active'       => 'boolean',
         ];
@@ -28,5 +29,15 @@ class StoreProduct extends Model
     public function category()
     {
         return $this->belongsTo(StoreCategory::class, 'category_id');
+    }
+
+    /**
+     * The marks a diner reads on this product: veg, spicy, no garlic.
+     * Resolved rather than returned raw, because a mark retired in admin
+     * must stop being drawn on dishes that were saved wearing it.
+     */
+    public function marksForDisplay(): array
+    {
+        return \App\Modules\User\Support\MenuItemMarks::resolve($this->marks);
     }
 }

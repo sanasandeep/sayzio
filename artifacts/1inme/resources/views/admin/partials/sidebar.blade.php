@@ -577,6 +577,14 @@
         {{-- ============ System ============ --}}
         <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">System</div>
 
+        <a href="{{ route('admin.menu-item-marks.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.menu-item-marks.*') ? 'active' : '' }}"
+           style="--nav-tint:#0a8f3c; --nav-tint-soft:rgba(10,143,60,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-utensils"></i></div>
+            <span class="nav-label">Menu Marks</span>
+            <span class="sidebar-tooltip">Menu Marks</span>
+        </a>
+
         <a href="{{ route('admin.domains.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.domains.*') ? 'active' : '' }}"
            style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">

@@ -340,6 +340,11 @@
                 </template>
             </div>
             <div class="rm-row"><label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)"><input type="checkbox" x-model="productModal.is_out_of_stock"> Out of stock</label></div>
+            @include('user.links.partials.menu-marks-picker', [
+                'mkModal' => 'productModal',
+                'mkNoun'  => 'product',
+            ])
+
             {{-- The way to choices from here.
 
                  Choices shipped reachable only from a card down in the
@@ -377,7 +382,7 @@
     $menuModes   = \App\Modules\User\Support\MenuFulfilment::modesFor((array) ($menu->settings ?? []), false);
     $menuCharges = \App\Modules\User\Support\MenuFulfilment::charges((array) ($menu->settings ?? []));
     $menuCategories = $menu->categories->map(fn($c)=>['id'=>$c->id,'parent_id'=>$c->parent_id,'name'=>$c->name,'description'=>$c->description,'is_active'=>(bool) $c->is_active,'sort_order'=>(int) $c->sort_order])->values();
-    $menuProducts = $menu->products->map(fn($p)=>['id'=>$p->id,'category_id'=>$p->category_id,'name'=>$p->name,'description'=>$p->description,'price'=>$p->price,'photo_url'=>$p->photo_url,'is_out_of_stock'=>$p->is_out_of_stock,'is_active'=>(bool) $p->is_active,'sort_order'=>(int) $p->sort_order])->values();
+    $menuProducts = $menu->products->map(fn($p)=>['id'=>$p->id,'category_id'=>$p->category_id,'name'=>$p->name,'description'=>$p->description,'price'=>$p->price,'photo_url'=>$p->photo_url,'is_out_of_stock'=>$p->is_out_of_stock,'marks'=>\App\Modules\User\Support\MenuItemMarks::sanitize($p->marks),'is_active'=>(bool) $p->is_active,'sort_order'=>(int) $p->sort_order])->values();
     $menuState = [
         'mode' => $menu->mode,
         'currency' => $menu->currency,
@@ -475,7 +480,7 @@ function storeEditor() {
         priceHints: @json(collect(\App\Modules\User\Support\MenuPresentation::PRICES)->map(fn ($x) => $x['hint'])),
         get priceHint(){ return this.priceHints[this.menu.price_style] || ''; },
         catModal: { open:false, id:null, parent_id:null, name:'', description:'' },
-        productModal: { open:false, id:null, category_id:null, name:'', description:'', price:'', photo_url:'', is_out_of_stock:false },
+        productModal: { open:false, id:null, category_id:null, name:'', description:'', price:'', photo_url:'', is_out_of_stock:false, marks:[] },
         base: @json($storeBase),
         uploadUrl: @json(route('user.files.upload')),
         csrf: @json(csrf_token()),
@@ -663,12 +668,12 @@ function storeEditor() {
             return this.vaultFiles.filter(f => f.original_name.toLowerCase().includes(s));
         },
         openProduct(catId, product){
-            this.productModal = product ? {open:true,id:product.id,category_id:catId,name:product.name,description:product.description||'',price:product.price,photo_url:product.photo_url||'',is_out_of_stock:!!product.is_out_of_stock} : {open:true,id:null,category_id:catId,name:'',description:'',price:'',photo_url:'',is_out_of_stock:false};
+            this.productModal = product ? {open:true,id:product.id,category_id:catId,name:product.name,description:product.description||'',price:product.price,photo_url:product.photo_url||'',is_out_of_stock:!!product.is_out_of_stock,marks:(product.marks||[])} : {open:true,id:null,category_id:catId,name:'',description:'',price:'',photo_url:'',is_out_of_stock:false,marks:[]};
             this.photoMode = 'url'; this.photoError = '';
         },
         async saveProduct(){
             if (!this.productModal.name.trim()) return;
-            const payload = { category_id:this.productModal.category_id, name:this.productModal.name, description:this.productModal.description, price:parseFloat(this.productModal.price||0), photo_url:this.productModal.photo_url||null, is_out_of_stock:this.productModal.is_out_of_stock };
+            const payload = { category_id:this.productModal.category_id, name:this.productModal.name, description:this.productModal.description, price:parseFloat(this.productModal.price||0), photo_url:this.productModal.photo_url||null, is_out_of_stock:this.productModal.is_out_of_stock, marks:(this.productModal.marks||[]) };
             if (this.productModal.id) { const d = await this.api('PUT','/products/'+this.productModal.id, payload); const i=this.products.findIndex(x=>x.id===this.productModal.id); this.products[i]=d.product; }
             else { const d = await this.api('POST','/products', payload); this.products.push(d.product); }
             this.productModal.open = false;

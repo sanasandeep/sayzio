@@ -307,7 +307,7 @@ class AChoiceCanWearAnIconTest extends TestCase
         // being written out again in the partial, so the shape the owner
         // picked is the shape the customer gets.
         $this->assertStringContainsString('var ICONS =', $html);
-        $flame = MenuOptionIcon::paths()['flame'];
+        $flame = MenuOptionIcon::shapes()['flame']['path'];
         $this->assertStringContainsString(substr($flame, 0, 20), $html,
             'The page knows the icon name but has nothing to draw.');
     }

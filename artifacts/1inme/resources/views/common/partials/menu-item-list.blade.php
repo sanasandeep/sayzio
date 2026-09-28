@@ -24,6 +24,13 @@
         @if($miItem->photo_url)<img class="photo" src="{{ $miItem->photo_url }}" alt="" loading="lazy">@endif
         <div class="info">
             <div class="name">{{ $miItem->name }}</div>
+            {{-- Their own line, not inside the name. Inline reads nicely
+                 until a dish carries four of them, and then in the
+                 leader-dots layout the name grows past what the row can
+                 hold and the PRICE wraps to the next line while the dots
+                 run on to the edge. A row of their own costs one line and
+                 behaves the same in all five layouts. --}}
+            @include('common.partials.menu-item-marks', ['mkMarks' => $miItem->marksForDisplay()])
             @if($miItem->description)<div class="desc">{{ $miItem->description }}</div>@endif
             <div class="price">{{ $miFmt($miItem->price) }}</div>
             @if($miOrder && ! $miSold)
