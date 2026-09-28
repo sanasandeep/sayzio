@@ -258,6 +258,12 @@
 
             @include('user.links.partials.menu-confirmation-panel', ['confirmHeadlinePlaceholder' => 'Order placed 🎉'])
 
+            @include('user.links.partials.menu-choices-panel', [
+                'choiceBase'  => rtrim(url('/user/links/'.$link->id.'/restaurant/option-groups'), '/'),
+                'choiceItems' => $menu->items->map(fn ($i) => ['id' => (int) $i->id, 'name' => $i->name])->values(),
+                'choiceNoun'  => 'dish',
+            ])
+
             <!-- GST / tax estimate -->
             <div class="rm-card" x-show="menu.mode === 'order'">
                 <h5>Estimated tax (GST)</h5>
