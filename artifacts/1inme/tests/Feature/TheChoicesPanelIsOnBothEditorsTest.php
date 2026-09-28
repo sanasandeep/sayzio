@@ -198,6 +198,28 @@ class TheChoicesPanelIsOnBothEditorsTest extends TestCase
         }
     }
 
+    public function test_the_copy_pluralises_properly(): void
+    {
+        // Shipped as "as many dishs as it applies to", found by looking at
+        // the live page rather than by any test. noun + "s" is not a plural.
+        $restaurant = $this->restaurant();
+        $store = $this->store();
+
+        $rHtml = $this->actingAs($this->owner)
+            ->get('/user/links/'.$restaurant->id.'/restaurant')->assertOk()->getContent();
+        $sHtml = $this->actingAs($this->owner)
+            ->get('/user/links/'.$store->id.'/store')->assertOk()->getContent();
+
+        $this->assertStringContainsString('dishes', $rHtml);
+        $this->assertStringNotContainsString('dishs', $rHtml);
+        $this->assertStringContainsString('products', $sHtml);
+
+        // And nothing builds a plural by appending an s.
+        $partial = file_get_contents(resource_path('views/user/links/partials/menu-choices-panel.blade.php'));
+        $this->assertStringNotContainsString("noun + 's'", $partial);
+        $this->assertStringNotContainsString("this.noun + 's'", $partial);
+    }
+
     public function test_a_group_has_to_be_created_before_it_can_hold_choices(): void
     {
         $partial = file_get_contents(resource_path('views/user/links/partials/menu-choices-panel.blade.php'));

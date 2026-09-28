@@ -262,6 +262,7 @@
                 'choiceBase'  => rtrim(url('/user/links/'.$link->id.'/restaurant/option-groups'), '/'),
                 'choiceItems' => $menu->items->map(fn ($i) => ['id' => (int) $i->id, 'name' => $i->name])->values(),
                 'choiceNoun'  => 'dish',
+                'choiceNounPlural' => 'dishes',
             ])
 
             <!-- GST / tax estimate -->
