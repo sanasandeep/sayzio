@@ -18,14 +18,6 @@
      get cramped; the configured span lives on data-grid-span / the width
      selector and only affects the public page + preview. --}}
 <div class="block-card-wrapper" data-block-id="{{ $block->id }}">
-    {{-- Fixed template blocks form a contiguous prefix on a locked page, so
-         no insert affordance mid-prefix (the server clamps such inserts to
-         after the prefix anyway). --}}
-    @unless($isLockedFixed)
-    <button type="button" class="insert-block-btn" onclick="openInsertGallery({{ $block->id }})" title="Insert block after this">
-        <i class="fas fa-plus"></i>
-    </button>
-    @endunless
     <div class="block-card {{ $block->isContainer() ? 'card-container-block' : '' }}" data-block-id="{{ $block->id }}" data-grid-span="{{ $curSpan }}" style="{{ $block->is_active ? '' : 'opacity:0.5;' }}">
         <div class="flex items-center gap-2 p-3">
             {{-- Multi-select. Ticking any box reveals the selection bar at the
@@ -181,4 +173,26 @@
             <div class="inline-editor-body" data-inline-editor-body="{{ $block->id }}"></div>
         </div>
     </div>
+
+    {{-- The gap below this card, as a place you can put something.
+
+         This used to be a 20px circle at opacity:0 hanging 14px off the
+         card's right edge, visible only on hover -- so on a touch screen it
+         could not be reached at all, and on a desktop you had to already know
+         it was there. Sana, 2026-09-27: "Blocks are placed at bottom... how
+         to insert them top below or inbetween any where".
+
+         Fixed template blocks form a contiguous prefix on a locked page, so
+         no rail inside the prefix; the server clamps such inserts anyway. --}}
+    @unless($isLockedFixed)
+    <button type="button"
+            class="insert-rail"
+            data-insert-after="{{ $block->id }}"
+            onclick="openInsertGallery({{ $block->id }})"
+            aria-label="Add a block below this one">
+        <span class="insert-rail-line" aria-hidden="true"></span>
+        <span class="insert-rail-dot"><i class="fas fa-plus"></i></span>
+        <span class="insert-rail-line" aria-hidden="true"></span>
+    </button>
+    @endunless
 </div>

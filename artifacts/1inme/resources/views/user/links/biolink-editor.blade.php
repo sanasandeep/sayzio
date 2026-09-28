@@ -136,35 +136,90 @@
     #blockList > .block-card-wrapper {
         grid-column: 1 / -1;
     }
-    .insert-block-btn {
-        position: absolute;
-        right: -14px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        border: 1.5px solid rgba(16,185,129,0.3);
-        background: var(--bg-card);
-        color: rgba(16,185,129,0.5);
-        font-size: 8px;
+    /* A gap you can put something in.
+
+       The previous affordance was a 20px circle at opacity:0, positioned
+       14px outside the card's right edge and revealed on hover. A touch
+       screen has no hover, so on a phone or tablet it could not be reached
+       at all; on a desktop you had to already know it was there. The rail
+       below is full width, sits in the gap it fills, and is visible at rest
+       -- faint, so a page of twenty blocks does not turn into a ladder, and
+       plain on hover or keyboard focus. */
+    .insert-rail {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 5px 0;
+        margin: 1px 0;
+        border: 0;
+        background: transparent;
         cursor: pointer;
+        opacity: 0.4;
+        transition: opacity 0.15s ease;
+    }
+    .insert-rail:hover,
+    .insert-rail:focus-visible { opacity: 1; }
+    .insert-rail:focus-visible { outline: 2px solid rgba(16,185,129,0.5); outline-offset: 2px; border-radius: 6px; }
+    .insert-rail-line {
+        flex: 1;
+        height: 1px;
+        background: var(--border-glass);
+        transition: background 0.15s ease;
+    }
+    .insert-rail-dot {
         display: flex;
         align-items: center;
         justify-content: center;
-        opacity: 0;
-        transition: all 0.2s ease;
-        z-index: 5;
-        padding: 0;
+        width: 20px;
+        height: 20px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        border: 1.5px solid rgba(16,185,129,0.35);
+        background: var(--bg-card);
+        color: rgba(16,185,129,0.75);
+        font-size: 8px;
+        transition: all 0.15s ease;
     }
-    .block-card-wrapper:hover .insert-block-btn {
-        opacity: 1;
-    }
-    .insert-block-btn:hover {
+    .insert-rail:hover .insert-rail-dot,
+    .insert-rail:focus-visible .insert-rail-dot {
         border-color: #10b981;
         background: rgba(16,185,129,0.12);
         color: #10b981;
-        transform: translateY(-50%) scale(1.15);
+    }
+    .insert-rail:hover .insert-rail-line,
+    .insert-rail:focus-visible .insert-rail-line { background: rgba(16,185,129,0.35); }
+    /* The top rail is the one slot no block id can name, so it stays a touch
+       more present than the rest -- it is also the least expected. */
+    .insert-rail-top { opacity: 0.55; margin-bottom: 2px; }
+
+    /* Armed. Clicking a rail used to change nothing on screen: the next
+       palette click would land there and nothing said so, and if you got
+       distracted in between it landed somewhere you had forgotten choosing.
+       An armed rail holds itself open and says what it is waiting for. */
+    .insert-rail.is-armed {
+        opacity: 1;
+        padding: 9px 0;
+    }
+    .insert-rail.is-armed .insert-rail-line { background: #10b981; }
+    .insert-rail.is-armed .insert-rail-dot {
+        width: auto;
+        height: auto;
+        padding: 3px 10px;
+        border-radius: 999px;
+        border-color: #10b981;
+        background: rgba(16,185,129,0.14);
+        color: #10b981;
+        font-size: 10px;
+        font-weight: 600;
+        gap: 5px;
+    }
+    .insert-rail.is-armed .insert-rail-dot::after {
+        content: 'Pick a block';
+        white-space: nowrap;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .insert-rail, .insert-rail-line, .insert-rail-dot { transition: none; }
     }
 
     .card-container-block {
@@ -1235,6 +1290,22 @@ $catColors = [
                     <p class="text-xs" style="color: var(--text-faint);"><i class="fas fa-grip-vertical mr-1"></i> Drag to reorder blocks</p>
                 </div>
 
+                {{-- The top of the page, which until now had no way to be
+                     reached. Every gap in the list is "after the card above
+                     it"; the first gap has no card above it, so a block could
+                     only ever be added at the bottom and dragged up past
+                     everything else. Outside #blockList so SortableJS never
+                     sees it as a draggable child. --}}
+                <button type="button"
+                        id="insertRailTop"
+                        class="insert-rail insert-rail-top"
+                        onclick="openInsertGalleryAtTop()"
+                        style="{{ $blocks->count() ? '' : 'display:none;' }}"
+                        aria-label="Add a block at the top of the page">
+                    <span class="insert-rail-line" aria-hidden="true"></span>
+                    <span class="insert-rail-dot"><i class="fas fa-plus"></i></span>
+                    <span class="insert-rail-line" aria-hidden="true"></span>
+                </button>
                 <div id="blockList" class="grid gap-2" style="grid-template-columns: repeat(12, 1fr); padding-right: 16px;">
                     @foreach($blocks as $block)
                     @include('user.links.partials.block-card', ['block' => $block, 'link' => $link, 'blockTypes' => $blockTypes, 'catColors' => $catColors, 'pollTallies' => $pollTallies ?? []])
@@ -1293,6 +1364,7 @@ function biolinkEditor() {
         // Pending-insert context, mirrored into the global vars the add
         // handlers read. Drives the palette "inserting after / into card" banner.
         insertAfterId: null,
+        insertAtTop: false,
         cardParentId: null,
         paletteSearch: '',
         paletteCategory: 'all',
@@ -1360,24 +1432,43 @@ function biolinkEditor() {
         },
         // Set/clear the pending-insert target. Keeps the legacy global vars in
         // sync so ajaxAddBlock / ajaxAddBlockWithSettings / applyCardTemplate
-        // pick the right position.
+        // pick the right position, and repaints the rails so the position is
+        // visible rather than only remembered.
         beginInsert(afterId) {
             this.insertAfterId = afterId;
+            this.insertAtTop = false;
             this.cardParentId = null;
             _insertAfterId = afterId;
+            _insertAtTop = false;
             _cardGalleryParentId = null;
+            _syncInsertRails();
+        },
+        beginInsertAtTop() {
+            this.insertAfterId = null;
+            this.insertAtTop = true;
+            this.cardParentId = null;
+            _insertAfterId = null;
+            _insertAtTop = true;
+            _cardGalleryParentId = null;
+            _syncInsertRails();
         },
         beginCardInsert(cardId) {
             this.insertAfterId = null;
+            this.insertAtTop = false;
             this.cardParentId = cardId;
             _insertAfterId = null;
+            _insertAtTop = false;
             _cardGalleryParentId = cardId;
+            _syncInsertRails();
         },
         cancelInsert() {
             this.insertAfterId = null;
+            this.insertAtTop = false;
             this.cardParentId = null;
             _insertAfterId = null;
+            _insertAtTop = false;
             _cardGalleryParentId = null;
+            _syncInsertRails();
         },
         visibleCardTemplates() {
             var q = (this.specialSearch || '').toLowerCase();
@@ -1416,7 +1507,7 @@ function biolinkEditor() {
             var fd = new FormData();
             fd.append('_token', _csrfToken());
             fd.append('template_id', id);
-            if (_insertAfterId) fd.append('insert_after', _insertAfterId);
+            _appendInsertPosition(fd);
             var self = this;
             fetch('{{ route('user.links.templates.apply-card', $link) }}', {
                 method: 'POST',
@@ -1443,6 +1534,9 @@ function biolinkEditor() {
             // and (for cards) open the templates panel.
             window.addEventListener('editor-begin-insert', function(e) {
                 self.beginInsert(e.detail.afterId);
+            });
+            window.addEventListener('editor-begin-insert-top', function() {
+                self.beginInsertAtTop();
             });
             window.addEventListener('editor-begin-card-insert', function(e) {
                 self.beginCardInsert(e.detail.cardId);
@@ -2413,15 +2507,29 @@ function ajaxDeleteAllBlocks(btn) {
 }
 
 // Source of truth for the pending-insert target, read by every add handler.
-// Alpine mirrors these into insertAfterId / cardParentId to drive the banner.
+// Alpine mirrors these into insertAfterId / cardParentId / insertAtTop so the
+// armed rail can show where the next block will land.
 var _cardGalleryParentId = null;
 var _insertAfterId = null;
+// The one slot no block id can name. Every gap in the list is "after the card
+// above it" except the first, so without this there was no way to put a block
+// at the top of a page: you added it at the bottom and dragged it up.
+var _insertAtTop = false;
 
-// Clear the pending-insert target everywhere (globals + Alpine banner).
+// Every add path sends the pending position the same way, so a new one cannot
+// send half of it.
+function _appendInsertPosition(fd) {
+    if (_insertAfterId) fd.append('insert_after', _insertAfterId);
+    else if (_insertAtTop) fd.append('insert_at_top', '1');
+}
+
+// Clear the pending-insert target everywhere (globals + Alpine rail).
 function _clearInsertState() {
     _insertAfterId = null;
+    _insertAtTop = false;
     _cardGalleryParentId = null;
     window.dispatchEvent(new CustomEvent('editor-clear-insert'));
+    if (typeof _syncInsertRails === 'function') _syncInsertRails();
 }
 
 // Close the inline "Templates, forms & more" panel.
@@ -2435,7 +2543,7 @@ function ajaxAddBlock(type, url, parentId) {
     fd.append('_token', _csrfToken());
     var pid = parentId || _cardGalleryParentId;
     if (pid) fd.append('parent_id', pid);
-    if (_insertAfterId) fd.append('insert_after', _insertAfterId);
+    _appendInsertPosition(fd);
     fetch(url, {
         method: 'POST',
         headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': _csrfToken() },
@@ -2470,7 +2578,7 @@ function ajaxAddBlockWithSettings(type, settings, url) {
     });
     var pid = _cardGalleryParentId;
     if (pid) fd.append('parent_id', pid);
-    if (_insertAfterId) fd.append('insert_after', _insertAfterId);
+    _appendInsertPosition(fd);
     fetch(url, {
         method: 'POST',
         headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': _csrfToken() },
@@ -2499,8 +2607,43 @@ function openCardGallery(cardId) {
 
 // Per-block "+" — set a pending after-this-block target and focus the palette.
 function openInsertGallery(afterBlockId) {
+    // Clicking the armed rail again puts it back, so a rail armed by mistake
+    // does not have to be spent on a block you did not want.
+    if (_insertAfterId === afterBlockId) { _clearInsertState(); return; }
     window.dispatchEvent(new CustomEvent('editor-begin-insert', { detail: { afterId: afterBlockId } }));
     focusBlockPalette();
+}
+
+// The top of the page. No block sits above it, so there is no id to insert
+// after and the server is told the position by name instead.
+function openInsertGalleryAtTop() {
+    if (_insertAtTop) { _clearInsertState(); return; }
+    window.dispatchEvent(new CustomEvent('editor-begin-insert-top'));
+    focusBlockPalette();
+}
+
+// Paint the armed rail. The pending target has always been tracked and
+// nothing ever showed it, so a rail click changed nothing on screen and the
+// block landed wherever you had last clicked, possibly minutes earlier.
+function _syncInsertRails() {
+    document.querySelectorAll('.insert-rail').forEach(function(rail) {
+        var after = rail.dataset ? rail.dataset.insertAfter : null;
+        var armed = after
+            ? (_insertAfterId !== null && String(_insertAfterId) === String(after))
+            : (_insertAtTop === true);
+        rail.classList.toggle('is-armed', armed);
+        rail.setAttribute('aria-pressed', armed ? 'true' : 'false');
+    });
+}
+
+// The top rail only makes sense when there is something for a block to go
+// above; on an empty page "the top" and "the end" are the same slot.
+function _syncTopRailVisibility() {
+    var rail = document.getElementById('insertRailTop');
+    var list = document.getElementById('blockList');
+    if (!rail || !list) return;
+    var has = !!list.querySelector(':scope > .block-card-wrapper');
+    rail.style.display = has ? '' : 'none';
 }
 
 // Bring the left "Add blocks" palette into view and focus its search. On small
@@ -2618,6 +2761,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (hint) hint.style.display = count > 1 ? '' : 'none';
         var empty = document.getElementById('blockListEmpty');
         if (empty) empty.style.display = count === 0 ? '' : 'none';
+        // Adding, deleting or reordering all land here, and all of them can
+        // change whether "the top" is a place a block can go.
+        if (typeof _syncTopRailVisibility === 'function') _syncTopRailVisibility();
     }
     window.__editorUpdateBlockChrome = updateBlockChrome;
 
@@ -2663,6 +2809,11 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (data.insert_after) {
                 var ref = el.querySelector(':scope > .block-card-wrapper[data-block-id="' + data.insert_after + '"]');
                 if (ref) el.insertBefore(node, ref.nextSibling); else el.appendChild(node);
+            } else if (data.insert_at_top) {
+                // The server put it at sort_order 0. `insertBefore(x, null)`
+                // appends, so fall back to the end only when the list is
+                // genuinely empty — which is the same place either way.
+                el.insertBefore(node, el.querySelector(':scope > .block-card-wrapper'));
             } else {
                 el.appendChild(node);
             }
@@ -2672,6 +2823,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // A card added after load brings its own tick box; re-running the
         // selection sync keeps the bar's count and the ringing honest.
         if (typeof window.__syncBlockSelection === 'function') window.__syncBlockSelection();
+        if (typeof _syncTopRailVisibility === 'function') _syncTopRailVisibility();
+        if (typeof _syncInsertRails === 'function') _syncInsertRails();
         _refreshPreviewSafe();
     };
 
@@ -2753,7 +2906,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return !inner;
             }},
             draggable: '.block-card-wrapper',
-            filter: '.card-children-area, .card-child-list, .child-span-row, .grid-span-row, .insert-block-btn, .inline-block-editor',
+            filter: '.card-children-area, .card-child-list, .child-span-row, .grid-span-row, .insert-rail, .inline-block-editor',
             // Sortable's default preventOnFilter:true calls preventDefault()
             // on every pointerdown inside filtered zones, which blocks text
             // inputs in the inline block editor from ever taking focus.
