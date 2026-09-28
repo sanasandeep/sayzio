@@ -157,6 +157,10 @@
         .ghost { width:100%; border:1px solid rgba(0,0,0,.15); background:transparent; color:inherit; border-radius:12px; padding:11px; font-size:14px; cursor:pointer; margin-top:8px; }
         .wa-btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; box-sizing:border-box; background:#25D366; color:#fff; border-radius:12px; padding:12px; font-size:14px; font-weight:700; text-decoration:none; margin-top:12px; }
         .note { font-size:12.5px; opacity:.6; text-align:center; margin-top:10px; }
+        /* A failed order says so here rather than in an alert() box, which
+           covers the bill and cannot say what to do next. */
+        .order-err { margin:10px 0 0; padding:10px 12px; border-radius:10px; font-size:13px; line-height:1.4;
+                     background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.35); color:#ef4444; }
         .status-pill { display:inline-block; padding:4px 11px; border-radius:999px; font-size:12.5px; font-weight:700; background:var(--accent); color:#fff; }
         .empty { text-align:center; opacity:.5; padding:40px 0; }
         .ful-row { display:flex; gap:8px; margin-top:12px; }
@@ -277,6 +281,11 @@
         @endunless
         <input class="field" id="fName" placeholder="Your name (optional)">
         <textarea class="field" id="fNote" rows="2" placeholder="Notes for the kitchen (optional)"></textarea>
+        {{-- Where a failed order says so. An alert() box is the wrong
+             surface for someone holding a phone at a table: it covers the
+             bill they were about to check and says nothing about what to
+             do next. --}}
+        <p class="order-err" id="orderErr" role="alert" style="display:none"></p>
         <button class="primary" id="placeBtn" type="button" onclick="RM.place()">Place order</button>
         <button class="ghost" type="button" onclick="RM.closeCart()">Keep browsing</button>
         <p class="note">This is an estimated bill, not the actual bill. No online payment, you'll pay staff directly at your table.</p>
@@ -301,6 +310,7 @@
     </div>
 </div>
 
+@include('common.partials.menu-guest-post')
 <script>
 (function () {
     const CSRF = document.querySelector('meta[name="csrf-token"]').content;
@@ -392,25 +402,31 @@
         const fallbackTotal = Object.values(ITEMS).reduce((s, it) => s + it.qty * it.price, 0);
         if (!items.length) { lastBill = null; renderBill('billBreakdown', 'modalTotal', null); document.getElementById('modalTotal').textContent = fmt(0); return; }
         const seq = ++quoteSeq;
-        try {
-            const r = await fetch(QUOTE_URL, {
-                method:'POST',
-                headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'X-Requested-With':'XMLHttpRequest'},
-                body: JSON.stringify({ items, coupon_code: appliedCoupon || null, fulfilment })
-            });
-            const j = await r.json();
-            if (seq !== quoteSeq) return;
-            if (!r.ok) { lastBill = null; document.getElementById('modalTotal').textContent = fmt(fallbackTotal); return; }
-            lastBill = j.data.bill;
-            renderBill('billBreakdown', 'modalTotal', lastBill);
-            const msg = document.getElementById('couponMsg');
-            if (appliedCoupon && lastBill.coupon_applied) { msg.textContent = 'Code applied ✓'; msg.className = 'coupon-msg ok'; }
-            else if (appliedCoupon && lastBill.coupon_error) { msg.textContent = lastBill.coupon_error; msg.className = 'coupon-msg err'; }
-            else { msg.textContent = ''; msg.className = 'coupon-msg'; }
-        } catch(e) {
-            if (seq !== quoteSeq) return;
+        const res = await menuPost(QUOTE_URL, { items, coupon_code: appliedCoupon || null, fulfilment });
+        if (seq !== quoteSeq) return;
+        if (!res.ok || !res.data || !res.data.data) {
+            // The quote is an estimate shown while browsing, so a failure
+            // falls back to the line-item sum rather than interrupting.
+            lastBill = null;
             document.getElementById('modalTotal').textContent = fmt(fallbackTotal);
+            return;
         }
+        lastBill = res.data.data.bill;
+        renderBill('billBreakdown', 'modalTotal', lastBill);
+        const msg = document.getElementById('couponMsg');
+        if (appliedCoupon && lastBill.coupon_applied) { msg.textContent = 'Code applied ✓'; msg.className = 'coupon-msg ok'; }
+        else if (appliedCoupon && lastBill.coupon_error) { msg.textContent = lastBill.coupon_error; msg.className = 'coupon-msg err'; }
+        else { msg.textContent = ''; msg.className = 'coupon-msg'; }
+    }
+
+    // Show or clear the inline failure line above Place order.
+    function orderError(message) {
+        const el = document.getElementById('orderErr');
+        if (!el) { return; }
+        if (!message) { el.style.display = 'none'; el.textContent = ''; return; }
+        el.textContent = message;
+        el.style.display = '';
+        el.scrollIntoView({ block: 'nearest' });
     }
 
     window.RM = {
@@ -438,25 +454,25 @@
             if (!items.length) return;
             const btn = document.getElementById('placeBtn');
             btn.disabled = true; btn.textContent = 'Placing…';
-            try {
-                const r = await fetch(ORDER_URL, {
-                    method:'POST',
-                    headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'X-Requested-With':'XMLHttpRequest'},
-                    body: JSON.stringify({
-                        table_code: TABLE_CODE,
-                        customer_name: document.getElementById('fName').value || null,
-                        customer_note: document.getElementById('fNote').value || null,
-                        fulfilment,
-                        customer_address: FUL_ADDRESS[fulfilment]
-                            ? (document.getElementById('fAddress').value || null) : null,
-                        coupon_code: appliedCoupon || null,
-                        items
-                    })
-                });
-                const j = await r.json();
-                if (!r.ok) { alert((j.error && j.error.message) || 'Could not place order'); btn.disabled=false; btn.textContent='Place order'; return; }
-                this.showDone(j.data.order);
-            } catch(e) { alert('Network error, please try again.'); btn.disabled=false; btn.textContent='Place order'; }
+            orderError(null);
+            const res = await menuPost(ORDER_URL, {
+                table_code: TABLE_CODE,
+                customer_name: document.getElementById('fName').value || null,
+                customer_note: document.getElementById('fNote').value || null,
+                fulfilment,
+                customer_address: FUL_ADDRESS[fulfilment]
+                    ? (document.getElementById('fAddress').value || null) : null,
+                coupon_code: appliedCoupon || null,
+                items
+            });
+            if (!res.ok || !res.data || !res.data.data) {
+                // The real status, not "Network error" for everything that
+                // failed to parse as JSON.
+                orderError(res.message);
+                btn.disabled = false; btn.textContent = 'Place order';
+                return;
+            }
+            this.showDone(res.data.data.order);
         },
         showDone(order){
             this.closeCart();

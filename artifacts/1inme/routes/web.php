@@ -731,6 +731,20 @@ Route::prefix('store')->name('store.')->group(function () {
 // manifest route can never drift apart — the drift that caused the original
 // 405 over-match bug (see AliasCatchAllReservedPrefixTest).
 Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', \App\Modules\Common\Support\ReservedAlias::pattern('.*$'));
+// A fresh CSRF token for a public guest page.
+//
+// A menu is opened by scanning a QR code at a table and then read for several
+// minutes before anyone orders. When the session lapses in between, the order
+// POST answers 419 -- and the page used to tell the guest "Network error,
+// please try again", which was neither true nor actionable.
+//
+// Registered ABOVE the /{alias} catch-all and reserved in ReservedAlias, or
+// the catch-all below answers it with a 404 page. Returns only the token for
+// the caller's own session; rate limited because it is unauthenticated.
+Route::get('/csrf-token', function () {
+    return response()->json(['token' => csrf_token()]);
+})->middleware('throttle:60,1')->name('public.csrf-token');
+
 Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', \App\Modules\Common\Support\ReservedAlias::pattern('[^/]+$'));
 // ── Conversational Biolink visitor endpoints ─────────────────────
 // Use the /cv/ prefix so they don't collide with the catch-all /{alias} route.

@@ -136,6 +136,10 @@
         .ghost { width:100%; border:1px solid rgba(0,0,0,.15); background:transparent; color:inherit; border-radius:12px; padding:11px; font-size:14px; cursor:pointer; margin-top:8px; }
         .wa-btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; box-sizing:border-box; background:#25D366; color:#fff; border-radius:12px; padding:12px; font-size:14px; font-weight:700; text-decoration:none; margin-top:12px; }
         .note { font-size:12.5px; opacity:.6; text-align:center; margin-top:10px; }
+        /* A failed order says so here rather than in an alert() box, which
+           covers the bill and cannot say what to do next. */
+        .order-err { margin:10px 0 0; padding:10px 12px; border-radius:10px; font-size:13px; line-height:1.4;
+                     background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.35); color:#ef4444; }
         .status-pill { display:inline-block; padding:4px 11px; border-radius:999px; font-size:12.5px; font-weight:700; background:var(--accent); color:#fff; }
         .empty { text-align:center; opacity:.5; padding:40px 0; }
         .bill-row { display:flex; justify-content:space-between; font-size:13.5px; margin-top:8px; opacity:.85; }
@@ -244,6 +248,8 @@
         <input class="field" id="fName" placeholder="Your name (optional)">
         <input class="field" id="fContact" placeholder="Phone or email so we can reach you (optional)">
         <textarea class="field" id="fNote" rows="2" placeholder="Notes for your order (optional)"></textarea>
+        {{-- Where a failed request says so, instead of an alert() box. --}}
+        <p class="order-err" id="orderErr" role="alert" style="display:none"></p>
         <button class="primary" id="placeBtn" type="button" onclick="SM.place()">Send order request</button>
         <button class="ghost" type="button" onclick="SM.closeCart()">Keep browsing</button>
         <p class="note">This is an order request, not a checkout. No online payment is collected, the store will contact you to arrange fulfilment and payment.</p>
@@ -264,6 +270,7 @@
     </div>
 </div>
 
+@include('common.partials.menu-guest-post')
 <script>
 (function () {
     const CSRF = document.querySelector('meta[name="csrf-token"]').content;
@@ -333,16 +340,17 @@
         const fallback = Object.values(ITEMS).reduce((s, it) => s + it.qty * it.price, 0);
         if (!items.length) { lastBill = null; if (box) box.innerHTML = ''; document.getElementById('modalTotal').textContent = fmt(0); return; }
         const seq = ++quoteSeq;
-        try {
-            const r = await fetch(QUOTE_URL, {
-                method:'POST',
-                headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'X-Requested-With':'XMLHttpRequest'},
-                body: JSON.stringify({ items, fulfilment })
-            });
-            const j = await r.json();
-            if (seq !== quoteSeq) return;
-            if (!r.ok) { lastBill = null; document.getElementById('modalTotal').textContent = fmt(fallback); return; }
-            lastBill = j.data.bill;
+        const res = await menuPost(QUOTE_URL, { items, fulfilment });
+        if (seq !== quoteSeq) return;
+        if (!res.ok || !res.data || !res.data.data) {
+            // An estimate shown while browsing: fall back to the line-item
+            // sum rather than interrupting someone mid-shop.
+            lastBill = null;
+            document.getElementById('modalTotal').textContent = fmt(fallback);
+            return;
+        }
+        {
+            lastBill = res.data.data.bill;
             if (box) {
                 box.innerHTML = '';
                 const add = (label, value) => {
@@ -357,10 +365,17 @@
                 }
             }
             document.getElementById('modalTotal').textContent = fmt(lastBill.total);
-        } catch(e) {
-            if (seq !== quoteSeq) return;
-            document.getElementById('modalTotal').textContent = fmt(fallback);
         }
+    }
+
+    // Show or clear the inline failure line above the order button.
+    function orderError(message) {
+        const el = document.getElementById('orderErr');
+        if (!el) { return; }
+        if (!message) { el.style.display = 'none'; el.textContent = ''; return; }
+        el.textContent = message;
+        el.style.display = '';
+        el.scrollIntoView({ block: 'nearest' });
     }
     window.SM = {
         add(id){ ITEMS[id].qty = 1; render(); },
@@ -380,24 +395,21 @@
             if (!items.length) return;
             const btn = document.getElementById('placeBtn');
             btn.disabled = true; btn.textContent = 'Sending…';
-            try {
-                const r = await fetch(ORDER_URL, {
-                    method:'POST',
-                    headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'X-Requested-With':'XMLHttpRequest'},
-                    body: JSON.stringify({
-                        customer_name: document.getElementById('fName').value || null,
-                        customer_contact: document.getElementById('fContact').value || null,
-                        fulfilment,
-                        customer_address: FUL_ADDRESS[fulfilment]
-                            ? (document.getElementById('fAddress').value || null) : null,
-                        customer_note: document.getElementById('fNote').value || null,
-                        items
-                    })
-                });
-                const j = await r.json();
-                if (!r.ok) { alert((j.error && j.error.message) || 'Could not send request'); btn.disabled=false; btn.textContent='Send order request'; return; }
-                this.showDone(j.data.order);
-            } catch(e) { alert('Network error, please try again.'); btn.disabled=false; btn.textContent='Send order request'; }
+            const res = await menuPost(ORDER_URL, {
+                customer_name: document.getElementById('fName').value || null,
+                customer_contact: document.getElementById('fContact').value || null,
+                fulfilment,
+                customer_address: FUL_ADDRESS[fulfilment]
+                    ? (document.getElementById('fAddress').value || null) : null,
+                customer_note: document.getElementById('fNote').value || null,
+                items
+            });
+            if (!res.ok || !res.data || !res.data.data) {
+                orderError(res.message);
+                btn.disabled = false; btn.textContent = 'Send order request';
+                return;
+            }
+            this.showDone(res.data.data.order);
         },
         showDone(order){
             this.closeCart();
