@@ -56,6 +56,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title }}</title>
     @if($mp['font_href'])<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="{{ $mp['font_href'] }}">@endif
+    @include('common.partials.biolink-block-assets')
     <style>
 @php
     /*
