@@ -117,17 +117,7 @@
         .qty { min-width:22px; text-align:center; display:inline-block; font-weight:600; }
         .add { border:none; background:var(--accent); color:#fff; border-radius:9px; padding:7px 14px; font-size:13px; font-weight:600; cursor:pointer; }
         /* Cart bar */
-        .cartbar { position:fixed; left:0; right:0; bottom:0; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); background:#fff; border-top:1px solid rgba(0,0,0,.1); display:none; }
-        @media (prefers-color-scheme: dark) { .cartbar { background:#15151c; border-color:rgba(255,255,255,.1); } }
-        .cartbar.show { display:block; }
-        .cartbar .inner { max-width:760px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:12px; }
-        .cartbar button { border:none; background:var(--accent); color:#fff; border-radius:11px; padding:13px 20px; font-size:15px; font-weight:700; cursor:pointer; }
         /* Modal */
-        .modal { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:flex-end; justify-content:center; z-index:50; }
-        .modal.show { display:flex; }
-        .sheet { background:#fff; color:#111; width:100%; max-width:760px; border-radius:18px 18px 0 0; padding:20px 18px calc(20px + env(safe-area-inset-bottom)); max-height:88vh; overflow:auto; }
-        @media (prefers-color-scheme: dark) { .sheet { background:#15151c; color:#f5f5f7; } }
-        .sheet h3 { margin:0 0 12px; font-size:18px; }
         .line { display:flex; justify-content:space-between; gap:10px; padding:7px 0; font-size:14px; }
         .field { width:100%; padding:11px 12px; border-radius:10px; border:1px solid rgba(0,0,0,.18); background:transparent; color:inherit; font-size:14px; margin-top:8px; font-family:inherit; }
         @media (prefers-color-scheme: dark) { .field { border-color:rgba(255,255,255,.2); } }
@@ -155,6 +145,7 @@
         @include('common.page-background.'.($pbInkLight ? 'dark' : 'light').'-surfaces')
         @endif
 </style>
+@include('common.partials.menu-order-shell-css')
 </head>
 <body>
 @if($pbOn)@include('common.page-background.layers')@endif
@@ -235,12 +226,15 @@
 </div>
 
 @if($isOrder)
-<div class="cartbar" id="cartbar">
-    <div class="inner">
-        <div><strong id="cartCount">0</strong> item(s) · <strong id="cartTotal">{{ $fmt(0) }}</strong></div>
-        <button type="button" onclick="SM.openCart()">Review request</button>
-    </div>
-</div>
+{{-- The cart, as one floating control. It was a full-width bar
+     pinned across the bottom of the page -- a wall across the menu
+     you are still reading, saying the same two things it now
+     carries itself. --}}
+<button class="cartfab" id="cartfab" type="button" onclick="SM.openCart()"
+        aria-label="Review order">
+    <span class="n" id="cartCount">0</span>
+    <span class="sum"><span id="cartLabel">Review order</span> · <strong id="cartTotal">{{ $fmt(0) }}</strong></span>
+</button>
 
 <div class="modal" id="cartModal">
     <div class="sheet">
@@ -328,7 +322,7 @@
         // The line sum until the server answers; the quote replaces it with
         // the figure that includes whatever charges the handover adds.
         if (!lastBill) document.getElementById('modalTotal').textContent = fmt(total);
-        document.getElementById('cartbar').classList.toggle('show', count > 0);
+        document.getElementById('cartfab').classList.toggle('show', count > 0);
         return { count, total };
     }
     function lines(container) {
