@@ -100,11 +100,21 @@ body::after {
 }
 @endif
 @if($pb['blur'] > 0 || $pb['overlayOpacity'] > 0 || $pb['hasLayer'] || $pb['tornActive'] || $pb['tilesActive'])
-/* Lift page CONTENT above the background layers. `.sz-share` is excluded
-   for the same reason `.bg-layer` is: it is a viewport-pinned overlay,
-   not content, and this rule's `position: relative` would otherwise beat
-   its own `position: fixed` on specificity and drop it into the flow. */
-body > *:not(.bg-layer):not(.sz-share):not(script):not(style) {
+/* Lift page CONTENT above the background layers.
+
+   A viewport-pinned overlay is NOT content: this rule's `position:
+   relative` beats its own `position: fixed` on specificity and drops it
+   into the flow, where it scrolls away with the page. That has now
+   happened twice -- first to the share button, then to the menu cart's
+   floating button and its order panel, which on any menu with a
+   background layer turned into a button sitting at the bottom of the
+   document and two dialogs stacked in the middle of it.
+
+   So the exclusion is a MARKER rather than a growing list of class names:
+   anything body-level that pins itself to the viewport says so by
+   carrying `sz-pinned`, and is excluded once, here. `.sz-share` stays
+   named for the pages that have not been given the marker yet. */
+body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) {
     position: relative;
     z-index: 1;
 }
