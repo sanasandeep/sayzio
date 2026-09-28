@@ -33,42 +33,17 @@ class StoreOrderService
      */
     public function place(Link $link, StoreMenu $menu, array $data): StoreOrder
     {
-        // Pull all referenced products in one query and validate availability.
-        $productIds = collect($data['items'])->pluck('product_id')->map(fn ($i) => (int) $i)->all();
-        $products = StoreProduct::where('menu_id', $menu->id)
-            ->whereIn('id', $productIds)
-            ->where('is_active', true)
-            ->get()
-            ->keyBy('id');
-
-        $lines = [];
-        $subtotal = 0;
-        foreach ($data['items'] as $row) {
-            $product = $products->get((int) $row['product_id']);
-            if (!$product) {
-                throw new \InvalidArgumentException('One or more products are no longer available.');
-            }
-            if ($product->is_out_of_stock) {
-                throw new \InvalidArgumentException($product->name . ' is out of stock.');
-            }
-            $qty = max(1, (int) $row['quantity']);
-            $lineTotal = round(((float) $product->price) * $qty, 2);
-            $subtotal += $lineTotal;
-            $lines[] = [
-                'product_id' => $product->id,
-                'name'       => $product->name,
-                'unit_price' => $product->price,
-                'quantity'   => $qty,
-                'line_total' => $lineTotal,
-                'note'       => $row['note'] ?? null,
-            ];
-        }
+        // Priced by the same function the quote endpoint uses, so a cart
+        // quoted at one number cannot be charged at another. Availability
+        // and the choice rules are both enforced in there, from the
+        // database rather than from the request.
+        $priced = app(\App\Modules\Common\Services\MenuCartPricer::class)->price($menu, $data['items']);
+        $lines = $priced['lines'];
+        $subtotal = $priced['subtotal'];
 
         if (empty($lines)) {
             throw new \InvalidArgumentException('Your cart is empty.');
         }
-
-        $subtotal = round($subtotal, 2);
 
         // The store has no tax and no coupons, so its bill is the subtotal
         // plus whatever charges the chosen handover adds. Same definition

@@ -38,36 +38,13 @@ class RestaurantOrderService
                 ->first();
         }
 
-        // Pull all referenced items in one query and validate availability.
-        $itemIds = collect($data['items'])->pluck('item_id')->map(fn ($i) => (int) $i)->all();
-        $items = RestaurantMenuItem::where('menu_id', $menu->id)
-            ->whereIn('id', $itemIds)
-            ->where('is_active', true)
-            ->get()
-            ->keyBy('id');
-
-        $lines = [];
-        $subtotal = 0;
-        foreach ($data['items'] as $row) {
-            $item = $items->get((int) $row['item_id']);
-            if (!$item) {
-                throw new \InvalidArgumentException('One or more items are no longer available.');
-            }
-            if ($item->is_sold_out) {
-                throw new \InvalidArgumentException($item->name . ' is sold out.');
-            }
-            $qty = max(1, (int) $row['quantity']);
-            $lineTotal = round(((float) $item->price) * $qty, 2);
-            $subtotal += $lineTotal;
-            $lines[] = [
-                'item_id'    => $item->id,
-                'name'       => $item->name,
-                'unit_price' => $item->price,
-                'quantity'   => $qty,
-                'line_total' => $lineTotal,
-                'note'       => $row['note'] ?? null,
-            ];
-        }
+        // Priced by the same function the quote endpoint uses, so a cart
+        // quoted at one number cannot be charged at another. Availability
+        // and the choice rules are both enforced in there, from the
+        // database rather than from the request.
+        $priced = app(\App\Modules\Common\Services\MenuCartPricer::class)->price($menu, $data['items']);
+        $lines = $priced['lines'];
+        $subtotal = $priced['subtotal'];
 
         // Re-compute the estimated bill server-side from the live subtotal so a
         // tampered or stale coupon/total can never be trusted. The same figures
