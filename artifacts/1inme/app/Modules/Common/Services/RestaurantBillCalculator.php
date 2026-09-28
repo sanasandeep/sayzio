@@ -25,6 +25,7 @@ class RestaurantBillCalculator
      * @return array{
      *   subtotal:float, fulfilment:?string,
      *   charges:array<int,array{label:string,amount:float}>, charges_amount:float,
+     *   charges_taxed:bool,
      *   coupon_code:?string, coupon_applied:bool,
      *   coupon_error:?string, discount_amount:float, taxable_base:float,
      *   tax_enabled:bool, tax_inclusive:bool, tax_rate:float, tax_label:string,
@@ -64,7 +65,27 @@ class RestaurantBillCalculator
         }
 
         $discount = round(min($discount, $subtotal), 2);
-        $taxableBase = round($subtotal - $discount, 2);
+
+        // The food bill: what a percentage charge is conventionally taken
+        // on, whichever side of tax the charges themselves land.
+        $foodBill = round($subtotal - $discount, 2);
+
+        $chargeLines = \App\Modules\User\Support\MenuFulfilment::applicable(
+            (array) ($menu->settings ?? []), $fulfilment, $foodBill
+        );
+        $chargesAmount = \App\Modules\User\Support\MenuFulfilment::total($chargeLines);
+
+        // Whether tax applies to the charges is the owner's setting, because
+        // it is their tax position. Default false: charges land after tax,
+        // which is what this has always done, so no menu's totals move
+        // unless somebody turns it on.
+        $chargesBeforeTax = \App\Modules\User\Support\MenuFulfilment::chargesBeforeTax(
+            (array) ($menu->settings ?? [])
+        );
+
+        $taxableBase = $chargesBeforeTax
+            ? round($foodBill + $chargesAmount, 2)
+            : $foodBill;
 
         $taxEnabled = $menu->taxEnabled();
         $taxInclusive = $menu->taxInclusive();
@@ -79,28 +100,22 @@ class RestaurantBillCalculator
                 $taxAmount = round($taxableBase - ($taxableBase / (1 + ($rate / 100))), 2);
                 $total = $taxableBase;
             } else {
-                // Tax added on top of the discounted subtotal.
                 $taxAmount = round($taxableBase * ($rate / 100), 2);
                 $total = round($taxableBase + $taxAmount, 2);
             }
         }
 
-        // Charges land AFTER tax, and a percentage charge is taken on the
-        // discounted subtotal rather than the taxed total -- the ordinary
-        // reading of "10% service charge". See MenuFulfilment's docblock:
-        // it is a tax question rather than a software one, so the order is
-        // written down rather than assumed.
-        $chargeLines = \App\Modules\User\Support\MenuFulfilment::applicable(
-            (array) ($menu->settings ?? []), $fulfilment, $taxableBase
-        );
-        $chargesAmount = \App\Modules\User\Support\MenuFulfilment::total($chargeLines);
-        $total = round($total + $chargesAmount, 2);
+        // Charges are already inside the total when they were taxed with it.
+        if (! $chargesBeforeTax) {
+            $total = round($total + $chargesAmount, 2);
+        }
 
         return [
             'subtotal'        => $subtotal,
             'fulfilment'      => $fulfilment,
             'charges'         => $chargeLines,
             'charges_amount'  => $chargesAmount,
+            'charges_taxed'   => $chargesBeforeTax,
             'coupon_code'     => $couponApplied ? $couponCode : null,
             'coupon_applied'  => $couponApplied,
             'coupon_error'    => $couponError,

@@ -283,6 +283,21 @@
                             </label>
                             <p class="text-xs mt-1" style="color:var(--text-muted)" x-text="tax.inclusive ? 'Tax is shown as “incl.” and not added on top.' : 'Tax is added on top of the subtotal.'"></p>
                         </div>
+                        {{-- Sana, 2026-09-28: "before tax or after tax.. can u
+                             make it optional via settings". Both are right
+                             somewhere, and which one is right here is the
+                             owner's tax position rather than ours. It only
+                             appears when there IS a tax line to be on one
+                             side of. --}}
+                        <div class="rm-row" x-show="(menu.charges || []).length > 0">
+                            <label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)">
+                                <input type="checkbox" x-model="menu.charges_before_tax" @change="saveSettings()"> Tax applies to charges too
+                            </label>
+                            <p class="text-xs mt-1" style="color:var(--text-muted)"
+                               x-text="menu.charges_before_tax
+                                 ? 'Delivery and service charges are added before tax, so tax is worked out on the whole bill.'
+                                 : 'Charges are added after tax, so tax is worked out on the food only. This is the usual reading of a service charge.'"></p>
+                        </div>
                     </div>
                 </template>
             </div>
@@ -449,7 +464,7 @@
     $menuTables = $menu->tables->map(fn($t)=>['id'=>$t->id,'label'=>$t->label,'code'=>$t->code])->values();
     $menuCoupons = $menu->coupons->map(fn($c)=>['id'=>$c->id,'code'=>$c->code,'discount_type'=>$c->discount_type,'discount_value'=>$c->discount_value,'min_subtotal'=>$c->min_subtotal,'is_active'=>$c->is_active])->values();
     $menuData = ['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color, 'whatsapp_number' => $menu->settings['whatsapp_number'] ?? '', 'layout' => $menuLayoutKey, 'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null),
-        'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null), 'fulfilment_modes' => $menuModes, 'charges' => $menuCharges, 'price_display' => $menuMoney['display'], 'price_position' => $menuMoney['position'], 'price_decimals' => $menuMoney['decimals'] > 0, 'heading_style' => \App\Modules\User\Support\MenuPresentation::heading($menu->settings['heading_style'] ?? null), 'price_style' => \App\Modules\User\Support\MenuPresentation::price($menu->settings['price_style'] ?? null, $menuLayoutKey)];
+        'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null), 'fulfilment_modes' => $menuModes, 'charges' => $menuCharges, 'charges_before_tax' => \App\Modules\User\Support\MenuFulfilment::chargesBeforeTax((array) ($menu->settings ?? [])), 'price_display' => $menuMoney['display'], 'price_position' => $menuMoney['position'], 'price_decimals' => $menuMoney['decimals'] > 0, 'heading_style' => \App\Modules\User\Support\MenuPresentation::heading($menu->settings['heading_style'] ?? null), 'price_style' => \App\Modules\User\Support\MenuPresentation::price($menu->settings['price_style'] ?? null, $menuLayoutKey)];
     $menuConfirm = \App\Modules\User\Support\MenuConfirmation::resolve((array) ($menu->settings ?? []));
     // The editor holds the mode as SAVED, not as resolved: someone who picks
     // "send them to my page" and saves before typing the URL should find
@@ -606,6 +621,7 @@ function restaurantEditor() {
                 price_decimals:this.menu.price_decimals !== false,
                 fulfilment_modes:this.menu.fulfilment_modes || [],
                 charges:this.menu.charges || [],
+                charges_before_tax:!!this.menu.charges_before_tax,
                 heading_color:this.menu.heading_color||'',
                 item_color:this.menu.item_color||'',
                 desc_color:this.menu.desc_color||'',

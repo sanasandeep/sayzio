@@ -202,6 +202,29 @@ class MenuFulfilment
         return $lines;
     }
 
+    /**
+     * Whether charges join the taxable base instead of landing after tax.
+     *
+     * Sana, 2026-09-28: "before tax or after tax.. can u make it optional
+     * via settings without or with?"
+     *
+     * Both answers are correct somewhere. "10% service charge" ordinarily
+     * means ten percent of the food bill, added at the end -- which is what
+     * this did, and stays the default so no existing menu's totals move.
+     * But in a number of jurisdictions GST applies to the delivery charge
+     * as well, and there the charge has to be inside the taxed base or the
+     * restaurant under-collects tax on every delivery.
+     *
+     * This is the owner's call to make, because it is their tax position.
+     * The percentage itself is still taken on the discounted food bill
+     * either way: a service charge computed on a figure that already
+     * contains tax is not a reading anyone asked for.
+     */
+    public static function chargesBeforeTax(array $menuSettings): bool
+    {
+        return (bool) ($menuSettings['charges_before_tax'] ?? false);
+    }
+
     /** What the applicable charges add up to. */
     public static function total(array $lines): float
     {
