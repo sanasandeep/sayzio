@@ -25,11 +25,23 @@
     .rm-btn.sm { padding:6px 12px; font-size:12.5px; }
     .rm-btn.ghost { background:transparent; color:var(--text-muted); border:1px solid var(--border-glass); }
     .rm-btn.danger { background:transparent; color:#ef4444; border:1px solid rgba(239,68,68,.4); }
-    .rm-item { display:flex; gap:12px; align-items:flex-start; padding:12px; border:1px solid var(--border-glass); border-radius:.85rem; margin-bottom:10px; background:var(--bg-glass-input); }
+    /* A row is the height of the dish in it. The actions used to be five
+       pill buttons stacked in a column, which set a floor of about 200px on
+       every row no matter how little it held; they are icon buttons on one
+       line now and the text decides the height. `align-items:center` keeps
+       them beside the name rather than pinned to the top of a tall row. */
+    .rm-item { display:flex; gap:12px; align-items:center; padding:10px 12px; border:1px solid var(--border-glass); border-radius:.85rem; margin-bottom:8px; background:var(--bg-glass-input); }
     .rm-item .meta { flex:1; min-width:0; }
     .rm-item .nm { font-weight:650; color:var(--text-primary); font-size:14.5px; }
-    .rm-item .ds { font-size:12.5px; color:var(--text-muted); margin-top:2px; }
-    .rm-item .pr { font-size:13px; color:#5c83ff; font-weight:700; margin-top:4px; }
+    .rm-item .ds { font-size:12.5px; color:var(--text-muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .rm-item .pr { font-size:13px; color:#5c83ff; font-weight:700; margin-top:3px; }
+    /* Wraps rather than squeezing the name out of the row on a narrow column. */
+    .rm-acts { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:4px; flex-shrink:0; }
+    .rm-act { width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; border:1px solid var(--border-glass); background:transparent; color:var(--text-muted); font-size:11px; cursor:pointer; transition:background .15s ease,color .15s ease; }
+    .rm-act:hover:not(:disabled) { background:var(--bg-glass-hover,rgba(127,127,127,.12)); color:var(--text-primary); }
+    .rm-act:disabled { opacity:.35; cursor:default; }
+    .rm-act.danger { color:#ef4444; border-color:rgba(239,68,68,.35); }
+    .rm-act.danger:hover { background:rgba(239,68,68,.12); color:#ef4444; }
     .rm-cat { border:1px solid var(--border-glass); border-radius:1rem; padding:16px; margin-bottom:16px; }
     .rm-cat-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
     .rm-cat-head .ct { font-weight:700; color:var(--text-primary); font-size:16px; }
@@ -309,20 +321,26 @@ function storeEditor() {
         get currencyCode(){ return (this.menu.currency || 'USD').toUpperCase(); },
         get currencyHasSymbol(){ return !!this.moneySymbols[this.currencyCode]; },
         get zeroDecimalCurrency(){ return this.moneyZeroDecimal.includes(this.currencyCode); },
-        get priceSample(){
+        // One price format for this screen. The sample under the controls
+        // and every price in the list above go through it, because the list
+        // used to print `currency + ' ' + toFixed(2)` on its own and so
+        // ignored all three of these controls: pick "Rs." and the page said
+        // Rs.120 while the row you picked it on still said INR 120.00.
+        money(amount){
             const code = this.currencyCode;
             let token = this.menu.price_display === 'symbol'
                 ? (this.moneySymbols[code] || code)
                 : (this.menu.price_display === 'none' ? '' : code);
             token = token.trim();
             const decimals = (this.zeroDecimalCurrency || this.menu.price_decimals === false) ? 0 : 2;
-            const n = (1234.5).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+            const n = (+amount || 0).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
             if (token === '') return n;
             // A token ending in a letter needs a gap or it runs into the
             // digits; one ending in punctuation or a glyph does not.
             const gap = /[A-Za-z]$/.test(token) ? ' ' : '';
             return this.menu.price_position === 'after' ? (n + ' ' + token) : (token + gap + n);
         },
+        get priceSample(){ return this.money(1234.5); },
         get dividerHint(){ return this.dividerHints[this.menu.divider] || ''; },
         headingHints: @json(collect(\App\Modules\User\Support\MenuPresentation::HEADINGS)->map(fn ($h) => $h['hint'])),
         get headingHint(){ return this.headingHints[this.menu.heading_style] || ''; },
