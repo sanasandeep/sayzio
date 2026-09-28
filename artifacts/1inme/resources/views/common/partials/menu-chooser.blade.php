@@ -57,6 +57,10 @@
     }
     .chz-opt.gone { opacity: .45; cursor: not-allowed; }
     .chz-opt .nm { flex: 1; min-width: 0; }
+    /* One icon, or the same icon two or three times: "Mild, Medium, Hot"
+       is one drawing at one, two and three rather than three drawings. */
+    .chz-ico { display: inline-flex; align-items: center; gap: 1px; flex: none; opacity: .8; }
+    .chz-ico svg { display: block; }
     .chz-opt .dl { font-size: 13px; opacity: .75; white-space: nowrap; }
     .chz-step { display: flex; align-items: center; gap: 8px; flex: none; }
     .chz-step button {
@@ -87,6 +91,12 @@
 
 <script>
 (function () {
+    // The icon catalogue, as path data keyed by name. It comes from
+    // MenuOptionIcon rather than being written out again here, so a shape
+    // the owner picked in the editor is the shape their customer sees.
+    var ICONS = @json(\App\Modules\User\Support\MenuOptionIcon::paths());
+    var MAX_REPEAT = {{ \App\Modules\User\Support\MenuOptionIcon::MAX_REPEAT }};
+
     // Set by the page: CHOICES[itemId] = [group, ...]; fmt() formats money.
     var CHOICES = {};
     var fmt = function (n) { return String(n); };
@@ -191,6 +201,42 @@
         draw();
     }
 
+    /**
+     * The icon for a choice, drawn as many times as it asks for, or null.
+     *
+     * Stroked rather than filled: an outline at 2px holds its shape at
+     * 15px where a filled glyph turns into a blob. Decorative -- the name
+     * beside it is what the kitchen reads -- so it is hidden from screen
+     * readers rather than given a label that duplicates the name.
+     */
+    function iconFor(o) {
+        var path = ICONS[o.icon];
+        if (!path) { return null; }
+
+        var times = Math.max(1, Math.min(MAX_REPEAT, o.icon_repeat || 1));
+        var wrap = document.createElement('span');
+        wrap.className = 'chz-ico';
+        wrap.setAttribute('aria-hidden', 'true');
+
+        for (var i = 0; i < times; i++) {
+            var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('viewBox', '0 0 24 24');
+            svg.setAttribute('width', '15');
+            svg.setAttribute('height', '15');
+            svg.setAttribute('fill', 'none');
+            svg.setAttribute('stroke', 'currentColor');
+            svg.setAttribute('stroke-width', '2');
+            svg.setAttribute('stroke-linecap', 'round');
+            svg.setAttribute('stroke-linejoin', 'round');
+            var d = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            d.setAttribute('d', path);
+            svg.appendChild(d);
+            wrap.appendChild(svg);
+        }
+
+        return wrap;
+    }
+
     function show(message) {
         var el = document.getElementById('chzErr');
         el.textContent = message || '';
@@ -229,9 +275,13 @@
 
                 var nm = document.createElement('span');
                 nm.className = 'nm';
-                nm.textContent = o.name + (o.is_sold_out ? ' — sold out' : '');
+                nm.textContent = o.name + (o.is_sold_out ? ' (sold out)' : '');
 
                 row.appendChild(mark);
+
+                var ico = iconFor(o);
+                if (ico) { row.appendChild(ico); }
+
                 row.appendChild(nm);
 
                 if (o.price_delta) {

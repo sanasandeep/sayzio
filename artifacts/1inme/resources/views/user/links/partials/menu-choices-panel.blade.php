@@ -16,7 +16,23 @@
       $choiceNounPlural  its plural. Not noun + "s": that gives "dishs",
                          which is what shipped and what this fixes.
 --}}
-<div class="rm-card" x-data="menuChoices(@js($choiceBase), @js($choiceItems), @js($choiceNoun ?? 'item'), @js($choiceNounPlural ?? (($choiceNoun ?? 'item').'s')))" x-init="load()">
+@php
+    // The icon catalogue is the same on every menu, so it is read here
+    // rather than passed in by each editor -- one fewer thing for the next
+    // editor that includes this partial to forget.
+    $choiceIcons = [
+        'list'  => \App\Modules\User\Support\MenuOptionIcon::forPicker(),
+        'paths' => \App\Modules\User\Support\MenuOptionIcon::paths(),
+        'max'   => \App\Modules\User\Support\MenuOptionIcon::MAX_REPEAT,
+    ];
+@endphp
+<div class="rm-card"
+     x-data="menuChoices(@js($choiceBase), @js($choiceItems), @js($choiceNoun ?? 'item'), @js($choiceNounPlural ?? (($choiceNoun ?? 'item').'s')), @js($choiceIcons))"
+     x-init="load()"
+     {{-- The way in from the item dialog: it dispatches this rather than
+          reaching into another component, so the dialog needs to know
+          nothing about how choices work. --}}
+     @menu-choices-open.window="openFor($event.detail && $event.detail.itemId)">
     <h5 style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <span>Choices <button class="rm-btn sm" type="button" @click="newGroup()"><i class="fas fa-plus"></i></button></span>
     </h5>
@@ -98,7 +114,7 @@
                     </div>
                 </div>
                 <p class="text-xs mt-1" style="color:var(--text-muted)">
-                    Leave "at most" empty for no limit. "Each, up to" is how many times one choice can be added — 1 is a tick box, more is a quantity.
+                    Leave "at most" empty for no limit. "Each, up to" is how many times one choice can be added: 1 is a tick box, more is a quantity.
                 </p>
                 <p class="text-xs mt-2 mc-preview" x-text="'Customers will see: ' + preview()"></p>
 
@@ -108,16 +124,56 @@
                     <div class="mc-options">
                         <label class="rm-label">The choices</label>
                         <template x-for="(o, i) in draft.options" :key="o.id">
-                            <div class="mc-opt">
-                                <input class="rm-input" x-model="o.name" maxlength="80" placeholder="Mild" @change="saveOption(o)">
-                                <input class="rm-input mc-delta" type="number" step="0.01" x-model.number="o.price_delta" @change="saveOption(o)" title="Added to the price. Negative takes money off.">
-                                <button class="rm-btn sm" type="button" :class="{ 'on': o.is_sold_out }" @click="o.is_sold_out = !o.is_sold_out; saveOption(o)" title="Sold out today"><i class="fas fa-ban"></i></button>
-                                <button class="rm-btn sm danger" type="button" @click="removeOption(o, i)" title="Remove"><i class="fas fa-trash"></i></button>
+                            <div class="mc-optwrap">
+                                <div class="mc-opt">
+                                    <button class="rm-btn sm mc-icobtn" type="button"
+                                            :class="{ 'on': o.icon }"
+                                            @click="iconPicker = (iconPicker === o.id ? null : o.id)"
+                                            :title="o.icon ? 'Change the icon' : 'Add an icon'"
+                                            :aria-label="o.icon ? 'Change the icon on ' + (o.name || 'this choice') : 'Add an icon to ' + (o.name || 'this choice')"
+                                            x-html="iconMarkup(o.icon, o.icon_repeat)"></button>
+                                    <input class="rm-input" x-model="o.name" maxlength="80" placeholder="Mild" @change="saveOption(o)">
+                                    <input class="rm-input mc-delta" type="number" step="0.01" x-model.number="o.price_delta" @change="saveOption(o)" title="Added to the price. Negative takes money off.">
+                                    <button class="rm-btn sm" type="button" :class="{ 'on': o.is_sold_out }" @click="o.is_sold_out = !o.is_sold_out; saveOption(o)" title="Sold out today"><i class="fas fa-ban"></i></button>
+                                    <button class="rm-btn sm danger" type="button" @click="removeOption(o, i)" title="Remove"><i class="fas fa-trash"></i></button>
+                                </div>
+
+                                {{-- Open under the choice it belongs to, so
+                                     there is never a question of which row is
+                                     being changed. --}}
+                                <template x-if="iconPicker === o.id">
+                                    <div class="mc-icopick">
+                                        <button type="button" class="mc-icoopt none" :class="{ 'on': !o.icon }" @click="setIcon(o, null)" title="No icon">None</button>
+                                        <template x-for="ic in icons" :key="ic.key">
+                                            <button type="button" class="mc-icoopt"
+                                                    :class="{ 'on': o.icon === ic.key }"
+                                                    @click="setIcon(o, ic.key)"
+                                                    :title="ic.label + ': ' + ic.hint"
+                                                    :aria-label="ic.label"
+                                                    x-html="iconMarkup(ic.key, 1)"></button>
+                                        </template>
+
+                                        {{-- "Mild / Medium / Hot" is this one
+                                             drawing at one, two and three. --}}
+                                        <template x-if="o.icon">
+                                            <span class="mc-icorep">
+                                                <span>Draw it</span>
+                                                <template x-for="n in maxRepeat" :key="n">
+                                                    <button type="button" class="mc-icoopt tiny"
+                                                            :class="{ 'on': (o.icon_repeat || 1) === n }"
+                                                            @click="setRepeat(o, n)"
+                                                            :aria-label="n === 1 ? 'once' : n + ' times'"
+                                                            x-text="n + '×'"></button>
+                                                </template>
+                                            </span>
+                                        </template>
+                                    </div>
+                                </template>
                             </div>
                         </template>
                         <button class="rm-btn sm mt-2" type="button" @click="addOption()"><i class="fas fa-plus"></i> Add a choice</button>
                         <p class="text-xs mt-1" style="color:var(--text-muted)">
-                            The number is what the choice adds to the price. Leave it 0 for a spice level; use it for sizes and add-ons, and a negative number to take money off.
+                            The number is what the choice adds to the price. Leave it 0 for a spice level; use it for sizes and add-ons, and a negative number to take money off. The icon is optional. A flame drawn once, twice and three times is how "Mild, Medium, Hot" usually reads.
                         </p>
                     </div>
                 </template>
@@ -200,14 +256,64 @@
         color: var(--text-primary);
     }
     .mc-options { margin-top: 16px; }
+    .mc-optwrap { margin-top: 6px; }
     .mc-opt {
         display: flex;
         gap: 6px;
         align-items: center;
-        margin-top: 6px;
     }
     .mc-opt .rm-input { margin-top: 0; }
     .mc-opt .mc-delta { max-width: 96px; flex: none; }
+    /* The icon button shows what is on the choice right now, repeats and
+       all, so the row itself is the preview. */
+    .mc-icobtn {
+        flex: none;
+        min-width: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+    }
+    .mc-icobtn svg { display: block; }
+    .mc-ico-none { font-size: 12px; opacity: .5; }
+    .mc-icopick {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+        margin: 6px 0 2px 40px;
+        padding: 7px 8px;
+        border-radius: 10px;
+        background: var(--bg-subtle, rgba(128,128,128,.1));
+    }
+    .mc-icoopt {
+        width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--text-primary);
+        cursor: pointer;
+        padding: 0;
+    }
+    .mc-icoopt svg { display: block; }
+    .mc-icoopt:hover { border-color: var(--border-subtle, rgba(128,128,128,.4)); }
+    .mc-icoopt.on {
+        border-color: var(--accent, #3b82f6);
+        background: var(--bg-card, rgba(255,255,255,.06));
+    }
+    .mc-icoopt.none, .mc-icoopt.tiny { width: auto; padding: 0 8px; font-size: 11.5px; }
+    .mc-icorep {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        margin-left: auto;
+        font-size: 11.5px;
+        color: var(--text-muted);
+    }
     .mc-items { margin-top: 16px; }
     .mc-item-list {
         max-height: 200px;
@@ -237,9 +343,26 @@
 </style>
 
 <script>
-function menuChoices(base, items, noun, nouns) {
+/**
+ * Which choice groups are on an item, for the item dialog to show.
+ *
+ * The panel is the only thing that knows; the dialog is a different Alpine
+ * component in a different card and must not reach into it. So the panel
+ * publishes here after every load, and the dialog reads it.
+ */
+window.menuChoiceIndex = window.menuChoiceIndex || {};
+window.menuChoicesOn = function (itemId) {
+    var names = window.menuChoiceIndex[itemId] || [];
+    return names.length ? names.join(', ') : 'None yet';
+};
+
+function menuChoices(base, items, noun, nouns, iconset) {
     return {
         base, items, noun, nouns,
+        icons: (iconset && iconset.list) || [],
+        iconPaths: (iconset && iconset.paths) || {},
+        maxRepeat: (iconset && iconset.max) || 3,
+        iconPicker: null,
         groups: [],
         loaded: false,
         draft: null,
@@ -269,10 +392,74 @@ function menuChoices(base, items, noun, nouns) {
             try {
                 const d = await this.api('GET', '');
                 this.groups = d.groups;
+                this.publishIndex();
             } catch (e) {
                 this.msg = e.message;
             }
             this.loaded = true;
+        },
+
+        /** What the item dialog reads to say which choices an item has. */
+        publishIndex() {
+            const by = {};
+            this.groups.forEach(g => {
+                (g.item_ids || []).forEach(id => {
+                    (by[id] = by[id] || []).push(g.name);
+                });
+            });
+            window.menuChoiceIndex = by;
+        },
+
+        /**
+         * Opened from the item dialog's "Manage choices".
+         *
+         * This is the whole reason that button exists: choices were built,
+         * shipped and reachable only from a card in the settings column,
+         * and Sana went looking for them on the item -- which is the eighth
+         * time this month a working feature had no way in. If the item
+         * already has a group, edit that one; otherwise start a new one
+         * with the item already ticked, so the obvious next step is not a
+         * scroll away.
+         */
+        openFor(itemId) {
+            const id = Number(itemId) || null;
+            this.$el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (!id) { return; }
+
+            const existing = this.groups.find(g => (g.item_ids || []).map(Number).includes(id));
+            if (existing) { this.editGroup(existing); return; }
+
+            this.newGroup();
+            this.draft.item_ids = [id];
+        },
+
+        iconMarkup(key, times) {
+            const path = this.iconPaths[key];
+            if (!path) { return '<span class="mc-ico-none">+</span>'; }
+
+            const n = Math.max(1, Math.min(this.maxRepeat, +times || 1));
+            let out = '';
+            for (let i = 0; i < n; i++) {
+                // Stroked, not filled: an outline holds its shape at the
+                // 15px the customer sees it at.
+                out += '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"'
+                    + ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="'
+                    + path + '"/></svg>';
+            }
+            return out;
+        },
+
+        setIcon(o, key) {
+            o.icon = key;
+            // A count for an icon that is not there is a number nobody can
+            // see the effect of.
+            if (!key) { o.icon_repeat = 1; }
+            this.saveOption(o);
+        },
+
+        setRepeat(o, n) {
+            o.icon_repeat = Math.max(1, Math.min(this.maxRepeat, +n || 1));
+            this.saveOption(o);
         },
 
         onLabel(g) {
@@ -289,10 +476,11 @@ function menuChoices(base, items, noun, nouns) {
             };
         },
 
-        newGroup() { this.draftMsg = ''; this.draft = this.blank(); },
+        newGroup() { this.draftMsg = ''; this.iconPicker = null; this.draft = this.blank(); },
 
         editGroup(g) {
             this.draftMsg = '';
+            this.iconPicker = null;
             // A copy, so closing without saving changes nothing.
             this.draft = JSON.parse(JSON.stringify(g));
         },
@@ -389,6 +577,8 @@ function menuChoices(base, items, noun, nouns) {
                 await this.api('PUT', '/' + this.draft.id + '/options/' + o.id, {
                     name: (o.name || '').trim() || 'Choice',
                     price_delta: +o.price_delta || 0,
+                    icon: o.icon || null,
+                    icon_repeat: Math.max(1, Math.min(this.maxRepeat, +o.icon_repeat || 1)),
                     is_sold_out: !!o.is_sold_out,
                 });
                 this.draftMsg = 'Saved.';
@@ -399,6 +589,7 @@ function menuChoices(base, items, noun, nouns) {
         },
 
         async removeOption(o, i) {
+            if (this.iconPicker === o.id) { this.iconPicker = null; }
             try {
                 await this.api('DELETE', '/' + this.draft.id + '/options/' + o.id);
                 this.draft.options.splice(i, 1);

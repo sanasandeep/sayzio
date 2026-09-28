@@ -10,6 +10,7 @@ use App\Modules\User\Models\RestaurantMenu;
 use App\Modules\User\Models\RestaurantMenuItem;
 use App\Modules\User\Models\StoreMenu;
 use App\Modules\User\Models\StoreProduct;
+use App\Modules\User\Support\MenuOptionIcon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -125,6 +126,41 @@ class MenuOptionController extends Controller
         ];
     }
 
+    /**
+     * The validated shape of one choice, shared by store and update so the
+     * two cannot drift -- which they already had, before the icon columns
+     * made it three places to remember.
+     */
+    protected function optionRules(): array
+    {
+        return [
+            'name'        => 'required|string|max:80',
+            // Signed on purpose: a smaller size may take money off.
+            'price_delta' => 'nullable|numeric|min:-999999|max:999999',
+            // A key out of the catalogue, or nothing. An unknown key is not
+            // a 422: it comes from a picker that cannot produce one, and
+            // sanitize() turns it into "no icon" rather than a gap.
+            'icon'        => 'nullable|string|max:24',
+            'icon_repeat' => 'nullable|integer|min:1|max:'.MenuOptionIcon::MAX_REPEAT,
+            'is_sold_out' => 'sometimes|boolean',
+            'is_active'   => 'sometimes|boolean',
+        ];
+    }
+
+    protected function optionAttributes(array $data): array
+    {
+        $icon = MenuOptionIcon::sanitize($data['icon'] ?? null);
+
+        return [
+            'name'        => trim($data['name']),
+            'price_delta' => round((float) ($data['price_delta'] ?? 0), 2),
+            'icon'        => $icon,
+            'icon_repeat' => MenuOptionIcon::repeat($icon, $data['icon_repeat'] ?? 1),
+            'is_sold_out' => (bool) ($data['is_sold_out'] ?? false),
+            'is_active'   => (bool) ($data['is_active'] ?? true),
+        ];
+    }
+
     /** Every group this menu defines, with its choices and what it is on. */
     public function index(Request $request, Link $link, string $kind = 'restaurant')
     {
@@ -157,6 +193,8 @@ class MenuOptionController extends Controller
                 'options'        => $g->options->map(fn ($o) => [
                     'id'          => $o->id,
                     'name'        => $o->name,
+                    'icon'        => $o->iconKey(),
+                    'icon_repeat' => $o->iconRepeat(),
                     'price_delta' => (float) $o->price_delta,
                     'is_sold_out' => (bool) $o->is_sold_out,
                     'is_active'   => (bool) $o->is_active,
@@ -228,22 +266,12 @@ class MenuOptionController extends Controller
             ], 422);
         }
 
-        $data = $request->validate([
-            'name'        => 'required|string|max:80',
-            // Signed on purpose: a smaller size may take money off.
-            'price_delta' => 'nullable|numeric|min:-999999|max:999999',
-            'is_sold_out' => 'sometimes|boolean',
-            'is_active'   => 'sometimes|boolean',
-        ]);
+        $data = $request->validate($this->optionRules());
 
-        $option = MenuOption::create([
-            'group_id'    => $model->id,
-            'name'        => trim($data['name']),
-            'price_delta' => round((float) ($data['price_delta'] ?? 0), 2),
-            'is_sold_out' => (bool) ($data['is_sold_out'] ?? false),
-            'is_active'   => (bool) ($data['is_active'] ?? true),
-            'sort_order'  => $count,
-        ]);
+        $option = MenuOption::create(array_merge($this->optionAttributes($data), [
+            'group_id'   => $model->id,
+            'sort_order' => $count,
+        ]));
 
         return response()->json(['data' => ['option' => $option]], 201);
     }
@@ -256,19 +284,9 @@ class MenuOptionController extends Controller
         $row = MenuOption::where('id', (int) $option)->where('group_id', $model->id)->first();
         abort_if(! $row, 404);
 
-        $data = $request->validate([
-            'name'        => 'required|string|max:80',
-            'price_delta' => 'nullable|numeric|min:-999999|max:999999',
-            'is_sold_out' => 'sometimes|boolean',
-            'is_active'   => 'sometimes|boolean',
-        ]);
+        $data = $request->validate($this->optionRules());
 
-        $row->update([
-            'name'        => trim($data['name']),
-            'price_delta' => round((float) ($data['price_delta'] ?? 0), 2),
-            'is_sold_out' => (bool) ($data['is_sold_out'] ?? false),
-            'is_active'   => (bool) ($data['is_active'] ?? true),
-        ]);
+        $row->update($this->optionAttributes($data));
 
         return response()->json(['data' => ['option' => $row->fresh()]]);
     }
