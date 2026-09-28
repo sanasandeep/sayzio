@@ -137,7 +137,10 @@ class TheCartIsAButtonNotAWallTest extends TestCase
     public function test_the_cart_is_one_floating_button_carrying_both_numbers(): void
     {
         foreach ($this->bothPages() as $kind => $html) {
-            $this->assertStringContainsString('class="cartfab"', $html, "The {$kind} page should float its cart button.");
+            // Matched as one class among others -- the button also carries
+            // the marker that keeps the page-background rule off it.
+            $this->assertMatchesRegularExpression('/class="[^"]*\bcartfab\b/', $html,
+                "The {$kind} page should float its cart button.");
             // The two things the bar existed to say.
             $this->assertStringContainsString('id="cartCount"', $html, "The {$kind} page's button should carry the count.");
             $this->assertStringContainsString('id="cartTotal"', $html, "The {$kind} page's button should carry the total.");

@@ -252,13 +252,13 @@
      pinned across the bottom of the page -- a wall across the menu
      you are still reading, saying the same two things it now
      carries itself. --}}
-<button class="cartfab" id="cartfab" type="button" onclick="RM.openCart()"
+<button class="cartfab sz-pinned" id="cartfab" type="button" onclick="RM.openCart()"
         aria-label="Review order">
     <span class="n" id="cartCount">0</span>
     <span class="sum"><span id="cartLabel">Review order</span> · <strong id="cartTotal">{{ $fmt(0) }}</strong></span>
 </button>
 
-<div class="modal" id="cartModal">
+<div class="modal sz-pinned" id="cartModal">
     <div class="sheet">
         <h3>Your order</h3>
         <div id="cartLines"></div>
@@ -301,7 +301,7 @@
     </div>
 </div>
 
-<div class="modal" id="doneModal">
+<div class="modal sz-pinned" id="doneModal">
     <div class="sheet">
         <h3>Order placed 🎉</h3>
         <p>Status: <span class="status-pill" id="ordStatus">New</span></p>
