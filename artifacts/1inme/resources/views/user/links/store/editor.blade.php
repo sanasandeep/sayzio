@@ -266,6 +266,12 @@
             </div>
 
             @include('user.links.partials.menu-confirmation-panel', ['confirmHeadlinePlaceholder' => 'Request sent 🎉'])
+
+            @include('user.links.partials.menu-choices-panel', [
+                'choiceBase'  => rtrim(url('/user/links/'.$link->id.'/store/option-groups'), '/'),
+                'choiceItems' => $menu->products->map(fn ($i) => ['id' => (int) $i->id, 'name' => $i->name])->values(),
+                'choiceNoun'  => 'product',
+            ])
         </div>
     </div>
 

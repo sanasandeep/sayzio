@@ -1164,6 +1164,22 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get ('links/{link}/restaurant/orders/poll',              [\App\Modules\User\Controllers\RestaurantMenuController::class, 'pollOrders'])->middleware('workspace.can:links.view')->name('links.restaurant.orders.poll');
         Route::post('links/{link}/restaurant/orders/{order}/status',    [\App\Modules\User\Controllers\RestaurantMenuController::class, 'updateOrderStatus'])->middleware('workspace.can:links.edit')->name('links.restaurant.orders.status');
 
+        // ── Item choices: spice levels, sizes, toppings, add-ons ───────
+        // One controller, mounted under both menu types, because the tables
+        // are shared and because every feature built for one of these two
+        // page types this month has had to be built again for the other.
+        foreach (['restaurant', 'store'] as $menuKind) {
+            Route::get   ('links/{link}/'.$menuKind.'/option-groups',                            [\App\Modules\User\Controllers\MenuOptionController::class, 'index'])->defaults('kind', $menuKind)->middleware('workspace.can:links.view')->name('links.'.$menuKind.'.option-groups.index');
+            Route::post  ('links/{link}/'.$menuKind.'/option-groups',                            [\App\Modules\User\Controllers\MenuOptionController::class, 'storeGroup'])->defaults('kind', $menuKind)->middleware('workspace.can:links.edit')->name('links.'.$menuKind.'.option-groups.store');
+            Route::put   ('links/{link}/'.$menuKind.'/option-groups/{group}',                    [\App\Modules\User\Controllers\MenuOptionController::class, 'updateGroup'])->defaults('kind', $menuKind)->middleware('workspace.can:links.edit')->name('links.'.$menuKind.'.option-groups.update');
+            Route::delete('links/{link}/'.$menuKind.'/option-groups/{group}',                    [\App\Modules\User\Controllers\MenuOptionController::class, 'destroyGroup'])->defaults('kind', $menuKind)->middleware('workspace.can:links.edit')->name('links.'.$menuKind.'.option-groups.destroy');
+            Route::post  ('links/{link}/'.$menuKind.'/option-groups/{group}/options',            [\App\Modules\User\Controllers\MenuOptionController::class, 'storeOption'])->defaults('kind', $menuKind)->middleware('workspace.can:links.edit')->name('links.'.$menuKind.'.option-groups.options.store');
+            Route::put   ('links/{link}/'.$menuKind.'/option-groups/{group}/options/{option}',   [\App\Modules\User\Controllers\MenuOptionController::class, 'updateOption'])->defaults('kind', $menuKind)->middleware('workspace.can:links.edit')->name('links.'.$menuKind.'.option-groups.options.update');
+            Route::delete('links/{link}/'.$menuKind.'/option-groups/{group}/options/{option}',   [\App\Modules\User\Controllers\MenuOptionController::class, 'destroyOption'])->defaults('kind', $menuKind)->middleware('workspace.can:links.edit')->name('links.'.$menuKind.'.option-groups.options.destroy');
+            Route::post  ('links/{link}/'.$menuKind.'/option-groups/{group}/items',              [\App\Modules\User\Controllers\MenuOptionController::class, 'attach'])->defaults('kind', $menuKind)->middleware('workspace.can:links.edit')->name('links.'.$menuKind.'.option-groups.items');
+        }
+        unset($menuKind);
+
         // ── Store Menu (links.type = store_menu) ───────────────────────
         // Mirrors restaurant, minus coupons/tables/tax. Single store QR.
         Route::get ('links/{link}/store',          [\App\Modules\User\Controllers\StoreMenuController::class, 'editor'])->middleware('workspace.can:links.view')->name('links.store.editor');
