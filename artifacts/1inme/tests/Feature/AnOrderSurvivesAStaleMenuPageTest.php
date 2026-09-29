@@ -245,6 +245,7 @@ class AnOrderSurvivesAStaleMenuPageTest extends TestCase
         [$link, , $item] = $this->restaurant();
 
         $r = $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_phone' => '9840012345',
             'customer_name' => 'Ravi',
             'items' => [['item_id' => $item->id, 'quantity' => 2]],
         ])->assertStatus(201);
@@ -260,6 +261,7 @@ class AnOrderSurvivesAStaleMenuPageTest extends TestCase
         [$link, , $product] = $this->store();
 
         $this->postJson('/sm/'.$link->alias.'/order', [
+            'customer_phone' => '9840012345',
             'customer_name' => 'Ravi',
             'items' => [['product_id' => $product->id, 'quantity' => 1]],
         ])->assertStatus(201);

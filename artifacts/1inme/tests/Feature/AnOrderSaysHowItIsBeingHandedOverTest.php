@@ -126,6 +126,8 @@ class AnOrderSaysHowItIsBeingHandedOverTest extends TestCase
         [$link, $menu, $item] = $this->restaurant();
 
         $res = $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['item_id' => $item->id, 'quantity' => 2]],
         ])->assertCreated();
 
@@ -159,6 +161,8 @@ class AnOrderSaysHowItIsBeingHandedOverTest extends TestCase
         [$link, $menu, $item] = $this->restaurant($this->withCharges());
 
         $res = $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['item_id' => $item->id, 'quantity' => 2]],
             'fulfilment' => 'takeaway',
         ])->assertCreated();
@@ -172,6 +176,8 @@ class AnOrderSaysHowItIsBeingHandedOverTest extends TestCase
         [$link, $menu, $item] = $this->restaurant($this->withCharges());
 
         $res = $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['item_id' => $item->id, 'quantity' => 2]],
             'fulfilment' => 'delivery', 'customer_address' => '12 MG Road, Bengaluru',
         ])->assertCreated();
@@ -187,6 +193,8 @@ class AnOrderSaysHowItIsBeingHandedOverTest extends TestCase
         [$link, $menu, $item] = $this->restaurant($this->withCharges());
 
         $res = $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['item_id' => $item->id, 'quantity' => 2]],
             'fulfilment' => 'dine_in',
         ])->assertCreated();
@@ -206,6 +214,8 @@ class AnOrderSaysHowItIsBeingHandedOverTest extends TestCase
         ]));
 
         $res = $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['item_id' => $item->id, 'quantity' => 2]],
             'fulfilment' => 'takeaway',
         ])->assertCreated();
@@ -228,6 +238,8 @@ class AnOrderSaysHowItIsBeingHandedOverTest extends TestCase
         ]));
 
         $res = $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['item_id' => $item->id, 'quantity' => 2]],
             'fulfilment' => 'dine_in',
         ])->assertCreated();
@@ -247,6 +259,8 @@ class AnOrderSaysHowItIsBeingHandedOverTest extends TestCase
         ]);
 
         $res = $this->postJson('/sm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['product_id' => $product->id, 'quantity' => 1]],
             'fulfilment' => 'delivery', 'customer_address' => '12 MG Road',
         ])->assertCreated();
@@ -271,6 +285,8 @@ class AnOrderSaysHowItIsBeingHandedOverTest extends TestCase
         ])->assertOk()->json('data.bill.total');
 
         $placed = $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => $cart, 'fulfilment' => 'delivery', 'customer_address' => '12 MG Road',
         ])->assertCreated()->json('data.order.total');
 
@@ -306,6 +322,8 @@ class AnOrderSaysHowItIsBeingHandedOverTest extends TestCase
         [$link, $menu, $item] = $this->restaurant($this->withCharges());
 
         $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['item_id' => $item->id, 'quantity' => 1]],
             'fulfilment' => 'delivery',
         ])->assertStatus(422);
@@ -317,6 +335,8 @@ class AnOrderSaysHowItIsBeingHandedOverTest extends TestCase
         [$link, $menu, $item] = $this->restaurant($this->withCharges());
 
         $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['item_id' => $item->id, 'quantity' => 1]],
             'fulfilment' => 'dine_in',
         ])->assertCreated();
@@ -328,6 +348,8 @@ class AnOrderSaysHowItIsBeingHandedOverTest extends TestCase
         [$link, $menu, $item] = $this->restaurant($this->withCharges());
 
         $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['item_id' => $item->id, 'quantity' => 1]],
             'fulfilment' => 'takeaway', 'customer_address' => '12 MG Road',
         ])->assertCreated();
@@ -342,6 +364,8 @@ class AnOrderSaysHowItIsBeingHandedOverTest extends TestCase
         [$link, $menu, $item] = $this->restaurant($this->withCharges());
 
         $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['item_id' => $item->id, 'quantity' => 2]],
             'fulfilment' => 'delivery', 'customer_address' => '12 MG Road, Bengaluru',
         ])->assertCreated();
@@ -376,6 +400,8 @@ class AnOrderSaysHowItIsBeingHandedOverTest extends TestCase
         [$link, $menu, $item] = $this->restaurant($this->withCharges());
 
         $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['item_id' => $item->id, 'quantity' => 2]],
             'fulfilment' => 'delivery', 'customer_address' => '12 MG Road',
         ])->assertCreated();
@@ -413,6 +439,8 @@ class AnOrderSaysHowItIsBeingHandedOverTest extends TestCase
         [$link, $menu, $item] = $this->restaurant($this->withCharges());
 
         $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['item_id' => $item->id, 'quantity' => 1]],
             'fulfilment' => '../../etc/passwd',
         ])->assertCreated();

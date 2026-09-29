@@ -88,6 +88,8 @@ class RestaurantMenuController extends Controller
             'tax_inclusive'   => 'sometimes|boolean',
             'tax_label'       => 'nullable|string|max:24',
             'charges_before_tax' => 'sometimes|boolean',
+            'tokens_enabled'  => 'sometimes|boolean',
+            'tokens_reset'    => 'sometimes|nullable|string|max:16',
             // What the guest sees once the order goes through (Sana,
             // 2026-09-28). The mode is validated against the catalog rather
             // than here, so an unknown value falls back rather than 422s a
@@ -227,6 +229,16 @@ class RestaurantMenuController extends Controller
             } else {
                 unset($settings['charges_before_tax']);
             }
+        }
+
+        // The number a guest is told to listen for, and how often it goes
+        // back to 1. Written as one block so "on" and "resets daily" can
+        // never be saved apart.
+        if ($request->hasAny(['tokens_enabled', 'tokens_reset'])) {
+            $settings['tokens'] = \App\Modules\User\Support\MenuOrderToken::sanitize([
+                'enabled' => $request->boolean('tokens_enabled', true),
+                'reset'   => $request->input('tokens_reset'),
+            ]);
         }
 
         // What the guest sees the moment the order goes through. Written as

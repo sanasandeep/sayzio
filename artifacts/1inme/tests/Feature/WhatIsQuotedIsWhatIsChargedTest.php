@@ -124,7 +124,9 @@ class WhatIsQuotedIsWhatIsChargedTest extends TestCase
         $quoted = $this->postJson('/rm/'.$link->alias.'/quote', ['items' => $cart])
             ->assertOk()->json('data.bill.total');
 
-        $charged = $this->postJson('/rm/'.$link->alias.'/order', ['items' => $cart])
+        $charged = $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345','items' => $cart])
             ->assertCreated()->json('data.order.total');
 
         $this->assertSame(280.0, (float) $quoted);
@@ -140,7 +142,9 @@ class WhatIsQuotedIsWhatIsChargedTest extends TestCase
             [['Mild', 0], ['Hot', 0]]
         );
 
-        $this->postJson('/rm/'.$link->alias.'/order', ['items' => [[
+        $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345','items' => [[
             'item_id' => $item->id, 'quantity' => 1,
             'options' => [['option_id' => $opts['Hot']->id, 'quantity' => 1]],
         ]]])->assertCreated();
@@ -164,7 +168,9 @@ class WhatIsQuotedIsWhatIsChargedTest extends TestCase
             [['Mild', 0], ['Hot', 0]]
         );
 
-        $this->postJson('/rm/'.$link->alias.'/order', ['items' => [
+        $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345','items' => [
             ['item_id' => $item->id, 'quantity' => 1, 'options' => [['option_id' => $opts['Mild']->id]]],
             ['item_id' => $item->id, 'quantity' => 2, 'options' => [['option_id' => $opts['Hot']->id]]],
         ]])->assertCreated();
@@ -187,7 +193,9 @@ class WhatIsQuotedIsWhatIsChargedTest extends TestCase
         );
 
         // The page enforces this too, but the page is not what decides.
-        $this->postJson('/rm/'.$link->alias.'/order', ['items' => [
+        $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345','items' => [
             ['item_id' => $item->id, 'quantity' => 1],
         ]])->assertStatus(422)
           ->assertJsonPath('error.message', 'Please choose a spice level for Chilli Paneer.');
@@ -204,7 +212,9 @@ class WhatIsQuotedIsWhatIsChargedTest extends TestCase
         );
 
         // Anything the browser says about money is ignored.
-        $this->postJson('/rm/'.$link->alias.'/order', ['items' => [[
+        $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345','items' => [[
             'item_id' => $item->id, 'quantity' => 1,
             'options' => [['option_id' => $opts['Family']->id, 'quantity' => 1, 'price_delta' => -1000]],
         ]]])->assertCreated();
@@ -221,7 +231,9 @@ class WhatIsQuotedIsWhatIsChargedTest extends TestCase
         );
         $opts['Cheese']->update(['is_sold_out' => true]);
 
-        $this->postJson('/rm/'.$link->alias.'/order', ['items' => [[
+        $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345','items' => [[
             'item_id' => $item->id, 'quantity' => 1,
             'options' => [['option_id' => $opts['Cheese']->id]],
         ]]])->assertStatus(422);
@@ -252,7 +264,9 @@ class WhatIsQuotedIsWhatIsChargedTest extends TestCase
             ['item_id' => $item->id, 'quantity' => 3],
         ]])->assertOk()->json('data.bill.total');
 
-        $this->postJson('/rm/'.$link->alias.'/order', ['items' => [
+        $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345','items' => [
             ['item_id' => $item->id, 'quantity' => 3],
         ]])->assertCreated();
 
@@ -295,7 +309,9 @@ class WhatIsQuotedIsWhatIsChargedTest extends TestCase
         $quoted = $this->postJson('/sm/'.$link->alias.'/quote', ['items' => $cart])
             ->assertOk()->json('data.bill.total');
 
-        $this->postJson('/sm/'.$link->alias.'/order', ['items' => $cart])->assertCreated();
+        $this->postJson('/sm/'.$link->alias.'/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345','items' => $cart])->assertCreated();
 
         // 2 x (450 + 80) = 1060
         $this->assertSame(1060.0, (float) $quoted);

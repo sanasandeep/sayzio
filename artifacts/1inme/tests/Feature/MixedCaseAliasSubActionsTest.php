@@ -163,6 +163,7 @@ class MixedCaseAliasSubActionsTest extends TestCase
         [$link, $menu, $item] = $this->makeRestaurantLink($user, $alias);
 
         $resp = $this->postJson('/rm/' . strtolower($alias) . '/order', [
+            'customer_phone' => '9840012345',
             'customer_name' => 'Pat Guest',
             'items'         => [['item_id' => $item->id, 'quantity' => 2]],
         ]);
@@ -179,6 +180,8 @@ class MixedCaseAliasSubActionsTest extends TestCase
         $this->makeBiolink($user, $alias);
 
         $this->postJson('/rm/' . strtolower($alias) . '/order', [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['item_id' => 1, 'quantity' => 1]],
         ])->assertStatus(404);
     }

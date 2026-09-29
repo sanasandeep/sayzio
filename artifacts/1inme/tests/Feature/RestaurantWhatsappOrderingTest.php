@@ -121,6 +121,7 @@ class RestaurantWhatsappOrderingTest extends TestCase
         [$link, $menu, $item] = $this->makeMenu($owner, '+1 (415) 555-2671');
 
         $res = $this->postJson("/rm/{$link->alias}/order", [
+            'customer_phone' => '9840012345',
             'customer_name' => 'Ada',
             'items'         => [['item_id' => $item->id, 'quantity' => 2]],
         ]);
@@ -149,6 +150,8 @@ class RestaurantWhatsappOrderingTest extends TestCase
         [$link, , $item] = $this->makeMenu($owner, null);
 
         $res = $this->postJson("/rm/{$link->alias}/order", [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['item_id' => $item->id, 'quantity' => 1]],
         ]);
 
@@ -180,6 +183,8 @@ class RestaurantWhatsappOrderingTest extends TestCase
         [$link, $menu, $item] = $this->makeMenu($owner, '+91 98765 43210');
 
         $res = $this->postJson("/api/v1/restaurant/{$link->alias}/order", [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['item_id' => $item->id, 'quantity' => 3]],
         ], ['Accept' => 'application/json']);
 
@@ -202,6 +207,8 @@ class RestaurantWhatsappOrderingTest extends TestCase
         [$link, , $item] = $this->makeMenu($owner, null);
 
         $res = $this->postJson("/api/v1/restaurant/{$link->alias}/order", [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'items' => [['item_id' => $item->id, 'quantity' => 1]],
         ], ['Accept' => 'application/json']);
 

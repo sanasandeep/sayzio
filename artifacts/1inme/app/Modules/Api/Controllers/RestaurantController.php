@@ -122,7 +122,10 @@ class RestaurantController extends Controller
 
         $data = $request->validate([
             'table_code'       => 'nullable|string|max:32',
-            'customer_name'    => 'nullable|string|max:120',
+            // Same rule as the public page, so a customer never learns
+            // one and meets the other. Sana, 2026-09-28.
+            'customer_name'    => 'required|string|max:120',
+            'customer_phone'   => 'required|string|max:32|min:6',
             'customer_note'    => 'nullable|string|max:1000',
             'coupon_code'      => 'nullable|string|max:64',
             'items'            => 'required|array|min:1',
