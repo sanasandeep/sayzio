@@ -70,6 +70,7 @@ class StoreOrder extends Model
         'customer_name', 'customer_contact', 'customer_note',
         'subtotal', 'total', 'currency', 'meta',
         'fulfilment', 'customer_address', 'charges_amount', 'charges',
+        'token_number', 'token_period', 'customer_phone',
     ];
 
     protected function casts(): array

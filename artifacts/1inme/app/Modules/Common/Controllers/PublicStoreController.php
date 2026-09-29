@@ -147,7 +147,11 @@ class PublicStoreController extends Controller
         }
 
         $data = $request->validate([
-            'customer_name'       => 'nullable|string|max:120',
+            // Sana, 2026-09-28: "name and phone mandatory". Same rule on
+            // both page types, so a customer never learns one and meets
+            // the other.
+            'customer_name'       => 'required|string|max:120',
+            'customer_phone'      => 'required|string|max:32|min:6',
             'customer_contact'    => 'nullable|string|max:160',
             'customer_note'       => 'nullable|string|max:1000',
             'fulfilment'          => 'nullable|string|max:16',
@@ -187,6 +191,8 @@ class PublicStoreController extends Controller
     {
         return [
             'public_token' => $order->public_token,
+            'token_number' => $order->token_number,
+            'token_period' => $order->token_period,
             'status'       => $order->status,
             'status_label' => $order->status_label,
             'subtotal'     => $order->subtotal,

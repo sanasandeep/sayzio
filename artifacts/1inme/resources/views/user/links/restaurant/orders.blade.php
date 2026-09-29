@@ -7,6 +7,17 @@
     .ro-card { background:var(--bg-card); border:1px solid var(--border-glass); border-radius:1rem; padding:18px; margin-bottom:14px; }
     .ro-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
     .ro-table { font-weight:700; font-size:16px; color:var(--text-primary); }
+    /* The number the kitchen calls out. Big enough to read across a
+       counter, and first, because it is what staff match an order to a
+       person by. */
+    .ro-tok {
+        display:inline-flex; align-items:center; justify-content:center;
+        min-width:38px; height:38px; padding:0 9px; margin-right:10px;
+        border-radius:10px; background:var(--bg-subtle,rgba(128,128,128,.14));
+        font-weight:800; font-size:18px; font-variant-numeric:tabular-nums;
+        color:var(--text-primary);
+    }
+    .ro-phone { color:inherit; text-decoration:none; border-bottom:1px dotted currentColor; }
     .ro-meta { font-size:12.5px; color:var(--text-muted); margin-top:2px; }
     .ro-line { display:flex; justify-content:space-between; font-size:13.5px; padding:4px 0; color:var(--text-primary); }
     .ro-breakdown { margin-top:8px; padding-top:8px; border-top:1px dashed var(--border-glass); }
@@ -49,10 +60,18 @@
         <div class="ro-card" :id="'order-' + o.id" :class="o.id === highlight ? 'ro-highlight' : ''">
             <div class="ro-head">
                 <div>
-                    <div class="ro-table" x-text="o.table_label ? ('Table ' + o.table_label) : 'Walk-in'"></div>
-                    <div class="ro-meta">
-                        <span x-show="o.customer_name" x-text="o.customer_name + ' · '"></span>
-                        <span x-text="timeAgo(o.created_at)"></span> · #<span x-text="o.id"></span>
+                    <div style="display:flex;align-items:center">
+                        <span class="ro-tok" x-show="o.token_number" x-text="o.token_number"></span>
+                        <div>
+                            <div class="ro-table" x-text="o.table_label ? ('Table ' + o.table_label) : 'Walk-in'"></div>
+                            <div class="ro-meta">
+                                <span x-show="o.customer_name" x-text="o.customer_name + ' · '"></span>
+                                <template x-if="o.customer_phone">
+                                    <span><a class="ro-phone" :href="'tel:' + o.customer_phone" x-text="o.customer_phone"></a> · </span>
+                                </template>
+                                <span x-text="timeAgo(o.created_at)"></span> · #<span x-text="o.id"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <span class="ro-status" :class="'st-' + o.status" x-text="statusLabel(o.status)"></span>
@@ -88,7 +107,7 @@
 
 <script>
 @php
-    $ordersData = $orders->map(fn($o)=>['id'=>$o->id,'status'=>$o->status,'table_label'=>$o->table_label,'customer_name'=>$o->customer_name,'customer_note'=>$o->customer_note,'subtotal'=>$o->subtotal,'coupon_code'=>$o->coupon_code,'discount_amount'=>$o->discount_amount,'tax_rate'=>$o->tax_rate,'tax_inclusive'=>(bool)$o->tax_inclusive,'tax_amount'=>$o->tax_amount,'total'=>$o->total,'currency'=>$o->currency,'created_at'=>$o->created_at?->toIso8601String(),'updated_at'=>$o->updated_at?->toIso8601String(),'items'=>$o->items->map(fn($i)=>['id'=>$i->id,'name'=>$i->name,'quantity'=>$i->quantity,'line_total'=>$i->line_total])])->values();
+    $ordersData = $orders->map(fn($o)=>['id'=>$o->id,'status'=>$o->status,'table_label'=>$o->table_label,'customer_name'=>$o->customer_name,'token_number'=>$o->token_number,'customer_phone'=>$o->customer_phone,'customer_note'=>$o->customer_note,'subtotal'=>$o->subtotal,'coupon_code'=>$o->coupon_code,'discount_amount'=>$o->discount_amount,'tax_rate'=>$o->tax_rate,'tax_inclusive'=>(bool)$o->tax_inclusive,'tax_amount'=>$o->tax_amount,'total'=>$o->total,'currency'=>$o->currency,'created_at'=>$o->created_at?->toIso8601String(),'updated_at'=>$o->updated_at?->toIso8601String(),'items'=>$o->items->map(fn($i)=>['id'=>$i->id,'name'=>$i->name,'quantity'=>$i->quantity,'line_total'=>$i->line_total])])->values();
 @endphp
 function ordersBoard() {
     return {
@@ -134,7 +153,7 @@ function ordersBoard() {
         },
         merge(o){
             const i = this.orders.findIndex(x => x.id === o.id);
-            const norm = { id:o.id, status:o.status, table_label:o.table_label, customer_name:o.customer_name, customer_note:o.customer_note, subtotal:o.subtotal, coupon_code:o.coupon_code, discount_amount:o.discount_amount, tax_rate:o.tax_rate, tax_inclusive:o.tax_inclusive, tax_amount:o.tax_amount, total:o.total, currency:o.currency, created_at:o.created_at, updated_at:o.updated_at, items:(o.items||[]).map(it=>({id:it.id,name:it.name,quantity:it.quantity,line_total:it.line_total})) };
+            const norm = { id:o.id, status:o.status, table_label:o.table_label, customer_name:o.customer_name, token_number:o.token_number, customer_phone:o.customer_phone, customer_note:o.customer_note, subtotal:o.subtotal, coupon_code:o.coupon_code, discount_amount:o.discount_amount, tax_rate:o.tax_rate, tax_inclusive:o.tax_inclusive, tax_amount:o.tax_amount, total:o.total, currency:o.currency, created_at:o.created_at, updated_at:o.updated_at, items:(o.items||[]).map(it=>({id:it.id,name:it.name,quantity:it.quantity,line_total:it.line_total})) };
             if (i >= 0) this.orders[i] = norm; else this.orders.unshift(norm);
         },
     };

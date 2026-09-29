@@ -314,7 +314,8 @@
         @unless($activeTable)
             <input class="field" id="fTable" placeholder="Table number (optional)">
         @endunless
-        <input class="field" id="fName" placeholder="Your name (optional)">
+        <input class="field" id="fName" placeholder="Your name" required>
+        <input class="field" id="fPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Phone number" required>
         <textarea class="field" id="fNote" rows="2" placeholder="Notes for the kitchen (optional)"></textarea>
         {{-- Where a failed order says so. An alert() box is the wrong
              surface for someone holding a phone at a table: it covers the
@@ -330,6 +331,9 @@
 <div class="modal sz-pinned" id="doneModal">
     <div class="sheet">
         <h3 id="doneHead">Order placed 🎉</h3>
+        {{-- First, and biggest: it is the only thing on this screen the
+             guest has to act on. --}}
+        <div id="ordToken" style="display:none"></div>
         <p id="doneStatusRow">Status: <span class="status-pill" id="ordStatus">New</span></p>
         <p class="done-msg" id="doneMsg" style="display:none"></p>
         <div id="doneLines"></div>
@@ -348,6 +352,8 @@
 </div>
 
 @include('common.partials.menu-guest-post')
+@include('common.partials.menu-token')
+@include('common.partials.menu-contact')
 @include('common.partials.menu-chooser')
 @include('common.partials.menu-confirmation')
 <script>
@@ -578,6 +584,11 @@
         async place(){
             const items = cartItems();
             if (!items.length) return;
+            // Told which box is empty, with the keyboard in it, before
+            // anything is sent. The server refuses too; this is the
+            // courtesy, not the enforcement.
+            const missing = menuContact.check();
+            if (missing) { orderError(missing); return; }
             const btn = document.getElementById('placeBtn');
             btn.disabled = true; btn.textContent = 'Placing…';
             orderError(null);
@@ -586,7 +597,8 @@
             const waWin = menuWhatsappReserve(WA_ON);
             const res = await menuPost(ORDER_URL, {
                 table_code: TABLE_CODE,
-                customer_name: document.getElementById('fName').value || null,
+                customer_name: document.getElementById('fName').value.trim(),
+                customer_phone: document.getElementById('fPhone').value.trim(),
                 customer_note: document.getElementById('fNote').value || null,
                 fulfilment,
                 customer_address: FUL_ADDRESS[fulfilment]
@@ -629,6 +641,7 @@
                     document.getElementById('doneNote')
                 ]
             }) === 'redirected') { return; }
+            menuToken.show(document.getElementById('ordToken'), order);
             lines('doneLines');
             renderBill('doneBreakdown', 'doneTotal', {
                 subtotal: order.subtotal,

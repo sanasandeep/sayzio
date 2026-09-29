@@ -51,6 +51,17 @@
         max-width: calc(100vw - 32px);
     }
     .cartfab.show { display: inline-flex; }
+    /* The share button floats at z-index 9990, which is above every sheet
+       on this page, and on the confirmation it lands squarely on top of
+       "Back to menu". Found by rendering the confirmation and asking the
+       browser what was actually under that pixel -- the cart pill looks
+       like the culprit and is not: at z-index 40 it sits safely behind
+       the sheet's own dim layer.
+       Sharing a menu is not something anyone does mid-order, so the
+       button steps aside while a sheet is up. `:has` rather than a body
+       class, so no close path has to remember to unset it. */
+    body:has(.modal.show) .sz-share,
+    body:has(.chz.show) .sz-share { display: none; }
     .cartfab:hover { transform: translateY(-1px); box-shadow: 0 12px 28px -6px rgba(0,0,0,.5); }
     .cartfab:active { transform: translateY(0); }
     .cartfab:focus-visible { outline: 3px solid rgba(255,255,255,.7); outline-offset: 2px; }

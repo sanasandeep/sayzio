@@ -370,6 +370,7 @@ class RestaurantBillEstimateTest extends TestCase
         $this->addCoupon($menu, ['code' => 'TEN', 'discount_type' => RestaurantMenuCoupon::TYPE_PERCENT, 'discount_value' => 10]);
 
         $res = $this->postJson("/rm/{$link->alias}/order", [
+            'customer_phone' => '9840012345',
             'customer_name' => 'Ada',
             'coupon_code'   => 'TEN',
             'items'         => [['item_id' => $item->id, 'quantity' => 2]],
@@ -401,6 +402,8 @@ class RestaurantBillEstimateTest extends TestCase
         // No coupon defined — a guest sending a fake code must get no discount.
 
         $res = $this->postJson("/rm/{$link->alias}/order", [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'coupon_code' => 'HACK90',
             'items'       => [['item_id' => $item->id, 'quantity' => 1]],
         ]);
@@ -442,6 +445,8 @@ class RestaurantBillEstimateTest extends TestCase
         $this->addCoupon($menu, ['code' => 'FIVE', 'discount_type' => RestaurantMenuCoupon::TYPE_FIXED, 'discount_value' => 20]);
 
         $res = $this->postJson("/api/v1/restaurant/{$link->alias}/order", [
+            'customer_name' => 'Test Guest',
+            'customer_phone' => '9840012345',
             'coupon_code' => 'FIVE',
             'items'       => [['item_id' => $item->id, 'quantity' => 2]],
         ], ['Accept' => 'application/json']);

@@ -71,6 +71,7 @@ class RestaurantOrder extends Model
         'coupon_code', 'discount_amount', 'tax_rate', 'tax_inclusive',
         'tax_amount', 'total', 'currency', 'meta',
         'fulfilment', 'customer_address', 'charges_amount', 'charges',
+        'token_number', 'token_period', 'customer_phone',
     ];
 
     protected function casts(): array

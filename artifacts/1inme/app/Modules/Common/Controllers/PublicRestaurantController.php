@@ -163,7 +163,11 @@ class PublicRestaurantController extends Controller
 
         $data = $request->validate([
             'table_code'      => 'nullable|string|max:32',
-            'customer_name'   => 'nullable|string|max:120',
+            // Sana, 2026-09-28: "name and phone mandatory". Required on
+            // every handover type, dine-in included, so the kitchen always
+            // has someone to call when an order goes wrong.
+            'customer_name'   => 'required|string|max:120',
+            'customer_phone'  => 'required|string|max:32|min:6',
             'customer_note'   => 'nullable|string|max:1000',
             'coupon_code'     => 'nullable|string|max:64',
             'fulfilment'      => 'nullable|string|max:16',
@@ -205,6 +209,10 @@ class PublicRestaurantController extends Controller
     {
         return [
             'public_token' => $order->public_token,
+            // The number the guest is told to listen for, and which run of
+            // numbers it belongs to.
+            'token_number' => $order->token_number,
+            'token_period' => $order->token_period,
             'status'       => $order->status,
             'status_label' => $order->status_label,
             'subtotal'     => $order->subtotal,

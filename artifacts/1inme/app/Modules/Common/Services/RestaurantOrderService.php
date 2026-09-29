@@ -60,13 +60,28 @@ class RestaurantOrderService
         $bill = $this->calculator->compute($menu, $subtotal, $data['coupon_code'] ?? null, $chosen);
 
         $order = DB::transaction(function () use ($menu, $link, $table, $data, $lines, $subtotal, $bill, $chosen) {
+        // The number the guest is told to listen for. Reserved inside the
+        // same transaction that creates the order, so two people tapping
+        // Place order in the same second cannot both be told "14".
+        [$tokenNumber, $tokenPeriod] = \App\Modules\User\Support\MenuOrderToken::reserve(
+            'restaurant',
+            $menu->id,
+            (array) ($menu->settings ?? []),
+            $link->user?->effectiveTimezone() ?? \App\Support\PlatformTimezone::platformDefault()
+        );
+
             $order = RestaurantOrder::create([
                 'menu_id'         => $menu->id,
                 'link_id'         => $link->id,
                 'table_id'        => $table?->id,
                 'status'          => RestaurantOrder::STATUS_NEW,
                 'table_label'     => $table?->label,
+                'token_number'    => $tokenNumber,
+                'token_period'    => $tokenPeriod,
                 'customer_name'   => $data['customer_name'] ?? null,
+                // Its own column rather than a corner of `meta`: it is the
+                // number the restaurant rings when an order goes wrong.
+                'customer_phone'  => $data['customer_phone'] ?? null,
                 'customer_note'   => $data['customer_note'] ?? null,
                 'subtotal'        => round($subtotal, 2),
                 'coupon_code'     => $bill['coupon_code'],

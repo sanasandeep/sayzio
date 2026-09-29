@@ -58,12 +58,32 @@ class StoreOrderService
         $chargesAmount = \App\Modules\User\Support\MenuFulfilment::total($chargeLines);
 
         $order = DB::transaction(function () use ($menu, $link, $data, $lines, $subtotal, $chosen, $chargeLines, $chargesAmount) {
+        // The number the guest is told to listen for. Reserved inside the
+        // same transaction that creates the order, so two people tapping
+        // Place order in the same second cannot both be told "14".
+        [$tokenNumber, $tokenPeriod] = \App\Modules\User\Support\MenuOrderToken::reserve(
+            'store',
+            $menu->id,
+            (array) ($menu->settings ?? []),
+            $link->user?->effectiveTimezone() ?? \App\Support\PlatformTimezone::platformDefault()
+        );
+
+            $phone = $data['customer_phone'] ?? null;
+
             $order = StoreOrder::create([
                 'menu_id'          => $menu->id,
                 'link_id'          => $link->id,
                 'status'           => StoreOrder::STATUS_NEW,
+                'token_number'     => $tokenNumber,
+                'token_period'     => $tokenPeriod,
                 'customer_name'    => $data['customer_name'] ?? null,
-                'customer_contact' => $data['customer_contact'] ?? null,
+                'customer_phone'   => $phone,
+                // `customer_contact` predates the phone column and is what
+                // LeadAggregator, the delivery projects and the WhatsApp
+                // hand-off all read. It is mirrored rather than migrated so
+                // none of those change behaviour in this commit; an email
+                // typed into it still wins.
+                'customer_contact' => $data['customer_contact'] ?? $phone,
                 'customer_note'    => $data['customer_note'] ?? null,
                 'subtotal'         => $subtotal,
                 'fulfilment'       => $chosen,

@@ -76,6 +76,8 @@ class StoreMenuController extends Controller
             'fulfilment_modes'      => 'sometimes|array',
             'fulfilment_modes.*'    => 'string|max:16',
             'charges'         => 'sometimes|array',
+            'tokens_enabled'  => 'sometimes|boolean',
+            'tokens_reset'    => 'sometimes|nullable|string|max:16',
             'charges.*.label'       => 'nullable|string|max:60',
             'charges.*.type'        => 'nullable|string|in:fixed,percent',
             'charges.*.amount'      => 'nullable|numeric|min:0|max:999999',
@@ -171,6 +173,16 @@ class StoreMenuController extends Controller
                 ['fulfilment_modes' => $data['fulfilment_modes'] ?? []], false
             );
         }
+        // The number a guest is told to listen for, and how often it goes
+        // back to 1. Written as one block so "on" and "resets daily" can
+        // never be saved apart.
+        if ($request->hasAny(['tokens_enabled', 'tokens_reset'])) {
+            $settings['tokens'] = \App\Modules\User\Support\MenuOrderToken::sanitize([
+                'enabled' => $request->boolean('tokens_enabled', true),
+                'reset'   => $request->input('tokens_reset'),
+            ]);
+        }
+
         if ($request->has('charges')) {
             $clean = \App\Modules\User\Support\MenuFulfilment::charges(['charges' => $data['charges'] ?? []]);
             if ($clean === []) {

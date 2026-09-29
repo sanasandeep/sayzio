@@ -278,8 +278,9 @@
             </div>
         @endif
         <textarea class="field" id="fAddress" rows="2" placeholder="Delivery address" style="display:none"></textarea>
-        <input class="field" id="fName" placeholder="Your name (optional)">
-        <input class="field" id="fContact" placeholder="Phone or email so we can reach you (optional)">
+        <input class="field" id="fName" placeholder="Your name" required>
+        <input class="field" id="fPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Phone number" required>
+        <input class="field" id="fContact" placeholder="Email (optional)">
         <textarea class="field" id="fNote" rows="2" placeholder="Notes for your order (optional)"></textarea>
         {{-- Where a failed request says so, instead of an alert() box. --}}
         <p class="order-err" id="orderErr" role="alert" style="display:none"></p>
@@ -292,6 +293,7 @@
 <div class="modal sz-pinned" id="doneModal">
     <div class="sheet">
         <h3 id="doneHead">Request sent 🎉</h3>
+        <div id="ordToken" style="display:none"></div>
         <p id="doneStatusRow">Status: <span class="status-pill" id="ordStatus">New</span></p>
         <p class="done-msg" id="doneMsg" style="display:none"></p>
         <div class="total" id="doneTotalRow"><span>Estimated total</span><span id="doneTotal"></span></div>
@@ -305,6 +307,8 @@
 </div>
 
 @include('common.partials.menu-guest-post')
+@include('common.partials.menu-token')
+@include('common.partials.menu-contact')
 @include('common.partials.menu-chooser')
 @include('common.partials.menu-confirmation')
 <script>
@@ -513,13 +517,19 @@
         async place(){
             const items = cartItems();
             if (!items.length) return;
+            // Told which box is empty, with the keyboard in it, before
+            // anything is sent. The server refuses too; this is the
+            // courtesy, not the enforcement.
+            const missing = menuContact.check();
+            if (missing) { orderError(missing); return; }
             const btn = document.getElementById('placeBtn');
             btn.disabled = true; btn.textContent = 'Sending…';
             // Reserved here, while the tap is still on the stack -- after the
             // await a popup blocker swallows it silently.
             const waWin = menuWhatsappReserve(WA_ON);
             const res = await menuPost(ORDER_URL, {
-                customer_name: document.getElementById('fName').value || null,
+                customer_name: document.getElementById('fName').value.trim(),
+                customer_phone: document.getElementById('fPhone').value.trim(),
                 customer_contact: document.getElementById('fContact').value || null,
                 fulfilment,
                 customer_address: FUL_ADDRESS[fulfilment]
@@ -558,6 +568,7 @@
                     document.getElementById('doneNote')
                 ]
             }) === 'redirected') { return; }
+            menuToken.show(document.getElementById('ordToken'), order, 'Quote it when you collect or when you write in.');
             document.getElementById('doneTotal').textContent = fmt(order.total != null ? order.total : order.subtotal);
             document.getElementById('ordStatus').textContent = order.status_label || order.status;
             const waBtn = document.getElementById('waBtn');

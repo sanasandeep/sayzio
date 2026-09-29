@@ -267,6 +267,8 @@
 
             @include('user.links.partials.menu-confirmation-panel', ['confirmHeadlinePlaceholder' => 'Request sent 🎉'])
 
+            @include('user.links.partials.menu-tokens-panel', ['tkNoun' => 'request'])
+
             @include('user.links.partials.menu-choices-panel', [
                 'choiceBase'  => rtrim(url('/user/links/'.$link->id.'/store/option-groups'), '/'),
                 'choiceItems' => $menu->products->map(fn ($i) => ['id' => (int) $i->id, 'name' => $i->name])->values(),
@@ -410,6 +412,7 @@ function storeEditor() {
         confirm: @json($menuConfirm),
         categories: @json($menuCategories),
         products: @json($menuProducts),
+        tokens: @js(\App\Modules\User\Support\MenuOrderToken::resolve((array) ($menu->settings ?? []))),
         savedMsg: '',
         // The chosen layout's one-line description, so the panel explains
         // itself instead of making the creator click five radios to find out.
@@ -522,12 +525,34 @@ function storeEditor() {
             if (!r.ok) { alert((j.error && j.error.message) || (j.message) || 'Request failed'); throw new Error('fail'); }
             return j.data;
         },
+        /** When the next run of numbers starts, in the owner's own day. */
+        tokenHint(){
+            const tz = window.MENU_TOKEN_TZ || undefined;
+            const fmt = (d) => d.toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short', timeZone: tz });
+            const next = new Date();
+            if (this.tokens.reset === 'never') { return 'Numbers keep counting up for as long as this menu exists.'; }
+            if (this.tokens.reset === 'day') {
+                next.setDate(next.getDate() + 1);
+                return 'Back to 1 at midnight, so ' + fmt(next) + ' starts again from 1.';
+            }
+            if (this.tokens.reset === 'week') {
+                // ISO weeks, so a run always turns over on a Monday.
+                const ahead = (8 - (next.getDay() || 7)) % 7 || 7;
+                next.setDate(next.getDate() + ahead);
+                return 'Back to 1 every Monday, so ' + fmt(next) + ' starts again from 1.';
+            }
+            next.setMonth(next.getMonth() + 1, 1);
+            return 'Back to 1 on the 1st, so ' + fmt(next) + ' starts again from 1.';
+        },
+
         async saveSettings(){
             await this.api('POST','/settings',{
                 mode:this.menu.mode,
                 currency:(this.menu.currency||'USD').toUpperCase(),
                 accent_color:this.menu.accent_color,
                 whatsapp_number:this.menu.whatsapp_number||'',
+                tokens_enabled:!!this.tokens.enabled,
+                tokens_reset:this.tokens.reset||'day',
                 confirm_mode:this.confirm.mode||'bill',
                 confirm_url:this.confirm.url||'',
                 confirm_message:this.confirm.message||'',
