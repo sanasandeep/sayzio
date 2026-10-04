@@ -712,7 +712,23 @@ class BiolinkBlockController extends Controller
         $this->recordBlockActivity('biolink.block.update', $link, $block);
 
         if ($request->ajax() || $request->wantsJson()) {
-            return response()->json(['success' => true, 'block' => $block->fresh()]);
+            $fresh = $block->fresh();
+
+            return response()->json([
+                'success' => true,
+                'block' => $fresh,
+                // Where the block ACTUALLY is, not where the request asked
+                // for it to go. The position picker sets itself from this
+                // rather than from what it sent, because the two can differ:
+                // a slot can be refused here, or dropped earlier by the
+                // style sanitizer, and for a while both of those answered
+                // "success" while the control went on showing a position
+                // the block was not in.
+                'menu_slot' => \App\Modules\User\Support\MenuBlockSlot::resolve(
+                    \App\Modules\User\Support\MenuBlockSlot::of($fresh->settings ?? []),
+                    $this->menuSectionIdsFor($link)
+                ),
+            ]);
         }
 
         return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Block updated.');

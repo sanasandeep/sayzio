@@ -172,8 +172,13 @@ class TheMenuEditorSaysWhereThingsGoTest extends TestCase
 
         $html = $this->blocksEditor($link->fresh());
 
-        $this->assertStringContainsString('Very top, above the title', $html);
-        $this->assertStringContainsString('Above the menu', $html);
+        // Reworded on 2026-10-04: the four labels had been measuring from
+        // four different things ("very top" and "bottom of page" from the
+        // page, the other two from the menu), so each one now names a place
+        // relative to the title or the menu. Sana: "the dropdown and words
+        // look unpolished".
+        $this->assertStringContainsString('Above the title', $html);
+        $this->assertStringContainsString('Below the title, before the menu', $html);
         // The label that was not true.
         $this->assertStringNotContainsString('>Top of page<', $html);
     }
@@ -198,20 +203,33 @@ class TheMenuEditorSaysWhereThingsGoTest extends TestCase
 
         $html = $this->blocksEditor($link->fresh());
 
-        // appearance:none plus our own chevron, so it stops rendering as a
-        // full-width native control in a strip of 9px buttons.
+        // Scoped to the wrapper, because `[data-app-layout] select` in
+        // app.css is more specific than a bare class and owns appearance,
+        // padding-right and the chevron for every select in the admin. An
+        // unscoped rule lost to it, which is how this control came to wear
+        // the app-wide 16px chevron AND a smaller one of its own -- two
+        // arrows side by side, found by looking at the rendered row.
         $this->assertMatchesRegularExpression(
-            '/\.menu-slot-select\s*\{[^}]*appearance:\s*none/s',
+            '/\.menu-slot-field \.menu-slot-select\s*\{[^}]*background-color:/s',
             $html,
-            'The position picker should not wear the platform chevron.'
+            'The picker must set background-COLOR; the shorthand resets the chevron geometry and makes it tile.'
         );
         $this->assertMatchesRegularExpression(
-            '/\.menu-slot-select\s*\{[^}]*width:\s*auto/s',
+            '/\.menu-slot-field \.menu-slot-select\s*\{[^}]*height:\s*22px/s',
             $html,
-            'The position picker should size to its label, not the card.'
+            'The picker should be the same height as the Width row beneath it.'
+        );
+        // It used to be `width: auto`, on the reasoning that it should size
+        // to its label. A native select sizes to its LONGEST option, not the
+        // selected one, so that gave a fixed wide box that changed size
+        // whenever a section was renamed. It fills the strip and truncates.
+        $this->assertMatchesRegularExpression(
+            '/\.menu-slot-field \.menu-slot-select\s*\{[^}]*width:\s*100%/s',
+            $html,
+            'The position picker should fill the strip rather than size to its longest option.'
         );
         $this->assertStringNotContainsString('menu-slot-select flex-1', $html,
-            'The position picker should no longer stretch the row.');
+            'The width belongs in the stylesheet, not in a utility class on the control.');
     }
 
     // ===== 3. Currency is picked, not typed ==============================

@@ -140,6 +140,12 @@
         .item .info { flex:1; min-width:0; }
         .item .name { font-weight:650; font-size:15.5px; color:var(--ink-item); }
         .item .desc { font-size:13px; opacity:.62; margin-top:3px; line-height:1.4; color:var(--ink-desc); }
+        /* The minimum/maximum rule under an item. Smaller and quieter than
+           the description: it is a constraint, not a selling point. */
+        .item .qty-rule { font-size:11.5px; opacity:.6; margin-top:3px; letter-spacing:.01em; color:var(--ink-desc); }
+        /* The cap message, on the Add row. Its own line under the
+           stepper rather than squeezed in beside it. */
+        .qty-cap { display:block; font-size:11.5px; margin-top:4px; color:var(--ink-desc); opacity:.85; }
         .item .price { font-weight:700; font-size:14.5px; margin-top:6px; color:var(--ink-price); }
         .soldout { opacity:.45; }
         .soldout .name::after { content:" · Out of stock"; color:#b91c1c; font-size:12px; font-weight:600; }
@@ -309,17 +315,26 @@
         <div id="ordToken" style="display:none"></div>
         <p id="doneStatusRow">Status: <span class="status-pill" id="ordStatus">New</span></p>
         <p class="done-msg" id="doneMsg" style="display:none"></p>
+        {{-- Above the total: whoever ordered in bulk came here for the
+             passes, not for the estimate. --}}
+        <div id="mealCoupons" style="display:none"></div>
         <div class="total" id="doneTotalRow"><span>Estimated total</span><span id="doneTotal"></span></div>
         <p class="note" id="doneNote">This is an estimated total, not a final bill. The store has been notified and will reach out. This updates automatically.</p>
         <a id="waBtn" class="wa-btn" href="#" target="_blank" rel="noopener" style="display:none">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 018.413 3.488 11.824 11.824 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.51 5.26l-.999 3.648 3.739-.981 1.249.74zm5.392-15.327c-.235-.025-.47-.025-.706-.025-.235 0-.616.088-.939.441-.323.353-1.235 1.206-1.235 2.941 0 1.735 1.264 3.41 1.44 3.646.176.235 2.479 3.785 6.005 5.31.84.363 1.495.58 2.006.742.843.268 1.61.23 2.216.14.676-.101 2.082-.851 2.376-1.673.294-.823.294-1.528.206-1.674-.088-.147-.323-.235-.676-.412-.353-.176-2.082-1.028-2.405-1.146-.323-.117-.558-.176-.793.177-.235.353-.91 1.146-1.116 1.381-.206.235-.411.265-.764.088-.353-.177-1.49-.549-2.838-1.751-1.049-.935-1.757-2.09-1.963-2.443-.206-.353-.022-.544.155-.72.158-.157.353-.412.529-.618.176-.206.235-.353.353-.588.117-.235.059-.441-.029-.617-.088-.177-.793-1.912-1.087-2.617z"/></svg>
             <span>Send request via WhatsApp</span>
         </a>
+        {{-- Only when the owner configured their own page AND this request
+             has coupons: the redirect was held back so the guest could keep
+             the codes, so the way onward is theirs. --}}
+        <a id="doneOnward" class="wa-btn" href="#" style="display:none">Continue</a>
         <button class="ghost" type="button" onclick="SM.reset()">Back to store</button>
     </div>
 </div>
 
 @include('common.partials.menu-guest-post')
+@include('common.partials.menu-meal-coupons')
+@include('common.partials.menu-quantity-rules')
 @include('common.partials.menu-cart-store')
 @include('common.partials.menu-token')
 @include('common.partials.menu-contact')
@@ -356,7 +371,10 @@
     const ITEMS = {};
     document.querySelectorAll('[data-add]').forEach(el => {
         const id = el.getAttribute('data-add');
-        ITEMS[id] = { id: +id, name: el.getAttribute('data-name'), price: parseFloat(el.getAttribute('data-price')) };
+        ITEMS[id] = { id: +id, name: el.getAttribute('data-name'), price: parseFloat(el.getAttribute('data-price')),
+            // The quantity rule, as the Add row carries it. Absent means
+            // no rule, which is every product that has never had one.
+            min: el.getAttribute('data-min'), max: el.getAttribute('data-max') || null };
     });
     menuChooser.install(CHOICES, n => fmt(n));
     let LINES = [];
@@ -525,12 +543,18 @@
         put(it, opts){
             const key = menuChooser.key(it.id, opts);
             const found = LINES.find(l => l.key === key);
-            if (found) { found.qty++; }
+            if (found) {
+                // At the ceiling, say so instead of counting past it.
+                const up = menuLimits.up(it, found.qty);
+                if (up === null) { menuLimits.say(it.id, menuLimits.atCeiling(it, found.qty)); return; }
+                found.qty = up;
+            }
             else {
                 LINES.push({
                     key, id: it.id, name: it.name, opts,
                     perUnit: Math.round((it.price + menuChooser.extraFor(opts)) * 100) / 100,
-                    qty: 1,
+                    // A case of twelve starts at twelve, not at one.
+                    qty: menuLimits.first(it),
                 });
             }
             saveCart();
@@ -538,11 +562,21 @@
             if (document.getElementById('cartModal').classList.contains('show')) { lines('cartLines'); refreshQuote(); }
         },
         // The +/- on a product with no choices: there is only ever one line.
-        inc(id){ const l = plainLine(id); if (l) { l.qty++; saveCart(); render(); } else { this.add(id); } },
+        inc(id){
+            const l = plainLine(id);
+            if (!l) { this.add(id); return; }
+            const up = menuLimits.up(ITEMS[id], l.qty);
+            if (up === null) { menuLimits.say(id, menuLimits.atCeiling(ITEMS[id], l.qty)); return; }
+            l.qty = up;
+            saveCart();
+            render();
+        },
         dec(id){
             const l = plainLine(id);
             if (!l) { return; }
-            l.qty--;
+            // At the floor this returns 0: eleven of a case-of-twelve
+            // product is not an order, so minus clears the line instead.
+            l.qty = menuLimits.down(ITEMS[id], l.qty);
             if (l.qty <= 0) { LINES = LINES.filter(x => x !== l); }
             saveCart();
             render();
@@ -626,15 +660,20 @@
             this.closeCart();
             // The owner may be sending the guest somewhere else entirely, in
             // which case none of the rest of this is for anyone.
+            const mealCoupons = (order.meal_coupons || []);
             if (menuConfirmation(CONFIRM, {
                 headline: document.getElementById('doneHead'),
                 message:  document.getElementById('doneMsg'),
+                onward:   document.getElementById('doneOnward'),
                 bill: [
                     document.getElementById('doneStatusRow'),
                     document.getElementById('doneTotalRow'),
                     document.getElementById('doneNote')
                 ]
-            }) === 'redirected') { return; }
+            // The codes are the only copy the guest gets, so a configured
+            // redirect waits for them to take it.
+            }, { keep: mealCoupons.length > 0 }) === 'redirected') { return; }
+            menuMealCoupons.show(document.getElementById('mealCoupons'), mealCoupons);
             menuToken.show(document.getElementById('ordToken'), order, 'Quote it when you collect or when you write in.');
             document.getElementById('doneTotal').textContent = fmt(order.total != null ? order.total : order.subtotal);
             document.getElementById('ordStatus').textContent = order.status_label || order.status;

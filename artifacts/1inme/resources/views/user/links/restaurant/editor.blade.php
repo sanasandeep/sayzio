@@ -455,6 +455,10 @@
                 'mkModal' => 'itemModal',
                 'mkNoun'  => 'dish',
             ])
+            @include('user.links.partials.menu-quantity-picker', [
+                'qpModal' => 'itemModal',
+                'qpNoun'  => 'dish',
+            ])
 
             {{-- The way to choices from here.
 
@@ -493,7 +497,7 @@
     $menuModes   = \App\Modules\User\Support\MenuFulfilment::modesFor((array) ($menu->settings ?? []), true);
     $menuCharges = \App\Modules\User\Support\MenuFulfilment::charges((array) ($menu->settings ?? []));
     $menuCategories = $menu->categories->map(fn($c)=>['id'=>$c->id,'parent_id'=>$c->parent_id,'name'=>$c->name,'description'=>$c->description,'is_active'=>(bool) $c->is_active,'sort_order'=>(int) $c->sort_order])->values();
-    $menuItems = $menu->items->map(fn($i)=>['id'=>$i->id,'category_id'=>$i->category_id,'name'=>$i->name,'description'=>$i->description,'price'=>$i->price,'photo_url'=>$i->photo_url,'is_sold_out'=>$i->is_sold_out,'marks'=>\App\Modules\User\Support\MenuItemMarks::sanitize($i->marks),'is_active'=>(bool) $i->is_active,'sort_order'=>(int) $i->sort_order])->values();
+    $menuItems = $menu->items->map(fn($i)=>['id'=>$i->id,'category_id'=>$i->category_id,'name'=>$i->name,'description'=>$i->description,'price'=>$i->price,'photo_url'=>$i->photo_url,'is_sold_out'=>$i->is_sold_out,'marks'=>\App\Modules\User\Support\MenuItemMarks::sanitize($i->marks),'min_quantity'=>(int) ($i->min_quantity ?? 1),'max_quantity'=>$i->max_quantity,'coupon_from'=>$i->coupon_from,'is_active'=>(bool) $i->is_active,'sort_order'=>(int) $i->sort_order])->values();
     $menuTables = $menu->tables->map(fn($t)=>['id'=>$t->id,'label'=>$t->label,'code'=>$t->code])->values();
     $menuCoupons = $menu->coupons->map(fn($c)=>['id'=>$c->id,'code'=>$c->code,'discount_type'=>$c->discount_type,'discount_value'=>$c->discount_value,'min_subtotal'=>$c->min_subtotal,'is_active'=>$c->is_active])->values();
     $menuData = ['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color, 'whatsapp_number' => $menu->settings['whatsapp_number'] ?? '', 'layout' => $menuLayoutKey, 'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null),
@@ -594,7 +598,7 @@ function restaurantEditor() {
         get priceHint(){ return this.priceHints[this.menu.price_style] || ''; },
         catModal: { open:false, id:null, parent_id:null, name:'', description:'' },
         couponModal: { open:false, id:null, code:'', discount_type:'percent', discount_value:'', min_subtotal:'', is_active:true },
-        itemModal: { open:false, id:null, category_id:null, name:'', description:'', price:'', photo_url:'', is_sold_out:false, marks:[] },
+        itemModal: { open:false, id:null, category_id:null, name:'', description:'', price:'', photo_url:'', is_sold_out:false, marks:[], min_quantity:'', max_quantity:'', coupon_from:'' },
         base: @json(rtrim(url('/user/links/'.$link->id.'/restaurant'), '/')),
         uploadUrl: @json(route('user.files.upload')),
         csrf: @json(csrf_token()),
@@ -843,12 +847,19 @@ function restaurantEditor() {
             return this.vaultFiles.filter(f => f.original_name.toLowerCase().includes(s));
         },
         openItem(catId, item){
-            this.itemModal = item ? {open:true,id:item.id,category_id:catId,name:item.name,description:item.description||'',price:item.price,photo_url:item.photo_url||'',is_sold_out:!!item.is_sold_out,marks:(item.marks||[])} : {open:true,id:null,category_id:catId,name:'',description:'',price:'',photo_url:'',is_sold_out:false,marks:[]};
+            // The three quantity boxes open on '' when the row has nothing,
+            // because that is the value the box shows its placeholder for:
+            // a 1 in the minimum box reads as a rule somebody set.
+            this.itemModal = item ? {open:true,id:item.id,category_id:catId,name:item.name,description:item.description||'',price:item.price,photo_url:item.photo_url||'',is_sold_out:!!item.is_sold_out,marks:(item.marks||[]),min_quantity:(item.min_quantity > 1 ? item.min_quantity : ''),max_quantity:(item.max_quantity ?? ''),coupon_from:(item.coupon_from ?? '')} : {open:true,id:null,category_id:catId,name:'',description:'',price:'',photo_url:'',is_sold_out:false,marks:[],min_quantity:'',max_quantity:'',coupon_from:''};
             this.photoMode = 'url'; this.photoError = '';
         },
         async saveItem(){
             if (!this.itemModal.name.trim()) return;
-            const payload = { category_id:this.itemModal.category_id, name:this.itemModal.name, description:this.itemModal.description, price:parseFloat(this.itemModal.price||0), photo_url:this.itemModal.photo_url||null, is_sold_out:this.itemModal.is_sold_out, marks:(this.itemModal.marks||[]) };
+            const payload = { category_id:this.itemModal.category_id, name:this.itemModal.name, description:this.itemModal.description, price:parseFloat(this.itemModal.price||0), photo_url:this.itemModal.photo_url||null, is_sold_out:this.itemModal.is_sold_out, marks:(this.itemModal.marks||[]),
+                // Blank goes as null, not as 0: the validator would refuse
+                // a 0 and the owner would be told "the min quantity field
+                // must be at least 1" about a box they left empty.
+                min_quantity:menuQuantity.num(this.itemModal.min_quantity), max_quantity:menuQuantity.num(this.itemModal.max_quantity), coupon_from:menuQuantity.num(this.itemModal.coupon_from) };
             if (this.itemModal.id) { const d = await this.api('PUT','/items/'+this.itemModal.id, payload); const i=this.items.findIndex(x=>x.id===this.itemModal.id); this.items[i]=d.item; }
             else { const d = await this.api('POST','/items', payload); this.items.push(d.item); }
             this.itemModal.open = false;

@@ -8,7 +8,8 @@ class RestaurantMenuItem extends Model
 {
     protected $fillable = [
         'menu_id', 'category_id', 'name', 'description', 'price', 'currency',
-        'photo_url', 'marks', 'sort_order', 'is_sold_out', 'is_active',
+        'photo_url', 'marks', 'min_quantity', 'max_quantity', 'coupon_from',
+        'sort_order', 'is_sold_out', 'is_active',
     ];
 
     protected function casts(): array
@@ -16,6 +17,11 @@ class RestaurantMenuItem extends Model
         return [
             'price'       => 'decimal:2',
             'marks'       => 'array',
+            // All three are integers or null; Laravel leaves null alone,
+            // so a nullable ceiling keeps meaning "no ceiling".
+            'min_quantity' => 'integer',
+            'max_quantity' => 'integer',
+            'coupon_from'  => 'integer',
             'is_sold_out' => 'boolean',
             'is_active'   => 'boolean',
         ];

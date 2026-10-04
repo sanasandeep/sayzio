@@ -378,7 +378,7 @@ class StoreMenuController extends Controller
             'is_out_of_stock' => 'sometimes|boolean',
             'marks'           => 'sometimes|array|max:40',
             'is_active'       => 'sometimes|boolean',
-        ]);
+        ] + \App\Modules\User\Support\MenuBulkOrder::rules());
 
         $category = StoreCategory::where('menu_id', $menu->id)->findOrFail($data['category_id']);
 
@@ -394,7 +394,7 @@ class StoreMenuController extends Controller
             // Never what the browser sent: see the restaurant's copy.
             'marks'           => MenuItemMarks::sanitize($data['marks'] ?? []),
             'sort_order'      => (int) StoreProduct::where('category_id', $category->id)->max('sort_order') + 1,
-        ]);
+        ] + \App\Modules\User\Support\MenuBulkOrder::input($data));
 
         return response()->json(['data' => ['product' => $product]], 201);
     }
@@ -414,7 +414,7 @@ class StoreMenuController extends Controller
             'is_out_of_stock' => 'sometimes|boolean',
             'marks'           => 'sometimes|array|max:40',
             'is_active'       => 'sometimes|boolean',
-        ]);
+        ] + \App\Modules\User\Support\MenuBulkOrder::rules());
 
         if (isset($data['category_id'])) {
             StoreCategory::where('menu_id', $menu->id)->findOrFail($data['category_id']);
@@ -426,6 +426,9 @@ class StoreMenuController extends Controller
         if (array_key_exists('marks', $data)) {
             $data['marks'] = MenuItemMarks::sanitize($data['marks']);
         }
+
+        // Resolved against the row as it stands: see the restaurant's copy.
+        $data = array_merge($data, \App\Modules\User\Support\MenuBulkOrder::input($data, $product));
 
         $product->update($data);
 

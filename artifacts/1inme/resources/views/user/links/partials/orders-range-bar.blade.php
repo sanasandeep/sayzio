@@ -44,7 +44,11 @@
     </div>
 
     <p class="ro-range-note">
-        <span x-text="rangeSummary()"></span>
+        {{-- Only when there is something to count. With no orders this
+             printed the empty sentence, and the empty state eight pixels
+             below printed the SAME sentence again -- two identical lines
+             stacked on a screen whose whole content was those two lines. --}}
+        <span x-show="meta.total" x-text="rangeSummary()"></span>
         {{-- Said out loud, because a screen that has quietly stopped
              receiving orders looks exactly like a quiet evening. --}}
         <template x-if="!meta.is_live">

@@ -33,15 +33,28 @@
             @include('common.partials.menu-item-marks', ['mkMarks' => $miItem->marksForDisplay()])
             @if($miItem->description)<div class="desc">{{ $miItem->description }}</div>@endif
             <div class="price">{{ $miFmt($miItem->price) }}</div>
+            {{-- The rule, before they tap Add rather than after. A dish
+                 sold in trays of ten that says nothing is a dish whose
+                 first refusal arrives at checkout. Items with no rule
+                 print nothing, which is every item today. --}}
+            @php $miRule = \App\Modules\User\Support\MenuBulkOrder::label($miItem); @endphp
+            @if($miRule !== '')<div class="qty-rule">{{ $miRule }}</div>@endif
             @if($miOrder && ! $miSold)
                 <div class="addrow" data-add="{{ $miItem->id }}"
-                     data-name="{{ e($miItem->name) }}" data-price="{{ $miItem->price }}">
+                     data-name="{{ e($miItem->name) }}" data-price="{{ $miItem->price }}"
+                     data-min="{{ (int) ($miItem->min_quantity ?? 1) }}"
+                     data-max="{{ $miItem->max_quantity !== null ? (int) $miItem->max_quantity : '' }}">
                     <button class="add" type="button" onclick="{{ $miNs }}.add({{ $miItem->id }})">Add</button>
                     <span data-stepper="{{ $miItem->id }}" style="display:none;">
                         <button class="qbtn" type="button" onclick="{{ $miNs }}.dec({{ $miItem->id }})">−</button>
                         <span class="qty" data-qty="{{ $miItem->id }}">0</span>
                         <button class="qbtn" type="button" onclick="{{ $miNs }}.inc({{ $miItem->id }})">+</button>
                     </span>
+                    {{-- Where "that is as many as you can order" goes. On
+                         the row itself: the cart's error line is two taps
+                         away and the guest is looking at the + they just
+                         pressed. --}}
+                    <small class="qty-cap" data-cap="{{ $miItem->id }}" role="status" style="display:none"></small>
                 </div>
             @endif
         </div>

@@ -41,7 +41,7 @@ class PublicRestaurantController extends Controller
             'fulfilment'       => 'nullable|string|max:16',
             'items'            => 'required|array|min:1',
             'items.*.item_id'  => 'required|integer',
-            'items.*.quantity' => 'required|integer|min:1|max:99',
+            'items.*.quantity' => 'required|integer|min:1|max:'.\App\Modules\User\Support\MenuBulkOrder::LINE_MAX,
             'items.*.options'             => 'nullable|array|max:40',
             'items.*.options.*.option_id' => 'required|integer',
             'items.*.options.*.quantity'  => 'nullable|integer|min:1|max:20',
@@ -186,7 +186,7 @@ class PublicRestaurantController extends Controller
             ],
             'items'           => 'required|array|min:1',
             'items.*.item_id' => 'required|integer',
-            'items.*.quantity'=> 'required|integer|min:1|max:99',
+            'items.*.quantity'=> 'required|integer|min:1|max:'.\App\Modules\User\Support\MenuBulkOrder::LINE_MAX,
             'items.*.note'    => 'nullable|string|max:300',
             'items.*.options'             => 'nullable|array|max:40',
             'items.*.options.*.option_id' => 'required|integer',
@@ -217,6 +217,14 @@ class PublicRestaurantController extends Controller
             // numbers it belongs to.
             'token_number' => $order->token_number,
             'wanted_at'    => $order->wanted_at?->toIso8601String(),
+            // The codes this order produced, so the person who placed it
+            // can hand them out. Empty on every ordinary order.
+            'meal_coupons' => \App\Modules\User\Models\MenuOrderCoupon::where('order_type', 'restaurant')
+                ->where('order_id', $order->id)
+                ->orderBy('id')
+                ->get()
+                ->map(fn ($c) => ['code' => $c->display(), 'item_name' => $c->item_name])
+                ->all(),
             'token_period' => $order->token_period,
             'status'       => $order->status,
             'status_label' => $order->status_label,

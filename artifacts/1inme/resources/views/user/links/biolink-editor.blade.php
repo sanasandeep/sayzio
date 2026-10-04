@@ -222,34 +222,69 @@
         .insert-rail, .insert-rail-line, .insert-rail-dot { transition: none; }
     }
 
-    /* The position picker, sized to sit in the same thin strip as the
-       Width row rather than looking like a form field dropped into a card. */
-    .menu-slot-select {
+    /* The position picker. It sits directly above the Width row, so the two
+       are built to the same measurements: same height, same radius, same
+       type, and both filling the strip rather than one of them sizing
+       itself to its own content. */
+    .menu-slot-field {
+        position: relative;
+        display: flex;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    /* Scoped to the wrapper (0-2-0) ON PURPOSE. `[data-app-layout] select`
+       in app.css is 0-1-1 and owns appearance, padding-right and the
+       chevron for every select in the admin; a plain `.menu-slot-select`
+       rule loses to it, which is how this control ended up wearing the
+       app-wide 16px chevron AND a second one of its own. Everything that
+       differs for this chip is re-declared here, at a weight that wins --
+       including the chevron's own geometry, because app.css warns that
+       setting one without the other makes the image TILE across the
+       control. */
+    .menu-slot-field .menu-slot-select {
         font-size: 10px;
         font-weight: 600;
-        /* Room on the right for the chevron we draw, since appearance:none
-           removes the platform one. */
-        padding: 3px 20px 3px 7px;
+        line-height: 1.5;
+        /* Room for the chevron re-sized below, not for the app-wide one. */
+        padding: 2px 24px 2px 8px;
+        height: 22px;
         border-radius: 6px;
         border: 1px solid var(--border-strong);
-        background: var(--bg-glass-input);
-        color: var(--text-primary);
-        cursor: pointer;
-        max-width: 100%;
-        /* A full-width native select with a fat platform chevron reads as a
-           form field dropped into the card. This is a chip that happens to
-           be a select, the same weight as the Width buttons beside it. */
-        appearance: none;
-        -webkit-appearance: none;
-        width: auto;
-        background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M1 1l3 3 3-3' fill='none' stroke='%23888' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        /* background-COLOR, never the shorthand: the shorthand resets the
+           chevron's repeat and position and leaves the image, which is the
+           tiling artifact app.css documents. */
+        background-color: var(--bg-glass-input);
         background-repeat: no-repeat;
         background-position: right 7px center;
+        background-size: 11px 11px;
+        color: var(--text-primary);
+        cursor: pointer;
+        /* Fills the strip and truncates, instead of being as wide as its
+           longest option. A native select takes the width of the widest
+           label it holds, so "Below the title, before the menu" and a long
+           section name were setting the size of the row. */
+        flex: 1 1 auto;
+        width: 100%;
+        min-width: 0;
+        appearance: none;
+        -webkit-appearance: none;
         text-overflow: ellipsis;
+        transition: border-color .12s ease, background-color .12s ease;
     }
-    .menu-slot-select:hover { border-color: #9db0ff; }
-    .menu-slot-select:focus-visible { outline: 2px solid rgba(61,107,255,0.5); outline-offset: 1px; }
-    .menu-slot-select:disabled { opacity: .55; cursor: progress; }
+    .menu-slot-field .menu-slot-select:hover { border-color: #9db0ff; }
+    .menu-slot-field .menu-slot-select:focus-visible { outline: 2px solid rgba(61,107,255,0.5); outline-offset: 1px; }
+    .menu-slot-field .menu-slot-select:disabled { opacity: .55; cursor: progress; }
+    /* The options themselves. A native dropdown inherits the PAGE's colours
+       on Linux and Windows, not the control's, so on the dark editor the
+       open list was dark text on a dark sheet. */
+    .menu-slot-select option {
+        background: var(--bg-card);
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .menu-slot-select { transition: none; }
+    }
 
     .card-container-block {
         border-color: rgba(61,107,255,0.2);
@@ -2062,10 +2097,18 @@ function showToast(msg, type) {
 }
 
 
-// Where a block sits relative to the menu: above it, below it, or after one
-// of its sections. The value travels in _style because that is where the
-// public renderer has always read it from; the server re-checks that the
-// section is one of THIS menu's before storing it.
+// Where a block sits relative to the menu: above the title, below it, after
+// one of the sections, or below the whole menu. The value travels in _style
+// because that is where the public renderer has always read it from; the
+// server re-checks that the section is one of THIS menu's before storing it.
+//
+// The control is set from the slot the SERVER reports, never from the value
+// that was sent. For a while "Above the title" was dropped on the way in
+// and the save still answered success, so the picker sat there showing a
+// position the block had never been moved to -- Sana, 2026-10-04: "very
+// top... not saving also not showing live". A control that reports the
+// request rather than the result cannot show that bug; one that reports the
+// result cannot hide it.
 function setMenuSlot(blockId, slot, sel) {
     var prev = sel.dataset.prevValue || '';
     var url = '{{ route("user.links.blocks.update", [$link, "__ID__"]) }}'.replace('__ID__', blockId);
@@ -2081,8 +2124,18 @@ function setMenuSlot(blockId, slot, sel) {
         body: JSON.stringify({ style: { _menu_slot: slot } })
     }).then(function(r) { return r.json(); }).then(function(data) {
         if (data && data.success) {
-            sel.dataset.prevValue = slot;
-            showToast('Position updated', 'success');
+            var landed = data.menu_slot || slot;
+            sel.value = landed;
+            sel.dataset.prevValue = landed;
+            if (landed === slot) {
+                var where = sel.options[sel.selectedIndex];
+                showToast('Moved to ' + (where ? where.text : 'its new position'), 'success');
+            } else {
+                // Saved, but not where they asked. Saying so is the whole
+                // point: the alternative is a green tick over a block that
+                // did not move.
+                showToast('That position is no longer available, so the block stayed put', 'error');
+            }
             refreshPreview();
         } else {
             // Put the control back where it was rather than leaving it

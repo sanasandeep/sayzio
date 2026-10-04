@@ -230,7 +230,7 @@ class ABlockCanSitBetweenTwoMenuSectionsTest extends TestCase
         $this->assertMatchesRegularExpression(
             '/<option value="below"[^>]*\bselected\b/',
             $html,
-            'An orphaned block should show as Bottom of page in the editor.'
+            'An orphaned block should show as Below the menu in the editor.'
         );
     }
 
@@ -301,12 +301,15 @@ class ABlockCanSitBetweenTwoMenuSectionsTest extends TestCase
         $html = $this->editor($link->fresh());
 
         // "Top of page" was renamed once it turned out to render below the
-        // hero: it is two positions now, each saying which it is.
-        $this->assertStringContainsString('Very top, above the title', $html);
-        $this->assertStringContainsString('Above the menu', $html);
-        $this->assertStringContainsString('After Starters', $html);
-        $this->assertStringContainsString('After Mains', $html);
-        $this->assertStringContainsString('Bottom of page', $html);
+        // hero: it is two positions now, each saying which it is. They were
+        // reworded again on 2026-10-04 -- they had been measuring from four
+        // different things -- so every label now names a place relative to
+        // the title or the menu, and a section's own name is quoted.
+        $this->assertStringContainsString('Above the title', $html);
+        $this->assertStringContainsString('Below the title, before the menu', $html);
+        $this->assertStringContainsString('After “Starters”', $html);
+        $this->assertStringContainsString('After “Mains”', $html);
+        $this->assertStringContainsString('Below the menu', $html);
         $this->assertStringContainsString('setMenuSlot(', $html);
     }
 
@@ -325,7 +328,7 @@ class ABlockCanSitBetweenTwoMenuSectionsTest extends TestCase
         // There is no menu for a block to sit around, so an empty picker
         // would be a control that cannot do anything.
         $this->assertStringNotContainsString('menu-slot-row', $html);
-        $this->assertStringNotContainsString('Bottom of page', $html);
+        $this->assertStringNotContainsString('Below the menu', $html);
     }
 
     public function test_only_top_level_sections_are_offered(): void
@@ -339,9 +342,9 @@ class ABlockCanSitBetweenTwoMenuSectionsTest extends TestCase
 
         $html = $this->editor($link->fresh());
 
-        $this->assertStringContainsString('After Tiffins', $html);
+        $this->assertStringContainsString('After “Tiffins”', $html);
         // A sub-section is drawn inside its parent, so a block between the
         // two would land in the middle of one card's worth of dishes.
-        $this->assertStringNotContainsString('After Steamed', $html);
+        $this->assertStringNotContainsString('After “Steamed”', $html);
     }
 }

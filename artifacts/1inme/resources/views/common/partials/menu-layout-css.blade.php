@@ -200,7 +200,12 @@
 .price-right .item .price, .price-dots .item .price { order: 3; margin-top: 0; white-space: nowrap; }
 .price-right .item .marks, .price-dots .item .marks { order: 4; flex: 1 0 100%; margin-top: 4px; }
 .price-right .item .desc, .price-dots .item .desc { order: 5; flex: 1 0 100%; margin-top: 2px; }
-.price-right .item .addrow, .price-dots .item .addrow { order: 6; flex: 1 0 100%; margin-top: 6px; }
+/* The quantity rule needs its own order, like the marks row. Without one
+   it defaults to 0 and lands BEFORE the dish name in both of these
+   layouts -- the same way the marks row broke the leader dots when it was
+   first put inline. */
+.price-right .item .qty-rule, .price-dots .item .qty-rule { order: 6; flex: 1 0 100%; margin-top: 3px; }
+.price-right .item .addrow, .price-dots .item .addrow { order: 7; flex: 1 0 100%; margin-top: 6px; }
 /* The spacer is what pushes the price to the edge; in `dots` it also
    carries the rule. One flexing pseudo-element, so it stretches to whatever
    gap is left at any width. */

@@ -91,6 +91,11 @@ class MenuCartPricer
 
             $qty = max(1, (int) $row['quantity']);
 
+            // How many of this one an order may ask for. The page stops a
+            // guest before they tap Add; this stops the request when it
+            // arrives, for the same reason the choice rules do both.
+            \App\Modules\User\Support\MenuBulkOrder::check($item, $qty);
+
             // Rules and prices both come from the database here, never from
             // the request: what the browser sent is a list of choices, not
             // a bill.

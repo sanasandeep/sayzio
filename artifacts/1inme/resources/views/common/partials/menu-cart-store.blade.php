@@ -117,13 +117,14 @@
          *
          * @param items   the page's catalog, keyed by id
          * @param chooser window.menuChooser
-         * @returns {lines, dropped, repriced} or null when there is nothing
+         * @returns {lines, dropped, repriced, lifted} or null when there
+         *          is nothing
          */
         restore: function (alias, items, chooser) {
             var stored = this.read(alias);
             if (!stored) { return null; }
 
-            var lines = [], dropped = 0, repriced = 0;
+            var lines = [], dropped = 0, repriced = 0, lifted = 0;
 
             stored.lines.forEach(function (sl) {
                 var it = items[sl.id];
@@ -139,22 +140,39 @@
                 var perUnit = Math.round((it.price + chooser.extraFor(opts)) * 100) / 100;
                 if (sl.was != null && Math.abs(sl.was - perUnit) > 0.001) { repriced++; }
 
+                // The backstop was a literal 99 here, which silently cut a
+                // restored bulk cart down to 99 the moment bulk orders
+                // existed. It comes from the server now, same as the
+                // order endpoint's own ceiling.
+                var cap = window.MENU_LINE_MAX || 99;
+                var want = Math.max(1, Math.min(cap, parseInt(sl.qty, 10) || 1));
+                // The item may have gained a minimum or a maximum since
+                // this cart was saved, and a quantity outside it cannot be
+                // ordered at all. Moved to the nearest number that can,
+                // and counted, because the notice has to say so -- leaving
+                // the old number would hand them a cart the server refuses
+                // and no way to see why.
+                var fit = window.menuLimits
+                    ? Math.max(window.menuLimits.of(it).min, Math.min(window.menuLimits.of(it).max, want))
+                    : want;
+                if (fit !== want) { lifted++; }
+
                 lines.push({
                     key: chooser.key(it.id, opts),
                     id: it.id,
                     name: it.name,
                     opts: opts,
                     perUnit: perUnit,
-                    qty: Math.max(1, Math.min(99, parseInt(sl.qty, 10) || 1)),
+                    qty: fit,
                 });
             });
 
             if (!lines.length) {
                 this.clear(alias);
-                return dropped ? { lines: [], dropped: dropped, repriced: 0 } : null;
+                return dropped ? { lines: [], dropped: dropped, repriced: 0, lifted: 0 } : null;
             }
 
-            return { lines: lines, dropped: dropped, repriced: repriced };
+            return { lines: lines, dropped: dropped, repriced: repriced, lifted: lifted };
         },
 
         /**
@@ -175,6 +193,12 @@
             }
             if (result.repriced) {
                 parts.push('Some prices have changed since you were last here.');
+            }
+            if (result.lifted) {
+                // Both words again, for the same reason as above.
+                parts.push(result.lifted === 1
+                    ? 'How many of one ' + noun + ' you can order has changed, so the number has been adjusted.'
+                    : 'How many of some ' + nouns + ' you can order has changed, so the numbers have been adjusted.');
             }
             return parts.join(' ');
         },
