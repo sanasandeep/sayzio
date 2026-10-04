@@ -679,13 +679,19 @@
         .morph-text { animation: morphText 4s ease-in-out infinite; }
         @php
             $layout = $bs['layout'] ?? [];
-            $maxPhone = $layout['max_width_phone'] ?? 448;
-            $maxTablet = $layout['max_width_tablet'] ?? 540;
-            $maxDesktop = $layout['max_width_desktop'] ?? 680;
-            $pagePadTop = $layout['page_padding_top'] ?? 32;
-            $pagePadBottom = $layout['page_padding_bottom'] ?? 64;
-            $pagePadX = $layout['page_padding_x'] ?? 16;
-            $blockGap = $layout['block_gap'] ?? 12;
+            // Same resolver the two menu pages use, so the defaults cannot
+            // drift between page types -- they were written out by hand
+            // here and nowhere else, which is how the menu pages ended up
+            // ignoring the Layout card entirely.
+            $pl = \App\Modules\User\Support\PageLayout::resolve($bs);
+            $maxPhone = $pl['max_width_phone'];
+            $maxTablet = $pl['max_width_tablet'];
+            $maxDesktop = $pl['max_width_desktop'];
+            $pagePadTop = $pl['page_padding_top'];
+            $pagePadBottom = $pl['page_padding_bottom'];
+            $pagePadX = $pl['page_padding_x'];
+            $blockGap = $pl['block_gap'];
+            // Not from the resolver: unset means "inherit", not a number.
             $defaultBlockPadding = $layout['block_padding'] ?? '';
         @endphp
         .biolink-container {

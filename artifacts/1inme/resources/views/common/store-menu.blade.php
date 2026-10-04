@@ -126,7 +126,14 @@
         html, body { margin:0; padding:0; min-height:100%; font-family:{!! $mp['font_css'] !!}; background:#f6f6f9; color:#111; }
         @media (prefers-color-scheme: dark) { html, body { background:#0b0b10; color:#f5f5f7; } }
         @endif
-        .page { max-width:760px; margin:0 auto; padding:0 16px 120px; }
+        /* The Layout card's numbers, not literals. A fixed width and a
+           fixed padding were written here, while the editor's Content Max
+           Width and Page Padding boxes saved happily into settings and
+           reached this page never. */
+        .page {
+{!! \App\Modules\User\Support\PageLayout::containerCss($pbBs, \App\Modules\User\Support\PageLayout::MENU_DEFAULTS) !!}
+        }
+{!! \App\Modules\User\Support\PageLayout::widthQueriesCss($pbBs, '.page', \App\Modules\User\Support\PageLayout::MENU_DEFAULTS) !!}
         .hero { padding:28px 4px 18px; }
         .hero h1 { margin:0; font-size:26px; font-weight:800; letter-spacing:-.02em; font-family:{!! $mp['heading_css'] !!}; }
         .hero p { margin:6px 0 0; opacity:.65; font-size:14px; }

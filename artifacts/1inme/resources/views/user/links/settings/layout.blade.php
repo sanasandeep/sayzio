@@ -23,6 +23,16 @@
                     <div class="flex items-center gap-3 mb-5">
                         <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(34,211,238,0.1);"><i class="fas fa-ruler-combined text-cyan-400 text-xs"></i></div>
                         <h3 class="text-sm font-bold" style="color: var(--text-primary);">Page Layout</h3>
+@php
+    // Resolved rather than hard-coded per box. These said 448/540/680 and
+    // 32/64/16 for every page type, while a menu page actually rendered at
+    // a different set entirely -- so the card described a Link in Bio to
+    // somebody looking at a restaurant menu.
+    $plNow = \App\Modules\User\Support\PageLayout::resolve(
+        $link->settings['biolink'] ?? [],
+        \App\Modules\User\Support\PageLayout::defaultsFor($link->type)
+    );
+@endphp
                     </div>
                     <div class="space-y-6">
                         <div>
@@ -30,15 +40,15 @@
                             <div class="grid grid-cols-3 gap-3">
                                 <div>
                                     <label class="flex items-center gap-2 text-[11px] font-medium mb-1" style="color: var(--text-faint);"><i class="fas fa-mobile-alt text-[9px] text-blue-400"></i> Phone</label>
-                                    <input type="number" name="layout[max_width_phone]" value="{{ $layout['max_width_phone'] ?? 448 }}" min="280" max="600" class="theme-input w-full">
+                                    <input type="number" name="layout[max_width_phone]" value="{{ $plNow['max_width_phone'] }}" min="280" max="600" class="theme-input w-full">
                                 </div>
                                 <div>
                                     <label class="flex items-center gap-2 text-[11px] font-medium mb-1" style="color: var(--text-faint);"><i class="fas fa-tablet-alt text-[9px] text-pink-400"></i> Tablet</label>
-                                    <input type="number" name="layout[max_width_tablet]" value="{{ $layout['max_width_tablet'] ?? 540 }}" min="320" max="900" class="theme-input w-full">
+                                    <input type="number" name="layout[max_width_tablet]" value="{{ $plNow['max_width_tablet'] }}" min="320" max="900" class="theme-input w-full">
                                 </div>
                                 <div>
                                     <label class="flex items-center gap-2 text-[11px] font-medium mb-1" style="color: var(--text-faint);"><i class="fas fa-desktop text-[9px] text-cyan-400"></i> Desktop</label>
-                                    <input type="number" name="layout[max_width_desktop]" value="{{ $layout['max_width_desktop'] ?? 680 }}" min="400" max="1200" class="theme-input w-full">
+                                    <input type="number" name="layout[max_width_desktop]" value="{{ $plNow['max_width_desktop'] }}" min="400" max="1200" class="theme-input w-full">
                                 </div>
                             </div>
                             <p class="text-[10px] mt-2" style="color: var(--text-dimmed);">Controls how wide the content area is on each device size.</p>
@@ -49,15 +59,15 @@
                             <div class="grid grid-cols-3 gap-3">
                                 <div>
                                     <label class="block text-[11px] mb-1" style="color: var(--text-faint);">Top</label>
-                                    <input type="number" name="layout[page_padding_top]" value="{{ $layout['page_padding_top'] ?? 32 }}" min="0" max="200" class="theme-input w-full">
+                                    <input type="number" name="layout[page_padding_top]" value="{{ $plNow['page_padding_top'] }}" min="0" max="200" class="theme-input w-full">
                                 </div>
                                 <div>
                                     <label class="block text-[11px] mb-1" style="color: var(--text-faint);">Bottom</label>
-                                    <input type="number" name="layout[page_padding_bottom]" value="{{ $layout['page_padding_bottom'] ?? 64 }}" min="0" max="200" class="theme-input w-full">
+                                    <input type="number" name="layout[page_padding_bottom]" value="{{ $plNow['page_padding_bottom'] }}" min="0" max="200" class="theme-input w-full">
                                 </div>
                                 <div>
                                     <label class="block text-[11px] mb-1" style="color: var(--text-faint);">Sides</label>
-                                    <input type="number" name="layout[page_padding_x]" value="{{ $layout['page_padding_x'] ?? 16 }}" min="0" max="100" class="theme-input w-full">
+                                    <input type="number" name="layout[page_padding_x]" value="{{ $plNow['page_padding_x'] }}" min="0" max="100" class="theme-input w-full">
                                 </div>
                             </div>
                             <p class="text-[10px] mt-2" style="color: var(--text-dimmed);">Space between the page edge and your content.</p>
@@ -68,7 +78,7 @@
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
                                     <label class="block text-[11px] mb-1" style="color: var(--text-faint);">Gap between blocks</label>
-                                    <input type="number" name="layout[block_gap]" value="{{ $layout['block_gap'] ?? 12 }}" min="0" max="100" class="theme-input w-full">
+                                    <input type="number" name="layout[block_gap]" value="{{ $plNow['block_gap'] }}" min="0" max="100" class="theme-input w-full">
                                 </div>
                                 <div>
                                     <label class="block text-[11px] mb-1" style="color: var(--text-faint);">Block inner padding</label>
