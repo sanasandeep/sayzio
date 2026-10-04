@@ -78,6 +78,11 @@ class StoreMenuController extends Controller
             'fulfilment_modes.*'    => 'string|max:16',
             'charges'         => 'sometimes|array',
             'tokens_enabled'  => 'sometimes|boolean',
+            'timing_enabled'  => 'sometimes|boolean',
+            'timing_interval' => 'sometimes|nullable|integer',
+            'timing_open'     => 'sometimes|nullable|string|max:5',
+            'timing_close'    => 'sometimes|nullable|string|max:5',
+            'timing_prep'     => 'sometimes|nullable|integer',
             'tokens_reset'    => 'sometimes|nullable|string|max:16',
             'charges.*.label'       => 'nullable|string|max:60',
             'charges.*.type'        => 'nullable|string|in:fixed,percent',
@@ -174,6 +179,18 @@ class StoreMenuController extends Controller
                 ['fulfilment_modes' => $data['fulfilment_modes'] ?? []], false
             );
         }
+        // When a takeaway or delivery order is wanted. One block, so the
+        // window and the prep time that shapes it cannot be saved apart.
+        if ($request->hasAny(['timing_enabled', 'timing_interval', 'timing_open', 'timing_close', 'timing_prep'])) {
+            $settings['handover_timing'] = \App\Modules\User\Support\MenuHandoverTiming::sanitize([
+                'enabled'      => $request->boolean('timing_enabled'),
+                'interval'     => $request->input('timing_interval'),
+                'open'         => $request->input('timing_open'),
+                'close'        => $request->input('timing_close'),
+                'prep_minutes' => $request->input('timing_prep'),
+            ]);
+        }
+
         // The number a guest is told to listen for, and how often it goes
         // back to 1. Written as one block so "on" and "resets daily" can
         // never be saved apart.

@@ -103,6 +103,14 @@
             ])->values(),
         ])->values())->all();
     }
+    // Built on the server, in the owner's clock: a phone an hour out of
+    // sync would otherwise offer times the kitchen refuses on submit.
+    $rmSlots = $menu->isOrderMode()
+        ? \App\Modules\User\Support\MenuHandoverTiming::slots(
+            (array) ($menu->settings ?? []),
+            $link->user?->effectiveTimezone() ?? \App\Support\PlatformTimezone::platformDefault()
+        )
+        : [];
     $pbBs      = $link->settings['biolink'] ?? [];
     $pbOn      = \App\Modules\User\Support\PageBackground::chosen($pbBs);
     $pb        = $pbOn ? \App\Modules\User\Support\PageBackground::resolve($pbBs) : null;
@@ -315,8 +323,22 @@
         @endif
         <textarea class="field" id="fAddress" rows="2" placeholder="Delivery address"
                   style="display:none"></textarea>
+        @include('common.partials.menu-when', ['whSlots' => $rmSlots])
         @unless($activeTable)
-            <input class="field" id="fTable" placeholder="Table number (optional)">
+            {{-- A dropdown of the tables this menu actually has, when it has
+                 any. The free-text box it replaces was worse than it looked:
+                 its value was never sent, so a guest who told us they were
+                 at table 4 was recorded as a walk-in. --}}
+            @if($menu->tables->isNotEmpty())
+                <select class="field" id="fTable">
+                    <option value="">Table number (optional)</option>
+                    @foreach($menu->tables as $rmTable)
+                        <option value="{{ $rmTable->label }}">Table {{ $rmTable->label }}</option>
+                    @endforeach
+                </select>
+            @else
+                <input class="field" id="fTable" placeholder="Table number (optional)">
+            @endif
         @endunless
         <input class="field" id="fName" placeholder="Your name" required>
         <input class="field" id="fPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Phone number" required>
@@ -372,6 +394,7 @@
     // of "code, space, two decimals", which is how they drift.
     const MONEY = @json($money);
     const TABLE_CODE = @json($activeTable->code ?? null);
+    const FUL_TIMED = ['takeaway', 'delivery'];
     const FUL_MODES = @json($fulModes);
     const FUL_ADDRESS = @json((object) $fulNeedsAddress);
     const CHOICES = @json((object) $rmChoices);
@@ -608,9 +631,24 @@
         // total has to be re-quoted rather than recomputed in the browser.
         setFulfilment(mode){
             fulfilment = mode;
-            const box = document.getElementById('fAddress');
-            if (box) box.style.display = FUL_ADDRESS[mode] ? '' : 'none';
+            this.paintFulfilment();
             refreshQuote();
+        },
+        /**
+         * Show the fields the chosen handover needs.
+         *
+         * Called at startup as well as on change, and that is the fix for a
+         * live bug: the radios only render when a menu offers MORE THAN ONE
+         * mode, so on a delivery-only menu setFulfilment never fired and the
+         * address box stayed hidden -- while the server went on requiring an
+         * address. The guest had nothing to type into and no way through.
+         */
+        paintFulfilment(){
+            const box = document.getElementById('fAddress');
+            if (box) { box.style.display = FUL_ADDRESS[fulfilment] ? '' : 'none'; }
+            // Somebody already sitting at a table is not booking a slot.
+            const when = document.getElementById('whenRow');
+            if (when) { when.style.display = FUL_TIMED.includes(fulfilment) ? '' : 'none'; }
         },
         closeCart(){ document.getElementById('cartModal').classList.remove('show'); },
         applyCoupon(){
@@ -635,6 +673,8 @@
             const waWin = menuWhatsappReserve(WA_ON);
             const res = await menuPost(ORDER_URL, {
                 table_code: TABLE_CODE,
+                table_label: (document.getElementById('fTable') || {}).value || null,
+                wanted_at: (document.getElementById('fWhen') || {}).value || null,
                 customer_name: document.getElementById('fName').value.trim(),
                 customer_phone: document.getElementById('fPhone').value.trim(),
                 customer_note: document.getElementById('fNote').value || null,
@@ -725,6 +765,7 @@
         }
     };
 
+    RM.paintFulfilment();
     // Paints a restored cart onto the pill and the steppers. Not inside
     // restoreCart(): render() reaches fmt, which is a `const` declared
     // further down and would still be in its dead zone there.

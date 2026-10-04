@@ -269,6 +269,8 @@
 
             @include('user.links.partials.menu-tokens-panel', ['tkNoun' => 'request'])
 
+            @include('user.links.partials.menu-timing-panel', ['tmNoun' => 'request'])
+
             @include('user.links.partials.menu-choices-panel', [
                 'choiceBase'  => rtrim(url('/user/links/'.$link->id.'/store/option-groups'), '/'),
                 'choiceItems' => $menu->products->map(fn ($i) => ['id' => (int) $i->id, 'name' => $i->name])->values(),
@@ -413,6 +415,7 @@ function storeEditor() {
         categories: @json($menuCategories),
         products: @json($menuProducts),
         tokens: @js(\App\Modules\User\Support\MenuOrderToken::resolve((array) ($menu->settings ?? []))),
+        timing: @js(\App\Modules\User\Support\MenuHandoverTiming::resolve((array) ($menu->settings ?? []))),
         savedMsg: '',
         // The chosen layout's one-line description, so the panel explains
         // itself instead of making the creator click five radios to find out.
@@ -525,6 +528,23 @@ function storeEditor() {
             if (!r.ok) { alert((j.error && j.error.message) || (j.message) || 'Request failed'); throw new Error('fail'); }
             return j.data;
         },
+        /** Dine-in only? Then there is nothing to ask a time about. */
+        timingApplies(){
+            const modes = this.menu.fulfilment_modes || [];
+            return modes.includes('takeaway') || modes.includes('delivery');
+        },
+
+        /** The first time a customer could actually pick, right now. */
+        timingPreview(){
+            const step = Math.max(5, +this.timing.interval || 30);
+            const at = new Date(Date.now() + (Math.max(0, +this.timing.prep_minutes || 0) * 60000));
+            at.setSeconds(0, 0);
+            const over = at.getMinutes() % step;
+            if (over) { at.setMinutes(at.getMinutes() + (step - over)); }
+            const t = at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+            return 'Right now, the earliest a customer could choose is ' + t + '.';
+        },
+
         /** When the next run of numbers starts, in the owner's own day. */
         tokenHint(){
             const tz = window.MENU_TOKEN_TZ || undefined;
@@ -551,6 +571,11 @@ function storeEditor() {
                 currency:(this.menu.currency||'USD').toUpperCase(),
                 accent_color:this.menu.accent_color,
                 whatsapp_number:this.menu.whatsapp_number||'',
+                timing_enabled:!!this.timing.enabled,
+                timing_interval:+this.timing.interval||30,
+                timing_open:this.timing.open||'10:00',
+                timing_close:this.timing.close||'22:00',
+                timing_prep:+this.timing.prep_minutes||0,
                 tokens_enabled:!!this.tokens.enabled,
                 tokens_reset:this.tokens.reset||'day',
                 confirm_mode:this.confirm.mode||'bill',

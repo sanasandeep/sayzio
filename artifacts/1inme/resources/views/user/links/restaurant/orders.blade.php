@@ -18,6 +18,7 @@
         color:var(--text-primary);
     }
     .ro-phone { color:inherit; text-decoration:none; border-bottom:1px dotted currentColor; }
+    .ro-wanted { color:var(--text-primary); font-weight:600; }
     .ro-meta { font-size:12.5px; color:var(--text-muted); margin-top:2px; }
     .ro-line { display:flex; justify-content:space-between; font-size:13.5px; padding:4px 0; color:var(--text-primary); }
     .ro-breakdown { margin-top:8px; padding-top:8px; border-top:1px dashed var(--border-glass); }
@@ -73,6 +74,9 @@
                                     <span><a class="ro-phone" :href="'tel:' + o.customer_phone" x-text="o.customer_phone"></a> · </span>
                                 </template>
                                 <span x-text="timeAgo(o.created_at)"></span> · #<span x-text="o.id"></span>
+                                <template x-if="o.wanted_at">
+                                    <span class="ro-wanted" x-text="' · for ' + wantedLabel(o.wanted_at)"></span>
+                                </template>
                             </div>
                         </div>
                     </div>
@@ -119,7 +123,7 @@
 
 <script>
 @php
-    $ordersData = $orders->map(fn($o)=>['id'=>$o->id,'status'=>$o->status,'table_label'=>$o->table_label,'customer_name'=>$o->customer_name,'token_number'=>$o->token_number,'customer_phone'=>$o->customer_phone,'customer_note'=>$o->customer_note,'subtotal'=>$o->subtotal,'coupon_code'=>$o->coupon_code,'discount_amount'=>$o->discount_amount,'tax_rate'=>$o->tax_rate,'tax_inclusive'=>(bool)$o->tax_inclusive,'tax_amount'=>$o->tax_amount,'total'=>$o->total,'currency'=>$o->currency,'created_at'=>$o->created_at?->toIso8601String(),'updated_at'=>$o->updated_at?->toIso8601String(),'items'=>$o->items->map(fn($i)=>['id'=>$i->id,'name'=>$i->name,'quantity'=>$i->quantity,'line_total'=>$i->line_total])])->values();
+    $ordersData = $orders->map(fn($o)=>['id'=>$o->id,'status'=>$o->status,'table_label'=>$o->table_label,'customer_name'=>$o->customer_name,'token_number'=>$o->token_number,'customer_phone'=>$o->customer_phone,'wanted_at'=>$o->wanted_at?->toIso8601String(),'customer_note'=>$o->customer_note,'subtotal'=>$o->subtotal,'coupon_code'=>$o->coupon_code,'discount_amount'=>$o->discount_amount,'tax_rate'=>$o->tax_rate,'tax_inclusive'=>(bool)$o->tax_inclusive,'tax_amount'=>$o->tax_amount,'total'=>$o->total,'currency'=>$o->currency,'created_at'=>$o->created_at?->toIso8601String(),'updated_at'=>$o->updated_at?->toIso8601String(),'items'=>$o->items->map(fn($i)=>['id'=>$i->id,'name'=>$i->name,'quantity'=>$i->quantity,'line_total'=>$i->line_total])])->values();
 @endphp
 function ordersBoard() {
     return {
@@ -200,6 +204,20 @@ function ordersBoard() {
         init(){ this.poll(); setInterval(()=>this.poll(), 5000); this.scrollToHighlight(); },
         scrollToHighlight(){ if (!this.highlight) return; this.$nextTick(()=>{ const el = document.getElementById('order-' + this.highlight); if (el) el.scrollIntoView({ behavior:'smooth', block:'center' }); }); },
         visible(){ const o = this.inRange().slice().sort((a,b)=>b.id-a.id); return this.filter==='open' ? o.filter(x=>this.OPEN.includes(x.status)) : o; },
+        /**
+         * When the customer asked for it. Blank means as soon as possible,
+         * which is most orders, so it says nothing rather than saying "ASAP"
+         * on every single card.
+         */
+        wantedLabel(iso){
+            if (!iso) { return ''; }
+            const at = new Date(iso);
+            const now = new Date();
+            const t = at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+            if (at.toDateString() === now.toDateString()) { return t; }
+            const d = at.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+            return d + ' ' + t;
+        },
         statusLabel(s){ return this.LABELS[s] || s; },
         nextStatuses(s){
             const flow = { new:['accepted','cancelled'], accepted:['preparing','cancelled'], preparing:['ready'], ready:['completed'], completed:[], cancelled:[] };
@@ -242,7 +260,7 @@ function ordersBoard() {
         },
         merge(o){
             const i = this.orders.findIndex(x => x.id === o.id);
-            const norm = { id:o.id, status:o.status, table_label:o.table_label, customer_name:o.customer_name, token_number:o.token_number, customer_phone:o.customer_phone, customer_note:o.customer_note, subtotal:o.subtotal, coupon_code:o.coupon_code, discount_amount:o.discount_amount, tax_rate:o.tax_rate, tax_inclusive:o.tax_inclusive, tax_amount:o.tax_amount, total:o.total, currency:o.currency, created_at:o.created_at, updated_at:o.updated_at, items:(o.items||[]).map(it=>({id:it.id,name:it.name,quantity:it.quantity,line_total:it.line_total})) };
+            const norm = { id:o.id, status:o.status, table_label:o.table_label, customer_name:o.customer_name, token_number:o.token_number, customer_phone:o.customer_phone, wanted_at:o.wanted_at, customer_note:o.customer_note, subtotal:o.subtotal, coupon_code:o.coupon_code, discount_amount:o.discount_amount, tax_rate:o.tax_rate, tax_inclusive:o.tax_inclusive, tax_amount:o.tax_amount, total:o.total, currency:o.currency, created_at:o.created_at, updated_at:o.updated_at, items:(o.items||[]).map(it=>({id:it.id,name:it.name,quantity:it.quantity,line_total:it.line_total})) };
             if (i >= 0) this.orders[i] = norm; else this.orders.unshift(norm);
         },
     };

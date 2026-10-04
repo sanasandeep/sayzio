@@ -152,6 +152,7 @@ class PublicStoreController extends Controller
             // the other.
             'customer_name'       => 'required|string|max:120',
             'customer_phone'      => 'required|string|max:32|min:6',
+            'wanted_at'           => 'nullable|string|max:40',
             'customer_contact'    => 'nullable|string|max:160',
             'customer_note'       => 'nullable|string|max:1000',
             'fulfilment'          => 'nullable|string|max:16',
@@ -192,6 +193,7 @@ class PublicStoreController extends Controller
         return [
             'public_token' => $order->public_token,
             'token_number' => $order->token_number,
+            'wanted_at'    => $order->wanted_at?->toIso8601String(),
             'token_period' => $order->token_period,
             'status'       => $order->status,
             'status_label' => $order->status_label,

@@ -70,12 +70,13 @@ class StoreOrder extends Model
         'customer_name', 'customer_contact', 'customer_note',
         'subtotal', 'total', 'currency', 'meta',
         'fulfilment', 'customer_address', 'charges_amount', 'charges',
-        'token_number', 'token_period', 'customer_phone',
+        'token_number', 'token_period', 'customer_phone', 'wanted_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'wanted_at'       => 'datetime',
             'subtotal' => 'decimal:2',
             'total'    => 'decimal:2',
             'charges_amount' => 'decimal:2',
