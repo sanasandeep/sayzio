@@ -35,6 +35,7 @@
     .ro-live { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }
     .ro-dot { width:8px; height:8px; border-radius:50%; background:#10b981; animation:ropulse 1.6s infinite; }
     @keyframes ropulse { 0%,100%{opacity:1}50%{opacity:.3} }
+    .ro-more { display:block; width:100%; margin-top:4px; text-align:center; }
     .ro-card.ro-highlight { border-color:#5c83ff; box-shadow:0 0 0 2px rgba(92,131,255,.45); }
 </style>
 
@@ -42,10 +43,12 @@
     <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div>
             <h1 class="text-xl font-bold" style="color:var(--text-primary)">Orders</h1>
-            <p class="text-sm" style="color:var(--text-muted)">{{ $link->title ?: $link->alias }} · <span class="ro-live"><span class="ro-dot"></span>Live</span></p>
+            <p class="text-sm" style="color:var(--text-muted)">{{ $link->title ?: $link->alias }} · <span class="ro-live"><template x-if="meta.is_live"><span class="ro-dot"></span></template><span x-text="meta.is_live ? 'Live' : meta.label"></span></span></p>
         </div>
         <a href="{{ route('user.links.restaurant.editor', $link) }}" class="ro-btn"><i class="fas fa-arrow-left"></i> Back to menu</a>
     </div>
+
+    @include('user.links.partials.orders-range-bar', ['rbRoute' => route('user.links.restaurant.orders', $link)])
 
     <div class="flex gap-2 mb-4 flex-wrap">
         <button class="ro-btn" :class="filter==='open' ? 'active' : ''" @click="filter='open'">Open (<span x-text="openCount"></span>)</button>
@@ -53,7 +56,7 @@
     </div>
 
     <template x-if="visible().length === 0">
-        <div class="ro-empty"><i class="fas fa-receipt text-3xl mb-3 block"></i>No orders yet. New orders appear here automatically.</div>
+        <div class="ro-empty"><i class="fas fa-receipt text-3xl mb-3 block"></i><span class="block" x-text="emptyMessage()"></span></div>
     </template>
 
     <template x-for="o in visible()" :key="o.id">
@@ -103,6 +106,15 @@
             </div>
         </div>
     </template>
+
+    {{-- Paging is a fetch, not a navigation: appending to a list somebody
+         is reading should not throw away where they were. --}}
+    <template x-if="more">
+        <button class="ro-btn ro-more" type="button" @click="loadMore()" :disabled="loadingMore">
+            <span x-text="loadingMore ? 'Loading…' : ('Load more (' + Math.max(0, meta.total - inRange().length) + ' older)')"></span>
+        </button>
+    </template>
+
 </div>
 
 <script>
@@ -112,8 +124,70 @@
 function ordersBoard() {
     return {
         orders: @json($ordersData),
+        // ---- Which window the screen is showing ---------------------
+        meta: @json($rangeMeta),
+        page: {{ $page }},
+        more: @json($hasMore),
+        loadingMore: false,
+
+        emptyMessage(){
+            if (this.filter === 'open' && this.inRange().length) {
+                return 'Nothing open in this range. Tap All to see the rest.';
+            }
+            // Written server-side: gluing "in " onto a lowercased label
+            // gives "No orders in yesterday", which is what this said the
+            // first time it was looked at.
+            return this.meta.empty;
+        },
+
+        rangeSummary(){
+            const m = this.meta;
+            if (!m.total) { return m.empty; }
+            const shown = this.inRange().length;
+            const n = m.total + (m.total === 1 ? ' order' : ' orders');
+            return shown >= m.total
+                ? n + ' ' + m.suffix
+                : 'Showing ' + shown + ' of ' + n + ' ' + m.suffix;
+        },
+
+        /** Everything loaded that belongs to the window being shown. */
+        inRange(){
+            const m = this.meta;
+            return this.orders.filter(o => {
+                if (!o.created_at) { return true; }
+                const t = Date.parse(o.created_at);
+                if (m.from_ms != null && t < m.from_ms) { return false; }
+                if (m.to_ms != null && t > m.to_ms) { return false; }
+                return true;
+            });
+        },
+
+        async loadMore(){
+            if (this.loadingMore || !this.more) { return; }
+            this.loadingMore = true;
+            try {
+                const url = new URL(this.base, location.origin);
+                url.searchParams.set('format', 'json');
+                url.searchParams.set('range', this.meta.key);
+                if (this.meta.from_date) { url.searchParams.set('from', this.meta.from_date); }
+                if (this.meta.to_date) { url.searchParams.set('to', this.meta.to_date); }
+                url.searchParams.set('page', this.page + 1);
+                const r = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (!r.ok) { return; }
+                const j = await r.json();
+                (j.data.orders || []).forEach(o => this.merge(o));
+                this.page = j.data.page;
+                this.more = j.data.more;
+                this.meta.total = j.data.range.total;
+            } catch (e) {
+                // Nothing to say: the button simply stays, and tapping it
+                // again is the retry.
+            } finally {
+                this.loadingMore = false;
+            }
+        },
         projectBase: @json(route('user.delivery-projects.create')),
-        openCount: {{ $orders->whereIn('status', \App\Modules\User\Models\RestaurantOrder::OPEN_STATUSES)->count() }},
+        openCount: {{ $openCount }},
         highlight: {{ (int) request()->query('highlight') ?: 'null' }},
         filter: @json(request()->query('highlight') ? 'all' : 'open'),
         base: @json(route('user.links.restaurant.orders', $link)),
@@ -125,7 +199,7 @@ function ordersBoard() {
         LABELS: { new:'New', accepted:'Accepted', preparing:'Preparing', ready:'Ready', completed:'Completed', cancelled:'Cancelled' },
         init(){ this.poll(); setInterval(()=>this.poll(), 5000); this.scrollToHighlight(); },
         scrollToHighlight(){ if (!this.highlight) return; this.$nextTick(()=>{ const el = document.getElementById('order-' + this.highlight); if (el) el.scrollIntoView({ behavior:'smooth', block:'center' }); }); },
-        visible(){ const o = this.orders.slice().sort((a,b)=>b.id-a.id); return this.filter==='open' ? o.filter(x=>this.OPEN.includes(x.status)) : o; },
+        visible(){ const o = this.inRange().slice().sort((a,b)=>b.id-a.id); return this.filter==='open' ? o.filter(x=>this.OPEN.includes(x.status)) : o; },
         statusLabel(s){ return this.LABELS[s] || s; },
         nextStatuses(s){
             const flow = { new:['accepted','cancelled'], accepted:['preparing','cancelled'], preparing:['ready'], ready:['completed'], completed:[], cancelled:[] };
@@ -148,8 +222,23 @@ function ordersBoard() {
                 const j = await r.json();
                 this.cursor = j.data.server_time;
                 this.openCount = j.data.open_count;
-                (j.data.orders || []).forEach(o => this.merge(o));
+                // An order that falls outside the window being viewed is
+                // still merged when it is ALREADY on screen -- a status
+                // change on a visible order has to land -- but a brand new
+                // one is not dragged into a view of last Tuesday.
+                (j.data.orders || []).forEach(o => {
+                    if (this.known(o.id) || this.fits(o)) { this.merge(o); }
+                });
             } catch(e){}
+        },
+        known(id){ return this.orders.some(x => x.id === id); },
+        fits(o){
+            const m = this.meta;
+            if (!o.created_at) { return true; }
+            const t = Date.parse(o.created_at);
+            if (m.from_ms != null && t < m.from_ms) { return false; }
+            if (m.to_ms != null && t > m.to_ms) { return false; }
+            return true;
         },
         merge(o){
             const i = this.orders.findIndex(x => x.id === o.id);
