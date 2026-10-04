@@ -54,10 +54,19 @@ class StoreOrderService
             ? $data['fulfilment']
             : ($modes[0] ?? null);
 
+        $timezone = $link->user?->effectiveTimezone()
+            ?? \App\Support\PlatformTimezone::platformDefault();
+
+        // Null means "as soon as possible". Anything else has to be a slot
+        // this menu is offering right now, checked here rather than trusted.
+        $wantedAt = \App\Modules\User\Support\MenuHandoverTiming::accept(
+            (array) ($menu->settings ?? []), $chosen, $timezone, $data['wanted_at'] ?? null
+        );
+
         $chargeLines   = \App\Modules\User\Support\MenuFulfilment::applicable((array) ($menu->settings ?? []), $chosen, round($subtotal, 2));
         $chargesAmount = \App\Modules\User\Support\MenuFulfilment::total($chargeLines);
 
-        $order = DB::transaction(function () use ($menu, $link, $data, $lines, $subtotal, $chosen, $chargeLines, $chargesAmount) {
+        $order = DB::transaction(function () use ($menu, $link, $data, $lines, $subtotal, $chosen, $chargeLines, $chargesAmount, $timezone, $wantedAt) {
         // The number the guest is told to listen for. Reserved inside the
         // same transaction that creates the order, so two people tapping
         // Place order in the same second cannot both be told "14".
@@ -65,7 +74,7 @@ class StoreOrderService
             'store',
             $menu->id,
             (array) ($menu->settings ?? []),
-            $link->user?->effectiveTimezone() ?? \App\Support\PlatformTimezone::platformDefault()
+            $timezone
         );
 
             $phone = $data['customer_phone'] ?? null;
@@ -75,6 +84,7 @@ class StoreOrderService
                 'link_id'          => $link->id,
                 'status'           => StoreOrder::STATUS_NEW,
                 'token_number'     => $tokenNumber,
+                'wanted_at'        => $wantedAt,
                 'token_period'     => $tokenPeriod,
                 'customer_name'    => $data['customer_name'] ?? null,
                 'customer_phone'   => $phone,

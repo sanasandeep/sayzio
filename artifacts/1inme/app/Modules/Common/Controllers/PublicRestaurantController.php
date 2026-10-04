@@ -163,6 +163,10 @@ class PublicRestaurantController extends Controller
 
         $data = $request->validate([
             'table_code'      => 'nullable|string|max:32',
+            // A guest who typed a table number instead of scanning its QR.
+            // The box was on the page and its value was never sent.
+            'table_label'     => 'nullable|string|max:32',
+            'wanted_at'       => 'nullable|string|max:40',
             // Sana, 2026-09-28: "name and phone mandatory". Required on
             // every handover type, dine-in included, so the kitchen always
             // has someone to call when an order goes wrong.
@@ -212,6 +216,7 @@ class PublicRestaurantController extends Controller
             // The number the guest is told to listen for, and which run of
             // numbers it belongs to.
             'token_number' => $order->token_number,
+            'wanted_at'    => $order->wanted_at?->toIso8601String(),
             'token_period' => $order->token_period,
             'status'       => $order->status,
             'status_label' => $order->status_label,

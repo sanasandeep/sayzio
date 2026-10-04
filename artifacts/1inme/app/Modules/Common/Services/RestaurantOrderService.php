@@ -38,6 +38,20 @@ class RestaurantOrderService
                 ->first();
         }
 
+        // A guest who typed a table number rather than arriving through a
+        // table QR. The page used to show that box and then throw the value
+        // away -- `table_code` was the only thing sent -- so somebody at
+        // table 4 who told us so was recorded as a walk-in.
+        $typedTable = trim((string) ($data['table_label'] ?? ''));
+        if (! $table && $typedTable !== '') {
+            $table = RestaurantTable::where('menu_id', $menu->id)
+                ->whereRaw('lower(label) = ?', [mb_strtolower($typedTable)])
+                ->first();
+        }
+
+        $timezone = $link->user?->effectiveTimezone()
+            ?? \App\Support\PlatformTimezone::platformDefault();
+
         // Priced by the same function the quote endpoint uses, so a cart
         // quoted at one number cannot be charged at another. Availability
         // and the choice rules are both enforced in there, from the
@@ -59,7 +73,14 @@ class RestaurantOrderService
 
         $bill = $this->calculator->compute($menu, $subtotal, $data['coupon_code'] ?? null, $chosen);
 
-        $order = DB::transaction(function () use ($menu, $link, $table, $data, $lines, $subtotal, $bill, $chosen) {
+        // Null means "as soon as possible". Anything else has to be a slot
+        // this menu is actually offering right now, checked here rather
+        // than trusted from the page.
+        $wantedAt = \App\Modules\User\Support\MenuHandoverTiming::accept(
+            (array) ($menu->settings ?? []), $chosen, $timezone, $data['wanted_at'] ?? null
+        );
+
+        $order = DB::transaction(function () use ($menu, $link, $table, $data, $lines, $subtotal, $bill, $chosen, $timezone, $wantedAt, $typedTable) {
         // The number the guest is told to listen for. Reserved inside the
         // same transaction that creates the order, so two people tapping
         // Place order in the same second cannot both be told "14".
@@ -67,7 +88,7 @@ class RestaurantOrderService
             'restaurant',
             $menu->id,
             (array) ($menu->settings ?? []),
-            $link->user?->effectiveTimezone() ?? \App\Support\PlatformTimezone::platformDefault()
+            $timezone
         );
 
             $order = RestaurantOrder::create([
@@ -75,7 +96,8 @@ class RestaurantOrderService
                 'link_id'         => $link->id,
                 'table_id'        => $table?->id,
                 'status'          => RestaurantOrder::STATUS_NEW,
-                'table_label'     => $table?->label,
+                'table_label'     => $table?->label ?: ($typedTable !== '' ? $typedTable : null),
+                'wanted_at'       => $wantedAt,
                 'token_number'    => $tokenNumber,
                 'token_period'    => $tokenPeriod,
                 'customer_name'   => $data['customer_name'] ?? null,

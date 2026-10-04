@@ -87,6 +87,14 @@
             ])->values(),
         ])->values())->all();
     }
+    // Built on the server, in the owner's clock: a phone an hour out of
+    // sync would otherwise offer times the kitchen refuses on submit.
+    $smSlots = $menu->isOrderMode()
+        ? \App\Modules\User\Support\MenuHandoverTiming::slots(
+            (array) ($menu->settings ?? []),
+            $link->user?->effectiveTimezone() ?? \App\Support\PlatformTimezone::platformDefault()
+        )
+        : [];
     $pbBs      = $link->settings['biolink'] ?? [];
     $pbOn      = \App\Modules\User\Support\PageBackground::chosen($pbBs);
     $pb        = $pbOn ? \App\Modules\User\Support\PageBackground::resolve($pbBs) : null;
@@ -282,6 +290,7 @@
             </div>
         @endif
         <textarea class="field" id="fAddress" rows="2" placeholder="Delivery address" style="display:none"></textarea>
+        @include('common.partials.menu-when', ['whSlots' => $smSlots])
         <input class="field" id="fName" placeholder="Your name" required>
         <input class="field" id="fPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Phone number" required>
         <input class="field" id="fContact" placeholder="Email (optional)">
@@ -328,6 +337,7 @@
     const QUOTE_URL = @json(route('sm.public.quote', ['alias' => $link->alias]));
     const FUL_MODES = @json($fulModes);
     const FUL_ADDRESS = @json((object) $fulNeedsAddress);
+    const FUL_TIMED = ['takeaway', 'delivery'];
     const CHOICES = @json((object) $smChoices);
 
     // What the owner chose to happen once the order goes through, resolved
@@ -546,9 +556,23 @@
             lines('cartLines'); render(); refreshQuote(); document.getElementById('cartModal').classList.add('show'); },
         setFulfilment(mode){
             fulfilment = mode;
-            const box = document.getElementById('fAddress');
-            if (box) box.style.display = FUL_ADDRESS[mode] ? '' : 'none';
+            this.paintFulfilment();
             refreshQuote();
+        },
+        /**
+         * Show the fields the chosen handover needs.
+         *
+         * Called at startup as well as on change, and that is the fix for a
+         * live bug: the radios only render when a menu offers MORE THAN ONE
+         * mode, so on a delivery-only menu setFulfilment never fired and the
+         * address box stayed hidden -- while the server went on requiring an
+         * address. The customer had nothing to type into and no way through.
+         */
+        paintFulfilment(){
+            const box = document.getElementById('fAddress');
+            if (box) { box.style.display = FUL_ADDRESS[fulfilment] ? '' : 'none'; }
+            const when = document.getElementById('whenRow');
+            if (when) { when.style.display = FUL_TIMED.includes(fulfilment) ? '' : 'none'; }
         },
         closeCart(){ document.getElementById('cartModal').classList.remove('show'); },
         reset(){ if(pollTimer) clearInterval(pollTimer); location.href = location.pathname; },
@@ -568,6 +592,7 @@
             const res = await menuPost(ORDER_URL, {
                 customer_name: document.getElementById('fName').value.trim(),
                 customer_phone: document.getElementById('fPhone').value.trim(),
+                wanted_at: (document.getElementById('fWhen') || {}).value || null,
                 customer_contact: document.getElementById('fContact').value || null,
                 fulfilment,
                 customer_address: FUL_ADDRESS[fulfilment]
@@ -632,6 +657,7 @@
         }
     };
 
+    SM.paintFulfilment();
     // Paints a restored cart onto the pill and the steppers. Not inside
     // restoreCart(): render() reaches fmt, which is a `const` declared
     // further down and would still be in its dead zone there.
