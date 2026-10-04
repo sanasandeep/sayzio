@@ -31,7 +31,14 @@ background-color: {{ $pb['fallbackColor'] }};
     @elseif($pb['type'] === 'mesh' || $pb['type'] === 'pattern' || $pb['type'] === 'tiles')
         background-color: {{ $pb['fallbackColor'] }};
     @elseif($pb['type'] === 'image' && $pb['image'])
-        background: {{ $pb['fallbackColor'] }} url('{{ $pb['image'] }}') center/cover no-repeat scroll;
+        {{-- The fit the creator chose, not a hard-coded `center/cover`.
+             Longhands, not the shorthand: the shorthand resets every
+             longhand it omits, and this rule also carries a colour and an
+             attachment. --}}
+        background-color: {{ $pb['fallbackColor'] }};
+        background-image: url('{{ $pb['image'] }}');
+        background-attachment: scroll;
+        {!! $pb['fitCss'] !!}
     @elseif($pb['type'] === 'slideshow' || $pb['type'] === 'video' || $pb['type'] === 'template')
         background-color: {{ $pb['fallbackColor'] }};
         @if($pb['fallbackImage'])

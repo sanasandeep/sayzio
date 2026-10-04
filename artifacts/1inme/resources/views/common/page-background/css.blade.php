@@ -36,7 +36,11 @@
     @elseif($pb['type'] === 'mesh' || $pb['type'] === 'pattern')
         background-color: {{ $pb['fallbackColor'] }};
     @elseif($pb['type'] === 'image' && $pb['image'])
-        background: {{ $pb['fallbackColor'] }} url('{{ $pb['image'] }}') center/cover no-repeat;
+        {{-- See body-declarations: the fit is the creator's, and these are
+             longhands so the colour below is not reset by a shorthand. --}}
+        background-color: {{ $pb['fallbackColor'] }};
+        background-image: url('{{ $pb['image'] }}');
+        {!! $pb['fitCss'] !!}
     @elseif($pb['type'] === 'image')
         background-color: {{ $pb['fallbackColor'] }};
     @endif

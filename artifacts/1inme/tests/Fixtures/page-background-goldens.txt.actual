@@ -24,42 +24,42 @@ body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { 
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== image =====
-.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #0a0612; background-image: url('https://cdn.example.com/bg.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat; }
+.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: #0a0612 url('https://cdn.example.com/bg.jpg') center/cover no-repeat; }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== image-fit-contain =====
-.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #0a0612; background-image: url('https://cdn.example.com/bg.jpg'); background-size: contain; background-position: bottom right; background-repeat: no-repeat; }
+.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: #0a0612 url('https://cdn.example.com/bg.jpg') center/cover no-repeat; }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== image-fit-stretch =====
-.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #0a0612; background-image: url('https://cdn.example.com/bg.jpg'); background-size: 100% 100%; background-position: center; background-repeat: no-repeat; }
+.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: #0a0612 url('https://cdn.example.com/bg.jpg') center/cover no-repeat; }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== image-fit-tile =====
-.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #0a0612; background-image: url('https://cdn.example.com/bg.jpg'); background-size: auto; background-position: top left; background-repeat: repeat; }
+.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: #0a0612 url('https://cdn.example.com/bg.jpg') center/cover no-repeat; }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== image-fit-actual =====
-.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #0a0612; background-image: url('https://cdn.example.com/bg.jpg'); background-size: auto; background-position: top; background-repeat: no-repeat; }
+.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: #0a0612 url('https://cdn.example.com/bg.jpg') center/cover no-repeat; }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
 ===== image-blur-and-dim =====
-.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #0a0612; background-image: url('https://cdn.example.com/bg.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat; }
+.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: #0a0612 url('https://cdn.example.com/bg.jpg') center/cover no-repeat; }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }

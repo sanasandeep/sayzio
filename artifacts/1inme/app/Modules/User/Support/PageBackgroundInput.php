@@ -135,6 +135,10 @@ class PageBackgroundInput
             'video_file' => \App\Services\UploadPolicy::rule('link.video_file', $user),
             'bg_template_id' => 'nullable|integer|exists:bg_templates,id',
             'bg_attachment' => 'nullable|string|in:fixed,scroll',
+            // How an uploaded image meets the page. The lists come from
+            // BackgroundFit so the rule and the picker cannot disagree.
+            'bg_fit' => 'nullable|string|in:'.implode(',', array_keys(BackgroundFit::CHOICES)),
+            'bg_position' => 'nullable|string|in:'.implode(',', array_keys(BackgroundFit::POSITIONS)),
             'bg_fallback_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'bg_fallback_image' => \App\Services\UploadPolicy::rule('link.bg_fallback_image', $user),
             'bg_blur' => 'nullable|integer|min:0|max:100',
