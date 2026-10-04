@@ -391,7 +391,20 @@
     $menuCharges = \App\Modules\User\Support\MenuFulfilment::charges((array) ($menu->settings ?? []));
     $menuCategories = $menu->categories->map(fn($c)=>['id'=>$c->id,'parent_id'=>$c->parent_id,'name'=>$c->name,'description'=>$c->description,'is_active'=>(bool) $c->is_active,'sort_order'=>(int) $c->sort_order])->values();
     $menuProducts = $menu->products->map(fn($p)=>['id'=>$p->id,'category_id'=>$p->category_id,'name'=>$p->name,'description'=>$p->description,'price'=>$p->price,'photo_url'=>$p->photo_url,'is_out_of_stock'=>$p->is_out_of_stock,'marks'=>\App\Modules\User\Support\MenuItemMarks::sanitize($p->marks),'min_quantity'=>(int) ($p->min_quantity ?? 1),'max_quantity'=>$p->max_quantity,'coupon_from'=>$p->coupon_from,'is_active'=>(bool) $p->is_active,'sort_order'=>(int) $p->sort_order])->values();
-    $menuState = [
+    // The colours the owner has chosen, read back for the editor.
+    //
+    // Sana, 2026-10-04: "menu items color changed, updated live but not shown
+    // changed value in settings" and "even default always grey". They saved,
+    // and the PAGE read them -- which is why the preview changed -- but this
+    // blob never carried them, so every reload handed the pickers '' and the
+    // `|| '#888888'` fallback painted all five grey. Keyed off
+    // MenuPresentation::COLOURS rather than written out, so a sixth colour
+    // cannot be added to the panel and missed here again.
+    $menuColours = [];
+    foreach (array_keys(\App\Modules\User\Support\MenuPresentation::COLOURS) as $ck) {
+        $menuColours[$ck] = \App\Modules\User\Support\MenuPresentation::hex($menu->settings[$ck] ?? null);
+    }
+    $menuState = $menuColours + [
         'mode' => $menu->mode,
         'currency' => $menu->currency,
         'accent_color' => $menu->accent_color,

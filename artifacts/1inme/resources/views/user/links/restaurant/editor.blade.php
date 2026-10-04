@@ -500,7 +500,20 @@
     $menuItems = $menu->items->map(fn($i)=>['id'=>$i->id,'category_id'=>$i->category_id,'name'=>$i->name,'description'=>$i->description,'price'=>$i->price,'photo_url'=>$i->photo_url,'is_sold_out'=>$i->is_sold_out,'marks'=>\App\Modules\User\Support\MenuItemMarks::sanitize($i->marks),'min_quantity'=>(int) ($i->min_quantity ?? 1),'max_quantity'=>$i->max_quantity,'coupon_from'=>$i->coupon_from,'is_active'=>(bool) $i->is_active,'sort_order'=>(int) $i->sort_order])->values();
     $menuTables = $menu->tables->map(fn($t)=>['id'=>$t->id,'label'=>$t->label,'code'=>$t->code])->values();
     $menuCoupons = $menu->coupons->map(fn($c)=>['id'=>$c->id,'code'=>$c->code,'discount_type'=>$c->discount_type,'discount_value'=>$c->discount_value,'min_subtotal'=>$c->min_subtotal,'is_active'=>$c->is_active])->values();
-    $menuData = ['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color, 'whatsapp_number' => $menu->settings['whatsapp_number'] ?? '', 'layout' => $menuLayoutKey, 'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null),
+    // The colours the owner has chosen, read back for the editor.
+    //
+    // Sana, 2026-10-04: "menu items color changed, updated live but not shown
+    // changed value in settings" and "even default always grey". They saved,
+    // and the PAGE read them -- which is why the preview changed -- but this
+    // blob never carried them, so every reload handed the pickers '' and the
+    // `|| '#888888'` fallback painted all five grey. Keyed off
+    // MenuPresentation::COLOURS rather than written out, so a sixth colour
+    // cannot be added to the panel and missed here again.
+    $menuColours = [];
+    foreach (array_keys(\App\Modules\User\Support\MenuPresentation::COLOURS) as $ck) {
+        $menuColours[$ck] = \App\Modules\User\Support\MenuPresentation::hex($menu->settings[$ck] ?? null);
+    }
+    $menuData = $menuColours + ['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color, 'whatsapp_number' => $menu->settings['whatsapp_number'] ?? '', 'layout' => $menuLayoutKey, 'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null),
         'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null), 'fulfilment_modes' => $menuModes, 'charges' => $menuCharges, 'charges_before_tax' => \App\Modules\User\Support\MenuFulfilment::chargesBeforeTax((array) ($menu->settings ?? [])), 'price_display' => $menuMoney['display'], 'price_position' => $menuMoney['position'], 'price_decimals' => $menuMoney['decimals'] > 0, 'heading_style' => \App\Modules\User\Support\MenuPresentation::heading($menu->settings['heading_style'] ?? null), 'price_style' => \App\Modules\User\Support\MenuPresentation::price($menu->settings['price_style'] ?? null, $menuLayoutKey)];
     $menuConfirm = \App\Modules\User\Support\MenuConfirmation::resolve((array) ($menu->settings ?? []));
     // The editor holds the mode as SAVED, not as resolved: someone who picks
