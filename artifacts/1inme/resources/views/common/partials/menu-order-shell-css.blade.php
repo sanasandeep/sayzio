@@ -50,6 +50,16 @@
         transition: transform .15s ease, box-shadow .15s ease;
         max-width: calc(100vw - 32px);
     }
+    /* The one line that explains why a restored cart is not quite what
+       they left. Noticeable, not alarming: nothing has gone wrong. */
+    .cart-restored {
+        margin: 0 0 12px;
+        padding: 9px 12px;
+        border-radius: 10px;
+        background: rgba(128,128,128,.14);
+        font-size: 13px;
+        line-height: 1.4;
+    }
     .cartfab.show { display: inline-flex; }
     /* The share button floats at z-index 9990, which is above every sheet
        on this page, and on the confirmation it lands squarely on top of

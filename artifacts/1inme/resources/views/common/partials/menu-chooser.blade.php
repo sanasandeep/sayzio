@@ -408,6 +408,60 @@
             }).join(', ');
         },
 
+        /**
+         * Turn a stored `[{option_id, quantity}]` back into full choices
+         * against the menu AS IT IS NOW, or null when it cannot be done
+         * honestly.
+         *
+         * Null covers every way a saved cart can go stale: a choice
+         * retired in the editor, one sold out this morning, an item that
+         * has since gained a required group, or one whose ceiling has come
+         * down. Each of those would otherwise restore a line the quote
+         * endpoint is going to refuse -- and refuse at checkout, after the
+         * customer thought they were done.
+         *
+         * Names and prices come from CHOICES, never from what was stored,
+         * so a renamed or repriced choice comes back correct.
+         */
+        rebuild: function (id, payload) {
+            var groups = CHOICES[id] || [];
+            var wanted = {};
+            (payload || []).forEach(function (p) {
+                var oid = +p.option_id;
+                if (!oid) { return; }
+                wanted[oid] = (wanted[oid] || 0) + Math.max(1, parseInt(p.quantity, 10) || 1);
+            });
+
+            var out = [];
+            var seen = 0;
+
+            for (var i = 0; i < groups.length; i++) {
+                var g = groups[i], b = bounds(g), c = cap(g), picked = 0;
+
+                for (var j = 0; j < g.options.length; j++) {
+                    var o = g.options[j];
+                    var q = wanted[o.id] || 0;
+                    if (!q) { continue; }
+                    // Sold out now, or over a ceiling that has since come
+                    // down: this is not the order they placed.
+                    if (o.is_sold_out || q > c) { return null; }
+                    picked++;
+                    seen += q;
+                    out.push({ option_id: o.id, name: o.name, delta: o.price_delta, quantity: q });
+                }
+
+                if (picked < b.min) { return null; }
+                if (b.max !== null && picked > b.max) { return null; }
+            }
+
+            // Something was stored that this item no longer offers at all.
+            var total = 0;
+            Object.keys(wanted).forEach(function (k) { total += wanted[k]; });
+            if (total !== seen) { return null; }
+
+            return out;
+        },
+
         /** The payload shape the server takes. */
         payload: function (opts) {
             return (opts || []).map(function (o) {

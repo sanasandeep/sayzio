@@ -287,6 +287,10 @@
 <div class="modal sz-pinned" id="cartModal">
     <div class="sheet">
         <h3>Your order</h3>
+        {{-- Said once, at the top of the sheet, when a restored cart no
+             longer matches the menu. Silently handing someone a different
+             order from the one they left is worse than losing it. --}}
+        <p class="cart-restored" id="cartRestored" role="status" style="display:none"></p>
         <div id="cartLines"></div>
         <div class="coupon-row">
             <input class="field" id="fCoupon" placeholder="Discount code (optional)" style="text-transform:uppercase;margin-top:0">
@@ -352,6 +356,7 @@
 </div>
 
 @include('common.partials.menu-guest-post')
+@include('common.partials.menu-cart-store')
 @include('common.partials.menu-token')
 @include('common.partials.menu-contact')
 @include('common.partials.menu-chooser')
@@ -392,6 +397,25 @@
     });
     menuChooser.install(CHOICES, n => fmt(n));
     let LINES = [];
+
+    // ---- The cart survives a reload ---------------------------------
+    //
+    // Rebuilt against the menu as it is RIGHT NOW, never from stored
+    // prices: see common/partials/menu-cart-store for why that matters.
+    // Anything that cannot be rebuilt honestly is dropped and said out
+    // loud rather than quietly swapped for something else.
+    const CART_KEY = @json($link->alias);
+    let restoredNotice = '';
+
+    function saveCart() { menuCart.save(CART_KEY, LINES); }
+
+    (function restoreCart() {
+        const back = menuCart.restore(CART_KEY, ITEMS, menuChooser);
+        if (!back) { return; }
+        LINES = back.lines;
+        restoredNotice = menuCart.notice(back, 'dish', 'dishes');
+        saveCart();
+    })();
     const qtyOf = id => LINES.filter(l => l.id === +id).reduce((n, l) => n + l.qty, 0);
     const plainLine = id => LINES.find(l => l.id === +id && !l.opts.length);
     const fmt = n => MONEY.prefix
@@ -502,7 +526,13 @@
     // Ask the server for a fresh estimate whenever the cart or coupon changes.
     async function refreshQuote() {
         const items = cartItems();
-        const fallbackTotal = Object.values(ITEMS).reduce((s, it) => s + it.qty * it.price, 0);
+        // The cart is LINES, and has been since the chooser landed. Summing
+        // ITEMS was summing the CATALOG, whose entries have carried no qty
+        // since then, so this read `undefined * price` for every dish and
+        // the guest's estimated total said "INR NaN" -- on every quote that
+        // failed, which at a table on patchy wifi is routine. Found by
+        // rendering the sheet with the endpoint unreachable.
+        const fallbackTotal = LINES.reduce((s, l) => s + l.qty * l.perUnit, 0);
         if (!items.length) { lastBill = null; renderBill('billBreakdown', 'modalTotal', null); document.getElementById('modalTotal').textContent = fmt(0); return; }
         const seq = ++quoteSeq;
         const res = await menuPost(QUOTE_URL, { items, coupon_code: appliedCoupon || null, fulfilment });
@@ -553,19 +583,27 @@
                     qty: 1,
                 });
             }
+            saveCart();
             render();
             if (document.getElementById('cartModal').classList.contains('show')) { lines('cartLines'); refreshQuote(); }
         },
         // The +/- on a dish with no choices: there is only ever one line.
-        inc(id){ const l = plainLine(id); if (l) { l.qty++; render(); } else { this.add(id); } },
+        inc(id){ const l = plainLine(id); if (l) { l.qty++; saveCart(); render(); } else { this.add(id); } },
         dec(id){
             const l = plainLine(id);
             if (!l) { return; }
             l.qty--;
             if (l.qty <= 0) { LINES = LINES.filter(x => x !== l); }
+            saveCart();
             render();
         },
-        openCart(){ lines('cartLines'); refreshQuote(); document.getElementById('cartModal').classList.add('show'); },
+        openCart(){
+            const note = document.getElementById('cartRestored');
+            if (note) {
+                note.textContent = restoredNotice;
+                note.style.display = restoredNotice ? '' : 'none';
+            }
+            lines('cartLines'); refreshQuote(); document.getElementById('cartModal').classList.add('show'); },
         // Changing the handover changes which charges apply, so the shown
         // total has to be re-quoted rather than recomputed in the browser.
         setFulfilment(mode){
@@ -615,6 +653,10 @@
                 return;
             }
             const order = res.data.data.order;
+            // The order exists; the saved cart is spent. Storage only --
+            // LINES still has to paint the confirmation below.
+            menuCart.clear(CART_KEY);
+            restoredNotice = '';
             menuWhatsappHandoff(waWin, order.whatsapp);
             // The order EXISTS by now. If painting the confirmation fails
             // for any reason, the one thing the guest must not be left with
@@ -682,6 +724,11 @@
             }, 5000);
         }
     };
+
+    // Paints a restored cart onto the pill and the steppers. Not inside
+    // restoreCart(): render() reaches fmt, which is a `const` declared
+    // further down and would still be in its dead zone there.
+    render();
 })();
 </script>
 @endif
