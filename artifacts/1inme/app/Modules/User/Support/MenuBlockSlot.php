@@ -126,6 +126,27 @@ class MenuBlockSlot
     }
 
     /**
+     * Does this LOOK like a slot, without asking which menu it is for?
+     *
+     * For the style sanitizer, which is shared with the admin Block Designs
+     * manager and so never has a link in hand. It is a shape test and
+     * nothing more: `section:999` passes here and is refused later by
+     * isValid(), which knows the menu's own sections.
+     *
+     * It exists because the sanitizer used to write the list of slots out
+     * again, by hand, and then fell a slot behind -- which is how "Above
+     * the title" came to be a position the picker offered and the save
+     * silently threw away.
+     */
+    public static function isKnownShape(?string $slot): bool
+    {
+        return $slot === self::TOP
+            || $slot === self::ABOVE
+            || $slot === self::BELOW
+            || self::sectionId($slot) !== null;
+    }
+
+    /**
      * Is this a slot a creator may choose? Used to validate what the editor
      * sends, so a block cannot be pinned after a section on another menu --
      * or after one that does not exist.
@@ -137,6 +158,7 @@ class MenuBlockSlot
         if ($slot === self::TOP || $slot === self::ABOVE || $slot === self::BELOW) {
             return true;
         }
+
 
         $sectionId = self::sectionId($slot);
         if ($sectionId === null) {
@@ -157,6 +179,20 @@ class MenuBlockSlot
      * because that is what the creator is looking at: "After Starters", not
      * "section:41".
      *
+     * ---- Why they were rewritten -------------------------------------
+     *
+     * They read "Very top, above the title", "Above the menu", "After
+     * Starters", "Bottom of page" -- four labels measuring from four
+     * different things, two of which ("very top", "bottom of page") are
+     * about the page and two of which are about the menu. Sana, 2026-10-04:
+     * "the dropdown and words look unpolished".
+     *
+     * Every label now says where the block sits relative to one of the two
+     * landmarks a creator can actually see on the page -- the title and the
+     * menu -- and the list reads straight down the page from the first to
+     * the last. A section's own name is quoted, so a section called "Bottom
+     * of page" cannot be mistaken for the position of the same name.
+     *
      * @param  Collection  $categories  top-level sections, in page order
      * @return array<int, array{value: string, label: string}>
      */
@@ -165,24 +201,27 @@ class MenuBlockSlot
         $out = [
             [
                 'value' => self::TOP,
-                'label' => 'Very top, above the title',
+                'label' => 'Above the title',
             ],
             [
                 'value' => self::ABOVE,
-                'label' => 'Above the menu',
+                'label' => 'Below the title, before the menu',
             ],
         ];
 
         foreach ($categories as $category) {
             $out[] = [
                 'value' => self::forSection((int) $category->id),
-                'label' => 'After '.$category->name,
+                // Curly quotes, because a section is named by its owner and
+                // "After Chef's Specials & More" has to stay readable as a
+                // name rather than running into the sentence around it.
+                'label' => 'After “'.$category->name.'”',
             ];
         }
 
         $out[] = [
             'value' => self::BELOW,
-            'label' => 'Bottom of page',
+            'label' => 'Below the menu',
         ];
 
         return $out;

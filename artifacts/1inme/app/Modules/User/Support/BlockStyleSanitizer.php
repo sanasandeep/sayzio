@@ -249,16 +249,24 @@ class BlockStyleSanitizer
                 $clean = self::sanitizePhotoTextStickers($val);
                 if ($clean !== []) $result[$key] = $clean;
             } elseif ($key === '_menu_slot') {
-                // Where this block sits on a menu page: 'above', 'below' or
-                // 'section:<id>'. Only the SHAPE is checked here -- whether
-                // that section exists, and belongs to this link's menu, is
-                // decided in BiolinkBlockController where the link is known.
-                // This sanitizer is shared with the admin Block Designs
-                // manager, which has no link in hand.
+                // Where this block sits on a menu page: 'top', 'above',
+                // 'below' or 'section:<id>'. Only the SHAPE is checked here
+                // -- whether that section exists, and belongs to this link's
+                // menu, is decided in BiolinkBlockController where the link
+                // is known. This sanitizer is shared with the admin Block
+                // Designs manager, which has no link in hand.
+                //
+                // The list used to be written out as `above`, `below` and
+                // `section:<id>`, and then MenuBlockSlot grew `top` and
+                // this was not grown with it. Choosing "Above the title"
+                // dropped the key here, so the controller never saw a slot
+                // to check, the block kept the one it had, and the save
+                // still answered success. Sana, 2026-10-04: "very top... not
+                // saving also not showing live." So the test is now whether
+                // MenuBlockSlot recognises the shape, asked of MenuBlockSlot
+                // -- a fifth slot cannot be added without this following.
                 $slot = trim((string) $val);
-                if ($slot === MenuBlockSlot::ABOVE
-                    || $slot === MenuBlockSlot::BELOW
-                    || MenuBlockSlot::sectionId($slot) !== null) {
+                if (MenuBlockSlot::isKnownShape($slot)) {
                     $result[$key] = $slot;
                 }
             } elseif (in_array($key, ['_animation', '_gallery_layout', '_social_set', '_profile_layout', '_window_chrome', '_ltg_layout', '_ltg_align'], true)) {

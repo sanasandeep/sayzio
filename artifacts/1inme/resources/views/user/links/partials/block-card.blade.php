@@ -176,13 +176,21 @@
         <div class="menu-slot-row px-3 pb-2" data-slot-row="{{ $block->id }}">
             <div class="flex items-center gap-1.5">
                 <span class="text-[9px] font-semibold flex-shrink-0" style="color: var(--text-faint);"><i class="fas fa-arrows-up-down mr-1"></i>Position</span>
-                <select class="menu-slot-select min-w-0"
-                        aria-label="Where this block sits on the page"
-                        onchange="setMenuSlot({{ $block->id }}, this.value, this)">
-                    @foreach($slotOptions as $opt)
-                    <option value="{{ $opt['value'] }}" @selected($curSlot === $opt['value'])>{{ $opt['label'] }}</option>
-                    @endforeach
-                </select>
+                {{-- The select fills the row rather than sizing itself to
+                     its longest option. A native select is as wide as the
+                     widest label it holds, so this row used to be a fixed
+                     wide box next to the Width row's neat pills, and it
+                     changed width whenever a section was renamed. --}}
+                <span class="menu-slot-field">
+                    <select class="menu-slot-select"
+                            data-prev-value="{{ $curSlot }}"
+                            aria-label="Where this block sits on the page"
+                            onchange="setMenuSlot({{ $block->id }}, this.value, this)">
+                        @foreach($slotOptions as $opt)
+                        <option value="{{ $opt['value'] }}" @selected($curSlot === $opt['value'])>{{ $opt['label'] }}</option>
+                        @endforeach
+                    </select>
+                </span>
             </div>
         </div>
         @endif
