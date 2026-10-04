@@ -39,6 +39,12 @@
         --bg-glass-input-focus: rgba(255,255,255,0.07);
         --bg-card: rgba(255,255,255,0.04);
         --bg-card-hover: rgba(255,255,255,0.06);
+        /* A tonal step up from the card, for the small filled things that
+           sit ON one: an order token, a thumbnail well, a count chip. Used
+           on the ordering screens since they shipped and never declared,
+           so every one of them has been falling back to a grey alpha that
+           does not flip with the theme. */
+        --bg-subtle: rgba(255,255,255,0.08);
         --border-glass: rgba(255,255,255,0.10);
         --border-glass-light: rgba(255,255,255,0.16);
         --border-subtle: rgba(255,255,255,0.06);
@@ -149,6 +155,9 @@
         --bg-glass-input-focus: #ffffff;
         --bg-card: #ffffff;
         --bg-card-hover: #ffffff;
+        /* Warm, and barely there: on white the step has to be small or the
+           chip reads as a button. */
+        --bg-subtle: #f1efea;
         /* On a white page the border is the entire card edge -- there is no
            tonal step behind it doing part of the work -- so it has to read on
            its own. It is a shade lighter than the #d7d4cd set that sat on the
@@ -238,6 +247,7 @@
         --bg-glass-input-focus: #14131d;
         --bg-card: #100f17;
         --bg-card-hover: #14131d;
+        --bg-subtle: rgba(255,255,255,0.075);
         --border-glass: rgba(255,255,255,0.09);
         --border-glass-light: rgba(255,255,255,0.14);
         --border-subtle: rgba(255,255,255,0.055);
@@ -330,6 +340,7 @@
         --bg-glass-input-focus: #ffffff;
         --bg-card: #ffffff;
         --bg-card-hover: #ffffff;
+        --bg-subtle: rgba(20,18,28,0.05);
         /* Left as alphas: over white these land within a shade of the
            #e3e0da set above, so they already carry a card edge on their own. */
         --border-glass: rgba(20,18,28,0.10);

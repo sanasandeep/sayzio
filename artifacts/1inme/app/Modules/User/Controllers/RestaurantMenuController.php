@@ -467,7 +467,7 @@ class RestaurantMenuController extends Controller
             'is_sold_out' => 'sometimes|boolean',
             'marks'       => 'sometimes|array|max:40',
             'is_active'   => 'sometimes|boolean',
-        ]);
+        ] + \App\Modules\User\Support\MenuBulkOrder::rules());
 
         $category = RestaurantMenuCategory::where('menu_id', $menu->id)->findOrFail($data['category_id']);
 
@@ -486,7 +486,7 @@ class RestaurantMenuController extends Controller
             'marks'       => MenuItemMarks::sanitize($data['marks'] ?? []),
             'is_active'   => (bool) ($data['is_active'] ?? true),
             'sort_order'  => (int) RestaurantMenuItem::where('category_id', $category->id)->max('sort_order') + 1,
-        ]);
+        ] + \App\Modules\User\Support\MenuBulkOrder::input($data));
 
         return response()->json(['data' => ['item' => $item]], 201);
     }
@@ -506,7 +506,7 @@ class RestaurantMenuController extends Controller
             'is_sold_out' => 'sometimes|boolean',
             'marks'       => 'sometimes|array|max:40',
             'is_active'   => 'sometimes|boolean',
-        ]);
+        ] + \App\Modules\User\Support\MenuBulkOrder::rules());
 
         if (isset($data['category_id'])) {
             RestaurantMenuCategory::where('menu_id', $menu->id)->findOrFail($data['category_id']);
@@ -518,6 +518,10 @@ class RestaurantMenuController extends Controller
         if (array_key_exists('marks', $data)) {
             $data['marks'] = MenuItemMarks::sanitize($data['marks']);
         }
+
+        // Resolved against the row as it stands, so a new ceiling is
+        // checked against the floor already saved -- not the default.
+        $data = array_merge($data, \App\Modules\User\Support\MenuBulkOrder::input($data, $item));
 
         $item->update($data);
 

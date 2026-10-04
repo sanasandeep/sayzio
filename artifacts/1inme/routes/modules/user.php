@@ -1169,6 +1169,22 @@ Route::prefix('user')->name('user.')->group(function () {
         // are shared and because every feature built for one of these two
         // page types this month has had to be built again for the other.
         foreach (['restaurant', 'store'] as $menuKind) {
+            // Meal coupons from a bulk order.
+            //
+            // NOT `coupons`: that word is already taken on this menu by
+            // the DISCOUNT codes a guest types at checkout, which live at
+            // /{kind}/coupons and mean something else entirely. Two
+            // unrelated features under one word in one URL space is how
+            // somebody wires the wrong one, and how a customer tries their
+            // meal coupon in the discount box.
+            //
+            // `kind` is LAST on the controller, like MenuOptionController:
+            // Laravel fills controller arguments positionally from the URI
+            // segments and then the defaults, not by name.
+            Route::get ('links/{link}/'.$menuKind.'/meal-coupons/by-phone',       [\App\Modules\User\Controllers\MenuCouponController::class, 'byPhone'])->defaults('kind', $menuKind)->middleware('workspace.can:links.view')->name('links.'.$menuKind.'.meal-coupons.by-phone');
+            Route::get ('links/{link}/'.$menuKind.'/meal-coupons/{code}',         [\App\Modules\User\Controllers\MenuCouponController::class, 'show'])->defaults('kind', $menuKind)->middleware('workspace.can:links.view')->name('links.'.$menuKind.'.meal-coupons.show');
+            Route::post('links/{link}/'.$menuKind.'/meal-coupons/{code}/redeem',  [\App\Modules\User\Controllers\MenuCouponController::class, 'redeem'])->defaults('kind', $menuKind)->middleware('workspace.can:links.edit')->name('links.'.$menuKind.'.meal-coupons.redeem');
+
             Route::get   ('links/{link}/'.$menuKind.'/option-groups',                            [\App\Modules\User\Controllers\MenuOptionController::class, 'index'])->defaults('kind', $menuKind)->middleware('workspace.can:links.view')->name('links.'.$menuKind.'.option-groups.index');
             Route::post  ('links/{link}/'.$menuKind.'/option-groups',                            [\App\Modules\User\Controllers\MenuOptionController::class, 'storeGroup'])->defaults('kind', $menuKind)->middleware('workspace.can:links.edit')->name('links.'.$menuKind.'.option-groups.store');
             Route::put   ('links/{link}/'.$menuKind.'/option-groups/{group}',                    [\App\Modules\User\Controllers\MenuOptionController::class, 'updateGroup'])->defaults('kind', $menuKind)->middleware('workspace.can:links.edit')->name('links.'.$menuKind.'.option-groups.update');

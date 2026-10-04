@@ -123,9 +123,20 @@ class RestaurantOrderService
                 'currency'        => $menu->currency,
             ]);
 
+            $saved = [];
             foreach ($lines as $line) {
-                RestaurantOrderItem::create(array_merge($line, ['order_id' => $order->id]));
+                $row = RestaurantOrderItem::create(array_merge($line, ['order_id' => $order->id]));
+                $model = \App\Modules\User\Models\RestaurantMenuItem::find($line['item_id'] ?? 0);
+                if ($model) {
+                    $saved[] = ['model' => $model, 'line' => $row];
+                }
             }
+
+            // Inside the order's own transaction on purpose: an order
+            // either exists with all of its coupons or does not exist.
+            // Half of them is a counter turning people away with no way to
+            // tell who was unlucky.
+            \App\Modules\User\Support\MenuBulkOrder::issue($order, 'restaurant', $menu->id, $saved);
 
             return $order;
         });

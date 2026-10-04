@@ -108,9 +108,20 @@ class StoreOrderService
                 'currency'         => $menu->currency,
             ]);
 
+            $saved = [];
             foreach ($lines as $line) {
-                StoreOrderItem::create(array_merge($line, ['order_id' => $order->id]));
+                $row = StoreOrderItem::create(array_merge($line, ['order_id' => $order->id]));
+                $model = \App\Modules\User\Models\StoreProduct::find($line['product_id'] ?? 0);
+                if ($model) {
+                    $saved[] = ['model' => $model, 'line' => $row];
+                }
             }
+
+            // Inside the order's own transaction on purpose: an order
+            // either exists with all of its coupons or does not exist.
+            // Half of them is a counter turning people away with no way to
+            // tell who was unlucky.
+            \App\Modules\User\Support\MenuBulkOrder::issue($order, 'store', $menu->id, $saved);
 
             return $order;
         });

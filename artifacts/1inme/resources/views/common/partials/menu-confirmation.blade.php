@@ -36,6 +36,15 @@
     to every referrer header the guest's browser sends onward. If an owner
     wants their page to name the order, that wants a deliberate design, not
     a query string bolted onto a navigation.
+
+    ---- The one thing that outranks the owner's redirect -----------------
+
+    An order that produced meal coupons produced the only copy of those
+    codes the guest will ever be handed. Redirecting away from them loses
+    200 lunch passes to a setting about presentation, so when there are
+    coupons the sheet is shown regardless, and the owner's page is offered
+    as a link on it rather than as a navigation. `keep` is how the caller
+    says so; nothing else about the three modes changes.
 --}}
 <script>
 (function () {
@@ -65,19 +74,30 @@
      * Shape the confirmation to the owner's setting.
      *
      * cfg  {mode, url, message, headline} as MenuConfirmation resolved it.
-     * els  {headline, message, bill: [...]} elements on this page.
+     * els  {headline, message, bill: [...], onward} elements on this page.
+     * opts {keep} true when the sheet carries something the guest cannot
+     *      be redirected away from -- today, meal coupons.
      *
      * Returns 'redirected' when the page is leaving -- the caller should
      * stop, because anything it does after this is for a page nobody will
      * see -- or 'shown' when the sheet is the thing to open.
      */
-    window.menuConfirmation = function (cfg, els) {
+    window.menuConfirmation = function (cfg, els, opts) {
         cfg = cfg || {};
         els = els || {};
+        opts = opts || {};
 
         if (cfg.mode === 'url' && cfg.url) {
-            window.location.href = cfg.url;
-            return 'redirected';
+            if (!opts.keep) {
+                window.location.href = cfg.url;
+                return 'redirected';
+            }
+            // Offered, not taken: the guest leaves when they have their
+            // codes, and the tap is theirs.
+            if (els.onward) {
+                els.onward.href = cfg.url;
+                els.onward.style.display = '';
+            }
         }
 
         if (cfg.headline && els.headline) {

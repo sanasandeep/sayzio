@@ -156,6 +156,12 @@
         .item .info { flex:1; min-width:0; }
         .item .name { font-weight:650; font-size:15.5px; color:var(--ink-item); }
         .item .desc { font-size:13px; opacity:.62; margin-top:3px; line-height:1.4; color:var(--ink-desc); }
+        /* The minimum/maximum rule under an item. Smaller and quieter than
+           the description: it is a constraint, not a selling point. */
+        .item .qty-rule { font-size:11.5px; opacity:.6; margin-top:3px; letter-spacing:.01em; color:var(--ink-desc); }
+        /* The cap message, on the Add row. Its own line under the
+           stepper rather than squeezed in beside it. */
+        .qty-cap { display:block; font-size:11.5px; margin-top:4px; color:var(--ink-desc); opacity:.85; }
         .item .price { font-weight:700; font-size:14.5px; margin-top:6px; color:var(--ink-price); }
         .soldout { opacity:.45; }
         .soldout .name::after { content:" · Sold out"; color:#b91c1c; font-size:12px; font-weight:600; }
@@ -362,6 +368,9 @@
         <div id="ordToken" style="display:none"></div>
         <p id="doneStatusRow">Status: <span class="status-pill" id="ordStatus">New</span></p>
         <p class="done-msg" id="doneMsg" style="display:none"></p>
+        {{-- Above the bill: an office that ordered 200 lunches came here
+             for the passes, not for the estimate. --}}
+        <div id="mealCoupons" style="display:none"></div>
         <div id="doneLines"></div>
         <div id="doneBreakdown"></div>
         <div class="total" id="doneTotalRow"><span>Estimated total</span><span id="doneTotal"></span></div>
@@ -373,11 +382,17 @@
 @if($isDemoRestaurant)
         <p class="note" id="waDemoNote" style="display:none">Demo only, this is a sample WhatsApp number, so the chat won't open a real conversation. On a live menu this opens a chat with the restaurant.</p>
 @endif
+        {{-- Only shown when the owner configured their own confirmation
+             page AND this order has coupons: the redirect was held back so
+             the guest could keep the codes, so the way onward is theirs. --}}
+        <a id="doneOnward" class="wa-btn" href="#" style="display:none">Continue</a>
         <button class="ghost" type="button" onclick="RM.reset()">Back to menu</button>
     </div>
 </div>
 
 @include('common.partials.menu-guest-post')
+@include('common.partials.menu-meal-coupons')
+@include('common.partials.menu-quantity-rules')
 @include('common.partials.menu-cart-store')
 @include('common.partials.menu-token')
 @include('common.partials.menu-contact')
@@ -416,7 +431,10 @@
     const ITEMS = {};
     document.querySelectorAll('[data-add]').forEach(el => {
         const id = el.getAttribute('data-add');
-        ITEMS[id] = { id: +id, name: el.getAttribute('data-name'), price: parseFloat(el.getAttribute('data-price')) };
+        ITEMS[id] = { id: +id, name: el.getAttribute('data-name'), price: parseFloat(el.getAttribute('data-price')),
+            // The quantity rule, as the Add row carries it. Absent means
+            // no rule, which is every dish that has never had one.
+            min: el.getAttribute('data-min'), max: el.getAttribute('data-max') || null };
     });
     menuChooser.install(CHOICES, n => fmt(n));
     let LINES = [];
@@ -598,12 +616,18 @@
         put(it, opts){
             const key = menuChooser.key(it.id, opts);
             const found = LINES.find(l => l.key === key);
-            if (found) { found.qty++; }
+            if (found) {
+                // At the ceiling, say so instead of counting past it.
+                const up = menuLimits.up(it, found.qty);
+                if (up === null) { menuLimits.say(it.id, menuLimits.atCeiling(it, found.qty)); return; }
+                found.qty = up;
+            }
             else {
                 LINES.push({
                     key, id: it.id, name: it.name, opts,
                     perUnit: Math.round((it.price + menuChooser.extraFor(opts)) * 100) / 100,
-                    qty: 1,
+                    // A tray of ten starts at ten, not at one.
+                    qty: menuLimits.first(it),
                 });
             }
             saveCart();
@@ -611,11 +635,21 @@
             if (document.getElementById('cartModal').classList.contains('show')) { lines('cartLines'); refreshQuote(); }
         },
         // The +/- on a dish with no choices: there is only ever one line.
-        inc(id){ const l = plainLine(id); if (l) { l.qty++; saveCart(); render(); } else { this.add(id); } },
+        inc(id){
+            const l = plainLine(id);
+            if (!l) { this.add(id); return; }
+            const up = menuLimits.up(ITEMS[id], l.qty);
+            if (up === null) { menuLimits.say(id, menuLimits.atCeiling(ITEMS[id], l.qty)); return; }
+            l.qty = up;
+            saveCart();
+            render();
+        },
         dec(id){
             const l = plainLine(id);
             if (!l) { return; }
-            l.qty--;
+            // At the floor this returns 0: nine of a tray-of-ten dish is
+            // not an order, so minus clears the line instead.
+            l.qty = menuLimits.down(ITEMS[id], l.qty);
             if (l.qty <= 0) { LINES = LINES.filter(x => x !== l); }
             saveCart();
             render();
@@ -712,9 +746,11 @@
             this.closeCart();
             // The owner may be sending the guest somewhere else entirely, in
             // which case none of the rest of this is for anyone.
+            const mealCoupons = (order.meal_coupons || []);
             if (menuConfirmation(CONFIRM, {
                 headline: document.getElementById('doneHead'),
                 message:  document.getElementById('doneMsg'),
+                onward:   document.getElementById('doneOnward'),
                 bill: [
                     document.getElementById('doneStatusRow'),
                     document.getElementById('doneLines'),
@@ -722,7 +758,10 @@
                     document.getElementById('doneTotalRow'),
                     document.getElementById('doneNote')
                 ]
-            }) === 'redirected') { return; }
+            // The codes are the only copy the guest gets, so a configured
+            // redirect waits for them to take it.
+            }, { keep: mealCoupons.length > 0 }) === 'redirected') { return; }
+            menuMealCoupons.show(document.getElementById('mealCoupons'), mealCoupons);
             menuToken.show(document.getElementById('ordToken'), order);
             lines('doneLines');
             renderBill('doneBreakdown', 'doneTotal', {

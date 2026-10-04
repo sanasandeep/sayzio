@@ -47,6 +47,12 @@
         <a href="{{ route('user.links.store.editor', $link) }}" class="ro-btn"><i class="fas fa-arrow-left"></i> Back to store</a>
     </div>
 
+    @include('user.links.partials.orders-counter', [
+        'ocBase' => \Illuminate\Support\Str::beforeLast(route('user.links.store.meal-coupons.by-phone', $link), '/by-phone'),
+        'ocNoun' => 'request',
+        'ocBoard' => route('user.links.store.orders', $link),
+    ])
+
     @include('user.links.partials.orders-range-bar', ['rbRoute' => route('user.links.store.orders', $link)])
 
     <div class="flex gap-2 mb-4 flex-wrap">
@@ -182,6 +188,7 @@ function ordersBoard() {
         openCount: {{ $openCount }},
         highlight: {{ (int) request()->query('highlight') ?: 'null' }},
         filter: @json(request()->query('highlight') ? 'all' : 'open'),
+        base: @json(route('user.links.store.orders', $link)),
         statusUrlBase: @json(rtrim(route('user.links.store.orders', $link), '/')),
         pollUrl: @json(route('user.links.store.orders.poll', $link)),
         csrf: @json(csrf_token()),

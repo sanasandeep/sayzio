@@ -46,7 +46,7 @@ class PublicStoreController extends Controller
             'fulfilment'          => 'nullable|string|max:16',
             'items'               => 'required|array|min:1',
             'items.*.product_id'  => 'required|integer',
-            'items.*.quantity'    => 'required|integer|min:1|max:99',
+            'items.*.quantity'    => 'required|integer|min:1|max:'.\App\Modules\User\Support\MenuBulkOrder::LINE_MAX,
             'items.*.options'             => 'nullable|array|max:40',
             'items.*.options.*.option_id' => 'required|integer',
             'items.*.options.*.quantity'  => 'nullable|integer|min:1|max:20',
@@ -165,7 +165,7 @@ class PublicStoreController extends Controller
             ],
             'items'               => 'required|array|min:1',
             'items.*.product_id'  => 'required|integer',
-            'items.*.quantity'    => 'required|integer|min:1|max:99',
+            'items.*.quantity'    => 'required|integer|min:1|max:'.\App\Modules\User\Support\MenuBulkOrder::LINE_MAX,
             'items.*.note'        => 'nullable|string|max:300',
             'items.*.options'             => 'nullable|array|max:40',
             'items.*.options.*.option_id' => 'required|integer',
@@ -194,6 +194,12 @@ class PublicStoreController extends Controller
             'public_token' => $order->public_token,
             'token_number' => $order->token_number,
             'wanted_at'    => $order->wanted_at?->toIso8601String(),
+            'meal_coupons' => \App\Modules\User\Models\MenuOrderCoupon::where('order_type', 'store')
+                ->where('order_id', $order->id)
+                ->orderBy('id')
+                ->get()
+                ->map(fn ($c) => ['code' => $c->display(), 'item_name' => $c->item_name])
+                ->all(),
             'token_period' => $order->token_period,
             'status'       => $order->status,
             'status_label' => $order->status_label,

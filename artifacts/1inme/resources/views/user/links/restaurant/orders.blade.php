@@ -49,6 +49,12 @@
         <a href="{{ route('user.links.restaurant.editor', $link) }}" class="ro-btn"><i class="fas fa-arrow-left"></i> Back to menu</a>
     </div>
 
+    @include('user.links.partials.orders-counter', [
+        'ocBase' => \Illuminate\Support\Str::beforeLast(route('user.links.restaurant.meal-coupons.by-phone', $link), '/by-phone'),
+        'ocNoun' => 'order',
+        'ocBoard' => route('user.links.restaurant.orders', $link),
+    ])
+
     @include('user.links.partials.orders-range-bar', ['rbRoute' => route('user.links.restaurant.orders', $link)])
 
     <div class="flex gap-2 mb-4 flex-wrap">
