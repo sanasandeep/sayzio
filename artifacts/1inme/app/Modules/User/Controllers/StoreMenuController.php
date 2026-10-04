@@ -8,6 +8,7 @@ use App\Modules\User\Models\StoreMenu;
 use App\Modules\User\Models\StoreOrder;
 use App\Modules\User\Models\StoreProduct;
 use App\Modules\User\Support\MenuItemMarks;
+use App\Modules\User\Support\MenuOrderRange;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
@@ -455,16 +456,54 @@ class StoreMenuController extends Controller
     {
         $menu = $this->menuFor($link);
 
-        $orders = StoreOrder::with('items')
-            ->where('menu_id', $menu->id)
-            ->latest()
-            ->limit(100)
+        // Sana, 2026-09-28: "wht is too many order? selected with dates?"
+        // It used to be latest()->limit(100): on a busy Saturday the
+        // hundred-and-first order silently did not exist, and yesterday
+        // could not be looked at at all.
+        $range = MenuOrderRange::resolve(
+            $request->query('range'),
+            $request->query('from'),
+            $request->query('to'),
+            $link->user?->effectiveTimezone() ?? \App\Support\PlatformTimezone::platformDefault()
+        );
+
+        $scoped = fn () => MenuOrderRange::apply(
+            StoreOrder::where('menu_id', $menu->id), $range
+        );
+
+        $total = $scoped()->count();
+        $page = max(1, (int) $request->query('page', 1));
+
+        $orders = $scoped()->with('items')
+            ->orderByDesc('id')
+            ->forPage($page, MenuOrderRange::PER_PAGE)
             ->get();
 
+        // The "needs attention" number is deliberately NOT scoped to the
+        // range: an open order from yesterday is still open, and hiding it
+        // because the screen is showing today is how one gets forgotten.
+        $openCount = StoreOrder::where('menu_id', $menu->id)
+            ->whereIn('status', StoreOrder::OPEN_STATUSES)
+            ->count();
+
+        if ($request->query('format') === 'json') {
+            return response()->json(['data' => [
+                'orders' => $orders,
+                'range'  => MenuOrderRange::forPage($range, $total, $orders->count(), 'order requests'),
+                'page'   => $page,
+                'more'   => ($page * MenuOrderRange::PER_PAGE) < $total,
+            ]]);
+        }
+
         return view('user.links.store.orders', [
-            'link'   => $link,
-            'menu'   => $menu,
-            'orders' => $orders,
+            'link'      => $link,
+            'menu'      => $menu,
+            'orders'    => $orders,
+            'range'     => $range,
+            'rangeMeta' => MenuOrderRange::forPage($range, $total, $orders->count(), 'order requests'),
+            'page'      => $page,
+            'hasMore'   => ($page * MenuOrderRange::PER_PAGE) < $total,
+            'openCount' => $openCount,
         ]);
     }
 
