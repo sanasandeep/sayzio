@@ -61,6 +61,10 @@ class AiTypeBuilderController extends Controller
             'maxScans'       => AbstractAiTypeBuilderService::MAX_SCANS,
             'editorUrl'      => $this->editorUrl($link),
             'typeLabel'      => $this->typeLabel($link->type),
+            // Sana, 2026-10-05: "when already created... it should show like
+            // modify with AI". Whether this page already holds something is
+            // the one thing that decides what this screen is.
+            'hasContent'     => $service->hasExistingContent($link),
         ]);
     }
 
@@ -70,7 +74,10 @@ class AiTypeBuilderController extends Controller
         $data    = $this->validatePayload($request);
 
         try {
-            $cost = $service->estimateCredits($request->user(), $data['description'], $data['links'], $data['images'], $data['scans']);
+            // The link, so the quote covers the existing content the build
+            // will send. Without it a modify is quoted as a build and the
+            // charge comes in over the number the creator was shown.
+            $cost = $service->estimateCredits($request->user(), $data['description'], $data['links'], $data['images'], $data['scans'], $link);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }

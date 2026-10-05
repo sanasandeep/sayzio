@@ -23,6 +23,50 @@ class AiRestaurantMenuBuilderService extends AbstractAiTypeBuilderService
     public function linkType(): string { return Link::TYPE_RESTAURANT_MENU; }
     public function label(): string    { return 'AI Restaurant Menu builder'; }
 
+    /**
+     * The menu as it stands, for the model to change rather than replace.
+     *
+     * Compact on purpose: names and prices are what a brief refers to
+     * ("make the dosas cheaper", "drop the Chinese section"), and sending
+     * every description would double the token bill of a modify for
+     * something the model is being told to leave alone anyway.
+     *
+     * Capped at the same limits a build may produce, so a menu that is
+     * already at the ceiling does not generate a prompt the model cannot
+     * answer within its output budget.
+     */
+    public function existingContext(Link $link): string
+    {
+        $menu = RestaurantMenu::where('link_id', $link->id)->first();
+        if (! $menu) {
+            return '';
+        }
+
+        $cats = RestaurantMenuCategory::where('menu_id', $menu->id)
+            ->orderBy('sort_order')->orderBy('id')
+            ->limit(self::MAX_CATEGORIES)->get();
+        if ($cats->isEmpty()) {
+            return '';
+        }
+
+        $lines = ['Current menu (currency '.$menu->currency.'):'];
+        foreach ($cats as $cat) {
+            $lines[] = '- '.$cat->name.($cat->is_active ? '' : ' [hidden]');
+            $items = RestaurantMenuItem::where('menu_id', $menu->id)
+                ->where('category_id', $cat->id)
+                ->orderBy('sort_order')->orderBy('id')
+                ->limit(self::MAX_ITEMS_PER_CATEGORY)->get();
+            foreach ($items as $item) {
+                $lines[] = '    - '.$item->name.' — '.$item->price
+                    .($item->is_sold_out ? ' [sold out]' : '')
+                    .($item->is_active ? '' : ' [hidden]');
+            }
+        }
+
+        return implode("\n", $lines);
+    }
+
+
     protected function systemPrompt(User $user): string
     {
         return <<<'PROMPT'

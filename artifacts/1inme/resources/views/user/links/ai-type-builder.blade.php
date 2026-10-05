@@ -1,17 +1,65 @@
 @extends('user.layouts.app')
-@section('title', 'Build with AI')
+{{-- The breadcrumb and the browser tab come from here, and they said
+     "Build with AI" on a page whose heading and button said Modify. Found
+     by a test asserting the words "Build with AI" were gone from a modify
+     screen; they were not. --}}
+@section('title', ($hasContent ?? false) ? 'Modify with AI' : 'Build with AI')
 
 @section('content')
-<div class="max-w-2xl mx-auto" x-data="aiTypeBuilder()">
+@php
+    // Sana, 2026-10-05: "when already created... it should show like modify
+    // with AI and also all features like blocks and all should be
+    // possible...... live right side should be shown".
+    //
+    // All three. The shared editor shell gives the main tab row -- so Blocks
+    // and Settings are one click away instead of this being a dead end --
+    // and the live page sits beside the form the way it does on every other
+    // editor screen.
+    $aiVerb  = ($hasContent ?? false) ? 'Modify' : 'Build';
+    $aiVerbL = strtolower($aiVerb);
+@endphp
+<div class="w-full max-w-7xl mx-auto" x-data="aiTypeBuilder()">
+    @include('user.links.partials.editor-header', [
+        'link' => $link,
+        'activeMainTab' => 'ai',
+    ])
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <div class="lg:col-span-7">
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ $editorUrl }}" class="text-white/30 hover:text-white transition-colors" title="Skip and open the editor"><i class="fas fa-arrow-left"></i></a>
         <div>
             <h1 class="text-2xl font-bold text-white flex items-center gap-2">
-                <i class="fas fa-wand-magic-sparkles text-blue-400"></i> Build your {{ $typeLabel }} with AI
+                <i class="fas fa-wand-magic-sparkles text-blue-400"></i> {{ $aiVerb }} your {{ $typeLabel }} with AI
             </h1>
-            <p class="text-xs text-white/40 mt-0.5">Describe what you want and let AI draft it. You can refine everything in the editor afterwards.</p>
+            <p class="text-xs text-white/40 mt-0.5">
+                @if($hasContent ?? false)
+                    Say what you want changed. What is already here is sent along with it, so the rest stays as it is.
+                @else
+                    Describe what you want and let AI draft it. You can refine everything in the editor afterwards.
+                @endif
+            </p>
         </div>
     </div>
+
+    @if($hasContent ?? false)
+        {{-- Said plainly, because the build REPLACES the catalogue: the
+             service deletes every section and item and writes the response
+             in their place. The model is now sent the current content and
+             told that anything it omits is deleted, which is what makes
+             "modify" a true word -- but a model can still drop something,
+             and somebody about to spend coins on an eighty-dish menu is
+             owed that sentence rather than a reassuring one. --}}
+        <div class="mb-5 rounded-xl px-4 py-3 text-sm flex items-start gap-3"
+             style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); color: #f59e0b;">
+            <i class="fas fa-triangle-exclamation mt-0.5"></i>
+            <span>
+                <b>This rewrites the whole {{ strtolower($typeLabel) }}.</b>
+                What is on it now is sent to the AI and it is asked to keep everything you did not ask it to change —
+                but the result replaces what is there, so check it afterwards before anybody orders from it.
+            </span>
+        </div>
+    @endif
 
     @if(!$aiEnabled)
         <div class="glass rounded-2xl p-6 text-center">
@@ -152,14 +200,23 @@
                 </button>
                 <button type="submit" :disabled="!canSubmit || generating"
                         class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-                    <span x-show="!generating"><i class="fas fa-wand-magic-sparkles mr-1.5"></i> Build with AI</span>
-                    <span x-show="generating" x-cloak><i class="fas fa-circle-notch fa-spin mr-1.5"></i> Building your {{ strtolower($typeLabel) }}…</span>
+                    <span x-show="!generating"><i class="fas fa-wand-magic-sparkles mr-1.5"></i> {{ $aiVerb }} with AI</span>
+                    <span x-show="generating" x-cloak><i class="fas fa-circle-notch fa-spin mr-1.5"></i> {{ $aiVerb === 'Modify' ? 'Rewriting' : 'Building' }} your {{ strtolower($typeLabel) }}…</span>
                 </button>
             </div>
-            <p class="text-[11px] text-white/25 mt-3">Coins are only spent on successful builds; failed builds are refunded automatically.</p>
+            <p class="text-[11px] text-white/25 mt-3">Coins are only spent on successful {{ $aiVerbL }}s; failed ones are refunded automatically.</p>
         </div>
     </form>
     @endif
+    </div>
+
+    {{-- The page as it stands, beside the brief. Sana: "live right side
+         should be shown" -- and on a modify it is the thing you are about
+         to change, which is the one screen where seeing it matters most. --}}
+    <div class="lg:col-span-5 hidden lg:block lg:self-stretch lg:h-full">
+        @include('user.links.partials.device-preview', ['link' => $link])
+    </div>
+    </div>
 </div>
 
 @if($aiEnabled)

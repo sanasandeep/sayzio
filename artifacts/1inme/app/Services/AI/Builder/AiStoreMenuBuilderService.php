@@ -23,6 +23,42 @@ class AiStoreMenuBuilderService extends AbstractAiTypeBuilderService
     public function linkType(): string { return Link::TYPE_STORE_MENU; }
     public function label(): string    { return 'AI Store builder'; }
 
+    /**
+     * The catalogue as it stands, for the model to change rather than
+     * replace. Same shape and the same reasoning as the restaurant
+     * builder's -- see that one.
+     */
+    public function existingContext(Link $link): string
+    {
+        $menu = StoreMenu::where('link_id', $link->id)->first();
+        if (! $menu) {
+            return '';
+        }
+
+        $cats = StoreCategory::where('menu_id', $menu->id)
+            ->orderBy('sort_order')->orderBy('id')
+            ->limit(self::MAX_CATEGORIES)->get();
+        if ($cats->isEmpty()) {
+            return '';
+        }
+
+        $lines = ['Current catalogue (currency '.$menu->currency.'):'];
+        foreach ($cats as $cat) {
+            $lines[] = '- '.$cat->name.($cat->is_active ? '' : ' [hidden]');
+            $items = StoreProduct::where('menu_id', $menu->id)
+                ->where('category_id', $cat->id)
+                ->orderBy('sort_order')->orderBy('id')
+                ->limit(self::MAX_PRODUCTS_PER_CATEGORY)->get();
+            foreach ($items as $item) {
+                $lines[] = '    - '.$item->name.' — '.$item->price
+                    .($item->is_active ? '' : ' [hidden]');
+            }
+        }
+
+        return implode("\n", $lines);
+    }
+
+
     protected function systemPrompt(User $user): string
     {
         return <<<'PROMPT'
