@@ -54,7 +54,7 @@
 </head>
 <body>
 
-<h1>{{ $link->title ?: $link->alias }} — orders</h1>
+<h1>{{ $link->title ?: $link->alias }}: orders</h1>
 <p class="sub">
     {{ $range['label'] ?? 'All time' }}
     · generated {{ now()->format('j M Y, H:i') }}
@@ -63,7 +63,7 @@
 @if($truncated > 0)
     <div class="warn">
         <b>This document shows the most recent {{ number_format($cap) }} of {{ number_format($summary['orders']) }}.</b>
-        {{ number_format($truncated) }} older {{ $truncated === 1 ? 'order is' : 'orders are' }} not listed below —
+        {{ number_format($truncated) }} older {{ $truncated === 1 ? 'order is' : 'orders are' }} not listed below.
         the totals above them count every one. Narrow the dates, or use the CSV, for the full list.
     </div>
 @endif
@@ -134,7 +134,7 @@
 </table>
 
 <p class="foot">
-    Estimated bills, not final bills — the same figures the orders board shows for this range.
+    Estimated bills, not final bills: the same figures the orders board shows for this range.
 </p>
 
 </body>

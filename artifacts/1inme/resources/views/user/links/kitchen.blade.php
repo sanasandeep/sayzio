@@ -109,7 +109,7 @@
         <span :class="stale ? 'kb-stale' : ''">
             <i class="fas" :class="stale ? 'fa-triangle-exclamation' : 'fa-rotate'"></i>
             <span x-show="!stale">Updated <span x-text="lastAt"></span></span>
-            <span x-show="stale">Could not refresh — last updated <span x-text="lastAt"></span></span>
+            <span x-show="stale">Could not refresh. Last updated <span x-text="lastAt"></span></span>
         </span>
         <span x-show="!live" class="kb-stale"><i class="fas fa-pause"></i> Paused</span>
         <span class="kb-dim">Amber after {{ $warnAfter }} minutes, red after {{ $lateAfter }}.</span>
