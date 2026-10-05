@@ -151,12 +151,35 @@ class MenuSectionNav
      *
      * @return array<string, mixed>
      */
+    public const COLOURS = [
+        'section_nav_text_color' => ['label' => 'Section tab text', 'default' => '#262626'],
+        'section_nav_background_color' => ['label' => 'Section tab background', 'default' => '#ffffff'],
+        'section_nav_border_color' => ['label' => 'Section tab border', 'default' => '#d4d4d4'],
+    ];
+
+    public static function colours(array $settings): array
+    {
+        $colours = [];
+        foreach (self::COLOURS as $key => $meta) {
+            $value = $settings[$key] ?? null;
+            $colours[$key] = is_string($value) && preg_match('/^#[0-9a-fA-F]{6}$/', $value) === 1
+                ? $value : $meta['default'];
+        }
+
+        return $colours;
+    }
+
     public static function rules(): array
     {
-        return [
+        $rules = [
             'section_nav'    => ['nullable', 'string', 'in:'.implode(',', array_keys(self::NAVS))],
             'section_marker' => ['nullable', 'string', 'in:'.implode(',', array_keys(self::MARKERS))],
         ];
+        foreach (array_keys(self::COLOURS) as $key) {
+            $rules[$key] = ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'];
+        }
+
+        return $rules;
     }
 
     /**

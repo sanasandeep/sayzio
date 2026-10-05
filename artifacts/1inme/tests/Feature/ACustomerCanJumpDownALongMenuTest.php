@@ -437,6 +437,53 @@ class ACustomerCanJumpDownALongMenuTest extends TestCase
         );
     }
 
+    public function test_navigation_colours_survive_saving_reloading_and_public_rendering(): void
+    {
+        foreach (['restaurant', 'store'] as $kind) {
+            [$link, $menu, $schema] = $this->page($kind);
+            $this->section($menu, $schema, 'Breakfast', 0);
+            $this->section($menu, $schema, 'Lunch', 1);
+            $colours = [
+                'section_nav_text_color' => '#713f12',
+                'section_nav_background_color' => '#fff7ed',
+                'section_nav_border_color' => '#fb923c',
+            ];
+            $this->actingAs($this->owner)->postJson(
+                route('user.links.'.$kind.'.settings', $link),
+                $colours + ['section_nav' => 'vertical', 'section_marker' => 'none']
+            )->assertSuccessful();
+            foreach ($colours as $key => $colour) {
+                $this->assertSame($colour, $menu->fresh()->settings[$key]);
+            }
+            $public = $this->publicPage($link);
+            $this->assertStringContainsString('--sn-text: #713f12', $public);
+            $this->assertStringContainsString('--sn-bg: #fff7ed', $public);
+            $this->assertStringContainsString('--sn-border: #fb923c', $public);
+            $editor = $this->get(route('user.links.'.$kind.'.editor', $link))->assertOk()->getContent();
+            foreach ($colours as $key => $colour) {
+                $this->assertStringContainsString('"'.$key.'":"'.$colour.'"', $editor);
+                $this->assertStringContainsString($key.':this.menu.'.$key, $editor);
+            }
+            $this->assertStringContainsString('"section_nav":"vertical"', $editor);
+            $this->assertStringContainsString('section_nav:this.menu.section_nav', $editor);
+            $this->assertStringContainsString('section_marker:this.menu.section_marker', $editor);
+            $this->postJson(route('user.links.'.$kind.'.settings', $link), [
+                'section_nav_text_color' => 'red; background:url(example.com)',
+            ])->assertStatus(422);
+            $this->assertSame('#713f12', $menu->fresh()->settings['section_nav_text_color']);
+        }
+    }
+
+    public function test_unconfigured_navigation_uses_readable_colours(): void
+    {
+        [$link, $menu, $schema] = $this->page();
+        $this->section($menu, $schema, 'Breakfast', 0);
+        $this->section($menu, $schema, 'Lunch', 1);
+        $html = $this->publicPage($link);
+        $this->assertStringContainsString('--sn-text: #262626', $html);
+        $this->assertStringContainsString('--sn-bg: #ffffff', $html);
+    }
+
     public function test_an_icon_outside_the_catalogue_is_refused(): void
     {
         [$link] = $this->page();

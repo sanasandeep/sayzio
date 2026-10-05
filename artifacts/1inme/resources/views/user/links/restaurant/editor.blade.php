@@ -547,6 +547,9 @@
     foreach (array_keys(\App\Modules\User\Support\MenuPresentation::COLOURS) as $ck) {
         $menuColours[$ck] = \App\Modules\User\Support\MenuPresentation::hex($menu->settings[$ck] ?? null);
     }
+    $menuColours += \App\Modules\User\Support\MenuSectionNav::colours((array) ($menu->settings ?? []));
+    $menuColours['section_nav'] = \App\Modules\User\Support\MenuSectionNav::nav($menu->settings['section_nav'] ?? null);
+    $menuColours['section_marker'] = \App\Modules\User\Support\MenuSectionNav::marker($menu->settings['section_marker'] ?? null);
     $menuHero = \App\Modules\User\Support\MenuHero::resolve((array) ($menu->settings ?? []));
     $menuData = $menuColours + $menuHero + ['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color, 'whatsapp_number' => $menu->settings['whatsapp_number'] ?? '', 'layout' => $menuLayoutKey, 'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null),
         'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null), 'fulfilment_modes' => $menuModes, 'charges' => $menuCharges, 'charges_before_tax' => \App\Modules\User\Support\MenuFulfilment::chargesBeforeTax((array) ($menu->settings ?? [])), 'price_display' => $menuMoney['display'], 'price_position' => $menuMoney['position'], 'price_decimals' => $menuMoney['decimals'] > 0, 'heading_style' => \App\Modules\User\Support\MenuPresentation::heading($menu->settings['heading_style'] ?? null), 'price_style' => \App\Modules\User\Support\MenuPresentation::price($menu->settings['price_style'] ?? null, $menuLayoutKey)];
@@ -747,6 +750,11 @@ function restaurantEditor() {
                 confirm_url:this.confirm.url||'',
                 confirm_message:this.confirm.message||'',
                 confirm_headline:this.confirm.headline||'',
+                section_nav:this.menu.section_nav||'tabs',
+                section_marker:this.menu.section_marker||'number',
+                section_nav_text_color:this.menu.section_nav_text_color||'',
+                section_nav_background_color:this.menu.section_nav_background_color||'',
+                section_nav_border_color:this.menu.section_nav_border_color||'',
                 layout:this.menu.layout||'list',
                 divider:this.menu.divider||'line',
                 heading_style:this.menu.heading_style||'plain',
