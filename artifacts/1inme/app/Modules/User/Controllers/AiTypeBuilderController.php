@@ -65,6 +65,14 @@ class AiTypeBuilderController extends Controller
             // modify with AI". Whether this page already holds something is
             // the one thing that decides what this screen is.
             'hasContent'     => $service->hasExistingContent($link),
+            // Sana, 2026-10-05: "it should not be modify whole.. it should
+            // able to update as per instructions". Whether this run EDITS
+            // or REBUILDS is one answer from the service, and the screen
+            // asks for it rather than inferring it from hasContent -- a
+            // type that has content but cannot be edited yet must still say
+            // the rebuild sentence, not the modify one.
+            'editing'        => $service->isEditing($link),
+            'editAbilities'  => $service->isEditing($link) ? $service->editAbilities() : [],
         ]);
     }
 
