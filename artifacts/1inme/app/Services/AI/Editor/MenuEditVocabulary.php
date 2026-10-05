@@ -2,6 +2,7 @@
 
 namespace App\Services\AI\Editor;
 
+use App\Modules\User\Support\MenuItemMarks;
 use App\Modules\User\Support\MenuPresentation;
 
 /**
@@ -137,6 +138,36 @@ class MenuEditVocabulary
     }
 
     /**
+     * The marks a dish can wear, from the catalogue the picker reads.
+     *
+     * Sana, 2026-10-05: "i told to update all items marks with veg, non
+     * veg and others also.... but it modified with description. how?"
+     *
+     * Because `marks` was not in this vocabulary. The model was asked for
+     * a change it had no operation for, and did the nearest thing it
+     * could: wrote "Non-Veg" into the DESCRIPTION, where it showed up on
+     * the page looking almost right.
+     *
+     * That is the exact failure this class was written to prevent, and it
+     * happened because only the APPEARANCE half was generated from a
+     * catalogue -- the item fields were hand-listed, which is the mistake
+     * the comment at the top of this file is about. So marks are read from
+     * MenuItemMarks, the same rows the editor's own picker loops over, and
+     * a test walks that table rather than a copy of it.
+     *
+     * @return array<int, array{key: string, label: string, graded: bool, max: int}>
+     */
+    public static function marks(): array
+    {
+        return MenuItemMarks::pickable()->map(fn ($m) => [
+            'key'    => $m->key,
+            'label'  => $m->label,
+            'graded' => (bool) $m->is_graded,
+            'max'    => (int) ($m->max_grade ?: 1),
+        ])->all();
+    }
+
+    /**
      * What this page can be told to change, in the creator's words.
      *
      * Generated from the same catalogues the prompt and the applier use, so
@@ -159,6 +190,10 @@ class MenuEditVocabulary
 
         return [
             'Prices, names and descriptions on any '.$itemNoun,
+            'The marks on a dish — '.(count(self::marks()) > 0
+                ? implode(', ', array_slice(array_column(self::marks(), 'label'), 0, 4))
+                    .(count(self::marks()) > 4 ? ' and '.(count(self::marks()) - 4).' more' : '')
+                : 'once you have set some up'),
             'Add or remove an '.$itemNoun.', or a whole section',
             'Hide an '.$itemNoun.' or a section without deleting it',
             'Mark something sold out, or back in',
@@ -197,6 +232,19 @@ class MenuEditVocabulary
 
         $appearance = implode("\n", $lines);
 
+        // Generated from the same rows the editor's picker reads, so the
+        // model is told about a mark the afternoon it is added -- and is
+        // never left to approximate "mark these non-veg" with a change to
+        // some other field.
+        $markList = [];
+        foreach (self::marks() as $m) {
+            $markList[] = '  - "'.$m['key'].'" — '.$m['label']
+                .($m['graded'] ? ' (graded 1 to '.$m['max'].', e.g. {"key":"'.$m['key'].'","grade":2})' : '');
+        }
+        $marks = $markList
+            ? implode("\n", $markList)
+            : '  (this menu has no marks set up — do not use the marks field)';
+
         return <<<PROMPT
 You are editing a {$noun} that ALREADY EXISTS. You are not writing a new one.
 
@@ -211,8 +259,9 @@ you do not need to repeat it, and you must not.
 Content operations:
   {"op":"item.update","category":"<section name, optional>","{$itemNoun}":"<exact current name>",
    "name":"<new name, optional>","description":"<optional>","price":12.5,
-   "sold_out":true|false,"hidden":true|false}
-  {"op":"item.add","category":"<section name>","name":"...","description":"<optional>","price":12.5}
+   "sold_out":true|false,"hidden":true|false,"marks":["<key>", ...]}
+  {"op":"item.add","category":"<section name>","name":"...","description":"<optional>","price":12.5,
+   "marks":["<key>", ...]}
   {"op":"item.remove","category":"<optional>","{$itemNoun}":"<exact current name>"}
   {"op":"category.add","name":"...","description":"<optional>"}
   {"op":"category.update","category":"<exact current name>","name":"<new name, optional>",
@@ -224,7 +273,17 @@ Appearance operations — one key per operation:
 
 {$appearance}
 
+Marks — the little badges on a dish (veg, non-veg, spicy and so on). Set
+them with the "marks" field above, using these keys and NOTHING else:
+
+{$marks}
+
 Rules:
+- A mark NEVER goes in "description". If somebody asks you to mark dishes
+  veg or non-veg, use "marks". Writing it into the description puts the
+  word in the wrong place on the page and leaves the badge unset.
+- "marks" replaces that item's whole set, so list every mark it should
+  end up with, not only the new one.
 - Use the EXACT current names shown in the page content below when naming
   an existing {$itemNoun} or section. Do not rename something by guessing
   at a near-match.
