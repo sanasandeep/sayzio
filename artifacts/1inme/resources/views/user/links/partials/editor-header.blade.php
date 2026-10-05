@@ -1,5 +1,21 @@
 @php
     $activeMainTab = $activeMainTab ?? 'blocks';
+    $menuKind = match ($link->type) {
+        'restaurant_menu' => 'restaurant', 'store_menu' => 'store', default => null,
+    };
+    $headerActions = $extraActions ?? [];
+    if ($menuKind) {
+        $headerActions = [];
+        if (\App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), $link->type.'_builder')) {
+            $headerActions[] = ['label' => 'Build with AI', 'url' => route('user.links.ai-type-builder', $link), 'icon' => 'fa-wand-magic-sparkles', 'class' => 'btn-ghost'];
+        }
+        foreach (['orders' => ['Orders', 'fa-receipt'], 'kitchen' => ['Kitchen', 'fa-fire-burner'], 'staff-order' => ['Order for customer', 'fa-plus']] as $destination => [$label, $actionIcon]) {
+            $headerActions[] = ['label' => $label, 'url' => route('user.links.'.$menuKind.'.'.$destination, $link), 'icon' => $actionIcon, 'class' => 'btn-ghost'];
+        }
+        if ($menuKind === 'store') {
+            $headerActions[] = ['label' => '', 'url' => route('user.links.store.qr', $link), 'icon' => 'fa-qrcode', 'class' => 'btn-ghost', 'target' => '_blank', 'title' => 'Printable QR'];
+        }
+    }
     // Icon comes from the shared link-type catalog so it stays in step with
     // the rest of the app (links list, create picker, etc.).
     $__typeIcon = \App\Modules\User\Support\LinkTypeCategories::types()[$link->type]['icon'] ?? 'fa-link';
@@ -30,7 +46,7 @@
     // without losing them. Extra actions go FIRST because they are the ones
     // specific to this page type; the three icon buttons after them are the
     // same on every editor and read as the trailing furniture they are.
-    'actions'  => array_merge($extraActions ?? [], [
+    'actions'  => array_merge($headerActions, [
         ['label' => '', 'url' => $link->getShortUrl(), 'icon' => 'fa-external-link-alt', 'class' => 'btn-ghost', 'target' => '_blank', 'title' => 'Open in new tab'],
         ['label' => '', 'url' => route('user.qr-codes.create', ['link_id' => $link->id]), 'icon' => 'fa-qrcode', 'class' => 'btn-ghost', 'title' => 'QR Code'],
         ['label' => '', 'url' => route('user.links.show', $link), 'icon' => 'fa-chart-bar', 'class' => 'btn-ghost', 'title' => 'Analytics'],
@@ -95,6 +111,15 @@
             <i class="fas fa-calendar-check text-[10px]"></i>
             <span>Services</span>
         </a>
+        @endif
+        @if($menuKind)
+        @foreach(['orders' => ['Orders', 'fa-receipt'], 'kitchen' => ['Kitchen', 'fa-fire-burner']] as $menuTab => [$menuTabLabel, $menuTabIcon])
+        <a href="{{ route('user.links.'.$menuKind.'.'.$menuTab, $link) }}"
+           class="editor-tab no-underline {{ $activeMainTab === $menuTab ? 'is-active' : '' }}"
+           @if($activeMainTab === $menuTab) aria-current="page" @endif>
+            <i class="fas {{ $menuTabIcon }} text-[10px]"></i><span>{{ $menuTabLabel }}</span>
+        </a>
+        @endforeach
         @endif
     </div>
 </div>

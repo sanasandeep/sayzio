@@ -43,14 +43,8 @@
 <div class="w-full max-w-7xl mx-auto" x-data="ordersBoard()" x-init="init()">
     @include('user.links.partials.editor-header', [
         'link' => $link,
-        'hideEditorTabs' => true,
-        'editorSubtitle' => 'Orders',
+        'activeMainTab' => 'orders',
         'editorBack' => route('user.links.restaurant.editor', $link),
-        'extraActions' => [
-            ['label' => 'Edit menu', 'url' => route('user.links.restaurant.editor', $link), 'icon' => 'fa-utensils', 'class' => 'btn-ghost'],
-            ['label' => 'Order for customer', 'url' => route('user.links.restaurant.staff-order', $link), 'icon' => 'fa-plus', 'class' => 'btn-ghost'],
-            ['label' => 'Kitchen', 'url' => route('user.links.restaurant.kitchen', $link), 'icon' => 'fa-fire-burner', 'class' => 'btn-ghost'],
-        ],
     ])
     <div class="flex justify-end mb-4">
         <span class="ro-live" role="status" aria-live="polite">
