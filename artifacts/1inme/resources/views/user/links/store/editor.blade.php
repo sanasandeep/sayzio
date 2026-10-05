@@ -212,6 +212,7 @@
                         </span>
                     </div>
                 </div>
+                @include('user.links.partials.menu-hero-panel', ['hpBadgeLabel' => 'Order requests open'])
                 <div class="rm-row">
                     {{-- Sana, 2026-09-23: "i cannot change colors of menu
                          items and all". He could not: the page read the
@@ -404,7 +405,8 @@
     foreach (array_keys(\App\Modules\User\Support\MenuPresentation::COLOURS) as $ck) {
         $menuColours[$ck] = \App\Modules\User\Support\MenuPresentation::hex($menu->settings[$ck] ?? null);
     }
-    $menuState = $menuColours + [
+    $menuHero = \App\Modules\User\Support\MenuHero::resolve((array) ($menu->settings ?? []));
+    $menuState = $menuColours + $menuHero + [
         'mode' => $menu->mode,
         'currency' => $menu->currency,
         'accent_color' => $menu->accent_color,
@@ -614,6 +616,14 @@ function storeEditor() {
                 desc_color:this.menu.desc_color||'',
                 price_color:this.menu.price_color||'',
                 divider_color:this.menu.divider_color||'',
+                // The hero's own settings, sent on every save alongside the
+                // item colours they sit above.
+                hero_title_hidden:!!this.menu.hero_title_hidden,
+                hero_badge_hidden:!!this.menu.hero_badge_hidden,
+                hero_align:this.menu.hero_align||'left',
+                hero_size:this.menu.hero_size||'medium',
+                hero_title_color:this.menu.hero_title_color||'',
+                hero_badge_color:this.menu.hero_badge_color||'',
             });
             this.savedMsg = 'Saved ✓'; setTimeout(()=>this.savedMsg='', 1500);
         },

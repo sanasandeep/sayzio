@@ -204,6 +204,7 @@
                         </span>
                     </div>
                 </div>
+                @include('user.links.partials.menu-hero-panel', ['hpBadgeLabel' => 'Order at table'])
                 <div class="rm-row">
                     {{-- Sana, 2026-09-23: "i cannot change colors of menu
                          items and all". He could not: the page read the
@@ -513,7 +514,8 @@
     foreach (array_keys(\App\Modules\User\Support\MenuPresentation::COLOURS) as $ck) {
         $menuColours[$ck] = \App\Modules\User\Support\MenuPresentation::hex($menu->settings[$ck] ?? null);
     }
-    $menuData = $menuColours + ['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color, 'whatsapp_number' => $menu->settings['whatsapp_number'] ?? '', 'layout' => $menuLayoutKey, 'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null),
+    $menuHero = \App\Modules\User\Support\MenuHero::resolve((array) ($menu->settings ?? []));
+    $menuData = $menuColours + $menuHero + ['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color, 'whatsapp_number' => $menu->settings['whatsapp_number'] ?? '', 'layout' => $menuLayoutKey, 'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null),
         'divider' => \App\Modules\User\Support\MenuPresentation::divider($menu->settings['divider'] ?? null), 'fulfilment_modes' => $menuModes, 'charges' => $menuCharges, 'charges_before_tax' => \App\Modules\User\Support\MenuFulfilment::chargesBeforeTax((array) ($menu->settings ?? [])), 'price_display' => $menuMoney['display'], 'price_position' => $menuMoney['position'], 'price_decimals' => $menuMoney['decimals'] > 0, 'heading_style' => \App\Modules\User\Support\MenuPresentation::heading($menu->settings['heading_style'] ?? null), 'price_style' => \App\Modules\User\Support\MenuPresentation::price($menu->settings['price_style'] ?? null, $menuLayoutKey)];
     $menuConfirm = \App\Modules\User\Support\MenuConfirmation::resolve((array) ($menu->settings ?? []));
     // The editor holds the mode as SAVED, not as resolved: someone who picks
@@ -723,6 +725,14 @@ function restaurantEditor() {
                 desc_color:this.menu.desc_color||'',
                 price_color:this.menu.price_color||'',
                 divider_color:this.menu.divider_color||'',
+                // The hero's own settings, sent on every save alongside the
+                // item colours they sit above.
+                hero_title_hidden:!!this.menu.hero_title_hidden,
+                hero_badge_hidden:!!this.menu.hero_badge_hidden,
+                hero_align:this.menu.hero_align||'left',
+                hero_size:this.menu.hero_size||'medium',
+                hero_title_color:this.menu.hero_title_color||'',
+                hero_badge_color:this.menu.hero_badge_color||'',
                 tax_enabled:!!this.tax.enabled,
                 tax_rate:parseFloat(this.tax.rate||0),
                 tax_inclusive:!!this.tax.inclusive,

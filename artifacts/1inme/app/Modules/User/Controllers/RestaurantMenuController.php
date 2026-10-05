@@ -84,6 +84,7 @@ class RestaurantMenuController extends Controller
             'desc_color'      => ['nullable', 'string', 'max:16'],
             'price_color'     => ['nullable', 'string', 'max:16'],
             'divider_color'   => ['nullable', 'string', 'max:16'],
+        ] + \App\Modules\User\Support\MenuHero::rules() + [
             'tax_enabled'     => 'sometimes|boolean',
             'tax_rate'        => 'nullable|numeric|min:0|max:100',
             'tax_inclusive'   => 'sometimes|boolean',
@@ -269,6 +270,34 @@ class RestaurantMenuController extends Controller
                 'message'  => $data['confirm_message'] ?? null,
                 'headline' => $data['confirm_headline'] ?? null,
             ]);
+        }
+
+
+        // The hero: what the top of the page shows and how. Same shape as
+        // the colours above -- only written when the form sent the key, and
+        // a blank colour CLEARS rather than storing '', so "back to
+        // inheriting" stays reachable.
+        foreach (['hero_title_hidden', 'hero_badge_hidden'] as $hk) {
+            if ($request->has($hk)) {
+                $settings[$hk] = $request->boolean($hk);
+            }
+        }
+        if ($request->has('hero_align')) {
+            $settings['hero_align'] = \App\Modules\User\Support\MenuHero::align($data['hero_align'] ?? null);
+        }
+        if ($request->has('hero_size')) {
+            $settings['hero_size'] = \App\Modules\User\Support\MenuHero::size($data['hero_size'] ?? null);
+        }
+        foreach (['hero_title_color', 'hero_badge_color'] as $hk) {
+            if (! $request->has($hk)) {
+                continue;
+            }
+            $hex = \App\Modules\User\Support\MenuPresentation::hex($data[$hk] ?? null);
+            if ($hex === '') {
+                unset($settings[$hk]);
+            } else {
+                $settings[$hk] = $hex;
+            }
         }
 
         $menu->update([
