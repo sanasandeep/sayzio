@@ -90,7 +90,56 @@ class WalletController extends Controller
         if ($to = $request->query('to')) {
             $query->where('created_at', '<=', $to . ' 23:59:59');
         }
+
+        // Sana, 2026-10-05: "log of AI used is missing".
+        //
+        // It was not missing from the DATA. Every AI call has been stamped
+        // meta.ai = true since the credit ledger was retired, along with the
+        // feature, the model and the token counts. What was missing was any
+        // way to look at it: the ledger showed "−12 coins · Spend" and left
+        // you to guess which of eleven AI features that was.
+        //
+        // So this is a filter over records that already existed, not a new
+        // log. The capability was there with no screen offering it, which is
+        // the same shape as the fifteen before it.
+        $ai = $request->query('ai');
+        if ($ai === '1') {
+            $query->whereRaw("(meta->>'ai') = 'true'");
+        } elseif ($ai === '0') {
+            $query->where(fn ($q) => $q->whereNull('meta')->orWhereRaw("(meta->>'ai') IS DISTINCT FROM 'true'"));
+        }
+
+        // One feature at a time -- "what has the menu builder cost me" is
+        // the question somebody actually asks. Matched against the stored
+        // value rather than a list, because the features are defined by the
+        // services that charge and a hard-coded list here would go stale
+        // the first time one is added (see: the colour validation rules).
+        if ($feature = $request->query('feature')) {
+            $query->whereRaw("(meta->>'feature') = ?", [(string) $feature]);
+        }
+
         return $query;
+    }
+
+    /**
+     * What the AI spend in this range went on.
+     *
+     * Grouped by feature, biggest first, because the useful question is
+     * "where is it going" and not "what happened at 14:07".
+     */
+    protected function aiFeatureBreakdown($wallet, Request $request)
+    {
+        return $this->applyLedgerFilters($wallet->transactions(), $request)
+            ->reorder()
+            ->whereRaw("(meta->>'ai') = 'true'")
+            ->selectRaw("COALESCE(meta->>'feature', 'other') AS feature,"
+                .'COUNT(*) AS calls,'
+                .'COALESCE(SUM(CASE WHEN delta_coins < 0 THEN -delta_coins ELSE 0 END),0) AS coins,'
+                ."COALESCE(SUM((meta->>'tokens_in')::bigint),0) AS tokens_in,"
+                ."COALESCE(SUM((meta->>'tokens_out')::bigint),0) AS tokens_out")
+            ->groupBy('feature')
+            ->orderByDesc('coins')
+            ->get();
     }
 
     public function transactions(Request $request)
@@ -134,7 +183,13 @@ class WalletController extends Controller
             'days'      => $days,
             'dayTotals' => $dayTotals,
             'summary'   => $summary,
-            'filters'   => $request->only(['type', 'from', 'to']),
+            'filters'   => $request->only(['type', 'from', 'to', 'ai', 'feature']),
+            // Only computed when the creator is actually looking at AI
+            // spend: it is a second aggregate query over the same range,
+            // and nobody reading their coin purchases needs it.
+            'aiByFeature' => $request->query('ai') === '1'
+                ? $this->aiFeatureBreakdown($wallet, $request)
+                : collect(),
         ]);
     }
 
@@ -160,7 +215,10 @@ class WalletController extends Controller
         $filename = 'coin-ledger-' . now()->format('Ymd-His') . '.csv';
         return response()->streamDownload(function () use ($query) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Date', 'Time', 'Type', 'Description', 'Coins', 'Balance after']);
+            // The AI columns are on every row rather than only on the AI
+            // ones: a CSV whose column count changes per row is a CSV that
+            // no spreadsheet opens correctly.
+            fputcsv($out, ['Date', 'Time', 'Type', 'Description', 'Coins', 'Balance after', 'AI', 'Feature', 'Model', 'Tokens in', 'Tokens out']);
             $query->chunk(500, function ($rows) use ($out) {
                 foreach ($rows as $tx) {
                     fputcsv($out, [
@@ -170,6 +228,11 @@ class WalletController extends Controller
                         $tx->reason ?? '',
                         (int) $tx->delta_coins,
                         (int) $tx->balance_after,
+                        ! empty($tx->meta['ai']) ? 'yes' : '',
+                        $tx->meta['feature']    ?? '',
+                        $tx->meta['model']      ?? '',
+                        $tx->meta['tokens_in']  ?? '',
+                        $tx->meta['tokens_out'] ?? '',
                     ]);
                 }
             });
