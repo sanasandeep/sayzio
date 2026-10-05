@@ -538,7 +538,7 @@
     // What this menu offers as a handover, and what each handover adds.
     $menuModes   = \App\Modules\User\Support\MenuFulfilment::modesFor((array) ($menu->settings ?? []), true);
     $menuCharges = \App\Modules\User\Support\MenuFulfilment::charges((array) ($menu->settings ?? []));
-    $menuCategories = $menu->categories->map(fn($c)=>['id'=>$c->id,'parent_id'=>$c->parent_id,'name'=>$c->name,'description'=>$c->description,'is_active'=>(bool) $c->is_active,'sort_order'=>(int) $c->sort_order])->values();
+    $menuCategories = $menu->categories->map(fn($c)=>['id'=>$c->id,'parent_id'=>$c->parent_id,'name'=>$c->name,'description'=>$c->description,'hide_heading'=>(bool) $c->hide_heading,'hide_description'=>(bool) $c->hide_description,'is_active'=>(bool) $c->is_active,'sort_order'=>(int) $c->sort_order])->values();
     $menuItems = $menu->items->map(fn($i)=>['id'=>$i->id,'category_id'=>$i->category_id,'name'=>$i->name,'description'=>$i->description,'price'=>$i->price,'photo_url'=>$i->photo_url,'is_sold_out'=>$i->is_sold_out,'marks'=>\App\Modules\User\Support\MenuItemMarks::sanitize($i->marks),'min_quantity'=>(int) ($i->min_quantity ?? 1),'max_quantity'=>$i->max_quantity,'bulk_price'=>$i->bulk_price,'coupon_from'=>$i->coupon_from,'is_active'=>(bool) $i->is_active,'sort_order'=>(int) $i->sort_order])->values();
     $menuTables = $menu->tables->map(fn($t)=>['id'=>$t->id,'label'=>$t->label,'code'=>$t->code])->values();
     $menuCoupons = $menu->coupons->map(fn($c)=>['id'=>$c->id,'code'=>$c->code,'discount_type'=>$c->discount_type,'discount_value'=>$c->discount_value,'min_subtotal'=>$c->min_subtotal,'is_active'=>$c->is_active])->values();
@@ -659,7 +659,7 @@ function restaurantEditor() {
         get headingHint(){ return this.headingHints[this.menu.heading_style] || ''; },
         priceHints: @json(collect(\App\Modules\User\Support\MenuPresentation::PRICES)->map(fn ($x) => $x['hint'])),
         get priceHint(){ return this.priceHints[this.menu.price_style] || ''; },
-        catModal: { open:false, id:null, parent_id:null, name:'', description:'' },
+        catModal: { open:false, id:null, parent_id:null, name:'', description:'', hide_heading:false, hide_description:false },
         couponModal: { open:false, id:null, code:'', discount_type:'percent', discount_value:'', min_subtotal:'', is_active:true },
         itemModal: { open:false, id:null, category_id:null, name:'', description:'', price:'', photo_url:'', is_sold_out:false, marks:[], min_quantity:'', max_quantity:'', bulk_price:'',coupon_from:'' },
         base: @json(rtrim(url('/user/links/'.$link->id.'/restaurant'), '/')),
@@ -847,12 +847,12 @@ function restaurantEditor() {
         },
         openCategory(cat, parentId){
             this.catModal = cat
-                ? {open:true,id:cat.id,parent_id:cat.parent_id||null,name:cat.name,description:cat.description||''}
-                : {open:true,id:null,parent_id:parentId||null,name:'',description:''};
+                ? {open:true,id:cat.id,parent_id:cat.parent_id||null,name:cat.name,description:cat.description||'',hide_heading:!!cat.hide_heading,hide_description:!!cat.hide_description}
+                : {open:true,id:null,parent_id:parentId||null,name:'',description:'',hide_heading:false,hide_description:false};
         },
         async saveCategory(){
             if (!this.catModal.name.trim()) return;
-            const payload = { name:this.catModal.name, description:this.catModal.description, parent_id:this.catModal.parent_id||null };
+            const payload = { name:this.catModal.name, description:this.catModal.description, hide_heading:!!this.catModal.hide_heading, hide_description:!!this.catModal.hide_description, parent_id:this.catModal.parent_id||null };
             try {
                 if (this.catModal.id) { const d = await this.api('PUT','/categories/'+this.catModal.id, payload); const i=this.categories.findIndex(c=>c.id===this.catModal.id); this.categories[i]=d.category; }
                 else { const d = await this.api('POST','/categories', payload); this.categories.push(d.category); }

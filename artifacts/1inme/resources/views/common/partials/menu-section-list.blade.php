@@ -49,6 +49,7 @@
          than the name, so two sections called "Specials" do not collide and
          renaming one does not break a link somebody shared. --}}
     <div class="cat" id="{{ \App\Modules\User\Support\MenuSectionNav::anchor($msCat->id) }}">
+        @if(! $msCat->hide_heading)
         <h2>
             @if($msMarker === 'icon' && $msIcon)
                 <i class="fas fa-{{ $msIcon }} sn-i"></i>
@@ -60,7 +61,8 @@
             @endif
             {{ $msCat->name }}
         </h2>
-        @if($msCat->description)<p class="cdesc">{{ $msCat->description }}</p>@endif
+        @endif
+        @if($msCat->description && ! $msCat->hide_description)<p class="cdesc">{{ $msCat->description }}</p>@endif
 
         {{-- A section's own items, above its sub-sections. A card that
              reads "Tiffins / Idli / Dosa" puts the loose items first and
@@ -79,8 +81,8 @@
 
         @foreach($msSection['subs'] as $msSub)
             <div class="subcat">
-                <h3>{{ $msSub['category']->name }}</h3>
-                @if($msSub['category']->description)<p class="cdesc">{{ $msSub['category']->description }}</p>@endif
+                @if(! $msSub['category']->hide_heading)<h3>{{ $msSub['category']->name }}</h3>@endif
+                @if($msSub['category']->description && ! $msSub['category']->hide_description)<p class="cdesc">{{ $msSub['category']->description }}</p>@endif
                 @include('common.partials.menu-item-list', [
                     'miItems'   => $msSub['items'],
                     'miLayout'  => $msLayout,

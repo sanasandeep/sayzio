@@ -484,6 +484,67 @@ class ACustomerCanJumpDownALongMenuTest extends TestCase
         $this->assertStringContainsString('--sn-bg: #ffffff', $html);
     }
 
+    public function test_section_text_can_be_hidden_independently_without_hiding_items(): void
+    {
+        foreach (['restaurant', 'store'] as $kind) {
+            [$link, $menu, $schema] = $this->page($kind);
+            $parent = $this->section($menu, $schema, 'Breakfast', 0);
+            $child = $this->section($menu, $schema, 'Idli', 0);
+            $child->update(['parent_id' => $parent->id]);
+            $this->section($menu, $schema, 'Lunch', 1);
+
+            foreach ([[false, false], [true, false], [false, true], [true, true]] as [$heading, $description]) {
+                $parent->update(['description' => 'Breakfast description', 'hide_heading' => $heading, 'hide_description' => $description]);
+                $child->update(['description' => 'Idli description', 'hide_heading' => $heading, 'hide_description' => $description]);
+                $html = $this->publicPage($link);
+                $this->assertStringContainsString('Breakfast dish', $html);
+                $this->assertStringContainsString('Idli dish', $html);
+                $this->assertStringContainsString('Lunch dish', $html);
+                $this->assertStringContainsString('id="sec-'.$parent->id.'"', $html);
+                $this->assertStringContainsString('href="#sec-'.$parent->id.'"', $html);
+                $this->assertSame(! $heading, preg_match('/<h2>.*?Breakfast.*?<\/h2>/s', $html) === 1);
+                $this->assertSame(! $heading, str_contains($html, '<h3>Idli</h3>'));
+                $this->assertSame(! $description, str_contains($html, '<p class="cdesc">Breakfast description</p>'));
+                $this->assertSame(! $description, str_contains($html, '<p class="cdesc">Idli description</p>'));
+            }
+
+            // Hiding the entire section keeps its previous meaning.
+            $parent->update(['is_active' => false]);
+            $html = $this->publicPage($link);
+            $this->assertStringNotContainsString('Breakfast dish', $html);
+            $this->assertStringNotContainsString('Idli dish', $html);
+            $this->assertStringContainsString('Lunch dish', $html);
+        }
+    }
+
+    public function test_section_text_visibility_is_saved_and_reloaded_in_both_editors(): void
+    {
+        foreach (['restaurant', 'store'] as $kind) {
+            [$link, $menu, $schema] = $this->page($kind);
+            $this->actingAs($this->owner)->postJson(route('user.links.'.$kind.'.categories.store', $link), [
+                'name' => 'Breakfast', 'hide_heading' => true, 'hide_description' => true,
+            ])->assertCreated();
+            $category = $schema['category']::where('menu_id', $menu->id)->firstOrFail();
+            $this->assertTrue($category->hide_heading);
+            $this->assertTrue($category->hide_description);
+            $this->putJson(route('user.links.'.$kind.'.categories.update', [$link, $category]), [
+                'hide_heading' => false,
+            ])->assertOk();
+            $this->assertFalse($category->fresh()->hide_heading);
+            $this->assertTrue($category->fresh()->hide_description);
+            $editor = $this->get(route('user.links.'.$kind.'.editor', $link))->assertOk()->getContent();
+            $this->assertStringContainsString('"hide_heading":false', $editor);
+            $this->assertStringContainsString('"hide_description":true', $editor);
+            $this->assertStringContainsString('x-model="catModal.hide_heading"', $editor);
+            $this->assertStringContainsString('x-model="catModal.hide_description"', $editor);
+            $this->assertStringContainsString('hide_heading:!!this.catModal.hide_heading', $editor);
+            $this->putJson(route('user.links.'.$kind.'.categories.update', [$link, $category]), [
+                'hide_heading' => 'not-a-boolean',
+            ])->assertStatus(422);
+            $this->assertFalse($category->fresh()->hide_heading);
+        }
+    }
+
     public function test_an_icon_outside_the_catalogue_is_refused(): void
     {
         [$link] = $this->page();
