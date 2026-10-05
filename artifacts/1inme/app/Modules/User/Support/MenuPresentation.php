@@ -107,7 +107,113 @@ class MenuPresentation
             'label' => 'Dividers',
             'hint'  => 'The hairline between items.',
         ],
+        // Sana, 2026-10-05: "change of category description color is
+        // missing". It was: the line under a category name has never had a
+        // colour of its own and has always inherited the page ink at .6
+        // opacity, which on a photographic background is the one line
+        // nobody can read.
+        'cat_desc_color' => [
+            'label' => 'Category descriptions',
+            'hint'  => 'The line under a category name. Inherits the page text colour when unset.',
+        ],
+        // Sana, 2026-10-05: "once i add item to add to cart, - 1 + are
+        // shown in light color... can u make it better? i need it to be
+        // editable by settings color".
+        //
+        // It was a 1px rgba(0,0,0,.18) border with the glyph inheriting the
+        // page colour -- on a cream menu with pale ink that is a control
+        // somebody has to hunt for while holding a menu at arm's length.
+        // Unset it now follows the ITEM NAME colour rather than the page,
+        // because an item name is the one thing on this page that is
+        // legible by definition: nobody ships a menu whose dish names
+        // cannot be read.
+        'stepper_color' => [
+            'label' => 'Quantity buttons',
+            'hint'  => 'The − 1 + control on an item. Follows the item name colour when unset.',
+        ],
     ];
+
+    /**
+     * Validation rules for every colour in the catalogue.
+     *
+     * Sana, 2026-10-05: "change of category description color is missing".
+     *
+     * It was missing from the catalogue, yes -- but adding it there would
+     * have produced a picker that rendered, posted, and saved NOTHING,
+     * because the rules were five lines typed by hand in each of the two
+     * menu controllers while the editor and the save loop both read
+     * COLOURS. That is the same shape as the Position dropdown and the
+     * menu colour pickers before it: a control that exists and does
+     * nothing, with a save that answers success.
+     *
+     * Generated from the one list, so the next colour cannot repeat it.
+     *
+     * @return array<string, array<int, string>>
+     */
+    public static function colourRules(): array
+    {
+        $rules = [];
+        foreach (array_keys(self::COLOURS) as $key) {
+            $rules[$key] = ['nullable', 'string', 'max:16'];
+        }
+
+        return $rules;
+    }
+
+    /**
+     * The ink variables, as one block, for both menu templates.
+     *
+     * They were written out twice, byte for byte, in restaurant-menu and
+     * store-menu. Adding a colour meant remembering to add it in both --
+     * and "the store did not get what the restaurant got" is the single
+     * most repeated bug report on this project. Now there is one list, and
+     * a test asserts every colour in COLOURS reaches it.
+     *
+     * @param  array<string, mixed>  $mp  the resolved presentation array
+     */
+    public static function inkVars(array $mp): string
+    {
+        // The stepper's border is the same colour at a fraction of its
+        // strength: a full-weight box around a quantity button reads as a
+        // text field. Derived rather than exposed, because a creator
+        // choosing TWO colours for one small control is a worse editor.
+        $stepper = $mp['stepper_color'] ?: 'var(--ink-item, inherit)';
+        $border  = self::fade($mp['stepper_color'] ?: '', 0.45) ?: 'rgba(128,128,128,.42)';
+
+        return implode("\n            ", [
+            '--ink-head:  '.($mp['heading_color']  ?: 'inherit').';',
+            '--ink-item:  '.($mp['item_color']     ?: 'inherit').';',
+            '--ink-desc:  '.($mp['desc_color']     ?: 'inherit').';',
+            '--ink-cdesc: '.($mp['cat_desc_color'] ?: 'inherit').';',
+            '--ink-price: '.($mp['price_color']    ?: 'var(--accent)').';',
+            '--ink-step:  '.$stepper.';',
+            '--step-edge: '.$border.';',
+            '--rule:      '.($mp['divider_color']  ?: 'rgba(0,0,0,.07)').';',
+        ]);
+    }
+
+    /**
+     * A #rrggbb at a given alpha, or '' when there is no colour to fade.
+     *
+     * Deliberately narrow: hex only, because that is what the colour
+     * pickers emit and MenuPresentation::hex() has already validated. A
+     * value it does not recognise returns '' so the caller falls back
+     * rather than emitting a broken declaration onto a live page.
+     */
+    public static function fade(string $hex, float $alpha): string
+    {
+        if (preg_match('/^#([0-9a-fA-F]{6})$/', $hex, $m) !== 1) {
+            return '';
+        }
+
+        return sprintf(
+            'rgba(%d,%d,%d,%s)',
+            hexdec(substr($m[1], 0, 2)),
+            hexdec(substr($m[1], 2, 2)),
+            hexdec(substr($m[1], 4, 2)),
+            rtrim(rtrim(number_format($alpha, 2, '.', ''), '0'), '.')
+        );
+    }
 
     /**
      * How one item is separated from the next.
