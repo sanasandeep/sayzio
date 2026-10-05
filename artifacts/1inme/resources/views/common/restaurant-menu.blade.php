@@ -46,6 +46,12 @@
         (string) $accent
     );
 
+    // Sana, 2026-10-05: "Section jumping". Resolved from the same menu
+    // settings everything else here reads, and handed to BOTH the bar and
+    // the headings -- so a tab marked 3 cannot land on a heading marked 4.
+    $snNav    = \App\Modules\User\Support\MenuSectionNav::nav($menu->settings['section_nav'] ?? null);
+    $snMarker = \App\Modules\User\Support\MenuSectionNav::marker($menu->settings['section_marker'] ?? null);
+
     // Only the seeded demo restaurant carries a sample WhatsApp number, so we
     // flag the confirmation's "Send order via WhatsApp" button as a demo so
     // real visitors aren't confused by a dead chat. Scoped strictly to the
@@ -311,8 +317,24 @@
         'blkEmpty'       => false,
     ])
 
+    @php
+        // Built from the SAME tree the page renders, so the bar can never
+        // offer a section the page does not show -- a jump link to a hidden
+        // section is a link to nowhere, and the customer who taps it decides
+        // the menu is broken rather than that the section was hidden.
+        $snTargets = \App\Modules\User\Support\MenuSectionNav::targets($tree);
+    @endphp
+    @if(\App\Modules\User\Support\MenuSectionNav::worthDrawing($snNav, count($snTargets)))
+        @include('common.partials.menu-section-nav', [
+            'snTargets' => $snTargets,
+            'snNav'     => $snNav,
+            'snMarker'  => $snMarker,
+        ])
+    @endif
+
     @include('common.partials.menu-section-list', [
         'msTree'    => $tree,
+        'msMarker'  => $snMarker,
         'msLayout'  => $mp['layout'],
         'msFmt'     => $fmt,
         'msOrder'   => $isOrder,

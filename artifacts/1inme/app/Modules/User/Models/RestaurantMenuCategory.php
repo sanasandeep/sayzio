@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class RestaurantMenuCategory extends Model
 {
     protected $fillable = [
-        'menu_id', 'parent_id', 'name', 'description', 'sort_order', 'is_active',
+        'menu_id', 'parent_id', 'name', 'icon', 'description', 'sort_order', 'is_active',
     ];
 
     protected function casts(): array

@@ -4,6 +4,7 @@ namespace App\Services\AI\Editor;
 
 use App\Modules\User\Support\MenuItemMarks;
 use App\Modules\User\Support\MenuPresentation;
+use App\Modules\User\Support\MenuSectionNav;
 
 /**
  * What "Modify with AI" is allowed to change, and how it is described to
@@ -56,10 +57,15 @@ class MenuEditVocabulary
      * @var array<string, string>  settings key => MenuPresentation constant name
      */
     public const CHOICE_SOURCES = [
-        'layout'        => 'LAYOUTS',
-        'divider'       => 'DIVIDERS',
-        'heading_style' => 'HEADINGS',
-        'price_style'   => 'PRICES',
+        'layout'        => [MenuPresentation::class, 'LAYOUTS'],
+        'divider'       => [MenuPresentation::class, 'DIVIDERS'],
+        'heading_style' => [MenuPresentation::class, 'HEADINGS'],
+        'price_style'   => [MenuPresentation::class, 'PRICES'],
+        // Sana, 2026-10-05: "Section jumping". Added here and the AI can
+        // set it the same afternoon, because both halves read the
+        // catalogue -- which is the whole point of this file.
+        'section_nav'    => [MenuSectionNav::class, 'NAVS'],
+        'section_marker' => [MenuSectionNav::class, 'MARKERS'],
     ];
 
     /**
@@ -116,8 +122,8 @@ class MenuEditVocabulary
         }
 
         // Choice settings: allowed values are the catalogue's own keys.
-        foreach (self::CHOICE_SOURCES as $key => $constant) {
-            $catalogue = constant(MenuPresentation::class.'::'.$constant);
+        foreach (self::CHOICE_SOURCES as $key => [$class, $constant]) {
+            $catalogue = constant($class.'::'.$constant);
             $keys[$key] = [
                 'kind'   => 'choice',
                 'values' => array_keys($catalogue),
@@ -183,9 +189,9 @@ class MenuEditVocabulary
         $colours = count(MenuPresentation::COLOURS);
 
         $choices = [];
-        foreach (self::CHOICE_SOURCES as $key => $constant) {
+        foreach (self::CHOICE_SOURCES as $key => [$class, $constant]) {
             $choices[] = strtolower(self::humanise($key)).' ('
-                .count(constant(MenuPresentation::class.'::'.$constant)).' to pick from)';
+                .count(constant($class.'::'.$constant)).' to pick from)';
         }
 
         return [
