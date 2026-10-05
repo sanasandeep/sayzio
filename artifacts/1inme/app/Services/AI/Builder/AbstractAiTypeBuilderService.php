@@ -53,6 +53,25 @@ abstract class AbstractAiTypeBuilderService
     abstract protected function systemPrompt(User $user): string;
 
     /**
+     * What this page already holds, for the model to modify rather than
+     * replace blind.
+     *
+     * Empty by default, which is exactly the old behaviour: a builder that
+     * does not override this keeps building from the brief alone. Overriding
+     * it is what turns "Build" into "Modify" for that page type.
+     */
+    public function existingContext(Link $link): string
+    {
+        return '';
+    }
+
+    /** Does this page have content a build would overwrite? */
+    public function hasExistingContent(Link $link): bool
+    {
+        return $this->existingContext($link) !== '';
+    }
+
+    /**
      * Turn the parsed model JSON into persisted rows for $link.
      * Runs inside a DB transaction. Must throw \RuntimeException when the
      * payload yields no usable content (triggers the auto-refund).
@@ -104,10 +123,24 @@ abstract class AbstractAiTypeBuilderService
         return true;
     }
 
-    /** Coin estimate for the given inputs (same model the generation will use). */
-    public function estimateCredits(User $user, string $description, array $links, array $images, array $scans = []): int
+    /**
+     * Coin estimate for the given inputs (same model the generation will use).
+     *
+     * `$link` is optional and last so every existing caller is unchanged,
+     * but passing it matters: on a page that already has content the
+     * generation sends that content too, and an estimate that leaves it out
+     * quotes a price the build then exceeds.
+     */
+    public function estimateCredits(User $user, string $description, array $links, array $images, array $scans = [], ?Link $link = null): int
     {
-        $messages = $this->buildMessages($user, $description, $this->cleanUrls($links), $this->cleanImageUrls($images), $this->cleanScans($scans));
+        $messages = $this->buildMessages(
+            $user,
+            $description,
+            $this->cleanUrls($links),
+            $this->cleanImageUrls($images),
+            $this->cleanScans($scans),
+            $link ? $this->existingContext($link) : ''
+        );
         $model    = AiEngineSettings::featureModel($this->feature(), $user);
 
         return $this->openai->estimateChatCoins($model, $messages, static::MAX_OUTPUT_TOKENS, $user);
@@ -126,7 +159,7 @@ abstract class AbstractAiTypeBuilderService
         $images = $this->supportsImages() ? $this->cleanImageUrls($images) : [];
         $scans  = $this->cleanScans($scans);
 
-        $messages = $this->buildMessages($user, $description, $links, $images, $scans);
+        $messages = $this->buildMessages($user, $description, $links, $images, $scans, $this->existingContext($link));
         $model    = AiEngineSettings::featureModel($this->feature(), $user);
 
         $response = $this->openai->chat($user, $model, $messages, [
@@ -181,11 +214,33 @@ abstract class AbstractAiTypeBuilderService
     }
 
     /** Chat messages: shared framing + subclass contract + the user's brief. */
-    protected function buildMessages(User $user, string $description, array $links, array $images, array $scans = []): array
+    protected function buildMessages(User $user, string $description, array $links, array $images, array $scans = [], string $existing = ''): array
     {
         $userParts = [
             "Brief:\n" . mb_substr(trim($description), 0, self::MAX_DESCRIPTION),
         ];
+
+        // Sana, 2026-10-05: "when already created... it should show like
+        // modify with AI".
+        //
+        // Every builder REPLACES the catalogue wholesale -- the service
+        // deletes every category and item and writes the response in their
+        // place. So "modify" could not be an honest word while the model was
+        // only ever told the brief: ask for "add a desserts section" on a
+        // page with eighty dishes and you got a menu with desserts and
+        // nothing else.
+        //
+        // Sending the current content, plus the instruction that anything
+        // omitted is deleted, is what makes the word true.
+        if ($existing !== '') {
+            $userParts[] = "This page ALREADY has the content below. The brief above is a CHANGE to it, "
+                ."not a description of a new page.\n\n"
+                ."Return the COMPLETE result with that change applied: every section and every item that "
+                ."should still be there, not only the new or edited ones. Anything you leave out is deleted. "
+                ."Keep existing names, descriptions and prices exactly as they are unless the brief asks for "
+                ."them to change.\n\n"
+                .$existing;
+        }
 
         if ($links) {
             $userParts[] = "URLs supplied by the user (use them where they fit; never invent other URLs):\n- " . implode("\n- ", $links);
