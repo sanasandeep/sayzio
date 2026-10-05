@@ -20,7 +20,11 @@
 <div class="items lay-{{ $miLayout }} div-{{ $miDivider }}">
 @foreach($miItems as $miItem)
     @php $miSold = (bool) $miItem->{$miSoldKey}; @endphp
-    <div class="item {{ $miSold ? 'soldout' : '' }}">
+    <div class="item {{ $miSold ? 'soldout' : '' }}" data-menu-search-item
+         data-search-text="{{ $miItem->name.' '.$miItem->description }}"
+         data-search-category="{{ $miItem->category_id }}" data-search-price="{{ $miItem->price }}"
+         data-search-sold="{{ $miSold ? '1' : '0' }}"
+         data-search-marks="{{ json_encode(array_column($miItem->marksForDisplay(), 'label')) }}">
         @if($miItem->photo_url)<img class="photo" src="{{ $miItem->photo_url }}" alt="" loading="lazy">@endif
         <div class="info">
             <div class="name">{{ $miItem->name }}</div>
