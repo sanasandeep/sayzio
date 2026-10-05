@@ -106,7 +106,7 @@ class MenuCartPricer
                 $item->name
             );
 
-            $perUnit = round(((float) $item->price) + $chosen['total'], 2);
+            $perUnit = round(\App\Modules\User\Support\MenuBulkOrder::unitPrice($item, $qty) + $chosen['total'], 2);
             $lineTotal = round($perUnit * $qty, 2);
             $subtotal += $lineTotal;
 

@@ -321,6 +321,75 @@ class WhatIsQuotedIsWhatIsChargedTest extends TestCase
 
     // ===== One pricer, not four ==========================================
 
+    public function test_bulk_price_switches_at_the_coupon_threshold_and_keeps_options(): void
+    {
+        [$link, $menu, $item] = $this->restaurant();
+        $item->update(['coupon_from' => 10, 'bulk_price' => 70]);
+        $opts = $this->choices($menu, $item, 'Extra',
+            ['is_required' => false, 'min_select' => 0, 'max_select' => 1], [['Cheese', 5]]);
+        foreach ([9 => 855, 10 => 750, 11 => 825, 2 => 190] as $quantity => $total) {
+            $rows = [['item_id' => $item->id, 'quantity' => $quantity,
+                'options' => [['option_id' => $opts['Cheese']->id, 'quantity' => 1]]]];
+            $this->assertSame((float) $total, (float) $this->postJson('/rm/'.$link->alias.'/quote', ['items' => $rows])
+                ->assertOk()->json('data.bill.total'));
+        }
+        $rows = [['item_id' => $item->id, 'quantity' => 10]];
+        $this->postJson('/rm/'.$link->alias.'/order', [
+            'customer_name' => 'Bulk customer', 'customer_phone' => '+919840012345', 'items' => $rows,
+        ])->assertCreated();
+        $order = RestaurantOrder::latest('id')->first();
+        $this->assertSame(700.0, (float) $order->total);
+        $this->assertSame(70.0, (float) $order->items()->first()->unit_price);
+        $this->assertDatabaseCount('menu_order_coupons', 10);
+        $item->update(['bulk_price' => 0]);
+        $this->assertSame(0.0, app(\App\Modules\Common\Services\MenuCartPricer::class)->price($menu, $rows)['subtotal']);
+        $item->update(['coupon_from' => null]);
+        $this->assertSame(900.0, app(\App\Modules\Common\Services\MenuCartPricer::class)->price($menu, $rows)['subtotal']);
+    }
+
+    public function test_staff_can_order_bulk_coupons_for_a_customer_on_a_display_menu(): void
+    {
+        [$link, $menu, $item] = $this->restaurant();
+        $menu->update(['mode' => 'display']);
+        $link->update(['visibility' => 'subscribers']);
+        $item->update(['coupon_from' => 10, 'bulk_price' => 70]);
+        app()->instance('workspace_owner', $this->user);
+        $rows = [['item_id' => $item->id, 'quantity' => 10]];
+        // A public caller cannot grant itself staff permissions through JSON.
+        $this->postJson('/rm/'.$link->alias.'/order', [
+            'staff_order_link' => $link->id, 'customer_name' => 'Customer',
+            'customer_phone' => '+919840012345', 'items' => $rows,
+        ])->assertUnauthorized();
+        $this->actingAs($this->user)->get(route('user.links.restaurant.staff-order', $link))
+            ->assertOk()->assertSee('Staff order for a customer');
+        $this->postJson(route('user.links.restaurant.staff-order.quote', $link), ['items' => $rows])
+            ->assertOk();
+        $this->postJson(route('user.links.restaurant.staff-order.place', $link), [
+            'customer_name' => 'Customer', 'customer_phone' => '+919840012345', 'items' => $rows,
+        ])->assertCreated();
+        $this->assertSame('Customer', RestaurantOrder::latest('id')->first()->customer_name);
+        $this->assertSame('display', $menu->fresh()->mode);
+        $this->assertDatabaseCount('menu_order_coupons', 10);
+    }
+
+    public function test_store_bulk_pricing_is_quoted_and_saved(): void
+    {
+        $link = Link::create(['user_id' => $this->user->id, 'type' => 'store_menu',
+            'alias' => 'bulk'.fake()->unique()->numerify('#####'), 'title' => 'Bulk store', 'is_active' => true]);
+        $menu = StoreMenu::create(['link_id' => $link->id, 'user_id' => $this->user->id,
+            'mode' => 'order', 'currency' => 'INR', 'settings' => []]);
+        $product = StoreProduct::create(['menu_id' => $menu->id, 'name' => 'Lunch', 'price' => 100,
+            'coupon_from' => 10, 'bulk_price' => 80, 'is_active' => true, 'sort_order' => 0]);
+        $rows = [['product_id' => $product->id, 'quantity' => 10]];
+        $quote = $this->postJson('/sm/'.$link->alias.'/quote', ['items' => $rows])->assertOk()->json('data.bill.total');
+        $this->postJson('/sm/'.$link->alias.'/order', ['items' => $rows,
+            'customer_name' => 'Customer', 'customer_phone' => '+919840012345'])->assertCreated();
+        $order = StoreOrder::latest('id')->first();
+        $this->assertSame(800.0, (float) $quote);
+        $this->assertSame((float) $quote, (float) $order->total);
+        $this->assertSame(80.0, (float) $order->items()->first()->unit_price);
+    }
+
     public function test_nothing_prices_a_cart_except_the_pricer(): void
     {
         // The arithmetic that used to be written out in four places. If it

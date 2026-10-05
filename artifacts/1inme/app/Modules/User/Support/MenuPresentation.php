@@ -238,6 +238,12 @@ class MenuPresentation
             'label' => 'Dotted',
             'hint'  => 'A dotted rule, the way a printed card is usually set.',
         ],
+        'dashed' => ['label' => 'Dashed', 'hint' => 'Short dashes between items.'],
+        'double' => ['label' => 'Double line', 'hint' => 'Two fine rules between items.'],
+        'curve' => ['label' => 'Curve', 'hint' => 'A soft curved rule between items.'],
+        'wave' => ['label' => 'Wave', 'hint' => 'A repeating curved wave between items.'],
+        'pointer' => ['label' => 'Pointer', 'hint' => 'A rule with a small central pointer.'],
+        'diamond' => ['label' => 'Diamond', 'hint' => 'A rule with a central diamond.'],
         'none' => [
             'label' => 'None',
             'hint'  => 'Space alone separates the items. Cleanest with photos.',

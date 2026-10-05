@@ -32,7 +32,7 @@ class PublicRestaurantController extends Controller
     public function quote(Request $request, string $alias)
     {
         [$link, $menu] = $this->resolveMenu($alias);
-        if (!$link || !$menu || !$link->isAccessible() || !$menu->isOrderMode()) {
+        if (!$link || !$menu || !$link->isAccessible() || (!$menu->isOrderMode() && $request->attributes->get('staff_order_link') !== (int) $link->id)) {
             return response()->json(['error' => ['message' => 'Menu not found', 'code' => 'not_found']], 404);
         }
 
@@ -119,6 +119,8 @@ class PublicRestaurantController extends Controller
      */
     protected function orderVisibilityGate(Request $request, Link $link)
     {
+        if ($request->attributes->get('staff_order_link') === (int) $link->id) return null;
+
         $vis = $link->visibility ?? 'public';
         if ($vis === 'public') return null;
 
@@ -157,7 +159,7 @@ class PublicRestaurantController extends Controller
         if ($gate = $this->orderVisibilityGate($request, $link)) {
             return $gate;
         }
-        if (!$menu->isOrderMode()) {
+        if ((!$menu->isOrderMode() && $request->attributes->get('staff_order_link') !== (int) $link->id)) {
             return response()->json(['error' => ['message' => 'Ordering is not enabled for this menu', 'code' => 'ordering_disabled']], 422);
         }
 

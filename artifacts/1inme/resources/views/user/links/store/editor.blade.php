@@ -283,7 +283,15 @@
                 @include('user.links.partials.menu-fulfilment-panel', ['fpIsRestaurant' => false])
                 <div class="rm-row" x-show="menu.mode === 'order'">
                     <label class="rm-label">WhatsApp number (optional)</label>
-                    <input class="rm-input" x-model="menu.whatsapp_number" @change="saveSettings()" placeholder="e.g. +1 555 123 4567" inputmode="tel">
+                    <div @phone-changed="menu.whatsapp_number = $event.detail; saveSettings()">
+                        @include('common.partials.phone-input', [
+                            'phoneInputName' => 'whatsapp_number',
+                            'phoneInputValue' => $menu->settings['whatsapp_number'] ?? '',
+                            'phoneInputId' => 'menu-whatsapp',
+                            'phoneInputSize' => 'sm',
+                            'phoneInputAutoFormat' => true,
+                        ])
+                    </div>
                     <p class="text-xs mt-2" style="color:var(--text-muted)">Add your number with country code to let shoppers send their request to your WhatsApp. Requests still appear on your dashboard either way.</p>
                 </div>
                 <p class="text-xs" style="color:var(--text-faint)" x-text="savedMsg"></p>
@@ -422,7 +430,7 @@
     $menuModes   = \App\Modules\User\Support\MenuFulfilment::modesFor((array) ($menu->settings ?? []), false);
     $menuCharges = \App\Modules\User\Support\MenuFulfilment::charges((array) ($menu->settings ?? []));
     $menuCategories = $menu->categories->map(fn($c)=>['id'=>$c->id,'parent_id'=>$c->parent_id,'name'=>$c->name,'description'=>$c->description,'is_active'=>(bool) $c->is_active,'sort_order'=>(int) $c->sort_order])->values();
-    $menuProducts = $menu->products->map(fn($p)=>['id'=>$p->id,'category_id'=>$p->category_id,'name'=>$p->name,'description'=>$p->description,'price'=>$p->price,'photo_url'=>$p->photo_url,'is_out_of_stock'=>$p->is_out_of_stock,'marks'=>\App\Modules\User\Support\MenuItemMarks::sanitize($p->marks),'min_quantity'=>(int) ($p->min_quantity ?? 1),'max_quantity'=>$p->max_quantity,'coupon_from'=>$p->coupon_from,'is_active'=>(bool) $p->is_active,'sort_order'=>(int) $p->sort_order])->values();
+    $menuProducts = $menu->products->map(fn($p)=>['id'=>$p->id,'category_id'=>$p->category_id,'name'=>$p->name,'description'=>$p->description,'price'=>$p->price,'photo_url'=>$p->photo_url,'is_out_of_stock'=>$p->is_out_of_stock,'marks'=>\App\Modules\User\Support\MenuItemMarks::sanitize($p->marks),'min_quantity'=>(int) ($p->min_quantity ?? 1),'max_quantity'=>$p->max_quantity,'bulk_price'=>$p->bulk_price,'coupon_from'=>$p->coupon_from,'is_active'=>(bool) $p->is_active,'sort_order'=>(int) $p->sort_order])->values();
     // The colours the owner has chosen, read back for the editor.
     //
     // Sana, 2026-10-04: "menu items color changed, updated live but not shown
@@ -543,7 +551,7 @@ function storeEditor() {
         priceHints: @json(collect(\App\Modules\User\Support\MenuPresentation::PRICES)->map(fn ($x) => $x['hint'])),
         get priceHint(){ return this.priceHints[this.menu.price_style] || ''; },
         catModal: { open:false, id:null, parent_id:null, name:'', description:'' },
-        productModal: { open:false, id:null, category_id:null, name:'', description:'', price:'', photo_url:'', is_out_of_stock:false, marks:[], min_quantity:'', max_quantity:'', coupon_from:'' },
+        productModal: { open:false, id:null, category_id:null, name:'', description:'', price:'', photo_url:'', is_out_of_stock:false, marks:[], min_quantity:'', max_quantity:'', bulk_price:'',coupon_from:'' },
         base: @json($storeBase),
         uploadUrl: @json(route('user.files.upload')),
         csrf: @json(csrf_token()),
@@ -789,14 +797,14 @@ function storeEditor() {
         },
         openProduct(catId, product){
             // '' rather than 1 in the minimum box: see the restaurant's copy.
-            this.productModal = product ? {open:true,id:product.id,category_id:catId,name:product.name,description:product.description||'',price:product.price,photo_url:product.photo_url||'',is_out_of_stock:!!product.is_out_of_stock,marks:(product.marks||[]),min_quantity:(product.min_quantity > 1 ? product.min_quantity : ''),max_quantity:(product.max_quantity ?? ''),coupon_from:(product.coupon_from ?? '')} : {open:true,id:null,category_id:catId,name:'',description:'',price:'',photo_url:'',is_out_of_stock:false,marks:[],min_quantity:'',max_quantity:'',coupon_from:''};
+            this.productModal = product ? {open:true,id:product.id,category_id:catId,name:product.name,description:product.description||'',price:product.price,photo_url:product.photo_url||'',is_out_of_stock:!!product.is_out_of_stock,marks:(product.marks||[]),min_quantity:(product.min_quantity > 1 ? product.min_quantity : ''),max_quantity:(product.max_quantity ?? ''),bulk_price:(product.bulk_price ?? ''),coupon_from:(product.coupon_from ?? '')} : {open:true,id:null,category_id:catId,name:'',description:'',price:'',photo_url:'',is_out_of_stock:false,marks:[],min_quantity:'',max_quantity:'',bulk_price:'',coupon_from:''};
             this.photoMode = 'url'; this.photoError = '';
         },
         async saveProduct(){
             if (!this.productModal.name.trim()) return;
             const payload = { category_id:this.productModal.category_id, name:this.productModal.name, description:this.productModal.description, price:parseFloat(this.productModal.price||0), photo_url:this.productModal.photo_url||null, is_out_of_stock:this.productModal.is_out_of_stock, marks:(this.productModal.marks||[]),
                 // Blank goes as null, not 0: see the restaurant's copy.
-                min_quantity:menuQuantity.num(this.productModal.min_quantity), max_quantity:menuQuantity.num(this.productModal.max_quantity), coupon_from:menuQuantity.num(this.productModal.coupon_from) };
+                min_quantity:menuQuantity.num(this.productModal.min_quantity), max_quantity:menuQuantity.num(this.productModal.max_quantity), bulk_price:this.productModal.bulk_price === '' ? null : Number(this.productModal.bulk_price), coupon_from:menuQuantity.num(this.productModal.coupon_from) };
             if (this.productModal.id) { const d = await this.api('PUT','/products/'+this.productModal.id, payload); const i=this.products.findIndex(x=>x.id===this.productModal.id); this.products[i]=d.product; }
             else { const d = await this.api('POST','/products', payload); this.products.push(d.product); }
             this.productModal.open = false;

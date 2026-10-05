@@ -3,7 +3,8 @@
     $menu = $link->storeMenu()->with(['categories', 'products'])->first();
     $accent = $menu->accent_color ?: '#3d6bff';
     $currency = $menu->currency ?: 'USD';
-    $isOrder = $menu->isOrderMode() && $menu->acceptingOrders();
+    $staffMode = $staffMode ?? false;
+    $isOrder = $staffMode || ($menu->isOrderMode() && $menu->acceptingOrders());
     $title = $link->title ?: $link->alias;
 
     // Sections, their sub-sections and their products -- and which of
@@ -71,7 +72,7 @@
      */
     // Every product's choices in ONE query rather than one per product.
     $smChoices = [];
-    if ($menu->isOrderMode()) {
+    if ($isOrder) {
         $smChoices = collect(\App\Modules\User\Support\MenuOptionSelection::groupsForMany(
             \App\Modules\User\Models\MenuItemOptionGroup::STORE_PRODUCT,
             $menu->products->pluck('id')->map(fn ($i) => (int) $i)->all()
@@ -95,7 +96,7 @@
     }
     // Built on the server, in the owner's clock: a phone an hour out of
     // sync would otherwise offer times the kitchen refuses on submit.
-    $smSlots = $menu->isOrderMode()
+    $smSlots = $isOrder
         ? \App\Modules\User\Support\MenuHandoverTiming::slots(
             (array) ($menu->settings ?? []),
             $link->user?->effectiveTimezone() ?? \App\Support\PlatformTimezone::platformDefault()
@@ -239,6 +240,13 @@
 @include('common.partials.menu-order-shell-css')
 </head>
 <body>
+@if($staffMode)
+    <div style="padding:12px;background:#fff7ed;color:#713f12;text-align:center;position:relative;z-index:10">
+        <strong>Staff order for a customer</strong>
+        <p style="margin:4px 0">Enter the customer's name and phone at checkout. Bulk prices and meal coupons apply automatically at the item's threshold. Payment is collected separately.</p>
+        <a href="{{ route('user.links.store.orders', $link) }}" style="color:inherit">Back to orders</a>
+    </div>
+@endif
 @if($pbOn)@include('common.page-background.layers')@endif
 {{-- The side-by-side layouts get a wider column; the reading layouts
      keep the narrow one they were designed for. --}}
@@ -369,8 +377,8 @@
         @endif
         <textarea class="field" id="fAddress" rows="2" placeholder="Delivery address" style="display:none"></textarea>
         @include('common.partials.menu-when', ['whSlots' => $smSlots])
-        <input class="field" id="fName" placeholder="Your name" required>
-        <input class="field" id="fPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Phone number" required>
+        <input class="field" id="fName" placeholder="{{ $staffMode ? 'Customer name' : 'Your name' }}" required>
+        <input class="field" id="fPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="{{ $staffMode ? 'Customer phone number' : 'Phone number' }}" required>
         <input class="field" id="fContact" placeholder="Email (optional)">
         <textarea class="field" id="fNote" rows="2" placeholder="Notes for your order (optional)"></textarea>
         {{-- Where a failed request says so, instead of an alert() box. --}}
@@ -420,13 +428,13 @@
 <script>
 (function () {
     const CSRF = document.querySelector('meta[name="csrf-token"]').content;
-    const ORDER_URL = @json(route('sm.public.order', ['alias' => $link->alias]));
+    const ORDER_URL = @json($staffMode ? route('user.links.store.staff-order.place', $link) : route('sm.public.order', ['alias' => $link->alias]));
     const STATUS_BASE = @json(url('/sm/order'));
     // The page's money format, handed to the cart rather than re-derived.
     // The cart total and the item prices used to be two independent copies
     // of "code, space, two decimals", which is how they drift.
     const MONEY = @json($money);
-    const QUOTE_URL = @json(route('sm.public.quote', ['alias' => $link->alias]));
+    const QUOTE_URL = @json($staffMode ? route('user.links.store.staff-order.quote', $link) : route('sm.public.quote', ['alias' => $link->alias]));
     const FUL_MODES = @json($fulModes);
     const FUL_ADDRESS = @json((object) $fulNeedsAddress);
     const FUL_TIMED = ['takeaway', 'delivery'];
@@ -434,7 +442,7 @@
 
     // What the owner chose to happen once the order goes through, resolved
     // server-side so the page never sees a half-configured mode.
-    const CONFIRM = @json(\App\Modules\User\Support\MenuConfirmation::resolve((array) ($menu->settings ?? [])));
+    const CONFIRM = @json(\App\Modules\User\Support\MenuConfirmation::resolve($staffMode ? [] : (array) ($menu->settings ?? [])));
     // Known at render time, so a menu with no number never opens a tab it
     // would have to close again.
     const WA_ON = @json((bool) \App\Modules\Common\Services\WhatsappOrderLink::numberFor($menu));
@@ -451,7 +459,7 @@
         ITEMS[id] = { id: +id, name: el.getAttribute('data-name'), price: parseFloat(el.getAttribute('data-price')),
             // The quantity rule, as the Add row carries it. Absent means
             // no rule, which is every product that has never had one.
-            min: el.getAttribute('data-min'), max: el.getAttribute('data-max') || null };
+            bulkPrice: el.getAttribute('data-bulk-price'), couponFrom: el.getAttribute('data-coupon-from'), min: el.getAttribute('data-min'), max: el.getAttribute('data-max') || null };
     });
     menuChooser.install(CHOICES, n => fmt(n));
     let LINES = [];
@@ -462,10 +470,18 @@
     // prices: see common/partials/menu-cart-store for why that matters.
     // Anything that cannot be rebuilt honestly is dropped and said out
     // loud rather than quietly swapped for something else.
-    const CART_KEY = @json($link->alias);
+    const CART_KEY = @json(($staffMode ? 'staff:' : '').$link->alias);
     let restoredNotice = '';
 
-    function saveCart() { menuCart.save(CART_KEY, LINES); }
+    function repriceLines() {
+        LINES.forEach(l => {
+            const it = ITEMS[l.id];
+            const bulk = it.bulkPrice !== '' && +it.couponFrom > 0 && l.qty >= +it.couponFrom;
+            const base = bulk ? +it.bulkPrice : it.price;
+            l.perUnit = Math.round((base + menuChooser.extraFor(l.opts)) * 100) / 100;
+        });
+    }
+    function saveCart() { repriceLines(); menuCart.save(CART_KEY, LINES); }
 
     (function restoreCart() {
         const back = menuCart.restore(CART_KEY, ITEMS, menuChooser);

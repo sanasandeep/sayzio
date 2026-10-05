@@ -3,7 +3,8 @@
     $menu = $link->restaurantMenu()->with(['categories', 'items'])->first();
     $accent = $menu->accent_color ?: '#3d6bff';
     $currency = $menu->currency ?: 'USD';
-    $isOrder = $menu->isOrderMode();
+    $staffMode = $staffMode ?? false;
+    $isOrder = ($staffMode || $menu->isOrderMode());
     $title = $link->title ?: $link->alias;
 
     // Resolve the scanned table (?t=code) so order placement is bound to it.
@@ -87,7 +88,7 @@
     // item menu must not mean forty-one round trips on a page a guest is
     // waiting for.
     $rmChoices = [];
-    if ($menu->isOrderMode()) {
+    if ($isOrder) {
         $rmChoices = collect(\App\Modules\User\Support\MenuOptionSelection::groupsForMany(
             \App\Modules\User\Models\MenuItemOptionGroup::RESTAURANT_ITEM,
             $menu->items->pluck('id')->map(fn ($i) => (int) $i)->all()
@@ -111,7 +112,7 @@
     }
     // Built on the server, in the owner's clock: a phone an hour out of
     // sync would otherwise offer times the kitchen refuses on submit.
-    $rmSlots = $menu->isOrderMode()
+    $rmSlots = $isOrder
         ? \App\Modules\User\Support\MenuHandoverTiming::slots(
             (array) ($menu->settings ?? []),
             $link->user?->effectiveTimezone() ?? \App\Support\PlatformTimezone::platformDefault()
@@ -261,6 +262,13 @@
 @include('common.partials.menu-order-shell-css')
 </head>
 <body>
+@if($staffMode)
+    <div style="padding:12px;background:#fff7ed;color:#713f12;text-align:center;position:relative;z-index:10">
+        <strong>Staff order for a customer</strong>
+        <p style="margin:4px 0">Enter the customer's name and phone at checkout. Bulk prices and meal coupons apply automatically at the item's threshold. Payment is collected separately.</p>
+        <a href="{{ route('user.links.restaurant.orders', $link) }}" style="color:inherit">Back to orders</a>
+    </div>
+@endif
 @if($pbOn)@include('common.page-background.layers')@endif
 {{-- The side-by-side layouts get a wider column; the reading layouts
      keep the narrow one they were designed for. --}}
@@ -423,8 +431,8 @@
                 <input class="field" id="fTable" placeholder="Table number (optional)">
             @endif
         @endunless
-        <input class="field" id="fName" placeholder="Your name" required>
-        <input class="field" id="fPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Phone number" required>
+        <input class="field" id="fName" placeholder="{{ $staffMode ? 'Customer name' : 'Your name' }}" required>
+        <input class="field" id="fPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="{{ $staffMode ? 'Customer phone number' : 'Phone number' }}" required>
         <textarea class="field" id="fNote" rows="2" placeholder="Notes for the kitchen (optional)"></textarea>
         {{-- Where a failed order says so. An alert() box is the wrong
              surface for someone holding a phone at a table: it covers the
@@ -483,8 +491,8 @@
 <script>
 (function () {
     const CSRF = document.querySelector('meta[name="csrf-token"]').content;
-    const ORDER_URL = @json(route('rm.public.order', ['alias' => $link->alias]));
-    const QUOTE_URL = @json(route('rm.public.quote', ['alias' => $link->alias]));
+    const ORDER_URL = @json($staffMode ? route('user.links.restaurant.staff-order.place', $link) : route('rm.public.order', ['alias' => $link->alias]));
+    const QUOTE_URL = @json($staffMode ? route('user.links.restaurant.staff-order.quote', $link) : route('rm.public.quote', ['alias' => $link->alias]));
     const STATUS_BASE = @json(url('/rm/order'));
     // The page's money format, handed to the cart rather than re-derived.
     // The cart total and the item prices used to be two independent copies
@@ -498,7 +506,7 @@
 
     // What the owner chose to happen once the order goes through, resolved
     // server-side so the page never sees a half-configured mode.
-    const CONFIRM = @json(\App\Modules\User\Support\MenuConfirmation::resolve((array) ($menu->settings ?? [])));
+    const CONFIRM = @json(\App\Modules\User\Support\MenuConfirmation::resolve($staffMode ? [] : (array) ($menu->settings ?? [])));
     // Known at render time, so a menu with no number never opens a tab it
     // would have to close again.
     const WA_ON = @json((bool) \App\Modules\Common\Services\WhatsappOrderLink::numberFor($menu));
@@ -516,7 +524,7 @@
         ITEMS[id] = { id: +id, name: el.getAttribute('data-name'), price: parseFloat(el.getAttribute('data-price')),
             // The quantity rule, as the Add row carries it. Absent means
             // no rule, which is every dish that has never had one.
-            min: el.getAttribute('data-min'), max: el.getAttribute('data-max') || null };
+            bulkPrice: el.getAttribute('data-bulk-price'), couponFrom: el.getAttribute('data-coupon-from'), min: el.getAttribute('data-min'), max: el.getAttribute('data-max') || null };
     });
     menuChooser.install(CHOICES, n => fmt(n));
     let LINES = [];
@@ -527,10 +535,18 @@
     // prices: see common/partials/menu-cart-store for why that matters.
     // Anything that cannot be rebuilt honestly is dropped and said out
     // loud rather than quietly swapped for something else.
-    const CART_KEY = @json($link->alias);
+    const CART_KEY = @json(($staffMode ? 'staff:' : '').$link->alias);
     let restoredNotice = '';
 
-    function saveCart() { menuCart.save(CART_KEY, LINES); }
+    function repriceLines() {
+        LINES.forEach(l => {
+            const it = ITEMS[l.id];
+            const bulk = it.bulkPrice !== '' && +it.couponFrom > 0 && l.qty >= +it.couponFrom;
+            const base = bulk ? +it.bulkPrice : it.price;
+            l.perUnit = Math.round((base + menuChooser.extraFor(l.opts)) * 100) / 100;
+        });
+    }
+    function saveCart() { repriceLines(); menuCart.save(CART_KEY, LINES); }
 
     (function restoreCart() {
         const back = menuCart.restore(CART_KEY, ITEMS, menuChooser);

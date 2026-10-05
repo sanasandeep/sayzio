@@ -69,8 +69,8 @@
             {{-- The filters are already on these URLs. An export that
                  quietly ignores the range is worse than no export: you
                  filter to last month, download, and reconcile a year. --}}
-            <a class="os-btn" href="{{ $osExport }}&format=csv"><i class="fas fa-file-csv"></i> CSV</a>
-            <a class="os-btn" href="{{ $osExport }}&format=pdf"><i class="fas fa-file-pdf"></i> PDF</a>
+            <a class="os-btn" href="{{ $osExport }}&format=csv" data-export-url="{{ $osExport }}" :href="exportHref($el.dataset.exportUrl, 'csv')"><i class="fas fa-file-csv"></i> CSV</a>
+            <a class="os-btn" href="{{ $osExport }}&format=pdf" data-export-url="{{ $osExport }}" :href="exportHref($el.dataset.exportUrl, 'pdf')"><i class="fas fa-file-pdf"></i> PDF</a>
         </div>
     </div>
 </div>
