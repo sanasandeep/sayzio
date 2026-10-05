@@ -55,6 +55,7 @@
         'osCurrency' => $menu->currency,
         'osExport'   => $exportUrl . (str_contains($exportUrl, '?') ? '' : '?'),
         'osRange'    => $range,
+        'osKitchen'  => route('user.links.restaurant.kitchen', $link),
     ])
 
     @include('user.links.partials.orders-counter', [
