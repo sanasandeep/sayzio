@@ -27,28 +27,30 @@
 --}}
 <div class="w-full max-w-[1600px] mx-auto" x-data="kitchenBoard()" x-init="start()">
 
-    <div class="flex items-center gap-4 mb-5 flex-wrap">
-        <a href="{{ $ordersUrl }}" class="text-white/30 hover:text-white transition-colors" title="Back to orders"><i class="fas fa-arrow-left"></i></a>
-        <div class="min-w-0">
-            <h1 class="text-2xl font-bold text-white flex items-center gap-2">
-                <i class="fas fa-fire-burner text-orange-400"></i> Kitchen
-            </h1>
-            <p class="text-xs text-white/40 mt-0.5">{{ $link->title ?: $link->alias }}</p>
-        </div>
+    @include('user.links.partials.menu-page-header', [
+        'mhTitle' => 'Kitchen',
+        'mhIcon'  => 'fa-fire-burner',
+        'mhLink'  => $link,
+        'mhBack'  => $ordersUrl,
+        'mhBackLabel' => 'Back to orders',
+        'mhActions' => '<span class="mph-btn mph-stat"><b x-text="board.open"></b> open</span>'
+            .'<span class="mph-btn mph-stat" x-show="board.oldest_wait">longest wait <b x-text="board.oldest_wait"></b></span>'
+            .'<button type="button" class="mph-btn" :class="live ? \'\' : \'mph-btn-warn\'" @click="live = !live">'
+            .'<i class="fas" :class="live ? \'fa-circle-pause\' : \'fa-circle-play\'"></i>'
+            .'<span x-text="live ? \'Pause\' : \'Resume\'"></span></button>',
+    ])
 
-        <div class="ml-auto flex items-center gap-2 flex-wrap">
-            <span class="kb-pill"><b x-text="board.open"></b> open</span>
-            <span class="kb-pill" x-show="board.oldest_minutes !== null">
-                longest wait <b x-text="board.oldest_minutes + 'm'"></b>
-            </span>
-            {{-- The off switch. Somebody reading a long ticket does not want
-                 the board reordering itself under their eyes. --}}
-            <button type="button" class="kb-btn" @click="live = !live"
-                    :class="live ? '' : 'kb-btn-off'">
-                <i class="fas" :class="live ? 'fa-circle-pause' : 'fa-circle-play'"></i>
-                <span x-text="live ? 'Pause' : 'Resume'"></span>
-            </button>
-        </div>
+    {{-- The free tables, said once and quietly.
+
+         Sana, 2026-10-05: "it looks ugly and not clear". Four free tables
+         used to be four full-size cards shouting FREE, with the one table
+         that had food on it reduced to a narrow column beside them. The
+         board's job is the work; which tables are open is a single line. --}}
+    <div class="kb-free-row" x-show="board.free && board.free.length">
+        <span class="kb-free-label">Free</span>
+        <template x-for="name in (board.free || [])" :key="name">
+            <span class="kb-free-chip" x-text="name"></span>
+        </template>
     </div>
 
     <template x-if="board.groups.length === 0">
@@ -63,25 +65,16 @@
             <div class="kb-card" :class="'kb-' + g.heat">
                 <div class="kb-head">
                     <div class="kb-name" x-text="g.name"></div>
-                    <div class="kb-age" x-show="g.minutes !== null">
-                        <span x-text="g.minutes"></span>m
-                    </div>
+                    <div class="kb-age" x-show="g.wait" x-text="g.wait"></div>
                 </div>
 
                 <div class="kb-status" x-text="g.label"></div>
-
-                {{-- An empty table is ON the board and says so. A board that
-                     lists only tables with orders cannot tell you table 7 is
-                     free, which is half of what it is being read for. --}}
-                <template x-if="g.empty">
-                    <div class="kb-free">Free</div>
-                </template>
 
                 <template x-for="t in g.tickets" :key="t.id">
                     <div class="kb-ticket">
                         <div class="kb-ref">
                             <span>#<span x-text="t.ref"></span></span>
-                            <span class="kb-tmin" x-text="t.minutes + 'm'"></span>
+                            <span class="kb-tmin" x-text="t.wait"></span>
                         </div>
                         <div class="kb-who" x-show="t.customer" x-text="t.customer"></div>
                         <ul class="kb-lines">
@@ -142,7 +135,6 @@
         border-left-width: 5px;
         border-left-color: rgba(255,255,255,.10);
     }
-    .kb-idle  { opacity: .55; }
     .kb-fresh { border-left-color: #22c55e; }
     .kb-warn  { border-left-color: #f59e0b; }
     .kb-late  { border-left-color: #ef4444; }
@@ -164,7 +156,23 @@
         font-size: 11px; text-transform: uppercase; letter-spacing: .07em;
         color: var(--text-faint); margin-top: 2px;
     }
-    .kb-free { font-size: 13px; color: var(--text-dimmed); margin-top: 10px; }
+    /* One quiet line, not four cards. */
+    .kb-free-row {
+        display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+        margin-bottom: 14px;
+    }
+    .kb-free-label {
+        font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em;
+        color: var(--text-faint); margin-right: 2px;
+    }
+    .kb-free-chip {
+        font-size: 12px; font-weight: 600;
+        color: var(--text-dimmed);
+        border: 1px dashed var(--border-glass);
+        border-radius: 8px;
+        padding: 3px 10px;
+        white-space: nowrap;
+    }
 
     .kb-ticket {
         margin-top: 11px; padding-top: 11px;

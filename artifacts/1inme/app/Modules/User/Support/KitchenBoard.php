@@ -74,11 +74,26 @@ class KitchenBoard
             ? self::byTable($menu, $tickets)
             : self::byOrder($tickets);
 
+        $oldest = $tickets ? max(array_column($tickets, 'minutes')) : null;
+
         return [
             'mode'           => $hasTables ? 'tables' : 'orders',
-            'groups'         => $groups,
+            // Split for the screen rather than in it.
+            //
+            // Sana, 2026-10-05: "it looks ugly and not clear". Four free
+            // tables were four full-size cards shouting FREE, and the one
+            // table with food on it was a narrow column beside them. A
+            // kitchen board puts the work first and says "the rest are free"
+            // quietly -- so the two sets come out separately and the screen
+            // does not have to decide.
+            'groups'         => array_values(array_filter($groups, fn ($g) => ! $g['empty'])),
+            'free'           => array_values(array_map(
+                fn ($g) => $g['name'],
+                array_filter($groups, fn ($g) => $g['empty'])
+            )),
             'open'           => count($tickets),
-            'oldest_minutes' => $tickets ? max(array_column($tickets, 'minutes')) : null,
+            'oldest_minutes' => $oldest,
+            'oldest_wait'    => self::wait($oldest),
             'statuses'       => $model::STATUS_LABELS,
             'server_time'    => now()->toIso8601String(),
         ];
@@ -100,6 +115,7 @@ class KitchenBoard
             'table'    => $order->table_label ?: null,
             'table_id' => $order->table_id ?? null,
             'minutes'  => $minutes,
+            'wait'     => self::wait($minutes),
             'heat'     => self::heat($minutes),
             'placed'   => $placed?->toIso8601String(),
             // Quantity and name, nothing else. A kitchen ticket with a
@@ -114,6 +130,41 @@ class KitchenBoard
             // transition map rather than a second copy of it on the screen.
             'next'     => $model::STATUS_TRANSITIONS[$order->status] ?? [],
         ];
+    }
+
+    /**
+     * A wait, written the way somebody says it out loud.
+     *
+     * Sana, 2026-10-05: "it looks ugly and not clear".
+     *
+     * He was looking at a ticket reading "10629m". That is seven and a half
+     * days, and there is no reading it as that -- it is a number you have to
+     * stop and divide. Minutes are right up to an hour and wrong after it,
+     * so past an hour this says hours, and past a day it says days.
+     */
+    public static function wait(?int $minutes): ?string
+    {
+        if ($minutes === null) {
+            return null;
+        }
+        if ($minutes < 1) {
+            return 'just now';
+        }
+        if ($minutes < 60) {
+            return $minutes.'m';
+        }
+
+        $hours = intdiv($minutes, 60);
+        if ($hours < 24) {
+            $rest = $minutes % 60;
+
+            return $rest > 0 ? $hours.'h '.$rest.'m' : $hours.'h';
+        }
+
+        $days  = intdiv($hours, 24);
+        $restH = $hours % 24;
+
+        return $restH > 0 ? $days.'d '.$restH.'h' : $days.'d';
     }
 
     /**
@@ -217,6 +268,7 @@ class KitchenBoard
             'status'   => $tickets[0]['status'] ?? null,
             'label'    => $tickets[0]['label'] ?? 'Free',
             'minutes'  => $minutes,
+            'wait'     => self::wait($minutes),
             'heat'     => $minutes === null ? 'idle' : self::heat($minutes),
         ];
     }

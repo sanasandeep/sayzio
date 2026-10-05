@@ -554,6 +554,16 @@ class StoreMenuController extends Controller
             'summary'   => \App\Modules\User\Support\MenuOrderSummary::of($scoped(), StoreOrder::class),
             'labels'    => \App\Modules\User\Support\MenuOrderSummary::labels(StoreOrder::class),
             'exportUrl' => route('user.links.store.orders.export', ['link' => $link] + $request->only(['range', 'from', 'to', 'status'])),
+            // Sana, 2026-10-05: "i need top items, item sales, reccuring
+            // things, highlights or anything related....". The totals say
+            // how much came in; these say what to do about it.
+            'insights'  => \App\Modules\User\Support\MenuInsights::of(
+                $scoped(),
+                \App\Modules\User\Models\StoreOrder::class,
+                \App\Modules\User\Models\StoreOrderItem::class,
+                $menu,
+                \App\Modules\User\Models\StoreProduct::class,
+            ),
         ]);
     }
 

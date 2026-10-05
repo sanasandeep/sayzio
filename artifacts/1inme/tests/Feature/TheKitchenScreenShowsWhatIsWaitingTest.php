@@ -187,6 +187,18 @@ class TheKitchenScreenShowsWhatIsWaitingTest extends TestCase
 
     // ── Every table, including the free ones ──────────────────────
 
+    /**
+     * A free table is still ON the board — just not shouting.
+     *
+     * Sana, 2026-10-05: "it looks ugly and not clear". Four free tables were
+     * four full-size cards reading FREE, with the one table that had food on
+     * it squeezed into a narrow column beside them. So free tables come back
+     * separately now and the screen renders them as one quiet line.
+     *
+     * The promise this guards is unchanged and is the one that matters: a
+     * board that cannot tell you table 7 is free is missing half of what the
+     * person at the pass is reading it for.
+     */
     public function test_a_table_with_nothing_on_it_is_still_on_the_board(): void
     {
         [$link, $menu, $item] = $this->restaurant();
@@ -197,20 +209,17 @@ class TheKitchenScreenShowsWhatIsWaitingTest extends TestCase
         $this->order($link, $menu, $item, RestaurantOrder::STATUS_NEW, 2, $t2);
 
         $board = $this->board($link, $menu);
-        $names = array_column($board['groups'], 'name');
 
-        $this->assertContains('Table 1', $names, 'a free table is missing — the board cannot say which tables are open');
-        $this->assertContains('Table 3', $names);
-
-        $free = $this->group($board, 'Table 1');
-        $this->assertTrue($free['empty']);
-        $this->assertSame('idle', $free['heat']);
-        $this->assertNull($free['minutes']);
-        $this->assertSame('Free', $free['label']);
+        $this->assertContains('Table 1', $board['free'], 'a free table is missing — the board cannot say which tables are open');
+        $this->assertContains('Table 3', $board['free']);
 
         // In the creator's own order, not whatever the orders happened to
         // arrive in.
-        $this->assertSame(['Table 1', 'Table 2', 'Table 3'], array_slice($names, 0, 3));
+        $this->assertSame(['Table 1', 'Table 3'], $board['free']);
+
+        // And the one with food on it is a card, not a chip.
+        $this->assertSame(['Table 2'], array_column($board['groups'], 'name'));
+        $this->assertNotContains('Table 2', $board['free']);
     }
 
     public function test_finished_work_leaves_the_board(): void
@@ -221,13 +230,15 @@ class TheKitchenScreenShowsWhatIsWaitingTest extends TestCase
         $this->order($link, $menu, $item, RestaurantOrder::STATUS_COMPLETED, 5, $t1);
         $this->order($link, $menu, $item, RestaurantOrder::STATUS_CANCELLED, 6, $t1);
 
-        $g = $this->group($this->board($link, $menu), 'Table 1');
+        $board = $this->board($link, $menu);
 
-        $this->assertTrue(
-            $g['empty'],
+        $this->assertSame(
+            [],
+            $board['groups'],
             'a completed order is still on the kitchen wall — that is a meal somebody cooks twice'
         );
-        $this->assertSame(0, $this->board($link, $menu)['open']);
+        $this->assertContains('Table 1', $board['free'], 'the table should read as free again');
+        $this->assertSame(0, $board['open']);
     }
 
     // ── Nothing is dropped ────────────────────────────────────────
@@ -465,7 +476,111 @@ class TheKitchenScreenShowsWhatIsWaitingTest extends TestCase
             ->assertOk()->json('data');
 
         $this->assertSame(0, $after['open'], 'a finished order is still being sent to the board');
-        $this->assertTrue($after['groups'][0]['empty']);
+        $this->assertSame([], $after['groups']);
+        $this->assertContains('Table 1', $after['free']);
+    }
+
+    // ── Readable, which is what he actually said ──────────────────
+
+    /**
+     * Sana, 2026-10-05: "it looks ugly and not clear".
+     *
+     * He was looking at a ticket that read "10629m". That is seven and a
+     * half days, and nobody reads it as that -- it is a number you have to
+     * stop and divide, on a screen whose whole job is being glanceable.
+     */
+    public function test_a_wait_is_written_the_way_somebody_says_it(): void
+    {
+        $this->assertSame('just now', KitchenBoard::wait(0));
+        $this->assertSame('7m', KitchenBoard::wait(7));
+        $this->assertSame('59m', KitchenBoard::wait(59));
+        $this->assertSame('1h', KitchenBoard::wait(60));
+        $this->assertSame('1h 25m', KitchenBoard::wait(85));
+        $this->assertSame('23h 59m', KitchenBoard::wait(1439));
+        $this->assertSame('1d', KitchenBoard::wait(1440));
+
+        // The one he saw.
+        $this->assertSame('7d 9h', KitchenBoard::wait(10629));
+
+        $this->assertNull(KitchenBoard::wait(null));
+    }
+
+    public function test_the_board_carries_the_written_wait_not_just_the_number(): void
+    {
+        [$link, $menu, $item] = $this->restaurant();
+        $t = $this->table($menu, 'Table 1');
+        $this->order($link, $menu, $item, RestaurantOrder::STATUS_NEW, 10629, $t);
+
+        $board = $this->board($link, $menu);
+        $group = $board['groups'][0];
+
+        $this->assertSame('7d 9h', $group['wait'], 'the card still has to do the division itself');
+        $this->assertSame('7d 9h', $group['tickets'][0]['wait']);
+        $this->assertSame('7d 9h', $board['oldest_wait']);
+
+        // The raw minutes stay, because the sort and the heat are computed
+        // from them and a string cannot be compared.
+        $this->assertSame(10629, $group['minutes']);
+    }
+
+    /** No "10629m" anywhere on the rendered screen. */
+    public function test_the_screen_does_not_print_a_raw_minute_count(): void
+    {
+        [$link, $menu, $item] = $this->restaurant();
+        $t = $this->table($menu, 'Table 1');
+        $this->order($link, $menu, $item, RestaurantOrder::STATUS_NEW, 10629, $t);
+
+        $html = $this->actingAs($this->owner)
+            ->get(route('user.links.restaurant.kitchen', $link))
+            ->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('10629m', $html, 'a raw minute count reached the screen');
+        $this->assertStringContainsString('7d 9h', $html);
+    }
+
+    // ── One header across the section ─────────────────────────────
+
+    /**
+     * Sana, 2026-10-05: "header and paylayout isnt same accross.. fix it
+     * uniform".
+     *
+     * Orders grew a header, then the Kitchen grew another. Each was
+     * reasonable alone; together the section read as two products. This
+     * asserts both screens render the SAME partial rather than two that
+     * happen to look alike today.
+     */
+    public function test_orders_and_the_kitchen_share_one_header(): void
+    {
+        [$link] = $this->restaurant();
+
+        foreach ([
+            route('user.links.restaurant.orders', $link),
+            route('user.links.restaurant.kitchen', $link),
+        ] as $url) {
+            $html = $this->actingAs($this->owner)->get($url)->assertOk()->getContent();
+
+            $this->assertStringContainsString('mph-title', $html, $url.': not using the shared header');
+            $this->assertStringContainsString('mph-sub', $html);
+            $this->assertStringContainsString('mph-actions', $html);
+        }
+    }
+
+    /** "need direct button to kitchen order" — beside the page name. */
+    public function test_the_orders_header_carries_the_kitchen_button(): void
+    {
+        foreach ([
+            ['restaurant', fn ($l) => route('user.links.restaurant.orders', $l), fn ($l) => route('user.links.restaurant.kitchen', $l)],
+        ] as [$kind, $board, $kitchen]) {
+            [$link] = $this->restaurant();
+
+            $html = str_replace('&amp;', '&', $this->actingAs($this->owner)->get($board($link))->assertOk()->getContent());
+
+            $this->assertStringContainsString($kitchen($link), $html, $kind.': no way to reach the kitchen');
+            // In the header, not buried in the row of downloads where it read
+            // as a third export format.
+            $this->assertStringContainsString('mph-btn-kitchen', $html, $kind.': the kitchen link is not the header button');
+            $this->assertStringNotContainsString('os-btn-go', $html, $kind.': the old export-row link is still there too');
+        }
     }
 
     // ── Reachable, and only by its owner ──────────────────────────

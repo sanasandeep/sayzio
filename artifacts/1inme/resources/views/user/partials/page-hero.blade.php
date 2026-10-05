@@ -31,7 +31,10 @@
     $letter = strtoupper(mb_substr(preg_replace('/[^\p{L}\p{N}]+/u', '', $title) ?: $title, 0, 1));
 @endphp
 <div class="page-hero mb-6"@if($url) x-data="{ copied: false }"@endif>
-    @include('common.partials.card-ribbon')
+    {{-- Wrapped, so the hero itself no longer has to clip. See
+         .page-hero-deco: clipping the card to keep this ribbon inside it was
+         also clipping the Export menu that hangs below it. --}}
+    <div class="page-hero-deco">@include('common.partials.card-ribbon')</div>
     <div class="cribbon-copy hero-row">
         <div class="hero-main">
             @if($back)

@@ -375,7 +375,23 @@
                is the first thing on every page, so it was the most visible one
                left. The border is the edge. */
             position: relative;
+            /* NOT overflow:hidden.
+               Sana, 2026-10-05: "dropdown menu cuts".
+               It did: the Export menu hangs below this card, and clipping the
+               card to keep the ribbon inside it clipped the menu too -- so the
+               third format was cut in half and unreachable. The ribbon is now
+               clipped by its own wrapper, which is the layer that actually
+               needs it. */
+        }
+        /* The decorations, and only the decorations, are clipped to the
+           hero's rounded box. */
+        .page-hero-deco {
+            position: absolute;
+            inset: 0;
             overflow: hidden;
+            border-radius: inherit;
+            z-index: 0;
+            pointer-events: none;
         }
         html.light-mode .page-hero { background: #ffffff; }
         .page-hero::after { display: none; }
@@ -387,14 +403,14 @@
            screen. The rule above forces every direct child to position:relative,
            which would drop the ribbon into the flow and break the layout, so
            both layers are pinned back. */
-        .page-hero > .cribbon,
-        .page-hero > .cribbon-grid { position: absolute; z-index: 0; }
+        .page-hero .cribbon,
+        .page-hero .cribbon-grid { position: absolute; z-index: 0; }
         /* This card is wide and shallow. The shared geometry is cut for the
            tall dashboard and stats heroes; here it is anchored past the bottom
            corner so only a diagonal crossing that corner is ever inside the
            card, and the copy column is held clear of it. */
         @media (min-width: 901px) {
-            .page-hero > .cribbon {
+            .page-hero .cribbon {
                 top: auto; bottom: -46%; right: -4%;
                 width: min(24%, 280px); height: 175%;
                 /* Faded along its own diagonal rather than straight left: the
@@ -405,7 +421,7 @@
                 -webkit-mask-image: linear-gradient(22deg, #000 0%, #000 46%, transparent 84%);
                         mask-image: linear-gradient(22deg, #000 0%, #000 46%, transparent 84%);
             }
-            .page-hero > .cribbon-grid {
+            .page-hero .cribbon-grid {
                 -webkit-mask-image: linear-gradient(to right, #000 0%, rgba(0,0,0,.5) 52%, transparent 86%);
                         mask-image: linear-gradient(to right, #000 0%, rgba(0,0,0,.5) 52%, transparent 86%);
             }
@@ -427,7 +443,7 @@
             .hero-actions { width: 100%; }
             /* Below the ribbon's own breakpoint it is drawn full size, which
                puts a blue diagonal straight behind those buttons. */
-            .page-hero > .cribbon { display: none; }
+            .page-hero .cribbon { display: none; }
         }
         @media (max-width: 560px) {
             .page-hero { padding: 18px 16px; }
