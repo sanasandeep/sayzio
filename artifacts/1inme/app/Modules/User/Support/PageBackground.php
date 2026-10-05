@@ -45,6 +45,8 @@ class PageBackground
         'slideshow_images', 'slideshow_interval', 'video_url', 'video_file',
         'bg_template_id', 'bg_attachment', 'bg_fallback_color', 'bg_fallback_image',
         'bg_blur', 'bg_overlay_color', 'bg_overlay_opacity',
+        // How an uploaded image meets the page: see BackgroundFit.
+        'bg_fit', 'bg_position',
         'bg_preset_key', 'bg_preset_opacity',
         'mesh_preset', 'pattern_preset',
         'tiles_palette', 'tiles_layout', 'tiles_animate',
@@ -176,6 +178,11 @@ class PageBackground
         $attachment     = $bs['bg_attachment'] ?? 'fixed';
         $fallbackColor  = $bs['bg_fallback_color'] ?? self::DEFAULT_COLOR;
         $fallbackImage  = $bs['bg_fallback_image'] ?? '';
+        // Sana, 2026-10-04: "fit, strech, cover ... all are missing". They
+        // were: `center/cover` was a literal in both emitters. Unset reads
+        // as cover, which is what every existing page is rendering.
+        $fit            = BackgroundFit::fit($bs['bg_fit'] ?? null);
+        $fitPosition    = BackgroundFit::position($bs['bg_position'] ?? null);
 
         // Preset CSS background: resolved server-side from the catalog by key.
         $presetCss = null;
@@ -261,6 +268,11 @@ class PageBackground
             'gradient'          => $gradient,
             'image'             => $image,
             'attachment'        => $attachment,
+            'fit'               => $fit,
+            'fitPosition'       => $fitPosition,
+            // The three declarations ready to inline, so no caller has to
+            // translate a fit into CSS a second time.
+            'fitCss'            => BackgroundFit::css($fit, $fitPosition),
             'fixed'             => $fixed,
             'fallbackColor'     => $fallbackColor,
             'fallbackImage'     => $fallbackImage,

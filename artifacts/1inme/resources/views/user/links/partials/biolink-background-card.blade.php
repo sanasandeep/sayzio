@@ -31,6 +31,11 @@
     $videoFile         = $bs['video_file']          ?? '';
     $bgTemplateId      = $bs['bg_template_id']      ?? null;
     $bgAttachment      = $bs['bg_attachment']       ?? 'fixed';
+    // How an uploaded image meets the page. Sana, 2026-10-04: "fit, strech,
+    // cover ... all are missing". Resolved rather than read raw, so an
+    // unset one opens on cover -- which is what the page renders.
+    $bgFit             = \App\Modules\User\Support\BackgroundFit::fit($bs['bg_fit'] ?? null);
+    $bgFitPosition     = \App\Modules\User\Support\BackgroundFit::position($bs['bg_position'] ?? null);
     $bgFallbackColor   = $bs['bg_fallback_color']   ?? '#0a0612';
     $bgFallbackImage   = $bs['bg_fallback_image']   ?? '';
     $bgBlur            = $bs['bg_blur']             ?? 0;
@@ -610,7 +615,40 @@
                 <i class="fas fa-sliders-h text-[10px] text-blue-400"></i>
                 <span class="text-xs font-semibold" style="color: var(--text-primary);">Finish</span>
             </div>
-            <div class="space-y-4">
+            <div class="space-y-4" x-data="{ fit: '{{ $bgFit }}' }">
+                {{-- First in Finish: this is the one that decides what the
+                     image looks like. Scrolling and Dim only adjust it. --}}
+                <div>
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">How the image fits</label>
+                    <div class="flex flex-wrap gap-2">
+                        @foreach(\App\Modules\User\Support\BackgroundFit::CHOICES as $fitKey => $fitMeta)
+                        <button type="button" @click="fit = '{{ $fitKey }}'"
+                                :class="fit === '{{ $fitKey }}' ? 'ring-2 ring-blue-500' : ''"
+                                title="{{ $fitMeta['hint'] }}"
+                                class="py-2 px-3 text-[10px] font-semibold rounded-lg transition-all"
+                                style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">{{ $fitMeta['label'] }}</button>
+                        @endforeach
+                        <input type="hidden" name="bg_fit" :value="fit">
+                    </div>
+                    {{-- The hint for whichever one is selected, so the
+                         difference between Fill and Fit is readable without
+                         hovering five buttons. --}}
+                    <p class="text-[10px] mt-2" style="color: var(--text-dimmed);"
+                       x-text="({{ \Illuminate\Support\Js::from(array_map(fn ($m) => $m['hint'], \App\Modules\User\Support\BackgroundFit::CHOICES)) }})[fit]"></p>
+                </div>
+
+                {{-- Only the two fits that can leave a gap have somewhere to
+                     sit. The value is still submitted for the others, so
+                     switching fit and back does not lose it. --}}
+                <div x-show="['{{ \App\Modules\User\Support\BackgroundFit::CONTAIN }}', '{{ \App\Modules\User\Support\BackgroundFit::ACTUAL }}'].includes(fit)" x-cloak>
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Where it sits</label>
+                    <select name="bg_position" class="theme-input w-full text-[11px]">
+                        @foreach(\App\Modules\User\Support\BackgroundFit::POSITIONS as $posKey => $posLabel)
+                        <option value="{{ $posKey }}" @selected($bgFitPosition === $posKey)>{{ $posLabel }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Scrolling</label>
@@ -630,6 +668,11 @@
                             <input type="color" name="bg_fallback_color" value="{{ $bgFallbackColor }}" class="w-8 h-8 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-subtle);">
                             <span class="text-[10px] font-mono" style="color: var(--text-faint);">{{ $bgFallbackColor }}</span>
                         </div>
+                        {{-- Said plainly, because this IS the fallback colour and
+                             nothing on the screen used to say so. --}}
+                        <p class="text-[9px] mt-1 leading-snug" style="color: var(--text-dimmed);">
+                            Shows through gaps, and on its own if your background never loads.
+                        </p>
                     </div>
                 </div>
 
@@ -653,14 +696,31 @@
                     </div>
                 </div>
 
-                <div x-show="bgType === 'image' || bgType === 'slideshow' || bgType === 'video'" x-transition>
+                {{-- Sana, 2026-10-05: "why fall back image? it should be fall
+                     back color...".
+
+                     Right, and it was showing in the wrong place. This is the
+                     still frame behind media that has not started yet -- a
+                     video's poster, the first paint of a slideshow. The public
+                     page reads it for slideshow, video and template ONLY
+                     (page-background/body-declarations.blade.php). For a plain
+                     Image background it is never read, so on that screen it was
+                     an uploader that did nothing, sitting under the control that
+                     actually answers his question: "Colour behind it" IS the
+                     fallback colour, and the image branch paints it.
+
+                     The same line had the opposite fault too: `template` reads
+                     the poster on the public page and was never offered one
+                     here. Both directions fixed by naming the three types the
+                     renderer actually uses. --}}
+                <div x-show="bgType === 'slideshow' || bgType === 'video' || bgType === 'template'" x-transition>
                     @include('user.partials.dropzone-input', [
                         'name'        => 'bg_fallback_image',
-                        'label'       => 'Fallback Image',
+                        'label'       => 'Poster Image',
                         'policy'      => \App\Services\UploadPolicy::for('link.bg_fallback_image', auth()->user()),
                         'currentUrl'  => $bgFallbackImage ?: null,
-                        'currentName' => $bgFallbackImage ? 'Saved fallback' : null,
-                        'hint'        => 'Shown while media loads or if it fails',
+                        'currentName' => $bgFallbackImage ? 'Saved poster' : null,
+                        'hint'        => 'The still shown while this loads, and if it never does. Without one, the colour above shows.',
                         'compact'     => true,
                     ])
                 </div>

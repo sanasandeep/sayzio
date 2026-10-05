@@ -1559,6 +1559,7 @@ class BiolinkBlockController extends Controller
         'gradient_colors', 'gradient_angle', 'gradient_type', 'gradient_preset_id',
         'slideshow_interval', 'video_url', 'bg_template_id', 'bg_attachment',
         'bg_fallback_color', 'bg_blur', 'bg_overlay_color', 'bg_overlay_opacity',
+        'bg_fit', 'bg_position',
         'bg_preset_opacity',
         'torn_paper_color', 'torn_style', 'torn_backdrop_color', 'torn_backdrop_color2',
         'tiles_palette', 'tiles_layout', 'tiles_animate',

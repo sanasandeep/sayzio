@@ -77,6 +77,13 @@ class ThePageBackgroundRendersIdenticallyTest extends TestCase
             ],
 
             'image' => ['background_type' => 'image', 'background_image' => 'https://cdn.example.com/bg.jpg'],
+            // The fits added 2026-10-04. Pinned here so a change to how any
+            // one of them is painted shows up as a drifted branch rather
+            // than as a background nobody looked at.
+            'image-fit-contain' => ['background_type' => 'image', 'background_image' => 'https://cdn.example.com/bg.jpg', 'bg_fit' => 'contain', 'bg_position' => 'bottom right'],
+            'image-fit-stretch' => ['background_type' => 'image', 'background_image' => 'https://cdn.example.com/bg.jpg', 'bg_fit' => 'stretch'],
+            'image-fit-tile'    => ['background_type' => 'image', 'background_image' => 'https://cdn.example.com/bg.jpg', 'bg_fit' => 'tile'],
+            'image-fit-actual'  => ['background_type' => 'image', 'background_image' => 'https://cdn.example.com/bg.jpg', 'bg_fit' => 'actual', 'bg_position' => 'top'],
 
             'image-blur-and-dim' => [
                 'background_type'    => 'image',

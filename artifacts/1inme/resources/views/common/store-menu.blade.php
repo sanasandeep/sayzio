@@ -96,6 +96,19 @@
         )
         : [];
     $pbBs      = $link->settings['biolink'] ?? [];
+    // The hero's own settings. Sana, 2026-10-04: "Priyumm tiffins and order
+    // at table both..... can be optional hidden.. also alignment and color
+    // and style changes". Defaults are the markup that was hard-coded here,
+    // so a menu nobody has touched renders identically.
+    $hero = \App\Modules\User\Support\MenuHero::resolve((array) ($menu->settings ?? []));
+    // The page description, from where it is actually stored.
+    //
+    // These templates read `$link->description` -- a property Link has no
+    // column and no accessor for, so it was null on every menu ever
+    // rendered and the description a creator typed into Page Design has
+    // never once appeared on a menu page. Same source and same fallback as
+    // the Link in Bio page, which has been reading it correctly all along.
+    $menuDesc = $pbBs['biolink_description'] ?? $link->seo_description ?? '';
     $pbOn      = \App\Modules\User\Support\PageBackground::chosen($pbBs);
     $pb        = $pbOn ? \App\Modules\User\Support\PageBackground::resolve($pbBs) : null;
     $pbInkLight = $pbOn && \App\Modules\User\Support\PageBackground::inkIsLight($pbBs);
@@ -134,9 +147,31 @@
 {!! \App\Modules\User\Support\PageLayout::containerCss($pbBs, \App\Modules\User\Support\PageLayout::MENU_DEFAULTS) !!}
         }
 {!! \App\Modules\User\Support\PageLayout::widthQueriesCss($pbBs, '.page', \App\Modules\User\Support\PageLayout::MENU_DEFAULTS) !!}
+        /* Sana, 2026-10-04: "block: i want option to make ith full width".
+           A block marked full bleed runs from screen edge to screen edge,
+           out through the page column's own side padding.
+
+           `calc(50% - 50vw)` is the distance from the column's content edge
+           to the viewport's: half the column minus half the screen. A
+           percentage margin resolves against the containing block's
+           *content* width, which is why the same expression cancels the
+           container's padding here and the per-child margin on a biolink
+           page, with nothing hard-coded about either.
+
+           `clip` and not `hidden`: 100vw includes the scrollbar, so without
+           it the page gains a sliver of sideways scroll -- but `hidden`
+           would make the element a scroll container, and `clip` crops
+           without becoming one. */
+        html, body { overflow-x: clip; }
+        .biolink-block-wrap.full-bleed {
+            margin-left: calc(50% - 50vw);
+            margin-right: calc(50% - 50vw);
+            max-width: 100vw;
+        }
         .hero { padding:28px 4px 18px; }
         .hero h1 { margin:0; font-size:26px; font-weight:800; letter-spacing:-.02em; font-family:{!! $mp['heading_css'] !!}; }
         .hero p { margin:6px 0 0; opacity:.65; font-size:14px; }
+{!! \App\Modules\User\Support\MenuHero::css($hero) !!}
         .badge { display:inline-block; margin-top:12px; padding:6px 12px; border-radius:999px; background:var(--accent); color:#fff; font-size:12.5px; font-weight:600; }
         .cat { margin-top:26px; }
         .cat h2 { font-size:18px; font-weight:700; margin:0 0 4px; font-family:{!! $mp['heading_css'] !!}; color:var(--ink-head); }
@@ -216,13 +251,16 @@
         'blkSectionIds'  => $blkSectionIds,
         'blkEmpty'       => false,
     ])
+    {{-- See the restaurant page: skipped when nothing is left in it. --}}
+    @unless(\App\Modules\User\Support\MenuHero::isEmpty($hero, $menuDesc !== '', $isOrder))
     <div class="hero">
-        <h1>{{ $title }}</h1>
-        @if($desc = $link->description)<p>{{ $desc }}</p>@endif
-        @if($isOrder)
+        @unless($hero['hero_title_hidden'])<h1>{{ $title }}</h1>@endunless
+        @if($menuDesc !== '')<p>{{ $menuDesc }}</p>@endif
+        @if($isOrder && ! $hero['hero_badge_hidden'])
             <span class="badge">Order requests open</span>
         @endif
     </div>
+    @endunless
 
 
     {{-- Blocks a creator added to this page. They save through the shared

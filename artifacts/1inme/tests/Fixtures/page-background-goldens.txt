@@ -5,6 +5,7 @@
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== color-fixed =====
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #123456; }
 .bg-template.bg-layer { z-index: 0 !important; }
@@ -12,10 +13,12 @@ html { scroll-behavior: smooth; }
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #123456; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== color-scroll =====
 .bg-template.bg-layer { z-index: 0 !important; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; background-color: #123456; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== gradient =====
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(135deg, #ff6b6b 0%, #feca57 50%, #48dbfb 100%); }
 .bg-template.bg-layer { z-index: 0 !important; }
@@ -23,21 +26,56 @@ html { scroll-behavior: smooth; }
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== image =====
-.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: #0a0612 url('https://cdn.example.com/bg.jpg') center/cover no-repeat; }
+.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #0a0612; background-image: url('https://cdn.example.com/bg.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat; }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
+===== image-fit-contain =====
+.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #0a0612; background-image: url('https://cdn.example.com/bg.jpg'); background-size: contain; background-position: bottom right; background-repeat: no-repeat; }
+.bg-template.bg-layer { z-index: 0 !important; }
+<div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
+body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
+body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
+html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
+===== image-fit-stretch =====
+.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #0a0612; background-image: url('https://cdn.example.com/bg.jpg'); background-size: 100% 100%; background-position: center; background-repeat: no-repeat; }
+.bg-template.bg-layer { z-index: 0 !important; }
+<div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
+body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
+body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
+html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
+===== image-fit-tile =====
+.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #0a0612; background-image: url('https://cdn.example.com/bg.jpg'); background-size: auto; background-position: top left; background-repeat: repeat; }
+.bg-template.bg-layer { z-index: 0 !important; }
+<div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
+body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
+body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
+html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
+===== image-fit-actual =====
+.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #0a0612; background-image: url('https://cdn.example.com/bg.jpg'); background-size: auto; background-position: top; background-repeat: no-repeat; }
+.bg-template.bg-layer { z-index: 0 !important; }
+<div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
+body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
+body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
+html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== image-blur-and-dim =====
-.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: #0a0612 url('https://cdn.example.com/bg.jpg') center/cover no-repeat; }
+.bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #0a0612; background-image: url('https://cdn.example.com/bg.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat; }
 .bg-template.bg-layer { z-index: 0 !important; }
 <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 body::after { content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); background: rgba(16,24,32,0.45); }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== slideshow =====
 .bg-slideshow img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 1.5s ease-in-out; }
 .bg-slideshow img.active { opacity:1; }
@@ -46,6 +84,7 @@ html { scroll-behavior: smooth; }
 <div class="bg-slideshow bg-layer"> <img src="https://cdn.example.com/1.jpg" alt="" loading="eager" class="active"> <img src="https://cdn.example.com/2.jpg" alt="" loading="eager" class=""> </div>
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== video =====
 .bg-template.bg-layer { z-index: 0 !important; }
 .bg-video-wrap video { min-width:100%; min-height:100%; width:auto; height:auto; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); object-fit:cover; }
@@ -53,6 +92,7 @@ html { scroll-behavior: smooth; }
 <div class="bg-video-wrap bg-layer"> <video autoplay muted loop playsinline poster="https://cdn.example.com/poster.jpg" > <source src="https://cdn.example.com/loop.mp4" type="video/mp4"> </video> </div>
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; background-color: #0a0612; background-image: url('https://cdn.example.com/poster.jpg'); background-size: cover; background-position: center; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== preset =====
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(120deg, #FF00C7 0%, #51003F 100%), linear-gradient(120deg, #0030AD 0%, #00071A 100%), linear-gradient(180deg, #000346 0%, #FF0000 100%), linear-gradient(60deg, #0029FF 0%, #AA0014 100%), radial-gradient(100% 165% at 100% 100%, #FF00A8 0%, #00FF47 100%), radial-gradient(100% 150% at 0% 0%, #FFF500 0%, #51D500 100%);background-blend-mode: overlay, color-dodge, overlay, overlay, difference, normal; }
 .bg-template.bg-layer { z-index: 0 !important; }
@@ -60,6 +100,7 @@ html { scroll-behavior: smooth; }
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== preset-translucent =====
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.4; background: linear-gradient(120deg, #FF00C7 0%, #51003F 100%), linear-gradient(120deg, #0030AD 0%, #00071A 100%), linear-gradient(180deg, #000346 0%, #FF0000 100%), linear-gradient(60deg, #0029FF 0%, #AA0014 100%), radial-gradient(100% 165% at 100% 100%, #FF00A8 0%, #00FF47 100%), radial-gradient(100% 150% at 0% 0%, #FFF500 0%, #51D500 100%);background-blend-mode: overlay, color-dodge, overlay, overlay, difference, normal; }
 .bg-template.bg-layer { z-index: 0 !important; }
@@ -67,6 +108,7 @@ html { scroll-behavior: smooth; }
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== preset-torn-legacy =====
 .bg-template.bg-layer { z-index: 0 !important; }
 .bg-torn-backdrop { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-image: linear-gradient(150deg, #8aa6b4 0%, #5d7d8e 55%, #46626f 100%); }
@@ -77,6 +119,7 @@ html { scroll-behavior: smooth; }
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== preset-gradient-legacy =====
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #4158D0;background-image: linear-gradient(43deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%); }
 .bg-template.bg-layer { z-index: 0 !important; }
@@ -84,6 +127,7 @@ html { scroll-behavior: smooth; }
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== mesh =====
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #0b1026;background-image: radial-gradient(at 15% 20%, #22d3ee 0%, transparent 55%), radial-gradient(at 80% 15%, #a78bfa 0%, transparent 50%), radial-gradient(at 70% 80%, #34d399 0%, transparent 55%), radial-gradient(at 20% 85%, #f472b6 0%, transparent 45%); }
 .bg-template.bg-layer { z-index: 0 !important; }
@@ -91,6 +135,7 @@ html { scroll-behavior: smooth; }
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== pattern =====
 .bg-page-fixed { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #111827;background-image: radial-gradient(rgba(148,163,184,0.35) 1.5px, transparent 1.5px);background-size: 22px 22px; }
 .bg-template.bg-layer { z-index: 0 !important; }
@@ -98,6 +143,7 @@ html { scroll-behavior: smooth; }
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== tiles =====
 .bg-template.bg-layer { z-index: 0 !important; }
 .bg-tiles span { border-radius: 10px; display: block; }
@@ -107,6 +153,7 @@ html { scroll-behavior: smooth; }
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== torn-colors =====
 .bg-template.bg-layer { z-index: 0 !important; }
 .bg-torn-backdrop { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(150deg, #8aa6b4 0%, #46626f 100%); }
@@ -117,6 +164,7 @@ html { scroll-behavior: smooth; }
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== torn-photo =====
 .bg-template.bg-layer { z-index: 0 !important; }
 .bg-torn-backdrop { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: #0a0612 url('https://cdn.example.com/backdrop.jpg') center/cover no-repeat; }
@@ -127,6 +175,7 @@ html { scroll-behavior: smooth; }
 body > *:not(.bg-layer):not(.sz-pinned):not(.sz-share):not(script):not(style) { position: relative; z-index: 1; }
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== template =====
 .bg-template-aurora-borealis { position:fixed; inset:0; z-index:-1; overflow:hidden; }
 .bg-template-aurora-borealis::after { background: radial-gradient(ellipse at 60% 40%, rgba(6,182,212,0.15) 0%, transparent 50%), radial-gradient(ellipse at 30% 70%, rgba(236,72,153,0.12) 0%, transparent 50%); animation-duration: 25s; animation-direction: reverse; }
@@ -136,6 +185,7 @@ html { scroll-behavior: smooth; }
 <div class="bg-template bg-layer bg-template-aurora-borealis" style="position:fixed;inset:0;z-index:0;overflow:hidden;"></div>
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }
 ===== template-scroll =====
 .bg-template-aurora-borealis { position:fixed; inset:0; z-index:-1; overflow:hidden; }
 .bg-template-aurora-borealis::after { background: radial-gradient(ellipse at 60% 40%, rgba(6,182,212,0.15) 0%, transparent 50%), radial-gradient(ellipse at 30% 70%, rgba(236,72,153,0.12) 0%, transparent 50%); animation-duration: 25s; animation-direction: reverse; }
@@ -146,3 +196,4 @@ html { scroll-behavior: smooth; }
 <div class="bg-template bg-layer bg-template-aurora-borealis" style="position:absolute;inset:0;z-index:0;overflow:hidden;"></div>
 body { font-family: 'Space Grotesk', sans-serif; color: #ffffff; background-color: #0a0612; background-color: #0a0612; min-height: 100vh; position: relative; }
 html { scroll-behavior: smooth; }
+html, body { overflow-x: clip; }

@@ -694,6 +694,16 @@
             // Not from the resolver: unset means "inherit", not a number.
             $defaultBlockPadding = $layout['block_padding'] ?? '';
         @endphp
+        /* `100vw` counts the scrollbar's width, so a full-bleed block comes
+           out a handful of pixels wider than the visible page and the whole
+           document gains a horizontal scrollbar. `clip` rather than
+           `hidden` on purpose: `hidden` turns the element into a scroll
+           container, which is what breaks `position: sticky` descendants --
+           and the menu bar above is sticky. `clip` crops the overflow and
+           creates no scroll container, so the sticky bar is untouched.
+           Browsers too old for `clip` ignore the line and get a few pixels
+           of sideways scroll, which is a blemish and not a broken page. */
+        html, body { overflow-x: clip; }
         .biolink-container {
             width: 100%;
             max-width: {{ $maxPhone }}px;
@@ -729,6 +739,28 @@
         .biolink-block-wrap {
             grid-column: span 12;
             min-width: 0;
+        }
+        /* Full-bleed blocks: edge of the screen, not edge of the column.
+           The Width row's "Full" is 12 of 12 *columns*, which still sits
+           inside the container's max-width and the per-child side margin,
+           so a block could never actually reach the screen edge. This does.
+
+           `calc(50% - 50vw)` is a negative margin equal to the gap between
+           the container's edge and the viewport's: 50% of the container
+           minus half the viewport. It works at every width without knowing
+           the max-width, and resolves to 0 once the container fills the
+           screen (on a phone), so a full-bleed block on a phone is just a
+           block with its side margins dropped.
+
+           The `> *` margin rule above is suppressed in the template rather
+           than overridden here, because a block may still carry its own
+           stored margin values. The column span is forced to 12 inline by
+           the template, because the wrap writes `grid-column` inline and an
+           inline declaration would beat anything written here. */
+        .biolink-block-wrap.full-bleed {
+            margin-left: calc(50% - 50vw);
+            margin-right: calc(50% - 50vw);
+            max-width: 100vw;
         }
         /* Task #5876: blocks styled with `stack_mobile` collapse to the
            full row on phones so split desktop layouts stack vertically. */
