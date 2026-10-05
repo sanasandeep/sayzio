@@ -378,7 +378,10 @@ class WhatIsQuotedIsWhatIsChargedTest extends TestCase
             'alias' => 'bulk'.fake()->unique()->numerify('#####'), 'title' => 'Bulk store', 'is_active' => true]);
         $menu = StoreMenu::create(['link_id' => $link->id, 'user_id' => $this->user->id,
             'mode' => 'order', 'currency' => 'INR', 'settings' => []]);
-        $product = StoreProduct::create(['menu_id' => $menu->id, 'name' => 'Lunch', 'price' => 100,
+        $category = StoreCategory::create(['menu_id' => $menu->id, 'name' => 'Meals',
+            'sort_order' => 0, 'is_active' => true]);
+        $product = StoreProduct::create(['menu_id' => $menu->id, 'category_id' => $category->id,
+            'name' => 'Lunch', 'price' => 100,
             'coupon_from' => 10, 'bulk_price' => 80, 'is_active' => true, 'sort_order' => 0]);
         $rows = [['product_id' => $product->id, 'quantity' => 10]];
         $quote = $this->postJson('/sm/'.$link->alias.'/quote', ['items' => $rows])->assertOk()->json('data.bill.total');

@@ -179,7 +179,7 @@ class TheCartSurvivesAReloadTest extends TestCase
         // yesterday's price.
         $this->assertStringContainsString('was: l.perUnit', $shared);
         $this->assertStringContainsString('Math.abs(sl.was - perUnit) > 0.001', $shared);
-        $this->assertStringContainsString('var perUnit = Math.round((it.price + chooser.extraFor(opts)) * 100) / 100;', $shared,
+        $this->assertStringContainsString('var perUnit = Math.round((base + chooser.extraFor(opts)) * 100) / 100;', $shared,
             'The restored price is not being recomputed from the live menu.');
         // And it never reaches the line that is handed back: a stored
         // price inside the restored object is the whole failure mode.

@@ -450,7 +450,8 @@ class ACustomerCanJumpDownALongMenuTest extends TestCase
             ];
             $this->actingAs($this->owner)->postJson(
                 route('user.links.'.$kind.'.settings', $link),
-                $colours + ['section_nav' => 'vertical', 'section_marker' => 'none']
+                $colours + ['mode' => $menu->mode, 'currency' => $menu->currency,
+                    'section_nav' => 'vertical', 'section_marker' => 'none']
             )->assertSuccessful();
             foreach ($colours as $key => $colour) {
                 $this->assertSame($colour, $menu->fresh()->settings[$key]);
@@ -468,6 +469,7 @@ class ACustomerCanJumpDownALongMenuTest extends TestCase
             $this->assertStringContainsString('section_nav:this.menu.section_nav', $editor);
             $this->assertStringContainsString('section_marker:this.menu.section_marker', $editor);
             $this->postJson(route('user.links.'.$kind.'.settings', $link), [
+                'mode' => $menu->mode, 'currency' => $menu->currency,
                 'section_nav_text_color' => 'red; background:url(example.com)',
             ])->assertStatus(422);
             $this->assertSame('#713f12', $menu->fresh()->settings['section_nav_text_color']);
