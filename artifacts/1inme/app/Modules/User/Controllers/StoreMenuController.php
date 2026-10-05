@@ -548,6 +548,12 @@ class StoreMenuController extends Controller
             'page'      => $page,
             'hasMore'   => ($page * MenuOrderRange::PER_PAGE) < $total,
             'openCount' => $openCount,
+            // Sana, 2026-10-05: "orders dashbord summary missing".
+            // Aggregated over the scoped QUERY, not the fetched page, so
+            // the numbers do not change when somebody taps "load more".
+            'summary'   => \App\Modules\User\Support\MenuOrderSummary::of($scoped(), StoreOrder::class),
+            'labels'    => \App\Modules\User\Support\MenuOrderSummary::labels(StoreOrder::class),
+            'exportUrl' => route('user.links.store.orders.export', ['link' => $link] + $request->only(['range', 'from', 'to', 'status'])),
         ]);
     }
 
