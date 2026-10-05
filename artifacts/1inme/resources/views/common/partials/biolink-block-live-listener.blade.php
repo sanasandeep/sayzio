@@ -701,6 +701,34 @@
                         }
                         return true;
                     }
+                    // Edge to edge. The marker class carries the negative
+                    // margins; the inline span has to go to 12 as well,
+                    // because an inline grid-column beats the stylesheet and
+                    // half a row cannot reach both edges of the screen. The
+                    // desktop override comes off for the same reason.
+                    if (key === 'style._full_bleed') {
+                        if (value && value !== '0') {
+                            // Stash what the span was, so switching back puts
+                            // the block in the width it actually has rather
+                            // than in a full row it never asked for.
+                            if (root.dataset.fbPrevSpan === undefined) {
+                                root.dataset.fbPrevSpan = root.style.gridColumn || '';
+                            }
+                            root.classList.add('full-bleed');
+                            root.classList.remove('md-span');
+                            root.style.removeProperty('--md-span');
+                            root.style.gridColumn = 'span 12';
+                            root.style.removeProperty('margin-left');
+                            root.style.removeProperty('margin-right');
+                        } else {
+                            root.classList.remove('full-bleed');
+                            if (root.dataset.fbPrevSpan !== undefined) {
+                                root.style.gridColumn = root.dataset.fbPrevSpan;
+                                delete root.dataset.fbPrevSpan;
+                            }
+                        }
+                        return true;
+                    }
                     var fn = LIVE_STYLE_KEYS[key];
                     if (!fn) return false;
                     var el = styleTarget(root);

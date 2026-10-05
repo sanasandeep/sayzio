@@ -1121,7 +1121,7 @@
                  only applies at/above the 768px breakpoint on the public page.
                  "Same as mobile" submits an empty value, which the controller
                  treats as "clear this key" (Task #4025 semantics). --}}
-            <div x-data="{ widthDevice: 'mobile', gridSpan: '{{ $st['grid_span'] ?? 12 }}', gridSpanMd: '{{ $st['grid_span_md'] ?? '' }}' }">
+            <div x-data="{ widthDevice: 'mobile', gridSpan: '{{ $st['grid_span'] ?? 12 }}', gridSpanMd: '{{ $st['grid_span_md'] ?? '' }}', fullBleed: '{{ ($st['_full_bleed'] ?? '') ? '1' : '' }}' }">
                 <div class="flex items-center justify-between">
                     <label class="{{ $labelClass }}">Block Width</label>
                     <div class="inline-flex rounded-lg p-0.5" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);" data-width-device-toggle>
@@ -1154,6 +1154,39 @@
                     @endforeach
                 </div>
                 <p class="text-[10px] mt-1" style="color: var(--text-dimmed);" x-text="widthDevice === 'mobile' ? 'Width on phones (and everywhere unless Desktop overrides it)' : 'Width on large screens, \'Same\' keeps the mobile width'"></p>
+
+                {{-- Edge to edge. Sana, 2026-10-04: "block: i want option to
+                     make ith full width... is it possible?".
+
+                     "Full" above is 12 of 12 columns, which is the full width
+                     of the CONTENT COLUMN — the page's max-width still
+                     applies, and so does the side margin every block carries.
+                     On a desktop that is a band in the middle of the screen,
+                     not a full-width one. This is the other thing.
+
+                     Same radio-with-an-empty-value shape as the Desktop row
+                     above, so "In column" clears the key outright (Task #4025)
+                     rather than storing a 0 on every block anyone ever
+                     opens.
+
+                     Top-level blocks only. A block inside a card container is
+                     laid out by its container's columns and cannot reach past
+                     them, so offering the choice there would be offering a
+                     control that does nothing. --}}
+                @if(! $block->parent_id)
+                <label class="{{ $labelClass }} mt-3">Edge to Edge</label>
+                <div class="grid grid-cols-2 gap-1 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                    @foreach(['' => 'In column', 1 => 'Full bleed'] as $fbv => $fbl)
+                    <label class="flex flex-col items-center cursor-pointer" @click="fullBleed = '{{ $fbv }}'">
+                        <input type="radio" name="style[_full_bleed]" value="{{ $fbv }}" {{ (($st['_full_bleed'] ?? '') ? '1' : '') === (string) $fbv ? 'checked' : '' }} class="hidden">
+                        <span class="w-full text-center text-[10px] font-bold py-1.5 rounded-lg border transition-all"
+                              :style="fullBleed == '{{ $fbv }}' ? 'background: rgba(61,107,255,0.15); border-color: rgba(61,107,255,0.3); color: #90acff;' : 'background: transparent; border-color: transparent; color: var(--text-faint);'">{{ $fbl }}</span>
+                    </label>
+                    @endforeach
+                </div>
+                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);"
+                   x-text="fullBleed ? 'Runs to both edges of the screen, past the page width and side spacing. Takes the whole row, so the widths above no longer apply.' : 'Stays inside the page width, like every other block.'"></p>
+                @endif
             </div>
 
             {{-- Grid Height (row span) — per-device (Task #6123). Mirrors the

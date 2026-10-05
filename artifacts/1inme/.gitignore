@@ -27,3 +27,7 @@ Thumbs.db
 public/build/assets/
 public/build/manifest.json
 public/build/build-meta.json
+
+# Diagnostic output a golden-file test writes when it fails. Useful on
+# disk, never in the repo -- it was committed once by accident.
+*.txt.actual

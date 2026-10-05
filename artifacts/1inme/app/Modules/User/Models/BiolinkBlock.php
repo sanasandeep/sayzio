@@ -449,6 +449,13 @@ class BiolinkBlock extends Model
         // every width unless `grid_row_span_md` overrides it on desktop.
         'grid_row_span' => '',
         'grid_row_span_md' => '',
+        // Sana, 2026-10-04: "block: i want option to make ith full width...
+        // is it possible?". `grid_span: 12` is full width of the CONTENT
+        // COLUMN -- the page's max-width still applies, and so does the
+        // side margin on every child. Full bleed is the other thing: the
+        // block runs from one edge of the screen to the other, out through
+        // both. Empty = the historic rendering, inside the column.
+        '_full_bleed' => '',
         '_template' => '',
         // Per-block design variant key from BlockVariantCatalog::forType().
         // Empty string = no curated variant chosen (treated as "Custom" in

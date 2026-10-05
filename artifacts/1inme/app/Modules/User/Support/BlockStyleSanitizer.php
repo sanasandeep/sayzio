@@ -103,6 +103,9 @@ class BlockStyleSanitizer
             'grid_span_md' => [1, 12],
             'grid_row_span' => [1, 6],
             'grid_row_span_md' => [1, 6],
+            // Edge-to-edge across the screen. A flag, bounded like
+            // `stack_mobile`: 0 or 1 and nothing else reaches a page.
+            '_full_bleed' => [0, 1],
             // Block/card preset background transparency (Task #5970).
             'bg_preset_opacity' => [0, 100],
         ];

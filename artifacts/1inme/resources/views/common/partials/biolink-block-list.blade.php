@@ -145,15 +145,35 @@
         $mdSpan = intval($blockStyle['grid_span_md'] ?? 0);
         $rowSpan = intval($blockStyle['grid_row_span'] ?? 0);
         $mdRowSpan = intval($blockStyle['grid_row_span_md'] ?? 0);
-        $wrapExtraClass = ($mdSpan ? ' md-span' : '') . ($rowSpan ? ' row-span' : '') . ($mdRowSpan ? ' md-row-span' : '');
+        // Sana, 2026-10-04: "block: i want option to make ith full width...
+        // is it possible?". "Full" in the Width row is 12/12 COLUMNS, which
+        // still sits inside the page's max-width and side margin -- so the
+        // widest a block could go was the content column. Full bleed is the
+        // other thing: edge of the screen to edge of the screen. One marker
+        // class; the two container types each know how to honour it, since
+        // one is a 12-column grid and the other is a plain column.
+        $fullBleed = ! empty($blockStyle['_full_bleed']);
+        // A full-bleed block is every column, whatever the Width row says:
+        // half a row cannot reach both edges of the screen. Forced here and
+        // not in CSS because `grid-column` is written inline below, and an
+        // inline declaration beats any stylesheet rule.
+        if ($fullBleed) {
+            $gridSpan = 12;
+            $mdSpan = 0;
+        }
+        $wrapExtraClass = ($fullBleed ? ' full-bleed' : '') . ($mdSpan ? ' md-span' : '') . ($rowSpan ? ' row-span' : '') . ($mdRowSpan ? ' md-row-span' : '');
         $wrapExtraStyle = ($mdSpan ? ";--md-span:{$mdSpan}" : '') . ($rowSpan ? ";--row-span:{$rowSpan}" : '') . ($mdRowSpan ? ";--md-row-span:{$mdRowSpan}" : '');
         // Task #6114: side spacing lives on the wrap. An explicit
         // _style margin_left/right — including 0 for a full-width
         // block — overrides the container's default child margin.
         $mxL = $blockStyle['margin_left'] ?? '';
         $mxR = $blockStyle['margin_right'] ?? '';
-        $wrapExtraStyle .= ($mxL !== '' && $mxL !== null ? ';margin-left:' . (0 + $mxL) . 'px' : '')
-            . ($mxR !== '' && $mxR !== null ? ';margin-right:' . (0 + $mxR) . 'px' : '');
+        // Not when it is full bleed: that sets its own horizontal margins
+        // to reach the screen edge, and an inline one here would win.
+        if (! $fullBleed) {
+            $wrapExtraStyle .= ($mxL !== '' && $mxL !== null ? ';margin-left:' . (0 + $mxL) . 'px' : '')
+                . ($mxR !== '' && $mxR !== null ? ';margin-right:' . (0 + $mxR) . 'px' : '');
+        }
         // Task #1041: forward variant metadata hooks as data-attrs
         // so CSS in <style> can drive heading animations, gallery
         // layouts, and social icon style sets without per-block

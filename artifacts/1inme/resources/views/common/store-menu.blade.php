@@ -147,6 +147,27 @@
 {!! \App\Modules\User\Support\PageLayout::containerCss($pbBs, \App\Modules\User\Support\PageLayout::MENU_DEFAULTS) !!}
         }
 {!! \App\Modules\User\Support\PageLayout::widthQueriesCss($pbBs, '.page', \App\Modules\User\Support\PageLayout::MENU_DEFAULTS) !!}
+        /* Sana, 2026-10-04: "block: i want option to make ith full width".
+           A block marked full bleed runs from screen edge to screen edge,
+           out through the page column's own side padding.
+
+           `calc(50% - 50vw)` is the distance from the column's content edge
+           to the viewport's: half the column minus half the screen. A
+           percentage margin resolves against the containing block's
+           *content* width, which is why the same expression cancels the
+           container's padding here and the per-child margin on a biolink
+           page, with nothing hard-coded about either.
+
+           `clip` and not `hidden`: 100vw includes the scrollbar, so without
+           it the page gains a sliver of sideways scroll -- but `hidden`
+           would make the element a scroll container, and `clip` crops
+           without becoming one. */
+        html, body { overflow-x: clip; }
+        .biolink-block-wrap.full-bleed {
+            margin-left: calc(50% - 50vw);
+            margin-right: calc(50% - 50vw);
+            max-width: 100vw;
+        }
         .hero { padding:28px 4px 18px; }
         .hero h1 { margin:0; font-size:26px; font-weight:800; letter-spacing:-.02em; font-family:{!! $mp['heading_css'] !!}; }
         .hero p { margin:6px 0 0; opacity:.65; font-size:14px; }
