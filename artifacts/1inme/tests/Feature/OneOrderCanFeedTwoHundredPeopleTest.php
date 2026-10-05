@@ -633,8 +633,11 @@ class OneOrderCanFeedTwoHundredPeopleTest extends TestCase
             $page->assertOk();
             $html = $page->getContent();
             $this->assertStringContainsString('ordersCounter(', $html);
-            // Type it, scan it, or find the person by phone.
-            $this->assertStringContainsString('Coupon code', $html);
+            // Type it, scan it, or find the person by phone. The box was
+            // relabelled when order QRs landed -- the same camera and the
+            // same field now take an order code as well as a coupon one --
+            // so this asserts the box is there rather than one wording.
+            $this->assertStringContainsString('type a coupon code', $html);
             $this->assertStringContainsString('BarcodeDetector', $html);
             $this->assertStringContainsString('by-phone', $html);
         }

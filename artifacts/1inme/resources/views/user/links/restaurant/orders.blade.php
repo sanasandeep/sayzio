@@ -53,6 +53,7 @@
         'ocBase' => \Illuminate\Support\Str::beforeLast(route('user.links.restaurant.meal-coupons.by-phone', $link), '/by-phone'),
         'ocNoun' => 'order',
         'ocBoard' => route('user.links.restaurant.orders', $link),
+        'ocOrderBase' => \Illuminate\Support\Str::beforeLast(route('user.links.restaurant.orders.by-code', ['link' => $link, 'code' => 'X']), '/X'),
     ])
 
     @include('user.links.partials.orders-range-bar', ['rbRoute' => route('user.links.restaurant.orders', $link)])

@@ -86,46 +86,21 @@
     }
 </style>
 
+@include('common.partials.menu-qr')
 <script>
 (function () {
-    var SRC = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js';
-    var pending = null;
-
-    /** The generator, once. Resolves to null when it cannot be had. */
-    function generator() {
-        if (typeof window.qrcode === 'function') { return Promise.resolve(window.qrcode); }
-        if (pending) { return pending; }
-
-        pending = new Promise(function (resolve) {
-            var s = document.createElement('script');
-            s.src = SRC;
-            s.async = true;
-            s.onload = function () {
-                resolve(typeof window.qrcode === 'function' ? window.qrcode : null);
-            };
-            s.onerror = function () { resolve(null); };
-            document.head.appendChild(s);
-        });
-
-        return pending;
-    }
+    /**
+     * The loader and the draw helper moved to common/partials/menu-qr so
+     * the order QR on this same screen could use them too, rather than
+     * carrying a second copy inches away that would drift.
+     */
+    function generator() { return window.menuQr.ready(); }
 
     /** A QR for one code, or null when the library cannot draw it. */
     function qrFor(make, text) {
-        try {
-            // Type 0 lets the library pick the smallest version that fits;
-            // M correction survives a thumbprint on a phone screen.
-            var qr = make(0, 'M');
-            qr.addData(text);
-            qr.make();
-            var box = document.createElement('span');
-            box.className = 'mc-qr';
-            box.setAttribute('aria-hidden', 'true');
-            box.innerHTML = qr.createSvgTag({ cellSize: 3, margin: 0, scalable: true });
-            return box;
-        } catch (e) {
-            return null;
-        }
+        var box = window.menuQr.draw(make, text, 3);
+        if (box) { box.className = 'mc-qr'; }
+        return box;
     }
 
     window.menuMealCoupons = {

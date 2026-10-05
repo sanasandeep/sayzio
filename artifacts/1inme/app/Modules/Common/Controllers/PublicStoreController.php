@@ -192,6 +192,11 @@ class PublicStoreController extends Controller
     {
         return [
             'public_token' => $order->public_token,
+            // Sana, 2026-10-05: "QR code per order". The identifier was
+            // already here; this is the form the QR carries and the form
+            // the counter compares, both from MenuOrderCode so the two
+            // ends cannot drift apart.
+            'order_code'   => \App\Modules\User\Support\MenuOrderCode::of($order->public_token),
             'token_number' => $order->token_number,
             'wanted_at'    => $order->wanted_at?->toIso8601String(),
             'meal_coupons' => \App\Modules\User\Models\MenuOrderCoupon::where('order_type', 'store')
