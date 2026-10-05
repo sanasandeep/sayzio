@@ -34,6 +34,23 @@
     <p class="text-xs mt-2" style="color:var(--text-muted)" x-text="sectionNavHint"></p>
 </div>
 
+<div class="rm-field" x-show="(menu.section_nav || 'tabs') !== 'none'">
+    <label class="rm-label">Section navigation colours</label>
+    <p class="rm-help">Text, fill and outline for section tabs, the dropdown and the side rail.</p>
+    @foreach(\App\Modules\User\Support\MenuSectionNav::COLOURS as $snColourKey => $snColour)
+        <div class="rm-colour">
+            <input type="color" aria-label="{{ $snColour['label'] }}"
+                   :value="menu.{{ $snColourKey }} || '{{ $snColour['default'] }}'"
+                   @change="menu.{{ $snColourKey }} = $event.target.value; saveSettings()">
+            <span class="txt"><b>{{ $snColour['label'] }}</b></span>
+            <button type="button" class="rm-act" title="Reset {{ $snColour['label'] }}"
+                    @click="menu.{{ $snColourKey }} = '{{ $snColour['default'] }}'; saveSettings()">
+                <i class="fas fa-rotate-left"></i>
+            </button>
+        </div>
+    @endforeach
+</div>
+
 <div class="rm-field">
     <label class="rm-label">Section markers</label>
     <p class="rm-help">

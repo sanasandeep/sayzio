@@ -30,6 +30,8 @@
       $snMarker   'number' | 'icon' | 'none'
 --}}
 @php
+    $snColours = \App\Modules\User\Support\MenuSectionNav::colours((array) ($menu->settings ?? []));
+    $snStyle = '--sn-text: '.$snColours['section_nav_text_color'].'; --sn-bg: '.$snColours['section_nav_background_color'].'; --sn-border: '.$snColours['section_nav_border_color'].';';
     $snMark = function (array $t) use ($snMarker) {
         if ($snMarker === 'icon' && $t['icon']) {
             return '<i class="fas fa-'.e($t['icon']).'"></i>';
@@ -46,8 +48,8 @@
 @endphp
 
 @if($snNav === 'dropdown')
-    <nav class="sn sn-drop" aria-label="Jump to a section">
-        <select class="sn-select" onchange="if(this.value){location.hash=this.value}" aria-label="Jump to a section">
+    <nav class="sn sn-drop" aria-label="Jump to a section" style="{{ $snStyle }}">
+        <select class="sn-select" onchange="if(this.value){location.hash=this.value}" aria-label="Jump to a section" style="{{ $snStyle }}">
             <option value="">Jump to a section…</option>
             @foreach($snTargets as $snT)
                 <option value="#{{ $snT['anchor'] }}">
@@ -58,7 +60,7 @@
     </nav>
 
 @elseif($snNav === 'vertical')
-    <nav class="sn sn-rail" aria-label="Jump to a section">
+    <nav class="sn sn-rail" aria-label="Jump to a section" style="{{ $snStyle }}">
         @foreach($snTargets as $snT)
             <a href="#{{ $snT['anchor'] }}" class="sn-rail-a" title="{{ $snT['name'] }}">
                 {!! $snMark($snT) !!}
@@ -68,7 +70,7 @@
     </nav>
 
 @elseif($snNav === 'tabs')
-    <nav class="sn sn-tabs" aria-label="Jump to a section">
+    <nav class="sn sn-tabs" aria-label="Jump to a section" style="{{ $snStyle }}">
         {{-- "horizontal scroll tabs with all" -- All is first and goes back
              to the top, so the bar can undo itself. A jump bar you cannot
              get out of is how somebody loses the start of the menu. --}}
@@ -116,26 +118,26 @@
         -webkit-overflow-scrolling: touch;
     }
     .sn-tabs::-webkit-scrollbar { display: none; }
-    .sn-tab {
+    .sn .sn-tab {
         display: inline-flex; align-items: center; gap: 6px;
         flex: none;
         padding: 6px 13px;
         border-radius: 999px;
-        border: 1px solid var(--rule, rgba(128,128,128,.28));
+        border: 1px solid var(--sn-border, #d4d4d4);
         font-size: 13px; font-weight: 600;
-        color: inherit; text-decoration: none;
+        color: var(--sn-text, #262626); background: var(--sn-bg, #ffffff); text-decoration: none;
         white-space: nowrap;
     }
-    .sn-tab:hover { border-color: currentColor; }
+    .sn .sn-tab:hover, .sn .sn-tab:focus-visible { border-color: currentColor; }
 
     /* ---- Dropdown -------------------------------------------------- */
-    .sn-select {
+    .sn .sn-select {
         width: 100%;
         padding: 9px 12px;
         border-radius: 10px;
-        border: 1px solid var(--rule, rgba(128,128,128,.28));
-        background: transparent;
-        color: inherit;
+        border: 1px solid var(--sn-border, #d4d4d4);
+        background: var(--sn-bg, #ffffff);
+        color: var(--sn-text, #262626);
         font-size: 14px;
         font-family: inherit;
     }
@@ -148,15 +150,15 @@
         width: 142px;
         margin: 0 18px 10px 0;
     }
-    .sn-rail-a {
+    .sn .sn-rail-a {
         display: flex; align-items: center; gap: 8px;
         padding: 6px 10px;
         border-radius: 9px;
         font-size: 13px;
-        color: inherit; text-decoration: none;
-        opacity: .72;
+        color: var(--sn-text, #262626); background: var(--sn-bg, #ffffff); text-decoration: none;
+        border: 1px solid var(--sn-border, #d4d4d4);
     }
-    .sn-rail-a:hover { opacity: 1; background: var(--ink-chip, rgba(128,128,128,.12)); }
+    .sn .sn-rail-a:hover { border-color: var(--sn-text, #262626); }
     .sn-rail-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* A 142px rail beside a menu on a 360px screen leaves no menu. Below
@@ -169,9 +171,9 @@
             scrollbar-width: none;
         }
         .sn-rail::-webkit-scrollbar { display: none; }
-        .sn-rail-a {
+        .sn .sn-rail-a {
             flex: none;
-            border: 1px solid var(--rule, rgba(128,128,128,.28));
+            border: 1px solid var(--sn-border, #d4d4d4);
             border-radius: 999px;
             opacity: 1;
         }

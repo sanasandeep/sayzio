@@ -122,6 +122,12 @@ class RestaurantMenuController extends Controller
         if ($request->has('section_nav')) {
             $settings['section_nav'] = \App\Modules\User\Support\MenuSectionNav::nav($data['section_nav'] ?? null);
         }
+        foreach (array_keys(\App\Modules\User\Support\MenuSectionNav::COLOURS) as $key) {
+            if ($request->has($key)) {
+                $settings[$key] = $data[$key] ?? '';
+            }
+        }
+
         if ($request->has('section_marker')) {
             $settings['section_marker'] = \App\Modules\User\Support\MenuSectionNav::marker($data['section_marker'] ?? null);
         }
