@@ -106,26 +106,38 @@
     .rm-modal { background:var(--bg-card); border:1px solid var(--border-glass); border-radius:1rem; padding:22px; width:100%; max-width:480px; max-height:90vh; overflow:auto; }
 </style>
 
-<div class="max-w-7xl mx-auto" x-data="storeEditor()" x-init="init()">
-    <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <div>
-            <h1 class="text-xl font-bold" style="color:var(--text-primary)">{{ $link->title ?: $link->alias }}</h1>
-            <p class="text-sm" style="color:var(--text-muted)">Store · /{{ $link->alias }}</p>
-        </div>
-        <div class="flex gap-2">
-            @if(\App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'store_menu_builder'))
-                <a href="{{ route('user.links.ai-type-builder', $link) }}" class="rm-btn ghost"><i class="fas fa-wand-magic-sparkles"></i> Build with AI</a>
-            @endif
-            <a href="{{ route('user.links.store.orders', $link) }}" class="rm-btn ghost">
-                <i class="fas fa-receipt"></i> Orders @if($openOrders > 0)<span class="rm-pill">{{ $openOrders }}</span>@endif
-            </a>
-            <a href="{{ route('user.links.store.qr', $link) }}" target="_blank" class="rm-btn ghost"><i class="fas fa-qrcode"></i> QR</a>
-            <a href="{{ url('/'.$link->alias) }}" target="_blank" class="rm-btn ghost"><i class="fas fa-external-link-alt"></i> View</a>
-        </div>
-    </div>
+@php
+    // Sana, 2026-10-05: "move settings column to another tab menu menu...
+    // this way it will look uniform and all will be looking same layout
+    // type". Same shell as the restaurant editor and as every Settings
+    // screen -- hero, tabs, content left, live page right.
+    $mePane = in_array(request()->query('pane'), ['items', 'design', 'ordering'], true)
+        ? request()->query('pane')
+        : 'items';
+    $meExtraActions = [];
+    if (\App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'store_menu_builder')) {
+        $meExtraActions[] = ['label' => 'Build with AI', 'url' => route('user.links.ai-type-builder', $link), 'icon' => 'fa-wand-magic-sparkles', 'class' => 'btn-ghost'];
+    }
+    $meExtraActions[] = ['label' => 'Orders' . ($openOrders > 0 ? ' (' . $openOrders . ')' : ''), 'url' => route('user.links.store.orders', $link), 'icon' => 'fa-receipt', 'class' => 'btn-ghost'];
+    $meExtraActions[] = ['label' => '', 'url' => route('user.links.store.qr', $link), 'icon' => 'fa-qrcode', 'class' => 'btn-ghost', 'target' => '_blank', 'title' => 'Printable QR'];
+@endphp
 
-    <div class="rm-grid">
-        <div>
+<div class="w-full max-w-7xl mx-auto" x-data="Object.assign(storeEditor(), menuEditorPanes(@js($mePane)))" x-init="init()">
+    @include('user.links.partials.editor-header', [
+        'link' => $link,
+        'activeMainTab' => 'store',
+        'extraActions' => $meExtraActions,
+    ])
+    @include('user.links.partials.menu-editor-panes', [
+        'mepPane'  => $mePane,
+        'mepItems' => 'Products',
+    ])
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="lg:col-span-7" style="padding-bottom:72px;">
+
+        {{-- PRODUCTS ---------------------------------------------------- --}}
+        <div x-show="pane === 'items'" x-cloak>
             @include('user.links.partials.menu-structure-editor', [
                 'meNoun'      => 'product',
                 'meNounTitle' => 'Product',
@@ -140,10 +152,12 @@
         <!-- Settings -->
         {{-- The support bubble is fixed to the bottom-right, which is where
              this column ends. Without the gutter it sits on the last control
-             in the card. --}}
-        <div style="padding-bottom:72px;">
+        </div>
+
+        {{-- HOW IT LOOKS ------------------------------------------------ --}}
+        <div x-show="pane === 'design'" x-cloak>
             <div class="rm-card">
-                <h5>Settings</h5>
+                <h5>How the store looks</h5>
                 {{-- The page background lives on the shared Appearance panel,
                      not here: it is the same picker every other page type uses,
                      and duplicating it per editor is how this app ended up with
@@ -156,49 +170,6 @@
                     <span style="font-size:11px;opacity:.65;">Colour, gradient, 941 ready-made looks &mdash; and the page font</span>
                     <i class="fas fa-arrow-right text-[10px]" style="margin-left:auto;opacity:.5;"></i>
                 </a>
-                <div class="rm-row">
-                    <label class="rm-label">Mode</label>
-                    <div class="rm-mode-toggle">
-                        <label><input type="radio" value="display" x-model="menu.mode" @change="saveSettings()"><span>Display only</span></label>
-                        <label><input type="radio" value="order" x-model="menu.mode" @change="saveSettings()"><span>Order requests</span></label>
-                    </div>
-                    <p class="text-xs mt-2" style="color:var(--text-muted)">Order mode lets shoppers build a cart and send you an order request. No online payment, you arrange fulfilment and payment directly.</p>
-                </div>
-                <div class="rm-row" x-show="menu.mode === 'order'">
-                    <label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)">
-                        <input type="checkbox" x-model="menu.accepting_orders" @change="saveSettings()"> Accepting order requests
-                    </label>
-                    <p class="text-xs mt-1" style="color:var(--text-muted)">Turn off to pause new requests without switching back to display only.</p>
-                </div>
-                <div class="rm-row">
-                    {{-- Sana, 2026-09-28: "currency symbol, can u make it
-                         dropdown?"
-
-                         It was a three-character text box, so the only way
-                         to learn whether a currency had a symbol on file was
-                         to type it and watch the sample below. Each option
-                         is labelled with the symbol it will print.
-
-                         A creator already on a currency that is not listed
-                         keeps it: "Other" drops back to the text box rather
-                         than silently rewriting their setting. --}}
-                    <label class="rm-label">Currency</label>
-                    <select class="rm-input" x-show="!currencyIsOther" x-cloak
-                            x-model="menu.currency" @change="onCurrencyPicked($event)">
-                        @foreach(\App\Modules\User\Support\MenuMoney::options() as $c)
-                        <option value="{{ $c['code'] }}">{{ $c['label'] }}</option>
-                        @endforeach
-                        <option value="__other">Other…</option>
-                    </select>
-                    <div x-show="currencyIsOther" x-cloak style="display:flex;gap:6px;align-items:center;">
-                        <input class="rm-input" x-model="menu.currency" maxlength="3"
-                               @change="saveSettings()" style="text-transform:uppercase" placeholder="e.g. GHS">
-                        <button type="button" class="rm-act" title="Back to the list"
-                                @click="currencyOther = false; if (!currencyKnown) { menu.currency = 'USD'; } saveSettings()"><i class="fas fa-list"></i></button>
-                    </div>
-                </div>
-                @include('user.links.partials.menu-money-picker')
-                @include('user.links.partials.menu-fulfilment-panel', ['fpIsRestaurant' => false])
                 <div class="rm-row">
                     {{-- Drawn as a colour row, the same as the four below it.
                          It was a full-width 42px bar -- the same control, two
@@ -258,6 +229,57 @@
                 </div>
                 @include('user.links.partials.menu-divider-picker')
                 @include('user.links.partials.menu-card-design')
+                <p class="text-xs" style="color:var(--text-faint)" x-text="savedMsg"></p>
+            </div>
+        </div>
+
+        {{-- HOW ORDERING WORKS ------------------------------------------ --}}
+        <div x-show="pane === 'ordering'" x-cloak>
+            <div class="rm-card">
+                <h5>How ordering works</h5>
+                <div class="rm-row">
+                    <label class="rm-label">Mode</label>
+                    <div class="rm-mode-toggle">
+                        <label><input type="radio" value="display" x-model="menu.mode" @change="saveSettings()"><span>Display only</span></label>
+                        <label><input type="radio" value="order" x-model="menu.mode" @change="saveSettings()"><span>Order requests</span></label>
+                    </div>
+                    <p class="text-xs mt-2" style="color:var(--text-muted)">Order mode lets shoppers build a cart and send you an order request. No online payment, you arrange fulfilment and payment directly.</p>
+                </div>
+                <div class="rm-row" x-show="menu.mode === 'order'">
+                    <label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)">
+                        <input type="checkbox" x-model="menu.accepting_orders" @change="saveSettings()"> Accepting order requests
+                    </label>
+                    <p class="text-xs mt-1" style="color:var(--text-muted)">Turn off to pause new requests without switching back to display only.</p>
+                </div>
+                <div class="rm-row">
+                    {{-- Sana, 2026-09-28: "currency symbol, can u make it
+                         dropdown?"
+
+                         It was a three-character text box, so the only way
+                         to learn whether a currency had a symbol on file was
+                         to type it and watch the sample below. Each option
+                         is labelled with the symbol it will print.
+
+                         A creator already on a currency that is not listed
+                         keeps it: "Other" drops back to the text box rather
+                         than silently rewriting their setting. --}}
+                    <label class="rm-label">Currency</label>
+                    <select class="rm-input" x-show="!currencyIsOther" x-cloak
+                            x-model="menu.currency" @change="onCurrencyPicked($event)">
+                        @foreach(\App\Modules\User\Support\MenuMoney::options() as $c)
+                        <option value="{{ $c['code'] }}">{{ $c['label'] }}</option>
+                        @endforeach
+                        <option value="__other">Other…</option>
+                    </select>
+                    <div x-show="currencyIsOther" x-cloak style="display:flex;gap:6px;align-items:center;">
+                        <input class="rm-input" x-model="menu.currency" maxlength="3"
+                               @change="saveSettings()" style="text-transform:uppercase" placeholder="e.g. GHS">
+                        <button type="button" class="rm-act" title="Back to the list"
+                                @click="currencyOther = false; if (!currencyKnown) { menu.currency = 'USD'; } saveSettings()"><i class="fas fa-list"></i></button>
+                    </div>
+                </div>
+                @include('user.links.partials.menu-money-picker')
+                @include('user.links.partials.menu-fulfilment-panel', ['fpIsRestaurant' => false])
                 <div class="rm-row" x-show="menu.mode === 'order'">
                     <label class="rm-label">WhatsApp number (optional)</label>
                     <input class="rm-input" x-model="menu.whatsapp_number" @change="saveSettings()" placeholder="e.g. +1 555 123 4567" inputmode="tel">
@@ -265,6 +287,7 @@
                 </div>
                 <p class="text-xs" style="color:var(--text-faint)" x-text="savedMsg"></p>
             </div>
+
 
             @include('user.links.partials.menu-confirmation-panel', ['confirmHeadlinePlaceholder' => 'Request sent 🎉'])
 
@@ -278,6 +301,13 @@
                 'choiceNoun'  => 'product',
                 'choiceNounPlural' => 'products',
             ])
+        </div>
+
+        </div>
+
+        {{-- The page itself, beside whichever pane is open. --}}
+        <div class="lg:col-span-5 hidden lg:block lg:self-stretch lg:h-full">
+            @include('user.links.partials.device-preview', ['link' => $link])
         </div>
     </div>
 
