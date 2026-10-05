@@ -173,7 +173,16 @@ class ModifyingWithAiKeepsWhatIsAlreadyThereTest extends TestCase
 
     // ── The instruction that makes "modify" true ──────────────────
 
-    public function test_the_prompt_says_that_anything_omitted_is_deleted(): void
+    /**
+     * The whole-rewrite framing, which no menu takes any more.
+     *
+     * It is still the right framing for a builder that overrides
+     * existingContext() WITHOUT supportsEditing() -- a page type whose
+     * content can be described to the model but whose rows cannot yet be
+     * addressed one at a time. buildMessages() is called directly here
+     * because that is the only caller left for it.
+     */
+    public function test_the_rewrite_framing_still_warns_when_a_type_cannot_be_edited(): void
     {
         $service = app(AiRestaurantMenuBuilderService::class);
         $messages = $this->buildMessages($service, 'Add a desserts section', $service->existingContext($this->filledRestaurant()));
@@ -255,7 +264,29 @@ class ModifyingWithAiKeepsWhatIsAlreadyThereTest extends TestCase
             $user,
             'generate() did not send the existing menu — a build would delete it'
         );
-        $this->assertStringContainsString('Anything you leave out is deleted', $user);
+
+        // Superseded, deliberately, by the targeted-edit path.
+        //
+        // Sana, 2026-10-05: "it should not be modify whole.. it should able
+        // to update as per instructions". A menu that already exists is now
+        // EDITED: the model is asked for a list of changes and each one is
+        // applied to the row it names, so there is no whole-catalogue answer
+        // to warn it about losing.
+        //
+        // What survives from this test is the half that still matters and
+        // still breaks the same way: the current menu has to be on the wire,
+        // because without it the model has no names to refer to.
+        // AiEditsOnlyWhatItWasAskedToTest holds the rest.
+        $this->assertStringContainsString(
+            'Name the sections and items EXACTLY',
+            $user,
+            'the model was sent the menu with no instruction about how to refer to it'
+        );
+        $this->assertStringNotContainsString(
+            'Anything you leave out is deleted',
+            $user,
+            'a menu is being asked for a whole rewrite again'
+        );
     }
 
     // ── The quote and the charge agree ────────────────────────────
@@ -297,11 +328,15 @@ class ModifyingWithAiKeepsWhatIsAlreadyThereTest extends TestCase
         $this->assertStringContainsString('Modify with AI', $html);
         $this->assertStringNotContainsString('Build with AI</span>', $html);
 
-        // The warning, in words rather than a shrug. A model can still drop
-        // something, and somebody about to spend coins on a live menu is
-        // owed that sentence.
-        $this->assertStringContainsString('rewrites the whole', $html);
-        $this->assertStringContainsString('check it afterwards', $html);
+        // The warning that used to be asserted here said "This rewrites the
+        // whole menu", and it was true of the behaviour this test was
+        // written against. It is now a lie: nothing is rewritten.
+        //
+        // A warning about a thing that does not happen is how people learn
+        // to ignore the warnings about things that do, so it is gone, and
+        // this asserts it stays gone.
+        $this->assertStringNotContainsString('rewrites the whole', $html);
+        $this->assertStringContainsString('Only what you ask for changes', $html);
     }
 
     public function test_an_empty_page_still_says_build_and_does_not_warn(): void

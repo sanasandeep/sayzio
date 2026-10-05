@@ -7,6 +7,8 @@ use App\Modules\User\Models\StoreCategory;
 use App\Modules\User\Models\StoreMenu;
 use App\Modules\User\Models\StoreProduct;
 use App\Modules\User\Models\User;
+use App\Services\AI\Editor\MenuEditPlan;
+use App\Services\AI\Editor\MenuEditVocabulary;
 
 /**
  * AI builder for the Store link type: categories → products with prices,
@@ -58,6 +60,42 @@ class AiStoreMenuBuilderService extends AbstractAiTypeBuilderService
         return implode("\n", $lines);
     }
 
+
+    /**
+     * A catalogue that already exists is EDITED, not rebuilt.
+     *
+     * Store/restaurant parity, which Sana named a must-have: the two page
+     * types share one applier, so "the AI can change the price" cannot
+     * become true on one of them and not the other.
+     */
+    public function supportsEditing(): bool
+    {
+        return true;
+    }
+
+    public function editAbilities(): array
+    {
+        return MenuEditVocabulary::abilities('product');
+    }
+
+    protected function editPrompt(User $user): string
+    {
+        return MenuEditVocabulary::prompt('store catalogue', 'product');
+    }
+
+    protected function applyPlan(User $user, Link $link, array $parsed): array
+    {
+        $menu = StoreMenu::where('link_id', $link->id)->firstOrFail();
+
+        $operations = is_array($parsed['operations'] ?? null) ? $parsed['operations'] : [];
+
+        return MenuEditPlan::apply($operations, $menu, $link, [
+            'category'  => StoreCategory::class,
+            'item'      => StoreProduct::class,
+            'sold_out'  => 'is_out_of_stock',
+            'item_noun' => 'product',
+        ]);
+    }
 
     protected function systemPrompt(User $user): string
     {
