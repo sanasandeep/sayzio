@@ -19,6 +19,7 @@
       $osLabels    status => human label
       $osCurrency  the menu's currency code
       $osExport    base URL for the export, filters already attached
+      $osKitchen   the kitchen board for this page, or null
       $osRange     the resolved range, for the label
 --}}
 <div class="os-wrap">
@@ -57,6 +58,13 @@
             @endforeach
         </div>
         <div class="os-export">
+            {{-- Sana, 2026-10-05: "Need another dashboard like kitchen".
+                 It lives here because this is the one row both order boards
+                 share, so the restaurant and the store get the link from
+                 one edit rather than two that drift. --}}
+            @if($osKitchen ?? null)
+                <a class="os-btn os-btn-go" href="{{ $osKitchen }}"><i class="fas fa-fire-burner"></i> Kitchen</a>
+            @endif
             {{-- The filters are already on these URLs. An export that
                  quietly ignores the range is worse than no export: you
                  filter to last month, download, and reconcile a year. --}}
@@ -127,5 +135,13 @@
         white-space: nowrap;
     }
     .os-btn:hover { color: var(--text-primary); }
+    /* The kitchen screen is a place to GO, not a file to take away, so it
+       does not read as a third download button sitting beside two. */
+    .os-btn-go {
+        color: #fb923c;
+        border-color: rgba(251,146,60,.35);
+        background: rgba(251,146,60,.07);
+    }
+    .os-btn-go:hover { color: #fdba74; }
 </style>
 @endonce

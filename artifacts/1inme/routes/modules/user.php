@@ -1205,6 +1205,14 @@ Route::prefix('user')->name('user.')->group(function () {
 
             Route::get ('links/{link}/'.$menuKind.'/orders/by-code/{code}',       [\App\Modules\User\Controllers\MenuOrderScanController::class, 'show'])->defaults('kind', $menuKind)->middleware('workspace.can:links.view')->name('links.'.$menuKind.'.orders.by-code');
 
+            // Sana, 2026-10-05: "Need another dashboard like kitchen....
+            // whowing all table names if exists with current order
+            // status... aurto refresh also". Its own screen rather than a
+            // filter on the orders board: a kitchen reads oldest-first and
+            // has no use for a price.
+            Route::get ('links/{link}/'.$menuKind.'/kitchen',                     [\App\Modules\User\Controllers\MenuKitchenController::class, 'board'])->defaults('kind', $menuKind)->middleware('workspace.can:links.view')->name('links.'.$menuKind.'.kitchen');
+            Route::get ('links/{link}/'.$menuKind.'/kitchen/poll',                [\App\Modules\User\Controllers\MenuKitchenController::class, 'poll'])->defaults('kind', $menuKind)->middleware('workspace.can:links.view')->name('links.'.$menuKind.'.kitchen.poll');
+
             Route::get   ('links/{link}/'.$menuKind.'/option-groups',                            [\App\Modules\User\Controllers\MenuOptionController::class, 'index'])->defaults('kind', $menuKind)->middleware('workspace.can:links.view')->name('links.'.$menuKind.'.option-groups.index');
             Route::post  ('links/{link}/'.$menuKind.'/option-groups',                            [\App\Modules\User\Controllers\MenuOptionController::class, 'storeGroup'])->defaults('kind', $menuKind)->middleware('workspace.can:links.edit')->name('links.'.$menuKind.'.option-groups.store');
             Route::put   ('links/{link}/'.$menuKind.'/option-groups/{group}',                    [\App\Modules\User\Controllers\MenuOptionController::class, 'updateGroup'])->defaults('kind', $menuKind)->middleware('workspace.can:links.edit')->name('links.'.$menuKind.'.option-groups.update');
