@@ -41,13 +41,16 @@
 </style>
 
 <div class="max-w-4xl mx-auto" x-data="ordersBoard()" x-init="init()">
-    <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <div>
-            <h1 class="text-xl font-bold" style="color:var(--text-primary)">Orders</h1>
-            <p class="text-sm" style="color:var(--text-muted)">{{ $link->title ?: $link->alias }} · <span class="ro-live"><template x-if="meta.is_live"><span class="ro-dot"></span></template><span x-text="meta.is_live ? 'Live' : meta.label"></span></span></p>
-        </div>
-        <a href="{{ route('user.links.restaurant.editor', $link) }}" class="ro-btn"><i class="fas fa-arrow-left"></i> Back to menu</a>
-    </div>
+    @include('user.links.partials.menu-page-header', [
+        'mhTitle' => 'Orders',
+        'mhIcon'  => 'fa-receipt',
+        'mhLink'  => $link,
+        'mhBack'  => route('user.links.restaurant.editor', $link),
+        'mhBackLabel' => 'Back to menu',
+        'mhActions' => '<a href="'.route('user.links.restaurant.kitchen', $link).'" class="mph-btn mph-btn-kitchen"><i class="fas fa-fire-burner"></i> Kitchen</a>'
+            .'<span class="mph-btn mph-stat"><template x-if="meta.is_live"><span class="ro-dot"></span></template>'
+            .'<span x-text="meta.is_live ? \'Live\' : meta.label"></span></span>',
+    ])
 
     @include('user.links.partials.orders-summary', [
         'osSummary'  => $summary,
@@ -56,6 +59,13 @@
         'osExport'   => $exportUrl . (str_contains($exportUrl, '?') ? '' : '?'),
         'osRange'    => $range,
         'osKitchen'  => route('user.links.restaurant.kitchen', $link),
+    ])
+
+    @include('user.links.partials.orders-insights', [
+        'oiData'     => $insights,
+        'oiCurrency' => $menu->currency,
+        'oiNoun'     => 'item',
+        'oiRange'    => $range,
     ])
 
     @include('user.links.partials.orders-counter', [

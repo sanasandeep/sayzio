@@ -692,6 +692,16 @@ class RestaurantMenuController extends Controller
             'summary'   => \App\Modules\User\Support\MenuOrderSummary::of($scoped(), RestaurantOrder::class),
             'labels'    => \App\Modules\User\Support\MenuOrderSummary::labels(RestaurantOrder::class),
             'exportUrl' => route('user.links.restaurant.orders.export', ['link' => $link] + $request->only(['range', 'from', 'to', 'status'])),
+            // Sana, 2026-10-05: "i need top items, item sales, reccuring
+            // things, highlights or anything related....". The totals say
+            // how much came in; these say what to do about it.
+            'insights'  => \App\Modules\User\Support\MenuInsights::of(
+                $scoped(),
+                \App\Modules\User\Models\RestaurantOrder::class,
+                \App\Modules\User\Models\RestaurantOrderItem::class,
+                $menu,
+                \App\Modules\User\Models\RestaurantMenuItem::class,
+            ),
         ]);
     }
 
