@@ -79,12 +79,7 @@ class RestaurantMenuController extends Controller
             // Menu colours (Sana, 2026-09-23: "i cannot change colors of
             // menu items and all"). Each is optional; an absent one keeps
             // inheriting the page ink, which is what the page did before.
-            'heading_color'   => ['nullable', 'string', 'max:16'],
-            'item_color'      => ['nullable', 'string', 'max:16'],
-            'desc_color'      => ['nullable', 'string', 'max:16'],
-            'price_color'     => ['nullable', 'string', 'max:16'],
-            'divider_color'   => ['nullable', 'string', 'max:16'],
-        ] + \App\Modules\User\Support\MenuHero::rules() + [
+        ] + \App\Modules\User\Support\MenuPresentation::colourRules() + \App\Modules\User\Support\MenuHero::rules() + [
             'tax_enabled'     => 'sometimes|boolean',
             'tax_rate'        => 'nullable|numeric|min:0|max:100',
             'tax_inclusive'   => 'sometimes|boolean',

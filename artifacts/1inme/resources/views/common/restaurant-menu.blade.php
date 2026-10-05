@@ -140,11 +140,11 @@
              inheriting the page ink exactly as this page did before. --}}
         :root {
             color-scheme: light dark; --accent: {{ $accent }};
-            --ink-head:  {{ $mp['heading_color'] ?: 'inherit' }};
-            --ink-item:  {{ $mp['item_color']    ?: 'inherit' }};
-            --ink-desc:  {{ $mp['desc_color']    ?: 'inherit' }};
-            --ink-price: {{ $mp['price_color']   ?: 'var(--accent)' }};
-            --rule:      {{ $mp['divider_color'] ?: 'rgba(0,0,0,.07)' }};
+            {{-- One list, in MenuPresentation::inkVars(). These were written
+                 out twice -- here and in the other menu template -- so a new
+                 colour reached one page and not the other, which is the most
+                 repeated bug report on this project. --}}
+            {!! \App\Modules\User\Support\MenuPresentation::inkVars($mp) !!}
         }
         * { box-sizing: border-box; }
         @if($pbOn)
@@ -191,7 +191,7 @@
         .badge { display:inline-block; margin-top:12px; padding:6px 12px; border-radius:999px; background:var(--accent); color:#fff; font-size:12.5px; font-weight:600; }
         .cat { margin-top:26px; }
         .cat h2 { font-size:18px; font-weight:700; margin:0 0 4px; font-family:{!! $mp['heading_css'] !!}; color:var(--ink-head); }
-        .cat .cdesc { font-size:13px; opacity:.6; margin:0 0 12px; }
+        .cat .cdesc { font-size:13px; opacity:.6; margin:0 0 12px; color:var(--ink-cdesc); }
         .item { display:flex; gap:14px; padding:14px 0; border-top:1px solid var(--rule); }
         @media (prefers-color-scheme: dark) { .item { border-color:{{ $mp['divider_color'] ?: 'rgba(255,255,255,.08)' }}; } }
         .item .photo { width:74px; height:74px; border-radius:14px; object-fit:cover; flex:0 0 auto; background:rgba(0,0,0,.05); }
@@ -208,9 +208,14 @@
         .soldout { opacity:.45; }
         .soldout .name::after { content:" · Sold out"; color:#b91c1c; font-size:12px; font-weight:600; }
         .addrow { margin-top:8px; }
-        .qbtn { width:30px; height:30px; border-radius:8px; border:1px solid rgba(0,0,0,.18); background:transparent; color:inherit; font-size:17px; cursor:pointer; line-height:1; }
-        @media (prefers-color-scheme: dark) { .qbtn { border-color:rgba(255,255,255,.2); } }
-        .qty { min-width:22px; text-align:center; display:inline-block; font-weight:600; }
+        /* Sana, 2026-10-05: "- 1 + are shown in light color". The glyph
+           inherited the page colour and the border was rgba(0,0,0,.18) --
+           on a cream card with pale ink, a control you hunt for. Both now
+           come from one setting, which defaults to the ITEM NAME colour:
+           the one thing on this page that is legible by definition. */
+        .qbtn { width:30px; height:30px; border-radius:8px; border:1.5px solid var(--step-edge); background:transparent; color:var(--ink-step); font-size:17px; font-weight:600; cursor:pointer; line-height:1; }
+        .qbtn:hover { border-color:var(--ink-step); }
+        .qty { min-width:22px; text-align:center; display:inline-block; font-weight:700; color:var(--ink-step); }
         .add { border:none; background:var(--accent); color:#fff; border-radius:9px; padding:7px 14px; font-size:13px; font-weight:600; cursor:pointer; }
         /* Cart bar */
         /* Modal */
