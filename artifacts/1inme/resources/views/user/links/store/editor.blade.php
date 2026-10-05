@@ -429,7 +429,7 @@
     // What this menu offers as a handover, and what each handover adds.
     $menuModes   = \App\Modules\User\Support\MenuFulfilment::modesFor((array) ($menu->settings ?? []), false);
     $menuCharges = \App\Modules\User\Support\MenuFulfilment::charges((array) ($menu->settings ?? []));
-    $menuCategories = $menu->categories->map(fn($c)=>['id'=>$c->id,'parent_id'=>$c->parent_id,'name'=>$c->name,'description'=>$c->description,'is_active'=>(bool) $c->is_active,'sort_order'=>(int) $c->sort_order])->values();
+    $menuCategories = $menu->categories->map(fn($c)=>['id'=>$c->id,'parent_id'=>$c->parent_id,'name'=>$c->name,'description'=>$c->description,'hide_heading'=>(bool) $c->hide_heading,'hide_description'=>(bool) $c->hide_description,'is_active'=>(bool) $c->is_active,'sort_order'=>(int) $c->sort_order])->values();
     $menuProducts = $menu->products->map(fn($p)=>['id'=>$p->id,'category_id'=>$p->category_id,'name'=>$p->name,'description'=>$p->description,'price'=>$p->price,'photo_url'=>$p->photo_url,'is_out_of_stock'=>$p->is_out_of_stock,'marks'=>\App\Modules\User\Support\MenuItemMarks::sanitize($p->marks),'min_quantity'=>(int) ($p->min_quantity ?? 1),'max_quantity'=>$p->max_quantity,'bulk_price'=>$p->bulk_price,'coupon_from'=>$p->coupon_from,'is_active'=>(bool) $p->is_active,'sort_order'=>(int) $p->sort_order])->values();
     // The colours the owner has chosen, read back for the editor.
     //
@@ -550,7 +550,7 @@ function storeEditor() {
         get headingHint(){ return this.headingHints[this.menu.heading_style] || ''; },
         priceHints: @json(collect(\App\Modules\User\Support\MenuPresentation::PRICES)->map(fn ($x) => $x['hint'])),
         get priceHint(){ return this.priceHints[this.menu.price_style] || ''; },
-        catModal: { open:false, id:null, parent_id:null, name:'', description:'' },
+        catModal: { open:false, id:null, parent_id:null, name:'', description:'', hide_heading:false, hide_description:false },
         productModal: { open:false, id:null, category_id:null, name:'', description:'', price:'', photo_url:'', is_out_of_stock:false, marks:[], min_quantity:'', max_quantity:'', bulk_price:'',coupon_from:'' },
         base: @json($storeBase),
         uploadUrl: @json(route('user.files.upload')),
@@ -720,12 +720,12 @@ function storeEditor() {
         },
         openCategory(cat, parentId){
             this.catModal = cat
-                ? {open:true,id:cat.id,parent_id:cat.parent_id||null,name:cat.name,description:cat.description||''}
-                : {open:true,id:null,parent_id:parentId||null,name:'',description:''};
+                ? {open:true,id:cat.id,parent_id:cat.parent_id||null,name:cat.name,description:cat.description||'',hide_heading:!!cat.hide_heading,hide_description:!!cat.hide_description}
+                : {open:true,id:null,parent_id:parentId||null,name:'',description:'',hide_heading:false,hide_description:false};
         },
         async saveCategory(){
             if (!this.catModal.name.trim()) return;
-            const payload = { name:this.catModal.name, description:this.catModal.description, parent_id:this.catModal.parent_id||null };
+            const payload = { name:this.catModal.name, description:this.catModal.description, hide_heading:!!this.catModal.hide_heading, hide_description:!!this.catModal.hide_description, parent_id:this.catModal.parent_id||null };
             try {
                 if (this.catModal.id) { const d = await this.api('PUT','/categories/'+this.catModal.id, payload); const i=this.categories.findIndex(c=>c.id===this.catModal.id); this.categories[i]=d.category; }
                 else { const d = await this.api('POST','/categories', payload); this.categories.push(d.category); }

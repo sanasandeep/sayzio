@@ -405,6 +405,8 @@ class RestaurantMenuController extends Controller
         $data = $request->validate([
             'name'        => 'required|string|max:120',
             'description' => 'nullable|string|max:500',
+            'hide_heading' => 'sometimes|boolean',
+            'hide_description' => 'sometimes|boolean',
             // Sana, 2026-10-05: "option with selecting icons also".
             'icon'        => ['nullable', 'string', 'max:40', \Illuminate\Validation\Rule::in(array_keys(\App\Modules\User\Support\MenuSectionNav::ICONS))],
             'parent_id'   => 'nullable|integer',
@@ -430,6 +432,8 @@ class RestaurantMenuController extends Controller
             'parent_id'   => $parentId,
             'name'        => $data['name'],
             'description' => $data['description'] ?? null,
+            'hide_heading' => (bool) ($data['hide_heading'] ?? false),
+            'hide_description' => (bool) ($data['hide_description'] ?? false),
             // Validated AND saved. The first version of this accepted an
             // icon, passed every rule, and then did not write it -- which
             // is this codebase's oldest bug shape: a control that exists
@@ -450,6 +454,8 @@ class RestaurantMenuController extends Controller
         $data = $request->validate([
             'name'        => 'sometimes|required|string|max:120',
             'description' => 'nullable|string|max:500',
+            'hide_heading' => 'sometimes|boolean',
+            'hide_description' => 'sometimes|boolean',
             // Sana, 2026-10-05: "option with selecting icons also".
             'icon'        => ['nullable', 'string', 'max:40', \Illuminate\Validation\Rule::in(array_keys(\App\Modules\User\Support\MenuSectionNav::ICONS))],
             'parent_id'   => 'sometimes|nullable|integer',

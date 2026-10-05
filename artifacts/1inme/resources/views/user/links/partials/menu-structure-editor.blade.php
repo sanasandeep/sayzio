@@ -60,6 +60,11 @@
         <div class="rm-cat-head">
             <div style="min-width:0">
                 <div class="ct" :style="g.depth ? 'font-size:14px' : ''" x-text="g.cat.name"></div>
+                <p class="rm-note" x-show="g.cat.hide_heading || g.cat.hide_description">
+                    <span x-show="g.cat.hide_heading">Heading hidden on page.</span>
+                    <span x-show="g.cat.hide_description">Description hidden on page.</span>
+                    Items stay visible.
+                </p>
                 {{-- A sub-section inside a hidden section is hidden too,
                      whatever its own switch says. Saying so here is the
                      whole point: the creator turned this one ON and it is

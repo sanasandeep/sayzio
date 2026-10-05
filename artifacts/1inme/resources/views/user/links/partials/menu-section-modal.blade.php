@@ -23,6 +23,16 @@
         <div class="rm-row"><label class="rm-label">Name</label><input class="rm-input" x-model="catModal.name"></div>
         <div class="rm-row"><label class="rm-label">Description</label><textarea class="rm-textarea" x-model="catModal.description"></textarea></div>
         <div class="rm-row">
+            <label class="rm-label">Section text on the page</label>
+            <label class="flex items-center gap-2 mb-2" style="color:var(--text-primary)">
+                <input type="checkbox" x-model="catModal.hide_heading"> Hide heading
+            </label>
+            <label class="flex items-center gap-2" style="color:var(--text-primary)">
+                <input type="checkbox" x-model="catModal.hide_description"> Hide description
+            </label>
+            <p class="rm-note">Items and sub-sections stay visible. The section name stays in the editor and section navigation. Use the eye button to hide the entire section instead.</p>
+        </div>
+        <div class="rm-row">
             <label class="rm-label">Inside</label>
             <select class="rm-input" x-model="catModal.parent_id">
                 <option :value="null">Nothing &mdash; this is a section of its own</option>
