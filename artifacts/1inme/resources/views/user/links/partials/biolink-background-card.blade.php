@@ -668,6 +668,11 @@
                             <input type="color" name="bg_fallback_color" value="{{ $bgFallbackColor }}" class="w-8 h-8 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-subtle);">
                             <span class="text-[10px] font-mono" style="color: var(--text-faint);">{{ $bgFallbackColor }}</span>
                         </div>
+                        {{-- Said plainly, because this IS the fallback colour and
+                             nothing on the screen used to say so. --}}
+                        <p class="text-[9px] mt-1 leading-snug" style="color: var(--text-dimmed);">
+                            Shows through gaps, and on its own if your background never loads.
+                        </p>
                     </div>
                 </div>
 
@@ -691,14 +696,31 @@
                     </div>
                 </div>
 
-                <div x-show="bgType === 'image' || bgType === 'slideshow' || bgType === 'video'" x-transition>
+                {{-- Sana, 2026-10-05: "why fall back image? it should be fall
+                     back color...".
+
+                     Right, and it was showing in the wrong place. This is the
+                     still frame behind media that has not started yet -- a
+                     video's poster, the first paint of a slideshow. The public
+                     page reads it for slideshow, video and template ONLY
+                     (page-background/body-declarations.blade.php). For a plain
+                     Image background it is never read, so on that screen it was
+                     an uploader that did nothing, sitting under the control that
+                     actually answers his question: "Colour behind it" IS the
+                     fallback colour, and the image branch paints it.
+
+                     The same line had the opposite fault too: `template` reads
+                     the poster on the public page and was never offered one
+                     here. Both directions fixed by naming the three types the
+                     renderer actually uses. --}}
+                <div x-show="bgType === 'slideshow' || bgType === 'video' || bgType === 'template'" x-transition>
                     @include('user.partials.dropzone-input', [
                         'name'        => 'bg_fallback_image',
-                        'label'       => 'Fallback Image',
+                        'label'       => 'Poster Image',
                         'policy'      => \App\Services\UploadPolicy::for('link.bg_fallback_image', auth()->user()),
                         'currentUrl'  => $bgFallbackImage ?: null,
-                        'currentName' => $bgFallbackImage ? 'Saved fallback' : null,
-                        'hint'        => 'Shown while media loads or if it fails',
+                        'currentName' => $bgFallbackImage ? 'Saved poster' : null,
+                        'hint'        => 'The still shown while this loads, and if it never does. Without one, the colour above shows.',
                         'compact'     => true,
                     ])
                 </div>
