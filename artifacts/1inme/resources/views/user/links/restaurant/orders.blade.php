@@ -47,7 +47,7 @@
         'mhLink'  => $link,
         'mhBack'  => route('user.links.restaurant.editor', $link),
         'mhBackLabel' => 'Back to menu',
-        'mhActions' => '<a href="'.route('user.links.restaurant.kitchen', $link).'" class="mph-btn mph-btn-kitchen"><i class="fas fa-fire-burner"></i> Kitchen</a>'
+        'mhActions' => '<a href="'.route('user.links.restaurant.staff-order', $link).'" class="mph-btn"><i class="fas fa-plus"></i> Order for customer</a>'.'<a href="'.route('user.links.restaurant.kitchen', $link).'" class="mph-btn mph-btn-kitchen"><i class="fas fa-fire-burner"></i> Kitchen</a>'
             .'<span class="mph-btn mph-stat"><template x-if="meta.is_live"><span class="ro-dot"></span></template>'
             .'<span x-text="meta.is_live ? \'Live\' : meta.label"></span></span>',
     ])
@@ -229,6 +229,13 @@ function ordersBoard() {
         LABELS: { new:'New', accepted:'Accepted', preparing:'Preparing', ready:'Ready', completed:'Completed', cancelled:'Cancelled' },
         init(){ this.poll(); setInterval(()=>this.poll(), 5000); this.scrollToHighlight(); },
         scrollToHighlight(){ if (!this.highlight) return; this.$nextTick(()=>{ const el = document.getElementById('order-' + this.highlight); if (el) el.scrollIntoView({ behavior:'smooth', block:'center' }); }); },
+        exportHref(base, format) {
+            const url = new URL(base, window.location.origin);
+            url.searchParams.set('format', format);
+            if (this.filter === 'open') url.searchParams.set('status', 'open');
+            else url.searchParams.delete('status');
+            return url.href;
+        },
         visible(){ const o = this.inRange().slice().sort((a,b)=>b.id-a.id); return this.filter==='open' ? o.filter(x=>this.OPEN.includes(x.status)) : o; },
         /**
          * When the customer asked for it. Blank means as soon as possible,

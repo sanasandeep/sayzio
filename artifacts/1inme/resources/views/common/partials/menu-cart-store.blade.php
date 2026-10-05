@@ -137,8 +137,6 @@
                 var opts = chooser.rebuild(sl.id, sl.opts);
                 if (opts === null) { dropped++; return; }
 
-                var perUnit = Math.round((it.price + chooser.extraFor(opts)) * 100) / 100;
-                if (sl.was != null && Math.abs(sl.was - perUnit) > 0.001) { repriced++; }
 
                 // The backstop was a literal 99 here, which silently cut a
                 // restored bulk cart down to 99 the moment bulk orders
@@ -156,6 +154,10 @@
                     ? Math.max(window.menuLimits.of(it).min, Math.min(window.menuLimits.of(it).max, want))
                     : want;
                 if (fit !== want) { lifted++; }
+                var bulk = it.bulkPrice != null && it.bulkPrice !== '' && +it.couponFrom > 0 && fit >= +it.couponFrom;
+                var base = bulk ? +it.bulkPrice : it.price;
+                var perUnit = Math.round((base + chooser.extraFor(opts)) * 100) / 100;
+                if (sl.was != null && Math.abs(sl.was - perUnit) > 0.001) { repriced++; }
 
                 lines.push({
                     key: chooser.key(it.id, opts),

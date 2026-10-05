@@ -76,6 +76,7 @@ class MenuBulkOrder
             'min_quantity' => 'sometimes|nullable|integer|min:1|max:'.self::CEILING,
             'max_quantity' => 'sometimes|nullable|integer|min:1|max:'.self::CEILING,
             'coupon_from'  => 'sometimes|nullable|integer|min:1|max:'.self::CEILING,
+            'bulk_price' => 'sometimes|nullable|numeric|min:0|max:999999',
         ];
     }
 
@@ -97,6 +98,9 @@ class MenuBulkOrder
     public static function input(array $data, $item = null): array
     {
         $out = [];
+        if (array_key_exists('bulk_price', $data)) {
+            $out['bulk_price'] = $data['bulk_price'] === null || $data['bulk_price'] === '' ? null : round((float) $data['bulk_price'], 2);
+        }
 
         $floor = array_key_exists('min_quantity', $data)
             ? max(1, (int) ($data['min_quantity'] ?? 1))
@@ -125,6 +129,14 @@ class MenuBulkOrder
         }
 
         return $out;
+    }
+
+    public static function unitPrice($item, int $quantity): float
+    {
+        $threshold = self::limits($item)['coupon_from'];
+
+        return $threshold !== null && $quantity >= $threshold && $item->bulk_price !== null
+            ? (float) $item->bulk_price : (float) $item->price;
     }
 
     /** Whether a line of this size turns into coupons. */

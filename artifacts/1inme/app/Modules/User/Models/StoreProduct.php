@@ -8,7 +8,7 @@ class StoreProduct extends Model
 {
     protected $fillable = [
         'menu_id', 'category_id', 'name', 'description', 'price', 'currency',
-        'photo_url', 'marks', 'min_quantity', 'max_quantity', 'coupon_from',
+        'photo_url', 'marks', 'min_quantity', 'max_quantity', 'coupon_from', 'bulk_price',
         'sort_order', 'is_out_of_stock', 'is_active',
     ];
 
@@ -22,6 +22,7 @@ class StoreProduct extends Model
             'min_quantity' => 'integer',
             'max_quantity' => 'integer',
             'coupon_from'  => 'integer',
+            'bulk_price' => 'decimal:2',
             'is_out_of_stock' => 'boolean',
             'is_active'       => 'boolean',
         ];

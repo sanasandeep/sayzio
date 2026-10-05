@@ -101,6 +101,8 @@ class PublicStoreController extends Controller
      */
     protected function orderVisibilityGate(Request $request, Link $link)
     {
+        if ($request->attributes->get('staff_order_link') === (int) $link->id) return null;
+
         $vis = $link->visibility ?? 'public';
         if ($vis === 'public') return null;
 
@@ -139,10 +141,10 @@ class PublicStoreController extends Controller
         if ($gate = $this->orderVisibilityGate($request, $link)) {
             return $gate;
         }
-        if (!$menu->isOrderMode()) {
+        if ((!$menu->isOrderMode() && $request->attributes->get('staff_order_link') !== (int) $link->id)) {
             return response()->json(['error' => ['message' => 'Ordering is not enabled for this store', 'code' => 'ordering_disabled']], 422);
         }
-        if (!$menu->acceptingOrders()) {
+        if (!$menu->acceptingOrders() && $request->attributes->get('staff_order_link') !== (int) $link->id) {
             return response()->json(['error' => ['message' => 'This store is not accepting requests right now', 'code' => 'orders_paused']], 422);
         }
 

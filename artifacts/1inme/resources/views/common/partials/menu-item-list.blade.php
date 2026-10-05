@@ -33,6 +33,9 @@
             @include('common.partials.menu-item-marks', ['mkMarks' => $miItem->marksForDisplay()])
             @if($miItem->description)<div class="desc">{{ $miItem->description }}</div>@endif
             <div class="price">{{ $miFmt($miItem->price) }}</div>
+            @if($miItem->bulk_price !== null && $miItem->coupon_from !== null)
+                <div class="qty-rule">{{ $miFmt($miItem->bulk_price) }} each for {{ $miItem->coupon_from }}+ servings</div>
+            @endif
             {{-- The rule, before they tap Add rather than after. A dish
                  sold in trays of ten that says nothing is a dish whose
                  first refusal arrives at checkout. Items with no rule
@@ -42,6 +45,7 @@
             @if($miOrder && ! $miSold)
                 <div class="addrow" data-add="{{ $miItem->id }}"
                      data-name="{{ e($miItem->name) }}" data-price="{{ $miItem->price }}"
+                     data-bulk-price="{{ $miItem->bulk_price }}" data-coupon-from="{{ $miItem->coupon_from }}"
                      data-min="{{ (int) ($miItem->min_quantity ?? 1) }}"
                      data-max="{{ $miItem->max_quantity !== null ? (int) $miItem->max_quantity : '' }}">
                     <button class="add" type="button" onclick="{{ $miNs }}.add({{ $miItem->id }})">Add</button>

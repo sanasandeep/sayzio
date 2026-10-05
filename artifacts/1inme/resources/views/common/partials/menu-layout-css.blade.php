@@ -143,6 +143,18 @@
 .items.lay-list.div-line .item { border-top-style: solid; }
 .items.lay-list.div-dotted .item { border-top-style: dotted; border-top-width: 2px; }
 .items.lay-list.div-none .item { border-top-style: none; }
+.items.lay-list.div-dashed .item { border-top-style: dashed; }
+.items.lay-list.div-double .item { border-top-style: double; border-top-width: 3px; }
+.items.lay-list:is(.div-curve,.div-wave,.div-pointer,.div-diamond) .item { position: relative; border-top: 0; padding-top: 22px; }
+.items.lay-list:is(.div-curve,.div-wave,.div-pointer,.div-diamond) .item::before {
+    content: ''; position: absolute; left: 0; right: 0; top: 0; height: 8px;
+    background: var(--rule, rgba(128,128,128,.3)); pointer-events: none;
+}
+.items.lay-list.div-curve .item::before { background: none; border-top: 1px solid var(--rule); border-radius: 50%; }
+.items.lay-list.div-wave .item::before { mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='8'%3E%3Cpath d='M0 4 Q6 0 12 4 T24 4' fill='none' stroke='black'/%3E%3C/svg%3E") repeat-x; }
+.items.lay-list.div-pointer .item::before { clip-path: polygon(0 0,100% 0,100% 1px,52% 1px,50% 100%,48% 1px,0 1px); }
+.items.lay-list.div-diamond .item::before { clip-path: polygon(0 3px,48% 3px,50% 0,52% 3px,100% 3px,100% 4px,52% 4px,50% 100%,48% 4px,0 4px); }
+
 
 /* ---- Section headings ------------------------------------------------ */
 /* Sana, 2026-09-23: "design and style of cats and sub cats" / "design looks

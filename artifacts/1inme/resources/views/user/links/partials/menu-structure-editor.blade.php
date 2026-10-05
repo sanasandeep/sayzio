@@ -88,6 +88,14 @@
                 <img x-show="row.photo_url" :src="row.photo_url" alt="" style="width:56px;height:56px;border-radius:10px;object-fit:cover;">
                 <div class="meta">
                     <div class="nm" x-text="row.name"></div>
+                    <div class="flex flex-wrap gap-2 mt-1" x-show="menuMarks.display(row.marks).length">
+                        <template x-for="mk in menuMarks.display(row.marks)" :key="mk.key">
+                            <span class="inline-flex items-center gap-1 text-xs" :style="mk.color ? 'color:' + mk.color : ''" :title="mk.label">
+                                <span class="mkp-ico" x-html="menuMarks.markup(mk, mk.grade)"></span>
+                                <span x-text="mk.label"></span>
+                            </span>
+                        </template>
+                    </div>
                     <div class="ds" x-show="row.description" x-text="row.description"></div>
                     {{-- Through the same formatter as the page. This line used
                          to print the currency code and two decimals on its own,

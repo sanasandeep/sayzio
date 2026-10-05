@@ -1201,6 +1201,9 @@ Route::prefix('user')->name('user.')->group(function () {
             // options active". The range and status come off the same query
             // string the board uses, resolved by the same helper, so a
             // download matches the screen it was taken from.
+            Route::get('links/{link}/'.$menuKind.'/staff-order', [\App\Modules\User\Controllers\MenuStaffOrderController::class, 'show'])->defaults('kind', $menuKind)->middleware('workspace.can:links.edit')->name('links.'.$menuKind.'.staff-order');
+            Route::post('links/{link}/'.$menuKind.'/staff-order/quote', [\App\Modules\User\Controllers\MenuStaffOrderController::class, 'quote'])->defaults('kind', $menuKind)->middleware(['workspace.can:links.edit', 'throttle:60,1'])->name('links.'.$menuKind.'.staff-order.quote');
+            Route::post('links/{link}/'.$menuKind.'/staff-order/place', [\App\Modules\User\Controllers\MenuStaffOrderController::class, 'place'])->defaults('kind', $menuKind)->middleware(['workspace.can:links.edit', 'throttle:20,1'])->name('links.'.$menuKind.'.staff-order.place');
             Route::get ('links/{link}/'.$menuKind.'/orders/export',               [\App\Modules\User\Controllers\MenuOrderExportController::class, 'export'])->defaults('kind', $menuKind)->middleware('workspace.can:links.view')->name('links.'.$menuKind.'.orders.export');
 
             Route::get ('links/{link}/'.$menuKind.'/orders/by-code/{code}',       [\App\Modules\User\Controllers\MenuOrderScanController::class, 'show'])->defaults('kind', $menuKind)->middleware('workspace.can:links.view')->name('links.'.$menuKind.'.orders.by-code');

@@ -15,6 +15,7 @@
     $phoneInputId     = $phoneInputId    ?? 'phone-input';
     $phoneInputClass  = $phoneInputClass ?? '';
     $phoneInputSize   = $phoneInputSize  ?? 'lg';
+    $phoneInputAutoFormat = $phoneInputAutoFormat ?? false;
     [$_piDial, $_piNum] = CountryDialCodes::parse($phoneInputValue);
     $_piCountries = CountryDialCodes::all();
     $_piUniqId    = $phoneInputId . '-' . Str::random(6);
@@ -50,8 +51,28 @@
                     return c.name.toLowerCase().includes(q) || c.dial.includes(q) || c.code.toLowerCase().includes(q);
                 });
             },
+            formatEnabled: @json($phoneInputAutoFormat),
+            formatNumber: function (raw) {
+                var digits = raw.replace(/[^0-9]/g, '');
+                if (/^\s*(\+|00)/.test(raw)) {
+                    if (/^\s*00/.test(raw)) digits = digits.slice(2);
+                    var country = codes.slice().sort((a,b) => b.dial.length - a.dial.length)
+                        .find(c => digits.startsWith(c.dial.slice(1)));
+                    if (country) { this.selected = country; digits = digits.slice(country.dial.length - 1); }
+                }
+                digits = digits.slice(0, 15 - this.selected.dial.length + 1);
+                if (this.selected.code === 'IN') return [digits.slice(0,5), digits.slice(5)].filter(Boolean).join(' ');
+                if (this.selected.dial === '+1') return [digits.slice(0,3), digits.slice(3,6), digits.slice(6)].filter(Boolean).join(' ');
+                return digits.match(/.{1,3}/g)?.join(' ') || '';
+            },
+            changed: function () {
+                if (!this.formatEnabled) return;
+                this.number = this.formatNumber(this.number);
+                this.$dispatch('phone-changed', this.number ? this.selected.dial + this.number.replace(/[^0-9]/g, '') : '');
+            },
             pick: function (c) {
                 this.selected = c;
+                this.changed();
                 this.open = false;
                 this.search = '';
                 this.$nextTick(function () { document.getElementById(_id + '-num').focus(); });
@@ -76,6 +97,7 @@
             aria-label="Select country code"
             :aria-expanded="open">
         <span x-text="selected.flag" class="text-base leading-none"></span>
+        <span x-show="formatEnabled" x-text="selected.name" class="max-w-24 truncate"></span>
         <span x-text="selected.dial" class="font-medium tabular-nums"></span>
         <svg class="w-3 h-3 opacity-50 transition-transform" :class="{'rotate-180': open}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -86,6 +108,7 @@
     <input type="tel"
            id="{{ $_piUniqId }}-num"
            x-model="number"
+           @change="changed()"
            autocomplete="tel-national"
            placeholder="{{ $isSm ? '555 0100' : 'e.g. 98765 43210' }}"
            class="flex-1 min-w-0 bg-transparent rounded-r-[inherit] {{ $isSm ? 'px-2 py-2 text-sm' : 'px-3 py-2.5' }} outline-none placeholder-white/20 focus:ring-2 focus:ring-inset focus:ring-blue-500/40"

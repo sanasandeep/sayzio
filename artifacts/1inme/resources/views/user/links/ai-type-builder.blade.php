@@ -63,7 +63,7 @@
                 <i class="fas fa-pen-nib mt-0.5 text-blue-400"></i>
                 <span>
                     <b class="text-white">Only what you ask for changes.</b>
-                    Say it in your own words — “make the masala dosa 60”, “add a desserts section”,
+                    Say it in your own words: “make the masala dosa 60”, “add a desserts section”,
                     “make the background cream and the prices dark green”. Everything you do not mention
                     is left exactly as it is.
                 </span>
@@ -84,7 +84,7 @@
             <i class="fas fa-triangle-exclamation mt-0.5"></i>
             <span>
                 <b>This rewrites the whole {{ strtolower($typeLabel) }}.</b>
-                What is on it now is sent to the AI and it is asked to keep everything you did not ask it to change —
+                What is on it now is sent to the AI and it is asked to keep everything you did not ask it to change.
                 but the result replaces what is there, so check it afterwards before anybody orders from it.
             </span>
         </div>

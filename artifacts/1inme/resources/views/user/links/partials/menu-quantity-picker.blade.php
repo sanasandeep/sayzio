@@ -35,6 +35,11 @@
         Leave these blank and this {{ $qpNoun }} behaves exactly as it does now.
     </p>
 
+    <div class="mb-3">
+        <label class="qp-head">Bulk price per serving</label>
+        <input class="rm-input" type="number" min="0" max="999999" step="0.01" placeholder="Use regular price" x-model="{{ $qpModal }}.bulk_price">
+        <p class="text-xs mt-1" style="color:var(--text-muted)">Applies to all servings of this item when the order reaches Coupons from. Extras are added per serving. Below the threshold, the regular price applies.</p>
+    </div>
     <div class="qp-grid">
         <div>
             <div class="qp-head">Minimum</div>

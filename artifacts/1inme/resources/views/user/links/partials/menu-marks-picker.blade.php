@@ -110,6 +110,14 @@ window.MENU_MARKS_MAX = {{ \App\Modules\User\Models\MenuItemMark::MAX_PER_ITEM }
 window.menuMarks = {
     list(marks) { return Array.isArray(marks) ? marks : []; },
 
+    display(marks) {
+        const catalogue = (window.MENU_MARK_GROUPS || []).flatMap(g => g.marks);
+        return this.list(marks).flatMap(saved => {
+            const mark = catalogue.find(m => m.key === saved.key);
+            return mark ? [{ ...mark, grade: Math.min(Math.max(1, +saved.grade || 1), Math.max(1, mark.grades || 1)) }] : [];
+        });
+    },
+
     /** 0 when the mark is not on the item, otherwise 1 or more. */
     gradeOf(marks, key) {
         const found = this.list(marks).find(m => m.key === key);
