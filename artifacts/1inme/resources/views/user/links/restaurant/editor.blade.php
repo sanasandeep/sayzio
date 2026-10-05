@@ -119,18 +119,12 @@
     $mePane = in_array(request()->query('pane'), ['items', 'design', 'ordering'], true)
         ? request()->query('pane')
         : 'items';
-    $meExtraActions = [];
-    if (\App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'restaurant_menu_builder')) {
-        $meExtraActions[] = ['label' => 'Build with AI', 'url' => route('user.links.ai-type-builder', $link), 'icon' => 'fa-wand-magic-sparkles', 'class' => 'btn-ghost'];
-    }
-    $meExtraActions[] = ['label' => 'Orders' . ($openOrders > 0 ? ' (' . $openOrders . ')' : ''), 'url' => route('user.links.restaurant.orders', $link), 'icon' => 'fa-receipt', 'class' => 'btn-ghost'];
 @endphp
 
 <div class="w-full max-w-7xl mx-auto" x-data="Object.assign(restaurantEditor(), menuEditorPanes(@js($mePane)))" x-init="init()">
     @include('user.links.partials.editor-header', [
         'link' => $link,
         'activeMainTab' => 'restaurant',
-        'extraActions' => $meExtraActions,
     ])
     @include('user.links.partials.menu-editor-panes', [
         'mepPane'  => $mePane,

@@ -25,20 +25,21 @@
     broken: the kitchen keeps believing it. So the footer shows the time of
     the last successful refresh, and goes amber the moment one fails.
 --}}
-<div class="w-full max-w-[1600px] mx-auto" x-data="kitchenBoard()" x-init="start()">
+<div class="w-full max-w-7xl mx-auto" x-data="kitchenBoard()" x-init="start()">
 
-    @include('user.links.partials.menu-page-header', [
-        'mhTitle' => 'Kitchen',
-        'mhIcon'  => 'fa-fire-burner',
-        'mhLink'  => $link,
-        'mhBack'  => $ordersUrl,
-        'mhBackLabel' => 'Back to orders',
-        'mhActions' => '<span class="mph-btn mph-stat"><b x-text="board.open"></b> open</span>'
-            .'<span class="mph-btn mph-stat" x-show="board.oldest_wait">longest wait <b x-text="board.oldest_wait"></b></span>'
-            .'<button type="button" class="mph-btn" :class="live ? \'\' : \'mph-btn-warn\'" @click="live = !live">'
-            .'<i class="fas" :class="live ? \'fa-circle-pause\' : \'fa-circle-play\'"></i>'
-            .'<span x-text="live ? \'Pause\' : \'Resume\'"></span></button>',
+    @include('user.links.partials.editor-header', [
+        'link' => $link,
+        'activeMainTab' => 'kitchen',
+        'editorBack' => $ordersUrl,
     ])
+    <div class="flex items-center justify-end gap-3 flex-wrap mb-4 text-sm" style="color:var(--text-muted)">
+        <span><b x-text="board.open"></b> open</span>
+        <span x-show="board.oldest_wait">longest wait <b x-text="board.oldest_wait"></b></span>
+        <button type="button" class="btn-ghost text-xs py-2" @click="live = !live">
+            <i class="fas" :class="live ? 'fa-circle-pause' : 'fa-circle-play'"></i>
+            <span x-text="live ? 'Pause' : 'Resume'"></span>
+        </button>
+    </div>
 
     {{-- The free tables, said once and quietly.
 
