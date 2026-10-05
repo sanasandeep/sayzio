@@ -1197,6 +1197,12 @@ Route::prefix('user')->name('user.')->group(function () {
             // `kind` is LAST on the controller, like the coupon routes
             // above: Laravel fills controller arguments positionally from
             // the URI segments and then the defaults, not by name.
+            // Sana, 2026-10-05: "export of orders , pdf, csv, with filter
+            // options active". The range and status come off the same query
+            // string the board uses, resolved by the same helper, so a
+            // download matches the screen it was taken from.
+            Route::get ('links/{link}/'.$menuKind.'/orders/export',               [\App\Modules\User\Controllers\MenuOrderExportController::class, 'export'])->defaults('kind', $menuKind)->middleware('workspace.can:links.view')->name('links.'.$menuKind.'.orders.export');
+
             Route::get ('links/{link}/'.$menuKind.'/orders/by-code/{code}',       [\App\Modules\User\Controllers\MenuOrderScanController::class, 'show'])->defaults('kind', $menuKind)->middleware('workspace.can:links.view')->name('links.'.$menuKind.'.orders.by-code');
 
             Route::get   ('links/{link}/'.$menuKind.'/option-groups',                            [\App\Modules\User\Controllers\MenuOptionController::class, 'index'])->defaults('kind', $menuKind)->middleware('workspace.can:links.view')->name('links.'.$menuKind.'.option-groups.index');

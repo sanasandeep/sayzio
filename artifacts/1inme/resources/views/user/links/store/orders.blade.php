@@ -47,6 +47,14 @@
         <a href="{{ route('user.links.store.editor', $link) }}" class="ro-btn"><i class="fas fa-arrow-left"></i> Back to store</a>
     </div>
 
+    @include('user.links.partials.orders-summary', [
+        'osSummary'  => $summary,
+        'osLabels'   => $labels,
+        'osCurrency' => $menu->currency,
+        'osExport'   => $exportUrl . (str_contains($exportUrl, '?') ? '' : '?'),
+        'osRange'    => $range,
+    ])
+
     @include('user.links.partials.orders-counter', [
         'ocBase' => \Illuminate\Support\Str::beforeLast(route('user.links.store.meal-coupons.by-phone', $link), '/by-phone'),
         'ocNoun' => 'request',

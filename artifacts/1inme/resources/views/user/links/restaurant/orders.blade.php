@@ -49,6 +49,14 @@
         <a href="{{ route('user.links.restaurant.editor', $link) }}" class="ro-btn"><i class="fas fa-arrow-left"></i> Back to menu</a>
     </div>
 
+    @include('user.links.partials.orders-summary', [
+        'osSummary'  => $summary,
+        'osLabels'   => $labels,
+        'osCurrency' => $menu->currency,
+        'osExport'   => $exportUrl . (str_contains($exportUrl, '?') ? '' : '?'),
+        'osRange'    => $range,
+    ])
+
     @include('user.links.partials.orders-counter', [
         'ocBase' => \Illuminate\Support\Str::beforeLast(route('user.links.restaurant.meal-coupons.by-phone', $link), '/by-phone'),
         'ocNoun' => 'order',
