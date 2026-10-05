@@ -32,6 +32,32 @@ abstract class AbstractAiTypeBuilderService
     /** Output budget for the generation call (shared default). */
     public const MAX_OUTPUT_TOKENS = 4000;
 
+    /**
+     * Output budget for an EDIT, which is a different size of answer.
+     *
+     * Sana, 2026-10-05: "for any changes or creating also, 7 coins are
+     * used.. is it fixed? or make it realistic actual use".
+     *
+     * The charge itself is metered -- it is computed from the tokens the
+     * call actually used, not a flat per-feature fee. But a build and an
+     * edit were reserving the SAME 4000-token ceiling, and that ceiling is
+     * what the up-front quote is calculated from. So "change one price"
+     * was being quoted as though it might return an eighty-dish menu,
+     * which is why every job looked like it cost the same.
+     *
+     * An operations list is short by construction -- MenuEditPlan caps a
+     * plan at 40 operations, and forty operations do not fill 4000 tokens.
+     * Quoting and reserving the real size makes the number move with the
+     * job, which is what he is asking for.
+     */
+    public const EDIT_MAX_OUTPUT_TOKENS = 1200;
+
+    /** The output ceiling for this run, which depends on what it is doing. */
+    public function outputBudget(bool $editing): int
+    {
+        return $editing ? static::EDIT_MAX_OUTPUT_TOKENS : static::MAX_OUTPUT_TOKENS;
+    }
+
     public function __construct(
         protected OpenAiService $openai,
         protected AiUsageCharger $charger,
@@ -211,8 +237,9 @@ abstract class AbstractAiTypeBuilderService
             $link ? $this->isEditing($link) : false
         );
         $model    = AiEngineSettings::featureModel($this->feature(), $user);
+        $editing  = $link ? $this->isEditing($link) : false;
 
-        return $this->openai->estimateChatCoins($model, $messages, static::MAX_OUTPUT_TOKENS, $user);
+        return $this->openai->estimateChatCoins($model, $messages, $this->outputBudget($editing), $user);
     }
 
     /**
@@ -233,7 +260,7 @@ abstract class AbstractAiTypeBuilderService
         $model    = AiEngineSettings::featureModel($this->feature(), $user);
 
         $response = $this->openai->chat($user, $model, $messages, [
-            'max_tokens'      => static::MAX_OUTPUT_TOKENS,
+            'max_tokens'      => $this->outputBudget($editing),
             'temperature'     => 0.7,
             'response_format' => ['type' => 'json_object'],
             'feature'         => $this->feature(),

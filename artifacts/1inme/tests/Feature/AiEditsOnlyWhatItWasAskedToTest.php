@@ -11,6 +11,8 @@ use App\Modules\User\Models\StoreMenu;
 use App\Modules\User\Models\StoreProduct;
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\WorkspaceContext;
+use App\Modules\User\Models\MenuItemMark;
+use App\Modules\User\Support\MenuItemMarks;
 use App\Modules\User\Support\MenuPresentation;
 use App\Services\AI\Builder\AiRestaurantMenuBuilderService;
 use App\Services\AI\Builder\AiStoreMenuBuilderService;
@@ -533,6 +535,145 @@ class AiEditsOnlyWhatItWasAskedToTest extends TestCase
             count($report['applied']) + count($report['skipped']),
             'a runaway answer was allowed to rewrite the catalogue'
         );
+    }
+
+    // ── Marks: the field that was missing, and what that cost ─────
+
+    /**
+     * Sana, 2026-10-05: "i told to update all items marks with veg, non
+     * veg and others also.... but it modified with description. how?"
+     *
+     * Because `marks` was not in the vocabulary. Asked for a change it had
+     * no operation for, the model did the nearest thing it could and wrote
+     * "Non-Veg" into the DESCRIPTION, where it appeared on the page
+     * looking almost right -- which is the worst kind of wrong.
+     *
+     * The deeper cause is the one this file already had an essay about:
+     * only the APPEARANCE half was generated from a catalogue. The item
+     * fields were hand-listed. So this walks the marks table the same way
+     * the appearance test walks the colours.
+     */
+    public function test_every_mark_the_picker_offers_can_be_set_by_ai(): void
+    {
+        MenuItemMarks::forget();
+        $pickable = MenuItemMarks::pickable();
+
+        $this->assertGreaterThan(0, $pickable->count(), 'no marks are set up — this test would assert nothing');
+
+        $prompt = MenuEditVocabulary::prompt();
+        [$link, $menu, $schema] = $this->page('restaurant');
+
+        foreach ($pickable as $mark) {
+            $this->assertStringContainsString(
+                '"'.$mark->key.'"',
+                $prompt,
+                $mark->key.' is offered in the picker and the AI is never told it exists'
+            );
+
+            $report = $this->apply([
+                ['op' => 'item.update', 'item' => 'Masala Dosa', 'marks' => [$mark->key]],
+            ], $menu, $link, $schema);
+
+            $this->assertSame([], $report['skipped'], $mark->key.': '.json_encode($report['skipped']));
+
+            $stored = $schema['item']::where('menu_id', $menu->id)->where('name', 'Masala Dosa')->value('marks');
+            $keys = array_column(is_array($stored) ? $stored : (json_decode((string) $stored, true) ?: []), 'key');
+
+            $this->assertContains($mark->key, $keys, $mark->key.': the AI set it and it did not reach the row');
+        }
+    }
+
+    /** The bug exactly as he hit it: the mark must not land in the text. */
+    public function test_setting_marks_does_not_touch_the_description(): void
+    {
+        MenuItemMarks::forget();
+        $mark = MenuItemMarks::pickable()->first();
+        $this->assertNotNull($mark);
+
+        foreach ($this->bothKinds() as $kind) {
+            [$link, $menu, $schema] = $this->page($kind);
+
+            $this->apply([
+                ['op' => 'item.update', 'item' => 'Masala Dosa', 'product' => 'Masala Dosa', 'marks' => [$mark->key]],
+            ], $menu, $link, $schema);
+
+            $row = $schema['item']::where('menu_id', $menu->id)->where('name', 'Masala Dosa')->first();
+
+            $this->assertSame(
+                'As it was',
+                $row->description,
+                $kind.': the mark was written into the description — the badge stays unset and the word lands in the wrong place'
+            );
+        }
+    }
+
+    public function test_a_mark_that_does_not_exist_is_refused_rather_than_clearing_the_rest(): void
+    {
+        MenuItemMarks::forget();
+        $real = MenuItemMarks::pickable()->first();
+        [$link, $menu, $schema] = $this->page('restaurant');
+
+        $this->apply([
+            ['op' => 'item.update', 'item' => 'Masala Dosa', 'marks' => [$real->key]],
+        ], $menu, $link, $schema);
+
+        $report = $this->apply([
+            ['op' => 'item.update', 'item' => 'Masala Dosa', 'marks' => ['definitely-not-a-mark']],
+        ], $menu, $link, $schema);
+
+        $this->assertSame([], $report['applied']);
+        $this->assertStringContainsString('no mark here is called', $report['skipped'][0]['why']);
+
+        // And the badge it already had is still on it. Clearing a dish's
+        // marks because the model guessed the wrong word is a change
+        // nobody asked for.
+        $stored = $schema['item']::where('menu_id', $menu->id)->where('name', 'Masala Dosa')->value('marks');
+        $keys = array_column(is_array($stored) ? $stored : (json_decode((string) $stored, true) ?: []), 'key');
+
+        $this->assertContains($real->key, $keys, 'a bad mark wiped the marks that were already there');
+    }
+
+    public function test_the_prompt_forbids_putting_a_mark_in_the_description(): void
+    {
+        $prompt = MenuEditVocabulary::prompt();
+
+        // The model reached for the description because nothing told it not
+        // to and nothing offered it the right field.
+        $this->assertStringContainsString('A mark NEVER goes in "description"', $prompt);
+        $this->assertStringContainsString('"marks"', $prompt);
+    }
+
+    // ── What a job costs ──────────────────────────────────────────
+
+    /**
+     * Sana, 2026-10-05: "for any changes or creating also, 7 coins are
+     * used.. is it fixed? or make it realistic actual use".
+     *
+     * The charge is metered -- computed from the tokens the call really
+     * used. But a build and an edit were reserving the same 4000-token
+     * ceiling, and that ceiling is what the up-front quote is computed
+     * from, so "change one price" was quoted as though it might return an
+     * eighty-dish menu. An operations list cannot be that big: the applier
+     * caps a plan at 40 operations.
+     */
+    public function test_an_edit_is_not_quoted_as_though_it_returns_a_whole_menu(): void
+    {
+        $service = app(AiRestaurantMenuBuilderService::class);
+
+        $this->assertLessThan(
+            $service::MAX_OUTPUT_TOKENS,
+            $service::EDIT_MAX_OUTPUT_TOKENS,
+            'an edit reserves as much room as a full build, so every job is quoted the same'
+        );
+
+        [$link] = $this->page('restaurant');
+
+        $this->assertSame($service::EDIT_MAX_OUTPUT_TOKENS, $service->outputBudget(true));
+        $this->assertSame($service::MAX_OUTPUT_TOKENS, $service->outputBudget(false));
+
+        // And the budget follows what the run is actually doing, rather
+        // than being chosen somewhere the generate path never reads.
+        $this->assertTrue($service->isEditing($link));
     }
 
     // ── The wiring, which is where the damage would be ────────────

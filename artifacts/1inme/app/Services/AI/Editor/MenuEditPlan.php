@@ -3,6 +3,7 @@
 namespace App\Services\AI\Editor;
 
 use App\Modules\User\Models\Link;
+use App\Modules\User\Support\MenuItemMarks;
 use App\Modules\User\Support\MenuPresentation;
 
 /**
@@ -235,6 +236,9 @@ class MenuEditPlan
         if (array_key_exists('hidden', $raw) && is_bool($raw['hidden'])) {
             $changes['is_active'] = ! $raw['hidden'];
         }
+        if (array_key_exists('marks', $raw)) {
+            $changes['marks'] = self::marks($raw['marks']);
+        }
 
         if (! $changes) {
             throw new SkippedOperation('no change was given for "'.$item->name.'"');
@@ -270,6 +274,7 @@ class MenuEditPlan
             'description' => self::str($raw['description'] ?? null, 500),
             'price'       => self::price($raw['price'] ?? 0),
             'currency'    => $menu->currency,
+            'marks'       => array_key_exists('marks', $raw) ? self::marks($raw['marks']) : [],
             'sort_order'  => (int) $last + 1,
             'is_active'   => true,
         ]);
@@ -422,6 +427,46 @@ class MenuEditPlan
 
     // ---- small helpers --------------------------------------------------
 
+    /**
+     * The marks a dish may be given, through the editor's own sanitiser.
+     *
+     * Sana, 2026-10-05: "i told to update all items marks with veg, non
+     * veg and others also.... but it modified with description."
+     *
+     * MenuItemMarks::sanitize is what the PUT endpoint runs, so a mark the
+     * AI sets is a mark the picker would have produced -- unknown keys
+     * dropped, grades clamped, vocabulary order, capped. One sanitiser,
+     * so the AI cannot write a value the editor would refuse.
+     *
+     * An entirely unknown set is a SKIP rather than a silent empty write:
+     * clearing every badge off a dish because the model guessed "vegan"
+     * when the menu calls it "veg" is a change nobody asked for.
+     */
+    private static function marks(mixed $raw): array
+    {
+        if ($raw === null || $raw === []) {
+            return [];
+        }
+        if (! is_array($raw)) {
+            throw new SkippedOperation('marks must be a list of mark keys');
+        }
+
+        $clean = MenuItemMarks::sanitize($raw);
+
+        if ($clean === []) {
+            $tried = implode(', ', array_filter(array_map(
+                fn ($m) => is_array($m) ? ($m['key'] ?? null) : (is_string($m) ? $m : null),
+                $raw
+            )));
+
+            throw new SkippedOperation(
+                'no mark here is called '.($tried !== '' ? '"'.$tried.'"' : 'that')
+            );
+        }
+
+        return $clean;
+    }
+
     private static function str(mixed $value, int $max): ?string
     {
         if (! is_string($value)) {
@@ -446,6 +491,7 @@ class MenuEditPlan
             'description' => 'description',
             'price'       => 'price',
             'is_active'   => 'visibility',
+            'marks'       => 'marks',
             $schema['sold_out'] => 'stock',
             default       => $key,
         };
@@ -455,6 +501,14 @@ class MenuEditPlan
     {
         if (is_bool($value)) {
             return $value ? 'on' : 'off';
+        }
+
+        if (is_array($value)) {
+            // The LABELS, not the keys. "Non-Veg" is what the creator
+            // asked for; "nonveg" is what the database calls it.
+            $labels = MenuItemMarks::describe(MenuItemMarks::resolve($value));
+
+            return $labels !== '' ? $labels : 'cleared';
         }
 
         return $value === null ? 'cleared' : (string) $value;
