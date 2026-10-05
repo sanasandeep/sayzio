@@ -24,11 +24,16 @@
         ['icon' => $__typeIcon, 'text' => \App\Modules\User\Models\Link::typeLabel($link->type)],
     ],
     'back'     => route('user.links.index'),
-    'actions'  => [
+    // Sana, 2026-10-05: the menu editors had their own header with their own
+    // actions (Build with AI, Orders, View) and so could not use this one
+    // without losing them. Extra actions go FIRST because they are the ones
+    // specific to this page type; the three icon buttons after them are the
+    // same on every editor and read as the trailing furniture they are.
+    'actions'  => array_merge($extraActions ?? [], [
         ['label' => '', 'url' => $link->getShortUrl(), 'icon' => 'fa-external-link-alt', 'class' => 'btn-ghost', 'target' => '_blank', 'title' => 'Open in new tab'],
         ['label' => '', 'url' => route('user.qr-codes.create', ['link_id' => $link->id]), 'icon' => 'fa-qrcode', 'class' => 'btn-ghost', 'title' => 'QR Code'],
         ['label' => '', 'url' => route('user.links.show', $link), 'icon' => 'fa-chart-bar', 'class' => 'btn-ghost', 'title' => 'Analytics'],
-    ],
+    ]),
 ])
 
 @if(!($hideEditorTabs ?? false))

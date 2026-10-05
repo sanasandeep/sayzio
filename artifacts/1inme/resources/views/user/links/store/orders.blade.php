@@ -51,6 +51,7 @@
         'ocBase' => \Illuminate\Support\Str::beforeLast(route('user.links.store.meal-coupons.by-phone', $link), '/by-phone'),
         'ocNoun' => 'request',
         'ocBoard' => route('user.links.store.orders', $link),
+        'ocOrderBase' => \Illuminate\Support\Str::beforeLast(route('user.links.store.orders.by-code', ['link' => $link, 'code' => 'X']), '/X'),
     ])
 
     @include('user.links.partials.orders-range-bar', ['rbRoute' => route('user.links.store.orders', $link)])

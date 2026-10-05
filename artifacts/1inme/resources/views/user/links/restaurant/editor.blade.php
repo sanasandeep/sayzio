@@ -107,25 +107,41 @@
     .rm-modal { background:var(--bg-card); border:1px solid var(--border-glass); border-radius:1rem; padding:22px; width:100%; max-width:480px; max-height:90vh; overflow:auto; }
 </style>
 
-<div class="max-w-7xl mx-auto" x-data="restaurantEditor()" x-init="init()">
-    <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <div>
-            <h1 class="text-xl font-bold" style="color:var(--text-primary)">{{ $link->title ?: $link->alias }}</h1>
-            <p class="text-sm" style="color:var(--text-muted)">Restaurant Menu · /{{ $link->alias }}</p>
-        </div>
-        <div class="flex gap-2">
-            @if(\App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'restaurant_menu_builder'))
-                <a href="{{ route('user.links.ai-type-builder', $link) }}" class="rm-btn ghost"><i class="fas fa-wand-magic-sparkles"></i> Build with AI</a>
-            @endif
-            <a href="{{ route('user.links.restaurant.orders', $link) }}" class="rm-btn ghost">
-                <i class="fas fa-receipt"></i> Orders @if($openOrders > 0)<span class="rm-pill">{{ $openOrders }}</span>@endif
-            </a>
-            <a href="{{ url('/'.$link->alias) }}" target="_blank" class="rm-btn ghost"><i class="fas fa-external-link-alt"></i> View</a>
-        </div>
-    </div>
+@php
+    // Sana, 2026-10-05: "move settings column to another tab menu menu...
+    // this way it will look uniform and all will be looking same layout
+    // type... menu tab content should open in this layout".
+    //
+    // It now does. The hero, the main tab row and the live preview beside
+    // the content are the same ones every other editor screen uses; what
+    // was a 320px column bolted to the item list is two panes of the same
+    // width as the items, under a bar that matches the Settings screens.
+    $mePane = in_array(request()->query('pane'), ['items', 'design', 'ordering'], true)
+        ? request()->query('pane')
+        : 'items';
+    $meExtraActions = [];
+    if (\App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'restaurant_menu_builder')) {
+        $meExtraActions[] = ['label' => 'Build with AI', 'url' => route('user.links.ai-type-builder', $link), 'icon' => 'fa-wand-magic-sparkles', 'class' => 'btn-ghost'];
+    }
+    $meExtraActions[] = ['label' => 'Orders' . ($openOrders > 0 ? ' (' . $openOrders . ')' : ''), 'url' => route('user.links.restaurant.orders', $link), 'icon' => 'fa-receipt', 'class' => 'btn-ghost'];
+@endphp
 
-    <div class="rm-grid">
-        <div>
+<div class="w-full max-w-7xl mx-auto" x-data="Object.assign(restaurantEditor(), menuEditorPanes(@js($mePane)))" x-init="init()">
+    @include('user.links.partials.editor-header', [
+        'link' => $link,
+        'activeMainTab' => 'restaurant',
+        'extraActions' => $meExtraActions,
+    ])
+    @include('user.links.partials.menu-editor-panes', [
+        'mepPane'  => $mePane,
+        'mepItems' => 'Items',
+    ])
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="lg:col-span-7" style="padding-bottom:72px;">
+
+        {{-- ITEMS ------------------------------------------------------ --}}
+        <div x-show="pane === 'items'" x-cloak>
             @include('user.links.partials.menu-structure-editor', [
                 'meNoun'      => 'item',
                 'meNounTitle' => 'Item',
@@ -135,13 +151,10 @@
             ])
         </div>
 
-        <!-- Settings + tables -->
-        {{-- The support bubble is fixed to the bottom-right, which is where
-             this column ends. Without the gutter it sits on the last control
-             in the card. --}}
-        <div style="padding-bottom:72px;">
+        {{-- DESIGN ----------------------------------------------------- --}}
+        <div x-show="pane === 'design'" x-cloak>
             <div class="rm-card">
-                <h5>Settings</h5>
+                <h5>How the menu looks</h5>
                 {{-- The page background lives on the shared Appearance panel,
                      not here: it is the same picker every other page type uses,
                      and duplicating it per editor is how this app ended up with
@@ -154,43 +167,6 @@
                     <span style="font-size:11px;opacity:.65;">Colour, gradient, 941 ready-made looks &mdash; and the page font</span>
                     <i class="fas fa-arrow-right text-[10px]" style="margin-left:auto;opacity:.5;"></i>
                 </a>
-                <div class="rm-row">
-                    <label class="rm-label">Mode</label>
-                    <div class="rm-mode-toggle">
-                        <label><input type="radio" value="display" x-model="menu.mode" @change="saveSettings()"><span>Display only</span></label>
-                        <label><input type="radio" value="order" x-model="menu.mode" @change="saveSettings()"><span>Order at table</span></label>
-                    </div>
-                    <p class="text-xs mt-2" style="color:var(--text-muted)">Order mode lets guests build a cart and send orders to you. No online payment, guests pay your staff.</p>
-                </div>
-                <div class="rm-row">
-                    {{-- Sana, 2026-09-28: "currency symbol, can u make it
-                         dropdown?"
-
-                         It was a three-character text box, so the only way
-                         to learn whether a currency had a symbol on file was
-                         to type it and watch the sample below. Each option
-                         is labelled with the symbol it will print.
-
-                         A creator already on a currency that is not listed
-                         keeps it: "Other" drops back to the text box rather
-                         than silently rewriting their setting. --}}
-                    <label class="rm-label">Currency</label>
-                    <select class="rm-input" x-show="!currencyIsOther" x-cloak
-                            x-model="menu.currency" @change="onCurrencyPicked($event)">
-                        @foreach(\App\Modules\User\Support\MenuMoney::options() as $c)
-                        <option value="{{ $c['code'] }}">{{ $c['label'] }}</option>
-                        @endforeach
-                        <option value="__other">Other…</option>
-                    </select>
-                    <div x-show="currencyIsOther" x-cloak style="display:flex;gap:6px;align-items:center;">
-                        <input class="rm-input" x-model="menu.currency" maxlength="3"
-                               @change="saveSettings()" style="text-transform:uppercase" placeholder="e.g. GHS">
-                        <button type="button" class="rm-act" title="Back to the list"
-                                @click="currencyOther = false; if (!currencyKnown) { menu.currency = 'USD'; } saveSettings()"><i class="fas fa-list"></i></button>
-                    </div>
-                </div>
-                @include('user.links.partials.menu-money-picker')
-                @include('user.links.partials.menu-fulfilment-panel', ['fpIsRestaurant' => true])
                 <div class="rm-row">
                     {{-- Drawn as a colour row, the same as the four below it.
                          It was a full-width 42px bar -- the same control, two
@@ -249,6 +225,51 @@
                 </div>
                 @include('user.links.partials.menu-divider-picker')
                 @include('user.links.partials.menu-card-design')
+                <p class="text-xs" style="color:var(--text-faint)" x-text="savedMsg"></p>
+            </div>
+        </div>
+
+        {{-- ORDERING --------------------------------------------------- --}}
+        <div x-show="pane === 'ordering'" x-cloak>
+            <div class="rm-card">
+                <h5>How ordering works</h5>
+                <div class="rm-row">
+                    <label class="rm-label">Mode</label>
+                    <div class="rm-mode-toggle">
+                        <label><input type="radio" value="display" x-model="menu.mode" @change="saveSettings()"><span>Display only</span></label>
+                        <label><input type="radio" value="order" x-model="menu.mode" @change="saveSettings()"><span>Order at table</span></label>
+                    </div>
+                    <p class="text-xs mt-2" style="color:var(--text-muted)">Order mode lets guests build a cart and send orders to you. No online payment, guests pay your staff.</p>
+                </div>
+                <div class="rm-row">
+                    {{-- Sana, 2026-09-28: "currency symbol, can u make it
+                         dropdown?"
+
+                         It was a three-character text box, so the only way
+                         to learn whether a currency had a symbol on file was
+                         to type it and watch the sample below. Each option
+                         is labelled with the symbol it will print.
+
+                         A creator already on a currency that is not listed
+                         keeps it: "Other" drops back to the text box rather
+                         than silently rewriting their setting. --}}
+                    <label class="rm-label">Currency</label>
+                    <select class="rm-input" x-show="!currencyIsOther" x-cloak
+                            x-model="menu.currency" @change="onCurrencyPicked($event)">
+                        @foreach(\App\Modules\User\Support\MenuMoney::options() as $c)
+                        <option value="{{ $c['code'] }}">{{ $c['label'] }}</option>
+                        @endforeach
+                        <option value="__other">Other…</option>
+                    </select>
+                    <div x-show="currencyIsOther" x-cloak style="display:flex;gap:6px;align-items:center;">
+                        <input class="rm-input" x-model="menu.currency" maxlength="3"
+                               @change="saveSettings()" style="text-transform:uppercase" placeholder="e.g. GHS">
+                        <button type="button" class="rm-act" title="Back to the list"
+                                @click="currencyOther = false; if (!currencyKnown) { menu.currency = 'USD'; } saveSettings()"><i class="fas fa-list"></i></button>
+                    </div>
+                </div>
+                @include('user.links.partials.menu-money-picker')
+                @include('user.links.partials.menu-fulfilment-panel', ['fpIsRestaurant' => true])
                 <div class="rm-row" x-show="menu.mode === 'order'">
                     <label class="rm-label">WhatsApp number (optional)</label>
                     <input class="rm-input" x-model="menu.whatsapp_number" @change="saveSettings()" placeholder="e.g. +1 555 123 4567" inputmode="tel">
@@ -256,6 +277,7 @@
                 </div>
                 <p class="text-xs" style="color:var(--text-faint)" x-text="savedMsg"></p>
             </div>
+
 
             @include('user.links.partials.menu-confirmation-panel', ['confirmHeadlinePlaceholder' => 'Order placed 🎉'])
 
@@ -357,6 +379,16 @@
                     <p class="text-sm" style="color:var(--text-muted)">No tables yet.</p>
                 </template>
             </div>
+        </div>
+
+        </div>
+
+        {{-- The page itself, beside whichever pane is open. Sana,
+             2026-10-05: "make sure all live changes are done snd shown on
+             right side". The same preview every other editor screen has
+             had; the menu editors were the only ones without one. --}}
+        <div class="lg:col-span-5 hidden lg:block lg:self-stretch lg:h-full">
+            @include('user.links.partials.device-preview', ['link' => $link])
         </div>
     </div>
 

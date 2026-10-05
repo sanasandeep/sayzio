@@ -416,6 +416,10 @@
         {{-- First, and biggest: it is the only thing on this screen the
              guest has to act on. --}}
         <div id="ordToken" style="display:none"></div>
+        {{-- Second to the number, not instead of it: the number is
+             what a guest listens for across a room, the square is
+             what the counter scans. --}}
+        <div id="ordQr" style="display:none"></div>
         <p id="doneStatusRow">Status: <span class="status-pill" id="ordStatus">New</span></p>
         <p class="done-msg" id="doneMsg" style="display:none"></p>
         {{-- Above the bill: an office that ordered 200 lunches came here
@@ -445,6 +449,7 @@
 @include('common.partials.menu-quantity-rules')
 @include('common.partials.menu-cart-store')
 @include('common.partials.menu-token')
+@include('common.partials.menu-order-qr')
 @include('common.partials.menu-contact')
 @include('common.partials.menu-chooser')
 @include('common.partials.menu-confirmation')
@@ -813,6 +818,7 @@
             }, { keep: mealCoupons.length > 0 }) === 'redirected') { return; }
             menuMealCoupons.show(document.getElementById('mealCoupons'), mealCoupons);
             menuToken.show(document.getElementById('ordToken'), order);
+            menuOrderQr.show(document.getElementById('ordQr'), order);
             lines('doneLines');
             renderBill('doneBreakdown', 'doneTotal', {
                 subtotal: order.subtotal,

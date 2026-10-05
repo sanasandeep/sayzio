@@ -29,17 +29,31 @@
     is missing the button is not drawn at all, rather than drawn and
     failing on the tap.
 
+    ---- One box, two kinds of code --------------------------------------
+
+    Sana, 2026-10-05: "QR code per order". Every order now carries its own
+    square on the guest's confirmation, and the same camera and the same
+    box read it.
+
+    Nothing distinguishes them but length, and nothing needs to: a meal
+    coupon is eight characters and an order code is thirty-two, so the
+    panel can tell what it is holding from the string alone -- no prefix,
+    no marker character, nothing for a guest to get wrong by pasting the
+    wrong one. MenuOrderCode owns that rule on the server and a test
+    asserts the two lengths stay different.
+
     Parameters:
-      $ocBase   the meal-coupons URL for this link, with no trailing part
-      $ocNoun   'order' | 'request'
-      $ocBoard  this screen's own URL, for the link to a found card
+      $ocBase       the meal-coupons URL for this link, with no trailing part
+      $ocOrderBase  the orders-by-code URL, with no trailing code
+      $ocNoun       'order' | 'request'
+      $ocBoard      this screen's own URL, for the link to a found card
 --}}
 @php $ocNoun = $ocNoun ?? 'order'; @endphp
-<div class="oc-card" x-data="ordersCounter(@js($ocBase), @js($ocNoun), @js(csrf_token()), @js($ocBoard))">
+<div class="oc-card" x-data="ordersCounter(@js($ocBase), @js($ocNoun), @js(csrf_token()), @js($ocBoard), @js($ocOrderBase ?? null))">
     <div class="oc-top">
         <div>
             <div class="oc-title">Counter</div>
-            <p class="oc-sub">Take a meal coupon, or find an {{ $ocNoun }} by phone number.</p>
+            <p class="oc-sub">Scan an {{ $ocNoun }}, take a meal coupon, or find an {{ $ocNoun }} by phone number.</p>
         </div>
         <button type="button" class="oc-btn oc-ghost" @click="open = !open"
                 :aria-expanded="open ? 'true' : 'false'">
@@ -51,7 +65,7 @@
         <div class="oc-row">
             <input class="oc-input oc-code" type="text" inputmode="latin"
                    autocomplete="off" spellcheck="false"
-                   placeholder="Coupon code, e.g. K3M7-PQRS"
+                   placeholder="Scan, or type a coupon code"
                    x-model="code" @keydown.enter.prevent="lookup()">
             <button type="button" class="oc-btn" @click="lookup()" :disabled="busy">Look up</button>
             <template x-if="canScan">
@@ -65,10 +79,61 @@
              there with no stream is a black rectangle on the page. --}}
         <div x-show="scanning" x-cloak class="oc-cam">
             <video x-ref="cam" playsinline muted></video>
-            <p class="oc-hint">Point at the QR on the coupon.</p>
+            <p class="oc-hint">Point at the QR on the {{ $ocNoun }} or the coupon.</p>
         </div>
 
         <p class="oc-err" x-show="error" x-cloak x-text="error"></p>
+
+        {{-- One order, scanned. Everything a staff member would otherwise
+             go to the board for, and the moves that work from here. --}}
+        <template x-if="order">
+            <div class="oc-found">
+                <div class="oc-found-head">
+                    <div>
+                        <div class="oc-found-code">
+                            <span x-show="order.token_number" x-text="'Token ' + order.token_number"></span>
+                            <span x-show="!order.token_number">Order</span>
+                        </div>
+                        <div class="oc-found-item">
+                            <span x-text="order.customer_name || 'No name'"></span>
+                            <span x-show="order.table_label" x-text="' · ' + order.table_label"></span>
+                        </div>
+                    </div>
+                    <span class="oc-pill" :class="'oc-ord-' + order.status" x-text="order.status_label"></span>
+                </div>
+
+                <div class="oc-lines">
+                    <template x-for="(li, i) in order.items" :key="i">
+                        <div class="oc-line">
+                            <span x-text="li.quantity + ' × ' + li.name"></span>
+                            <span x-text="li.line_total"></span>
+                        </div>
+                    </template>
+                </div>
+                <div class="oc-line oc-line-total">
+                    <span>Total</span>
+                    <span x-text="order.total"></span>
+                </div>
+
+                {{-- The guest's own note. Small, but the reason somebody
+                     walks back to the counter when it is missed. --}}
+                <p class="oc-said" x-show="order.customer_note" x-cloak x-text="order.customer_note"></p>
+                <p class="oc-said" x-show="orderSaid" x-cloak x-text="orderSaid"></p>
+
+                <div class="oc-acts">
+                    {{-- Only the moves the server would accept: the list
+                         comes from the order's own transition map, so a
+                         button that cannot work is never drawn. --}}
+                    <template x-for="n in order.next_statuses" :key="n.value">
+                        <button type="button" class="oc-btn"
+                                :class="n.value === 'cancelled' ? 'oc-ghost' : ''"
+                                @click="moveOrder(n.value)" :disabled="busy" x-text="n.label"></button>
+                    </template>
+                    <a class="oc-btn oc-ghost" :href="cardUrl(order.id)">Open on board</a>
+                    <button type="button" class="oc-btn oc-ghost" @click="clear()">Next</button>
+                </div>
+            </div>
+        </template>
 
         {{-- One coupon, looked up and not yet taken. --}}
         <template x-if="coupon">
@@ -214,6 +279,28 @@
     .oc-issued { background: #10b981; }
     .oc-redeemed { background: #6b7280; }
     .oc-void { background: #9ca3af; }
+    /* The order's status, in the colour a counter reads at a glance:
+       green means hand it over, amber means it is still in the kitchen.
+       Its own set rather than reusing the coupon pills, because
+       "redeemed" grey and "completed" grey mean different things and
+       sharing a class is how one later gets restyled into the other. */
+    .oc-ord-new { background: #3d6bff; }
+    .oc-ord-accepted { background: #6366f1; }
+    .oc-ord-preparing { background: #f59e0b; }
+    .oc-ord-ready { background: #10b981; }
+    .oc-ord-completed { background: #6b7280; }
+    .oc-ord-cancelled { background: #9ca3af; }
+    .oc-lines { margin-top: 10px; }
+    .oc-line {
+        display: flex; justify-content: space-between; gap: 12px;
+        font-size: 13px; color: var(--text-primary);
+        padding: 3px 0;
+    }
+    .oc-line-total {
+        font-weight: 700;
+        border-top: 1px solid var(--border-glass);
+        margin-top: 4px; padding-top: 7px;
+    }
     .oc-sep { height: 1px; background: var(--border-glass); margin: 14px 0; }
     .oc-hit {
         display: flex;
@@ -244,7 +331,7 @@
 
 <script>
 @once
-function ordersCounter(base, noun, csrf, board) {
+function ordersCounter(base, noun, csrf, board, orderBase) {
     return {
         open: false,
         code: '',
@@ -254,6 +341,8 @@ function ordersCounter(base, noun, csrf, board) {
         said: '',
         phoneSaid: '',
         coupon: null,
+        order: null,
+        orderSaid: '',
         found: [],
         scanning: false,
         stream: null,
@@ -268,9 +357,24 @@ function ordersCounter(base, noun, csrf, board) {
 
         clear() {
             this.coupon = null;
+            this.order = null;
             this.code = '';
             this.error = '';
             this.said = '';
+            this.orderSaid = '';
+        },
+
+        /**
+         * An order code, or a coupon code?
+         *
+         * Length alone, which is the whole reason this panel needs no
+         * prefix and no second box: a meal coupon is eight characters from
+         * an alphabet with no 0, 1, I, L, O or U, and an order code is a
+         * thirty-two character hex string. MenuOrderCode::isOne() is the
+         * same rule on the server, and a test holds the two lengths apart.
+         */
+        isOrderCode(typed) {
+            return /^[0-9A-F]{32}$/.test(typed);
         },
 
         statusWord(s) {
@@ -299,11 +403,14 @@ function ordersCounter(base, noun, csrf, board) {
 
         async lookup() {
             const typed = (this.code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-            if (!typed) { this.error = 'Type the code from the coupon.'; return; }
+            if (!typed) { this.error = 'Scan a code, or type one from a coupon.'; return; }
+
+            if (this.isOrderCode(typed)) { return this.lookupOrder(typed); }
 
             this.busy = true;
             this.error = '';
             this.said = '';
+            this.order = null;
             try {
                 const r = await fetch(base + '/' + encodeURIComponent(typed), {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
@@ -319,6 +426,80 @@ function ordersCounter(base, noun, csrf, board) {
                     this.said = this.coupon.status === 'void'
                         ? 'This coupon was cancelled.'
                         : 'Already collected.';
+                }
+            } catch (e) {
+                this.error = 'Could not reach the server. Try again.';
+            } finally {
+                this.busy = false;
+            }
+        },
+
+        /** The order behind a scanned square. */
+        async lookupOrder(typed) {
+            if (!orderBase) {
+                this.error = 'Scanning orders is not set up on this screen.';
+                return;
+            }
+
+            this.busy = true;
+            this.error = '';
+            this.said = '';
+            this.orderSaid = '';
+            this.coupon = null;
+            try {
+                const r = await fetch(orderBase + '/' + encodeURIComponent(typed), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                const j = await r.json();
+                if (!r.ok) {
+                    this.order = null;
+                    this.error = (j.error && j.error.message) || 'That code could not be looked up.';
+                    return;
+                }
+                this.order = j.data.order;
+            } catch (e) {
+                this.error = 'Could not reach the server. Try again.';
+            } finally {
+                this.busy = false;
+            }
+        },
+
+        /**
+         * Move the scanned order along.
+         *
+         * Posts to the URL the lookup handed over, which is the same
+         * endpoint the board uses and the one that validates the
+         * transition. The server's answer replaces what is on screen, so a
+         * move another phone made in the meantime shows up here rather
+         * than being painted over optimistically.
+         */
+        async moveOrder(status) {
+            if (!this.order) { return; }
+            this.busy = true;
+            this.error = '';
+            this.orderSaid = '';
+            try {
+                const r = await fetch(this.order.status_url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrf,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ status: status }),
+                });
+                const j = await r.json();
+                if (!r.ok) {
+                    this.error = (j.error && j.error.message) || 'That could not be changed.';
+                    return;
+                }
+                // Re-read rather than patch: the response from the status
+                // endpoint is the board's shape, not the counter's, and
+                // guessing at the new transitions here is how a button
+                // that cannot work gets drawn.
+                await this.lookupOrder(this.order.code);
+                if (this.order) {
+                    this.orderSaid = 'Now ' + String(this.order.status_label).toLowerCase() + '.';
                 }
             } catch (e) {
                 this.error = 'Could not reach the server. Try again.';

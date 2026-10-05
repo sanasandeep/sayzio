@@ -784,6 +784,11 @@ class RestaurantController extends Controller
 
         return array_merge([
             'public_token' => $order->public_token,
+            // Sana, 2026-10-05: "QR code per order". The identifier was
+            // already here; this is the form the QR carries and the form
+            // the counter compares, both from MenuOrderCode so the two
+            // ends cannot drift apart.
+            'order_code'   => \App\Modules\User\Support\MenuOrderCode::of($order->public_token),
             'status'       => $order->status,
             'status_label' => $order->status_label,
             'subtotal'     => $order->subtotal,

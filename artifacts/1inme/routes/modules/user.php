@@ -1185,6 +1185,20 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get ('links/{link}/'.$menuKind.'/meal-coupons/{code}',         [\App\Modules\User\Controllers\MenuCouponController::class, 'show'])->defaults('kind', $menuKind)->middleware('workspace.can:links.view')->name('links.'.$menuKind.'.meal-coupons.show');
             Route::post('links/{link}/'.$menuKind.'/meal-coupons/{code}/redeem',  [\App\Modules\User\Controllers\MenuCouponController::class, 'redeem'])->defaults('kind', $menuKind)->middleware('workspace.can:links.edit')->name('links.'.$menuKind.'.meal-coupons.redeem');
 
+            // Sana, 2026-10-05: "QR code per order". The counter scans the
+            // square on a guest's confirmation and gets that order back.
+            //
+            // Read only, and `links.view` accordingly: moving the order
+            // along goes through .orders.status below, which already
+            // validates the transition. A second way to change a status is
+            // a second place for the two to disagree about what "ready"
+            // means.
+            //
+            // `kind` is LAST on the controller, like the coupon routes
+            // above: Laravel fills controller arguments positionally from
+            // the URI segments and then the defaults, not by name.
+            Route::get ('links/{link}/'.$menuKind.'/orders/by-code/{code}',       [\App\Modules\User\Controllers\MenuOrderScanController::class, 'show'])->defaults('kind', $menuKind)->middleware('workspace.can:links.view')->name('links.'.$menuKind.'.orders.by-code');
+
             Route::get   ('links/{link}/'.$menuKind.'/option-groups',                            [\App\Modules\User\Controllers\MenuOptionController::class, 'index'])->defaults('kind', $menuKind)->middleware('workspace.can:links.view')->name('links.'.$menuKind.'.option-groups.index');
             Route::post  ('links/{link}/'.$menuKind.'/option-groups',                            [\App\Modules\User\Controllers\MenuOptionController::class, 'storeGroup'])->defaults('kind', $menuKind)->middleware('workspace.can:links.edit')->name('links.'.$menuKind.'.option-groups.store');
             Route::put   ('links/{link}/'.$menuKind.'/option-groups/{group}',                    [\App\Modules\User\Controllers\MenuOptionController::class, 'updateGroup'])->defaults('kind', $menuKind)->middleware('workspace.can:links.edit')->name('links.'.$menuKind.'.option-groups.update');
