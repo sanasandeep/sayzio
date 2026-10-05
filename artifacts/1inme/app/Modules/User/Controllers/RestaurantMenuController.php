@@ -80,6 +80,7 @@ class RestaurantMenuController extends Controller
             // menu items and all"). Each is optional; an absent one keeps
             // inheriting the page ink, which is what the page did before.
         ] + \App\Modules\User\Support\MenuPresentation::colourRules() + \App\Modules\User\Support\MenuHero::rules() + \App\Modules\User\Support\MenuSectionNav::rules() + [
+            'item_search_enabled' => 'sometimes|boolean',
             'tax_enabled'     => 'sometimes|boolean',
             'tax_rate'        => 'nullable|numeric|min:0|max:100',
             'tax_inclusive'   => 'sometimes|boolean',
@@ -107,6 +108,10 @@ class RestaurantMenuController extends Controller
         // Which of the five layouts draws the items. Validated against the
         // catalog rather than trusted, so an unknown key falls back to the
         // list layout this page has always had instead of rendering nothing.
+        if ($request->has('item_search_enabled')) {
+            $settings['item_search_enabled'] = $request->boolean('item_search_enabled');
+        }
+
         if ($request->has('layout')) {
             $settings['layout'] = \App\Modules\User\Support\MenuPresentation::layout($data['layout'] ?? null);
         }

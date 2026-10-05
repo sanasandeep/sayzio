@@ -311,6 +311,10 @@
         ])
     @endif
 
+    @if($menu->settings['item_search_enabled'] ?? false)
+        @include('common.partials.menu-item-search', ['searchTree' => $tree])
+    @endif
+
     @include('common.partials.menu-section-list', [
         'msTree'    => $tree,
         'msMarker'  => $snMarker,

@@ -85,3 +85,8 @@
     window.MENU_SECTION_ICONS = @json(\App\Modules\User\Support\MenuSectionNav::ICONS);
 </script>
 @endonce
+
+<div class="rm-field">
+    <label class="rm-label"><input type="checkbox" x-model="menu.item_search_enabled" @change="saveSettings()"> Enable item search and filters</label>
+    <p class="rm-help">Search by name or description and filter by category, marks, price and availability. Also available during staff ordering.</p>
+</div>

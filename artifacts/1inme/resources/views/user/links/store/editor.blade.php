@@ -445,6 +445,7 @@
         $menuColours[$ck] = \App\Modules\User\Support\MenuPresentation::hex($menu->settings[$ck] ?? null);
     }
     $menuColours += \App\Modules\User\Support\MenuSectionNav::colours((array) ($menu->settings ?? []));
+    $menuColours['item_search_enabled'] = (bool) ($menu->settings['item_search_enabled'] ?? false);
     $menuColours['section_nav'] = \App\Modules\User\Support\MenuSectionNav::nav($menu->settings['section_nav'] ?? null);
     $menuColours['section_marker'] = \App\Modules\User\Support\MenuSectionNav::marker($menu->settings['section_marker'] ?? null);
     $menuHero = \App\Modules\User\Support\MenuHero::resolve((array) ($menu->settings ?? []));
@@ -648,6 +649,7 @@ function storeEditor() {
                 confirm_message:this.confirm.message||'',
                 confirm_headline:this.confirm.headline||'',
                 accepting_orders:!!this.menu.accepting_orders,
+                item_search_enabled:!!this.menu.item_search_enabled,
                 section_nav:this.menu.section_nav||'tabs',
                 section_marker:this.menu.section_marker||'number',
                 section_nav_text_color:this.menu.section_nav_text_color||'',

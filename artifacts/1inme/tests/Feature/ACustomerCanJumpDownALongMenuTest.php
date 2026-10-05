@@ -476,6 +476,31 @@ class ACustomerCanJumpDownALongMenuTest extends TestCase
         }
     }
 
+    public function test_item_search_can_be_enabled_disabled_and_reloaded_on_both_menu_types(): void
+    {
+        foreach (['restaurant', 'store'] as $kind) {
+            [$link, $menu, $schema] = $this->page($kind);
+            $this->section($menu, $schema, 'Breakfast', 0);
+            $this->assertStringNotContainsString('id="menu-item-search"', $this->publicPage($link));
+            $this->actingAs($this->owner);
+            $url = route('user.links.'.$kind.'.settings', $link);
+            $required = ['mode' => $menu->mode, 'currency' => $menu->currency];
+            foreach ([true, false] as $enabled) {
+                $this->postJson($url, $required + ['item_search_enabled' => $enabled])->assertSuccessful();
+                $this->assertSame($enabled, $menu->fresh()->settings['item_search_enabled']);
+                $html = $this->publicPage($link);
+                $this->assertSame($enabled, str_contains($html, 'id="menu-item-search"'));
+                $this->assertStringContainsString('Breakfast dish', $html);
+                $this->postJson($url, $required)->assertSuccessful();
+                $this->assertSame($enabled, $menu->fresh()->settings['item_search_enabled']);
+                $editor = $this->get(route('user.links.'.$kind.'.editor', $link))->assertOk()->getContent();
+                $this->assertStringContainsString('"item_search_enabled":'.($enabled ? 'true' : 'false'), $editor);
+                $this->assertStringContainsString('item_search_enabled:!!this.menu.item_search_enabled', $editor);
+            }
+            $this->postJson($url, $required + ['item_search_enabled' => 'invalid'])->assertStatus(422);
+        }
+    }
+
     public function test_unconfigured_navigation_uses_readable_colours(): void
     {
         [$link, $menu, $schema] = $this->page();

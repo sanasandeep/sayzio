@@ -61,6 +61,7 @@ class StoreMenuController extends Controller
         $menu = $this->menuFor($link);
 
         $data = $request->validate([
+            'item_search_enabled' => 'sometimes|boolean',
             'mode'             => 'required|in:display,order',
             'currency'         => 'required|string|size:3',
             'accent_color'     => 'nullable|string|max:16',
@@ -108,6 +109,10 @@ class StoreMenuController extends Controller
         // Which of the five layouts draws the products. Validated against
         // the catalog rather than trusted, so an unknown key falls back to
         // the list layout this page has always had.
+        if ($request->has('item_search_enabled')) {
+            $settings['item_search_enabled'] = $request->boolean('item_search_enabled');
+        }
+
         if ($request->has('layout')) {
             $settings['layout'] = \App\Modules\User\Support\MenuPresentation::layout($data['layout'] ?? null);
         }
