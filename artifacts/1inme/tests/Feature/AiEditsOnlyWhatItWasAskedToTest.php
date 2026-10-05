@@ -326,20 +326,18 @@ class AiEditsOnlyWhatItWasAskedToTest extends TestCase
      */
     public function test_every_appearance_control_the_editor_offers_can_be_set_by_ai(): void
     {
-        $catalogue = [
-            'colours'  => array_keys(MenuPresentation::COLOURS),
-            'layout'   => array_keys(MenuPresentation::LAYOUTS),
-            'divider'  => array_keys(MenuPresentation::DIVIDERS),
-            'heading'  => array_keys(MenuPresentation::HEADINGS),
-            'price'    => array_keys(MenuPresentation::PRICES),
-        ];
+        // Walked from the vocabulary's OWN source list rather than a copy
+        // of it. The first version named the four catalogues here, so
+        // adding a fifth choice setting (section_nav, section_marker) left
+        // it silently uncovered -- a guard with a hand-written list is the
+        // thing this guard exists to prevent.
 
         $addressable = MenuEditVocabulary::appearanceKeys();
         $prompt      = MenuEditVocabulary::prompt();
 
         [$link, $menu, $schema] = $this->page('restaurant');
 
-        foreach ($catalogue['colours'] as $key) {
+        foreach (array_keys(MenuPresentation::COLOURS) as $key) {
             $this->assertArrayHasKey($key, $addressable, $key.' is offered in the editor and cannot be asked for');
             $this->assertStringContainsString($key, $prompt, $key.' is accepted but the model is never told about it');
 
@@ -352,10 +350,10 @@ class AiEditsOnlyWhatItWasAskedToTest extends TestCase
             );
         }
 
-        foreach (['layout' => 'layout', 'divider' => 'divider', 'heading_style' => 'heading', 'price_style' => 'price'] as $key => $bucket) {
+        foreach (MenuEditVocabulary::CHOICE_SOURCES as $key => [$class, $constant]) {
             $this->assertArrayHasKey($key, $addressable, $key.' is a setting with no AI operation');
 
-            foreach ($catalogue[$bucket] as $value) {
+            foreach (array_keys(constant($class.'::'.$constant)) as $value) {
                 $this->assertStringContainsString($value, $prompt, $key.'='.$value.' is allowed but never offered to the model');
 
                 $this->apply([['op' => 'appearance.set', 'key' => $key, 'value' => $value]], $menu, $link, $schema);

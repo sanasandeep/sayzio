@@ -79,7 +79,7 @@ class RestaurantMenuController extends Controller
             // Menu colours (Sana, 2026-09-23: "i cannot change colors of
             // menu items and all"). Each is optional; an absent one keeps
             // inheriting the page ink, which is what the page did before.
-        ] + \App\Modules\User\Support\MenuPresentation::colourRules() + \App\Modules\User\Support\MenuHero::rules() + [
+        ] + \App\Modules\User\Support\MenuPresentation::colourRules() + \App\Modules\User\Support\MenuHero::rules() + \App\Modules\User\Support\MenuSectionNav::rules() + [
             'tax_enabled'     => 'sometimes|boolean',
             'tax_rate'        => 'nullable|numeric|min:0|max:100',
             'tax_inclusive'   => 'sometimes|boolean',
@@ -109,6 +109,21 @@ class RestaurantMenuController extends Controller
         // list layout this page has always had instead of rendering nothing.
         if ($request->has('layout')) {
             $settings['layout'] = \App\Modules\User\Support\MenuPresentation::layout($data['layout'] ?? null);
+        }
+
+        // Sana, 2026-10-05: "Section jumping" and "section headings should
+        // have numbers default".
+        //
+        // Same treatment as the layout: the catalogue decides what is
+        // valid, so an unknown key falls back to the default rather than
+        // rendering nothing. Validated AND written -- the first version of
+        // this change validated both and wrote neither, which is a control
+        // that exists and does nothing, for the seventeenth time.
+        if ($request->has('section_nav')) {
+            $settings['section_nav'] = \App\Modules\User\Support\MenuSectionNav::nav($data['section_nav'] ?? null);
+        }
+        if ($request->has('section_marker')) {
+            $settings['section_marker'] = \App\Modules\User\Support\MenuSectionNav::marker($data['section_marker'] ?? null);
         }
 
         // Divider shape between items. Same treatment as the layout: the
@@ -384,6 +399,8 @@ class RestaurantMenuController extends Controller
         $data = $request->validate([
             'name'        => 'required|string|max:120',
             'description' => 'nullable|string|max:500',
+            // Sana, 2026-10-05: "option with selecting icons also".
+            'icon'        => ['nullable', 'string', 'max:40', \Illuminate\Validation\Rule::in(array_keys(\App\Modules\User\Support\MenuSectionNav::ICONS))],
             'parent_id'   => 'nullable|integer',
             'is_active'   => 'sometimes|boolean',
         ]);
@@ -407,6 +424,11 @@ class RestaurantMenuController extends Controller
             'parent_id'   => $parentId,
             'name'        => $data['name'],
             'description' => $data['description'] ?? null,
+            // Validated AND saved. The first version of this accepted an
+            // icon, passed every rule, and then did not write it -- which
+            // is this codebase's oldest bug shape: a control that exists
+            // and does nothing.
+            'icon'        => \App\Modules\User\Support\MenuSectionNav::icon($data['icon'] ?? null),
             'is_active'   => (bool) ($data['is_active'] ?? true),
             'sort_order'  => (int) $siblings->max('sort_order') + 1,
         ]);
@@ -422,6 +444,8 @@ class RestaurantMenuController extends Controller
         $data = $request->validate([
             'name'        => 'sometimes|required|string|max:120',
             'description' => 'nullable|string|max:500',
+            // Sana, 2026-10-05: "option with selecting icons also".
+            'icon'        => ['nullable', 'string', 'max:40', \Illuminate\Validation\Rule::in(array_keys(\App\Modules\User\Support\MenuSectionNav::ICONS))],
             'parent_id'   => 'sometimes|nullable|integer',
             'is_active'   => 'sometimes|boolean',
         ]);

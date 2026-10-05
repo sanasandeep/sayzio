@@ -227,6 +227,7 @@
                     </div>
                     <p class="text-xs mt-2" style="color:var(--text-muted)" x-text="layoutHint"></p>
                 </div>
+                @include('user.links.partials.menu-section-nav-picker')
                 @include('user.links.partials.menu-divider-picker')
                 @include('user.links.partials.menu-card-design')
                 <p class="text-xs" style="color:var(--text-faint)" x-text="savedMsg"></p>
@@ -473,7 +474,11 @@ function storeEditor() {
         // an empty string, which the save path reads as "clear it".
         colourFields: @json($menuColourFields),
         layoutHints: @json(collect(\App\Modules\User\Support\MenuPresentation::LAYOUTS)->map(fn ($l) => $l['hint'])),
+        sectionNavHints: @json(collect(\App\Modules\User\Support\MenuSectionNav::NAVS)->map(fn ($n) => $n['hint'])),
+        sectionMarkerHints: @json(collect(\App\Modules\User\Support\MenuSectionNav::MARKERS)->map(fn ($m) => $m['hint'])),
         get layoutHint(){ return this.layoutHints[this.menu.layout] || ''; },
+        get sectionNavHint(){ return this.sectionNavHints[this.menu.section_nav || 'tabs'] || ''; },
+        get sectionMarkerHint(){ return this.sectionMarkerHints[this.menu.section_marker || 'number'] || ''; },
         dividerHints: @json(collect(\App\Modules\User\Support\MenuPresentation::DIVIDERS)->map(fn ($d) => $d['hint'])),
         // ---- Handover and charges ---------------------------------------
         addCharge(){

@@ -32,10 +32,34 @@
                     has no blocks to place, which keeps this partial usable
                     without them.
 --}}
+@php
+    // Numbered in the order they are DRAWN, which is the order the jump bar
+    // numbers them in too -- both read the same tree, so a tab marked 3
+    // cannot land on a heading marked 4.
+    $msN = 0;
+    $msMarker = $msMarker ?? \App\Modules\User\Support\MenuSectionNav::DEFAULT_MARKER;
+@endphp
 @forelse($msTree as $msSection)
-    @php $msCat = $msSection['category']; @endphp
-    <div class="cat">
-        <h2>{{ $msCat->name }}</h2>
+    @php
+        $msCat = $msSection['category'];
+        $msN++;
+        $msIcon = \App\Modules\User\Support\MenuSectionNav::icon($msCat->icon ?? null);
+    @endphp
+    {{-- The id is what the jump bar points at. Built from the row id rather
+         than the name, so two sections called "Specials" do not collide and
+         renaming one does not break a link somebody shared. --}}
+    <div class="cat" id="{{ \App\Modules\User\Support\MenuSectionNav::anchor($msCat->id) }}">
+        <h2>
+            @if($msMarker === 'icon' && $msIcon)
+                <i class="fas fa-{{ $msIcon }} sn-i"></i>
+            @elseif($msMarker !== 'none')
+                {{-- "numbers default" -- and the fallback when a section was
+                     never given an icon, so an icon menu never renders a gap
+                     the creator cannot explain. --}}
+                <span class="sn-n">{{ $msN }}</span>
+            @endif
+            {{ $msCat->name }}
+        </h2>
         @if($msCat->description)<p class="cdesc">{{ $msCat->description }}</p>@endif
 
         {{-- A section's own items, above its sub-sections. A card that
