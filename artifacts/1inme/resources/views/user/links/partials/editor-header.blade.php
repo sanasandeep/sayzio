@@ -16,6 +16,7 @@
 @endphp
 @include('user.partials.page-hero', [
     'title'    => $link->title ?: $link->alias,
+    'subtitle' => $editorSubtitle ?? null,
     'icon'     => $__typeIcon,
     'favicon'  => $favSrc,
     'url'      => $link->getShortUrl(),
@@ -23,7 +24,7 @@
         ['icon' => 'fa-circle ' . ($link->is_active ? 'text-emerald-400' : 'text-red-400'), 'text' => $link->is_active ? 'Active' : 'Inactive'],
         ['icon' => $__typeIcon, 'text' => \App\Modules\User\Models\Link::typeLabel($link->type)],
     ],
-    'back'     => route('user.links.index'),
+    'back'     => $editorBack ?? route('user.links.index'),
     // Sana, 2026-10-05: the menu editors had their own header with their own
     // actions (Build with AI, Orders, View) and so could not use this one
     // without losing them. Extra actions go FIRST because they are the ones

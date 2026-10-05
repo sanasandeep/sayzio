@@ -40,17 +40,24 @@
     .ro-card.ro-highlight { border-color:#5c83ff; box-shadow:0 0 0 2px rgba(92,131,255,.45); }
 </style>
 
-<div class="max-w-4xl mx-auto" x-data="ordersBoard()" x-init="init()">
-    @include('user.links.partials.menu-page-header', [
-        'mhTitle' => 'Orders',
-        'mhIcon'  => 'fa-receipt',
-        'mhLink'  => $link,
-        'mhBack'  => route('user.links.restaurant.editor', $link),
-        'mhBackLabel' => 'Back to menu',
-        'mhActions' => '<a href="'.route('user.links.restaurant.staff-order', $link).'" class="mph-btn"><i class="fas fa-plus"></i> Order for customer</a>'.'<a href="'.route('user.links.restaurant.kitchen', $link).'" class="mph-btn mph-btn-kitchen"><i class="fas fa-fire-burner"></i> Kitchen</a>'
-            .'<span class="mph-btn mph-stat"><template x-if="meta.is_live"><span class="ro-dot"></span></template>'
-            .'<span x-text="meta.is_live ? \'Live\' : meta.label"></span></span>',
+<div class="w-full max-w-7xl mx-auto" x-data="ordersBoard()" x-init="init()">
+    @include('user.links.partials.editor-header', [
+        'link' => $link,
+        'hideEditorTabs' => true,
+        'editorSubtitle' => 'Orders',
+        'editorBack' => route('user.links.restaurant.editor', $link),
+        'extraActions' => [
+            ['label' => 'Edit menu', 'url' => route('user.links.restaurant.editor', $link), 'icon' => 'fa-utensils', 'class' => 'btn-ghost'],
+            ['label' => 'Order for customer', 'url' => route('user.links.restaurant.staff-order', $link), 'icon' => 'fa-plus', 'class' => 'btn-ghost'],
+            ['label' => 'Kitchen', 'url' => route('user.links.restaurant.kitchen', $link), 'icon' => 'fa-fire-burner', 'class' => 'btn-ghost'],
+        ],
     ])
+    <div class="flex justify-end mb-4">
+        <span class="ro-live" role="status" aria-live="polite">
+            <span class="ro-dot" x-show="meta.is_live" aria-hidden="true"></span>
+            <span x-text="meta.is_live ? 'Live' : meta.label"></span>
+        </span>
+    </div>
 
     @include('user.links.partials.orders-summary', [
         'osSummary'  => $summary,
