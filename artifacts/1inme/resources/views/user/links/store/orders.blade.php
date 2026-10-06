@@ -67,6 +67,9 @@
         'oiRange'    => $range,
     ])
 
+    @include('user.links.partials.orders-performance', ['performanceSummary' => $summary, 'performanceInsights' => $insights, 'performanceCurrency' => $menu->currency])
+    @include('user.links.partials.orders-pickup-display', ['pickupUrl' => route('user.links.store.kitchen.poll', $link).'?display=1'])
+
     @include('user.links.partials.orders-counter', [
         'ocBase' => \Illuminate\Support\Str::beforeLast(route('user.links.store.meal-coupons.by-phone', $link), '/by-phone'),
         'ocNoun' => 'request',

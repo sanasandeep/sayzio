@@ -99,6 +99,12 @@ class MenuKitchenController extends Controller
         // order that was completed on somebody's phone has no "updated
         // since" row to send, so the ticket would sit on the wall forever.
         // Sending the whole board makes a stale ticket impossible.
-        return response()->json(['data' => KitchenBoard::of($menu, $model, $hasTables)]);
+        $board = KitchenBoard::of($menu, $model, $hasTables);
+        if ($request->boolean('display')) {
+            $tickets = collect($board['groups'])->flatMap(fn ($group) => $group['tickets'])
+                ->unique('id')->map(fn ($ticket) => collect($ticket)->only(['id', 'ref', 'status', 'placed'])->all())->values();
+            return response()->json(['data' => ['orders' => $tickets]])->header('Cache-Control', 'no-store');
+        }
+        return response()->json(['data' => $board]);
     }
 }
