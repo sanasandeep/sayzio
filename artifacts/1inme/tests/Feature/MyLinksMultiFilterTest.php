@@ -27,7 +27,12 @@ class MyLinksMultiFilterTest extends TestCase
         $this->get('/user/links?'.$query)->assertOk()
             ->assertSee('Filter fixture resume')->assertSee('Filter fixture calendar')
             ->assertSee('Filter fixture reviews')->assertDontSee('Filter fixture url')
-            ->assertSee('Remove Type:');
+            ->assertSee('Remove Type:')
+            ->assertSee('name="type[]" value="resume"', false)
+            ->assertSee('name="type[]" value="calendar"', false);
+        $this->get('/user/links?'.$query.'&per_page=30')->assertOk()
+            ->assertSee('Filter fixture resume')->assertSee('Filter fixture calendar')
+            ->assertDontSee('Filter fixture url');
         $this->get('/user/links?type=resume')->assertOk()
             ->assertSee('Filter fixture resume')->assertDontSee('Filter fixture calendar');
     }
