@@ -142,6 +142,9 @@
         <ul class="overflow-y-auto max-h-56 py-1" role="listbox">
             <template x-for="c in filtered" :key="c.code">
                 <li role="option"
+                    tabindex="0"
+                    @keydown.enter.prevent="pick(c)"
+                    @keydown.space.prevent="pick(c)"
                     :aria-selected="c.code === selected.code"
                     @click="pick(c)"
                     class="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-white/8 transition-colors"
