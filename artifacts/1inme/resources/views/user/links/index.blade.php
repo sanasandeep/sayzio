@@ -161,7 +161,10 @@
     .link-status-active { display:inline-flex; align-items:center; gap:4px; font-size:10px; color:var(--text-muted); }
     .link-status-active i { font-size:6px; color:#10b981; }
     .link-row-meta { flex-wrap:wrap; margin-top:8px; gap:5px; font-size:11px; }
-    .link-row-meta .url { flex:1 1 calc(100% - 22px); min-width:0; }
+    .link-row-meta .url-line { display:flex; align-items:center; gap:8px; width:100%; min-width:0; }
+    .link-row-meta .url-line .url { flex:0 1 auto; min-width:0; }
+    .link-row-meta .copy { display:inline-flex; align-items:center; justify-content:center; gap:5px; flex:none; padding:5px 8px; min-height:30px; border:1px solid var(--border-soft); border-radius:8px; background:var(--bg-card); color:var(--text-muted); font-size:10px; font-weight:600; }
+    .link-row-meta .copy:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
     .link-row-meta .folder, .link-row-meta .age { display:inline-flex; max-width:100%; white-space:normal; overflow-wrap:anywhere; }
     .link-row-meta .sep { display:inline; }
     .link-row-controls { display:contents; }
@@ -506,13 +509,16 @@
                         @endif
                     </div>
                     <div class="link-row-meta" x-data="{ copied: false }">
+                        <div class="url-line">
                         <span class="url truncate" title="{{ $link->getShortUrl() }}">{{ $link->getShortUrl() }}</span>
                         <button type="button" aria-label="Copy link"
-                                @click="navigator.clipboard.writeText('{{ $link->getShortUrl() }}'); copied = true; setTimeout(() => copied = false, 2000)"
-                                class="copy">
+                                @click="navigator.clipboard.writeText(@js($link->getShortUrl())).then(() => { copied = true; setTimeout(() => copied = false, 2000); }).catch(() => { copied = false; })"
+                                class="copy" :aria-label="copied ? 'Link copied' : 'Copy link'">
                             <i x-show="!copied" class="fas fa-copy text-[10px]"></i>
                             <i x-show="copied" x-cloak class="fas fa-check text-emerald-400 text-[10px]"></i>
+                            <span x-text="copied ? 'Copied' : 'Copy'"></span>
                         </button>
+                        </div>
                         @if($link->project)
                         <span class="sep">&middot;</span>
                         <span class="folder">
