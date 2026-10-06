@@ -4,6 +4,129 @@
 @push('styles')
     {{-- Reuse the exact bento command-center look from the Dashboard. --}}
     @include('user.partials.bento-styles')
+<style>
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    /* The header is the page's highlight, so it is the card that carries the
+       ribbon and the lattice -- which means it has to become a surface. It
+       was a bare flex row before: no ground, no edge, nothing for a ribbon to
+       bleed off. The card treatment comes from the same tokens every other
+       card uses, so it is one of them rather than a special case. */
+    .links-head {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 28px; flex-wrap: wrap; margin-bottom: 20px;
+        position: relative;
+        overflow: hidden;
+        padding: 22px 24px;
+        border-radius: var(--lg-radius, 14px);
+        border: 1px solid var(--border-glass);
+        background: var(--bg-card);
+    }
+    .links-title {
+        margin: 0 0 6px; font-size: clamp(1.5rem, 3.2vw, 1.9rem); line-height: 1.1;
+        font-weight: 750; letter-spacing: -.03em; color: var(--text-primary);
+    }
+    .links-facts {
+        margin: 0; font-size: 13px; color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+    }
+    .links-facts strong { color: var(--text-primary); font-weight: 650; }
+    .links-facts a { color: inherit; text-decoration: none; }
+    .links-facts a:hover strong { color: var(--accent); }
+    .links-facts .sep { color: var(--text-faint); margin: 0 5px; }
+    .links-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+
+    .links-trend { text-align: right; min-width: 232px; color: var(--accent); }
+    .links-trend .k {
+        margin: 0; font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+        font-weight: 700; color: var(--text-faint);
+    }
+    .links-trend .n {
+        margin: 4px 0 2px; font-size: 34px; font-weight: 750; line-height: 1.05;
+        letter-spacing: -.035em; color: var(--text-primary);
+        font-variant-numeric: tabular-nums;
+    }
+    .links-trend .d { margin: 0; font-size: 12px; color: var(--text-muted); }
+    .links-trend .d strong { color: #34d399; font-weight: 650; }
+    .links-trend .spark { display: block; margin: 8px 0 0 auto; max-width: 100%; }
+    .links-stats-link {
+        display: inline-flex; align-items: center; gap: 5px; margin-top: 8px;
+        font-size: 11px; font-weight: 600; color: var(--accent); text-decoration: none;
+    }
+
+    /* ── Toolbar ────────────────────────────────────────────────────────── */
+    .links-toolbar {
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        padding-bottom: 14px; margin-bottom: 6px;
+        border-bottom: 1px solid var(--border-glass, rgba(128,128,128,0.16));
+    }
+    .links-search { position: relative; flex: 1 1 220px; min-width: 170px; max-width: 340px; }
+    .links-search i {
+        position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+        font-size: 11px; color: var(--text-faint); pointer-events: none;
+    }
+    .links-search input {
+        width: 100%; font-size: 13px; color: var(--text-primary);
+        background: var(--bg-card); border: 1px solid var(--border-strong);
+        border-radius: 9px; padding: 8px 11px 8px 30px;
+    }
+    .links-search input::placeholder { color: var(--text-faint); }
+    .links-pill {
+        font-size: 12.5px; font-weight: 550; color: var(--text-secondary);
+        background: var(--bg-card); border: 1px solid var(--border-strong);
+        border-radius: 8px; padding: 8px 11px; cursor: pointer; max-width: 190px;
+    }
+    .links-pill--go { color: var(--text-muted); }
+    .links-search input:focus, .links-pill:focus-visible {
+        outline: 2px solid var(--accent); outline-offset: -1px;
+    }
+
+    /* ── Rows ───────────────────────────────────────────────────────────── */
+    .links-list { display: flex; flex-direction: column; }
+    .link-row {
+        padding: 11px 10px; border-radius: 10px;
+        border-bottom: 1px solid var(--border-glass, rgba(128,128,128,0.12));
+        transition: background-color .12s ease;
+    }
+    .link-row:hover { background: var(--bg-card); }
+    .link-row:has([data-menu-open="true"]) { position: relative; z-index: 40; }
+
+    .link-row-meta {
+        display: flex; align-items: center; gap: 5px; margin-top: 2px;
+        font-size: 11.5px; color: var(--text-muted); min-width: 0;
+    }
+    .link-row-meta .url { color: var(--accent); }
+    .link-row-meta .copy { flex: none; color: var(--text-faint); }
+    .link-row-meta .copy:hover { color: var(--accent); }
+    .link-row-meta .sep { color: var(--text-faint); }
+    .link-row-meta .folder { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+    .link-row-meta .folder .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .link-row-meta .age { color: var(--text-faint); white-space: nowrap; }
+
+    .link-row-clicks { text-align: right; font-variant-numeric: tabular-nums; }
+    .link-row-clicks b {
+        display: block; font-size: 14px; font-weight: 650;
+        letter-spacing: -.01em; color: var(--text-primary);
+    }
+    .link-row-clicks span {
+        font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+        color: var(--text-faint);
+    }
+
+    .link-row-acts { display: flex; align-items: center; gap: 1px; }
+    @media (hover: hover) and (min-width: 900px) {
+        .link-row-acts { opacity: 0; transition: opacity .12s ease; }
+        .link-row:hover .link-row-acts,
+        .link-row:focus-within .link-row-acts,
+        .link-row:has([data-menu-open="true"]) .link-row-acts { opacity: 1; }
+    }
+
+    @media (max-width: 700px) {
+        .links-trend { text-align: left; min-width: 0; }
+        .links-trend .spark { margin-left: 0; }
+        .link-row-meta .folder, .link-row-meta .age,
+        .link-row-meta .sep { display: none; }
+    }
+</style>
 @endpush
 
 @section('content')
@@ -196,6 +319,11 @@
     <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.12);">
         <i class="fas fa-link text-blue-400 text-xl"></i>
     </div>
+    @if($__summary['total'] > 0)
+    <h3 class="text-base font-bold mb-1.5" style="color:var(--text-primary)">No matching links</h3>
+    <p class="text-sm mb-5" style="color:var(--text-muted)">No links match these filters. Clear them to see your links.</p>
+    <a href="{{ route('user.links.index') }}" class="btn-primary text-sm"><i class="fas fa-times" aria-hidden="true"></i> Clear filters</a>
+    @else
     <h3 class="text-base font-bold mb-1.5" style="color: var(--text-primary);">No links yet</h3>
     <p class="text-xs mb-5" style="color: var(--text-dimmed);">Create your first link to start tracking clicks, or let our wizard build a Link in Bio for you in under a minute.</p>
     @canInWorkspace('links.create')
@@ -216,6 +344,7 @@
     @else
     <p class="text-[11px]" style="color: var(--text-faint);"><i class="fas fa-lock mr-1"></i>Ask a workspace admin to create the first link.</p>
     @endcanInWorkspace
+    @endif
 </div>
 @else
 <div x-data="{
@@ -232,129 +361,7 @@
 
 {{-- Row action dropdowns (move to folder / workspace / transfer) must escape
      the row: a row later in the DOM would otherwise paint over an open menu. --}}
-<style>
-    /* ── Header ─────────────────────────────────────────────────────────── */
-    /* The header is the page's highlight, so it is the card that carries the
-       ribbon and the lattice -- which means it has to become a surface. It
-       was a bare flex row before: no ground, no edge, nothing for a ribbon to
-       bleed off. The card treatment comes from the same tokens every other
-       card uses, so it is one of them rather than a special case. */
-    .links-head {
-        display: flex; align-items: flex-start; justify-content: space-between;
-        gap: 28px; flex-wrap: wrap; margin-bottom: 20px;
-        position: relative;
-        overflow: hidden;
-        padding: 22px 24px;
-        border-radius: var(--lg-radius, 14px);
-        border: 1px solid var(--border-glass);
-        background: var(--bg-card);
-    }
-    .links-title {
-        margin: 0 0 6px; font-size: clamp(1.5rem, 3.2vw, 1.9rem); line-height: 1.1;
-        font-weight: 750; letter-spacing: -.03em; color: var(--text-primary);
-    }
-    .links-facts {
-        margin: 0; font-size: 13px; color: var(--text-muted);
-        font-variant-numeric: tabular-nums;
-    }
-    .links-facts strong { color: var(--text-primary); font-weight: 650; }
-    .links-facts a { color: inherit; text-decoration: none; }
-    .links-facts a:hover strong { color: var(--accent); }
-    .links-facts .sep { color: var(--text-faint); margin: 0 5px; }
-    .links-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
 
-    .links-trend { text-align: right; min-width: 232px; color: var(--accent); }
-    .links-trend .k {
-        margin: 0; font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
-        font-weight: 700; color: var(--text-faint);
-    }
-    .links-trend .n {
-        margin: 4px 0 2px; font-size: 34px; font-weight: 750; line-height: 1.05;
-        letter-spacing: -.035em; color: var(--text-primary);
-        font-variant-numeric: tabular-nums;
-    }
-    .links-trend .d { margin: 0; font-size: 12px; color: var(--text-muted); }
-    .links-trend .d strong { color: #34d399; font-weight: 650; }
-    .links-trend .spark { display: block; margin: 8px 0 0 auto; max-width: 100%; }
-    .links-stats-link {
-        display: inline-flex; align-items: center; gap: 5px; margin-top: 8px;
-        font-size: 11px; font-weight: 600; color: var(--accent); text-decoration: none;
-    }
-
-    /* ── Toolbar ────────────────────────────────────────────────────────── */
-    .links-toolbar {
-        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-        padding-bottom: 14px; margin-bottom: 6px;
-        border-bottom: 1px solid var(--border-glass, rgba(128,128,128,0.16));
-    }
-    .links-search { position: relative; flex: 1 1 220px; min-width: 170px; max-width: 340px; }
-    .links-search i {
-        position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
-        font-size: 11px; color: var(--text-faint); pointer-events: none;
-    }
-    .links-search input {
-        width: 100%; font-size: 13px; color: var(--text-primary);
-        background: var(--bg-card); border: 1px solid var(--border-strong);
-        border-radius: 9px; padding: 8px 11px 8px 30px;
-    }
-    .links-search input::placeholder { color: var(--text-faint); }
-    .links-pill {
-        font-size: 12.5px; font-weight: 550; color: var(--text-secondary);
-        background: var(--bg-card); border: 1px solid var(--border-strong);
-        border-radius: 8px; padding: 8px 11px; cursor: pointer; max-width: 190px;
-    }
-    .links-pill--go { color: var(--text-muted); }
-    .links-search input:focus, .links-pill:focus-visible {
-        outline: 2px solid var(--accent); outline-offset: -1px;
-    }
-
-    /* ── Rows ───────────────────────────────────────────────────────────── */
-    .links-list { display: flex; flex-direction: column; }
-    .link-row {
-        padding: 11px 10px; border-radius: 10px;
-        border-bottom: 1px solid var(--border-glass, rgba(128,128,128,0.12));
-        transition: background-color .12s ease;
-    }
-    .link-row:hover { background: var(--bg-card); }
-    .link-row:has([data-menu-open="true"]) { position: relative; z-index: 40; }
-
-    .link-row-meta {
-        display: flex; align-items: center; gap: 5px; margin-top: 2px;
-        font-size: 11.5px; color: var(--text-muted); min-width: 0;
-    }
-    .link-row-meta .url { color: var(--accent); }
-    .link-row-meta .copy { flex: none; color: var(--text-faint); }
-    .link-row-meta .copy:hover { color: var(--accent); }
-    .link-row-meta .sep { color: var(--text-faint); }
-    .link-row-meta .folder { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
-    .link-row-meta .folder .dot { width: 6px; height: 6px; border-radius: 50%; }
-    .link-row-meta .age { color: var(--text-faint); white-space: nowrap; }
-
-    .link-row-clicks { text-align: right; font-variant-numeric: tabular-nums; }
-    .link-row-clicks b {
-        display: block; font-size: 14px; font-weight: 650;
-        letter-spacing: -.01em; color: var(--text-primary);
-    }
-    .link-row-clicks span {
-        font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
-        color: var(--text-faint);
-    }
-
-    .link-row-acts { display: flex; align-items: center; gap: 1px; }
-    @media (hover: hover) and (min-width: 900px) {
-        .link-row-acts { opacity: 0; transition: opacity .12s ease; }
-        .link-row:hover .link-row-acts,
-        .link-row:focus-within .link-row-acts,
-        .link-row:has([data-menu-open="true"]) .link-row-acts { opacity: 1; }
-    }
-
-    @media (max-width: 700px) {
-        .links-trend { text-align: left; min-width: 0; }
-        .links-trend .spark { margin-left: 0; }
-        .link-row-meta .folder, .link-row-meta .age,
-        .link-row-meta .sep { display: none; }
-    }
-</style>
 
 {{-- ===== View toggle: list (rows) vs grid (folder-coloured icon tiles) ===== --}}
 <div class="flex items-center justify-end mb-3">
