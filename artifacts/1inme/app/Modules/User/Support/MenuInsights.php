@@ -73,7 +73,18 @@ class MenuInsights
             'regulars'  => self::regulars($billable),
             'never'     => self::neverSold($lines, $menu, $catalogueModel),
             'busiest'   => self::busiest($billable),
+            'daily'     => self::daily($billable),
         ];
+    }
+
+    /** Latest 31 dates with non-cancelled orders within the selected range. */
+    private static function daily($query): array
+    {
+        return (clone $query)->selectRaw('DATE(created_at) AS day, COUNT(*) AS orders, COALESCE(SUM(total), 0) AS value')
+            ->groupByRaw('DATE(created_at)')->orderByDesc('day')->limit(31)->get()
+            ->reverse()->values()->map(fn ($row) => [
+                'day' => (string) $row->day, 'orders' => (int) $row->orders, 'value' => (float) $row->value,
+            ])->all();
     }
 
     /** @return array<int, array{name: string, qty: int, revenue: float, orders: int}> */

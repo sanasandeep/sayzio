@@ -93,6 +93,14 @@ class StoreOrder extends Model
             }
         });
 
+        static::updating(function ($order): void {
+            if ($order->isDirty('status')) {
+                $meta = (array) $order->meta;
+                $meta['status_times'][$order->status] = now()->toIso8601String();
+                $order->meta = $meta;
+            }
+        });
+
         // Unified contact linking (Task #6501). customer_contact is a
         // free-text "phone or email" field — sniff which one it is.
         static::created(function (StoreOrder $order): void {

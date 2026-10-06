@@ -335,4 +335,36 @@ class TheOrdersBoardSaysWhatIsSellingTest extends TestCase
 
         $this->assertStringContainsString('Nothing has sold in this range yet', $html);
     }
+    public function test_service_metrics_use_recorded_times_and_exclude_cancelled_payments(): void
+    {
+        [$link, $menu, $cat] = $this->menu();
+        $dish = $this->dish($menu, $cat, 'Tea', 50);
+        $order = $this->order($link, $menu, 'accepted', [[$dish, 2]], '+919999999999');
+        $order->items()->first()->update(['options_total' => 6]);
+        $this->travel(10)->minutes();
+        $order->update(['status' => 'ready']);
+        $readyTime = $order->fresh()->meta['status_times']['ready'];
+        $this->travel(5)->minutes();
+        $order->update(['status' => 'completed']);
+        $meta = $order->fresh()->meta;
+        $meta['collected_amount'] = 70;
+        $order->update(['meta' => $meta]);
+        $this->assertSame($readyTime, $order->fresh()->meta['status_times']['ready']);
+        $cancelled = $this->order($link, $menu, 'cancelled', [[$dish, 1]]);
+        $cancelled->update(['meta' => ['collected_amount' => 50, 'cancellation_reason' => 'Changed mind']]);
+        $result = \App\Modules\User\Support\MenuPerformance::of(
+            RestaurantOrder::where('menu_id', $menu->id), RestaurantOrder::class, $menu->id,
+            ['from' => null, 'to' => null], 20, 'Asia/Kolkata'
+        );
+        $this->assertEqualsWithDelta(10, $result['prep'][0], 0.1);
+        $this->assertEqualsWithDelta(5, $result['collection'][0], 0.1);
+        $this->assertSame(6.0, $result['extras_value']);
+        $this->assertSame(2, $result['extras_units']);
+        $this->assertSame(70.0, $result['collected']);
+        $this->assertSame(30.0, $result['unpaid_value']);
+        $this->assertSame(1, $result['reasons']['Changed mind']);
+        $this->assertSame(1, $result['billable']);
+        $this->assertNull($result['previous']);
+    }
+
 }

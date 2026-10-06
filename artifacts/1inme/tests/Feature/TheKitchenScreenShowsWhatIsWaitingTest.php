@@ -453,6 +453,22 @@ class TheKitchenScreenShowsWhatIsWaitingTest extends TestCase
         $this->assertStringContainsString('Could not refresh', $html);
     }
 
+    public function test_pickup_display_only_exposes_open_order_numbers_and_statuses(): void
+    {
+        [$link, $menu, $item] = $this->restaurant();
+        $ready = $this->order($link, $menu, $item, RestaurantOrder::STATUS_READY, 2);
+        $this->order($link, $menu, $item, RestaurantOrder::STATUS_COMPLETED, 4);
+        $url = route('user.links.restaurant.kitchen.poll', $link).'?display=1';
+        $response = $this->actingAs($this->owner)->getJson($url)->assertOk();
+        $orders = $response->json('data.orders');
+        $this->assertCount(1, $orders);
+        $this->assertSame($ready->id, $orders[0]['id']);
+        $this->assertSame('ready', $orders[0]['status']);
+        $this->assertEqualsCanonicalizing(['id', 'ref', 'status', 'placed'], array_keys($orders[0]));
+        $ready->update(['status' => RestaurantOrder::STATUS_COMPLETED]);
+        $this->getJson($url)->assertOk()->assertJsonCount(0, 'data.orders');
+    }
+
     public function test_the_poll_endpoint_returns_the_whole_board(): void
     {
         [$link, $menu, $item] = $this->restaurant();

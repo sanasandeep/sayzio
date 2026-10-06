@@ -598,6 +598,7 @@ class StoreMenuController extends Controller
             // Sana, 2026-10-05: "i need top items, item sales, reccuring
             // things, highlights or anything related....". The totals say
             // how much came in; these say what to do about it.
+            'performance' => \App\Modules\User\Support\MenuPerformance::of($scoped(), StoreOrder::class, $menu->id, $range, max(1, min(240, (int) $request->query('target_minutes', 20))), $link->user?->effectiveTimezone() ?? \App\Support\PlatformTimezone::platformDefault()),
             'insights'  => \App\Modules\User\Support\MenuInsights::of(
                 $scoped(),
                 \App\Modules\User\Models\StoreOrder::class,
@@ -644,17 +645,30 @@ class StoreMenuController extends Controller
 
         $data = $request->validate([
             'status' => 'required|in:' . implode(',', StoreOrder::STATUSES),
+            'cancellation_reason' => 'sometimes|nullable|string|max:250',
+            'collected_amount' => 'sometimes|numeric|min:0|max:999999999',
         ]);
 
-        if (!$order->canTransitionTo($data['status'])) {
-            return response()->json(['error' => [
-                'message' => "Can't move a request from '{$order->status}' to '{$data['status']}'",
-                'code'    => 'invalid_transition',
-            ]], 422);
-        }
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($order, $data) {
+            $order = $order->newQuery()->whereKey($order->id)->lockForUpdate()->firstOrFail();
+            if (!$order->canTransitionTo($data['status'])) {
+                return response()->json(['error' => [
+                    'message' => "Can't move a request from '{$order->status}' to '{$data['status']}'",
+                    'code'    => 'invalid_transition',
+                ]], 422);
+            }
 
-        $order->update(['status' => $data['status']]);
+            $meta = (array) $order->meta;
+            if ($data['status'] === 'cancelled' && isset($data['cancellation_reason'])) {
+                $meta['cancellation_reason'] = trim($data['cancellation_reason']);
+            }
+            if (array_key_exists('collected_amount', $data)) {
+                $meta['collected_amount'] = round((float) $data['collected_amount'], 2);
+                $meta['payment_recorded_at'] = now()->toIso8601String();
+            }
+            $order->update(['status' => $data['status'], 'meta' => $meta]);
 
-        return response()->json(['data' => ['order' => $order->fresh('items')]]);
+            return response()->json(['data' => ['order' => $order->fresh('items')]]);
+        });
     }
 }

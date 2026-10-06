@@ -25,7 +25,8 @@
     broken: the kitchen keeps believing it. So the footer shows the time of
     the last successful refresh, and goes amber the moment one fails.
 --}}
-<div class="w-full max-w-7xl mx-auto" x-data="kitchenBoard()" x-init="start()">
+@include('user.links.partials.menu-fullscreen')
+<div data-screen-panel class="w-full max-w-7xl mx-auto" x-data="kitchenBoard()" x-init="start()">
 
     @include('user.links.partials.editor-header', [
         'link' => $link,
@@ -33,6 +34,7 @@
         'editorBack' => $ordersUrl,
     ])
     <div class="flex items-center justify-end gap-3 flex-wrap mb-4 text-sm" style="color:var(--text-muted)">
+        <button type="button" class="btn-ghost" onclick="menuFullscreen(this)">Fullscreen / Exit</button>
         <span><b x-text="board.open"></b> open</span>
         <span x-show="board.oldest_wait">longest wait <b x-text="board.oldest_wait"></b></span>
         <button type="button" class="btn-ghost text-xs py-2" @click="live = !live">
