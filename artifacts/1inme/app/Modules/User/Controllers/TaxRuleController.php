@@ -28,7 +28,9 @@ class TaxRuleController extends Controller
     public function update(Request $request, TaxRule $taxRule)
     {
         $this->authorizeOwn($taxRule);
-        $taxRule->update($this->validated($request));
+        $data = $this->validated($request);
+        if (!$request->exists('components') && (int) $data['rate_bps'] !== (int) $taxRule->rate_bps) $data['components'] = null;
+        $taxRule->update($data);
         return back()->with('success', 'Tax rule updated.');
     }
 
@@ -43,7 +45,12 @@ class TaxRuleController extends Controller
     {
         $data = $request->validate([
             'name'               => 'required|string|max:120',
-            'rate_bps'           => 'required|integer|min:0|max:100000',
+            'components' => 'nullable|array|max:8',
+            'components.*.name' => 'required|string|max:64',
+            'components.*.rate_percent' => 'nullable|numeric|min:0|max:100',
+            'components.*.rate_bps' => 'nullable|integer|min:0|max:10000',
+            'rate_bps'           => 'nullable|required_without:rate_percent|integer|min:0|max:100000',
+            'rate_percent' => 'nullable|numeric|min:0|max:100',
             'billing_company_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('billing_companies', 'id')->where('user_id', auth()->id())],
             'inclusive'          => 'nullable|boolean',
             'is_compound'        => 'nullable|boolean',
@@ -53,7 +60,7 @@ class TaxRuleController extends Controller
         foreach (['inclusive', 'is_compound', 'is_default', 'is_active'] as $b) {
             $data[$b] = (bool) ($data[$b] ?? false);
         }
-        return $data;
+        return \App\Services\Billing\TaxComponents::normalize($data);
     }
 
     protected function authorizeOwn(TaxRule $rule): void

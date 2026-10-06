@@ -120,6 +120,9 @@
                     <div class="lines">{{ data_get($order->meta, 'billing_company.legal_name') ?: data_get($order->meta, 'billing_company.name') }}</div>
                     <div class="lines">{{ implode(' · ', data_get($order->meta, 'billing_company.tax_ids', [])) }}</div>
                 @endif
+                @foreach(data_get($order->meta, 'tax_breakdown', data_get($order->meta, 'tax.tax_breakdown', [])) as $component)
+                    <div class="lines">{{ $component['name'] }} ({{ $component['rate_bps'] / 100 }}%): {{ $order->currency }} {{ number_format($component['amount_minor'] / 100, 2) }}</div>
+                @endforeach
                 @if($order->table_label ?? null)
                     <div class="lines">{{ $order->table_label }}</div>
                 @endif

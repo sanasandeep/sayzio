@@ -429,6 +429,7 @@ class BillingController extends Controller
             'line_items.*.label'           => 'required_with:line_items|string|max:240',
             'line_items.*.amount_minor'    => 'required_with:line_items|integer|min:0',
             'line_items.*.quantity'        => 'nullable|integer|min:1|max:9999',
+            'line_items.*.tax_rule_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('tax_rules', 'id')->where('user_id', $request->user()->id)->where('is_active', true)],
             'line_items.*.tax_rate_bps'    => 'nullable|integer|min:0|max:100000',
             'line_items.*.tax_name'        => 'nullable|string|max:64',
             'line_items.*.tax_inclusive'   => 'nullable|boolean',
@@ -520,6 +521,7 @@ class BillingController extends Controller
             'line_items.*.label'          => 'required|string|max:240',
             'line_items.*.amount_minor'   => 'required|integer|min:0',
             'line_items.*.quantity'       => 'nullable|integer|min:1|max:9999',
+            'line_items.*.tax_rule_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('tax_rules', 'id')->where('user_id', $request->user()->id)->where('is_active', true)],
             'line_items.*.tax_rate_bps'   => 'nullable|integer|min:0|max:100000',
             'line_items.*.tax_name'       => 'nullable|string|max:64',
             'line_items.*.tax_inclusive'  => 'nullable|boolean',
@@ -579,6 +581,7 @@ class BillingController extends Controller
                 ];
                 // Carry per-line tax through so editing line items recomputes
                 // (and preserves) tax instead of silently dropping the rate.
+                if (isset($li['tax_rule_id']))             $item['tax_rule_id'] = (int) $li['tax_rule_id'];
                 if (isset($li['tax_rate_bps']))            $item['tax_rate_bps']    = (int) $li['tax_rate_bps'];
                 if (isset($li['tax_name']))                $item['tax_name']        = (string) $li['tax_name'];
                 if (array_key_exists('tax_inclusive', $li)) $item['tax_inclusive']  = (bool) $li['tax_inclusive'];
@@ -617,6 +620,7 @@ class BillingController extends Controller
             'line_items.*.label'           => 'required|string|max:240',
             'line_items.*.amount_minor'    => 'required|integer|min:0',
             'line_items.*.quantity'        => 'nullable|integer|min:1|max:9999',
+            'line_items.*.tax_rule_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('tax_rules', 'id')->where('user_id', $request->user()->id)->where('is_active', true)],
             'line_items.*.tax_rate_bps'    => 'nullable|integer|min:0|max:100000',
             'line_items.*.tax_name'        => 'nullable|string|max:64',
             'line_items.*.tax_inclusive'   => 'nullable|boolean',

@@ -2,8 +2,8 @@
 @section('title', $template->exists ? 'Edit Recurring Invoice' : 'New Recurring Invoice')
 @section('content')
 <div class="max-w-4xl mx-auto px-4 py-8"
+     x-data="recurringForm(@js($template->exists ? (array) $template->line_items : [['label' => '', 'amount_minor' => 0, 'quantity' => 1, 'tax_rate_bps' => '']]))">
     @include('user.billing.partials.company-actions')
-     x-data="recurringForm(@js($template->exists ? (array) $template->line_items : [['label' => '', 'amount_minor' => 0, 'quantity' => 1, 'tax_rate_bps' => 0]]))">
     <div class="page-hero mb-6 flex items-center justify-between">
         <div>
             <h1 class="hero-title">{{ $template->exists ? 'Edit Recurring Invoice' : 'New Recurring Invoice' }}</h1>
@@ -27,6 +27,13 @@
                         <option value="">None</option>
                         @foreach($companies as $co)<option value="{{ $co->id }}" @selected(old('billing_company_id', $template->billing_company_id) == $co->id)>{{ $co->name }}</option>@endforeach
                     </select>
+                </label>
+                <label class="text-xs" style="color: var(--text-muted);">Tax profile
+                    <select name="tax_rule_id" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+                        <option value="">Company default</option>
+                        @foreach($taxRules as $rule)<option value="{{ $rule->id }}" @selected(old('tax_rule_id', $template->tax_rule_id) == $rule->id)>{{ $rule->name }} ({{ $rule->rate_bps / 100 }}%, {{ $rule->inclusive ? 'inclusive' : 'exclusive' }})</option>@endforeach
+                    </select>
+                    <span>Applies to lines with no manual tax rate. Enter zero for an untaxed line.</span>
                 </label>
                 <label class="text-xs" style="color: var(--text-muted);">Vault client
                     <select name="vault_client_id" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
@@ -92,8 +99,8 @@
 <script>
 function recurringForm(initial) {
     return {
-        lines: initial.length ? initial.map(l => ({ label: l.label || '', amount_minor: l.amount_minor || 0, quantity: l.quantity || 1, tax_rate_bps: l.tax_rate_bps || 0 })) : [{ label: '', amount_minor: 0, quantity: 1, tax_rate_bps: 0 }],
-        addLine() { this.lines.push({ label: '', amount_minor: 0, quantity: 1, tax_rate_bps: 0 }); },
+        lines: initial.length ? initial.map(l => ({ label: l.label || '', amount_minor: l.amount_minor || 0, quantity: l.quantity || 1, tax_rate_bps: l.tax_rate_bps ?? '' })) : [{ label: '', amount_minor: 0, quantity: 1, tax_rate_bps: '' }],
+        addLine() { this.lines.push({ label: '', amount_minor: 0, quantity: 1, tax_rate_bps: '' }); },
         removeLine(i) { if (this.lines.length > 1) this.lines.splice(i, 1); },
     };
 }

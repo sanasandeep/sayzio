@@ -618,7 +618,10 @@
                 if ((lastBill.charges || []).length || lastBill.tax_amount > 0 || lastBill.billing_company) {
                     if (lastBill.billing_company) add('Billing company', lastBill.billing_company.legal_name || lastBill.billing_company.name);
                     add('Subtotal', fmt(lastBill.subtotal));
-                    if (lastBill.tax_amount > 0) add(lastBill.tax_label + ' (' + lastBill.tax_rate + '%' + (lastBill.tax_inclusive ? ' incl.' : '') + ')', fmt(lastBill.tax_amount));
+                    if (lastBill.tax_amount > 0) {
+                        if ((lastBill.tax_breakdown || []).length) lastBill.tax_breakdown.forEach(part => add(part.name + ' (' + part.rate_bps / 100 + '%' + (lastBill.tax_inclusive ? ' incl.' : '') + ')', fmt(part.amount_minor / 100)));
+                        else add(lastBill.tax_label + ' (' + lastBill.tax_rate + '%' + (lastBill.tax_inclusive ? ' incl.' : '') + ')', fmt(lastBill.tax_amount));
+                    }
                     lastBill.charges.forEach(c => { if (c && c.amount > 0) add(c.label, fmt(c.amount)); });
                 }
             }
@@ -784,7 +787,7 @@
             const billingLine = document.getElementById('doneBillingCompany');
             if (billingLine) billingLine.textContent = order.billing_company ? (order.billing_company.legal_name || order.billing_company.name) + ' · ' + (order.billing_company.tax_ids || []).join(' · ') : '';
             const taxLine = document.getElementById('doneTaxLine');
-            if (taxLine) taxLine.textContent = order.tax_amount > 0 ? order.tax_label + ' (' + order.tax_rate + '%' + (order.tax_inclusive ? ' incl.' : '') + '): ' + fmt(order.tax_amount) : '';
+            if (taxLine) taxLine.textContent = (order.tax_breakdown || []).length ? order.tax_breakdown.map(part => part.name + ' (' + part.rate_bps / 100 + '%): ' + fmt(part.amount_minor / 100)).join(' · ') : order.tax_amount > 0 ? order.tax_label + ' (' + order.tax_rate + '%' + (order.tax_inclusive ? ' incl.' : '') + '): ' + fmt(order.tax_amount) : '';
             document.getElementById('doneTotal').textContent = fmt(order.total != null ? order.total : order.subtotal);
             document.getElementById('ordStatus').textContent = order.status_label || order.status;
             const waBtn = document.getElementById('waBtn');

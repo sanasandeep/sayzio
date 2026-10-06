@@ -229,6 +229,7 @@ class PublicStoreController extends Controller
             'tax_rate' => $order->meta['tax']['tax_rate'] ?? 0,
             'tax_inclusive' => $order->meta['tax']['tax_inclusive'] ?? false,
             'tax_amount' => $order->meta['tax']['tax_amount'] ?? 0,
+            'tax_breakdown' => $order->meta['tax']['tax_breakdown'] ?? [],
             'total'        => $order->total,
             'currency'     => $order->currency,
             'is_estimate'  => true,

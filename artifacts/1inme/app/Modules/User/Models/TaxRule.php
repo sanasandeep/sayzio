@@ -12,12 +12,13 @@ class TaxRule extends Model
 {
     protected $fillable = [
         'user_id', 'billing_company_id', 'name', 'rate_bps',
-        'inclusive', 'is_compound', 'is_default', 'is_active',
+        'components', 'inclusive', 'is_compound', 'is_default', 'is_active',
     ];
 
     protected function casts(): array
     {
         return [
+            'components' => 'array',
             'rate_bps'    => 'integer',
             'inclusive'   => 'boolean',
             'is_compound' => 'boolean',

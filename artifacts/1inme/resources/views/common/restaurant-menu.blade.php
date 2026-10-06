@@ -654,7 +654,9 @@
         const add = (label, value, cls) => {
             const r = document.createElement('div');
             r.className = 'bill-row' + (cls ? (' ' + cls) : '');
-            r.innerHTML = '<span>' + label + '</span><span>' + value + '</span>';
+            const labelNode = document.createElement('span'); labelNode.textContent = label;
+            const valueNode = document.createElement('span'); valueNode.textContent = value;
+            r.append(labelNode, valueNode);
             box.appendChild(r);
         };
         add('Subtotal', fmt(bill.subtotal));
@@ -663,7 +665,8 @@
         }
         if (bill.tax_enabled && bill.tax_amount > 0) {
             const label = (bill.tax_label || 'Tax') + ' (' + (+bill.tax_rate) + '%)' + (bill.tax_inclusive ? ' incl.' : '');
-            add(label, fmt(bill.tax_amount));
+            if ((bill.tax_breakdown || []).length) bill.tax_breakdown.forEach(part => add(part.name + ' (' + part.rate_bps / 100 + '%' + (bill.tax_inclusive ? ' incl.' : '') + ')', fmt(part.amount_minor / 100)));
+            else add(label, fmt(bill.tax_amount));
         }
         // Each charge by its own name, because "Charges" is the line
         // somebody asks about at the counter.
@@ -880,7 +883,8 @@
                 tax_enabled: order.tax_amount > 0,
                 tax_inclusive: order.tax_inclusive,
                 tax_rate: order.tax_rate,
-                tax_label: 'Tax',
+                tax_label: order.tax_label || 'Tax',
+                tax_breakdown: order.tax_breakdown || [],
                 tax_amount: order.tax_amount,
                 total: order.total
             });

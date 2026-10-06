@@ -577,6 +577,7 @@
 function restaurantEditor() {
     return {
         billingCompanyId: @js($menu->settings['billing_company_id'] ?? ''),
+        billingTaxRuleId: @js($menu->settings['billing_tax_rule_id'] ?? ''),
         menu: @json($menuData),
         tax: @json($menuTax),
         confirm: @json($menuConfirm),
@@ -744,6 +745,7 @@ function restaurantEditor() {
         async saveSettings(){
             await this.api('POST','/settings',{
                 billing_company_id:this.billingCompanyId === '' ? null : Number(this.billingCompanyId),
+                billing_tax_rule_id:this.billingTaxRuleId === '' ? null : Number(this.billingTaxRuleId),
                 mode:this.menu.mode,
                 currency:(this.menu.currency||'USD').toUpperCase(),
                 accent_color:this.menu.accent_color,

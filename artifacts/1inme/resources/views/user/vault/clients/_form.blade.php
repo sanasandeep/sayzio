@@ -1,3 +1,4 @@
+@include('common.partials.address-assist')
 @php
     $emails = old('emails', $item ? $item->emails->map(fn($e)=>['email'=>$e->email,'label'=>$e->label])->all() : [['email'=>'','label'=>'']]);
     $phones = old('phones', $item ? $item->phones->map(fn($p)=>['phone'=>$p->phone,'label'=>$p->label])->all() : [['phone'=>'','label'=>'']]);
@@ -39,10 +40,11 @@
 
 <div class="mt-6" x-data="{ rows: @js($emails ?: [['email'=>'','label'=>'']]) }">
     <h3 class="text-sm font-semibold text-gray-300 mb-2">Emails <span class="text-xs" style="color: var(--text-muted);">(first row is primary)</span></h3>
-    <template x-for="(row, i) in rows" :key="i">
+    <template x-for="(row, i) in rows" :key="row._key">
         <div class="grid grid-cols-12 gap-2 mb-2">
             <input type="email" :name="'emails['+i+'][email]'" x-model="row.email" placeholder="email@example.com" class="col-span-7 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
             <input type="text" :name="'emails['+i+'][label]'" x-model="row.label" placeholder="Label (work, billing…)" class="col-span-4 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
+            <div class="col-span-12"><datalist :id="'client-regions-'+i+'-'+country"><template x-for="(name, key) in regions[country] || {}" :key="key"><option :value="name"></option></template></datalist>@include('common.partials.address-assist-status')</div>
             <button type="button" @click="rows.splice(i,1)" class="col-span-1 text-red-400"><i class="fas fa-trash"></i></button>
         </div>
     </template>
@@ -51,31 +53,33 @@
 
 <div class="mt-6" x-data="{ rows: @js($phones ?: [['phone'=>'','label'=>'']]) }">
     <h3 class="text-sm font-semibold text-gray-300 mb-2">Phones</h3>
-    <template x-for="(row, i) in rows" :key="i">
+    <template x-for="(row, i) in rows" :key="row._key">
         <div class="grid grid-cols-12 gap-2 mb-2">
             <input type="text" :name="'phones['+i+'][phone]'" x-model="row.phone" placeholder="+1 555 123 4567" class="col-span-7 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
             <input type="text" :name="'phones['+i+'][label]'" x-model="row.label" placeholder="Label" class="col-span-4 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
+            <div class="col-span-12"><datalist :id="'client-regions-'+i+'-'+country"><template x-for="(name, key) in regions[country] || {}" :key="key"><option :value="name"></option></template></datalist>@include('common.partials.address-assist-status')</div>
             <button type="button" @click="rows.splice(i,1)" class="col-span-1 text-red-400"><i class="fas fa-trash"></i></button>
         </div>
     </template>
     <button type="button" @click="rows.push({phone:'',label:''})" class="text-xs text-amber-400">+ Add phone</button>
 </div>
 
-<div class="mt-6" x-data="{ rows: @js($addresses) }">
+<div class="mt-6" x-data="{ rows: @js($addresses).map((row, idx) => ({ ...row, _key: idx })) }">
     <h3 class="text-sm font-semibold text-gray-300 mb-2">Addresses</h3>
-    <template x-for="(row, i) in rows" :key="i">
-        <div class="grid grid-cols-12 gap-2 mb-3 p-3 rounded-lg bg-white/5">
+    <template x-for="(row, i) in rows" :key="row._key">
+        <div class="grid grid-cols-12 gap-2 mb-3 p-3 rounded-lg bg-white/5" x-data="addressAssist({country:row.country || '',cityVal:row.city || '',regionVal:row.region || ''})" x-init="$watch('country', v => row.country = v); $watch('cityVal', v => row.city = v); $watch('regionVal', v => row.region = v)">
             <input type="text" :name="'addresses['+i+'][label]'" x-model="row.label" placeholder="Label" class="col-span-3 px-3 py-2 rounded-lg bg-white/10 text-sm">
-            <input type="text" :name="'addresses['+i+'][line1]'" x-model="row.line1" placeholder="Address line 1" class="col-span-9 px-3 py-2 rounded-lg bg-white/10 text-sm">
-            <input type="text" :name="'addresses['+i+'][line2]'" x-model="row.line2" placeholder="Line 2" class="col-span-12 px-3 py-2 rounded-lg bg-white/10 text-sm">
-            <input type="text" :name="'addresses['+i+'][city]'" x-model="row.city" placeholder="City" class="col-span-4 px-3 py-2 rounded-lg bg-white/10 text-sm">
-            <input type="text" :name="'addresses['+i+'][region]'" x-model="row.region" placeholder="State/Region" class="col-span-3 px-3 py-2 rounded-lg bg-white/10 text-sm">
-            <input type="text" :name="'addresses['+i+'][postal_code]'" x-model="row.postal_code" placeholder="Postal" class="col-span-2 px-3 py-2 rounded-lg bg-white/10 text-sm">
-            <input type="text" :name="'addresses['+i+'][country]'" x-model="row.country" placeholder="Country" class="col-span-2 px-3 py-2 rounded-lg bg-white/10 text-sm">
+            <input type="text" :name="'addresses['+i+'][line1]'" x-model="row.line1" autocomplete="address-line1" placeholder="Address line 1" class="col-span-9 px-3 py-2 rounded-lg bg-white/10 text-sm">
+            <input type="text" :name="'addresses['+i+'][line2]'" x-model="row.line2" autocomplete="address-line2" placeholder="Line 2" class="col-span-12 px-3 py-2 rounded-lg bg-white/10 text-sm">
+            <input type="text" :name="'addresses['+i+'][city]'" x-model="cityVal" @input="cityEdited=true" autocomplete="address-level2" placeholder="City" class="col-span-4 px-3 py-2 rounded-lg bg-white/10 text-sm">
+            <input type="text" :name="'addresses['+i+'][region]'" x-model="regionVal" :list="'client-regions-'+i+'-'+country" @input="regionEdited=true" autocomplete="address-level1" placeholder="State/Region" class="col-span-3 px-3 py-2 rounded-lg bg-white/10 text-sm">
+            <input type="text" :name="'addresses['+i+'][postal_code]'" x-model="row.postal_code" data-postal @input="scheduleLookup()" @blur="doLookup()" autocomplete="postal-code" placeholder="Postal" class="col-span-2 px-3 py-2 rounded-lg bg-white/10 text-sm">
+            <select :name="'addresses['+i+'][country]'" x-model="country" @change="onCountryInput(country)" autocomplete="country" aria-label="Address country" class="col-span-2 px-3 py-2 rounded-lg bg-white/10 text-sm"><option value="">Country</option>@foreach(\App\Support\BillingCountries::options() as $code => $name)@if(strlen($code) === 2)<option value="{{ $code }}">{{ $name }}</option>@endif @endforeach</select>
+            <div class="col-span-12"><datalist :id="'client-regions-'+i+'-'+country"><template x-for="(name, key) in regions[country] || {}" :key="key"><option :value="name"></option></template></datalist>@include('common.partials.address-assist-status')</div>
             <button type="button" @click="rows.splice(i,1)" class="col-span-1 text-red-400 text-xs">Remove</button>
         </div>
     </template>
-    <button type="button" @click="rows.push({label:'',line1:'',line2:'',city:'',region:'',postal_code:'',country:''})" class="text-xs text-amber-400">+ Add address</button>
+    <button type="button" @click="rows.push({_key:Date.now()+Math.random(),label:'',line1:'',line2:'',city:'',region:'',postal_code:'',country:''})" class="text-xs text-amber-400">+ Add address</button>
 </div>
 
 <div class="mt-6" x-data='{ rows: {!! json_encode(array_values(array_map(fn($r)=>["network"=>$r["network"]??"","handle"=>$r["handle"]??"","url"=>$r["url"]??""], $socials ?: []))) !!} }'>
@@ -83,11 +87,12 @@
         <h3 class="text-sm font-semibold text-gray-300">Social handles (encrypted)</h3>
         <button type="button" @click="rows.push({network:'',handle:'',url:''})" class="text-xs text-amber-400">+ Add</button>
     </div>
-    <template x-for="(row, i) in rows" :key="i">
+    <template x-for="(row, i) in rows" :key="row._key">
         <div class="grid grid-cols-12 gap-2 mb-2">
             <input type="text" :name="'social_handles['+i+'][network]'" x-model="row.network" placeholder="Network (twitter, instagram…)" class="col-span-3 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
             <input type="text" :name="'social_handles['+i+'][handle]'" x-model="row.handle" placeholder="@handle" class="col-span-3 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
             <input type="text" :name="'social_handles['+i+'][url]'" x-model="row.url" placeholder="https://…" class="col-span-5 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
+            <div class="col-span-12"><datalist :id="'client-regions-'+i+'-'+country"><template x-for="(name, key) in regions[country] || {}" :key="key"><option :value="name"></option></template></datalist>@include('common.partials.address-assist-status')</div>
             <button type="button" @click="rows.splice(i,1)" class="col-span-1 text-red-400"><i class="fas fa-trash"></i></button>
         </div>
     </template>
@@ -98,10 +103,11 @@
         <h3 class="text-sm font-semibold text-gray-300">Custom fields (encrypted)</h3>
         <button type="button" @click="rows.push({key:'',value:''})" class="text-xs text-amber-400">+ Add</button>
     </div>
-    <template x-for="(row, i) in rows" :key="i">
+    <template x-for="(row, i) in rows" :key="row._key">
         <div class="grid grid-cols-12 gap-2 mb-2">
             <input type="text" :name="'fields['+i+'][key]'" x-model="row.key" placeholder="Key" class="col-span-4 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
             <input type="text" :name="'fields['+i+'][value]'" x-model="row.value" placeholder="Value" class="col-span-7 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
+            <div class="col-span-12"><datalist :id="'client-regions-'+i+'-'+country"><template x-for="(name, key) in regions[country] || {}" :key="key"><option :value="name"></option></template></datalist>@include('common.partials.address-assist-status')</div>
             <button type="button" @click="rows.splice(i,1)" class="col-span-1 text-red-400"><i class="fas fa-trash"></i></button>
         </div>
     </template>

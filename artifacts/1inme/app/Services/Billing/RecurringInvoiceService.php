@@ -74,12 +74,19 @@ class RecurringInvoiceService
         if (!$ws) return null;
 
         return DB::transaction(function () use ($template, $ws, $asOf) {
+            $lines = is_array($template->line_items) ? $template->line_items : [];
+            if ($template->tax_rule_id) {
+                foreach ($lines as &$line) {
+                    if (!isset($line['tax_rate_bps']) || $line['tax_rate_bps'] === '') $line['tax_rule_id'] = $template->tax_rule_id;
+                }
+                unset($line);
+            }
             $invoice = $this->invoices->createStandalone([
                 'billing_company_id' => $template->billing_company_id,
                 'vault_client_id'    => $template->vault_client_id,
                 'recipient_email'    => $template->recipient_email,
                 'currency'           => $template->currency,
-                'line_items'         => is_array($template->line_items) ? $template->line_items : [],
+                'line_items'         => $lines,
                 'discount_minor'     => (int) $template->discount_minor,
                 'notes_md'           => $template->notes_md,
             ], $ws, $template->user_id);

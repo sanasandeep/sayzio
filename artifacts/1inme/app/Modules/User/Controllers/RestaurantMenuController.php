@@ -58,6 +58,7 @@ class RestaurantMenuController extends Controller
 
         $data = $request->validate([
             'billing_company_id' => 'nullable|integer|min:1',
+            'billing_tax_rule_id' => 'nullable|integer|min:1',
             'mode'            => 'required|in:display,order',
             'currency'        => 'required|string|size:3',
             'accent_color'    => 'nullable|string|max:16',
@@ -323,10 +324,11 @@ class RestaurantMenuController extends Controller
             }
         }
 
+        if ($request->exists('billing_tax_rule_id')) $settings['billing_tax_rule_id'] = $data['billing_tax_rule_id'] ?? null;
         if ($request->exists('billing_company_id')) {
-            $settings = \App\Modules\User\Support\MenuBillingCompany::apply($settings, isset($data['billing_company_id']) ? (int) $data['billing_company_id'] : null, (int) $link->user_id);
+            $settings = \App\Modules\User\Support\MenuBillingCompany::apply($settings, isset($data['billing_company_id']) ? (int) $data['billing_company_id'] : null, (int) $link->user_id, !empty($settings['billing_tax_rule_id']) ? (int) $settings['billing_tax_rule_id'] : null);
         } elseif (!empty($settings['billing_company_id'])) {
-            $settings = \App\Modules\User\Support\MenuBillingCompany::apply($settings, (int) $settings['billing_company_id'], (int) $link->user_id);
+            $settings = \App\Modules\User\Support\MenuBillingCompany::apply($settings, (int) $settings['billing_company_id'], (int) $link->user_id, !empty($settings['billing_tax_rule_id']) ? (int) $settings['billing_tax_rule_id'] : null);
         }
 
         $menu->update([

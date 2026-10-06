@@ -22,4 +22,12 @@ class MenuBillingCompanyTaxTest extends TestCase
         $menu->settings['tax']['enabled'] = false;
         $this->assertSame(0.0, MenuBillingCompany::storeBill($menu, 105, 'takeaway')['tax_amount']);
     }
+    public function test_store_split_tax_is_saved_as_components_without_changing_total(): void
+    {
+        $menu = (object) ['currency' => 'INR', 'settings' => ['billing_company_id' => 1, 'tax' => ['enabled' => true, 'rate' => 5, 'components' => [['name' => 'CGST', 'rate_bps' => 250], ['name' => 'SGST', 'rate_bps' => 250]]]]];
+        $bill = MenuBillingCompany::storeBill($menu, 100, 'takeaway');
+        $this->assertSame(105.0, $bill['total']);
+        $this->assertSame([250, 250], array_column($bill['tax_breakdown'], 'amount_minor'));
+    }
+
 }

@@ -121,6 +121,7 @@
             <div class="ro-note" x-show="o.customer_note" x-text="'“' + o.customer_note + '”'"></div>
             <p class="ro-btn" x-show="o.meta?.coupon_reservation">Prepaid coupon serving · redeem coupon at collection</p>
             <p x-show="Number(o.meta?.tax?.tax_amount) > 0" x-text="(o.meta?.tax?.tax_label || 'Tax') + ': ' + money(o.meta?.tax?.tax_amount, o.currency)"></p>
+            <template x-for="(part, index) in o.meta?.tax?.tax_breakdown || []" :key="index"><p class="text-sm" x-text="part.name + ' (' + part.rate_bps / 100 + '%): ' + money(part.amount_minor / 100, o.currency)"></p></template>
             <p class="text-sm" x-show="o.meta?.billing_company" x-text="o.meta?.billing_company?.legal_name || o.meta?.billing_company?.name || ''"></p>
             <p class="text-sm" x-show="o.meta?.billing_company" x-text="(o.meta?.billing_company?.tax_ids || []).join(' · ')"></p>
             <div class="ro-total"><span>Estimated total</span><span x-text="money(o.total != null ? o.total : o.subtotal, o.currency)"></span></div>

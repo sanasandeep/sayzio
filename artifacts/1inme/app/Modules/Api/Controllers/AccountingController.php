@@ -85,7 +85,9 @@ class AccountingController extends Controller
     {
         $rule = TaxRule::where('user_id', $request->user()->id)->find($id);
         if (!$rule) return $this->notFound('Tax rule not found');
-        $rule->update($this->taxRuleRules($request));
+        $data = $this->taxRuleRules($request);
+        if (!$request->exists('components') && (int) $data['rate_bps'] !== (int) $rule->rate_bps) $data['components'] = null;
+        $rule->update($data);
         return $this->ok(['tax_rule' => $this->taxRule($rule->refresh())]);
     }
 
@@ -280,7 +282,12 @@ class AccountingController extends Controller
     {
         $data = $request->validate([
             'name'               => 'required|string|max:120',
-            'rate_bps'           => 'required|integer|min:0|max:100000',
+            'components' => 'nullable|array|max:8',
+            'components.*.name' => 'required|string|max:64',
+            'components.*.rate_percent' => 'nullable|numeric|min:0|max:100',
+            'components.*.rate_bps' => 'nullable|integer|min:0|max:10000',
+            'rate_bps'           => 'nullable|required_without:rate_percent|integer|min:0|max:100000',
+            'rate_percent' => 'nullable|numeric|min:0|max:100',
             'billing_company_id' => 'nullable|integer',
             'inclusive'          => 'nullable|boolean',
             'is_compound'        => 'nullable|boolean',
@@ -290,7 +297,7 @@ class AccountingController extends Controller
         foreach (['inclusive', 'is_compound', 'is_default', 'is_active'] as $b) {
             $data[$b] = (bool) ($data[$b] ?? false);
         }
-        return $data;
+        return \App\Services\Billing\TaxComponents::normalize($data);
     }
 
     protected function itemRules(Request $request): array
@@ -352,6 +359,7 @@ class AccountingController extends Controller
             'line_items.*.label'        => 'required|string|max:240',
             'line_items.*.amount_minor' => 'required|integer|min:0',
             'line_items.*.quantity'     => 'nullable|integer|min:1|max:9999',
+            'line_items.*.tax_rule_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('tax_rules', 'id')->where('user_id', $request->user()->id)->where('is_active', true)],
             'line_items.*.tax_rate_bps' => 'nullable|integer|min:0|max:100000',
             'line_items.*.tax_name'     => 'nullable|string|max:64',
             'line_items.*.tax_inclusive'=> 'nullable|boolean',
@@ -384,7 +392,7 @@ class AccountingController extends Controller
     protected function taxRule(TaxRule $r): array
     {
         return [
-            'id' => $r->id, 'name' => $r->name, 'rate_bps' => (int) $r->rate_bps,
+            'id' => $r->id, 'name' => $r->name, 'rate_bps' => (int) $r->rate_bps, 'components' => $r->components,
             'billing_company_id' => $r->billing_company_id,
             'inclusive' => (bool) $r->inclusive, 'is_compound' => (bool) $r->is_compound,
             'is_default' => (bool) $r->is_default, 'is_active' => (bool) $r->is_active,

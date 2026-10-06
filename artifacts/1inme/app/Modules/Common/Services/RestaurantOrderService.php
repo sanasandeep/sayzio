@@ -95,7 +95,7 @@ class RestaurantOrderService
                 'menu_id'         => $menu->id,
                 'link_id'         => $link->id,
                 'table_id'        => $table?->id,
-                'meta' => ['billing_company' => $menu->settings['billing_company'] ?? null, 'tax_label' => $bill['tax_label']],
+                'meta' => ['billing_company' => $menu->settings['billing_company'] ?? null, 'tax_label' => $bill['tax_label'], 'tax_breakdown' => $bill['tax_breakdown']],
                 'status'          => RestaurantOrder::STATUS_NEW,
                 'table_label'     => $table?->label ?: ($typedTable !== '' ? $typedTable : null),
                 'wanted_at'       => $wantedAt,

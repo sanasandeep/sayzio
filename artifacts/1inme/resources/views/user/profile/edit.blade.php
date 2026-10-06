@@ -139,43 +139,7 @@
                     <p class="text-xs mb-4" style="color: var(--text-muted);">Used to calculate tax on your invoices and to print on your tax invoice PDF. GSTIN is for Indian businesses; VATIN is for EU/UK businesses claiming reverse-charge.</p>
                     <div class="space-y-3" data-billing-address
                          @country-picked="onCountryInput($event.detail)"
-                         x-data="{
-                             billingCountry: @js($billingCountryInit),
-                             taxKind: @js($taxKindInit),
-                             cityVal: @js($billingCityInit),
-                             regionVal: @js($billingRegionInit),
-                             cityEdited: false,
-                             regionEdited: false,
-                             lookupTimer: null,
-                             lookupUrl: @js(route('user.profile.postal.lookup')),
-                             onCountryInput(val) {
-                                 this.billingCountry = val;
-                                 this.scheduleLookup();
-                             },
-                             scheduleLookup() {
-                                 clearTimeout(this.lookupTimer);
-                                 this.lookupTimer = setTimeout(() => this.doLookup(), 600);
-                             },
-                             async doLookup() {
-                                 const country = this.billingCountry.trim();
-                                 const postalEl = this.$el.querySelector('[name=billing_postal_code]');
-                                 const postal = postalEl ? postalEl.value.trim() : '';
-                                 if (country.length !== 2 || !postal) return;
-                                 try {
-                                     const r = await fetch(this.lookupUrl + '?country=' + encodeURIComponent(country) + '&postal_code=' + encodeURIComponent(postal), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                                     if (!r.ok) return;
-                                     const d = await r.json();
-                                     if (d.city && !this.cityEdited) this.cityVal = d.city;
-                                     if (!this.regionEdited) {
-                                         if ((country === 'IN' || country === 'US') && d.region_code) {
-                                             this.regionVal = d.region_code;
-                                         } else if (d.region && country !== 'IN' && country !== 'US') {
-                                             this.regionVal = d.region;
-                                         }
-                                     }
-                                 } catch (e) {}
-                             }
-                         }">
+                         x-data="addressAssist({ billingCountry: @js($billingCountryInit), country: @js($billingCountryInit), taxKind: @js($taxKindInit), cityVal: @js($billingCityInit), regionVal: @js($billingRegionInit), postalName: 'billing_postal_code', regionCodes: true })">
 
                         {{-- 1. Country --}}
                         <div>
@@ -190,34 +154,27 @@
                         </div>
 
                         {{-- 2. Postal / ZIP code — triggers the city/state auto-fill --}}
-                        <input type="text" name="billing_postal_code" placeholder="Postal / ZIP code"
+                        <input type="text" name="billing_postal_code" autocomplete="postal-code" placeholder="Postal / ZIP code"
                                value="{{ $billingPostalInit }}" maxlength="16"
                                @input="scheduleLookup()"
                                @blur="doLookup()"
                                class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
+
+                        @include('common.partials.address-assist-status')
 
                         {{-- 3. State / region (auto-filled; user may override) --}}
                         <div>
                             <label class="block text-xs mb-1" style="color: var(--text-muted);">State / region</label>
                             {{-- Dropdown for India / US; free-text for every other country --}}
                             <template x-if="billingCountry === 'IN' || billingCountry === 'US'">
-                                <select name="billing_region" x-model="regionVal" @change="regionEdited = true"
+                                <select name="billing_region" autocomplete="address-level1" x-model="regionVal" @change="regionEdited = true"
                                         class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
                                     <option value="" class="bg-[#0d0818]">None / N/A</option>
-                                    <optgroup label="India" class="bg-[#0d0818]">
-                                        @foreach($inStates as $code => $label)
-                                            <option value="{{ $code }}" class="bg-[#0d0818]">IN-{{ $code }} · {{ $label }}</option>
-                                        @endforeach
-                                    </optgroup>
-                                    <optgroup label="United States" class="bg-[#0d0818]">
-                                        @foreach($usStates as $code => $label)
-                                            <option value="{{ $code }}" class="bg-[#0d0818]">US-{{ $code }} · {{ $label }}</option>
-                                        @endforeach
-                                    </optgroup>
+                                    <template x-for="(label, code) in regions[billingCountry] || {}" :key="code"><option :value="code" x-text="label" class="bg-[#0d0818]"></option></template>
                                 </select>
                             </template>
                             <template x-if="billingCountry !== 'IN' && billingCountry !== 'US'">
-                                <input type="text" name="billing_region" maxlength="100"
+                                <input type="text" name="billing_region" autocomplete="address-level1" maxlength="100"
                                        placeholder="State / region (optional)"
                                        x-model="regionVal"
                                        @input="regionEdited = true"
@@ -226,16 +183,16 @@
                         </div>
 
                         {{-- 4. City (auto-filled; user may override) --}}
-                        <input type="text" name="billing_city" placeholder="City"
+                        <input type="text" name="billing_city" autocomplete="address-level2" placeholder="City"
                                x-model="cityVal"
                                @input="cityEdited = true"
                                maxlength="100"
                                class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
 
                         {{-- 5 & 6. Address lines --}}
-                        <input type="text" name="billing_line1" placeholder="Address line 1" value="{{ old('billing_line1', $billing->line1) }}" maxlength="255"
+                        <input type="text" name="billing_line1" autocomplete="address-line1" placeholder="Address line 1" value="{{ old('billing_line1', $billing->line1) }}" maxlength="255"
                                class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
-                        <input type="text" name="billing_line2" placeholder="Address line 2 (optional)" value="{{ old('billing_line2', $billing->line2) }}" maxlength="255"
+                        <input type="text" name="billing_line2" autocomplete="address-line2" placeholder="Address line 2 (optional)" value="{{ old('billing_line2', $billing->line2) }}" maxlength="255"
                                class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
 
                         {{-- 7. Business name --}}

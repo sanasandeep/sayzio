@@ -55,7 +55,7 @@ class BillingCompanyController extends Controller
     public function create()
     {
         $company    = new BillingCompany();
-        $taxRules   = TaxRule::where('user_id', auth()->id())->where('is_active', true)->get();
+        $taxRules   = TaxRule::where('user_id', auth()->id())->where('is_active', true)->whereNull('billing_company_id')->get();
         $smtpWarning = null;
         return view('user.billing.companies.edit', compact('company', 'taxRules', 'smtpWarning'));
     }
@@ -63,7 +63,7 @@ class BillingCompanyController extends Controller
     public function edit(BillingCompany $company)
     {
         $this->authorizeOwn($company);
-        $taxRules    = TaxRule::where('user_id', auth()->id())->where('is_active', true)->get();
+        $taxRules    = TaxRule::where('user_id', auth()->id())->where('is_active', true)->where(fn ($q) => $q->whereNull('billing_company_id')->orWhere('billing_company_id', $company->id))->get();
         $smtpWarning = CompanyMailSettings::for($company)->deliveryWarning();
         return view('user.billing.companies.edit', compact('company', 'taxRules', 'smtpWarning'));
     }
@@ -177,7 +177,7 @@ class BillingCompanyController extends Controller
             'secondary_tax_value' => 'nullable|string|max:64',
             'default_currency'    => 'nullable|string|size:3',
             'invoice_prefix'      => 'nullable|string|max:16',
-            'default_tax_rule_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('tax_rules', 'id')->where('user_id', auth()->id())],
+            'default_tax_rule_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('tax_rules', 'id')->where('user_id', auth()->id())->where(fn ($q) => $q->whereNull('billing_company_id')->orWhere('billing_company_id', optional($request->route('company'))->id ?? 0))],
             'notes'               => 'nullable|string|max:2000',
             'is_default'          => 'nullable|boolean',
             'letterhead_orientation'   => 'nullable|in:portrait,landscape',
