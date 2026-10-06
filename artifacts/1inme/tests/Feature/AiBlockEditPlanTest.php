@@ -69,4 +69,22 @@ class AiBlockEditPlanTest extends TestCase
         $this->assertLessThanOrEqual(999,$after['_style']['border_radius']);
     }
 
+    public function test_page_palette_layout_and_seo_are_sanitized(): void
+    {
+        $plan=app(AiBlockEditorController::class)->normalizePlan(['page'=>['settings'=>['background_color'=>'#112233','layout'=>['max_width_phone'=>9999],'meta'=>['seo_title'=>'New title']]]],$this->state(),['scope'=>'page','areas'=>['appearance','layout','seo']],['text']);
+        $this->assertSame('color',$plan['page']['settings']['background_type']);
+        $this->assertSame(600,$plan['page']['settings']['layout']['max_width_phone']);
+        $this->assertSame('New title',$plan['page']['settings']['meta']['seo_title']);
+    }
+    public function test_unselected_settings_area_is_rejected(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        app(AiBlockEditorController::class)->normalizePlan(['page'=>['settings'=>['button_color'=>'#112233']]],$this->state(),['scope'=>'page','areas'=>['content']],['text']);
+    }
+    public function test_ai_cannot_update_security_settings(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        app(AiBlockEditorController::class)->normalizePlan(['page'=>['settings'=>['password'=>'unsafe']]],$this->state(),['scope'=>'page'],['text']);
+    }
+
 }
