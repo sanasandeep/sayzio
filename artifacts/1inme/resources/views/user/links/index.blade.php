@@ -252,6 +252,17 @@
     .links-applied { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:12px 8px 0; font-size:11px; color:var(--text-muted); }
     .links-applied button,.links-applied a { color:var(--accent); }
     @media(max-width:700px) { .links-filter-panel { grid-template-columns:repeat(2,minmax(0,1fr)); padding:12px; gap:12px; } .links-search-submit { width:40px; padding:0; flex:none; } .links-search-submit span { display:none; } .links-filter-footer .links-pill--go { grid-column:auto; } }
+    .links-multi-picker { border:1px solid var(--border-soft); border-radius:11px; background:var(--bg-card); overflow:hidden; }
+    .links-multi-picker summary { min-height:46px; padding:13px 11px; display:flex; justify-content:space-between; gap:8px; align-items:center; cursor:pointer; font-size:12px; color:var(--text-secondary); list-style:none; }
+    .links-multi-picker summary::-webkit-details-marker { display:none; }
+    .links-multi-options { max-height:220px; overflow:auto; border-top:1px solid var(--border-soft); padding:5px; }
+    .links-multi-options label { display:flex; gap:9px; align-items:center; min-height:40px; padding:8px; font-size:12px; cursor:pointer; border-radius:7px; color:var(--text-primary); }
+    .links-multi-options label:hover { background:var(--bg-glass-hover); }
+    .links-multi-options input { width:18px; height:18px; flex:none; accent-color:var(--accent); }
+    .links-applied:empty { display:none; }
+    .links-applied .links-filter-tag { display:inline-flex; align-items:center; gap:9px; padding:7px 10px; min-height:34px; border:1px solid var(--border-soft); border-radius:18px; background:var(--bg-glass-hover); color:var(--text-secondary); max-width:100%; overflow-wrap:anywhere; }
+    .links-filter-tag i { flex:none; font-size:9px; }
+    .links-search-submit.btn-primary-gradient { background:linear-gradient(135deg,var(--accent),var(--accent-light)); }
 </style>
 @endpush
 
@@ -385,6 +396,14 @@
 </div>
 @endunless
 
+@php
+    $filterValues = static fn ($key) => array_values(array_filter((array) request($key, []), static fn ($v) => is_string($v) && $v !== ''));
+    $filterOptions = ['type' => [], 'project_id' => ['none' => 'No folder'], 'status' => ['active' => 'Active', 'inactive' => 'Inactive']];
+    foreach (\App\Modules\User\Support\LinkTypeCategories::categories() as $category) {
+        foreach ($category['types'] as $option) $filterOptions['type'][$option['value']] = $option['label'];
+    }
+    foreach ($projects as $project) $filterOptions['project_id'][(string) $project->id] = $project->name;
+@endphp
 <form method="GET" action="{{ route('user.links.index') }}" class="links-toolbar links-search-shell" role="search"
       x-data="linkSearchHistory" @submit="remember()" @keydown.escape="filtersOpen=false; historyOpen=false">
     <div class="links-search-bar">
@@ -393,7 +412,7 @@
             <input type="search" name="search" x-model="query" @focus="historyOpen=true" @input="historyOpen=true" autocomplete="off" aria-label="Search links"
                    placeholder="Search {{ number_format($__summary['total']) }} links&hellip;">
         </div>
-        <button type="submit" class="links-search-submit" aria-label="Search links"><i class="fas fa-search" aria-hidden="true"></i><span>Search</span></button>
+        <button type="submit" class="links-search-submit btn-primary-gradient" aria-label="Search links"><i class="fas fa-search" aria-hidden="true"></i><span>Search</span></button>
     </div>
     <div class="links-recent" x-show="historyOpen && matchingHistory.length" x-cloak @click.outside="historyOpen=false">
         <div class="links-recent-heading"><span>Recent searches <small>On this device</small></span><button type="button" @click="clearHistory()">Clear all</button></div>
@@ -403,36 +422,17 @@
     </div>
     <div id="links-filter-panel" class="links-filter-panel" x-show="filtersOpen" x-cloak>
         <div class="links-filter-heading"><span><i class="fas fa-sliders-h" aria-hidden="true"></i> Refine your search</span><button type="button" @click="filtersOpen=false" aria-label="Close filters"><i class="fas fa-times" aria-hidden="true"></i></button></div>
-    <label class="links-filter-field"><span>Type</span>
-    <select name="type" class="links-pill" aria-label="Filter by type">
-        <option value="" class="bg-[#0a0612]">All types</option>
-        @foreach(\App\Modules\User\Support\LinkTypeCategories::categories() as $__typeCat)
-            <optgroup label="{{ $__typeCat['label'] }}">
-                @foreach($__typeCat['types'] as $__type)
-                    <option value="{{ $__type['value'] }}" {{ request('type') === $__type['value'] ? 'selected' : '' }} class="bg-[#0a0612]">{{ $__type['label'] }}</option>
+    @foreach(['type' => 'Type', 'project_id' => 'Folder', 'status' => 'Status'] as $filterKey => $filterLabel)
+    <div class="links-filter-field"><span>{{ $filterLabel }}</span>
+        <details class="links-multi-picker"><summary>{{ count($filterValues($filterKey)) ? count($filterValues($filterKey)).' selected' : 'All '.strtolower($filterLabel).'s' }} <i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
+            <div class="links-multi-options">
+                @foreach($filterOptions[$filterKey] as $value => $label)
+                <label><input type="checkbox" name="{{ $filterKey }}[]" value="{{ $value }}" @checked(in_array((string) $value, $filterValues($filterKey), true))><span>{{ $label }}</span></label>
                 @endforeach
-            </optgroup>
-        @endforeach
-    </select>
-    </label>
-
-    <label class="links-filter-field"><span>Folder</span>
-    <select name="project_id" class="links-pill" aria-label="Filter by folder">
-        <option value="" class="bg-[#0a0612]">All folders</option>
-        @foreach($projects as $project)
-            <option value="{{ $project->id }}" {{ request('project_id') == $project->id ? 'selected' : '' }} class="bg-[#0a0612]">{{ $project->name }}</option>
-        @endforeach
-    </select>
-    </label>
-
-    <label class="links-filter-field"><span>Status</span>
-    <select name="status" class="links-pill" aria-label="Filter by status">
-        <option value="" class="bg-[#0a0612]">Any status</option>
-        <option value="active" {{ request('status') === 'active' ? 'selected' : '' }} class="bg-[#0a0612]">Active</option>
-        <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }} class="bg-[#0a0612]">Inactive</option>
-    </select>
-    </label>
-
+            </div>
+        </details>
+    </div>
+    @endforeach
     <label class="links-filter-field"><span>Sort by</span>
     <select name="sort" class="links-pill" aria-label="Sort">
         @foreach([
@@ -450,9 +450,21 @@
 
         <div class="links-filter-footer"><a href="{{ route('user.links.index') }}">Reset filters</a><button type="submit" class="links-pill links-pill--go">Apply filters</button></div>
     </div>
-    @if(request()->filled('type') || request()->filled('project_id') || request()->filled('status') || request('sort', 'newest') !== 'newest')
-    <div class="links-applied"><i class="fas fa-filter" aria-hidden="true"></i> Filters applied <button type="button" @click="filtersOpen=true">Edit</button><a href="{{ route('user.links.index', request()->only('search')) }}">Clear filters</a></div>
-    @endif
+    <div class="links-applied">
+        @foreach(['type' => 'Type', 'project_id' => 'Folder', 'status' => 'Status'] as $filterKey => $filterLabel)
+            @foreach($filterValues($filterKey) as $value)
+                @php
+                    $remaining = request()->except('page');
+                    $remaining[$filterKey] = array_values(array_diff($filterValues($filterKey), [$value]));
+                    if (!$remaining[$filterKey]) unset($remaining[$filterKey]);
+                @endphp
+                <a class="links-filter-tag" href="{{ route('user.links.index', $remaining) }}" aria-label="Remove {{ $filterLabel }}: {{ $filterOptions[$filterKey][$value] ?? $value }}">{{ $filterLabel }}: {{ $filterOptions[$filterKey][$value] ?? $value }} <i class="fas fa-times" aria-hidden="true"></i></a>
+            @endforeach
+        @endforeach
+        @if(request('sort', 'newest') !== 'newest')
+        <a class="links-filter-tag" href="{{ route('user.links.index', request()->except('sort', 'page')) }}">Sort: {{ ['oldest'=>'Oldest first','clicks_desc'=>'Most clicks','clicks_asc'=>'Fewest clicks','title_asc'=>'Title A to Z','title_desc'=>'Title Z to A'][request('sort')] ?? 'Newest first' }} <i class="fas fa-times" aria-hidden="true"></i></a>
+        @endif
+    </div>
 </form>
 @push('scripts')
 <script>
