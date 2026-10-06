@@ -395,7 +395,20 @@
         }
         html.light-mode .page-hero { background: #ffffff; }
         .page-hero::after { display: none; }
-        .page-hero::before { display: none; }
+        .page-hero::before {
+            content: ''; display: block; position: absolute; inset: 0;
+            border-radius: inherit; pointer-events: none; z-index: 0;
+            background-image:
+                linear-gradient(to right, var(--hero-grid-line) 1px, transparent 1px),
+                linear-gradient(to bottom, var(--hero-grid-line) 1px, transparent 1px);
+            background-size: 46px 46px;
+            -webkit-mask-image: linear-gradient(to right, #000, transparent 90%);
+            mask-image: linear-gradient(to right, #000, transparent 90%);
+        }
+        .page-hero { --hero-grid-line: rgba(255,255,255,.055); }
+        html.light-mode .page-hero { --hero-grid-line: rgba(15,23,42,.05); }
+        /* The header uses the same quiet lattice as My Links. */
+        .page-hero > .page-hero-deco { display: none; }
         .page-hero > * { position: relative; z-index: 1; }
         /* Keep the decorative wrapper out of document flow. The content
            rule above must not collapse its full-card background layer. */
