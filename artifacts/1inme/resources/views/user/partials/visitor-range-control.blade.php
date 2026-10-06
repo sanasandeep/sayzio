@@ -29,9 +29,9 @@
                 @endif
             @endforeach
             <input type="hidden" name="period" value="custom">
-            <label>From date<input type="date" name="start" value="{{ $startDate-></label>format('Y-m-d') }}" class="range-date-input" max="{{ now()->format('Y-m-d') }}">
+            <label>From date<input type="date" name="start" value="{{ $startDate->format('Y-m-d') }}" class="range-date-input" max="{{ now()->format('Y-m-d') }}"></label>
             <span class="text-xs" style="color: var(--text-faint);">–</span>
-            <label>To date<input type="date" name="end" value="{{ $endDate-></label>format('Y-m-d') }}" class="range-date-input" max="{{ now()->format('Y-m-d') }}">
+            <label>To date<input type="date" name="end" value="{{ $endDate->format('Y-m-d') }}" class="range-date-input" max="{{ now()->format('Y-m-d') }}"></label>
             <button type="submit" class="pill {{ $isCustom ? 'pill-active' : '' }}"><i class="fas fa-calendar-week text-[9px] mr-1"></i> Custom</button>
         </form>
     </div>
