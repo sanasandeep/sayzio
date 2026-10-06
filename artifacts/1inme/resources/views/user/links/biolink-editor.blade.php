@@ -815,6 +815,7 @@ $catColors = [
      ticked — an empty toolbar is just noise on a page you are only reading.
      Move up/down is only offered when the whole selection shares one parent,
      because "up" has no meaning across two different lists.                --}}
+@include('user.links.partials.ai-block-editor')
 <div id="blockSelectBar" class="block-select-bar" hidden aria-live="polite">
     <span class="bsb-count"><strong data-selected-count>0</strong> selected</span>
     <div class="bsb-actions">
