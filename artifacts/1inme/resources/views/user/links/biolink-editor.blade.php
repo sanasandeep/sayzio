@@ -804,7 +804,7 @@ $catColors = [
 ];
 @endphp
 <div x-data="biolinkEditor()" class="max-w-7xl mx-auto">
-    @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'blocks'])
+    @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => request('tab') === 'ai' ? 'ai_edit' : 'blocks'])
 
 {{-- ============ MULTI-SELECT BAR ============
      Sana, 2026-09-23: "need options to select multiple blocks to move as a
@@ -815,8 +815,8 @@ $catColors = [
      ticked — an empty toolbar is just noise on a page you are only reading.
      Move up/down is only offered when the whole selection shares one parent,
      because "up" has no meaning across two different lists.                --}}
-@include('user.links.partials.ai-block-editor')
-<div id="blockSelectBar" class="block-select-bar" hidden aria-live="polite">
+
+<div @if(request('tab') === 'ai') style="display:none!important" @endif id="blockSelectBar" class="block-select-bar" hidden aria-live="polite">
     <span class="bsb-count"><strong data-selected-count>0</strong> selected</span>
     <div class="bsb-actions">
         <button type="button" class="bsb-btn" data-sel-action="up" title="Move the selection up one place">
@@ -845,7 +845,7 @@ $catColors = [
     </button>
 </div>
 
-    <div class="flex items-center justify-end gap-2 mb-4">
+    <div class="flex items-center justify-end gap-2 mb-4" @if(request('tab') === 'ai') style="display:none" @endif>
         <button type="button" id="deleteAllBlocksBtn"
                 onclick="ajaxDeleteAllBlocks(this)"
                 class="delete-all-btn"
@@ -1098,6 +1098,11 @@ $catColors = [
             #editorLayout { grid-template-columns: minmax(0, 3.1fr) minmax(0, 5fr) minmax(0, 4fr); }
             #editorPaletteCol { grid-column: auto; order: 0; }
         }
+        #editorLayout.ai-editor-layout { grid-template-columns: minmax(0, 1fr); }
+        #editorLayout.ai-editor-layout #editorPreviewCol { display: block; }
+        @media (min-width: 900px) {
+            #editorLayout.ai-editor-layout { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+        }
         /* Stacked (sub-lg) palette: not full viewport height, scrolls internally.
            Use a DEFINITE height (not max-height) so the absolute Templates
            overlay inside it — and that overlay's flex scroll body — resolve a
@@ -1248,9 +1253,12 @@ $catColors = [
         }
     </style>
 
-    <div id="editorLayout">
+    <div id="editorLayout" class="{{ request('tab') === 'ai' ? 'ai-editor-layout' : '' }}">
+        @if(request('tab') === 'ai')
+        <div class="min-w-0">@include('user.links.partials.ai-block-editor')</div>
+        @endif
         {{-- BLOCK PALETTE (persistent drag source) --}}
-        <div id="editorPaletteCol">
+        <div id="editorPaletteCol" @if(request('tab') === 'ai') style="display:none" @endif>
             <div class="palette-panel">
                 <div class="palette-head">
                     <h3 class="text-sm font-bold gradient-text">Add blocks</h3>
@@ -1348,7 +1356,7 @@ $catColors = [
         </div>
 
         {{-- CANVAS --}}
-        <div id="editorCanvasCol">
+        <div id="editorCanvasCol" @if(request('tab') === 'ai') style="display:none" @endif>
 
             {{-- BLOCKS --}}
                 <div id="reorderHint" class="flex items-center mb-3" style="{{ $blocks->count() ? '' : 'display:none;' }}">
