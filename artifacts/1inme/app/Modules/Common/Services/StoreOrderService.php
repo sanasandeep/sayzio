@@ -106,7 +106,7 @@ class StoreOrderService
                 'charges'          => $chargeLines,
                 'charges_amount'   => $chargesAmount,
                 'total'            => $billing['total'],
-                'meta' => ['billing_company' => $billing['billing_company'], 'tax' => array_intersect_key($billing, array_flip(['tax_label', 'tax_rate', 'tax_inclusive', 'tax_amount']))],
+                'meta' => ['billing_company' => $billing['billing_company'], 'tax' => array_intersect_key($billing, array_flip(['tax_label', 'tax_rate', 'tax_inclusive', 'tax_amount', 'tax_breakdown']))],
                 'currency'         => $menu->currency,
             ]);
 

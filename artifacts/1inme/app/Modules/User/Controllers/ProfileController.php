@@ -134,38 +134,26 @@ class ProfileController extends Controller
      */
     public function postalLookup(\Illuminate\Http\Request $request)
     {
-        $country = strtoupper(trim((string) $request->input('country', '')));
-        $postal  = trim((string) $request->input('postal_code', ''));
-
-        $empty = ['city' => null, 'region' => null, 'region_code' => null];
-
-        if (strlen($country) !== 2 || $postal === '') {
-            return response()->json($empty);
-        }
-
-        $cacheKey = 'postal_lookup:' . $country . ':' . strtolower($postal);
-        $result = \Cache::remember($cacheKey, 3600, function () use ($country, $postal, $empty) {
+        $data = $request->validate(['country' => 'required|string|regex:/^[A-Za-z]{2}$/', 'postal_code' => 'required|string|max:32|regex:/^[A-Za-z0-9 -]+$/']);
+        $country = strtoupper($data['country']);
+        $postal = trim($data['postal_code']);
+        $empty = ['city' => null, 'region' => null, 'region_code' => null, 'places' => []];
+        $result = \Cache::remember('postal_lookup:v2:'.$country.':'.strtolower($postal), 3600, function () use ($country, $postal, $empty) {
             try {
-                $resp = \Illuminate\Support\Facades\Http::timeout(4)
-                    ->get("https://api.zippopotam.us/{$country}/{$postal}");
-                if (!$resp->successful()) {
-                    return $empty;
-                }
-                $data  = $resp->json();
-                $place = $data['places'][0] ?? null;
-                if (!$place) {
-                    return $empty;
-                }
-                return [
-                    'city'        => $place['place name']         ?? null,
-                    'region'      => $place['state']              ?? null,
-                    'region_code' => $place['state abbreviation'] ?? null,
-                ];
-            } catch (\Throwable $e) {
-                return $empty;
-            }
+                $response = \Illuminate\Support\Facades\Http::timeout(4)->get('https://api.zippopotam.us/'.rawurlencode($country).'/'.rawurlencode($postal));
+                if (!$response->successful()) return $empty;
+                $regions = $country === 'IN' ? TaxCalculator::IN_STATES : ($country === 'US' ? TaxCalculator::US_STATES : []);
+                $places = collect($response->json('places') ?? [])->take(50)->map(function ($place) use ($regions) {
+                    $region = $place['state'] ?? null;
+                    $code = $place['state abbreviation'] ?? null;
+                    foreach ($regions as $key => $name) {
+                        if (strcasecmp($name, (string) $region) === 0) { $code = $key; break; }
+                    }
+                    return ['city' => $place['place name'] ?? null, 'region' => $region, 'region_code' => $code];
+                })->unique(fn ($place) => $place['city'].'|'.$place['region'])->values()->all();
+                return array_merge($places[0] ?? $empty, ['places' => $places]);
+            } catch (\Throwable $exception) { return $empty; }
         });
-
         return response()->json($result);
     }
 

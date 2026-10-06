@@ -245,12 +245,24 @@ class ClientInvoiceService
             ?: ($invoice->billing_company_id ? BillingCompany::find($invoice->billing_company_id) : null);
 
         $fallbackRule = $company?->default_tax_rule_id
-            ? TaxRule::find($company->default_tax_rule_id)
+            ? TaxRule::where('user_id', $invoice->user_id)->where('is_active', true)->where(fn ($q) => $q->whereNull('billing_company_id')->orWhere('billing_company_id', $company->id))->find($company->default_tax_rule_id)
             : null;
 
         $items = is_array($data['line_items'] ?? null)
             ? array_values($data['line_items'])
             : (is_array($invoice->line_items) ? $invoice->line_items : []);
+
+        foreach ($items as &$item) {
+            if (!empty($item['tax_rule_id'])) {
+                $rule = TaxRule::where('user_id', $invoice->user_id)->where('is_active', true)->find($item['tax_rule_id']);
+                if (!$rule || ($rule->billing_company_id && (int) $rule->billing_company_id !== (int) $invoice->billing_company_id)) throw \Illuminate\Validation\ValidationException::withMessages(['line_items' => 'Choose a tax profile for the selected billing company.']);
+                $item['tax_rate_bps'] = $rule->rate_bps;
+                $item['tax_inclusive'] = $rule->inclusive;
+                $item['tax_name'] = $rule->name;
+                $item['tax_components'] = $rule->components ?? [];
+            }
+        }
+        unset($item);
 
         $discount = (int) ($data['discount_minor'] ?? $invoice->discount_minor ?? 0);
 

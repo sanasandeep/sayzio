@@ -127,6 +127,7 @@ class RestaurantBillCalculator
             'tax_rate'        => $rate,
             'tax_label'       => $menu->taxLabel(),
             'tax_amount'      => $taxAmount,
+            'tax_breakdown' => \App\Services\Billing\TaxComponents::allocate((int) round($taxAmount * 100), $menu->settings['tax']['components'] ?? []),
             'total'           => round($total, 2),
             'currency'        => $menu->currency,
         ];

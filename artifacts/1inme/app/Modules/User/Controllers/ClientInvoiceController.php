@@ -120,6 +120,8 @@ class ClientInvoiceController extends Controller
                 'quantity'     => (int) ($li['quantity'] ?? 1),
                 'meta'         => $existingByCard->values()->get($idx)['meta'] ?? ['kind' => 'manual'],
             ];
+            $oldLine = $invoice->line_items[$idx] ?? [];
+            $row = array_merge($row, array_intersect_key($oldLine, array_flip(['tax_rate_bps', 'tax_inclusive', 'tax_name', 'tax_components'])));
             $items[] = $row;
         }
 
@@ -150,7 +152,9 @@ class ClientInvoiceController extends Controller
             $invoice->rotatePayLinkToken();
         }
 
-        $svc->recalculate($invoice, $items);
+        $usesTaxProfiles = collect($invoice->line_items ?? [])->contains(fn ($line) => array_key_exists('tax_rate_bps', $line));
+        if ($usesTaxProfiles) $svc->applyEdits($invoice, ['line_items' => $items]);
+        else $svc->recalculate($invoice, $items);
         $this->applyLetterhead($invoice, $request, $data['letterhead_orientation'] ?? ($invoice->letterhead_orientation ?: 'portrait'));
 
         return back()->with('success', 'Invoice saved.');
@@ -203,7 +207,7 @@ class ClientInvoiceController extends Controller
         $clients   = VaultClient::query()->where('workspace_id', $ws->id)->orderBy('name')->get(['id', 'name']);
         $emails    = VaultClientEmail::query()->where('workspace_id', $ws->id)->get();
         $contacts  = Contact::query()->where('workspace_id', $ws->id)->orderBy('display_name')->get();
-        $companies = \App\Modules\User\Models\BillingCompany::where('user_id', auth()->id())->orderByDesc('is_default')->orderBy('name')->get();
+        $companies = \App\Modules\User\Models\BillingCompany::where('user_id', auth()->id())->with('defaultTaxRule')->orderByDesc('is_default')->orderBy('name')->get();
         $catalog   = \App\Modules\User\Models\CatalogItem::where('user_id', auth()->id())->where('is_active', true)->orderBy('name')->get();
         $taxRules  = \App\Modules\User\Models\TaxRule::where('user_id', auth()->id())->where('is_active', true)->orderBy('name')->get();
         $prefill   = [
@@ -236,9 +240,10 @@ class ClientInvoiceController extends Controller
         $ws = app('current_workspace');
         $clients   = VaultClient::query()->where('workspace_id', $ws->id)->orderBy('name')->get(['id', 'name']);
         $contacts  = Contact::query()->where('workspace_id', $ws->id)->orderBy('display_name')->get();
-        $companies = \App\Modules\User\Models\BillingCompany::where('user_id', auth()->id())->orderByDesc('is_default')->orderBy('name')->get();
+        $companies = \App\Modules\User\Models\BillingCompany::where('user_id', auth()->id())->with('defaultTaxRule')->orderByDesc('is_default')->orderBy('name')->get();
         $catalog   = \App\Modules\User\Models\CatalogItem::where('user_id', auth()->id())->where('is_active', true)->orderBy('name')->get();
-        return view('user.client_invoices.create_receipt', compact('clients', 'contacts', 'companies', 'catalog'));
+        $taxRules = \App\Modules\User\Models\TaxRule::where('user_id', auth()->id())->where('is_active', true)->orderBy('name')->get();
+        return view('user.client_invoices.create_receipt', compact('clients', 'contacts', 'companies', 'catalog', 'taxRules'));
     }
 
     /** Persist + immediately mark-paid a standalone receipt. */
@@ -281,6 +286,7 @@ class ClientInvoiceController extends Controller
             'line_items.*.amount_minor' => 'required|integer|min:0',
             'line_items.*.quantity'     => 'nullable|integer|min:1|max:9999',
             'line_items.*.tax_rate_bps' => 'nullable|integer|min:0|max:100000',
+            'line_items.*.tax_rule_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('tax_rules', 'id')->where('user_id', auth()->id())->where('is_active', true)],
             'line_items.*.tax_name'     => 'nullable|string|max:64',
             'line_items.*.tax_inclusive'=> 'nullable|boolean',
             'line_items.*.catalog_item_id' => 'nullable|integer',

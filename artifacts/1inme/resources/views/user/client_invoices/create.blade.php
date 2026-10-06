@@ -1,18 +1,21 @@
 @extends('user.layouts.app')
 @section('title', 'New Invoice')
 @section('content')
+@include('user.billing.partials.invoice-estimate')
 @php
     $emailsByClient = $emails->groupBy('client_id')->map(function ($g) {
         return $g->map(fn($e) => ['id' => $e->id, 'email' => $e->email, 'label' => $e->label ?? null]);
     })->toArray();
     $catalogJs = $catalog->map(fn($c) => [
         'id' => $c->id, 'name' => $c->name, 'amount_minor' => (int) $c->unit_price_minor,
-        'tax_rate_bps' => optional($taxRules->firstWhere('id', $c->tax_rule_id))->rate_bps ?? 0,
+        'tax_rule_id' => $c->tax_rule_id,
     ])->values()->toArray();
+    $companyProfiles = $companies->map(fn($c) => ['id' => $c->id, 'is_default' => (bool) $c->is_default, 'rule' => $c->defaultTaxRule?->is_active ? $c->defaultTaxRule->only(['id','name','rate_bps','inclusive']) : null])->values();
+    $lineProfiles = $taxRules->map(fn($rule) => $rule->only(['id','name','rate_bps','inclusive','billing_company_id']))->values();
 @endphp
 <div class="max-w-4xl mx-auto px-4 py-8"
+     x-data="invoiceForm(@js($emailsByClient), @js($catalogJs), @js($prefill), @js($companyProfiles), @js($lineProfiles))">
     @include('user.billing.partials.company-actions')
-     x-data="invoiceForm(@js($emailsByClient), @js($catalogJs), @js($prefill))">
     <div class="page-hero mb-6 flex items-center justify-between">
         <div>
             <h1 class="hero-title">New Invoice</h1>
@@ -31,8 +34,8 @@
             <h2 class="font-bold mb-3" style="color: var(--text-primary);">Issuer &amp; recipient</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <label class="text-xs" style="color: var(--text-muted);">Billing company
-                    <select name="billing_company_id" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                        <option value="">Default</option>
+                    <select name="billing_company_id" x-model="companyId" @change="lines.forEach(line => { line.tax_rule_id = ''; line.tax_profile = null; })" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+                        <option value="">No company</option>
                         @foreach($companies as $co)<option value="{{ $co->id }}" @selected($co->is_default)>{{ $co->name }}</option>@endforeach
                     </select>
                 </label>
@@ -58,7 +61,7 @@
                 </label>
                 <label class="text-xs" style="color: var(--text-muted);">Recipient name (optional)<input name="recipient_name" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
                 <label class="text-xs" style="color: var(--text-muted);">Due date<input type="date" name="due_date" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
-                <label class="block md:col-span-2 text-xs" style="color: var(--text-muted);">Recipient address (optional)<textarea name="recipient_address" rows="2" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></textarea></label>
+                <label class="block md:col-span-2 text-xs" style="color: var(--text-muted);">Recipient address (optional)<textarea name="recipient_address" autocomplete="street-address" rows="2" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></textarea></label>
             </div>
         </section>
 
@@ -94,7 +97,11 @@
                     <input :name="`line_items[${idx}][label]`" x-model="line.label" placeholder="Description" class="col-span-5 p-2 rounded border text-sm" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
                     <input type="number" min="1" :name="`line_items[${idx}][quantity]`" x-model.number="line.quantity" class="col-span-2 p-2 rounded border text-sm text-right" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
                     <input type="number" min="0" :name="`line_items[${idx}][amount_minor]`" x-model.number="line.amount_minor" placeholder="Amount" class="col-span-2 p-2 rounded border text-sm text-right" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                    <input type="number" min="0" :name="`line_items[${idx}][tax_rate_bps]`" x-model.number="line.tax_rate_bps" placeholder="Tax bps" class="col-span-2 p-2 rounded border text-sm text-right" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+                    <input type="number" min="0" :name="`line_items[${idx}][tax_rate_bps]`" x-model="line.tax_rate_bps" @input="line.tax_rule_id=''; line.tax_profile=null" placeholder="Manual tax bps" class="col-span-2 p-2 rounded border text-sm text-right" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+                    <select :name="`line_items[${idx}][tax_rule_id]`" x-model="line.tax_rule_id" @change="line.tax_profile = lineProfiles.find(p => String(p.id) === String(line.tax_rule_id)) || null; line.tax_rate_bps = ''" class="col-span-12 p-2 rounded border text-sm" style="background:var(--bg-glass-input);color:var(--text-primary)" aria-label="Line tax profile">
+                        <option value="">Company default / manual rate</option>
+                        <template x-for="profile in lineProfiles.filter(p => !p.billing_company_id || String(p.billing_company_id) === String(companyId))" :key="profile.id"><option :value="profile.id" x-text="profile.name + ' (' + profile.rate_bps / 100 + '% ' + (profile.inclusive ? 'inclusive' : 'exclusive') + ')'"></option></template>
+                    </select>
                     <button type="button" class="col-span-1 text-rose-600" @click="removeLine(idx)"><i class="fas fa-times"></i></button>
                 </div>
             </template>
@@ -117,34 +124,27 @@
     </form>
 </div>
 <script>
-function invoiceForm(emailsByClient, catalog, prefill) {
+function invoiceForm(emailsByClient, catalog, prefill, companyProfiles, lineProfiles) {
     return {
         emailsByClient, catalog,
         vaultId: prefill.vault_client_id || 0,
         email: prefill.recipient_email || '',
         inboxThreadId: prefill.inbox_thread_id || '',
+        companyProfiles, lineProfiles, companyId: String(companyProfiles.find(p => p.is_default)?.id || ''),
         discount: 0,
-        lines: [{ label: '', amount_minor: 0, quantity: 1, tax_rate_bps: 0 }],
+        lines: [{ label: '', amount_minor: 0, quantity: 1, tax_rate_bps: '', tax_rule_id: '', tax_profile: null }],
         get clientEmails() { return this.emailsByClient[this.vaultId] || []; },
-        addLine() { this.lines.push({ label: '', amount_minor: 0, quantity: 1, tax_rate_bps: 0 }); },
+        addLine() { this.lines.push({ label: '', amount_minor: 0, quantity: 1, tax_rate_bps: '', tax_rule_id: '', tax_profile: null }); },
         removeLine(i) { if (this.lines.length > 1) this.lines.splice(i, 1); },
         addCatalog(id) {
             const ci = this.catalog.find(c => String(c.id) === String(id));
             if (!ci) return;
-            this.lines.push({ label: ci.name, amount_minor: ci.amount_minor, quantity: 1, tax_rate_bps: ci.tax_rate_bps });
+            this.lines.push({ label: ci.name, amount_minor: ci.amount_minor, quantity: 1, tax_rate_bps: '', tax_rule_id: ci.tax_rule_id || '', tax_profile: lineProfiles.find(p => String(p.id) === String(ci.tax_rule_id)) || null });
         },
-        get subtotal() { return this.lines.reduce((s, l) => s + (l.amount_minor || 0) * (l.quantity || 1), 0); },
-        get taxTotal() {
-            const net = Math.max(0, this.subtotal - (this.discount || 0));
-            const base = this.subtotal || 1;
-            return this.lines.reduce((s, l) => {
-                const lineNet = (l.amount_minor || 0) * (l.quantity || 1);
-                const share = lineNet / base;
-                const discounted = lineNet - (this.discount || 0) * share;
-                return s + Math.round(discounted * (l.tax_rate_bps || 0) / 10000);
-            }, 0);
-        },
-        get grandTotal() { return Math.max(0, this.subtotal - (this.discount || 0)) + this.taxTotal; },
+        get calculation() { return billingEstimate(this.lines, this.discount, this.companyProfiles.find(p => String(p.id) === String(this.companyId))?.rule); },
+        get subtotal() { return this.calculation.subtotal; },
+        get taxTotal() { return this.calculation.tax; },
+        get grandTotal() { return this.calculation.total; },
         fmt(m) { return (m / 100).toFixed(2); },
     };
 }

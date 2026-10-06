@@ -120,6 +120,7 @@
                 </template>
             </div>
             <div class="ro-note" x-show="o.customer_note" x-text="'“' + o.customer_note + '”'"></div>
+            <template x-for="(part, index) in o.meta?.tax_breakdown || []" :key="index"><p class="text-sm" x-text="part.name + ' (' + part.rate_bps / 100 + '%): ' + money(part.amount_minor / 100, o.currency)"></p></template>
             <p class="text-sm" x-show="o.meta?.billing_company" x-text="o.meta?.billing_company?.legal_name || o.meta?.billing_company?.name || ''"></p>
             <p class="text-sm" x-show="o.meta?.billing_company" x-text="(o.meta?.billing_company?.tax_ids || []).join(' · ')"></p>
             <div class="ro-breakdown">

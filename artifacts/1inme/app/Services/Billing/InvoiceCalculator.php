@@ -52,6 +52,9 @@ class InvoiceCalculator
                 $net = $gross;
             }
 
+            $components = $raw['tax_components'] ?? ((!isset($raw['tax_rate_bps']) || $raw['tax_rate_bps'] === '') ? ($fallbackRule?->components ?? []) : []);
+            if (array_sum(array_column($components, 'rate_bps')) !== $rateBps) $components = [];
+
             $normalized[] = [
                 'label'           => (string) ($raw['label'] ?? ''),
                 'amount_minor'    => $unit,
@@ -59,6 +62,7 @@ class InvoiceCalculator
                 'tax_rate_bps'    => $rateBps,
                 'tax_inclusive'   => $inclusive,
                 'tax_name'        => $taxName,
+                'tax_components' => $components,
                 'catalog_item_id' => isset($raw['catalog_item_id']) ? (int) $raw['catalog_item_id'] : null,
                 'meta'            => is_array($raw['meta'] ?? null) ? $raw['meta'] : ($raw['meta'] ?? ['kind' => 'manual']),
                 '_net'            => $net,
@@ -82,15 +86,12 @@ class InvoiceCalculator
             $taxTotal += $tax;
 
             if ($tax > 0) {
-                $key = ($line['tax_name'] ?: 'Tax') . '|' . $line['tax_rate_bps'];
-                if (!isset($breakdown[$key])) {
-                    $breakdown[$key] = [
-                        'name'         => $line['tax_name'] ?: 'Tax',
-                        'rate_bps'     => $line['tax_rate_bps'],
-                        'amount_minor' => 0,
-                    ];
+                $parts = !empty($line['tax_components']) ? TaxComponents::allocate($tax, $line['tax_components']) : [['name' => $line['tax_name'] ?: 'Tax', 'rate_bps' => $line['tax_rate_bps'], 'amount_minor' => $tax]];
+                foreach ($parts as $part) {
+                    $key = $part['name'].'|'.$part['rate_bps'];
+                    if (!isset($breakdown[$key])) $breakdown[$key] = array_merge($part, ['amount_minor' => 0]);
+                    $breakdown[$key]['amount_minor'] += $part['amount_minor'];
                 }
-                $breakdown[$key]['amount_minor'] += $tax;
             }
 
             unset($line['_net'], $line['_gross']);

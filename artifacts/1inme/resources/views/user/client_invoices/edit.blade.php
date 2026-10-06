@@ -116,7 +116,7 @@
                            class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
                 </label>
                 <label class="block md:col-span-3 text-xs" style="color: var(--text-muted);">Recipient address
-                    <textarea name="recipient_address" rows="2"
+                    <textarea name="recipient_address" autocomplete="street-address" rows="2"
                               class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">{{ old('recipient_address', $invoice->recipient_address) }}</textarea>
                 </label>
             </div>
@@ -175,7 +175,7 @@
                     <input type="number" min="0" name="discount_minor" value="{{ (int) $invoice->discount_minor }}" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
                 </label>
                 <label class="text-xs" style="color: var(--text-muted);">Tax (minor)
-                    <input type="number" min="0" name="tax_total_minor" value="{{ (int) $invoice->tax_total_minor }}" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
+                    <input type="number" min="0" name="tax_total_minor" @readonly(collect($invoice->line_items ?? [])->contains(fn ($line) => array_key_exists('tax_rate_bps', $line))) value="{{ (int) $invoice->tax_total_minor }}" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
                 </label>
                 <label class="text-xs" style="color: var(--text-muted);">Due date
                     <input type="date" name="due_date" value="{{ optional($invoice->due_date)->format('Y-m-d') }}" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">

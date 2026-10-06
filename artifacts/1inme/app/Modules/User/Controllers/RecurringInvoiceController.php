@@ -101,7 +101,7 @@ class RecurringInvoiceController extends Controller
             'recipient_email'           => 'nullable|email|max:190',
             'currency'                  => 'nullable|string|size:3',
             'discount_minor'            => 'nullable|integer|min:0',
-            'tax_rule_id'               => 'nullable|integer',
+            'tax_rule_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('tax_rules', 'id')->where('user_id', auth()->id())->where('is_active', true)],
             'notes_md'                  => 'nullable|string|max:4000',
             'interval'                  => 'required|in:weekly,monthly,quarterly,yearly',
             'interval_count'            => 'nullable|integer|min:1|max:60',
