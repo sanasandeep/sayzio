@@ -149,8 +149,8 @@
     }
 
     /* One responsive card view, with the same information and controls at every size. */
-    .links-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr)); gap:14px; align-items:start; }
-    .link-row { padding:18px; border:1px solid var(--border-soft); border-left:3px solid var(--link-type-color); border-radius:16px; background:var(--bg-card); }
+    .links-list { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; align-items:start; }
+    .link-row { padding:16px 18px; border:1px solid var(--border-soft); border-radius:14px; background:var(--bg-card); }
     .link-row:hover { box-shadow:0 4px 18px rgba(0,0,0,.04); }
     .link-row-layout { display:grid; grid-template-columns:minmax(0,1fr) 48px; gap:10px 12px; }
     .link-row-identity { grid-column:1; grid-row:1 / span 2; align-items:flex-start; gap:10px; }
@@ -180,9 +180,18 @@
     .link-card-select:hover { background:var(--bg-glass-hover); }
     .link-card-select input { width:20px; height:20px; cursor:pointer; accent-color:var(--accent); }
     .link-card-select:focus-within { outline:2px solid var(--accent); outline-offset:2px; }
-    .link-row.link-card-selected { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); background:linear-gradient(110deg,rgba(61,107,255,.06),transparent 70%),var(--bg-card); }
+    .link-row.link-card-selected { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); background:var(--bg-card); }
     .link-card-icon { width:36px; height:36px; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,.03); }
-    .link-card-icon i[hidden] { display:none; }
+    .link-card-icon { background:var(--bg-card); border:1px solid var(--border-soft); }
+    .link-row-meta .url { color:var(--text-muted); }
+    @media (min-width:701px) {
+        .link-row-layout { grid-template-columns:minmax(0,1fr) 80px 44px; align-items:center; gap:16px; }
+        .link-row-identity { grid-row:1; align-items:center; }
+        .link-row-heading > a { flex:0 1 auto; }
+        .link-row-clicks { grid-column:2; grid-row:1; }
+        .link-row-more { grid-column:3; grid-row:1; }
+        .link-row-meta .url-line { width:auto; max-width:100%; }
+    }
     @media (max-width:700px) {
         .links-list { gap:10px; }
         .link-row { padding:12px 10px; border-radius:13px; }
@@ -505,9 +514,11 @@
             $cardHost = parse_url($link->long_url, PHP_URL_HOST);
             if ($cardHost) $cardFavicon = 'https://www.google.com/s2/favicons?sz=64&domain='.urlencode($cardHost);
         }
+        $cardFavicon = \App\Support\PublicStorageUrl::resolve($cardFavicon);
+        $fallbackFavicon = url('/favicon-96x96.png');
         if ($cardFavicon && !preg_match('~^(https?://|/(?!/))~i',$cardFavicon)) $cardFavicon=null;
     @endphp
-    <div class="link-row group" :class="selected.includes({{ $link->id }}) ? 'link-card-selected' : ''" style="--link-type-color:{{ $ts['color'] }}" data-link-id="{{ $link->id }}">
+    <div class="link-row group" :class="selected.includes({{ $link->id }}) ? 'link-card-selected' : ''" data-link-id="{{ $link->id }}">
         <div class="link-row-layout flex items-center justify-between gap-3">
             <div class="link-row-identity flex items-center gap-3 flex-1 min-w-0">
                 @if($__canMove || $__canBulkDelete || $__canBulkFolder)
@@ -516,18 +527,15 @@
                            class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40" aria-label="Select {{ $link->title ?: $link->alias }}">
                 </label>
                 @endif
-                <div class="link-card-icon flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style="background: {{ $ts['bg'] }}; border: 1px solid {{ $ts['border'] }};">
-                    @if($cardFavicon)
-                    <img src="{{ $cardFavicon }}" alt="" loading="lazy" referrerpolicy="no-referrer" class="w-5 h-5 object-contain" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
-                    @endif
-                    <i @if($cardFavicon) hidden @endif class="fas {{ $ts['icon'] }} text-xs" style="color: {{ $ts['color'] }};"></i>
+                <div class="link-card-icon flex-shrink-0 flex items-center justify-center">
+                    <img src="{{ $cardFavicon ?: $fallbackFavicon }}" data-fallback="{{ $fallbackFavicon }}" alt="" loading="lazy" referrerpolicy="no-referrer" class="w-5 h-5 object-contain" onerror="if (!this.dataset.fallbackUsed) { this.dataset.fallbackUsed='1'; this.src=this.dataset.fallback; }">
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="link-row-heading flex items-center gap-2">
                         <a href="{{ route('user.links.show', $link) }}" class="text-sm font-semibold truncate transition-colors hover:text-blue-400" style="color: var(--text-primary);">
                             {{ $link->title ?: $link->alias }}
                         </a>
-                        <span class="badge" style="background: {{ $ts['bg'] }}; color: {{ $ts['color'] }}; border: 1px solid {{ $ts['border'] }};">{{ $ts['label'] }}</span>
+                        <span class="badge" style="background:var(--bg-glass-hover); color:var(--text-muted); border:1px solid var(--border-soft);">{{ $ts['label'] }}</span>
                         @if($link->is_active)
                             <span class="link-status-active"><i class="fas fa-circle" aria-hidden="true"></i> Active</span>
                         @endif
