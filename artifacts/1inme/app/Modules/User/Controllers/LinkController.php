@@ -84,7 +84,7 @@ class LinkController extends Controller
         }
 
         $values = static fn ($key) => array_values(array_unique(array_filter(
-            (array) $request->get($key, []), static fn ($value) => is_string($value) && $value !== ''
+            (array) $request->input($key, []), static fn ($value) => is_string($value) && $value !== ''
         )));
         $types = $values('type');
         if ($types) $query->whereIn('type', $types);
