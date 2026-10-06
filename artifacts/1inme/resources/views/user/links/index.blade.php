@@ -147,6 +147,32 @@
         .link-row-meta .folder, .link-row-meta .age,
         .link-row-meta .sep { display: none; }
     }
+
+    /* One responsive card view, with the same information and controls at every size. */
+    .links-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr)); gap:14px; align-items:start; }
+    .link-row { padding:18px; border:1px solid var(--border-soft); border-left:3px solid var(--link-type-color); border-radius:16px; background:var(--bg-card); }
+    .link-row:hover { box-shadow:0 4px 18px rgba(0,0,0,.04); }
+    .link-row-layout { display:grid; grid-template-columns:minmax(0,1fr) 48px; gap:10px 12px; }
+    .link-row-identity { grid-column:1; grid-row:1 / span 2; align-items:flex-start; gap:10px; }
+    .link-row-identity > label { padding-top:8px; }
+    .link-row-heading { flex-wrap:wrap; gap:5px 7px; }
+    .link-row-heading > a { flex:1 0 100%; white-space:normal; overflow-wrap:anywhere; line-height:1.4; font-size:15px; }
+    .link-row-heading .badge { font-size:9px; padding:3px 7px; max-width:100%; white-space:normal; }
+    .link-status-active { display:inline-flex; align-items:center; gap:4px; font-size:10px; color:var(--text-muted); }
+    .link-status-active i { font-size:6px; color:#10b981; }
+    .link-row-meta { flex-wrap:wrap; margin-top:8px; gap:5px; font-size:11px; }
+    .link-row-meta .url { flex:1 1 calc(100% - 22px); min-width:0; }
+    .link-row-meta .folder, .link-row-meta .age { display:inline-flex; max-width:100%; white-space:normal; overflow-wrap:anywhere; }
+    .link-row-meta .sep { display:inline; }
+    .link-row-controls { display:contents; }
+    .link-row-clicks { grid-column:2; grid-row:1; text-align:center; }
+    .link-row-clicks b { font-size:20px; }
+    .link-row-more { grid-column:2; grid-row:2; display:flex; align-items:center; justify-content:center; width:44px; height:36px; border:1px solid var(--border-soft); border-radius:10px; color:var(--text-muted); }
+    .link-row-acts { display:none; opacity:1!important; grid-column:1 / -1; flex-wrap:wrap; gap:6px; padding-top:12px; border-top:1px solid var(--border-soft); }
+    .link-row-acts.mobile-actions-open { display:flex; }
+    .link-row-acts > a, .link-row-acts > span, .link-row-acts > form > button, .link-row-acts > div > button { min-height:40px; padding:8px 10px; display:inline-flex; align-items:center; gap:7px; border:1px solid var(--border-soft); border-radius:8px; }
+    .link-row-acts > a[title]::after, .link-row-acts > form > button[title]::after, .link-row-acts > div > button[title]::after { content:attr(title); font-size:11px; }
+    @media (max-width:420px) { .link-row { padding:14px 10px; } .link-row-identity { gap:7px; } }
 </style>
 @endpush
 
@@ -372,8 +398,6 @@
         selected: [],
         moveOpen: false,
         moveTarget: '',
-        view: localStorage.getItem('sayzio_links_view') === 'grid' ? 'grid' : 'list',
-        setView(v) { this.view = v; localStorage.setItem('sayzio_links_view', v); },
         toggleAll(e) {
             const ids = Array.from(document.querySelectorAll('[data-link-id]')).map(el => parseInt(el.dataset.linkId, 10));
             this.selected = e.target.checked ? ids : [];
@@ -383,26 +407,6 @@
 {{-- Row action dropdowns (move to folder / workspace / transfer) must escape
      the row: a row later in the DOM would otherwise paint over an open menu. --}}
 
-
-{{-- ===== View toggle: list (rows) vs grid (folder-coloured icon tiles) ===== --}}
-<div class="flex items-center justify-end mb-3">
-    <div class="inline-flex items-center rounded-xl border p-0.5" style="border-color: var(--border-strong); background: var(--bg-card);" role="group" aria-label="View mode">
-        <button type="button" @click="setView('list')"
-                :class="view === 'list' ? 'bg-blue-500/15 text-blue-400' : ''"
-                class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                :style="view === 'list' ? '' : 'color: var(--text-faint);'"
-                :aria-pressed="view === 'list' ? 'true' : 'false'" title="List view">
-            <i class="fas fa-list text-[10px]"></i> List
-        </button>
-        <button type="button" @click="setView('grid')"
-                :class="view === 'grid' ? 'bg-blue-500/15 text-blue-400' : ''"
-                class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                :style="view === 'grid' ? '' : 'color: var(--text-faint);'"
-                :aria-pressed="view === 'grid' ? 'true' : 'false'" title="Grid view">
-            <i class="fas fa-border-all text-[10px]"></i> Grid
-        </button>
-    </div>
-</div>
 
 @if($__canMove || $__canBulkDelete || $__canBulkFolder)
 <div x-show="selected.length > 0" x-cloak
@@ -466,13 +470,11 @@
 </div>
 @endif
 
-{{-- Icon, label and the tile's three colours all come from one resolver, so
-     the list rows and the grid tiles below cannot disagree about what a
-     Slides link looks like. See LinkTileStyle for why they used to. --}}
-<div class="links-list" x-show="view === 'list'">
+{{-- A single responsive card uses the shared link-type colour resolver. --}}
+<div class="links-list">
     @foreach($links as $link)
     @php $ts = \App\Modules\User\Support\LinkTileStyle::for($link); @endphp
-    <div class="link-row group" data-link-id="{{ $link->id }}">
+    <div class="link-row group" style="--link-type-color:{{ $ts['color'] }}" data-link-id="{{ $link->id }}">
         <div class="link-row-layout flex items-center justify-between gap-3">
             <div class="link-row-identity flex items-center gap-3 flex-1 min-w-0">
                 @if($__canMove || $__canBulkDelete || $__canBulkFolder)
@@ -490,6 +492,9 @@
                             {{ $link->title ?: $link->alias }}
                         </a>
                         <span class="badge" style="background: {{ $ts['bg'] }}; color: {{ $ts['color'] }}; border: 1px solid {{ $ts['border'] }};">{{ $ts['label'] }}</span>
+                        @if($link->is_active)
+                            <span class="link-status-active"><i class="fas fa-circle" aria-hidden="true"></i> Active</span>
+                        @endif
                         @if(!$link->is_active)
                             <span class="badge" style="background: rgba(239,68,68,0.08); color: #f87171; border: 1px solid rgba(239,68,68,0.12);">Inactive</span>
                         @endif
@@ -501,7 +506,7 @@
                         @endif
                     </div>
                     <div class="link-row-meta" x-data="{ copied: false }">
-                        <span class="url truncate">{{ $link->getShortUrl() }}</span>
+                        <span class="url truncate" title="{{ $link->getShortUrl() }}">{{ $link->getShortUrl() }}</span>
                         <button type="button" aria-label="Copy link"
                                 @click="navigator.clipboard.writeText('{{ $link->getShortUrl() }}'); copied = true; setTimeout(() => copied = false, 2000)"
                                 class="copy">
@@ -513,6 +518,8 @@
                         <span class="folder">
                             <span class="dot" style="background-color: {{ $link->project->color ?: '#3b82f6' }}"></span>{{ $link->project->name }}
                         </span>
+                        @else
+                        <span class="folder">No folder</span>
                         @endif
                         <span class="sep">&middot;</span>
                         <span class="age">{{ $link->created_at->diffForHumans() }}</span>
@@ -658,46 +665,6 @@
             </div>
         </div>
     </div>
-    @endforeach
-</div>
-
-{{-- ===== GRID VIEW: Finder-style icon tiles, tinted by the LINK TYPE ===== --}}
-{{-- The tile used to take the folder's colour, so the same Slides link was
-     fuchsia in the list and blue here, and every link outside a folder was
-     blue whatever it was. The folder is still shown, by its dot and name
-     under the title, which is where a folder belongs. --}}
-<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" x-show="view === 'grid'" x-cloak>
-    @foreach($links as $link)
-    @php
-        $ts = \App\Modules\User\Support\LinkTileStyle::for($link);
-        // The folder still colours its own dot below.
-        $__pcHex = $link->project?->color ?: '#3b82f6';
-        $__pcHex = preg_match('/^#[0-9a-fA-F]{6}$/', $__pcHex) ? $__pcHex : '#3b82f6';
-    @endphp
-    <a href="{{ route('user.links.show', $link) }}"
-       class="card-premium p-4 flex flex-col items-center text-center group relative transition-transform hover:-translate-y-0.5"
-       title="{{ $link->title ?: $link->alias }}">
-        @if(!$link->is_active)
-            <span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-400" title="Inactive"></span>
-        @endif
-        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-2.5"
-             style="background: {{ $ts['bg'] }}; border: 1px solid {{ $ts['border'] }};"
-             title="{{ $ts['label'] }}">
-            <i class="fas {{ $ts['icon'] }} text-xl" style="color: {{ $ts['color'] }};"></i>
-        </div>
-        <p class="text-xs font-semibold w-full truncate" style="color: var(--text-primary);">{{ $link->title ?: $link->alias }}</p>
-        <p class="text-[10px] w-full truncate mt-0.5 text-blue-400/60">{{ $link->getShortUrl() }}</p>
-        <div class="flex items-center gap-1.5 mt-1.5 text-[10px]" style="color: var(--text-faint);">
-            @if($link->project)
-                <span class="flex items-center gap-1 min-w-0">
-                    <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background-color: {{ $__pcHex }}"></span>
-                    <span class="truncate max-w-[90px]">{{ $link->project->name }}</span>
-                </span>
-                <span aria-hidden="true">·</span>
-            @endif
-            <span>{{ number_format($link->total_clicks) }} clicks</span>
-        </div>
-    </a>
     @endforeach
 </div>
 
