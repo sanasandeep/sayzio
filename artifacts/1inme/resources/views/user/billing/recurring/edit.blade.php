@@ -2,6 +2,7 @@
 @section('title', $template->exists ? 'Edit Recurring Invoice' : 'New Recurring Invoice')
 @section('content')
 <div class="max-w-4xl mx-auto px-4 py-8"
+    @include('user.billing.partials.company-actions')
      x-data="recurringForm(@js($template->exists ? (array) $template->line_items : [['label' => '', 'amount_minor' => 0, 'quantity' => 1, 'tax_rate_bps' => 0]]))">
     <div class="page-hero mb-6 flex items-center justify-between">
         <div>

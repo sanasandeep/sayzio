@@ -1,14 +1,21 @@
-@extends('user.layouts.settings')
+@extends('user.layouts.app')
 @section('title', 'Billing Companies')
-@section('settings-content')
-<div>
+@section('content')
+<div class="max-w-6xl mx-auto px-4 py-8">
     <div class="page-hero mb-6 flex items-center justify-between">
         <div>
             <h1 class="hero-title">Billing Companies</h1>
-            <p class="hero-subtitle">The legal entities that issue your invoices &amp; receipts.</p>
+            <p class="hero-subtitle">Manage business identities for invoices, receipts, expenses, tax rules, and restaurant or store orders.</p>
         </div>
         <a href="{{ route('user.billing.companies.create') }}" class="btn-primary"><i class="fas fa-plus mr-2"></i>New Company</a>
     </div>
+
+    <div class="flex flex-wrap gap-3 mb-6 text-sm">
+        @foreach(['user.client-invoices.dashboard' => 'Invoices & receipts', 'user.billing.recurring.index' => 'Recurring', 'user.billing.expenses.index' => 'Expenses', 'user.billing.catalog.index' => 'Catalog', 'user.billing.tax-rules.index' => 'Tax rules', 'user.billing.ledger.index' => 'Ledger', 'user.links.index' => 'Menus & links'] as $companyRoute => $companyLabel)
+            <a href="{{ route($companyRoute) }}" class="px-3 py-2 rounded-lg border" style="border-color:var(--border-soft);color:var(--text-primary)">{{ $companyLabel }}</a>
+        @endforeach
+    </div>
+    <p class="text-sm mb-6" style="color:var(--text-muted)">Choose a company when creating a financial record or configuring a menu. Menu estimates appear on orders; your accounting ledger reports invoices and expenses.</p>
 
     @if(session('success'))<div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">{{ session('success') }}</div>@endif
     @if(session('error'))<div class="mb-4 p-3 rounded-lg bg-rose-50 text-rose-700 text-sm">{{ session('error') }}</div>@endif
@@ -92,6 +99,11 @@
                             @if($company->legal_name)<p class="text-xs" style="color: var(--text-muted);">{{ $company->legal_name }}</p>@endif
                         </div>
                         <span class="text-xs" style="color: var(--text-muted);">{{ $company->default_currency ?: 'USD' }}</span>
+                    </div>
+                    <p class="text-xs mt-3" style="color:var(--text-muted)">Default tax: {{ $company->defaultTaxRule?->is_active ? $company->defaultTaxRule->name.' ('.$company->defaultTaxRule->ratePercent().'%)' : 'No tax' }}</p>
+                    <div class="flex gap-3 mt-3 text-sm">
+                        <a href="{{ route('user.billing.expenses.index', ['company' => $company->id]) }}">Company expenses</a>
+                        <a href="{{ route('user.billing.ledger.index', ['company' => $company->id]) }}">Company ledger</a>
                     </div>
                     <dl class="mt-3 text-xs space-y-1" style="color: var(--text-muted);">
                         @if($company->email)<div><i class="fas fa-envelope w-4"></i> {{ $company->email }}</div>@endif

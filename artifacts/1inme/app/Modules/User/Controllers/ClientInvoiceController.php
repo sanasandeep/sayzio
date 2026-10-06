@@ -264,7 +264,7 @@ class ClientInvoiceController extends Controller
     protected function validateStandalone(Request $request): array
     {
         return $request->validate([
-            'billing_company_id'        => 'nullable|integer',
+            'billing_company_id'        => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('billing_companies', 'id')->where('user_id', auth()->id())],
             'vault_client_id'           => 'nullable|integer',
             'contact_id'                => 'nullable|integer',
             'recipient_email'           => 'nullable|email|max:190',

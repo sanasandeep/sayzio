@@ -44,7 +44,7 @@ class TaxRuleController extends Controller
         $data = $request->validate([
             'name'               => 'required|string|max:120',
             'rate_bps'           => 'required|integer|min:0|max:100000',
-            'billing_company_id' => 'nullable|integer',
+            'billing_company_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('billing_companies', 'id')->where('user_id', auth()->id())],
             'inclusive'          => 'nullable|boolean',
             'is_compound'        => 'nullable|boolean',
             'is_default'         => 'nullable|boolean',

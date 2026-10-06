@@ -2,6 +2,7 @@
 @section('title', 'Tax Rules')
 @section('content')
 <div class="max-w-4xl mx-auto px-4 py-8" x-data="{ editing: null }">
+    @include('user.billing.partials.company-actions')
     <div class="page-hero mb-6">
         <h1 class="hero-title">Tax Rules</h1>
         <p class="hero-subtitle">Reusable tax rates applied to invoice line items.</p>
@@ -37,6 +38,7 @@
                 </div>
                 <form action="{{ route('user.billing.tax-rules.update', $rule) }}" method="POST" x-show="editing === {{ $rule->id }}" x-cloak class="p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);">
                     @csrf @method('PUT')
+<label class="block text-xs mt-3" style="color:var(--text-muted)">Billing company<select name="billing_company_id" class="block w-full mt-1 p-2 rounded-lg border" style="background:var(--bg-glass-input);border-color:var(--border-soft);color:var(--text-primary)"><option value="">Shared across companies</option>@foreach($companies as $company)<option value="{{ $company->id }}" @selected(old('billing_company_id', $rule->billing_company_id) == $company->id)>{{ $company->name }}</option>@endforeach</select></label>
                     <div class="grid grid-cols-2 gap-3">
                         <label class="text-xs" style="color: var(--text-muted);">Name<input name="name" value="{{ $rule->name }}" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
                         <label class="text-xs" style="color: var(--text-muted);">Rate (basis points, 2000 = 20%)<input type="number" name="rate_bps" value="{{ $rule->rate_bps }}" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
@@ -57,6 +59,7 @@
         <form action="{{ route('user.billing.tax-rules.store') }}" method="POST" class="p-4 rounded-xl border h-fit" style="border-color: var(--border-soft); background: var(--bg-card);">
             @csrf
             <h2 class="font-bold mb-3" style="color: var(--text-primary);">Add tax rule</h2>
+<label class="block text-xs mt-3" style="color:var(--text-muted)">Billing company<select name="billing_company_id" class="block w-full mt-1 p-2 rounded-lg border" style="background:var(--bg-glass-input);border-color:var(--border-soft);color:var(--text-primary)"><option value="">Shared across companies</option>@foreach($companies as $company)<option value="{{ $company->id }}" @selected(old('billing_company_id') == $company->id)>{{ $company->name }}</option>@endforeach</select></label>
             <label class="text-xs block" style="color: var(--text-muted);">Name<input name="name" required class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
             <label class="text-xs block mt-3" style="color: var(--text-muted);">Rate (basis points)<input type="number" name="rate_bps" value="0" required class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
             <div class="space-y-2 mt-3 text-sm" style="color: var(--text-primary);">

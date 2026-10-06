@@ -19,7 +19,7 @@ class BillingCompanyController extends Controller
     public function index()
     {
         $companies = BillingCompany::where('user_id', auth()->id())
-            ->orderByDesc('is_default')->orderBy('name')->get();
+            ->with('defaultTaxRule')->orderByDesc('is_default')->orderBy('name')->get();
 
         // Read-only wallet summary for the Billing & Identity hub tab (Task
         // #3234). When the admin has disabled the Wallet & Coins feature we
@@ -177,7 +177,7 @@ class BillingCompanyController extends Controller
             'secondary_tax_value' => 'nullable|string|max:64',
             'default_currency'    => 'nullable|string|size:3',
             'invoice_prefix'      => 'nullable|string|max:16',
-            'default_tax_rule_id' => 'nullable|integer',
+            'default_tax_rule_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('tax_rules', 'id')->where('user_id', auth()->id())],
             'notes'               => 'nullable|string|max:2000',
             'is_default'          => 'nullable|boolean',
             'letterhead_orientation'   => 'nullable|in:portrait,landscape',
