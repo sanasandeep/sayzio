@@ -98,6 +98,26 @@ class PublicRestaurantController extends Controller
         ];
     }
 
+    public function prebookCoupon(Request $request, string $alias)
+    {
+        [$link, $menu] = $this->resolveMenu($alias);
+        if (!$link || !$menu || !$link->isAccessible() || !$menu->isOrderMode()) {
+            return response()->json(['error' => ['message' => 'Menu unavailable']], 404);
+        }
+        if ($gate = $this->orderVisibilityGate($request, $link)) return $gate;
+        $data = $request->validate([
+            'coupon_code' => 'required|string|max:64', 'wanted_at' => 'required|string|max:40',
+            'fulfilment' => 'required|string|max:16', 'customer_name' => 'required|string|max:150',
+            'customer_phone' => 'nullable|string|max:40', 'customer_address' => 'nullable|string|max:1000',
+        ]);
+        try {
+            $order = app(\App\Modules\Common\Services\MenuCouponPrebooking::class)->reserve($link, $menu, 'restaurant', $data);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => ['message' => $e->getMessage()]], 422);
+        }
+        return response()->json(['data' => ['booking_id' => $order->id, 'wanted_at' => $order->wanted_at->toIso8601String(), 'message' => 'Coupon prebooking confirmed. Show your coupon at collection.']], 201);
+    }
+
     protected function resolveMenu(string $alias): array
     {
         $link = Link::resolveByAlias($alias, request()->getHost());

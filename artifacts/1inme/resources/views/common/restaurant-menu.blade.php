@@ -377,6 +377,10 @@
 </div>
 
 @if($isOrder)
+    @include('common.partials.menu-coupon-prebooking', ['couponBookingSlots' => $rmSlots, 'couponBookingUrl' => route('rm.public.coupon-prebooking', ['alias' => $link->alias]), 'couponBookingRestaurant' => true])
+@endif
+
+@if($isOrder)
 {{-- The cart, as one floating control. It was a full-width bar
      pinned across the bottom of the page -- a wall across the menu
      you are still reading, saying the same two things it now
@@ -503,7 +507,7 @@
     // of "code, space, two decimals", which is how they drift.
     const MONEY = @json($money);
     const TABLE_CODE = @json($activeTable->code ?? null);
-    const FUL_TIMED = ['takeaway', 'delivery'];
+    const FUL_TIMED = ['dine_in', 'takeaway', 'delivery'];
     const FUL_MODES = @json($fulModes);
     const FUL_ADDRESS = @json((object) $fulNeedsAddress);
     const CHOICES = @json((object) $rmChoices);

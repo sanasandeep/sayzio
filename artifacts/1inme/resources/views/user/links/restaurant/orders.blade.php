@@ -69,6 +69,7 @@
         'oiRange'    => $range,
     ])
 
+    @include('user.links.partials.orders-preorders', ['preorderKind' => 'restaurant'])
     @include('user.links.partials.orders-performance', ['performanceSummary' => $summary, 'performanceInsights' => $insights, 'performanceCurrency' => $menu->currency])
     @include('user.links.partials.orders-pickup-display', ['pickupUrl' => route('user.links.restaurant.kitchen.poll', $link).'?display=1'])
 
@@ -130,6 +131,7 @@
                     <span x-text="money(o.tax_amount, o.currency)"></span>
                 </div>
             </div>
+            <p class="ro-btn" x-show="o.meta?.coupon_reservation">Prepaid coupon serving · redeem coupon at collection</p>
             <div class="ro-total"><span>Estimated total</span><span x-text="money(o.total != null ? o.total : o.subtotal, o.currency)"></span></div>
             <p class="ro-estimate-note">Estimated bill, not the actual bill.</p>
             <div class="ro-actions">
@@ -154,11 +156,12 @@
 
 <script>
 @php
-    $ordersData = $orders->map(fn($o)=>['id'=>$o->id,'status'=>$o->status,'table_label'=>$o->table_label,'customer_name'=>$o->customer_name,'token_number'=>$o->token_number,'customer_phone'=>$o->customer_phone,'wanted_at'=>$o->wanted_at?->toIso8601String(),'customer_note'=>$o->customer_note,'subtotal'=>$o->subtotal,'coupon_code'=>$o->coupon_code,'discount_amount'=>$o->discount_amount,'tax_rate'=>$o->tax_rate,'tax_inclusive'=>(bool)$o->tax_inclusive,'tax_amount'=>$o->tax_amount,'total'=>$o->total,'currency'=>$o->currency,'created_at'=>$o->created_at?->toIso8601String(),'updated_at'=>$o->updated_at?->toIso8601String(),'items'=>$o->items->map(fn($i)=>['id'=>$i->id,'name'=>$i->name,'quantity'=>$i->quantity,'line_total'=>$i->line_total])])->values();
+    $ordersData = $orders->map(fn($o)=>['id'=>$o->id,'status'=>$o->status,'table_label'=>$o->table_label,'customer_name'=>$o->customer_name,'token_number'=>$o->token_number,'customer_phone'=>$o->customer_phone,'wanted_at'=>$o->wanted_at?->toIso8601String(),'meta'=>$o->meta,'fulfilment'=>$o->fulfilment,'customer_note'=>$o->customer_note,'subtotal'=>$o->subtotal,'coupon_code'=>$o->coupon_code,'discount_amount'=>$o->discount_amount,'tax_rate'=>$o->tax_rate,'tax_inclusive'=>(bool)$o->tax_inclusive,'tax_amount'=>$o->tax_amount,'total'=>$o->total,'currency'=>$o->currency,'created_at'=>$o->created_at?->toIso8601String(),'updated_at'=>$o->updated_at?->toIso8601String(),'items'=>$o->items->map(fn($i)=>['id'=>$i->id,'name'=>$i->name,'quantity'=>$i->quantity,'line_total'=>$i->line_total])])->values();
 @endphp
 function ordersBoard() {
     return {
         orders: @json($ordersData),
+        preorderView: @js($preorderView),
         // ---- Which window the screen is showing ---------------------
         meta: @json($rangeMeta),
         page: {{ $page }},
@@ -189,6 +192,7 @@ function ordersBoard() {
         inRange(){
             const m = this.meta;
             return this.orders.filter(o => {
+                if (this.preorderView) return o.wanted_at && Date.parse(o.wanted_at) > Date.now() && this.OPEN.includes(o.status);
                 if (!o.created_at) { return true; }
                 const t = Date.parse(o.created_at);
                 if (m.from_ms != null && t < m.from_ms) { return false; }
@@ -203,6 +207,7 @@ function ordersBoard() {
             try {
                 const url = new URL(this.base, location.origin);
                 url.searchParams.set('format', 'json');
+                if (this.preorderView) url.searchParams.set('schedule', 'upcoming');
                 url.searchParams.set('range', this.meta.key);
                 if (this.meta.from_date) { url.searchParams.set('from', this.meta.from_date); }
                 if (this.meta.to_date) { url.searchParams.set('to', this.meta.to_date); }
@@ -241,7 +246,7 @@ function ordersBoard() {
             else url.searchParams.delete('status');
             return url.href;
         },
-        visible(){ const o = this.inRange().slice().sort((a,b)=>b.id-a.id); return this.filter==='open' ? o.filter(x=>this.OPEN.includes(x.status)) : o; },
+        visible(){ const o = this.inRange().slice().sort((a,b)=>this.preorderView ? Date.parse(a.wanted_at)-Date.parse(b.wanted_at) : b.id-a.id); return this.filter==='open' ? o.filter(x=>this.OPEN.includes(x.status)) : o; },
         /**
          * When the customer asked for it. Blank means as soon as possible,
          * which is most orders, so it says nothing rather than saying "ASAP"
@@ -300,6 +305,7 @@ function ordersBoard() {
         },
         known(id){ return this.orders.some(x => x.id === id); },
         fits(o){
+            if (this.preorderView) return o.wanted_at && Date.parse(o.wanted_at) > Date.now() && this.OPEN.includes(o.status);
             const m = this.meta;
             if (!o.created_at) { return true; }
             const t = Date.parse(o.created_at);
@@ -309,7 +315,7 @@ function ordersBoard() {
         },
         merge(o){
             const i = this.orders.findIndex(x => x.id === o.id);
-            const norm = { id:o.id, status:o.status, table_label:o.table_label, customer_name:o.customer_name, token_number:o.token_number, customer_phone:o.customer_phone, wanted_at:o.wanted_at, customer_note:o.customer_note, subtotal:o.subtotal, coupon_code:o.coupon_code, discount_amount:o.discount_amount, tax_rate:o.tax_rate, tax_inclusive:o.tax_inclusive, tax_amount:o.tax_amount, total:o.total, currency:o.currency, created_at:o.created_at, updated_at:o.updated_at, items:(o.items||[]).map(it=>({id:it.id,name:it.name,quantity:it.quantity,line_total:it.line_total})) };
+            const norm = { id:o.id, status:o.status, table_label:o.table_label, customer_name:o.customer_name, token_number:o.token_number, customer_phone:o.customer_phone, wanted_at:o.wanted_at, meta:o.meta, fulfilment:o.fulfilment, customer_note:o.customer_note, subtotal:o.subtotal, coupon_code:o.coupon_code, discount_amount:o.discount_amount, tax_rate:o.tax_rate, tax_inclusive:o.tax_inclusive, tax_amount:o.tax_amount, total:o.total, currency:o.currency, created_at:o.created_at, updated_at:o.updated_at, items:(o.items||[]).map(it=>({id:it.id,name:it.name,quantity:it.quantity,line_total:it.line_total})) };
             if (i >= 0) this.orders[i] = norm; else this.orders.unshift(norm);
         },
     };

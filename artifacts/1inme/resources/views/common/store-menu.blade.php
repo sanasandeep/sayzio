@@ -348,6 +348,10 @@
 </div>
 
 @if($isOrder)
+    @include('common.partials.menu-coupon-prebooking', ['couponBookingSlots' => $smSlots, 'couponBookingUrl' => route('sm.public.coupon-prebooking', ['alias' => $link->alias]), 'couponBookingRestaurant' => false])
+@endif
+
+@if($isOrder)
 {{-- The cart, as one floating control. It was a full-width bar
      pinned across the bottom of the page -- a wall across the menu
      you are still reading, saying the same two things it now
@@ -441,7 +445,7 @@
     const QUOTE_URL = @json($staffMode ? route('user.links.store.staff-order.quote', $link) : route('sm.public.quote', ['alias' => $link->alias]));
     const FUL_MODES = @json($fulModes);
     const FUL_ADDRESS = @json((object) $fulNeedsAddress);
-    const FUL_TIMED = ['takeaway', 'delivery'];
+    const FUL_TIMED = ['dine_in', 'takeaway', 'delivery'];
     const CHOICES = @json((object) $smChoices);
 
     // What the owner chose to happen once the order goes through, resolved

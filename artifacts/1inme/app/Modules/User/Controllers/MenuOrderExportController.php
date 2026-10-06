@@ -78,6 +78,10 @@ class MenuOrderExportController extends Controller
         );
 
         $query = MenuOrderRange::apply($model::where('menu_id', $menu->id), $range);
+        if ($request->query('schedule') === 'upcoming') {
+            $query = $model::where('menu_id', $menu->id)->where('wanted_at', '>', now())->whereIn('status', $model::OPEN_STATUSES);
+            $range['label'] = 'Upcoming preorders';
+        }
 
         // The board's Open/All toggle, as a server-side filter. Anything
         // that is not a real status is ignored rather than returning

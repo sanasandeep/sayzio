@@ -79,6 +79,8 @@
                             <span>#<span x-text="t.ref"></span></span>
                             <span class="kb-tmin" x-text="t.wait"></span>
                         </div>
+                        <p x-show="t.wanted_at" x-text="'Scheduled: ' + new Date(t.wanted_at).toLocaleString()"></p>
+                        <p x-show="t.prepaid">Prepaid coupon serving</p>
                         <div class="kb-who" x-show="t.customer" x-text="t.customer"></div>
                         <ul class="kb-lines">
                             <template x-for="(l, i) in t.lines" :key="i">

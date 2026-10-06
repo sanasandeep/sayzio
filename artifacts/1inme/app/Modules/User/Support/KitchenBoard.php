@@ -59,9 +59,11 @@ class KitchenBoard
      */
     public static function of($menu, string $model, bool $hasTables): array
     {
-        $orders = $model::with('items')
+        $prep = MenuHandoverTiming::resolve((array) $menu->settings)['prep_minutes'];
+        $orders = $model::with(['items', 'menu'])
             ->where('menu_id', $menu->id)
             ->whereIn('status', $model::OPEN_STATUSES)
+            ->where(fn ($q) => $q->whereNull('wanted_at')->orWhere('wanted_at', '<=', now()->addMinutes($prep))->orWhere('status', 'ready'))
             // Oldest first: the kitchen's own order of work, and the one
             // thing this board must never get backwards.
             ->orderBy('created_at')
@@ -103,13 +105,21 @@ class KitchenBoard
     private static function ticket($order, string $model): array
     {
         $placed  = $order->created_at;
-        $minutes = $placed ? (int) floor($placed->diffInMinutes(now())) : 0;
+        $waitStart = $placed;
+        if ($order->wanted_at) {
+            $lead = MenuHandoverTiming::resolve((array) $order->menu->settings)['prep_minutes'];
+            $scheduledStart = $order->wanted_at->copy()->subMinutes($lead);
+            if (!$waitStart || $scheduledStart->gt($waitStart)) $waitStart = $scheduledStart;
+        }
+        $minutes = $waitStart ? max(0, (int) floor($waitStart->diffInMinutes(now(), false))) : 0;
 
         return [
             'id'       => $order->id,
             'ref'      => $order->token_number ?: $order->id,
             'status'   => $order->status,
             'label'    => $model::STATUS_LABELS[$order->status] ?? $order->status,
+            'wanted_at' => $order->wanted_at?->toIso8601String(),
+            'prepaid' => (bool) data_get($order->meta, 'coupon_reservation', false),
             'customer' => $order->customer_name ?: null,
             'note'     => $order->customer_note ?: null,
             'table'    => $order->table_label ?: null,

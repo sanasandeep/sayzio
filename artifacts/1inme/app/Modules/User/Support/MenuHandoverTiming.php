@@ -51,7 +51,7 @@ class MenuHandoverTiming
     public const DEFAULT_CLOSE = '22:00';
 
     /** More than this many slots is a scroll, not a choice. */
-    public const MAX_SLOTS = 48;
+    public const MAX_SLOTS = 800;
 
     /**
      * The settings as the editor and the page read them.
@@ -108,8 +108,8 @@ class MenuHandoverTiming
     /** Whether this mode asks the guest for a time at all. */
     public static function appliesTo(?string $mode): bool
     {
-        // Somebody already sitting at a table is not booking a slot.
-        return in_array($mode, ['takeaway', 'delivery'], true);
+        // Dine-in can also be reserved for a future arrival.
+        return in_array($mode, ['dine_in', 'takeaway', 'delivery'], true);
     }
 
     /**

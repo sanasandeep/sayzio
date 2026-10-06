@@ -121,6 +121,12 @@ class MenuCouponController extends Controller
             ]]);
         }
 
+        $reservation = DB::table('menu_coupon_reservations')->where('coupon_id', $coupon->id)->first();
+        if ($reservation) {
+            $reservationModel = $type === 'restaurant' ? RestaurantOrder::class : StoreOrder::class;
+            $reservedOrder = $reservationModel::find($reservation->order_id);
+            if ($reservedOrder && $reservedOrder->status !== 'cancelled') $reservedOrder->update(['status' => 'completed']);
+        }
         $this->closeIfDone($coupon, $type);
 
         return response()->json(['data' => [
