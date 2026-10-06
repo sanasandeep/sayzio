@@ -214,6 +214,22 @@
         .link-row-clicks span { font-size:8px; }
         .link-row-meta .copy { min-height:32px; padding:4px 7px; }
     }
+    /* Unified search surface: visible labels and a calm, responsive hierarchy. */
+    .links-toolbar { display:grid; grid-template-columns:minmax(220px,2fr) repeat(4,minmax(110px,1fr)) auto; align-items:end; gap:14px; padding:18px; margin-bottom:16px; border:1px solid var(--border-soft); border-radius:16px; background:var(--bg-card); box-shadow:0 3px 16px rgba(0,0,0,.025); }
+    .links-filter-heading { grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center; gap:12px; padding-bottom:12px; border-bottom:1px solid var(--border-soft); font-size:12px; font-weight:600; color:var(--text-primary); }
+    .links-filter-heading i { margin-right:6px; color:var(--text-muted); }
+    .links-filter-heading a { color:var(--accent); font-size:11px; }
+    .links-filter-heading .links-filter-hint { color:var(--text-faint); font-weight:400; font-size:11px; }
+    .links-search { min-width:0; max-width:none; align-self:end; }
+    .links-search input { height:46px; border-color:var(--border-soft); border-radius:11px; padding-left:36px; background:var(--bg-glass-hover); }
+    .links-search i { left:14px; }
+    .links-filter-field { display:flex; flex-direction:column; gap:7px; min-width:0; }
+    .links-filter-field > span { font-size:10px; font-weight:600; color:var(--text-faint); padding-left:2px; }
+    .links-filter-field .links-pill { width:100%; max-width:none; min-width:0; height:46px; border-radius:11px; border-color:var(--border-soft); }
+    .links-filter-field option { background:var(--bg-card); color:var(--text-primary); }
+    .links-toolbar .links-pill--go { min-height:46px; max-width:none; border-radius:11px; padding:0 18px; background:var(--accent); border-color:var(--accent); color:white; display:flex; align-items:center; justify-content:center; gap:8px; }
+    @media (max-width:1100px) { .links-toolbar { grid-template-columns:repeat(4,minmax(0,1fr)); } .links-toolbar .links-search { grid-column:1 / span 3; } .links-toolbar .links-pill--go { grid-column:4; grid-row:2; } }
+    @media (max-width:700px) { .links-toolbar { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:14px; } .links-toolbar .links-search { grid-column:1 / -1; } .links-toolbar .links-pill--go { grid-column:1 / -1; grid-row:auto; } .links-filter-hint { display:none; } }
 </style>
 @endpush
 
@@ -347,10 +363,14 @@
 </div>
 @endunless
 
-{{-- The five filters used to sit in their own card, each under a stacked
-     uppercase label, which made a permanent 120px block out of controls most
-     visits never touch. Same form, same fields, one row. --}}
-<form method="GET" class="links-toolbar">
+<form method="GET" action="{{ route('user.links.index') }}" class="links-toolbar" role="search">
+    <div class="links-filter-heading"><span><i class="fas fa-sliders-h" aria-hidden="true"></i> Find your links</span>
+        @if(request()->filled('search') || request()->filled('type') || request()->filled('project_id') || request()->filled('status') || request('sort', 'newest') !== 'newest')
+        <a href="{{ route('user.links.index') }}">Reset filters <i class="fas fa-times" aria-hidden="true"></i></a>
+        @else
+        <span class="links-filter-hint">Search, narrow down, organise</span>
+        @endif
+    </div>
     <div class="links-search">
         <i class="fas fa-search" aria-hidden="true"></i>
         <input type="text" name="search" value="{{ request('search') }}"
@@ -358,6 +378,7 @@
                placeholder="Search {{ number_format($__summary['total']) }} {{ Str::plural('link', $__summary['total']) }}&hellip;">
     </div>
 
+    <label class="links-filter-field"><span>Type</span>
     <select name="type" class="links-pill" aria-label="Filter by type" onchange="this.form.submit()">
         <option value="" class="bg-[#0a0612]">All types</option>
         @foreach(\App\Modules\User\Support\LinkTypeCategories::categories() as $__typeCat)
@@ -368,20 +389,26 @@
             </optgroup>
         @endforeach
     </select>
+    </label>
 
+    <label class="links-filter-field"><span>Folder</span>
     <select name="project_id" class="links-pill" aria-label="Filter by folder" onchange="this.form.submit()">
         <option value="" class="bg-[#0a0612]">All folders</option>
         @foreach($projects as $project)
             <option value="{{ $project->id }}" {{ request('project_id') == $project->id ? 'selected' : '' }} class="bg-[#0a0612]">{{ $project->name }}</option>
         @endforeach
     </select>
+    </label>
 
+    <label class="links-filter-field"><span>Status</span>
     <select name="status" class="links-pill" aria-label="Filter by status" onchange="this.form.submit()">
         <option value="" class="bg-[#0a0612]">Any status</option>
         <option value="active" {{ request('status') === 'active' ? 'selected' : '' }} class="bg-[#0a0612]">Active</option>
         <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }} class="bg-[#0a0612]">Inactive</option>
     </select>
+    </label>
 
+    <label class="links-filter-field"><span>Sort by</span>
     <select name="sort" class="links-pill" aria-label="Sort" onchange="this.form.submit()">
         @foreach([
             'newest'      => 'Newest first',
@@ -394,11 +421,12 @@
             <option value="{{ $sortValue }}" @selected(($sort ?? 'newest') === $sortValue) class="bg-[#0a0612]">{{ $sortLabel }}</option>
         @endforeach
     </select>
+    </label>
 
     {{-- The selects submit on change; this is the keyboard path and the
          fallback with JavaScript off. --}}
     <button type="submit" class="links-pill links-pill--go">
-        <i class="fas fa-search text-[10px]"></i> Search
+        <i class="fas fa-arrow-right text-[10px]" aria-hidden="true"></i> Find links
     </button>
 </form>
 
