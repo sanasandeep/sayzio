@@ -817,8 +817,16 @@ document.addEventListener('alpine:init', () => {
             of <strong style="color: var(--text-secondary);">{{ number_format($links->total()) }}</strong>
         </span>
         <form method="GET" class="flex items-center gap-1.5">
-            @foreach(request()->except(['per_page', 'page']) as $__k => $__v)
-                <input type="hidden" name="{{ $__k }}" value="{{ $__v }}">
+            @foreach(request()->only('search', 'type', 'project_id', 'status', 'sort') as $__k => $__v)
+                @if(is_array($__v))
+                    @foreach($__v as $__filterValue)
+                        @if(is_scalar($__filterValue))
+                        <input type="hidden" name="{{ $__k }}[]" value="{{ $__filterValue }}">
+                        @endif
+                    @endforeach
+                @elseif(is_scalar($__v))
+                    <input type="hidden" name="{{ $__k }}" value="{{ $__v }}">
+                @endif
             @endforeach
             <label for="per_page" class="whitespace-nowrap">Per page</label>
             <select id="per_page" name="per_page" onchange="this.form.submit()" class="theme-input appearance-none pr-7 py-1 text-xs">
