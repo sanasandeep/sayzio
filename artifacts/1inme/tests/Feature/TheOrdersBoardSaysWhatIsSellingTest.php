@@ -367,4 +367,25 @@ class TheOrdersBoardSaysWhatIsSellingTest extends TestCase
         $this->assertNull($result['previous']);
     }
 
+    public function test_menu_can_select_owned_taxed_and_untaxed_billing_companies(): void
+    {
+        $company = \App\Modules\User\Models\BillingCompany::create(['user_id' => $this->owner->id, 'name' => 'Taxed company']);
+        $rule = \App\Modules\User\Models\TaxRule::create(['user_id' => $this->owner->id, 'billing_company_id' => $company->id, 'name' => 'GST', 'rate_bps' => 500, 'inclusive' => false, 'is_active' => true]);
+        $company->update(['default_tax_rule_id' => $rule->id]);
+        $settings = \App\Modules\User\Support\MenuBillingCompany::apply([], $company->id, $this->owner->id);
+        $this->assertTrue($settings['tax']['enabled']);
+        $this->assertSame(5.0, $settings['tax']['rate']);
+        $this->assertSame('Taxed company', $settings['billing_company']['name']);
+        $company->update(['name' => 'Updated company', 'default_tax_rule_id' => null]);
+        $this->assertSame('Taxed company', $settings['billing_company']['name']);
+        $untaxed = \App\Modules\User\Support\MenuBillingCompany::apply([], $company->id, $this->owner->id);
+        $this->assertFalse($untaxed['tax']['enabled']);
+        try {
+            \App\Modules\User\Support\MenuBillingCompany::apply([], $company->id, $this->owner->id + 9999);
+            $this->fail('Another owner must not select this company.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->assertArrayHasKey('billing_company_id', $e->errors());
+        }
+    }
+
 }

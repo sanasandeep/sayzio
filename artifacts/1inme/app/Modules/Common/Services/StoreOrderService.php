@@ -66,7 +66,8 @@ class StoreOrderService
         $chargeLines   = \App\Modules\User\Support\MenuFulfilment::applicable((array) ($menu->settings ?? []), $chosen, round($subtotal, 2));
         $chargesAmount = \App\Modules\User\Support\MenuFulfilment::total($chargeLines);
 
-        $order = DB::transaction(function () use ($menu, $link, $data, $lines, $subtotal, $chosen, $chargeLines, $chargesAmount, $timezone, $wantedAt) {
+        $billing = \App\Modules\User\Support\MenuBillingCompany::storeBill($menu, $subtotal, $chosen);
+        $order = DB::transaction(function () use ($billing, $menu, $link, $data, $lines, $subtotal, $chosen, $chargeLines, $chargesAmount, $timezone, $wantedAt) {
         // The number the guest is told to listen for. Reserved inside the
         // same transaction that creates the order, so two people tapping
         // Place order in the same second cannot both be told "14".
@@ -104,7 +105,8 @@ class StoreOrderService
                 // is exactly what a customer writes in about.
                 'charges'          => $chargeLines,
                 'charges_amount'   => $chargesAmount,
-                'total'            => round($subtotal + $chargesAmount, 2),
+                'total'            => $billing['total'],
+                'meta' => ['billing_company' => $billing['billing_company'], 'tax' => array_intersect_key($billing, array_flip(['tax_label', 'tax_rate', 'tax_inclusive', 'tax_amount']))],
                 'currency'         => $menu->currency,
             ]);
 

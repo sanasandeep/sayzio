@@ -79,6 +79,7 @@ class PublicRestaurantController extends Controller
     public static function serializeBill(array $bill): array
     {
         return [
+            'billing_company' => $bill['billing_company'] ?? null,
             'subtotal'        => round($bill['subtotal'], 2),
             'fulfilment'      => $bill['fulfilment'] ?? null,
             'charges'         => $bill['charges'] ?? [],
@@ -242,6 +243,7 @@ class PublicRestaurantController extends Controller
             'order_code'   => \App\Modules\User\Support\MenuOrderCode::of($order->public_token),
             // The number the guest is told to listen for, and which run of
             // numbers it belongs to.
+            'billing_company' => $order->meta['billing_company'] ?? null,
             'token_number' => $order->token_number,
             'wanted_at'    => $order->wanted_at?->toIso8601String(),
             // The codes this order produced, so the person who placed it

@@ -111,6 +111,7 @@ class RestaurantBillCalculator
         }
 
         return [
+            'billing_company' => $menu->settings['billing_company'] ?? null,
             'subtotal'        => $subtotal,
             'fulfilment'      => $fulfilment,
             'charges'         => $chargeLines,

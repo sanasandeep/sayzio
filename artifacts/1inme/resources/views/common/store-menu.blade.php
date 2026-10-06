@@ -410,6 +410,7 @@
         {{-- Above the total: whoever ordered in bulk came here for the
              passes, not for the estimate. --}}
         <div id="mealCoupons" style="display:none"></div>
+        <p id="doneBillingCompany"></p><p id="doneTaxLine"></p>
         <div class="total" id="doneTotalRow"><span>Estimated total</span><span id="doneTotal"></span></div>
         <p class="note" id="doneNote">This is an estimated total, not a final bill. The store has been notified and will reach out. This updates automatically.</p>
         <a id="waBtn" class="wa-btn" href="#" target="_blank" rel="noopener" style="display:none">
@@ -610,11 +611,14 @@
                 const add = (label, value) => {
                     const row = document.createElement('div');
                     row.className = 'bill-row';
-                    row.innerHTML = '<span>' + label + '</span><span>' + value + '</span>';
+                    const title = document.createElement('span'), text = document.createElement('span');
+                    title.textContent = label; text.textContent = value; row.append(title, text);
                     box.appendChild(row);
                 };
-                if ((lastBill.charges || []).length) {
+                if ((lastBill.charges || []).length || lastBill.tax_amount > 0 || lastBill.billing_company) {
+                    if (lastBill.billing_company) add('Billing company', lastBill.billing_company.legal_name || lastBill.billing_company.name);
                     add('Subtotal', fmt(lastBill.subtotal));
+                    if (lastBill.tax_amount > 0) add(lastBill.tax_label + ' (' + lastBill.tax_rate + '%' + (lastBill.tax_inclusive ? ' incl.' : '') + ')', fmt(lastBill.tax_amount));
                     lastBill.charges.forEach(c => { if (c && c.amount > 0) add(c.label, fmt(c.amount)); });
                 }
             }
@@ -777,6 +781,10 @@
             menuMealCoupons.show(document.getElementById('mealCoupons'), mealCoupons);
             menuToken.show(document.getElementById('ordToken'), order, 'Quote it when you collect or when you write in.');
             menuOrderQr.show(document.getElementById('ordQr'), order);
+            const billingLine = document.getElementById('doneBillingCompany');
+            if (billingLine) billingLine.textContent = order.billing_company ? (order.billing_company.legal_name || order.billing_company.name) + ' · ' + (order.billing_company.tax_ids || []).join(' · ') : '';
+            const taxLine = document.getElementById('doneTaxLine');
+            if (taxLine) taxLine.textContent = order.tax_amount > 0 ? order.tax_label + ' (' + order.tax_rate + '%' + (order.tax_inclusive ? ' incl.' : '') + '): ' + fmt(order.tax_amount) : '';
             document.getElementById('doneTotal').textContent = fmt(order.total != null ? order.total : order.subtotal);
             document.getElementById('ordStatus').textContent = order.status_label || order.status;
             const waBtn = document.getElementById('waBtn');

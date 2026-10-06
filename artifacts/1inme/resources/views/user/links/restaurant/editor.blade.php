@@ -264,6 +264,7 @@
                     </div>
                 </div>
                 @include('user.links.partials.menu-money-picker')
+                @include('user.links.partials.menu-billing-company')
                 @include('user.links.partials.menu-fulfilment-panel', ['fpIsRestaurant' => true])
                 <div class="rm-row" x-show="menu.mode === 'order'">
                     <label class="rm-label">WhatsApp number (optional)</label>
@@ -295,8 +296,8 @@
                 'choiceNounPlural' => 'dishes',
             ])
 
-            <!-- GST / tax estimate -->
-            <div class="rm-card" x-show="menu.mode === 'order'">
+            <!-- Manual tax settings when no company is linked -->
+            <div class="rm-card" x-show="menu.mode === 'order' && !billingCompanyId">
                 <h5>Estimated tax (GST)</h5>
                 <p class="text-xs mb-3" style="color:var(--text-muted)">Show an estimated GST/tax line on the guest's bill. This is an estimate only, no money is collected here.</p>
                 <div class="rm-row">
@@ -572,6 +573,7 @@
 @endphp
 function restaurantEditor() {
     return {
+        billingCompanyId: @js($menu->settings['billing_company_id'] ?? ''),
         menu: @json($menuData),
         tax: @json($menuTax),
         confirm: @json($menuConfirm),
@@ -738,6 +740,7 @@ function restaurantEditor() {
 
         async saveSettings(){
             await this.api('POST','/settings',{
+                billing_company_id:this.billingCompanyId === '' ? null : Number(this.billingCompanyId),
                 mode:this.menu.mode,
                 currency:(this.menu.currency||'USD').toUpperCase(),
                 accent_color:this.menu.accent_color,

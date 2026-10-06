@@ -120,6 +120,8 @@
                 </template>
             </div>
             <div class="ro-note" x-show="o.customer_note" x-text="'“' + o.customer_note + '”'"></div>
+            <p class="text-sm" x-show="o.meta?.billing_company" x-text="o.meta?.billing_company?.legal_name || o.meta?.billing_company?.name || ''"></p>
+            <p class="text-sm" x-show="o.meta?.billing_company" x-text="(o.meta?.billing_company?.tax_ids || []).join(' · ')"></p>
             <div class="ro-breakdown">
                 <div class="ro-bline"><span>Subtotal</span><span x-text="money(o.subtotal, o.currency)"></span></div>
                 <div class="ro-bline ro-discount" x-show="o.coupon_code && +o.discount_amount > 0">

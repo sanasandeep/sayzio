@@ -66,18 +66,8 @@ class PublicStoreController extends Controller
         $modes  = \App\Modules\User\Support\MenuFulfilment::modesFor((array) ($menu->settings ?? []), false);
         $chosen = in_array($data['fulfilment'] ?? null, $modes, true) ? $data['fulfilment'] : ($modes[0] ?? null);
 
-        $charges = \App\Modules\User\Support\MenuFulfilment::applicable((array) ($menu->settings ?? []), $chosen, $subtotal);
-        $amount  = \App\Modules\User\Support\MenuFulfilment::total($charges);
-
-        return response()->json(['data' => ['bill' => [
-            'subtotal'       => $subtotal,
-            'fulfilment'     => $chosen,
-            'charges'        => $charges,
-            'charges_amount' => $amount,
-            'total'          => round($subtotal + $amount, 2),
-            'currency'       => $menu->currency,
-            'is_estimate'    => true,
-        ]]]);
+        $bill = \App\Modules\User\Support\MenuBillingCompany::storeBill($menu, $subtotal, $chosen);
+        return response()->json(['data' => ['bill' => $bill]]);
     }
 
     public function prebookCoupon(Request $request, string $alias)
@@ -234,6 +224,11 @@ class PublicStoreController extends Controller
             'fulfilment'   => $order->fulfilment,
             'charges'      => $order->charges ?: [],
             'charges_amount' => $order->charges_amount,
+            'billing_company' => $order->meta['billing_company'] ?? null,
+            'tax_label' => $order->meta['tax']['tax_label'] ?? 'Tax',
+            'tax_rate' => $order->meta['tax']['tax_rate'] ?? 0,
+            'tax_inclusive' => $order->meta['tax']['tax_inclusive'] ?? false,
+            'tax_amount' => $order->meta['tax']['tax_amount'] ?? 0,
             'total'        => $order->total,
             'currency'     => $order->currency,
             'is_estimate'  => true,
