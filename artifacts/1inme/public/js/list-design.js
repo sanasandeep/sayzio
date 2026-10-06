@@ -27,6 +27,7 @@
         const search = form.querySelector('input[name="search"]:not([type="hidden"]),input[name="q"]:not([type="hidden"])');
         const fields = Array.from(form.querySelectorAll('select[name],input[type="date"][name],input[type="number"][name],input[type="checkbox"][name]'));
         if (!search && !fields.length) return;
+        if (form.hasAttribute('data-date-filters')) return;
         form.classList.add('app-filter-surface');
         const bar = node('div', 'app-search-bar');
         const toggle = button('app-filter-toggle', '+');

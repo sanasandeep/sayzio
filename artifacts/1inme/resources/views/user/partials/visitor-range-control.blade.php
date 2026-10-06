@@ -18,7 +18,7 @@
         @foreach(\App\Modules\User\Support\AnalyticsRangeResolver::PRESETS as $k => $lbl)
             <a href="{{ $buildUrl(['period' => $k, 'start' => null, 'end' => null]) }}" class="pill {{ !$isCustom && ($period ?? '30d') === $k ? 'pill-active' : '' }}">{{ $lbl }}</a>
         @endforeach
-        <form data-list-filters method="GET" class="flex items-center gap-1.5 flex-wrap" data-custom-range-form>
+        <form data-date-filters data-list-filters method="GET" class="flex items-center gap-1.5 flex-wrap" data-custom-range-form>
             @foreach(request()->except(['period', 'start', 'end']) as $k => $v)
                 @if(is_array($v))
                     @foreach($v as $vv)
@@ -29,9 +29,9 @@
                 @endif
             @endforeach
             <input type="hidden" name="period" value="custom">
-            <input type="date" name="start" value="{{ $startDate->format('Y-m-d') }}" class="range-date-input" max="{{ now()->format('Y-m-d') }}">
+            <label>From date<input type="date" name="start" value="{{ $startDate-></label>format('Y-m-d') }}" class="range-date-input" max="{{ now()->format('Y-m-d') }}">
             <span class="text-xs" style="color: var(--text-faint);">–</span>
-            <input type="date" name="end" value="{{ $endDate->format('Y-m-d') }}" class="range-date-input" max="{{ now()->format('Y-m-d') }}">
+            <label>To date<input type="date" name="end" value="{{ $endDate-></label>format('Y-m-d') }}" class="range-date-input" max="{{ now()->format('Y-m-d') }}">
             <button type="submit" class="pill {{ $isCustom ? 'pill-active' : '' }}"><i class="fas fa-calendar-week text-[9px] mr-1"></i> Custom</button>
         </form>
     </div>

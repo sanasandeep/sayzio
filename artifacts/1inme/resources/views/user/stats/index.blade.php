@@ -63,14 +63,20 @@
                 </div>
                 <h1 class="hero-title gradient-text truncate" style="font-size: clamp(1.5rem, 3.2vw, 2.1rem);">Stats home</h1>
                 <p class="hero-subtitle">A live look at your audience, content and engagement.</p>
-                <form data-list-filters method="GET" class="flex items-center gap-2 flex-wrap mt-4">
-                    <select name="range" onchange="this.form.submit()" class="stats-select px-3 py-2 text-sm">
+                <form data-date-filters data-list-filters method="GET" class="flex items-center gap-2 flex-wrap mt-4">
+                    <select name="range" class="stats-select px-3 py-2 text-sm">
                         @foreach($ranges as $key => $r)
                             <option value="{{ $key }}" {{ $range === $key ? 'selected' : '' }}>{{ $r['label'] }}</option>
                         @endforeach
+                        <option value="custom" {{ $range === 'custom' ? 'selected' : '' }}>Custom dates</option>
                     </select>
+                    <label>From date<input type="date" name="from" onchange="this.form.elements.range.value='custom'" value="{{ $start->format('Y-m-d') }}" max="{{ now()->format('Y-m-d') }}"></label>
+                    <label>To date<input type="date" name="to" onchange="this.form.elements.range.value='custom'" value="{{ $end->format('Y-m-d') }}" max="{{ now()->format('Y-m-d') }}"></label>
+                    <button type="submit" class="btn-primary-gradient btn-primary">Apply dates</button>
+                    @error('from')<span role="alert">{{ $message }}</span>@enderror
+                    @error('to')<span role="alert">{{ $message }}</span>@enderror
                     @if(workspace_owner()?->getPlanFeature('analytics_export', true))
-                        <a href="{{ route('user.stats.export', ['range' => $range]) }}" class="btn-primary text-xs py-2">
+                        <a href="{{ route('user.stats.export', ['range' => $range, 'from' => $start->format('Y-m-d'), 'to' => $end->format('Y-m-d')]) }}" class="btn-primary text-xs py-2">
                             <i class="fas fa-download text-[10px]"></i> CSV
                         </a>
                     @else
