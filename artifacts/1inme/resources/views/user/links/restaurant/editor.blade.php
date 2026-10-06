@@ -702,7 +702,7 @@ function restaurantEditor() {
         /** Dine-in only? Then there is nothing to ask a time about. */
         timingApplies(){
             const modes = this.menu.fulfilment_modes || [];
-            return modes.includes('takeaway') || modes.includes('delivery');
+            return modes.some(mode => ['dine_in', 'takeaway', 'delivery'].includes(mode));
         },
 
         /** The first time a customer could actually pick, right now. */

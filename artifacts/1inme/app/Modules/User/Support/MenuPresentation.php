@@ -267,6 +267,18 @@ class MenuPresentation
      * @var array<string, array{label: string, hint: string}>
      */
     public const HEADINGS = [
+        'hairline' => ['label' => 'Hairline', 'hint' => 'A fine rule beneath section and subsection titles.'],
+        'dotted' => ['label' => 'Dotted', 'hint' => 'A dotted title rule.'],
+        'dashed' => ['label' => 'Dashed', 'hint' => 'A dashed title rule.'],
+        'double' => ['label' => 'Double line', 'hint' => 'Two fine rules beneath the title.'],
+        'curve' => ['label' => 'Curve', 'hint' => 'A curved rule beneath the title.'],
+        'wave' => ['label' => 'Wave', 'hint' => 'A wave beneath the title.'],
+        'pointer' => ['label' => 'Pointer', 'hint' => 'A rule with a central pointer.'],
+        'diamond' => ['label' => 'Diamond', 'hint' => 'A rule with a central diamond.'],
+        'pill' => ['label' => 'Pill', 'hint' => 'A rounded title badge.'],
+        'outline' => ['label' => 'Outline', 'hint' => 'A framed section title.'],
+        'accent' => ['label' => 'Accent bar', 'hint' => 'An accent bar beside the title.'],
+
         'plain' => [
             'label' => 'Plain',
             'hint'  => 'Left, bold, no rule. What menus draw today.',

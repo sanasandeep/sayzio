@@ -690,9 +690,19 @@ class RestaurantMenuController extends Controller
             $link->user?->effectiveTimezone() ?? \App\Support\PlatformTimezone::platformDefault()
         );
 
-        $scoped = fn () => MenuOrderRange::apply(
-            RestaurantOrder::where('menu_id', $menu->id), $range
-        );
+        $preorderView = $request->query('schedule') === 'upcoming';
+        $scoped = fn () => $preorderView
+            ? RestaurantOrder::where('menu_id', $menu->id)->where('wanted_at', '>', now())->whereIn('status', RestaurantOrder::OPEN_STATUSES)
+            : MenuOrderRange::apply(RestaurantOrder::where('menu_id', $menu->id), $range);
+        $preordersQuery = RestaurantOrder::where('menu_id', $menu->id)->where('wanted_at', '>', now())
+            ->whereIn('status', RestaurantOrder::OPEN_STATUSES);
+        $preordersCount = (clone $preordersQuery)->count();
+        $preorders = (clone $preordersQuery)->orderBy('wanted_at')->limit(20)->get();
+        if ($preorderView) {
+            $range['label'] = 'Upcoming preorders';
+            $range['from'] = null;
+            $range['to'] = null;
+        }
 
         $total = $scoped()->count();
         $page = max(1, (int) $request->query('page', 1));
@@ -727,12 +737,15 @@ class RestaurantMenuController extends Controller
             'page'      => $page,
             'hasMore'   => ($page * MenuOrderRange::PER_PAGE) < $total,
             'openCount' => $openCount,
+            'preorders' => $preorders,
+            'preordersCount' => $preordersCount,
+            'preorderView' => $preorderView,
             // Sana, 2026-10-05: "orders dashbord summary missing".
             // Aggregated over the scoped QUERY, not the fetched page, so
             // the numbers do not change when somebody taps "load more".
             'summary'   => \App\Modules\User\Support\MenuOrderSummary::of($scoped(), RestaurantOrder::class),
             'labels'    => \App\Modules\User\Support\MenuOrderSummary::labels(RestaurantOrder::class),
-            'exportUrl' => route('user.links.restaurant.orders.export', ['link' => $link] + $request->only(['range', 'from', 'to', 'status'])),
+            'exportUrl' => route('user.links.restaurant.orders.export', ['link' => $link] + $request->only(['range', 'from', 'to', 'status', 'schedule'])),
             // Sana, 2026-10-05: "i need top items, item sales, reccuring
             // things, highlights or anything related....". The totals say
             // how much came in; these say what to do about it.

@@ -218,7 +218,7 @@ class WhenDoYouWantItTest extends TestCase
             $this->order($link, $item, ['fulfilment' => 'takeaway', 'wanted_at' => $value])->assertCreated();
         }
 
-        $this->assertNull(RestaurantOrder::latest('id')->first()->wanted_at);
+        $this->assertTrue(RestaurantOrder::latest('id')->first()->wanted_at->equalTo(Carbon::parse($slot['value'])));
     }
 
     public function test_a_slot_the_menu_offers_is_kept(): void
@@ -267,18 +267,16 @@ class WhenDoYouWantItTest extends TestCase
         ])->assertStatus(422);
     }
 
-    public function test_dine_in_never_carries_a_time(): void
+    public function test_dine_in_can_book_a_future_time(): void
     {
-        // Somebody already sitting at a table is not booking a slot, and a
-        // value arriving from a stale page is ignored rather than failing
-        // their order.
+        // Dine-in reservations use the same validated slots as delivery and pickup.
         Carbon::setTestNow(Carbon::parse('2026-10-05 12:00', self::TZ));
         [$link, $menu, $item] = $this->restaurant($this->timing());
         $slot = MenuHandoverTiming::slots((array) $menu->settings, self::TZ)[0];
 
         $this->order($link, $item, ['fulfilment' => 'dine_in', 'wanted_at' => $slot['value']])->assertCreated();
 
-        $this->assertNull(RestaurantOrder::latest('id')->first()->wanted_at);
+        $this->assertTrue(RestaurantOrder::latest('id')->first()->wanted_at->equalTo(Carbon::parse($slot['value'])));
     }
 
     public function test_timing_switched_off_ignores_a_time_rather_than_refusing(): void
@@ -290,7 +288,7 @@ class WhenDoYouWantItTest extends TestCase
             'wanted_at'  => Carbon::now()->addHour()->toIso8601String(),
         ])->assertCreated();
 
-        $this->assertNull(RestaurantOrder::latest('id')->first()->wanted_at);
+        $this->assertTrue(RestaurantOrder::latest('id')->first()->wanted_at->equalTo(Carbon::parse($slot['value'])));
     }
 
     public function test_the_store_takes_a_time_the_same_way(): void
@@ -479,4 +477,49 @@ class WhenDoYouWantItTest extends TestCase
         $at = Carbon::parse('2026-10-05 19:30', self::TZ)->utc();
         $this->assertSame('Today at 7:30 pm', MenuHandoverTiming::describe($at, self::TZ));
     }
+    public function test_slots_reach_the_seventh_day_even_with_quarter_hour_intervals(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-05 12:00', self::TZ));
+        $slots = MenuHandoverTiming::slots($this->timing(['interval' => 15]), self::TZ);
+        $this->assertTrue(Carbon::parse(end($slots)['value'])->timezone(self::TZ)->isSameDay(Carbon::now(self::TZ)->addDays(7)));
+    }
+
+    public function test_coupon_prebooking_is_single_use_and_works_for_both_menu_types(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-05 12:00', self::TZ));
+        foreach (['restaurant', 'store'] as $kind) {
+            [$link, $menu, $item] = $kind === 'restaurant' ? $this->restaurant($this->timing()) : $this->store($this->timing());
+            $model = $kind === 'restaurant' ? RestaurantOrder::class : StoreOrder::class;
+            $purchase = $model::create(['menu_id' => $menu->id, 'link_id' => $link->id, 'status' => 'new', 'subtotal' => 100, 'total' => 100, 'currency' => 'INR']);
+            $coupon = \App\Modules\User\Models\MenuOrderCoupon::create([
+                'code' => \App\Modules\User\Models\MenuOrderCoupon::mint(), 'order_type' => $kind,
+                'order_id' => $purchase->id, 'menu_type' => $kind, 'menu_id' => $menu->id,
+                'item_name' => $item->name, 'status' => 'issued',
+            ]);
+            $slot = MenuHandoverTiming::slots((array) $menu->settings, self::TZ)[0];
+            $payload = ['coupon_code' => $coupon->code, 'customer_name' => 'Guest', 'fulfilment' => $kind === 'restaurant' ? 'dine_in' : 'takeaway', 'wanted_at' => $slot['value']];
+            $service = app(\App\Modules\Common\Services\MenuCouponPrebooking::class);
+            $booking = $service->reserve($link, $menu, $kind, $payload);
+            $this->assertSame('0.00', $booking->total);
+            $this->assertSame(1, $booking->items()->count());
+            $this->assertSame('issued', $coupon->fresh()->status);
+            try {
+                $service->reserve($link, $menu, $kind, $payload);
+                $this->fail('A coupon must not have two active bookings.');
+            } catch (\InvalidArgumentException $e) {
+                $this->assertStringContainsString('already has a booking', $e->getMessage());
+            }
+            $booking->update(['status' => 'cancelled']);
+            $replacement = $service->reserve($link, $menu, $kind, $payload);
+            $this->assertNotEquals($booking->id, $replacement->id);
+            $coupon->update(['status' => 'redeemed']);
+            try {
+                $service->reserve($link, $menu, $kind, $payload);
+                $this->fail('A redeemed coupon must not be bookable.');
+            } catch (\InvalidArgumentException $e) {
+                $this->assertStringContainsString('Coupon unavailable', $e->getMessage());
+            }
+        }
+    }
+
 }

@@ -16,7 +16,11 @@
                 @endforeach
             @endforeach
         </select></label>
-        <label>Item mark<select data-filter="mark"><option value="">All marks</option></select></label>
+        <label>Item mark<select data-filter="mark"><option value="">All marks</option>
+            @foreach(\App\Modules\User\Support\MenuItemMarks::pickable() as $searchMark)
+                <option value="{{ $searchMark->label }}">{{ $searchMark->label }}</option>
+            @endforeach
+            </select></label>
         <label>Minimum price<input type="number" min="0" step="0.01" data-filter="min" placeholder="Any"></label>
         <label>Maximum price<input type="number" min="0" step="0.01" data-filter="max" placeholder="Any"></label>
         <label>Availability<select data-filter="availability"><option value="">All items</option><option value="available">Available only</option><option value="sold">Sold out only</option></select></label>
@@ -33,12 +37,14 @@
         var rows = Array.from(root.querySelectorAll('[data-menu-search-item]'));
         var fields = {};
         panel.querySelectorAll('[data-filter]').forEach(function (field) { fields[field.dataset.filter] = field; });
-        var labels = new Set();
+        var labels = new Set(['Vegetarian', 'Non-vegetarian', 'Contains egg']);
         rows.forEach(function (row) {
             row.searchMarks = JSON.parse(row.dataset.searchMarks || '[]');
             row.searchMarks.forEach(function (label) { labels.add(label); });
         });
+        var existingMarks = new Set(Array.from(fields.mark.options).map(function (option) { return option.value; }));
         Array.from(labels).sort().forEach(function (label) {
+            if (existingMarks.has(label)) return;
             var option = document.createElement('option'); option.value = label; option.textContent = label;
             fields.mark.appendChild(option);
         });

@@ -48,7 +48,8 @@ class MenuInsights
     public static function of($query, string $model, string $itemModel, $menu, string $catalogueModel): array
     {
         $billable = (clone $query)->reorder()
-            ->where('status', '!=', $model::STATUS_CANCELLED);
+            ->where('status', '!=', $model::STATUS_CANCELLED)
+            ->where(fn ($q) => $q->whereNull('meta->coupon_reservation')->orWhere('meta->coupon_reservation', false));
 
         $orderIds = (clone $billable)->select('id');
 

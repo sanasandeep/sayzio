@@ -1,5 +1,5 @@
 {{--
-    When a takeaway or delivery order is wanted.
+    When a scheduled order is wanted.
 
     Sana, 2026-09-28: "if take away, need to tell slots/time / setting
     should have min time for prep / if delivery option... need to tell
@@ -25,7 +25,7 @@
 <div class="rm-card" x-show="menu.mode === 'order' && timingApplies()">
     <h5>Collection and delivery times</h5>
     <p class="text-xs mb-3" style="color:var(--text-muted)">
-        Let a customer choose when they want a takeaway or delivery {{ $tmNoun ?? 'order' }}.
+        Let a customer choose when they want their {{ $tmNoun ?? 'order' }}.
         Dine-in is never asked: they are already here.
     </p>
 

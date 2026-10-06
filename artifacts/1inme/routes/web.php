@@ -764,6 +764,8 @@ Route::post('/cv/{publicId}/upload',       [\App\Modules\Common\Controllers\Conv
 
 // ── Restaurant Menu visitor endpoints (Task #1536) ───────────────
 // Use the /rm/ prefix so they don't collide with the catch-all /{alias}.
+Route::post('/rm/{alias}/coupon-prebooking', [\App\Modules\Common\Controllers\PublicRestaurantController::class, 'prebookCoupon'])
+    ->where('alias', '[^/]+')->middleware('throttle:5,1')->name('rm.public.coupon-prebooking');
 Route::post('/rm/{alias}/quote', [\App\Modules\Common\Controllers\PublicRestaurantController::class, 'quote'])
     ->where('alias', '[^/]+')->middleware('throttle:120,1')->name('rm.public.quote');
 Route::post('/rm/{alias}/order', [\App\Modules\Common\Controllers\PublicRestaurantController::class, 'placeOrder'])
@@ -775,6 +777,8 @@ Route::get('/rm/order/{token}/status', [\App\Modules\Common\Controllers\PublicRe
 // Use the /sm/ prefix so they don't collide with the catch-all /{alias}.
 // The quote endpoint exists for one reason: which charges apply depends on
 // the handover the customer picked, and that rule lives on the server.
+Route::post('/sm/{alias}/coupon-prebooking', [\App\Modules\Common\Controllers\PublicStoreController::class, 'prebookCoupon'])
+    ->where('alias', '[^/]+')->middleware('throttle:5,1')->name('sm.public.coupon-prebooking');
 Route::post('/sm/{alias}/quote', [\App\Modules\Common\Controllers\PublicStoreController::class, 'quote'])
     ->where('alias', '[^/]+')->middleware('throttle:120,1')->name('sm.public.quote');
 Route::post('/sm/{alias}/order', [\App\Modules\Common\Controllers\PublicStoreController::class, 'placeOrder'])

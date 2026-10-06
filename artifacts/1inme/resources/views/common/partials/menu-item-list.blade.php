@@ -19,12 +19,19 @@
 --}}
 <div class="items lay-{{ $miLayout }} div-{{ $miDivider }}">
 @foreach($miItems as $miItem)
-    @php $miSold = (bool) $miItem->{$miSoldKey}; @endphp
+    @php
+        $miSold = (bool) $miItem->{$miSoldKey};
+        $miSearchMarks = array_column($miItem->marksForDisplay(), 'label');
+        $miDiet = strtolower(trim((string) $miItem->description));
+        if (in_array($miDiet, ['veg', 'vegetarian'], true)) $miSearchMarks[] = 'Vegetarian';
+        if (in_array($miDiet, ['non-veg', 'non veg', 'nonveg', 'non-vegetarian'], true)) $miSearchMarks[] = 'Non-vegetarian';
+        if (in_array($miDiet, ['egg', 'contains egg'], true)) $miSearchMarks[] = 'Contains egg';
+    @endphp
     <div class="item {{ $miSold ? 'soldout' : '' }}" data-menu-search-item
          data-search-text="{{ $miItem->name.' '.$miItem->description }}"
          data-search-category="{{ $miItem->category_id }}" data-search-price="{{ $miItem->price }}"
          data-search-sold="{{ $miSold ? '1' : '0' }}"
-         data-search-marks="{{ json_encode(array_column($miItem->marksForDisplay(), 'label')) }}">
+         data-search-marks="{{ json_encode(array_values(array_unique($miSearchMarks))) }}">
         @if($miItem->photo_url)<img class="photo" src="{{ $miItem->photo_url }}" alt="" loading="lazy">@endif
         <div class="info">
             <div class="name">{{ $miItem->name }}</div>

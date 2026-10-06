@@ -241,3 +241,16 @@
 .price-dots  .items.lay-grid .item .price,
 .price-right .items.lay-showcase .item .price,
 .price-dots  .items.lay-showcase .item .price { margin-top: 6px; }
+:is(.head-hairline,.head-dotted,.head-dashed,.head-double) :is(.cat > h2,.subcat > h3) { padding-bottom:8px; border-bottom:1px solid var(--rule); }
+.head-dotted :is(.cat > h2,.subcat > h3) { border-bottom:2px dotted var(--rule); }
+.head-dashed :is(.cat > h2,.subcat > h3) { border-bottom-style:dashed; }
+.head-double :is(.cat > h2,.subcat > h3) { border-bottom:3px double var(--rule); }
+:is(.head-curve,.head-wave,.head-pointer,.head-diamond) :is(.cat > h2,.subcat > h3) { position:relative; padding-bottom:18px; }
+:is(.head-curve,.head-wave,.head-pointer,.head-diamond) :is(.cat > h2,.subcat > h3)::after { content:''; position:absolute; bottom:0; left:0; right:0; height:8px; background:var(--rule); }
+.head-curve :is(.cat > h2,.subcat > h3)::after { background:none; border-top:1px solid var(--rule); border-radius:50%; }
+.head-wave :is(.cat > h2,.subcat > h3)::after { mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='8'%3E%3Cpath d='M0 4 Q6 0 12 4 T24 4' fill='none' stroke='black'/%3E%3C/svg%3E") repeat-x; }
+.head-pointer :is(.cat > h2,.subcat > h3)::after { clip-path:polygon(0 0,100% 0,100% 1px,52% 1px,50% 100%,48% 1px,0 1px); }
+.head-diamond :is(.cat > h2,.subcat > h3)::after { clip-path:polygon(0 3px,48% 3px,50% 0,52% 3px,100% 3px,100% 4px,52% 4px,50% 100%,48% 4px,0 4px); }
+.head-pill :is(.cat > h2,.subcat > h3) { border-radius:999px; padding:10px 18px; background:color-mix(in srgb,var(--accent) 12%,transparent); }
+.head-outline :is(.cat > h2,.subcat > h3) { border:1px solid var(--rule); padding:12px; border-radius:8px; }
+.head-accent :is(.cat > h2,.subcat > h3) { border-left:4px solid var(--accent); padding-left:12px; }
