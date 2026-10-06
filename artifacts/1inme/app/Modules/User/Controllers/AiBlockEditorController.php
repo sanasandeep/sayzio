@@ -82,7 +82,7 @@ class AiBlockEditorController extends Controller
             $model = AiEngineSettings::featureModel('biolink_builder', $request->user());
             abort_unless($model === $quote['model'] && app(OpenAiService::class)->estimateChatCoins($model, $quote['messages'], self::MAX_OUTPUT, $request->user()) === $quote['estimate'], 409, 'AI pricing changed. Request a fresh estimate.');
             try {
-                $result = app(OpenAiService::class)->chat($request->user(), $model, $quote['messages'], ['temperature'=>0.3,'max_tokens'=>self::MAX_OUTPUT,'response_format'=>['type'=>'json_object'],'feature'=>'biolink_builder','related_id'=>$link->id,'reason'=>'AI block edit draft']);
+                $result = app(OpenAiService::class)->chat($request->user(), $model, $quote['messages'], ['temperature'=>0.3,'max_tokens'=>self::MAX_OUTPUT,'response_format'=>['type'=>'json_object'],'feature'=>'biolink_builder','related_id'=>$link->id,'reason'=>'AI block edit draft','meta'=>['action'=>'block_edit','scope'=>$quote['data']['scope'],'areas'=>$quote['data']['areas'] ?? ['content','appearance','layout','seo'],'selected_block_ids'=>$quote['data']['scope'] === 'selected' ? ($quote['data']['ids'] ?? []) : [],'reference_count'=>count($quote['data']['references'] ?? []),'attachment_count'=>count($quote['data']['file_ids'] ?? []) + count($quote['data']['media_urls'] ?? [])]]);
             } catch (InsufficientCoinsForAiException $e) {
                 return response()->json(['message'=>'Not enough coins.','required'=>$e->required,'balance'=>$e->balance], 402);
             } catch (\RuntimeException $e) {
