@@ -83,26 +83,23 @@ class LinkController extends Controller
             });
         }
 
-        if ($type = $request->get('type')) {
-            $query->where('type', $type);
-        }
+        $values = static fn ($key) => array_values(array_unique(array_filter(
+            (array) $request->get($key, []), static fn ($value) => is_string($value) && $value !== ''
+        )));
+        $types = $values('type');
+        if ($types) $query->whereIn('type', $types);
 
-        if ($projectId = $request->get('project_id')) {
-            // 'none' is the dashboard's Unfiled tile: links in no folder.
-            // Anything else non-numeric is ignored rather than handed to an
-            // integer column, where Postgres would reject it with a 500.
-            if ($projectId === 'none') {
-                $query->whereNull('project_id');
-            } elseif (ctype_digit((string) $projectId)) {
-                $query->where('project_id', (int) $projectId);
-            }
+        $folders = $values('project_id');
+        $folderIds = array_values(array_filter($folders, static fn ($id) => ctype_digit($id)));
+        $unfiled = in_array('none', $folders, true);
+        if ($folderIds || $unfiled) {
+            $query->where(function ($q) use ($folderIds, $unfiled) {
+                if ($folderIds) $q->whereIn('project_id', $folderIds);
+                if ($unfiled) $folderIds ? $q->orWhereNull('project_id') : $q->whereNull('project_id');
+            });
         }
-
-        if ($request->get('status') === 'active') {
-            $query->where('is_active', true);
-        } elseif ($request->get('status') === 'inactive') {
-            $query->where('is_active', false);
-        }
+        $statuses = array_values(array_intersect($values('status'), ['active', 'inactive']));
+        if (count($statuses) === 1) $query->where('is_active', $statuses[0] === 'active');
 
         return $query;
     }
