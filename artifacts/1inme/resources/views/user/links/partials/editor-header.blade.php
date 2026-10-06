@@ -66,6 +66,13 @@
             <i class="fas fa-cog text-[10px]"></i>
             <span>Settings</span>
         </a>
+        @if($link->type === 'biolink' && \App\Services\AI\AiEngineSettings::isEnabled())
+        @canInWorkspace('links.edit')
+        <a href="{{ route('user.links.blocks.editor', $link) }}?tab=ai" class="editor-tab no-underline {{ $activeMainTab === 'ai_edit' ? 'is-active' : '' }}" @if($activeMainTab === 'ai_edit') aria-current="page" @endif>
+            <i class="fas fa-wand-magic-sparkles text-[10px]"></i><span>Edit with AI</span>
+        </a>
+        @endcanInWorkspace
+        @endif
         @if($link->type === 'conversational')
         <a href="{{ route('user.links.conversational.editor', $link) }}"
            class="editor-tab no-underline {{ $activeMainTab === 'conversational' ? 'is-active' : '' }}">
