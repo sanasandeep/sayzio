@@ -16,7 +16,7 @@
     $phoneInputClass  = $phoneInputClass ?? '';
     $phoneInputSize   = $phoneInputSize  ?? 'lg';
     $phoneInputAutoFormat = $phoneInputAutoFormat ?? false;
-    [$_piDial, $_piNum] = CountryDialCodes::parse($phoneInputValue);
+    [$_piDial, $_piNum] = CountryDialCodes::parse($phoneInputValue, $phoneInputAutoFormat);
     $_piCountries = CountryDialCodes::all();
     $_piUniqId    = $phoneInputId . '-' . Str::random(6);
     $isSm = $phoneInputSize === 'sm';
@@ -71,6 +71,10 @@
                 this.$dispatch('phone-changed', this.number ? this.selected.dial + this.number.replace(/[^0-9]/g, '') : '');
             },
             pick: function (c) {
+                // A manually selected country must win over any pasted prefix.
+                if (this.formatEnabled && /^\s*(\+|00)/.test(this.number)) {
+                    this.number = this.formatNumber(this.number);
+                }
                 this.selected = c;
                 this.changed();
                 this.open = false;
