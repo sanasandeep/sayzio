@@ -599,12 +599,14 @@
         {{-- On a phone this row used to run off the right edge, taking the
              Apply button with it: fixed-width date inputs in a nowrap row.
              It wraps now, and the inputs share whatever width there is. --}}
-        <form data-list-filters method="GET" class="period-dates">
+        <form data-date-filters data-list-filters method="GET" class="period-dates">
             <input type="hidden" name="period" value="custom">
-            <input type="hidden" name="group" value="{{ $groupBy }}">
-            <input type="date" name="from" value="{{ request('from', $startDate->format('Y-m-d')) }}" class="theme-input text-xs py-1.5 px-2" aria-label="From date">
+            @foreach(request()->except(['period', 'from', 'to', 'page']) as $key => $value)
+                @if(is_scalar($value))<input type="hidden" name="{{ $key }}" value="{{ $value }}">@endif
+            @endforeach
+            <input type="date" name="from" value="{{ $startDate->format('Y-m-d') }}" class="theme-input text-xs py-1.5 px-2" aria-label="From date">
             <span class="text-xs" style="color:var(--text-faint);">to</span>
-            <input type="date" name="to" value="{{ request('to', $endDate->format('Y-m-d')) }}" class="theme-input text-xs py-1.5 px-2" aria-label="To date">
+            <input type="date" name="to" value="{{ $endDate->format('Y-m-d') }}" class="theme-input text-xs py-1.5 px-2" aria-label="To date">
             <button class="pill pill-active"><i class="fas fa-check text-[9px]"></i> Apply</button>
         </form>
     </div>

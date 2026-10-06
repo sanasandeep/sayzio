@@ -76,11 +76,11 @@
                    class="pill {{ $period === $k ? 'pill-active' : '' }}">{{ $lbl }}</a>
             @endforeach
             <span class="mx-3 h-5 w-px hidden md:inline-block" style="background: var(--border-glass);"></span>
-            <form data-list-filters method="GET" class="flex items-center gap-2">
+            <form data-date-filters data-list-filters method="GET" class="flex items-center gap-2">
                 <input type="hidden" name="period" value="custom">
-                <input type="date" name="from" value="{{ $fromQ }}" class="theme-input text-xs py-1.5 px-2">
+                <label>From date<input type="date" name="from" value="{{ $fromQ }}" class="theme-input text-xs py-1.5 px-2"></label>
                 <span class="text-xs" style="color:var(--text-faint);">to</span>
-                <input type="date" name="to" value="{{ $toQ }}" class="theme-input text-xs py-1.5 px-2">
+                <label>To date<input type="date" name="to" value="{{ $toQ }}" class="theme-input text-xs py-1.5 px-2"></label>
                 <button class="pill {{ $period === 'custom' ? 'pill-active' : '' }}"><i class="fas fa-check text-[9px]"></i> Apply</button>
             </form>
             @if(workspace_owner()?->getPlanFeature('analytics_export', true))

@@ -32,13 +32,13 @@
                href="{{ $rbRoute }}?range={{ $rbKey }}">{{ $rbLabel }}</a>
         @endforeach
 
-        <form data-list-filters method="GET" action="{{ $rbRoute }}" class="ro-range-custom">
+        <form data-date-filters data-list-filters method="GET" action="{{ $rbRoute }}" class="ro-range-custom">
             <input type="hidden" name="range" value="custom">
-            <input type="date" name="from" value="{{ $range['key'] === 'custom' ? $range['from_date'] : '' }}"
-                   aria-label="From" class="ro-date">
+            <label>From date<input type="date" name="from" value="{{ $range['key'] === 'custom' ? $range['from_date'] : '' }}"
+                   aria-label="From date" class="ro-date"></label>
             <span class="ro-range-to">to</span>
-            <input type="date" name="to" value="{{ $range['key'] === 'custom' ? $range['to_date'] : '' }}"
-                   aria-label="To" class="ro-date">
+            <label>To date<input type="date" name="to" value="{{ $range['key'] === 'custom' ? $range['to_date'] : '' }}"
+                   aria-label="To date" class="ro-date"></label>
             <button type="submit" class="ro-btn {{ $range['key'] === 'custom' ? 'active' : '' }}">Go</button>
         </form>
     </div>

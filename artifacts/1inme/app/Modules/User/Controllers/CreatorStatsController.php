@@ -56,7 +56,7 @@ class CreatorStatsController extends Controller
             ->withoutGlobalScope('workspace')
             ->where('user_id', $user->id)
             ->whereNotNull('published_at')
-            ->where('published_at', '>=', $start)
+            ->whereBetween('published_at', [$start, $end])
             ->orderByDesc(DB::raw('COALESCE(reactions_count,0) + COALESCE(comments_count,0)'))
             ->limit(10)
             ->get(['id', 'title', 'body', 'reactions_count', 'comments_count', 'published_at']);
@@ -64,7 +64,7 @@ class CreatorStatsController extends Controller
         return view('user.stats.index', [
             'user'           => $user,
             'range'          => $range,
-            'rangeLabel'     => self::RANGES[$range]['label'] ?? $range,
+            'rangeLabel'     => self::RANGES[$range]['label'] ?? 'Custom dates',
             'ranges'         => self::RANGES,
             'start'          => $start,
             'end'            => $end,
@@ -105,7 +105,7 @@ class CreatorStatsController extends Controller
                 ->whereIn('post_id', CreatorPost::query()->withoutGlobalScope('workspace')->where('user_id', $user->id)->pluck('id')),
             'created_at', $start, $end);
 
-        $filename = "1inme-stats-{$user->handle}-{$range}.csv";
+        $filename = "sayzio-stats-{$user->handle}-" . $start->format('Y-m-d') . '-to-' . $end->format('Y-m-d') . '.csv';
         return response()->streamDownload(function () use ($followsByDay, $postsByDay, $reactionsByDay, $commentsByDay) {
             $out = fopen('php://output', 'w');
             fputcsv($out, ['Date', 'New followers', 'Posts published', 'Reactions', 'Comments']);
@@ -125,11 +125,23 @@ class CreatorStatsController extends Controller
     /** @return array{0:string,1:Carbon,2:Carbon} */
     protected function resolveRange(Request $request): array
     {
-        $range = $request->query('range', '30d');
-        if (!isset(self::RANGES[$range])) $range = '30d';
-        $days = self::RANGES[$range]['days'];
-        $end   = now()->endOfDay();
-        $start = now()->subDays($days - 1)->startOfDay();
+        $data = $request->validate([
+            'range' => 'nullable|string|in:7d,30d,90d,1y,custom',
+            'from' => 'nullable|required_if:range,custom|date_format:Y-m-d|before_or_equal:today',
+            'to' => 'nullable|required_if:range,custom|date_format:Y-m-d|after_or_equal:from|before_or_equal:today',
+        ]);
+        $range = $data['range'] ?? '30d';
+        if ($range === 'custom') {
+            $start = Carbon::parse($data['from'])->startOfDay();
+            $end = Carbon::parse($data['to'])->endOfDay();
+            if ($start->diffInDays($end) > 365) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['from' => 'Choose a date range of up to one year.']);
+            }
+        } else {
+            $days = self::RANGES[$range]['days'];
+            $end = now()->endOfDay();
+            $start = now()->subDays($days - 1)->startOfDay();
+        }
         return [$range, $start, $end];
     }
 

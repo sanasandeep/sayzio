@@ -51,6 +51,8 @@
         </span>
     </div>
 
+    @include('user.links.partials.orders-range-bar', ['rbRoute' => route('user.links.store.orders', $link)])
+
     @include('user.links.partials.orders-summary', [
         'osSummary'  => $summary,
         'osLabels'   => $labels,
@@ -78,7 +80,6 @@
         'ocOrderBase' => \Illuminate\Support\Str::beforeLast(route('user.links.store.orders.by-code', ['link' => $link, 'code' => 'X']), '/X'),
     ])
 
-    @include('user.links.partials.orders-range-bar', ['rbRoute' => route('user.links.store.orders', $link)])
 
     <div class="flex gap-2 mb-4 flex-wrap">
         <button class="ro-btn" :class="filter==='open' ? 'active' : ''" @click="filter='open'">Open (<span x-text="openCount"></span>)</button>
