@@ -244,6 +244,7 @@
         overflow: hidden;
     }
     .preview-popout-frame {
+        flex: 0 0 auto;
         position: relative;
         border-radius: 12px;
         overflow: hidden;
@@ -780,14 +781,18 @@ function _scalePopoutIframe() {
     var frame = document.getElementById('previewPopoutFrame');
     var iframe = document.getElementById('previewPopoutIframe');
     if (!stage || !frame || !iframe) return;
-    var pad = 8; // breathing room inside the stage padding
-    var availW = Math.max(1, stage.clientWidth - pad);
-    var availH = Math.max(1, stage.clientHeight - pad);
+    var stageStyle = window.getComputedStyle(stage);
+    var insetX = (parseFloat(stageStyle.paddingLeft) || 0) + (parseFloat(stageStyle.paddingRight) || 0);
+    var insetY = (parseFloat(stageStyle.paddingTop) || 0) + (parseFloat(stageStyle.paddingBottom) || 0);
+    // client sizes include padding; fit inside the content box, with room
+    // for the frame outline. Otherwise flex shrink clips the scaled iframe.
+    var availW = Math.max(1, stage.clientWidth - insetX - 4);
+    var availH = Math.max(1, stage.clientHeight - insetY - 4);
     // Fit to both axes; never upscale past native (keeps text crisp). Even at
     // 1:1 a 1440px desktop page is far larger than the ~400px sidebar column.
     var scale = Math.min(availW / vp.w, availH / vp.h, 1);
-    frame.style.width  = Math.round(vp.w * scale) + 'px';
-    frame.style.height = Math.round(vp.h * scale) + 'px';
+    frame.style.width  = Math.ceil(vp.w * scale) + 'px';
+    frame.style.height = Math.ceil(vp.h * scale) + 'px';
     iframe.style.width  = vp.w + 'px';
     iframe.style.height = vp.h + 'px';
     iframe.style.transform = 'scale(' + scale + ')';
@@ -863,6 +868,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var mo = new MutationObserver(function() { _findDraftPreviewForms(); });
     mo.observe(document.body, { childList: true, subtree: true });
 });
+
+if (window.visualViewport) window.visualViewport.addEventListener('resize', _scalePopoutIframe);
 
 window.addEventListener('resize', function() {
     clearTimeout(window._resizeScaleTimer);
