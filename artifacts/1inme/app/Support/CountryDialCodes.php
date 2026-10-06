@@ -85,11 +85,16 @@ class CountryDialCodes
      *
      * @return array{0:string, 1:string}
      */
-    public static function parse(string $phone): array
+    public static function parse(string $phone, bool $internationalDigits = false): array
     {
         $phone = trim($phone);
         if ($phone === '') {
             return ['+1', ''];
+        }
+        // WhatsApp stores an international number without the leading +.
+        // Ordinary profile fields can contain local numbers, so opt in explicitly.
+        if ($internationalDigits && preg_match('/^[0-9]{7,15}$/', $phone)) {
+            $phone = '+' . $phone;
         }
         if (!str_starts_with($phone, '+')) {
             return ['+1', $phone];
