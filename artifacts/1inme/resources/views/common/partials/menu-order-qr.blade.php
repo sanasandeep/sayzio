@@ -49,6 +49,7 @@
     .oq-sq svg { width: 100%; height: 100%; display: block; }
     .oq-t { flex: 1; min-width: 0; }
     .oq-lab { font-size: 13px; font-weight: 700; margin: 0 0 2px; }
+    .oq-download { margin-top:8px; padding:6px 10px; border:1px solid rgba(128,128,128,.28); border-radius:8px; background:transparent; color:inherit; font:inherit; font-size:12px; cursor:pointer; }
     .oq-sub { font-size: 12px; opacity: .6; margin: 0; line-height: 1.45; }
 </style>
 
@@ -106,7 +107,28 @@
                     box.className = '';
                     return;
                 }
+                if (!box.contains(sq)) { return; }
                 sq.appendChild(el);
+                var download = document.createElement('button');
+                download.type = 'button';
+                download.className = 'oq-download';
+                download.textContent = 'Download QR (SVG)';
+                download.addEventListener('click', function () {
+                    // A white quiet zone keeps the downloaded QR scannable
+                    // even when opened on a dark background or printed.
+                    var copy = el.cloneNode(true);
+                    copy.setAttribute('x', '24'); copy.setAttribute('y', '24');
+                    copy.setAttribute('width', '512'); copy.setAttribute('height', '512');
+                    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="560" height="560" viewBox="0 0 560 560"><rect width="560" height="560" fill="white"/>' +
+                        new XMLSerializer().serializeToString(copy) + '</svg>';
+                    var url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+                    var anchor = document.createElement('a');
+                    anchor.href = url;
+                    anchor.download = 'order-qr-' + String(order.token_number || code).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80) + '.svg';
+                    document.body.appendChild(anchor); anchor.click(); anchor.remove();
+                    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+                });
+                txt.appendChild(download);
             });
 
             return true;
