@@ -16,6 +16,7 @@
     .rm-grid { display:grid; grid-template-columns: minmax(0,1fr) 320px; gap:20px; align-items:start; }
     @media (max-width:1100px){ .rm-grid { grid-template-columns: minmax(0,1fr); } }
     .rm-card { background:var(--bg-card); border:1px solid var(--border-glass); border-radius:1rem; padding:20px; margin-bottom:16px; backdrop-filter:blur(20px); }
+    .rm-card:focus-within { position:relative; z-index:10; }
     .rm-card h5 { color:var(--text-primary); font-weight:700; margin:0 0 14px; font-size:15px; display:flex; justify-content:space-between; align-items:center; }
     .rm-label { display:block; font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:6px; }
     .rm-input, .rm-select, .rm-textarea { width:100%; border:1px solid var(--border-glass); border-radius:.75rem; background:var(--bg-glass-input); color:var(--text-primary); padding:10px 12px; font-size:14px; outline:none; }
@@ -264,7 +265,6 @@
                     </div>
                 </div>
                 @include('user.links.partials.menu-money-picker')
-                @include('user.links.partials.menu-billing-company')
                 @include('user.links.partials.menu-fulfilment-panel', ['fpIsRestaurant' => true])
                 <div class="rm-row" x-show="menu.mode === 'order'">
                     <label class="rm-label">WhatsApp number (optional)</label>
@@ -296,9 +296,11 @@
                 'choiceNounPlural' => 'dishes',
             ])
 
-            <!-- Manual tax settings when no company is linked -->
-            <div class="rm-card" x-show="menu.mode === 'order' && !billingCompanyId">
-                <h5>Estimated tax (GST)</h5>
+            <div class="rm-card" x-show="menu.mode === 'order'">
+                <h5>Billing &amp; tax</h5>
+                @include('user.links.partials.menu-billing-company')
+                <div x-show="!billingCompanyId">
+                <h6 class="rm-label">Estimated tax</h6>
                 <p class="text-xs mb-3" style="color:var(--text-muted)">Show an estimated GST/tax line on the guest's bill. This is an estimate only, no money is collected here.</p>
                 <div class="rm-row">
                     <label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)">
@@ -338,6 +340,7 @@
                         </div>
                     </div>
                 </template>
+                </div>
             </div>
 
             <!-- Coupons -->
