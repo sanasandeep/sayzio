@@ -27,7 +27,7 @@
         const search = form.querySelector('input[name="search"]:not([type="hidden"]),input[name="q"]:not([type="hidden"])');
         const fields = Array.from(form.querySelectorAll('select[name],input[type="date"][name],input[type="number"][name],input[type="checkbox"][name]'));
         if (!search && !fields.length) return;
-        if (form.hasAttribute('data-date-filters')) return;
+        const dateFilters = form.hasAttribute('data-date-filters');
         form.classList.add('app-filter-surface');
         const bar = node('div', 'app-search-bar');
         const toggle = button('app-filter-toggle', '+');
@@ -43,9 +43,12 @@
             // Leave mixed wrappers intact (some also hold action controls).
             if (oldParent !== form && !oldParent.querySelector('input,select,button,a')) oldParent.hidden = true;
         } else {
-            bar.append(node('span', 'app-filter-title', 'Filter results'));
+            const rangeField = form.querySelector('select[name=range]');
+            const dates = fields.filter(field => field.type === 'date').map(field => field.value).filter(Boolean);
+            const rangeLabel = rangeField ? rangeField.options[rangeField.selectedIndex].textContent.trim() : form.dataset.rangeLabel;
+            bar.append(node('span', 'app-filter-title', dateFilters ? (rangeLabel || (dates.length ? dates.join(' – ') : 'Choose date range')) : 'Filter results'));
         }
-        const submit = node('button', 'app-filter-submit btn-primary-gradient', search ? 'Search' : 'Apply filters');
+        const submit = node('button', 'app-filter-submit btn-primary-gradient', search ? 'Search' : (dateFilters ? 'Apply dates' : 'Apply filters'));
         submit.type = 'submit';
         bar.append(submit);
         const panel = node('div', 'app-filter-panel');
@@ -53,6 +56,8 @@
         panel.hidden = true;
         toggle.setAttribute('aria-controls', panel.id);
         original.forEach(child => {
+            if (dateFilters && child.tagName === 'A') { bar.append(child); return; }
+            if (dateFilters && child.tagName === 'BUTTON' && child.type === 'submit') { child.hidden = true; return; }
             if (child !== search && !child.hidden && !(child.tagName === 'INPUT' && child.type === 'hidden')) panel.append(child);
         });
         form.prepend(bar);
@@ -73,7 +78,7 @@
         // Tags describe the currently applied query, not unsubmitted edits.
         const url = new URL(window.location.href);
         const tags = node('div', 'app-filter-tags');
-        fields.forEach(field => {
+        (dateFilters ? [] : fields).forEach(field => {
             const values = url.searchParams.getAll(field.name);
             values.forEach(value => {
                 if (!value) return;

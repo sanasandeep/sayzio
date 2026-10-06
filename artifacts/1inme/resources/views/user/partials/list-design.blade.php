@@ -32,9 +32,12 @@
 .app-collection-table input[type=checkbox] { width:20px; height:20px; accent-color:var(--accent); cursor:pointer; }
 .app-collection-card { border:1px solid var(--border-soft)!important; border-radius:14px!important; background:var(--bg-card); box-shadow:none!important; }
 @media(max-width:700px) { .app-filter-surface { padding:12px!important; } .app-filter-panel { gap:10px; padding:12px; } .app-filter-panel > div,.app-filter-panel > label { flex:1 1 calc(50% - 10px); } .app-filter-submit { padding:0 12px; } .app-collection-table tbody td { padding:12px 9px!important; } }
-[data-date-filters] { display:flex; flex-wrap:wrap; align-items:end; gap:10px; padding:14px; border:1px solid var(--border-soft); border-radius:14px; background:var(--bg-card); }
+[data-date-filters]:not(.app-filter-surface) { display:flex; flex-wrap:wrap; align-items:end; gap:10px; padding:14px; border:1px solid var(--border-soft); border-radius:14px; background:var(--bg-card); }
 [data-date-filters] label { display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text-muted); }
 [data-date-filters] input[type=date] { min-width:0; max-width:100%; padding:9px 12px; border:1px solid var(--border-soft); border-radius:10px; background:var(--bg-glass-input); color:var(--text-primary); }
 @media(max-width:640px) { [data-date-filters] { width:100%; } [data-date-filters] label { flex:1 1 120px; min-width:0; } }
+[data-date-filters].app-filter-surface { width:100%; margin-left:0; }
+[data-date-filters] .app-filter-title { min-width:0; overflow-wrap:anywhere; }
+[data-date-filters] .app-search-bar { flex-wrap:wrap; }
 </style>
-<script src="{{ asset('js/list-design.js') }}?v=2" defer></script>
+<script src="{{ asset('js/list-design.js') }}?v=3" defer></script>

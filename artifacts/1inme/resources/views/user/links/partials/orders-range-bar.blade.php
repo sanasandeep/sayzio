@@ -27,17 +27,20 @@
 --}}
 <div class="ro-range">
     <div class="ro-range-row">
+
+
+        <form data-date-filters data-list-filters method="GET" action="{{ $rbRoute }}" class="ro-range-custom" data-range-label="{{ $range['label'] }}">
+            <div class="flex flex-wrap gap-2">
         @foreach(\App\Modules\User\Support\MenuOrderRange::LABELS as $rbKey => $rbLabel)
             <a class="ro-btn {{ $range['key'] === $rbKey ? 'active' : '' }}"
                href="{{ $rbRoute }}?range={{ $rbKey }}">{{ $rbLabel }}</a>
         @endforeach
-
-        <form data-date-filters data-list-filters method="GET" action="{{ $rbRoute }}" class="ro-range-custom">
+            </div>
             <input type="hidden" name="range" value="custom">
-            <label>From date<input type="date" name="from" value="{{ $range['key'] === 'custom' ? $range['from_date'] : '' }}"
+            <label>From date<input type="date" name="from" value="{{ $range['from_date'] }}"
                    aria-label="From date" class="ro-date"></label>
             <span class="ro-range-to">to</span>
-            <label>To date<input type="date" name="to" value="{{ $range['key'] === 'custom' ? $range['to_date'] : '' }}"
+            <label>To date<input type="date" name="to" value="{{ $range['to_date'] }}"
                    aria-label="To date" class="ro-date"></label>
             <button type="submit" class="ro-btn {{ $range['key'] === 'custom' ? 'active' : '' }}">Go</button>
         </form>
