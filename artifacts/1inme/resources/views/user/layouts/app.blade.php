@@ -397,6 +397,9 @@
         .page-hero::after { display: none; }
         .page-hero::before { display: none; }
         .page-hero > * { position: relative; z-index: 1; }
+        /* Keep the decorative wrapper out of document flow. The content
+           rule above must not collapse its full-card background layer. */
+        .page-hero > .page-hero-deco { position: absolute; z-index: 0; }
         /* The hero is the first card on every user page, so it is where the
            marketing ribbon and its lattice belong -- one gradient moment per
            page, in the same place each time, rather than a different card per
