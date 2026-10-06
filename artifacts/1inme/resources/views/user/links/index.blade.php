@@ -230,6 +230,28 @@
     .links-toolbar .links-pill--go { min-height:46px; max-width:none; border-radius:11px; padding:0 18px; background:var(--accent); border-color:var(--accent); color:white; display:flex; align-items:center; justify-content:center; gap:8px; }
     @media (max-width:1100px) { .links-toolbar { grid-template-columns:repeat(4,minmax(0,1fr)); } .links-toolbar .links-search { grid-column:1 / span 3; } .links-toolbar .links-pill--go { grid-column:4; grid-row:2; } }
     @media (max-width:700px) { .links-toolbar { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:14px; } .links-toolbar .links-search { grid-column:1 / -1; } .links-toolbar .links-pill--go { grid-column:1 / -1; grid-row:auto; } .links-filter-hint { display:none; } }
+    .links-toolbar.links-search-shell { display:block; padding:14px; }
+    .links-search-bar { display:flex; align-items:center; gap:10px; padding:6px; border:1px solid var(--border-soft); border-radius:28px; background:var(--bg-glass-hover); }
+    .links-search-bar .links-search { flex:1; min-width:0; }
+    .links-search-bar .links-search input { border:0; background:transparent; height:40px; padding:8px; }
+    .links-add-filter { width:40px; height:40px; flex:none; border-radius:50%; display:grid; place-items:center; color:var(--text-muted); background:var(--bg-card); font-size:16px; }
+    .links-add-filter:hover { color:var(--accent); }
+    .links-search-submit { display:flex; align-items:center; justify-content:center; gap:8px; min-height:40px; padding:0 18px; border-radius:22px; color:white; background:var(--accent); font-size:12px; }
+    .links-filter-panel { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-top:14px; padding:16px; border:1px solid var(--border-soft); border-radius:14px; }
+    .links-filter-panel .links-filter-heading, .links-filter-footer { grid-column:1 / -1; }
+    .links-filter-footer { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:12px; color:var(--text-muted); }
+    .links-recent { margin:8px 0 0; border:1px solid var(--border-soft); border-radius:14px; padding:10px; }
+    .links-recent-heading { display:flex; justify-content:space-between; gap:10px; padding:5px 8px 10px; font-size:11px; color:var(--text-muted); }
+    .links-recent-heading small { margin-left:7px; color:var(--text-faint); }
+    .links-recent-heading button { color:var(--accent); }
+    .links-recent-row { display:flex; align-items:center; border-radius:9px; }
+    .links-recent-row:hover { background:var(--bg-glass-hover); }
+    .links-recent-row button { min-height:40px; padding:9px; color:var(--text-muted); }
+    .links-recent-row button:first-child { display:flex; align-items:center; gap:12px; flex:1; min-width:0; text-align:left; font-size:12px; }
+    .links-recent-row span { overflow-wrap:anywhere; }
+    .links-applied { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:12px 8px 0; font-size:11px; color:var(--text-muted); }
+    .links-applied button,.links-applied a { color:var(--accent); }
+    @media(max-width:700px) { .links-filter-panel { grid-template-columns:repeat(2,minmax(0,1fr)); padding:12px; gap:12px; } .links-search-submit { width:40px; padding:0; flex:none; } .links-search-submit span { display:none; } .links-filter-footer .links-pill--go { grid-column:auto; } }
 </style>
 @endpush
 
@@ -363,23 +385,26 @@
 </div>
 @endunless
 
-<form method="GET" action="{{ route('user.links.index') }}" class="links-toolbar" role="search">
-    <div class="links-filter-heading"><span><i class="fas fa-sliders-h" aria-hidden="true"></i> Find your links</span>
-        @if(request()->filled('search') || request()->filled('type') || request()->filled('project_id') || request()->filled('status') || request('sort', 'newest') !== 'newest')
-        <a href="{{ route('user.links.index') }}">Reset filters <i class="fas fa-times" aria-hidden="true"></i></a>
-        @else
-        <span class="links-filter-hint">Search, narrow down, organise</span>
-        @endif
+<form method="GET" action="{{ route('user.links.index') }}" class="links-toolbar links-search-shell" role="search"
+      x-data="linkSearchHistory" @submit="remember()" @keydown.escape="filtersOpen=false; historyOpen=false">
+    <div class="links-search-bar">
+        <button type="button" class="links-add-filter" @click="filtersOpen=!filtersOpen; historyOpen=false" :aria-expanded="filtersOpen" aria-controls="links-filter-panel" aria-label="Add filters"><i class="fas fa-plus" aria-hidden="true"></i></button>
+        <div class="links-search">
+            <input type="search" name="search" x-model="query" @focus="historyOpen=true" @input="historyOpen=true" autocomplete="off" aria-label="Search links"
+                   placeholder="Search {{ number_format($__summary['total']) }} links&hellip;">
+        </div>
+        <button type="submit" class="links-search-submit" aria-label="Search links"><i class="fas fa-search" aria-hidden="true"></i><span>Search</span></button>
     </div>
-    <div class="links-search">
-        <i class="fas fa-search" aria-hidden="true"></i>
-        <input type="text" name="search" value="{{ request('search') }}"
-               aria-label="Search links"
-               placeholder="Search {{ number_format($__summary['total']) }} {{ Str::plural('link', $__summary['total']) }}&hellip;">
+    <div class="links-recent" x-show="historyOpen && matchingHistory.length" x-cloak @click.outside="historyOpen=false">
+        <div class="links-recent-heading"><span>Recent searches <small>On this device</small></span><button type="button" @click="clearHistory()">Clear all</button></div>
+        <template x-for="term in matchingHistory" :key="term">
+            <div class="links-recent-row"><button type="button" @click="query=term; remember(); $root.requestSubmit()"><i class="far fa-clock" aria-hidden="true"></i><span x-text="term"></span></button><button type="button" @click="remove(term)" :aria-label="'Remove search: '+term"><i class="fas fa-times" aria-hidden="true"></i></button></div>
+        </template>
     </div>
-
+    <div id="links-filter-panel" class="links-filter-panel" x-show="filtersOpen" x-cloak>
+        <div class="links-filter-heading"><span><i class="fas fa-sliders-h" aria-hidden="true"></i> Refine your search</span><button type="button" @click="filtersOpen=false" aria-label="Close filters"><i class="fas fa-times" aria-hidden="true"></i></button></div>
     <label class="links-filter-field"><span>Type</span>
-    <select name="type" class="links-pill" aria-label="Filter by type" onchange="this.form.submit()">
+    <select name="type" class="links-pill" aria-label="Filter by type">
         <option value="" class="bg-[#0a0612]">All types</option>
         @foreach(\App\Modules\User\Support\LinkTypeCategories::categories() as $__typeCat)
             <optgroup label="{{ $__typeCat['label'] }}">
@@ -392,7 +417,7 @@
     </label>
 
     <label class="links-filter-field"><span>Folder</span>
-    <select name="project_id" class="links-pill" aria-label="Filter by folder" onchange="this.form.submit()">
+    <select name="project_id" class="links-pill" aria-label="Filter by folder">
         <option value="" class="bg-[#0a0612]">All folders</option>
         @foreach($projects as $project)
             <option value="{{ $project->id }}" {{ request('project_id') == $project->id ? 'selected' : '' }} class="bg-[#0a0612]">{{ $project->name }}</option>
@@ -401,7 +426,7 @@
     </label>
 
     <label class="links-filter-field"><span>Status</span>
-    <select name="status" class="links-pill" aria-label="Filter by status" onchange="this.form.submit()">
+    <select name="status" class="links-pill" aria-label="Filter by status">
         <option value="" class="bg-[#0a0612]">Any status</option>
         <option value="active" {{ request('status') === 'active' ? 'selected' : '' }} class="bg-[#0a0612]">Active</option>
         <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }} class="bg-[#0a0612]">Inactive</option>
@@ -409,7 +434,7 @@
     </label>
 
     <label class="links-filter-field"><span>Sort by</span>
-    <select name="sort" class="links-pill" aria-label="Sort" onchange="this.form.submit()">
+    <select name="sort" class="links-pill" aria-label="Sort">
         @foreach([
             'newest'      => 'Newest first',
             'oldest'      => 'Oldest first',
@@ -423,12 +448,32 @@
     </select>
     </label>
 
-    {{-- The selects submit on change; this is the keyboard path and the
-         fallback with JavaScript off. --}}
-    <button type="submit" class="links-pill links-pill--go">
-        <i class="fas fa-arrow-right text-[10px]" aria-hidden="true"></i> Find links
-    </button>
+        <div class="links-filter-footer"><a href="{{ route('user.links.index') }}">Reset filters</a><button type="submit" class="links-pill links-pill--go">Apply filters</button></div>
+    </div>
+    @if(request()->filled('type') || request()->filled('project_id') || request()->filled('status') || request('sort', 'newest') !== 'newest')
+    <div class="links-applied"><i class="fas fa-filter" aria-hidden="true"></i> Filters applied <button type="button" @click="filtersOpen=true">Edit</button><a href="{{ route('user.links.index', request()->only('search')) }}">Clear filters</a></div>
+    @endif
 </form>
+@push('scripts')
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('linkSearchHistory', () => ({
+        query: @js((string) request('search', '')),
+        key: @js('sayzio.link-search.'.auth()->id().'.'.($__ws->id ?? 'personal')),
+        history: [], historyOpen: false, filtersOpen: false,
+        init() {
+            try { const saved=JSON.parse(localStorage.getItem(this.key) || '[]'); this.history=Array.isArray(saved) ? saved.filter(v => typeof v === 'string' && v.length <= 200).slice(0,8) : []; } catch (_) { this.history=[]; }
+            this.remember();
+        },
+        get matchingHistory() { return this.history.filter(term => term.toLowerCase().includes(this.query.trim().toLowerCase())); },
+        persist() { try { localStorage.setItem(this.key, JSON.stringify(this.history)); } catch (_) {} },
+        remember() { const term=this.query.trim().slice(0,200); if (!term) return; this.history=[term,...this.history.filter(v => v.toLowerCase() !== term.toLowerCase())].slice(0,8); this.persist(); },
+        remove(term) { this.history=this.history.filter(v => v !== term); this.persist(); },
+        clearHistory() { this.history=[]; this.persist(); this.historyOpen=false; }
+    }));
+});
+</script>
+@endpush
 
 @if($links->isEmpty())
 <div class="card-premium p-14 text-center">
