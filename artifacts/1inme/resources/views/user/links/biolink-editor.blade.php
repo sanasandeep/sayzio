@@ -1099,9 +1099,10 @@ $catColors = [
             #editorPaletteCol { grid-column: auto; order: 0; }
         }
         #editorLayout.ai-editor-layout { grid-template-columns: minmax(0, 1fr); }
-        #editorLayout.ai-editor-layout #editorPreviewCol { display: block; }
+        #editorLayout.ai-editor-layout #editorPreviewCol { display: none; }
         @media (min-width: 900px) {
             #editorLayout.ai-editor-layout { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+            #editorLayout.ai-editor-layout #editorPreviewCol { display:block; }
         }
         /* Stacked (sub-lg) palette: not full viewport height, scrolls internally.
            Use a DEFINITE height (not max-height) so the absolute Templates

@@ -54,11 +54,12 @@
             </div>
             <p class="text-xs mt-2" style="color:var(--text-muted)">AI uses reference titles and descriptions. Uploaded files become media links; their contents are not read. Uploads use your existing file limits.</p>
         </details>
+        <p class="text-xs" style="color:var(--text-muted)">1. Review the coin cost → 2. Submit to AI → 3. Review and apply your changes.</p>
         <p x-show="error" x-text="error" role="alert" class="text-sm text-rose-600"></p>
         <div class="flex flex-wrap items-center gap-3">
-            <button type="button" class="px-4 py-2 rounded-lg border text-sm" style="border-color:var(--border-soft)" :disabled="!!busy || uploading || prompt.trim().length < 3 || !effectiveAreas().length || (scope === 'selected' && !selectedIds.length)" @click="estimate()" x-text="busy === 'estimate' ? 'Estimating…' : 'Estimate coins'"></button>
+            <button type="button" class="px-4 py-2 rounded-lg border text-sm" style="border-color:var(--border-soft)" :disabled="!!busy || uploading || prompt.trim().length < 3 || !effectiveAreas().length || (scope === 'selected' && !selectedIds.length)" @click="estimate()" x-text="busy === 'estimate' ? 'Estimating…' : 'Review cost & continue'"></button>
             <span x-show="quote" class="text-sm" x-text="quote ? 'Up to ' + quote.estimated_coins + ' coins · Balance ' + quote.balance : ''"></span>
-            <button type="button" x-show="quote && !draft" class="btn-primary text-sm" :disabled="!!busy || (quote && quote.balance < quote.estimated_coins)" @click="generate()" x-text="busy === 'generate' ? 'Preparing draft…' : 'Generate draft'"></button>
+            <button type="button" x-show="quote && !draft" class="btn-primary text-sm" :disabled="!!busy || (quote && quote.balance < quote.estimated_coins)" @click="generate()" x-text="busy === 'generate' ? 'Preparing draft…' : 'Submit to AI'"></button>
         </div>
         <template x-for="warning in quote?.warnings || []" :key="warning"><p class="text-xs" x-text="warning"></p></template>
         <p x-show="quote && !draft" class="text-xs" style="color:var(--text-muted)">Generation uses coins. Applying the draft is free. Discarding a usable draft does not refund generation.</p>

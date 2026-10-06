@@ -1,4 +1,16 @@
 <style>
+    .mobile-live-preview-button { display:none; }
+    @media (max-width:899.98px) {
+        .mobile-live-preview-button { display:flex; position:fixed; bottom:calc(20px + env(safe-area-inset-bottom)); left:16px; z-index:900; align-items:center; gap:8px; border-radius:999px; padding:12px 18px; color:white; background:var(--accent,#3d6bff); box-shadow:0 5px 24px rgba(61,107,255,.25); font-size:14px; font-weight:600; }
+        .preview-popout-overlay { animation:mobile-preview-slide .22s ease-out; }
+        .preview-popout-bar { flex-wrap:wrap; gap:8px; padding-top:18px; }
+        .preview-popout-stage { padding:8px; }
+        .mobile-preview-close-label { display:inline; }
+    }
+    @media (min-width:900px) { .mobile-preview-close-label { display:none; } }
+    @keyframes mobile-preview-slide { from { transform:translateY(100%); } to { transform:translateY(0); } }
+    @media (prefers-reduced-motion:reduce) { .preview-popout-overlay { animation:none; } }
+
     .device-switcher-btn {
         width: 36px; height: 36px;
         border-radius: 10px;
@@ -344,7 +356,8 @@
      own device switcher and reuses _currentPreviewSrc(), so draft pushes,
      simulate-as overrides and signed-URL refreshes keep flowing into it.
      ─────────────────────────────────────────────────────────────────────── --}}
-<div id="previewPopoutOverlay" class="preview-popout-overlay" style="display:none;" aria-hidden="true">
+<button type="button" id="mobileLivePreviewButton" class="mobile-live-preview-button" onclick="openPreviewPopout()" aria-controls="previewPopoutOverlay" aria-expanded="false"><i class="fas fa-eye" aria-hidden="true"></i>Live preview</button>
+<div id="previewPopoutOverlay" class="preview-popout-overlay" style="display:none;" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Live page preview">
     <div class="preview-popout-bar">
         <div class="preview-popout-bar-group">
             <i class="fas fa-eye" style="color: var(--text-faint); font-size: 12px;"></i>
@@ -360,9 +373,9 @@
             <a id="previewPopoutNewTab" href="#" target="_blank" rel="noopener" class="device-switcher-btn" title="Open in new tab (native size)">
                 <i class="fas fa-up-right-from-square"></i>
             </a>
-            <button type="button" onclick="closePreviewPopout()" class="device-switcher-btn" title="Close (Esc)">
+            <button type="button" onclick="closePreviewPopout()" class="device-switcher-btn" title="Back to editor (Esc)" style="width:auto;padding:0 10px;gap:6px;">
                 <i class="fas fa-times"></i>
-            </button>
+            <span class="mobile-preview-close-label">Back to editor</span></button>
         </div>
     </div>
     <div id="previewPopoutStage" class="preview-popout-stage">
@@ -793,9 +806,21 @@ function _reloadPopoutIframe() {
     if (link) link.href = _currentPreviewSrc();
 }
 
+function mountMobilePreviewButton() {
+    var button=document.getElementById('mobileLivePreviewButton');
+    if (button && button.parentElement !== document.body) document.body.appendChild(button);
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountMobilePreviewButton);
+else mountMobilePreviewButton();
+var _previewReturnFocus = null;
+var _previewBodyOverflow = '';
 function openPreviewPopout() {
     var overlay = document.getElementById('previewPopoutOverlay');
     if (!overlay) return;
+    _previewReturnFocus = document.activeElement;
+    _previewBodyOverflow = document.body.style.overflow;
+    document.body.appendChild(overlay);
+    document.getElementById('mobileLivePreviewButton')?.setAttribute('aria-expanded','true');
     // Open on whatever device mode the sidebar is currently showing.
     _popoutMode = _activePreviewMode || 'phone';
     // Mirror the sidebar's draft state into the pop-out pill.
@@ -803,6 +828,7 @@ function openPreviewPopout() {
     if (pill) pill.classList.toggle('hidden', !_draftActive);
     overlay.style.display = 'flex';
     overlay.setAttribute('aria-hidden', 'false');
+    overlay.querySelector('button[onclick="closePreviewPopout()"]')?.focus();
     document.body.style.overflow = 'hidden';
     _syncPopoutModeButtons();
     _reloadPopoutIframe();
@@ -815,7 +841,9 @@ function closePreviewPopout() {
     if (!overlay) return;
     overlay.style.display = 'none';
     overlay.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
+    document.body.style.overflow = _previewBodyOverflow;
+    document.getElementById('mobileLivePreviewButton')?.setAttribute('aria-expanded','false');
+    _previewReturnFocus?.focus();
     // Drop the iframe so it stops being reloaded by draft/refresh loops while
     // hidden, and to free the embedded page.
     var iframe = document.getElementById('previewPopoutIframe');
