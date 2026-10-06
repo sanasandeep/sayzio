@@ -176,6 +176,28 @@
     .link-row-acts > a, .link-row-acts > span, .link-row-acts > form > button, .link-row-acts > div > button { min-height:40px; padding:8px 10px; display:inline-flex; align-items:center; gap:7px; border:1px solid var(--border-soft); border-radius:8px; }
     .link-row-acts > a[title]::after, .link-row-acts > form > button[title]::after, .link-row-acts > div > button[title]::after { content:attr(title); font-size:11px; }
     @media (max-width:420px) { .link-row { padding:14px 10px; } .link-row-identity { gap:7px; } }
+    .link-card-select { width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; border-radius:12px; padding:0!important; margin:-5px 0 0 -8px; }
+    .link-card-select:hover { background:var(--bg-glass-hover); }
+    .link-card-select input { width:20px; height:20px; cursor:pointer; accent-color:var(--accent); }
+    .link-card-select:focus-within { outline:2px solid var(--accent); outline-offset:2px; }
+    .link-row.link-card-selected { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); background:linear-gradient(110deg,rgba(61,107,255,.06),transparent 70%),var(--bg-card); }
+    .link-card-icon { width:36px; height:36px; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,.03); }
+    .link-card-icon i[hidden] { display:none; }
+    @media (max-width:700px) {
+        .links-list { gap:10px; }
+        .link-row { padding:12px 10px; border-radius:13px; }
+        .link-row-layout { gap:6px 8px; grid-template-columns:minmax(0,1fr) 44px; }
+        .link-row-identity { gap:6px; }
+        .link-card-icon { width:28px; height:28px; border-radius:9px; }
+        .link-card-icon img { width:18px; height:18px; }
+        .link-card-select { margin-top:-8px; }
+        .link-row-heading > a { font-size:13px; line-height:1.3; }
+        .link-row-heading { gap:3px 5px; }
+        .link-row-meta { margin-top:5px; font-size:10px; gap:4px; }
+        .link-row-clicks b { font-size:17px; }
+        .link-row-clicks span { font-size:8px; }
+        .link-row-meta .copy { min-height:32px; padding:4px 7px; }
+    }
 </style>
 @endpush
 
@@ -476,18 +498,29 @@
 {{-- A single responsive card uses the shared link-type colour resolver. --}}
 <div class="links-list">
     @foreach($links as $link)
-    @php $ts = \App\Modules\User\Support\LinkTileStyle::for($link); @endphp
-    <div class="link-row group" style="--link-type-color:{{ $ts['color'] }}" data-link-id="{{ $link->id }}">
+    @php
+        $ts = \App\Modules\User\Support\LinkTileStyle::for($link);
+        $cardFavicon = $link->favicon ?: ($link->settings['biolink']['favicons']['icon_512'] ?? $link->settings['biolink']['favicons']['apple_touch_icon'] ?? null);
+        if (!$cardFavicon && $link->long_url) {
+            $cardHost = parse_url($link->long_url, PHP_URL_HOST);
+            if ($cardHost) $cardFavicon = 'https://www.google.com/s2/favicons?sz=64&domain='.urlencode($cardHost);
+        }
+        if ($cardFavicon && !preg_match('~^(https?://|/(?!/))~i',$cardFavicon)) $cardFavicon=null;
+    @endphp
+    <div class="link-row group" :class="selected.includes({{ $link->id }}) ? 'link-card-selected' : ''" style="--link-type-color:{{ $ts['color'] }}" data-link-id="{{ $link->id }}">
         <div class="link-row-layout flex items-center justify-between gap-3">
             <div class="link-row-identity flex items-center gap-3 flex-1 min-w-0">
                 @if($__canMove || $__canBulkDelete || $__canBulkFolder)
-                <label class="flex-shrink-0 cursor-pointer" title="Select link">
+                <label class="link-card-select flex-shrink-0 cursor-pointer" title="Select link">
                     <input type="checkbox" :value="{{ $link->id }}" x-model.number="selected"
-                           class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">
+                           class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40" aria-label="Select {{ $link->title ?: $link->alias }}">
                 </label>
                 @endif
-                <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style="background: {{ $ts['bg'] }}; border: 1px solid {{ $ts['border'] }};">
-                    <i class="fas {{ $ts['icon'] }} text-xs" style="color: {{ $ts['color'] }};"></i>
+                <div class="link-card-icon flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style="background: {{ $ts['bg'] }}; border: 1px solid {{ $ts['border'] }};">
+                    @if($cardFavicon)
+                    <img src="{{ $cardFavicon }}" alt="" loading="lazy" referrerpolicy="no-referrer" class="w-5 h-5 object-contain" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                    @endif
+                    <i @if($cardFavicon) hidden @endif class="fas {{ $ts['icon'] }} text-xs" style="color: {{ $ts['color'] }};"></i>
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="link-row-heading flex items-center gap-2">
