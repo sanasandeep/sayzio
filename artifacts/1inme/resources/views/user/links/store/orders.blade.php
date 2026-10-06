@@ -121,6 +121,7 @@
             <div class="ro-total"><span>Estimated total</span><span x-text="money(o.total != null ? o.total : o.subtotal, o.currency)"></span></div>
             <p class="ro-estimate-note">Estimated total, no payment is collected here.</p>
             <div class="ro-actions">
+                <button class="ro-btn" x-show="o.status !== 'cancelled'" @click="recordPayment(o)">Record payment</button>
                 <template x-for="s in nextStatuses(o.status)" :key="s">
                     <button class="ro-btn" @click="setStatus(o, s)" x-text="actionLabel(s)"></button>
                 </template>
@@ -251,9 +252,20 @@ function ordersBoard() {
         actionLabel(s){ return { accepted:'Accept', packing:'Start packing', ready:'Mark ready', completed:'Complete', cancelled:'Cancel' }[s] || s; },
         money(n, cur){ return (cur||'USD') + ' ' + (+n).toFixed(2); },
         timeAgo(iso){ if(!iso) return ''; const s = Math.floor((Date.now()-new Date(iso))/1000); if(s<60) return s+'s ago'; if(s<3600) return Math.floor(s/60)+'m ago'; return Math.floor(s/3600)+'h ago'; },
+        async recordPayment(o){
+            const entered = window.prompt('Total amount collected so far (replace previous amount)', o.meta?.collected_amount ?? '0');
+            if (entered === null || entered.trim() === '') return;
+            const amount = Number(entered);
+            if (!Number.isFinite(amount) || amount < 0) { window.alert('Enter a valid amount.'); return; }
+            try {
+                const r = await fetch(this.statusUrlBase + '/' + o.id + '/status', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':this.csrf,'X-Requested-With':'XMLHttpRequest'}, body:JSON.stringify({status:o.status, collected_amount:amount})});
+                const j = await r.json();
+                if (r.ok) this.merge(j.data.order); else window.alert(j.message || 'Payment could not be saved.');
+            } catch(e) { window.alert('Payment could not be saved.'); }
+        },
         async setStatus(o, s){
             try {
-                const r = await fetch(this.statusUrlBase + '/' + o.id + '/status', { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':this.csrf,'X-Requested-With':'XMLHttpRequest'}, body: JSON.stringify({ status:s }) });
+                const r = await fetch(this.statusUrlBase + '/' + o.id + '/status', { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':this.csrf,'X-Requested-With':'XMLHttpRequest'}, body: JSON.stringify({ status:s, ...(s === 'cancelled' ? { cancellation_reason: window.prompt('Reason for cancellation (optional)') || '' } : {}) }) });
                 const j = await r.json();
                 if (r.ok) this.merge(j.data.order);
             } catch(e){}

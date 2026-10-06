@@ -98,6 +98,14 @@ class RestaurantOrder extends Model
             }
         });
 
+        static::updating(function ($order): void {
+            if ($order->isDirty('status')) {
+                $meta = (array) $order->meta;
+                $meta['status_times'][$order->status] = now()->toIso8601String();
+                $order->meta = $meta;
+            }
+        });
+
         // Unified contact linking (Task #6501). Restaurant orders only
         // capture a free-text name by default, so linking happens only when
         // an email/phone reached us via meta (forRecord no-ops otherwise).
