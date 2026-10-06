@@ -34,4 +34,28 @@ class BillingCompanyOwnershipTest extends TestCase
         }
         $this->assertFalse(TaxRule::where('name', 'Foreign tax')->exists());
     }
+    public function test_inline_company_tax_is_owned_split_and_selected_as_default(): void
+    {
+        $owner = User::create(['name' => 'Inline owner', 'email' => Str::random(12).'@example.com', 'password' => bcrypt('test'), 'status' => 'active']);
+        $this->actingAs($owner);
+        $company = BillingCompany::create(['user_id' => $owner->id, 'name' => 'Inline company']);
+        $controller = app(\App\Modules\User\Controllers\BillingCompanyController::class);
+        $validate = new \ReflectionMethod($controller, 'validateNewTax');
+        $save = new \ReflectionMethod($controller, 'createNewTax');
+        $request = Request::create('/', 'POST', ['new_tax' => [
+            'enabled' => 1, 'name' => 'Split GST', 'rate_percent' => 0,
+            'inclusive' => 1, 'make_default' => 1,
+            'components' => [['name' => 'CGST', 'rate_percent' => 2.5], ['name' => 'SGST', 'rate_percent' => 2.5]],
+        ]]);
+        $data = $validate->invoke($controller, $request);
+        $save->invoke($controller, $company, $data, $request);
+        $rule = TaxRule::findOrFail($company->fresh()->default_tax_rule_id);
+        $this->assertSame((int) $owner->id, (int) $rule->user_id);
+        $this->assertSame((int) $company->id, (int) $rule->billing_company_id);
+        $this->assertSame(500, (int) $rule->rate_bps);
+        $this->assertTrue($rule->inclusive);
+        $this->assertSame([250, 250], array_column($rule->components, 'rate_bps'));
+        $this->assertNull($validate->invoke($controller, Request::create('/', 'POST', ['new_tax' => ['enabled' => 0]])));
+    }
+
 }

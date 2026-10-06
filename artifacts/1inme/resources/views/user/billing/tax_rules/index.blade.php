@@ -1,7 +1,7 @@
 @extends('user.layouts.app')
 @section('title', 'Tax Rules')
 @section('content')
-<div class="max-w-4xl mx-auto px-4 py-8" x-data="{ editing: null }">
+<div class="max-w-6xl mx-auto px-4 py-8" x-data="{ editing: null }">
     @include('user.billing.partials.company-actions')
     <div class="page-hero mb-6">
         <h1 class="hero-title">Tax Rules</h1>
@@ -11,8 +11,8 @@
     @if(session('success'))<div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">{{ session('success') }}</div>@endif
     @if($errors->any())<div class="mb-4 p-3 rounded-lg bg-rose-50 text-rose-700 text-sm">{{ $errors->first() }}</div>@endif
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="md:col-span-2 space-y-3">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="space-y-3">
             @forelse($rules as $rule)
                 <div class="p-4 rounded-xl border flex items-center justify-between" style="border-color: var(--border-soft); background: var(--bg-card);">
                     <div>
@@ -29,21 +29,21 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <button type="button" class="text-xs px-3 py-1.5 rounded-lg border" style="border-color: var(--border-soft); color: var(--text-primary);"
-                                @click="editing = editing === {{ $rule->id }} ? null : {{ $rule->id }}"><i class="fas fa-pen"></i></button>
+                                @click="editing = editing === {{ $rule->id }} ? null : {{ $rule->id }}"><i class="fas fa-pen mr-1"></i>Edit</button>
                         <form action="{{ route('user.billing.tax-rules.destroy', $rule) }}" method="POST" onsubmit="return confirm('Delete this tax rule?');">
                             @csrf @method('DELETE')
-                            <button class="text-xs px-3 py-1.5 rounded-lg text-rose-600"><i class="fas fa-trash"></i></button>
+                            <button class="text-xs px-3 py-1.5 rounded-lg text-rose-600"><i class="fas fa-trash mr-1"></i>Delete</button>
                         </form>
                     </div>
                 </div>
                 <form action="{{ route('user.billing.tax-rules.update', $rule) }}" method="POST" x-show="editing === {{ $rule->id }}" x-cloak class="p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);">
                     @csrf @method('PUT')
-                    @include('user.billing.tax_rules._components', ['ruleComponents' => $rule->components ?? []])
 <label class="block text-xs mt-3" style="color:var(--text-muted)">Billing company<select name="billing_company_id" class="block w-full mt-1 p-2 rounded-lg border" style="background:var(--bg-glass-input);border-color:var(--border-soft);color:var(--text-primary)"><option value="">Shared across companies</option>@foreach($companies as $company)<option value="{{ $company->id }}" @selected(old('billing_company_id', $rule->billing_company_id) == $company->id)>{{ $company->name }}</option>@endforeach</select></label>
                     <div class="grid grid-cols-2 gap-3">
                         <label class="text-xs" style="color: var(--text-muted);">Name<input name="name" value="{{ $rule->name }}" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
                         <label class="text-xs" style="color: var(--text-muted);">Rate (%)<input type="number" name="rate_percent" min="0" max="100" step="0.01" value="{{ $rule->ratePercent() }}" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
                     </div>
+                    @include('user.billing.tax_rules._components', ['ruleComponents' => $rule->components ?? []])
                     <div class="flex flex-wrap gap-4 mt-3 text-sm" style="color: var(--text-primary);">
                         <label class="flex items-center gap-2"><input type="checkbox" name="inclusive" value="1" @checked($rule->inclusive)> Inclusive</label>
                         <label class="flex items-center gap-2"><input type="checkbox" name="is_compound" value="1" @checked($rule->is_compound)> Compound</label>
@@ -53,17 +53,17 @@
                     <div class="mt-3 text-right"><button class="btn-primary">Save</button></div>
                 </form>
             @empty
-                <p class="text-sm" style="color: var(--text-muted);">No tax rules yet.</p>
+                <div class="p-8 rounded-xl border text-center" style="border-color:var(--border-soft);background:var(--bg-card)"><i class="fas fa-percent text-2xl mb-3" aria-hidden="true"></i><h2 class="font-semibold">No tax profiles yet</h2><p class="text-sm mt-2" style="color:var(--text-muted)">Create your first profile using the form, or add one directly while editing a billing company.</p></div>
             @endforelse
         </div>
 
-        <form action="{{ route('user.billing.tax-rules.store') }}" method="POST" class="p-4 rounded-xl border h-fit" style="border-color: var(--border-soft); background: var(--bg-card);">
+        <form action="{{ route('user.billing.tax-rules.store') }}" method="POST" class="p-6 rounded-xl border h-fit space-y-4" style="border-color: var(--border-soft); background: var(--bg-card);">
             @csrf
             <h2 class="font-bold mb-3" style="color: var(--text-primary);">Add tax rule</h2>
-            @include('user.billing.tax_rules._components', ['ruleComponents' => []])
 <label class="block text-xs mt-3" style="color:var(--text-muted)">Billing company<select name="billing_company_id" class="block w-full mt-1 p-2 rounded-lg border" style="background:var(--bg-glass-input);border-color:var(--border-soft);color:var(--text-primary)"><option value="">Shared across companies</option>@foreach($companies as $company)<option value="{{ $company->id }}" @selected(old('billing_company_id') == $company->id)>{{ $company->name }}</option>@endforeach</select></label>
             <label class="text-xs block" style="color: var(--text-muted);">Name<input name="name" required class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
             <label class="text-xs block mt-3" style="color: var(--text-muted);">Rate (%)<input type="number" name="rate_percent" min="0" max="100" step="0.01" value="0" required class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
+            @include('user.billing.tax_rules._components', ['ruleComponents' => []])
             <div class="space-y-2 mt-3 text-sm" style="color: var(--text-primary);">
                 <label class="flex items-center gap-2"><input type="checkbox" name="inclusive" value="1"> Tax inclusive</label>
                 <label class="flex items-center gap-2"><input type="checkbox" name="is_compound" value="1"> Compound</label>
