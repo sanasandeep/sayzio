@@ -149,8 +149,7 @@
 
         <section class="p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);">
             <h2 class="font-bold mb-3" style="color: var(--text-primary);">Tax &amp; numbering</h2>
-            <a href="{{ route('user.billing.tax-rules.index') }}" target="_blank" rel="noopener" class="text-sm underline">Create and manage tax profiles (GST, CGST + SGST, IGST, VAT)</a>
-            <p class="text-xs mt-2 mb-3" style="color:var(--text-muted)">Choose a default below. Each menu or invoice line can use another profile assigned to this company. Reload after adding profiles.</p>
+            <p class="text-sm mb-4" style="color:var(--text-muted)">Choose an existing profile or create one here when saving this company.</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {!! $field('tax_id_label', 'Tax ID label (e.g. VAT)') !!}
                 {!! $field('tax_id_value', 'Tax ID value') !!}
@@ -165,6 +164,26 @@
                         @endforeach
                     </select>
                 </label>
+            </div>
+            <div class="mt-4 p-4 rounded-xl border" style="border-color:var(--border-soft)" x-data="{ addingTax: @js((bool) old('new_tax.enabled', false)) }">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <span class="font-semibold">Tax profiles</span>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" class="px-4 py-2 rounded-lg border text-sm" style="border-color:var(--border-soft)" @click="addingTax = !addingTax" :aria-expanded="addingTax">+ New tax profile</button>
+                        <a href="{{ route('user.billing.tax-rules.index') }}" class="px-4 py-2 rounded-lg border text-sm" style="border-color:var(--border-soft)">Manage profiles</a>
+                    </div>
+                </div>
+                <input type="hidden" name="new_tax[enabled]" :value="addingTax ? 1 : 0">
+                <fieldset x-show="addingTax" x-cloak :disabled="!addingTax" class="mt-4 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label class="block text-sm">Profile name<input name="new_tax[name]" value="{{ old('new_tax.name') }}" required maxlength="120" placeholder="e.g. GST" class="block w-full mt-1 p-2 rounded-lg border" style="background:var(--bg-glass-input);border-color:var(--border-soft)"></label>
+                        <label class="block text-sm">Rate (%)<input name="new_tax[rate_percent]" value="{{ old('new_tax.rate_percent', 0) }}" required type="number" min="0" max="100" step="0.01" class="block w-full mt-1 p-2 rounded-lg border" style="background:var(--bg-glass-input);border-color:var(--border-soft)"></label>
+                    </div>
+                    @include('user.billing.tax_rules._components', ['ruleComponents' => [], 'componentPrefix' => 'new_tax.'])
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="new_tax[inclusive]" value="1" @checked(old('new_tax.inclusive'))> Prices include this tax</label>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="new_tax[make_default]" value="1" @checked(old('new_tax.make_default', true))> Use as this company's default tax profile</label>
+                    <p class="text-xs" style="color:var(--text-muted)">The profile is created with this company when you save. Component rates replace the single rate.</p>
+                </fieldset>
             </div>
             <label class="block text-xs mt-3" style="color: var(--text-muted);">Notes (shown on documents)
                 <textarea name="notes" rows="2" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">{{ old('notes', $company->notes) }}</textarea>

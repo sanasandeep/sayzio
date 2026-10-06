@@ -71,13 +71,15 @@ class BillingCompanyController extends Controller
     public function store(Request $request)
     {
         $data = $this->validated($request);
+        $newTax = $this->validateNewTax($request);
         $this->validateSmtp($request);
         $this->validateLogo($request);
         $this->validateLetterhead($request, $data['letterhead_orientation'] ?? 'portrait');
         $data['user_id'] = auth()->id();
         $data['workspace_id'] = optional(app('current_workspace'))->id;
-        $company = DB::transaction(function () use ($data, $request) {
+        $company = DB::transaction(function () use ($data, $request, $newTax) {
             $c = BillingCompany::create($data);
+            $this->createNewTax($c, $newTax, $request);
             $this->applyLogo($c, $request);
             $this->applyLetterhead($c, $request);
             $this->applySmtp($c, $request);
@@ -91,11 +93,13 @@ class BillingCompanyController extends Controller
     {
         $this->authorizeOwn($company);
         $data = $this->validated($request);
+        $newTax = $this->validateNewTax($request);
         $this->validateSmtp($request);
         $this->validateLogo($request);
         $this->validateLetterhead($request, $data['letterhead_orientation'] ?? ($company->letterhead_orientation ?: 'portrait'));
-        DB::transaction(function () use ($company, $data, $request) {
+        DB::transaction(function () use ($company, $data, $request, $newTax) {
             $company->update($data);
+            $this->createNewTax($company, $newTax, $request);
             $this->applyLogo($company, $request);
             $this->applyLetterhead($company, $request);
             $this->applySmtp($company, $request);
@@ -154,6 +158,35 @@ class BillingCompanyController extends Controller
         if ($company->is_default) {
             BillingCompany::where('user_id', $company->user_id)
                 ->where('id', '!=', $company->id)->update(['is_default' => false]);
+        }
+    }
+
+    protected function validateNewTax(Request $request): ?array
+    {
+        if (!$request->boolean('new_tax.enabled')) return null;
+        $data = $request->validate([
+            'new_tax.name' => 'required|string|max:120',
+            'new_tax.rate_percent' => 'required|numeric|min:0|max:100',
+            'new_tax.inclusive' => 'nullable|boolean',
+            'new_tax.make_default' => 'nullable|boolean',
+            'new_tax.components' => 'nullable|array|max:8',
+            'new_tax.components.*.name' => 'required|string|max:64',
+            'new_tax.components.*.rate_percent' => 'required|numeric|min:0|max:100',
+        ])['new_tax'];
+        unset($data['make_default']);
+        $data['inclusive'] = $request->boolean('new_tax.inclusive');
+        return \App\Services\Billing\TaxComponents::normalize($data);
+    }
+
+    protected function createNewTax(BillingCompany $company, ?array $data, Request $request): void
+    {
+        if ($data === null) return;
+        $rule = TaxRule::create($data + [
+            'user_id' => $company->user_id, 'billing_company_id' => $company->id,
+            'is_active' => true, 'is_default' => false, 'is_compound' => false,
+        ]);
+        if ($request->boolean('new_tax.make_default')) {
+            $company->update(['default_tax_rule_id' => $rule->id]);
         }
     }
 
