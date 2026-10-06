@@ -120,7 +120,28 @@
         .link-row:has([data-menu-open="true"]) .link-row-acts { opacity: 1; }
     }
 
+    .link-row-more { display:none; }
     @media (max-width: 700px) {
+        .links-toolbar { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+        .links-search { grid-column:1 / -1; min-width:0; max-width:none; width:100%; }
+        .links-toolbar .links-pill { min-width:0; width:100%; min-height:42px; }
+        .links-toolbar > button { grid-column:1 / -1; justify-content:center; min-height:42px; }
+        .link-row { padding:14px 8px; }
+        .link-row-layout { display:grid; grid-template-columns:minmax(0,1fr) 44px; gap:8px 10px; }
+        .link-row-identity { grid-column:1; grid-row:1 / span 2; align-items:flex-start; gap:8px; }
+        .link-row-identity > label { padding-top:8px; }
+        .link-row-heading { flex-wrap:wrap; gap:4px 6px; }
+        .link-row-heading > a { flex:1 0 100%; white-space:normal; overflow-wrap:anywhere; line-height:1.4; font-size:14px; }
+        .link-row-heading .badge { font-size:9px; padding:3px 7px; max-width:100%; white-space:normal; }
+        .link-row-meta { margin-top:5px; font-size:11px; }
+        .link-row-controls { display:contents; }
+        .link-row-clicks { grid-column:2; grid-row:1; text-align:center; }
+        .link-row-more { grid-column:2; grid-row:2; display:flex; align-items:center; justify-content:center; width:44px; height:36px; border:1px solid var(--border-soft); border-radius:10px; color:var(--text-muted); }
+        .link-row-acts { display:none; grid-column:1 / -1; flex-wrap:wrap; gap:6px; padding-top:10px; border-top:1px solid var(--border-soft); }
+        .link-row-acts.mobile-actions-open { display:flex; }
+        .link-row-acts > a, .link-row-acts > span, .link-row-acts > form > button, .link-row-acts > div > button { min-height:40px; padding:8px 10px; display:inline-flex; align-items:center; gap:7px; border:1px solid var(--border-soft); border-radius:8px; }
+        .link-row-acts > a[title]::after, .link-row-acts > form > button[title]::after, .link-row-acts > div > button[title]::after { content:attr(title); font-size:11px; }
+
         .links-trend { text-align: left; min-width: 0; }
         .links-trend .spark { margin-left: 0; }
         .link-row-meta .folder, .link-row-meta .age,
@@ -452,8 +473,8 @@
     @foreach($links as $link)
     @php $ts = \App\Modules\User\Support\LinkTileStyle::for($link); @endphp
     <div class="link-row group" data-link-id="{{ $link->id }}">
-        <div class="flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3 flex-1 min-w-0">
+        <div class="link-row-layout flex items-center justify-between gap-3">
+            <div class="link-row-identity flex items-center gap-3 flex-1 min-w-0">
                 @if($__canMove || $__canBulkDelete || $__canBulkFolder)
                 <label class="flex-shrink-0 cursor-pointer" title="Select link">
                     <input type="checkbox" :value="{{ $link->id }}" x-model.number="selected"
@@ -464,7 +485,7 @@
                     <i class="fas {{ $ts['icon'] }} text-xs" style="color: {{ $ts['color'] }};"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2">
+                    <div class="link-row-heading flex items-center gap-2">
                         <a href="{{ route('user.links.show', $link) }}" class="text-sm font-semibold truncate transition-colors hover:text-blue-400" style="color: var(--text-primary);">
                             {{ $link->title ?: $link->alias }}
                         </a>
@@ -500,14 +521,15 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-3 flex-shrink-0">
+            <div class="link-row-controls flex items-center gap-3 flex-shrink-0" x-data="{ actionsOpen: false }">
+                <button type="button" class="link-row-more" @click="actionsOpen = !actionsOpen" :aria-expanded="actionsOpen" aria-label="Link actions"><i class="fas fa-ellipsis-h" aria-hidden="true"></i></button>
                 <div class="link-row-clicks">
                     <b>{{ number_format($link->total_clicks) }}</b>
                     <span>{{ Str::plural('click', $link->total_clicks) }}</span>
                 </div>
                 {{-- On a pointer device these arrive on hover; on touch, where
                      there is no hover to arrive on, they stay put. --}}
-                <div class="link-row-acts">
+                <div class="link-row-acts" :class="actionsOpen ? 'mobile-actions-open' : ''" @keydown.escape.window="actionsOpen = false">
                     <a href="{{ route('user.links.show', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-blue-500/10" style="color: var(--text-faint);" title="View">
                         <i class="fas fa-chart-bar text-xs hover:text-blue-400"></i>
                     </a>
