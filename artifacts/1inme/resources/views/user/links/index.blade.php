@@ -178,19 +178,26 @@
     @media (max-width:420px) { .link-row { padding:14px 10px; } .link-row-identity { gap:7px; } }
     .link-card-select { width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; border-radius:12px; padding:0!important; margin:-5px 0 0 -8px; }
     .link-card-select:hover { background:var(--bg-glass-hover); }
-    .link-card-select input { width:20px; height:20px; cursor:pointer; accent-color:var(--accent); }
-    .link-card-select:focus-within { outline:2px solid var(--accent); outline-offset:2px; }
-    .link-row.link-card-selected { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); background:var(--bg-card); }
+    .link-card-select input { width:20px; height:20px; cursor:pointer; accent-color:var(--link-type-color); }
+    .link-card-select:has(input:focus-visible) { outline:2px solid var(--link-type-color); outline-offset:2px; }
+    .link-row.link-card-selected { border-color:var(--link-type-color); box-shadow:inset 3px 0 0 var(--link-type-color); background:linear-gradient(var(--link-type-bg),var(--link-type-bg)),var(--bg-card); }
     .link-card-icon { width:36px; height:36px; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,.03); }
     .link-card-icon { background:var(--bg-card); border:1px solid var(--border-soft); }
     .link-row-meta .url { color:var(--text-muted); }
+    .link-secondary-details { display:flex; align-items:center; flex-wrap:wrap; gap:6px; color:var(--text-faint); font-size:10px; }
+    .link-secondary-details > .sep:first-child { display:none; }
+    .link-row-heading { gap:6px 9px; }
+    .link-row-clicks { border-left:1px solid var(--border-soft); padding-left:12px; }
+    .link-row-clicks b { font-variant-numeric:tabular-nums; }
+    .link-row-meta { row-gap:7px; }
+
     @media (min-width:701px) {
         .link-row-layout { grid-template-columns:minmax(0,1fr) 80px 44px; align-items:center; gap:16px; }
         .link-row-identity { grid-row:1; align-items:center; }
         .link-row-heading > a { flex:0 1 auto; }
         .link-row-clicks { grid-column:2; grid-row:1; }
         .link-row-more { grid-column:3; grid-row:1; }
-        .link-row-meta .url-line { width:auto; max-width:100%; }
+        .link-row-meta .url-line { width:100%; max-width:100%; }
     }
     @media (max-width:700px) {
         .links-list { gap:10px; }
@@ -518,7 +525,7 @@
         $fallbackFavicon = url('/favicon-96x96.png');
         if ($cardFavicon && !preg_match('~^(https?://|/(?!/))~i',$cardFavicon)) $cardFavicon=null;
     @endphp
-    <div class="link-row group" :class="selected.includes({{ $link->id }}) ? 'link-card-selected' : ''" data-link-id="{{ $link->id }}">
+    <div class="link-row group" :class="selected.includes({{ $link->id }}) ? 'link-card-selected' : ''" style="--link-type-color:{{ $ts['color'] }}; --link-type-bg:{{ $ts['bg'] }};" data-link-id="{{ $link->id }}">
         <div class="link-row-layout flex items-center justify-between gap-3">
             <div class="link-row-identity flex items-center gap-3 flex-1 min-w-0">
                 @if($__canMove || $__canBulkDelete || $__canBulkFolder)
@@ -535,7 +542,7 @@
                         <a href="{{ route('user.links.show', $link) }}" class="text-sm font-semibold truncate transition-colors hover:text-blue-400" style="color: var(--text-primary);">
                             {{ $link->title ?: $link->alias }}
                         </a>
-                        <span class="badge" style="background:var(--bg-glass-hover); color:var(--text-muted); border:1px solid var(--border-soft);">{{ $ts['label'] }}</span>
+                        <span class="badge" style="background:{{ $ts['bg'] }}; color:{{ $ts['color'] }}; border:1px solid {{ $ts['border'] }};">{{ $ts['label'] }}</span>
                         @if($link->is_active)
                             <span class="link-status-active"><i class="fas fa-circle" aria-hidden="true"></i> Active</span>
                         @endif
@@ -560,6 +567,7 @@
                             <span x-text="copied ? 'Copied' : 'Copy'"></span>
                         </button>
                         </div>
+                        <div class="link-secondary-details">
                         @if($link->project)
                         <span class="sep">&middot;</span>
                         <span class="folder">
@@ -570,6 +578,7 @@
                         @endif
                         <span class="sep">&middot;</span>
                         <span class="age">{{ $link->created_at->diffForHumans() }}</span>
+                        </div>
                     </div>
 
                 </div>
