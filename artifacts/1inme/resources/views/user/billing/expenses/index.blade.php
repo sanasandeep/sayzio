@@ -2,6 +2,7 @@
 @section('title', 'Expenses')
 @section('content')
 <div class="max-w-5xl mx-auto px-4 py-8">
+    @include('user.billing.partials.company-actions')
     <div class="page-hero mb-6 flex items-center justify-between">
         <div>
             <h1 class="hero-title">Expenses</h1>

@@ -1225,6 +1225,7 @@
                         <i class="fas fa-chevron-down grp-chevron"></i>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
+                        <a href="{{ route('user.billing.companies.index') }}" class="sidebar-link {{ nav_route_is('user.billing.companies.*') ? 'active' : '' }}" style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);"><div class="nav-icon-wrap"><i class="fas fa-building"></i></div><span class="nav-label">Companies</span><span class="sidebar-tooltip">Billing Companies</span></a>
                         <a href="{{ route('user.client-invoices.dashboard') }}"
                            class="sidebar-link {{ nav_route_is('user.client-invoices.*') ? 'active' : '' }}"
                            style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
@@ -1910,6 +1911,7 @@
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
+                                <a href="{{ route('user.billing.companies.index') }}" class="sidebar-link {{ nav_route_is('user.billing.companies.*') ? 'active' : '' }}" style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);"><div class="nav-icon-wrap"><i class="fas fa-building"></i></div><span class="nav-label">Companies</span><span class="sidebar-tooltip">Billing Companies</span></a>
                                 <a href="{{ route('user.client-invoices.dashboard') }}" class="sidebar-link {{ nav_route_is('user.client-invoices.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-file-invoice-dollar"></i></div> <span>Invoices</span></a>
                                 <a href="{{ route('user.billing.recurring.index') }}" class="sidebar-link {{ nav_route_is('user.billing.recurring.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-repeat"></i></div> <span>Recurring</span></a>
                                 <a href="{{ route('user.billing.expenses.index') }}" class="sidebar-link {{ nav_route_is('user.billing.expenses.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-receipt"></i></div> <span>Expenses</span></a>

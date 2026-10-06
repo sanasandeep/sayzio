@@ -73,7 +73,7 @@ class CatalogController extends Controller
             'currency'         => 'nullable|string|size:3',
             'category_id'      => 'nullable|integer',
             'tax_rule_id'      => 'nullable|integer',
-            'billing_company_id' => 'nullable|integer',
+            'billing_company_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('billing_companies', 'id')->where('user_id', auth()->id())],
             'sku'              => 'nullable|string|max:64',
             'unit_label'       => 'nullable|string|max:32',
             'is_active'        => 'nullable|boolean',

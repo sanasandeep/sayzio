@@ -26,3 +26,12 @@
     <label class="text-xs" style="color: var(--text-muted);">Description<textarea name="description" rows="2" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">{{ old('description', $item->description ?? '') }}</textarea></label>
     <label class="flex items-center gap-2 text-sm" style="color: var(--text-primary);"><input type="checkbox" name="is_active" value="1" @checked($item->is_active ?? true)> Active</label>
 </div>
+
+<label class="block text-xs mt-3" style="color:var(--text-muted)">Billing company
+    <select name="billing_company_id" class="block w-full mt-1 p-2 rounded-lg border" style="background:var(--bg-glass-input);border-color:var(--border-soft);color:var(--text-primary)">
+        <option value="">Shared across companies</option>
+        @foreach($companies as $company)
+            <option value="{{ $company->id }}" @selected(old('billing_company_id', $item?->billing_company_id) == $company->id)>{{ $company->name }}</option>
+        @endforeach
+    </select>
+</label>

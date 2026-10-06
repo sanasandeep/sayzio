@@ -7,6 +7,7 @@
     $money = fn ($m) => $cur . ' ' . number_format($m / 100, 2);
 @endphp
 <div class="max-w-6xl mx-auto px-4 py-8">
+    @include('user.billing.partials.company-actions')
     <div class="page-hero mb-6 flex items-center justify-between">
         <div>
             <h1 class="hero-title">Ledger / P&amp;L</h1>

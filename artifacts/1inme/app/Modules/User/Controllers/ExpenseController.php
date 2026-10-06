@@ -50,7 +50,7 @@ class ExpenseController extends Controller
     protected function validated(Request $request): array
     {
         $data = $request->validate([
-            'billing_company_id' => 'nullable|integer',
+            'billing_company_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('billing_companies', 'id')->where('user_id', auth()->id())],
             'category_id'        => 'nullable|integer',
             'vendor'             => 'nullable|string|max:190',
             'description'        => 'nullable|string|max:240',

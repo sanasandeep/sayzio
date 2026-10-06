@@ -8,6 +8,7 @@
     </select>
     <p class="text-xs mt-2" style="color:var(--text-muted)">The selected company's default tax rule and billing identity are copied when settings are saved. A company with no active default rule adds no tax. Existing orders retain their saved details.</p>
     <a class="text-sm" href="{{ route('user.billing.companies.index') }}" target="_blank" rel="noopener">Manage billing companies and tax rules</a>
+    <a class="text-sm ml-3" href="{{ route('user.billing.companies.create') }}" target="_blank" rel="noopener">+ Create company</a>
     @if($billingCompanies->isEmpty())
         <p class="text-sm mt-2">Create a billing company first, then reload this editor.</p>
     @endif

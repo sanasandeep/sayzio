@@ -96,7 +96,7 @@ class RecurringInvoiceController extends Controller
     {
         $data = $request->validate([
             'title'                     => 'nullable|string|max:190',
-            'billing_company_id'        => 'nullable|integer',
+            'billing_company_id'        => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('billing_companies', 'id')->where('user_id', auth()->id())],
             'vault_client_id'           => 'nullable|integer',
             'recipient_email'           => 'nullable|email|max:190',
             'currency'                  => 'nullable|string|size:3',

@@ -1,7 +1,7 @@
-@extends('user.layouts.settings')
+@extends('user.layouts.app')
 @section('title', $company->exists ? 'Edit Company' : 'New Company')
-@section('settings-content')
-<div class="max-w-3xl">
+@section('content')
+<div class="max-w-3xl mx-auto px-4 py-8">
     <div class="page-hero mb-6 flex items-center justify-between">
         <div>
             <h1 class="hero-title">{{ $company->exists ? 'Edit Company' : 'New Company' }}</h1>
