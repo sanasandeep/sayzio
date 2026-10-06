@@ -95,7 +95,7 @@
     </div>
 
     <div class="glass rounded-2xl p-4 mb-6">
-        <form method="GET" class="flex flex-wrap gap-3 items-end">
+        <form data-list-filters method="GET" class="flex flex-wrap gap-3 items-end">
             <div class="flex-1 min-w-[200px]">
                 <label class="text-xs font-medium mb-1 block" style="color: var(--text-muted);">Search</label>
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Email, name, phone..." class="w-full px-3 py-2 rounded-xl text-sm outline-none" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
@@ -147,7 +147,7 @@
     @if($subscribers->count())
     <div class="glass rounded-2xl overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="enhanced-table w-full text-sm" data-server-paginated>
+            <table class="app-collection-table enhanced-table w-full text-sm" data-server-paginated>
                 <thead>
                     <tr style="border-bottom: 1px solid var(--border-subtle);">
                         <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">@include('common.partials.sort-link', ['key' => 'lead', 'label' => 'Lead'])</th>

@@ -18,7 +18,7 @@
                 'created' => 'Date created',
             ];
         @endphp
-        <form method="GET" class="flex items-center gap-2">
+        <form data-list-filters method="GET" class="flex items-center gap-2">
             <select name="sort" onchange="this.form.submit()" class="theme-input appearance-none pr-8 text-sm">
                 @foreach($sortOptions as $key => $label)
                     <option value="{{ $key }}" {{ $sort === $key ? 'selected' : '' }} class="bg-[#0a0612]">Sort: {{ $label }}</option>

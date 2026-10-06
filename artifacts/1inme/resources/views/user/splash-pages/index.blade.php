@@ -23,7 +23,7 @@
     ])
 
     <div class="card-premium p-4 mb-4 flex flex-wrap items-center gap-3">
-        <form method="GET" class="flex items-center gap-2 flex-1">
+        <form data-list-filters method="GET" class="flex items-center gap-2 flex-1">
             <div class="relative flex-1 max-w-md">
                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-faint);"></i>
                 <input type="text" name="search" value="{{ request('search') }}"

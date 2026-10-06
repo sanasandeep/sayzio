@@ -264,7 +264,7 @@
             <p class="text-sm" style="color: var(--text-muted);">No visitors have signed in on this Link in Bio yet. When viewers opt in via the sign-in card on your Link in Bio, they'll appear here.</p>
         @else
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+                <table class="app-collection-table w-full text-sm">
                     <thead><tr class="text-left text-xs uppercase" style="color: var(--text-faint);">
                         <th class="py-2 pr-4">Visitor</th><th class="py-2 pr-4">Email</th>
                         <th class="py-2 pr-4">Visits</th><th class="py-2 pr-4">First seen</th>

@@ -42,7 +42,7 @@
         {{-- Filters sidebar --}}
         <aside class="card-premium p-4 h-fit space-y-4"
                :class="filtersOpen ? '' : 'hidden lg:block'">
-            <form method="GET">
+            <form data-list-filters method="GET">
                 <input type="text" name="q" value="{{ $filters['q'] }}" placeholder="Search threads…"
                     class="w-full px-3 py-2 rounded-lg text-sm outline-none mb-3"
                     style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">

@@ -32,7 +32,7 @@
                href="{{ $rbRoute }}?range={{ $rbKey }}">{{ $rbLabel }}</a>
         @endforeach
 
-        <form method="GET" action="{{ $rbRoute }}" class="ro-range-custom">
+        <form data-list-filters method="GET" action="{{ $rbRoute }}" class="ro-range-custom">
             <input type="hidden" name="range" value="custom">
             <input type="date" name="from" value="{{ $range['key'] === 'custom' ? $range['from_date'] : '' }}"
                    aria-label="From" class="ro-date">

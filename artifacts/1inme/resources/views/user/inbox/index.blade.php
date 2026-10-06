@@ -39,7 +39,7 @@
     <div class="grid lg:grid-cols-[260px_1fr] gap-5">
         {{-- Filters sidebar --}}
         <aside class="card-premium p-4 h-fit">
-            <form method="GET" class="space-y-4">
+            <form data-list-filters method="GET" class="space-y-4">
                 <div>
                     <label class="text-[10px] font-bold uppercase tracking-wider mb-1.5 block" style="color: var(--text-faint);">Search</label>
                     <input type="text" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="email, name, phone, text…"

@@ -2161,6 +2161,7 @@
     @include('partials.voice-assistant', ['voiceFloating' => false])
     @include('user.links.partials.themed-confirm')
     @include('common.partials.mini-profile-popover')
+    @include('user.partials.list-design')
     @stack('scripts')
 </body>
 </html>

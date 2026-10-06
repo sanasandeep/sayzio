@@ -24,7 +24,7 @@
         </div>
     </div>
 
-    <form method="GET" action="{{ route('user.workspaces.activity.index') }}"
+    <form data-list-filters method="GET" action="{{ route('user.workspaces.activity.index') }}"
           class="mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-2 p-4 rounded-lg border"
           style="border-color: var(--border-strong); background: var(--bg-card);">
         <div>
@@ -84,7 +84,7 @@
     </form>
 
     <div class="rounded-lg border overflow-x-auto" style="border-color: var(--border-strong); background: var(--bg-card);">
-        <table class="w-full text-sm">
+        <table class="app-collection-table w-full text-sm">
             <thead>
                 <tr class="text-left opacity-70">
                     <th class="px-4 py-2">When</th>

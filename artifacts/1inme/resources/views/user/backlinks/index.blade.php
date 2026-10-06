@@ -41,7 +41,7 @@
 @endif
 
 <div class="card-premium mb-5">
-    <form method="GET" class="p-4 flex flex-wrap items-end gap-3">
+    <form data-list-filters method="GET" class="p-4 flex flex-wrap items-end gap-3">
         <div>
             <label class="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Date range</label>
             <select name="days" class="theme-input appearance-none pr-8">
@@ -85,7 +85,7 @@
         </div>
     @else
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="app-collection-table w-full text-sm">
                 <thead>
                     <tr class="text-left text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint); border-bottom: 1px solid var(--border-subtle);">
                         <th class="px-5 py-3">Source page</th>

@@ -202,7 +202,7 @@
         .mycal-filters input, .mycal-filters select { color-scheme: dark; }
         html.light-mode .mycal-filters input, html.light-mode .mycal-filters select { color-scheme: light; }
     </style>
-    <form method="GET" action="{{ route('user.calendars.mine') }}" class="mycal-filters glass rounded-2xl p-5">
+    <form data-list-filters method="GET" action="{{ route('user.calendars.mine') }}" class="mycal-filters glass rounded-2xl p-5">
         {{-- Carry view + focus date so applying filters doesn't reset them. --}}
         <input type="hidden" name="view" value="{{ $view }}">
         <input type="hidden" name="date" value="{{ $focusDate->format('Y-m-d') }}">

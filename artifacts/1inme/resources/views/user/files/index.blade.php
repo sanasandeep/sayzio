@@ -158,7 +158,7 @@
         </div>
 
         <div x-show="viewMode === 'list'" class="glass rounded-2xl overflow-hidden">
-            <table class="w-full text-sm">
+            <table class="app-collection-table w-full text-sm">
                 <thead class="border-b" style="border-color: var(--border-glass);">
                     <tr>
                         <th class="text-left py-3 px-4 text-xs font-medium" style="color: var(--text-faint);">File</th>

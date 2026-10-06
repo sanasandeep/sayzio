@@ -40,7 +40,7 @@
         @endif
     </div>
 
-    <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
+    <form data-list-filters method="get" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
         <input type="text" name="q" value="{{ $filters['q'] }}"
                placeholder="Search target or IP…"
                class="px-3 py-2 rounded-lg border text-sm bg-transparent"
@@ -67,7 +67,7 @@
     </form>
 
     <div class="rounded-xl border border-white/10 overflow-hidden" style="background: var(--bg-card);">
-        <table class="min-w-full text-sm">
+        <table class="app-collection-table min-w-full text-sm">
             <thead class="bg-white/5 text-xs uppercase tracking-wide" style="color: var(--text-faint);">
                 <tr>
                     <th class="px-4 py-3 text-left">When</th>
