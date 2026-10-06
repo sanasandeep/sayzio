@@ -142,7 +142,7 @@ class MenuOrderExportController extends Controller
                         (int) $order->items->sum('quantity'),
                         $order->subtotal,
                         $order->discount_amount,
-                        $order->tax_amount,
+                        $order->tax_amount ?? data_get($order->meta, 'tax.tax_amount', 0),
                         $order->total,
                         $order->currency,
                         $order->customer_note ?? '',

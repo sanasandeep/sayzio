@@ -116,6 +116,10 @@
             <td>{{ $labels[$order->status] ?? $order->status }}</td>
             <td>
                 {{ $order->customer_name ?: '—' }}
+                @if(data_get($order->meta, 'billing_company.name'))
+                    <div class="lines">{{ data_get($order->meta, 'billing_company.legal_name') ?: data_get($order->meta, 'billing_company.name') }}</div>
+                    <div class="lines">{{ implode(' · ', data_get($order->meta, 'billing_company.tax_ids', [])) }}</div>
+                @endif
                 @if($order->table_label ?? null)
                     <div class="lines">{{ $order->table_label }}</div>
                 @endif

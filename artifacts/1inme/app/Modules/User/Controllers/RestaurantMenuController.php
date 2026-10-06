@@ -46,6 +46,7 @@ class RestaurantMenuController extends Controller
 
         return view('user.links.restaurant.editor', [
             'link'       => $link,
+            'billingCompanies' => \App\Modules\User\Support\MenuBillingCompany::companies((int) $link->user_id),
             'menu'       => $menu,
             'openOrders' => $openOrders,
         ]);
@@ -56,6 +57,7 @@ class RestaurantMenuController extends Controller
         $menu = $this->menuFor($link);
 
         $data = $request->validate([
+            'billing_company_id' => 'nullable|integer|min:1',
             'mode'            => 'required|in:display,order',
             'currency'        => 'required|string|size:3',
             'accent_color'    => 'nullable|string|max:16',
@@ -319,6 +321,12 @@ class RestaurantMenuController extends Controller
             } else {
                 $settings[$hk] = $hex;
             }
+        }
+
+        if ($request->exists('billing_company_id')) {
+            $settings = \App\Modules\User\Support\MenuBillingCompany::apply($settings, isset($data['billing_company_id']) ? (int) $data['billing_company_id'] : null, (int) $link->user_id);
+        } elseif (!empty($settings['billing_company_id'])) {
+            $settings = \App\Modules\User\Support\MenuBillingCompany::apply($settings, (int) $settings['billing_company_id'], (int) $link->user_id);
         }
 
         $menu->update([

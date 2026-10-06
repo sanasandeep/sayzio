@@ -470,6 +470,7 @@
         <div id="mealCoupons" style="display:none"></div>
         <div id="doneLines"></div>
         <div id="doneBreakdown"></div>
+        <p id="doneBillingCompany"></p>
         <div class="total" id="doneTotalRow"><span>Estimated total</span><span id="doneTotal"></span></div>
         <p class="note" id="doneNote">This is an estimated bill, not the actual bill. A staff member has been notified. This updates automatically.</p>
         <a id="waBtn" class="wa-btn" href="#" target="_blank" rel="noopener" style="display:none">
@@ -883,6 +884,8 @@
                 tax_amount: order.tax_amount,
                 total: order.total
             });
+            const billingLine = document.getElementById('doneBillingCompany');
+            if (billingLine) billingLine.textContent = order.billing_company ? (order.billing_company.legal_name || order.billing_company.name) + ' · ' + (order.billing_company.tax_ids || []).join(' · ') : '';
             document.getElementById('doneTotal').textContent = fmt(order.total != null ? order.total : order.subtotal);
             document.getElementById('ordStatus').textContent = order.status;
             const waBtn = document.getElementById('waBtn');

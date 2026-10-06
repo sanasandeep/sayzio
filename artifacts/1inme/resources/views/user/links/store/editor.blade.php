@@ -273,6 +273,7 @@
                     </div>
                 </div>
                 @include('user.links.partials.menu-money-picker')
+                @include('user.links.partials.menu-billing-company')
                 @include('user.links.partials.menu-fulfilment-panel', ['fpIsRestaurant' => false])
                 <div class="rm-row" x-show="menu.mode === 'order'">
                     <label class="rm-label">WhatsApp number (optional)</label>
@@ -465,6 +466,7 @@
 @endphp
 function storeEditor() {
     return {
+        billingCompanyId: @js($menu->settings['billing_company_id'] ?? ''),
         menu: @json($menuState),
         confirm: @json($menuConfirm),
         categories: @json($menuCategories),
@@ -626,6 +628,7 @@ function storeEditor() {
 
         async saveSettings(){
             await this.api('POST','/settings',{
+                billing_company_id:this.billingCompanyId === '' ? null : Number(this.billingCompanyId),
                 mode:this.menu.mode,
                 currency:(this.menu.currency||'USD').toUpperCase(),
                 accent_color:this.menu.accent_color,
