@@ -599,7 +599,7 @@
         {{-- On a phone this row used to run off the right edge, taking the
              Apply button with it: fixed-width date inputs in a nowrap row.
              It wraps now, and the inputs share whatever width there is. --}}
-        <form method="GET" class="period-dates">
+        <form data-list-filters method="GET" class="period-dates">
             <input type="hidden" name="period" value="custom">
             <input type="hidden" name="group" value="{{ $groupBy }}">
             <input type="date" name="from" value="{{ request('from', $startDate->format('Y-m-d')) }}" class="theme-input text-xs py-1.5 px-2" aria-label="From date">
@@ -1622,7 +1622,7 @@
         @if($countryStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
         @else
         <div class="overflow-y-auto max-h-80 -mx-2 px-2">
-            <table class="fancy-table">
+            <table class="app-collection-table fancy-table">
                 <thead><tr><th>#</th><th>Country</th><th class="text-right">Clicks</th><th>Share</th></tr></thead>
                 <tbody>
                 @php $totalC = $countryStats->sum('count') ?: 1; $maxC = $countryStats->max('count') ?: 1; @endphp
@@ -1662,7 +1662,7 @@
         @if($cityStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
         @else
         <div class="overflow-y-auto max-h-80 -mx-2 px-2">
-            <table class="fancy-table">
+            <table class="app-collection-table fancy-table">
                 <thead><tr><th>#</th><th>City</th><th>Country</th><th class="text-right">Clicks</th><th>Share</th></tr></thead>
                 <tbody>
                 @php $maxCity = $cityStats->max('count') ?: 1; $totalCity = $cityStats->sum('count') ?: 1; @endphp
@@ -1892,7 +1892,7 @@
         </div>
     @else
     <div class="overflow-x-auto -mx-2 px-2">
-        <table class="fancy-table">
+        <table class="app-collection-table fancy-table">
             <thead><tr>
                 <th>#</th><th>Block</th><th>Destination</th><th class="text-right">Clicks</th><th class="text-right">Unique</th><th class="text-right">vs Prev</th><th>Share</th>
             </tr></thead>
@@ -2235,7 +2235,7 @@
     </div>
 
     <div class="overflow-x-auto -mx-2 px-2">
-        <table class="fancy-table">
+        <table class="app-collection-table fancy-table">
             <thead><tr>
                 <th>#</th><th>Block</th>
                 <th class="text-right">Impressions</th>

@@ -138,7 +138,7 @@
          from filtering / removal. --}}
     <div class="rounded-lg border" style="border-color: var(--border-strong); background: var(--bg-card);">
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="app-collection-table w-full text-sm">
                 <thead>
                     <tr class="text-left opacity-70 border-b" style="border-color: var(--border-strong);">
                         <th class="px-4 py-3">Member</th>
@@ -325,7 +325,7 @@
     @if($pendingInvites->isNotEmpty())
         <div class="mt-6 rounded-lg border" style="border-color: var(--border-strong); background: var(--bg-card);">
             <div class="px-4 py-3 border-b font-semibold" style="border-color: var(--border-strong);">Pending invites</div>
-            <table class="w-full text-sm">
+            <table class="app-collection-table w-full text-sm">
                 <tbody>
                     @foreach($pendingInvites as $inv)
                         <tr class="border-t" style="border-color: var(--border-strong);">
@@ -461,7 +461,7 @@
 
             <div>
                 <h3 class="text-sm font-semibold mb-2">Compliance</h3>
-                <table class="w-full text-sm">
+                <table class="app-collection-table w-full text-sm">
                     <thead>
                         <tr class="text-left opacity-70">
                             <th class="px-2 py-1.5">Member</th>
@@ -534,7 +534,7 @@
                 </div>
 
                 <div class="mb-4 border rounded p-3 overflow-x-auto" style="border-color: var(--border-strong);">
-                    <table class="w-full text-xs">
+                    <table class="app-collection-table w-full text-xs">
                         <thead>
                             <tr class="text-left opacity-70">
                                 <th class="py-1">Role</th>

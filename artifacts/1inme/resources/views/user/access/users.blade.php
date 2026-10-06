@@ -42,7 +42,7 @@
             fn ($v) => $v !== '' && $v !== null);
     @endphp
 
-    <form method="GET" class="flex items-center gap-2">
+    <form data-list-filters method="GET" class="flex items-center gap-2">
         <input type="text" name="q" value="{{ $search }}"
                placeholder="Search by name or email…"
                class="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-cyan-500/40">
@@ -94,7 +94,7 @@
                      the URL (GET) so a filtered view is shareable.
                      Source, range preset and from/to use the `audit_*`
                      query params; actor/role/action use their own. --}}
-                <form method="GET" action="{{ route('user.access.users.index') }}"
+                <form data-list-filters method="GET" action="{{ route('user.access.users.index') }}"
                       class="rounded-xl border border-white/5 bg-white/[0.02] p-3 space-y-3"
                       onclick="event.stopPropagation();">
                     @if($search !== '')

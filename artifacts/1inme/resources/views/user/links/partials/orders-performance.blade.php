@@ -14,7 +14,7 @@
     </div>
     <details class="mt-4"><summary class="cursor-pointer font-bold">Daily order and value trends</summary>
         <p class="text-sm my-2" style="color:var(--text-muted)">Latest 31 dates with sales within the selected range. Cancelled orders excluded. Dates use the application's stored order timezone.</p>
-        <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="text-left p-2">Date</th><th class="text-right p-2">Orders</th><th class="text-right p-2">Order value ({{ $performanceCurrency }})</th></tr></thead><tbody>
+        <div class="overflow-x-auto"><table class="app-collection-table w-full text-sm"><thead><tr><th class="text-left p-2">Date</th><th class="text-right p-2">Orders</th><th class="text-right p-2">Order value ({{ $performanceCurrency }})</th></tr></thead><tbody>
         @forelse($performanceInsights['daily'] ?? [] as $performanceDay)
             <tr><td class="p-2">{{ $performanceDay['day'] }}</td><td class="text-right p-2">{{ $performanceDay['orders'] }}</td><td class="text-right p-2">{{ number_format($performanceDay['value'], 2) }}</td></tr>
         @empty
@@ -25,7 +25,7 @@
 </section>
 <section class="os-wrap">
     <h2 class="font-bold mb-2">Service, customers and payments</h2>
-    <form method="get" class="flex flex-wrap items-center gap-2 mb-4">
+    <form data-list-filters method="get" class="flex flex-wrap items-center gap-2 mb-4">
         @foreach(request()->except(['target_minutes', 'page']) as $performanceKey => $performanceFilter)
             @if(is_scalar($performanceFilter))
                 <input type="hidden" name="{{ $performanceKey }}" value="{{ $performanceFilter }}">

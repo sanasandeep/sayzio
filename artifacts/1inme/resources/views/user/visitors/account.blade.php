@@ -87,7 +87,7 @@
     {{-- ===================== FILTERS ===================== --}}
     <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         @include('user.partials.visitor-range-control', ['buildUrl' => $buildUrl, 'period' => $period, 'startDate' => $startDate, 'endDate' => $endDate])
-        <form method="GET" class="flex items-center gap-2">
+        <form data-list-filters method="GET" class="flex items-center gap-2">
             @foreach(request()->except(['type']) as $k => $v)
                 @continue(is_array($v))
                 <input type="hidden" name="{{ $k }}" value="{{ $v }}">

@@ -16,7 +16,7 @@
         <a href="{{ route('user.billing.ledger.export', request()->query()) }}" class="btn-primary"><i class="fas fa-download mr-2"></i>Export CSV</a>
     </div>
 
-    <form method="GET" class="flex flex-wrap items-end gap-3 mb-6 p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);">
+    <form data-list-filters method="GET" class="flex flex-wrap items-end gap-3 mb-6 p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);">
         <label class="text-xs" style="color: var(--text-muted);">From<input type="date" name="from" value="{{ $from->toDateString() }}" class="block mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
         <label class="text-xs" style="color: var(--text-muted);">To<input type="date" name="to" value="{{ $to->toDateString() }}" class="block mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
         <label class="text-xs" style="color: var(--text-muted);">Company
@@ -48,7 +48,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);">
             <h2 class="font-bold mb-3" style="color: var(--text-primary);">Invoices ({{ $t['invoice_count'] }})</h2>
-            <table class="w-full text-sm">
+            <table class="app-collection-table w-full text-sm">
                 <thead><tr style="color: var(--text-muted);"><th class="text-left p-1">#</th><th class="text-left p-1">Paid</th><th class="text-right p-1">Amount</th></tr></thead>
                 <tbody>
                 @forelse($report['invoices'] as $inv)
@@ -61,7 +61,7 @@
         </div>
         <div class="p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);">
             <h2 class="font-bold mb-3" style="color: var(--text-primary);">Expenses ({{ $t['expense_count'] }})</h2>
-            <table class="w-full text-sm">
+            <table class="app-collection-table w-full text-sm">
                 <thead><tr style="color: var(--text-muted);"><th class="text-left p-1">Date</th><th class="text-left p-1">Vendor</th><th class="text-right p-1">Amount</th></tr></thead>
                 <tbody>
                 @forelse($report['expenses'] as $exp)

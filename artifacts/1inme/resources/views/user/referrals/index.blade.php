@@ -86,7 +86,7 @@
         @if($referrals->isEmpty())
             <div class="px-5 py-8 text-center text-sm text-white/40">No referrals yet. Share your link to get started.</div>
         @else
-        <table class="w-full text-sm">
+        <table class="app-collection-table w-full text-sm">
             <thead class="text-[11px] uppercase tracking-wider text-white/40 bg-white/[0.02]">
                 <tr><th class="px-5 py-2 text-left">Person</th><th class="px-5 py-2 text-left">Status</th><th class="px-5 py-2 text-left">Signed up</th><th class="px-5 py-2 text-left">Converted</th></tr>
             </thead>

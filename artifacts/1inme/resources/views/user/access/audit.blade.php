@@ -25,7 +25,7 @@
         </div>
     </header>
 
-    <form method="GET" action="{{ route('user.access.audit.index') }}"
+    <form data-list-filters method="GET" action="{{ route('user.access.audit.index') }}"
           class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <label class="block">
@@ -101,7 +101,7 @@
 
     <div class="rounded-2xl border border-white/10 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
+            <table class="app-collection-table min-w-full text-sm">
                 <thead class="bg-white/5 text-xs uppercase tracking-wide text-white/40">
                     <tr>
                         <th class="px-4 py-3 text-left">When</th>

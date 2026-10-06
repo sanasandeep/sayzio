@@ -76,7 +76,7 @@
                    class="pill {{ $period === $k ? 'pill-active' : '' }}">{{ $lbl }}</a>
             @endforeach
             <span class="mx-3 h-5 w-px hidden md:inline-block" style="background: var(--border-glass);"></span>
-            <form method="GET" class="flex items-center gap-2">
+            <form data-list-filters method="GET" class="flex items-center gap-2">
                 <input type="hidden" name="period" value="custom">
                 <input type="date" name="from" value="{{ $fromQ }}" class="theme-input text-xs py-1.5 px-2">
                 <span class="text-xs" style="color:var(--text-faint);">to</span>

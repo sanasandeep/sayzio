@@ -9,7 +9,7 @@
 @endphp
 
 <div class="flex flex-wrap items-center gap-3 mb-4">
-    <form method="get" class="flex-1 min-w-[240px]">
+    <form data-list-filters method="get" class="flex-1 min-w-[240px]">
         <div class="relative">
             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-faint);"></i>
             <input type="text" name="q" value="{{ $q }}" placeholder="Search by label, username, URL or tag…"
@@ -24,7 +24,7 @@
 </div>
 
 <div class="rounded-xl border border-white/10 overflow-hidden" style="background: var(--bg-card);">
-    <table class="min-w-full text-sm">
+    <table class="app-collection-table min-w-full text-sm">
         <thead class="bg-white/5 text-xs uppercase tracking-wide" style="color: var(--text-faint);">
             <tr>
                 <th class="px-4 py-3 text-left">Label</th>

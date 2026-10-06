@@ -28,7 +28,7 @@
     @endif
 
     {{-- Filter bar --}}
-    <form method="GET" class="card-premium p-4 mb-6 flex flex-wrap items-center gap-3">
+    <form data-list-filters method="GET" class="card-premium p-4 mb-6 flex flex-wrap items-center gap-3">
         <div class="flex-1 min-w-[200px] relative">
             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-faint);"></i>
             <input type="text" name="search" value="{{ request('search') }}" placeholder="Search forms by title or slug…"
@@ -75,7 +75,7 @@
                 @php
                     $accent = $form->design['accent'] ?? '#5c83ff';
                 @endphp
-                <div class="card-premium p-5 group" style="--nav-tint: {{ $accent }};">
+                <div class="app-collection-card card-premium p-5 group" style="--nav-tint: {{ $accent }};">
                     <div class="flex items-start justify-between gap-3 mb-4">
                         <div class="flex items-center gap-3 min-w-0">
                             <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style="background: {{ $accent }}22; border: 1px solid {{ $accent }}44;">

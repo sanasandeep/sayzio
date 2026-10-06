@@ -55,7 +55,7 @@
 </div>
 @else
 <div class="glass rounded-2xl overflow-hidden p-3">
-    <table class="enhanced-table w-full text-sm">
+    <table class="app-collection-table enhanced-table w-full text-sm">
         <thead class="bg-white/5 border-b border-white/10">
             <tr>
                 <th class="text-left px-4 py-3 text-white/70 font-medium">Name</th>

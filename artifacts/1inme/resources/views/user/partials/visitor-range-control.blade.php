@@ -18,7 +18,7 @@
         @foreach(\App\Modules\User\Support\AnalyticsRangeResolver::PRESETS as $k => $lbl)
             <a href="{{ $buildUrl(['period' => $k, 'start' => null, 'end' => null]) }}" class="pill {{ !$isCustom && ($period ?? '30d') === $k ? 'pill-active' : '' }}">{{ $lbl }}</a>
         @endforeach
-        <form method="GET" class="flex items-center gap-1.5 flex-wrap" data-custom-range-form>
+        <form data-list-filters method="GET" class="flex items-center gap-1.5 flex-wrap" data-custom-range-form>
             @foreach(request()->except(['period', 'start', 'end']) as $k => $v)
                 @if(is_array($v))
                     @foreach($v as $vv)

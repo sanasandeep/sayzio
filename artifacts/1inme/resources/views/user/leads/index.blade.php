@@ -51,7 +51,7 @@
 
     {{-- ===================== SEARCH + BULK ACTIONS ===================== --}}
     <div class="glass rounded-2xl p-4 mb-6">
-        <form method="GET" class="flex flex-wrap gap-3 items-end">
+        <form data-list-filters method="GET" class="flex flex-wrap gap-3 items-end">
             @if($filters['source'] ?? null)<input type="hidden" name="source" value="{{ $filters['source'] }}">@endif
             <div class="flex-1 min-w-[220px]">
                 <label class="text-xs font-medium mb-1 block" style="color: var(--text-muted);">Search</label>

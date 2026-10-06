@@ -32,7 +32,7 @@
         </div>
     </div>
 
-    <form method="GET" class="flex flex-wrap items-end gap-3 p-4 rounded-xl border border-white/10 bg-white/[0.03]">
+    <form data-list-filters method="GET" class="flex flex-wrap items-end gap-3 p-4 rounded-xl border border-white/10 bg-white/[0.03]">
         <div>
             <label class="block text-xs text-white/50 mb-1">Type</label>
             <select name="type" class="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
@@ -95,7 +95,7 @@
                    class="ml-auto text-xs text-blue-300 hover:text-blue-200">Show all features</a>
             @endif
         </div>
-        <table class="w-full text-sm">
+        <table class="app-collection-table w-full text-sm">
             <tbody>
             @foreach($aiByFeature as $row)
                 <tr class="border-t border-white/5 first:border-t-0">
@@ -143,7 +143,7 @@
                     </div>
                     @endif
                 </div>
-                <table class="w-full text-sm">
+                <table class="app-collection-table w-full text-sm">
                     <tbody>
                     @foreach($txs as $tx)
                         <tr class="border-t border-white/5">

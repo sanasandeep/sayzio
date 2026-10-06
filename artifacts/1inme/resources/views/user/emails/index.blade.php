@@ -17,7 +17,7 @@
     @endif
 
     <div class="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
-        <table class="w-full text-sm">
+        <table class="app-collection-table w-full text-sm">
             <thead class="bg-white/[0.03] text-white/40 text-xs">
                 <tr>
                     <th class="text-left font-medium px-4 py-2.5">When</th>

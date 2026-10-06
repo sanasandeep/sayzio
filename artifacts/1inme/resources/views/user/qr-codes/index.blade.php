@@ -16,7 +16,7 @@
         ],
     ])
 
-    <form method="GET" class="card-premium p-4 mb-4 flex flex-wrap items-center gap-3">
+    <form data-list-filters method="GET" class="card-premium p-4 mb-4 flex flex-wrap items-center gap-3">
         <div class="relative flex-1 max-w-md min-w-[180px]">
             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-faint);"></i>
             <input type="text" name="search" value="{{ request('search') }}" placeholder="Search QR codes…"
@@ -59,7 +59,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             @foreach($qrCodes as $qr)
                 @php $info = $types[$qr->type] ?? ['label'=>$qr->type,'icon'=>'fa-qrcode']; @endphp
-                <div class="card-premium p-4 flex flex-col">
+                <div class="app-collection-card card-premium p-4 flex flex-col">
                     <div class="rounded-lg p-4 mb-3 flex items-center justify-center min-h-[160px]" style="background: {{ $qr->design['bg_color'] ?? '#fff' }}; border: 1px solid var(--border-glass);">
                         @if($qr->preview_url)
                             <img src="{{ $qr->preview_url }}" alt="" class="max-w-full max-h-32 object-contain">

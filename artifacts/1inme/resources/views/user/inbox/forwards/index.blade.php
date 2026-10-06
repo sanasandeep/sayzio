@@ -101,7 +101,7 @@
             <p class="text-sm" style="color: var(--text-muted);">No deliveries yet. They will appear here as inbox messages arrive.</p>
         @else
             <div class="overflow-x-auto">
-                <table class="w-full text-xs">
+                <table class="app-collection-table w-full text-xs">
                     <thead>
                         <tr style="color: var(--text-faint);">
                             <th class="text-left py-2 pr-3">When</th>

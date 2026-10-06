@@ -63,7 +63,7 @@
                 </div>
                 <h1 class="hero-title gradient-text truncate" style="font-size: clamp(1.5rem, 3.2vw, 2.1rem);">Stats home</h1>
                 <p class="hero-subtitle">A live look at your audience, content and engagement.</p>
-                <form method="GET" class="flex items-center gap-2 flex-wrap mt-4">
+                <form data-list-filters method="GET" class="flex items-center gap-2 flex-wrap mt-4">
                     <select name="range" onchange="this.form.submit()" class="stats-select px-3 py-2 text-sm">
                         @foreach($ranges as $key => $r)
                             <option value="{{ $key }}" {{ $range === $key ? 'selected' : '' }}>{{ $r['label'] }}</option>
@@ -149,7 +149,7 @@
         @if($topPosts->count() === 0)
             <p class="text-sm" style="color: var(--text-faint);">No posts published in this range yet.</p>
         @else
-            <table class="stats-table w-full text-sm">
+            <table class="app-collection-table stats-table w-full text-sm">
                 <thead><tr>
                     <th>Post</th><th>Reactions</th><th>Comments</th><th>Published</th>
                 </tr></thead>
