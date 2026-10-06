@@ -2145,7 +2145,7 @@ class BiolinkBlockController extends Controller
         return redirect()->route('user.links.settings.appearance', $link)->with('success', 'Page settings updated.');
     }
 
-    private function sanitizeLayout(array $input): array
+    public function sanitizeLayout(array $input): array
     {
         $bounds = [
             'max_width_phone' => [280, 600],
