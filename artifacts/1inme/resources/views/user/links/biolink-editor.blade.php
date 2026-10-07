@@ -845,20 +845,6 @@ $catColors = [
     </button>
 </div>
 
-    <div class="flex items-center justify-end gap-2 mb-4" @if(request('tab') === 'ai') style="display:none" @endif>
-        <button type="button" id="deleteAllBlocksBtn"
-                onclick="ajaxDeleteAllBlocks(this)"
-                class="delete-all-btn"
-                style="{{ $blocks->count() ? '' : 'display:none;' }}"
-                title="Delete all blocks">
-            <i class="fas fa-trash-alt text-[10px]"></i>
-            <span>Delete all</span>
-        </button>
-        <span id="blockCountChip" class="block-count-chip" style="{{ $blocks->count() ? '' : 'display:none;' }}">
-            <i class="fas fa-layer-group text-[10px] opacity-70"></i>
-            <span><strong data-block-count>{{ $blocks->count() }}</strong> blocks</span>
-        </span>
-    </div>
     <style>
         /* ---- Multi-select ------------------------------------------- */
         /* The tick box sits at the far left of every card, ahead of the
@@ -1080,29 +1066,13 @@ $catColors = [
            colliding with the shared device-preview partial's responsive
            overrides. Below 900px everything stacks; 900–1023px shows
            canvas + preview; the palette appears at lg+ where there's room. */
-        #editorLayout {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr);
-            gap: 1.5rem;
-            align-items: start;
-        }
-        /* Below lg the palette stacks full-width above the canvas (adding blocks
-           is palette-driven now, so it must stay reachable on every size). */
-        #editorPaletteCol { display: block; grid-column: 1 / -1; order: -1; }
-        #editorPreviewCol { display: none; }
-        @media (min-width: 900px) {
-            #editorLayout { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
-            #editorPreviewCol { display: block; }
-        }
-        @media (min-width: 1024px) {
-            #editorLayout { grid-template-columns: minmax(0, 3.1fr) minmax(0, 5fr) minmax(0, 4fr); }
-            #editorPaletteCol { grid-column: auto; order: 0; }
-        }
-        #editorLayout.ai-editor-layout { grid-template-columns: minmax(0, 1fr); }
-        #editorLayout.ai-editor-layout #editorPreviewCol { display: none; }
-        @media (min-width: 900px) {
-            #editorLayout.ai-editor-layout { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
-            #editorLayout.ai-editor-layout #editorPreviewCol { display:block; }
+        #editorWorkCol { display:grid; grid-template-columns:minmax(0,1fr); gap:1.5rem; min-width:0; }
+        #editorPaletteCol { display:block; min-width:0; }
+        #editorCanvasCol { min-width:0; }
+        #editorPreviewCol { display:none; }
+        @media (min-width:900px) { #editorPreviewCol { display:block; } }
+        @media (min-width:1200px) {
+            #editorWorkCol { grid-template-columns:minmax(0,2fr) minmax(0,3fr); }
         }
         /* Stacked (sub-lg) palette: not full viewport height, scrolls internally.
            Use a DEFINITE height (not max-height) so the absolute Templates
@@ -1254,10 +1224,11 @@ $catColors = [
         }
     </style>
 
-    <div id="editorLayout" class="{{ request('tab') === 'ai' ? 'ai-editor-layout' : '' }}">
+    <div id="editorLayout" class="editor-workspace {{ request('tab') === 'ai' ? 'ai-editor-layout' : '' }}">
         @if(request('tab') === 'ai')
         <div class="min-w-0">@include('user.links.partials.ai-block-editor')</div>
         @endif
+        <div id="editorWorkCol" @if(request('tab') === 'ai') style="display:none" @endif>
         {{-- BLOCK PALETTE (persistent drag source) --}}
         <div id="editorPaletteCol" @if(request('tab') === 'ai') style="display:none" @endif>
             <div class="palette-panel">
@@ -1358,6 +1329,21 @@ $catColors = [
 
         {{-- CANVAS --}}
         <div id="editorCanvasCol" @if(request('tab') === 'ai') style="display:none" @endif>
+    <div class="flex items-center justify-end gap-2 mb-4" @if(request('tab') === 'ai') style="display:none" @endif>
+        <button type="button" id="deleteAllBlocksBtn"
+                onclick="ajaxDeleteAllBlocks(this)"
+                class="delete-all-btn"
+                style="{{ $blocks->count() ? '' : 'display:none;' }}"
+                title="Delete all blocks">
+            <i class="fas fa-trash-alt text-[10px]"></i>
+            <span>Delete all</span>
+        </button>
+        <span id="blockCountChip" class="block-count-chip" style="{{ $blocks->count() ? '' : 'display:none;' }}">
+            <i class="fas fa-layer-group text-[10px] opacity-70"></i>
+            <span><strong data-block-count>{{ $blocks->count() }}</strong> blocks</span>
+        </span>
+    </div>
+
 
             {{-- BLOCKS --}}
                 <div id="reorderHint" class="flex items-center mb-3" style="{{ $blocks->count() ? '' : 'display:none;' }}">
@@ -1402,6 +1388,8 @@ $catColors = [
                     </div>
                 </div>
         </div>
+
+        </div>{{-- editorWorkCol --}}
 
         {{-- DEVICE PREVIEW --}}
         <div id="editorPreviewCol" class="lg:self-stretch lg:h-full">

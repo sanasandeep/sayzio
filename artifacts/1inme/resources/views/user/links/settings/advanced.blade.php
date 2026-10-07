@@ -36,10 +36,11 @@
 
 <div class="w-full max-w-7xl mx-auto">
     @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'settings'])
+
+    <div class="editor-workspace">
+        <div class="lg:col-span-7" id="settings-tab-content">
     @include('user.links.partials.settings-header', ['link' => $link, 'activeSettingsTab' => $activeSettingsTab])
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div class="lg:col-span-7" id="settings-tab-content">
             <form method="POST" action="{{ route('user.links.page-settings', $link) }}" enctype="multipart/form-data">
                 @csrf
 
