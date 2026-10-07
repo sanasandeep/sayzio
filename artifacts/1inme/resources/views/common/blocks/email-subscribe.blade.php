@@ -32,7 +32,7 @@
                 <input x-ref="emailInput" type="email" required placeholder="{{ $s['placeholder'] ?? 'Enter your email' }}" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500/40 transition" style="color:{{ $fontColor }}">
                 <button type="submit" :disabled="loading" class="bio-btn w-full px-5 py-3 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all">
                     <template x-if="loading"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg></template>
-                    <span x-text="loading ? 'Subscribing...' : '{{ $s['button_text'] ?? 'Subscribe' }}'"></span>
+                    <span x-text="loading ? 'Subscribing...' : @js($s['button_text'] ?? 'Subscribe')"></span>
                 </button>
                 <p x-show="error" x-text="error" class="text-xs text-red-400 text-center" x-cloak></p>
             </form>

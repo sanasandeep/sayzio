@@ -5,6 +5,7 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\PreviewBiolinkBlock;
 use App\Modules\User\Support\BlockDefaults;
 use App\Modules\User\Support\BlockTypeRegistry;
 use Illuminate\Http\Request;
@@ -232,12 +233,13 @@ class BlockDefaultsController extends Controller
         }
 
         // Transient models — never saved, just enough for the renderer.
-        $block = new BiolinkBlock();
+        $block = new PreviewBiolinkBlock();
         $block->type = $type;
         $block->id = 0;
         $block->settings = $content + ['_style' => $style];
 
         $link = new Link();
+        $link->id = 0;
         $link->alias = 'preview';
         $link->type = 'biolink';
         $link->settings = ['biolink' => []];

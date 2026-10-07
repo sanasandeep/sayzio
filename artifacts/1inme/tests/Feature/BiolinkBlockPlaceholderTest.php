@@ -430,14 +430,10 @@ class BiolinkBlockPlaceholderTest extends TestCase
         $this->assertArrayNotHasKey('_variant', $style,
             'resetStyle() must drop the curated variant key');
 
-        // The fallback equals the sanitized STYLE_DEFAULTS payload.
-        // Spot-check the always-on defaults that survive the sanitizer
-        // (display_mode is 'card', shadow_color is '#00000040', etc.).
-        $this->assertSame('card',      $style['display_mode'] ?? null);
-        $this->assertSame('normal',    $style['font_style']   ?? null);
-        $this->assertSame('#00000040', $style['shadow_color'] ?? null);
-        $this->assertSame(100,         (int) ($style['bg_opacity'] ?? -1));
-        $this->assertSame(12,          (int) ($style['grid_span']  ?? -1));
+        // Default means no persisted custom override. The renderer supplies
+        // STYLE_DEFAULTS without reintroducing a custom design in the editor.
+        $this->assertArrayNotHasKey('_style', $fresh);
+        $this->assertSame(BiolinkBlock::getBlockStyle([], []), BiolinkBlock::getBlockStyle($fresh, []));
 
         // Snapshot is dropped so the user gets a truly clean slate.
         $this->assertArrayNotHasKey('_style_custom_snapshot', $fresh,

@@ -19,48 +19,21 @@ use PHPUnit\Framework\TestCase;
  */
 class BlockRenderCoverageTest extends TestCase
 {
-    /**
-     * Discover one child-only and one top-level-only known type from the live
-     * renderers.
-     *
-     * @return array{0:?string,1:?string} [childOnly, topOnly]
-     */
-    private function exclusiveTypes(): array
+    public function test_every_registered_type_renders_at_root_and_inside_a_container(): void
     {
-        $known = array_merge(
-            array_keys(BiolinkBlock::TYPES),
-            array_keys(BlockTypeRegistry::newTypes())
-        );
-
-        $childOnly = null;
-        $topOnly = null;
-
+        $known = array_unique(array_merge(array_keys(BiolinkBlock::TYPES), array_keys(BlockTypeRegistry::newTypes())));
         foreach ($known as $type) {
-            $top = BlockRenderCoverage::rendersTopLevel($type);
-            $child = BlockRenderCoverage::rendersAsChild($type);
-
-            if ($child && ! $top && $childOnly === null) {
-                $childOnly = $type;
-            }
-            if ($top && ! $child && $topOnly === null) {
-                $topOnly = $type;
-            }
+            $this->assertTrue(BlockRenderCoverage::rendersTopLevel($type), "Missing root renderer: {$type}");
+            $this->assertTrue(BlockRenderCoverage::rendersAsChild($type), "Missing child renderer: {$type}");
+            $this->assertSame([], BlockRenderCoverage::renderGaps([
+                ['type' => $type], ['type' => 'card', 'children' => [['type' => $type]]],
+            ]));
+            $this->assertSame([], BlockRenderCoverage::flatRowGaps([
+                ['id' => 1, 'type' => $type, 'parent_id' => null],
+                ['id' => 2, 'type' => 'card', 'parent_id' => null],
+                ['id' => 3, 'type' => $type, 'parent_id' => 2],
+            ]));
         }
-
-        return [$childOnly, $topOnly];
-    }
-
-    public function test_placement_exclusive_types_are_detected_per_placement(): void
-    {
-        [$childOnly, $topOnly] = $this->exclusiveTypes();
-
-        $this->assertNotNull($childOnly, 'expected at least one child-only block type');
-        $this->assertTrue(BlockRenderCoverage::rendersAsChild($childOnly));
-        $this->assertFalse(BlockRenderCoverage::rendersTopLevel($childOnly));
-
-        $this->assertNotNull($topOnly, 'expected at least one top-level-only block type');
-        $this->assertTrue(BlockRenderCoverage::rendersTopLevel($topOnly));
-        $this->assertFalse(BlockRenderCoverage::rendersAsChild($topOnly));
     }
 
     public function test_common_types_render_in_both_placements(): void
@@ -96,47 +69,6 @@ class BlockRenderCoverageTest extends TestCase
     {
         $this->assertFalse(BlockRenderCoverage::rendersTopLevel('definitely_not_a_block'));
         $this->assertFalse(BlockRenderCoverage::rendersAsChild('definitely_not_a_block'));
-    }
-
-    public function test_render_gaps_flags_child_only_type_at_page_root(): void
-    {
-        [$childOnly] = $this->exclusiveTypes();
-        $this->assertNotNull($childOnly);
-
-        $gaps = BlockRenderCoverage::renderGaps([['type' => $childOnly]]);
-
-        $this->assertNotEmpty($gaps);
-        $this->assertStringContainsString($childOnly, $gaps[0]);
-        $this->assertStringContainsString('page root', $gaps[0]);
-    }
-
-    public function test_render_gaps_flags_top_only_type_inside_container(): void
-    {
-        [, $topOnly] = $this->exclusiveTypes();
-        $this->assertNotNull($topOnly);
-
-        $gaps = BlockRenderCoverage::renderGaps([
-            ['type' => 'card', 'children' => [['type' => $topOnly]]],
-        ]);
-
-        $this->assertNotEmpty($gaps);
-        $this->assertStringContainsString($topOnly, $gaps[0]);
-        $this->assertStringContainsString('container', $gaps[0]);
-    }
-
-    public function test_render_gaps_ignores_correctly_placed_blocks(): void
-    {
-        [$childOnly, $topOnly] = $this->exclusiveTypes();
-        $this->assertNotNull($childOnly);
-        $this->assertNotNull($topOnly);
-
-        // top-only at the root + child-only as a card child = both fine.
-        $gaps = BlockRenderCoverage::renderGaps([
-            ['type' => $topOnly],
-            ['type' => 'card', 'children' => [['type' => $childOnly], ['type' => 'link']]],
-        ]);
-
-        $this->assertSame([], $gaps);
     }
 
     public function test_render_gaps_skips_unknown_types(): void

@@ -6,29 +6,9 @@ use App\Modules\User\Models\BiolinkBlock;
 use RuntimeException;
 
 /**
- * Knows which block types actually have a renderer branch in each of the two
- * independent biolink rendering placements, so placement-specific blank-render
- * gaps can be detected *before* a template/snapshot ships instead of silently.
- *
- * There are TWO renderers with different type coverage:
- *
- *   1. TOP-LEVEL — the inline @if/@elseif chain in
- *      resources/views/common/biolink.blade.php renders blocks that sit at the
- *      root of a page. The chain ends in a bare @endif with NO else fallback,
- *      so a top-level block whose type has no branch renders as *nothing* — a
- *      silent blank.
- *
- *   2. CARD-CHILD — the $__blockPartials dispatch table in
- *      resources/views/common/partials/biolink-block-render.blade.php renders
- *      the children of a container (card / grid / grid_auto) block. A child
- *      whose type isn't in the table falls through to a generic "unknown block"
- *      placeholder instead of its real content.
- *
- * A type listed in BiolinkBlock::TYPES is NOT guaranteed to render in both (or
- * either) placement — e.g. buy_me_coffee is child-only, while image_slider /
- * one_time_offer are top-level-only. This class derives coverage by reading the
- * actual blade renderers rather than a hand-maintained list, so the coverage it
- * reports can never silently drift from what really renders.
+ * Derives supported block types from the shared public renderer and its
+ * root/list delegation. This detects missing render branches before a
+ * template ships; it does not verify the resulting HTML or JavaScript.
  */
 class BlockRenderCoverage
 {
