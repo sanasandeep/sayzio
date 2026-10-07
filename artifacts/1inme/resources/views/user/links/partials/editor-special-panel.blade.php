@@ -37,7 +37,7 @@
        can't scroll. Declaring it here means x-show's `display:''` reverts to
        this rule (flex), keeping the header + scrollable body layout intact. */
     .tpl-preview-social { display:flex; align-items:center; justify-content:center; color:#526079; border:1px solid rgba(100,116,139,.2); }
-    .template-gallery-card { box-shadow: 0 3px 12px rgba(0,0,0,.03); }
+    .template-gallery-card { box-shadow: 0 2px 6px rgba(15,23,42,.035); }
     .template-gallery-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.08); }
     .template-gallery-description { font-size:11px; line-height:1.5; color:var(--text-muted); margin-bottom:8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .special-panel .gallery-tabs { padding:0 0 12px; gap:4px; }
@@ -49,7 +49,12 @@
     .tpl-preview-stage .tpl-prev-list { color:var(--tpl-preview-ink, var(--text-primary)) !important; }
     .tpl-preview-stage .tpl-prev-sub, .tpl-preview-stage .tpl-prev-text { opacity:.8; }
     .tpl-preview-stage .tpl-prev-heading { white-space:normal; overflow-wrap:anywhere; font-size:13px; }
-    .tpl-preview-stage .tpl-prev-pill { color:#fff; overflow-wrap:anywhere; }
+    .special-panel .tpl-preview-stage .tpl-prev-pill,
+    .special-panel .tpl-preview-stage .tpl-prev-pill span,
+    .special-panel .tpl-preview-stage .tpl-prev-pill i,
+    html.light-mode .special-panel .tpl-preview-stage .tpl-prev-pill span,
+    html.light-mode .special-panel .tpl-preview-stage .tpl-prev-pill i { color:var(--tpl-button-ink, #fff) !important; opacity:1; }
+    .tpl-preview-stage .tpl-prev-pill { overflow-wrap:anywhere; border-radius:10px; padding:7px 10px; }
     .tpl-preview-stage .tpl-prev-pill span { white-space:normal; }
     .special-panel { display: flex; flex-direction: column; }
 </style>
@@ -199,7 +204,7 @@
             </div>
             <div class="grid grid-cols-1 gap-3" x-show="!cardTemplatesLoading">
                 <template x-for="t in visibleCardTemplates()" :key="t.id">
-                    <div class="template-gallery-card relative rounded-xl border overflow-visible transition cursor-pointer group" style="border-color: var(--border-glass); background: rgba(61,107,255,0.02);"
+                    <div class="template-gallery-card relative rounded-xl border overflow-visible transition cursor-pointer group" style="border-color: var(--border-glass); background: var(--bg-card);"
                          x-data="{ expanded: false }"
                          @click="t.locked ? (window.location.href = '{{ route('user.upgrade') }}') : applyCardTemplate(t.id)"
                          :class="t.locked ? 'opacity-70 hover:border-amber-500/50' : 'hover:border-blue-500/50'"
@@ -247,7 +252,7 @@
                                                         </div>
                                                     </template>
                                                     <template x-if="cell.shape === 'pill'">
-                                                        <div class="w-full rounded-full flex items-center justify-center gap-1 px-1.5 text-white/95 tpl-prev-pill" :style="'background: ' + cell.bg + '; min-height: ' + cell.h + 'px;'">
+                                                        <div class="w-full rounded-full flex items-center justify-center gap-1 px-1.5 tpl-prev-pill" :style="'background: ' + cell.bg + '; --tpl-button-ink:' + (cell.ink || '#fff') + '; min-height: ' + cell.h + 'px;'">
                                                             <span x-show="cell.text" class="truncate" x-text="cell.text"></span>
                                                             <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 6px;"></i>
                                                         </div>
@@ -304,7 +309,7 @@
                                                             <template x-for="i in (cell.lines || 1)" :key="i">
                                                                 <div class="rounded-md w-full tpl-prev-sub" style="border:1px solid rgba(100,116,139,.25); padding:6px 8px; min-height:26px;"><span x-text="(cell.lines || 1) === 1 ? 'Your email address' : ['Your name', 'Email address', 'Tell us about your project'][i - 1]"></span></div>
                                                             </template>
-                                                            <div class="rounded-full mx-auto flex items-center justify-center text-white/95 tpl-prev-pill px-1.5" :style="'background: ' + (cell.btn_bg || 'rgba(92,131,255,0.85)') + '; min-height: 24px; width: 85%;'">
+                                                            <div class="rounded-full mx-auto flex items-center justify-center tpl-prev-pill px-1.5" :style="'background: ' + (cell.btn_bg || 'rgba(92,131,255,0.85)') + '; --tpl-button-ink:' + (cell.btn_ink || '#fff') + '; min-height: 24px; width: 85%;'">
                                                                 <span x-show="cell.text" class="truncate" x-text="cell.text"></span>
                                                             </div>
                                                         </div>
@@ -334,7 +339,7 @@
                                                         <div class="rounded-full mx-auto tpl-prev-pill px-2 flex items-center" :style="'background: ' + cell.bg + '; min-height:22px; color:#392a16;'" x-text="cell.text || 'New collection'"></div>
                                                     </template>
                                                     <template x-if="!cell.shape || cell.shape === 'tile'">
-                                                        <div class="w-full rounded-[3px] flex items-center justify-center text-white/70" :style="'background: ' + cell.bg + '; min-height: ' + cell.h + 'px;'">
+                                                        <div class="w-full rounded-[3px] flex items-center justify-center text-white/70" :style="'background: ' + cell.bg + '; --tpl-button-ink:' + (cell.ink || '#fff') + '; min-height: ' + cell.h + 'px;'">
                                                             <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 12px;"></i><span class="tpl-prev-list px-2" x-text="cell.text || 'Explore more'"></span>
                                                         </div>
                                                     </template>

@@ -28,6 +28,7 @@
         .tpl-prev-sub     { font-size: 10px; line-height: 1.15; color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .tpl-prev-text    { font-size: 10px; line-height: 1.3; color: rgba(255,255,255,0.6); display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
         .tpl-prev-list    { font-size: 10px; line-height: 1.35; color: rgba(255,255,255,0.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tpl-prev-pill, .tpl-prev-pill span, .tpl-prev-pill i, html.light-mode .tpl-prev-pill span, html.light-mode .tpl-prev-pill i { color:var(--tpl-button-ink, #fff) !important; opacity:1; }
         .tpl-prev-pill    { font-size: 10px; font-weight: 600; line-height: 1.3; }
         html.light-mode .tpl-prev-heading,
         html.light-mode .tpl-prev-name { color: rgba(7,20,55,0.88); }
@@ -93,7 +94,7 @@
                             @break
                         @case('pill')
                             <div class="w-full rounded-full flex items-center justify-center gap-1 px-1.5 text-white/95 tpl-prev-pill"
-                                 style="background: {{ $bg }}; min-height: {{ $h }}px;">
+                                 style="background: {{ $bg }}; --tpl-button-ink: {{ $cell['ink'] ?? '#ffffff' }}; min-height: {{ $h }}px;">
                                 @if($text !== '')<span class="truncate">{{ $text }}</span>@endif
                                 @if($icon)<i class="fas {{ $icon }}" style="font-size: 6px;"></i>@endif
                             </div>
@@ -128,7 +129,7 @@
                             @break
                         @case('media')
                             <div class="w-full rounded-[3px] relative overflow-hidden flex items-center justify-center text-white/85"
-                                 style="background: {{ $bg }}; min-height: {{ $h }}px; height: {{ $h }}px;">
+                                 style="background: {{ $bg }}; --tpl-button-ink: {{ $cell['ink'] ?? '#ffffff' }}; min-height: {{ $h }}px; height: {{ $h }}px;">
                                 @if($imgUrl !== '')
                                     <div class="tpl-prev-shimmer"></div>
                                     <img src="{{ $imgUrl }}" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover"
@@ -151,7 +152,7 @@
                                 @for($i = 1; $i <= max($lines, 1); $i++)
                                     <div class="rounded-md w-full tpl-prev-sub" style="border:1px solid rgba(100,116,139,.25); padding:6px 8px; min-height:26px;">{{ $lines === 1 ? 'Your email address' : (['Your name', 'Email address', 'Tell us about your project'][$i - 1] ?? 'Your message') }}</div>
                                 @endfor
-                                <div class="rounded-full mx-auto flex items-center justify-center text-white/95 tpl-prev-pill px-1.5" style="background: {{ $btnBg }}; min-height: 26px; width: 85%;">
+                                <div class="rounded-full mx-auto flex items-center justify-center text-white/95 tpl-prev-pill px-1.5" style="background: {{ $btnBg }}; --tpl-button-ink: {{ $cell['btn_ink'] ?? '#ffffff' }}; min-height: 26px; width: 85%;">
                                     @if($text !== '')<span class="truncate">{{ $text }}</span>@endif
                                 </div>
                             </div>
@@ -182,7 +183,7 @@
                             @break
                         @default
                             <div class="w-full rounded-[3px] flex items-center justify-center text-white/70"
-                                 style="background: {{ $bg }}; min-height: {{ $h }}px;">
+                                 style="background: {{ $bg }}; --tpl-button-ink: {{ $cell['ink'] ?? '#ffffff' }}; min-height: {{ $h }}px;">
                                 @if($icon)<i class="fas {{ $icon }}" style="font-size: 12px;"></i>@endif
                                 <span class="tpl-prev-list px-2">{{ $text ?: 'Explore more' }}</span>
                             </div>
