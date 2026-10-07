@@ -7,7 +7,7 @@
                 <div><p class="text-sm font-medium">{{ $item['name'] ?? '' }}</p>
                 <div class="flex gap-0.5">@for($star = 1; $star <= 5; $star++)<i class="fas fa-star text-xs {{ $star <= ($item['rating'] ?? 5) ? 'text-yellow-400' : 'text-white/20' }}"></i>@endfor</div></div>
             </div>
-            <p class="text-sm" style="color:{{ $fontColor }}cc">{{ $item['text'] ?? '' }}</p>
+            <p class="text-sm" style="color:color-mix(in srgb, {{ $fontColor }} 80.0%, transparent)">{{ $item['text'] ?? '' }}</p>
         </div>
         @endforeach
     </div>

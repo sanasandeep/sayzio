@@ -7,7 +7,7 @@
 @if($layout === 'stack')
     <div class="mb-4 space-y-3">
         @foreach($items as $t)
-            <div class="rounded-2xl p-4 border" style="background: {{ $fontColor }}08; border-color: {{ $fontColor }}1a;">
+            <div class="rounded-2xl p-4 border" style="background: color-mix(in srgb, {{ $fontColor }} 3.14%, transparent); border-color: color-mix(in srgb, {{ $fontColor }} 10.2%, transparent);">
                 <p class="text-sm italic leading-relaxed mb-2" style="color: {{ $fontColor }};">&ldquo;{{ $t['quote'] ?? '' }}&rdquo;</p>
                 <div class="flex items-center gap-2">
                     @if(!empty($t['avatar']))
@@ -40,17 +40,17 @@
                 @endforeach
                 @if(count($items) > 1)
                     <div class="flex items-center justify-center gap-3 mt-4">
-                        <button type="button" @click="idx = (idx - 1 + count) % count" class="w-8 h-8 rounded-full flex items-center justify-center" style="background: {{ $fontColor }}10; color: {{ $fontColor }};">
+                        <button type="button" @click="idx = (idx - 1 + count) % count" class="w-8 h-8 rounded-full flex items-center justify-center" style="background: color-mix(in srgb, {{ $fontColor }} 6.27%, transparent); color: {{ $fontColor }};">
                             <i class="fas fa-chevron-left text-xs"></i>
                         </button>
                         <div class="flex gap-1.5">
                             @foreach($items as $i => $_)
                                 <button type="button" @click="idx = {{ $i }}"
                                         class="w-1.5 h-1.5 rounded-full transition"
-                                        :style="idx === {{ $i }} ? 'background: {{ $accent }}; width: 16px' : 'background: {{ $fontColor }}40'"></button>
+                                        :style="idx === {{ $i }} ? 'background: {{ $accent }}; width: 16px' : 'background: color-mix(in srgb, {{ $fontColor }} 25.1%, transparent)'"></button>
                             @endforeach
                         </div>
-                        <button type="button" @click="idx = (idx + 1) % count" class="w-8 h-8 rounded-full flex items-center justify-center" style="background: {{ $fontColor }}10; color: {{ $fontColor }};">
+                        <button type="button" @click="idx = (idx + 1) % count" class="w-8 h-8 rounded-full flex items-center justify-center" style="background: color-mix(in srgb, {{ $fontColor }} 6.27%, transparent); color: {{ $fontColor }};">
                             <i class="fas fa-chevron-right text-xs"></i>
                         </button>
                     </div>

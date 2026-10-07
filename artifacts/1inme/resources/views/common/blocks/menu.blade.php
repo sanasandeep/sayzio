@@ -25,7 +25,7 @@
         @if($layout === 'cards')
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
                 @foreach($section['items'] ?? [] as $it)
-                    <div class="rounded-xl p-3 border" style="border-color: {{ $fontColor }}1a; background: {{ $fontColor }}08;">
+                    <div class="rounded-xl p-3 border" style="border-color: color-mix(in srgb, {{ $fontColor }} 10.2%, transparent); background: color-mix(in srgb, {{ $fontColor }} 3.14%, transparent);">
                         @if(!empty($it['thumbnail']))
                             <img src="{{ $it['thumbnail'] }}" alt="" class="w-full h-24 rounded-lg object-cover mb-2">
                         @endif
@@ -42,7 +42,7 @@
         @else
             <div class="space-y-2 mb-2">
                 @foreach($section['items'] ?? [] as $it)
-                    <div class="flex items-baseline gap-2 text-sm" style="color: {{ $fontColor }}dd;">
+                    <div class="flex items-baseline gap-2 text-sm" style="color: color-mix(in srgb, {{ $fontColor }} 86.67%, transparent);">
                         <span class="font-medium">{{ $it['name'] ?? '' }}</span>
                         <span class="flex-1 border-b border-dotted opacity-30" style="border-color: {{ $fontColor }};"></span>
                         <span class="font-bold whitespace-nowrap" style="color: {{ $accent }};">{{ $it['price'] ?? '' }}</span>

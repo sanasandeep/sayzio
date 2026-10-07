@@ -17,7 +17,7 @@
         @case('menu')
             <div class="mb-4 glass-block rounded-xl p-4 space-y-3">
                 @foreach($_pItems as $it)
-                    <div class="flex items-start gap-3" style="color: {{ $fontColor }}dd;">
+                    <div class="flex items-start gap-3" style="color: color-mix(in srgb, {{ $fontColor }} 86.67%, transparent);">
                         @if($it['thumbnail'])
                             <img src="{{ $it['thumbnail'] }}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0">
                         @elseif($it['icon'])
@@ -32,7 +32,7 @@
                                 <span class="text-sm font-bold whitespace-nowrap" style="color: {{ $_pAccent }};">{{ $it['price'] }}<span class="text-xs opacity-70">{{ $it['period'] }}</span></span>
                             </div>
                             @if($it['description'])
-                                <p class="text-xs mt-1" style="color: {{ $fontColor }}99;">{{ $it['description'] }}</p>
+                                <p class="text-xs mt-1" style="color: color-mix(in srgb, {{ $fontColor }} 60.0%, transparent);">{{ $it['description'] }}</p>
                             @endif
                         </div>
                     </div>
@@ -72,7 +72,7 @@
         @case('comparison')
             <div class="mb-4 glass-block rounded-xl overflow-hidden">
                 @foreach($_pItems as $idx => $it)
-                    <div class="flex items-center gap-3 px-4 py-3" @if($idx > 0) style="border-top: 1px solid {{ $fontColor }}1a; color: {{ $fontColor }};" @else style="color: {{ $fontColor }};" @endif>
+                    <div class="flex items-center gap-3 px-4 py-3" @if($idx > 0) style="border-top: 1px solid color-mix(in srgb, {{ $fontColor }} 10.2%, transparent); color: {{ $fontColor }};" @else style="color: {{ $fontColor }};" @endif>
                         @if($it['included'])
                             <span class="inline-flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0" style="background: rgba(34,197,94,0.18);">
                                 <i class="fas fa-check text-[10px]" style="color: #22c55e;"></i>
@@ -116,7 +116,7 @@
                 @if(!empty($_others))
                     <div class="glass-block rounded-xl overflow-hidden">
                         @foreach($_others as $idx => $it)
-                            <div class="flex items-baseline gap-2 px-4 py-3" @if($idx > 0) style="border-top: 1px solid {{ $fontColor }}1a; color: {{ $fontColor }}dd;" @else style="color: {{ $fontColor }}dd;" @endif>
+                            <div class="flex items-baseline gap-2 px-4 py-3" @if($idx > 0) style="border-top: 1px solid color-mix(in srgb, {{ $fontColor }} 10.2%, transparent); color: color-mix(in srgb, {{ $fontColor }} 86.67%, transparent);" @else style="color: color-mix(in srgb, {{ $fontColor }} 86.67%, transparent);" @endif>
                                 <span class="text-sm font-medium">{{ $it['name'] }}</span>
                                 @if($it['description'])
                                     <span class="text-xs opacity-60 truncate"> - {{ $it['description'] }}</span>
@@ -134,7 +134,7 @@
             {{-- classic: name + dot leaders + price --}}
             <div class="mb-4 glass-block rounded-xl p-4 space-y-2">
                 @foreach($_pItems as $it)
-                    <div class="flex items-baseline gap-2 text-sm {{ $it['included'] ? '' : 'opacity-50 line-through' }}" style="color: {{ $fontColor }}dd;">
+                    <div class="flex items-baseline gap-2 text-sm {{ $it['included'] ? '' : 'opacity-50 line-through' }}" style="color: color-mix(in srgb, {{ $fontColor }} 86.67%, transparent);">
                         <span class="font-medium">{{ $it['name'] }}</span>
                         <span class="flex-1 border-b border-dotted opacity-30" style="border-color: {{ $fontColor }};"></span>
                         <span class="font-bold whitespace-nowrap" style="color: {{ $_pAccent }};">{{ $it['price'] }}<span class="text-xs opacity-70">{{ $it['period'] }}</span></span>

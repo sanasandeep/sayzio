@@ -573,6 +573,11 @@
                 }
                 function applyLiveStyle(root, key, value, fields) {
                     if (key === 'style._tilt') return applyLiveTilt(root, value);
+                    // Inner renderers can bake color + opacity into inline ink.
+                    // Re-render to recompute those colors, including nested blocks
+                    // and clearing back to page inheritance; wrapper-only patches
+                    // must not acknowledge a change that the content ignores.
+                    if (key === 'style.text_color') return false;
                     // Task #6114: horizontal margins live on the block wrap
                     // itself (the page has no side padding); clearing the
                     // field reverts to the container's default child margin.

@@ -39,7 +39,7 @@
             @foreach($slots as $sl)
                 @php $d = $fmt($sl['start'] ?? null); $taken = ! empty($sl['taken']); @endphp
                 <div class="flex items-center gap-3 p-3 rounded-xl border {{ $taken ? 'opacity-40' : '' }}"
-                     style="border-color: {{ $fontColor }}1a; background: {{ $fontColor }}08; color: {{ $fontColor }};">
+                     style="border-color: color-mix(in srgb, {{ $fontColor }} 10.2%, transparent); background: color-mix(in srgb, {{ $fontColor }} 3.14%, transparent); color: {{ $fontColor }};">
                     <div class="flex-1 min-w-0">
                         @if($d)
                             <div class="text-sm font-semibold">{{ $d->format('D, M d') }}</div>

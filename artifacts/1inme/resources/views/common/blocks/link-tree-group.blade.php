@@ -36,7 +36,7 @@
             @foreach($items as $it)
                 <a href="{{ $ltgHref($it) }}" target="_blank" rel="noopener"
                    class="rounded-xl px-3 py-3 text-center text-sm font-medium transition border hover:-translate-y-0.5"
-                   style="background: {{ $fontColor }}08; border-color: {{ $fontColor }}1a; color: {{ $fontColor }};">
+                   style="background: color-mix(in srgb, {{ $fontColor }} 3.14%, transparent); border-color: color-mix(in srgb, {{ $fontColor }} 10.2%, transparent); color: {{ $fontColor }};">
                     @if(!empty($it['icon']))<i class="{{ fa_icon_class($it['icon']) }} mr-1.5" style="color: {{ $accent }};"></i>@endif
                     <span class="truncate">{{ $it['text'] ?? 'Link' }}</span>
                 </a>
@@ -139,7 +139,7 @@
             @foreach($items as $it)
                 <a href="{{ $ltgHref($it) }}" target="_blank" rel="noopener"
                    class="block rounded-xl px-4 py-3 transition border hover:-translate-y-0.5"
-                   style="background: {{ $fontColor }}08; border-color: {{ $fontColor }}1a; color: {{ $fontColor }};">
+                   style="background: color-mix(in srgb, {{ $fontColor }} 3.14%, transparent); border-color: color-mix(in srgb, {{ $fontColor }} 10.2%, transparent); color: {{ $fontColor }};">
                     <div class="flex items-center gap-3">
                         @if(!empty($it['icon']))<i class="{{ fa_icon_class($it['icon']) }} w-5 text-center" style="color: {{ $accent }};"></i>@endif
                         <div class="flex-1 min-w-0">

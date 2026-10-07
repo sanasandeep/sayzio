@@ -31,7 +31,7 @@
             @foreach($tracks as $idx => $t)
                 @php $url = $t['url'] ?? ''; @endphp
                 <div class="flex items-center gap-3 p-3 rounded-xl border"
-                     style="border-color: {{ $fontColor }}1a; background: {{ $fontColor }}08;">
+                     style="border-color: color-mix(in srgb, {{ $fontColor }} 10.2%, transparent); background: color-mix(in srgb, {{ $fontColor }} 3.14%, transparent);">
                     @if(!empty($t['cover']))
                         <img src="{{ $t['cover'] }}" alt="" class="w-14 h-14 rounded-lg object-cover flex-shrink-0">
                     @else
@@ -56,7 +56,7 @@
         <div class="space-y-2">
             @foreach($tracks as $idx => $t)
                 @php $url = $t['url'] ?? ''; @endphp
-                <div class="p-3 rounded-xl border" style="border-color: {{ $fontColor }}1a; background: {{ $fontColor }}08;">
+                <div class="p-3 rounded-xl border" style="border-color: color-mix(in srgb, {{ $fontColor }} 10.2%, transparent); background: color-mix(in srgb, {{ $fontColor }} 3.14%, transparent);">
                     <div class="flex items-center gap-3 mb-2">
                         <button type="button" @click="play({{ $idx }}, @js($url))"
                                 class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition"
@@ -77,7 +77,7 @@
         </div>
     @else
         {{-- compact --}}
-        <div class="divide-y" style="--tw-divide-opacity: 1; border-color: {{ $fontColor }}10;">
+        <div class="divide-y" style="--tw-divide-opacity: 1; border-color: color-mix(in srgb, {{ $fontColor }} 6.27%, transparent);">
             @foreach($tracks as $idx => $t)
                 @php $url = $t['url'] ?? ''; @endphp
                 <div class="flex items-center gap-3 py-2.5">

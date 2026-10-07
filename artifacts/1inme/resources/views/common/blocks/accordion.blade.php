@@ -10,7 +10,7 @@
                 'rounded-xl overflow-hidden border' => $layout === 'cards',
                 'border-b' => $layout !== 'cards',
             ])
-            style="@if($layout === 'cards') background: {{ $fontColor }}08; border-color: {{ $fontColor }}1a; @else border-color: {{ $fontColor }}1a; @endif color: {{ $fontColor }};">
+            style="@if($layout === 'cards') background: color-mix(in srgb, {{ $fontColor }} 3.14%, transparent); border-color: color-mix(in srgb, {{ $fontColor }} 10.2%, transparent); @else border-color: color-mix(in srgb, {{ $fontColor }} 10.2%, transparent); @endif color: {{ $fontColor }};">
             <button type="button" @click="open = open === {{ $idx }} ? -1 : {{ $idx }}"
                     class="w-full flex items-center justify-between gap-3 text-left py-3 {{ $layout === 'cards' ? 'px-4' : 'px-1' }}">
                 <span class="text-sm font-medium">{{ $it['title'] ?? 'Item ' . ($idx + 1) }}</span>

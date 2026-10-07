@@ -15,7 +15,7 @@
         <div class="grid grid-cols-2 gap-2">
             @foreach($items as $it)
                 <a href="{{ $it['url'] ?? '#' }}" target="_blank" rel="noopener sponsored"
-                   class="block p-3 rounded-xl border transition text-center" style="border-color: {{ $fontColor }}1a; background: {{ $fontColor }}08; color: {{ $fontColor }};">
+                   class="block p-3 rounded-xl border transition text-center" style="border-color: color-mix(in srgb, {{ $fontColor }} 10.2%, transparent); background: color-mix(in srgb, {{ $fontColor }} 3.14%, transparent); color: {{ $fontColor }};">
                     @if(!empty($it['thumbnail']))
                         <img src="{{ $it['thumbnail'] }}" alt="" class="w-full h-20 rounded-lg object-cover mb-2">
                     @endif
@@ -29,7 +29,7 @@
         <div class="space-y-2">
             @foreach($items as $it)
                 <a href="{{ $it['url'] ?? '#' }}" target="_blank" rel="noopener sponsored"
-                   class="flex items-center gap-3 p-3 rounded-xl border transition" style="border-color: {{ $fontColor }}1a; background: {{ $fontColor }}08; color: {{ $fontColor }};">
+                   class="flex items-center gap-3 p-3 rounded-xl border transition" style="border-color: color-mix(in srgb, {{ $fontColor }} 10.2%, transparent); background: color-mix(in srgb, {{ $fontColor }} 3.14%, transparent); color: {{ $fontColor }};">
                     @if(!empty($it['thumbnail']))
                         <img src="{{ $it['thumbnail'] }}" alt="" class="w-14 h-14 rounded-lg object-cover flex-shrink-0">
                     @else

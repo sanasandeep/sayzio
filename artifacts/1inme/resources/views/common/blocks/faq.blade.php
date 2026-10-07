@@ -5,7 +5,7 @@
                 <span class="text-sm font-medium flex items-center gap-2">@if(!empty($item['icon']))<i class="{{ fa_icon_class($item['icon']) }}"></i>@endif{{ $item['question'] ?? '' }}</span>
                 <i class="fas fa-chevron-down text-xs transition-transform" :class="open === {{ $i }} ? 'rotate-180' : ''"></i>
             </button>
-            <div x-show="open === {{ $i }}" x-cloak class="px-4 pb-3"><p class="text-sm" style="color:{{ $fontColor }}99">{{ $item['answer'] ?? '' }}</p></div>
+            <div x-show="open === {{ $i }}" x-cloak class="px-4 pb-3"><p class="text-sm" style="color:color-mix(in srgb, {{ $fontColor }} 60.0%, transparent)">{{ $item['answer'] ?? '' }}</p></div>
         </div>
         @endforeach
     </div>
