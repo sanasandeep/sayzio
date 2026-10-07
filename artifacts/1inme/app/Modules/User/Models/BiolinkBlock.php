@@ -506,6 +506,7 @@ class BiolinkBlock extends Model
         // Ignored entirely on a page with no menu.
         '_menu_slot' => '',
         '_motion' => 'none',
+        '_text_design' => '',
         '_animation' => '',        // heading animation hint (shimmer, glitch, ...)
         '_gallery_layout' => '',   // gallery layout (grid_2, masonry, ...)
         '_social_set' => '',       // social icon style set (mono_line, glassy, ...)

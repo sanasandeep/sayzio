@@ -48,7 +48,7 @@
         // at render time so a hand-edited value can never rotate wildly.
         $hTilt = max(-30, min(30, (float) ($haSt['_tilt'] ?? 0)));
     @endphp
-    <div class="mb-3 text-{{ $s['align'] ?? 'center' }} relative" data-tilt-wrap
+    <div class="mb-3 text-{{ $s['align'] ?? 'center' }} relative" data-tilt-wrap data-text-design="{{ $s['_style']['_text_design'] ?? '' }}"
          @if($hTilt != 0.0) style="transform:rotate({{ $hTilt }}deg)" @endif
          @if(!empty($haAccents)) data-heading-accents="{{ implode(',', $haAccents) }}" @endif>
         @if(!empty($haAccents))

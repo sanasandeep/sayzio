@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 22;
+    public const VERSION = 23;
 
     /**
      * Effective catalog version (Task #6045): the hardcoded VERSION
@@ -3766,6 +3766,16 @@ class BlockVariantCatalog
 
         foreach ((self::typeOneOffs()[$type] ?? []) as $v) {
             $variants[] = $v;
+        }
+
+        if (in_array($type, ['paragraph', 'paragraph_rich', 'heading', 'title'], true)) {
+            // Keep older saved styles resolvable while offering structurally distinct text designs.
+            if ($forGallery) $variants = [];
+            foreach (['editorial' => 'Editorial Drop Cap', 'quote' => 'Pull Quote', 'marker' => 'Marker Highlight', 'outline' => 'Outline Display', 'wobble' => 'Letter Wobble', 'split_words' => 'Word Reveal', 'split_chars' => 'Letter Cascade'] as $design => $name) {
+                $variants[] = ['key' => 'text_design_'.$design, 'name' => $name, 'tags' => [],
+                    'style' => ['display_mode' => 'content', 'text_color' => '', 'padding' => '0', '_motion' => 'none', '_text_design' => $design],
+                    'preview' => ['bg' => 'transparent', 'text' => '#172033']];
+            }
         }
 
         // Admin-managed additions (Task #6045). For the gallery only
