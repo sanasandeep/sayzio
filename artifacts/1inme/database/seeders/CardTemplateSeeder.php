@@ -49,7 +49,7 @@ class CardTemplateSeeder extends Seeder
      * carousel, conversion blocks (flash offer, coupon, tip jar) and a
      * categorised menu board.
      */
-    public const SEED_VERSION = 4;
+    public const SEED_VERSION = 5;
 
     public function run(): void
     {
@@ -174,6 +174,18 @@ class CardTemplateSeeder extends Seeder
 
     private function child(string $type, array $settings, int $span = 12): array
     {
+        if ($type === 'image' && empty($settings['url'])) {
+            $settings['url'] = asset('images/auth-slider/photo-agencies.png');
+            $settings['alt'] = 'A creative team collaborating in their studio';
+        }
+        if (str_starts_with($type, 'profile_card_')) {
+            $settings = array_merge($settings, [
+                'name' => 'Alex Morgan', 'title' => 'Independent designer & creator',
+                'bio' => 'Building thoughtful brands and useful digital experiences. Available for new collaborations.',
+                'avatar' => asset('images/auth-slider/photo-creators.png'),
+                'cover' => asset('images/auth-slider/photo-agencies.png'),
+            ]);
+        }
         $settings = array_merge($settings, $this->span($span));
         return ['type' => $type, 'settings' => $settings, 'is_active' => true];
     }
@@ -226,13 +238,9 @@ class CardTemplateSeeder extends Seeder
         // template previews look broken over time. Pick by aspect ratio so
         // square slots get the square art and wide banners get the cover art.
         $photo = function (string $keywords, int $w = 600, int $h = 600, string $seed = ''): string {
-            if ($w === $h) {
-                return asset('block-placeholders/image-square.svg');
-            }
-            if ($h > 0 && $w / $h >= 2) {
-                return asset('block-placeholders/cover.svg');
-            }
-            return asset('block-placeholders/image.svg');
+            $photos = ['agencies', 'creators', 'educators', 'musicians', 'podcasters', 'shops'];
+            $index = (int) sprintf('%u', crc32($keywords . $seed)) % count($photos);
+            return asset('images/auth-slider/photo-' . $photos[$index] . '.png');
         };
         $imgGrid = fn(array $urls, int $columns = 3, int $span = 12)
             => $this->child('image_grid', [

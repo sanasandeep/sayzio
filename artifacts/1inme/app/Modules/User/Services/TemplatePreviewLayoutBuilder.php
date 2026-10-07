@@ -74,9 +74,34 @@ class TemplatePreviewLayoutBuilder
                 && trim($settings['title']) !== '' && $settings['title'] !== 'What you do') {
                 $cell['sub_text'] = mb_substr(trim(strip_tags($settings['title'])), 0, 80);
             }
+            if ($cell['shape'] === 'list_rows' && is_array($settings['items'] ?? null)) {
+                $copyItems = [];
+                foreach (array_slice($settings['items'], 0, 3) as $entry) {
+                    $value = is_string($entry) ? $entry : (is_array($entry) ? ($entry['text'] ?? $entry['title'] ?? $entry['label'] ?? '') : '');
+                    if (is_string($value) && trim(strip_tags($value)) !== '') {
+                        $copyItems[] = mb_substr(trim(strip_tags($value)), 0, 80);
+                    }
+                }
+                if ($copyItems !== []) $cell['items'] = $copyItems;
+            }
+            // Admin-selected media should appear in the gallery as well as
+            // in the full template. Keep demo photography for missing/old art.
+            $media = $cell['shape'] === 'avatar' ? ($settings['avatar'] ?? null)
+                : ($type === 'image' ? ($settings['url'] ?? null) : null);
+            if (is_string($media) && filter_var($media, FILTER_VALIDATE_URL)
+                && in_array(strtolower((string) parse_url($media, PHP_URL_SCHEME)), ['https', 'http'], true)
+                && !str_contains($media, '/block-placeholders/')) {
+                $cell['img'] = $media;
+            }
             // Readable proportions for every gallery, without changing saved blocks.
             if (!in_array($cell['shape'], ['spacer', 'hairline'], true)) {
-                $cell['h'] = max(24, (int) $cell['h'] * 2);
+                $cell['h'] = match ($cell['shape']) {
+                    'media' => 96, 'avatar' => 48,
+                    'form' => 32 + 30 * ($cell['lines'] ?? 1),
+                    'list_rows' => 18 * ($cell['lines'] ?? 3),
+                    'text_lines' => 14 * ($cell['lines'] ?? 2),
+                    'badge' => 22, default => 30,
+                };
             }
             // Wrap to a new row when the current row can't fit this cell.
             if ($used + $span > 12 && $current) {
@@ -275,6 +300,26 @@ class TemplatePreviewLayoutBuilder
             // page-level overview readable at thumbnail size).
             'card'            => ['shape' => 'tile',       'bg' => 'rgba(255,255,255,0.06)', 'h' => 32, 'icon' => 'fa-square'],
         ];
+        foreach ($palette as $sampleType => &$sample) {
+            if (isset($sample['img']) && !str_contains($sample['img'], 'document.svg')) {
+                $photo = $sample['shape'] === 'avatar' ? 'creators' : match ($sampleType) {
+                    'audio', 'spotify', 'apple_music', 'soundcloud' => 'musicians',
+                    'product', 'image_grid' => 'shops',
+                    'video', 'header_video' => 'podcasters',
+                    default => 'agencies',
+                };
+                $sample['img'] = asset('images/auth-slider/photo-' . $photo . '.png');
+            }
+        }
+        unset($sample);
+        $palette['badge']['text'] = 'Available for projects';
+        $palette['social_proof']['text'] = 'Trusted by 120 independent teams';
+        $palette['ai_companion']['text'] = 'Ask Alex about projects & availability';
+        $palette['countdown']['text'] = 'Studio sessions · booking now';
+        $palette['progress']['text'] = 'Community goal · 75% funded';
+        $palette['qr_code']['text'] = 'Scan to explore the collection';
+        $palette['map']['text'] = 'Visit our studio · Brooklyn, NY';
+        $palette['map_location']['text'] = 'Studio North · Brooklyn, NY';
         return $palette[$type] ?? ['shape' => 'tile', 'bg' => 'rgba(255,255,255,0.10)', 'h' => 12, 'icon' => 'fa-cube'];
     }
 }
