@@ -1867,6 +1867,7 @@ class RedirectController extends Controller
 
         $typeMap = [
             'email_subscribe' => 'email',
+            'email_collector' => 'email',
             'phone_collector' => 'phone',
             'whatsapp_channel_subscribe' => 'whatsapp_channel',
             'whatsapp_number_subscribe' => 'whatsapp_number',
