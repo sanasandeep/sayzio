@@ -9,12 +9,12 @@
      background would otherwise wash white text out. Pill/button labels stay
      white in both modes because they sit on a coloured fill. --}}
 <style>
-    .tpl-prev-heading { font-size: 7px; font-weight: 700; line-height: 1.1; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tpl-prev-name    { font-size: 6.5px; font-weight: 700; line-height: 1.1; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tpl-prev-sub     { font-size: 5.5px; line-height: 1.15; color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tpl-prev-text    { font-size: 5.5px; line-height: 1.3; color: rgba(255,255,255,0.6); display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
-    .tpl-prev-list    { font-size: 5.5px; line-height: 1.1; color: rgba(255,255,255,0.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tpl-prev-pill    { font-size: 5.5px; font-weight: 700; line-height: 1; }
+    .tpl-prev-heading { font-size: 12px; font-weight: 700; line-height: 1.35; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tpl-prev-name    { font-size: 12px; font-weight: 700; line-height: 1.35; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tpl-prev-sub     { font-size: 10px; line-height: 1.15; color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tpl-prev-text    { font-size: 10px; line-height: 1.3; color: rgba(255,255,255,0.6); display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+    .tpl-prev-list    { font-size: 10px; line-height: 1.35; color: rgba(255,255,255,0.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tpl-prev-pill    { font-size: 10px; font-weight: 700; line-height: 1.3; }
     html.light-mode .tpl-prev-heading,
     html.light-mode .tpl-prev-name { color: rgba(7,20,55,0.88); }
     html.light-mode .tpl-prev-sub,
@@ -36,6 +36,12 @@
        `flex:1` stops bounding and the template list grows to full height and
        can't scroll. Declaring it here means x-show's `display:''` reverts to
        this rule (flex), keeping the header + scrollable body layout intact. */
+    .tpl-preview-social { display:flex; align-items:center; justify-content:center; color:#526079; border:1px solid rgba(100,116,139,.2); }
+    .template-gallery-card { box-shadow: 0 3px 12px rgba(0,0,0,.03); }
+    .template-gallery-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+    .template-gallery-description { font-size:11px; line-height:1.5; color:var(--text-muted); margin-bottom:8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .special-panel .gallery-tabs { padding:0 0 12px; gap:4px; }
+    .special-panel .gallery-tab { flex-shrink:0; min-height:36px; }
     .special-panel { display: flex; flex-direction: column; }
 </style>
 <div class="special-panel" x-show="specialOpen" x-cloak
@@ -184,7 +190,7 @@
             </div>
             <div class="grid grid-cols-1 gap-3" x-show="!cardTemplatesLoading">
                 <template x-for="t in visibleCardTemplates()" :key="t.id">
-                    <div class="relative rounded-xl border overflow-visible transition cursor-pointer group" style="border-color: var(--border-glass); background: rgba(61,107,255,0.02);"
+                    <div class="template-gallery-card relative rounded-xl border overflow-visible transition cursor-pointer group" style="border-color: var(--border-glass); background: rgba(61,107,255,0.02);"
                          x-data="{ expanded: false }"
                          @click="t.locked ? (window.location.href = '{{ route('user.upgrade') }}') : applyCardTemplate(t.id)"
                          :class="t.locked ? 'opacity-70 hover:border-amber-500/50' : 'hover:border-blue-500/50'"
@@ -196,7 +202,7 @@
                                 </div>
                             </template>
                             <template x-if="!t.thumbnail_url && (t.preview_layout || []).length">
-                                <div class="w-full px-2.5 py-2.5 flex flex-col gap-1.5" style="min-height: 64px; max-height: 340px;">
+                                <div class="w-full px-2.5 py-2.5 flex flex-col gap-1.5" style="min-height: 120px; max-height: 380px; overflow: hidden;">
                                     <template x-for="(row, ri) in t.preview_layout" :key="ri">
                                         <div class="flex gap-1 w-full items-center">
                                             <template x-for="(cell, ci) in row" :key="ci">
@@ -240,13 +246,13 @@
                                                     <template x-if="cell.shape === 'avatar'">
                                                         <div class="w-full flex items-center gap-1.5" :style="'min-height: ' + cell.h + 'px;'">
                                                             <template x-if="cell.img">
-                                                                <div class="relative rounded-full overflow-hidden shrink-0" :style="'width: ' + Math.max(cell.h - 8, 14) + 'px; height: ' + Math.max(cell.h - 8, 14) + 'px;'">
+                                                                <div class="relative rounded-full overflow-hidden shrink-0" :style="'width: ' + Math.min(Math.max(cell.h - 8, 28), 48) + 'px; height: ' + Math.min(Math.max(cell.h - 8, 28), 48) + 'px;'">
                                                                     <div class="tpl-prev-shimmer"></div>
                                                                     <img :src="cell.img" alt="" loading="lazy" class="relative w-full h-full object-cover" onload="this.previousElementSibling && this.previousElementSibling.remove()" onerror="this.previousElementSibling && this.previousElementSibling.remove()">
                                                                 </div>
                                                             </template>
                                                             <template x-if="!cell.img">
-                                                                <div class="rounded-full flex items-center justify-center text-white/90 shrink-0" :style="'background: ' + cell.bg + '; width: ' + Math.max(cell.h - 8, 14) + 'px; height: ' + Math.max(cell.h - 8, 14) + 'px;'">
+                                                                <div class="rounded-full flex items-center justify-center text-white/90 shrink-0" :style="'background: ' + cell.bg + '; width: ' + Math.min(Math.max(cell.h - 8, 28), 48) + 'px; height: ' + Math.min(Math.max(cell.h - 8, 28), 48) + 'px;'">
                                                                     <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 7px;"></i>
                                                                 </div>
                                                             </template>
@@ -280,7 +286,7 @@
                                                     <template x-if="cell.shape === 'dot_row'">
                                                         <div class="w-full flex items-center justify-center gap-1" :style="'min-height: ' + cell.h + 'px;'">
                                                             <template x-for="i in (cell.dots || 5)" :key="i">
-                                                                <div class="rounded-full" :style="'background: ' + cell.bg + '; width: 5px; height: 5px;'"></div>
+                                                                <div class="tpl-preview-social rounded-full" :style="'background: ' + cell.bg + '; width: 20px; height: 20px;'"><i :class="['fas fa-globe', 'fas fa-camera', 'fas fa-play', 'fas fa-envelope', 'fas fa-link'][i - 1]" style="font-size:9px;"></i></div>
                                                             </template>
                                                         </div>
                                                     </template>
@@ -289,7 +295,7 @@
                                                             <template x-for="i in (cell.lines || 1)" :key="i">
                                                                 <div class="rounded-[2px] w-full" :style="'background: ' + cell.bg + '; height: 5px;'"></div>
                                                             </template>
-                                                            <div class="rounded-full mx-auto flex items-center justify-center text-white/95 tpl-prev-pill px-1.5" :style="'background: ' + (cell.btn_bg || 'rgba(92,131,255,0.85)') + '; min-height: 7px; width: 70%;'">
+                                                            <div class="rounded-full mx-auto flex items-center justify-center text-white/95 tpl-prev-pill px-1.5" :style="'background: ' + (cell.btn_bg || 'rgba(92,131,255,0.85)') + '; min-height: 24px; width: 85%;'">
                                                                 <span x-show="cell.text" class="truncate" x-text="cell.text"></span>
                                                             </div>
                                                         </div>
@@ -320,7 +326,7 @@
                                                     </template>
                                                     <template x-if="!cell.shape || cell.shape === 'tile'">
                                                         <div class="w-full rounded-[3px] flex items-center justify-center text-white/70" :style="'background: ' + cell.bg + '; min-height: ' + cell.h + 'px;'">
-                                                            <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 8px;"></i>
+                                                            <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 12px;"></i><span class="tpl-prev-list px-2" x-text="cell.text || 'Explore more'"></span>
                                                         </div>
                                                     </template>
                                                 </div>
@@ -337,6 +343,7 @@
                             <div x-show="t.locked" class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/90 text-white"><i class="fas fa-lock mr-1"></i><span x-text="t.plan_tier"></span></div>
                         </div>
                         <div class="p-3">
+                            <p class="template-gallery-description" x-show="t.description" x-text="t.description"></p>
                             <div class="flex items-start justify-between gap-2 mb-1.5">
                                 <div class="text-xs font-semibold flex-1 min-w-0" style="color: var(--text-primary);" x-text="t.name"></div>
                                 <span class="shrink-0 text-[8.5px] uppercase tracking-wide px-1.5 py-0.5 rounded-full whitespace-nowrap"

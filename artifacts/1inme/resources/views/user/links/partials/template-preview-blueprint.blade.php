@@ -23,12 +23,12 @@
            the dark theme; dark ink under html.light-mode where the pale thumbnail
            background would wash white text out. Pill/button labels stay white
            because they sit on a coloured fill. */
-        .tpl-prev-heading { font-size: 8px; font-weight: 700; line-height: 1.1; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .tpl-prev-name    { font-size: 7.5px; font-weight: 700; line-height: 1.1; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .tpl-prev-sub     { font-size: 6px; line-height: 1.15; color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .tpl-prev-text    { font-size: 6px; line-height: 1.3; color: rgba(255,255,255,0.6); display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
-        .tpl-prev-list    { font-size: 6px; line-height: 1.1; color: rgba(255,255,255,0.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .tpl-prev-pill    { font-size: 6px; font-weight: 700; line-height: 1; }
+        .tpl-prev-heading { font-size: 12px; font-weight: 700; line-height: 1.35; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tpl-prev-name    { font-size: 12px; font-weight: 700; line-height: 1.35; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tpl-prev-sub     { font-size: 10px; line-height: 1.15; color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tpl-prev-text    { font-size: 10px; line-height: 1.3; color: rgba(255,255,255,0.6); display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+        .tpl-prev-list    { font-size: 10px; line-height: 1.35; color: rgba(255,255,255,0.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tpl-prev-pill    { font-size: 10px; font-weight: 700; line-height: 1.3; }
         html.light-mode .tpl-prev-heading,
         html.light-mode .tpl-prev-name { color: rgba(7,20,55,0.88); }
         html.light-mode .tpl-prev-sub,
@@ -183,7 +183,8 @@
                         @default
                             <div class="w-full rounded-[3px] flex items-center justify-center text-white/70"
                                  style="background: {{ $bg }}; min-height: {{ $h }}px;">
-                                @if($icon)<i class="fas {{ $icon }}" style="font-size: 8px;"></i>@endif
+                                @if($icon)<i class="fas {{ $icon }}" style="font-size: 12px;"></i>@endif
+                                <span class="tpl-prev-list px-2">{{ $text ?: 'Explore more' }}</span>
                             </div>
                     @endswitch
                 </div>
