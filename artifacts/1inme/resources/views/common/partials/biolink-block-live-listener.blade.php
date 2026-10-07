@@ -28,7 +28,13 @@
                     el.classList.add('text-' + v);
                     return true;
                 }
-                function setText(el, v) { if (!el) return false; el.textContent = v; return true; }
+                function setText(el, v) {
+                    if (!el) return false;
+                    var animated = el.closest('[data-text-prepared]');
+                    if (animated) delete animated.dataset.textPrepared;
+                    el.textContent = v;
+                    return true;
+                }
                 // Text target inside a button-like <a> across the link layouts.
                 function linkTextTarget(root) {
                     var a = root.querySelector('a');
