@@ -16,6 +16,12 @@
        - The trailing @else keeps the legacy poll/comments hook for
          content-mode blocks and shows a placeholder for unknown types. --}}
 @php
+    // Resolve the same color used by the styled wrapper. Inner partials use
+    // fontColor for inline text, which otherwise overrides wrapper inheritance.
+    $__effectiveBlockStyle = \App\Modules\User\Models\BiolinkBlock::getBlockStyle($s, $globalTheme ?? []);
+    if (!empty($__effectiveBlockStyle['text_color'])) {
+        $fontColor = $__effectiveBlockStyle['text_color'];
+    }
     $__blockPartials = [
         "avatar"                           => 'common.blocks.avatar',
         "heading"                          => 'common.blocks.heading',
@@ -146,7 +152,7 @@
                     {{-- Owner hasn't published yet — render nothing on the public page. --}}
                 @elseif ($__rDisplay === 'inline')
                     <div class="rounded-2xl overflow-hidden mb-3" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);">
-                        <div class="px-3 py-2 flex items-center justify-between text-xs" style="color: {{ $fontColor }}cc;">
+                        <div class="px-3 py-2 flex items-center justify-between text-xs" style="color: color-mix(in srgb, {{ $fontColor }} 80.0%, transparent);">
                             <span class="inline-flex items-center gap-2 font-semibold"><i class="fas fa-file-lines"></i> {{ $__rTitle }}</span>
                             <a href="{{ $__rUrl }}" class="font-bold underline-offset-2 hover:underline" style="color: {{ $fontColor }};">Open <i class="fas fa-external-link-alt text-[10px]"></i></a>
                         </div>
@@ -445,7 +451,7 @@
                      x-init="init()">
                     <p class="text-sm font-semibold mb-3">{{ $s['question'] ?? '' }}</p>
                     <template x-if="resultsLocked">
-                        <p class="text-xs mb-2" style="color:{{ $fontColor }}99">
+                        <p class="text-xs mb-2" style="color:color-mix(in srgb, {{ $fontColor }} 60.0%, transparent)">
                             <i class="fas fa-lock mr-1"></i>Results visible after <span x-text="revealAtDisplay"></span>
                         </p>
                     </template>
@@ -473,7 +479,7 @@
                     </template>
                     <template x-if="results">
                         <div>
-                            <p class="text-xs mb-2" style="color:{{ $fontColor }}88">
+                            <p class="text-xs mb-2" style="color:color-mix(in srgb, {{ $fontColor }} 53.33%, transparent)">
                                 <span x-text="results.total_votes"></span>
                                 <span x-text="results.total_votes === 1 ? 'vote' : 'votes'"></span>
                             </p>
@@ -489,7 +495,7 @@
                                                 <i class="fas fa-check text-xs text-indigo-300"></i>
                                             </template>
                                             <span class="text-xs font-semibold tabular-nums" x-text="opt.percent + '%'"></span>
-                                            <span class="text-[10px] tabular-nums" style="color:{{ $fontColor }}66" x-text="opt.count"></span>
+                                            <span class="text-[10px] tabular-nums" style="color:color-mix(in srgb, {{ $fontColor }} 40.0%, transparent)" x-text="opt.count"></span>
                                         </div>
                                     </div>
                                 </template>
@@ -511,7 +517,7 @@
                         <div><p class="text-sm font-medium">{{ $s['name'] ?? '' }}</p>
                         <div class="flex gap-0.5">@for($star = 1; $star <= 5; $star++)<i class="fas fa-star text-xs {{ $star <= ($s['rating'] ?? 5) ? 'text-yellow-400' : 'text-white/20' }}"></i>@endfor</div></div>
                     </div>
-                    <p class="text-sm" style="color:{{ $fontColor }}cc">{{ $s['text'] ?? '' }}</p>
+                    <p class="text-sm" style="color:color-mix(in srgb, {{ $fontColor }} 80.0%, transparent)">{{ $s['text'] ?? '' }}</p>
                 </div>
 
             @elseif($block->type === 'reviews_wall')
@@ -533,7 +539,7 @@
                         <div class="text-3xl font-bold">{{ number_format($rwSummary['average'] ?? 0, 1) }}</div>
                         <div>
                             <div class="flex gap-0.5">@for($star = 1; $star <= 5; $star++)<i class="fas fa-star text-sm {{ $star <= round($rwSummary['average'] ?? 0) ? 'text-yellow-400' : 'text-white/20' }}"></i>@endfor</div>
-                            <p class="text-xs mt-0.5" style="color:{{ $fontColor }}88">{{ $rwSummary['total'] ?? 0 }} reviews</p>
+                            <p class="text-xs mt-0.5" style="color:color-mix(in srgb, {{ $fontColor }} 53.33%, transparent)">{{ $rwSummary['total'] ?? 0 }} reviews</p>
                         </div>
                     </div>
                     @endif
@@ -549,7 +555,7 @@
                                 </div>
                                 @if(!empty($rev['source']) && $rev['source'] !== 'native')<span class="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/50">{{ $rev['source_label'] }}</span>@endif
                             </div>
-                            @if(!empty($rev['body']))<p class="text-sm" style="color:{{ $fontColor }}cc">{{ $rev['body'] }}</p>@endif
+                            @if(!empty($rev['body']))<p class="text-sm" style="color:color-mix(in srgb, {{ $fontColor }} 80.0%, transparent)">{{ $rev['body'] }}</p>@endif
                             @if(!empty($rev['media']))
                             <div class="flex gap-1.5 mt-2 flex-wrap">
                                 @foreach($rev['media'] as $m)
@@ -560,16 +566,16 @@
                             </div>
                             @endif
                             @if(!empty($rev['answers']))
-                            <div class="mt-2 text-xs space-y-0.5" style="color:{{ $fontColor }}99">
-                                @foreach($rev['answers'] as $a)<div><span class="font-medium" style="color:{{ $fontColor }}cc">{{ $a['prompt'] }}:</span> {{ $a['answer'] }}</div>@endforeach
+                            <div class="mt-2 text-xs space-y-0.5" style="color:color-mix(in srgb, {{ $fontColor }} 60.0%, transparent)">
+                                @foreach($rev['answers'] as $a)<div><span class="font-medium" style="color:color-mix(in srgb, {{ $fontColor }} 80.0%, transparent)">{{ $a['prompt'] }}:</span> {{ $a['answer'] }}</div>@endforeach
                             </div>
                             @endif
                             @if(!empty($rev['reply']))
-                            <div class="mt-2 pl-2.5 border-l-2 border-indigo-500/40 text-xs" style="color:{{ $fontColor }}aa"><span class="text-indigo-400 font-medium">Reply:</span> {{ $rev['reply'] }}</div>
+                            <div class="mt-2 pl-2.5 border-l-2 border-indigo-500/40 text-xs" style="color:color-mix(in srgb, {{ $fontColor }} 66.67%, transparent)"><span class="text-indigo-400 font-medium">Reply:</span> {{ $rev['reply'] }}</div>
                             @endif
                         </div>
                         @empty
-                        <p class="text-sm text-center py-4" style="color:{{ $fontColor }}66">No reviews yet, be the first!</p>
+                        <p class="text-sm text-center py-4" style="color:color-mix(in srgb, {{ $fontColor }} 40.0%, transparent)">No reviews yet, be the first!</p>
                         @endforelse
                     </div>
                     @if($s['allow_submissions'] ?? true)
@@ -604,7 +610,7 @@
                         <div class="relative">
                             <div class="absolute -left-[25px] w-3 h-3 rounded-full {{ $dotColor }}"></div>
                             <p class="text-sm font-medium">{{ $item['title'] ?? '' }}</p>
-                            @if(!empty($item['description']))<p class="text-xs mt-0.5" style="color:{{ $fontColor }}88">{{ $item['description'] }}</p>@endif
+                            @if(!empty($item['description']))<p class="text-xs mt-0.5" style="color:color-mix(in srgb, {{ $fontColor }} 53.33%, transparent)">{{ $item['description'] }}</p>@endif
                             @if(!empty($item['date']))<p class="text-xs mt-0.5 text-indigo-400/60">{{ $item['date'] }}</p>@endif
                         </div>
                         @endforeach
@@ -634,7 +640,7 @@
                 <div class="mb-4 glass-block rounded-xl p-5 text-center">
                     <i class="fas fa-hand-holding-heart text-2xl mb-2 text-pink-400"></i>
                     <p class="font-semibold text-sm">{{ $s['title'] ?? 'Support Us' }}</p>
-                    @if(!empty($s['description']))<p class="text-xs mt-1" style="color:{{ $fontColor }}88">{{ $s['description'] }}</p>@endif
+                    @if(!empty($s['description']))<p class="text-xs mt-1" style="color:color-mix(in srgb, {{ $fontColor }} 53.33%, transparent)">{{ $s['description'] }}</p>@endif
                     <div class="flex justify-center gap-2 mt-3 flex-wrap">
                         @foreach(($s['amounts'] ?? [5,10,25]) as $amt)
                         <a href="{{ ($s['url'] ?? '#') }}" target="_blank" class="bio-btn px-4 py-2 text-sm font-medium">${{ $amt }}</a>
@@ -645,7 +651,7 @@
             @elseif($block->type === 'coupon')
                 <div class="mb-4 glass-block rounded-xl p-5 text-center" x-data="{ copied: false }">
                     <i class="fas fa-ticket-alt text-2xl mb-2 text-yellow-400"></i>
-                    <p class="text-xs mb-2" style="color:{{ $fontColor }}88">{{ $s['description'] ?? '' }}</p>
+                    <p class="text-xs mb-2" style="color:color-mix(in srgb, {{ $fontColor }} 53.33%, transparent)">{{ $s['description'] ?? '' }}</p>
                     <div class="flex items-center justify-center gap-2">
                         <code class="px-4 py-2 rounded-lg bg-white/10 border border-dashed border-white/20 font-mono text-lg font-bold tracking-wider">{{ $s['code'] ?? '' }}</code>
                         <button @click="navigator.clipboard.writeText('{{ $s['code'] ?? '' }}'); copied = true; setTimeout(() => copied = false, 2000)" class="bio-btn px-3 py-2 text-sm"><i class="fas" :class="copied ? 'fa-check' : 'fa-copy'"></i></button>
@@ -657,7 +663,7 @@
                 <div class="mb-4 glass-block rounded-xl p-5 text-center border border-yellow-500/20">
                     <p class="text-xs font-bold uppercase tracking-wider text-yellow-400 mb-1">Limited Offer</p>
                     <p class="font-semibold">{{ $s['title'] ?? '' }}</p>
-                    @if(!empty($s['description']))<p class="text-xs mt-1" style="color:{{ $fontColor }}88">{{ $s['description'] }}</p>@endif
+                    @if(!empty($s['description']))<p class="text-xs mt-1" style="color:color-mix(in srgb, {{ $fontColor }} 53.33%, transparent)">{{ $s['description'] }}</p>@endif
                     <div class="flex items-baseline justify-center gap-2 mt-2">
                         @if(!empty($s['original_price']))<span class="text-sm line-through text-white/30">{{ $s['original_price'] }}</span>@endif
                         <span class="text-2xl font-bold text-yellow-400">{{ $s['price'] ?? '' }}</span>
@@ -722,7 +728,7 @@
                     @foreach(($s['cards'] ?? $s['items'] ?? []) as $card)
                     <div class="glass-block rounded-xl flex-shrink-0 w-64 snap-center overflow-hidden">
                         @if(!empty($card['image']))<img src="{{ $card['image'] }}" class="w-full h-32 object-cover" alt="">@endif
-                        <div class="p-3"><p class="font-medium text-sm">{{ $card['title'] ?? $card['name'] ?? '' }}</p>@if(!empty($card['description']))<p class="text-xs mt-1" style="color:{{ $fontColor }}88">{{ $card['description'] }}</p>@endif
+                        <div class="p-3"><p class="font-medium text-sm">{{ $card['title'] ?? $card['name'] ?? '' }}</p>@if(!empty($card['description']))<p class="text-xs mt-1" style="color:color-mix(in srgb, {{ $fontColor }} 53.33%, transparent)">{{ $card['description'] }}</p>@endif
                         @if(!empty($card['url']))<a href="{{ $card['url'] }}" target="_blank" class="text-xs text-indigo-400 mt-2 inline-block">View &rarr;</a>@endif</div>
                     </div>
                     @endforeach
@@ -759,7 +765,7 @@
             @elseif($block->type === 'external_item')
                 <a href="{{ $s['url'] ?? '#' }}" target="_blank" class="mb-3 glass-block rounded-xl overflow-hidden block hover:bg-white/[0.06] transition">
                     @if(!empty($s['image']))<img src="{{ $s['image'] }}" class="w-full h-40 object-cover" alt="">@endif
-                    <div class="p-4"><p class="font-medium text-sm">{{ $s['title'] ?? '' }}</p>@if(!empty($s['description']))<p class="text-xs mt-1" style="color:{{ $fontColor }}88">{{ $s['description'] }}</p>@endif</div>
+                    <div class="p-4"><p class="font-medium text-sm">{{ $s['title'] ?? '' }}</p>@if(!empty($s['description']))<p class="text-xs mt-1" style="color:color-mix(in srgb, {{ $fontColor }} 53.33%, transparent)">{{ $s['description'] }}</p>@endif</div>
                 </a>
 
             @elseif($block->type === 'map')
@@ -880,7 +886,7 @@
                         <div class="block-bg-preset" aria-hidden="true" style="position:absolute;inset:0;z-index:-1;pointer-events:none;{!! $containerPreset['css'] !!};background-attachment:scroll !important;opacity:{{ $containerPreset['opacity'] / 100 }};"></div>
                     @endif
                     @if(!empty($s['title']))
-                    <div class="mb-3 text-sm font-semibold" style="color: {{ $fontColor ?? '#fff' }}cc;">{{ $s['title'] }}</div>
+                    <div class="mb-3 text-sm font-semibold" style="color: color-mix(in srgb, {{ $fontColor ?? '#fff' }} 80.0%, transparent);">{{ $s['title'] }}</div>
                     @endif
                     <div class="{{ trim(($stackMobile ? 'grid-stack-mobile ' : '') . ($hasOwnGap ? 'container-own-gap' : '')) }}" style="display:grid; grid-template-columns:{{ $gridTemplate }}; gap:{{ $gap }}px;">
                         @foreach($cardChildren as $childBlock)

@@ -84,7 +84,7 @@
                 @endphp
                 <a href="{{ $url }}" target="_blank" rel="noopener" @click.prevent="open(@js($url), @js($name), @js($ext))"
                    class="flex flex-col items-center text-center p-3 rounded-xl border transition hover:-translate-y-0.5"
-                   style="border-color: {{ $fontColor }}1a; background: {{ $fontColor }}08;">
+                   style="border-color: color-mix(in srgb, {{ $fontColor }} 10.2%, transparent); background: color-mix(in srgb, {{ $fontColor }} 3.14%, transparent);">
                     <i class="fas {{ $iconFor($ext) }} text-2xl mb-2" style="color: {{ $accent }};"></i>
                     <div class="text-xs font-medium truncate w-full" style="color: {{ $fontColor }};">{{ $name }}</div>
                     @if($sz)<div class="text-[10px] opacity-50 mt-0.5" style="color: {{ $fontColor }};">{{ $sz }}</div>@endif
@@ -103,7 +103,7 @@
                 @endphp
                 <a href="{{ $url }}" target="_blank" rel="noopener" @click.prevent="open(@js($url), @js($name), @js($ext))"
                    class="flex items-center gap-3 p-3 rounded-xl border transition hover:-translate-y-0.5"
-                   style="border-color: {{ $fontColor }}1a; background: {{ $fontColor }}08;">
+                   style="border-color: color-mix(in srgb, {{ $fontColor }} 10.2%, transparent); background: color-mix(in srgb, {{ $fontColor }} 3.14%, transparent);">
                     <div class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
                          style="background: {{ $accent }}22;">
                         <i class="fas {{ $iconFor($ext) }} text-xl" style="color: {{ $accent }};"></i>
@@ -129,7 +129,7 @@
                 <a href="{{ $url }}" target="_blank" rel="noopener" @click.prevent="open(@js($url), @js($name), @js($ext))"
                    class="flex items-center gap-3 px-2 py-2 rounded-lg transition"
                    style="color: {{ $fontColor }};"
-                   onmouseover="this.style.background='{{ $fontColor }}10'"
+                   onmouseover="this.style.background='color-mix(in srgb, {{ $fontColor }} 6.27%, transparent)'"
                    onmouseout="this.style.background=''">
                     <i class="fas {{ $iconFor($ext) }} w-5 text-center" style="color: {{ $accent }};"></i>
                     <span class="flex-1 text-sm truncate">{{ $name }}</span>

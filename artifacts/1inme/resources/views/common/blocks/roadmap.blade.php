@@ -118,7 +118,7 @@
                        class="rm-input px-3 py-2 rounded-lg border text-sm bg-white/90 text-slate-900">
             </div>
             <div class="flex items-center justify-between mt-2 gap-2">
-                <p class="rm-feedback text-xs" style="color: {{ $fontColor ?? '#0f172a' }}cc;"></p>
+                <p class="rm-feedback text-xs" style="color: color-mix(in srgb, {{ $fontColor ?? '#0f172a' }} 80.0%, transparent);"></p>
                 <div class="flex gap-2">
                     <button type="button" class="rm-cancel text-xs px-3 py-1.5 rounded-lg" style="color: {{ $fontColor ?? '#0f172a' }};">Cancel</button>
                     <button type="submit" class="text-xs font-bold px-3 py-1.5 rounded-lg" style="background: {{ $statusAccent['planned'] ?? '#60a5fa' }}; color: #0b1120;">Submit idea</button>

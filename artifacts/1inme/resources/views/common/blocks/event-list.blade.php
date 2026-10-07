@@ -72,7 +72,7 @@
                 @php $d = $fmtDate($e['date'] ?? null); @endphp
                 <a href="{{ $e['url'] ?? '#' }}" @if(!empty($e['url'])) target="_blank" rel="noopener" @endif
                    class="block p-3 rounded-xl border transition hover:-translate-y-0.5"
-                   style="border-color: {{ $fontColor }}1a; background: {{ $fontColor }}08;">
+                   style="border-color: color-mix(in srgb, {{ $fontColor }} 10.2%, transparent); background: color-mix(in srgb, {{ $fontColor }} 3.14%, transparent);">
                     @if($d)
                         <div class="text-[10px] uppercase tracking-wider mb-1" style="color: {{ $accent }};">{{ $d->format('M d, Y · g:i A') }}</div>
                     @endif
@@ -122,7 +122,7 @@
     @endif
 
     @if($showSubscribe)
-        <div class="mt-3 pt-3 flex items-center justify-between gap-2" style="border-top: 1px solid {{ $fontColor }}1a;">
+        <div class="mt-3 pt-3 flex items-center justify-between gap-2" style="border-top: 1px solid color-mix(in srgb, {{ $fontColor }} 10.2%, transparent);">
             <a href="{{ $calSrc['calendar_url'] }}" class="text-xs font-semibold inline-flex items-center gap-1.5 hover:underline" style="color: {{ $accent }};">
                 <i class="fas fa-calendar-days"></i> View full calendar
             </a>

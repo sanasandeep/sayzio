@@ -43,10 +43,10 @@
         <div class="px-5 py-8 text-center">
             <div class="text-4xl mb-3">🎉</div>
             <p class="font-semibold text-base" style="color:{{ $fontColor }}">Thank you for the tip!</p>
-            <p class="text-xs mt-1" style="color:{{ $fontColor }}99">Your support goes straight to {{ $tjCreator?->name ?? 'the creator' }}.</p>
+            <p class="text-xs mt-1" style="color:color-mix(in srgb, {{ $fontColor }} 60.0%, transparent)">Your support goes straight to {{ $tjCreator?->name ?? 'the creator' }}.</p>
             <button type="button" @click="done=false; selected=null; custom=''"
                     class="mt-4 text-xs font-medium underline underline-offset-2"
-                    style="color:{{ $fontColor }}88">
+                    style="color:color-mix(in srgb, {{ $fontColor }} 53.33%, transparent)">
                 Send another tip
             </button>
         </div>
@@ -61,7 +61,7 @@
                     <p class="font-semibold text-base truncate" style="color:{{ $fontColor }}">{{ $tjTitle }}</p>
                 </div>
                 @if($tjMessage)
-                    <p class="text-xs" style="color:{{ $fontColor }}99">{{ $tjMessage }}</p>
+                    <p class="text-xs" style="color:color-mix(in srgb, {{ $fontColor }} 60.0%, transparent)">{{ $tjMessage }}</p>
                 @endif
             </div>
 
@@ -81,7 +81,7 @@
                 <div class="px-5 pb-3">
                     <div class="flex items-center gap-2 rounded-xl px-3 py-2"
                          style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.10);">
-                        <span class="text-sm font-medium" style="color:{{ $fontColor }}88">{{ $tjCurrencySymbol }}</span>
+                        <span class="text-sm font-medium" style="color:color-mix(in srgb, {{ $fontColor }} 53.33%, transparent)">{{ $tjCurrencySymbol }}</span>
                         <input type="number" min="1" max="1000" step="1"
                                x-model="custom"
                                @input="selected = null"
@@ -115,7 +115,7 @@
                         </template>
                     </button>
                 </form>
-                <p class="text-[10px] text-center mt-2" style="color:{{ $fontColor }}55">0% platform fee · goes directly to the creator</p>
+                <p class="text-[10px] text-center mt-2" style="color:color-mix(in srgb, {{ $fontColor }} 33.33%, transparent)">0% platform fee · goes directly to the creator</p>
             </div>
         </div>
     </template>
