@@ -335,6 +335,8 @@
                     $pv = $v['preview'] ?? [];
                     $thumbBg = $pv['bg'] ?? '#1a1a2e';
                     $thumbText = $pv['text'] ?? '#ffffff';
+                    // Translucent designs need a visible ground even before the live response.
+                    if ($thumbBg === 'transparent' || str_starts_with($thumbBg, 'rgba(')) $thumbBg = '#202437';
                     $thumbRadius = (int) ($pv['radius'] ?? 12);
                     $thumbBorder = $pv['border'] ?? '';
                     $thumbShadow = $pv['shadow'] ?? '';
@@ -419,20 +421,20 @@
                         @if($shapeKind === 'button')
                             <div class="px-3 py-1.5 text-[9px] font-bold"
                                  style="background: {{ $thumbText }}; color: {{ $thumbBg === 'transparent' ? '#000' : $thumbBg }}; border-radius: {{ min($thumbRadius, 999) }}px;">
-                                Click me
+                                Explore my work
                             </div>
                         @elseif($shapeKind === 'button_outline')
                             <div class="px-3 py-1.5 text-[9px] font-bold"
                                  style="background: transparent; color: {{ $thumbText }}; border: 1.5px solid {{ $thumbText }}; border-radius: {{ min($thumbRadius, 999) }}px;">
-                                Click me
+                                Explore my work
                             </div>
                         @elseif($shapeKind === 'plain_link')
                             <span class="text-[10px] font-medium underline decoration-1 underline-offset-2"
-                                  style="color: {{ $thumbText }};">Click me →</span>
+                                  style="color: {{ $thumbText }};">Explore my work →</span>
                         @elseif($shapeKind === 'image_btn')
                             <div class="w-full h-full rounded flex items-end p-1.5"
                                  style="background: linear-gradient(135deg,#3d6bff,#ec4899); border-radius: {{ min($thumbRadius, 16) }}px;">
-                                <span class="text-[9px] font-bold text-white drop-shadow">Click me</span>
+                                <span class="text-[9px] font-bold text-white drop-shadow">Explore my work</span>
                             </div>
                         @elseif($shapeKind === 'avatar')
                             <div class="rounded-full" style="width: 28px; height: 28px; background: {{ $thumbText }}; opacity: 0.85;"></div>
@@ -1530,7 +1532,7 @@ window.blockDesignsGallery = function(opts) {
             // dark background.
             var color = p.text_color || groundInk || '#ffffff';
             var safe = String(rawLabel || '').replace(/[<>&"]/g, '').slice(0, 18);
-            var label = safe || p.name || 'Preview';
+            var label = safe || 'Explore my work';
             // Retro browser-window variants (Task #6568): wrap the sketch
             // in a mini window frame — title bar with three control dots,
             // thick border, hard offset shadow — matching the public
@@ -1542,12 +1544,25 @@ window.blockDesignsGallery = function(opts) {
                     + '<div style="padding:7px 10px;font-size:10px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</div>'
                     + '</div>';
             }
+            if (p.link_layout && p.link_layout.indexOf('image') === 0) {
+                var image = String(p.demo_image || '').replace(/["<>]/g, '');
+                var picture = '<img src="' + image + '" alt="" style="width:38px;height:38px;object-fit:cover;border-radius:8px;flex-shrink:0;">';
+                if (p.link_layout.indexOf('cover') !== -1 || p.link_layout === 'image_top') {
+                    return '<div style="width:100%;height:100%;border-radius:10px;overflow:hidden;position:relative;background:#172033;">'
+                        + '<img src="' + image + '" alt="" style="width:100%;height:100%;object-fit:cover;">'
+                        + '<span style="position:absolute;inset:0;display:flex;align-items:flex-end;padding:8px;background:linear-gradient(transparent,rgba(0,0,0,.8));color:#fff !important;font-size:11px;font-weight:700;">' + label + ' ↗</span></div>';
+                }
+                return '<div style="' + inline + 'width:100%;display:flex;gap:8px;align-items:center;padding:7px;color:' + color + ' !important;">'
+                    + (p.link_layout === 'image_right' ? '' : picture)
+                    + '<span style="flex:1;font-size:11px;font-weight:600;color:inherit !important;">' + label + ' ↗</span>'
+                    + (p.link_layout === 'image_right' ? picture : '') + '</div>';
+            }
             switch (p.shape_kind) {
                 case 'button':
                 case 'button_outline':
-                    return '<div style="' + inline + 'display:inline-flex;align-items:center;justify-content:center;padding:6px 14px;font-size:11px;font-weight:600;color:' + color + ';white-space:nowrap;max-width:96%;overflow:hidden;text-overflow:ellipsis;">' + label + '</div>';
+                    return '<div style="' + inline + 'display:inline-flex;align-items:center;justify-content:center;padding:6px 14px;font-size:11px;font-weight:600;color:' + color + ' !important;white-space:nowrap;max-width:96%;overflow:hidden;text-overflow:ellipsis;">' + label + '</div>';
                 case 'plain_link':
-                    return '<span style="font-size:11px;font-weight:500;text-decoration:underline;text-underline-offset:2px;color:' + color + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:96%;">' + label + ' →</span>';
+                    return '<span style="font-size:11px;font-weight:500;text-decoration:underline;text-underline-offset:2px;color:' + color + ' !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:96%;">' + label + ' →</span>';
                 case 'image':
                     return '<div style="' + inline + 'width:78%;height:88%;display:flex;align-items:center;justify-content:center;color:' + color + ';opacity:0.9;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.6" fill="currentColor" stroke="none"/><path d="M21 15l-5-5L5 21"/></svg></div>';
                 case 'image_btn':
@@ -1555,7 +1570,7 @@ window.blockDesignsGallery = function(opts) {
                 case 'avatar':
                     return '<div style="' + inline + 'width:48px;height:48px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:' + color + ';font-weight:700;font-size:14px;">' + (label.charAt(0).toUpperCase() || 'A') + '</div>';
                 case 'heading':
-                    return '<div style="' + inline + 'padding:6px 10px;font-size:13px;font-weight:700;color:' + color + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:96%;line-height:1.2;">' + (label || 'Heading') + '</div>';
+                    return '<div style="' + inline + 'padding:6px 10px;font-size:13px;font-weight:700;color:' + color + ' !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:96%;line-height:1.2;">' + (label || 'Heading') + '</div>';
                 case 'divider': {
                     // Sketch the actual divider preset (Task #6581) from
                     // the variant's content-settings payload.
