@@ -2,7 +2,6 @@
     $settingsTabs = [
         'appearance' => ['icon' => 'fa-palette', 'label' => 'Appearance', 'route' => 'user.links.settings.appearance'],
         'layout' => ['icon' => 'fa-ruler-combined', 'label' => 'Layout', 'route' => 'user.links.settings.layout'],
-        'block-theme' => ['icon' => 'fa-wand-magic-sparkles', 'label' => 'Block Theme', 'route' => 'user.links.settings.block-theme'],
         'themes' => ['icon' => 'fa-calendar-week', 'label' => 'Themes', 'route' => 'user.links.themes.settings'],
         'advanced' => ['icon' => 'fa-sliders-h', 'label' => 'Advanced', 'route' => 'user.links.settings.advanced'],
         'embed'    => ['icon' => 'fa-code', 'label' => 'Embed', 'route' => 'user.links.settings.embed'],
@@ -15,7 +14,7 @@
         $__tabs = [];
         foreach ($settingsTabs as $k => $t) {
             $__tabs[$k] = $t;
-            if ($k === 'block-theme') {
+            if ($k === 'layout') {
                 $__tabs['default-colors'] = ['icon' => 'fa-fill-drip', 'label' => 'Default Colors', 'route' => 'user.links.settings.default-colors'];
             }
         }
@@ -25,7 +24,7 @@
     // settings surfaces remain until the creator detaches from the template.
     $__designLocked = method_exists($link, 'isDesignLocked') && $link->isDesignLocked();
     if ($__designLocked) {
-        unset($settingsTabs['appearance'], $settingsTabs['layout'], $settingsTabs['block-theme'], $settingsTabs['themes']);
+        unset($settingsTabs['appearance'], $settingsTabs['layout'], $settingsTabs['themes']);
     }
 @endphp
 
