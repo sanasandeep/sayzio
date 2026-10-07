@@ -961,7 +961,16 @@ class BiolinkBlockController extends Controller
                 $sampleSettings['text'] = $sampleSettings['text'] ?? 'Explore my work';
                 $sampleSettings['url'] = '#';
                 $sampleSettings['icon'] = $sampleSettings['icon'] ?? 'fas fa-link';
-                $sampleSettings['thumbnail'] = asset('images/auth-slider/photo-creators.png');
+                if (str_starts_with($v['style']['link_layout'] ?? '', 'image')) {
+                    $sampleSettings['thumbnail'] = asset('images/auth-slider/photo-creators.png');
+                } else {
+                    unset($sampleSettings['thumbnail']);
+                }
+                $previewBg = $resolved['bg_color'] ?? 'transparent';
+                if ($previewBg === 'transparent' || preg_match('/^#ffffff[0-9a-f]{2}$/i', $previewBg)) {
+                    $resolved['text_color'] = '#334155';
+                    $resolved['border_color'] = '#64748b';
+                }
                 $sample->settings = $sampleSettings;
                 $renderedLink = view('common.blocks.link', [
                     'block' => $sample, 's' => $sampleSettings, 'blocks' => collect(),

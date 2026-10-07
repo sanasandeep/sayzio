@@ -35,6 +35,7 @@ class BlockStyleSanitizer
         'taped_note',
         'arrow_hex', 'arrow_hex_round', 'numbered_list', 'side_accent_tab',
         'icon_top', 'offset_frame', 'torn_tape',
+        'chevron_cut', 'ticket_notch', 'folded_corner',
         'arrow_chip_left',
         // Task #6588 — screenshot-inspired styles.
         'edge_bleed_bar', 'double_border',
