@@ -22,7 +22,7 @@
             <div class="flex-1 min-w-0">
                 <div class="font-semibold truncate">{{ $s['text'] ?? $tipMeta['label'] }}</div>
                 @if($username !== '')
-                    <div class="text-xs opacity-70 truncate">@{{ $username }}</div>
+                    <div class="text-xs opacity-70 truncate">{{ '@' . $username }}</div>
                 @endif
             </div>
             <i class="fas fa-arrow-right opacity-60"></i>

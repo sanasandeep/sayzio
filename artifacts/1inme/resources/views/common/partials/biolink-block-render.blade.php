@@ -16,6 +16,7 @@
        - The trailing @else keeps the legacy poll/comments hook for
          content-mode blocks and shows a placeholder for unknown types. --}}
 @php
+    $globalTheme = $globalTheme ?? [];
     // Resolve the same color used by the styled wrapper. Inner partials use
     // fontColor for inline text, which otherwise overrides wrapper inheritance.
     $__effectiveBlockStyle = \App\Modules\User\Models\BiolinkBlock::getBlockStyle($s, $globalTheme ?? []);
@@ -265,7 +266,7 @@
                 <div class="mb-4 glass-block rounded-xl p-4 flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center"><i class="fab fa-tiktok text-xl"></i></div>
                     <div class="flex-1"><p class="font-medium text-sm">{{ '@' . ($s['username'] ?? '') }}</p><p class="text-xs text-white/40">TikTok</p></div>
-                    <a href="https://tiktok.com/@{{ $s['username'] ?? '' }}" target="_blank" class="bio-btn px-4 py-2 text-xs font-medium">Follow</a>
+                    <a href="https://tiktok.com/{{ '@' . ($s['username'] ?? '') }}" target="_blank" class="bio-btn px-4 py-2 text-xs font-medium">Follow</a>
                 </div>
 
             @elseif($block->type === 'twitter_profile')
@@ -378,7 +379,7 @@
                             <textarea x-ref="cfMessage{{ $block->id }}" placeholder="Message" rows="3" required maxlength="5000" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" style="color:{{ $fontColor }}"></textarea>
                             <button type="submit" :disabled="loading" class="bio-btn w-full py-2.5 text-sm font-medium flex items-center justify-center gap-2">
                                 <template x-if="loading"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg></template>
-                                <span x-text="loading ? 'Sending...' : '{{ $s['button_text'] ?? 'Send' }}'"></span>
+                                <span x-text="loading ? 'Sending...' : @js($s['button_text'] ?? 'Send')"></span>
                             </button>
                             <p x-show="error" x-text="error" class="text-xs text-red-400 text-center" x-cloak></p>
                         </form>
@@ -931,7 +932,7 @@
                                 // (Task #5970) — mirrors the top-level block wrap.
                                 $childPreset = \App\Modules\User\Models\BiolinkBlock::presetLayer($childStyle);
                             @endphp
-                            <div class="{{ $childWrapClass }}" style="grid-column: span {{ $childSpan }};{{ $childWrapVars }}">
+                            <div data-block-id="{{ $childBlock->id }}" data-block-type="{{ $childBlock->type }}" class="{{ $childWrapClass }}" style="grid-column: span {{ $childSpan }};{{ $childWrapVars }}">
                             @if($childHasStyle && !$childSkipWrap)
                                 <div class="block-styled" style="{{ $childInline }}{{ $childPreset ? ';position:relative;isolation:isolate;overflow:hidden;' : '' }}">
                                 @if($childPreset)
@@ -960,12 +961,13 @@
                         @if(!empty($s['email']))<a href="mailto:{{ $s['email'] }}" class="text-indigo-400"><i class="fas fa-envelope"></i></a>@endif
                         @if(!empty($s['website']))<a href="{{ $s['website'] }}" target="_blank" class="text-indigo-400"><i class="fas fa-globe"></i></a>@endif
                     </div>
-                    <button onclick="downloadVCard()" class="bio-btn mt-3 px-5 py-2 text-sm font-medium">Save Contact</button>
+                    <button onclick="downloadVCard{{ (int) $block->id }}()" class="bio-btn mt-3 px-5 py-2 text-sm font-medium">Save Contact</button>
                     <script>
-                    function downloadVCard(){
-                        var vcard = "BEGIN:VCARD\nVERSION:3.0\nN:{{ $s['name'] ?? '' }}\nFN:{{ $s['name'] ?? '' }}\nORG:{{ $s['company'] ?? '' }}\nTITLE:{{ $s['title'] ?? '' }}\nTEL:{{ $s['phone'] ?? '' }}\nEMAIL:{{ $s['email'] ?? '' }}\nURL:{{ $s['website'] ?? '' }}\nEND:VCARD";
+                    function downloadVCard{{ (int) $block->id }}(){
+                        var data = @js(['name' => $s['name'] ?? '', 'company' => $s['company'] ?? '', 'title' => $s['title'] ?? '', 'phone' => $s['phone'] ?? '', 'email' => $s['email'] ?? '', 'website' => $s['website'] ?? '']);
+                        var vcard = ['BEGIN:VCARD','VERSION:3.0','N:' + data.name,'FN:' + data.name,'ORG:' + data.company,'TITLE:' + data.title,'TEL:' + data.phone,'EMAIL:' + data.email,'URL:' + data.website,'END:VCARD'].join('\n');
                         var blob = new Blob([vcard], {type:'text/vcard'});
-                        var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '{{ $s['name'] ?? 'contact' }}.vcf'; a.click();
+                        var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = @js(($s['name'] ?? 'contact') . '.vcf'); a.click();
                     }
                     </script>
                 </div>

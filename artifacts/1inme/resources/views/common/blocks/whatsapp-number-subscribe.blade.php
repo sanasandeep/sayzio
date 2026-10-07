@@ -35,7 +35,7 @@
                    style="background: #25D366; color: #fff;">
                     <template x-if="loading"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg></template>
                     <i class="fab fa-whatsapp text-lg" x-show="!loading"></i>
-                    <span x-text="loading ? 'Subscribing...' : '{{ $s['button_text'] ?? 'Subscribe on WhatsApp' }}'"></span>
+                    <span x-text="loading ? 'Subscribing...' : @js($s['button_text'] ?? 'Subscribe on WhatsApp')"></span>
                 </button>
                 <p x-show="error" x-text="error" class="text-xs text-red-400 text-center" x-cloak></p>
             </div>

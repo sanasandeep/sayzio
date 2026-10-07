@@ -9,6 +9,7 @@
     shared public renderer so the preview is the real thing, not a mock.
 --}}
 @php
+    $globalTheme = [];
     $s = $block->settings ?? [];
     $blockStyle = \App\Modules\User\Models\BiolinkBlock::getBlockStyle($s, []);
     $blockInline = \App\Modules\User\Models\BiolinkBlock::buildInlineStyle($blockStyle);
@@ -81,6 +82,8 @@
             @if($hasCustomStyle && !$skipWrap)</div>@endif
         </div>
     </div>
+    @include('common.partials.block-element-motion')
+    @include('common.partials.biolink-interactive-runtime')
     <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
 </body>
 </html>
