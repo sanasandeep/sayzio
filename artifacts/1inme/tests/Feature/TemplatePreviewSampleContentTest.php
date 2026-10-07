@@ -7,6 +7,20 @@ use Tests\TestCase;
 
 class TemplatePreviewSampleContentTest extends TestCase
 {
+    public function test_admin_media_is_reflected_without_accepting_unsafe_schemes(): void
+    {
+        $builder = new TemplatePreviewLayoutBuilder;
+        $this->assertSame('https://example.com/studio.jpg', $builder->build([
+            ['type' => 'image', 'settings' => ['url' => 'https://example.com/studio.jpg']],
+        ])[0][0]['img']);
+        $this->assertSame('https://example.com/alex.jpg', $builder->build([
+            ['type' => 'profile_card_v1', 'settings' => ['avatar' => 'https://example.com/alex.jpg']],
+        ])[0][0]['img']);
+        $this->assertStringContainsString('/images/auth-slider/', $builder->build([
+            ['type' => 'image', 'settings' => ['url' => 'javascript:alert(1)']],
+        ])[0][0]['img']);
+    }
+
     public function test_media_uses_bundled_photography_and_forms_have_compact_proportions(): void
     {
         $builder = new TemplatePreviewLayoutBuilder;

@@ -84,6 +84,15 @@ class TemplatePreviewLayoutBuilder
                 }
                 if ($copyItems !== []) $cell['items'] = $copyItems;
             }
+            // Admin-selected media should appear in the gallery as well as
+            // in the full template. Keep demo photography for missing/old art.
+            $media = $cell['shape'] === 'avatar' ? ($settings['avatar'] ?? null)
+                : ($type === 'image' ? ($settings['url'] ?? null) : null);
+            if (is_string($media) && filter_var($media, FILTER_VALIDATE_URL)
+                && in_array(strtolower((string) parse_url($media, PHP_URL_SCHEME)), ['https', 'http'], true)
+                && !str_contains($media, '/block-placeholders/')) {
+                $cell['img'] = $media;
+            }
             // Readable proportions for every gallery, without changing saved blocks.
             if (!in_array($cell['shape'], ['spacer', 'hairline'], true)) {
                 $cell['h'] = match ($cell['shape']) {
