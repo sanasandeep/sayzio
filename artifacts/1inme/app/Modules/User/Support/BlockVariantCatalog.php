@@ -3740,6 +3740,22 @@ class BlockVariantCatalog
         // on a bare line and would just be noise in the gallery.
         $variants = $type === 'divider' ? [] : self::commonVariants();
 
+        // Purpose-neutral structures for non-link elements, with restrained motion.
+        if (!in_array($type, ['link', 'divider', 'spacer', 'iframe_embed', 'custom_html'], true)) {
+            foreach ([
+                ['key' => 'motion_editorial_rail', 'name' => 'Editorial Rail', 'tags' => ['editorial', 'minimal'],
+                 'style' => ['bg_color' => '#faf8f3', 'text_color' => '#262a25', 'border_left_width' => '4', 'border_left_style' => 'solid', 'border_left_color' => '#887349', 'border_radius' => '0', '_motion' => 'reveal']],
+                ['key' => 'motion_floating_frame', 'name' => 'Floating Frame', 'tags' => ['three_d', 'pro'],
+                 'style' => ['bg_color' => '#ffffff', 'text_color' => '#172033', 'border_style' => 'double', 'border_width' => '4', 'border_color' => '#c4cbd5', 'border_radius' => '24', 'shadow_preset' => 'medium', '_motion' => 'float']],
+                ['key' => 'motion_signal_panel', 'name' => 'Signal Panel', 'tags' => ['bold', 'dark'],
+                 'style' => ['bg_color' => '#172d29', 'text_color' => '#f0faf5', 'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#a6c1b3', 'border_radius' => '3', '_motion' => 'breathe']],
+            ] as $v) {
+                $v['style'] = array_merge(['display_mode' => 'card', 'padding' => '16', 'effect' => 'none', 'shadow_preset' => 'none'], $v['style']);
+                $v['preview'] = ['bg' => $v['style']['bg_color'], 'text' => $v['style']['text_color']];
+                $variants[] = $v;
+            }
+        }
+
         $bundles = self::bundles();
         $bundleIds = self::typeBundleMap()[$type] ?? [];
         foreach ($bundleIds as $bundleId) {

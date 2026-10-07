@@ -1,3 +1,4 @@
+@include('common.partials.block-element-motion')
 <style>
 .variant-hover-label { position:absolute; bottom:0; left:50%; transform:translateX(-50%); max-width:100%; padding:3px 7px; background:#172033; color:#fff !important; border-radius:5px; font-size:10px; white-space:nowrap; opacity:0; pointer-events:none; z-index:5; }
 .variant-element:hover .variant-hover-label, .variant-element:focus-visible .variant-hover-label { opacity:1; }
@@ -866,6 +867,13 @@
             {{-- Round-trip the underlying values that the presets map onto so
                  the form always posts a complete style payload. The advanced
                  panel below exposes friendly inputs that override these. --}}
+            <label class="block text-xs font-medium mb-2">Element motion
+                <select name="style[_motion]" class="w-full rounded-lg border p-2 mt-1">
+                    @foreach(['none' => 'Off', 'reveal' => 'Reveal once', 'float' => 'Gentle float', 'breathe' => 'Breathing halo'] as $motionKey => $motionLabel)
+                        <option value="{{ $motionKey }}" @selected(($st['_motion'] ?? 'none') === $motionKey)>{{ $motionLabel }}</option>
+                    @endforeach
+                </select>
+            </label>
             <input type="hidden" name="style[effect]" value="{{ $st['effect'] ?? 'none' }}">
             <input type="hidden" name="style[shadow_type]" value="{{ $st['shadow_type'] ?? 'none' }}">
             <input type="hidden" name="style[glass_blur]" value="{{ $st['glass_blur'] ?? 20 }}">

@@ -59,6 +59,7 @@ class BlockStyleSanitizer
             'glass_preset' => ['off', 'light', 'heavy'],
             'display_mode' => ['card', 'content'],
             'effect' => ['none', 'glass', 'gradient_border'],
+            '_motion' => ['none', 'float', 'breathe', 'reveal'],
             // Per-block layout switch for link-family blocks. Empty
             // string is the default (existing button render); since the
             // foreach skips empty values, only non-default picks
