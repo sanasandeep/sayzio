@@ -20,7 +20,7 @@
         @endphp
         <a href="{{ $_url }}" target="_blank" rel="noopener" class="bio-btn block w-full px-8 py-4 mb-3 font-semibold text-center relative"
            style="{{ $btnInline }} clip-path:{{ $_shapeClip }};">
-            {{ $_txt }} <span aria-hidden="true">↗</span>
+            <span data-link-label>{{ $_txt }}</span> <span aria-hidden="true">↗</span>
             @if($_lnkLayout === 'folded_corner')<span aria-hidden="true" class="absolute top-0 right-0" style="width:12%;height:28%;background:rgba(255,255,255,.3);"></span>@endif
         </a>
     @elseif(!empty($s['is_featured']))
@@ -35,8 +35,8 @@
                 @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-12 h-12 rounded-xl object-cover" alt="">
                 @elseif(!empty($s['icon']))<div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center"><i class="{{ fa_icon_class($s['icon']) }} text-xl text-white"></i></div>@endif
                 <div class="flex-1 min-w-0">
-                    <p class="font-semibold text-white truncate">{{ $s['text'] ?? 'Link' }}</p>
-                    @if(!empty($s['description']))<p class="text-xs text-white/80 mt-0.5 truncate">{{ $s['description'] }}</p>@endif
+                    <p class="font-semibold text-white truncate"><span data-link-label>{{ $s['text'] ?? 'Link' }}</span></p>
+                    @if(!empty($s['description']))<p class="text-xs text-white/80 mt-0.5 truncate"><span data-link-description>{{ $s['description'] }}</span></p>@endif
                 </div>
                 <i class="fas fa-arrow-right text-white/60"></i>
             </div>
@@ -45,7 +45,7 @@
         <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
            class="block mb-3 text-center text-sm font-medium underline decoration-1 underline-offset-4 hover:decoration-2 transition"
            style="color: {{ $block->settings['_style']['text_color'] ?? '#90acff' }};">
-            @if(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }} mr-1.5"></i>@endif{{ $s['text'] ?? 'Link' }}
+            @if(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }} mr-1.5"></i>@endif<span data-link-label>{{ $s['text'] ?? 'Link' }}</span>
         </a>
     @elseif($_lnkLayout === 'text_divider')
         {{-- Minimal text list row: left-aligned plain text with a thin
@@ -59,7 +59,7 @@
         <a href="{{ $_url }}" target="_blank" rel="noopener"
            class="block w-full py-3.5 text-left transition-opacity duration-200 hover:opacity-70"
            style="color: {{ $_tdColor }}; border-bottom: 1px solid color-mix(in srgb, currentColor 25%, transparent); font-weight: {{ $_st['font_weight'] ?? '500' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 15 }}px;@if(!empty($_st['font_family'])) font-family: '{{ str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) }}', sans-serif;@endif">
-            @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}
+            @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif<span data-link-label>{{ $_txt }}</span>
         </a>
     @elseif($_lnkLayout === 'action_row')
         {{-- Bold action-word row: big uppercase accent word on the left,
@@ -69,10 +69,10 @@
            class="block w-full mb-4 transition-opacity duration-200 hover:opacity-75 flex items-baseline gap-x-4 gap-y-1 flex-wrap text-left">
             <span class="uppercase leading-none tracking-wide min-w-[6.5rem]"
                   style="color: {{ ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : '#e3f77e' }}; font-weight: {{ $_st['font_weight'] ?? '800' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 22 }}px;@if(!empty($_st['font_family'])) font-family: '{{ str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) }}', sans-serif;@endif">
-                @if($_icon)<i class="{{ $_icon }} mr-1.5 text-[0.8em]"></i>@endif{{ $_txt }}
+                @if($_icon)<i class="{{ $_icon }} mr-1.5 text-[0.8em]"></i>@endif<span data-link-label>{{ $_txt }}</span>
             </span>
             @if(!empty($s['description']))
-                <span class="text-[11px] uppercase tracking-[0.14em] opacity-90" style="color: {{ $fontColor ?? '#ffffff' }};">{{ $s['description'] }}</span>
+                <span class="text-[11px] uppercase tracking-[0.14em] opacity-90" style="color: {{ $fontColor ?? '#ffffff' }};"><span data-link-description>{{ $s['description'] }}</span></span>
             @endif
         </a>
     @elseif($_lnkLayout === 'image_cover' && !empty($s['thumbnail']))
@@ -82,7 +82,7 @@
             <div class="absolute inset-0 flex items-end p-5">
                 <div class="flex items-center gap-2 text-white font-bold drop-shadow-lg">
                     @if(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }}"></i>@endif
-                    <span>{{ $s['text'] ?? 'Link' }}</span>
+                    <span><span data-link-label>{{ $s['text'] ?? 'Link' }}</span></span>
                 </div>
             </div>
         </a>
@@ -95,7 +95,7 @@
            style="aspect-ratio: 1/1; @if($_thumb)background-image: linear-gradient(rgba(0,0,0,0.32), rgba(0,0,0,0.32)), url('{{ $_thumb }}'); background-size: cover; background-position: center;@else background: linear-gradient(135deg, {{ $_accent }} 0%, {{ $_accent }}cc 100%);@endif{{ $btnInline ? ' ' . $btnInline : '' }}">
             <div class="absolute inset-0 flex items-center justify-center p-4 text-center">
                 <div class="text-white font-bold drop-shadow-lg leading-snug">
-                    @if($_icon)<i class="{{ $_icon }} mr-2"></i>@endif{{ $_txt }}
+                    @if($_icon)<i class="{{ $_icon }} mr-2"></i>@endif<span data-link-label>{{ $_txt }}</span>
                 </div>
             </div>
         </a>
@@ -106,28 +106,28 @@
         <a href="{{ $_url }}" target="_blank" rel="noopener"
            class="bio-btn block w-full px-5 py-3.5 mb-3 transition-all duration-300 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 text-left"
            @if($btnInline) style="{{ $btnInline }}" @endif>
-            <span class="font-bold">@if($_icon)<i class="{{ $_icon }} mr-1.5"></i>@endif{{ $_txt }}</span>
+            <span class="font-bold">@if($_icon)<i class="{{ $_icon }} mr-1.5"></i>@endif<span data-link-label>{{ $_txt }}</span></span>
             @if(!empty($s['description']))
-                <span class="text-sm font-normal opacity-75 min-w-0">{{ $s['description'] }}</span>
+                <span class="text-sm font-normal opacity-75 min-w-0"><span data-link-description>{{ $s['description'] }}</span></span>
             @endif
         </a>
     @elseif($_lnkLayout === 'icon_left')
         <a href="{{ $_url }}" target="_blank" rel="noopener"
            class="bio-btn block w-full px-6 py-3.5 mb-3 font-medium transition-all duration-300 flex items-center justify-center gap-3"
            @if($btnInline) style="{{ $btnInline }}" @endif>
-            @if($_icon)<i class="{{ $_icon }}"></i>@endif<span>{{ $_txt }}</span>
+            @if($_icon)<i class="{{ $_icon }}"></i>@endif<span><span data-link-label>{{ $_txt }}</span></span>
         </a>
     @elseif($_lnkLayout === 'icon_right')
         <a href="{{ $_url }}" target="_blank" rel="noopener"
            class="bio-btn block w-full px-6 py-3.5 mb-3 font-medium transition-all duration-300 flex items-center justify-center gap-3"
            @if($btnInline) style="{{ $btnInline }}" @endif>
-            <span>{{ $_txt }}</span>@if($_icon)<i class="{{ $_icon }}"></i>@else<i class="fas fa-arrow-right"></i>@endif
+            <span><span data-link-label>{{ $_txt }}</span></span>@if($_icon)<i class="{{ $_icon }}"></i>@else<i class="fas fa-arrow-right"></i>@endif
         </a>
     @elseif($_lnkLayout === 'icon_both')
         <a href="{{ $_url }}" target="_blank" rel="noopener"
            class="bio-btn block w-full px-6 py-3.5 mb-3 font-medium transition-all duration-300 flex items-center justify-between gap-3"
            @if($btnInline) style="{{ $btnInline }}" @endif>
-            <i class="{{ $_icon ?: 'fas fa-link' }}"></i><span class="flex-1 text-center">{{ $_txt }}</span><i class="fas fa-chevron-right"></i>
+            <i class="{{ $_icon ?: 'fas fa-link' }}"></i><span class="flex-1 text-center"><span data-link-label>{{ $_txt }}</span></span><i class="fas fa-chevron-right"></i>
         </a>
     @elseif($_lnkLayout === 'icon_only')
         <a href="{{ $_url }}" target="_blank" rel="noopener" title="{{ $_txt }}" aria-label="{{ $_txt }}"
@@ -140,13 +140,13 @@
            class="bio-btn relative block w-full px-12 py-3.5 mb-3 font-medium transition-all duration-300 flex items-center justify-center"
            @if($btnInline) style="{{ $btnInline }}" @endif>
             <span class="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center" style="background: {{ $_accent }};"><i class="{{ $_icon ?: 'fas fa-link' }} text-white text-sm"></i></span>
-            <span>{{ $_txt }}</span>
+            <span><span data-link-label>{{ $_txt }}</span></span>
         </a>
     @elseif($_lnkLayout === 'icon_circle_right')
         <a href="{{ $_url }}" target="_blank" rel="noopener"
            class="bio-btn relative block w-full px-12 py-3.5 mb-3 font-medium transition-all duration-300 flex items-center justify-center"
            @if($btnInline) style="{{ $btnInline }}" @endif>
-            <span>{{ $_txt }}</span>
+            <span><span data-link-label>{{ $_txt }}</span></span>
             <span class="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center" style="background: {{ $_accent }};"><i class="{{ $_icon ?: 'fas fa-link' }} text-white text-sm"></i></span>
         </a>
     @elseif($_lnkLayout === 'icon_box')
@@ -154,21 +154,21 @@
            class="bio-btn relative block w-full px-14 py-3.5 mb-3 font-medium transition-all duration-300 flex items-center"
            @if($btnInline) style="{{ $btnInline }}" @endif>
             <span class="absolute left-1.5 top-1/2 -translate-y-1/2 w-10 h-10 rounded-lg flex items-center justify-center" style="background: {{ $_accent }};"><i class="{{ $_icon ?: 'fas fa-link' }} text-white"></i></span>
-            <span class="flex-1">{{ $_txt }}</span>
+            <span class="flex-1"><span data-link-label>{{ $_txt }}</span></span>
         </a>
     @elseif($_lnkLayout === 'image_left')
         <a href="{{ $_url }}" target="_blank" rel="noopener"
            class="bio-btn block w-full mb-3 overflow-hidden transition-all duration-300 flex items-center gap-3 pr-4"
            @if($btnInline) style="{{ $btnInline }}" @endif>
             @if($_thumb)<img src="{{ $_thumb }}" class="w-14 h-14 object-cover flex-shrink-0" alt="">@elseif($_icon)<span class="w-14 h-14 flex items-center justify-center flex-shrink-0"><i class="{{ $_icon }} text-xl"></i></span>@endif
-            <span class="flex-1 font-medium py-3.5 text-left">{{ $_txt }}</span>
+            <span class="flex-1 font-medium py-3.5 text-left"><span data-link-label>{{ $_txt }}</span></span>
             <i class="fas fa-chevron-right opacity-50"></i>
         </a>
     @elseif($_lnkLayout === 'image_right')
         <a href="{{ $_url }}" target="_blank" rel="noopener"
            class="bio-btn block w-full mb-3 overflow-hidden transition-all duration-300 flex items-center gap-3 pl-4"
            @if($btnInline) style="{{ $btnInline }}" @endif>
-            <span class="flex-1 font-medium py-3.5 text-left">{{ $_txt }}</span>
+            <span class="flex-1 font-medium py-3.5 text-left"><span data-link-label>{{ $_txt }}</span></span>
             <i class="fas fa-chevron-right opacity-50"></i>
             @if($_thumb)<img src="{{ $_thumb }}" class="w-14 h-14 object-cover flex-shrink-0" alt="">@elseif($_icon)<span class="w-14 h-14 flex items-center justify-center flex-shrink-0"><i class="{{ $_icon }} text-xl"></i></span>@endif
         </a>
@@ -183,7 +183,7 @@
            @if($_thumb) style="padding-top: 44px;" @endif>
             <div class="bio-btn w-full text-center uppercase tracking-wide"
                  style="{{ $btnInline ? rtrim($btnInline, '; ') . '; ' : '' }}padding: {{ $_thumb ? '132px 20px 30px' : '30px 20px' }}; font-weight: {{ $_st['font_weight'] ?? '800' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 24 }}px; line-height: 1.15;">
-                @if($_icon)<i class="{{ $_icon }} mr-2"></i>@endif{{ $_txt }}
+                @if($_icon)<i class="{{ $_icon }} mr-2"></i>@endif<span data-link-label>{{ $_txt }}</span>
             </div>
             @if($_thumb)
                 <img src="{{ $_thumb }}" class="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-40 object-cover rounded-xl shadow-lg" alt="">
@@ -198,7 +198,7 @@
            @if($_thumb) style="padding: 10px 0 10px 22px;" @endif>
             <div class="bio-btn w-full flex items-center uppercase tracking-wide"
                  style="{{ $btnInline ? rtrim($btnInline, '; ') . '; ' : '' }}padding: 26px 22px 26px {{ $_thumb ? '100px' : '22px' }}; font-weight: {{ $_st['font_weight'] ?? '800' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 20 }}px; line-height: 1.15;">
-                @if($_icon)<i class="{{ $_icon }} mr-2"></i>@endif<span class="flex-1 text-left">{{ $_txt }}</span>
+                @if($_icon)<i class="{{ $_icon }} mr-2"></i>@endif<span class="flex-1 text-left"><span data-link-label>{{ $_txt }}</span></span>
             </div>
             @if($_thumb)
                 <img src="{{ $_thumb }}" class="absolute left-0 top-1/2 -translate-y-1/2 w-24 h-24 object-cover rounded-lg shadow-lg" alt="">
@@ -250,7 +250,7 @@
            style="padding-top: 12px;">
             <div class="w-full text-center"
                  style="background: {{ $_tnBg }}; color: {{ $_tnInk }}; border-radius: {{ $_tnRadius }}px; border: {{ $_tnBorder }}; box-shadow: {{ $_tnShadow }}; padding: {{ intval($_st['padding'] ?? 0) ?: 34 }}px 16px; font-family: {{ $_tnFont }}; font-weight: {{ $_st['font_weight'] ?? '500' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 16 }}px; letter-spacing: 0.02em; line-height: 1.3;">
-                @if($_icon)<i class="{{ $_icon }} mr-1.5 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}
+                @if($_icon)<i class="{{ $_icon }} mr-1.5 text-[0.85em] opacity-80"></i>@endif<span data-link-label>{{ $_txt }}</span>
             </div>
             <span aria-hidden="true" class="absolute left-1/2 pointer-events-none"
                   style="top: 0; width: 86px; height: 24px; transform: translateX(-50%) rotate({{ $_tnTilt }}); background: rgba(235,227,208,0.82); border-left: 1px dashed rgba(120,105,85,0.28); border-right: 1px dashed rgba(120,105,85,0.28); box-shadow: 0 1px 3px rgba(76,60,50,0.18);"></span>
@@ -273,7 +273,7 @@
            style="padding-left: 26px;">
             <div class="bio-btn w-full py-3.5 pr-6 font-medium flex items-center justify-center"
                  style="{{ $btnInline ? rtrim($btnInline, '; ') . '; ' : '' }}padding-left: 64px; border-radius: {{ intval($_st['border_radius'] ?? 0) ?: 999 }}px;">
-                <span>{{ $_txt }}</span>
+                <span><span data-link-label>{{ $_txt }}</span></span>
             </div>
             <span class="absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center"
                   style="width: 68px; height: calc(100% + 8px); background: #ffffff; border: 1.5px solid {{ $_acInk }}; border-radius: {{ intval($_st['border_radius'] ?? 0) ?: 999 }}px; box-shadow: 0 1px 4px rgba(0,0,0,0.10);">
@@ -285,7 +285,7 @@
            class="bio-btn block w-full mb-3 overflow-hidden transition-all duration-300"
            @if($btnInline) style="{{ $btnInline }}" @endif>
             @if($_thumb)<img src="{{ $_thumb }}" class="w-full h-28 object-cover" alt="">@endif
-            <div class="px-5 py-3 font-medium flex items-center justify-center gap-2">@if($_icon)<i class="{{ $_icon }}"></i>@endif<span>{{ $_txt }}</span></div>
+            <div class="px-5 py-3 font-medium flex items-center justify-center gap-2">@if($_icon)<i class="{{ $_icon }}"></i>@endif<span><span data-link-label>{{ $_txt }}</span></span></div>
         </a>
     @elseif(in_array($_lnkLayout, ['image_icon_rounded', 'image_icon_square', 'image_icon_circle'], true))
         @php $_imgR = $_lnkLayout === 'image_icon_circle' ? 'rounded-full' : ($_lnkLayout === 'image_icon_square' ? 'rounded-none' : 'rounded-lg'); @endphp
@@ -293,7 +293,7 @@
            class="bio-btn block w-full px-4 py-3 mb-3 font-medium transition-all duration-300 flex items-center gap-3"
            @if($btnInline) style="{{ $btnInline }}" @endif>
             @if($_thumb)<img src="{{ $_thumb }}" class="w-9 h-9 object-cover flex-shrink-0 {{ $_imgR }}" alt="">@elseif($_icon)<span class="w-9 h-9 flex items-center justify-center flex-shrink-0 {{ $_imgR }}" style="background: {{ $_accent }};"><i class="{{ $_icon }} text-white text-sm"></i></span>@endif
-            <span class="flex-1 text-left">{{ $_txt }}</span>
+            <span class="flex-1 text-left"><span data-link-label>{{ $_txt }}</span></span>
             <i class="fas fa-chevron-right opacity-40"></i>
         </a>
     @elseif($_lnkLayout === 'arrow_hex')
@@ -305,7 +305,7 @@
            class="block w-full mb-3 transition-all duration-300 hover:-translate-y-0.5">
             <div class="bio-btn w-full px-10 py-3.5 text-center font-bold uppercase tracking-wide flex items-center justify-center gap-2"
                  style="{{ $btnInline ? rtrim($btnInline, '; ') . '; ' : '' }}clip-path: polygon(26px 0%, calc(100% - 26px) 0%, 100% 50%, calc(100% - 26px) 100%, 26px 100%, 0% 50%); border-radius: 0;">
-                @if($_icon)<i class="{{ $_icon }} text-[0.85em]"></i>@endif<span>{{ $_txt }}</span>
+                @if($_icon)<i class="{{ $_icon }} text-[0.85em]"></i>@endif<span><span data-link-label>{{ $_txt }}</span></span>
             </div>
         </a>
     @elseif($_lnkLayout === 'arrow_hex_round')
@@ -349,7 +349,7 @@
            class="block w-full mb-3 transition-all duration-300 hover:-translate-y-0.5">
             <div class="bio-btn bio-arrow-hex-round w-full px-10 py-3.5 text-center font-bold uppercase tracking-wide flex items-center justify-center gap-2"
                  @if($btnInline) style="{{ $btnInline }}" @endif>
-                @if($_icon)<i class="{{ $_icon }} text-[0.85em]"></i>@endif<span>{{ $_txt }}</span>
+                @if($_icon)<i class="{{ $_icon }} text-[0.85em]"></i>@endif<span><span data-link-label>{{ $_txt }}</span></span>
             </div>
         </a>
     @elseif($_lnkLayout === 'numbered_list')
@@ -376,7 +376,7 @@
            class="w-full mb-2 py-1.5 flex items-center justify-between gap-6 text-left transition-opacity duration-200 hover:opacity-70"
            style="color: {{ $_nlColor }};">
             <span class="leading-tight" style="font-weight: {{ $_st['font_weight'] ?? '600' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 28 }}px;@if(!empty($_st['font_family'])) font-family: '{{ str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) }}', sans-serif;@endif">
-                @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.7em] opacity-80"></i>@endif{{ $_txt }}
+                @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.7em] opacity-80"></i>@endif<span data-link-label>{{ $_txt }}</span>
             </span>
             <span class="text-[11px] font-medium tracking-[0.18em] opacity-75 shrink-0">{{ str_pad((string) $_nlIdx, 2, '0', STR_PAD_LEFT) }}</span>
         </a>
@@ -395,7 +395,7 @@
            class="w-full mb-3 flex items-stretch gap-2.5 transition-all duration-300 hover:-translate-y-0.5">
             <span class="flex-1 flex items-center justify-end px-5 py-4 min-w-0"
                   style="background: {{ $_satBg }}; color: {{ $_satInk }}; border-radius: {{ $_satRadius }}px; font-weight: {{ $_st['font_weight'] ?? '600' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 16 }}px;@if(!empty($_st['font_family'])) font-family: '{{ str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) }}', sans-serif;@endif">
-                @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif<span class="truncate">{{ $_txt }}</span>
+                @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif<span class="truncate"><span data-link-label>{{ $_txt }}</span></span>
             </span>
             <span aria-hidden="true" class="shrink-0" style="width: 26px; background: {{ $_satAccent }}; border-radius: {{ $_satRadius }}px;"></span>
         </a>
@@ -417,7 +417,7 @@
            class="w-full mb-3 flex items-stretch gap-3 transition-opacity duration-200 hover:opacity-85">
             <span class="flex-1 flex items-center justify-end pr-6 pl-5 py-4 min-w-0"
                   style="background: {{ $_ebBg }}; color: {{ $_ebInk }}; border-radius: 0 {{ $_ebRadius }}px {{ $_ebRadius }}px 0; font-weight: {{ $_st['font_weight'] ?? '600' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 16 }}px;@if(!empty($_st['font_family'])) font-family: '{{ str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) }}', sans-serif;@endif">
-                @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif<span class="truncate">{{ $_txt }}</span>
+                @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif<span class="truncate"><span data-link-label>{{ $_txt }}</span></span>
             </span>
             <span aria-hidden="true" class="shrink-0" style="width: 20px; background: {{ $_ebAccent }}; border-radius: {{ $_ebRadius }}px 0 0 {{ $_ebRadius }}px;"></span>
         </a>
@@ -439,7 +439,7 @@
            style="background: {{ $_dbBg }}; color: {{ $_dbInk }}; border: {{ $_dbW }}px solid {{ $_dbLine }}; border-radius: {{ $_dbRadius }}px; padding: {{ intval($_st['padding'] ?? 0) ?: 16 }}px 20px; font-weight: {{ $_st['font_weight'] ?? '600' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 16 }}px; letter-spacing: 0.06em;@if(!empty($_st['font_family'])) font-family: '{{ str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) }}', sans-serif;@endif">
             <span aria-hidden="true" class="absolute pointer-events-none"
                   style="inset: 4px; border: 1px solid {{ $_dbLine }}; border-radius: {{ max($_dbRadius - 4, 0) }}px;"></span>
-            <span class="relative uppercase">@if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}</span>
+            <span class="relative uppercase">@if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif<span data-link-label>{{ $_txt }}</span></span>
         </a>
     @elseif($_lnkLayout === 'riveted_plaque')
         {{-- Riveted plaque (Task #6602): the double-border framed look
@@ -468,7 +468,7 @@
                 <span aria-hidden="true" class="absolute pointer-events-none rounded-full"
                       style="{{ $_rpPos[0] }} width: 5px; height: 5px; background: radial-gradient(circle at 32% 30%, #ffffffcc, {{ $_rpMetal }} 55%, color-mix(in srgb, {{ $_rpMetal }} 55%, #000) 100%);"></span>
             @endforeach
-            <span class="relative">@if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}</span>
+            <span class="relative">@if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif<span data-link-label>{{ $_txt }}</span></span>
         </a>
     @elseif($_lnkLayout === 'sparkle_pill')
         {{-- Sparkle pill (Task #6602): thin-outline pill with small
@@ -492,7 +492,7 @@
            style="padding: 9px 12px;">
             <span class="block w-full text-center"
                   style="background: {{ $_spBg }}; color: {{ $_spInk }}; border: {{ $_spW }}px solid {{ $_spLine }}; border-radius: 999px; padding: {{ intval($_st['padding'] ?? 0) ?: 14 }}px 24px; font-family: {{ $_spFont }}; font-weight: {{ $_st['font_weight'] ?? '500' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 18 }}px; letter-spacing: 0.06em;">
-                @if($_icon)<i class="{{ $_icon }} mr-1.5 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}
+                @if($_icon)<i class="{{ $_icon }} mr-1.5 text-[0.85em] opacity-80"></i>@endif<span data-link-label>{{ $_txt }}</span>
             </span>
             <svg aria-hidden="true" viewBox="0 0 24 24" class="absolute pointer-events-none" style="top: 0; right: 6%; width: 19px; height: 19px; color: {{ $_spLine }};" fill="currentColor"><path d="{{ $_spSparkle }}"/></svg>
             <svg aria-hidden="true" viewBox="0 0 24 24" class="absolute pointer-events-none" style="bottom: 0; left: 8%; width: 15px; height: 15px; color: {{ $_spLine }};" fill="currentColor"><path d="{{ $_spSparkle }}"/></svg>
@@ -542,7 +542,7 @@
            class="block w-full mb-3 transition-all duration-300 hover:-translate-y-0.5">
             <div class="bio-btn bio-notched-bar w-full px-8 py-4 text-center font-bold uppercase tracking-[0.08em] flex items-center justify-center gap-2"
                  @if($btnInline) style="{{ $btnInline }}" @endif>
-                @if($_icon)<i class="{{ $_icon }} text-[0.85em]"></i>@endif<span>{{ $_txt }}</span>
+                @if($_icon)<i class="{{ $_icon }} text-[0.85em]"></i>@endif<span><span data-link-label>{{ $_txt }}</span></span>
             </div>
         </a>
     @elseif($_lnkLayout === 'speech_bubble')
@@ -569,7 +569,7 @@
            style="padding-bottom: 12px;">
             <span class="block w-full text-left uppercase"
                   style="background: {{ $_sbBg }}; color: {{ $_sbInk }}; border: {{ $_sbBorder }}; border-radius: {{ $_sbRadius }}px; padding: {{ intval($_st['padding'] ?? 0) ?: 22 }}px 28px; font-family: {{ $_sbFont }}; font-weight: {{ $_st['font_weight'] ?? '800' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 19 }}px; letter-spacing: 0.04em;">
-                @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.9em]"></i>@endif{{ $_txt }}
+                @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.9em]"></i>@endif<span data-link-label>{{ $_txt }}</span>
             </span>
             <span aria-hidden="true" class="absolute pointer-events-none"
                   style="bottom: 0; right: 22px; width: 26px; height: 16px; background: {{ $_sbBg }}; clip-path: polygon(0 0, 100% 0, 100% 100%, 55% 30%);"></span>
@@ -587,7 +587,7 @@
             @else
                 <i class="{{ $_icon ?: 'fas fa-link' }} block mx-auto mb-2.5 text-3xl"></i>
             @endif
-            <span class="block text-sm leading-snug">{{ $_txt }}</span>
+            <span class="block text-sm leading-snug"><span data-link-label>{{ $_txt }}</span></span>
         </a>
     @elseif($_lnkLayout === 'offset_frame')
         {{-- Offset frame: solid bar with a thin outline frame offset toward
@@ -609,7 +609,7 @@
                   style="top: 10px; left: 10px; right: 0; bottom: 0; border: 1px solid {{ $_ofFrame }}; border-radius: {{ $_ofRadius }}px;"></span>
             <span class="relative block w-full text-center"
                   style="background: {{ $_ofBg }}; color: {{ $_ofInk }}; border-radius: {{ $_ofRadius }}px; padding: {{ intval($_st['padding'] ?? 0) ?: 18 }}px 16px; font-family: {{ $_ofFont }}; font-weight: {{ $_st['font_weight'] ?? '500' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 18 }}px; letter-spacing: 0.03em;">
-                @if($_icon)<i class="{{ $_icon }} mr-1.5 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}
+                @if($_icon)<i class="{{ $_icon }} mr-1.5 text-[0.85em] opacity-80"></i>@endif<span data-link-label>{{ $_txt }}</span>
             </span>
         </a>
     @elseif($_lnkLayout === 'torn_tape')
@@ -627,7 +627,7 @@
            class="block w-full mb-3 transition-all duration-300 hover:-translate-y-0.5">
             <span class="block w-full text-center"
                   style="background: {{ $_ttBg }}; color: {{ $_ttInk }}; padding: {{ intval($_st['padding'] ?? 0) ?: 20 }}px 28px; font-family: {{ $_ttFont }}; font-weight: {{ $_st['font_weight'] ?? '400' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 20 }}px; letter-spacing: 0.02em; clip-path: polygon(1.2% 0%, 98.6% 0%, 100% 9%, 98.9% 18%, 99.8% 30%, 98.7% 42%, 100% 55%, 99% 66%, 99.9% 78%, 98.8% 90%, 99.6% 100%, 1.5% 100%, 0.2% 91%, 1.4% 80%, 0.4% 68%, 1.3% 56%, 0.3% 45%, 1.5% 33%, 0.5% 22%, 1.6% 10%);">
-                @if($_icon)<i class="{{ $_icon }} mr-1.5 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}
+                @if($_icon)<i class="{{ $_icon }} mr-1.5 text-[0.85em] opacity-80"></i>@endif<span data-link-label>{{ $_txt }}</span>
             </span>
         </a>
     @else
@@ -636,6 +636,6 @@
            @if($btnInline) style="{{ $btnInline }}" @endif>
             @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-6 h-6 rounded object-cover" alt="">
             @elseif(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }}"></i>@endif
-            <span>{{ $s['text'] ?? 'Link' }}</span>
+            <span><span data-link-label>{{ $s['text'] ?? 'Link' }}</span></span>
         </a>
     @endif

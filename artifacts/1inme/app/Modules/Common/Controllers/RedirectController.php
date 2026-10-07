@@ -1852,7 +1852,7 @@ class RedirectController extends Controller
 
         $data = $request->validate([
             'block_id' => 'required|integer',
-            'type' => 'required|in:email,whatsapp_channel,whatsapp_number,contact_form',
+            'type' => 'required|in:email,phone,whatsapp_channel,whatsapp_number,contact_form',
             'email' => 'nullable|email|max:200',
             'name' => 'nullable|string|max:100',
             'phone' => 'nullable|string|max:30',
@@ -1867,6 +1867,7 @@ class RedirectController extends Controller
 
         $typeMap = [
             'email_subscribe' => 'email',
+            'phone_collector' => 'phone',
             'whatsapp_channel_subscribe' => 'whatsapp_channel',
             'whatsapp_number_subscribe' => 'whatsapp_number',
             'contact_form' => 'contact_form',
@@ -1929,13 +1930,16 @@ class RedirectController extends Controller
                 ->where('type', 'email')
                 ->where('email', $data['email'])
                 ->first();
-        } elseif ($data['type'] === 'whatsapp_number') {
+        } elseif (in_array($data['type'], ['phone', 'whatsapp_number'], true)) {
             $phone = preg_replace('/[^0-9+]/', '', $data['phone'] ?? '');
+            if ($data['type'] === 'phone' && !preg_match('/^\+?[0-9]{6,15}$/', $phone)) {
+                return response()->json(['success' => false, 'message' => 'Enter a valid phone number.'], 422);
+            }
             if (empty($phone)) {
                 $phone = 'anon_' . substr(md5($request->ip() . $block->id), 0, 12);
             }
             $existing = Subscriber::where('user_id', $link->user_id)
-                ->where('type', 'whatsapp_number')
+                ->where('type', $data['type'])
                 ->where('phone', $phone)
                 ->first();
             $data['phone'] = $phone;

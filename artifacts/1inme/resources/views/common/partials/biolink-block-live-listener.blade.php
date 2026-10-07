@@ -39,16 +39,7 @@
                 function linkTextTarget(root) {
                     var a = root.querySelector('a');
                     if (!a) return null;
-                    return a.querySelector('span.flex-1')
-                        || a.querySelector('p.font-semibold')
-                        || (function () {
-                            var spans = a.querySelectorAll(':scope span, :scope div span');
-                            for (var i = spans.length - 1; i >= 0; i--) {
-                                if (!spans[i].querySelector('i, img') && (spans[i].textContent || '').trim() !== '') return spans[i];
-                            }
-                            return null;
-                        })()
-                        || (a.children.length === 0 ? a : null);
+                    return a.querySelector('[data-link-label]');
                 }
                 function alertText(root, v) {
                     var p = root.querySelector('p');
@@ -112,16 +103,16 @@
                 var LIVE_HANDLERS = {
                     paragraph: {
                         'settings.text': function (root, v) { return setText(root.querySelector('p'), v); },
-                        'settings.align': function (root, v) { var d = root.querySelector('div'); return d ? alignClass(d, v) : false; }
+                        'settings.align': function (root, v) { var d = root.querySelector('[data-tilt-wrap]'); return d ? alignClass(d, v) : false; }
                     },
                     heading: {
                         'settings.text': function (root, v) { return setText(root.querySelector('h2'), v); },
-                        'settings.align': function (root, v) { var d = root.querySelector('div'); return d ? alignClass(d, v) : false; }
+                        'settings.align': function (root, v) { var d = root.querySelector('[data-tilt-wrap]'); return d ? alignClass(d, v) : false; }
                     },
                     link: {
                         'settings.text': function (root, v) { return setText(linkTextTarget(root), v); },
                         'settings.url': function (root, v) { var a = root.querySelector('a'); if (!a) return false; a.setAttribute('href', v); return true; },
-                        'settings.description': function (root, v) { return setText(root.querySelector('a p[class*="text-xs"]'), v); }
+                        'settings.description': function (root, v) { return setText(root.querySelector('[data-link-description]'), v); }
                     },
                     cta_button: {
                         'settings.text': function (root, v) { var a = root.querySelector('a'); if (!a) return false; var s = a.querySelector('span'); return setText(s || a, v); },

@@ -341,13 +341,7 @@
 
             {{-- CONTACT --}}
             @elseif($block->type === 'phone_collector')
-                <div class="mb-4 glass-block rounded-xl p-5 text-center">
-                    <p class="text-sm font-semibold mb-3">{{ $s['title'] ?? 'Call Us' }}</p>
-                    <form class="flex gap-2" onsubmit="event.preventDefault(); this.querySelector('button').textContent='Done!'; this.querySelector('button').disabled=true;">
-                        <input type="tel" required placeholder="{{ $s['placeholder'] ?? 'Your phone' }}" class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-white/20" style="color:{{ $fontColor }}">
-                        <button type="submit" class="bio-btn px-5 py-2.5 text-sm font-medium whitespace-nowrap">{{ $s['button_text'] ?? 'Submit' }}</button>
-                    </form>
-                </div>
+                @include('common.blocks.phone-collector')
 
             @elseif($block->type === 'contact_form')
                 <div class="mb-4 glass-block rounded-xl p-5" x-data="{ submitted: false, loading: false, error: '' }">
@@ -419,7 +413,7 @@
                 <div class="mb-4 glass-block rounded-xl p-4 flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background:#25D366"><i class="fab fa-whatsapp text-xl text-white"></i></div>
                     <div class="flex-1"><p class="font-medium text-sm">{{ $s['name'] ?? 'WhatsApp' }}</p><p class="text-xs text-white/40">{{ $s['phone'] ?? '' }}</p></div>
-                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $s['phone'] ?? '') }}?text={{ urlencode($s['message'] ?? '') }}" target="_blank" class="bio-btn px-4 py-2 text-xs font-medium">Chat</a>
+                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $s['phone'] ?? '') }}?text={{ urlencode($s['message'] ?? '') }}" target="_blank" class="bio-btn px-4 py-2 text-xs font-medium">{{ $s['button_text'] ?? 'Chat' }}</a>
                 </div>
 
             {{-- INTERACTIVE --}}
