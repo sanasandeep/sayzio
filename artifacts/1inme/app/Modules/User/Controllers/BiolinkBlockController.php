@@ -219,7 +219,7 @@ class BiolinkBlockController extends Controller
         if ($link->isDesignLocked()) {
             return redirect()->route('user.links.settings.advanced', $link);
         }
-        return view('user.links.settings.block-theme', compact('link'));
+        return redirect()->route('user.links.settings.appearance', $link);
     }
 
     /**
@@ -2164,7 +2164,7 @@ class BiolinkBlockController extends Controller
         if (str_contains($referer, '/settings/layout')) {
             return redirect()->route('user.links.settings.layout', $link)->with('success', 'Page settings updated.');
         } elseif (str_contains($referer, '/settings/block-theme')) {
-            return redirect()->route('user.links.settings.block-theme', $link)->with('success', 'Page settings updated.');
+            return redirect()->route('user.links.settings.appearance', $link)->with('success', 'Page settings updated.');
         } elseif (str_contains($referer, '/settings/default-colors')) {
             return redirect()->route('user.links.settings.default-colors', $link)->with('success', 'Default colors updated.');
         } elseif (str_contains($referer, '/settings/advanced')) {
