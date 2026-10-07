@@ -964,6 +964,8 @@ class BiolinkBlockController extends Controller
                 // generic text sketch — without this, image / avatar /
                 // heading / divider blocks all rendered as a tiny text
                 // chip and looked broken on the dark modal.
+                'link_layout' => $block->type === 'link' ? ($v['style']['link_layout'] ?? '') : '',
+                'demo_image' => asset('images/auth-slider/photo-creators.png'),
                 'shape_kind' => BlockVariantCatalog::shapeKindFor($block->type, $v['shape'] ?? null),
                 // Retro browser-window chrome (Task #6568): the gallery JS
                 // wraps the sketch in a mini title-bar frame when set.
