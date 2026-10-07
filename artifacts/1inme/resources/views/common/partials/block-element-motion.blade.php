@@ -38,6 +38,20 @@
 @keyframes sz-text-wobble { 0%,65%,100% {transform:translateY(0) rotate(0);} 75% {transform:translateY(-3px) rotate(-4deg);} 85% {transform:translateY(1px) rotate(3deg);} }
 @keyframes sz-text-word { 0% {opacity:.3;transform:translateY(8px);} 18%,88%,100% {opacity:1;transform:translateY(0);} }
 @keyframes sz-text-char { 0% {opacity:.3;transform:rotateX(65deg) translateY(6px);} 20%,90%,100% {opacity:1;transform:none;} }
+/* Flow effects paint the glyphs themselves, leaving the block background untouched. */
+[data-text-design="fire"] .sz-text-piece {color:#b9430b!important;font-weight:800;animation:sz-text-fire 2.8s ease-in-out infinite;animation-delay:calc(var(--piece)*80ms);}
+[data-text-design="glow"] .sz-text-piece {color:#6343bb!important;font-weight:700;animation:sz-text-glow 3.5s ease-in-out infinite;}
+[data-text-design="liquid_flow"] .sz-text-piece {color:#087c82!important;font-weight:700;background:linear-gradient(110deg,#09587a 0%,#087c82 25%,#4074c6 45%,#09587a 70%,#087c82 100%);background-size:240% 100%;background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:sz-text-liquid 5s linear infinite;}
+[data-text-design="laser_flow"] .sz-text-piece {color:inherit!important;font-weight:700;background:linear-gradient(100deg,currentColor 0%,currentColor 40%,#0e8299 46%,#70e5ed 50%,#0e8299 54%,currentColor 60%,currentColor 100%);background-size:300% 100%;background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:sz-text-laser 4s ease-in-out infinite;animation-delay:calc(var(--piece)*100ms);}
+[data-text-tone="dark"][data-text-design="fire"] .sz-text-piece {color:#ffb45e!important;}
+[data-text-tone="dark"][data-text-design="glow"] .sz-text-piece {color:#dbc5ff!important;}
+[data-text-tone="dark"][data-text-design="liquid_flow"] .sz-text-piece {background-image:linear-gradient(110deg,#81d8ef,#5be5cb,#9faeff,#81d8ef,#5be5cb);}
+@keyframes sz-text-fire {0%,100% {text-shadow:0 -1px 2px #ffb22b,0 -4px 6px #ed741666;} 40% {text-shadow:1px -2px 3px #ffc64a,-1px -7px 9px #ee6d2466;} 70% {text-shadow:-1px -1px 2px #ffb22b,1px -5px 7px #e64c2466;}}
+@keyframes sz-text-glow {0%,100% {text-shadow:0 0 2px #9875d955,0 0 5px #9875d933;} 50% {text-shadow:0 0 3px #9875d999,0 0 10px #9875d966;}}
+@keyframes sz-text-liquid {from {background-position:0% 50%;} to {background-position:100% 50%;}}
+@keyframes sz-text-laser {0%,15% {background-position:100% 50%;} 75%,100% {background-position:0% 50%;}}
+@media(prefers-reduced-motion:reduce) { [data-text-design="fire"] .sz-text-piece,[data-text-design="glow"] .sz-text-piece {text-shadow:none!important;} }
+@media(forced-colors:active) { [data-text-design] .sz-text-piece {background:none!important;-webkit-text-fill-color:currentColor!important;color:CanvasText!important;text-shadow:none!important;} }
 @media(prefers-reduced-motion:reduce) { [data-text-design] .sz-text-piece {animation:none!important;transform:none!important;opacity:1!important;filter:none!important;} }
 </style>
 <script>
@@ -45,9 +59,11 @@
     if (window.sayzioTextDesigns) return;
     window.sayzioTextDesigns = true;
     function prepare(root) {
-        root.querySelectorAll('[data-text-design="wobble"], [data-text-design="split_words"], [data-text-design="split_chars"], [data-text-design="word_wave"], [data-text-design="spring"], [data-text-design="blur_reveal"], [data-text-design="word_flip"]').forEach(function (element) {
+        root.querySelectorAll('[data-text-design="wobble"], [data-text-design="split_words"], [data-text-design="split_chars"], [data-text-design="word_wave"], [data-text-design="spring"], [data-text-design="blur_reveal"], [data-text-design="word_flip"], [data-text-design="fire"], [data-text-design="glow"], [data-text-design="liquid_flow"], [data-text-design="laser_flow"]').forEach(function (element) {
             if (element.dataset.textPrepared) return;
             element.dataset.textPrepared = '1';
+            var ink = getComputedStyle(element).color.match(/\d+/g) || [];
+            if (ink.length >= 3 && Number(ink[0])*.299 + Number(ink[1])*.587 + Number(ink[2])*.114 > 160) element.dataset.textTone = 'dark';
             var walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
             var nodes = [], node, index = 0;
             while ((node = walker.nextNode())) {
@@ -55,7 +71,7 @@
                 nodes.push(node);
             }
             nodes.forEach(function (node) {
-                var byWord = ['split_words','word_wave','blur_reveal','word_flip'].indexOf(element.dataset.textDesign) !== -1;
+                var byWord = ['split_words','word_wave','blur_reveal','word_flip','fire','glow','liquid_flow','laser_flow'].indexOf(element.dataset.textDesign) !== -1;
                 var fragment = document.createDocumentFragment();
                 node.textContent.split(/(\s+)/).forEach(function (word) {
                     if (/^\s+$/.test(word) || !word) { fragment.appendChild(document.createTextNode(word)); return; }

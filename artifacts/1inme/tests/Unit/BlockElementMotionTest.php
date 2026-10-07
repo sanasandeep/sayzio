@@ -10,7 +10,7 @@ class BlockElementMotionTest extends TestCase
 {
     public function test_text_designs_are_allowlisted(): void
     {
-        foreach (['editorial', 'quote', 'marker', 'outline', 'wobble', 'split_words', 'split_chars', 'bracket', 'ruled', 'vertical', 'letterpress', 'double_rule', 'word_wave', 'spring', 'blur_reveal', 'word_flip'] as $design) {
+        foreach (['editorial', 'quote', 'marker', 'outline', 'wobble', 'split_words', 'split_chars', 'bracket', 'ruled', 'vertical', 'letterpress', 'double_rule', 'word_wave', 'spring', 'blur_reveal', 'word_flip', 'fire', 'glow', 'liquid_flow', 'laser_flow'] as $design) {
             $this->assertSame($design, BlockStyleSanitizer::sanitize(['_text_design' => $design])['_text_design']);
         }
         $this->assertArrayNotHasKey('_text_design', BlockStyleSanitizer::sanitize(['_text_design' => 'invalid']));

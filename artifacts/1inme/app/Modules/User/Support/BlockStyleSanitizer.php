@@ -60,7 +60,7 @@ class BlockStyleSanitizer
             'display_mode' => ['card', 'content'],
             'effect' => ['none', 'glass', 'gradient_border'],
             '_motion' => ['none', 'float', 'breathe', 'reveal'],
-            '_text_design' => ['editorial', 'quote', 'marker', 'outline', 'wobble', 'split_words', 'split_chars', 'bracket', 'ruled', 'vertical', 'letterpress', 'double_rule', 'word_wave', 'spring', 'blur_reveal', 'word_flip'],
+            '_text_design' => ['editorial', 'quote', 'marker', 'outline', 'wobble', 'split_words', 'split_chars', 'bracket', 'ruled', 'vertical', 'letterpress', 'double_rule', 'word_wave', 'spring', 'blur_reveal', 'word_flip', 'fire', 'glow', 'liquid_flow', 'laser_flow'],
             // Per-block layout switch for link-family blocks. Empty
             // string is the default (existing button render); since the
             // foreach skips empty values, only non-default picks
