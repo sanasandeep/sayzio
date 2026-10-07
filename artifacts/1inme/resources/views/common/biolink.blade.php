@@ -1009,7 +1009,17 @@
             // product renders "Buy Now" (single) vs "Add to Cart" (multiple),
             // and a cart drawer only mounts when at least one exists. Must be
             // computed BEFORE the blocks loop below.
-            $__storeProducts = $blocks->filter(fn($b) =>
+            $__storeBlocks = collect();
+            $__collectStoreBlocks = function ($items) use (&$__collectStoreBlocks, &$__storeBlocks) {
+                foreach ($items as $item) {
+                    $__storeBlocks->push($item);
+                    if (\App\Modules\User\Models\BiolinkBlock::isContainerType($item->type)) {
+                        $__collectStoreBlocks($item->activeChildren()->get()->filter(fn($child) => $child->isVisible()));
+                    }
+                }
+            };
+            $__collectStoreBlocks($blocks);
+            $__storeProducts = $__storeBlocks->filter(fn($b) =>
                 $b->type === 'product'
                 && !empty(($b->settings['native_checkout'] ?? false))
                 && (int)($b->settings['price_cents'] ?? 0) > 0
