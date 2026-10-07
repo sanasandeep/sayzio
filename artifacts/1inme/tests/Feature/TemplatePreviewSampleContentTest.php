@@ -37,6 +37,19 @@ class TemplatePreviewSampleContentTest extends TestCase
         $this->assertFileExists(public_path('images/template-demos/press-0.svg'));
     }
 
+    public function test_button_labels_follow_their_surface_not_the_editor_theme(): void
+    {
+        $builder = new TemplatePreviewLayoutBuilder;
+        foreach (['#334155', '#52525b', '#4338ca', '#047857'] as $color) {
+            $this->assertSame('#ffffff', $builder->buttonInk($color));
+        }
+        $this->assertSame('#111827', $builder->buttonInk('#fef3c7'));
+        $cell = $builder->build([['type' => 'link_big', 'settings' => [
+            '_style' => ['bg_color' => '#334155', 'text_color' => '#334155'],
+        ]]])[0][0];
+        $this->assertSame('#ffffff', $cell['ink']);
+    }
+
     public function test_admin_media_is_reflected_without_accepting_unsafe_schemes(): void
     {
         $builder = new TemplatePreviewLayoutBuilder;

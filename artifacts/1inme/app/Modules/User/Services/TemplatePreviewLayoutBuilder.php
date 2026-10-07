@@ -99,6 +99,12 @@ class TemplatePreviewLayoutBuilder
                     $cell[$target] = $style[$source];
                 }
             }
+            if ($cell['shape'] === 'pill') {
+                $cell['ink'] = $this->buttonInk($cell['bg']);
+            }
+            if ($cell['shape'] === 'form') {
+                $cell['btn_ink'] = $this->buttonInk($cell['btn_bg'] ?? '#4338ca');
+            }
             if (in_array($style['font_family'] ?? '', ['Georgia', 'Inter'], true)) {
                 $cell['font'] = $style['font_family'];
             }
@@ -169,6 +175,21 @@ class TemplatePreviewLayoutBuilder
      *
      * @return array<string, mixed>
      */
+    /** Choose the higher-contrast label independently of the editor theme. */
+    public function buttonInk(string $background): string
+    {
+        if (!preg_match('/^#([0-9a-f]{6}|[0-9a-f]{3})$/i', $background, $match)) return '#ffffff';
+        $hex = $match[1];
+        if (strlen($hex) === 3) $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
+        $channels = [];
+        foreach ([0, 2, 4] as $offset) {
+            $value = hexdec(substr($hex, $offset, 2)) / 255;
+            $channels[] = $value <= .04045 ? $value / 12.92 : pow(($value + .055) / 1.055, 2.4);
+        }
+        $luminance = .2126 * $channels[0] + .7152 * $channels[1] + .0722 * $channels[2];
+        return $luminance > .179 ? '#111827' : '#ffffff';
+    }
+
     public function surfaceStyle(array $settings): string
     {
         $background = '#f8fafc';
