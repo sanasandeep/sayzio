@@ -179,3 +179,11 @@
         box-shadow: 0 4px 14px -4px rgba(61,107,255,0.45);
     }
 </style>
+
+@once
+<style>
+.editor-workspace { display:grid; grid-template-columns:minmax(0,1fr); gap:1.5rem; align-items:start; }
+.editor-workspace > div { min-width:0; grid-column:auto!important; }
+@media(min-width:900px) { .editor-workspace { grid-template-columns:minmax(0,7fr) minmax(0,5fr); } }
+</style>
+@endonce
