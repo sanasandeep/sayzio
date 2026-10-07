@@ -953,8 +953,25 @@ class BiolinkBlockController extends Controller
             // the whole gallery rendered as the same blank sketch however
             // different the styles actually were.
             $resolved = BiolinkBlock::getBlockStyle(['_style' => $v['style'] ?? []], $globalTheme);
+            $renderedLink = null;
+            if ($block->type === 'link') {
+                $sample = clone $block;
+                $sampleSettings = (array) $block->settings;
+                $sampleSettings['_style'] = $v['style'] ?? [];
+                $sampleSettings['text'] = $sampleSettings['text'] ?? 'Explore my work';
+                $sampleSettings['url'] = '#';
+                $sampleSettings['icon'] = $sampleSettings['icon'] ?? 'fas fa-link';
+                $sampleSettings['thumbnail'] = asset('images/auth-slider/photo-creators.png');
+                $sample->settings = $sampleSettings;
+                $renderedLink = view('common.blocks.link', [
+                    'block' => $sample, 's' => $sampleSettings, 'blocks' => collect(),
+                    'btnInline' => BiolinkBlock::buildInlineStyle($resolved),
+                    'fontColor' => ($resolved['text_color'] ?? '') ?: '#334155',
+                ])->render();
+            }
             $previews[] = [
                 'key' => $v['key'],
+                'rendered_link' => $renderedLink,
                 'name' => $v['name'],
                 'tags' => $v['tags'] ?? [],
                 'inline_style' => BiolinkBlock::buildInlineStyle($resolved),

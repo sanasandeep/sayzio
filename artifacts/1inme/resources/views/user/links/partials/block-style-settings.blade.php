@@ -1,3 +1,9 @@
+<style>
+.variant-real-link .bio-btn { color:inherit; border-radius:12px; background:#f4f4f5; }
+.variant-real-link { color:#334155; font-family:Inter, sans-serif; }
+.variant-real-link a { margin-bottom:0 !important; }
+.variant-real-link .text-white { color:#fff !important; }
+</style>
 @php
     $st = $block->settings['_style'] ?? [];
     $templates = \App\Modules\User\Models\BiolinkBlock::blockTemplates();
@@ -404,7 +410,7 @@
                          differences (pill vs square vs full-image) are
                          visible at a glance instead of squinting. --}}
                     <div data-variant-preview="{{ $v['key'] }}"
-                         class="h-28 rounded-lg mt-3 mb-2 overflow-hidden {{ $isWindow ? 'flex flex-col' : 'flex items-center justify-center p-2' }}"
+                         class="h-20 rounded-lg mt-2 mb-2 overflow-hidden {{ $isWindow ? 'flex flex-col' : 'flex items-center justify-center p-2' }}"
                          style="background: {{ $thumbBg }};
                                 border-radius: {{ min($thumbRadius, 24) }}px;
                                 {{ $thumbBorder ? 'border:' . ($isDashed ? '2px dashed ' : ($isWindow ? '2px solid ' : '1px solid ')) . $thumbBorder . ';' : '' }}
@@ -1512,7 +1518,7 @@ window.blockDesignsGallery = function(opts) {
                     data.previews.forEach(function(p) {
                         var slot = self.$el.querySelector('[data-variant-preview="' + p.key + '"]');
                         if (!slot) return;
-                        slot.setAttribute('style', 'height:112px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:12px 0 8px;padding:8px;background:' + groundBg + ';border:1px solid ' + edge + ';border-radius:8px;');
+                        slot.setAttribute('style', 'height:76px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:8px 0;padding:6px;background:transparent;border:0;border-radius:8px;');
                         slot.innerHTML = self.buildLivePreviewInner(p, rawLabel, groundInk);
                     });
                 })
@@ -1530,6 +1536,9 @@ window.blockDesignsGallery = function(opts) {
         // Styles gallery look broken on image / avatar / heading /
         // divider blocks.
         buildLivePreviewInner(p, rawLabel, groundInk) {
+            if (p.rendered_link) {
+                return '<div class="variant-real-link" style="width:320px;min-width:320px;transform:scale(.44);transform-origin:center;pointer-events:none;">' + p.rendered_link + '</div>';
+            }
             var inline = p.inline_style || '';
             // A variant that sets no text colour inherits the page's font
             // colour on the real page, so the preview inherits it too. It
