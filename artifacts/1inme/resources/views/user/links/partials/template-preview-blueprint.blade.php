@@ -28,7 +28,7 @@
         .tpl-prev-sub     { font-size: 10px; line-height: 1.15; color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .tpl-prev-text    { font-size: 10px; line-height: 1.3; color: rgba(255,255,255,0.6); display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
         .tpl-prev-list    { font-size: 10px; line-height: 1.35; color: rgba(255,255,255,0.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .tpl-prev-pill    { font-size: 10px; font-weight: 700; line-height: 1.3; }
+        .tpl-prev-pill    { font-size: 10px; font-weight: 600; line-height: 1.3; }
         html.light-mode .tpl-prev-heading,
         html.light-mode .tpl-prev-name { color: rgba(7,20,55,0.88); }
         html.light-mode .tpl-prev-sub,
@@ -149,9 +149,9 @@
                         @case('form')
                             <div class="w-full flex flex-col gap-1 justify-center" style="min-height: {{ $h }}px;">
                                 @for($i = 1; $i <= max($lines, 1); $i++)
-                                    <div class="rounded-[2px] w-full" style="background: {{ $bg }}; height: 5px;"></div>
+                                    <div class="rounded-md w-full tpl-prev-sub" style="border:1px solid rgba(100,116,139,.25); padding:6px 8px; min-height:26px;">{{ $lines === 1 ? 'Your email address' : (['Your name', 'Email address', 'Tell us about your project'][$i - 1] ?? 'Your message') }}</div>
                                 @endfor
-                                <div class="rounded-full mx-auto flex items-center justify-center text-white/95 tpl-prev-pill px-1.5" style="background: {{ $btnBg }}; min-height: 7px; width: 70%;">
+                                <div class="rounded-full mx-auto flex items-center justify-center text-white/95 tpl-prev-pill px-1.5" style="background: {{ $btnBg }}; min-height: 26px; width: 85%;">
                                     @if($text !== '')<span class="truncate">{{ $text }}</span>@endif
                                 </div>
                             </div>
@@ -178,7 +178,7 @@
                             <div class="w-full" style="min-height: {{ $h }}px;"></div>
                             @break
                         @case('badge')
-                            <div class="rounded-full mx-auto" style="background: {{ $bg }}; height: {{ $h }}px; width: 50%;"></div>
+                            <div class="rounded-full mx-auto tpl-prev-pill px-2" style="background: {{ $bg }}; padding:5px 8px; color:#392a16;">{{ $text ?: 'New collection' }}</div>
                             @break
                         @default
                             <div class="w-full rounded-[3px] flex items-center justify-center text-white/70"

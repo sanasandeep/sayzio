@@ -14,7 +14,7 @@
     .tpl-prev-sub     { font-size: 10px; line-height: 1.15; color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tpl-prev-text    { font-size: 10px; line-height: 1.3; color: rgba(255,255,255,0.6); display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
     .tpl-prev-list    { font-size: 10px; line-height: 1.35; color: rgba(255,255,255,0.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tpl-prev-pill    { font-size: 10px; font-weight: 700; line-height: 1.3; }
+    .tpl-prev-pill    { font-size: 10px; font-weight: 600; line-height: 1.3; }
     html.light-mode .tpl-prev-heading,
     html.light-mode .tpl-prev-name { color: rgba(7,20,55,0.88); }
     html.light-mode .tpl-prev-sub,
@@ -195,14 +195,14 @@
                          @click="t.locked ? (window.location.href = '{{ route('user.upgrade') }}') : applyCardTemplate(t.id)"
                          :class="t.locked ? 'opacity-70 hover:border-amber-500/50' : 'hover:border-blue-500/50'"
                          :title="t.locked ? 'Upgrade to ' + t.plan_tier + ' to use this template' : (t.description || t.name)">
-                        <div class="relative overflow-hidden rounded-t-xl" style="background: linear-gradient(135deg, rgba(61,107,255,0.12), rgba(92,131,255,0.04));">
+                        <div class="relative overflow-hidden rounded-t-xl" style="background: var(--bg-card); border-bottom:1px solid var(--border-glass);">
                             <template x-if="t.thumbnail_url">
                                 <div class="w-full aspect-[4/3]">
                                     <img :src="t.thumbnail_url" :alt="t.name" class="w-full h-full object-cover" loading="lazy">
                                 </div>
                             </template>
                             <template x-if="!t.thumbnail_url && (t.preview_layout || []).length">
-                                <div class="w-full px-2.5 py-2.5 flex flex-col gap-1.5" style="min-height: 120px; max-height: 380px; overflow: hidden;">
+                                <div class="w-full px-2.5 py-2.5 flex flex-col gap-1.5" style="min-height: 100px; max-height: 420px; overflow: hidden;">
                                     <template x-for="(row, ri) in t.preview_layout" :key="ri">
                                         <div class="flex gap-1 w-full items-center">
                                             <template x-for="(cell, ci) in row" :key="ci">
@@ -293,7 +293,7 @@
                                                     <template x-if="cell.shape === 'form'">
                                                         <div class="w-full flex flex-col gap-1 justify-center" :style="'min-height: ' + cell.h + 'px;'">
                                                             <template x-for="i in (cell.lines || 1)" :key="i">
-                                                                <div class="rounded-[2px] w-full" :style="'background: ' + cell.bg + '; height: 5px;'"></div>
+                                                                <div class="rounded-md w-full tpl-prev-sub" style="border:1px solid rgba(100,116,139,.25); padding:6px 8px; min-height:26px;"><span x-text="(cell.lines || 1) === 1 ? 'Your email address' : ['Your name', 'Email address', 'Tell us about your project'][i - 1]"></span></div>
                                                             </template>
                                                             <div class="rounded-full mx-auto flex items-center justify-center text-white/95 tpl-prev-pill px-1.5" :style="'background: ' + (cell.btn_bg || 'rgba(92,131,255,0.85)') + '; min-height: 24px; width: 85%;'">
                                                                 <span x-show="cell.text" class="truncate" x-text="cell.text"></span>
@@ -322,7 +322,7 @@
                                                         <div class="w-full" :style="'min-height: ' + cell.h + 'px;'"></div>
                                                     </template>
                                                     <template x-if="cell.shape === 'badge'">
-                                                        <div class="rounded-full mx-auto" :style="'background: ' + cell.bg + '; height: ' + cell.h + 'px; width: 50%;'"></div>
+                                                        <div class="rounded-full mx-auto tpl-prev-pill px-2 flex items-center" :style="'background: ' + cell.bg + '; min-height:22px; color:#392a16;'" x-text="cell.text || 'New collection'"></div>
                                                     </template>
                                                     <template x-if="!cell.shape || cell.shape === 'tile'">
                                                         <div class="w-full rounded-[3px] flex items-center justify-center text-white/70" :style="'background: ' + cell.bg + '; min-height: ' + cell.h + 'px;'">
