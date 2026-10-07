@@ -136,6 +136,7 @@
             @endif{!! $pcFrameClose !!}
             @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => '#ffffff', 'chip' => 'plain'])
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => false, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── CLASSIC CREATOR ───────────────────── --}}
@@ -151,6 +152,7 @@
             @if($title)<p class="text-sm font-medium" style="color:{{ $accent }}">{{ $title }}</p>@endif
             @if($bio)<p class="text-sm mt-3" style="opacity:.72">{{ $bio }}</p>@endif
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── MODERN GLASSMORPHISM ──────────────── --}}
@@ -171,6 +173,7 @@
             @if($bio)<p class="text-sm mt-3 text-white/80">{{ $bio }}</p>@endif
             @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => '#ffffff', 'chip' => 'glass'])
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => false, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── COVER OVERLAY HERO ────────────────── --}}
@@ -193,6 +196,7 @@
                 @if($bio)<p class="text-sm mt-3 text-white/80">{{ $bio }}</p>@endif
             </div>
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── PORTRAIT POSTER ───────────────────── --}}
@@ -217,6 +221,7 @@
                 @if($bio)<p class="text-sm mt-3 text-white/80">{{ $bio }}</p>@endif
             </div>
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── SPLIT CARD ────────────────────────── --}}
@@ -233,6 +238,7 @@
                 @if($bio)<p class="text-sm mt-2" style="opacity:.72">{{ $bio }}</p>@endif
             </div>
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── FLOATING AVATAR ───────────────────── --}}
@@ -252,6 +258,7 @@
             @if($title)<p class="text-sm font-medium" style="color:{{ $accent }}">{{ $title }}</p>@endif
             @if($bio)<p class="text-sm mt-3" style="opacity:.72">{{ $bio }}</p>@endif
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── ARCH BAND ─────────────────────────── --}}
@@ -292,6 +299,7 @@
             @if($bio)<p class="text-sm mt-3" style="opacity:.72">{{ $bio }}</p>@endif
             @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => $abColor, 'chip' => 'accent_outline'])
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => false, 'showVerified' => false])
     </div>
 
 {{-- ───────────────────────────── OVERLAP HERO ──────────────────────── --}}
@@ -317,6 +325,7 @@
                 @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => $accent, 'chip' => 'accent_outline'])
             </div>
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => false, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── SPLIT HERO PANEL ──────────────────── --}}
@@ -346,6 +355,7 @@
                 <div class="w-full h-full flex items-center justify-center text-5xl font-bold" style="min-height:220px;background:rgba(0,0,0,0.08)">{{ $initial }}</div>
             @endif
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── GRADIENT IDENTITY ─────────────────── --}}
@@ -361,6 +371,7 @@
             @if($bio)<p class="text-sm mt-3 text-white/80">{{ $bio }}</p>@endif
             @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => '#ffffff', 'chip' => 'glass'])
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => false, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── PREMIUM FOUNDER ───────────────────── --}}
@@ -391,6 +402,7 @@
                 </a>
             @endif
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => false, 'showSocials' => true, 'showVerified' => false])
     </div>
 
 {{-- ───────────────────────────── MINIMAL DARK ──────────────────────── --}}
@@ -406,6 +418,7 @@
             @if($bio)<p class="text-sm mt-3 text-white/65">{{ $bio }}</p>@endif
             @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => '#ffffff', 'chip' => 'glass'])
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => false, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── MAGAZINE LAYOUT ───────────────────── --}}
@@ -423,6 +436,7 @@
             </div>
             @if($bio)<p class="text-sm mt-4 leading-relaxed" style="opacity:.78">{{ $bio }}</p>@endif
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── SOCIAL PROFILE STYLE ──────────────── --}}
@@ -453,6 +467,7 @@
             @if($bio)<p class="text-sm mt-3" style="opacity:.72">{{ $bio }}</p>@endif
             @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => $accent, 'chip' => 'accent_outline'])
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => false, 'showWebsite' => false, 'showCta' => true, 'showSocials' => false, 'showVerified' => false])
     </div>
 
 {{-- ───────────────────────────── BUSINESS CARD ─────────────────────── --}}
@@ -476,6 +491,7 @@
                 @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => $accent, 'chip' => 'accent_outline', 'align' => 'left'])
             </div>
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => false, 'showWebsite' => false, 'showCta' => true, 'showSocials' => false, 'showVerified' => false])
     </div>
 
 {{-- ───────────────────────────── ID BADGE / LANYARD ────────────────── --}}
@@ -510,6 +526,7 @@
                 </div>
             </div>
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => true, 'showVerified' => false])
     </div>
 
 {{-- ───────────────────────────── TICKET STUB ───────────────────────── --}}
@@ -537,6 +554,7 @@
                 </div>
             </div>
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── POLAROID ──────────────────────────── --}}
@@ -555,6 +573,7 @@
                 @if($bio)<p class="text-base mt-1" style="font-family:'Caveat',cursive;opacity:.6;color:#374151">{{ $bio }}</p>@endif
             </div>
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── TERMINAL / CODE ───────────────────── --}}
@@ -588,6 +607,7 @@
                 <span class="terminal-cursor" style="display:inline-block;width:8px;height:16px;background:{{ $accent }}"></span>
             </div>
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => false, 'showWebsite' => false, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── SIDEBAR ACCENT ────────────────────── --}}
@@ -610,6 +630,7 @@
                 @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => $accent, 'chip' => 'accent_outline', 'align' => 'left'])
             </div>
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => false, 'showVerified' => false])
     </div>
 
 {{-- ───────────────────────────── PAPER COLLAGE ─────────────────────── --}}
@@ -648,6 +669,7 @@
                 </div>
             </div>
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── BRAND RAIL ────────────────────────── --}}
@@ -695,6 +717,7 @@
             @if($title)<p class="mt-4 text-[11px] font-bold uppercase" style="letter-spacing:.3em;opacity:.9">{{ $title }}</p>@endif
             @if($bio)<p class="text-sm mt-2" style="opacity:.8">{{ $bio }}</p>@endif
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── SPLIT PILL ────────────────────────── --}}
@@ -740,6 +763,7 @@
                 @if($bio)<p class="text-sm mt-2" style="opacity:.85">{{ $bio }}</p>@endif
             </div>
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── BADGE CARD ────────────────────────── --}}
@@ -782,6 +806,7 @@
                 </div>
             </div>
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => false, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── LEGACY: STATS (v3 default) ────────── --}}
@@ -804,6 +829,7 @@
                 @endforeach
             </div>
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 
 {{-- ───────────────────────────── LEGACY: BADGES (v4 default) & FALLBACK --}}
@@ -824,5 +850,6 @@
                 @endforeach
             </div>
         </div>
+        @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 @endif
