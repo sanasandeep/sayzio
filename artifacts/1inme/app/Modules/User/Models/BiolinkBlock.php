@@ -505,6 +505,7 @@ class BiolinkBlock extends Model
         // every block on every menu page has rendered in until now.
         // Ignored entirely on a page with no menu.
         '_menu_slot' => '',
+        '_motion' => 'none',
         '_animation' => '',        // heading animation hint (shimmer, glitch, ...)
         '_gallery_layout' => '',   // gallery layout (grid_2, masonry, ...)
         '_social_set' => '',       // social icon style set (mono_line, glassy, ...)
@@ -847,6 +848,13 @@ class BiolinkBlock extends Model
     public static function buildInlineStyle(array $style, bool $skipHorizontalMargins = false): string
     {
         $css = [];
+        $motion = match ($style['_motion'] ?? 'none') {
+            'float' => 'sz-element-float 5s ease-in-out infinite',
+            'breathe' => 'sz-element-breathe 4s ease-in-out infinite',
+            'reveal' => 'sz-element-reveal .6s ease-out both',
+            default => null,
+        };
+        if ($motion) $css[] = "animation:{$motion}";
         if (!empty($style['font_family'])) {
             // User-uploaded fonts are stored as "custom:<family>" tokens so
             // we can route them through @font-face on the public page; the

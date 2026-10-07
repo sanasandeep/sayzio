@@ -1,4 +1,10 @@
+@include('common.partials.block-element-motion')
 <style>
+.variant-hover-label { position:absolute; bottom:0; left:50%; transform:translateX(-50%); max-width:100%; padding:3px 7px; background:#172033; color:#fff !important; border-radius:5px; font-size:10px; white-space:nowrap; opacity:0; pointer-events:none; z-index:5; }
+.variant-element:hover .variant-hover-label, .variant-element:focus-visible .variant-hover-label { opacity:1; }
+.variant-element:focus-visible { outline:2px solid #5c83ff; }
+.variant-real-link a span { color:inherit !important; }
+
 .variant-real-link .bio-btn { color:inherit; border-radius:12px; background:#f4f4f5; }
 .variant-real-link { color:#334155; font-family:Inter, sans-serif; }
 .variant-real-link a { margin-bottom:0 !important; }
@@ -358,8 +364,8 @@
                         x-show="matchesFilter(@js($v['tags'] ?? []), '{{ $v['key'] }}', @js($v['shape'] ?? ''))"
                         @click="applyVariant('{{ $v['key'] }}', $el)"
                         :disabled="_busy"
-                        class="group p-2 rounded-xl text-left transition-all hover:scale-[1.03] relative"
-                        :style="(currentVariant === '{{ $v['key'] }}' ? 'background: rgba(61,107,255,0.12); border: 2px solid rgba(61,107,255,0.6); box-shadow: 0 0 12px rgba(61,107,255,0.18);' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass);') + (_busy && _busyKey !== '{{ $v['key'] }}' ? ' opacity:0.5;cursor:not-allowed;' : '') + (_busy && _busyKey === '{{ $v['key'] }}' ? ' cursor:wait;' : '')">
+                        aria-label="{{ $v['name'] }}" class="variant-element group p-1 rounded-lg text-left transition-all relative"
+                        :style="(currentVariant === '{{ $v['key'] }}' ? 'background:transparent; outline:2px solid #5c83ff;' : 'background:transparent;border:0;') + (_busy && _busyKey !== '{{ $v['key'] }}' ? ' opacity:0.5;cursor:not-allowed;' : '') + (_busy && _busyKey === '{{ $v['key'] }}' ? ' cursor:wait;' : '')">
                     {{-- Per-card "Saving…" overlay — shown only on the
                          exact variant card that was just clicked, so the
                          creator can see which style is being applied
@@ -375,17 +381,6 @@
                          :style="currentVariant === '{{ $v['key'] }}' ? 'background: #5c83ff; opacity: 1;' : 'opacity: 0;'">
                         <i class="fas fa-check text-white text-[8px]"></i>
                     </div>
-                    {{-- Favorite star --}}
-                    {{-- span role=button (not <button>): this sits inside the
-                         variant card <button>; a button-in-button force-closes
-                         the outer one and ejects later markup from the layout. --}}
-                    <span role="button" tabindex="0" @click.stop="toggleFavorite('{{ $v['key'] }}')"
-                          @keydown.enter.stop.prevent="toggleFavorite('{{ $v['key'] }}')"
-                          class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-all opacity-60 hover:opacity-100 cursor-pointer"
-                          :style="isFavorite('{{ $v['key'] }}') ? 'background: rgba(236,72,153,0.2); color: #f472b6; opacity: 1;' : 'background: rgba(255,255,255,0.06); color: var(--text-faint);'">
-                        <i :class="isFavorite('{{ $v['key'] }}') ? 'fas' : 'far'" class="fa-star text-[8px]"></i>
-                    </span>
-
                     {{-- Thumbnail rendered from preview hints with a small
                          block-shape sketch so creators can see how the
                          variant frames their actual block type, not just an
@@ -488,14 +483,7 @@
                             </div>
                         @endif
                     </div>
-                    <div class="text-[10px] font-semibold truncate" style="color: var(--text-primary);">{{ $v['name'] }}</div>
-                    <div class="flex flex-wrap gap-0.5 mt-0.5">
-                        @foreach(($v['tags'] ?? []) as $tagKey)
-                        @if(isset($variantTags[$tagKey]))
-                        <span class="text-[8px] px-1 rounded" style="background: rgba(61,107,255,0.1); color: #90acff;">{{ $variantTags[$tagKey] }}</span>
-                        @endif
-                        @endforeach
-                    </div>
+                    <span class="variant-hover-label">{{ $v['name'] }}</span>
                 </button>
                 @endforeach
             </div>
@@ -879,6 +867,13 @@
             {{-- Round-trip the underlying values that the presets map onto so
                  the form always posts a complete style payload. The advanced
                  panel below exposes friendly inputs that override these. --}}
+            <label class="block text-xs font-medium mb-2">Element motion
+                <select name="style[_motion]" class="w-full rounded-lg border p-2 mt-1">
+                    @foreach(['none' => 'Off', 'reveal' => 'Reveal once', 'float' => 'Gentle float', 'breathe' => 'Breathing halo'] as $motionKey => $motionLabel)
+                        <option value="{{ $motionKey }}" @selected(($st['_motion'] ?? 'none') === $motionKey)>{{ $motionLabel }}</option>
+                    @endforeach
+                </select>
+            </label>
             <input type="hidden" name="style[effect]" value="{{ $st['effect'] ?? 'none' }}">
             <input type="hidden" name="style[shadow_type]" value="{{ $st['shadow_type'] ?? 'none' }}">
             <input type="hidden" name="style[glass_blur]" value="{{ $st['glass_blur'] ?? 20 }}">
@@ -1518,7 +1513,7 @@ window.blockDesignsGallery = function(opts) {
                     data.previews.forEach(function(p) {
                         var slot = self.$el.querySelector('[data-variant-preview="' + p.key + '"]');
                         if (!slot) return;
-                        slot.setAttribute('style', 'height:76px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:8px 0;padding:6px;background:transparent;border:0;border-radius:8px;');
+                        slot.setAttribute('style', 'height:60px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:8px 0;padding:6px;background:transparent;border:0;border-radius:8px;');
                         slot.innerHTML = self.buildLivePreviewInner(p, rawLabel, groundInk);
                     });
                 })
@@ -1537,7 +1532,7 @@ window.blockDesignsGallery = function(opts) {
         // divider blocks.
         buildLivePreviewInner(p, rawLabel, groundInk) {
             if (p.rendered_link) {
-                return '<div class="variant-real-link" style="width:320px;min-width:320px;transform:scale(.44);transform-origin:center;pointer-events:none;">' + p.rendered_link + '</div>';
+                return '<div class="variant-real-link" style="width:320px;min-width:320px;transform:scale(.5);transform-origin:center;pointer-events:none;">' + p.rendered_link + '</div>';
             }
             var inline = p.inline_style || '';
             // A variant that sets no text colour inherits the page's font

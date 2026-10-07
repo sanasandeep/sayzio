@@ -35,6 +35,7 @@ class BlockStyleSanitizer
         'taped_note',
         'arrow_hex', 'arrow_hex_round', 'numbered_list', 'side_accent_tab',
         'icon_top', 'offset_frame', 'torn_tape',
+        'chevron_cut', 'ticket_notch', 'folded_corner',
         'arrow_chip_left',
         // Task #6588 — screenshot-inspired styles.
         'edge_bleed_bar', 'double_border',
@@ -58,6 +59,7 @@ class BlockStyleSanitizer
             'glass_preset' => ['off', 'light', 'heavy'],
             'display_mode' => ['card', 'content'],
             'effect' => ['none', 'glass', 'gradient_border'],
+            '_motion' => ['none', 'float', 'breathe', 'reveal'],
             // Per-block layout switch for link-family blocks. Empty
             // string is the default (existing button render); since the
             // foreach skips empty values, only non-default picks

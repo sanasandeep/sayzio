@@ -10,7 +10,20 @@
         if ($_accent === '' || $_accent === 'transparent') $_accent = $_st['text_color'] ?? '';
         if ($_accent === '') $_accent = '#3d6bff';
     @endphp
-    @if(!empty($s['is_featured']))
+    @if(in_array($_lnkLayout, ['chevron_cut', 'ticket_notch', 'folded_corner'], true))
+        @php
+            $_shapeClip = match ($_lnkLayout) {
+                'chevron_cut' => 'polygon(0 0,94% 0,100% 50%,94% 100%,0 100%,4% 50%)',
+                'ticket_notch' => 'polygon(0 0,100% 0,100% 35%,96% 50%,100% 65%,100% 100%,0 100%,0 65%,4% 50%,0 35%)',
+                default => 'polygon(0 0,88% 0,100% 28%,100% 100%,0 100%)',
+            };
+        @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener" class="bio-btn block w-full px-8 py-4 mb-3 font-semibold text-center relative"
+           style="{{ $btnInline }} clip-path:{{ $_shapeClip }};">
+            {{ $_txt }} <span aria-hidden="true">↗</span>
+            @if($_lnkLayout === 'folded_corner')<span aria-hidden="true" class="absolute top-0 right-0" style="width:12%;height:28%;background:rgba(255,255,255,.3);"></span>@endif
+        </a>
+    @elseif(!empty($s['is_featured']))
         @php $accent = $s['accent_color'] ?? '#f59e0b'; @endphp
         <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
            class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl relative"
