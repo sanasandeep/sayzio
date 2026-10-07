@@ -3789,6 +3789,7 @@ class BlockVariantCatalog
             $variantShape === 'plain_text' => 'plain_link',
             $variantShape === 'image_full' => 'image_btn',
             $variantShape === 'outline'    => 'button_outline',
+            str_starts_with($blockType, 'profile_card') => 'profile',
             in_array($blockType, ['avatar'], true) => 'avatar',
             in_array($blockType, ['image', 'photo', 'banner', 'header_image', 'image_grid', 'image_slider', 'image_slider_v2', 'verified_avatar'], true) => 'image',
             in_array($blockType, ['link', 'link_big', 'button', 'cta', 'cta_button', 'social', 'url', 'featured_pin', 'external_item'], true) => 'button',

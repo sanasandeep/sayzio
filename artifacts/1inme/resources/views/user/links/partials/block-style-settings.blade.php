@@ -404,7 +404,7 @@
                          differences (pill vs square vs full-image) are
                          visible at a glance instead of squinting. --}}
                     <div data-variant-preview="{{ $v['key'] }}"
-                         class="h-20 rounded-lg mt-3 mb-2 overflow-hidden {{ $isWindow ? 'flex flex-col' : 'flex items-center justify-center p-2' }}"
+                         class="h-28 rounded-lg mt-3 mb-2 overflow-hidden {{ $isWindow ? 'flex flex-col' : 'flex items-center justify-center p-2' }}"
                          style="background: {{ $thumbBg }};
                                 border-radius: {{ min($thumbRadius, 24) }}px;
                                 {{ $thumbBorder ? 'border:' . ($isDashed ? '2px dashed ' : ($isWindow ? '2px solid ' : '1px solid ')) . $thumbBorder . ';' : '' }}
@@ -435,6 +435,12 @@
                             <div class="w-full h-full rounded flex items-end p-1.5"
                                  style="background: linear-gradient(135deg,#3d6bff,#ec4899); border-radius: {{ min($thumbRadius, 16) }}px;">
                                 <span class="text-[9px] font-bold text-white drop-shadow">Explore my work</span>
+                            </div>
+                        @elseif($shapeKind === 'profile')
+                            <div class="w-full flex flex-col items-center gap-1" style="color:{{ $thumbText }};">
+                                <img src="{{ asset('images/auth-slider/photo-creators.png') }}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:50%;">
+                                <strong style="font-size:11px;color:inherit !important;">Alex Morgan</strong>
+                                <span style="font-size:9px;color:inherit !important;">Designer &amp; storyteller</span>
                             </div>
                         @elseif($shapeKind === 'avatar')
                             <div class="rounded-full" style="width: 28px; height: 28px; background: {{ $thumbText }}; opacity: 0.85;"></div>
@@ -1506,7 +1512,7 @@ window.blockDesignsGallery = function(opts) {
                     data.previews.forEach(function(p) {
                         var slot = self.$el.querySelector('[data-variant-preview="' + p.key + '"]');
                         if (!slot) return;
-                        slot.setAttribute('style', 'height:80px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:12px 0 8px;padding:8px;background:' + groundBg + ';border:1px solid ' + edge + ';border-radius:8px;');
+                        slot.setAttribute('style', 'height:112px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:12px 0 8px;padding:8px;background:' + groundBg + ';border:1px solid ' + edge + ';border-radius:8px;');
                         slot.innerHTML = self.buildLivePreviewInner(p, rawLabel, groundInk);
                     });
                 })
@@ -1558,6 +1564,19 @@ window.blockDesignsGallery = function(opts) {
                     + (p.link_layout === 'image_right' ? picture : '') + '</div>';
             }
             switch (p.shape_kind) {
+                case 'profile': {
+                    var portrait = String(p.demo_image || '').replace(/["<>]/g, '');
+                    var layout = p.profile_layout || 'classic_creator';
+                    var split = layout === 'split' || layout === 'compact' || layout === 'business';
+                    var cover = layout.indexOf('cover') !== -1 || layout === 'floating';
+                    var photo = '<img src="' + portrait + '" alt="" style="width:' + (split ? '38' : '30') + 'px;height:' + (split ? '38' : '30') + 'px;object-fit:cover;border-radius:50%;border:2px solid rgba(255,255,255,.5);flex-shrink:0;">';
+                    return '<div style="' + inline + 'width:100%;max-height:100%;overflow:hidden;color:' + color + ' !important;padding:10px;box-sizing:border-box;">'
+                        + (cover ? '<div style="height:22px;margin:-10px -10px 6px;background:linear-gradient(120deg,#64748b,#c2b49d);"></div>' : '')
+                        + '<div style="display:flex;align-items:center;gap:7px;flex-direction:' + (split ? 'row' : 'column') + ';text-align:' + (split ? 'left' : 'center') + ';">' + photo
+                        + '<div style="min-width:0;"><div style="font-size:11px;font-weight:700;color:inherit !important;">Alex Morgan</div>'
+                        + '<div style="font-size:9px;margin-top:2px;color:inherit !important;">Designer &amp; visual storyteller</div></div></div>'
+                        + '<div style="font-size:8px;letter-spacing:2px;margin-top:7px;text-align:center;color:inherit !important;">PORTFOLIO · CONTACT · INSTAGRAM</div></div>';
+                }
                 case 'button':
                 case 'button_outline':
                     return '<div style="' + inline + 'display:inline-flex;align-items:center;justify-content:center;padding:6px 14px;font-size:11px;font-weight:600;color:' + color + ' !important;white-space:nowrap;max-width:96%;overflow:hidden;text-overflow:ellipsis;">' + label + '</div>';
@@ -1603,7 +1622,7 @@ window.blockDesignsGallery = function(opts) {
                 }
                 case 'text':
                 default:
-                    return '<div style="' + inline + 'padding:6px 10px;color:' + color + ';font-size:10px;line-height:1.3;max-width:96%;overflow:hidden;"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</div><div style="opacity:0.6;font-size:9px;margin-top:2px;">Lorem ipsum dolor sit amet</div></div>';
+                    return '<div style="' + inline + 'padding:6px 10px;color:' + color + ';font-size:10px;line-height:1.3;max-width:96%;overflow:hidden;"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</div><div style="opacity:0.6;font-size:9px;margin-top:2px;">Independent designer · Open for collaborations</div></div>';
             }
         },
 
