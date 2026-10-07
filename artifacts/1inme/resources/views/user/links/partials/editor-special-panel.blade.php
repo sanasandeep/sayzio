@@ -42,6 +42,15 @@
     .template-gallery-description { font-size:11px; line-height:1.5; color:var(--text-muted); margin-bottom:8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .special-panel .gallery-tabs { padding:0 0 12px; gap:4px; }
     .special-panel .gallery-tab { flex-shrink:0; min-height:36px; }
+    .tpl-preview-stage .tpl-prev-heading,
+    .tpl-preview-stage .tpl-prev-name,
+    .tpl-preview-stage .tpl-prev-sub,
+    .tpl-preview-stage .tpl-prev-text,
+    .tpl-preview-stage .tpl-prev-list { color:var(--tpl-preview-ink, var(--text-primary)) !important; }
+    .tpl-preview-stage .tpl-prev-sub, .tpl-preview-stage .tpl-prev-text { opacity:.8; }
+    .tpl-preview-stage .tpl-prev-heading { white-space:normal; overflow-wrap:anywhere; font-size:13px; }
+    .tpl-preview-stage .tpl-prev-pill { color:#fff; overflow-wrap:anywhere; }
+    .tpl-preview-stage .tpl-prev-pill span { white-space:normal; }
     .special-panel { display: flex; flex-direction: column; }
 </style>
 <div class="special-panel" x-show="specialOpen" x-cloak
@@ -195,7 +204,7 @@
                          @click="t.locked ? (window.location.href = '{{ route('user.upgrade') }}') : applyCardTemplate(t.id)"
                          :class="t.locked ? 'opacity-70 hover:border-amber-500/50' : 'hover:border-blue-500/50'"
                          :title="t.locked ? 'Upgrade to ' + t.plan_tier + ' to use this template' : (t.description || t.name)">
-                        <div class="relative overflow-hidden rounded-t-xl" style="background: var(--bg-card); border-bottom:1px solid var(--border-glass);">
+                        <div class="tpl-preview-stage relative overflow-hidden rounded-t-xl" :style="t.preview_style || 'background:var(--bg-card);'">
                             <template x-if="t.thumbnail_url">
                                 <div class="w-full aspect-[4/3]">
                                     <img :src="t.thumbnail_url" :alt="t.name" class="w-full h-full object-cover" loading="lazy">
@@ -206,7 +215,7 @@
                                     <template x-for="(row, ri) in t.preview_layout" :key="ri">
                                         <div class="flex gap-1 w-full items-center">
                                             <template x-for="(cell, ci) in row" :key="ci">
-                                                <div class="flex items-center justify-center" :style="'flex: ' + cell.span + ' 0 0;'">
+                                                <div class="flex items-center justify-center" :style="'flex: ' + cell.span + ' 0 0; min-width:0;' + (cell.ink ? '--tpl-preview-ink:' + cell.ink + ';' : '') + (cell.font ? 'font-family:' + cell.font + ';' : '')">
                                                     <template x-if="cell.shape === 'heading'">
                                                         <div class="w-full flex flex-col gap-[1px] items-center text-center">
                                                             <template x-if="cell.text">

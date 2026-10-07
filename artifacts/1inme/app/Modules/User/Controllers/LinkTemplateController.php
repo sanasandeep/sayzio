@@ -179,6 +179,10 @@ class LinkTemplateController extends Controller
                 // thumbnail_url is set, falling back to a generic icon if
                 // the snapshot has no usable children.
                 'preview_layout' => $this->previewLayout->build($rawChildren, 10),
+                'preview_style' => $this->previewLayout->surfaceStyle(array_merge(
+                    (array) ($t->snapshot['settings'] ?? []),
+                    ['_preview_ink' => $rawChildren[0]['settings']['_style']['text_color'] ?? '#1e293b']
+                )),
             ];
         });
 

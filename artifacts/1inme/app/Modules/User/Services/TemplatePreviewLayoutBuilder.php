@@ -93,6 +93,19 @@ class TemplatePreviewLayoutBuilder
                 && !str_contains($media, '/block-placeholders/')) {
                 $cell['img'] = $media;
             }
+            $style = is_array($settings['_style'] ?? null) ? $settings['_style'] : [];
+            foreach (['bg_color' => 'bg', 'text_color' => 'ink'] as $source => $target) {
+                if (is_string($style[$source] ?? null) && preg_match('/^#[0-9a-fA-F]{3,8}$/', $style[$source])) {
+                    $cell[$target] = $style[$source];
+                }
+            }
+            if (in_array($style['font_family'] ?? '', ['Georgia', 'Inter'], true)) {
+                $cell['font'] = $style['font_family'];
+            }
+            if ($cell['shape'] === 'heading') {
+                $cell['sub'] = false;
+                $cell['sub_text'] = '';
+            }
             // Readable proportions for every gallery, without changing saved blocks.
             if (!in_array($cell['shape'], ['spacer', 'hairline'], true)) {
                 $cell['h'] = match ($cell['shape']) {
@@ -156,6 +169,24 @@ class TemplatePreviewLayoutBuilder
      *
      * @return array<string, mixed>
      */
+    public function surfaceStyle(array $settings): string
+    {
+        $background = '#f8fafc';
+        if (preg_match('/^#[0-9a-fA-F]{3,8}$/', (string) ($settings['bg_color'] ?? ''))) {
+            $background = $settings['bg_color'];
+        }
+        $gradient = (string) ($settings['bg_gradient'] ?? '');
+        if (($settings['bg_type'] ?? '') === 'gradient'
+            && preg_match('/^linear-gradient\([#a-zA-Z0-9.,% ()-]+\)$/', $gradient)) {
+            $background = $gradient;
+        }
+        $ink = '#1e293b';
+        if (preg_match('/^#[0-9a-fA-F]{3,8}$/', (string) ($settings['_preview_ink'] ?? ''))) {
+            $ink = $settings['_preview_ink'];
+        }
+        return 'background:' . $background . ';--tpl-preview-ink:' . $ink . ';';
+    }
+
     public function cellFor(string $type): array
     {
         $img = static function (string $file): string {
