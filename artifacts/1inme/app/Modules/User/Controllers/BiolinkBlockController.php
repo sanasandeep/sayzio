@@ -895,12 +895,10 @@ class BiolinkBlockController extends Controller
         if ($resp = $this->designLockedResponse($link)) return $resp;
 
         $applyToAll = (bool) $request->boolean('apply_to_all');
-        $defaults = $this->sanitizeBlockStyle(BiolinkBlock::STYLE_DEFAULTS);
-
-        $reset = function (BiolinkBlock $b) use ($defaults) {
+        $reset = function (BiolinkBlock $b) {
             $settings = $b->settings ?? [];
-            $settings['_style'] = $defaults;
-            unset($settings['_style_custom_snapshot']);
+            // An absent override follows the block and page defaults and is not a custom design.
+            unset($settings['_style'], $settings['_style_custom_snapshot']);
             $b->update(['settings' => $settings]);
         };
 

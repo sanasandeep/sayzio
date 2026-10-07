@@ -282,6 +282,17 @@
 
             {{-- Variant grid --}}
             <div class="grid grid-cols-2 gap-2">
+                <button type="button" data-default-design @click="resetStyle(false)" :disabled="_busy"
+                        aria-label="Default / No design"
+                        :aria-pressed="currentVariant === '' && !hasCustomStyle"
+                        class="variant-element group p-1 rounded-lg text-left transition-all relative"
+                        :style="(currentVariant === '' && !hasCustomStyle ? 'outline:2px solid #5c83ff;' : '') + (_busy ? 'opacity:.5;' : '')">
+                    <div class="flex items-center justify-center" style="height:60px;color:#334155;font-size:14px;line-height:1.4;padding:6px;">
+                        <span>Default</span>
+                    </div>
+                    <span class="variant-hover-label">Default / No design</span>
+                </button>
+
                 @foreach($variants as $v)
                 @php
                     $pv = $v['preview'] ?? [];
@@ -1741,7 +1752,7 @@ window.blockDesignsGallery = function(opts) {
             var label = applyToAll
                 ? ('Reset every ' + this.blockTypeLabel + ' block to the default styling? This will clear any custom tweaks.')
                 : 'Reset this block to the default styling? This will clear any custom tweaks.';
-            if (typeof confirm === 'function' && !confirm(label)) return;
+            if (applyToAll && typeof confirm === 'function' && !confirm(label)) return;
             this._busy = true;
             this._busyKey = applyToAll ? '__reset' : '__reset_one';
             var url = '{{ route('user.links.blocks.resetStyle', [$link, $block]) }}';
