@@ -50,6 +50,18 @@ class TemplatePreviewSampleContentTest extends TestCase
         $this->assertSame('#ffffff', $cell['ink']);
     }
 
+    public function test_utility_previews_use_designed_document_covers(): void
+    {
+        $builder = new TemplatePreviewLayoutBuilder;
+        foreach (['pdf_document' => 'guide', 'powerpoint' => 'brand-deck', 'excel' => 'workbook'] as $type => $cover) {
+            $cell = $builder->build([['type' => $type]])[0][0];
+            $this->assertStringContainsString('/template-demos/' . $cover . '.svg', $cell['img']);
+            $this->assertFileExists(public_path('images/template-demos/' . $cover . '.svg'));
+        }
+        $coupon = $builder->build([['type' => 'coupon', 'settings' => ['code' => 'SPRING25']]])[0][0];
+        $this->assertSame('SPRING25', $coupon['text']);
+    }
+
     public function test_admin_media_is_reflected_without_accepting_unsafe_schemes(): void
     {
         $builder = new TemplatePreviewLayoutBuilder;

@@ -317,7 +317,7 @@
                                                     <template x-if="cell.shape === 'list_rows'">
                                                         <div class="w-full flex flex-col gap-1 justify-center" :style="'min-height: ' + (cell.shape === 'text_lines' ? 0 : cell.h) + 'px;'">
                                                             <template x-for="(item, li) in (cell.items || [null, null, null]).slice(0, cell.lines || 3)" :key="li">
-                                                                <div class="flex items-center gap-1 w-full">
+                                                                <div class="flex items-center gap-1 w-full" style="padding:6px 8px; border:1px solid currentColor; border-color:color-mix(in srgb, var(--tpl-preview-ink, #64748b) 15%, transparent); border-radius:7px;">
                                                                     <div class="rounded-full shrink-0" :style="'background: ' + cell.bg + '; width: 3px; height: 3px;'"></div>
                                                                     <template x-if="item">
                                                                         <div class="tpl-prev-list flex-1" x-text="item"></div>

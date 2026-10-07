@@ -84,6 +84,13 @@ class TemplatePreviewLayoutBuilder
                 }
                 if ($copyItems !== []) $cell['items'] = $copyItems;
             }
+            if (in_array($type, ['pdf_document', 'powerpoint', 'excel'], true)) {
+                $cell['img'] = asset('images/template-demos/' . ($type === 'pdf_document' ? 'guide' : ($type === 'powerpoint' ? 'brand-deck' : 'workbook')) . '.svg');
+            }
+            if ($type === 'coupon') {
+                $cell['text'] = (string) ($settings['code'] ?? 'WELCOME20');
+                $cell['bg'] = '#f4e2c2';
+            }
             // Admin-selected media should appear in the gallery as well as
             // in the full template. Keep demo photography for missing/old art.
             $media = $cell['shape'] === 'avatar' ? ($settings['avatar'] ?? null)
@@ -289,7 +296,7 @@ class TemplatePreviewLayoutBuilder
             'list_pricing'    => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.30)', 'h' => 28, 'icon' => '', 'lines' => 3, 'items' => ['Starter — $9', 'Pro — $19', 'Team — $49']],
 
             // Q&A and engagement — expandable rows / option lists.
-            'faq'             => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.20)', 'h' => 26, 'icon' => 'fa-circle-question', 'lines' => 3, 'items' => ['What do you do?', 'How can I reach you?', 'Where are you based?']],
+            'faq'             => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.20)', 'h' => 26, 'icon' => 'fa-circle-question', 'lines' => 3, 'items' => ['How do I get started?', 'What does the plan include?', 'Can I change my plan?']],
             'quiz'            => ['shape' => 'list_rows',  'bg' => 'rgba(139,92,246,0.22)',  'h' => 26, 'icon' => 'fa-clipboard-question', 'lines' => 3, 'items' => ['Pick the right answer', 'Option A', 'Option B']],
             'poll'            => ['shape' => 'list_rows',  'bg' => 'rgba(56,189,248,0.22)',  'h' => 26, 'icon' => 'fa-square-poll-vertical', 'lines' => 3, 'items' => ['What should I cover next?', 'Tutorials', 'Q&A']],
             'timeline'        => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.18)', 'h' => 28, 'icon' => 'fa-stream', 'lines' => 3, 'items' => ['Where it started', 'A big milestone', 'What I\'m building now']],

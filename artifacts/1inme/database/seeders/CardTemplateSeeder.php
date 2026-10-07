@@ -49,7 +49,7 @@ class CardTemplateSeeder extends Seeder
      * carousel, conversion blocks (flash offer, coupon, tip jar) and a
      * categorised menu board.
      */
-    public const SEED_VERSION = 7;
+    public const SEED_VERSION = 8;
 
     public function run(): void
     {
@@ -223,6 +223,31 @@ class CardTemplateSeeder extends Seeder
             foreach ([['“Our launch finally felt effortless.”', 'Maya · Studio founder'], ['“A clear home for everything I create.”', 'Leo · Photographer'], ['“Clients find exactly what they need.”', 'Nina · Independent designer']] as [$quote, $person]) {
                 $template['children'][] = $this->child('paragraph', ['text' => $quote . ' — ' . $person, '_style' => ['text_color' => '#134e4a']], 4);
             }
+        }
+        $utility = match ($slug) {
+            'general-document-download' => ['#f3f0e8', '#292524', '#44403c'],
+            'general-press-kit' => ['#152b30', '#f0fdfa', '#0f766e'],
+            'general-tabs-info' => ['#eef2f6', '#172554', '#1e3a5f'],
+            'general-accordion-faq', 'general-faq' => ['#f0f7f4', '#163c31', '#246c55'],
+            'general-news-ticker' => ['#fff7ed', '#7c2d12', '#9a3412'],
+            'general-stats-band' => ['#172033', '#f8fafc', '#334155'],
+            'cta-flash-offer' => ['#292524', '#fafaf9', '#b45309'],
+            'cta-coupon-drop' => ['#fdf4e3', '#593b1c', '#78552b'],
+            'cta-tip-jar' => ['#fceff1', '#672d3c', '#9d405b'],
+            default => null,
+        };
+        if ($utility) {
+            [$surface, $ink, $accent] = $utility;
+            $template['card'] = array_merge($template['card'], [
+                'bg_type' => 'color', 'bg_color' => $surface, 'border_radius' => 18,
+                'padding' => 24, 'gap' => 14,
+            ]);
+            foreach ($template['children'] as &$child) {
+                $interactive = in_array($child['type'], ['link', 'link_big', 'cta_button', 'donation', 'one_time_offer'], true);
+                $child['settings']['_style']['text_color'] = $interactive ? '#ffffff' : $ink;
+                if ($interactive) $child['settings']['_style']['bg_color'] = $accent;
+            }
+            unset($child);
         }
         return $template;
     }
