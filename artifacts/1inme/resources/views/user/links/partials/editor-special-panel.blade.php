@@ -211,7 +211,7 @@
                                 </div>
                             </template>
                             <template x-if="!t.thumbnail_url && (t.preview_layout || []).length">
-                                <div class="w-full px-2.5 py-2.5 flex flex-col gap-1.5" style="min-height: 100px; max-height: 420px; overflow: hidden;">
+                                <div class="w-full px-2.5 py-2.5 flex flex-col gap-1.5" style="max-height: 420px; overflow: hidden;">
                                     <template x-for="(row, ri) in t.preview_layout" :key="ri">
                                         <div class="flex gap-1 w-full items-center">
                                             <template x-for="(cell, ci) in row" :key="ci">
@@ -235,7 +235,7 @@
                                                         </div>
                                                     </template>
                                                     <template x-if="cell.shape === 'text_lines'">
-                                                        <div class="w-full flex flex-col gap-[2px] justify-center" :style="'min-height: ' + cell.h + 'px;'">
+                                                        <div class="w-full flex flex-col gap-[2px] justify-center" :style="'min-height: ' + (cell.shape === 'text_lines' ? 0 : cell.h) + 'px;'">
                                                             <template x-if="cell.text">
                                                                 <div class="tpl-prev-text" :style="'-webkit-line-clamp: ' + (cell.lines || 2) + ';'" x-text="cell.text"></div>
                                                             </template>
@@ -253,7 +253,7 @@
                                                         </div>
                                                     </template>
                                                     <template x-if="cell.shape === 'avatar'">
-                                                        <div class="w-full flex items-center gap-1.5" :style="'min-height: ' + cell.h + 'px;'">
+                                                        <div class="w-full flex items-center gap-1.5" :style="'min-height: ' + (cell.shape === 'text_lines' ? 0 : cell.h) + 'px;'">
                                                             <template x-if="cell.img">
                                                                 <div class="relative rounded-full overflow-hidden shrink-0" :style="'width: ' + Math.min(Math.max(cell.h - 8, 28), 48) + 'px; height: ' + Math.min(Math.max(cell.h - 8, 28), 48) + 'px;'">
                                                                     <div class="tpl-prev-shimmer"></div>
@@ -293,14 +293,14 @@
                                                         </div>
                                                     </template>
                                                     <template x-if="cell.shape === 'dot_row'">
-                                                        <div class="w-full flex items-center justify-center gap-1" :style="'min-height: ' + cell.h + 'px;'">
+                                                        <div class="w-full flex items-center justify-center gap-1" :style="'min-height: ' + (cell.shape === 'text_lines' ? 0 : cell.h) + 'px;'">
                                                             <template x-for="i in (cell.dots || 5)" :key="i">
                                                                 <div class="tpl-preview-social rounded-full" :style="'background: ' + cell.bg + '; width: 20px; height: 20px;'"><i :class="['fas fa-globe', 'fas fa-camera', 'fas fa-play', 'fas fa-envelope', 'fas fa-link'][i - 1]" style="font-size:9px;"></i></div>
                                                             </template>
                                                         </div>
                                                     </template>
                                                     <template x-if="cell.shape === 'form'">
-                                                        <div class="w-full flex flex-col gap-1 justify-center" :style="'min-height: ' + cell.h + 'px;'">
+                                                        <div class="w-full flex flex-col gap-1 justify-center" :style="'min-height: ' + (cell.shape === 'text_lines' ? 0 : cell.h) + 'px;'">
                                                             <template x-for="i in (cell.lines || 1)" :key="i">
                                                                 <div class="rounded-md w-full tpl-prev-sub" style="border:1px solid rgba(100,116,139,.25); padding:6px 8px; min-height:26px;"><span x-text="(cell.lines || 1) === 1 ? 'Your email address' : ['Your name', 'Email address', 'Tell us about your project'][i - 1]"></span></div>
                                                             </template>
@@ -310,7 +310,7 @@
                                                         </div>
                                                     </template>
                                                     <template x-if="cell.shape === 'list_rows'">
-                                                        <div class="w-full flex flex-col gap-1 justify-center" :style="'min-height: ' + cell.h + 'px;'">
+                                                        <div class="w-full flex flex-col gap-1 justify-center" :style="'min-height: ' + (cell.shape === 'text_lines' ? 0 : cell.h) + 'px;'">
                                                             <template x-for="(item, li) in (cell.items || [null, null, null]).slice(0, cell.lines || 3)" :key="li">
                                                                 <div class="flex items-center gap-1 w-full">
                                                                     <div class="rounded-full shrink-0" :style="'background: ' + cell.bg + '; width: 3px; height: 3px;'"></div>
@@ -328,7 +328,7 @@
                                                         <div class="w-full rounded-[2px]" :style="'background: ' + cell.bg + '; height: ' + cell.h + 'px;'"></div>
                                                     </template>
                                                     <template x-if="cell.shape === 'spacer'">
-                                                        <div class="w-full" :style="'min-height: ' + cell.h + 'px;'"></div>
+                                                        <div class="w-full" :style="'min-height: ' + (cell.shape === 'text_lines' ? 0 : cell.h) + 'px;'"></div>
                                                     </template>
                                                     <template x-if="cell.shape === 'badge'">
                                                         <div class="rounded-full mx-auto tpl-prev-pill px-2 flex items-center" :style="'background: ' + cell.bg + '; min-height:22px; color:#392a16;'" x-text="cell.text || 'New collection'"></div>

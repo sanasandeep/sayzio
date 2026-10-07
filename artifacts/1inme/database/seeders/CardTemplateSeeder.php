@@ -49,14 +49,14 @@ class CardTemplateSeeder extends Seeder
      * carousel, conversion blocks (flash offer, coupon, tip jar) and a
      * categorised menu board.
      */
-    public const SEED_VERSION = 6;
+    public const SEED_VERSION = 7;
 
     public function run(): void
     {
         $blueprint = $this->templates();
         $knownSlugs = [];
         foreach ($blueprint as $i => $tpl) {
-            $tpl = $this->purposeDesign($tpl);
+            $tpl = $this->refinedDesign($this->purposeDesign($tpl));
             $slug = $tpl['slug'];
             $knownSlugs[$slug] = true;
             $payload = [
@@ -101,7 +101,10 @@ class CardTemplateSeeder extends Seeder
                 continue;
             }
 
-            $existing->fill($payload)->save();
+            $existing->fill($payload);
+            // Seed refreshes are not admin edits. Keep the original edit baseline.
+            $existing->timestamps = false;
+            $existing->save();
         }
 
         // Replace-mode cleanup: any previously-seeded default templates whose
@@ -174,6 +177,53 @@ class CardTemplateSeeder extends Seeder
             $child['settings'] = $settings;
         }
         unset($child);
+        return $template;
+    }
+
+    /** Recover only exact library snapshots; genuine admin edits remain untouched. */
+    public function recoverLibraryBaselines(): void
+    {
+        foreach ($this->templates() as $template) {
+            $row = CardTemplate::where('slug', $template['slug'])->first();
+            if (!$row || !$row->wasCustomized()) continue;
+            foreach ([$template, $this->purposeDesign($template)] as $known) {
+                $snapshot = [
+                    'type' => 'card',
+                    'settings' => array_merge($this->defaultCardSettings(), $known['card'] ?? []),
+                    'is_active' => true, 'children' => $known['children'],
+                ];
+                if ($row->snapshot == $snapshot && $row->name === $known['name']
+                    && $row->category === $known['category']
+                    && $row->description === ($known['description'] ?? null)
+                    && $row->plan_tier === ($known['plan_tier'] ?? null)
+                    && $row->is_active && !$row->thumbnail_url) {
+                    $row->timestamps = false;
+                    $row->updated_at = $row->created_at;
+                    $row->save();
+                    break;
+                }
+            }
+        }
+    }
+
+    private function refinedDesign(array $template): array
+    {
+        $slug = $template['slug'];
+        if ($slug === 'social-press-row') {
+            $template['children'] = [$this->child('heading', ['text' => 'In good company', 'tag' => 'h3'], 12)];
+            foreach (['FIELDNOTES', 'MONOCLE', 'The Makers', 'STUDIO'] as $i => $brand) {
+                $template['children'][] = $this->child('image', [
+                    'url' => asset('images/template-demos/press-' . $i . '.svg'),
+                    'alt' => $brand, '_style' => ['grid_span' => 3],
+                ], 3);
+            }
+        }
+        if ($slug === 'social-testimonials-trio') {
+            $template['children'] = [];
+            foreach ([['“Our launch finally felt effortless.”', 'Maya · Studio founder'], ['“A clear home for everything I create.”', 'Leo · Photographer'], ['“Clients find exactly what they need.”', 'Nina · Independent designer']] as [$quote, $person]) {
+                $template['children'][] = $this->child('paragraph', ['text' => $quote . ' — ' . $person, '_style' => ['text_color' => '#134e4a']], 4);
+            }
+        }
         return $template;
     }
 

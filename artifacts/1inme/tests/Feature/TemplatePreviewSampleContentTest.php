@@ -26,6 +26,17 @@ class TemplatePreviewSampleContentTest extends TestCase
         $this->assertGreaterThanOrEqual(10, count(array_unique($surfaces)));
     }
 
+    public function test_dark_surfaces_and_press_logos_have_readable_compact_previews(): void
+    {
+        $builder = new TemplatePreviewLayoutBuilder;
+        $this->assertStringContainsString('--tpl-preview-ink:#f8fafc', $builder->surfaceStyle(['bg_color' => '#0f172a']));
+        $cell = $builder->build([['type' => 'image', 'settings' => [
+            'url' => asset('images/template-demos/press-0.svg'), '_style' => ['grid_span' => 3],
+        ]]])[0][0];
+        $this->assertSame(28, $cell['h']);
+        $this->assertFileExists(public_path('images/template-demos/press-0.svg'));
+    }
+
     public function test_admin_media_is_reflected_without_accepting_unsafe_schemes(): void
     {
         $builder = new TemplatePreviewLayoutBuilder;
