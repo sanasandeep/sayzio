@@ -55,6 +55,29 @@ class TemplatePreviewLayoutBuilder
                 ?? $settings['_style']['grid_span'] ?? 12);
             $span = max(1, min(12, $span));
             $cell = $this->cellFor($type) + ['span' => $span];
+            // Text only: never execute markup or load arbitrary media in a gallery.
+            $keys = match ($cell['shape']) {
+                'avatar' => ['name'],
+                'form' => ['button_text'],
+                default => ['text', 'title', 'heading', 'label'],
+            };
+            foreach ($keys as $key) {
+                if (is_string($settings[$key] ?? null)) {
+                    $copy = trim(html_entity_decode(strip_tags($settings[$key]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+                    if ($copy !== '' && !preg_match('/^(Your |What you do|A short, friendly|Lorem ipsum)/i', $copy)) {
+                        $cell['text'] = mb_substr($copy, 0, 160);
+                        break;
+                    }
+                }
+            }
+            if ($cell['shape'] === 'avatar' && is_string($settings['title'] ?? null)
+                && trim($settings['title']) !== '' && $settings['title'] !== 'What you do') {
+                $cell['sub_text'] = mb_substr(trim(strip_tags($settings['title'])), 0, 80);
+            }
+            // Readable proportions for every gallery, without changing saved blocks.
+            if (!in_array($cell['shape'], ['spacer', 'hairline'], true)) {
+                $cell['h'] = max(24, (int) $cell['h'] * 2);
+            }
             // Wrap to a new row when the current row can't fit this cell.
             if ($used + $span > 12 && $current) {
                 $rows[] = $current;
@@ -117,14 +140,14 @@ class TemplatePreviewLayoutBuilder
         $palette = [
             // Headings — sample title text; h2/h1 templates share the hint,
             // the gallery isn't precise enough to differentiate sizes.
-            'heading'         => ['shape' => 'heading',    'bg' => 'rgba(167,139,250,0.75)', 'h' => 12, 'icon' => '', 'sub' => true,  'text' => 'Your Headline', 'sub_text' => 'A short supporting line'],
-            'heading_logo'    => ['shape' => 'heading',    'bg' => 'rgba(167,139,250,0.75)', 'h' => 12, 'icon' => '', 'sub' => false, 'text' => 'Brand Name'],
-            'verified_heading'=> ['shape' => 'heading',    'bg' => 'rgba(167,139,250,0.75)', 'h' => 12, 'icon' => '', 'sub' => false, 'text' => 'Verified Name'],
+            'heading'         => ['shape' => 'heading',    'bg' => 'rgba(167,139,250,0.75)', 'h' => 12, 'icon' => '', 'sub' => true,  'text' => 'Ideas made real', 'sub_text' => 'Thoughtful design for everyday life'],
+            'heading_logo'    => ['shape' => 'heading',    'bg' => 'rgba(167,139,250,0.75)', 'h' => 12, 'icon' => '', 'sub' => false, 'text' => 'Studio North'],
+            'verified_heading'=> ['shape' => 'heading',    'bg' => 'rgba(167,139,250,0.75)', 'h' => 12, 'icon' => '', 'sub' => false, 'text' => 'Alex Morgan'],
 
             // Body text — real sample copy clamped to N lines.
-            'paragraph'       => ['shape' => 'text_lines', 'bg' => 'rgba(255,255,255,0.30)', 'h' => 16, 'icon' => '', 'lines' => 2, 'text' => 'A short intro about you and what you share here.'],
-            'paragraph_rich'  => ['shape' => 'text_lines', 'bg' => 'rgba(255,255,255,0.30)', 'h' => 22, 'icon' => '', 'lines' => 3, 'text' => 'Tell your story with rich, formatted text and a few lines of detail.'],
-            'markdown'        => ['shape' => 'text_lines', 'bg' => 'rgba(255,255,255,0.30)', 'h' => 22, 'icon' => '', 'lines' => 3, 'text' => 'Write anything in markdown — lists, links and more.'],
+            'paragraph'       => ['shape' => 'text_lines', 'bg' => 'rgba(255,255,255,0.30)', 'h' => 16, 'icon' => '', 'lines' => 2, 'text' => 'I create thoughtful brands and digital experiences. Explore my latest work below.'],
+            'paragraph_rich'  => ['shape' => 'text_lines', 'bg' => 'rgba(255,255,255,0.30)', 'h' => 22, 'icon' => '', 'lines' => 3, 'text' => 'Independent designer, coffee enthusiast, and maker of useful things. Available for new collaborations.'],
+            'markdown'        => ['shape' => 'text_lines', 'bg' => 'rgba(255,255,255,0.30)', 'h' => 22, 'icon' => '', 'lines' => 3, 'text' => 'Fresh ideas, practical guides, and a little inspiration for your next project.'],
             'ticker'          => ['shape' => 'text_lines', 'bg' => 'rgba(255,255,255,0.30)', 'h' => 10, 'icon' => '', 'lines' => 1, 'text' => 'Latest news and updates'],
 
             // Buttons / links — rounded pill with a real label.
@@ -173,12 +196,12 @@ class TemplatePreviewLayoutBuilder
             'direct_message'  => ['shape' => 'form',       'bg' => 'rgba(255,255,255,0.18)', 'h' => 28, 'icon' => '', 'lines' => 1, 'btn_bg' => 'rgba(139,92,246,0.85)', 'text' => 'Send message'],
 
             // Profiles — circular placeholder image, name + sub on the right.
-            'profile_card_v1' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 30, 'icon' => 'fa-user',       'img' => $img('avatar.svg'), 'text' => 'Your Name', 'sub_text' => '@yourhandle'],
-            'profile_card_v2' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 30, 'icon' => 'fa-user',       'img' => $img('avatar.svg'), 'text' => 'Your Name', 'sub_text' => '@yourhandle'],
-            'profile_card_v3' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 30, 'icon' => 'fa-user',       'img' => $img('avatar.svg'), 'text' => 'Your Name', 'sub_text' => '@yourhandle'],
-            'profile_card_v4' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 30, 'icon' => 'fa-user',       'img' => $img('avatar.svg'), 'text' => 'Your Name', 'sub_text' => '@yourhandle'],
-            'avatar'          => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 22, 'icon' => 'fa-user',       'img' => $img('avatar.svg'), 'text' => 'Your Name', 'sub_text' => '@yourhandle'],
-            'verified_avatar' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 22, 'icon' => 'fa-user-check', 'img' => $img('avatar.svg'), 'text' => 'Your Name', 'sub_text' => '@yourhandle'],
+            'profile_card_v1' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 30, 'icon' => 'fa-user',       'img' => $img('avatar.svg'), 'text' => 'Alex Morgan', 'sub_text' => 'Designer & storyteller'],
+            'profile_card_v2' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 30, 'icon' => 'fa-user',       'img' => $img('avatar.svg'), 'text' => 'Alex Morgan', 'sub_text' => 'Designer & storyteller'],
+            'profile_card_v3' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 30, 'icon' => 'fa-user',       'img' => $img('avatar.svg'), 'text' => 'Alex Morgan', 'sub_text' => 'Designer & storyteller'],
+            'profile_card_v4' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 30, 'icon' => 'fa-user',       'img' => $img('avatar.svg'), 'text' => 'Alex Morgan', 'sub_text' => 'Designer & storyteller'],
+            'avatar'          => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 22, 'icon' => 'fa-user',       'img' => $img('avatar.svg'), 'text' => 'Alex Morgan', 'sub_text' => 'Designer & storyteller'],
+            'verified_avatar' => ['shape' => 'avatar',     'bg' => 'rgba(167,139,250,0.85)', 'h' => 22, 'icon' => 'fa-user-check', 'img' => $img('avatar.svg'), 'text' => 'Alex Morgan', 'sub_text' => 'Designer & storyteller'],
 
             // Lists — stack of dot + sample-text rows.
             'list'            => ['shape' => 'list_rows',  'bg' => 'rgba(255,255,255,0.30)', 'h' => 24, 'icon' => '', 'lines' => 3, 'items' => ['First item', 'Second item', 'Third item']],
