@@ -109,7 +109,7 @@ class TemplatePreviewLayoutBuilder
             // Readable proportions for every gallery, without changing saved blocks.
             if (!in_array($cell['shape'], ['spacer', 'hairline'], true)) {
                 $cell['h'] = match ($cell['shape']) {
-                    'media' => 96, 'avatar' => 48,
+                    'media' => str_contains((string) ($cell['img'] ?? ''), '/template-demos/press-') ? 28 : ($span <= 4 ? 64 : 96), 'avatar' => 48,
                     'form' => 32 + 30 * ($cell['lines'] ?? 1),
                     'list_rows' => 18 * ($cell['lines'] ?? 3),
                     'text_lines' => 14 * ($cell['lines'] ?? 2),
@@ -180,8 +180,11 @@ class TemplatePreviewLayoutBuilder
             && preg_match('/^linear-gradient\([#a-zA-Z0-9.,% ()-]+\)$/', $gradient)) {
             $background = $gradient;
         }
-        $ink = '#1e293b';
-        if (preg_match('/^#[0-9a-fA-F]{3,8}$/', (string) ($settings['_preview_ink'] ?? ''))) {
+        preg_match('/#[0-9a-fA-F]{6}/', $background, $swatch);
+        $hex = ltrim($swatch[0] ?? '#f8fafc', '#');
+        $lightness = .2126 * hexdec(substr($hex, 0, 2)) + .7152 * hexdec(substr($hex, 2, 2)) + .0722 * hexdec(substr($hex, 4, 2));
+        $ink = $lightness < 130 ? '#f8fafc' : '#1e293b';
+        if (preg_match('/^#[0-9a-fA-F]{3,8}$/', (string) ($settings['_preview_ink'] ?? '')) && $lightness >= 130) {
             $ink = $settings['_preview_ink'];
         }
         return 'background:' . $background . ';--tpl-preview-ink:' . $ink . ';';
