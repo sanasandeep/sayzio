@@ -180,7 +180,7 @@
                 <i class="fas fa-shapes text-[12px] mt-0.5" style="color: #90acff;"></i>
                 <div class="flex-1">
                     <div class="text-[11px] font-bold leading-tight" style="color: var(--text-primary);">One-click styles for this block</div>
-                    <div class="text-[10px] mt-0.5" style="color: var(--text-dimmed);">Pick a shape and theme, your text, link and image stay the same. Use <b>Reset</b> to undo or <b>Surprise me</b> to spin a random look.</div>
+                    <div class="text-[10px] mt-0.5" style="color: var(--text-dimmed);">Choose a design. Your content stays the same. Use <b>Reset</b> to undo or <b>Surprise me</b> to spin a random look.</div>
                 </div>
             </div>
 
@@ -237,66 +237,6 @@
                 </button>
             </div>
 
-            {{-- Build the set of shapes actually represented in this
-                 type's variants. Only render the Shape row when there
-                 are at least two distinct shapes — a single-shape catalog
-                 (e.g. paragraph) would just be visual noise. --}}
-            @php
-                $variantShapesPresent = [];
-                foreach ($variants as $v) {
-                    if (!empty($v['shape'])) $variantShapesPresent[$v['shape']] = true;
-                }
-                $variantShapesPresent = array_intersect_key($variantShapes, $variantShapesPresent);
-            @endphp
-            @if(count($variantShapesPresent) >= 2)
-            <div>
-                <div class="text-[9px] font-bold uppercase tracking-wider mb-1" style="color: var(--text-dimmed);">Shape</div>
-                <div class="flex flex-wrap gap-1">
-                    <button type="button" @click="activeShape = 'all'"
-                            :class="activeShape === 'all' ? 'ring-1 ring-cyan-400/60' : ''"
-                            class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
-                            :style="activeShape === 'all' ? 'background: rgba(34,211,238,0.18); color: #67e8f9;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
-                        All shapes
-                    </button>
-                    @foreach($variantShapesPresent as $shapeKey => $shapeLabel)
-                    <button type="button" @click="activeShape = '{{ $shapeKey }}'"
-                            :class="activeShape === '{{ $shapeKey }}' ? 'ring-1 ring-cyan-400/60' : ''"
-                            class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
-                            :style="activeShape === '{{ $shapeKey }}' ? 'background: rgba(34,211,238,0.18); color: #67e8f9;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
-                        {{ $shapeLabel }}
-                    </button>
-                    @endforeach
-                </div>
-            </div>
-            @endif
-
-            {{-- Theme filter chips (colour / vibe). --}}
-            <div>
-                <div class="text-[9px] font-bold uppercase tracking-wider mb-1" style="color: var(--text-dimmed);">Theme</div>
-                <div class="flex flex-wrap gap-1">
-                    <button type="button" @click="activeFilter = 'all'"
-                            :class="activeFilter === 'all' ? 'ring-1 ring-blue-400/60' : ''"
-                            class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
-                            :style="activeFilter === 'all' ? 'background: rgba(61,107,255,0.18); color: #90acff;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
-                        All
-                    </button>
-                    <button type="button" @click="activeFilter = 'favorites'"
-                            :class="activeFilter === 'favorites' ? 'ring-1 ring-pink-400/60' : ''"
-                            class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
-                            :style="activeFilter === 'favorites' ? 'background: rgba(236,72,153,0.18); color: #f472b6;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
-                        <i class="fas fa-star text-[8px] mr-0.5"></i>Favorites
-                    </button>
-                    @foreach($variantTagsPresent as $tagKey => $tagLabel)
-                    <button type="button" @click="activeFilter = '{{ $tagKey }}'"
-                            :class="activeFilter === '{{ $tagKey }}' ? 'ring-1 ring-blue-400/60' : ''"
-                            class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
-                            :style="activeFilter === '{{ $tagKey }}' ? 'background: rgba(61,107,255,0.18); color: #90acff;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
-                        {{ $tagLabel }}
-                    </button>
-                    @endforeach
-                </div>
-            </div>
-
             {{-- Variant + version are no longer carried via hidden form
                  inputs. The dedicated apply-variant endpoint persists
                  them in `_style` directly with full-replace semantics so
@@ -349,6 +289,7 @@
                     $thumbText = $pv['text'] ?? '#ffffff';
                     // Translucent designs need a visible ground even before the live response.
                     if ($thumbBg === 'transparent' || str_starts_with($thumbBg, 'rgba(')) $thumbBg = '#202437';
+                    if (!empty($v['style']['_text_design'])) $thumbBg = 'transparent';
                     $thumbRadius = (int) ($pv['radius'] ?? 12);
                     $thumbBorder = $pv['border'] ?? '';
                     $thumbShadow = $pv['shadow'] ?? '';
@@ -419,7 +360,9 @@
                             </div>
                             <div class="flex-1 flex items-center justify-center p-1">
                         @endif
-                        @if($shapeKind === 'button')
+                        @if(!empty($v['style']['_text_design']))
+                            <div data-text-design="{{ $v['style']['_text_design'] }}" style="color:#172033!important;font-size:14px;line-height:1.4;padding:6px;"><p>Make something memorable.</p></div>
+                        @elseif($shapeKind === 'button')
                             <div class="px-3 py-1.5 text-[9px] font-bold"
                                  style="background: {{ $thumbText }}; color: {{ $thumbBg === 'transparent' ? '#000' : $thumbBg }}; border-radius: {{ min($thumbRadius, 999) }}px;">
                                 Explore my work
@@ -1540,7 +1483,11 @@ window.blockDesignsGallery = function(opts) {
             // used to fall back to white, which is invisible on a light
             // page — half the gallery looked empty for anyone not using a
             // dark background.
-            var color = p.text_color || groundInk || '#ffffff';
+            var color = p.text_color || '#334155';
+            if (/^#fff(?:fff)?$/i.test(color) && !/background(?:-color)?:[^;]*(?:#[0-9a-f]{6}|rgb)/i.test(inline)) color = '#334155';
+            if (p.text_design) {
+                return '<div data-text-design="' + p.text_design + '" style="color:#172033!important;max-width:100%;font-size:14px;line-height:1.4;padding:6px;">Make something memorable.</div>';
+            }
             var safe = String(rawLabel || '').replace(/[<>&"]/g, '').slice(0, 18);
             var label = safe || 'Explore my work';
             // Retro browser-window variants (Task #6568): wrap the sketch

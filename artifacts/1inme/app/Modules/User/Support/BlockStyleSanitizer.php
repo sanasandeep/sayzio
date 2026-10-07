@@ -60,6 +60,7 @@ class BlockStyleSanitizer
             'display_mode' => ['card', 'content'],
             'effect' => ['none', 'glass', 'gradient_border'],
             '_motion' => ['none', 'float', 'breathe', 'reveal'],
+            '_text_design' => ['editorial', 'quote', 'marker', 'outline', 'wobble', 'split_words', 'split_chars'],
             // Per-block layout switch for link-family blocks. Empty
             // string is the default (existing button render); since the
             // foreach skips empty values, only non-default picks

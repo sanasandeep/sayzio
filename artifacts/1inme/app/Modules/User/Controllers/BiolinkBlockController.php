@@ -981,6 +981,7 @@ class BiolinkBlockController extends Controller
             $previews[] = [
                 'key' => $v['key'],
                 'rendered_link' => $renderedLink,
+                'text_design' => $v['style']['_text_design'] ?? '',
                 'name' => $v['name'],
                 'tags' => $v['tags'] ?? [],
                 'inline_style' => BiolinkBlock::buildInlineStyle($resolved),
