@@ -49,13 +49,14 @@ class CardTemplateSeeder extends Seeder
      * carousel, conversion blocks (flash offer, coupon, tip jar) and a
      * categorised menu board.
      */
-    public const SEED_VERSION = 5;
+    public const SEED_VERSION = 6;
 
     public function run(): void
     {
         $blueprint = $this->templates();
         $knownSlugs = [];
         foreach ($blueprint as $i => $tpl) {
+            $tpl = $this->purposeDesign($tpl);
             $slug = $tpl['slug'];
             $knownSlugs[$slug] = true;
             $payload = [
@@ -116,6 +117,64 @@ class CardTemplateSeeder extends Seeder
                 $t->is_active = false;
                 $t->save();
             });
+    }
+
+    /** Give each purpose a deliberate visual system; retain its bespoke layout. */
+    private function purposeDesign(array $template): array
+    {
+        $slug = $template['slug'];
+        $purpose = match (true) {
+            str_contains($slug, 'newsletter'), str_contains($slug, 'creator') => 'newsletter',
+            str_contains($slug, 'pricing') => 'pricing',
+            str_contains($slug, 'call'), str_contains($slug, 'booking') => 'booking',
+            str_contains($slug, 'minimal'), str_contains($slug, 'press') => 'editorial',
+            default => $template['category'],
+        };
+        [$background, $ink, $accent, $font, $radius, $photo] = match ($purpose) {
+            'newsletter' => ['#fff7ed', '#431407', '#c2410c', 'Georgia', 24, 'creators'],
+            'pricing' => ['#f8fafc', '#0f172a', '#0f172a', 'Inter', 12, 'shops'],
+            'booking', 'contact' => ['#ecfdf5', '#064e3b', '#047857', 'Inter', 20, 'educators'],
+            'editorial' => ['#faf9f6', '#292524', '#292524', 'Georgia', 2, 'agencies'],
+            'hero' => ['#eef2ff', '#1e1b4b', '#4338ca', 'Inter', 24, 'creators'],
+            'product' => ['#fff1f2', '#4c0519', '#be123c', 'Inter', 16, 'shops'],
+            'event' => ['#172554', '#eff6ff', '#2563eb', 'Inter', 8, 'musicians'],
+            'social' => ['#f0fdfa', '#134e4a', '#0f766e', 'Georgia', 16, 'podcasters'],
+            'gallery' => ['#18181b', '#fafafa', '#52525b', 'Inter', 4, 'agencies'],
+            'cta' => ['#312e81', '#eef2ff', '#6366f1', 'Inter', 28, 'creators'],
+            default => ['#ffffff', '#1e293b', '#334155', 'Inter', 12, 'agencies'],
+        };
+        $card = $template['card'] ?? [];
+        // Existing premium gradients and multi-column compositions remain distinct.
+        if (($card['bg_type'] ?? '') !== 'gradient') {
+            $card = array_merge($card, ['bg_type' => 'color', 'bg_color' => $background]);
+        } else {
+            $ink = str_contains($slug, 'galaxy') || str_contains($slug, 'midnight')
+                || str_contains($slug, 'forest') || str_contains($slug, 'cyber') ? '#ffffff' : '#1e293b';
+        }
+        $card = array_merge($card, [
+            'border_radius' => $radius, 'padding' => 24, 'gap' => 12,
+            'shadow' => 'none', 'border_width' => 0,
+        ]);
+        $template['card'] = $card;
+        foreach ($template['children'] as &$child) {
+            $settings = $child['settings'] ?? [];
+            $style = $settings['_style'] ?? [];
+            $style['text_color'] = $ink;
+            $style['font_family'] = $font;
+            if (in_array($child['type'], ['link', 'link_big', 'cta_button'], true)) {
+                $style = array_merge($style, [
+                    'bg_color' => $accent, 'text_color' => '#ffffff',
+                    'border_radius' => $purpose === 'editorial' || $purpose === 'gallery' ? 4 : 12,
+                ]);
+            }
+            if ($child['type'] === 'image' && str_contains($settings['url'] ?? '', '/images/auth-slider/')) {
+                $settings['url'] = asset('images/auth-slider/photo-' . $photo . '.png');
+            }
+            $settings['_style'] = $style;
+            $child['settings'] = $settings;
+        }
+        unset($child);
+        return $template;
     }
 
     private function defaultCardSettings(): array

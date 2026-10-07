@@ -7,6 +7,25 @@ use Tests\TestCase;
 
 class TemplatePreviewSampleContentTest extends TestCase
 {
+    public function test_built_in_templates_have_distinct_purpose_styles_and_preserve_layouts(): void
+    {
+        $seeder = new \Database\Seeders\CardTemplateSeeder;
+        $templates = (new \ReflectionMethod($seeder, 'templates'))->invoke($seeder);
+        $designer = new \ReflectionMethod($seeder, 'purposeDesign');
+        $surfaces = [];
+        foreach ($templates as $template) {
+            $designed = $designer->invoke($seeder, $template);
+            $this->assertCount(count($template['children']), $designed['children']);
+            foreach ($designed['children'] as $index => $child) {
+                $this->assertSame($template['children'][$index]['type'], $child['type']);
+                $this->assertSame($template['children'][$index]['settings']['_style']['grid_span'], $child['settings']['_style']['grid_span']);
+                $this->assertNotEmpty($child['settings']['_style']['text_color']);
+            }
+            $surfaces[] = $designed['card']['bg_gradient'] ?? $designed['card']['bg_color'];
+        }
+        $this->assertGreaterThanOrEqual(10, count(array_unique($surfaces)));
+    }
+
     public function test_admin_media_is_reflected_without_accepting_unsafe_schemes(): void
     {
         $builder = new TemplatePreviewLayoutBuilder;
