@@ -104,6 +104,7 @@
                 <label class="text-xs font-medium mb-1 block" style="color: var(--text-muted);">Type</label>
                 <select name="type" class="px-3 py-2 rounded-xl text-sm outline-none" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
                     <option value="">All Types</option>
+                    <option value="phone" {{ request('type') === 'phone' ? 'selected' : '' }}>Phone</option>
                     <option value="email" {{ request('type') === 'email' ? 'selected' : '' }}>Email</option>
                     <option value="whatsapp_channel" {{ request('type') === 'whatsapp_channel' ? 'selected' : '' }}>WhatsApp Channel</option>
                     <option value="whatsapp_number" {{ request('type') === 'whatsapp_number' ? 'selected' : '' }}>WhatsApp Number</option>
@@ -173,6 +174,8 @@
                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium" style="background: rgba(61,107,255,0.15); color: #90acff;">
                                 <i class="fas fa-envelope text-[10px]"></i>Email
                             </span>
+                            @elseif($sub->type === 'phone')
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"><i class="fas fa-phone text-[10px]"></i>Phone</span>
                             @elseif($sub->type === 'whatsapp_channel')
                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium" style="background: rgba(37,211,102,0.15); color: #25D366;">
                                 <i class="fab fa-whatsapp text-[10px]"></i>Channel
