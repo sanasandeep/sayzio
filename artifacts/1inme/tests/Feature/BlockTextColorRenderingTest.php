@@ -25,4 +25,28 @@ class BlockTextColorRenderingTest extends TestCase
             $this->assertStringNotContainsString($color.'88', $html);
         }
     }
+
+    public function test_accent_colors_remain_valid_in_shadows_and_pricing_variants(): void
+    {
+        foreach (['#123', 'rgb(12, 34, 56)', 'navy'] as $color) {
+            $block = new BiolinkBlock(['type' => 'cta_button', 'settings' => []]);
+            $html = view('common.blocks.cta-button', [
+                'block' => $block, 's' => ['text' => 'Book a call', 'color' => $color],
+            ])->render();
+            $this->assertStringContainsString('color-mix(in srgb, '.$color.' 25.1%, transparent)', $html);
+            foreach (['menu', 'cards', 'featured'] as $style) {
+                $html = view('common.blocks.list-pricing', [
+                    'fontColor' => '#172033', 'btnColor' => $color,
+                    's' => ['style' => $style, 'items' => [
+                        ['name' => 'Studio', 'price' => '$29', 'featured' => true, 'icon' => 'fa-star'],
+                    ]],
+                ])->render();
+                $this->assertStringContainsString('Studio', $html);
+                $this->assertStringContainsString('color-mix(in srgb, '.$color, $html);
+                foreach (['22', 'dd', '88'] as $suffix) {
+                    $this->assertStringNotContainsString($color.$suffix, $html);
+                }
+            }
+        }
+    }
 }

@@ -49,7 +49,7 @@
     <div class="text-center mb-4">
         <h2 class="text-xl md:text-2xl font-bold" style="color: {{ $fontColor ?? '#0f172a' }};">{{ $title }}</h2>
         @if($subtitle !== '')
-            <p class="text-sm mt-1" style="color: {{ ($fontColor ?? '#0f172a') }}cc;">{{ $subtitle }}</p>
+            <p class="text-sm mt-1" style="color: color-mix(in srgb, {{ ($fontColor ?? '#0f172a') }} 80.0%, transparent);">{{ $subtitle }}</p>
         @endif
     </div>
 
@@ -58,7 +58,7 @@
             @php $items = $initial[$col] ?? collect(); @endphp
             <div class="rm-col rounded-2xl border p-3"
                  data-column="{{ $col }}"
-                 style="background: rgba(255,255,255,0.06); border-color: {{ $statusAccent[$col] ?? '#94a3b8' }}55;">
+                 style="background: rgba(255,255,255,0.06); border-color: color-mix(in srgb, {{ $statusAccent[$col] ?? '#94a3b8' }} 33.33%, transparent);">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-xs font-bold uppercase tracking-wider" style="color: {{ $statusAccent[$col] ?? '#94a3b8' }};">
                         {{ $statusLabels[$col] ?? ucfirst($col) }}
@@ -78,7 +78,7 @@
                             <div class="min-w-0 flex-1">
                                 <p class="text-sm font-semibold truncate" style="color: {{ $fontColor ?? '#0f172a' }};">{{ $i->title }}</p>
                                 @if(!empty($i->description))
-                                    <p class="text-xs mt-0.5 line-clamp-2" style="color: {{ ($fontColor ?? '#0f172a') }}b3;">{{ \Illuminate\Support\Str::limit($i->description, 160) }}</p>
+                                    <p class="text-xs mt-0.5 line-clamp-2" style="color: color-mix(in srgb, {{ ($fontColor ?? '#0f172a') }} 70.2%, transparent);">{{ \Illuminate\Support\Str::limit($i->description, 160) }}</p>
                                 @endif
                                 @if($i->shipped_at)
                                     <p class="text-[11px] mt-1" style="color: {{ $statusAccent['shipped'] }};"><i class="fas fa-rocket mr-1"></i>Shipped {{ $i->shipped_at->diffForHumans() }}</p>

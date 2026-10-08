@@ -60,8 +60,8 @@
                 @endphp
                 <a href="{{ $url }}" target="_blank" rel="noopener" @click.prevent="open(@js($url), @js($name), @js($ext))"
                    class="flex-shrink-0 w-32 rounded-xl overflow-hidden border transition hover:-translate-y-1"
-                   style="border-color: {{ $accent }}33; background: {{ $accent }}11;">
-                    <div class="aspect-[3/4] flex items-center justify-center" style="background: {{ $accent }}1a;">
+                   style="border-color: color-mix(in srgb, {{ $accent }} 20.0%, transparent); background: color-mix(in srgb, {{ $accent }} 6.67%, transparent);">
+                    <div class="aspect-[3/4] flex items-center justify-center" style="background: color-mix(in srgb, {{ $accent }} 10.2%, transparent);">
                         <i class="fas {{ $iconFor($ext) }} text-3xl" style="color: {{ $accent }};"></i>
                     </div>
                     <div class="p-2">
@@ -105,7 +105,7 @@
                    class="flex items-center gap-3 p-3 rounded-xl border transition hover:-translate-y-0.5"
                    style="border-color: color-mix(in srgb, {{ $fontColor }} 10.2%, transparent); background: color-mix(in srgb, {{ $fontColor }} 3.14%, transparent);">
                     <div class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
-                         style="background: {{ $accent }}22;">
+                         style="background: color-mix(in srgb, {{ $accent }} 13.33%, transparent);">
                         <i class="fas {{ $iconFor($ext) }} text-xl" style="color: {{ $accent }};"></i>
                     </div>
                     <div class="flex-1 min-w-0">

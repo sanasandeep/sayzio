@@ -21,7 +21,7 @@
     @else
         <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
            class="bio-btn block w-full mb-3 transition-all duration-300 relative overflow-hidden"
-           style="background: linear-gradient(135deg, {{ $_accent }}, {{ $_accent }}cc); color:#fff;">
+           style="background: linear-gradient(135deg, {{ $_accent }}, color-mix(in srgb, {{ $_accent }} 80.0%, transparent)); color:#fff;">
             <div class="absolute top-0 right-3 -translate-y-0 px-2 py-0.5 rounded-b-md text-[10px] font-bold uppercase tracking-wider" style="background: rgba(0,0,0,.35);">
                 <i class="fas fa-thumbtack mr-1"></i>Featured
             </div>

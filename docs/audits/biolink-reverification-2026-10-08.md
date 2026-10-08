@@ -15,3 +15,15 @@ Full CI remains red and one shard terminated prematurely. No all-block end-to-en
 Revisited all 114 loaded admin previews again. None had horizontal overflow, fallback renderer errors or leaked Blade expressions. The deployed YouTube iframe measured 240px within a 296px body. The collapse plugin is now present and its prior warning was not observed. Third-party YouTube scripts still report sandbox cache-storage/writeEmbed errors; fitting the iframe does not verify playback. No sandbox protections were changed.
 
 Downloaded the complete CI log archive for run 37737735725. BlockTextColorRenderingTest failed because its standalone renderer fixture omitted the required link variable. The style-picker distinction test compared only inline_style, so heading/text animation designs were counted as duplicates despite distinct text_design keys. Correct these fixture/assertion defects, also supply link context to the two new standalone renderer regressions, A dedicated CI step with a JUnit artifact was prepared, but GitHub rejected the workflow update because the credential lacks workflow scope. The proposed change is saved locally at /private/tmp/biolink-focused-workflow.patch and is not part of the PR. The full suite remains red and its crashed shard prevents a blanket verification claim.
+
+
+## Continued verification after PR 272
+
+- Deployment run 37740559438 succeeded for merge 868ca9ac244dd808a7ac0d7c068af97ea8522576.
+- PHP job 113190126932 failed. Its complete log was examined: the earlier BlockTextColorRenderingTest and distinguishable-style failure names are absent from the failure digest. This is not proof that the 556-case renderer matrix completed: the broad suite still lacks a reliable isolated result for it.
+- Remaining functional gaps confirmed in the renderer: RSS Feed and YouTube Feed display only the configured URL/channel, while the editor offers item-count controls that are unused. No feed-fetch implementation is included in this color fix.
+- Found and corrected 34 hex-alpha concatenations across 14 block partials. Appending `22`, `dd`, etc. to `navy`, `rgb(...)`, or short hex creates invalid CSS. Opacity now uses color-mix so backgrounds, gradients, borders and shadows honor these supported color formats.
+- Chromium check: 540 actual-template opacity expressions across five color formats passed color, gradient, and shadow syntax checks.
+- Browser runtime regression: 20 text designs × two backgrounds × three viewport widths passed text preservation, wrapping, reduced motion, and mocked poll success/rejection/deadline checks, without JavaScript errors.
+- Blade JSON attribute and Alpine line-comment guards passed. PHP regression cases for CTA shadows and pricing variants were added but cannot run locally because PHP/Composer/vendor are unavailable.
+- Limits: the previous 114-preview scan verifies layout/fallback behavior, not every saved configuration, external media playback, or production form/payment submissions. YouTube sandbox playback remains unresolved.

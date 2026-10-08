@@ -19,7 +19,7 @@
            class="block w-full mb-3 text-center font-semibold transition-all duration-300 hover:-translate-y-0.5"
            style="background: {{ $s['color'] ?? ($btnColor ?? '#3d6bff') }}; color: {{ $s['text_color'] ?? ($btnTextColor ?? '#fff') }};
                   padding: {{ ($s['size'] ?? 'lg') === 'sm' ? '10px 20px' : (($s['size'] ?? 'lg') === 'md' ? '14px 24px' : '18px 32px') }};
-                  border-radius: {{ $btnRadius ?? '12px' }}; box-shadow: 0 6px 20px {{ $s['color'] ?? ($btnColor ?? '#3d6bff') }}40;
+                  border-radius: {{ $btnRadius ?? '12px' }}; box-shadow: 0 6px 20px color-mix(in srgb, {{ $s['color'] ?? ($btnColor ?? '#3d6bff') }} 25.1%, transparent);
                   font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '18px') }};{{ $btnInline ? ' ' . $btnInline : '' }}">
             {{ $s['text'] ?? 'Click Here' }}
         </a>
