@@ -87,7 +87,7 @@
                 @php $d = $fmtDate($e['date'] ?? null); @endphp
                 <div class="flex gap-3" style="color: {{ $fontColor }};">
                     <div class="w-14 flex-shrink-0 text-center rounded-lg py-2"
-                         style="background: {{ $accent }}1a; color: {{ $accent }};">
+                         style="background: color-mix(in srgb, {{ $accent }} 10.2%, transparent); color: {{ $accent }};">
                         @if($d)
                             <div class="text-[10px] font-semibold uppercase">{{ $d->format('M') }}</div>
                             <div class="text-xl font-bold leading-none">{{ $d->format('d') }}</div>
@@ -127,7 +127,7 @@
                 <i class="fas fa-calendar-days"></i> View full calendar
             </a>
             <a href="{{ $calSrc['subscribe_url'] }}" class="text-xs font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full transition hover:opacity-80"
-               style="background: {{ $accent }}1a; color: {{ $accent }};">
+               style="background: color-mix(in srgb, {{ $accent }} 10.2%, transparent); color: {{ $accent }};">
                 <i class="fas fa-rss"></i> Subscribe
             </a>
         </div>

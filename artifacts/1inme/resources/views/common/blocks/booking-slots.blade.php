@@ -24,7 +24,7 @@
                 <a href="{{ ! $taken ? ($sl['url'] ?? '#') : '#' }}"
                    @if(! $taken) target="_blank" rel="noopener" @endif
                    class="block p-3 rounded-xl text-center text-xs transition {{ $taken ? 'opacity-40 cursor-not-allowed line-through' : 'hover:-translate-y-0.5' }}"
-                   style="background: {{ $accent }}1a; border: 1px solid {{ $accent }}33; color: {{ $fontColor }};">
+                   style="background: color-mix(in srgb, {{ $accent }} 10.2%, transparent); border: 1px solid color-mix(in srgb, {{ $accent }} 20.0%, transparent); color: {{ $fontColor }};">
                     @if($d)
                         <div class="font-semibold">{{ $d->format('M d') }}</div>
                         <div class="text-[10px] opacity-70">{{ $d->format('g:i A') }}</div>

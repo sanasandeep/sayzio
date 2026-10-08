@@ -18,7 +18,7 @@
                     @foreach($_items as $it)
                         @php $ic = $it['icon'] ? fa_icon_class($it['icon'], $_defaultIcon) : $_defaultIcon; @endphp
                         <div class="rounded-xl px-3 py-3 flex items-start gap-2 text-sm"
-                             style="background: {{ $_accent }}14; border: 1px solid {{ $_accent }}33; color: color-mix(in srgb, {{ $fontColor }} 86.67%, transparent);">
+                             style="background: color-mix(in srgb, {{ $_accent }} 7.84%, transparent); border: 1px solid color-mix(in srgb, {{ $_accent }} 20.0%, transparent); color: color-mix(in srgb, {{ $fontColor }} 86.67%, transparent);">
                             <i class="{{ $ic }} mt-0.5 text-xs" style="color: {{ $_accent }};"></i>
                             <span>{{ $it['text'] }}</span>
                         </div>
@@ -53,12 +53,12 @@
             @case('timeline')
                 <div class="mb-4 glass-block rounded-xl p-4">
                     <div class="relative pl-6">
-                        <span class="absolute left-2 top-1 bottom-1 w-px" style="background: {{ $_accent }}55;"></span>
+                        <span class="absolute left-2 top-1 bottom-1 w-px" style="background: color-mix(in srgb, {{ $_accent }} 33.33%, transparent);"></span>
                         @foreach($_items as $it)
                             @php $ic = $it['icon'] ? fa_icon_class($it['icon'], $_defaultIcon) : $_defaultIcon; @endphp
                             <div class="relative pb-3 last:pb-0 text-sm" style="color: color-mix(in srgb, {{ $fontColor }} 86.67%, transparent);">
                                 <span class="absolute -left-[18px] top-1 inline-flex items-center justify-center w-4 h-4 rounded-full"
-                                      style="background: {{ $_accent }}; box-shadow: 0 0 0 3px {{ $_accent }}22;">
+                                      style="background: {{ $_accent }}; box-shadow: 0 0 0 3px color-mix(in srgb, {{ $_accent }} 13.33%, transparent);">
                                     <i class="{{ $ic }} text-[8px] text-white"></i>
                                 </span>
                                 <span>{{ $it['text'] }}</span>
@@ -86,7 +86,7 @@
                 <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
                     @foreach($_items as $idx => $it)
                         <div class="rounded-xl px-3 py-3 flex items-start gap-3 text-sm"
-                             style="background: {{ $_accent }}14; border: 1px solid {{ $_accent }}33; color: color-mix(in srgb, {{ $fontColor }} 86.67%, transparent);">
+                             style="background: color-mix(in srgb, {{ $_accent }} 7.84%, transparent); border: 1px solid color-mix(in srgb, {{ $_accent }} 20.0%, transparent); color: color-mix(in srgb, {{ $fontColor }} 86.67%, transparent);">
                             <span class="font-bold text-xs" style="color: {{ $_accent }};">{{ $idx + 1 }}.</span>
                             <span>{{ $it['text'] }}</span>
                         </div>
@@ -119,7 +119,7 @@
                     @foreach($_items as $idx => $it)
                         <div class="flex items-start gap-3 text-sm" style="color: color-mix(in srgb, {{ $fontColor }} 86.67%, transparent);">
                             <span class="inline-flex items-center justify-center w-6 h-6 rounded-md text-[11px] font-bold flex-shrink-0"
-                                  style="background: {{ $_accent }}22; color: {{ $_accent }}; border: 1px solid {{ $_accent }}66;">{{ $idx + 1 }}</span>
+                                  style="background: color-mix(in srgb, {{ $_accent }} 13.33%, transparent); color: {{ $_accent }}; border: 1px solid color-mix(in srgb, {{ $_accent }} 40.0%, transparent);">{{ $idx + 1 }}</span>
                             <span class="flex-1 mt-0.5">{{ $it['text'] }}</span>
                         </div>
                     @endforeach

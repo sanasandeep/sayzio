@@ -36,7 +36,7 @@
                         <img src="{{ $t['cover'] }}" alt="" class="w-14 h-14 rounded-lg object-cover flex-shrink-0">
                     @else
                         <div class="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0"
-                             style="background: {{ $accent }}22;">
+                             style="background: color-mix(in srgb, {{ $accent }} 13.33%, transparent);">
                             <i class="fas fa-music text-xl" style="color: {{ $accent }};"></i>
                         </div>
                     @endif
@@ -83,7 +83,7 @@
                 <div class="flex items-center gap-3 py-2.5">
                     <button type="button" @click="play({{ $idx }}, @js($url))"
                             class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition"
-                            style="background: {{ $accent }}22; color: {{ $accent }};">
+                            style="background: color-mix(in srgb, {{ $accent }} 13.33%, transparent); color: {{ $accent }};">
                         <i class="fas text-xs" :class="(current === {{ $idx }} && playing) ? 'fa-pause' : 'fa-play'"></i>
                     </button>
                     <div class="flex-1 min-w-0">
