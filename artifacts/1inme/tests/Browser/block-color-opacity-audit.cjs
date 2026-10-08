@@ -8,6 +8,7 @@ const expressions = [];
 for (const file of fs.readdirSync(root).filter(f => f.endsWith('.blade.php'))) {
   const source = fs.readFileSync(path.join(root, file), 'utf8');
   assert(!/\}\}[0-9a-f]{2}(?=[;" ,)])/i.test(source), `${file}: appended alpha creates invalid non-hex CSS`);
+  assert(!/\.\s*['"][0-9a-f]{2};?['"]/i.test(source), `${file}: PHP alpha concatenation creates invalid non-hex CSS`);
   for (const match of source.matchAll(/color-mix\(in srgb, (\{\{[^{}\n]+\}\}) ([\d.]+)%, transparent\)/g)) {
     for (const color of ['#123', '#123456', 'rgb(12, 34, 56)', 'navy', 'rgba(12, 34, 56, .5)']) {
       expressions.push({file, css: match[0].replace(match[1], color)});

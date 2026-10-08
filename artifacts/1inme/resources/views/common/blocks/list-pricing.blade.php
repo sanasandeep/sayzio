@@ -45,7 +45,7 @@
                 @foreach($_pItems as $it)
                     @php $isF = !empty($it['featured']); @endphp
                     <div class="rounded-2xl p-4 flex flex-col text-center relative {{ $isF ? 'sm:-translate-y-1' : '' }}"
-                         style="background: {{ $isF ? $_pAccent . '22' : 'rgba(255,255,255,0.04)' }}; border: 1.5px solid {{ $isF ? $_pAccent : 'rgba(255,255,255,0.1)' }}; color: {{ $fontColor }}; {{ $isF ? 'box-shadow: 0 12px 32px -12px ' . $_pAccent . '88;' : '' }}">
+                         style="background: {{ $isF ? 'color-mix(in srgb, ' . $_pAccent . ' 13.33%, transparent)' : 'rgba(255,255,255,0.04)' }}; border: 1.5px solid {{ $isF ? $_pAccent : 'rgba(255,255,255,0.1)' }}; color: {{ $fontColor }}; @if($isF)box-shadow: 0 12px 32px -12px color-mix(in srgb, {{ $_pAccent }} 53.33%, transparent);@endif">
                         @if($isF)
                             <span class="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 text-[10px] font-bold rounded-full text-white" style="background: {{ $_pAccent }};">POPULAR</span>
                         @endif

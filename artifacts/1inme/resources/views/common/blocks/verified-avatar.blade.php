@@ -6,7 +6,7 @@
         // rings from the theme text color so they stay visible in both themes.
         $__cBg = $bgColor ?? '#0a0612';
         $__cFg = $fontColor ?? '#ffffff';
-        $__cRing = $__cFg . '33';   // ~20% tint of the theme text color
+        $__cRing = 'color-mix(in srgb, ' . $__cFg . ' 20%, transparent)';
     @endphp
     <div class="mb-4 flex justify-center">
         <div class="relative inline-block">
