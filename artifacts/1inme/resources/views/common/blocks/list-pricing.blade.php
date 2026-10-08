@@ -21,7 +21,7 @@
                         @if($it['thumbnail'])
                             <img src="{{ $it['thumbnail'] }}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0">
                         @elseif($it['icon'])
-                            <div class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style="background: {{ $_pAccent }}22;">
+                            <div class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style="background: color-mix(in srgb, {{ $_pAccent }} 13.33%, transparent);">
                                 <i class="{{ fa_icon_class($it['icon'], 'fas fa-utensils') }}" style="color: {{ $_pAccent }};"></i>
                             </div>
                         @endif
@@ -52,7 +52,7 @@
                         @if($it['thumbnail'])
                             <img src="{{ $it['thumbnail'] }}" alt="" class="w-12 h-12 rounded-xl object-cover mx-auto mb-2">
                         @elseif($it['icon'])
-                            <div class="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-2" style="background: {{ $_pAccent }}22;">
+                            <div class="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-2" style="background: color-mix(in srgb, {{ $_pAccent }} 13.33%, transparent);">
                                 <i class="{{ fa_icon_class($it['icon'], 'fas fa-tag') }} text-lg" style="color: {{ $_pAccent }};"></i>
                             </div>
                         @endif
@@ -104,7 +104,7 @@
             <div class="mb-4 space-y-3">
                 @if($_feat)
                     <div class="rounded-2xl p-5 text-center relative overflow-hidden"
-                         style="background: linear-gradient(135deg, {{ $_pAccent }}, {{ $_pAccent }}dd); color: #fff; box-shadow: 0 12px 32px -8px {{ $_pAccent }}88;">
+                         style="background: linear-gradient(135deg, {{ $_pAccent }}, color-mix(in srgb, {{ $_pAccent }} 86.67%, transparent)); color: #fff; box-shadow: 0 12px 32px -8px color-mix(in srgb, {{ $_pAccent }} 53.33%, transparent);">
                         <span class="absolute top-2 right-3 px-2 py-0.5 text-[10px] font-bold rounded-full bg-white/25 tracking-wide">★ FEATURED</span>
                         <div class="text-base font-bold">{{ $_feat['name'] }}</div>
                         @if($_feat['description'])

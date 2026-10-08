@@ -33,7 +33,7 @@
                     @if(!empty($it['thumbnail']))
                         <img src="{{ $it['thumbnail'] }}" alt="" class="w-14 h-14 rounded-lg object-cover flex-shrink-0">
                     @else
-                        <div class="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0" style="background: {{ $accent }}22;">
+                        <div class="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0" style="background: color-mix(in srgb, {{ $accent }} 13.33%, transparent);">
                             <i class="fas fa-tag text-lg" style="color: {{ $accent }};"></i>
                         </div>
                     @endif

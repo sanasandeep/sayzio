@@ -79,7 +79,7 @@
                 {{-- Follow button (with optional cached count). --}}
                 <a href="{{ $href }}" target="_blank" rel="noopener"
                    class="inline-flex items-center gap-2 px-3 py-2 rounded-full text-xs font-semibold transition-all hover:-translate-y-0.5"
-                   style="background: {{ $brandColor }}; color: #fff; box-shadow: 0 6px 18px {{ $brandColor }}55;"
+                   style="background: {{ $brandColor }}; color: #fff; box-shadow: 0 6px 18px color-mix(in srgb, {{ $brandColor }} 33.33%, transparent);"
                    aria-label="{{ $btnLabel }} on {{ $platformLabel }}">
                     <i class="{{ $brandIcon }}"></i>
                     <span>{{ $btnLabel }}</span>

@@ -26,7 +26,7 @@
                             :style="active === {{ $idx }} ? 'border-bottom: 2px solid {{ $accent }}; color: {{ $fontColor }}' : 'border-bottom: 2px solid transparent; color: color-mix(in srgb, {{ $fontColor }} 60.0%, transparent)'"
                             class="text-xs font-medium whitespace-nowrap px-2 pb-2 transition -mb-px"
                         @else
-                            :style="active === {{ $idx }} ? 'background: {{ $accent }}22; color: {{ $accent }}' : 'background: transparent; color: {{ $fontColor }}'"
+                            :style="active === {{ $idx }} ? 'background: color-mix(in srgb, {{ $accent }} 13.33%, transparent); color: {{ $accent }}' : 'background: transparent; color: {{ $fontColor }}'"
                             class="text-xs font-medium whitespace-nowrap rounded-lg px-3 py-1.5 transition"
                         @endif
                         >

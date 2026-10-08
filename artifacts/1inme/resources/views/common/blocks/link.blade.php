@@ -27,7 +27,7 @@
         @php $accent = $s['accent_color'] ?? '#f59e0b'; @endphp
         <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
            class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl relative"
-           style="background: linear-gradient(135deg, {{ $accent }} 0%, {{ $accent }}dd 100%); box-shadow: 0 8px 24px {{ $accent }}55;{{ $btnInline ? ' ' . $btnInline : '' }}">
+           style="background: linear-gradient(135deg, {{ $accent }} 0%, color-mix(in srgb, {{ $accent }} 86.67%, transparent) 100%); box-shadow: 0 8px 24px color-mix(in srgb, {{ $accent }} 33.33%, transparent);{{ $btnInline ? ' ' . $btnInline : '' }}">
             <div class="absolute top-2 right-2 px-2 py-0.5 text-[10px] font-bold rounded-full bg-white/25 text-white tracking-wide">
                 <i class="fas fa-thumbtack"></i> FEATURED
             </div>
@@ -92,7 +92,7 @@
              accent-colored square tile so the layout never breaks. --}}
         <a href="{{ $_url }}" target="_blank" rel="noopener"
            class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl relative"
-           style="aspect-ratio: 1/1; @if($_thumb)background-image: linear-gradient(rgba(0,0,0,0.32), rgba(0,0,0,0.32)), url('{{ $_thumb }}'); background-size: cover; background-position: center;@else background: linear-gradient(135deg, {{ $_accent }} 0%, {{ $_accent }}cc 100%);@endif{{ $btnInline ? ' ' . $btnInline : '' }}">
+           style="aspect-ratio: 1/1; @if($_thumb)background-image: linear-gradient(rgba(0,0,0,0.32), rgba(0,0,0,0.32)), url('{{ $_thumb }}'); background-size: cover; background-position: center;@else background: linear-gradient(135deg, {{ $_accent }} 0%, color-mix(in srgb, {{ $_accent }} 80.0%, transparent) 100%);@endif{{ $btnInline ? ' ' . $btnInline : '' }}">
             <div class="absolute inset-0 flex items-center justify-center p-4 text-center">
                 <div class="text-white font-bold drop-shadow-lg leading-snug">
                     @if($_icon)<i class="{{ $_icon }} mr-2"></i>@endif<span data-link-label>{{ $_txt }}</span>
