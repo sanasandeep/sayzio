@@ -49,4 +49,45 @@ class BlockTextColorRenderingTest extends TestCase
             }
         }
     }
+    public function test_profile_details_colors_survive_sanitizing_and_render_in_every_layout(): void
+    {
+        $style = [
+            'text_color' => '#123456', 'bg_color' => '#102030',
+            '_profile_details_bg' => '#203040', '_profile_details_text' => '#fedcba',
+            '_profile_accent_color' => '#abcdef', '_profile_cta_bg' => '#345678',
+            '_profile_cta_text' => '#ffffff',
+        ];
+        $this->assertEquals($style, \App\Modules\User\Support\BlockStyleSanitizer::sanitize($style));
+        foreach (['cover_hero', 'classic_creator', 'glass', 'founder', 'minimal_dark', 'business_card', 'id_badge', 'ticket_stub', 'polaroid', 'terminal', 'stats', 'badges'] as $layout) {
+            $block = new BiolinkBlock(['type' => 'profile_card_v2', 'settings' => [
+                'name' => 'Alex', 'title' => 'Designer', 'bio' => 'Studio founder',
+                'location' => 'Hyderabad', 'website' => 'https://example.com',
+                'cta_label' => 'Contact', 'cta_url' => 'https://example.com/contact',
+                '_style' => $style + ['_profile_layout' => $layout],
+            ]]);
+            $html = view('common.biolink-profile-card', [
+                'block' => $block, 's' => $block->settings, 'blockStyle' => $style,
+                'blockInline' => 'background:#102030;color:#123456;',
+                'fontColor' => '#123456', 'socialIcons' => [],
+            ])->render();
+            $this->assertStringContainsString('--profile-ink:#123456', $html, $layout);
+            $this->assertStringContainsString('background:#203040;color:#fedcba', $html, $layout);
+            $this->assertStringContainsString('background:#345678', $html, $layout);
+            $this->assertStringContainsString('color:#ffffff', $html, $layout);
+        }
+    }
+
+    public function test_inner_card_surfaces_honor_explicit_backgrounds(): void
+    {
+        foreach (['service', 'testimonials', 'product', 'booking-slots', 'file-list', 'audio-list', 'event-list', 'affiliate-links'] as $partial) {
+            $block = new BiolinkBlock(['type' => 'product']);
+            $block->id = 123;
+            $html = view('common.blocks.'.$partial, [
+                'block' => $block, 'link' => new Link, 'fontColor' => '#abcdef',
+                's' => ['_style' => ['bg_color' => '#102030'], 'items' => [['name' => 'Alex', 'text' => 'Great work']]],
+            ])->render();
+            $this->assertStringContainsString('background:#102030;color:#abcdef', $html, $partial);
+        }
+    }
+
 }

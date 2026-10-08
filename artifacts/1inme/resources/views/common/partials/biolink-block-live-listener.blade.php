@@ -577,7 +577,7 @@
                     // Re-render to recompute those colors, including nested blocks
                     // and clearing back to page inheritance; wrapper-only patches
                     // must not acknowledge a change that the content ignores.
-                    if (key === 'style.text_color') return false;
+                    if (key === 'style.text_color' || key === 'style.bg_color') return false;
                     // Task #6114: horizontal margins live on the block wrap
                     // itself (the page has no side padding); clearing the
                     // field reverts to the container's default child margin.

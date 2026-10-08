@@ -6,7 +6,7 @@
     $disclaimer = trim($s['disclaimer'] ?? 'Some links may earn a commission.');
 @endphp
 
-<div class="mb-4 glass-block rounded-xl p-4">
+<div class="mb-4 glass-block rounded-xl p-4" @if(!empty($s['_style']['bg_color'])) style="background:{{ $s['_style']['bg_color'] }};color:{{ $fontColor }}" @endif>
     @if($title !== '')
         <p class="text-sm font-semibold mb-2" style="color: {{ $fontColor }};">{{ $title }}</p>
     @endif

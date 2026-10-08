@@ -71,6 +71,8 @@
         default                    => '#3d6bff',
     };
 
+    $accent = ($blockStyle['_profile_accent_color'] ?? '') ?: $accent;
+
     // Decorative avatar frame (Task #5910). Key + optional tint live in
     // _style; unknown keys make svg() return null so nothing renders.
     // Default tint is the layout accent. The wrapper isolates its own
@@ -120,6 +122,10 @@
     $avatarBg = 'rgba(61,107,255,0.20)';
 @endphp
 
+<style>
+    .profile-color-scope[data-custom-ink] p { color:var(--profile-ink) !important; }
+</style>
+<div class="profile-color-scope" @if(!empty($blockStyle['text_color'])) data-custom-ink style="display:contents;--profile-ink:{{ $blockStyle['text_color'] }}" @else style="display:contents" @endif>
 {{-- ───────────────────────────── SPLIT HERO ────────────────────────── --}}
 {{-- Task #5876: photo-first column for split desktop layouts — a large
      circular avatar with the social-icon row beneath it, nothing else.
@@ -397,7 +403,7 @@
             @if($ctaLabel)
                 <a href="{{ $ctaUrl ?: '#' }}" @if($ctaUrl) target="_blank" rel="noopener" @endif
                    class="inline-flex items-center gap-2 mt-5 px-6 py-2.5 rounded-full text-sm font-semibold transition hover:scale-105"
-                   style="border:1px solid #d4af37;color:#d4af37;background:rgba(212,175,55,0.06)">
+                   style="border:1px solid {{ $accent }};color:{{ ($blockStyle['_profile_cta_text'] ?? '') ?: $accent }};background:{{ ($blockStyle['_profile_cta_bg'] ?? '') ?: 'rgba(212,175,55,0.06)' }}">
                     <i class="fas fa-crown"></i>{{ $ctaLabel }}
                 </a>
             @endif
@@ -853,3 +859,5 @@
         @include('common.biolink-profile-details', ['showLocation' => true, 'showWebsite' => true, 'showCta' => true, 'showSocials' => true, 'showVerified' => true])
     </div>
 @endif
+
+</div>

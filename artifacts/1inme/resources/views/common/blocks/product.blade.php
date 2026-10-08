@@ -1,4 +1,4 @@
-    <div class="mb-4 glass-block rounded-xl overflow-hidden">
+    <div class="mb-4 glass-block rounded-xl overflow-hidden" @if(!empty($s['_style']['bg_color'])) style="background:{{ $s['_style']['bg_color'] }};color:{{ $fontColor }}" @endif>
         @if(!empty($s['image']))<img src="{{ $s['image'] }}" alt="{{ $s['name'] ?? '' }}" class="w-full h-48 object-cover">@endif
         <div class="p-4">
             <div class="flex items-start justify-between">

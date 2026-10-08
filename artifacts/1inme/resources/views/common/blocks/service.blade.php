@@ -1,4 +1,4 @@
-    <div class="mb-4 glass-block rounded-xl p-4">
+    <div class="mb-4 glass-block rounded-xl p-4" @if(!empty($s['_style']['bg_color'])) style="background:{{ $s['_style']['bg_color'] }};color:{{ $fontColor }}" @endif>
         <div class="flex items-start gap-3">
             <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center flex-shrink-0"><i class="{{ fa_icon_class($s['icon'] ?? 'fas fa-star', 'fas fa-star') }} text-indigo-400"></i></div>
             <div class="flex-1">

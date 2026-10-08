@@ -521,6 +521,27 @@
                     <input type="color" value="{{ $tcPicker }}" class="w-10 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.nextElementSibling.value = this.value" @input="cText = $event.target.value">
                     <input type="text" name="style[text_color]" value="{{ $tcVal }}" placeholder="Inherit" class="{{ $inputClass }} flex-1" oninput="if (/^#[0-9a-fA-F]{6}$/.test(this.value)) this.previousElementSibling.value = this.value" @input="cText = $event.target.value">
                 </div>
+                @if(str_starts_with($block->type, 'profile_card'))
+                    <div class="mt-4 space-y-3" data-profile-color-controls>
+                        <p class="text-xs opacity-70">Profile details can use separate colors. Leave empty to use the block colors or design defaults.</p>
+                        @foreach([
+                            '_profile_details_bg' => 'Details background',
+                            '_profile_details_text' => 'Details text',
+                            '_profile_accent_color' => 'Profile links and accent',
+                            '_profile_cta_bg' => 'Profile button background',
+                            '_profile_cta_text' => 'Profile button text',
+                        ] as $profileColorKey => $profileColorLabel)
+                            @php $profileColorValue = $st[$profileColorKey] ?? ''; @endphp
+                            <div>
+                                <label class="{{ $labelClass }}">{{ $profileColorLabel }}</label>
+                                <div class="flex gap-2">
+                                    <input type="color" value="{{ preg_match('/^#[0-9a-fA-F]{6}$/', $profileColorValue) ? $profileColorValue : '#ffffff' }}" aria-label="{{ $profileColorLabel }} picker" class="w-10 h-9 rounded-lg cursor-pointer" oninput="this.nextElementSibling.value = this.value; this.nextElementSibling.dispatchEvent(new Event('input', {bubbles:true}))">
+                                    <input type="text" name="style[{{ $profileColorKey }}]" value="{{ $profileColorValue }}" placeholder="Auto" aria-label="{{ $profileColorLabel }}" class="{{ $inputClass }} flex-1" oninput="if (/^#[0-9a-fA-F]{6}$/.test(this.value)) this.previousElementSibling.value = this.value">
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
                 {{-- Non-blocking WCAG contrast warning vs the block's background color (Look tab). --}}
                 <template x-if="cLow()">
                     <div class="flex items-center gap-2 rounded-lg px-3 py-2 mt-2 text-[11px] font-medium"

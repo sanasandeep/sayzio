@@ -340,6 +340,21 @@
         </div>
         {{-- Keep the textarea submitted even while collapsed: x-show only hides it. --}}
     </div>
+<div class="grid grid-cols-2 gap-3 mt-4" data-profile-design-colors>
+    @foreach([
+        '_profile_details_bg' => 'Profile details background',
+        '_profile_details_text' => 'Profile details text',
+        '_profile_accent_color' => 'Profile links and accent',
+        '_profile_cta_bg' => 'Profile button background',
+        '_profile_cta_text' => 'Profile button text',
+    ] as $profileKey => $profileLabel)
+        <div>
+            <label class="block text-xs mb-1">{{ $profileLabel }}</label>
+            <input type="text" class="w-full rounded-xl px-3 py-2 border" placeholder="Auto" :value="get('{{ $profileKey }}')" @input="set('{{ $profileKey }}', $event.target.value)">
+        </div>
+    @endforeach
+</div>
+
 </div>
 
 @once

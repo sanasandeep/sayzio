@@ -8,7 +8,7 @@
     $listId = 'audio_list_' . $block->id;
 @endphp
 
-<div class="mb-4 glass-block rounded-xl p-4" id="{{ $listId }}"
+<div class="mb-4 glass-block rounded-xl p-4" @if(!empty($s['_style']['bg_color'])) style="background:{{ $s['_style']['bg_color'] }};color:{{ $fontColor }}" @endif id="{{ $listId }}"
      x-data="{
          current: -1, playing: false, audio: null,
          play(idx, url) {
