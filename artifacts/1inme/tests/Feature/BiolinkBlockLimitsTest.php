@@ -158,6 +158,9 @@ class BiolinkBlockLimitsTest extends TestCase
         $this->assertSame($cap, (int) $block->click_count, 'Counter must not exceed the configured cap');
         $this->assertSame($cap, $accepted, 'Exactly cap many clicks should have been accepted');
         $this->assertSame($attempts - $cap, $rejected, 'All clicks past the cap must be refused');
+        // Tracking buffers analytics until request termination. Flush the
+        // accepted batch before asserting durable rows (test queue is sync).
+        app(\App\Modules\Common\Services\ClickWriteBuffer::class)->flush();
         $this->assertSame($cap, LinkClick::where('block_id', $block->id)->count(), 'Refused clicks must not create LinkClick rows');
     }
 

@@ -49,6 +49,8 @@
         "list_numbered"                    => 'common.blocks.list',
         "list_pricing"                     => 'common.blocks.list-pricing',
         "youtube"                          => 'common.blocks.youtube',
+        "rss_feed"                         => 'common.blocks.feed',
+        "youtube_feed"                     => 'common.blocks.feed',
         "video"                            => 'common.blocks.video',
         "spotify"                          => 'common.blocks.spotify',
         "email_collector"                  => 'common.blocks.email-collector',
@@ -296,12 +298,6 @@
                     <a href="https://snapchat.com/add/{{ $s['username'] ?? '' }}" target="_blank" class="bio-btn px-4 py-2 text-xs font-medium">Add</a>
                 </div>
 
-            @elseif($block->type === 'rss_feed')
-                <div class="mb-4 glass-block rounded-xl p-4">
-                    <div class="flex items-center gap-2 mb-3"><i class="fas fa-rss text-orange-400"></i><span class="text-sm font-medium">RSS Feed</span></div>
-                    <p class="text-xs text-white/40">Feed: {{ $s['url'] ?? '' }}</p>
-                </div>
-
             {{-- MUSIC --}}
             @elseif($block->type === 'apple_music')
                 @php $amEmbed = str_replace('music.apple.com', 'embed.music.apple.com', $s['url'] ?? ''); @endphp
@@ -322,12 +318,6 @@
                 </div>
 
             {{-- VIDEO PLATFORMS --}}
-            @elseif($block->type === 'youtube_feed')
-                <div class="mb-4 glass-block rounded-xl p-4">
-                    <div class="flex items-center gap-2 mb-3"><i class="fab fa-youtube text-red-500 text-lg"></i><span class="text-sm font-medium">YouTube Channel</span></div>
-                    <p class="text-xs text-white/40">Channel: {{ $s['channel_id'] ?? '' }}</p>
-                </div>
-
             @elseif($block->type === 'vimeo')
                 <div class="mb-4 rounded-xl overflow-hidden aspect-video">
                     <iframe src="https://player.vimeo.com/video/{{ $s['video_id'] ?? '' }}" class="w-full h-full rounded-xl" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen loading="lazy"></iframe>
