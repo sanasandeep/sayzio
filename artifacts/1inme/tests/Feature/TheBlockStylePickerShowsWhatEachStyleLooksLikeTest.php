@@ -157,7 +157,11 @@ class TheBlockStylePickerShowsWhatEachStyleLooksLikeTest extends TestCase
                 continue;   // a type with a single style has nothing to tell apart
             }
 
-            $distinct = count(array_unique(array_column($tiles, 'inline_style')));
+            // Glyph and motion designs use their key rather than different wrapper CSS.
+            $distinct = count(array_unique(array_map(
+                fn ($tile) => json_encode([$tile['inline_style'], $tile['text_design'] ?? '', $tile['rendered_link'] ?? null]),
+                $tiles,
+            )));
             if ($distinct < 2) {
                 $thin[] = $type.' ('.count($tiles).' styles, '.$distinct.' distinct)';
             }

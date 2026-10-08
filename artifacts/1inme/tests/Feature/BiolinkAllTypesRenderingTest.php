@@ -63,7 +63,7 @@ class BiolinkAllTypesRenderingTest extends TestCase
         foreach (['buy_me_coffee', 'patreon', 'ko_fi', 'tiktok_profile'] as $type) {
             $block = new PreviewBiolinkBlock;
             $block->forceFill(['id' => 1, 'type' => $type, 'settings' => ['username' => 'studioatlas']]);
-            $html = view('common.partials.biolink-block-render', ['block' => $block, 's' => $block->settings, 'fontColor' => '#fff'])->render();
+            $html = view('common.partials.biolink-block-render', ['link' => new Link, 'block' => $block, 's' => $block->settings, 'fontColor' => '#fff'])->render();
             $this->assertStringContainsString('@studioatlas', $html);
             $this->assertStringNotContainsString('{{ $', $html);
             if ($type === 'tiktok_profile') {
@@ -76,7 +76,7 @@ class BiolinkAllTypesRenderingTest extends TestCase
         foreach ([41, 42] as $id) {
             $block = new PreviewBiolinkBlock;
             $block->forceFill(['id' => $id, 'type' => 'vcard', 'settings' => ['name' => "Alex O'Neil", 'company' => 'Studio "Atlas"']]);
-            $html = view('common.partials.biolink-block-render', ['block' => $block, 's' => $block->settings, 'fontColor' => '#fff'])->render();
+            $html = view('common.partials.biolink-block-render', ['link' => new Link, 'block' => $block, 's' => $block->settings, 'fontColor' => '#fff'])->render();
             $this->assertStringContainsString("function downloadVCard{$id}()", $html);
             $this->assertStringContainsString("onclick=\"downloadVCard{$id}()\"", $html);
             $this->assertStringContainsString('var data = JSON.parse(', $html);
