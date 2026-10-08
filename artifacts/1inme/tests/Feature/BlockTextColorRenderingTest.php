@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\User\Models\BiolinkBlock;
+use App\Modules\User\Models\Link;
 use Tests\TestCase;
 
 class BlockTextColorRenderingTest extends TestCase
@@ -11,7 +12,7 @@ class BlockTextColorRenderingTest extends TestCase
     {
         $block = new BiolinkBlock(['type' => 'paragraph', 'settings' => ['text' => 'Readable text', '_style' => ['text_color' => '#123456']]]);
         $block->id = 123;
-        $html = view('common.partials.biolink-block-render', ['block' => $block, 's' => $block->settings, 'fontColor' => '#ffffff', 'globalTheme' => []])->render();
+        $html = view('common.partials.biolink-block-render', ['link' => new Link, 'block' => $block, 's' => $block->settings, 'fontColor' => '#ffffff', 'globalTheme' => []])->render();
         $this->assertStringContainsString('color: #123456', $html);
         $this->assertStringNotContainsString('color: #ffffff', $html);
     }
