@@ -27,3 +27,12 @@ Downloaded the complete CI log archive for run 37737735725. BlockTextColorRender
 - Browser runtime regression: 20 text designs × two backgrounds × three viewport widths passed text preservation, wrapping, reduced motion, and mocked poll success/rejection/deadline checks, without JavaScript errors.
 - Blade JSON attribute and Alpine line-comment guards passed. PHP regression cases for CTA shadows and pricing variants were added but cannot run locally because PHP/Composer/vendor are unavailable.
 - Limits: the previous 114-preview scan verifies layout/fallback behavior, not every saved configuration, external media playback, or production form/payment submissions. YouTube sandbox playback remains unresolved.
+
+## Feed implementation and click-limit lifecycle verification
+
+- RSS Feed and YouTube Feed now share a linked-entry renderer instead of displaying only their URL/channel. RSS supports RSS 2.0 and Atom; YouTube uses the channel's public Atom feed. Configured counts are clamped to RSS 1–20 and YouTube 1–10.
+- Feed responses cache for 30 minutes, fetch timeout is five seconds, XML reads cap at 1 MiB, and malformed/external-entity feeds return an empty list with an open-feed/channel fallback. Unsaved preview fixtures skip remote fetches.
+- Public-target validation covers IPv4/IPv6 DNS answers; validated addresses are pinned in cURL, redirects are refused, and credentials/nonstandard ports/private or reserved addresses are rejected. Entry titles are plain text and links allow only HTTP(S).
+- Seven PHP regression tests cover caching/counts, Atom namespaces, unsafe and malformed feeds, private targets, redirects, renderer escaping/counts, and unsaved fixtures. These tests are added for CI and are not reported as locally passing: PHP/Composer/vendor are absent.
+- The click-cap CI failure asserted LinkClick rows before flushing ClickWriteBuffer. The atomic counter and accepted/rejected assertions had already passed. The test now flushes the accepted batch using the configured synchronous test queue before checking durable rows; production click enforcement is unchanged.
+- Blade/Alpine guards and diff whitespace checks pass. Feed integrations still require PHP CI and deployed provider verification before claiming this gap fully verified.
