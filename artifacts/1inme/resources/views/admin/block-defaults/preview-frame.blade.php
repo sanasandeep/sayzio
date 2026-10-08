@@ -68,7 +68,8 @@
         }
         .biolink-block-wrap { min-width: 0; }
         a { color: inherit; }
-        img { max-width: 100%; }
+        img, iframe, video, audio, embed, object { max-width: 100%; }
+        iframe, video { width: 100%; }
     </style>
 </head>
 <body>
@@ -84,6 +85,7 @@
     </div>
     @include('common.partials.block-element-motion')
     @include('common.partials.biolink-interactive-runtime')
+    <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
     <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
 </body>
 </html>
