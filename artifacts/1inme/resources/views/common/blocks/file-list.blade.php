@@ -31,7 +31,7 @@
     };
 @endphp
 
-<div class="mb-4 glass-block rounded-xl p-4"
+<div class="mb-4 glass-block rounded-xl p-4" @if(!empty($s['_style']['bg_color'])) style="background:{{ $s['_style']['bg_color'] }};color:{{ $fontColor }}" @endif
      x-data="{
          preview: null,
          open(url, name, ext) {

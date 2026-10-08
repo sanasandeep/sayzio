@@ -578,6 +578,11 @@ class BiolinkBlock extends Model
         // existing pages and curated variants keep today's exact look —
         // layouts with built-in overlays treat these as overrides.
         '_cover_blur' => '',
+        '_profile_details_bg' => '',
+        '_profile_details_text' => '',
+        '_profile_accent_color' => '',
+        '_profile_cta_bg' => '',
+        '_profile_cta_text' => '',
         '_cover_overlay_color' => '',
         '_cover_overlay_opacity' => '',
         // Countdown block color overrides (rich countdown redesign). All

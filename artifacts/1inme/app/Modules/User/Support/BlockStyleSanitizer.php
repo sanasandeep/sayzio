@@ -138,6 +138,8 @@ class BlockStyleSanitizer
             'border_top_color', 'border_right_color', 'border_bottom_color', 'border_left_color',
             '_photo_frame_color', '_photo_banner_bg', '_photo_banner_text_color', '_photo_accent_color',
             '_heading_accent_color', '_cover_overlay_color',
+            '_profile_details_bg', '_profile_details_text', '_profile_accent_color',
+            '_profile_cta_bg', '_profile_cta_text',
             // Countdown block color overrides (rich countdown redesign).
             '_countdown_digit_color', '_countdown_label_color', '_countdown_box_bg',
             '_countdown_cta_bg', '_countdown_cta_text',
