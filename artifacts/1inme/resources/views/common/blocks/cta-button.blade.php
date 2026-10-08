@@ -11,7 +11,7 @@
            class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl relative"
            style="aspect-ratio: 16/8; background-image: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.7) 100%), url('{{ $s['thumbnail'] }}'); background-size: cover; background-position: center;{{ $btnInline ? ' ' . $btnInline : '' }}">
             <div class="absolute inset-0 flex items-end justify-center p-5">
-                <span class="text-white font-bold drop-shadow-lg" style="font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '20px') }};">{{ $s['text'] ?? 'Click Here' }}</span>
+                <span class="font-bold drop-shadow-lg" style="color:{{ ($s['_style']['text_color'] ?? '') ?: ($s['text_color'] ?? '#ffffff') }};font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '20px') }};">{{ $s['text'] ?? 'Click Here' }}</span>
             </div>
         </a>
     @else

@@ -11,20 +11,20 @@
            class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl relative"
            style="aspect-ratio: 16/9; background-image: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.75) 100%), url('{{ $s['thumbnail'] }}'); background-size: cover; background-position: center;{{ $btnInline ? ' ' . $btnInline : '' }}">
             <div class="absolute inset-0 flex flex-col justify-end p-5">
-                <p class="font-bold text-white text-lg drop-shadow-lg">{{ $s['text'] ?? 'Link' }}</p>
-                @if(!empty($s['description']))<p class="text-sm text-white/80 mt-1 drop-shadow">{{ $s['description'] }}</p>@endif
+                <p class="font-bold text-lg drop-shadow-lg" style="color:{{ ($s['_style']['text_color'] ?? '') ?: '#ffffff' }}">{{ $s['text'] ?? 'Link' }}</p>
+                @if(!empty($s['description']))<p class="text-sm opacity-80 mt-1 drop-shadow" style="color:{{ ($s['_style']['text_color'] ?? '') ?: '#ffffff' }}">{{ $s['description'] }}</p>@endif
             </div>
         </a>
     @else
         <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
            class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-           style="background: {{ $s['bg_color'] ?? ($btnColor ?? '#3d6bff') }};{{ $btnInline ? ' ' . $btnInline : '' }}">
+           style="background: {{ $s['bg_color'] ?? ($btnColor ?? '#3d6bff') }};color:{{ ($s['_style']['text_color'] ?? '') ?: ($btnTextColor ?? '#ffffff') }};{{ $btnInline ? ' ' . $btnInline : '' }}">
             <div class="px-6 py-5 flex items-center gap-4">
                 @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-12 h-12 rounded-xl object-cover" alt="">
                 @elseif(!empty($s['icon']))<div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center"><i class="{{ fa_icon_class($s['icon']) }} text-xl"></i></div>@endif
                 <div class="flex-1 min-w-0">
-                    <p class="font-semibold text-white truncate">{{ $s['text'] ?? 'Link' }}</p>
-                    @if(!empty($s['description']))<p class="text-xs text-white/60 mt-0.5 truncate">{{ $s['description'] }}</p>@endif
+                    <p class="font-semibold truncate">{{ $s['text'] ?? 'Link' }}</p>
+                    @if(!empty($s['description']))<p class="text-xs opacity-60 mt-0.5 truncate">{{ $s['description'] }}</p>@endif
                 </div>
                 <i class="fas fa-arrow-right text-white/40"></i>
             </div>

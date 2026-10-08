@@ -134,7 +134,12 @@
         <div class="biolink-window-chrome-body" style="padding: 14px 16px;">
 @endif
 @if($__partial)
+    @if(!empty($__effectiveBlockStyle['bg_color']))
+        <style>.block-inner-surface .glass-block { background:var(--block-inner-surface) !important; }</style>
+        <div class="block-inner-surface" style="display:contents;--block-inner-surface:{{ $__effectiveBlockStyle['bg_color'] }}">
+    @endif
     @include($__partial, ['link' => $link, 'block' => $block, 's' => $s, 'fontColor' => $fontColor, 'btnInline' => $btnInline])
+    @if(!empty($__effectiveBlockStyle['bg_color']))</div>@endif
 @else
     @if(false){{-- anchor: keeps every real branch below as an @elseif --}}
             @elseif($block->type === 'resume')

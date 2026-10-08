@@ -591,7 +591,11 @@ class BiolinkBlockController extends Controller
             'max_clicks' => 'nullable|integer|min:0|max:10000000',
         ]);
 
-        $settings = $validated['settings'] ?? $block->settings;
+        // Omitted top-level fields are unchanged; submitted collections replace
+        // their entire list so removing/reordering rows never resurrects old items.
+        $settings = \App\Modules\User\Support\BlockEditorFields::normalizeEmptyLists(
+            array_replace($block->settings ?? [], $validated['settings'] ?? []), $block->settings ?? []
+        );
         $settings = $this->sanitizeSettings($block->type, $settings);
 
         // `_fixed` is admin-owned (template design session). Outside a
@@ -2241,6 +2245,10 @@ class BiolinkBlockController extends Controller
 
     public function sanitizeSettings(string $type, array $settings): array
     {
+        $settings = \App\Modules\User\Support\BlockEditorFields::sanitizeColors($settings);
+        $settings = \App\Modules\User\Support\BlockEditorFields::normalizeEmptyLists(
+            $settings, BlockDefaults::contentForType($type)
+        );
         // Richer divider (Task #6581): clamp/allowlist every knob so a bad
         // value can never reach the public page. Empty optional keys are
         // dropped so untouched legacy blocks keep their minimal payload.
