@@ -48,7 +48,47 @@ html.light-mode .block-settings-form .placeholder-banner i { color:#b45309; }
     border: 1px solid rgba(251,191,36,0.35);
 }
 </style>
-<div class="block-settings-form @if(!empty($s['_placeholder'])) placeholder-mode @endif">
+@php
+    $allContentDefaults = \App\Modules\User\Support\BlockEditorFields::defaultsForType($block->type);
+    $allContentSchema = \App\Modules\User\Support\BlockEditorFields::schema($allContentDefaults, $s);
+    $allContentValues = \App\Modules\User\Support\BlockEditorFields::values($allContentSchema, $s, $allContentDefaults);
+@endphp
+@once
+<script>
+function blockAllContentValues(root, saved) {
+    const submitted = {};
+    for (const [name, value] of new FormData(root.closest('form')).entries()) {
+        const match = name.match(/^settings((?:\[[a-zA-Z0-9_]+\])+)$/);
+        if (!match || typeof value !== 'string') continue;
+        const keys = [...match[1].matchAll(/\[([a-zA-Z0-9_]+)\]/g)].map(m => m[1]);
+        if (!Object.prototype.hasOwnProperty.call(saved, keys[0]) || keys.some(k => ['__proto__', 'prototype', 'constructor'].includes(k))) continue;
+        let node = submitted;
+        keys.forEach((key, index) => {
+            if (index === keys.length - 1) node[key] = value;
+            else { if (!node[key] || typeof node[key] !== 'object') node[key] = /^\d+$/.test(keys[index + 1]) ? [] : {}; node = node[key]; }
+        });
+    }
+    const normalize = (value, original) => {
+        if (Array.isArray(original)) return Array.isArray(value) ? value.map((v, i) => normalize(v, original[i] ?? original[0])) : [];
+        if (typeof original === 'boolean') return value === true || value === '1' || value === 'true';
+        if (value && typeof value === 'object') { for (const k of Object.keys(value)) value[k] = normalize(value[k], original?.[k]); }
+        return value;
+    };
+    for (const key of Object.keys(submitted)) saved[key] = normalize(submitted[key], saved[key]);
+    return saved;
+}
+</script>
+@endonce
+<div class="block-settings-form @if(!empty($s['_placeholder'])) placeholder-mode @endif" x-data="{ allFields: false, allContent: @js($allContentValues) }">
+@if($allContentSchema)
+<button type="button" x-show="!allFields" class="text-xs font-semibold mb-3" @click="allContent = blockAllContentValues($el.closest('.block-settings-form'), allContent); allFields = true">Show all content fields</button>
+<fieldset x-show="allFields" x-cloak :disabled="!allFields" data-all-content-fields>
+    <p class="text-xs opacity-70 mb-3">All content fields are open below. Styling and display controls follow.</p>
+    @include('user.links.partials.block-structured-fields', ['fields' => $allContentSchema, 'access' => 'allContent', 'nameExpression' => "'settings'", 'depth' => 0])
+</fieldset>
+@endif
+<fieldset x-show="!allFields" :disabled="allFields" data-basic-content-fields>
+
 
 {{-- First-paint placeholder banner; cleared by update() once the
      creator edits any seeded field. --}}
@@ -769,6 +809,18 @@ function imageListUploader_{{ $gridImgId }}() {
 
 @elseif($block->type === 'socials')
 @include('user.links.partials.socials-form', ['s' => $s])
+<div class="grid grid-cols-2 gap-3 mt-3">
+    <div><label class="{{ $labelClass }}">Icon size</label><select name="settings[size]" class="{{ $selectClass }}">
+        @foreach(['sm' => 'Small', 'md' => 'Medium', 'lg' => 'Large'] as $socialSize => $socialSizeLabel)
+            <option value="{{ $socialSize }}" @selected(($s['size'] ?? 'md') === $socialSize)>{{ $socialSizeLabel }}</option>
+        @endforeach
+    </select></div>
+    <div><label class="{{ $labelClass }}">Icon shape</label><select name="settings[style]" class="{{ $selectClass }}">
+        @foreach(['rounded' => 'Round', 'square' => 'Square'] as $socialShape => $socialShapeLabel)
+            <option value="{{ $socialShape }}" @selected(($s['style'] ?? 'rounded') === $socialShape)>{{ $socialShapeLabel }}</option>
+        @endforeach
+    </select></div>
+</div>
 
 @elseif(in_array($block->type, ['socials_multi', 'socials_custom']))
 @include('user.links.partials.socials-form', ['s' => $s])
@@ -2080,13 +2132,33 @@ if (typeof window.resetPollVotes !== 'function') {
 </div>
 
 @else
-<p class="text-xs text-white/20">Configure this block's settings below.</p>
-@foreach($s as $key => $val)
-    @if(is_string($val) || is_numeric($val))
-    <div class="mt-2"><label class="{{ $labelClass }}">{{ ucwords(str_replace('_', ' ', $key)) }}</label><input type="text" name="settings[{{ $key }}]" value="{{ $val }}" class="{{ $inputClass }}"></div>
-    @endif
-@endforeach
+@php
+    $editorDefaults = \App\Modules\User\Support\BlockEditorFields::defaultsForType($block->type);
+    $editorFields = \App\Modules\User\Support\BlockEditorFields::schema($editorDefaults, $s);
+    $editorValues = \App\Modules\User\Support\BlockEditorFields::values($editorFields, $s, $editorDefaults);
+@endphp
+<div x-data="{ content: @js($editorValues) }" data-structured-block-editor>
+    @include('user.links.partials.block-structured-fields', ['fields' => $editorFields, 'access' => 'content', 'nameExpression' => "'settings'", 'depth' => 0])
+</div>
 @endif
+
+@php
+    $supplementalDefaults = match ($block->type) {
+        'alert' => ['icon' => 'fa-info-circle'],
+        'notification' => ['dismissible' => true],
+        'file' => ['icon' => 'fa-file'],
+        default => [],
+    };
+    $supplementalFields = \App\Modules\User\Support\BlockEditorFields::schema($supplementalDefaults);
+    $supplementalValues = \App\Modules\User\Support\BlockEditorFields::values($supplementalFields, $s, $supplementalDefaults);
+@endphp
+@if($supplementalFields)
+<div x-data="{ content: @js($supplementalValues) }" data-supplemental-block-editor>
+    @include('user.links.partials.block-structured-fields', ['fields' => $supplementalFields, 'access' => 'content', 'nameExpression' => "'settings'", 'depth' => 0])
+</div>
+@endif
+
+</fieldset>
 
 @include('user.links.partials.block-style-settings', ['block' => $block, 'inputClass' => $inputClass, 'labelClass' => $labelClass])
 

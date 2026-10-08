@@ -6,11 +6,11 @@
                 ->where('type', 'ics')->with('icsData')->first()
             : null;
     @endphp
-    <div class="mb-4 glass-block rounded-xl p-4 text-left" style="background:#fff; color:#111;">
+    <div class="mb-4 glass-block rounded-xl p-4 text-left" style="background:{{ ($s['_style']['bg_color'] ?? '') ?: '#ffffff' }}; color:{{ ($s['_style']['text_color'] ?? '') ?: '#111111' }};">
         @if(!$eventLink)
-            <div class="text-xs text-center text-white/60 py-2">RSVP block not configured.</div>
+            <div class="text-xs text-center opacity-60 py-2">RSVP block not configured.</div>
         @elseif(!\App\Modules\Common\Controllers\RedirectController::isRsvpAvailable($eventLink))
-            <div class="text-xs text-center text-white/60 py-2">RSVP collection is disabled for this event.</div>
+            <div class="text-xs text-center opacity-60 py-2">RSVP collection is disabled for this event.</div>
         @else
             <div class="mb-3">
                 <div class="text-xs uppercase tracking-wider opacity-60">{{ $s['heading'] ?? 'RSVP to' }}</div>
