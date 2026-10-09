@@ -64,7 +64,7 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
-        "test:dashboard-folder": "@php -d memory_limit=1024M vendor/bin/phpunit --filter '(DashboardFolderOverviewTest|MyLinksHeaderEarnsItsSpaceTest|DashboardCustomizeStepRegressionTest|DashboardCustomizeWebMobileParityTest|TheDashboardSaysWhichDayAndOpensFoldersTest|ListingCatalogTest|ContactDirectoryTest)'",
+        "test:dashboard-folder": "@php -d memory_limit=1024M vendor/bin/phpunit --filter '(DashboardFolderOverviewTest|MyLinksHeaderEarnsItsSpaceTest|DashboardCustomizeStepRegressionTest|DashboardCustomizeWebMobileParityTest|TheDashboardSaysWhichDayAndOpensFoldersTest|ListingCatalogTest|ContactDirectoryTest|SalonEditorRenderingTest|AdminFlashMessagesAppearOnceTest|BiolinkWizardAllPageTypesTest)'",
         "test:sharded": [
             "@php artisan config:clear --ansi",
             "@test:dashboard-folder",
