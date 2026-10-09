@@ -80,13 +80,13 @@
             <div class="space-y-7">
                 @foreach($linkCategories as $catIdx => $category)
                     <section x-show="categoryHasMatch('cat-{{ $catIdx }}')">
-                        <h3 class="cl-eyebrow mb-3">{{ $category['label'] }}</h3>
+                        <h3 class="cl-eyebrow mb-3" x-show="group === 'more'">{{ $category['label'] }}</h3>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
+                        <div class="cl-expanded-grid">
                             @foreach($category['types'] as $opt)
                                 <label id="lt-card-{{ $opt['value'] }}" class="relative cursor-pointer block group h-full" @click="type = '{{ $opt['value'] }}'" @keydown.enter.prevent="type = '{{ $opt['value'] }}'" @keydown.space.prevent="type = '{{ $opt['value'] }}'" tabindex="0" role="radio" :aria-checked="type === '{{ $opt['value'] }}'"
                                        x-show="matches({{ \Illuminate\Support\Js::from($opt['label']) }}, {{ \Illuminate\Support\Js::from($opt['desc']) }}, 'cat-{{ $catIdx }}', '{{ $opt['value'] }}')"
-                                       >
+                                       style="--choice-accent: {{ $opt['tint'] }};">
                                     <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" :disabled="type !== '{{ $opt['value'] }}'" class="sr-only peer">
                                     <div class="cl-tile" :class="type === '{{ $opt['value'] }}' ? 'cl-tile--on' : ''">
                                         <span class="cl-ico cl-ico-md" :class="type === '{{ $opt['value'] }}' ? 'cl-ico--on' : ''">
