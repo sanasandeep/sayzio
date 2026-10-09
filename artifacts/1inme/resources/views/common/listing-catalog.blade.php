@@ -27,7 +27,9 @@ $layout=($s['layout'] ?? '') === 'list' ? 'list' : 'grid';
 @include('common.partials.biolink-block-list',['blkFontColor'=>$colors['text_color'],'blkGlobalTheme'=>[],'blkBtnInline'=>'','blkSlot'=>'top','blkSectionIds'=>$blkSectionIds,'blkEmpty'=>false])
 <header class="catalog-hero">
 <div class="hero-copy"><p class="eyebrow">{{ $property ? 'FIND YOUR NEXT ADDRESS' : 'MAKE ROOM FOR WHAT’S NEXT' }}</p><h1>{{ $title }}</h1><p>{{ $s['intro'] ?? ($property ? 'Explore spaces to live, work and grow.' : 'Build practical skills with courses that fit your goals.') }}</p>
-<div class="contact-links">@if(filter_var($s['email'] ?? '',FILTER_VALIDATE_EMAIL))<a href="mailto:{{ $s['email'] }}">Contact us</a>@endif @php($phone=preg_replace('/[^0-9+]/','',$s['phone'] ?? '')) @if($phone)<a href="tel:{{ $phone }}">Call us</a>@endif</div></div>
+<div class="contact-links">@if(filter_var($s['email'] ?? '',FILTER_VALIDATE_EMAIL))<a href="mailto:{{ $s['email'] }}">Contact us</a>@endif @php
+$phone=preg_replace('/[^0-9+]/','',$s['phone'] ?? '');
+@endphp @if($phone)<a href="tel:{{ $phone }}">Call us</a>@endif</div></div>
 @if($safeUrl($s['hero_url'] ?? ''))<img class="hero-image" src="{{ $s['hero_url'] }}" alt="" referrerpolicy="no-referrer">@endif
 </header>
 @if(session('catalog_success'))<p class="notice" role="status">{{ session('catalog_success') }}</p>@endif
@@ -42,7 +44,9 @@ $layout=($s['layout'] ?? '') === 'list' ? 'list' : 'grid';
 @endif
 @include('common.partials.biolink-block-list',['blkFontColor'=>$colors['text_color'],'blkGlobalTheme'=>[],'blkBtnInline'=>'','blkSlot'=>'above','blkSectionIds'=>$blkSectionIds,'blkEmpty'=>false])
 @foreach(collect([['id'=>0,'name'=>'General']])->concat($categories->map(fn($c)=>['id'=>$c->id,'name'=>$c->name])) as $category)
-@php($members=$groups->get($category['id'],collect()))
+@php
+$members=$groups->get($category['id'],collect());
+@endphp
 @if($members->isNotEmpty())
 <section class="catalog-section" data-catalog-section id="category-{{ $category['id'] }}"><h2>{{ $category['name'] }}</h2><div class="listing-grid">
 @foreach($members as $entry)
