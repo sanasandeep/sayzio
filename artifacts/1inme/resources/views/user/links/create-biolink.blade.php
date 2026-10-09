@@ -95,7 +95,11 @@
 
             <div class="text-xs text-white/40 bg-blue-500/5 border border-blue-500/10 rounded-xl px-4 py-3">
                 <i class="fas fa-info-circle text-blue-400 mr-1.5"></i>
-                After creating, you'll pick a starting template (or skip) and land in the Link in Bio editor where you can add blocks, customize the look, and more.
+                @if(in_array($linkType, ['service_booking', 'salon_spa'], true))
+                    After creating, add your services, team members and availability in the appointment editor.
+                @else
+                    After creating, you'll pick a starting template (or skip) and land in the Link in Bio editor where you can add blocks, customize the look, and more.
+                @endif
             </div>
         </div>
 
@@ -123,7 +127,7 @@
             </button>
             @endif
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20">
-                {{ $aiBuilderEnabled ? 'Start blank' : 'Create Link in Bio' }} <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
+                {{ $aiBuilderEnabled ? 'Start blank' : 'Create ' . $typeLabel }} <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
             </button>
         </div>
     </form>

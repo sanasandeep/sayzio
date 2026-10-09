@@ -281,7 +281,7 @@
                             </template>
                         </select>
                         <template x-if="calendarAccounts.length === 0">
-                            <p class="text-xs mt-1" style="color:var(--text-muted)">No calendar accounts connected yet. Connect Google Calendar in <a href="{{ route('user.settings.tab', 'integrations') }}" style="color:#5c83ff">Settings → Integrations</a>.</p>
+                            <p class="text-xs mt-1" style="color:var(--text-muted)">No calendar accounts connected yet. Connect Google Calendar in <a href="{{ route('user.calendar.index') }}" style="color:#5c83ff">Calendar connections</a>.</p>
                         </template>
                     </div>
                 @else
