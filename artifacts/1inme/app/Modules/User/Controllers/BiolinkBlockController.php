@@ -2549,6 +2549,8 @@ class BiolinkBlockController extends Controller
 
         if (isset($settings['platforms']) && is_array($settings['platforms'])) {
             foreach ($settings['platforms'] as &$platform) {
+                // Share blocks store platform slugs, rather than social records.
+                if (!is_array($platform)) continue;
                 if (isset($platform['url'])) {
                     $platform['url'] = $this->sanitizeUrl($platform['url']);
                 }
@@ -2566,6 +2568,7 @@ class BiolinkBlockController extends Controller
             foreach ($settings['groups'] as &$grp) {
                 if (isset($grp['platforms']) && is_array($grp['platforms'])) {
                     foreach ($grp['platforms'] as &$gp) {
+                        if (!is_array($gp)) continue;
                         if (isset($gp['display'])) {
                             $gp['display'] = in_array($gp['display'], ['icon','follow','follow_count'], true)
                                 ? $gp['display'] : 'icon';

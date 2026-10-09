@@ -147,30 +147,7 @@
             'rounded', 'outline', 'shadow' => '12px',
             default => '12px',
         };
-        $socialIcons = [
-            'instagram' => ['fab fa-instagram', '#E4405F'],
-            'twitter' => ['fab fa-x-twitter', '#ffffff'],
-            'facebook' => ['fab fa-facebook-f', '#1877F2'],
-            'tiktok' => ['fab fa-tiktok', '#ffffff'],
-            'youtube' => ['fab fa-youtube', '#FF0000'],
-            'linkedin' => ['fab fa-linkedin-in', '#0A66C2'],
-            'github' => ['fab fa-github', '#ffffff'],
-            'discord' => ['fab fa-discord', '#5865F2'],
-            'telegram' => ['fab fa-telegram', '#26A5E4'],
-            'whatsapp' => ['fab fa-whatsapp', '#25D366'],
-            'snapchat' => ['fab fa-snapchat', '#FFFC00'],
-            'pinterest' => ['fab fa-pinterest', '#BD081C'],
-            'twitch' => ['fab fa-twitch', '#9146FF'],
-            'dribbble' => ['fab fa-dribbble', '#EA4C89'],
-            'website' => ['fas fa-globe', '#3d6bff'],
-            'email' => ['fas fa-envelope', '#3d6bff'],
-            'spotify' => ['fab fa-spotify', '#1DB954'],
-            'soundcloud' => ['fab fa-soundcloud', '#FF5500'],
-            'apple' => ['fab fa-apple', '#ffffff'],
-            'reddit' => ['fab fa-reddit', '#FF4500'],
-            'medium' => ['fab fa-medium', '#ffffff'],
-            'behance' => ['fab fa-behance', '#1769FF'],
-        ];
+
 
         // Page stickers — decorative emoji/image overlays. The draft-preview
         // path merges the RAW form input into $bs, so an unsaved edit arrives
