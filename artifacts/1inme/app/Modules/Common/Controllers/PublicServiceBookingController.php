@@ -280,6 +280,7 @@ class PublicServiceBookingController extends Controller
      */
     protected function cartOpts(ServiceBooking $config, array $items): array
     {
+        $config->assertSelection($items);
         $ids = collect($items)->pluck('service_id')->map(fn ($i) => (int) $i)->all();
         $rows = ServiceBookingService::where('service_booking_id', $config->id)
             ->whereIn('id', $ids)
@@ -315,6 +316,7 @@ class PublicServiceBookingController extends Controller
      */
     protected function priceCart(ServiceBooking $config, array $items): array
     {
+        $config->assertSelection($items);
         $ids = collect($items)->pluck('service_id')->map(fn ($i) => (int) $i)->all();
         $rows = ServiceBookingService::where('service_booking_id', $config->id)
             ->whereIn('id', $ids)
@@ -405,7 +407,7 @@ class PublicServiceBookingController extends Controller
     {
         $link = Link::resolveByAlias($alias, request()->getHost());
 
-        if (!$link || $link->type !== Link::TYPE_SERVICE_BOOKING || !$link->is_active) {
+        if (!$link || !$link->isAppointmentPage() || !$link->is_active) {
             return [null, null];
         }
 

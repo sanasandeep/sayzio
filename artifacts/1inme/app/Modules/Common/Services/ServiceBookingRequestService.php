@@ -42,6 +42,7 @@ class ServiceBookingRequestService
      */
     public function place(Link $link, ServiceBooking $config, array $data): array
     {
+        $config->assertSelection($data['services']);
         // Pull all referenced services in one query and validate availability.
         $serviceIds = collect($data['services'])->pluck('service_id')->map(fn ($i) => (int) $i)->all();
         $services = ServiceBookingService::where('service_booking_id', $config->id)
@@ -173,11 +174,17 @@ class ServiceBookingRequestService
         $request = DB::transaction(function () use (
             $config, $link, $data, $lines, $slotStart, $slotEnd, $totalDuration,
             $subtotal, $bill, $currency, $requiresPayment, $paymentCents, $aggMode,
-            $staff, $bufBefore, $bufAfter
+            $staff, $bufBefore, $bufAfter, $slotOpts
         ) {
+            // Serialize placement on this catalogue and recheck after obtaining the lock.
+            ServiceBooking::whereKey($config->id)->lockForUpdate()->firstOrFail();
+            $staff = $this->slots->resolveStaffForSlot($config, $totalDuration, $slotStart, $slotOpts);
+            if ($staff === false || ($staff === null && !$this->slots->slotIsAvailable($config, $totalDuration, $slotStart, null, $slotOpts))) {
+                throw new \InvalidArgumentException('That time slot is no longer available. Please pick another.');
+            }
             $initialStatus = $requiresPayment && $paymentCents > 0
                 ? ServiceBookingRequest::STATUS_AWAITING_PAYMENT
-                : ServiceBookingRequest::STATUS_PENDING;
+                : (($config->settings['auto_confirm'] ?? false) ? ServiceBookingRequest::STATUS_CONFIRMED : ServiceBookingRequest::STATUS_PENDING);
 
             $request = ServiceBookingRequest::create([
                 'service_booking_id'  => $config->id,
@@ -218,6 +225,9 @@ class ServiceBookingRequestService
         });
 
         $fresh = $request->fresh('items');
+        if ($fresh->status === ServiceBookingRequest::STATUS_CONFIRMED) {
+            $this->calendarSync->syncBookingEvent($fresh);
+        }
 
         // Only notify owner immediately for free bookings; paid bookings notify
         // after payment confirmation via notifyPaymentConfirmed().

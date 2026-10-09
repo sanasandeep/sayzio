@@ -320,6 +320,8 @@ class ServiceBookingController extends Controller
             'lead_time_minutes'       => 'required|integer|min:0|max:43200',
             'max_days_ahead'          => 'required|integer|min:1|max:365',
             'timezone'                => 'nullable|string|max:64',
+            'catalog_layout'          => 'sometimes|in:list,compact,photo',
+            'auto_confirm'            => 'sometimes|boolean',
             'tax_enabled'             => 'sometimes|boolean',
             'tax_rate'                => 'nullable|numeric|min:0|max:100',
             'tax_inclusive'           => 'sometimes|boolean',
@@ -336,6 +338,9 @@ class ServiceBookingController extends Controller
         ]);
 
         $settings = $config->settings ?? [];
+        foreach (['catalog_layout', 'auto_confirm'] as $key) {
+            if (array_key_exists($key, $data)) $settings[$key] = $data[$key];
+        }
 
         // Optional WhatsApp click-to-chat number (Task #3102).
         if ($request->has('whatsapp_number')) {
@@ -536,6 +541,9 @@ class ServiceBookingController extends Controller
             'category_id'      => 'nullable|integer',
             'name'             => 'required|string|max:160',
             'description'      => 'nullable|string|max:800',
+            'price_from'       => 'sometimes|boolean',
+            'preparation_notes' => 'nullable|string|max:1000',
+            'aftercare_notes'   => 'nullable|string|max:1000',
             'price'            => 'nullable|numeric|min:0|max:9999999',
             'currency'         => 'nullable|string|size:3',
             'duration_minutes' => 'required|integer|min:5|max:1440',
@@ -561,6 +569,9 @@ class ServiceBookingController extends Controller
             'category_id'        => $data['category_id'] ?? null,
             'name'               => $data['name'],
             'description'        => $data['description'] ?? null,
+            'price_from'         => (bool) ($data['price_from'] ?? false),
+            'preparation_notes'  => $data['preparation_notes'] ?? null,
+            'aftercare_notes'    => $data['aftercare_notes'] ?? null,
             'price'              => $data['price'] ?? 0,
             'currency'           => isset($data['currency']) ? strtoupper($data['currency']) : null,
             'duration_minutes'   => $data['duration_minutes'],
@@ -589,6 +600,9 @@ class ServiceBookingController extends Controller
             'category_id'      => 'nullable|integer',
             'name'             => 'sometimes|required|string|max:160',
             'description'      => 'nullable|string|max:800',
+            'price_from'       => 'sometimes|boolean',
+            'preparation_notes' => 'nullable|string|max:1000',
+            'aftercare_notes'   => 'nullable|string|max:1000',
             'price'            => 'sometimes|numeric|min:0|max:9999999',
             'currency'         => 'nullable|string|size:3',
             'duration_minutes' => 'sometimes|integer|min:5|max:1440',
@@ -1014,7 +1028,7 @@ class ServiceBookingController extends Controller
     protected function resolvePublic(Request $request, string $alias): array
     {
         $link = Link::resolveByAlias($alias, $request->getHost());
-        if (!$link || $link->type !== Link::TYPE_SERVICE_BOOKING || !$link->is_active || !$link->isAccessible()) {
+        if (!$link || !$link->isAppointmentPage() || !$link->is_active || !$link->isAccessible()) {
             return [null, null];
         }
 
@@ -1024,7 +1038,7 @@ class ServiceBookingController extends Controller
     /** Resolve an owned service-booking config, creating it on first edit. */
     protected function ownedConfig(Request $request, Link $link): ?ServiceBooking
     {
-        if ($link->type !== Link::TYPE_SERVICE_BOOKING) {
+        if (!$link->isAppointmentPage()) {
             return null;
         }
         if ((int) $link->user_id !== (int) $request->user()->id) {
@@ -1094,6 +1108,7 @@ class ServiceBookingController extends Controller
     /** Availability opts (buffers/capacity/service ids) for a cart. */
     protected function cartOpts(ServiceBooking $config, array $items): array
     {
+        $config->assertSelection($items);
         $ids = collect($items)->pluck('service_id')->map(fn ($i) => (int) $i)->all();
         $rows = ServiceBookingService::where('service_booking_id', $config->id)
             ->whereIn('id', $ids)
@@ -1150,6 +1165,7 @@ class ServiceBookingController extends Controller
      */
     protected function priceCart(ServiceBooking $config, array $items): array
     {
+        $config->assertSelection($items);
         $ids = collect($items)->pluck('service_id')->map(fn ($i) => (int) $i)->all();
         $rows = ServiceBookingService::where('service_booking_id', $config->id)
             ->whereIn('id', $ids)

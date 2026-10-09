@@ -39,6 +39,7 @@ class AiTypeBuilderController extends Controller
         Link::TYPE_RESTAURANT_MENU => AiRestaurantMenuBuilderService::class,
         Link::TYPE_STORE_MENU      => AiStoreMenuBuilderService::class,
         Link::TYPE_SERVICE_BOOKING => AiServiceBookingBuilderService::class,
+        Link::TYPE_SALON_SPA => \App\Services\AI\Builder\AiSalonSpaBuilderService::class,
         Link::TYPE_RESUME          => AiResumeBuilderService::class,
     ];
 
@@ -213,7 +214,7 @@ class AiTypeBuilderController extends Controller
             Link::TYPE_SLIDES          => route('user.links.slides.editor', $link),
             Link::TYPE_RESTAURANT_MENU => route('user.links.restaurant.editor', $link),
             Link::TYPE_STORE_MENU      => route('user.links.store.editor', $link),
-            Link::TYPE_SERVICE_BOOKING => route('user.links.service-booking.editor', $link),
+            Link::TYPE_SALON_SPA, Link::TYPE_SERVICE_BOOKING => route('user.links.service-booking.editor', $link),
             Link::TYPE_RESUME          => route('user.resume.editor'),
             default                    => route('user.links.index'),
         };
@@ -226,6 +227,7 @@ class AiTypeBuilderController extends Controller
             Link::TYPE_RESTAURANT_MENU => __('Restaurant Menu'),
             Link::TYPE_STORE_MENU      => __('Store'),
             Link::TYPE_SERVICE_BOOKING => __('Service Booking'),
+            Link::TYPE_SALON_SPA => __('Salon & Spa'),
             Link::TYPE_RESUME          => __('Resume'),
             default                    => __('Page'),
         };

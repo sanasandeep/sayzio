@@ -75,6 +75,18 @@ class ServiceBooking extends Model
         return $this->hasMany(ServiceBookingStaff::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    public function isSalon(): bool
+    {
+        return $this->link?->type === Link::TYPE_SALON_SPA;
+    }
+
+    public function assertSelection(array $items): void
+    {
+        if ($this->isSalon() && (count($items) !== 1 || (int) (array_values($items)[0]['quantity'] ?? 1) !== 1)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['services' => 'Choose one treatment per appointment.']);
+        }
+    }
+
     public function isBookingMode(): bool
     {
         return $this->mode === self::MODE_BOOKING;

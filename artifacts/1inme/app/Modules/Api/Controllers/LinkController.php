@@ -310,7 +310,7 @@ class LinkController extends Controller
         // land on the same floor as the web form and live checker.
         $aliasLimits = $request->user()->getAliasLengthLimits();
         $data = $request->validate([
-            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'ics', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page', 'brand_kit', 'text', 'restaurant_menu', 'store_menu', 'service_booking', 'calendar', 'reviews', 'updates'])],
+            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'ics', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page', 'brand_kit', 'text', 'restaurant_menu', 'store_menu', 'service_booking', 'salon_spa', 'calendar', 'reviews', 'updates'])],
             // The admin banned/reserved-names list is enforced on the mobile
             // create submit too (privileged `user.banned_names.bypass` holders
             // skip it), mirroring the web chooseType() rule and the live
@@ -493,6 +493,7 @@ class LinkController extends Controller
             'restaurant_menu' => ['module' => 'module_restaurant_menu', 'cap' => 'max_restaurant_menu', 'label' => 'Restaurant Menu'],
             'store_menu'      => ['module' => 'module_store_menu',      'cap' => 'max_store_menu',      'label' => 'Store Menu'],
             'service_booking' => ['module' => 'module_service_booking', 'cap' => 'max_service_booking', 'label' => 'Service Booking'],
+            'salon_spa' => ['module' => 'module_service_booking', 'cap' => 'max_service_booking', 'label' => 'Salon & Spa'],
             'calendar'        => ['module' => 'module_calendar',        'cap' => 'max_calendars',       'label' => 'Calendar'],
             'reviews'         => ['module' => 'module_reviews',         'cap' => 'max_reviews',         'label' => 'Reviews'],
             'updates'         => ['module' => 'module_updates',         'cap' => 'max_updates_pages',   'label' => 'Updates'],
@@ -506,7 +507,7 @@ class LinkController extends Controller
                     $qcfg['module'], $owner
                 );
             }
-            $count = $owner->links()->where('type', $attrs['type'])->count();
+            $count = $owner->links()->whereIn('type', in_array($attrs['type'], ['service_booking', 'salon_spa'], true) ? ['service_booking', 'salon_spa'] : [$attrs['type']])->count();
             if (!$owner->planUnderLimit($qcfg['cap'], $count, -1)) {
                 $max = (int) $owner->getPlanFeature($qcfg['cap'], -1);
                 return $this->planGate(
@@ -600,12 +601,13 @@ class LinkController extends Controller
                 ['user_id' => $link->user_id, 'mode' => \App\Modules\User\Models\StoreMenu::MODE_DISPLAY, 'currency' => 'USD']
             );
         }
-        if ($link->type === 'service_booking') {
+        if ($link->isAppointmentPage()) {
             \App\Modules\User\Models\ServiceBooking::firstOrCreate(
                 ['link_id' => $link->id],
                 [
                     'user_id'             => $link->user_id,
                     'mode'                => \App\Modules\User\Models\ServiceBooking::MODE_BOOKING,
+                    'accent_color' => $link->type === Link::TYPE_SALON_SPA ? '#be6b79' : '#3d6bff',
                     'currency'            => 'USD',
                     'slot_length_minutes' => 30,
                     'lead_time_minutes'   => 120,
