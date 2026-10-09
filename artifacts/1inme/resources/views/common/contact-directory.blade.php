@@ -35,7 +35,9 @@ body{margin:0;background:{{ $colors['background'] }};color:{{ $colors['text_colo
 @endif
 @include('common.partials.biolink-block-list', ['blkFontColor'=>$colors['text_color'],'blkGlobalTheme'=>[],'blkBtnInline'=>'','blkSlot'=>'above','blkSectionIds'=>$blkSectionIds,'blkEmpty'=>false])
 @foreach(collect([['id'=>0,'name'=>'General']])->concat($categories->map(fn($c)=>['id'=>$c->id,'name'=>$categoryName($c)])) as $category)
-@php($members=$groups->get($category['id'],collect()))
+@php
+$members=$groups->get($category['id'],collect());
+@endphp
 @if($members->isNotEmpty())
 <section id="category-{{ $category['id'] }}" data-category><h2>{{ $category['name'] }}</h2><div class="contact-list">
 @foreach($members as $contact)
