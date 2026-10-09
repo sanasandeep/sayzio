@@ -182,6 +182,21 @@
                         <span class="text-red-400">*</span>
                     @endif
                 </label>
+                @if($link->type === 'salon_spa' && !($hasContent ?? false))
+                <div class="mb-4 rounded-xl border border-rose-200 p-4" style="background:#fff7f3;color:#624b41">
+                    <p class="font-semibold text-sm mb-1">Start with a salon idea</p>
+                    <p class="text-xs mb-3">Pick an example, then replace the name, prices and hours with your own.</p>
+                    <div class="flex flex-wrap gap-2">
+                        @foreach([
+                            'Hair studio' => 'Create Bloom Hair Studio in Hyderabad. INR prices: haircut and styling 800 for 45 minutes, hair spa 1500 for 60 minutes, colour consultation 500 for 30 minutes. Categories: Cut & Style, Treatments, Colour. Open Tuesday to Sunday 10:00 to 19:00. Warm ivory background and terracotta accents. These are draft details for me to review.',
+                            'Day spa' => 'Create Still Day Spa. INR prices: relaxation massage 2200 for 60 minutes, glow facial 1800 for 45 minutes, foot ritual 900 for 30 minutes. Open daily 10:00 to 18:00. Allow 15 minutes between appointments. Calm sage and cream design. These are draft details for me to review.',
+                            'Barbershop' => 'Create North Barber Studio. INR prices: signature haircut 600 for 30 minutes, beard sculpt 350 for 20 minutes, hot towel shave 450 for 30 minutes. Open Monday to Saturday 09:00 to 20:00. Classic charcoal and warm brass styling. These are draft details for me to review.',
+                        ] as $exampleLabel => $examplePrompt)
+                        <button type="button" class="rounded-full border border-rose-200 px-3 py-2 text-xs font-medium" x-on:click='description = @json($examplePrompt)'>{{ $exampleLabel }}</button>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
                 <textarea x-model="description" rows="5" maxlength="4000"
                           placeholder="{{ $link->type === 'restaurant_menu' ? 'e.g. A cozy Italian trattoria: antipasti, fresh pasta, wood-fired pizza, desserts and a small wine list. Mid-range prices in EUR.' : ($link->type === 'store_menu' ? 'e.g. A small handmade-candle store: scented candles, gift sets and wax melts, prices around $10-40.' : ($link->isAppointmentPage() ? 'e.g. A barbershop: haircuts, beard trims, hot-towel shaves and kids cuts. 30-60 minute slots, prices in USD.' : ($link->type === 'resume' ? 'e.g. Senior frontend engineer, 8 years experience with React and TypeScript, led a team of 5 at Acme Corp, based in Berlin…' : 'e.g. A 6-slide pitch for my freelance photography business: intro, portfolio highlights, services, pricing, testimonials, contact.'))) }}"
                           class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none transition-all resize-y"></textarea>

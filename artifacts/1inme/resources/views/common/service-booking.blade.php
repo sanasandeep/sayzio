@@ -4,7 +4,7 @@
     $accent = $config->accent_color ?: '#3d6bff';
     $currency = $config->currency ?: 'USD';
     $isBooking = $config->isBookingMode();
-    $title = $link->title ?: $link->alias;
+    $title = $link->title ?: ($link->type === 'salon_spa' ? 'Your Salon & Spa' : $link->alias);
     $isSalon = $link->type === 'salon_spa';
     $catalogLayout = in_array($config->settings['catalog_layout'] ?? '', ['compact', 'photo'], true) ? $config->settings['catalog_layout'] : 'list';
 
@@ -144,6 +144,15 @@
     .catalog-photo .item { flex-direction:column; align-items:stretch; }
     .catalog-photo .item .photo { width:100%; height:180px; object-fit:cover; }
     .catalog-photo .services { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
+    .salon-welcome { position:relative; overflow:hidden; background:#f6eee8; color:#342b28; border:1px solid #e5d7cd; border-radius:24px; padding:32px 24px; margin:0 auto 24px; max-width:600px; }
+    .salon-kicker { font-size:11px; text-transform:uppercase; letter-spacing:.18em; color:#765b51; }
+    .salon-emblem { position:absolute; top:22px; right:24px; font-size:54px; color:#b37864; line-height:1; }
+    .salon-welcome h2 { font-family:Georgia,serif; font-size:clamp(36px,8vw,56px); line-height:1.08; font-weight:400; letter-spacing:-.04em; margin:28px 0 18px; color:#342b28; }
+    .salon-welcome p { font-size:14px; line-height:1.7; color:#715e56; max-width:340px; margin:0 0 24px; }
+    .salon-opening { display:inline-flex; align-items:center; gap:8px; border:1px solid #d8c2b5; padding:10px 14px; border-radius:999px; font-size:12px; color:#62463a; }
+    .salon-opening > span { width:6px; height:6px; border-radius:50%; background:#996851; }
+    .salon-journey { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:32px; padding-top:20px; border-top:1px solid #dfcec2; color:#9a7767; font-size:11px; line-height:1.8; }
+    .salon-journey b { font-weight:500; color:#624b41; }
     .salon-spa .hero h1 { letter-spacing:-.025em; }
 </style>
 </head>
@@ -153,7 +162,7 @@
     <div class="hero">
         <h1>{{ $title }}</h1>
         @if($desc = $link->description)<p>{{ $desc }}</p>@endif
-        @if($isBooking)<span class="badge">Book an appointment</span>@endif
+        @if($isBooking && $services->isNotEmpty())<span class="badge">Book an appointment</span>@endif
     </div>
 
     @php
@@ -193,7 +202,18 @@
     @endphp
 
     @if($services->isEmpty())
+        @if($isSalon)
+        <section class="salon-welcome" aria-labelledby="salon-welcome-title">
+            <span class="salon-kicker">A moment for you</span>
+            <div class="salon-emblem" aria-hidden="true">✳</div>
+            <h2 id="salon-welcome-title">Care.<br>Calm. Confidence.</h2>
+            <p>Our treatment menu is coming soon. A little time to unwind, refresh and feel your best.</p>
+            <div class="salon-opening"><span></span> Appointments opening soon</div>
+            <div class="salon-journey"><span>01<br><b>Choose your care</b></span><span>02<br><b>Find your time</b></span><span>03<br><b>Make it yours</b></span></div>
+        </section>
+        @else
         <div class="empty">This booking page is being prepared. Check back soon.</div>
+        @endif
     @else
         @foreach($cats as $cat)
             @php $catServices = $servicesByCat[$cat->id] ?? collect(); @endphp
