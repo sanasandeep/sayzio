@@ -80,6 +80,18 @@ class BlockEditorCoverageTest extends TestCase
             'settings' => ['items' => ''],
         ])->assertOk();
         $this->assertSame([], $block->fresh()->settings['items']);
+
+        // Scalar share platforms must survive the same partial/style update
+        // path that handles object-shaped social-platform records.
+        $share = BiolinkBlock::create([
+            'link_id' => $link->id, 'type' => 'share', 'sort_order' => 1, 'is_active' => true,
+            'settings' => ['text' => 'Share this page', 'platforms' => ['twitter', 'facebook']],
+        ]);
+        $this->putJson(route('user.links.blocks.update', [$link, $share]), [
+            'style' => ['text_color' => '#abcdef'],
+        ])->assertOk();
+        $this->assertSame(['twitter', 'facebook'], $share->fresh()->settings['platforms']);
+
     }
 
     public function test_every_registered_block_can_save_and_clear_custom_colors(): void
@@ -101,13 +113,15 @@ class BlockEditorCoverageTest extends TestCase
                 'is_active' => true, 'settings' => BlockEditorFields::defaultsForType($type),
             ]);
             $url = route('user.links.blocks.update', [$link, $block]);
-            $this->actingAs($user)->putJson($url, ['style' => [
+            $response = $this->actingAs($user)->putJson($url, ['style' => [
                 'bg_color' => '#123456', 'text_color' => '#abcdef',
-            ]])->assertOk();
+            ]]);
+            $this->assertSame(200, $response->getStatusCode(), $type.' color save');
             $style = BiolinkBlock::getBlockStyle($block->fresh()->settings, []);
             $this->assertSame('#123456', $style['bg_color'], $type.' background');
             $this->assertSame('#abcdef', $style['text_color'], $type.' text');
-            $this->putJson($url, ['style' => ['bg_color' => '', 'text_color' => '']])->assertOk();
+            $response = $this->putJson($url, ['style' => ['bg_color' => '', 'text_color' => '']]);
+            $this->assertSame(200, $response->getStatusCode(), $type.' color reset');
             $style = BiolinkBlock::getBlockStyle($block->fresh()->settings, []);
             $this->assertEmpty($style['bg_color'], $type.' reset background');
             $this->assertEmpty($style['text_color'], $type.' reset text');
