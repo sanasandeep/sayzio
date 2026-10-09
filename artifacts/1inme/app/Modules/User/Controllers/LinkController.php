@@ -155,8 +155,8 @@ class LinkController extends Controller
         if ($view === 'reports' && $request->query('export') === 'daily') {
             return response()->streamDownload(function () use ($report) {
                 $out = fopen('php://output', 'w');
-                fputcsv($out, ['date', 'clicks']);
-                foreach ($report['series'] as $day => $count) fputcsv($out, [$day, $count]);
+                fputcsv($out, ['date', 'clicks'], ',', '"', '');
+                foreach ($report['series'] as $day => $count) fputcsv($out, [$day, $count], ',', '"', '');
                 fclose($out);
             }, 'link-report-daily.csv', ['Content-Type' => 'text/csv']);
         }
