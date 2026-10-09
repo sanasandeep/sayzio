@@ -392,22 +392,22 @@
             "docs": true
         },
         "profile_card_v1": {
-            "label": "Profile · Classic",
+            "label": "Profile \u00b7 Classic",
             "mobile": false,
             "docs": false
         },
         "profile_card_v2": {
-            "label": "Profile · Cover",
+            "label": "Profile \u00b7 Cover",
             "mobile": false,
             "docs": false
         },
         "profile_card_v3": {
-            "label": "Profile · Stats",
+            "label": "Profile \u00b7 Stats",
             "mobile": false,
             "docs": false
         },
         "profile_card_v4": {
-            "label": "Profile · Badges",
+            "label": "Profile \u00b7 Badges",
             "mobile": false,
             "docs": false
         },
@@ -690,6 +690,10 @@
         },
         "reviews": {
             "label": "Reviews Page",
+            "docs": true
+        },
+        "salon_spa": {
+            "label": "Salon & Spa",
             "docs": true
         },
         "service_booking": {

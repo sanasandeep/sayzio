@@ -1603,3 +1603,12 @@ surface](./api.md#browser-extension-surface) section of `api.md`.*
 *Verified against the merged Sayzio codebase. For endpoint contracts see
 [`api.md`](./api.md); for the plain-language user guide see
 [`knowledge-base.md`](./knowledge-base.md).*
+
+
+## Salon & Spa appointment pages
+
+Choose the `salon_spa` link type to create a treatment catalogue for a salon, barber or spa. Add treatment categories, photos, prices, starting-from labels, durations, preparation notes and aftercare instructions. Variants with different prices or durations are separate services. List, compact and photo layouts are available.
+
+The web editor reuses service booking for staff assignments, weekly availability, blocked dates, lead times and appointment management. Visitors select one treatment, a staff member or any available staff, and a time before submitting their contact details. Manual confirmation is the default; automatic confirmation is optional. Pay-at-venue treatments use payment mode none. Confirmed appointments can be marked checked in, completed, no-show or cancelled.
+
+The service-booking API also accepts salon aliases. The dedicated Salon & Spa editor is available on the web; native mobile editor support is not included in this release.
