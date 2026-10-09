@@ -59,6 +59,30 @@ class BlockDefaultsPreviewTest extends TestCase
         $this->assertStringNotContainsString('cannot be previewed here', $html);
     }
 
+    public function test_every_registered_block_preview_renders_without_exception_fallback(): void
+    {
+        $this->actingAs($this->makeAdmin(), 'admin');
+        \Illuminate\Support\Facades\Http::preventStrayRequests();
+        $types = array_unique(array_map(
+            [\App\Modules\User\Support\BlockTypeRegistry::class, 'canonical'],
+            array_merge(array_keys(\App\Modules\User\Models\BiolinkBlock::TYPES),
+                array_keys(\App\Modules\User\Support\BlockTypeRegistry::newTypes()))
+        ));
+        foreach ($types as $type) {
+            foreach ([false, true] as $blank) {
+                $res = $this->post(route('admin.block-defaults.preview', $type), [
+                    'start_blank' => $blank ? '1' : '0',
+                    'style' => ['bg_color' => '#123456', 'text_color' => '#abcdef'],
+                ]);
+                $res->assertOk();
+                $html = $res->getContent();
+                $this->assertStringNotContainsString('cannot be previewed here', $html,
+                    $type.($blank ? ' blank' : ' defaults'));
+                $this->assertStringContainsString('preview-stage', $html, $type);
+            }
+        }
+    }
+
     public function test_style_overrides_are_reflected_in_preview(): void
     {
         $this->actingAs($this->makeAdmin(), 'admin');
