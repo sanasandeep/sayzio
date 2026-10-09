@@ -25,7 +25,7 @@ class ServiceBookingController extends Controller
     protected function bookingFor(Link $link): ServiceBooking
     {
         abort_if($link->user_id !== workspace_owner_id(), 403);
-        abort_unless($link->type === Link::TYPE_SERVICE_BOOKING, 404);
+        abort_unless($link->isAppointmentPage(), 404);
 
         return ServiceBooking::firstOrCreate(
             ['link_id' => $link->id],
@@ -33,6 +33,7 @@ class ServiceBookingController extends Controller
                 'user_id'             => $link->user_id,
                 'mode'                => ServiceBooking::MODE_BOOKING,
                 'currency'            => 'USD',
+                'accent_color'        => $link->type === Link::TYPE_SALON_SPA ? '#be6b79' : '#3d6bff',
                 'slot_length_minutes' => 30,
                 'lead_time_minutes'   => 120,
                 'max_days_ahead'      => 30,
@@ -101,6 +102,8 @@ class ServiceBookingController extends Controller
             'max_days_ahead'          => 'required|integer|min:1|max:365',
             'timezone'                => 'nullable|string|max:64',
             'settings'                => 'nullable|array',
+            'catalog_layout'          => 'sometimes|in:list,compact,photo',
+            'auto_confirm'            => 'sometimes|boolean',
             'tax_enabled'             => 'sometimes|boolean',
             'tax_rate'                => 'nullable|numeric|min:0|max:100',
             'tax_inclusive'           => 'sometimes|boolean',
@@ -118,6 +121,9 @@ class ServiceBookingController extends Controller
         ]);
 
         $settings = $data['settings'] ?? ($config->settings ?? []);
+        foreach (['catalog_layout', 'auto_confirm'] as $key) {
+            if (array_key_exists($key, $data)) $settings[$key] = $data[$key];
+        }
 
         // Optional WhatsApp click-to-chat number (Task #3102) — stored raw in
         // the `settings` JSON; normalized to wa.me form at send time.
@@ -294,6 +300,9 @@ class ServiceBookingController extends Controller
             'category_id'      => 'nullable|integer',
             'name'             => 'required|string|max:160',
             'description'      => 'nullable|string|max:800',
+            'price_from'       => 'sometimes|boolean',
+            'preparation_notes' => 'nullable|string|max:1000',
+            'aftercare_notes'   => 'nullable|string|max:1000',
             'price'            => 'nullable|numeric|min:0|max:9999999',
             'currency'         => 'nullable|string|size:3',
             'duration_minutes' => 'required|integer|min:5|max:1440',
@@ -316,6 +325,9 @@ class ServiceBookingController extends Controller
             'category_id'        => $data['category_id'] ?? null,
             'name'               => $data['name'],
             'description'        => $data['description'] ?? null,
+            'price_from'         => (bool) ($data['price_from'] ?? false),
+            'preparation_notes'  => $data['preparation_notes'] ?? null,
+            'aftercare_notes'    => $data['aftercare_notes'] ?? null,
             'price'              => $data['price'] ?? 0,
             'currency'           => isset($data['currency']) ? strtoupper($data['currency']) : null,
             'duration_minutes'   => $data['duration_minutes'],
@@ -342,6 +354,9 @@ class ServiceBookingController extends Controller
             'category_id'      => 'nullable|integer',
             'name'             => 'sometimes|required|string|max:160',
             'description'      => 'nullable|string|max:800',
+            'price_from'       => 'sometimes|boolean',
+            'preparation_notes' => 'nullable|string|max:1000',
+            'aftercare_notes'   => 'nullable|string|max:1000',
             'price'            => 'sometimes|numeric|min:0|max:9999999',
             'currency'         => 'nullable|string|size:3',
             'duration_minutes' => 'sometimes|integer|min:5|max:1440',

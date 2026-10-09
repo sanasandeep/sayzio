@@ -5,6 +5,8 @@
     $currency = $config->currency ?: 'USD';
     $isBooking = $config->isBookingMode();
     $title = $link->title ?: $link->alias;
+    $isSalon = $link->type === 'salon_spa';
+    $catalogLayout = in_array($config->settings['catalog_layout'] ?? '', ['compact', 'photo'], true) ? $config->settings['catalog_layout'] : 'list';
 
     $cats = $config->categories->where('is_active', true)->sortBy('sort_order')->values();
     $services = $config->services->where('is_active', true)->sortBy('sort_order')->values();
@@ -135,9 +137,17 @@
         {{-- This page has one surface the other two do not. --}}
         .slot { border-color:{{ $pbInkLight ? 'rgba(255,255,255,.2)' : 'rgba(0,0,0,.2)' }}; }
         @endif
+    .treatment-note { margin-top:10px; font-size:13px; }
+    .treatment-note summary { cursor:pointer; font-weight:600; }
+    .treatment-note p { white-space:pre-line; line-height:1.6; }
+    .catalog-compact .item .photo { display:none; }
+    .catalog-photo .item { flex-direction:column; align-items:stretch; }
+    .catalog-photo .item .photo { width:100%; height:180px; object-fit:cover; }
+    .catalog-photo .services { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
+    .salon-spa .hero h1 { letter-spacing:-.025em; }
 </style>
 </head>
-<body>
+<body class="catalog-{{ $catalogLayout }} {{ $isSalon ? 'salon-spa' : '' }}">
 @if($pbOn)@include('common.page-background.layers')@endif
 <div class="page">
     <div class="hero">
@@ -147,7 +157,7 @@
     </div>
 
     @php
-        $renderService = function ($service) use ($fmt, $isBooking, $durLabel) {
+        $renderService = function ($service) use ($fmt, $isBooking, $durLabel, $isSalon) {
             $unavail = $service->is_unavailable;
             echo '<div class="item ' . ($unavail ? 'unavail' : '') . '">';
             if ($service->photo_url) {
@@ -158,11 +168,16 @@
             if ($service->description) {
                 echo '<div class="desc">' . e($service->description) . '</div>';
             }
-            echo '<div class="meta">' . e($fmt($service->price));
+            echo '<div class="meta">' . ($service->price_from ? 'Starting from ' : '') . e($fmt($service->price));
             if ((int) $service->duration_minutes > 0) {
                 echo ' <span class="dur">· ' . e($durLabel($service->duration_minutes)) . '</span>';
             }
             echo '</div>';
+            if ($isSalon) {
+                foreach (['preparation_notes' => 'Before your visit', 'aftercare_notes' => 'Aftercare'] as $field => $label) {
+                    if ($service->$field) echo '<details class="treatment-note"><summary>' . e($label) . '</summary><p>' . e($service->$field) . '</p></details>';
+                }
+            }
             if ($isBooking && !$unavail) {
                 echo '<div class="addrow" data-add="' . $service->id . '" data-name="' . e($service->name)
                     . '" data-price="' . $service->price . '" data-duration="' . (int) $service->duration_minutes . '">';
@@ -170,7 +185,7 @@
                 echo '<span data-stepper="' . $service->id . '" style="display:none;">';
                 echo '<button class="qbtn" type="button" onclick="SB.dec(' . $service->id . ')">&minus;</button>';
                 echo '<span class="qty" data-qty="' . $service->id . '">0</span>';
-                echo '<button class="qbtn" type="button" onclick="SB.inc(' . $service->id . ')">+</button>';
+                if (!$isSalon) echo '<button class="qbtn" type="button" onclick="SB.inc(' . $service->id . ')">+</button>';
                 echo '</span></div>';
             }
             echo '</div></div>';
@@ -186,14 +201,14 @@
                 <div class="cat">
                     <h2>{{ $cat->name }}</h2>
                     @if($cat->description)<p class="cdesc">{{ $cat->description }}</p>@endif
-                    @foreach($catServices as $service) @php $renderService($service); @endphp @endforeach
+                    <div class="services">@foreach($catServices as $service) @php $renderService($service); @endphp @endforeach</div>
                 </div>
             @endif
         @endforeach
         @if($uncategorized->isNotEmpty())
             <div class="cat">
                 @if($cats->isNotEmpty())<h2>More services</h2>@endif
-                @foreach($uncategorized as $service) @php $renderService($service); @endphp @endforeach
+                <div class="services">@foreach($uncategorized as $service) @php $renderService($service); @endphp @endforeach</div>
             </div>
         @endif
     @endif
@@ -229,7 +244,7 @@
 
         <button class="primary" id="bookBtn" type="button" onclick="SB.book()" disabled>Request booking</button>
         <button class="ghost" type="button" onclick="SB.closeCart()">Keep browsing</button>
-        <p class="note">This is an estimated price, not a final bill. No online payment is taken, you'll settle with the provider directly. Your slot is a request and isn't confirmed until the provider accepts it.</p>
+        <p class="note">This is an estimated price, not a final bill. No online payment is taken, you'll settle with the provider directly. {{ ($config->settings['auto_confirm'] ?? false) ? 'Available appointments are confirmed automatically.' : 'Your slot is a request and is confirmed when the provider accepts it.' }}</p>
     </div>
 </div>
 
@@ -435,8 +450,8 @@
     document.getElementById('fName').addEventListener('input', updateBookBtn);
 
     window.SB = {
-        add(id){ SERVICES[id].qty = 1; render(); },
-        inc(id){ SERVICES[id].qty++; render(); },
+        add(id){ if (@json($isSalon)) Object.values(SERVICES).forEach(it => { it.qty = 0; }); SERVICES[id].qty = 1; render(); },
+        inc(id){ if (@json($isSalon)) return; SERVICES[id].qty++; render(); },
         dec(id){ SERVICES[id].qty = Math.max(0, SERVICES[id].qty - 1); render(); },
         openCart(){ lines('cartLines'); refreshQuote(); renderStaff(); loadSlots(); document.getElementById('cartModal').classList.add('show'); },
         closeCart(){ document.getElementById('cartModal').classList.remove('show'); },

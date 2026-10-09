@@ -112,7 +112,7 @@
             <i class="fas fa-bag-shopping text-[10px]"></i>
             <span>Products</span>
         </a>
-        @elseif($link->type === 'service_booking')
+        @elseif($link->isAppointmentPage())
         <a href="{{ route('user.links.service-booking.editor', $link) }}"
            class="editor-tab no-underline {{ $activeMainTab === 'service_booking' ? 'is-active' : '' }}">
             <i class="fas fa-calendar-check text-[10px]"></i>

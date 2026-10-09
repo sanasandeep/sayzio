@@ -848,6 +848,7 @@ protected $fillable = [
      * visibility tiers / analytics / feed treatment as the menu type.
      */
     public const TYPE_SERVICE_BOOKING = 'service_booking';
+    public const TYPE_SALON_SPA = 'salon_spa';
 
     /**
      * Standalone "Reviews" page. Deliberately NOT part of BIOLINK_FAMILY: it
@@ -903,12 +904,18 @@ protected $fillable = [
         self::TYPE_RESTAURANT_MENU,
         self::TYPE_STORE_MENU,
         self::TYPE_SERVICE_BOOKING,
+        self::TYPE_SALON_SPA,
     ];
 
     /** Is this link rendered by the biolink page engine? */
     public function isBiolinkFamily(): bool
     {
         return in_array($this->type, self::BIOLINK_FAMILY, true);
+    }
+
+    public function isAppointmentPage(): bool
+    {
+        return in_array($this->type, [self::TYPE_SERVICE_BOOKING, self::TYPE_SALON_SPA], true);
     }
 
     /** Query scope: restrict to biolink-family link types. */

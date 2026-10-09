@@ -928,4 +928,44 @@ class ServiceBookingFlowTest extends TestCase
         $this->assertSame('fixed', $depositService['deposit_type']);
         $this->assertEquals(15, $depositService['deposit_value']);
     }
+    public function test_salon_rejects_multiple_treatments_in_quote(): void
+    {
+        [$link, $config, $service] = $this->makePage($this->makeUser());
+        $link->update(['type' => Link::TYPE_SALON_SPA]);
+        $this->postJson('/api/v1/service-booking/' . $link->alias . '/quote', [
+            'services' => [['service_id' => $service->id, 'quantity' => 2]],
+        ])->assertStatus(422);
+    }
+
+    public function test_salon_auto_confirmation_holds_the_slot(): void
+    {
+        [$link, $config, $service] = $this->makePage($this->makeUser(), ['settings' => ['auto_confirm' => true]]);
+        $link->update(['type' => Link::TYPE_SALON_SPA]);
+        $this->addRule($config);
+        $data = [
+            'customer_name' => 'Maya',
+            'slot_start' => self::TODAY . ' 10:00:00',
+            'services' => [['service_id' => $service->id, 'quantity' => 1]],
+        ];
+        $result = $this->placer()->place($link, $config, $data);
+        $this->assertSame(ServiceBookingRequest::STATUS_CONFIRMED, $result['request']->status);
+        $this->expectException(\InvalidArgumentException::class);
+        $this->placer()->place($link, $config, $data);
+    }
+
+    public function test_salon_treatment_details_round_trip(): void
+    {
+        [$link, $config] = $this->makePage($this->makeUser());
+        $link->update(['type' => Link::TYPE_SALON_SPA]);
+        $service = $this->addService($config, 80, 60, [
+            'price_from' => true,
+            'preparation_notes' => 'Arrive with clean hair.',
+            'aftercare_notes' => 'Avoid washing for 24 hours.',
+        ])->fresh();
+        $this->assertTrue($service->price_from);
+        $this->assertSame('Arrive with clean hair.', $service->preparation_notes);
+        $this->assertSame('Avoid washing for 24 hours.', $service->aftercare_notes);
+        $this->assertTrue($config->isSalon());
+    }
+
 }

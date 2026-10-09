@@ -34,12 +34,14 @@ class ServiceBookingService extends Model
         'is_unavailable', 'is_active',
         'payment_mode', 'deposit_type', 'deposit_value',
         'capacity', 'buffer_before_minutes', 'buffer_after_minutes',
+        'price_from', 'preparation_notes', 'aftercare_notes',
     ];
 
     protected function casts(): array
     {
         return [
             'price'                 => 'decimal:2',
+            'price_from'            => 'boolean',
             'duration_minutes'      => 'integer',
             'sort_order'            => 'integer',
             'is_unavailable'        => 'boolean',

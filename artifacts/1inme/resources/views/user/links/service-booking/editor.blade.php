@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Service Booking - ' . ($link->title ?: $link->alias))
+@section('title', ($link->type === 'salon_spa' ? 'Salon & Spa' : 'Service Booking') . ' - ' . ($link->title ?: $link->alias))
 @section('breadcrumb_parent', 'Links')
 @section('breadcrumb_parent_url', route('user.links.index'))
 @section('content')
@@ -41,7 +41,7 @@
     <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div>
             <h1 class="text-xl font-bold" style="color:var(--text-primary)">{{ $link->title ?: $link->alias }}</h1>
-            <p class="text-sm" style="color:var(--text-muted)">Service Booking · /{{ $link->alias }}</p>
+            <p class="text-sm" style="color:var(--text-muted)">{{ $link->type === 'salon_spa' ? 'Salon & Spa' : 'Service Booking' }} · /{{ $link->alias }}</p>
         </div>
         <div class="flex gap-2">
             @if(\App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'service_booking_builder'))
@@ -155,6 +155,11 @@
                     </div>
                     <p class="text-xs mt-2" style="color:var(--text-muted)">Booking mode lets visitors pick a free slot and send a request. No online payment, you arrange payment directly.</p>
                 </div>
+                <div class="sb-row">
+                    <label class="sb-label">Service layout</label>
+                    <select class="sb-select" x-model="config.catalog_layout" @change="saveSettings()"><option value="list">List with photos</option><option value="compact">Compact price list</option><option value="photo">Photo grid</option></select>
+                </div>
+                <div class="sb-row"><label><input type="checkbox" x-model="config.auto_confirm" @change="saveSettings()"> Automatically confirm available appointments</label><p class="text-xs">Leave off to review requests first.</p></div>
                 <div class="sb-row">
                     <label class="sb-label">Currency</label>
                     <input class="sb-input" x-model="config.currency" maxlength="3" @change="saveSettings()" style="text-transform:uppercase">
@@ -382,6 +387,12 @@
                     <template x-for="c in categories" :key="c.id"><option :value="c.id" x-text="c.name"></option></template>
                 </select>
             </div>
+            @if($link->type === 'salon_spa')
+            <div class="sb-row"><label><input type="checkbox" x-model="svcModal.price_from"> Show price as “Starting from”</label></div>
+            <div class="sb-row"><label class="sb-label">Preparation / suitability notes</label><textarea class="sb-textarea" maxlength="1000" x-model="svcModal.preparation_notes" placeholder="Before your appointment"></textarea></div>
+            <div class="sb-row"><label class="sb-label">Aftercare</label><textarea class="sb-textarea" maxlength="1000" x-model="svcModal.aftercare_notes" placeholder="Care after your treatment"></textarea></div>
+            <p class="text-xs mb-3">Create separate services for options with different prices or durations, such as short and long hair.</p>
+            @endif
             <div class="sb-row" style="display:flex;gap:10px">
                 <div style="flex:1"><label class="sb-label">Estimated price</label><input class="sb-input" type="number" step="0.01" min="0" x-model="svcModal.price"></div>
                 <div style="flex:1"><label class="sb-label">Duration (min)</label><input class="sb-input" type="number" min="5" max="1440" step="5" x-model="svcModal.duration_minutes"></div>
@@ -505,10 +516,10 @@
 <script>
 @php
     $sbCategories = $config->categories->map(fn($c)=>['id'=>$c->id,'name'=>$c->name,'description'=>$c->description])->values();
-    $sbServices = $config->services->map(fn($s)=>['id'=>$s->id,'category_id'=>$s->category_id,'name'=>$s->name,'description'=>$s->description,'price'=>$s->price,'duration_minutes'=>$s->duration_minutes,'photo_url'=>$s->photo_url,'is_unavailable'=>$s->is_unavailable,'capacity'=>$s->capacity,'buffer_before_minutes'=>$s->buffer_before_minutes,'buffer_after_minutes'=>$s->buffer_after_minutes])->values();
+    $sbServices = $config->services->map(fn($s)=>['id'=>$s->id,'category_id'=>$s->category_id,'name'=>$s->name,'description'=>$s->description,'price'=>$s->price,'duration_minutes'=>$s->duration_minutes,'photo_url'=>$s->photo_url,'price_from'=>$s->price_from,'preparation_notes'=>$s->preparation_notes,'aftercare_notes'=>$s->aftercare_notes,'is_unavailable'=>$s->is_unavailable,'capacity'=>$s->capacity,'buffer_before_minutes'=>$s->buffer_before_minutes,'buffer_after_minutes'=>$s->buffer_after_minutes])->values();
     $sbRules = $config->availabilityRules->map(fn($r)=>['id'=>$r->id,'staff_id'=>$r->staff_id ? (int)$r->staff_id : null,'day_of_week'=>$r->day_of_week,'start_time'=>substr((string)$r->start_time,0,5),'end_time'=>substr((string)$r->end_time,0,5)])->values();
     $sbBlocked = $config->blockedDates->map(fn($b)=>['id'=>$b->id,'staff_id'=>$b->staff_id ? (int)$b->staff_id : null,'date'=>$b->date?->format('Y-m-d'),'reason'=>$b->reason])->values();
-    $sbConfigData = ['mode' => $config->mode, 'currency' => $config->currency, 'accent_color' => $config->accent_color, 'slot_length_minutes' => $config->slot_length_minutes, 'lead_time_minutes' => $config->lead_time_minutes, 'max_days_ahead' => $config->max_days_ahead, 'timezone' => $config->timezone, 'whatsapp_number' => $config->settings['whatsapp_number'] ?? ''];
+    $sbConfigData = ['mode' => $config->mode, 'currency' => $config->currency, 'accent_color' => $config->accent_color, 'slot_length_minutes' => $config->slot_length_minutes, 'lead_time_minutes' => $config->lead_time_minutes, 'max_days_ahead' => $config->max_days_ahead, 'timezone' => $config->timezone, 'catalog_layout' => $config->settings['catalog_layout'] ?? 'list', 'auto_confirm' => (bool) ($config->settings['auto_confirm'] ?? false), 'whatsapp_number' => $config->settings['whatsapp_number'] ?? ''];
     $sbTaxData = ['enabled' => $config->taxEnabled(), 'rate' => $config->taxRate(), 'inclusive' => $config->taxInclusive(), 'label' => $config->taxLabel()];
     $sbBuffers = ['before' => $config->bufferBeforeMinutes(), 'after' => $config->bufferAfterMinutes()];
     $sbSelfService = ['allow_cancel' => $config->selfServiceAllowsCancel(), 'allow_reschedule' => $config->selfServiceAllowsReschedule(), 'cutoff_hours' => $config->selfServiceCutoffHours()];
@@ -580,6 +591,8 @@ function serviceBookingEditor() {
         async saveSettings(){
             await this.api('POST','/settings',{
                 mode:this.config.mode,
+                catalog_layout:this.config.catalog_layout,
+                auto_confirm:!!this.config.auto_confirm,
                 currency:(this.config.currency||'USD').toUpperCase(),
                 accent_color:this.config.accent_color,
                 slot_length_minutes:parseInt(this.config.slot_length_minutes||30),
@@ -622,11 +635,12 @@ function serviceBookingEditor() {
             await this.api('POST','/categories/reorder', { order: arr.map(c=>c.id) });
         },
         openService(catId, svc){ this.svcModal = svc
-            ? {open:true,id:svc.id,category_id:svc.category_id,name:svc.name,description:svc.description||'',price:svc.price,duration_minutes:svc.duration_minutes,photo_url:svc.photo_url||'',is_unavailable:!!svc.is_unavailable,capacity:svc.capacity||1,buffer_before_minutes:svc.buffer_before_minutes ?? '',buffer_after_minutes:svc.buffer_after_minutes ?? ''}
-            : {open:true,id:null,category_id:catId||null,name:'',description:'',price:'',duration_minutes:30,photo_url:'',is_unavailable:false,capacity:1,buffer_before_minutes:'',buffer_after_minutes:''}; },
+            ? {open:true,id:svc.id,category_id:svc.category_id,name:svc.name,description:svc.description||'',price:svc.price,duration_minutes:svc.duration_minutes,photo_url:svc.photo_url||'',price_from:!!svc.price_from,preparation_notes:svc.preparation_notes||'',aftercare_notes:svc.aftercare_notes||'',is_unavailable:!!svc.is_unavailable,capacity:svc.capacity||1,buffer_before_minutes:svc.buffer_before_minutes ?? '',buffer_after_minutes:svc.buffer_after_minutes ?? ''}
+            : {open:true,id:null,category_id:catId||null,name:'',description:'',price:'',duration_minutes:30,photo_url:'',price_from:false,preparation_notes:'',aftercare_notes:'',is_unavailable:false,capacity:1,buffer_before_minutes:'',buffer_after_minutes:''}; },
         async saveService(){
             if (!this.svcModal.name.trim()) return;
             const payload = { category_id:this.svcModal.category_id||null, name:this.svcModal.name, description:this.svcModal.description, price:parseFloat(this.svcModal.price||0), duration_minutes:parseInt(this.svcModal.duration_minutes||30), photo_url:this.svcModal.photo_url||null, is_unavailable:this.svcModal.is_unavailable,
+                price_from: !!this.svcModal.price_from, preparation_notes:this.svcModal.preparation_notes||null, aftercare_notes:this.svcModal.aftercare_notes||null,
                 capacity: this.svcModal.capacity !== '' && this.svcModal.capacity !== null ? Math.max(1, parseInt(this.svcModal.capacity)||1) : 1,
                 buffer_before_minutes: this.svcModal.buffer_before_minutes === '' || this.svcModal.buffer_before_minutes === null ? null : parseInt(this.svcModal.buffer_before_minutes),
                 buffer_after_minutes: this.svcModal.buffer_after_minutes === '' || this.svcModal.buffer_after_minutes === null ? null : parseInt(this.svcModal.buffer_after_minutes) };
