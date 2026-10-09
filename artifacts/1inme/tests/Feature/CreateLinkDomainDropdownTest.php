@@ -9,7 +9,7 @@ use Tests\TestCase;
 
 class CreateLinkDomainDropdownTest extends TestCase
 {
-    public function test_create_link_page_shows_domain_dropdown_with_global_domains(): void
+    public function test_step_two_shows_domain_dropdown_with_global_domains(): void
     {
         foreach (['sayzio.app', 'bizs.club', 'getbio.one'] as $i => $host) {
             Domain::firstOrCreate(['domain' => $host], [
@@ -21,7 +21,7 @@ class CreateLinkDomainDropdownTest extends TestCase
         }
 
         $user = User::factory()->create();
-        $resp = $this->actingAs($user)->get(route('user.links.create'));
+        $resp = $this->actingAs($user)->get(route('user.links.biolink.create'));
         $resp->assertOk();
         $resp->assertSee('name="domain_id"', false);
         $resp->assertSee('bizs.club/');
