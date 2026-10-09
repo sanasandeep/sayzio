@@ -723,6 +723,10 @@
         "vcf": {
             "label": "Contact Card",
             "docs": true
+        },
+        "contact_directory": {
+            "label": "Contact Directory",
+            "docs": true
         }
     }
 }

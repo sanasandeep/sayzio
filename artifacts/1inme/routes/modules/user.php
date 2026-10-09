@@ -1252,6 +1252,9 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get ('links/{link}/store/orders/poll',           [\App\Modules\User\Controllers\StoreMenuController::class, 'pollOrders'])->middleware('workspace.can:links.view')->name('links.store.orders.poll');
         Route::post('links/{link}/store/orders/{order}/status', [\App\Modules\User\Controllers\StoreMenuController::class, 'updateOrderStatus'])->middleware('workspace.can:links.edit')->name('links.store.orders.status');
         // ── Service Booking (links.type = service_booking) ─────────────
+        Route::get('links/{link}/directory', [\App\Modules\User\Controllers\ContactDirectoryController::class, 'editor'])->middleware('workspace.can:links.view')->name('links.directory.editor');
+        Route::post('links/{link}/directory/{action}', [\App\Modules\User\Controllers\ContactDirectoryController::class, 'save'])->whereIn('action', ['settings', 'category', 'contact', 'delete-contact', 'delete-category', 'import', 'starter'])->middleware('workspace.can:links.edit')->name('links.directory.save');
+        Route::get('links/{link}/directory-export', [\App\Modules\User\Controllers\ContactDirectoryController::class, 'export'])->middleware('workspace.can:links.view')->name('links.directory.export');
         Route::get ('links/{link}/service-booking',          [\App\Modules\User\Controllers\ServiceBookingController::class, 'editor'])->middleware('workspace.can:links.view')->name('links.service-booking.editor');
         Route::post('links/{link}/service-booking/settings', [\App\Modules\User\Controllers\ServiceBookingController::class, 'saveSettings'])->middleware('workspace.can:links.edit')->name('links.service-booking.settings');
         // Categories

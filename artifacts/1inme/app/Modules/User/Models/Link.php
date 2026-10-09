@@ -166,6 +166,8 @@ protected $fillable = [
         return $this->hasOne(StoreMenu::class);
     }
 
+    public function contactDirectory() { return $this->hasOne(ContactDirectory::class); }
+
     public function serviceBooking()
     {
         return $this->hasOne(ServiceBooking::class);
@@ -848,6 +850,7 @@ protected $fillable = [
      * visibility tiers / analytics / feed treatment as the menu type.
      */
     public const TYPE_SERVICE_BOOKING = 'service_booking';
+    public const TYPE_CONTACT_DIRECTORY = 'contact_directory';
     public const TYPE_SALON_SPA = 'salon_spa';
 
     /**
@@ -905,6 +908,7 @@ protected $fillable = [
         self::TYPE_STORE_MENU,
         self::TYPE_SERVICE_BOOKING,
         self::TYPE_SALON_SPA,
+        self::TYPE_CONTACT_DIRECTORY,
     ];
 
     /** Is this link rendered by the biolink page engine? */
