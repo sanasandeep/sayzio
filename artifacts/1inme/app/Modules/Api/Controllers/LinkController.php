@@ -310,7 +310,7 @@ class LinkController extends Controller
         // land on the same floor as the web form and live checker.
         $aliasLimits = $request->user()->getAliasLengthLimits();
         $data = $request->validate([
-            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'ics', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page', 'brand_kit', 'text', 'restaurant_menu', 'store_menu', 'service_booking', 'salon_spa', 'contact_directory', 'calendar', 'reviews', 'updates'])],
+            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'ics', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page', 'brand_kit', 'text', 'restaurant_menu', 'store_menu', 'service_booking', 'salon_spa', 'contact_directory', 'real_estate', 'education', 'calendar', 'reviews', 'updates'])],
             // The admin banned/reserved-names list is enforced on the mobile
             // create submit too (privileged `user.banned_names.bypass` holders
             // skip it), mirroring the web chooseType() rule and the live

@@ -727,6 +727,14 @@
         "contact_directory": {
             "label": "Contact Directory",
             "docs": true
+        },
+        "real_estate": {
+            "label": "Real Estate",
+            "docs": true
+        },
+        "education": {
+            "label": "Education & Training",
+            "docs": true
         }
     }
 }

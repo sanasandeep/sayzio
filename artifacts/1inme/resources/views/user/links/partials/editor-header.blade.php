@@ -106,6 +106,8 @@
             <i class="fas fa-utensils text-[10px]"></i>
             <span>Menu</span>
         </a>
+        @elseif($link->isListingCatalog())
+        <a href="{{ route('user.links.catalog.editor', $link) }}" class="editor-tab no-underline {{ $activeMainTab === 'catalog' ? 'is-active' : '' }}"><i class="fas fa-list"></i><span>{{ $link->type === 'real_estate' ? 'Properties' : 'Courses' }}</span></a>
         @elseif($link->type === 'contact_directory')
         <a href="{{ route('user.links.directory.editor', $link) }}" class="editor-tab no-underline {{ $activeMainTab === 'directory' ? 'is-active' : '' }}"><i class="fas fa-address-book"></i><span>Contacts</span></a>
         @elseif($link->type === 'store_menu')
