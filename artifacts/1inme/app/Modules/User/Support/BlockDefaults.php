@@ -271,7 +271,7 @@ class BlockDefaults
                 'border_radius' => '0',
             ],
 
-            'profile_card_v1', 'profile_card_v2', 'profile_card_v3', 'profile_card_v4' => [
+            'profile_card', 'profile_card_v1', 'profile_card_v2', 'profile_card_v3', 'profile_card_v4' => [
                 // Padding is 0 because the profile-card renderer owns all
                 // internal spacing per layout (Task #1740). The card chrome
                 // (radius / shadow / border) still applies to the surface.
@@ -657,7 +657,7 @@ class BlockDefaults
             // socials list — so any design works on any slot at first paint.
             // Layouts only render the fields they use, so the extras stay
             // invisible until a design that needs them is applied.
-            'profile_card_v1' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => $avatarUrl, 'cover' => $coverUrl, 'bio' => 'A short, friendly bio about yourself.', 'verified' => true, 'location' => 'Your City, Country', 'website' => 'https://1inme.com', 'cta_label' => 'Get in touch', 'cta_url' => 'https://1inme.com', 'socials' => $profileSocials, '_placeholder' => true],
+            'profile_card', 'profile_card_v1' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => $avatarUrl, 'cover' => $coverUrl, 'bio' => 'A short, friendly bio about yourself.', 'verified' => true, 'location' => 'Your City, Country', 'website' => 'https://1inme.com', 'cta_label' => 'Get in touch', 'cta_url' => 'https://1inme.com', 'socials' => $profileSocials, '_placeholder' => true],
             'profile_card_v2' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => $avatarUrl, 'cover' => $coverUrl, 'bio' => 'A short, friendly bio about yourself.', 'verified' => true, 'location' => 'Your City, Country', 'website' => 'https://1inme.com', 'cta_label' => 'Get in touch', 'cta_url' => 'https://1inme.com', 'socials' => $profileSocials, '_placeholder' => true],
             'profile_card_v3' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => $avatarUrl, 'cover' => $coverUrl, 'bio' => 'A short, friendly bio about yourself.', 'verified' => true, 'location' => 'Your City, Country', 'website' => 'https://1inme.com', 'cta_label' => 'Get in touch', 'cta_url' => 'https://1inme.com', 'socials' => $profileSocials, 'stats' => [['label' => 'Followers', 'value' => '1.2K'], ['label' => 'Following', 'value' => '320'], ['label' => 'Posts', 'value' => '48']], '_placeholder' => true],
             'profile_card_v4' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => $avatarUrl, 'cover' => $coverUrl, 'bio' => 'A short, friendly bio about yourself.', 'verified' => true, 'location' => 'Your City, Country', 'website' => 'https://1inme.com', 'cta_label' => 'Get in touch', 'cta_url' => 'https://1inme.com', 'socials' => $profileSocials, 'badges' => [], '_placeholder' => true],

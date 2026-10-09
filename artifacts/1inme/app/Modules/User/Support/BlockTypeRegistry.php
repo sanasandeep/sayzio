@@ -391,11 +391,10 @@ final class BlockTypeRegistry
      */
     public static function canonicalTypeSlugs(): array
     {
-        $aliasKeys = array_keys(self::ALIASES);
-        $allTypes  = array_keys(BiolinkBlock::TYPES) + array_keys(self::NEW_TYPES);
-        // Keep order: existing TYPES first, new types appended.
+        // Keep the first occurrence of each family, including canonical targets
+        // that exist only through aliases (such as profile_card).
         $ordered = array_merge(array_keys(BiolinkBlock::TYPES), array_keys(self::NEW_TYPES));
-        return array_values(array_diff($ordered, $aliasKeys));
+        return array_values(array_unique(array_map([self::class, 'canonical'], $ordered)));
     }
 
     /**

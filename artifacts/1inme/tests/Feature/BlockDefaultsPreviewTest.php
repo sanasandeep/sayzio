@@ -74,12 +74,23 @@ class BlockDefaultsPreviewTest extends TestCase
                     'start_blank' => $blank ? '1' : '0',
                     'style' => ['bg_color' => '#123456', 'text_color' => '#abcdef'],
                 ]);
-                $res->assertOk();
+                $this->assertSame(200, $res->getStatusCode(), $type.($blank ? ' blank' : ' defaults').' preview HTTP status');
                 $html = $res->getContent();
                 $this->assertStringNotContainsString('cannot be previewed here', $html,
                     $type.($blank ? ' blank' : ' defaults'));
                 $this->assertStringContainsString('preview-stage', $html, $type);
             }
+        }
+    }
+
+    public function test_profile_family_accepts_canonical_and_legacy_preview_urls(): void
+    {
+        $this->actingAs($this->makeAdmin(), 'admin');
+        foreach (['profile_card', 'profile_card_v1', 'profile_card_v2', 'profile_card_v3', 'profile_card_v4'] as $type) {
+            $res = $this->post(route('admin.block-defaults.preview', $type));
+            $this->assertSame(200, $res->getStatusCode(), $type);
+            $this->assertStringNotContainsString('cannot be previewed here', $res->getContent(), $type);
+            $this->assertStringContainsString('Your Name', $res->getContent(), $type);
         }
     }
 
