@@ -55,13 +55,13 @@ class MyLinksHeaderEarnsItsSpaceTest extends TestCase
         return $link->fresh();
     }
 
-    private function page(): string
+    private function page(bool $reports = false): string
     {
         $ws = $this->user->ownedWorkspaces()->first();
 
         return $this->actingAs($this->user)
             ->withSession($ws ? [WorkspaceContext::SESSION_KEY => $ws->id] : [])
-            ->get('/user/links')
+            ->get('/user/links'.($reports ? '?view=reports' : ''))
             ->assertOk()
             ->getContent();
     }
@@ -82,7 +82,7 @@ class MyLinksHeaderEarnsItsSpaceTest extends TestCase
         $this->assertStringContainsString('links-facts', $html);
         $this->assertStringContainsString('2</strong> links', $html);
         $this->assertStringContainsString('2</strong> active', $html);
-        $this->assertStringContainsString('308', $html, 'the click total is missing from the header');
+        $this->assertStringContainsString('Reports', $html);
     }
 
     /**
@@ -128,10 +128,10 @@ class MyLinksHeaderEarnsItsSpaceTest extends TestCase
             'clicked_at' => now()->subDays(30),
         ]);
 
-        $html = $this->page();
+        $html = $this->page(true);
 
-        $this->assertStringContainsString('linksSpark', $html, 'the sparkline is not drawn');
-        $this->assertStringContainsString('+77', $html, 'the seven-day total is wrong or missing');
+        $this->assertStringContainsString('Daily clicks', $html);
+        $this->assertStringContainsString('77</strong>', $html);
         $this->assertStringNotContainsString(
             'pulse-orb',
             $this->visible($html),
@@ -144,9 +144,9 @@ class MyLinksHeaderEarnsItsSpaceTest extends TestCase
     {
         $this->makeLink();
 
-        $html = $this->page();
+        $html = $this->page(true);
 
-        $this->assertStringContainsString('No clicks in the last 7 days', $html);
+        $this->assertStringContainsString('No traffic recorded in this period', $html);
         $this->assertStringNotContainsString('linksSpark', $html);
     }
 
