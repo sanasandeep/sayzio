@@ -1,9 +1,9 @@
 <div class="rm-row">
     <label class="rm-label">Billing company</label>
     <select class="rm-input" x-model="billingCompanyId" @change="billingTaxRuleId = ''; saveSettings()">
-        <option value="">No linked company — use menu settings</option>
+        <option value="">No linked company · use menu settings</option>
         @foreach($billingCompanies as $menuCompany)
-            <option value="{{ $menuCompany->id }}">{{ $menuCompany->name }} — {{ $menuCompany->defaultTaxRule?->is_active ? $menuCompany->defaultTaxRule->name.' ('.$menuCompany->defaultTaxRule->ratePercent().'%)' : 'No tax' }}</option>
+            <option value="{{ $menuCompany->id }}">{{ $menuCompany->name }} · {{ $menuCompany->defaultTaxRule?->is_active ? $menuCompany->defaultTaxRule->name.' ('.$menuCompany->defaultTaxRule->ratePercent().'%)' : 'No tax' }}</option>
         @endforeach
     </select>
     <p class="text-xs mt-2" style="color:var(--text-muted)">The selected company's default tax rule and billing identity are copied when settings are saved. A company with no active default rule adds no tax. Existing orders retain their saved details.</p>

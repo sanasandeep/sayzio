@@ -59,7 +59,10 @@ class BlockEditorCoverageTest extends TestCase
 
     public function test_partial_edits_preserve_content_and_explicitly_empty_lists_clear_it(): void
     {
-        $user = \App\Modules\User\Models\User::factory()->create();
+        $user = \App\Modules\User\Models\User::factory()->create(['status' => 'active']);
+        $workspace = app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($user);
+        if ($workspace !== null) app()->instance('current_workspace', $workspace);
+        app()->instance('workspace_owner', $user);
         $link = \App\Modules\User\Models\Link::create([
             'user_id' => $user->id, 'type' => 'biolink', 'alias' => \App\Modules\User\Models\Link::generateAlias(),
             'title' => 'Studio', 'is_active' => true,
@@ -77,6 +80,38 @@ class BlockEditorCoverageTest extends TestCase
             'settings' => ['items' => ''],
         ])->assertOk();
         $this->assertSame([], $block->fresh()->settings['items']);
+    }
+
+    public function test_every_registered_block_can_save_and_clear_custom_colors(): void
+    {
+        $user = \App\Modules\User\Models\User::factory()->create(['status' => 'active']);
+        $workspace = app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($user);
+        if ($workspace !== null) app()->instance('current_workspace', $workspace);
+        app()->instance('workspace_owner', $user);
+        $link = \App\Modules\User\Models\Link::create([
+            'user_id' => $user->id, 'type' => 'biolink',
+            'alias' => \App\Modules\User\Models\Link::generateAlias(),
+            'title' => 'Color audit', 'is_active' => true,
+        ]);
+        $types = array_unique(array_merge(array_keys(BiolinkBlock::TYPES),
+            array_keys(\App\Modules\User\Support\BlockTypeRegistry::newTypes())));
+        foreach ($types as $type) {
+            $block = BiolinkBlock::create([
+                'link_id' => $link->id, 'type' => $type, 'sort_order' => 0,
+                'is_active' => true, 'settings' => BlockEditorFields::defaultsForType($type),
+            ]);
+            $url = route('user.links.blocks.update', [$link, $block]);
+            $this->actingAs($user)->putJson($url, ['style' => [
+                'bg_color' => '#123456', 'text_color' => '#abcdef',
+            ]])->assertOk();
+            $style = BiolinkBlock::getBlockStyle($block->fresh()->settings, []);
+            $this->assertSame('#123456', $style['bg_color'], $type.' background');
+            $this->assertSame('#abcdef', $style['text_color'], $type.' text');
+            $this->putJson($url, ['style' => ['bg_color' => '', 'text_color' => '']])->assertOk();
+            $style = BiolinkBlock::getBlockStyle($block->fresh()->settings, []);
+            $this->assertEmpty($style['bg_color'], $type.' reset background');
+            $this->assertEmpty($style['text_color'], $type.' reset text');
+        }
     }
 
 }
