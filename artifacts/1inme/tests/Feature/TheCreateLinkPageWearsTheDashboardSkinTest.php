@@ -46,8 +46,8 @@ class TheCreateLinkPageWearsTheDashboardSkinTest extends TestCase
             );
         }
 
-        $this->assertStringContainsString('Guided wizard', $html);
-        $this->assertStringContainsString('Build with AI', $html);
+        $this->assertStringContainsString('Help me choose', $html);
+        $this->assertStringContainsString('Business page', $html);
         $this->assertStringContainsString('name="alias"', $html);
     }
 
@@ -143,8 +143,8 @@ class TheCreateLinkPageWearsTheDashboardSkinTest extends TestCase
 
         // And the marketing ribbon rides the recommended card, the same partial
         // the dashboard and stats heroes use -- not a lookalike.
-        $this->assertStringContainsString('cribbon', $html);
-        $this->assertStringContainsString('cribbon-copy', $html);
+        $this->assertStringNotContainsString('class="cl-card cl-start', $html);
+        $this->assertStringContainsString('More options', $html);
     }
 
     public function test_the_stylesheet_closes_every_comment_it_opens(): void
