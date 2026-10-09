@@ -95,7 +95,9 @@
 
             <div class="text-xs text-white/40 bg-blue-500/5 border border-blue-500/10 rounded-xl px-4 py-3">
                 <i class="fas fa-info-circle text-blue-400 mr-1.5"></i>
-                @if(in_array($linkType, ['service_booking', 'salon_spa'], true))
+                @if($linkType === 'contact_directory')
+                    After creating, organize departments and add contacts in the directory editor.
+                @elseif(in_array($linkType, ['service_booking', 'salon_spa'], true))
                     After creating, add your services, team members and availability in the appointment editor.
                 @else
                     After creating, you'll pick a starting template (or skip) and land in the Link in Bio editor where you can add blocks, customize the look, and more.

@@ -164,11 +164,14 @@
              renders -- rather than as a position that no longer exists. --}}
         @php
             $menuSections = $menuSections ?? collect();
-            $slotOptions = ($menuSections->isNotEmpty() || $link->isAppointmentPage())
+            $slotOptions = ($menuSections->isNotEmpty() || $link->isAppointmentPage() || $link->type === 'contact_directory')
                 ? \App\Modules\User\Support\MenuBlockSlot::options($menuSections)
                 : [];
             if ($link->isAppointmentPage()) {
                 $slotOptions = array_map(fn ($option) => ['value' => $option['value'], 'label' => str_replace('menu', 'services', $option['label'])], $slotOptions);
+            }
+            if ($link->type === 'contact_directory') {
+                $slotOptions = array_map(fn ($option) => ['value' => $option['value'], 'label' => str_replace('menu', 'directory', $option['label'])], $slotOptions);
             }
             $curSlot = \App\Modules\User\Support\MenuBlockSlot::resolve(
                 \App\Modules\User\Support\MenuBlockSlot::of($s),

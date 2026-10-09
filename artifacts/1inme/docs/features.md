@@ -1621,3 +1621,15 @@ The existing Service Booking link type supports professional practices including
 Professional details include a practice label, qualifications, office location, consultation mode, enquiry email and phone. Contact links use the supplied details. Services are searchable, page fonts are honoured, and headings, service names, descriptions and prices have optional colour controls with reset-to-default actions. Preparation and follow-up instructions are available on each service.
 
 Use the Blocks tab for a profile, FAQs, portfolio, contact form or other supported blocks. Place blocks above the title, before services, after a category or below services. Blocks assigned to deleted or inactive categories fall back below the catalogue. These capabilities also apply to Salon & Spa pages.
+
+## Contact Directory
+
+`contact_directory` is a Link in Bio family type for hotel help desks, offices, campuses and company departments. Create it in the link picker and use Contacts to edit its directory. It uses the existing Link in Bio quota, workspace permissions and public-page access gates. API clients can create the type; the dedicated contact editor is currently web-only.
+
+Owners can create departments and one level of subcategories, edit contacts, set their numeric order, pin priority entries and publish or archive contacts. Contacts support role, description, photo, icon, telephone plus extension, alternate/after-hours number, WhatsApp, email, website, support/appointment links and location/directions. Working hours use the directory timezone and support overnight shifts, holiday dates and closed instructions. Status indicates working hours, not whether a person is online.
+
+Visitors can search, jump to departments, use contact permalinks and open their phone, email or messaging app. Optional room/reference text is added locally to prefilled WhatsApp/SMS messages; Sayzio does not submit, retain or deliver those messages. Existing page share/QR controls are reused. Page blocks can appear above the directory, before contacts, after each populated category and below contacts. Deleted or empty category block slots fall back to the bottom.
+
+Hotel, office and company starters add departments and draft entries without invented phone numbers. CSV import accepts a maximum 500 rows / 1 MB with columns `name,category,phone,email,role,location`. New contacts remain drafts, and exact name/category duplicates are skipped. Export is a basic six-column contact list, not a full backup of advanced settings. Appearance controls include page/surface/text/accent colors, font and list/grid/compact layout.
+
+This release does not include ticket assignment, an internal messaging inbox, automatic escalation, individual contact-action reporting or separate staff accounts. Existing page analytics still apply. Appointment/support links may point to existing Sayzio booking/form pages or an external service.

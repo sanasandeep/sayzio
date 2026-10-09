@@ -1,0 +1,20 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const vm = require('node:vm');
+const fs = require('node:fs');
+test('search hides unmatched categories and message reference is encoded', () => {
+    const listeners = {};
+    const contacts = [{dataset:{search:'front desk reception'},hidden:false},{dataset:{search:'housekeeping'},hidden:false}];
+    const categories = contacts.map(c => ({querySelectorAll:()=>[c],hidden:false}));
+    const action={dataset:{messageBase:'https://wa.me/123?text=',message:'Hello & help'}};
+    const search={value:' RECEPTION ',addEventListener:(e,fn)=>listeners.search=fn};
+    const reference={value:'101 & 102',previousElementSibling:{textContent:'Room (optional)'},addEventListener:(e,fn)=>listeners.reference=fn};
+    const status={hidden:true};
+    const root={querySelectorAll:(q)=>q==='[data-contact]'?contacts:q==='[data-category]'?categories:[action]};
+    const document={getElementById:id=>({'directory':root,'directory-search':search,'directory-reference':reference,'directory-no-results':status}[id])};
+    vm.runInNewContext(fs.readFileSync('public/js/contact-directory.js','utf8'),{document});
+    listeners.search(); assert.equal(contacts[0].hidden,false);assert.equal(categories[1].hidden,true);
+    search.value='unknown';listeners.search();assert.equal(status.hidden,false);
+    listeners.reference();assert.equal(action.href,'https://wa.me/123?text=Hello%20%26%20help%0ARoom%3A%20101%20%26%20102');
+    reference.value='';listeners.reference();assert.equal(action.href,'https://wa.me/123?text=Hello%20%26%20help');
+});

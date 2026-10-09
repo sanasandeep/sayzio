@@ -2786,6 +2786,7 @@ class BiolinkBlockController extends Controller
         if ($link->isAppointmentPage()) {
             return $link->serviceBooking?->categories()->orderBy('sort_order')->orderBy('id')->get() ?? collect();
         }
+        if ($link->type === 'contact_directory') return $link->contactDirectory?->categories()->get() ?? collect();
         $menu = $link->restaurantMenu ?: $link->storeMenu;
         if (! $menu) {
             return collect();
