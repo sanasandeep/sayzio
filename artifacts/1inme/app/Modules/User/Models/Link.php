@@ -166,6 +166,10 @@ protected $fillable = [
         return $this->hasOne(StoreMenu::class);
     }
 
+    public function listingCatalog() { return $this->hasOne(ListingCatalog::class); }
+
+    public function isListingCatalog(): bool { return in_array($this->type, [self::TYPE_REAL_ESTATE, self::TYPE_EDUCATION], true); }
+
     public function contactDirectory() { return $this->hasOne(ContactDirectory::class); }
 
     public function serviceBooking()
@@ -850,6 +854,8 @@ protected $fillable = [
      * visibility tiers / analytics / feed treatment as the menu type.
      */
     public const TYPE_SERVICE_BOOKING = 'service_booking';
+    public const TYPE_REAL_ESTATE = 'real_estate';
+    public const TYPE_EDUCATION = 'education';
     public const TYPE_CONTACT_DIRECTORY = 'contact_directory';
     public const TYPE_SALON_SPA = 'salon_spa';
 
@@ -909,6 +915,8 @@ protected $fillable = [
         self::TYPE_SERVICE_BOOKING,
         self::TYPE_SALON_SPA,
         self::TYPE_CONTACT_DIRECTORY,
+        self::TYPE_REAL_ESTATE,
+        self::TYPE_EDUCATION,
     ];
 
     /** Is this link rendered by the biolink page engine? */

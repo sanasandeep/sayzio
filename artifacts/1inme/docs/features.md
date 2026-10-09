@@ -1633,3 +1633,21 @@ Visitors can search, jump to departments, use contact permalinks and open their 
 Hotel, office and company starters add departments and draft entries without invented phone numbers. CSV import accepts a maximum 500 rows / 1 MB with columns `name,category,phone,email,role,location`. New contacts remain drafts, and exact name/category duplicates are skipped. Export is a basic six-column contact list, not a full backup of advanced settings. Appearance controls include page/surface/text/accent colors, font and list/grid/compact layout.
 
 This release does not include ticket assignment, an internal messaging inbox, automatic escalation, individual contact-action reporting or separate staff accounts. Existing page analytics still apply. Appointment/support links may point to existing Sayzio booking/form pages or an external service.
+
+## Real Estate
+
+`real_estate` is a Link in Bio family type with a dedicated property catalog editor. Properties have a category, sale/rent purpose, apartment/house/land/commercial type, price and price note, bedrooms, bathrooms, area/unit, address, amenities and up to eight photo URLs. Published properties appear in list or grid layouts with galleries, map links and search/category/location/purpose/maximum-price filters. Draft listings stay private. Featured entries appear first within their category. Available properties accept viewing requests; reserved, sold and rented properties remain visible but do not accept internal requests.
+
+Visitors submit a viewing inquiry with name, email, optional phone/message and preferred date. The owner reviews these in Inquiries and marks them new/contacted/closed. A request is not an appointment confirmation. An optional external agent/viewing URL can connect to another booking system. There is no listing marketplace, payment processing, availability calendar or automatic viewing confirmation in this release.
+
+## Education & Training
+
+`education` is a Link in Bio family type with a dedicated course and batch editor. Courses include category, fee, delivery mode (online/in-person/hybrid), level, duration, instructor/background, syllabus, prerequisites, certificate information, location and a photo gallery. Each course supports up to twelve named batches with stable IDs, dates, schedule, manually maintained remaining seats and open/full/closed status. Public pages show curriculum and batch details with search/category/location/mode/maximum-fee filters.
+
+Only enrolling courses accept internal enrollment inquiries. A visitor may choose an open batch with remaining seats or ask the institute to recommend one. Closed/full/zero-seat batches cannot be requested directly, and submitted batch IDs are rechecked against the selected course. Requests do not reserve or decrement seats. An optional external enrollment URL can connect to an existing enrollment/payment service. This is a course catalog with inquiry management, not a learning management system: lessons, student accounts, attendance, exams and automatic certificates are outside this release.
+
+### Shared catalog behavior
+
+Both types use existing Link in Bio quotas, workspace edit/view permissions, public-page visibility/password gates, page analytics and share/QR controls. API link creation accepts both types; dedicated catalog editing is web-only. The owner can change introduction, hero photo, business name, currency, timezone, colors, font and grid/list layout. Categories and entries have sort order; deleting categories moves entries to General. Deleting an entry retains its existing inquiry title and contact details.
+
+Standard page blocks render at the top, before the catalog, between populated categories and below the catalog. Blocks assigned to deleted/empty categories fall back to the bottom. Suggested categories add no invented listings or prices. Inquiry submission is CSRF protected, throttled, validates consent and checks a honeypot. Requests appear in the owner dashboard; no email/SMS delivery is implied. Deployments must run the listing catalog migration.

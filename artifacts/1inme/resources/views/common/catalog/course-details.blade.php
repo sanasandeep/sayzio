@@ -1,0 +1,2 @@
+<div class="course-facts"><span>{{ ['online'=>'Online','in_person'=>'In person','hybrid'=>'Hybrid'][$d['mode'] ?? ''] ?? '' }}</span><span>{{ ucfirst(str_replace('_',' ',$d['level'] ?? '')) }}</span>@if(!empty($d['duration']))<span>{{ $d['duration'] }}</span>@endif</div>
+@if(!empty($d['instructor']))<p class="instructor"><i class="fas fa-chalkboard-user" aria-hidden="true"></i> Learn with {{ $d['instructor'] }}</p>@endif

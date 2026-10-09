@@ -390,7 +390,7 @@ class LinkController extends Controller
         $limits = workspace_owner()->getAliasLengthLimits();
 
         $validated = $request->validate([
-            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,salon_spa,contact_directory,file,ics,vcf,text,reviews,resume,paid_page,calendar,brand_kit,updates',
+            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,salon_spa,contact_directory,real_estate,education,file,ics,vcf,text,reviews,resume,paid_page,calendar,brand_kit,updates',
             'alias' => [
                 'nullable', 'string', new \App\Modules\User\Rules\AliasFormat(),
                 'min:' . $limits['min'],
@@ -424,7 +424,7 @@ class LinkController extends Controller
             'ai_chat',
             'restaurant_menu',
             'store_menu'      => redirect()->route('user.links.biolink.create', $params),
-            'service_booking', 'salon_spa', 'contact_directory' => redirect()->route('user.links.biolink.create', $params),
+            'service_booking', 'salon_spa', 'contact_directory', 'real_estate', 'education' => redirect()->route('user.links.biolink.create', $params),
             'file'           => redirect()->route('user.links.file.create', $params),
             'ics'            => redirect()->route('user.links.ics.create', $params),
             'vcf'            => redirect()->route('user.links.vcf.create', $params),
@@ -800,7 +800,7 @@ class LinkController extends Controller
         // carried through from the picker so store() persists it; default
         // to the classic biolink when missing or out of family.
         $type = (string) $request->query('type', 'biolink');
-        if (!in_array($type, ['biolink', 'conversational', 'slides', 'ai_chat', 'restaurant_menu', 'store_menu', 'service_booking', 'salon_spa', 'contact_directory'], true)) {
+        if (!in_array($type, ['biolink', 'conversational', 'slides', 'ai_chat', 'restaurant_menu', 'store_menu', 'service_booking', 'salon_spa', 'contact_directory', 'real_estate', 'education'], true)) {
             $type = 'biolink';
         }
 
@@ -870,7 +870,7 @@ class LinkController extends Controller
         $userId = workspace_owner_id();
 
         $validated = $request->validate([
-            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,salon_spa,contact_directory,file,ics,vcf,text,reviews,resume,paid_page,calendar,brand_kit,updates',
+            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,salon_spa,contact_directory,real_estate,education,file,ics,vcf,text,reviews,resume,paid_page,calendar,brand_kit,updates',
             'text_content' => 'required_if:type,text|nullable|string|max:20000',
             'paid_page_template' => 'nullable|string|in:' . implode(',', \App\Modules\User\Support\PaidPageTemplates::ids()),
             'brand_kit_id' => "nullable|integer|exists:brand_kits,id,user_id,{$userId}",
@@ -1170,6 +1170,9 @@ class LinkController extends Controller
         if ($link->type === 'restaurant_menu') {
             return redirect()->route('user.links.restaurant.editor', $link)
                 ->with('success', 'Restaurant Menu created — build your menu.');
+        }
+        if ($link->isListingCatalog()) {
+            return redirect()->route('user.links.catalog.editor', $link);
         }
         if ($link->type === 'contact_directory') {
             return redirect()->route('user.links.directory.editor', $link);

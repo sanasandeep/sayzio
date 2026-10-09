@@ -639,6 +639,8 @@ class RedirectController extends Controller
             return $link->storeMenu()->exists() ? 'common.store-menu' : 'common.biolink';
         }
 
+        if ($link->isListingCatalog()) { return 'common.listing-catalog'; }
+
         if ($type === 'contact_directory') { return 'common.contact-directory'; }
 
         if (in_array($type, ['service_booking', 'salon_spa'], true)) {

@@ -787,6 +787,8 @@ Route::get('/sm/order/{token}/status', [\App\Modules\Common\Controllers\PublicSt
     ->where('token', '[A-Za-z0-9\-]+')->middleware('throttle:120,1')->name('sm.public.order.status');
 // ── Service Booking visitor endpoints (Task #3085) ───────────────
 // Use the /sb/ prefix so they don't collide with the catch-all /{alias}.
+Route::post('/catalog/{alias}/inquiry', [\App\Modules\Common\Controllers\PublicCatalogInquiryController::class, 'submit'])->middleware('throttle:10,1')->name('public.catalog.inquiry');
+
 Route::post('/sb/{alias}/slots', [\App\Modules\Common\Controllers\PublicServiceBookingController::class, 'slotsFor'])
     ->where('alias', '[^/]+')->middleware('throttle:120,1')->name('sb.public.slots');
 Route::post('/sb/{alias}/quote', [\App\Modules\Common\Controllers\PublicServiceBookingController::class, 'quote'])
