@@ -104,6 +104,16 @@ class ServiceBookingController extends Controller
             'settings'                => 'nullable|array',
             'catalog_layout'          => 'sometimes|in:list,compact,photo',
             'auto_confirm'            => 'sometimes|boolean',
+            'professional_label' => 'sometimes|nullable|string|max:100',
+            'qualifications' => 'sometimes|nullable|string|max:300',
+            'office_location' => 'sometimes|nullable|string|max:300',
+            'consultation_mode' => 'sometimes|in:office,online,phone,flexible',
+            'enquiry_email' => 'sometimes|nullable|email|max:191',
+            'contact_phone' => 'sometimes|nullable|string|max:40',
+            'heading_color' => ['sometimes', 'nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'item_color' => ['sometimes', 'nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'desc_color' => ['sometimes', 'nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'price_color' => ['sometimes', 'nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'tax_enabled'             => 'sometimes|boolean',
             'tax_rate'                => 'nullable|numeric|min:0|max:100',
             'tax_inclusive'           => 'sometimes|boolean',
@@ -121,7 +131,7 @@ class ServiceBookingController extends Controller
         ]);
 
         $settings = $data['settings'] ?? ($config->settings ?? []);
-        foreach (['catalog_layout', 'auto_confirm'] as $key) {
+        foreach (['catalog_layout', 'auto_confirm', 'professional_label', 'qualifications', 'office_location', 'consultation_mode', 'enquiry_email', 'contact_phone', 'heading_color', 'item_color', 'desc_color', 'price_color'] as $key) {
             if (array_key_exists($key, $data)) $settings[$key] = $data[$key];
         }
 

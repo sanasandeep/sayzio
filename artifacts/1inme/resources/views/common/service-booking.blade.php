@@ -11,6 +11,12 @@
     $cats = $config->categories->where('is_active', true)->sortBy('sort_order')->values();
     $services = $config->services->where('is_active', true)->sortBy('sort_order')->values();
     $servicesByCat = $services->groupBy('category_id');
+    $blkSectionIds = $cats->filter(fn ($cat) => $servicesByCat->get($cat->id, collect())->isNotEmpty())->pluck('id')->all();
+    $professional = $config->settings ?? [];
+    $consultationLabel = ['office' => 'In-person consultation', 'online' => 'Online consultation', 'phone' => 'Phone consultation'][$professional['consultation_mode'] ?? ''] ?? '';
+    $presentation = \App\Modules\User\Support\MenuPresentation::resolve($link->settings['biolink'] ?? [], $professional, $accent);
+    $contactPhone = preg_replace('/[^0-9+]/', '', $professional['contact_phone'] ?? '');
+    $enquiryEmail = filter_var($professional['enquiry_email'] ?? '', FILTER_VALIDATE_EMAIL) ?: '';
     $uncategorized = $servicesByCat->get(null) ?? $servicesByCat->get('') ?? collect();
 
     $sbStaff = $config->staff()->where('is_active', true)->orderBy('sort_order')->with('services:id')->get()
@@ -40,6 +46,10 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title }}</title>
+    @if($presentation['font_href'])<link rel="stylesheet" href="{{ $presentation['font_href'] }}">@endif
+    @include('common.partials.biolink-block-assets')
+    <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
+    <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
     <style>
 @php
     /*
@@ -137,6 +147,18 @@
         {{-- This page has one surface the other two do not. --}}
         .slot { border-color:{{ $pbInkLight ? 'rgba(255,255,255,.2)' : 'rgba(0,0,0,.2)' }}; }
         @endif
+    body { font-family:{!! $presentation['font_css'] !!}; }
+    .hero h1, .cat h2 { font-family:{!! $presentation['heading_css'] !!}; }
+    @if($presentation['heading_color']).hero h1, .cat h2 { color:{{ $presentation['heading_color'] }}; }@endif
+    @if($presentation['item_color']).item .name { color:{{ $presentation['item_color'] }}; }@endif
+    @if($presentation['desc_color']).item .desc, .cat .cdesc { color:{{ $presentation['desc_color'] }}; opacity:1; }@endif
+    @if($presentation['price_color']).item .meta { color:{{ $presentation['price_color'] }}; }@endif
+    .professional-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+    .professional-actions:empty { display:none; }
+    .professional-actions a { color:inherit; border:1px solid currentColor; border-radius:999px; padding:8px 14px; font-size:13px; text-decoration:none; }
+    .service-search { display:block; font-size:12px; margin:12px 0 20px; }
+    .service-search input { display:block; width:100%; padding:12px 14px; margin-top:6px; border:1px solid rgba(125,125,140,.4); border-radius:12px; color:inherit; background:transparent; font:inherit; }
+    .biolink-block-wrap { margin:16px 0; }
     .treatment-note { margin-top:10px; font-size:13px; }
     .treatment-note summary { cursor:pointer; font-weight:600; }
     .treatment-note p { white-space:pre-line; line-height:1.6; }
@@ -159,16 +181,32 @@
 <body class="catalog-{{ $catalogLayout }} {{ $isSalon ? 'salon-spa' : '' }}">
 @if($pbOn)@include('common.page-background.layers')@endif
 <div class="page">
+
+    @include('common.partials.biolink-block-list', ['link' => $link, 'blkFontColor' => $pbInk, 'blkGlobalTheme' => [], 'blkBtnInline' => '', 'blkSlot' => 'top', 'blkSectionIds' => $blkSectionIds, 'blkEmpty' => false])
     <div class="hero">
         <h1>{{ $title }}</h1>
         @if($desc = $link->description)<p>{{ $desc }}</p>@endif
+        @if(!empty($professional['professional_label']))<p class="practice">{{ $professional['professional_label'] }}</p>@endif
+        @if(!empty($professional['qualifications']))<p>{{ $professional['qualifications'] }}</p>@endif
+        @if(!empty($professional['office_location']))<p>{{ $professional['office_location'] }}</p>@endif
+        @if($consultationLabel)<p>{{ $consultationLabel }}</p>@endif
+        <div class="professional-actions">
+            @if($enquiryEmail)<a href="mailto:{{ $enquiryEmail }}">Send an enquiry ↗</a>@endif
+            @if($contactPhone)<a href="tel:{{ $contactPhone }}">Call {{ $professional['contact_phone'] }}</a>@endif
+        </div>
         @if($isBooking && $services->isNotEmpty())<span class="badge">Book an appointment</span>@endif
     </div>
 
+
+    @include('common.partials.biolink-block-list', ['link' => $link, 'blkFontColor' => $pbInk, 'blkGlobalTheme' => [], 'blkBtnInline' => '', 'blkSlot' => 'above', 'blkSectionIds' => $blkSectionIds, 'blkEmpty' => false])
+    @if($services->isNotEmpty())
+    <label class="service-search">Find a service<input type="search" placeholder="Search services or consultations" oninput="filterServices(this.value)"></label>
+    <p id="service-no-results" class="muted" hidden>No matching services. Try another search.</p>
+    @endif
     @php
         $renderService = function ($service) use ($fmt, $isBooking, $durLabel, $isSalon) {
             $unavail = $service->is_unavailable;
-            echo '<div class="item ' . ($unavail ? 'unavail' : '') . '">';
+            echo '<div data-service-search="' . e($service->name . ' ' . $service->description) . '" class="item ' . ($unavail ? 'unavail' : '') . '">';
             if ($service->photo_url) {
                 echo '<img class="photo" src="' . e($service->photo_url) . '" alt="" loading="lazy">';
             }
@@ -182,10 +220,8 @@
                 echo ' <span class="dur">· ' . e($durLabel($service->duration_minutes)) . '</span>';
             }
             echo '</div>';
-            if ($isSalon) {
-                foreach (['preparation_notes' => 'Before your visit', 'aftercare_notes' => 'Aftercare'] as $field => $label) {
-                    if ($service->$field) echo '<details class="treatment-note"><summary>' . e($label) . '</summary><p>' . e($service->$field) . '</p></details>';
-                }
+            foreach (['preparation_notes' => 'Before your visit', 'aftercare_notes' => 'Follow-up instructions'] as $field => $label) {
+                if ($service->$field) echo '<details class="treatment-note"><summary>' . e($label) . '</summary><p>' . e($service->$field) . '</p></details>';
             }
             if ($isBooking && !$unavail) {
                 echo '<div class="addrow" data-add="' . $service->id . '" data-name="' . e($service->name)
@@ -223,6 +259,7 @@
                     @if($cat->description)<p class="cdesc">{{ $cat->description }}</p>@endif
                     <div class="services">@foreach($catServices as $service) @php $renderService($service); @endphp @endforeach</div>
                 </div>
+    @include('common.partials.biolink-block-list', ['link' => $link, 'blkFontColor' => $pbInk, 'blkGlobalTheme' => [], 'blkBtnInline' => '', 'blkSlot' => \App\Modules\User\Support\MenuBlockSlot::forSection((int) $cat->id), 'blkSectionIds' => $blkSectionIds, 'blkEmpty' => false])
             @endif
         @endforeach
         @if($uncategorized->isNotEmpty())
@@ -232,8 +269,23 @@
             </div>
         @endif
     @endif
+
+    @include('common.partials.biolink-block-list', ['link' => $link, 'blkFontColor' => $pbInk, 'blkGlobalTheme' => [], 'blkBtnInline' => '', 'blkSlot' => 'below', 'blkSectionIds' => $blkSectionIds, 'blkEmpty' => false])
 </div>
 
+<script>
+function filterServices(query) {
+    const term = query.trim().toLocaleLowerCase();
+    let count = 0;
+    document.querySelectorAll('[data-service-search]').forEach(item => {
+        const match = item.dataset.serviceSearch.toLocaleLowerCase().includes(term);
+        item.hidden = !match;
+        item.style.display = match ? '' : 'none';
+        if (match) count++;
+    });
+    document.getElementById('service-no-results').hidden = count > 0;
+}
+</script>
 @if($isBooking)
 <div class="cartbar" id="cartbar">
     <div class="inner">
@@ -332,7 +384,11 @@
         Object.values(SERVICES).filter(i => i.qty > 0).forEach(it => {
             const row = document.createElement('div');
             row.className = 'line';
-            row.innerHTML = '<span>' + it.qty + '× ' + it.name + '</span><span>' + fmt(it.qty * it.price) + '</span>';
+            const name = document.createElement('span');
+            name.textContent = it.qty + '× ' + it.name;
+            const price = document.createElement('span');
+            price.textContent = fmt(it.qty * it.price);
+            row.append(name, price);
             box.appendChild(row);
         });
     }
@@ -401,7 +457,7 @@
             });
             const j = await r.json();
             if (seq !== slotSeq) return;
-            if (!r.ok) { box.innerHTML = '<p class="muted">' + ((j.error && j.error.message) || 'Could not load times') + '</p>'; return; }
+            if (!r.ok) { box.textContent = (j.error && j.error.message) || 'Could not load times'; return; }
             const days = j.data.days || [];
             if (!days.length) { box.innerHTML = '<p class="muted">No open times right now. Please check back later.</p>'; return; }
             box.innerHTML = '';
