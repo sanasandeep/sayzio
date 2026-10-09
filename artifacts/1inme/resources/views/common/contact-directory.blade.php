@@ -15,15 +15,37 @@
     $timezone = in_array($s['timezone'] ?? '', timezone_identifiers_list(), true) ? $s['timezone'] : 'UTC';
     $layout = in_array($s['layout'] ?? '', ['grid','compact'], true) ? $s['layout'] : 'list';
     $title = $link->title ?: 'Contact directory';
+    $surfaceInk = $colors['text_color'];
+    $pbBs = $link->settings['biolink'] ?? [];
+    $pbOn = \App\Modules\User\Support\PageBackground::chosen($pbBs);
+    $pb = $pbOn ? \App\Modules\User\Support\PageBackground::resolve($pbBs) : null;
+    $presentation = \App\Modules\User\Support\MenuPresentation::resolve($pbBs, $s, $colors['accent']);
+    if (!empty($pbBs['font_family'])) {
+        $font = $presentation['font_css'];
+    }
+    if (preg_match('/^#[0-9a-fA-F]{6}$/', $pbBs['font_color'] ?? '')) {
+        $colors['text_color'] = $pbBs['font_color'];
+    }
 @endphp
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ $title }}</title>
 @include('common.partials.toolbar-theme-color')
 @include('common.partials.biolink-block-assets')
+@if($presentation['font_href'])
+<link rel="stylesheet" href="{{ $presentation['font_href'] }}">
+@endif
 <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script><script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
 <style>
 body{margin:0;background:{{ $colors['background'] }};color:{{ $colors['text_color'] }};font-family:{{ $font }}}.directory{max-width:900px;margin:auto;padding:32px 20px 90px}.directory h1{font-size:clamp(28px,6vw,44px);line-height:1.1;margin:16px 0}.directory p{line-height:1.55}.directory input{font:inherit;width:100%;box-sizing:border-box;border:1px solid currentColor;border-radius:10px;padding:13px;background:{{ $colors['surface'] }};color:inherit}.directory nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.directory a{color:inherit}.directory nav a,.contact-actions a{border:1px solid currentColor;padding:8px 12px;border-radius:9px;text-decoration:none;font-size:14px}.directory section{scroll-margin-top:20px;margin-top:28px}.directory h2{font-size:23px;margin-bottom:14px}.contact-list{display:grid;gap:12px}.directory.grid .contact-list{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.contact{background:{{ $colors['surface'] }};border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:16px;padding:20px;scroll-margin-top:20px}.directory.compact .contact{padding:12px;border-radius:8px}.contact-heading{display:flex;gap:14px;align-items:center}.contact img{width:58px;height:58px;object-fit:cover;border-radius:12px}.contact h3{font-size:19px;font-weight:700;margin:0}.contact small{display:block;margin-top:5px}.contact-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}.availability{font-size:13px;margin-top:10px}.emergency{border-left:4px solid {{ $colors['accent'] }};padding:12px 16px;background:{{ $colors['surface'] }}}[hidden]{display:none!important}.empty{padding:48px 20px;text-align:center}.no-results{padding:20px}
+.directory header{padding:8px 0 24px;border-bottom:1px solid color-mix(in srgb,currentColor 15%,transparent)}.directory header>p:first-child{font-size:11px;letter-spacing:.16em;font-weight:700;opacity:.65}.directory .empty{margin-top:28px;padding:36px 24px;border:1px solid color-mix(in srgb,currentColor 15%,transparent);border-radius:20px;background:{{ $colors['surface'] }};color:{{ $surfaceInk }}}.empty-icon{display:inline-grid;place-items:center;width:56px;height:56px;border-radius:16px;background:color-mix(in srgb,{{ $colors['accent'] }} 12%,transparent);color:{{ $colors['accent'] }};font-size:24px}.directory .empty h2{margin:20px 0 10px}.directory .empty p{max-width:360px;margin:0 auto}.directory .empty a{display:inline-block;margin-top:24px;padding:10px 16px;border:1px solid currentColor;border-radius:10px;text-decoration:none;font-weight:600}
+@if($pbOn)
+body { @include('common.page-background.body-declarations') }
+@include('common.page-background.css')
+@endif
 </style></head><body>
+@if($pbOn)
+@include('common.page-background.layers')
+@endif
 <main class="directory {{ $layout }}" id="directory">
 @include('common.partials.biolink-block-list', ['blkFontColor'=>$colors['text_color'],'blkGlobalTheme'=>[],'blkBtnInline'=>'','blkSlot'=>'top','blkSectionIds'=>$blkSectionIds,'blkEmpty'=>false])
 <header><p>CONTACT DIRECTORY</p><h1>{{ $title }}</h1><p>{{ $s['intro'] ?? 'Find the right department and get in touch.' }}</p></header>
@@ -70,7 +92,11 @@ $extension=ctype_digit((string)($d['extension'] ?? '')) ? ';ext='.$d['extension'
 @if($category['id'])@include('common.partials.biolink-block-list', ['blkFontColor'=>$colors['text_color'],'blkGlobalTheme'=>[],'blkBtnInline'=>'','blkSlot'=>\App\Modules\User\Support\MenuBlockSlot::forSection((int)$category['id']),'blkSectionIds'=>$blkSectionIds,'blkEmpty'=>false])@endif
 @endif
 @endforeach
-@if($contacts->isEmpty())<div class="empty"><h2>Your help desk, in one place</h2><p>This directory is being prepared. Contact details will appear here soon.</p></div>@else<p id="directory-no-results" class="no-results" hidden role="status">No matching contacts. Try a different name or department.</p>@endif
+@if($contacts->isEmpty())<div class="empty"><span class="empty-icon" aria-hidden="true"><i class="fas fa-address-book"></i></span><h2>Your help desk, in one place</h2><p>This directory is being prepared. Contact details will appear here soon.</p>
+@if(auth()->check() && (int)auth()->id() === (int)$link->user_id)
+<a href="{{ route('user.links.directory.editor', $link) }}" target="_top">Set up your contacts →</a>
+@endif
+</div>@else<p id="directory-no-results" class="no-results" hidden role="status">No matching contacts. Try a different name or department.</p>@endif
 @include('common.partials.biolink-block-list', ['blkFontColor'=>$colors['text_color'],'blkGlobalTheme'=>[],'blkBtnInline'=>'','blkSlot'=>'below','blkSectionIds'=>$blkSectionIds,'blkEmpty'=>false])
 </main>
 <script src="{{ asset('js/contact-directory.js') }}" defer></script>

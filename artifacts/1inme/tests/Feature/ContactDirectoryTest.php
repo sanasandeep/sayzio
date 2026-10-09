@@ -41,6 +41,15 @@ class ContactDirectoryTest extends TestCase
         $this->get('/'.$link->alias)->assertOk()->assertSee('This directory is being prepared');
     }
 
+    public function test_directory_honors_appearance_and_keeps_setup_private(): void
+    {
+        [$user, $link, $directory] = $this->directory();
+        $link->update(['settings' => ['biolink' => ['font_family' => 'Space Grotesk', 'font_color' => '#123456', 'background_type' => 'color', 'background_color' => '#abcdef']]]]);
+        $directory->contacts()->create(['name' => 'Unpublished person', 'is_active' => false]);
+        $this->get('/'.$link->alias)->assertOk()->assertSee('Space Grotesk')->assertSee('#123456')->assertSee('#abcdef')->assertDontSee('Unpublished person')->assertDontSee('Set up your contacts');
+        $this->actingAs($user)->get('/'.$link->alias)->assertOk()->assertSee('Set up your contacts');
+    }
+
     public function test_contacts_cannot_be_assigned_to_another_directory_category(): void
     {
         [$user,$link] = $this->directory();
