@@ -1612,3 +1612,12 @@ Choose the `salon_spa` link type to create a treatment catalogue for a salon, ba
 The web editor reuses service booking for staff assignments, weekly availability, blocked dates, lead times and appointment management. Visitors select one treatment, a staff member or any available staff, and a time before submitting their contact details. Manual confirmation is the default; automatic confirmation is optional. Pay-at-venue treatments use payment mode none. Confirmed appointments can be marked checked in, completed, no-show or cancelled.
 
 The service-booking API also accepts salon aliases. The dedicated Salon & Spa editor is available on the web; native mobile editor support is not included in this release.
+
+
+### Professional Services pages
+
+The existing Service Booking link type supports professional practices including freelancers, consultants, doctors, CAs, CSs and lawyers. Add service categories and consultation durations, staff schedules and appointment rules. Display-only mode presents services without booking; booking mode accepts appointment requests.
+
+Professional details include a practice label, qualifications, office location, consultation mode, enquiry email and phone. Contact links use the supplied details. Services are searchable, page fonts are honoured, and headings, service names, descriptions and prices have optional colour controls with reset-to-default actions. Preparation and follow-up instructions are available on each service.
+
+Use the Blocks tab for a profile, FAQs, portfolio, contact form or other supported blocks. Place blocks above the title, before services, after a category or below services. Blocks assigned to deleted or inactive categories fall back below the catalogue. These capabilities also apply to Salon & Spa pages.

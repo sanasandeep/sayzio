@@ -2783,6 +2783,9 @@ class BiolinkBlockController extends Controller
      */
     private function menuSections(\App\Modules\User\Models\Link $link)
     {
+        if ($link->isAppointmentPage()) {
+            return $link->serviceBooking?->categories()->orderBy('sort_order')->orderBy('id')->get() ?? collect();
+        }
         $menu = $link->restaurantMenu ?: $link->storeMenu;
         if (! $menu) {
             return collect();

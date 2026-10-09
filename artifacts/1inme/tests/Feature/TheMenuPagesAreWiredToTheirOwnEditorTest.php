@@ -397,4 +397,36 @@ class TheMenuPagesAreWiredToTheirOwnEditorTest extends TestCase
         $this->assertSame([], $missing,
             'these types have their own editor screen and no tab back to it: '.implode(', ', $missing));
     }
+    public function test_professional_services_render_blocks_in_each_position_and_keep_orphans(): void
+    {
+        $link = Link::create(['user_id' => $this->user->id, 'type' => Link::TYPE_SERVICE_BOOKING, 'alias' => Link::generateAlias(), 'title' => 'Professional Practice', 'is_active' => true]);
+        $config = \App\Modules\User\Models\ServiceBooking::create([
+            'link_id' => $link->id, 'user_id' => $this->user->id, 'mode' => 'booking', 'currency' => 'INR',
+            'settings' => ['professional_label' => 'Chartered Accountant', 'qualifications' => 'ACA', 'office_location' => 'Hyderabad', 'consultation_mode' => 'online', 'enquiry_email' => 'practice@example.com', 'item_color' => '#123456'],
+        ]);
+        $category = $config->categories()->create(['name' => 'Advisory', 'is_active' => true]);
+        $config->services()->create(['category_id' => $category->id, 'name' => 'Tax consultation', 'price' => 1000, 'duration_minutes' => 30, 'is_active' => true]);
+        $this->block($link, 'Top profile', 'top');
+        $this->block($link, 'Before services', 'above');
+        $this->block($link, 'After advisory', 'section:'.$category->id);
+        $this->block($link, 'Contact footer', 'below');
+        $this->block($link, 'Orphan content', 'section:999999');
+        $html = $this->page($link);
+        $markers = ['Top profile', 'Professional Practice', 'Before services', 'Tax consultation', 'After advisory', 'Contact footer'];
+        $last = -1;
+        foreach ($markers as $marker) {
+            $position = strpos($html, $marker);
+            // The title also occurs in <title>; start order checks at the body.
+            if ($marker === 'Professional Practice') $position = strpos($html, $marker, strpos($html, '<body'));
+            $this->assertNotFalse($position, $marker);
+            $this->assertGreaterThan($last, $position, $marker);
+            $last = $position;
+        }
+        $this->assertStringContainsString('Orphan content', $html);
+        $this->assertStringContainsString('mailto:practice@example.com', $html);
+        $this->assertStringContainsString('Online consultation', $html);
+        $this->assertStringContainsString('Chartered Accountant', $html);
+        $this->assertStringContainsString('color:#123456', $html);
+    }
+
 }

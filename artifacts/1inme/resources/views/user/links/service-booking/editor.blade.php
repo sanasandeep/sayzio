@@ -43,7 +43,8 @@
             <h1 class="text-xl font-bold" style="color:var(--text-primary)">{{ $link->title ?: $link->alias }}</h1>
             <p class="text-sm" style="color:var(--text-muted)">{{ $link->type === 'salon_spa' ? 'Salon & Spa' : 'Service Booking' }} · /{{ $link->alias }}</p>
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap">
+            <a href="{{ route('user.links.blocks.editor', $link) }}" class="sb-btn ghost"><i class="fas fa-layer-group"></i> Blocks</a>
             @if(\App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'service_booking_builder'))
                 <a href="{{ route('user.links.ai-type-builder', $link) }}" class="sb-btn ghost"><i class="fas fa-wand-magic-sparkles"></i> Build with AI</a>
             @endif
@@ -159,6 +160,18 @@
                     <label class="sb-label">Service layout</label>
                     <select class="sb-select" x-model="config.catalog_layout" @change="saveSettings()"><option value="list">List with photos</option><option value="compact">Compact price list</option><option value="photo">Photo grid</option></select>
                 </div>
+                <div class="sb-row"><label class="sb-label">Service colours</label>
+                    @foreach(['heading_color' => 'Headings', 'item_color' => 'Service names', 'desc_color' => 'Descriptions', 'price_color' => 'Prices'] as $colorKey => $colorLabel)
+                    <label class="sb-label">{{ $colorLabel }}</label><div style="display:flex;gap:8px;margin-bottom:8px"><input type="color" :value="config.{{ $colorKey }} || '#3d6bff'" @change="config.{{ $colorKey }} = $event.target.value; saveSettings()"><button type="button" class="sb-btn sm ghost" @click="config.{{ $colorKey }} = ''; saveSettings()">Use default</button></div>
+                    @endforeach
+                </div>
+                <div class="sb-row"><label class="sb-label">Professional title / practice</label><input class="sb-input" maxlength="100" x-model="config.professional_label" @change="saveSettings()" placeholder="Consultant, clinic, law firm, freelancer..."></div>
+                <div class="sb-row"><label class="sb-label">Qualifications and credentials</label><input class="sb-input" maxlength="300" x-model="config.qualifications" @change="saveSettings()" placeholder="Your actual qualifications and registration details"></div>
+                <div class="sb-row"><label class="sb-label">Office location</label><input class="sb-input" maxlength="300" x-model="config.office_location" @change="saveSettings()"></div>
+                <div class="sb-row"><label class="sb-label">Consultation mode</label><select class="sb-select" x-model="config.consultation_mode" @change="saveSettings()"><option value="flexible">Arrange with client</option><option value="office">In person</option><option value="online">Online</option><option value="phone">Phone</option></select></div>
+                <div class="sb-row"><label class="sb-label">Enquiry email</label><input class="sb-input" type="email" x-model="config.enquiry_email" @change="saveSettings()"></div>
+                <div class="sb-row"><label class="sb-label">Contact phone</label><input class="sb-input" type="tel" x-model="config.contact_phone" @change="saveSettings()"></div>
+                <p class="text-xs mb-4" style="color:var(--text-muted)">Use Blocks to add your profile, FAQs, portfolio, contact form or other content. Each block can be placed around your services.</p>
                 <div class="sb-row"><label><input type="checkbox" x-model="config.auto_confirm" @change="saveSettings()"> Automatically confirm available appointments</label><p class="text-xs">Leave off to review requests first.</p></div>
                 <div class="sb-row">
                     <label class="sb-label">Currency</label>
@@ -387,11 +400,11 @@
                     <template x-for="c in categories" :key="c.id"><option :value="c.id" x-text="c.name"></option></template>
                 </select>
             </div>
-            @if($link->type === 'salon_spa')
+            @if($link->isAppointmentPage())
             <div class="sb-row"><label><input type="checkbox" x-model="svcModal.price_from"> Show price as “Starting from”</label></div>
-            <div class="sb-row"><label class="sb-label">Preparation / suitability notes</label><textarea class="sb-textarea" maxlength="1000" x-model="svcModal.preparation_notes" placeholder="Before your appointment"></textarea></div>
-            <div class="sb-row"><label class="sb-label">Aftercare</label><textarea class="sb-textarea" maxlength="1000" x-model="svcModal.aftercare_notes" placeholder="Care after your treatment"></textarea></div>
-            <p class="text-xs mb-3">Create separate services for options with different prices or durations, such as short and long hair.</p>
+            <div class="sb-row"><label class="sb-label">Before the appointment</label><textarea class="sb-textarea" maxlength="1000" x-model="svcModal.preparation_notes" placeholder="Before your appointment"></textarea></div>
+            <div class="sb-row"><label class="sb-label">Follow-up instructions</label><textarea class="sb-textarea" maxlength="1000" x-model="svcModal.aftercare_notes" placeholder="Care after your treatment"></textarea></div>
+            <p class="text-xs mb-3">Create separate services for options with different prices or durations, such as initial and follow-up consultations.</p>
             @endif
             <div class="sb-row" style="display:flex;gap:10px">
                 <div style="flex:1"><label class="sb-label">Estimated price</label><input class="sb-input" type="number" step="0.01" min="0" x-model="svcModal.price"></div>
@@ -519,7 +532,7 @@
     $sbServices = $config->services->map(fn($s)=>['id'=>$s->id,'category_id'=>$s->category_id,'name'=>$s->name,'description'=>$s->description,'price'=>$s->price,'duration_minutes'=>$s->duration_minutes,'photo_url'=>$s->photo_url,'price_from'=>$s->price_from,'preparation_notes'=>$s->preparation_notes,'aftercare_notes'=>$s->aftercare_notes,'is_unavailable'=>$s->is_unavailable,'capacity'=>$s->capacity,'buffer_before_minutes'=>$s->buffer_before_minutes,'buffer_after_minutes'=>$s->buffer_after_minutes])->values();
     $sbRules = $config->availabilityRules->map(fn($r)=>['id'=>$r->id,'staff_id'=>$r->staff_id ? (int)$r->staff_id : null,'day_of_week'=>$r->day_of_week,'start_time'=>substr((string)$r->start_time,0,5),'end_time'=>substr((string)$r->end_time,0,5)])->values();
     $sbBlocked = $config->blockedDates->map(fn($b)=>['id'=>$b->id,'staff_id'=>$b->staff_id ? (int)$b->staff_id : null,'date'=>$b->date?->format('Y-m-d'),'reason'=>$b->reason])->values();
-    $sbConfigData = ['mode' => $config->mode, 'currency' => $config->currency, 'accent_color' => $config->accent_color, 'slot_length_minutes' => $config->slot_length_minutes, 'lead_time_minutes' => $config->lead_time_minutes, 'max_days_ahead' => $config->max_days_ahead, 'timezone' => $config->timezone, 'catalog_layout' => $config->settings['catalog_layout'] ?? 'list', 'auto_confirm' => (bool) ($config->settings['auto_confirm'] ?? false), 'whatsapp_number' => $config->settings['whatsapp_number'] ?? ''];
+    $sbConfigData = ['mode' => $config->mode, 'currency' => $config->currency, 'accent_color' => $config->accent_color, 'slot_length_minutes' => $config->slot_length_minutes, 'lead_time_minutes' => $config->lead_time_minutes, 'max_days_ahead' => $config->max_days_ahead, 'timezone' => $config->timezone, 'catalog_layout' => $config->settings['catalog_layout'] ?? 'list', 'auto_confirm' => (bool) ($config->settings['auto_confirm'] ?? false), 'professional_label' => $config->settings['professional_label'] ?? '', 'qualifications' => $config->settings['qualifications'] ?? '', 'office_location' => $config->settings['office_location'] ?? '', 'consultation_mode' => $config->settings['consultation_mode'] ?? 'flexible', 'enquiry_email' => $config->settings['enquiry_email'] ?? '', 'contact_phone' => $config->settings['contact_phone'] ?? '', 'heading_color' => $config->settings['heading_color'] ?? '', 'item_color' => $config->settings['item_color'] ?? '', 'desc_color' => $config->settings['desc_color'] ?? '', 'price_color' => $config->settings['price_color'] ?? '', 'whatsapp_number' => $config->settings['whatsapp_number'] ?? ''];
     $sbTaxData = ['enabled' => $config->taxEnabled(), 'rate' => $config->taxRate(), 'inclusive' => $config->taxInclusive(), 'label' => $config->taxLabel()];
     $sbBuffers = ['before' => $config->bufferBeforeMinutes(), 'after' => $config->bufferAfterMinutes()];
     $sbSelfService = ['allow_cancel' => $config->selfServiceAllowsCancel(), 'allow_reschedule' => $config->selfServiceAllowsReschedule(), 'cutoff_hours' => $config->selfServiceCutoffHours()];
@@ -593,6 +606,11 @@ function serviceBookingEditor() {
                 mode:this.config.mode,
                 catalog_layout:this.config.catalog_layout,
                 auto_confirm:!!this.config.auto_confirm,
+                professional_label:this.config.professional_label, qualifications:this.config.qualifications,
+                office_location:this.config.office_location, consultation_mode:this.config.consultation_mode,
+                enquiry_email:this.config.enquiry_email, contact_phone:this.config.contact_phone,
+                heading_color:this.config.heading_color || null, item_color:this.config.item_color || null,
+                desc_color:this.config.desc_color || null, price_color:this.config.price_color || null,
                 currency:(this.config.currency||'USD').toUpperCase(),
                 accent_color:this.config.accent_color,
                 slot_length_minutes:parseInt(this.config.slot_length_minutes||30),
