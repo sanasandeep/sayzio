@@ -2,6 +2,7 @@
 @section('title', 'Create Event')
 
 @section('content')
+@include('user.links.partials.create-premium-style')
 @php
     $base = rtrim(config('app.url', url('/')), '/');
 @endphp
@@ -38,7 +39,7 @@
         <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-white/30 hover:text-white/50" title="Choose a different type"><i class="fas fa-arrow-left"></i></a>
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Create Event</h1>
-            <p class="text-xs mt-0.5" style="color: var(--text-muted);">Step 2 of 2 &middot; <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-blue-400 hover:underline">change type</a></p>
+            <p class="text-xs mt-0.5" style="color: var(--text-muted);"><span class="create-progress" aria-label="Step 2 of 2"><span><span class="step-dot">✓</span>Choose</span><span class="progress-line" aria-hidden="true"></span><span class="active"><span class="step-dot">2</span>Set up</span></span> <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-blue-400 hover:underline">change type</a></p>
         </div>
     </div>
 

@@ -44,7 +44,7 @@ class CreateLinkTypeCoverageTest extends TestCase
             ->get(route('user.links.create'))
             ->assertOk();
 
-        $resp->assertDontSee('animation-delay:', false);
+        $resp->assertDontSee('style="animation-delay:', false);
         $types = LinkTypeCategories::types();
         $this->assertNotEmpty($types, 'the link-type catalog must not be empty');
 

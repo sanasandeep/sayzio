@@ -6,16 +6,17 @@
     $aliasLimits = $aliasLimits ?? ['min' => 3, 'max' => 50];
     $domainHost  = $domainHost ?? request()->getHost();
 @endphp
-<div class="max-w-3xl mx-auto">
+<div class="max-w-3xl mx-auto create-premium">
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ route('user.links.index') }}" class="cl-back transition-colors"><i class="fas fa-arrow-left"></i></a>
-        <div><p class="cl-step">Step 1 of 2</p><h1 class="text-2xl font-bold" style="color: var(--text-primary);">What would you like to create?</h1><p class="cl-subtitle">Choose a type. You’ll add the details next.</p></div>
+        <div><div class="create-progress" aria-label="Step 1 of 2"><span class="active"><span class="step-dot">1</span>Choose</span><span class="progress-line" aria-hidden="true"></span><span><span class="step-dot">2</span>Set up</span></div><h1 class="text-2xl font-bold" style="color: var(--text-primary);">What would you like to create?</h1><p class="cl-subtitle">Choose a type. You’ll add the details next.</p></div>
     </div>
 
     <style>
 [x-cloak]{display:none!important}.cl-scope{--cl-brand:linear-gradient(135deg,#3E3AE0,#3D6BFF)}.cl-back,.cl-step{color:var(--text-faint)}.cl-step{font-size:12px;margin-bottom:6px}.cl-subtitle{font-size:14px;color:var(--text-dimmed);margin-top:8px}.cl-card{background:var(--bg-card);border:1px solid var(--border-glass);border-radius:20px}.cl-primary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.cl-primary{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:20px;border:1px solid var(--border-glass);border-radius:14px;gap:8px;color:var(--text-primary);background:transparent}.cl-primary strong{font-size:16px;margin-top:8px}.cl-primary>span:last-child{font-size:13px;line-height:1.5;color:var(--text-dimmed)}.cl-primary:hover,.cl-tile:hover{background:var(--bg-glass-hover)}.cl-primary:focus-visible,.cl-tile:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.cl-ico{display:grid;place-items:center;flex:none;background:var(--bg-glass-hover);color:var(--text-dimmed);border-radius:10px}.cl-ico-lg{width:40px;height:40px}.cl-ico-md{width:34px;height:34px}.cl-ico-sm{width:30px;height:30px}.cl-ico--on,.cl-tile:hover .cl-ico{background:var(--cl-brand);color:white}.cl-tile--on{border-color:var(--accent)!important;background:color-mix(in srgb,var(--accent) 7%,transparent)}.cl-options{margin-top:24px;padding-top:24px;border-top:1px solid var(--border-glass)}.cl-options-title{font-size:16px;font-weight:650;color:var(--text-primary);margin-bottom:16px}.cl-field{border:1px solid var(--border-glass);border-radius:10px}.cl-input{background:transparent;color:var(--text-primary);outline:none}.cl-input::placeholder{color:var(--text-faint)}.cl-field:focus-within{border-color:var(--accent)}.cl-tile{display:flex;gap:10px;padding:12px;border:1px solid transparent;border-radius:12px;min-height:76px}.cl-tile-name{font-size:14px;font-weight:600;color:var(--text-primary)}.cl-tile-desc{font-size:12px;color:var(--text-dimmed);line-height:1.5}.cl-radio{width:16px;height:16px;border:1px solid var(--border-glass);border-radius:50%;display:grid;place-items:center;flex:none}.cl-radio--on{background:var(--accent);border-color:var(--accent)}.cl-eyebrow{font-size:11px;color:var(--text-faint);letter-spacing:.08em;text-transform:uppercase}.cl-bar{border-top:1px solid var(--border-glass)}.cl-continue{background:var(--accent);color:white;border-radius:10px;font-size:14px;font-weight:600}.cl-continue:disabled{background:var(--bg-glass-hover);color:var(--text-faint);cursor:not-allowed}.cl-cancel{color:var(--text-dimmed)}.cl-help{text-align:center;font-size:13px;color:var(--text-dimmed);margin-top:20px}.cl-help a{color:var(--accent);font-weight:600}.cl-bulk summary{cursor:pointer;font-size:13px;color:var(--text-dimmed);margin-bottom:16px}.cl-pick{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--border-glass);border-radius:12px}.cl-go{color:var(--text-faint)}@media(max-width:480px){.cl-primary{padding:14px}.cl-primary strong{font-size:14px}.cl-primary>span:last-child{font-size:12px}.cl-bar .cl-cancel{display:none}}
     </style>
 
+    @include('user.links.partials.create-premium-style')
     <div class="cl-scope">
 
     @php
@@ -65,12 +66,12 @@
             <input type="hidden" name="domain_id" value="{{ old('domain_id', $defaultDomainId ?? '') }}">
             @error('alias') <p role="alert" style="color:#ef4444;">{{ $message }} <a href="{{ route('user.links.create') }}">Clear custom address</a></p> @enderror
             <div class="cl-primary-grid" role="group" aria-label="What would you like to create?">
-                <button type="button" class="cl-primary" :class="type === 'url' ? 'cl-tile--on' : ''" @click="pickPrimary('url')"><span class="cl-ico cl-ico-lg"><i class="fas fa-link"></i></span><strong>Short link</strong><span>Shorten an existing URL.</span></button>
-                <button type="button" class="cl-primary" :class="type === 'biolink' ? 'cl-tile--on' : ''" @click="pickPrimary('biolink')"><span class="cl-ico cl-ico-lg"><i class="fas fa-id-card"></i></span><strong>Link in Bio</strong><span>Your links and content on one page.</span></button>
-                <button type="button" class="cl-primary" :class="group === 'business' ? 'cl-tile--on' : ''" @click="openGroup('business')"><span class="cl-ico cl-ico-lg"><i class="fas fa-store"></i></span><strong>Business page</strong><span>Menus, services, contacts and catalogs.</span></button>
-                <button type="button" class="cl-primary" :class="group === 'more' ? 'cl-tile--on' : ''" @click="openGroup('more')"><span class="cl-ico cl-ico-lg"><i class="fas fa-shapes"></i></span><strong>More options</strong><span>Files, events and other link types.</span></button>
+                <button type="button" class="cl-primary" :class="type === 'url' ? 'cl-tile--on' : ''" @click="pickPrimary('url')" data-art="url" :aria-pressed="type === 'url'">@include('user.links.partials.create-illustration', ['kind' => 'url'])<span class="create-check" aria-hidden="true"><i class="fas fa-check"></i></span><strong>Short link</strong><span>Shorten an existing URL.</span></button>
+                <button type="button" class="cl-primary" :class="type === 'biolink' ? 'cl-tile--on' : ''" @click="pickPrimary('biolink')" data-art="biolink" :aria-pressed="type === 'biolink'">@include('user.links.partials.create-illustration', ['kind' => 'biolink'])<span class="create-check" aria-hidden="true"><i class="fas fa-check"></i></span><strong>Link in Bio</strong><span>Your links and content on one page.</span></button>
+                <button type="button" class="cl-primary" :class="group === 'business' ? 'cl-tile--on' : ''" @click="openGroup('business')" data-art="business" :aria-pressed="group === 'business'">@include('user.links.partials.create-illustration', ['kind' => 'business'])<span class="create-check" aria-hidden="true"><i class="fas fa-check"></i></span><strong>Business page</strong><span>Menus, services, contacts and catalogs.</span></button>
+                <button type="button" class="cl-primary" :class="group === 'more' ? 'cl-tile--on' : ''" @click="openGroup('more')" data-art="more" :aria-pressed="group === 'more'">@include('user.links.partials.create-illustration', ['kind' => 'more'])<span class="create-check" aria-hidden="true"><i class="fas fa-check"></i></span><strong>More options</strong><span>Files, events and other link types.</span></button>
             </div>
-            <div x-show="group" x-cloak class="cl-options">
+            <div x-show="group" x-cloak x-transition.opacity.duration.180ms class="cl-options">
                 <h2 class="cl-options-title" x-text="group === 'business' ? 'What does your business need?' : 'Explore more link types'"></h2>
                 <div x-show="group === 'more'" class="cl-field mb-4">
                     <label for="link-type-search" class="sr-only">Search link types</label>
@@ -154,7 +155,6 @@
 
     <p class="cl-help">Not sure where to start? <a href="{{ route('user.links.wizard') }}">Help me choose</a></p>
     <details class="mt-8 cl-bulk"><summary>Bulk tools &amp; advanced</summary>
-        <h2 class="cl-eyebrow mb-3 px-1">Bulk &amp; advanced</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <a href="{{ route('user.links.url.bulk') }}" class="cl-pick group">
                 <span class="cl-ico cl-ico-md"><i class="fas fa-layer-group"></i></span>
