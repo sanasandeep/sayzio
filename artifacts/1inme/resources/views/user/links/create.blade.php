@@ -85,7 +85,7 @@
                             @foreach($category['types'] as $opt)
                                 <label id="lt-card-{{ $opt['value'] }}" class="relative cursor-pointer block group h-full" @click="type = '{{ $opt['value'] }}'" @keydown.enter.prevent="type = '{{ $opt['value'] }}'" @keydown.space.prevent="type = '{{ $opt['value'] }}'" tabindex="0" role="radio" :aria-checked="type === '{{ $opt['value'] }}'"
                                        x-show="matches({{ \Illuminate\Support\Js::from($opt['label']) }}, {{ \Illuminate\Support\Js::from($opt['desc']) }}, 'cat-{{ $catIdx }}', '{{ $opt['value'] }}')"
-                                       style="animation-delay: {{ min($cardIndex++ * 35, 420) }}ms">
+                                       >
                                     <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" :disabled="type !== '{{ $opt['value'] }}'" class="sr-only peer">
                                     <div class="cl-tile" :class="type === '{{ $opt['value'] }}' ? 'cl-tile--on' : ''">
                                         <span class="cl-ico cl-ico-md" :class="type === '{{ $opt['value'] }}' ? 'cl-ico--on' : ''">
