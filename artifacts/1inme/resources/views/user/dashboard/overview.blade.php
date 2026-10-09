@@ -25,7 +25,7 @@
     </div>
     <div class="ov-columns">
         <section class="ov-panel">
-            <div class="ov-line"><h2>Plan & usage</h2><span class="ov-muted">{{ $user->plan->name ?? 'Free' }}</span></div>
+            <div class="ov-line"><h2>Plan &amp; usage</h2><span class="ov-muted">{{ $user->plan->name ?? 'Free' }}</span></div>
             <p class="ov-muted">Account allowance across all your workspaces.</p>
             @foreach($usage as $item)
             @php

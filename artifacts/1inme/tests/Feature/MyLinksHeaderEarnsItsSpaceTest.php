@@ -165,7 +165,7 @@ class MyLinksHeaderEarnsItsSpaceTest extends TestCase
 
         foreach (['search', 'type', 'project_id', 'status', 'sort'] as $field) {
             $this->assertMatchesRegularExpression(
-                '/name="'.$field.'"/',
+                '/name="'.$field.'(?:\[\])?"/',
                 $html,
                 "the '$field' filter was lost when the filter card became a toolbar"
             );
