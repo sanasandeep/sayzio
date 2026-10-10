@@ -68,7 +68,7 @@ class DashboardCustomizeStepRegressionTest extends TestCase
         $user = $this->makeUser();
 
         $html = $this->actingAs($user)
-            ->get(route('user.dashboard'))
+            ->get(route('user.dashboard', ['view' => 'custom']))
             ->assertOk()
             ->getContent();
 
@@ -110,7 +110,7 @@ class DashboardCustomizeStepRegressionTest extends TestCase
         DashboardPresets::applyPreset($user->fresh(), 'content_posts');
 
         $html = $this->actingAs($user->fresh())
-            ->get(route('user.dashboard'))
+            ->get(route('user.dashboard', ['view' => 'custom']))
             ->assertOk()
             ->assertSee('Some tiles are hidden by your current layout.')
             ->getContent();

@@ -217,7 +217,7 @@ class ApiAiGroundingSharedMindRevocationTest extends TestCase
             ->postJson('/api/v1/links/wizard/ai-generate', [
                 'category'    => 'business',
                 'page_type'   => 'local_shop',
-                'answers'     => ['business_name' => 'Bob Bakes', 'address' => '1 Pastry Lane'],
+                'answers'     => ['display_name' => 'Bob Bakes', 'headline' => 'Fresh bakery favourites', 'business_name' => 'Bob Bakes', 'address' => '1 Pastry Lane'],
                 'ai_mind_ids' => $mindIds,
             ]);
     }

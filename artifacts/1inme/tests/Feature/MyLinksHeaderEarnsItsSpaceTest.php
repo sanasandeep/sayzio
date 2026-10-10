@@ -55,13 +55,13 @@ class MyLinksHeaderEarnsItsSpaceTest extends TestCase
         return $link->fresh();
     }
 
-    private function page(): string
+    private function page(bool $reports = false): string
     {
         $ws = $this->user->ownedWorkspaces()->first();
 
         return $this->actingAs($this->user)
             ->withSession($ws ? [WorkspaceContext::SESSION_KEY => $ws->id] : [])
-            ->get('/user/links')
+            ->get('/user/links'.($reports ? '?view=reports' : ''))
             ->assertOk()
             ->getContent();
     }
@@ -82,7 +82,7 @@ class MyLinksHeaderEarnsItsSpaceTest extends TestCase
         $this->assertStringContainsString('links-facts', $html);
         $this->assertStringContainsString('2</strong> links', $html);
         $this->assertStringContainsString('2</strong> active', $html);
-        $this->assertStringContainsString('308', $html, 'the click total is missing from the header');
+        $this->assertStringContainsString('Reports', $html);
     }
 
     /**
@@ -108,6 +108,8 @@ class MyLinksHeaderEarnsItsSpaceTest extends TestCase
     /** The space the ring held now shows seven days of clicks. */
     public function test_the_trend_replaces_the_ring(): void
     {
+        // Keep today's 09:00 clicks in the past regardless of the CI run time.
+        $this->travelTo(now()->startOfDay()->setTime(12, 0));
         $link = $this->makeLink('biolink', 60);
 
         // 3 + 9 + 5 + 14 + 8 + 21 + 17 = 77 across the last seven days.
@@ -128,10 +130,10 @@ class MyLinksHeaderEarnsItsSpaceTest extends TestCase
             'clicked_at' => now()->subDays(30),
         ]);
 
-        $html = $this->page();
+        $html = $this->page(true);
 
-        $this->assertStringContainsString('linksSpark', $html, 'the sparkline is not drawn');
-        $this->assertStringContainsString('+77', $html, 'the seven-day total is wrong or missing');
+        $this->assertStringContainsString('Daily clicks', $html);
+        $this->assertStringContainsString('77</strong>', $html);
         $this->assertStringNotContainsString(
             'pulse-orb',
             $this->visible($html),
@@ -144,9 +146,9 @@ class MyLinksHeaderEarnsItsSpaceTest extends TestCase
     {
         $this->makeLink();
 
-        $html = $this->page();
+        $html = $this->page(true);
 
-        $this->assertStringContainsString('No clicks in the last 7 days', $html);
+        $this->assertStringContainsString('No traffic recorded in this period', $html);
         $this->assertStringNotContainsString('linksSpark', $html);
     }
 
@@ -165,7 +167,7 @@ class MyLinksHeaderEarnsItsSpaceTest extends TestCase
 
         foreach (['search', 'type', 'project_id', 'status', 'sort'] as $field) {
             $this->assertMatchesRegularExpression(
-                '/name="'.$field.'"/',
+                '/name="'.$field.'(?:\[\])?"/',
                 $html,
                 "the '$field' filter was lost when the filter card became a toolbar"
             );

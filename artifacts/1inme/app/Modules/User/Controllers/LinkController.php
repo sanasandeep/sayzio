@@ -120,66 +120,47 @@ class LinkController extends Controller
         $links = $this->applySort($query, $sort)->paginate($perPage)->withQueryString();
         $projects = workspace_owner()->projects()->orderBy('name')->get();
 
-        // Lightweight, unfiltered roll-up for the bento command-center hero /
-        // metric tiles so the header reflects the whole account, not the
-        // currently filtered page.
         $owner = workspace_owner();
+        $scope = $this->buildLinksQuery($request);
         $summary = [
-            'total'   => (int) $owner->links()->count(),
-            'active'  => (int) $owner->links()->where('is_active', true)->count(),
-            'clicks'  => (int) $owner->links()->sum('total_clicks'),
+            'total' => (clone $scope)->count(),
+            'active' => (clone $scope)->where('is_active', true)->count(),
+            'clicks' => (clone $scope)->sum('total_clicks'),
         ];
-
-        $trend = $this->clickTrend($owner);
-
-        return view('user.links.index', compact('links', 'projects', 'summary', 'sort', 'trend'));
-    }
-
-    /**
-     * Clicks per day for the last seven days, for the sparkline beside the
-     * total on My Links.
-     *
-     * The header used to spend its most prominent element -- a large ring --
-     * on the same figure printed next to it. A total says how big the account
-     * is; it cannot say whether last week was better than the one before,
-     * which is the question somebody opening this page actually has.
-     *
-     * Cached for five minutes and fault-isolated: this is decoration on a
-     * page whose job is listing links, so a slow or failing analytics query
-     * must cost the list nothing.
-     *
-     * @return array{days: list<int>, total: int, max: int}
-     */
-    private function clickTrend(User $owner): array
-    {
-        $empty = ['days' => [], 'total' => 0, 'max' => 0];
-
-        try {
-            return Cache::remember('links:trend:'.$owner->id, 300, function () use ($owner) {
-                $rows = LinkClick::query()
-                    ->whereIn('link_id', function ($q) use ($owner) {
-                        $q->from('links')->select('id')->where('user_id', $owner->id);
-                    })
-                    ->where('clicked_at', '>=', now()->subDays(6)->startOfDay())
-                    ->selectRaw('DATE(clicked_at) as d, COUNT(*) as n')
-                    ->groupBy(DB::raw('DATE(clicked_at)'))
-                    ->pluck('n', 'd');
-
-                $days = [];
-                for ($i = 6; $i >= 0; $i--) {
-                    $key = now()->subDays($i)->toDateString();
-                    $days[] = (int) ($rows[$key] ?? 0);
-                }
-
-                return [
-                    'days'  => $days,
-                    'total' => array_sum($days),
-                    'max'   => max($days),
-                ];
-            });
-        } catch (\Throwable $e) {
-            return $empty;
+        $folderIds = array_values(array_filter((array) $request->input('project_id', []), fn ($v) => is_string($v) && ctype_digit($v)));
+        $folder = count($folderIds) === 1 ? $projects->firstWhere('id', (int) $folderIds[0]) : null;
+        $view = $request->query('view') === 'reports' ? 'reports' : 'links';
+        $report = null;
+        $trend = ['days' => [], 'total' => 0, 'max' => 0];
+        if ($view === 'reports') {
+            $days = in_array((int) $request->query('days', 7), [7, 30, 90], true) ? (int) $request->query('days', 7) : 7;
+            $retention = (int) $owner->getPlanFeature('stats_retention_days', 30);
+            if ($retention >= 0 && $retention !== PHP_INT_MAX) $days = min($days, max(1, $retention));
+            $start = now()->subDays($days - 1)->startOfDay();
+            $clicks = LinkClick::query()->whereIn('link_id', (clone $scope)->select('links.id'))
+                ->whereBetween('clicked_at', [$start, now()]);
+            $daily = (clone $clicks)->selectRaw('DATE(clicked_at) as day, COUNT(*) as count')->groupBy(DB::raw('DATE(clicked_at)'))->pluck('count', 'day');
+            $series = [];
+            for ($i = 0; $i < $days; $i++) {
+                $day = $start->copy()->addDays($i)->toDateString();
+                $series[$day] = (int) ($daily[$day] ?? 0);
+            }
+            $breakdown = fn ($column) => (clone $clicks)->select($column)->selectRaw('COUNT(*) as count')->groupBy($column)->orderByDesc('count')->limit(8)->get();
+            $topCounts = (clone $clicks)->select('link_id')->selectRaw('COUNT(*) as count')->groupBy('link_id')->orderByDesc('count')->limit(8)->pluck('count', 'link_id');
+            $topLinks = (clone $scope)->whereIn('links.id', $topCounts->keys())->get()->keyBy('id');
+            $report = ['days' => $days, 'start' => $start, 'total' => (clone $clicks)->count(), 'series' => $series,
+                'sources' => $breakdown('referrer'), 'countries' => $breakdown('country_code'), 'devices' => $breakdown('device_type'),
+                'topCounts' => $topCounts, 'topLinks' => $topLinks];
         }
+        if ($view === 'reports' && $request->query('export') === 'daily') {
+            return response()->streamDownload(function () use ($report) {
+                $out = fopen('php://output', 'w');
+                fputcsv($out, ['date', 'clicks'], ',', '"', '');
+                foreach ($report['series'] as $day => $count) fputcsv($out, [$day, $count], ',', '"', '');
+                fclose($out);
+            }, 'link-report-daily.csv', ['Content-Type' => 'text/csv']);
+        }
+        return view('user.links.index', compact('links', 'projects', 'summary', 'sort', 'trend', 'folder', 'view', 'report'));
     }
 
     /** The sort options offered on My Links, in the order the select lists them. */

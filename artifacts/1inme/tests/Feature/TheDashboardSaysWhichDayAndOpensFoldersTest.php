@@ -87,7 +87,7 @@ class TheDashboardSaysWhichDayAndOpensFoldersTest extends TestCase
 
     private function dashboard(): string
     {
-        return $this->actingAs($this->user)->get('/user/dashboard')->assertOk()->getContent();
+        return $this->actingAs($this->user)->get('/user/dashboard?view=custom')->assertOk()->getContent();
     }
 
     // ===== 1. Dates =====
