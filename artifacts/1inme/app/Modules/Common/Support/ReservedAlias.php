@@ -31,7 +31,7 @@ final class ReservedAlias
         'ai-widget', 'ai-voice-assistant', 'ai-dashboard', 'ai-marketing-strategist', 'whatsapp-agent', 'docs', 'newsletter', 'pricing',
         'coins', 'blogs', 'legal', 'watermark',
         'signed-media', 'stats', 'moderation', 'u', 'p', 'c', 'm',
-        'checkout', 'analytics', 'audience', 'integrations',
+        'checkout', 'analytics', 'audience', 'integrations', 'forms', 'notifications', 'download',
         'compare', 'for', 'demos', 'dialer-contacts', 'events',
         'android', 'digest',
         'dialer', 'browser', 'extension', 'app',

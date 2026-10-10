@@ -78,7 +78,8 @@ class UpdatesPageTest extends TestCase
                 'title' => 'Updates',
             ]);
 
-        $response->assertSessionHasErrors([]);
+        $response->assertRedirect();
+        $response->assertSessionHas('error', "Updates pages aren't available on your current plan. Upgrade to enable them.");
         $this->assertDatabaseMissing('links', ['user_id' => $this->user->id, 'type' => 'updates']);
     }
 

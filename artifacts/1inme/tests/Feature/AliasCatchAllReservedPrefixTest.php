@@ -196,6 +196,7 @@ class AliasCatchAllReservedPrefixTest extends TestCase
         $intentionallyUnreserved = [
             'creators', 'domains', 'feed', 'portal', 'resume-builder',
             'services', 'up', 'robots.txt', 'sitemap.xml', 'sitemap_index.xml',
+            'sitemap-creators.xml', 'sitemap-resumes.xml', 'sitemap-links.xml', 'branding.json',
         ];
 
         foreach ($this->singleSegmentGetRouteSegments() as $segment) {
