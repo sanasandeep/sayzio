@@ -264,6 +264,13 @@
 @endpush
 
 @section('content')
+
+<div class="flex flex-wrap items-center justify-end gap-2 mb-4" x-data="{}">
+    <a href="{{ route('user.dashboard') }}" class="btn-ghost text-xs">Account overview</a>
+    <button type="button" class="btn-ghost text-xs" @click="$dispatch('open-dashboard-customize', { step: 'quick' })">Layout: {{ $dashboardLayoutLabel }}</button>
+    <button type="button" class="btn-ghost text-xs" @click="$dispatch('open-dashboard-customize', { step: 'picker' })">Customize dashboard</button>
+</div>
+
 @php
     use Illuminate\Support\Str;
 

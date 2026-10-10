@@ -17,6 +17,13 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        if ($request->query('view') === 'custom') return $this->legacyDashboard($request);
+        return $this->accountOverview();
+    }
+
+    /** Retained for custom dashboard layouts. */
+    private function legacyDashboard(Request $request)
+    {
         $user = Auth::user();
         $user->load('plan', 'accountBadges');
 
@@ -310,4 +317,33 @@ class DashboardController extends Controller
 
         return view('user.dashboard.index', $payload);
     }
+    private function accountOverview()
+    {
+        $user = workspace_owner();
+        $user->load('plan');
+        $links = $user->links()->whereNull('settings->_template_draft');
+        $counts = [
+            'Links' => (clone $links)->count(),
+            'Pages' => (clone $links)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->count(),
+            'Folders' => $user->projects()->count(),
+            'QR codes' => $user->qrCodes()->count(),
+        ];
+        // Plan quotas are account-wide, including assets in other workspaces.
+        $accountLinks = $user->links()->withoutGlobalScope('workspace')->whereNull('settings->_template_draft');
+        $usage = [
+            ['label' => 'Links', 'used' => (clone $accountLinks)->count(), 'limit' => (int) $user->getPlanFeature('max_links', 5), 'color' => '#3b82f6', 'unit' => ''],
+            ['label' => 'Pages', 'used' => (clone $accountLinks)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->count(), 'limit' => (int) $user->getPlanFeature('max_biolinks', 1), 'color' => '#8b5cf6', 'unit' => ''],
+            ['label' => 'QR codes', 'used' => $user->qrCodes()->withoutGlobalScope('workspace')->count(), 'limit' => (int) $user->getPlanFeature('max_qr_codes', -1), 'color' => '#0d9488', 'unit' => ''],
+            ['label' => 'Folders', 'used' => $user->projects()->withoutGlobalScope('workspace')->count(), 'limit' => (int) $user->getPlanFeature('max_projects', 1), 'color' => '#f59e0b', 'unit' => ''],
+            ['label' => 'Storage', 'used' => round($user->getStorageUsedBytes() / 1048576, 1), 'limit' => $user->getStorageLimitBytes() === PHP_INT_MAX ? -1 : round($user->getStorageLimitBytes() / 1048576, 1), 'color' => '#0891b2', 'unit' => ' MB'],
+        ];
+        $folders = $user->projects()->withCount('links')->orderBy('name')->get();
+        $recentLinks = (clone $links)->with('project')->latest('updated_at')->limit(6)->get();
+        $unfiled = (clone $links)->whereNull('project_id')->count();
+        $inactive = (clone $links)->where('is_active', false)->count();
+        $aiCoins = \App\Services\AI\AiEngineSettings::isEnabled()
+            ? app(\App\Services\Billing\WalletService::class)->getBalance($user) : null;
+        return view('user.dashboard.overview', compact('user', 'counts', 'usage', 'folders', 'recentLinks', 'unfiled', 'inactive', 'aiCoins'));
+    }
+
 }
