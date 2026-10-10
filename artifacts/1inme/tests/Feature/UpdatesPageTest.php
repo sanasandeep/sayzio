@@ -38,6 +38,10 @@ class UpdatesPageTest extends TestCase
         parent::setUp();
 
         $this->user = User::factory()->create();
+        // Fixture follows and entries must belong to the creator's active workspace.
+        $workspace = app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($this->user);
+        app()->instance('current_workspace', $workspace);
+        app()->instance('workspace_owner', $this->user);
         $this->token = $this->user->createToken('test')->plainTextToken;
     }
 
