@@ -64,7 +64,7 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
-        "test:dashboard-folder": "@php -d memory_limit=1024M vendor/bin/phpunit --filter '(ApiAiGroundingSharedMindRevocationTest|BiolinkAiPlanBlockTypesTest|AdminPlanCompareTest|AliasMinLengthTest|AdminPriceDisplayTest|PushDeepLinkTest|AliasCatchAllReservedPrefixTest|UpdatesPageTest::test_store_blocked_by_plan_module_gate|DirectMailSendAllowlistTest|EmailConnectionsTest|FeaturesSitePageEditorTest|AiBlockEditPlanTest|DashboardFolderOverviewTest|MyLinksHeaderEarnsItsSpaceTest|DashboardCustomizeStepRegressionTest|DashboardCustomizeWebMobileParityTest|TheDashboardSaysWhichDayAndOpensFoldersTest|ListingCatalogTest|ContactDirectoryTest|SalonEditorRenderingTest|AdminFlashMessagesAppearOnceTest|BiolinkWizardAllPageTypesTest|AccountMergeTest)'",
+        "test:dashboard-folder": "@php -d memory_limit=1024M vendor/bin/phpunit --filter '(BrandKitAssetsTest|BiolinkWizardAiCreditTest|AdminVersionsHubTest|ApiAiGroundingSharedMindRevocationTest|BiolinkAiPlanBlockTypesTest|AdminPlanCompareTest|AliasMinLengthTest|AdminPriceDisplayTest|PushDeepLinkTest|AliasCatchAllReservedPrefixTest|UpdatesPageTest::test_store_blocked_by_plan_module_gate|DirectMailSendAllowlistTest|EmailConnectionsTest|FeaturesSitePageEditorTest|AiBlockEditPlanTest|DashboardFolderOverviewTest|MyLinksHeaderEarnsItsSpaceTest|DashboardCustomizeStepRegressionTest|DashboardCustomizeWebMobileParityTest|TheDashboardSaysWhichDayAndOpensFoldersTest|ListingCatalogTest|ContactDirectoryTest|SalonEditorRenderingTest|AdminFlashMessagesAppearOnceTest|BiolinkWizardAllPageTypesTest|AccountMergeTest)'",
         "test:sharded": [
             "@php artisan config:clear --ansi",
             "@test:dashboard-folder",

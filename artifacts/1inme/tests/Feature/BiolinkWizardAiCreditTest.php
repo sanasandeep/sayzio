@@ -16,6 +16,7 @@ use App\Services\AI\AiUsageCharger;
 use App\Services\Billing\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -52,6 +53,12 @@ class BiolinkWizardAiCreditTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Storage::fake('user_files');
+        // The real storage guard checks configuration; writes use the fake disk.
+        config()->set('filesystems.disks.user_files', [
+            'driver' => 's3', 'key' => 'test', 'secret' => 'test',
+            'bucket' => 'test-bucket', 'region' => 'us-east-1',
+        ]);
 
         // Real engine + real (priced) models so a charge actually lands.
         AiEngineSettings::setEnabled(true);
