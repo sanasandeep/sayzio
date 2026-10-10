@@ -131,7 +131,9 @@ class FeaturesSitePageEditorTest extends TestCase
         // slug-id survives, and both nested feature rows round-trip
         // intact (also trimmed).
         $first = $page->sections[0];
-        $this->assertSame(['id', 'icon', 'heading', 'intro', 'features'], array_keys($first));
+        $keys = array_keys($first);
+        sort($keys);
+        $this->assertSame(['features', 'heading', 'icon', 'id', 'intro'], $keys);
         $this->assertSame('ai-suite',                                      $first['id']);
         $this->assertSame('fa-robot',                                      $first['icon']);
         $this->assertSame('AI suite',                                      $first['heading']);

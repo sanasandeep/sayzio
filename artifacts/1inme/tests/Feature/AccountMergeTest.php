@@ -302,14 +302,14 @@ class AccountMergeTest extends TestCase
             'merge_secondary_id' => $victim->id,
             'merge_primary_id'   => $userA->id,
         ])->actingAs($userB)
-          ->get('/user/merge/preview')
+          ->get(route('user.merge.preview'))
           ->assertRedirect(route('user.merge.start'));
 
         $this->withSession([
             'merge_secondary_id' => $victim->id,
             'merge_primary_id'   => $userA->id,
         ])->actingAs($userB)
-          ->post('/user/merge/confirm', ['keep_plan_from' => 'primary'])
+          ->post(route('user.merge.confirm'), ['keep_plan_from' => 'primary'])
           ->assertRedirect(route('user.merge.start'));
 
         // Victim must still exist and own its identifiers.
