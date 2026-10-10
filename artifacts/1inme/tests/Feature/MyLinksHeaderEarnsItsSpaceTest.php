@@ -108,6 +108,8 @@ class MyLinksHeaderEarnsItsSpaceTest extends TestCase
     /** The space the ring held now shows seven days of clicks. */
     public function test_the_trend_replaces_the_ring(): void
     {
+        // Keep today's 09:00 clicks in the past regardless of the CI run time.
+        $this->travelTo(now()->startOfDay()->setTime(12, 0));
         $link = $this->makeLink('biolink', 60);
 
         // 3 + 9 + 5 + 14 + 8 + 21 + 17 = 77 across the last seven days.
