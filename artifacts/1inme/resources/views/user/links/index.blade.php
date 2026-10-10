@@ -4,6 +4,7 @@
 @push('styles')
     {{-- Reuse the exact bento command-center look from the Dashboard. --}}
     @include('user.partials.bento-styles')
+    @include('user.partials.overview-styles')
 <style>
     /* ── Header ─────────────────────────────────────────────────────────── */
     /* The header is the page's highlight, so it is the card that carries the
@@ -312,7 +313,7 @@
          screen -- as one line of text -- and the space the ring occupied now
          carries something the total beside it cannot say: the last seven
          days. ============================================================ --}}
-    <div class="links-head">
+    <div class="links-head" @if($folder) style="border-left:4px solid {{ in_array($folder->color, \App\Modules\User\Controllers\ProjectController::COLORS, true) ? $folder->color : '#6366f1' }}" @endif>
         {{-- Lattice only. This header has content across its entire width --
              title and buttons left, clicks and sparkline right -- so neither
              corner is free: the ribbon crossed the sparkline on the right and
@@ -321,7 +322,8 @@
              under copy on the marketing card by design. --}}
         @include('common.partials.card-ribbon', ['ribbon' => false])
         <div class="min-w-0 cribbon-copy">
-            <h1 class="links-title">My Links</h1>
+            <h1 class="links-title">{{ $folder?->name ?? (request()->hasAny(['search', 'type', 'project_id', 'status']) ? 'Filtered links' : 'My Links') }}</h1>
+            @if($folder?->description)<p class="ov-muted">{{ $folder->description }}</p>@endif
             <p class="links-facts">
                 <strong>{{ number_format($__summary['total']) }}</strong> {{ Str::plural('link', $__summary['total']) }}
                 <span class="sep">&middot;</span>
@@ -343,51 +345,17 @@
             @endif
         </div>
 
-        @php
-            $__days  = $trend['days'] ?? [];
-            $__peak  = max(1, (int) ($trend['max'] ?? 0));
-            // One scale for the whole drawing: 0 sits on the baseline, the
-            // busiest day touches the top. Points are spaced across the full
-            // width so the last one lands on the emphasised endpoint.
-            $__pts = [];
-            foreach ($__days as $__i => $__n) {
-                $__x = count($__days) > 1 ? round(3 + ($__i * (214 / (count($__days) - 1))), 1) : 110;
-                $__y = round(42 - (($__n / $__peak) * 34), 1);
-                $__pts[] = $__x . ' ' . $__y;
-            }
-            $__line = implode(' L ', $__pts);
-        @endphp
-        <div class="links-trend cribbon-copy">
-            <p class="k">Total clicks</p>
-            <p class="n">{{ number_format($__summary['clicks']) }}</p>
-            @if(($trend['total'] ?? 0) > 0)
-                <p class="d"><strong>+{{ number_format($trend['total']) }}</strong> in the last 7 days</p>
-            @else
-                <p class="d">No clicks in the last 7 days</p>
-            @endif
+        <a href="{{ route('user.stats.index') }}" class="links-stats-link">Account analytics →</a>
 
-            {{-- A flat line through zero is not a trend, it is noise. --}}
-            @if(count($__pts) > 1 && ($trend['total'] ?? 0) > 0)
-            <svg class="spark" width="220" height="46" viewBox="0 0 220 46" role="img"
-                 aria-label="Clicks per day over the last seven days. Busiest day {{ number_format($trend['max']) }}.">
-                <defs>
-                    <linearGradient id="linksSpark" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="currentColor" stop-opacity=".26"/>
-                        <stop offset="100%" stop-color="currentColor" stop-opacity="0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M {{ $__line }} L 217 44 L 3 44 Z" fill="url(#linksSpark)"/>
-                <path d="M {{ $__line }}" fill="none" stroke="currentColor" stroke-width="1.75"
-                      stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="{{ explode(' ', end($__pts))[0] }}" cy="{{ explode(' ', end($__pts))[1] }}" r="3" fill="currentColor"/>
-            </svg>
-            @endif
-
-            <a href="{{ route('user.stats.index') }}" class="links-stats-link">
-                View stats <i class="fas fa-arrow-right text-[9px]"></i>
-            </a>
-        </div>
     </div>
+
+    <nav class="ov-tabs" aria-label="Link views">
+        <a href="{{ route('user.links.index', array_merge(request()->except('page', 'view'), ['view' => 'links'])) }}" @if($view === 'links') aria-current="page" @endif>Links</a>
+        <a href="{{ route('user.links.index', array_merge(request()->except('page', 'view'), ['view' => 'reports'])) }}" @if($view === 'reports') aria-current="page" @endif>Reports</a>
+    </nav>
+    @if($view === 'reports')
+        @include('user.links.partials.folder-reports')
+    @else
 
 @unless($__canCreateLink)
 <div class="mb-4 px-3 py-2 rounded-lg text-xs flex items-center gap-2" style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); color: #b45309;">
@@ -841,5 +809,6 @@ document.addEventListener('alpine:init', () => {
 </div>{{-- /x-data wrapper --}}
 @endif
 
+@endif
 </div>{{-- /bento-stage --}}
 @endsection

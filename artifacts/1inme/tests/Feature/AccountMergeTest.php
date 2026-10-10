@@ -217,7 +217,7 @@ class AccountMergeTest extends TestCase
         // QueryException mid-transaction.
         $primaryId = $primary->id;
         \DB::statement("CREATE TABLE merge_canary (id INTEGER PRIMARY KEY, user_id INTEGER CHECK (user_id <> {$primaryId}))");
-        \DB::table('merge_canary')->insert(['user_id' => $secondary->id]);
+        \DB::table('merge_canary')->insert(['id' => $secondary->id, 'user_id' => $secondary->id]);
 
         $service = new class extends AccountMergeService {
             public function ownedTables(): array {
@@ -227,11 +227,12 @@ class AccountMergeTest extends TestCase
             }
         };
 
-        $threw = false;
+        $failure = null;
         try { $service->merge($primary->fresh(), $secondary->fresh(), 'primary'); }
-        catch (\Throwable $e) { $threw = true; }
+        catch (\Illuminate\Database\QueryException $e) { $failure = $e; }
 
-        $this->assertTrue($threw, 'Merge should throw when reassignment hits a DB constraint');
+        $this->assertNotNull($failure, 'Merge should throw when reassignment hits a DB constraint');
+        $this->assertStringContainsString('merge_canary', $failure->getMessage());
         // Both accounts intact, secondary's data still owned by secondary.
         $this->assertDatabaseHas('users',    ['id' => $secondary->id]);
         $this->assertDatabaseHas('users',    ['id' => $primary->id]);
@@ -302,14 +303,14 @@ class AccountMergeTest extends TestCase
             'merge_secondary_id' => $victim->id,
             'merge_primary_id'   => $userA->id,
         ])->actingAs($userB)
-          ->get('/user/merge/preview')
+          ->get(route('user.merge.preview'))
           ->assertRedirect(route('user.merge.start'));
 
         $this->withSession([
             'merge_secondary_id' => $victim->id,
             'merge_primary_id'   => $userA->id,
         ])->actingAs($userB)
-          ->post('/user/merge/confirm', ['keep_plan_from' => 'primary'])
+          ->post(route('user.merge.confirm'), ['keep_plan_from' => 'primary'])
           ->assertRedirect(route('user.merge.start'));
 
         // Victim must still exist and own its identifiers.
