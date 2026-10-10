@@ -67,6 +67,7 @@
         "test:sharded": [
             "@php artisan config:clear --ansi",
             "@test:dashboard-folder",
+            "@php -d memory_limit=1024M vendor/bin/phpunit --filter test_merge_rolls_back_on_mid_transaction_db_failure",
             "@php scripts/run-sharded-tests.php"
         ],
         "test:dashboard-folder": [
