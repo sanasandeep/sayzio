@@ -59,6 +59,10 @@ class ResumeHeaderPhotoCompressionTest extends TestCase
     public function test_uploaded_header_photo_is_downscaled(): void
     {
         Storage::fake('user_files');
+        config()->set('filesystems.disks.user_files', [
+            'driver' => 's3', 'key' => 'test', 'secret' => 'test',
+            'bucket' => 'test-bucket', 'region' => 'us-east-1',
+        ]);
         $user = $this->makeUser();
 
         $file = $this->jpegUpload(2000, 1500);
@@ -89,6 +93,10 @@ class ResumeHeaderPhotoCompressionTest extends TestCase
             $this->markTestSkipped('exif extension not available.');
         }
         Storage::fake('user_files');
+        config()->set('filesystems.disks.user_files', [
+            'driver' => 's3', 'key' => 'test', 'secret' => 'test',
+            'bucket' => 'test-bucket', 'region' => 'us-east-1',
+        ]);
         $user = $this->makeUser();
 
         // Build a 2000x1500 JPEG whose top-left corner is a distinctive
@@ -161,6 +169,10 @@ class ResumeHeaderPhotoCompressionTest extends TestCase
     public function test_existing_oversized_photo_is_reoptimized_on_header_save(): void
     {
         Storage::fake('user_files');
+        config()->set('filesystems.disks.user_files', [
+            'driver' => 's3', 'key' => 'test', 'secret' => 'test',
+            'bucket' => 'test-bucket', 'region' => 'us-east-1',
+        ]);
         $user = $this->makeUser();
 
         // Stash an oversized image directly (bypassing compression),

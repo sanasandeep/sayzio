@@ -97,7 +97,12 @@ class BiolinkAiPlanBlockTypesTest extends TestCase
 
     private function businessAnswers(): array
     {
-        return ['business_name' => 'Bob Bakes', 'address' => '1 Pastry Lane'];
+        return [
+            'display_name' => 'Bob Bakes',
+            'headline' => 'Fresh bakery favourites',
+            'business_name' => 'Bob Bakes',
+            'address' => '1 Pastry Lane',
+        ];
     }
 
     /** A well-formed OpenAI chat-completion envelope wrapping $content. */
@@ -228,6 +233,8 @@ class BiolinkAiPlanBlockTypesTest extends TestCase
 
         $resp = $this->actingAs($user)->post('/user/links/wizard/ai-draft');
 
+        $resp->assertSessionHasNoErrors();
+        $resp->assertSessionMissing('error');
         $link = Link::where('user_id', $user->id)->sole();
         $resp->assertRedirect(route('user.links.blocks.editor', $link));
 

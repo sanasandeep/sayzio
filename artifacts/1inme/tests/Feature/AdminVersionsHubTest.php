@@ -57,22 +57,45 @@ class AdminVersionsHubTest extends TestCase
         }
     }
 
+    /** Supply deterministic generated data without depending on merge-time artifacts. */
+    private function withSnapshot(callable $callback): void
+    {
+        $path = base_path('version-snapshot.json');
+        $original = is_file($path) ? file_get_contents($path) : null;
+
+        try {
+            file_put_contents($path, json_encode([
+                'surfaces' => ['mobile' => '1.2.3'],
+                'docs_updated_at' => '2026-07-01',
+            ], JSON_THROW_ON_ERROR));
+            $callback();
+        } finally {
+            if ($original !== null) {
+                file_put_contents($path, $original);
+            } else {
+                unlink($path);
+            }
+        }
+    }
+
     // ── Index rendering ────────────────────────────────────────────────
 
     public function test_index_renders_for_permitted_admin_with_snapshot(): void
     {
-        $this->assertFileExists(base_path('version-snapshot.json'));
+        $this->withSnapshot(function () {
+            $this->assertFileExists(base_path('version-snapshot.json'));
 
-        $resp = $this->actingAs($this->admin(), 'admin')->get(route('admin.versions.index'));
+            $resp = $this->actingAs($this->admin(), 'admin')->get(route('admin.versions.index'));
 
-        $resp->assertOk();
-        foreach (Release::SURFACES as $label) {
-            $resp->assertSee($label, false);
-        }
-        // Sync Status panel lists every guard label.
-        foreach (VersionRegistry::GUARDS as $label) {
-            $resp->assertSee($label, false);
-        }
+            $resp->assertOk();
+            foreach (Release::SURFACES as $label) {
+                $resp->assertSee($label, false);
+            }
+            // Sync Status panel lists every guard label.
+            foreach (VersionRegistry::GUARDS as $label) {
+                $resp->assertSee($label, false);
+            }
+        });
     }
 
     public function test_index_renders_without_snapshot_and_degrades_to_unknown(): void
@@ -263,13 +286,15 @@ class AdminVersionsHubTest extends TestCase
 
     public function test_registry_declared_surface_up_to_date_without_changelog_entries(): void
     {
-        Release::query()->delete();
+        $this->withSnapshot(function () {
+            Release::query()->delete();
 
-        $rows = collect(VersionRegistry::surfaces())->keyBy('key');
-        $row  = $rows['mobile'];
+            $rows = collect(VersionRegistry::surfaces())->keyBy('key');
+            $row  = $rows['mobile'];
 
-        $this->assertNotNull($row['current']);
-        $this->assertSame('up_to_date', $row['status']);
-        $this->assertSame('No changelog entries recorded yet.', $row['detail']);
+            $this->assertSame('1.2.3', $row['current']);
+            $this->assertSame('up_to_date', $row['status']);
+            $this->assertSame('No changelog entries recorded yet.', $row['detail']);
+        });
     }
 }

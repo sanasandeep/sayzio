@@ -94,7 +94,7 @@ class MeterApiUsage
         $notes = [];
 
         try {
-            $denied = DB::transaction(function () use ($user, $allowance, $unlimited, $callsPerCoin, $wallet, &$notes) {
+            $denied = DB::transaction(function () use ($user, $allowance, $unlimited, $callsPerCoin, $wallet, $warnThresholdPct, &$notes) {
                 $period = ApiUsageCounter::currentPeriod();
 
                 // Lock (or create) the period counter row first.

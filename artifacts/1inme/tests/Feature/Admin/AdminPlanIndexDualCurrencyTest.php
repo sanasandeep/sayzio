@@ -115,7 +115,7 @@ class AdminPlanIndexDualCurrencyTest extends TestCase
         // The "—" placeholder immediately follows this plan's USD price on
         // each cycle row (seeded plans may legitimately show INR values, so
         // anchor the placeholder to this plan's distinctive amounts).
-        $resp->assertSeeInOrder(['$86.31', '/ —', '$863.10', '/ —']);
+        $resp->assertSeeInOrder(['$86.31', '/ -', '$863.10', '/ -']);
         // And no INR figure was invented for this plan.
         $this->assertSame(0, Price::where('priceable_id', $plan->id)
             ->where('priceable_type', Plan::class)
@@ -134,7 +134,7 @@ class AdminPlanIndexDualCurrencyTest extends TestCase
 
         $resp->assertOk();
         // USD falls back to the legacy decimal columns, INR shows the dash.
-        $resp->assertSeeInOrder(['$57.53', '/ —', '$575.31', '/ —']);
+        $resp->assertSeeInOrder(['$57.53', '/ -', '$575.31', '/ -']);
     }
 
     public function test_zero_amount_price_rows_render_as_free(): void

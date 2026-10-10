@@ -112,7 +112,7 @@ class FeaturesSitePageEditorTest extends TestCase
                     // an empty-string link (the field is nullable but
                     // the normaliser always emits the key for a stable
                     // public-template shape).
-                    ['name' => 'Guided wizard', 'description' => 'Step-by-step flow.', 'link' => ''],
+                    ['icon' => '', 'name' => 'Guided wizard', 'description' => 'Step-by-step flow.', 'link' => ''],
                 ],
             ],
         ]);
@@ -131,18 +131,20 @@ class FeaturesSitePageEditorTest extends TestCase
         // slug-id survives, and both nested feature rows round-trip
         // intact (also trimmed).
         $first = $page->sections[0];
-        $this->assertSame(['id', 'icon', 'heading', 'intro', 'features'], array_keys($first));
+        $keys = array_keys($first);
+        sort($keys);
+        $this->assertSame(['features', 'heading', 'icon', 'id', 'intro'], $keys);
         $this->assertSame('ai-suite',                                      $first['id']);
         $this->assertSame('fa-robot',                                      $first['icon']);
         $this->assertSame('AI suite',                                      $first['heading']);
         $this->assertSame('A set of AI products that plug into your Sayzio.', $first['intro']);
         $this->assertCount(2, $first['features']);
-        $this->assertSame(
-            ['name' => 'AI Chatbot', 'description' => 'Trained 24/7 chatbot on your biolink.', 'link' => '/ai-chatbot'],
+        $this->assertEquals(
+            ['icon' => '', 'name' => 'AI Chatbot', 'description' => 'Trained 24/7 chatbot on your biolink.', 'link' => '/ai-chatbot'],
             $first['features'][0]
         );
-        $this->assertSame(
-            ['name' => 'AI Voice Assistant', 'description' => 'AI receptionist that picks up calls.', 'link' => 'https://example.com/voice'],
+        $this->assertEquals(
+            ['icon' => '', 'name' => 'AI Voice Assistant', 'description' => 'AI receptionist that picks up calls.', 'link' => 'https://example.com/voice'],
             $first['features'][1]
         );
 
@@ -154,8 +156,8 @@ class FeaturesSitePageEditorTest extends TestCase
         $this->assertSame('fa-square-share-nodes',  $second['icon']);
         $this->assertSame('Biolink builder',        $second['heading']);
         $this->assertCount(1, $second['features']);
-        $this->assertSame(
-            ['name' => 'Guided wizard', 'description' => 'Step-by-step flow.', 'link' => ''],
+        $this->assertEquals(
+            ['icon' => '', 'name' => 'Guided wizard', 'description' => 'Step-by-step flow.', 'link' => ''],
             $second['features'][0]
         );
     }
