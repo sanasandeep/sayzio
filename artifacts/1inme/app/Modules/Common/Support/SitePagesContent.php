@@ -1720,6 +1720,8 @@ class SitePagesContent
             'restaurant_menu' => ['user.links.create', ['type' => 'restaurant_menu']],
             'store_menu' => ['user.links.create', ['type' => 'store_menu']],
             'text' => ['user.links.text.create', []],
+            'url' => ['user.links.create', ['type' => 'url']],
+            'file' => ['user.links.create', ['type' => 'file']],
             default => ['user.links.create', []],
         };
     }
