@@ -17,7 +17,7 @@ class AiBlockEditPlanTest extends TestCase
     {
         $plan = app(AiBlockEditorController::class)->normalizePlan(['updates'=>[['id'=>1,'settings'=>['text'=>'New copy']]]],$this->state(),['scope'=>'selected','ids'=>[1]],['paragraph']);
         $this->assertCount(1,$plan['updates']);
-        $this->assertSame('New copy',$plan['updates'][0]['after']['paragraph']);
+        $this->assertSame('New copy',$plan['updates'][0]['after']['text']);
         $this->assertSame(['text_color'=>'#334455'],$plan['updates'][0]['after']['_style']);
         $this->assertSame([],$plan['delete_ids']);
     }
@@ -46,7 +46,7 @@ class AiBlockEditPlanTest extends TestCase
         $plan = app(AiBlockEditorController::class)->normalizePlan(['order'=>[2,1],'add'=>[['type'=>'paragraph','settings'=>['text'=>'Added']]],'page'=>['title'=>'Updated page','theme_color'=>'#445566']],$this->state(),['scope'=>'page'],['paragraph']);
         $this->assertSame([2,1],$plan['order']);
         $this->assertSame('Updated page',$plan['page']['title']);
-        $this->assertSame('Added',$plan['add'][0]['settings']['paragraph']);
+        $this->assertSame('Added',$plan['add'][0]['settings']['text']);
     }
     public function test_locked_page_colour_change_is_rejected(): void
     {
@@ -64,7 +64,7 @@ class AiBlockEditPlanTest extends TestCase
     {
         $plan = app(AiBlockEditorController::class)->normalizePlan(['updates'=>[['id'=>1,'style'=>['bg_color'=>'#ffffff','border_radius'=>99999]]]],$this->state(),['scope'=>'selected','ids'=>[1]],['paragraph']);
         $after=$plan['updates'][0]['after'];
-        $this->assertSame('Old copy',$after['paragraph']);
+        $this->assertSame('Old copy',$after['text']);
         $this->assertSame('#ffffff',$after['_style']['bg_color']);
         $this->assertLessThanOrEqual(999,$after['_style']['border_radius']);
     }
