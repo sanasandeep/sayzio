@@ -462,7 +462,10 @@ class AiBiolinkBuilderService
         $missingImages = array_values(array_filter($images, fn ($u) => !isset($seen[$u])));
         $missingFiles  = array_values(array_filter($files,  fn ($u) => !isset($seen[$u])));
 
-        $room = fn () => count($blocks) < self::MAX_BLOCKS;
+        // Appending resources changes the array; inspect its current size.
+        $room = function () use (&$blocks): bool {
+            return count($blocks) < self::MAX_BLOCKS;
+        };
 
         // Unreferenced images → a single image_grid when possible, else one image block each.
         if ($missingImages && $room()) {
