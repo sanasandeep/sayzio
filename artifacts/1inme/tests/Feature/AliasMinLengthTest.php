@@ -84,6 +84,7 @@ class AliasMinLengthTest extends TestCase
     private function makeLink(User $user, string $alias, string $type = 'short'): Link
     {
         return Link::create([
+            'workspace_id' => $user->ownedWorkspaces()->firstOrFail()->id,
             'user_id'   => $user->id,
             'type'      => $type,
             'alias'     => $alias,
@@ -213,7 +214,7 @@ class AliasMinLengthTest extends TestCase
             'alias'    => self::AT_MIN,
             'rules'    => $rule,
         ]);
-        $accepted->assertStatus(200);
+        $accepted->assertCreated();
         $this->assertTrue(Link::where('alias', self::AT_MIN)->exists());
     }
 
