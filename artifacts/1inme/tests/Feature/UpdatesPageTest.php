@@ -145,9 +145,11 @@ class UpdatesPageTest extends TestCase
                 'title'          => 'New Feature Released',
                 'status'         => 'published',
                 'published_date' => now()->toDateString(),
-            ]);
+            ])->assertRedirect()->assertSessionHasNoErrors();
 
         $entry = UpdateEntry::where('link_id', $link->id)->first();
+        $this->assertNotNull($entry, 'publishing without the optional body must create an entry');
+        $this->assertNull($entry->body);
         $this->assertNotNull($entry->notified_at, 'notified_at should be stamped on first publish');
 
         $this->assertDatabaseHas('user_notifications', [
