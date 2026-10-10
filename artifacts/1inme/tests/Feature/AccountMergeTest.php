@@ -217,7 +217,7 @@ class AccountMergeTest extends TestCase
         // QueryException mid-transaction.
         $primaryId = $primary->id;
         \DB::statement("CREATE TABLE merge_canary (id INTEGER PRIMARY KEY, user_id INTEGER CHECK (user_id <> {$primaryId}))");
-        \DB::table('merge_canary')->insert(['user_id' => $secondary->id]);
+        \DB::table('merge_canary')->insert(['id' => $secondary->id, 'user_id' => $secondary->id]);
 
         $service = new class extends AccountMergeService {
             public function ownedTables(): array {
