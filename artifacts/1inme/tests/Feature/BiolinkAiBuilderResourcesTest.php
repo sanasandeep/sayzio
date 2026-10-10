@@ -136,7 +136,7 @@ class BiolinkAiBuilderResourcesTest extends TestCase
     {
         $types = [];
         foreach (BiolinkBlock::where('link_id', $link->id)->get() as $block) {
-            $json = json_encode($block->settings ?? []);
+            $json = json_encode($block->settings ?? [], JSON_UNESCAPED_SLASHES);
             if (is_string($json) && str_contains($json, $needle)) {
                 $types[] = $block->type;
             }

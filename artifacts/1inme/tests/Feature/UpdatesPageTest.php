@@ -38,6 +38,10 @@ class UpdatesPageTest extends TestCase
         parent::setUp();
 
         $this->user = User::factory()->create();
+        // Fixture follows and entries must belong to the creator's active workspace.
+        $workspace = app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($this->user);
+        app()->instance('current_workspace', $workspace);
+        app()->instance('workspace_owner', $this->user);
         $this->token = $this->user->createToken('test')->plainTextToken;
     }
 
@@ -60,11 +64,17 @@ class UpdatesPageTest extends TestCase
 
     public function test_store_blocked_by_plan_module_gate(): void
     {
-        $this->user->plan_features = array_merge(
-            $this->user->plan_features ?? [],
-            ['module_updates' => false]
-        );
-        $this->user->save();
+        $plan = \App\Modules\Admin\Models\Plan::create([
+            'name' => 'Updates disabled',
+            'slug' => 'updates-disabled-' . $this->user->id,
+            'monthly_price' => 0,
+            'annual_price' => 0,
+            'trial_days' => 0,
+            'status' => 'active',
+            'features' => ['module_updates' => false, 'max_links' => 100],
+        ]);
+        $this->user->forceFill(['plan_id' => $plan->id])->save();
+        $this->user->unsetRelation('plan');
 
         $response = $this->actingAs($this->user)
             ->post(route('user.links.store'), [
@@ -72,7 +82,8 @@ class UpdatesPageTest extends TestCase
                 'title' => 'Updates',
             ]);
 
-        $response->assertSessionHasErrors([]);
+        $response->assertRedirect();
+        $response->assertSessionHas('error', "Updates pages aren't available on your current plan. Upgrade to enable them.");
         $this->assertDatabaseMissing('links', ['user_id' => $this->user->id, 'type' => 'updates']);
     }
 
@@ -138,9 +149,11 @@ class UpdatesPageTest extends TestCase
                 'title'          => 'New Feature Released',
                 'status'         => 'published',
                 'published_date' => now()->toDateString(),
-            ]);
+            ])->assertRedirect()->assertSessionHasNoErrors();
 
         $entry = UpdateEntry::where('link_id', $link->id)->first();
+        $this->assertNotNull($entry, 'publishing without the optional body must create an entry');
+        $this->assertNull($entry->body);
         $this->assertNotNull($entry->notified_at, 'notified_at should be stamped on first publish');
 
         $this->assertDatabaseHas('user_notifications', [
