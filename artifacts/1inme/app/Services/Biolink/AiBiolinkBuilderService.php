@@ -362,6 +362,9 @@ class AiBiolinkBuilderService
 
             app(TemplateService::class)->applyPageToLink($link, $snapshot, $replaceBlocks);
         } catch (\Throwable $e) {
+            // Parsing or materialisation can fail after artwork was stored.
+            // Undo those image charges and files as well as the chat charge.
+            $this->imageSourcer->rollback($user, $sourced);
             if ($creditsSpent > 0) {
                 $this->credits->refund($user, $creditsSpent, [
                     'feature'    => self::FEATURE,

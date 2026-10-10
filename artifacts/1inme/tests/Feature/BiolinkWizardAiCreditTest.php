@@ -7,6 +7,7 @@ use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\BiolinkWizardDraft;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\UserFile;
 use App\Modules\User\Models\WalletTransaction;
 use App\Modules\User\Services\BiolinkWizardQuestions;
 use App\Modules\User\Services\WorkspaceContext;
@@ -356,6 +357,8 @@ class BiolinkWizardAiCreditTest extends TestCase
         $this->assertGreaterThanOrEqual(1, $this->aiRefunds($user), 'a failed build must auto-refund');
         $this->assertSame($startBalance, app(AiUsageCharger::class)->getBalance($user),
             'charge + auto-refund must net to zero on a failed AI draft');
+        $this->assertSame(0, UserFile::where('user_id', $user->id)->count(),
+            'generated artwork must be removed when the page build fails');
     }
 
     /**
@@ -388,6 +391,8 @@ class BiolinkWizardAiCreditTest extends TestCase
         $this->assertSame(0, Link::where('user_id', $user->id)->count());
         $this->assertSame($startBalance, app(AiUsageCharger::class)->getBalance($user),
             'charge + auto-refund must net to zero on a failed AI draft');
+        $this->assertSame(0, UserFile::where('user_id', $user->id)->count(),
+            'generated artwork must be removed when the page build fails');
 
         // The draft survives so the user can retry without re-entering answers.
         $this->assertNotNull(BiolinkWizardDraft::find($draft->id));
