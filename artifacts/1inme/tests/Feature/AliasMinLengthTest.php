@@ -83,14 +83,15 @@ class AliasMinLengthTest extends TestCase
 
     private function makeLink(User $user, string $alias, string $type = 'short'): Link
     {
-        return Link::create([
-            'workspace_id' => $user->ownedWorkspaces()->firstOrFail()->id,
+        $link = Link::create([
             'user_id'   => $user->id,
             'type'      => $type,
             'alias'     => $alias,
             'long_url'  => 'https://example.com',
             'is_active' => true,
         ]);
+        $link->forceFill(['workspace_id' => $user->ownedWorkspaces()->firstOrFail()->id])->save();
+        return $link;
     }
 
     // ── The floor itself ───────────────────────────────────────────────
