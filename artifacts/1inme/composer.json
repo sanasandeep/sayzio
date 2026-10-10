@@ -66,6 +66,7 @@
         ],
         "test:sharded": [
             "@php artisan config:clear --ansi",
+            "@test:dashboard-folder",
             "@php scripts/run-sharded-tests.php"
         ],
         "test:dashboard-folder": [
