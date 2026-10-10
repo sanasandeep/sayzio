@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
  * Task #3142 — the homepage "AI Marketing Strategist" card
  * (home.partials.ai-marketing-strategist) cycles through the example goals
  * returned by {@see AiStrategistExamples::all()} and reuses ONE fixed DOM:
- * exactly 3 organic rows + 2 paid rows, swapping only the inner icon/text in
+ * exactly 4 organic rows + 3 paid rows, swapping only the inner icon/text in
  * place per example. If a new example arrives with the wrong number of plays
  * (or a missing key) the card silently renders a half-empty plan or repaints
  * stale rows — with no error.
@@ -23,8 +23,8 @@ use PHPUnit\Framework\TestCase;
  */
 class AiStrategistExamplesTest extends TestCase
 {
-    private const ORGANIC_COUNT = 3;
-    private const PAID_COUNT = 2;
+    private const ORGANIC_COUNT = 4;
+    private const PAID_COUNT = 3;
 
     public function test_all_returns_a_non_empty_list(): void
     {
@@ -56,7 +56,7 @@ class AiStrategistExamplesTest extends TestCase
      * @param array<string, mixed> $example
      */
     #[DataProvider('exampleProvider')]
-    public function test_each_example_has_exactly_three_organic_plays(int $index, array $example): void
+    public function test_each_example_has_exactly_four_organic_plays(int $index, array $example): void
     {
         $this->assertPlanGroup($example, 'organic', self::ORGANIC_COUNT, $index);
     }
@@ -65,9 +65,16 @@ class AiStrategistExamplesTest extends TestCase
      * @param array<string, mixed> $example
      */
     #[DataProvider('exampleProvider')]
-    public function test_each_example_has_exactly_two_paid_plays(int $index, array $example): void
+    public function test_each_example_has_exactly_three_paid_plays(int $index, array $example): void
     {
         $this->assertPlanGroup($example, 'paid', self::PAID_COUNT, $index);
+    }
+
+    #[DataProvider('exampleProvider')]
+    public function test_each_example_has_four_cadence_rows_and_three_targets(int $index, array $example): void
+    {
+        $this->assertPlanGroup($example, 'cadence', 4, $index);
+        $this->assertPlanGroup($example, 'targets', 3, $index);
     }
 
     /**
