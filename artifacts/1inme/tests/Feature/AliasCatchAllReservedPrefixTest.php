@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Tests\TestCase;
 
@@ -54,7 +55,7 @@ class AliasCatchAllReservedPrefixTest extends TestCase
 
         try {
             return Route::getRoutes()->match($request)->getName();
-        } catch (MethodNotAllowedHttpException | ResourceNotFoundException $e) {
+        } catch (MethodNotAllowedHttpException | NotFoundHttpException | ResourceNotFoundException $e) {
             return null;
         }
     }

@@ -60,11 +60,17 @@ class UpdatesPageTest extends TestCase
 
     public function test_store_blocked_by_plan_module_gate(): void
     {
-        $this->user->plan_features = array_merge(
-            $this->user->plan_features ?? [],
-            ['module_updates' => false]
-        );
-        $this->user->save();
+        $plan = \App\Modules\User\Models\Plan::create([
+            'name' => 'Updates disabled',
+            'slug' => 'updates-disabled-' . $this->user->id,
+            'monthly_price' => 0,
+            'annual_price' => 0,
+            'trial_days' => 0,
+            'status' => 'active',
+            'features' => ['module_updates' => false, 'max_links' => 100],
+        ]);
+        $this->user->forceFill(['plan_id' => $plan->id])->save();
+        $this->user->unsetRelation('plan');
 
         $response = $this->actingAs($this->user)
             ->post(route('user.links.store'), [
