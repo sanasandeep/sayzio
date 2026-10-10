@@ -129,7 +129,7 @@ class AdminPriceDisplayTest extends TestCase
             ->get(route('admin.plans.index'));
 
         $resp->assertOk()
-            ->assertSeeInOrder([$plan->name, '$12.50', '/ —', '$120.00', '/ —']);
+            ->assertSeeInOrder([$plan->name, '$12.50', '/ -', '$120.00', '/ -']);
     }
 
     public function test_plans_index_prices_table_beats_legacy_columns(): void
@@ -148,7 +148,7 @@ class AdminPriceDisplayTest extends TestCase
 
         $resp->assertOk()
             // Anchored on this plan's card; no INR rows → "—".
-            ->assertSeeInOrder([$plan->name, '$31.00', '/ —', '$320.00', '/ —'])
+            ->assertSeeInOrder([$plan->name, '$31.00', '/ -', '$320.00', '/ -'])
             ->assertDontSee('$77.77')
             ->assertDontSee('$88.88');
     }
@@ -184,7 +184,7 @@ class AdminPriceDisplayTest extends TestCase
             ->get(route('admin.addons.index'));
 
         $resp->assertOk()
-            ->assertSeeInOrder([$addon->name, '$4.25', '/ —', '$42.00', '/ —'])
+            ->assertSeeInOrder([$addon->name, '$4.25', '/ -', '$42.00', '/ -'])
             ->assertDontSee('₹0.00');
     }
 
@@ -201,7 +201,7 @@ class AdminPriceDisplayTest extends TestCase
             ->get(route('admin.addons.index'));
 
         $resp->assertOk()
-            ->assertSeeInOrder([$addon->name, '$9.10', '/ —', '$92.00', '/ —'])
+            ->assertSeeInOrder([$addon->name, '$9.10', '/ -', '$92.00', '/ -'])
             ->assertDontSee('$55.55')
             ->assertDontSee('$66.66')
             ->assertDontSee('₹0.00');
