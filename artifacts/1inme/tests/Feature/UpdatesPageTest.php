@@ -60,7 +60,7 @@ class UpdatesPageTest extends TestCase
 
     public function test_store_blocked_by_plan_module_gate(): void
     {
-        $plan = \App\Modules\User\Models\Plan::create([
+        $plan = \App\Modules\Admin\Models\Plan::create([
             'name' => 'Updates disabled',
             'slug' => 'updates-disabled-' . $this->user->id,
             'monthly_price' => 0,
