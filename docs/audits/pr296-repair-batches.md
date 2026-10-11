@@ -15,3 +15,7 @@ Pending controlled reproduction against main with the same test ordering and dat
 ## Validation
 
 Dashboard previously passed 24 tests/120 assertions; rollback regression passed 1 test/7 assertions. Local Blade PHP, JSON attribute, Alpine comment, copy, JSON parsing and whitespace checks pass for the batch changes. This branch still needs CI runtime verification. No PHP/Docker is available locally. Required checks remain enabled. No production deployment has occurred.
+
+## CI result on c3e9ab884
+
+Dashboard: 24 tests, 120 assertions passed. Fixture batch: 153 tests, 1513 assertions passed. Runtime batch: 63 tests, 406 assertions, one failing route inventory expectation for sitemap-creators.xml. Full suite did not execute because Composer stopped after runtime batch failure. All three dedicated sitemap routes are declared before the alias catch-all and use dotted names disallowed by alias validation; added them to the existing explicit static-route allowlist. Reverification pending.
