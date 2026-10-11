@@ -190,27 +190,35 @@ class AliasCatchAllReservedPrefixTest extends TestCase
         // the `/{alias}` catch-all in web.php, so route-order precedence
         // already shields them (the real page always wins the match). Listing
         // them explicitly means a *new* unguarded page is a conscious choice,
-        // not silent drift. `.txt`/`.xml` files can't be aliases anyway (the
+        // not silent drift. `.txt`/`.xml`/`.json` files can't be aliases anyway (the
         // alias validator forbids dots).
         $intentionallyUnreserved = [
             'creators', 'domains', 'feed', 'portal', 'resume-builder',
             'services', 'up', 'robots.txt', 'sitemap.xml', 'sitemap_index.xml',
-            'sitemap-creators.xml', 'sitemap-resumes.xml', 'sitemap-links.xml',
+            'sitemap-creators.xml', 'sitemap-resumes.xml', 'sitemap-links.xml', 'branding.json',
         ];
 
-        foreach ($this->singleSegmentGetRouteSegments() as $segment) {
-            if (in_array($segment, $intentionallyUnreserved, true)) {
-                continue;
-            }
+        $missing = array_values(array_diff(
+            $this->singleSegmentGetRouteSegments(),
+            $intentionallyUnreserved,
+            ReservedAlias::WORDS,
+        ));
 
-            $this->assertContains(
-                $segment,
-                ReservedAlias::WORDS,
-                "Top-level page route GET /{$segment} is not in App\\Modules\\Common\\Support\\ReservedAlias::WORDS. "
-                . "A short-link alias could be registered for '{$segment}' and shadow this page. Add '{$segment}' "
-                . 'to WORDS, or add it to the $intentionallyUnreserved allowlist in this test if route order '
-                . 'already protects it.'
-            );
+        $this->assertSame([], $missing,
+            'Top-level GET routes missing from ReservedAlias::WORDS: ' . implode(', ', $missing)
+            . '. Reserve these routes or explicitly document route-order protection in the allowlist.');
+
+    }
+
+    public function test_static_feed_routes_win_over_the_alias_catch_all(): void
+    {
+        foreach ([
+            'sitemap-creators.xml' => 'site.sitemap.creators',
+            'sitemap-resumes.xml' => 'site.sitemap.resumes',
+            'sitemap-links.xml' => 'site.sitemap.links',
+            'branding.json' => 'site.branding.feed',
+        ] as $path => $route) {
+            $this->assertSame($route, $this->matchedRouteName('/' . $path));
         }
     }
 
