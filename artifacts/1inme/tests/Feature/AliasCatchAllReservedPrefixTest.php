@@ -54,7 +54,7 @@ class AliasCatchAllReservedPrefixTest extends TestCase
 
         try {
             return Route::getRoutes()->match($request)->getName();
-        } catch (MethodNotAllowedHttpException | ResourceNotFoundException $e) {
+        } catch (MethodNotAllowedHttpException | ResourceNotFoundException | \Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e) {
             return null;
         }
     }

@@ -73,9 +73,9 @@ class ATabShowsItsOwnOptionsOrNoneTest extends TestCase
 
     /**
      * The Finish section is NOT a tab's options -- it describes the saved
-     * background whichever tab you are browsing -- so its fallback-image
+     * background whichever tab you are browsing -- so its poster-image
      * field stays keyed on the type alone. Folding it into panelFor() would
-     * hide the fallback for an image background the moment you clicked
+     * hide the poster for a video background the moment you clicked
      * Style, which is a different bug in the same family.
      */
     public function test_the_finish_section_still_follows_the_saved_background(): void
@@ -83,7 +83,7 @@ class ATabShowsItsOwnOptionsOrNoneTest extends TestCase
         $card = $this->card();
 
         $this->assertStringContainsString(
-            "x-show=\"bgType === 'image' || bgType === 'slideshow' || bgType === 'video'\"",
+            "x-show=\"bgType === 'slideshow' || bgType === 'video' || bgType === 'template'\"",
             $card,
             'Finish describes what is saved, not what is being browsed'
         );
