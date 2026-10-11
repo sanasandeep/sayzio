@@ -27,7 +27,8 @@ class MarketingPlanIndustryPresetsTest extends TestCase
         $plan = Plan::create([
             'name' => 'Professional ' . $slug, 'slug' => $slug,
             'monthly_price' => 0, 'annual_price' => 0,
-            'trial_days' => 0, 'status' => 'active', 'features' => [],
+            'trial_days' => 0, 'status' => 'active',
+            'features' => ['marketing_plan_calculator' => true, 'max_marketing_plans' => -1],
         ]);
 
         return User::create([
