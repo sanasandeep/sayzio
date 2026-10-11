@@ -185,9 +185,16 @@ class BiolinkWizardGoalPrefillTest extends TestCase
         $this->assertSame([
             'biolink'         => ['group' => null,       'persona' => null],
             'restaurant_menu' => ['group' => 'Food',     'persona' => 'chef'],
+            'store_menu' => ['group' => 'Business', 'persona' => 'business'],
+            'real_estate' => ['group' => 'Business', 'persona' => 'business'],
+            'education' => ['group' => 'Business', 'persona' => 'business'],
+            'contact_directory' => ['group' => 'Business', 'persona' => 'business'],
+            'salon_spa' => ['group' => 'Business', 'persona' => 'business'],
+            'service_booking' => ['group' => 'Services', 'persona' => 'freelancer'],
             'paid_page'       => ['group' => 'Creators', 'persona' => 'creator'],
             'reviews'         => ['group' => 'Business', 'persona' => 'business'],
             'resume'          => ['group' => 'Services', 'persona' => 'freelancer'],
+            'brand_kit' => ['group' => 'Creators', 'persona' => 'creator'],
         ], LinkTypeCategories::wizardGroups());
     }
 

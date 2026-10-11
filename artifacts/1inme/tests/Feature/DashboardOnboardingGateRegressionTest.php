@@ -43,6 +43,10 @@ class DashboardOnboardingGateRegressionTest extends TestCase
      */
     private function makeUser(array $attrs = []): User
     {
+        // These tests exercise WhatsApp/privacy after the preceding profile step.
+        $attrs['settings'] = array_replace([
+            'creator_profile_step_shown_at' => now()->toIso8601String(),
+        ], $attrs['settings'] ?? []);
         return User::factory()->create($attrs)->fresh();
     }
 

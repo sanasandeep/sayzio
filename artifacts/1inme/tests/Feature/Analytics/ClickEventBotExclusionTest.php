@@ -5,6 +5,7 @@ namespace Tests\Feature\Analytics;
 use App\Events\BlockClicked;
 use App\Events\LinkClicked;
 use App\Modules\Common\Services\BotDetector;
+use App\Modules\Common\Services\ClickWriteBuffer;
 use App\Modules\Common\Services\LinkTrackingService;
 use App\Modules\User\Models\BiolinkBlock;
 use Illuminate\Http\Request;
@@ -29,6 +30,7 @@ class ClickEventBotExclusionTest extends AnalyticsTestCase
 
         app(LinkTrackingService::class)->track($link, $this->makeRequest('Mozilla/5.0 (real)'));
 
+        app(ClickWriteBuffer::class)->flush();
         Event::assertDispatched(LinkClicked::class, fn ($e) => $e->link->id === $link->id);
     }
 
@@ -42,6 +44,7 @@ class ClickEventBotExclusionTest extends AnalyticsTestCase
 
         app(LinkTrackingService::class)->track($link, $this->makeRequest('Googlebot/2.1'));
 
+        app(ClickWriteBuffer::class)->flush();
         Event::assertNotDispatched(LinkClicked::class);
 
         // Counters must also stay flat — no fan-out of any kind.
@@ -67,6 +70,7 @@ class ClickEventBotExclusionTest extends AnalyticsTestCase
             $this->makeRequest('AhrefsBot/7.0')
         );
 
+        app(ClickWriteBuffer::class)->flush();
         Event::assertNotDispatched(BlockClicked::class);
     }
 
@@ -89,6 +93,7 @@ class ClickEventBotExclusionTest extends AnalyticsTestCase
             $this->makeRequest('Mozilla/5.0 (real)')
         );
 
+        app(ClickWriteBuffer::class)->flush();
         Event::assertDispatched(BlockClicked::class, fn ($e) => $e->block->id === $block->id);
     }
 
