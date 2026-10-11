@@ -110,7 +110,7 @@ class UpdatesController extends Controller
             'link_id'        => $link->id,
             'user_id'        => workspace_owner_id(),
             'title'          => $data['title'],
-            'body'           => $data['body'] ? $this->sanitizeBody($data['body']) : null,
+            'body'           => !empty($data['body']) ? $this->sanitizeBody($data['body']) : null,
             'image'          => $imageUrl,
             'tag'            => $data['tag'] ?? null,
             'published_date' => $data['published_date'] ?? now()->toDateString(),

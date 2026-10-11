@@ -362,6 +362,9 @@ class AiBiolinkBuilderService
 
             app(TemplateService::class)->applyPageToLink($link, $snapshot, $replaceBlocks);
         } catch (\Throwable $e) {
+            // Parsing or materialisation can fail after artwork was stored.
+            // Undo those image charges and files as well as the chat charge.
+            $this->imageSourcer->rollback($user, $sourced);
             if ($creditsSpent > 0) {
                 $this->credits->refund($user, $creditsSpent, [
                     'feature'    => self::FEATURE,
@@ -459,7 +462,10 @@ class AiBiolinkBuilderService
         $missingImages = array_values(array_filter($images, fn ($u) => !isset($seen[$u])));
         $missingFiles  = array_values(array_filter($files,  fn ($u) => !isset($seen[$u])));
 
-        $room = fn () => count($blocks) < self::MAX_BLOCKS;
+        // Appending resources changes the array; inspect its current size.
+        $room = function () use (&$blocks): bool {
+            return count($blocks) < self::MAX_BLOCKS;
+        };
 
         // Unreferenced images → a single image_grid when possible, else one image block each.
         if ($missingImages && $room()) {

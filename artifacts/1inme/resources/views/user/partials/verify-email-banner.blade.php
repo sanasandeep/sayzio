@@ -6,12 +6,13 @@
         //   - they actually have an email on file, and
         //   - email verification is meaningful under the current login policy
         //     (i.e. email is a usable sign-in method, not a mobile-only setup).
+        $__verifyErrors = $errors ?? new \Illuminate\Support\ViewErrorBag;
         $__verifyUser = auth()->user();
         $__showVerifyBanner = $__verifyUser
             && empty($__verifyUser->email_verified_at)
             && filled($__verifyUser->email)
             && \App\Modules\Common\Support\AuthMethods::emailVerificationMeaningful();
-        $__verifyCodeSent = session('verify_email_code_sent') || $errors->has('verify_email_code');
+        $__verifyCodeSent = session('verify_email_code_sent') || $__verifyErrors->has('verify_email_code');
     @endphp
     @if($__showVerifyBanner)
         <div x-data="{
