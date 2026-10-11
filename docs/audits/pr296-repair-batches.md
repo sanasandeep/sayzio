@@ -27,3 +27,7 @@ Dashboard 24/120, fixtures 153/1513, runtime 64/368 and rollback 1/7 all passed.
 ## CI result on 9412cfa9d
 
 Dashboard, fixture, runtime, critical alert (5 tests/10 assertions) and rollback batches passed. Full run reported 112 distinct failing cases. PaidGatewayDowngradeBillingFlowTest lost a subscription row during renewal; AiMindFeatureAdapterEventLookupTest encountered SAVEPOINT outside an active PostgreSQL transaction during user creation. Added an isolated two-class batch before the full suite to distinguish independent bugs from earlier test-order contamination. No speculative transaction reset or weakened assertion was added.
+
+## CI isolated result on b9260c8c7
+
+The two-class isolation batch ran 11 tests. The missing subscription and inactive PostgreSQL transaction errors did not recur. One owner-scope assertion failed because the not-found response echoes the search query; that is caller-provided input, not another owner's event data. Updated it to assert the exact not-found response and absence of location, tier, attendee identity and sales count. Test-order contamination remains suspected, not proven or fixed.
