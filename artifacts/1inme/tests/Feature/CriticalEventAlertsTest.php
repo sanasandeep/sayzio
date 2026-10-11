@@ -12,6 +12,7 @@ use App\Services\Billing\Adapters\StripeAdapter;
 use App\Services\Billing\Contracts\GatewayAdapter;
 use App\Services\Billing\GatewayManager;
 use App\Services\Billing\SubscriptionLifecycle;
+use App\Services\Integrations\IntegrationKeySettings;
 use Illuminate\Contracts\Queue\Job;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -126,6 +127,7 @@ class CriticalEventAlertsTest extends TestCase
                     && ($ctx['gateway'] ?? null) === 'stripe'
                     && (int) ($ctx['invoice_id'] ?? 0) === $invoice->id
                     && ($ctx['gateway_ref'] ?? null) === 'evt_stripe_alert'),
+                IntegrationKeySettings::ALERT_CATEGORY_PAYMENT,
             )
             ->andReturn(['enabled' => false, 'channels' => []]);
         $this->app->instance(NotificationService::class, $notifier);
@@ -208,6 +210,7 @@ class CriticalEventAlertsTest extends TestCase
                 Mockery::type('string'),
                 'error',
                 Mockery::on(fn ($ctx) => is_array($ctx) && (int) ($ctx['failures'] ?? 0) === 5),
+                IntegrationKeySettings::ALERT_CATEGORY_RENEWAL,
             )
             ->andReturn(['enabled' => false, 'channels' => []]);
         $this->app->instance(NotificationService::class, $notifier);
@@ -233,6 +236,7 @@ class CriticalEventAlertsTest extends TestCase
                 Mockery::type('string'),
                 'error',
                 Mockery::on(fn ($ctx) => is_array($ctx) && ($ctx['job'] ?? null) === 'App\\Jobs\\SomeJob'),
+                IntegrationKeySettings::ALERT_CATEGORY_JOB,
             )
             ->andReturn(['enabled' => false, 'channels' => []]);
         $this->app->instance(NotificationService::class, $notifier);

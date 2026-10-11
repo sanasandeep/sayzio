@@ -19,3 +19,7 @@ Dashboard previously passed 24 tests/120 assertions; rollback regression passed 
 ## CI result on c3e9ab884
 
 Dashboard: 24 tests, 120 assertions passed. Fixture batch: 153 tests, 1513 assertions passed. Runtime batch: 63 tests, 406 assertions, one failing route inventory expectation for sitemap-creators.xml. Full suite did not execute because Composer stopped after runtime batch failure. All three dedicated sitemap routes are declared before the alias catch-all and use dotted names disallowed by alias validation; added them to the existing explicit static-route allowlist. Reverification pending.
+
+## CI result on aef630898
+
+Dashboard 24/120, fixtures 153/1513, runtime 64/368 and rollback 1/7 all passed. Full suite ran and reported 114 distinct failing cases. CriticalEventAlertsTest expected four notification arguments; production sends five including the category. Updated the three mocks to assert the appropriate payment/renewal/job category explicitly and added a focused alert batch for CI. Remaining full-suite failures are not resolved.
