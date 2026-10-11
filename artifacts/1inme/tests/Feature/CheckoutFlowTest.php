@@ -108,6 +108,11 @@ class CheckoutFlowTest extends TestCase
         $this->assertSame(3, (int) $a['meta']['qty']);
         $this->assertSame(2, (int) $b['quantity']);
 
+        // Offline checkout must not grant features until payment is approved.
+        $this->assertSame('awaiting_admin_approval', $invoice->fresh()->status);
+        $this->assertSame(0, Subscription::where('user_id', $user->id)->count());
+        app(ActivateSubscription::class)->run($invoice->fresh(), 'offline', 'addon-payment');
+
         // Subscription persists each addon with its purchased quantity.
         $sub = Subscription::where('user_id', $user->id)->latest('id')->firstOrFail();
         $qtys = $sub->addons()->pluck('qty', 'addon_id');
@@ -143,6 +148,12 @@ class CheckoutFlowTest extends TestCase
             'gateway' => 'offline', 'plan_id' => $plan->id, 'cycle' => 'monthly',
             'addons'  => [$orphan->id => 4],
         ])->assertOk();
+
+        $invoice = Invoice::where('user_id', $user->id)->firstOrFail();
+        $this->assertSame('awaiting_admin_approval', $invoice->status);
+        $this->assertSame(0, Subscription::where('user_id', $user->id)->count());
+        $this->assertCount(1, $invoice->line_items, 'only the eligible plan is invoiced');
+        app(ActivateSubscription::class)->run($invoice, 'offline', 'plan-payment');
 
         $sub = Subscription::where('user_id', $user->id)->latest('id')->firstOrFail();
         $this->assertSame(0, $sub->addons()->count(), 'ineligible addon must not be billed/granted');
