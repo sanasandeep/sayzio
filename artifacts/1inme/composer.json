@@ -67,12 +67,14 @@
         "test:repair-fixtures": "@php -d memory_limit=1024M vendor/bin/phpunit --filter '(AdminPlanCompareTest|AdminPlanIndexDualCurrencyTest|AdminPriceDisplayTest|AdminVersionsHubTest|AiBlockEditPlanTest|AliasMinLengthTest|PaidPlanAliasMinLengthTest|ClickEventBotExclusionTest|ApiAiGroundingSharedMindRevocationTest|BiolinkAiPlanBlockTypesTest|BiolinkWizardAiCreditTest|BiolinkWizardGoalPrefillTest|BiolinkWizardIntegrationTest|BrandKitAssetsTest|DashboardOnboardingGateRegressionTest|FeaturesSitePageEditorTest|LinkTypePairingsWebRedirectTest|ResumeHeaderPhotoCompressionTest|CheckoutFlowTest|AiStrategistExamplesTest)'",
         "test:repair-runtime": "@php -d memory_limit=1024M vendor/bin/phpunit --filter '(ApiUsageWarningTest|BrandKitPageTest|DirectMailSendAllowlistTest|EmailConnectionsTest|BiolinkAiBuilderResourcesTest|AliasCatchAllReservedPrefixTest|AdminFlashMessagesAppearOnceTest|ListingCatalogTest|SalonEditorRenderingTest|ATabShowsItsOwnOptionsOrNoneTest)'",
         "test:repair-alerts": "@php -d memory_limit=1024M vendor/bin/phpunit --filter CriticalEventAlertsTest",
+        "test:repair-isolation": "@php -d memory_limit=1024M vendor/bin/phpunit --filter '(PaidGatewayDowngradeBillingFlowTest|AiMindFeatureAdapterEventLookupTest)'",
         "test:sharded": [
             "@php artisan config:clear --ansi",
             "@test:dashboard-folder",
             "@test:repair-fixtures",
             "@test:repair-runtime",
             "@test:repair-alerts",
+            "@test:repair-isolation",
             "@php -d memory_limit=1024M vendor/bin/phpunit --filter test_merge_rolls_back_on_mid_transaction_db_failure",
             "@php scripts/run-sharded-tests.php"
         ],

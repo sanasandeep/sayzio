@@ -23,3 +23,7 @@ Dashboard: 24 tests, 120 assertions passed. Fixture batch: 153 tests, 1513 asser
 ## CI result on aef630898
 
 Dashboard 24/120, fixtures 153/1513, runtime 64/368 and rollback 1/7 all passed. Full suite ran and reported 114 distinct failing cases. CriticalEventAlertsTest expected four notification arguments; production sends five including the category. Updated the three mocks to assert the appropriate payment/renewal/job category explicitly and added a focused alert batch for CI. Remaining full-suite failures are not resolved.
+
+## CI result on 9412cfa9d
+
+Dashboard, fixture, runtime, critical alert (5 tests/10 assertions) and rollback batches passed. Full run reported 112 distinct failing cases. PaidGatewayDowngradeBillingFlowTest lost a subscription row during renewal; AiMindFeatureAdapterEventLookupTest encountered SAVEPOINT outside an active PostgreSQL transaction during user creation. Added an isolated two-class batch before the full suite to distinguish independent bugs from earlier test-order contamination. No speculative transaction reset or weakened assertion was added.
