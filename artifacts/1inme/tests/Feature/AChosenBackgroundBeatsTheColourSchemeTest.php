@@ -44,12 +44,12 @@ class AChosenBackgroundBeatsTheColourSchemeTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** Types in this slice, and the marker proving the right view rendered. */
+    /** Types in this slice and their public views. */
     private const TYPES = [
-        'restaurant_menu' => 'cartbar',
-        'store_menu'      => 'cartbar',
-        'service_booking' => 'slot',
-        'ai_chat'         => 'color-scheme: light dark',
+        'restaurant_menu' => 'common.restaurant-menu',
+        'store_menu'      => 'common.store-menu',
+        'service_booking' => 'common.service-booking',
+        'ai_chat'         => 'common.ai-chat',
     ];
 
     private function user(): User
@@ -115,10 +115,10 @@ class AChosenBackgroundBeatsTheColourSchemeTest extends TestCase
             })(),
         };
 
-        $html = $this->get('/'.$link->alias)->assertOk()->getContent();
-
-        $this->assertStringContainsString(self::TYPES[$type], $html,
-            "a {$type} link rendered some other view; this test would prove nothing");
+        $html = $this->get('/'.$link->alias)
+            ->assertOk()
+            ->assertViewIs(self::TYPES[$type])
+            ->getContent();
 
         return $html;
     }

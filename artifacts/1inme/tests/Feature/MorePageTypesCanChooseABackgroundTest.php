@@ -127,15 +127,19 @@ class MorePageTypesCanChooseABackgroundTest extends TestCase
         }
     }
 
-    /** isBiolinkFamily is untouched, because widening it was the risk. */
-    public function test_the_page_engine_list_did_not_grow(): void
+    /** Background-only types must remain outside the block page engine. */
+    public function test_background_only_types_remain_outside_the_page_engine(): void
     {
-        $this->assertSame([
-            'biolink', 'conversational', 'slides', 'ai_chat',
+        foreach (self::GAINED as $type) {
+            $this->assertNotContains($type, Link::BIOLINK_FAMILY,
+                "{$type} must gain backgrounds without opting into the block page engine");
+        }
+        foreach (['biolink', 'conversational', 'slides', 'ai_chat',
             'restaurant_menu', 'store_menu', 'service_booking',
-        ], Link::BIOLINK_FAMILY,
-            'adding a type here opts it into blocks, page templates, '
-            .'verification and the performance coach, none of which this change wants');
+            'salon_spa', 'contact_directory', 'real_estate', 'education'] as $type) {
+            $this->assertContains($type, Link::BIOLINK_FAMILY,
+                "{$type} must retain its supported block page engine");
+        }
     }
 
     /** A type that gained the picker can now save a background. */
