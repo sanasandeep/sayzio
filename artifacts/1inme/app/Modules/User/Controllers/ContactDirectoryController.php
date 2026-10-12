@@ -53,7 +53,10 @@ class ContactDirectoryController extends Controller
     public function save(Request $request, Link $link, string $action)
     {
         $directory = $this->directory($link);
-        if ($action === 'settings') {
+        if ($action === 'publish') {
+            $data = $request->validate(['id'=>'required|integer','is_active'=>'required|boolean']);
+            $directory->contacts()->findOrFail($data['id'])->update(['is_active'=>(bool) $data['is_active']]);
+        } elseif ($action === 'settings') {
             $settings = $request->validate([
                 'intro' => 'nullable|string|max:1000', 'timezone' => 'required|timezone',
                 'layout' => 'required|in:list,grid,compact',
@@ -120,7 +123,7 @@ class ContactDirectoryController extends Controller
                 }
             });
         }
-        return redirect()->route('user.links.directory.editor', $link)->with('success', 'Directory updated. Imported and starter contacts remain drafts until you publish them.');
+        return redirect()->route('user.links.directory.editor', ['link'=>$link,'pane'=>in_array($request->input('editor_pane'), ['items','design','ordering'], true) ? $request->input('editor_pane') : ($action === 'settings' ? 'design' : 'items')])->with('success', 'Directory updated. Imported and starter contacts remain drafts until you publish them.');
     }
 
     public function export(Link $link)

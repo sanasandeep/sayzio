@@ -33,7 +33,7 @@
 @include('user.links.partials.pill-tabs')
 @php
     $mepItems = $mepItems ?? 'Items';
-    $mepTabs = [
+    $mepTabs = $mepTabs ?? [
         'items'    => ['icon' => 'fa-list', 'label' => $mepItems],
         'design'   => ['icon' => 'fa-palette', 'label' => 'How it looks'],
         'ordering' => ['icon' => 'fa-receipt', 'label' => 'How ordering works'],

@@ -37,26 +37,13 @@
     .sb-time { width:118px; }
 </style>
 
-<div class="max-w-7xl mx-auto" x-data="serviceBookingEditor()" x-init="init()">
-    <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <div>
-            <h1 class="text-xl font-bold" style="color:var(--text-primary)">{{ $link->title ?: $link->alias }}</h1>
-            <p class="text-sm" style="color:var(--text-muted)">{{ $link->type === 'salon_spa' ? 'Salon & Spa' : 'Service Booking' }} · /{{ $link->alias }}</p>
-        </div>
-        <div class="flex gap-2 flex-wrap">
-            <a href="{{ route('user.links.blocks.editor', $link) }}" class="sb-btn ghost"><i class="fas fa-layer-group"></i> Blocks</a>
-            @if(\App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'service_booking_builder'))
-                <a href="{{ route('user.links.ai-type-builder', $link) }}" class="sb-btn ghost"><i class="fas fa-wand-magic-sparkles"></i> Build with AI</a>
-            @endif
-            <a href="{{ route('user.links.service-booking.bookings', $link) }}" class="sb-btn ghost">
-                <i class="fas fa-calendar-check"></i> Bookings @if($openBookings > 0)<span class="sb-pill">{{ $openBookings }}</span>@endif
-            </a>
-            <a href="{{ url('/'.$link->alias) }}" target="_blank" class="sb-btn ghost"><i class="fas fa-external-link-alt"></i> View</a>
-        </div>
-    </div>
-
+<div class="max-w-7xl mx-auto" x-data="Object.assign(serviceBookingEditor(), menuEditorPanes(@js(in_array(request()->query('pane'), ['items','design','ordering'], true) ? request()->query('pane') : 'items')))" x-init="init()">
+    @include('user.links.partials.editor-header', ['activeMainTab'=>'service_booking'])
+    @include('user.links.partials.business-editor-panes', ['businessItems'=>'Services','businessWorkflow'=>'How booking works'])
+    @include('user.links.partials.business-editor-layout')
+    <div class="business-editor-grid"><div class="business-editor-content">
     <div class="sb-grid">
-        <div>
+        <div x-show="pane === 'items'" x-cloak>
 @include('user.links.partials.business-starter-picker')
             <!-- Categories + services -->
             <div class="flex justify-between items-center mb-3">
@@ -98,7 +85,7 @@
                             <div class="flex flex-col gap-1">
                                 <button class="sb-btn sm ghost" title="Move up" :disabled="ii===0" @click="moveService(cat.id,svc,-1)"><i class="fas fa-arrow-up"></i></button>
                                 <button class="sb-btn sm ghost" title="Move down" :disabled="ii===servicesFor(cat.id).length-1" @click="moveService(cat.id,svc,1)"><i class="fas fa-arrow-down"></i></button>
-                                <button class="sb-btn sm ghost" @click="openService(cat.id, svc)"><i class="fas fa-pen"></i></button>
+                                <button class="sb-btn sm ghost" :title="svc.is_active ? 'Unpublish service' : 'Publish service'" @click="toggleService(svc)"><i class="fas" :class="svc.is_active ? 'fa-eye' : 'fa-eye-slash'"></i></button><button class="sb-btn sm ghost" @click="openService(cat.id, svc)"><i class="fas fa-pen"></i></button>
                                 <button class="sb-btn sm danger" @click="deleteService(svc)"><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
@@ -124,7 +111,7 @@
                                     <span x-show="svc.is_active === false" class="sb-pill">Draft</span><span x-show="svc.is_unavailable" class="sb-pill" style="margin-left:6px">Unavailable</span></div>
                             </div>
                             <div class="flex flex-col gap-1">
-                                <button class="sb-btn sm ghost" @click="openService(null, svc)"><i class="fas fa-pen"></i></button>
+                                <button class="sb-btn sm ghost" :title="svc.is_active ? 'Unpublish service' : 'Publish service'" @click="toggleService(svc)"><i class="fas" :class="svc.is_active ? 'fa-eye' : 'fa-eye-slash'"></i></button><button class="sb-btn sm ghost" @click="openService(null, svc)"><i class="fas fa-pen"></i></button>
                                 <button class="sb-btn sm danger" @click="deleteService(svc)"><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
@@ -135,8 +122,9 @@
 
         <!-- Settings + availability -->
         <div>
+            <div x-show="pane === 'design'" x-cloak>
             <div class="sb-card">
-                <h5>Settings</h5>
+                <h5>How your services look</h5>
                 {{-- The page background lives on the shared Appearance panel,
                      not here: it is the same picker every other page type uses,
                      and duplicating it per editor is how this app ended up with
@@ -149,14 +137,6 @@
                     <span style="font-size:11px;opacity:.65;">Colour, gradient or one of 941 ready-made looks</span>
                     <i class="fas fa-arrow-right text-[10px]" style="margin-left:auto;opacity:.5;"></i>
                 </a>
-                <div class="sb-row">
-                    <label class="sb-label">Mode</label>
-                    <div class="sb-mode-toggle">
-                        <label><input type="radio" value="display" x-model="config.mode" @change="saveSettings()"><span>Display only</span></label>
-                        <label><input type="radio" value="booking" x-model="config.mode" @change="saveSettings()"><span>Accept bookings</span></label>
-                    </div>
-                    <p class="text-xs mt-2" style="color:var(--text-muted)">Booking mode lets visitors pick a free slot and send a request. No online payment, you arrange payment directly.</p>
-                </div>
                 <div class="sb-row">
                     <label class="sb-label">Service layout</label>
                     <select class="sb-select" x-model="config.catalog_layout" @change="saveSettings()"><option value="list">List with photos</option><option value="compact">Compact price list</option><option value="photo">Photo grid</option></select>
@@ -185,6 +165,18 @@
                 <p class="text-xs" style="color:var(--text-faint)" x-text="savedMsg"></p>
             </div>
 
+            </div>
+            <div x-show="pane === 'ordering'" x-cloak>
+            <div class="sb-card"><h5>Booking mode</h5>
+                <div class="sb-row">
+                    <label class="sb-label">Mode</label>
+                    <div class="sb-mode-toggle">
+                        <label><input type="radio" value="display" x-model="config.mode" @change="saveSettings()"><span>Display only</span></label>
+                        <label><input type="radio" value="booking" x-model="config.mode" @change="saveSettings()"><span>Accept bookings</span></label>
+                    </div>
+                    <p class="text-xs mt-2" style="color:var(--text-muted)">Booking mode lets visitors pick a free slot and send a request. Review availability, confirmation and payment options before accepting bookings.</p>
+                </div>
+            </div>
             <!-- Scheduling -->
             <div class="sb-card" x-show="config.mode === 'booking'">
                 <h5>Scheduling</h5>
@@ -372,8 +364,10 @@
                     <p class="text-sm" style="color:var(--text-muted)">No blocked dates.</p>
                 </template>
             </div>
+            </div>
         </div>
     </div>
+    </div><aside class="business-editor-preview">@include('user.links.partials.device-preview', ['link'=>$link])</aside></div>
 
     <!-- Category modal -->
     <div class="sb-modal-bg" x-show="catModal.open" x-cloak @click.self="catModal.open=false">
@@ -601,6 +595,7 @@ function serviceBookingEditor() {
             });
             const j = await r.json().catch(()=>({}));
             if (!r.ok) { alert((j.error && j.error.message) || (j.message) || 'Request failed'); throw new Error('fail'); }
+            if (method !== 'GET' && typeof refreshPreview === 'function') refreshPreview();
             return j.data;
         },
         async saveSettings(){
@@ -668,6 +663,7 @@ function serviceBookingEditor() {
             else { const d = await this.api('POST','/services', payload); this.services.push(d.service); }
             this.svcModal.open = false;
         },
+        async toggleService(svc){ const d = await this.api('PUT','/services/'+svc.id,{is_active:!svc.is_active}); this.services[this.services.findIndex(x=>x.id===svc.id)] = d.service; },
         async deleteService(svc){ if(!confirm('Delete "'+svc.name+'"?')) return; await this.api('DELETE','/services/'+svc.id); this.services=this.services.filter(s=>s.id!==svc.id); },
         async moveService(catId, svc, dir){
             const list = this.servicesFor(catId);
