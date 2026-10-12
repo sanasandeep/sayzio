@@ -70,7 +70,7 @@
                                             <div @click.outside="open = false" class="w-full max-w-md rounded-xl border p-5" style="border-color: var(--border-color); background: var(--bg-card);">
                                                 <h3 class="text-sm font-bold" style="color: var(--text-primary);">Refund & cancel order #{{ $order->id }}?</h3>
                                                 <p class="mt-1 text-xs" style="color: var(--text-faint);">
-                                                    This refunds {{ strtoupper($order->currency) }} {{ number_format($order->subtotal_cents / 100, 2) }} to the buyer, cancels the order@if($order->contains_digital) and revokes their digital downloads@endif. This can't be undone.
+                                                    This refunds {{ strtoupper($order->currency) }} {{ number_format($order->subtotal_cents / 100, 2) }} to the buyer, cancels the order{{ '' }}@if($order->contains_digital) and revokes their digital downloads{{ '' }}@endif. This can't be undone.
                                                 </p>
                                                 <form method="POST" action="{{ route('user.monetization.orders.refund', $order->id) }}" class="mt-4">
                                                     @csrf

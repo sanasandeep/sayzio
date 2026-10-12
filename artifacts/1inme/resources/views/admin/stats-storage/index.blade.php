@@ -156,7 +156,7 @@
                     @foreach ($lastRun['tables'] as $tName => $tInfo)
                         <li>
                             {{ $tName }} &mdash;
-                            {{ number_format((int) ($tInfo['rows_deleted'] ?? 0)) }} row(s) deleted@if (!empty($tInfo['dropped_partitions'])), {{ count($tInfo['dropped_partitions']) }} partition(s) dropped@endif.
+                            {{ number_format((int) ($tInfo['rows_deleted'] ?? 0)) }} row(s) deleted{{ '' }}@if (!empty($tInfo['dropped_partitions'])), {{ count($tInfo['dropped_partitions']) }} partition(s) dropped{{ '' }}@endif.
                         </li>
                     @endforeach
                 </ul>
