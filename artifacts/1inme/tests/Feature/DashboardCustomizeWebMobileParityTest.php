@@ -52,7 +52,7 @@ class DashboardCustomizeWebMobileParityTest extends TestCase
     private function webPayload(User $user): array
     {
         $response = $this->actingAs($user)
-            ->get(route('user.dashboard'))
+            ->get(route('user.dashboard', ['view' => 'custom']))
             ->assertOk();
 
         return [
