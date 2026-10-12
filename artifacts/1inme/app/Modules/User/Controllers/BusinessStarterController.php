@@ -18,6 +18,31 @@ class BusinessStarterController extends Controller
         $route = DB::transaction(function () use ($link, $starter) {
             // Serialize repeated imports for this link. Existing content is never replaced.
             Link::whereKey($link->id)->lockForUpdate()->firstOrFail();
+            if ($link->isCommunityPage()) {
+                foreach ($starter['items'] as $item) {
+                    abort_unless(workspace_owner()->userCanUseBlockType($item['block_type'] ?? 'paragraph'), 403, 'A block in this starter is unavailable on your plan.');
+                }
+                $settings = $link->fresh()->settings ?? [];
+                $imported = $settings['_business_starters'] ?? [];
+                if (!in_array($starter['key'], $imported, true)) {
+                    $sort = (int) $link->biolinkBlocks()->max('sort_order');
+                    foreach ($starter['items'] as $item) {
+                        $type = $item['block_type'] ?? 'paragraph';
+                        $content = \App\Modules\User\Support\BlockDefaults::contentForType($type);
+                        $content = array_replace($content, match ($type) {
+                            'link' => ['text'=>$item['name'], 'description'=>$item['description'], 'url'=>'https://example.com'],
+                            'donation' => ['title'=>$item['name'], 'description'=>$item['description'], 'url'=>'https://example.com'],
+                            'contact_form' => ['title'=>$item['name'], 'button_text'=>'Send request', 'fields'=>['name','email','message']],
+                            'tip_jar' => ['title'=>$item['name'], 'message'=>$item['description'], 'button_text'=>'Contribute'],
+                            default => ['text'=>$item['name']."\n\n".$item['description']],
+                        });
+                        $link->biolinkBlocks()->create(['type'=>$type, 'settings'=>$content, 'is_active'=>false, 'sort_order'=>++$sort]);
+                    }
+                    $settings['_business_starters'] = array_merge($imported, [$starter['key']]);
+                    $link->update(['settings'=>$settings]);
+                }
+                return 'user.links.blocks.editor';
+            }
             if ($link->isAppointmentPage()) {
                 $config = ServiceBooking::firstOrCreate(['link_id'=>$link->id], ['user_id'=>$link->user_id,'mode'=>'booking','currency'=>'USD','timezone'=>\App\Support\PlatformTimezone::platformDefault()]);
                 $relation = 'services'; $route = 'user.links.service-booking.editor';
@@ -51,6 +76,6 @@ class BusinessStarterController extends Controller
             }
             return $route;
         });
-        return redirect()->route($route, $link)->with('success', 'Starter added as drafts. Review prices and details, then publish each item.');
+        return redirect()->route($route, $link)->with('success', 'Starter added as drafts. Review details, links and payment settings, then publish each item.');
     }
 }

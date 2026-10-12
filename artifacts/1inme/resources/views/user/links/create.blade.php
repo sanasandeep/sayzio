@@ -37,7 +37,7 @@
                 $linkTypeMeta[$t['value']] = [
                     'label' => $t['label'],
                     'icon'  => $t['icon'],
-                    'business' => in_array($t['value'], ['restaurant_menu','store_menu','service_booking','salon_spa','contact_directory','real_estate','education'], true),
+                    'business' => in_array($t['value'], ['restaurant_menu','store_menu','service_booking','salon_spa','contact_directory','real_estate','education','community_club','nonprofit_campaign'], true),
                 ];
             }
         }

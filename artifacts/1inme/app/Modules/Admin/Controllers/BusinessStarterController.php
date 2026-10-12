@@ -25,12 +25,13 @@ class BusinessStarterController extends Controller
             'catalog.*.*.key'=>'required|string|regex:/^starter-[1-5]$/',
             'catalog.*.*.label'=>'required|string|max:80',
             'catalog.*.*.items'=>'required|array|min:1|max:30',
-            'catalog.*.*.items.*'=>'required|array:category,name,description,price,duration',
+            'catalog.*.*.items.*'=>'required|array:category,name,description,price,duration,block_type',
             'catalog.*.*.items.*.category'=>'required|string|max:150',
             'catalog.*.*.items.*.name'=>'required|string|max:150',
             'catalog.*.*.items.*.description'=>'required|string|max:800',
             'catalog.*.*.items.*.price'=>'required|numeric|min:0|max:9999999',
             'catalog.*.*.items.*.duration'=>'required|integer|min:5|max:1440',
+            'catalog.*.*.items.*.block_type'=>'nullable|in:paragraph,link,donation,tip_jar,contact_form',
         ];
         $data = $request->validate($rules)['catalog'];
         foreach ($data as $type=>$starters) {

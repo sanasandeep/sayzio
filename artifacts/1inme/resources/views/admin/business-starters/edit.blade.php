@@ -16,6 +16,13 @@
 @foreach(['category'=>'Category','name'=>'Item / service name','description'=>'Description','price'=>'Sample price','duration'=>'Duration (minutes)'] as $key=>$label)
 <label>{{ $label }}<input class="theme-input w-full" type="{{ in_array($key,['price','duration']) ? 'number' : 'text' }}" @if($key==='price') step="0.01" min="0" max="9999999" @elseif($key==='duration') min="5" max="1440" @else maxlength="{{ $key==='description' ? 800 : 150 }}" @endif required name="catalog[{{ $type }}][{{ $i }}][items][{{ $j }}][{{ $key }}]" value="{{ old('catalog.'.$type.'.'.$i.'.items.'.$j.'.'.$key,$item[$key]) }}"></label>
 @endforeach
+@if(in_array($type, ['community_club','nonprofit_campaign'], true))
+<label>Content type<select class="theme-input w-full" name="catalog[{{ $type }}][{{ $i }}][items][{{ $j }}][block_type]">
+@foreach(['contact_form'=>'Membership / volunteer request form','paragraph'=>'Text / announcement','link'=>'Membership / event / signup link','donation'=>'External donation link','tip_jar'=>'Integrated contribution checkout'] as $bt=>$bl)
+<option value="{{ $bt }}" @selected(old('catalog.'.$type.'.'.$i.'.items.'.$j.'.block_type', $item['block_type'] ?? 'paragraph') === $bt)>{{ $bl }}</option>
+@endforeach
+</select></label>
+@endif
 </div>
 @endforeach
 </fieldset>
