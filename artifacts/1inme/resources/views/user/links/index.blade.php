@@ -6,6 +6,7 @@
     @include('user.partials.bento-styles')
     @include('user.partials.overview-styles')
 <style>
+    @include('user.links.partials.report-styles')
     /* ── Header ─────────────────────────────────────────────────────────── */
     /* The header is the page's highlight, so it is the card that carries the
        ribbon and the lattice -- which means it has to become a surface. It

@@ -262,6 +262,9 @@ class ProjectReportTest extends TestCase
 
         $page = $this->visit($user);
         $page->assertOk();
+        $page->assertSee('folderClicksChart', false);
+        $page->assertSee('folderBrowserChart', false);
+        $page->assertSee('folder-heat-grid', false);
 
         $report = $this->report($user, Carbon::now('UTC')->subDays(7)->toDateString(), Carbon::now('UTC')->toDateString(), 'UTC');
 
@@ -276,6 +279,20 @@ class ProjectReportTest extends TestCase
             $csv->assertOk();
             $this->assertStringContainsString('text/csv', $csv->headers->get('Content-Type'));
         }
+    }
+
+    public function test_shared_heatmap_has_labels_and_two_hour_blocks(): void
+    {
+        $user = User::factory()->create();
+        $link = $this->link($user);
+        $this->click($link, '2026-05-04 20:30:00');
+        $heat = $this->report($user, '2026-05-01', '2026-05-10', 'Asia/Kolkata')->heat();
+        $this->assertCount(7, $heat['rows']);
+        $this->assertSame('Tue', $heat['rows'][1]['day']);
+        $this->assertSame('Tuesday', $heat['rows'][1]['full']);
+        $this->assertCount(12, $heat['rows'][1]['blocks']);
+        $this->assertSame(1, $heat['rows'][1]['blocks'][1]);
+        $this->assertSame('Tue 02:00', $heat['peakLabel']);
     }
 
     public function test_export_all_contains_every_section(): void

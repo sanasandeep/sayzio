@@ -53,14 +53,14 @@ class LinkReport
      * referrer, "Unknown" is right for a country.
      */
     public const BREAKDOWNS = [
-        'sources'   => ['column' => 'source',       'label' => 'Sources',           'empty' => 'Direct'],
-        'referrers' => ['column' => 'referrer',     'label' => 'Referring sites',   'empty' => 'Direct'],
-        'channels'  => ['column' => 'channel',      'label' => 'Channels',          'empty' => 'Unknown'],
-        'countries' => ['column' => 'country_code', 'label' => 'Countries',         'empty' => 'Unknown'],
-        'cities'    => ['column' => 'city',         'label' => 'Cities',            'empty' => 'Unknown'],
+        'sources'   => ['column' => 'source',       'label' => 'Traffic Source',    'empty' => 'Direct'],
+        'referrers' => ['column' => 'referrer',     'label' => 'Top Referrers',     'empty' => 'Direct'],
+        'channels'  => ['column' => 'channel',      'label' => 'Channel',           'empty' => 'Unknown'],
+        'countries' => ['column' => 'country_code', 'label' => 'Top Countries',     'empty' => 'Unknown'],
+        'cities'    => ['column' => 'city',         'label' => 'Top Cities',        'empty' => 'Unknown'],
         'devices'   => ['column' => 'device_type',  'label' => 'Devices',           'empty' => 'Unknown'],
         'browsers'  => ['column' => 'browser',      'label' => 'Browsers',          'empty' => 'Unknown'],
-        'systems'   => ['column' => 'os',           'label' => 'Operating systems', 'empty' => 'Unknown'],
+        'systems'   => ['column' => 'os',           'label' => 'Operating Systems', 'empty' => 'Unknown'],
         'languages' => ['column' => 'language',     'label' => 'Languages',         'empty' => 'Unknown'],
     ];
 
@@ -318,5 +318,221 @@ class LinkReport
         $zone = str_replace("'", "''", $this->timezone);
 
         return "clicked_at AT TIME ZONE 'UTC' AT TIME ZONE '{$zone}'";
+    }
+
+    // ------------------------------------------------------------------
+    // The traffic layer the per-link stats page, the folder report and the
+    // account report all read from.
+    //
+    // Everything below hangs off one filtered click query, so the only thing
+    // that changes between "one link", "one folder" and "the whole account"
+    // is the set of links handed to the constructor. That is the point: the
+    // shapes returned here are the ones `show.blade.php` already consumes,
+    // so the existing partials -- click-heatmap, chart-actions, chart-export,
+    // recent-clicks-table -- render a folder without being touched.
+    // ------------------------------------------------------------------
+
+    /** Dimension filters, as the stats page already names them in the query string. */
+    public const FILTERS = ['source', 'country_code', 'device_type', 'browser', 'os', 'language', 'channel', 'alias'];
+
+    private array $filters = [];
+
+    private ?string $baseLanguage = null;
+
+    /** @param array<string, string|null> $filters */
+    public function withFilters(array $filters, ?string $baseLanguage = null): static
+    {
+        $this->filters = array_filter(
+            array_intersect_key($filters, array_flip(self::FILTERS)),
+            fn ($v) => is_string($v) && $v !== '',
+        );
+        $this->baseLanguage = $baseLanguage ?: null;
+
+        return $this;
+    }
+
+    /** The click query every figure on the page starts from. */
+    private function scoped(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = ($this->includeBots ? LinkClick::withBots() : LinkClick::query())
+            ->whereIn('link_id', (clone $this->links)->select('links.id'))
+            ->whereBetween('clicked_at', [$this->from->copy()->utc(), $this->to->copy()->utc()]);
+
+        foreach ($this->filters as $column => $value) {
+            $query->where($column, $value);
+        }
+
+        if ($this->baseLanguage) {
+            $query->whereRaw(
+                "LOWER(SPLIT_PART(REPLACE(language, '_', '-'), '-', 1)) = ?",
+                [$this->baseLanguage],
+            );
+        }
+
+        return $query;
+    }
+
+    /**
+     * Clicks per bucket, in the viewer's zone.
+     *
+     * `DATE_TRUNC` on the raw column buckets by UTC day. For an owner in
+     * Asia/Kolkata that puts everything after 18:30 local on the next day's
+     * bar, so the chart and the heatmap disagree with the clock on the wall.
+     */
+    public function series(string $groupBy = 'day'): Collection
+    {
+        $expr = $this->bucketExpression($groupBy);
+
+        return $this->scoped()
+            ->selectRaw("$expr as bucket, COUNT(*) as count, COUNT(DISTINCT ip_address) as unique_count")
+            ->groupByRaw($expr)
+            ->orderBy('bucket')
+            ->get();
+    }
+
+    /** The same buckets for bot traffic, which the global scope hides by default. */
+    public function botSeries(string $groupBy = 'day'): Collection
+    {
+        $expr = $this->bucketExpression($groupBy);
+
+        return LinkClick::withBots()
+            ->whereIn('link_id', (clone $this->links)->select('links.id'))
+            ->where('is_bot', true)
+            ->whereBetween('clicked_at', [$this->from->copy()->utc(), $this->to->copy()->utc()])
+            ->selectRaw("$expr as bucket, COUNT(*) as count")
+            ->groupByRaw($expr)
+            ->orderBy('bucket')
+            ->pluck('count', 'bucket');
+    }
+
+    private function bucketExpression(string $groupBy): string
+    {
+        $local = $this->localExpression();
+
+        return match ($groupBy) {
+            'week'  => "TO_CHAR(DATE_TRUNC('week', $local), 'YYYY-MM-DD')",
+            'month' => "TO_CHAR(DATE_TRUNC('month', $local), 'YYYY-MM')",
+            'year'  => "TO_CHAR(DATE_TRUNC('year', $local), 'YYYY')",
+            default => "TO_CHAR(DATE_TRUNC('day', $local), 'YYYY-MM-DD')",
+        };
+    }
+
+    /**
+     * The 7 x 12 grid the shared click-heatmap partial draws: ISO weekday down
+     * (Monday first), two-hour blocks across.
+     *
+     * @return array{rows: array<int, array{day: string, full: string, date: null, today: bool, blocks: array<int, int>}>, peak: int, peakLabel: string}
+     */
+    public function heat(): array
+    {
+        $local = $this->localExpression();
+        $rows = array_fill(0, 7, array_fill(0, 12, 0));
+        $peak = 0;
+        $peakLabel = null;
+
+        $this->scoped()
+            ->selectRaw("EXTRACT(ISODOW FROM $local)::int AS dow, (EXTRACT(HOUR FROM $local)::int / 2) AS blk, COUNT(*) AS c")
+            ->groupByRaw("EXTRACT(ISODOW FROM $local), (EXTRACT(HOUR FROM $local)::int / 2)")
+            ->get()
+            ->each(function ($r) use (&$rows, &$peak, &$peakLabel) {
+                $day = ((int) $r->dow) - 1;          // ISODOW is 1..7, Monday first
+                $block = min(11, max(0, (int) $r->blk));
+                $count = (int) $r->c;
+
+                if ($day < 0 || $day > 6) {
+                    return;
+                }
+
+                $rows[$day][$block] = $count;
+
+                if ($count > $peak) {
+                    $peak = $count;
+                    $peakLabel = self::ISO_DAYS[$day].' '.str_pad((string) ($block * 2), 2, '0', STR_PAD_LEFT).':00';
+                }
+            });
+
+        $fullDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        $displayRows = [];
+        foreach ($rows as $day => $blocks) {
+            $displayRows[] = [
+                'day' => self::ISO_DAYS[$day],
+                'full' => $fullDays[$day],
+                'date' => null,
+                'today' => false,
+                'blocks' => $blocks,
+            ];
+        }
+
+        return ['rows' => $displayRows, 'peak' => $peak, 'peakLabel' => $peakLabel ?? 'No clicks'];
+    }
+
+    /** Monday-first, matching EXTRACT(ISODOW) and the shared partial's rows. */
+    public const ISO_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    /**
+     * One dimension card — browsers, devices, countries and the rest.
+     *
+     * `$ignore` drops a filter from its own card, so choosing Chrome does not
+     * reduce the browser card to a single row the reader cannot get out of.
+     * The stats page does this already; doing it here keeps that behaviour
+     * when the same card is drawn for a folder.
+     */
+    public function dimension(string $column, int $limit = 10, ?string $ignore = null): Collection
+    {
+        $saved = $this->filters;
+        if ($ignore !== null) {
+            unset($this->filters[$ignore]);
+        }
+
+        $rows = $this->scoped()
+            ->selectRaw("$column, COUNT(*) as count")
+            ->whereNotNull($column)
+            ->where($column, '!=', '')
+            ->groupBy($column)
+            ->orderByDesc('count')
+            ->limit($limit)
+            ->get();
+
+        $this->filters = $saved;
+
+        return $rows;
+    }
+
+    /**
+     * Engagement, from page_sessions. A bounce is under five seconds, the
+     * same threshold the per-link page has always used.
+     *
+     * @return array{sessions: int, avgSeconds: int, engagedSeconds: int, bounceRate: float}
+     */
+    public function sessions(): array
+    {
+        $query = \App\Modules\User\Models\PageSession::whereIn('link_id', (clone $this->links)->select('links.id'))
+            ->whereBetween('started_at', [$this->from->copy()->utc(), $this->to->copy()->utc()]);
+
+        $total = (clone $query)->count();
+        $bounced = (clone $query)->where('duration_seconds', '<', 5)->count();
+
+        return [
+            'sessions'       => $total,
+            'avgSeconds'     => (int) round((clone $query)->avg('duration_seconds') ?? 0),
+            'engagedSeconds' => (int) ((clone $query)->sum('duration_seconds') ?? 0),
+            'bounceRate'     => $total > 0 ? round($bounced / $total * 100, 1) : 0.0,
+        ];
+    }
+
+    /** Bot hits the global scope removed from every figure above. */
+    public function botTotal(): int
+    {
+        return LinkClick::withBots()
+            ->whereIn('link_id', (clone $this->links)->select('links.id'))
+            ->where('is_bot', true)
+            ->whereBetween('clicked_at', [$this->from->copy()->utc(), $this->to->copy()->utc()])
+            ->count();
+    }
+
+    /** The recent-clicks table, paginated, newest first. */
+    public function recent(int $perPage = 25)
+    {
+        return $this->scoped()->orderByDesc('clicked_at')->paginate($perPage)->withQueryString();
     }
 }

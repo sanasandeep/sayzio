@@ -145,14 +145,36 @@ class LinkController extends Controller
             $includeBots = $request->boolean('bots');
             $reporter = new LinkReport((clone $scope), $from, $to, $timezone, $includeBots);
 
+            $groupBy = in_array($request->query('group'), ['day', 'week', 'month', 'year'], true)
+                ? $request->query('group')
+                : 'day';
+
+            $reporter->withFilters($request->only(LinkReport::FILTERS));
+
             $report = [
                 'from'       => $from,
                 'to'         => $to,
                 'timezone'   => $timezone,
                 'bots'       => $includeBots,
+                'groupBy'    => $groupBy,
                 'totals'     => $reporter->totals(),
                 'daily'      => $reporter->daily(),
                 'heatmap'    => $reporter->heatmap(),
+                // The shapes the per-link stats page's own partials consume,
+                // so this page draws the same cards rather than its own.
+                'series'     => $reporter->series($groupBy),
+                'botSeries'  => $reporter->botSeries($groupBy),
+                'heat'       => $reporter->heat(),
+                'sessions'   => $reporter->sessions(),
+                'botTotal'   => $reporter->botTotal(),
+                'dimensions' => collect([
+                    'browser' => 'browser', 'os' => 'os', 'device_type' => 'device',
+                    'source' => 'source', 'channel' => 'channel',
+                    'country_code' => 'country_code', 'city' => null,
+                    'referrer' => null, 'language' => 'language',
+                ])->mapWithKeys(fn (?string $ownFilter, string $column) => [
+                    $column => $reporter->dimension($column, 10, $ownFilter),
+                ])->all(),
                 // Generated from the catalogue, never hand-listed, so the
                 // view and the export can never offer different sections.
                 'breakdowns' => collect(LinkReport::BREAKDOWNS)
