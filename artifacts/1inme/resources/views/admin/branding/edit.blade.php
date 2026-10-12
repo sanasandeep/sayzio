@@ -22,15 +22,15 @@
                     @foreach(['sidebar' => 'Sidebar', 'topbar' => 'Top bar'] as $area => $label)
                     <label>{{ $label }}
                         <select name="navigation_{{ $area }}" class="w-full rounded-lg p-2" style="background:var(--bg-card);color:var(--text-primary)">
-                            @foreach(['theme' => 'Follow page theme', 'light' => 'Light', 'dark' => 'Dark', 'color' => 'Color'] as $value => $text)
+                            @foreach(['theme' => 'Follow page theme', 'light' => 'Light', 'dark' => 'Dark', 'gradient-light' => 'Light gradient', 'gradient-medium' => 'Medium gradient', 'gradient-dark' => 'Dark gradient'] as $value => $text)
                             <option value="{{ $value }}" @selected(($navigationAppearance[$area] ?? 'theme') === $value)>{{ $text }}</option>
                             @endforeach
                         </select>
                     </label>
                     @endforeach
-                    <label>Navigation color<input class="block w-full h-10" type="color" name="navigation_color" value="{{ $navigationAppearance['color'] ?? '#4338ca' }}"></label>
+                    <label>Logo area<select name="navigation_logo" class="w-full rounded-lg p-2" style="background:var(--bg-card);color:var(--text-primary)"><option value="0" @selected(!($navigationAppearance['logo'] ?? false))>Use sidebar style</option><option value="1" @selected($navigationAppearance['logo'] ?? false)>Include in top bar</option></select></label>
                 </div>
-                @foreach(['navigation_sidebar', 'navigation_topbar', 'navigation_color'] as $field)
+                @foreach(['navigation_sidebar', 'navigation_topbar', 'navigation_logo'] as $field)
                     @error($field)<p class="text-red-400">{{ $message }}</p>@enderror
                 @endforeach
             </section>

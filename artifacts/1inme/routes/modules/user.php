@@ -589,6 +589,8 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('/',  [\App\Modules\User\Controllers\AdultContentController::class, 'update'])->name('update');
         });
 
+        Route::view('settings/design', 'user.settings.design')->middleware('workspace.can:settings.view')->name('design.edit');
+
         Route::prefix('settings/profile')->name('profile.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/', [ProfileController::class, 'edit'])->name('edit');
             Route::put('/', [ProfileController::class, 'update'])->name('update');
