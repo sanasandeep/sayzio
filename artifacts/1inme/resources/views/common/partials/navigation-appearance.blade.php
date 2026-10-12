@@ -89,4 +89,19 @@ html[data-topbar-includes-logo="true"][data-topbar-logo="light"] .navigation-log
 html[data-topbar-includes-logo="true"][data-topbar-logo="light"] .navigation-logo .brand-logo--light {display:block!important;}
 html[data-topbar-includes-logo="true"][data-topbar-appearance="theme"]:not(.light-mode) .navigation-logo .brand-logo--light {display:none!important;}
 html[data-topbar-includes-logo="true"][data-topbar-appearance="theme"]:not(.light-mode) .navigation-logo .brand-logo--dark {display:block!important;}
+/* Keep interactive surfaces and text paired when page and navigation themes differ. */
+html[data-sidebar-appearance]:not([data-sidebar-appearance="theme"]) :is(.sidebar-shell,.navigation-mobile) :is(#workspace-switcher > button,.admin-switch-btn,.logout-btn) {
+    background:transparent!important;color:var(--nav-ink)!important;border-color:var(--nav-line)!important;
+}
+html[data-sidebar-appearance]:not([data-sidebar-appearance="theme"]) :is(.sidebar-shell,.navigation-mobile) :is(#workspace-switcher > button,.admin-switch-btn,.logout-btn):is(:hover,:focus-visible),
+html[data-sidebar-appearance]:not([data-sidebar-appearance="theme"]) :is(.sidebar-shell,.navigation-mobile) #workspace-switcher > button[aria-expanded="true"] {
+    background:var(--nav-active)!important;color:var(--nav-ink)!important;
+}
+html[data-sidebar-appearance]:not([data-sidebar-appearance="theme"]) :is(.sidebar-shell,.navigation-mobile) #workspace-switcher :is(button,a).hover\:bg-black\/5:is(:hover,:focus-visible) {
+    background:var(--nav-active)!important;color:var(--nav-ink)!important;
+}
+html[data-sidebar-appearance]:not([data-sidebar-appearance="theme"]) :is(.sidebar-shell,.navigation-mobile) .sidebar-link:is(:hover,:focus-visible) {
+    background:var(--nav-active)!important;color:var(--nav-ink)!important;
+}
+html[data-sidebar-appearance]:not([data-sidebar-appearance="theme"]) :is(.sidebar-shell,.navigation-mobile) .sidebar-link:is(:hover,:focus-visible) :is(i,.nav-icon-wrap) {color:var(--nav-ink)!important;}
 </style>
