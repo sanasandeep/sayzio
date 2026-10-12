@@ -34,12 +34,7 @@ class BrandKitAssetsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Storage::fake('user_files');
-        // The real storage guard checks configuration; writes use the fake disk.
-        config()->set('filesystems.disks.user_files', [
-            'driver' => 's3', 'key' => 'test', 'secret' => 'test',
-            'bucket' => 'test-bucket', 'region' => 'us-east-1',
-        ]);
+        Storage::fake('public');
         // Make the feature "enabled" without a real key by stubbing the client.
     }
 

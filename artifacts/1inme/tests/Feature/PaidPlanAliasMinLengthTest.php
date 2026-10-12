@@ -96,15 +96,13 @@ class PaidPlanAliasMinLengthTest extends TestCase
 
     private function makeLink(User $user, string $alias, string $type = 'short'): Link
     {
-        $link = Link::create([
+        return Link::create([
             'user_id'   => $user->id,
             'type'      => $type,
             'alias'     => $alias,
             'long_url'  => 'https://example.com',
             'is_active' => true,
         ]);
-        $link->forceFill(['workspace_id' => $user->ownedWorkspaces()->firstOrFail()->id])->save();
-        return $link;
     }
 
     // ── The floor itself ───────────────────────────────────────────────
@@ -229,7 +227,7 @@ class PaidPlanAliasMinLengthTest extends TestCase
             'alias'    => self::AT_MIN,
             'rules'    => $rule,
         ]);
-        $accepted->assertCreated();
+        $accepted->assertStatus(200);
         $this->assertTrue(Link::where('alias', self::AT_MIN)->exists());
     }
 

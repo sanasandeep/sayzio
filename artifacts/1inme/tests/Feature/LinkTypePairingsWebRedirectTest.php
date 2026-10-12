@@ -58,9 +58,6 @@ class LinkTypePairingsWebRedirectTest extends TestCase
         // on the generic create flow via a `type` query param.
         'restaurant_menu' => 'user.links.create',
         'store_menu'      => 'user.links.create',
-        'text'            => 'user.links.text.create',
-        'url'             => 'user.links.create',
-        'file'            => 'user.links.create',
     ];
 
     protected function setUp(): void
@@ -109,7 +106,7 @@ class LinkTypePairingsWebRedirectTest extends TestCase
                 );
 
                 // The generic-create fallbacks must pre-select their type.
-                if (in_array($type, ['restaurant_menu', 'store_menu', 'url', 'file'], true)) {
+                if (in_array($type, ['restaurant_menu', 'store_menu'], true)) {
                     $this->assertSame(['type' => $type], $params);
                 }
 

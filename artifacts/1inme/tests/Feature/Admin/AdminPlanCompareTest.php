@@ -68,9 +68,9 @@ class AdminPlanCompareTest extends TestCase
      */
     private function extractPlanNames(string $html): array
     {
-        $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5);
-        $matched = preg_match("/planCompare\\(.+?,\\s*(JSON\\.parse\\('(?:\\\\.|[^'])*'\\))/s", $html, $m);
-        $this->assertSame(1, $matched, 'Rendered page is missing the plan names argument.');
+        $matched = preg_match('/const __planNames = (.+?);\s*$/m', $html, $m);
+        $this->assertSame(1, $matched, 'Rendered page is missing the __planNames assignment.');
+
         $expr = $m[1];
 
         // Blade's @js emits either a bare JSON literal or

@@ -114,10 +114,7 @@ class BrandKitPageController extends Controller
             'taglines'      => $request->input('taglines', $existing['taglines'] ?? []),
             'logos'         => $request->input('logos', $existing['logos'] ?? []),
             'socials'       => $request->input('socials', $existing['socials'] ?? []),
-            'sections'      => array_replace(
-                array_fill_keys(array_keys(BrandKitPageTemplates::SECTION_DEFAULTS), false),
-                (array) $request->input('sections', []),
-            ),
+            'sections'      => $request->input('sections', []),
         ]);
 
         $settings = $link->settings ?? [];

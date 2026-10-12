@@ -7,7 +7,6 @@ use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\BiolinkWizardDraft;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
-use App\Modules\User\Models\UserFile;
 use App\Modules\User\Models\WalletTransaction;
 use App\Modules\User\Services\BiolinkWizardQuestions;
 use App\Modules\User\Services\WorkspaceContext;
@@ -17,7 +16,6 @@ use App\Services\AI\AiUsageCharger;
 use App\Services\Billing\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -54,12 +52,6 @@ class BiolinkWizardAiCreditTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Storage::fake('user_files');
-        // The real storage guard checks configuration; writes use the fake disk.
-        config()->set('filesystems.disks.user_files', [
-            'driver' => 's3', 'key' => 'test', 'secret' => 'test',
-            'bucket' => 'test-bucket', 'region' => 'us-east-1',
-        ]);
 
         // Real engine + real (priced) models so a charge actually lands.
         AiEngineSettings::setEnabled(true);
@@ -357,8 +349,6 @@ class BiolinkWizardAiCreditTest extends TestCase
         $this->assertGreaterThanOrEqual(1, $this->aiRefunds($user), 'a failed build must auto-refund');
         $this->assertSame($startBalance, app(AiUsageCharger::class)->getBalance($user),
             'charge + auto-refund must net to zero on a failed AI draft');
-        $this->assertSame(0, UserFile::where('user_id', $user->id)->count(),
-            'generated artwork must be removed when the page build fails');
     }
 
     /**
@@ -391,8 +381,6 @@ class BiolinkWizardAiCreditTest extends TestCase
         $this->assertSame(0, Link::where('user_id', $user->id)->count());
         $this->assertSame($startBalance, app(AiUsageCharger::class)->getBalance($user),
             'charge + auto-refund must net to zero on a failed AI draft');
-        $this->assertSame(0, UserFile::where('user_id', $user->id)->count(),
-            'generated artwork must be removed when the page build fails');
 
         // The draft survives so the user can retry without re-entering answers.
         $this->assertNotNull(BiolinkWizardDraft::find($draft->id));

@@ -11,7 +11,6 @@ use App\Modules\User\Services\BiolinkWizardQuestions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
-use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Cross-taxonomy coverage for the guided biolink wizard (task #2024).
@@ -103,7 +102,9 @@ class BiolinkWizardAllPageTypesTest extends TestCase
         return User::factory()->create();
     }
 
-    #[DataProvider('comboProvider')]
+    /**
+     * @dataProvider comboProvider
+     */
     public function test_every_combo_builds_and_applies_a_complete_page(
         string $category,
         string $pageType,

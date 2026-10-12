@@ -150,20 +150,6 @@ abstract class TestCase extends BaseTestCase
      */
     protected function tearDown(): void
     {
-        // Diagnose transaction bookkeeping drift without resetting or hiding it.
-        // Only inspect existing PDO connections; do not open a new connection.
-        if ($this->app && $this->app->bound('db')) {
-            foreach ($this->app['db']->getConnections() as $connectionName => $connection) {
-                $pdo = $connection->getRawPdo();
-                if ($pdo instanceof \PDO && $connection->transactionLevel() > 0 && !$pdo->inTransaction()) {
-                    fwrite(STDERR, sprintf(
-                        "[transaction-state] %s::%s connection=%s laravel_level=%d pdo_active=false\n",
-                        static::class, $this->name(), $connectionName, $connection->transactionLevel(),
-                    ));
-                }
-            }
-        }
-
         parent::tearDown();
 
         gc_collect_cycles();
