@@ -53,14 +53,14 @@ class LinkReport
      * referrer, "Unknown" is right for a country.
      */
     public const BREAKDOWNS = [
-        'sources'   => ['column' => 'source',       'label' => 'Sources',           'empty' => 'Direct'],
-        'referrers' => ['column' => 'referrer',     'label' => 'Referring sites',   'empty' => 'Direct'],
-        'channels'  => ['column' => 'channel',      'label' => 'Channels',          'empty' => 'Unknown'],
-        'countries' => ['column' => 'country_code', 'label' => 'Countries',         'empty' => 'Unknown'],
-        'cities'    => ['column' => 'city',         'label' => 'Cities',            'empty' => 'Unknown'],
+        'sources'   => ['column' => 'source',       'label' => 'Traffic Source',    'empty' => 'Direct'],
+        'referrers' => ['column' => 'referrer',     'label' => 'Top Referrers',     'empty' => 'Direct'],
+        'channels'  => ['column' => 'channel',      'label' => 'Channel',           'empty' => 'Unknown'],
+        'countries' => ['column' => 'country_code', 'label' => 'Top Countries',     'empty' => 'Unknown'],
+        'cities'    => ['column' => 'city',         'label' => 'Top Cities',        'empty' => 'Unknown'],
         'devices'   => ['column' => 'device_type',  'label' => 'Devices',           'empty' => 'Unknown'],
         'browsers'  => ['column' => 'browser',      'label' => 'Browsers',          'empty' => 'Unknown'],
-        'systems'   => ['column' => 'os',           'label' => 'Operating systems', 'empty' => 'Unknown'],
+        'systems'   => ['column' => 'os',           'label' => 'Operating Systems', 'empty' => 'Unknown'],
         'languages' => ['column' => 'language',     'label' => 'Languages',         'empty' => 'Unknown'],
     ];
 
