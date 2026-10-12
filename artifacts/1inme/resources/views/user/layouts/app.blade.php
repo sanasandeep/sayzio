@@ -30,6 +30,7 @@
     <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
     <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
     @include('common.partials.theme-styles')
+    @include('common.partials.navigation-appearance')
     <style>
         /* Single source of truth for the in-app header height (matches the
            header's Tailwind h-16 = 4rem below). Anything that needs to budget
@@ -1494,6 +1495,7 @@
                     <div class="hidden lg:flex items-center">
                         @include('common.partials.theme-toggle')
                     </div>
+                    @include('common.partials.navigation-appearance-picker')
 
                     {{-- Task #3848 — compact coin-wallet icon + balance badge,
                          replacing the old sidebar Wallet nav item. Badge is
@@ -1645,7 +1647,7 @@
 
             <div x-show="mobileMenu" x-cloak
                  class="lg:hidden fixed inset-0 z-50 backdrop-blur-sm" @click.self="mobileMenu = false" style="background: var(--overlay-bg);">
-                <div class="w-full h-full flex flex-col dash-glass">
+                <div class="w-full h-full flex flex-col dash-glass navigation-mobile">
                     <div class="h-[64px] flex items-center justify-between px-5" style="border-bottom: 1px solid var(--border-subtle);">
                         <div class="flex items-center gap-2.5">
                             @include('common.partials.brand-logo', ['height' => 'h-7'])

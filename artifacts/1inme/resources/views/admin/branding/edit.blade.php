@@ -15,6 +15,25 @@
         <form method="POST" action="{{ route('admin.branding.update') }}" enctype="multipart/form-data" class="space-y-6">
             @csrf
 
+            <section class="glass rounded-xl p-5 space-y-4">
+                <h3 class="font-semibold">Workspace navigation defaults</h3>
+                <p class="text-sm ak-muted">Users can override these on their browser from Appearance.</p>
+                <div class="grid md:grid-cols-3 gap-4">
+                    @foreach(['sidebar' => 'Sidebar', 'topbar' => 'Top bar'] as $area => $label)
+                    <label>{{ $label }}
+                        <select name="navigation_{{ $area }}" class="w-full rounded-lg p-2" style="background:var(--bg-card);color:var(--text-primary)">
+                            @foreach(['theme' => 'Follow page theme', 'light' => 'Light', 'dark' => 'Dark', 'color' => 'Color'] as $value => $text)
+                            <option value="{{ $value }}" @selected(($navigationAppearance[$area] ?? 'theme') === $value)>{{ $text }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    @endforeach
+                    <label>Navigation color<input class="block w-full h-10" type="color" name="navigation_color" value="{{ $navigationAppearance['color'] ?? '#4338ca' }}"></label>
+                </div>
+                @foreach(['navigation_sidebar', 'navigation_topbar', 'navigation_color'] as $field)
+                    @error($field)<p class="text-red-400">{{ $message }}</p>@enderror
+                @endforeach
+            </section>
             {{-- Light mode logo --}}
             <div class="grid grid-cols-1 md:grid-cols-[260px,1fr] gap-4 items-center">
                 <div class="rounded-xl p-4 flex items-center justify-center" style="background:#ffffff; border:1px solid var(--border-glass); min-height:120px;">
