@@ -70,3 +70,12 @@
 
 
 .report-select { appearance: auto; min-height: 38px; padding: 8px 30px 8px 12px; border: 1px solid var(--border-glass); border-radius: 9px; background: var(--bg-card); color: var(--text-primary); font-size: 12px; }
+
+    .folder-kpi {position:relative;overflow:hidden;min-height:235px;padding:24px;border-radius:24px;border:1px solid #ffffff25;background:radial-gradient(ellipse at 100% 0%,var(--ov-color),transparent 75%),var(--ov-tone);box-shadow:0 14px 30px color-mix(in srgb,var(--ov-tone) 20%,transparent),inset 0 1px 0 #ffffff45;transition:transform .25s,box-shadow .25s;}
+    .folder-kpi:hover {transform:translateY(-4px);box-shadow:0 20px 38px color-mix(in srgb,var(--ov-tone) 28%,transparent);}
+    .folder-kpi-label {font-size:15px;font-weight:650;color:#fff;position:relative;z-index:1;}
+    .folder-kpi .ov-count-art {position:absolute;width:140px;height:118px;right:10px;top:35px;transition:transform .3s;}
+    .folder-kpi:hover .ov-count-art {transform:translateY(-6px) rotate(-4deg);}
+    .folder-kpi-value {position:relative;margin-top:95px;font-size:48px;font-weight:800;line-height:1.1;color:#fff;letter-spacing:-.035em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+    .folder-kpi-sub {color:#e5eaff;font-size:12px;margin-top:8px;}
+    @media(prefers-reduced-motion:reduce){.folder-kpi,.folder-kpi .ov-count-art{transition:none}.folder-kpi:hover,.folder-kpi:hover .ov-count-art{transform:none}}

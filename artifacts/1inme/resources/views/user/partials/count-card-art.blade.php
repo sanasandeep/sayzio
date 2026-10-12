@@ -4,6 +4,18 @@
         <linearGradient id="{{ $artId }}-edge" x1="20" y1="20" x2="145" y2="130" gradientUnits="userSpaceOnUse"><stop stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity=".15"/></linearGradient>
     </defs>
     @switch($kind)
+        @case('bot')
+        <g transform="rotate(8 90 75)"><path d="M90 23v-12" stroke="white" stroke-width="5"/><circle cx="90" cy="8" r="6" fill="white"/><rect x="31" y="29" width="118" height="100" rx="24" fill="url(#{{ $artId }}-face)"/><rect x="43" y="47" width="94" height="52" rx="14" fill="var(--ov-tone)" opacity=".65"/><circle cx="65" cy="71" r="9" fill="white"/><circle cx="115" cy="71" r="9" fill="white"/><path d="M72 113h36" stroke="var(--ov-tone)" stroke-width="5" stroke-linecap="round"/></g>
+        @break
+        @case('clicks')
+        <g transform="rotate(-12 90 75)"><path d="M50 23L137 84L100 93L83 129L50 23Z" fill="#07152c" opacity=".2" transform="translate(0 7)"/><path d="M50 18L137 79L100 88L83 124L50 18Z" fill="url(#{{ $artId }}-face)" stroke="white" stroke-width="2"/><path d="M37 20L25 8M30 42H12M66 10V2" stroke="white" stroke-opacity=".6" stroke-width="5" stroke-linecap="round"/></g>
+        @break
+        @case('visitors')
+        <g><circle cx="122" cy="51" r="22" fill="url(#{{ $artId }}-edge)"/><path d="M94 112v-15a29 29 0 0 1 58 0v15" fill="url(#{{ $artId }}-edge)"/><circle cx="68" cy="44" r="27" fill="url(#{{ $artId }}-face)"/><path d="M27 127v-22a41 41 0 0 1 82 0v22" fill="url(#{{ $artId }}-face)"/><path d="M40 106a28 28 0 0 1 15-26" stroke="white" stroke-width="3" stroke-linecap="round"/></g>
+        @break
+        @case('sessions')
+        <g transform="rotate(10 90 75)"><circle cx="90" cy="77" r="56" fill="#07152c" opacity=".2"/><circle cx="90" cy="70" r="56" fill="url(#{{ $artId }}-face)"/><circle cx="90" cy="70" r="43" stroke="var(--ov-color)" stroke-opacity=".35" stroke-width="5"/><path d="M90 40v31l22 14" stroke="var(--ov-tone)" stroke-width="7" stroke-linecap="round"/><circle cx="90" cy="70" r="5" fill="var(--ov-tone)"/></g>
+        @break
         @case('links')
         <g transform="rotate(-30 90 75)">
             <rect x="23" y="31" width="91" height="58" rx="29" stroke="#070d28" stroke-opacity=".22" stroke-width="17" transform="translate(0 7)"/>
