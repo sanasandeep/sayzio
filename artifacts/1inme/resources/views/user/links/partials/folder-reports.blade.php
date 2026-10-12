@@ -72,7 +72,7 @@
 </form>
 
 {{-- ===================== HEADLINE ===================== --}}
-<div class="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-7">
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-7">
     @foreach([
         ['Clicks', number_format($r['totals']['clicks']), $days.' days'],
         ['Visitors', number_format($r['totals']['visitors']), 'Distinct addresses'],
@@ -81,11 +81,17 @@
         ['Links with traffic', number_format($r['totals']['links']), 'Of '.number_format(count($r['links'])).' in view'],
         ['Bot hits filtered', number_format($r['botTotal']), 'Excluded from totals'],
     ] as [$k, $v, $sub])
-        <div class="section-card" style="padding: 16px;">
-            <p class="m-0 text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">{{ $k }}</p>
-            <p class="m-0 mt-2 text-2xl font-bold" style="color: var(--text-primary); font-variant-numeric: tabular-nums;">{{ $v }}</p>
-            <p class="m-0 mt-1 text-[11px]" style="color: var(--text-muted);">{{ $sub }}</p>
-        </div>
+        @php
+            $folderCardColors = ['#3b82f6','#8b5cf6','#0d9488','#f59e0b','#ec4899','#0891b2'];
+            $folderCardTones = ['#123c85','#512b89','#075953','#804210','#831843','#164e63'];
+            $folderCardKinds = ['clicks','visitors','sessions','sessions','links','bot'];
+        @endphp
+        <article class="folder-kpi" style="--ov-color:{{ $folderCardColors[$loop->index] }};--ov-tone:{{ $folderCardTones[$loop->index] }};">
+            <h2 class="folder-kpi-label">{{ $k }}</h2>
+            @include('user.partials.count-card-art',['kind'=>$folderCardKinds[$loop->index],'artId'=>'folder-stat-'.$loop->index])
+            <p class="folder-kpi-value" @if(strlen($v) > 7) style="font-size:28px" @endif>{{ $v }}</p>
+            <p class="folder-kpi-sub">{{ $sub }}</p>
+        </article>
     @endforeach
 </div>
 

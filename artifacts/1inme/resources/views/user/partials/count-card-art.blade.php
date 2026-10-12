@@ -4,6 +4,9 @@
         <linearGradient id="{{ $artId }}-edge" x1="20" y1="20" x2="145" y2="130" gradientUnits="userSpaceOnUse"><stop stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity=".15"/></linearGradient>
     </defs>
     @switch($kind)
+        @case('bot')
+        <g transform="rotate(8 90 75)"><path d="M90 23v-12" stroke="white" stroke-width="5"/><circle cx="90" cy="8" r="6" fill="white"/><rect x="31" y="29" width="118" height="100" rx="24" fill="url(#{{ $artId }}-face)"/><rect x="43" y="47" width="94" height="52" rx="14" fill="var(--ov-tone)" opacity=".65"/><circle cx="65" cy="71" r="9" fill="white"/><circle cx="115" cy="71" r="9" fill="white"/><path d="M72 113h36" stroke="var(--ov-tone)" stroke-width="5" stroke-linecap="round"/></g>
+        @break
         @case('clicks')
         <g transform="rotate(-12 90 75)"><path d="M50 23L137 84L100 93L83 129L50 23Z" fill="#07152c" opacity=".2" transform="translate(0 7)"/><path d="M50 18L137 79L100 88L83 124L50 18Z" fill="url(#{{ $artId }}-face)" stroke="white" stroke-width="2"/><path d="M37 20L25 8M30 42H12M66 10V2" stroke="white" stroke-opacity=".6" stroke-width="5" stroke-linecap="round"/></g>
         @break
