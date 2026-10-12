@@ -30,7 +30,7 @@
         @if($order->status === \App\Modules\User\Models\ProductOrder::STATUS_REFUNDED)
             <div class="mt-5 rounded-xl p-3 text-left" style="background: rgba(245,158,11,0.12); color:#f59e0b;">
                 <p class="text-sm font-semibold"><i class="fas fa-rotate-left mr-1"></i>This order was refunded.</p>
-                <p class="mt-1 text-xs">{{ strtoupper($order->currency) }} {{ number_format($order->subtotal_cents / 100, 2) }} was returned to your original payment method@if($order->contains_digital) and any digital downloads have been revoked@endif.@if($order->refund_reason) Reason: {{ $order->refund_reason }}@endif</p>
+                <p class="mt-1 text-xs">{{ strtoupper($order->currency) }} {{ number_format($order->subtotal_cents / 100, 2) }} was returned to your original payment method{{ '' }}@if($order->contains_digital) and any digital downloads have been revoked{{ '' }}@endif.@if($order->refund_reason) Reason: {{ $order->refund_reason }}@endif</p>
             </div>
         @elseif($order->contains_physical)
             <p class="mt-5 text-xs" style="color: var(--text-faint);">The seller has been notified and will arrange delivery of your physical item(s).</p>

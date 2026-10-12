@@ -39,7 +39,7 @@
 
             @if($optOutBreakdown['total'] > 0)
                 <div class="flex w-full h-2 rounded-full overflow-hidden bg-white/5 mb-3" role="img"
-                     aria-label="Opt-out sources: {{ $optOutBreakdown['inbox']['pct'] }}% inbox one-click, {{ $optOutBreakdown['footer']['pct'] }}% footer link@if($optOutBreakdown['unknown']['count'] > 0), {{ $optOutBreakdown['unknown']['pct'] }}% unknown@endif">
+                     aria-label="Opt-out sources: {{ $optOutBreakdown['inbox']['pct'] }}% inbox one-click, {{ $optOutBreakdown['footer']['pct'] }}% footer link{{ '' }}@if($optOutBreakdown['unknown']['count'] > 0), {{ $optOutBreakdown['unknown']['pct'] }}% unknown{{ '' }}@endif">
                     @if($optOutBreakdown['inbox']['count'] > 0)
                         <div class="bg-sky-400 h-full" style="width: {{ $optOutBreakdown['inbox']['pct'] }}%"></div>
                     @endif
