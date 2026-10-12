@@ -314,7 +314,7 @@
          screen -- as one line of text -- and the space the ring occupied now
          carries something the total beside it cannot say: the last seven
          days. ============================================================ --}}
-    <div class="links-head" @if($folder) style="border-left:4px solid {{ in_array($folder->color, \App\Modules\User\Controllers\ProjectController::COLORS, true) ? $folder->color : '#6366f1' }}" @endif>
+    <div class="links-head" @if($folder) style="border-left:4px solid {{ preg_match('/^#[0-9a-f]{6}$/i', (string) $folder->color) ? $folder->color : '#3b82f6' }}" @endif>
         {{-- Lattice only. This header has content across its entire width --
              title and buttons left, clicks and sparkline right -- so neither
              corner is free: the ribbon crossed the sparkline on the right and
