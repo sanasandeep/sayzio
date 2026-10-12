@@ -113,6 +113,23 @@ class EmailConnectionsTest extends TestCase
         $res->assertSessionHas('success');
     }
 
+    public function test_connection_probe_uses_log_transport_outside_production_and_purges_credentials(): void
+    {
+        // Deliberately do not fake Mail: an SMTP transport would try the
+        // unreachable fixture host and this probe would fail.
+        $u = $this->user();
+        $c = $this->connection($u);
+
+        $result = EmailConnectionMailer::sendTest($c, $u->email);
+
+        $this->assertTrue($result['ok']);
+        $log = EmailLog::where('email_key', 'email.connection.test')->firstOrFail();
+        $this->assertSame('log', $log->transport);
+        $this->assertSame('sent', $log->status);
+        $this->assertSame($u->email, $log->recipient);
+        $this->assertArrayNotHasKey(EmailConnectionMailer::mailerName($c), (array) config('mail.mailers'));
+    }
+
     public function test_test_send_reports_half_configured_connection_clearly(): void
     {
         Mail::fake();
