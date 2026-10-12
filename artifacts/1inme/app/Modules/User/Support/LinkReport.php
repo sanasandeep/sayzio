@@ -302,12 +302,7 @@ class LinkReport
     /** The click query every section starts from. */
     private function clicks(): \Illuminate\Database\Query\Builder
     {
-        $query = $this->includeBots ? LinkClick::withBots() : LinkClick::query();
-
-        return $query
-            ->whereIn('link_id', (clone $this->links)->select('links.id'))
-            ->whereBetween('clicked_at', [$this->from->copy()->utc(), $this->to->copy()->utc()])
-            ->toBase();
+        return $this->scoped()->toBase();
     }
 
     /** `clicked_at` read in the viewer's zone rather than raw UTC. */

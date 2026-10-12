@@ -29,7 +29,7 @@
 
 {{-- ===================== FILTERS ===================== --}}
 <form class="section-card mb-6" method="GET" action="{{ route('user.links.index') }}">
-    @foreach(Arr::except($q, ['from', 'to', 'bots', 'view']) as $k => $v)
+    @foreach(Arr::except($q, ['from', 'to', 'bots', 'view', 'group']) as $k => $v)
         @if(is_array($v))
             @foreach($v as $vv)<input type="hidden" name="{{ $k }}[]" value="{{ $vv }}">@endforeach
         @else
@@ -48,9 +48,17 @@
         </div>
         <div>
             <label for="rp-bots" class="block text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Traffic</label>
-            <select id="rp-bots" name="bots" class="px-3 py-2 rounded-lg text-sm" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+            <select id="rp-bots" name="bots" class="report-select" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
                 <option value="0" @selected(! $r['bots'])>People only</option>
                 <option value="1" @selected($r['bots'])>Include bots</option>
+            </select>
+        </div>
+        <div>
+            <label for="rp-group" class="block text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Group by</label>
+            <select id="rp-group" name="group" class="report-select">
+                @foreach(['day' => 'Day', 'week' => 'Week', 'month' => 'Month', 'year' => 'Year'] as $value => $label)
+                    <option value="{{ $value }}" @selected($r['groupBy'] === $value)>{{ $label }}</option>
+                @endforeach
             </select>
         </div>
         <button type="submit" class="btn-primary text-xs py-2 px-4">Apply</button>

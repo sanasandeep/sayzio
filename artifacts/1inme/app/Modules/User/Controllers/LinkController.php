@@ -149,7 +149,11 @@ class LinkController extends Controller
                 ? $request->query('group')
                 : 'day';
 
-            $reporter->withFilters($request->only(LinkReport::FILTERS));
+            $trafficFilters = $request->only(LinkReport::FILTERS);
+            if ($request->filled('device')) {
+                $trafficFilters['device_type'] = $request->query('device');
+            }
+            $reporter->withFilters($trafficFilters);
 
             $report = [
                 'from'       => $from,
@@ -168,7 +172,7 @@ class LinkController extends Controller
                 'sessions'   => $reporter->sessions(),
                 'botTotal'   => $reporter->botTotal(),
                 'dimensions' => collect([
-                    'browser' => 'browser', 'os' => 'os', 'device_type' => 'device',
+                    'browser' => 'browser', 'os' => 'os', 'device_type' => 'device_type',
                     'source' => 'source', 'channel' => 'channel',
                     'country_code' => 'country_code', 'city' => null,
                     'referrer' => null, 'language' => 'language',

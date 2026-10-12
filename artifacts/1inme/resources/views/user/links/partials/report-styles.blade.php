@@ -49,3 +49,24 @@
     .section-card { padding: 18px 16px; }
     .section-title { flex-wrap: wrap; }
 }
+
+    .pill {
+        padding: 6px 12px;
+        border-radius: 9px;
+        font-size: 11px;
+        font-weight: 600;
+        border: 1px solid transparent;
+        transition: background .16s, color .16s, border-color .16s;
+        color: var(--text-muted);
+    }
+    .pill:hover { background: var(--bg-glass-hover); color: var(--text-primary); }
+    .pill-active,
+    .pill-active-soft {
+        background: color-mix(in srgb, var(--accent) 9%, transparent);
+        border-color: var(--accent);
+        color: var(--text-primary) !important;
+        box-shadow: none;
+    }
+
+
+.report-select { appearance: auto; min-height: 38px; padding: 8px 30px 8px 12px; border: 1px solid var(--border-glass); border-radius: 9px; background: var(--bg-card); color: var(--text-primary); font-size: 12px; }
