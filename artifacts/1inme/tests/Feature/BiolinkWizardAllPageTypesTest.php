@@ -102,9 +102,7 @@ class BiolinkWizardAllPageTypesTest extends TestCase
         return User::factory()->create();
     }
 
-    /**
-     * @dataProvider comboProvider
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('comboProvider')]
     public function test_every_combo_builds_and_applies_a_complete_page(
         string $category,
         string $pageType,
