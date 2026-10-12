@@ -17,7 +17,7 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        if ($request->query('view') === 'custom') return $this->legacyDashboard($request);
+        if ($request->query('view') === 'custom') return redirect()->route('user.dashboard');
         return $this->accountOverview();
     }
 
