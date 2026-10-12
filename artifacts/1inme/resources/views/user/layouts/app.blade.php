@@ -1349,7 +1349,7 @@
                 <form action="{{ route('user.switch-to-admin') }}" method="POST">
                     @csrf
                     <button type="submit"
-                            class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                            class="admin-switch-btn w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
                             style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.25); color: var(--accent-light);"
                             title="Switch to the admin dashboard">
                         <i class="fas fa-user-shield" style="font-size: 11px;"></i>
@@ -2004,7 +2004,7 @@
                         <form action="{{ route('user.switch-to-admin') }}" method="POST" class="mb-2">
                             @csrf
                             <button type="submit"
-                                    class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                                    class="admin-switch-btn w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
                                     style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.25); color: var(--accent-light);">
                                 <i class="fas fa-user-shield" style="font-size: 11px;"></i>
                                 <span>Switch to admin</span>
