@@ -54,10 +54,13 @@ class LinkTypePairingsWebRedirectTest extends TestCase
         'brand_kit'       => 'user.links.brand-kit.create',
         'qr'              => 'user.qr-codes.create',
         'ics'             => 'user.links.ics.create',
-        // These two have no dedicated create route; they pre-select the type
+        // Types without a dedicated create route pre-select the type
         // on the generic create flow via a `type` query param.
         'restaurant_menu' => 'user.links.create',
         'store_menu'      => 'user.links.create',
+        'text'            => 'user.links.text.create',
+        'url'             => 'user.links.create',
+        'file'            => 'user.links.create',
     ];
 
     protected function setUp(): void
@@ -106,7 +109,7 @@ class LinkTypePairingsWebRedirectTest extends TestCase
                 );
 
                 // The generic-create fallbacks must pre-select their type.
-                if (in_array($type, ['restaurant_menu', 'store_menu'], true)) {
+                if (in_array($type, ['restaurant_menu', 'store_menu', 'url', 'file'], true)) {
                     $this->assertSame(['type' => $type], $params);
                 }
 
