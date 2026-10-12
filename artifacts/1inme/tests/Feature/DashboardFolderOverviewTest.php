@@ -34,6 +34,18 @@ class DashboardFolderOverviewTest extends TestCase
             ->assertOk()->assertDownload('link-report-daily.csv');
     }
 
+    public function test_saved_custom_folder_color_is_used_on_dashboard_and_folder_header(): void
+    {
+        $user = User::factory()->create(['onboarded_at' => now()->subMonths(2)]);
+        $ws = app(WorkspaceContext::class)->resolve($user);
+        $folder = $user->projects()->create(['name' => 'Custom colour', 'workspace_id' => $ws->id, 'color' => '#d946ef']);
+        $this->actingAs($user)->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+        $this->get(route('user.dashboard'))->assertOk()
+            ->assertSee('--ov-color: #d946ef', false)->assertSee('ov-folder-art', false);
+        $this->get(route('user.links.index', ['project_id' => $folder->id]))->assertOk()
+            ->assertSee('border-left:4px solid #d946ef', false);
+    }
+
     public function test_default_dashboard_shows_usage_and_folders_without_traffic_charts(): void
     {
         $user = User::factory()->create(['onboarded_at' => now()->subMonths(2)]);

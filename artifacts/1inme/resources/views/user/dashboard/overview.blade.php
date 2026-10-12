@@ -20,7 +20,7 @@
     </header>
     <div class="ov-grid">
         @foreach($counts as $label => $count)
-        <div class="ov-panel ov-count" style="--ov-color: {{ $colors[$loop->index] }}"><i class="fas {{ $icons[$loop->index] }}" aria-hidden="true"></i><strong>{{ number_format($count) }}</strong><span>{{ $label }}</span><p class="ov-muted">In this workspace</p></div>
+        <div class="ov-panel ov-count" style="--ov-color: {{ $colors[$loop->index] }}"><i class="fas {{ $icons[$loop->index] }}" aria-hidden="true"></i><strong>{{ number_format($count) }}</strong><span class="ov-count-label">{{ $label }}</span><p class="ov-muted">In this workspace</p></div>
         @endforeach
     </div>
     <div class="ov-columns">
@@ -49,7 +49,7 @@
             <p class="ov-muted">Open a folder to manage its links and view its reports.</p>
             <div class="ov-folders">
                 @foreach($folders as $folder)
-                <a class="ov-folder" style="--ov-color: {{ in_array($folder->color, \App\Modules\User\Controllers\ProjectController::COLORS, true) ? $folder->color : '#6366f1' }}" href="{{ route('user.links.index', ['project_id' => $folder->id]) }}"><strong>{{ $folder->name }}</strong><p class="ov-muted">{{ number_format($folder->links_count) }} links →</p></a>
+                <a class="ov-folder" style="--ov-color: {{ preg_match('/^#[0-9a-f]{6}$/i', (string) $folder->color) ? $folder->color : '#3b82f6' }}" href="{{ route('user.links.index', ['project_id' => $folder->id]) }}">@include('user.partials.folder-art')<div class="ov-folder-caption"><strong>{{ $folder->name }}</strong><span class="ov-muted">{{ number_format($folder->links_count) }} links</span></div><span class="ov-folder-arrow" aria-hidden="true">↗</span></a>
                 @endforeach
             </div>
             @if($folders->isEmpty())<p class="ov-empty">Create a folder to keep related links together.</p>@endif
