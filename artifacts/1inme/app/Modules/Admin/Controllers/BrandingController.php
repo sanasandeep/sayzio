@@ -31,7 +31,7 @@ class BrandingController extends Controller
             $current[$field] = AppSetting::get($key, '/' . ltrim($default, '/'));
         }
 
-        return view('admin.branding.edit', ['logos' => $current]);
+        return view('admin.branding.edit', ['logos' => $current, 'navigationAppearance' => AppSetting::get('navigation_appearance', ['sidebar' => 'theme', 'topbar' => 'theme', 'color' => '#4338ca'])]);
     }
 
     public function update(Request $request)
@@ -40,7 +40,17 @@ class BrandingController extends Controller
         foreach (self::SLOTS as $key => [$field, , $mimes, $max]) {
             $rules[$field] = ['nullable', 'file', 'mimes:' . implode(',', $mimes), 'max:' . $max];
         }
-        $request->validate($rules);
+        $rules['navigation_sidebar'] = ['sometimes', 'required', 'in:theme,light,dark,color'];
+        $rules['navigation_topbar'] = ['sometimes', 'required', 'in:theme,light,dark,color'];
+        $rules['navigation_color'] = ['sometimes', 'required', 'regex:/^#[0-9a-fA-F]{6}$/'];
+        $validated = $request->validate($rules);
+        if ($request->has('navigation_sidebar') && $request->has('navigation_topbar') && $request->has('navigation_color')) {
+            AppSetting::put('navigation_appearance', [
+                'sidebar' => $validated['navigation_sidebar'],
+                'topbar' => $validated['navigation_topbar'],
+                'color' => $validated['navigation_color'],
+            ]);
+        }
 
         $publicDir = public_path('branding');
         if (!File::isDirectory($publicDir)) {
