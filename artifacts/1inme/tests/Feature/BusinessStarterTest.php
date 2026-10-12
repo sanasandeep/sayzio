@@ -19,6 +19,16 @@ class BusinessStarterTest extends TestCase
             $response = $this->post($url,['starter'=>'starter-1']);
             $response->assertRedirect()->assertSessionHasNoErrors();
             $this->get($response->headers->get('Location'))->assertOk()->assertSee('Add starter content');
+            if ($link->isCommunityPage()) {
+                $this->assertSame(count($starters[0]['items']), $link->biolinkBlocks()->count());
+                $this->assertSame(0, $link->biolinkBlocks()->where('is_active',true)->count());
+                $first = $link->biolinkBlocks()->first();
+                $first->update(['settings'=>['text'=>'My edited content']]);
+                $this->post($url,['starter'=>'starter-1'])->assertRedirect();
+                $this->assertSame(count($starters[0]['items']), $link->biolinkBlocks()->count());
+                $this->assertSame('My edited content', $first->fresh()->settings['text']);
+                continue;
+            }
             $config = match($type) {'salon_spa','service_booking'=>$link->serviceBooking,'restaurant_menu'=>$link->restaurantMenu,'contact_directory'=>$link->contactDirectory,default=>$link->listingCatalog};
             $relation = match($type) {'salon_spa','service_booking'=>'services','restaurant_menu'=>'items','contact_directory'=>'contacts',default=>'entries'};
             $this->assertSame(4,$config->{$relation}()->count());

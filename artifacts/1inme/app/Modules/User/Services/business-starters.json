@@ -1030,5 +1030,509 @@
         }
       ]
     }
+  ],
+  "community_club": [
+    {
+      "key": "starter-1",
+      "label": "Social Club",
+      "items": [
+        {
+          "category": "About us",
+          "name": "Welcome to Social Club",
+          "description": "Introduce your community, its purpose and who can join.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Membership",
+          "name": "Join our community",
+          "description": "Replace this URL with your membership form or invitation.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "link"
+        },
+        {
+          "category": "Events",
+          "name": "Upcoming events",
+          "description": "Add your next event details and registration URL.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "link"
+        },
+        {
+          "category": "Announcements",
+          "name": "Community updates",
+          "description": "Replace this sample with your latest news and announcements.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Membership",
+          "name": "Membership request",
+          "description": "Tell us about yourself and how you would like to get involved.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "contact_form"
+        }
+      ]
+    },
+    {
+      "key": "starter-2",
+      "label": "Sports Club",
+      "items": [
+        {
+          "category": "About us",
+          "name": "Welcome to Sports Club",
+          "description": "Introduce your community, its purpose and who can join.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Membership",
+          "name": "Join our community",
+          "description": "Replace this URL with your membership form or invitation.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "link"
+        },
+        {
+          "category": "Events",
+          "name": "Upcoming events",
+          "description": "Add your next event details and registration URL.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "link"
+        },
+        {
+          "category": "Announcements",
+          "name": "Community updates",
+          "description": "Replace this sample with your latest news and announcements.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Membership",
+          "name": "Membership request",
+          "description": "Tell us about yourself and how you would like to get involved.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "contact_form"
+        }
+      ]
+    },
+    {
+      "key": "starter-3",
+      "label": "Professional Network",
+      "items": [
+        {
+          "category": "About us",
+          "name": "Welcome to Professional Network",
+          "description": "Introduce your community, its purpose and who can join.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Membership",
+          "name": "Join our community",
+          "description": "Replace this URL with your membership form or invitation.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "link"
+        },
+        {
+          "category": "Events",
+          "name": "Upcoming events",
+          "description": "Add your next event details and registration URL.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "link"
+        },
+        {
+          "category": "Announcements",
+          "name": "Community updates",
+          "description": "Replace this sample with your latest news and announcements.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Membership",
+          "name": "Membership request",
+          "description": "Tell us about yourself and how you would like to get involved.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "contact_form"
+        }
+      ]
+    },
+    {
+      "key": "starter-4",
+      "label": "Resident Community",
+      "items": [
+        {
+          "category": "About us",
+          "name": "Welcome to Resident Community",
+          "description": "Introduce your community, its purpose and who can join.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Membership",
+          "name": "Join our community",
+          "description": "Replace this URL with your membership form or invitation.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "link"
+        },
+        {
+          "category": "Events",
+          "name": "Upcoming events",
+          "description": "Add your next event details and registration URL.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "link"
+        },
+        {
+          "category": "Announcements",
+          "name": "Community updates",
+          "description": "Replace this sample with your latest news and announcements.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Membership",
+          "name": "Membership request",
+          "description": "Tell us about yourself and how you would like to get involved.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "contact_form"
+        }
+      ]
+    },
+    {
+      "key": "starter-5",
+      "label": "Hobby & Interest Group",
+      "items": [
+        {
+          "category": "About us",
+          "name": "Welcome to Hobby & Interest Group",
+          "description": "Introduce your community, its purpose and who can join.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Membership",
+          "name": "Join our community",
+          "description": "Replace this URL with your membership form or invitation.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "link"
+        },
+        {
+          "category": "Events",
+          "name": "Upcoming events",
+          "description": "Add your next event details and registration URL.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "link"
+        },
+        {
+          "category": "Announcements",
+          "name": "Community updates",
+          "description": "Replace this sample with your latest news and announcements.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Membership",
+          "name": "Membership request",
+          "description": "Tell us about yourself and how you would like to get involved.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "contact_form"
+        }
+      ]
+    }
+  ],
+  "nonprofit_campaign": [
+    {
+      "key": "starter-1",
+      "label": "Charity Foundation",
+      "items": [
+        {
+          "category": "Mission",
+          "name": "Our mission",
+          "description": "Explain the cause, who you support and how you create impact.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Campaigns",
+          "name": "Charity Foundation campaign",
+          "description": "Describe your current campaign, goals and how support will be used.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Volunteer",
+          "name": "Volunteer with us",
+          "description": "Replace this URL with your volunteer signup form.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "link"
+        },
+        {
+          "category": "Donations",
+          "name": "Donate on our website",
+          "description": "Set your external donation URL before publishing.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "donation"
+        },
+        {
+          "category": "Donations",
+          "name": "Support this campaign",
+          "description": "Collect contributions through your connected Sayzio payment gateway.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "tip_jar"
+        },
+        {
+          "category": "Volunteer",
+          "name": "Volunteer signup",
+          "description": "Tell us about yourself and how you would like to get involved.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "contact_form"
+        }
+      ]
+    },
+    {
+      "key": "starter-2",
+      "label": "Community Campaign",
+      "items": [
+        {
+          "category": "Mission",
+          "name": "Our mission",
+          "description": "Explain the cause, who you support and how you create impact.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Campaigns",
+          "name": "Community Campaign campaign",
+          "description": "Describe your current campaign, goals and how support will be used.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Volunteer",
+          "name": "Volunteer with us",
+          "description": "Replace this URL with your volunteer signup form.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "link"
+        },
+        {
+          "category": "Donations",
+          "name": "Donate on our website",
+          "description": "Set your external donation URL before publishing.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "donation"
+        },
+        {
+          "category": "Donations",
+          "name": "Support this campaign",
+          "description": "Collect contributions through your connected Sayzio payment gateway.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "tip_jar"
+        },
+        {
+          "category": "Volunteer",
+          "name": "Volunteer signup",
+          "description": "Tell us about yourself and how you would like to get involved.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "contact_form"
+        }
+      ]
+    },
+    {
+      "key": "starter-3",
+      "label": "Animal Welfare",
+      "items": [
+        {
+          "category": "Mission",
+          "name": "Our mission",
+          "description": "Explain the cause, who you support and how you create impact.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Campaigns",
+          "name": "Animal Welfare campaign",
+          "description": "Describe your current campaign, goals and how support will be used.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Volunteer",
+          "name": "Volunteer with us",
+          "description": "Replace this URL with your volunteer signup form.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "link"
+        },
+        {
+          "category": "Donations",
+          "name": "Donate on our website",
+          "description": "Set your external donation URL before publishing.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "donation"
+        },
+        {
+          "category": "Donations",
+          "name": "Support this campaign",
+          "description": "Collect contributions through your connected Sayzio payment gateway.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "tip_jar"
+        },
+        {
+          "category": "Volunteer",
+          "name": "Volunteer signup",
+          "description": "Tell us about yourself and how you would like to get involved.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "contact_form"
+        }
+      ]
+    },
+    {
+      "key": "starter-4",
+      "label": "Environmental Cause",
+      "items": [
+        {
+          "category": "Mission",
+          "name": "Our mission",
+          "description": "Explain the cause, who you support and how you create impact.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Campaigns",
+          "name": "Environmental Cause campaign",
+          "description": "Describe your current campaign, goals and how support will be used.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Volunteer",
+          "name": "Volunteer with us",
+          "description": "Replace this URL with your volunteer signup form.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "link"
+        },
+        {
+          "category": "Donations",
+          "name": "Donate on our website",
+          "description": "Set your external donation URL before publishing.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "donation"
+        },
+        {
+          "category": "Donations",
+          "name": "Support this campaign",
+          "description": "Collect contributions through your connected Sayzio payment gateway.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "tip_jar"
+        },
+        {
+          "category": "Volunteer",
+          "name": "Volunteer signup",
+          "description": "Tell us about yourself and how you would like to get involved.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "contact_form"
+        }
+      ]
+    },
+    {
+      "key": "starter-5",
+      "label": "Education Fund",
+      "items": [
+        {
+          "category": "Mission",
+          "name": "Our mission",
+          "description": "Explain the cause, who you support and how you create impact.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Campaigns",
+          "name": "Education Fund campaign",
+          "description": "Describe your current campaign, goals and how support will be used.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "paragraph"
+        },
+        {
+          "category": "Volunteer",
+          "name": "Volunteer with us",
+          "description": "Replace this URL with your volunteer signup form.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "link"
+        },
+        {
+          "category": "Donations",
+          "name": "Donate on our website",
+          "description": "Set your external donation URL before publishing.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "donation"
+        },
+        {
+          "category": "Donations",
+          "name": "Support this campaign",
+          "description": "Collect contributions through your connected Sayzio payment gateway.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "tip_jar"
+        },
+        {
+          "category": "Volunteer",
+          "name": "Volunteer signup",
+          "description": "Tell us about yourself and how you would like to get involved.",
+          "price": 0,
+          "duration": 30,
+          "block_type": "contact_form"
+        }
+      ]
+    }
   ]
 }

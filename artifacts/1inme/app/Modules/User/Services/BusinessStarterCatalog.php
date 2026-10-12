@@ -8,7 +8,7 @@ class BusinessStarterCatalog
     public static function all(): array
     {
         $defaults = json_decode(file_get_contents(__DIR__.'/business-starters.json'), true, 512, JSON_THROW_ON_ERROR);
-        return AppSetting::get('business_starters', $defaults);
+        return array_replace($defaults, AppSetting::get('business_starters', []));
     }
 
     public static function forType(string $type): array

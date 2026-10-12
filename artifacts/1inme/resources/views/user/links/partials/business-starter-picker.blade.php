@@ -7,7 +7,7 @@
 @foreach($businessStarters as $starter)<option value="{{ $starter['key'] }}">{{ $starter['label'] }}</option>@endforeach
 </select>
 <button type="submit" class="btn-primary" style="padding:10px 16px;border-radius:10px">Add starter content</button>
-</form><p style="color:var(--text-muted);font-size:12px;margin-top:10px">Adds editable draft categories and sample items. Existing content is kept. Review details and prices before publishing.</p>
+</form><p style="color:var(--text-muted);font-size:12px;margin-top:10px">{{ $link->isCommunityPage() ? 'Adds editable draft blocks. Existing content is kept. Review content, signup links and donation settings before publishing.' : 'Adds editable draft categories and sample items. Existing content is kept. Review details and prices before publishing.' }}</p>
 @if(session('success'))<p role="status" style="margin-top:8px">{{ session('success') }}</p>@endif
 @if($errors->any())<p role="alert">{{ $errors->first() }}</p>@endif
 </div>

@@ -805,6 +805,9 @@ $catColors = [
 @endphp
 <div x-data="biolinkEditor()" class="max-w-7xl mx-auto">
     @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => request('tab') === 'ai' ? 'ai_edit' : 'blocks'])
+    @if($link->isCommunityPage())
+        @include('user.links.partials.community-starter', ['link'=>$link])
+    @endif
 
 {{-- ============ MULTI-SELECT BAR ============
      Sana, 2026-09-23: "need options to select multiple blocks to move as a
