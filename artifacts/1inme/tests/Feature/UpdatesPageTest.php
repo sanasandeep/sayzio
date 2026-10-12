@@ -122,6 +122,23 @@ class UpdatesPageTest extends TestCase
         ]);
     }
 
+    public function test_entry_can_be_created_without_optional_body(): void
+    {
+        $link = $this->createUpdatesLink();
+        $this->actingAs($this->user)
+            ->post(route('user.links.updates.entries.store', $link), [
+                'title' => 'Title only',
+                'status' => 'draft',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('user.links.updates.editor', $link));
+        $this->assertDatabaseHas('update_entries', [
+            'link_id' => $link->id,
+            'title' => 'Title only',
+            'body' => null,
+        ]);
+    }
+
     public function test_publishing_entry_notifies_followers(): void
     {
         $link      = $this->createUpdatesLink();
