@@ -329,9 +329,16 @@
                 <span class="sep">&middot;</span>
                 <strong>{{ number_format($__summary['active']) }}</strong> active
                 <span class="sep">&middot;</span>
-                <a href="{{ route('user.projects.index') }}">
-                    <strong>{{ number_format($projects->count()) }}</strong> {{ Str::plural('folder', $projects->count()) }}
-                </a>
+                {{-- Inside a folder the account-wide folder count reads as if
+                     THIS folder contained them ("Marketing · 4 folders"), so
+                     the third fact becomes the thing being looked at instead. --}}
+                @if($folder)
+                    <strong>{{ number_format($__summary['clicks']) }}</strong> {{ Str::plural('click', $__summary['clicks']) }}
+                @else
+                    <a href="{{ route('user.projects.index') }}">
+                        <strong>{{ number_format($projects->count()) }}</strong> {{ Str::plural('folder', $projects->count()) }}
+                    </a>
+                @endif
             </p>
             @if(!empty($__heroActions))
             <div class="links-actions">

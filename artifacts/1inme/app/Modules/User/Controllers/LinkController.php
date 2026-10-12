@@ -9,6 +9,8 @@ use App\Modules\User\Concerns\RespondsWithUploadErrors;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkClick;
+use App\Modules\User\Support\LinkReport;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Modules\User\Models\PollVote;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
@@ -131,36 +133,145 @@ class LinkController extends Controller
         $folder = count($folderIds) === 1 ? $projects->firstWhere('id', (int) $folderIds[0]) : null;
         $view = $request->query('view') === 'reports' ? 'reports' : 'links';
         $report = null;
-        $trend = ['days' => [], 'total' => 0, 'max' => 0];
+
         if ($view === 'reports') {
-            $days = in_array((int) $request->query('days', 7), [7, 30, 90], true) ? (int) $request->query('days', 7) : 7;
-            $retention = (int) $owner->getPlanFeature('stats_retention_days', 30);
-            if ($retention >= 0 && $retention !== PHP_INT_MAX) $days = min($days, max(1, $retention));
-            $start = now()->subDays($days - 1)->startOfDay();
-            $clicks = LinkClick::query()->whereIn('link_id', (clone $scope)->select('links.id'))
-                ->whereBetween('clicked_at', [$start, now()]);
-            $daily = (clone $clicks)->selectRaw('DATE(clicked_at) as day, COUNT(*) as count')->groupBy(DB::raw('DATE(clicked_at)'))->pluck('count', 'day');
-            $series = [];
-            for ($i = 0; $i < $days; $i++) {
-                $day = $start->copy()->addDays($i)->toDateString();
-                $series[$day] = (int) ($daily[$day] ?? 0);
+            $timezone = \App\Support\PlatformTimezone::forUser($owner);
+            [$from, $to] = LinkReport::range(
+                $request->query('from'),
+                $request->query('to'),
+                (int) $owner->getPlanFeature('stats_retention_days', 30),
+                $timezone,
+            );
+            $includeBots = $request->boolean('bots');
+            $reporter = new LinkReport((clone $scope), $from, $to, $timezone, $includeBots);
+
+            $report = [
+                'from'       => $from,
+                'to'         => $to,
+                'timezone'   => $timezone,
+                'bots'       => $includeBots,
+                'totals'     => $reporter->totals(),
+                'daily'      => $reporter->daily(),
+                'heatmap'    => $reporter->heatmap(),
+                // Generated from the catalogue, never hand-listed, so the
+                // view and the export can never offer different sections.
+                'breakdowns' => collect(LinkReport::BREAKDOWNS)
+                    ->map(fn (array $spec, string $key) => [
+                        'label' => $spec['label'],
+                        'rows'  => $reporter->breakdown($key),
+                    ])->all(),
+                'campaigns'  => $reporter->campaigns(),
+                'links'      => $reporter->links(),
+            ];
+
+            if (is_string($section = $request->query('export')) && $section !== '') {
+                return $this->exportReport($section, $report);
             }
-            $breakdown = fn ($column) => (clone $clicks)->select($column)->selectRaw('COUNT(*) as count')->groupBy($column)->orderByDesc('count')->limit(8)->get();
-            $topCounts = (clone $clicks)->select('link_id')->selectRaw('COUNT(*) as count')->groupBy('link_id')->orderByDesc('count')->limit(8)->pluck('count', 'link_id');
-            $topLinks = (clone $scope)->whereIn('links.id', $topCounts->keys())->get()->keyBy('id');
-            $report = ['days' => $days, 'start' => $start, 'total' => (clone $clicks)->count(), 'series' => $series,
-                'sources' => $breakdown('referrer'), 'countries' => $breakdown('country_code'), 'devices' => $breakdown('device_type'),
-                'topCounts' => $topCounts, 'topLinks' => $topLinks];
         }
-        if ($view === 'reports' && $request->query('export') === 'daily') {
-            return response()->streamDownload(function () use ($report) {
-                $out = fopen('php://output', 'w');
-                fputcsv($out, ['date', 'clicks'], ',', '"', '');
-                foreach ($report['series'] as $day => $count) fputcsv($out, [$day, $count], ',', '"', '');
-                fclose($out);
-            }, 'link-report-daily.csv', ['Content-Type' => 'text/csv']);
+
+        return view('user.links.index', compact('links', 'projects', 'summary', 'sort', 'folder', 'view', 'report'));
+    }
+
+    /**
+     * Stream one section of the report, or the whole thing, as CSV.
+     *
+     * Every section the report renders is exportable, because the one thing
+     * worse than no export is an export button next to a table it cannot
+     * actually produce. The breakdown sections are resolved from
+     * {@see LinkReport::BREAKDOWNS}, so adding a breakdown adds its export.
+     */
+    private function exportReport(string $section, array $report): StreamedResponse
+    {
+        $sheets = $this->reportSheets($report);
+
+        if ($section !== 'all' && ! isset($sheets[$section])) {
+            abort(404);
         }
-        return view('user.links.index', compact('links', 'projects', 'summary', 'sort', 'trend', 'folder', 'view', 'report'));
+
+        $wanted = $section === 'all' ? $sheets : [$section => $sheets[$section]];
+        $stamp = $report['from']->toDateString().'_'.$report['to']->toDateString();
+        $name = 'link-report-'.($section === 'all' ? 'full' : $section).'-'.$stamp.'.csv';
+
+        return response()->streamDownload(function () use ($wanted) {
+            $out = fopen('php://output', 'w');
+            $first = true;
+            foreach ($wanted as $sheet) {
+                // A combined export is several tables in one file, so each
+                // gets a blank line and its own title before its header row.
+                if (! $first) {
+                    fputcsv($out, [], ',', '"', '');
+                }
+                if (count($wanted) > 1) {
+                    fputcsv($out, [$sheet['title']], ',', '"', '');
+                }
+                fputcsv($out, $sheet['head'], ',', '"', '');
+                foreach ($sheet['rows'] as $row) {
+                    fputcsv($out, $row, ',', '"', '');
+                }
+                $first = false;
+            }
+            fclose($out);
+        }, $name, ['Content-Type' => 'text/csv']);
+    }
+
+    /**
+     * Every exportable sheet, keyed by the `export=` value that asks for it.
+     *
+     * @return array<string, array{title: string, head: list<string>, rows: iterable}>
+     */
+    private function reportSheets(array $report): array
+    {
+        $sheets = [
+            'daily' => [
+                'title' => 'Clicks per day',
+                'head'  => ['date', 'clicks'],
+                'rows'  => collect($report['daily'])->map(fn ($n, $day) => [$day, $n])->values(),
+            ],
+            'heatmap' => [
+                'title' => 'Clicks by weekday and hour',
+                'head'  => ['weekday', 'hour', 'clicks'],
+                'rows'  => collect($report['heatmap']['grid'])->flatMap(
+                    fn (array $hours, int $day) => collect($hours)->map(
+                        fn (int $n, int $hour) => [LinkReport::DAYS[$day], $hour, $n],
+                    )->values(),
+                ),
+            ],
+            'links' => [
+                'title' => 'Links',
+                'head'  => ['title', 'alias', 'type', 'status', 'clicks', 'visitors', 'last click'],
+                'rows'  => collect($report['links'])->map(fn (array $row) => [
+                    $row['link']->title,
+                    $row['link']->alias,
+                    $row['link']->type,
+                    $row['link']->is_active ? 'active' : 'inactive',
+                    $row['clicks'],
+                    $row['visitors'],
+                    // Same clock the page showed, so the file agrees with it.
+                    $row['lastClick']
+                        ? $row['lastClick']->copy()->setTimezone($report['timezone'])->format('Y-m-d H:i')
+                        : '',
+                ]),
+            ],
+            'campaigns' => [
+                'title' => 'UTM campaigns',
+                'head'  => ['campaign', 'clicks', 'share %'],
+                'rows'  => collect($report['campaigns'])->map(
+                    fn (array $row) => [$row['label'], $row['clicks'], $row['share']],
+                ),
+            ],
+        ];
+
+        foreach ($report['breakdowns'] as $key => $breakdown) {
+            $sheets[$key] = [
+                'title' => $breakdown['label'],
+                'head'  => [\Illuminate\Support\Str::lower($breakdown['label']), 'clicks', 'share %'],
+                'rows'  => collect($breakdown['rows'])->map(
+                    fn (array $row) => [$row['label'], $row['clicks'], $row['share']],
+                ),
+            ];
+        }
+
+        return $sheets;
     }
 
     /** The sort options offered on My Links, in the order the select lists them. */
