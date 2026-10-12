@@ -8,7 +8,8 @@
     $workspace = app()->bound('current_workspace') ? app('current_workspace') : null;
     $canCreate = $workspace && auth()->user()->canInWorkspace($workspace, 'links.create');
     $colors = ['#3b82f6', '#8b5cf6', '#0d9488', '#f59e0b'];
-    $icons = ['fa-link', 'fa-id-card', 'fa-folder', 'fa-qrcode'];
+    $cardKinds = ['links', 'pages', 'folders', 'qr'];
+    $cardTones = ['#123c85', '#512b89', '#075953', '#804210'];
 @endphp
 <div class="ov-wrap">
     <header class="ov-head">
@@ -16,7 +17,11 @@
     </header>
     <div class="ov-grid">
         @foreach($counts as $label => $count)
-        <div class="ov-panel ov-count" style="--ov-color: {{ $colors[$loop->index] }}"><i class="fas {{ $icons[$loop->index] }}" aria-hidden="true"></i><strong>{{ number_format($count) }}</strong><span class="ov-count-label">{{ $label }}</span><p class="ov-muted">In this workspace</p></div>
+        <article class="ov-panel ov-count" style="--ov-color: {{ $colors[$loop->index] }};--ov-tone: {{ $cardTones[$loop->index] }};--ov-number-size: {{ strlen(number_format($count)) > 7 ? '22px' : (strlen(number_format($count)) > 5 ? '30px' : '54px') }}">
+            <div class="ov-count-top"><h2 class="ov-count-label">{{ $label }}</h2></div>
+            @include('user.partials.count-card-art', ['kind'=>$cardKinds[$loop->index], 'artId'=>'workspace-count-'.$loop->index])
+            <div class="ov-count-bottom"><strong>{{ number_format($count) }}</strong><p>In this workspace</p></div>
+        </article>
         @endforeach
     </div>
     <div class="ov-columns">
