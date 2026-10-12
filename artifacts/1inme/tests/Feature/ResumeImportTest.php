@@ -50,6 +50,13 @@ class ResumeImportTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \Illuminate\Support\Facades\Storage::fake('user_files');
+        // The storage preflight reads configuration while all writes stay
+        // on the fake disk; these values never connect to an S3 account.
+        config()->set('filesystems.disks.user_files', [
+            'driver' => 's3', 'key' => 'test', 'secret' => 'test',
+            'bucket' => 'test-bucket', 'region' => 'us-east-1',
+        ]);
         // Belt and braces: the AI fallback in parseResumeText() only
         // fires when heuristics produce nothing AND the engine is
         // enabled AND a key is set. Force-disable here so even a bug

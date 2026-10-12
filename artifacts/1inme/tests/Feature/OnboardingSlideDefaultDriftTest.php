@@ -31,6 +31,9 @@ class OnboardingSlideDefaultDriftTest extends TestCase
         // Seeding reads the public disk for images; fake it so the seed is
         // deterministic and does not touch S3.
         Storage::fake('public');
+        // These cases exercise fresh seeding, not rows populated by a
+        // historical content migration that firstOrCreate preserves.
+        OnboardingSlide::query()->delete();
     }
 
     public function test_freshly_seeded_slides_all_report_default(): void
@@ -67,7 +70,7 @@ class OnboardingSlideDefaultDriftTest extends TestCase
     {
         (new OnboardingSlidesSeeder())->run();
 
-        $slide = OnboardingSlide::where('slug', 'creators')->firstOrFail();
+        $slide = OnboardingSlide::where('slug', 'every-business')->firstOrFail();
         $slide->update([
             'category' => 'For makers',
             'title'    => 'A brand new headline',

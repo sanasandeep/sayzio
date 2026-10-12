@@ -52,6 +52,13 @@ class BiolinkWizardAiCreditTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \Illuminate\Support\Facades\Storage::fake('user_files');
+        // The storage preflight reads configuration while all writes stay
+        // on the fake disk; these values never connect to an S3 account.
+        config()->set('filesystems.disks.user_files', [
+            'driver' => 's3', 'key' => 'test', 'secret' => 'test',
+            'bucket' => 'test-bucket', 'region' => 'us-east-1',
+        ]);
 
         // Real engine + real (priced) models so a charge actually lands.
         AiEngineSettings::setEnabled(true);
@@ -343,6 +350,8 @@ class BiolinkWizardAiCreditTest extends TestCase
 
         // The empty link created up-front was rolled back.
         $this->assertSame(0, Link::where('user_id', $user->id)->count());
+        $this->assertSame(0, \App\Modules\User\Models\UserFile::withoutGlobalScope('workspace')->where('user_id', $user->id)->count(),
+            'failed builds must remove generated image files as well as refunding their charges');
 
         // Charge happened, then a matching refund — net wallet effect is zero.
         $this->assertLessThan(0, $this->aiSpend($user), 'the call must charge before failing');
@@ -379,6 +388,8 @@ class BiolinkWizardAiCreditTest extends TestCase
         $resp->assertRedirect();
         $resp->assertSessionHas('error');
         $this->assertSame(0, Link::where('user_id', $user->id)->count());
+        $this->assertSame(0, \App\Modules\User\Models\UserFile::withoutGlobalScope('workspace')->where('user_id', $user->id)->count(),
+            'failed builds must remove generated image files as well as refunding their charges');
         $this->assertSame($startBalance, app(AiUsageCharger::class)->getBalance($user),
             'charge + auto-refund must net to zero on a failed AI draft');
 
