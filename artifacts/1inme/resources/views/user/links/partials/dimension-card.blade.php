@@ -24,7 +24,8 @@
 --}}
 @php
     $__rows = $rows ?? collect();
-    $__labelFor = fn ($v) => ($labels[$v] ?? ucfirst(str_replace('_', ' ', (string) $v)));
+    $__names = ['macos' => 'macOS', 'ios' => 'iOS', 'windows' => 'Windows', 'android' => 'Android', 'linux' => 'Linux', 'chrome' => 'Chrome', 'safari' => 'Safari', 'edge' => 'Edge', 'firefox' => 'Firefox', 'mobile_app' => 'Mobile app', 'web' => 'Web', 'desktop' => 'Desktop', 'mobile' => 'Mobile', 'tablet' => 'Tablet', 'unknown' => 'Unknown'];
+    $__labelFor = fn ($v) => ($labels[$v] ?? $__names[strtolower((string) $v)] ?? ucfirst(str_replace('_', ' ', (string) $v)));
     $__accentFrom = $accent[0] ?? '#6366f1';
     $__accentTo   = $accent[1] ?? '#818cf8';
 @endphp

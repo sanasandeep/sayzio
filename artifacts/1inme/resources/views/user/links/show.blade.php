@@ -106,24 +106,6 @@
        outline and a wash, the same way the type filters on Create Link do, and
        the border is declared on every state so selecting one does not shift
        the row by a pixel. */
-    .pill {
-        padding: 6px 12px;
-        border-radius: 9px;
-        font-size: 11px;
-        font-weight: 600;
-        border: 1px solid transparent;
-        transition: background .16s, color .16s, border-color .16s;
-        color: var(--text-muted);
-    }
-    .pill:hover { background: var(--bg-glass-hover); color: var(--text-primary); }
-    .pill-active,
-    .pill-active-soft {
-        background: color-mix(in srgb, var(--accent) 9%, transparent);
-        border-color: var(--accent);
-        color: var(--text-primary) !important;
-        box-shadow: none;
-    }
-
     /* ============ Stat Tile ============ */
     /* Each tile carried a tinted ground, a coloured top rail, a blurred orb
        in the corner and a lift on hover -- four devices to say "this is a

@@ -281,6 +281,20 @@ class ProjectReportTest extends TestCase
         }
     }
 
+    public function test_device_filter_and_group_dropdown_are_applied(): void
+    {
+        $user = User::factory()->create();
+        $link = $this->link($user);
+        $date = Carbon::now('UTC')->subDay()->toDateTimeString();
+        $this->click($link, $date, ['device_type' => 'desktop', 'os' => 'macOS']);
+        $this->click($link, $date, ['device_type' => 'mobile', 'os' => 'iOS']);
+        $page = $this->visit($user, ['device' => 'mobile', 'group' => 'week']);
+        $page->assertOk();
+        $page->assertViewHas('report', fn ($r) => $r['totals']['clicks'] === 1 && $r['groupBy'] === 'week' && $r['dimensions']['device_type']->count() === 2);
+        $page->assertSee('id="rp-group"', false);
+        $page->assertSee('iOS');
+    }
+
     public function test_shared_heatmap_has_labels_and_two_hour_blocks(): void
     {
         $user = User::factory()->create();
