@@ -1279,7 +1279,7 @@
                 <div x-data="{ open: {{ $grpAccountActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
-                        <span>Account</span>
+                        <span>Account tools</span>
                         <i class="fas fa-chevron-down grp-chevron"></i>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
@@ -1376,7 +1376,7 @@
                 // so this section is now badges-only (no more duplicate coin
                 // surface here).
                 $__acctBadges  = auth()->user()->accountBadges;
-                $__showAccount = $__acctBadges->isNotEmpty();
+                $__showAccount = $__acctBadges->isNotEmpty() || $__can['settings_view'];
             @endphp
             @if($__showAccount)
             <div class="px-3 pb-2" x-show="sidebarMode !== 'icons'" x-cloak x-data="{
@@ -1397,6 +1397,11 @@
                     <i class="fas fa-chevron-down grp-chevron"></i>
                 </button>
                 <div x-show="open" x-cloak class="space-y-2 pt-1">
+                    @if($__can['settings_view'])
+                    <a href="{{ route('user.profile.edit') }}" class="sidebar-link {{ \App\Modules\User\Support\SettingsTabs::activeKey() !== null ? 'active' : '' }}" data-account-settings-link>
+                        <div class="nav-icon-wrap"><i class="fas fa-sliders"></i></div><span>Settings</span>
+                    </a>
+                    @endif
                     @if($__acctBadges->isNotEmpty())
                     <div class="px-1">
                         <p class="text-[9px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Your badges</p>
@@ -1929,7 +1934,7 @@
                         <div x-data="{ open: {{ $mGrpAccountActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
-                                <span>Account</span>
+                                <span>Account tools</span>
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
@@ -1951,7 +1956,7 @@
                     @php
                         // Task #3848 — coin balance moved to the header icon+badge.
                         $__mAcctBadges  = auth()->user()->accountBadges;
-                        $__mShowAccount = $__mAcctBadges->isNotEmpty();
+                        $__mShowAccount = $__mAcctBadges->isNotEmpty() || $__can['settings_view'];
                     @endphp
                     @if($__mShowAccount)
                     <div class="px-3 pt-2" x-data="{
@@ -1972,7 +1977,12 @@
                             <i class="fas fa-chevron-down grp-chevron"></i>
                         </button>
                         <div x-show="open" x-cloak class="space-y-2 pt-1">
-                            @if($__mAcctBadges->isNotEmpty())
+                            @if($__can['settings_view'])
+                    <a href="{{ route('user.profile.edit') }}" class="sidebar-link {{ \App\Modules\User\Support\SettingsTabs::activeKey() !== null ? 'active' : '' }}" data-account-settings-link>
+                        <div class="nav-icon-wrap"><i class="fas fa-sliders"></i></div><span>Settings</span>
+                    </a>
+                    @endif
+                    @if($__mAcctBadges->isNotEmpty())
                             <div class="px-1">
                                 <p class="text-[9px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Your badges</p>
                                 <div class="flex flex-wrap gap-1.5">
