@@ -151,12 +151,12 @@
     html.light-mode .stat-tile-sub { color: rgba(26,16,37,0.6); }
 
     /* Sculpted analytics cards share the dashboard's visual language. */
-    .kpi-hero {position:relative;overflow:hidden;min-height:250px;padding:24px;border-radius:24px;border:1px solid #ffffff25;background:radial-gradient(ellipse at 100% 0%,var(--ov-color),transparent 75%),var(--ov-tone);box-shadow:0 14px 30px color-mix(in srgb,var(--ov-tone) 20%,transparent),inset 0 1px 0 #ffffff45;transition:transform .25s,box-shadow .25s;}
+    .kpi-hero {position:relative;overflow:hidden;min-height:190px;padding:20px;border-radius:24px;border:1px solid #ffffff25;background:radial-gradient(ellipse at 100% 0%,var(--ov-color),transparent 75%),var(--ov-tone);box-shadow:0 14px 30px color-mix(in srgb,var(--ov-tone) 20%,transparent),inset 0 1px 0 #ffffff45;transition:transform .25s,box-shadow .25s;}
     .kpi-hero:hover {transform:translateY(-4px);box-shadow:0 20px 38px color-mix(in srgb,var(--ov-tone) 28%,transparent);}
     .kpi-hero-label {font-size:15px;font-weight:650;color:#fff;}
-    .kpi-hero .ov-count-art {position:absolute;width:155px;height:130px;right:12px;top:22px;transition:transform .3s;}
+    .kpi-hero .ov-count-art {position:absolute;width:110px;height:92px;right:12px;top:32px;transition:transform .3s;}
     .kpi-hero:hover .ov-count-art {transform:translateY(-6px) rotate(-4deg);}
-    .kpi-hero-value {position:relative;margin-top:105px;font-size:clamp(36px,4vw,54px);font-weight:800;line-height:1.1;color:#fff;letter-spacing:-.035em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+    .kpi-hero-value {position:relative;margin-top:54px;font-size:clamp(36px,4vw,54px);font-weight:800;line-height:1.1;color:#fff;letter-spacing:-.035em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
     .kpi-hero-sub,html.light-mode .kpi-hero-sub {color:#e5eaff;font-size:12px;margin-top:8px;}
     .link-details {padding:28px;border:1px solid var(--border-strong);border-radius:24px;background:linear-gradient(135deg,var(--bg-card),var(--bg-glass));box-shadow:0 8px 30px #00000005;}
     .link-details-head {display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:22px;}
@@ -168,7 +168,7 @@
     .link-details-field dd {color:var(--text-primary);font-size:14px;font-weight:600;overflow-wrap:anywhere;}
     .link-details-wide {grid-column:1/-1;}
     .link-details-status {font-size:12px;padding:8px 12px;border-radius:999px;color:var(--text-primary);background:var(--bg-card);border:1px solid var(--border-strong);white-space:nowrap;}
-    @media(max-width:767px){.kpi-hero{min-height:220px}.kpi-hero-value{margin-top:80px}.kpi-hero .ov-count-art{width:135px;height:115px}.link-details{padding:20px}.link-details dl{grid-template-columns:1fr}.link-details-head{align-items:flex-start}}
+    @media(max-width:767px){.kpi-hero{min-height:180px}.kpi-hero-value{margin-top:48px}.kpi-hero .ov-count-art{width:105px;height:88px}.link-details{padding:20px}.link-details dl{grid-template-columns:1fr}.link-details-head{align-items:flex-start}}
     @media(prefers-reduced-motion:reduce){.kpi-hero,.kpi-hero .ov-count-art{transition:none}.kpi-hero:hover,.kpi-hero:hover .ov-count-art{transform:none}}
 
     /* ============ Quick-stats strip (rest) ============ */

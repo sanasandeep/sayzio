@@ -30,6 +30,7 @@
     <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
     <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
     @include('common.partials.theme-styles')
+    @include('common.partials.stats-art-motion')
     @include('common.partials.navigation-appearance')
     <style>
         /* Single source of truth for the in-app header height (matches the
