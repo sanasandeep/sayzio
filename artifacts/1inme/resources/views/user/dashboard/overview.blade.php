@@ -13,10 +13,6 @@
 <div class="ov-wrap">
     <header class="ov-head">
         <div><p class="ov-muted">{{ now(\App\Support\PlatformTimezone::forUser(auth()->user()))->format('l, j M') }} · Your workspace</p><h1>Everything you need to keep building.</h1><p class="ov-muted">Manage your links, check your allowance, and pick up where you left off.</p></div>
-        @if($canCreate)
-        <a class="btn-primary" href="{{ route('user.links.create') }}"><i class="fas fa-plus"></i> Create Link</a>
-        @endif
-    <a class="ov-muted" href="{{ route('user.dashboard', ['view' => 'custom']) }}">Custom dashboard →</a>
     </header>
     <div class="ov-grid">
         @foreach($counts as $label => $count)
