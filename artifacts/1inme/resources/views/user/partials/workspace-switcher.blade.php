@@ -11,7 +11,7 @@
      x-init="if (new URLSearchParams(window.location.search).get('create_workspace') === '1') { open = true; creating = {{ $canCreateWs ? 'true' : 'false' }}; $nextTick(() => $el.scrollIntoView({ block: 'nearest' })) }"
      id="workspace-switcher"
      class="px-3 py-2 border-b" style="border-color: var(--border-strong);">
-    <button type="button" @click="open = !open"
+    <button type="button" @click="open = !open" :aria-expanded="open.toString()"
             class="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-xl transition-colors hover:bg-black/5"
             style="color: var(--text-primary);"
             :class="sidebarMode === 'icons' ? 'justify-center' : ''">
