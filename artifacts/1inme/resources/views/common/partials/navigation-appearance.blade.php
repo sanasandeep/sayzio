@@ -61,6 +61,26 @@ html[data-sidebar-appearance="gradient-dark"] :is(.sidebar-shell,.navigation-mob
 html[data-sidebar-appearance]:not([data-sidebar-appearance="theme"]) :is(.sidebar-shell,.navigation-mobile) .upgrade-card {background:var(--nav-control)!important;border:1px solid var(--nav-line)!important;}
 html[data-sidebar-appearance]:not([data-sidebar-appearance="theme"]) :is(.sidebar-shell,.navigation-mobile) .sidebar-link.active :is(i,.nav-icon-wrap) {color:var(--nav-active-ink)!important;}
 html[data-sidebar-appearance]:not([data-sidebar-appearance="theme"]) :is(.sidebar-shell,.navigation-mobile) .sidebar-link:not(.active) :is(i,.nav-icon-wrap) {color:var(--nav-muted)!important;}
+:root {--navigation-theme-surface:var(--bg-header);--navigation-theme-ink:var(--text-primary);}
+/* The edge toggle lives outside the logo wrapper, so resolve its palette explicitly. */
+.sidebar-shell .sidebar-edge-toggle {
+    --toggle-surface:var(--nav-control,var(--bg-card));
+    --toggle-ink:var(--nav-ink,var(--text-primary));
+    background:var(--toggle-surface)!important;
+    color:var(--toggle-ink)!important;
+    border-color:color-mix(in srgb,var(--toggle-ink) 22%,transparent)!important;
+}
+html[data-topbar-includes-logo="true"] .sidebar-edge-toggle {
+    --toggle-surface:var(--navigation-topbar-surface);
+    --toggle-ink:var(--navigation-topbar-ink);
+}
+html[data-topbar-includes-logo="true"][data-topbar-appearance="theme"] .sidebar-edge-toggle {
+    --toggle-surface:var(--navigation-theme-surface);
+    --toggle-ink:var(--navigation-theme-ink);
+}
+.sidebar-shell .sidebar-edge-toggle:hover {
+    filter:brightness(1.12);
+}
 html[data-topbar-includes-logo="true"] .navigation-logo {background:var(--navigation-topbar-surface)!important;--text-primary:var(--navigation-topbar-ink);border-color:color-mix(in srgb,var(--navigation-topbar-ink) 20%,transparent)!important;}
 html[data-topbar-includes-logo="true"][data-topbar-appearance="theme"] .navigation-logo {background:var(--bg-header)!important;}
 html[data-topbar-includes-logo="true"][data-topbar-logo="dark"] .navigation-logo .brand-logo--light {display:none!important;}
