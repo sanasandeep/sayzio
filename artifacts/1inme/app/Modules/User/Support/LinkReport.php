@@ -421,7 +421,7 @@ class LinkReport
      * The 7 x 12 grid the shared click-heatmap partial draws: ISO weekday down
      * (Monday first), two-hour blocks across.
      *
-     * @return array{rows: array<int, array<int, int>>, peak: int, peakLabel: ?string}
+     * @return array{rows: array<int, array{day: string, full: string, date: null, today: bool, blocks: array<int, int>}>, peak: int, peakLabel: string}
      */
     public function heat(): array
     {
@@ -451,7 +451,19 @@ class LinkReport
                 }
             });
 
-        return ['rows' => $rows, 'peak' => $peak, 'peakLabel' => $peakLabel];
+        $fullDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        $displayRows = [];
+        foreach ($rows as $day => $blocks) {
+            $displayRows[] = [
+                'day' => self::ISO_DAYS[$day],
+                'full' => $fullDays[$day],
+                'date' => null,
+                'today' => false,
+                'blocks' => $blocks,
+            ];
+        }
+
+        return ['rows' => $displayRows, 'peak' => $peak, 'peakLabel' => $peakLabel ?? 'No clicks'];
     }
 
     /** Monday-first, matching EXTRACT(ISODOW) and the shared partial's rows. */

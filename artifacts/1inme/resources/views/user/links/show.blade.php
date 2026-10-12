@@ -319,34 +319,7 @@
        encoded in whether it is teal or amber, so the colour was decoration
        carrying no information -- the same problem the eighteen link types had.
        The inline variables are left in place and simply no longer consumed. */
-    .section-card {
-        position: relative;
-        background: var(--bg-card);
-        border: 1px solid var(--border-glass);
-        border-radius: 18px;
-        padding: 26px 28px;
-        overflow: hidden;
-    }
-    .section-head {
-        display: flex; align-items: center; justify-content: space-between;
-        gap: 10px; margin-bottom: 18px; flex-wrap: wrap;
-    }
-    .section-title {
-        display: flex; align-items: center; gap: 12px;
-        font-size: 13px; font-weight: 700; color: var(--text-primary);
-    }
-    .section-icon {
-        width: 34px; height: 34px; border-radius: 10px;
-        display: flex; align-items: center; justify-content: center;
-        color: var(--text-dimmed); font-size: 13px;
-        background: var(--bg-glass-hover);
-    }
-    .section-pill {
-        font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 8px;
-        background: transparent;
-        color: var(--text-faint);
-        border: 1px solid var(--border-glass);
-    }
+    @include('user.links.partials.report-styles')
     /* Light-mode overrides for inline pastel text colors so badges stay legible on white cards */
     html.light-mode [style*="color: #86efac"],
     html.light-mode [style*="color:#86efac"]   { color: #047857 !important; }   /* green pill */
@@ -441,24 +414,6 @@
         flex-shrink: 0;
     }
     .progress-favicon img { width: 100%; height: 100%; object-fit: cover; }
-
-    /* Table action button */
-    .table-action {
-        display: inline-flex; align-items: center; gap: 6px;
-        padding: 7px 12px; border-radius: 11px;
-        font-size: 11px; font-weight: 600;
-        background: var(--bg-glass-input);
-        border: 1px solid var(--border-glass);
-        color: var(--text-muted);
-        transition: all .2s ease;
-    }
-    .table-action:hover { background: var(--bg-glass-hover); color: var(--text-primary); border-color: var(--accent); }
-
-    /* Download / Copy on a chart card. Smaller than a table action because it
-       sits on the title row beside the period pill, and the chart is what the
-       eye should land on first. */
-    .chart-actions { display: inline-flex; align-items: center; gap: 6px; }
-    .chart-actions .table-action { padding: 5px 10px; font-size: 10.5px; }
 
     .period-dates {
         display: flex; align-items: center; gap: 8px; flex-wrap: wrap;

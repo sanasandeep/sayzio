@@ -11,8 +11,7 @@
 --}}
 <script>
 (() => {
-    const PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-                     '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#14b8a6'];
+    const PALETTE = ['#3d6bff','#10b981','#3b82f6','#f59e0b','#ec4899','#06b6d4','#5c83ff','#ef4444','#14b8a6','#eab308'];
 
     const tickColor = () => document.documentElement.classList.contains('light-mode')
         ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.7)';

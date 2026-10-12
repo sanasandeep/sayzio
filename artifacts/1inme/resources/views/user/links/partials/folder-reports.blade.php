@@ -110,7 +110,7 @@
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-clock"></i></div> When People Click <span class="text-xs font-normal" style="color: var(--text-muted);">(2-hour blocks)</span></div>
         <div class="flex items-center gap-2 flex-wrap">
-            @include('user.links.partials.chart-actions', ['target' => 'folder-heat', 'title' => 'When People Click — '.$scopeName, 'slug' => 'when-people-click', 'footer' => $chartFooter])
+            @include('user.links.partials.chart-actions', ['target' => 'folder-heat-grid', 'title' => 'When People Click — '.$scopeName, 'slug' => 'when-people-click', 'footer' => $chartFooter])
             <a class="pill" href="{{ $exportUrl('heatmap') }}">CSV</a>
         </div>
     </div>
@@ -247,14 +247,19 @@
     const read = (k) => { try { return JSON.parse(el.dataset[k] || '[]'); } catch (e) { return []; } };
     const light = document.documentElement.classList.contains('light-mode');
     const tick = light ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.7)';
-    const grid = light ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.08)';
+    const grid = light ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)';
+    const ctx = el.getContext('2d');
+    const g1 = ctx.createLinearGradient(0,0,0,300);
+    g1.addColorStop(0, 'rgba(61,107,255,0.45)'); g1.addColorStop(1, 'rgba(61,107,255,0.02)');
+    const g2 = ctx.createLinearGradient(0,0,0,300);
+    g2.addColorStop(0, 'rgba(16,185,129,0.30)'); g2.addColorStop(1, 'rgba(16,185,129,0.02)');
     new Chart(el, {
         type: 'line',
         data: {
             labels: read('labels'),
             datasets: [
-                { label: 'Total Clicks', data: read('clicks'), borderColor: '#3d6bff', backgroundColor: 'rgba(61,107,255,0.12)', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 0 },
-                { label: 'Unique IPs', data: read('unique'), borderColor: '#10b981', fill: false, tension: 0.4, borderWidth: 2, pointRadius: 0 },
+                { label: 'Total Clicks', data: read('clicks'), borderColor: '#5c83ff', backgroundColor: g1, fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 0 },
+                { label: 'Unique IPs', data: read('unique'), borderColor: '#34d399', backgroundColor: g2, fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0 },
                 { label: 'Filtered bots (excluded from totals)', data: read('bots'), borderColor: '#f97316', borderDash: [5, 4], fill: false, tension: 0.4, borderWidth: 2, pointRadius: 0 }
             ]
         },
@@ -270,3 +275,5 @@
     });
 })();
 </script>
+
+@include('user.links.partials.chart-export')
