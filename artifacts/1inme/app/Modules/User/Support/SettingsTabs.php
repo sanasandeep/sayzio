@@ -42,6 +42,10 @@ class SettingsTabs
                 'route' => 'user.profile.edit',
                 'match' => ['user.profile.*'],
             ],
+            'design' => [
+                'label' => 'Design', 'icon' => 'fa-palette',
+                'route' => 'user.design.edit', 'match' => ['user.design.*'],
+            ],
             'creator' => [
                 'label' => 'Creator Profile',
                 'icon'  => 'fa-id-badge',

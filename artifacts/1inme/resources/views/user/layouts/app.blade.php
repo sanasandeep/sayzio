@@ -656,7 +656,7 @@
                 <i class="fas" :class="sidebarMode === 'icons' ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
             </button>
 
-            <div class="flex items-center px-4" :class="sidebarMode === 'icons' ? 'justify-center' : 'justify-start'" style="height: 64px; border-bottom: 1px solid var(--border-strong);">
+            <div class="navigation-logo flex items-center px-4" :class="sidebarMode === 'icons' ? 'justify-center' : 'justify-start'" style="height: 64px; border-bottom: 1px solid var(--border-strong);">
                 <a href="{{ route('user.dashboard') }}" class="flex items-center gap-2.5 group" :class="sidebarMode === 'icons' ? 'hidden' : ''">
                     @include('common.partials.brand-logo', ['height' => 'h-8'])
                 </a>
@@ -1495,7 +1495,6 @@
                     <div class="hidden lg:flex items-center">
                         @include('common.partials.theme-toggle')
                     </div>
-                    @include('common.partials.navigation-appearance-picker')
 
                     {{-- Task #3848 — compact coin-wallet icon + balance badge,
                          replacing the old sidebar Wallet nav item. Badge is

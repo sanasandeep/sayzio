@@ -40,15 +40,15 @@ class BrandingController extends Controller
         foreach (self::SLOTS as $key => [$field, , $mimes, $max]) {
             $rules[$field] = ['nullable', 'file', 'mimes:' . implode(',', $mimes), 'max:' . $max];
         }
-        $rules['navigation_sidebar'] = ['sometimes', 'required', 'in:theme,light,dark,color'];
-        $rules['navigation_topbar'] = ['sometimes', 'required', 'in:theme,light,dark,color'];
-        $rules['navigation_color'] = ['sometimes', 'required', 'regex:/^#[0-9a-fA-F]{6}$/'];
+        $rules['navigation_sidebar'] = ['sometimes', 'required', 'in:theme,light,dark,gradient-light,gradient-medium,gradient-dark'];
+        $rules['navigation_topbar'] = ['sometimes', 'required', 'in:theme,light,dark,gradient-light,gradient-medium,gradient-dark'];
+        $rules['navigation_logo'] = ['sometimes', 'required', 'boolean'];
         $validated = $request->validate($rules);
-        if ($request->has('navigation_sidebar') && $request->has('navigation_topbar') && $request->has('navigation_color')) {
+        if ($request->has('navigation_sidebar') && $request->has('navigation_topbar')) {
             AppSetting::put('navigation_appearance', [
                 'sidebar' => $validated['navigation_sidebar'],
                 'topbar' => $validated['navigation_topbar'],
-                'color' => $validated['navigation_color'],
+                'logo' => $request->boolean('navigation_logo'),
             ]);
         }
 
