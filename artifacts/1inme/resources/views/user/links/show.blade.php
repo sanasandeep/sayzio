@@ -150,40 +150,26 @@
     html.light-mode .stat-tile-label { color: rgba(26,16,37,0.7); }
     html.light-mode .stat-tile-sub { color: rgba(26,16,37,0.6); }
 
-    /* ============ Calm KPI hero (top 3) ============ */
-    .kpi-hero {
-        position: relative;
-        background: var(--bg-card);
-        border: 1px solid var(--border-glass);
-        border-radius: 18px;
-        padding: 18px 20px;
-        transition: background .18s ease;
-    }
-    .kpi-hero:hover { background: var(--bg-glass-hover); }
-    .kpi-hero-head {
-        display: flex; align-items: center; justify-content: space-between;
-        margin-bottom: 10px;
-    }
-    .kpi-hero-label {
-        font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
-        color: var(--text-muted);
-    }
-    .kpi-hero-icon {
-        width: 28px; height: 28px; border-radius: 9px;
-        display: flex; align-items: center; justify-content: center;
-        background: var(--bg-glass-hover);
-        color: var(--text-dimmed);
-        font-size: 11px;
-    }
-    .kpi-hero-value {
-        font-size: 32px; font-weight: 800; line-height: 1.05;
-        color: var(--text-primary);
-        letter-spacing: -0.025em;
-    }
-    .kpi-hero-sub {
-        font-size: 11px; color: var(--text-faint); margin-top: 4px;
-    }
-    html.light-mode .kpi-hero-sub { color: rgba(26,16,37,0.6); }
+    /* Sculpted analytics cards share the dashboard's visual language. */
+    .kpi-hero {position:relative;overflow:hidden;min-height:250px;padding:24px;border-radius:24px;border:1px solid #ffffff25;background:radial-gradient(ellipse at 100% 0%,var(--ov-color),transparent 75%),var(--ov-tone);box-shadow:0 14px 30px color-mix(in srgb,var(--ov-tone) 20%,transparent),inset 0 1px 0 #ffffff45;transition:transform .25s,box-shadow .25s;}
+    .kpi-hero:hover {transform:translateY(-4px);box-shadow:0 20px 38px color-mix(in srgb,var(--ov-tone) 28%,transparent);}
+    .kpi-hero-label {font-size:15px;font-weight:650;color:#fff;}
+    .kpi-hero .ov-count-art {position:absolute;width:155px;height:130px;right:12px;top:22px;transition:transform .3s;}
+    .kpi-hero:hover .ov-count-art {transform:translateY(-6px) rotate(-4deg);}
+    .kpi-hero-value {position:relative;margin-top:105px;font-size:clamp(36px,4vw,54px);font-weight:800;line-height:1.1;color:#fff;letter-spacing:-.035em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+    .kpi-hero-sub,html.light-mode .kpi-hero-sub {color:#e5eaff;font-size:12px;margin-top:8px;}
+    .link-details {padding:28px;border:1px solid var(--border-strong);border-radius:24px;background:linear-gradient(135deg,var(--bg-card),var(--bg-glass));box-shadow:0 8px 30px #00000005;}
+    .link-details-head {display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:22px;}
+    .link-details-head h2 {font-size:18px;font-weight:700;color:var(--text-primary);}
+    .link-details-head p {color:var(--text-muted);font-size:13px;margin-top:5px;}
+    .link-details dl {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+    .link-details-field {min-width:0;padding:18px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:16px;}
+    .link-details-field dt {font-size:11px;color:var(--text-muted);margin-bottom:9px;font-weight:600;}
+    .link-details-field dd {color:var(--text-primary);font-size:14px;font-weight:600;overflow-wrap:anywhere;}
+    .link-details-wide {grid-column:1/-1;}
+    .link-details-status {font-size:12px;padding:8px 12px;border-radius:999px;color:var(--text-primary);background:var(--bg-card);border:1px solid var(--border-strong);white-space:nowrap;}
+    @media(max-width:767px){.kpi-hero{min-height:220px}.kpi-hero-value{margin-top:80px}.kpi-hero .ov-count-art{width:135px;height:115px}.link-details{padding:20px}.link-details dl{grid-template-columns:1fr}.link-details-head{align-items:flex-start}}
+    @media(prefers-reduced-motion:reduce){.kpi-hero,.kpi-hero .ov-count-art{transition:none}.kpi-hero:hover,.kpi-hero:hover .ov-count-art{transform:none}}
 
     /* ============ Quick-stats strip (rest) ============ */
     .kpi-strip {
@@ -650,31 +636,22 @@
 </div>
 
 {{-- ===================== PRIMARY KPIs (3 hero numbers) ===================== --}}
+@php
+    $primaryCards = [
+        ['label'=>'Total clicks','value'=>$totalInRange,'sub'=>'In selected range','kind'=>'clicks','color'=>'#3b82f6','tone'=>'#123c85'],
+        ['label'=>'Unique visitors','value'=>$uniqueInRange,'sub'=>'Distinct people','kind'=>'visitors','color'=>'#8b5cf6','tone'=>'#512b89'],
+        ['label'=>'Sessions','value'=>$totalSessions,'sub'=>'Avg ' . _fmtSecs($avgSessionSeconds) . ' on page','kind'=>'sessions','color'=>'#0d9488','tone'=>'#075953'],
+    ];
+@endphp
 <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
-    <div class="kpi-hero">
-        <div class="kpi-hero-head">
-            <span class="kpi-hero-label">Total clicks</span>
-            <div class="kpi-hero-icon"><i class="fas fa-mouse-pointer"></i></div>
-        </div>
-        <div class="kpi-hero-value">{{ number_format($totalInRange) }}</div>
-        <div class="kpi-hero-sub">in selected range</div>
-    </div>
-    <div class="kpi-hero">
-        <div class="kpi-hero-head">
-            <span class="kpi-hero-label">Unique visitors</span>
-            <div class="kpi-hero-icon"><i class="fas fa-fingerprint"></i></div>
-        </div>
-        <div class="kpi-hero-value">{{ number_format($uniqueInRange) }}</div>
-        <div class="kpi-hero-sub">distinct people</div>
-    </div>
-    <div class="kpi-hero">
-        <div class="kpi-hero-head">
-            <span class="kpi-hero-label">Sessions</span>
-            <div class="kpi-hero-icon"><i class="fas fa-user-clock"></i></div>
-        </div>
-        <div class="kpi-hero-value">{{ number_format($totalSessions) }}</div>
-        <div class="kpi-hero-sub">avg {{ _fmtSecs($avgSessionSeconds) }} on page</div>
-    </div>
+    @foreach($primaryCards as $card)
+    <article class="kpi-hero" style="--ov-color:{{ $card['color'] }};--ov-tone:{{ $card['tone'] }};">
+        <h2 class="kpi-hero-label">{{ $card['label'] }}</h2>
+        @include('user.partials.count-card-art',['kind'=>$card['kind'],'artId'=>'link-stat-'.$loop->index])
+        <div class="kpi-hero-value" @if(strlen(number_format($card['value'])) > 7) style="font-size:30px" @endif>{{ number_format($card['value']) }}</div>
+        <p class="kpi-hero-sub">{{ $card['sub'] }}</p>
+    </article>
+    @endforeach
 </div>
 
 @include('user.links.partials.performance-coach')
@@ -2366,15 +2343,21 @@
 </div>
 
 {{-- ===================== LINK DETAILS ===================== --}}
-<div class="section-card" style="--sc-accent: linear-gradient(90deg,#64748b,#94a3b8); --sc-glow: rgba(100,116,139,0.35); --sc-color: #cbd5e1; --sc-border: rgba(100,116,139,0.3);">
-    <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-info-circle"></i></div> Link Details</div></div>
-    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-        @if($link->long_url)<div class="p-3 rounded-xl" style="background: var(--bg-glass-input);"><dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Destination</dt><dd class="truncate" style="color: var(--text-primary);">{{ $link->long_url }}</dd></div>@endif
-        <div class="p-3 rounded-xl" style="background: var(--bg-glass-input);"><dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Alias</dt><dd style="color: var(--text-primary);">{{ $link->alias }}</dd></div>
-        <div class="p-3 rounded-xl" style="background: var(--bg-glass-input);"><dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Type</dt><dd class="capitalize" style="color: var(--text-primary);">{{ $link->type }}</dd></div>
-        <div class="p-3 rounded-xl" style="background: var(--bg-glass-input);"><dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Created</dt><dd style="color: var(--text-primary);">{{ $link->created_at?->format('M d, Y · H:i') }}</dd></div>
+<section class="link-details">
+    <div class="link-details-head">
+        <div><h2>Link Details</h2><p>Your link identity and destination.</p></div>
+        <span class="link-details-status"><i class="fas fa-circle" style="color:{{ $link->is_active ? '#10b981' : '#94a3b8' }};font-size:8px;margin-right:5px"></i>{{ $link->is_active ? 'Active' : 'Inactive' }}</span>
+    </div>
+    <dl>
+        <div class="link-details-field"><dt>Alias</dt><dd>{{ $link->alias }}</dd></div>
+        <div class="link-details-field"><dt>Link type</dt><dd>{{ \App\Modules\User\Models\Link::typeLabel($link->type) }}</dd></div>
+        <div class="link-details-field"><dt>Created</dt><dd>{{ $link->created_at?->format('M d, Y · H:i') ?? 'Not available' }}</dd></div>
+        <div class="link-details-field link-details-wide"><dt>Public link</dt><dd>{{ $link->getShortUrl() }}</dd></div>
+        @if($link->long_url)
+        <div class="link-details-field link-details-wide"><dt>Destination</dt><dd>{{ $link->long_url }}</dd></div>
+        @endif
     </dl>
-</div>
+</section>
 
 @push('scripts')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.min.css">
