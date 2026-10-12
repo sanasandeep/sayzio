@@ -512,7 +512,7 @@
        not an override. */
     html.aurora .section-card,
     html.aurora .stat-tile,
-    html.aurora .kpi-hero,
+    html.aurora .kpi-hero:not([style*="--ov-color"]),
     html.aurora .cmp-tile,
     html.aurora .period-bar,
     html.aurora .page-hero {
@@ -532,7 +532,7 @@
        the pointer crosses it is movement that means nothing. */
     html.aurora .section-card:hover,
     html.aurora .stat-tile:hover,
-    html.aurora .kpi-hero:hover,
+    html.aurora .kpi-hero:not([style*="--ov-color"]):hover,
     html.aurora .cmp-tile:hover {
         transform: none !important;
         box-shadow: none !important;
