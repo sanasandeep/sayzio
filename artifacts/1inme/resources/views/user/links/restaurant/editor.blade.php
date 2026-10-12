@@ -137,6 +137,7 @@
 
         {{-- ITEMS ------------------------------------------------------ --}}
         <div x-show="pane === 'items'" x-cloak>
+@include('user.links.partials.business-starter-picker')
             @include('user.links.partials.menu-structure-editor', [
                 'meNoun'      => 'item',
                 'meNounTitle' => 'Item',

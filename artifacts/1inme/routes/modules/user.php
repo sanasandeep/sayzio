@@ -1251,6 +1251,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get ('links/{link}/store/orders',                [\App\Modules\User\Controllers\StoreMenuController::class, 'orders'])->middleware('workspace.can:links.view')->name('links.store.orders');
         Route::get ('links/{link}/store/orders/poll',           [\App\Modules\User\Controllers\StoreMenuController::class, 'pollOrders'])->middleware('workspace.can:links.view')->name('links.store.orders.poll');
         Route::post('links/{link}/store/orders/{order}/status', [\App\Modules\User\Controllers\StoreMenuController::class, 'updateOrderStatus'])->middleware('workspace.can:links.edit')->name('links.store.orders.status');
+        Route::post('links/{link}/business-starter', [\App\Modules\User\Controllers\BusinessStarterController::class, 'store'])->middleware('workspace.can:links.edit')->name('links.business-starter.store');
+
         // ── Service Booking (links.type = service_booking) ─────────────
         Route::get('links/{link}/catalog', [\App\Modules\User\Controllers\ListingCatalogController::class, 'editor'])->middleware('workspace.can:links.view')->name('links.catalog.editor');
         Route::post('links/{link}/catalog/{action}', [\App\Modules\User\Controllers\ListingCatalogController::class, 'save'])->whereIn('action', ['settings','category','entry','delete-category','delete-entry','starter','inquiry'])->middleware('workspace.can:links.edit')->name('links.catalog.save');

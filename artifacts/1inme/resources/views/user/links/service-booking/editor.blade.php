@@ -57,6 +57,7 @@
 
     <div class="sb-grid">
         <div>
+@include('user.links.partials.business-starter-picker')
             <!-- Categories + services -->
             <div class="flex justify-between items-center mb-3">
                 <h2 class="font-bold text-lg" style="color:var(--text-primary)">Services</h2>
@@ -92,7 +93,7 @@
                                 <div class="ds" x-show="svc.description" x-text="svc.description"></div>
                                 <div class="pr"><span x-text="config.currency"></span> <span x-text="(+svc.price).toFixed(2)"></span>
                                     <span style="color:var(--text-muted);font-weight:500" x-text="' · ' + svc.duration_minutes + ' min'"></span>
-                                    <span x-show="svc.is_unavailable" class="sb-pill" style="margin-left:6px">Unavailable</span></div>
+                                    <span x-show="svc.is_active === false" class="sb-pill">Draft</span><span x-show="svc.is_unavailable" class="sb-pill" style="margin-left:6px">Unavailable</span></div>
                             </div>
                             <div class="flex flex-col gap-1">
                                 <button class="sb-btn sm ghost" title="Move up" :disabled="ii===0" @click="moveService(cat.id,svc,-1)"><i class="fas fa-arrow-up"></i></button>
@@ -120,7 +121,7 @@
                                 <div class="ds" x-show="svc.description" x-text="svc.description"></div>
                                 <div class="pr"><span x-text="config.currency"></span> <span x-text="(+svc.price).toFixed(2)"></span>
                                     <span style="color:var(--text-muted);font-weight:500" x-text="' · ' + svc.duration_minutes + ' min'"></span>
-                                    <span x-show="svc.is_unavailable" class="sb-pill" style="margin-left:6px">Unavailable</span></div>
+                                    <span x-show="svc.is_active === false" class="sb-pill">Draft</span><span x-show="svc.is_unavailable" class="sb-pill" style="margin-left:6px">Unavailable</span></div>
                             </div>
                             <div class="flex flex-col gap-1">
                                 <button class="sb-btn sm ghost" @click="openService(null, svc)"><i class="fas fa-pen"></i></button>
@@ -433,6 +434,7 @@
                 <div style="flex:1"><label class="sb-label">Buffer before (min)</label><input class="sb-input" type="number" min="0" max="480" step="5" x-model="svcModal.buffer_before_minutes" placeholder="Page default"></div>
                 <div style="flex:1"><label class="sb-label">Buffer after (min)</label><input class="sb-input" type="number" min="0" max="480" step="5" x-model="svcModal.buffer_after_minutes" placeholder="Page default"></div>
             </div>
+            <div class="sb-row"><label><input type="checkbox" x-model="svcModal.is_active"> Published (visible to visitors)</label></div>
             <div class="sb-row"><label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)"><input type="checkbox" x-model="svcModal.is_unavailable"> Unavailable (shown but not bookable)</label></div>
             <div class="flex justify-end gap-2">
                 <button class="sb-btn ghost" @click="svcModal.open=false">Cancel</button>
@@ -529,7 +531,7 @@
 <script>
 @php
     $sbCategories = $config->categories->map(fn($c)=>['id'=>$c->id,'name'=>$c->name,'description'=>$c->description])->values();
-    $sbServices = $config->services->map(fn($s)=>['id'=>$s->id,'category_id'=>$s->category_id,'name'=>$s->name,'description'=>$s->description,'price'=>$s->price,'duration_minutes'=>$s->duration_minutes,'photo_url'=>$s->photo_url,'price_from'=>$s->price_from,'preparation_notes'=>$s->preparation_notes,'aftercare_notes'=>$s->aftercare_notes,'is_unavailable'=>$s->is_unavailable,'capacity'=>$s->capacity,'buffer_before_minutes'=>$s->buffer_before_minutes,'buffer_after_minutes'=>$s->buffer_after_minutes])->values();
+    $sbServices = $config->services->map(fn($s)=>['id'=>$s->id,'category_id'=>$s->category_id,'name'=>$s->name,'description'=>$s->description,'price'=>$s->price,'duration_minutes'=>$s->duration_minutes,'photo_url'=>$s->photo_url,'price_from'=>$s->price_from,'preparation_notes'=>$s->preparation_notes,'aftercare_notes'=>$s->aftercare_notes,'is_active'=>(bool)$s->is_active,'is_unavailable'=>$s->is_unavailable,'capacity'=>$s->capacity,'buffer_before_minutes'=>$s->buffer_before_minutes,'buffer_after_minutes'=>$s->buffer_after_minutes])->values();
     $sbRules = $config->availabilityRules->map(fn($r)=>['id'=>$r->id,'staff_id'=>$r->staff_id ? (int)$r->staff_id : null,'day_of_week'=>$r->day_of_week,'start_time'=>substr((string)$r->start_time,0,5),'end_time'=>substr((string)$r->end_time,0,5)])->values();
     $sbBlocked = $config->blockedDates->map(fn($b)=>['id'=>$b->id,'staff_id'=>$b->staff_id ? (int)$b->staff_id : null,'date'=>$b->date?->format('Y-m-d'),'reason'=>$b->reason])->values();
     $sbConfigData = ['mode' => $config->mode, 'currency' => $config->currency, 'accent_color' => $config->accent_color, 'slot_length_minutes' => $config->slot_length_minutes, 'lead_time_minutes' => $config->lead_time_minutes, 'max_days_ahead' => $config->max_days_ahead, 'timezone' => $config->timezone, 'catalog_layout' => $config->settings['catalog_layout'] ?? 'list', 'auto_confirm' => (bool) ($config->settings['auto_confirm'] ?? false), 'professional_label' => $config->settings['professional_label'] ?? '', 'qualifications' => $config->settings['qualifications'] ?? '', 'office_location' => $config->settings['office_location'] ?? '', 'consultation_mode' => $config->settings['consultation_mode'] ?? 'flexible', 'enquiry_email' => $config->settings['enquiry_email'] ?? '', 'contact_phone' => $config->settings['contact_phone'] ?? '', 'heading_color' => $config->settings['heading_color'] ?? '', 'item_color' => $config->settings['item_color'] ?? '', 'desc_color' => $config->settings['desc_color'] ?? '', 'price_color' => $config->settings['price_color'] ?? '', 'whatsapp_number' => $config->settings['whatsapp_number'] ?? ''];
@@ -653,11 +655,11 @@ function serviceBookingEditor() {
             await this.api('POST','/categories/reorder', { order: arr.map(c=>c.id) });
         },
         openService(catId, svc){ this.svcModal = svc
-            ? {open:true,id:svc.id,category_id:svc.category_id,name:svc.name,description:svc.description||'',price:svc.price,duration_minutes:svc.duration_minutes,photo_url:svc.photo_url||'',price_from:!!svc.price_from,preparation_notes:svc.preparation_notes||'',aftercare_notes:svc.aftercare_notes||'',is_unavailable:!!svc.is_unavailable,capacity:svc.capacity||1,buffer_before_minutes:svc.buffer_before_minutes ?? '',buffer_after_minutes:svc.buffer_after_minutes ?? ''}
-            : {open:true,id:null,category_id:catId||null,name:'',description:'',price:'',duration_minutes:30,photo_url:'',price_from:false,preparation_notes:'',aftercare_notes:'',is_unavailable:false,capacity:1,buffer_before_minutes:'',buffer_after_minutes:''}; },
+            ? {open:true,id:svc.id,category_id:svc.category_id,name:svc.name,description:svc.description||'',price:svc.price,duration_minutes:svc.duration_minutes,photo_url:svc.photo_url||'',price_from:!!svc.price_from,preparation_notes:svc.preparation_notes||'',aftercare_notes:svc.aftercare_notes||'',is_active:!!svc.is_active,is_unavailable:!!svc.is_unavailable,capacity:svc.capacity||1,buffer_before_minutes:svc.buffer_before_minutes ?? '',buffer_after_minutes:svc.buffer_after_minutes ?? ''}
+            : {open:true,id:null,category_id:catId||null,name:'',description:'',price:'',duration_minutes:30,photo_url:'',price_from:false,preparation_notes:'',aftercare_notes:'',is_active:true,is_unavailable:false,capacity:1,buffer_before_minutes:'',buffer_after_minutes:''}; },
         async saveService(){
             if (!this.svcModal.name.trim()) return;
-            const payload = { category_id:this.svcModal.category_id||null, name:this.svcModal.name, description:this.svcModal.description, price:parseFloat(this.svcModal.price||0), duration_minutes:parseInt(this.svcModal.duration_minutes||30), photo_url:this.svcModal.photo_url||null, is_unavailable:this.svcModal.is_unavailable,
+            const payload = { category_id:this.svcModal.category_id||null, name:this.svcModal.name, description:this.svcModal.description, price:parseFloat(this.svcModal.price||0), duration_minutes:parseInt(this.svcModal.duration_minutes||30), photo_url:this.svcModal.photo_url||null, is_active:!!this.svcModal.is_active,is_unavailable:this.svcModal.is_unavailable,
                 price_from: !!this.svcModal.price_from, preparation_notes:this.svcModal.preparation_notes||null, aftercare_notes:this.svcModal.aftercare_notes||null,
                 capacity: this.svcModal.capacity !== '' && this.svcModal.capacity !== null ? Math.max(1, parseInt(this.svcModal.capacity)||1) : 1,
                 buffer_before_minutes: this.svcModal.buffer_before_minutes === '' || this.svcModal.buffer_before_minutes === null ? null : parseInt(this.svcModal.buffer_before_minutes),
