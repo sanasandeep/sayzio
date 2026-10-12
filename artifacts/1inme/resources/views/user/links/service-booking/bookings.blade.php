@@ -28,14 +28,8 @@
     .sb-contact a { color:#5c83ff; }
 </style>
 
-<div class="max-w-4xl mx-auto" x-data="bookingsBoard()" x-init="init()">
-    <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <div>
-            <h1 class="text-xl font-bold" style="color:var(--text-primary)">Bookings</h1>
-            <p class="text-sm" style="color:var(--text-muted)">{{ $link->title ?: $link->alias }} · <span class="sb-live"><span class="sb-dot"></span>Live</span></p>
-        </div>
-        <a href="{{ route('user.links.service-booking.editor', $link) }}" class="sb-btn"><i class="fas fa-arrow-left"></i> Back to services</a>
-    </div>
+<div class="max-w-7xl mx-auto" x-data="bookingsBoard()" x-init="init()">
+    @include('user.links.partials.editor-header', ['activeMainTab'=>'bookings'])
 
     <div class="flex gap-2 mb-4 flex-wrap">
         <button class="sb-btn" :class="filter==='open' ? 'active' : ''" @click="filter='open'">Open (<span x-text="openCount"></span>)</button>

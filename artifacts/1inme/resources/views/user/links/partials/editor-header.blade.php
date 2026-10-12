@@ -16,6 +16,14 @@
             $headerActions[] = ['label' => '', 'url' => route('user.links.store.qr', $link), 'icon' => 'fa-qrcode', 'class' => 'btn-ghost', 'target' => '_blank', 'title' => 'Printable QR'];
         }
     }
+    if ($link->isAppointmentPage()) {
+        if (\App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'service_booking_builder')) {
+            $headerActions[] = ['label'=>'Build with AI','url'=>route('user.links.ai-type-builder',$link),'icon'=>'fa-wand-magic-sparkles','class'=>'btn-ghost'];
+        }
+        $headerActions[] = ['label'=>'Bookings','url'=>route('user.links.service-booking.bookings',$link),'icon'=>'fa-calendar-check','class'=>'btn-ghost'];
+    } elseif ($link->isListingCatalog()) {
+        $headerActions[] = ['label'=>'Inquiries','url'=>route('user.links.catalog.inquiries',$link),'icon'=>'fa-inbox','class'=>'btn-ghost'];
+    }
     // Icon comes from the shared link-type catalog so it stays in step with
     // the rest of the app (links list, create picker, etc.).
     $__typeIcon = \App\Modules\User\Support\LinkTypeCategories::types()[$link->type]['icon'] ?? 'fa-link';
@@ -122,6 +130,11 @@
             <i class="fas fa-calendar-check text-[10px]"></i>
             <span>Services</span>
         </a>
+        @endif
+        @if($link->isAppointmentPage())
+        <a href="{{ route('user.links.service-booking.bookings',$link) }}" class="editor-tab no-underline {{ $activeMainTab === 'bookings' ? 'is-active' : '' }}"><i class="fas fa-calendar-check"></i><span>Bookings</span></a>
+        @elseif($link->isListingCatalog())
+        <a href="{{ route('user.links.catalog.inquiries',$link) }}" class="editor-tab no-underline {{ $activeMainTab === 'inquiries' ? 'is-active' : '' }}"><i class="fas fa-inbox"></i><span>Inquiries</span></a>
         @endif
         @if($menuKind)
         @foreach(['orders' => ['Orders', 'fa-receipt'], 'kitchen' => ['Kitchen', 'fa-fire-burner']] as $menuTab => [$menuTabLabel, $menuTabIcon])

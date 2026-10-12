@@ -1,7 +1,7 @@
 @extends('user.layouts.app')
 @section('title','Catalog inquiries')
 @section('content')
-@include('user.links.partials.editor-header',['activeMainTab'=>'catalog'])
+@include('user.links.partials.editor-header',['activeMainTab'=>'inquiries'])
 @include('user.links.catalog.editor-css')
 <div class="catalog-editor"><section><h2>Inquiries</h2><p>Contact visitors to arrange a viewing or discuss enrollment. No booking or seat is automatically confirmed.</p><a class="action" href="{{ route('user.links.catalog.editor',$link) }}">Back to catalog</a>
 @forelse($inquiries as $inquiry)<article class="inquiry"><h3>{{ $inquiry->entry_title }}</h3><p>{{ $inquiry->name }} · {{ $inquiry->created_at->format('d M Y H:i') }} UTC</p><p><a href="mailto:{{ $inquiry->email }}">{{ $inquiry->email }}</a> @if($inquiry->phone)· {{ $inquiry->phone }}@endif</p>

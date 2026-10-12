@@ -34,7 +34,10 @@ class ListingCatalogController extends Controller
     {
         $catalog = $this->catalog($link);
         $property = $link->type === Link::TYPE_REAL_ESTATE;
-        if ($action === 'settings') {
+        if ($action === 'publish') {
+            $data = $request->validate(['id'=>'required|integer','is_active'=>'required|boolean']);
+            $catalog->entries()->findOrFail($data['id'])->update(['is_active'=>(bool) $data['is_active']]);
+        } elseif ($action === 'settings') {
             $data = $request->validate([
                 'intro'=>'nullable|string|max:1000', 'business_name'=>'nullable|string|max:150',
                 'currency'=>['required','regex:/^[A-Z]{3}$/'], 'timezone'=>'required|timezone',
@@ -111,6 +114,6 @@ class ListingCatalogController extends Controller
             $entry = $request->filled('id') ? $catalog->entries()->findOrFail($request->input('id')) : $catalog->entries()->make();
             $entry->fill($data)->save();
         }
-        return redirect()->route('user.links.catalog.editor',$link)->with('success','Catalog saved.');
+        return redirect()->route('user.links.catalog.editor', ['link'=>$link,'pane'=>in_array($request->input('editor_pane'), ['items','design','ordering'], true) ? $request->input('editor_pane') : ($action === 'settings' ? 'design' : 'items')])->with('success','Catalog saved.');
     }
 }
