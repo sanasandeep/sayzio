@@ -1,0 +1,1034 @@
+{
+  "salon_spa": [
+    {
+      "key": "starter-1",
+      "label": "Unisex Salon",
+      "items": [
+        {
+          "category": "Hair",
+          "name": "Haircut",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Hair",
+          "name": "Hair styling",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Beauty",
+          "name": "Facial",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Beauty",
+          "name": "Hair colour",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-2",
+      "label": "Barbershop",
+      "items": [
+        {
+          "category": "Haircuts",
+          "name": "Classic haircut",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Haircuts",
+          "name": "Kids haircut",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Grooming",
+          "name": "Beard trim",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Grooming",
+          "name": "Hot towel shave",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-3",
+      "label": "Beauty Salon",
+      "items": [
+        {
+          "category": "Skin care",
+          "name": "Cleansing facial",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Skin care",
+          "name": "Hydrating facial",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Beauty",
+          "name": "Threading",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Beauty",
+          "name": "Waxing",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-4",
+      "label": "Spa & Massage",
+      "items": [
+        {
+          "category": "Massage",
+          "name": "Relaxation massage",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Massage",
+          "name": "Deep tissue massage",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Wellness",
+          "name": "Body scrub",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Wellness",
+          "name": "Aromatherapy",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-5",
+      "label": "Nail Studio",
+      "items": [
+        {
+          "category": "Nails",
+          "name": "Manicure",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Nails",
+          "name": "Pedicure",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Nail art",
+          "name": "Gel polish",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Nail art",
+          "name": "Nail extensions",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    }
+  ],
+  "service_booking": [
+    {
+      "key": "starter-1",
+      "label": "Freelancer",
+      "items": [
+        {
+          "category": "Design",
+          "name": "Logo consultation",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Design",
+          "name": "Website consultation",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Projects",
+          "name": "Project discovery",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Projects",
+          "name": "Portfolio review",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-2",
+      "label": "Consultant",
+      "items": [
+        {
+          "category": "Consulting",
+          "name": "Initial consultation",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Consulting",
+          "name": "Strategy session",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Support",
+          "name": "Follow-up session",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Support",
+          "name": "Business review",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-3",
+      "label": "Doctor / Clinic",
+      "items": [
+        {
+          "category": "Consultation",
+          "name": "Initial consultation",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Consultation",
+          "name": "Follow-up visit",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Care",
+          "name": "Wellness review",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Care",
+          "name": "Care plan review",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-4",
+      "label": "CA / CS",
+      "items": [
+        {
+          "category": "Compliance",
+          "name": "Compliance consultation",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Compliance",
+          "name": "Company registration review",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Accounts",
+          "name": "Tax consultation",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Accounts",
+          "name": "Accounts review",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-5",
+      "label": "Lawyer",
+      "items": [
+        {
+          "category": "Consultation",
+          "name": "Legal consultation",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Consultation",
+          "name": "Case review",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Documents",
+          "name": "Contract review",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Documents",
+          "name": "Document consultation",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    }
+  ],
+  "restaurant_menu": [
+    {
+      "key": "starter-1",
+      "label": "Restaurant",
+      "items": [
+        {
+          "category": "Starters",
+          "name": "Sample starter",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Starters",
+          "name": "Soup of the day",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Mains",
+          "name": "Chef special",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Mains",
+          "name": "Vegetarian main",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-2",
+      "label": "Cafe",
+      "items": [
+        {
+          "category": "Drinks",
+          "name": "Coffee",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Drinks",
+          "name": "Tea",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Snacks",
+          "name": "Sandwich",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Snacks",
+          "name": "Cake slice",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-3",
+      "label": "Tiffin Centre",
+      "items": [
+        {
+          "category": "Breakfast",
+          "name": "Idli",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Breakfast",
+          "name": "Dosa",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Meals",
+          "name": "Lunch thali",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Meals",
+          "name": "Evening snack",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-4",
+      "label": "Bakery",
+      "items": [
+        {
+          "category": "Baked goods",
+          "name": "Bread loaf",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Baked goods",
+          "name": "Croissant",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Desserts",
+          "name": "Cupcake",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Desserts",
+          "name": "Brownie",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-5",
+      "label": "Cloud Kitchen",
+      "items": [
+        {
+          "category": "Meals",
+          "name": "Rice bowl",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Meals",
+          "name": "Meal box",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Sides",
+          "name": "Salad",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Sides",
+          "name": "Side dish",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    }
+  ],
+  "contact_directory": [
+    {
+      "key": "starter-1",
+      "label": "Hotel & Lodge",
+      "items": [
+        {
+          "category": "Guest services",
+          "name": "Reception",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Guest services",
+          "name": "Housekeeping",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Dining",
+          "name": "Room service",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Dining",
+          "name": "Restaurant desk",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-2",
+      "label": "Office",
+      "items": [
+        {
+          "category": "Help desk",
+          "name": "IT support",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Help desk",
+          "name": "Facilities",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Reception",
+          "name": "Front desk",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Reception",
+          "name": "Security",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-3",
+      "label": "Company",
+      "items": [
+        {
+          "category": "Customers",
+          "name": "Customer support",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Customers",
+          "name": "Sales",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Administration",
+          "name": "Accounts",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Administration",
+          "name": "Human resources",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-4",
+      "label": "Residential Community",
+      "items": [
+        {
+          "category": "Management",
+          "name": "Community office",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Management",
+          "name": "Maintenance",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Resident services",
+          "name": "Security desk",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Resident services",
+          "name": "Visitor assistance",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-5",
+      "label": "Hospital",
+      "items": [
+        {
+          "category": "Information",
+          "name": "Reception",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Information",
+          "name": "Appointment desk",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Departments",
+          "name": "Billing desk",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Departments",
+          "name": "Patient assistance",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        }
+      ]
+    }
+  ],
+  "real_estate": [
+    {
+      "key": "starter-1",
+      "label": "Residential Sales",
+      "items": [
+        {
+          "category": "Apartments",
+          "name": "Sample apartment",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Apartments",
+          "name": "Sample studio",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Homes",
+          "name": "Sample independent home",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Homes",
+          "name": "Sample villa",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-2",
+      "label": "Rental Properties",
+      "items": [
+        {
+          "category": "Rentals",
+          "name": "Sample apartment rental",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Rentals",
+          "name": "Sample house rental",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Commercial rentals",
+          "name": "Sample office rental",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Commercial rentals",
+          "name": "Sample shop rental",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-3",
+      "label": "Commercial Properties",
+      "items": [
+        {
+          "category": "Offices",
+          "name": "Sample office space",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Offices",
+          "name": "Sample coworking space",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Retail",
+          "name": "Sample retail shop",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Retail",
+          "name": "Sample showroom",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-4",
+      "label": "Plots & Land",
+      "items": [
+        {
+          "category": "Land",
+          "name": "Sample residential plot",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Land",
+          "name": "Sample land parcel",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Developments",
+          "name": "Sample development plot",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Developments",
+          "name": "Sample corner plot",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-5",
+      "label": "New Developments",
+      "items": [
+        {
+          "category": "Projects",
+          "name": "Sample upcoming apartment",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Projects",
+          "name": "Sample gated community",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Featured homes",
+          "name": "Sample model home",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        },
+        {
+          "category": "Featured homes",
+          "name": "Sample premium residence",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 0,
+          "duration": 30
+        }
+      ]
+    }
+  ],
+  "education": [
+    {
+      "key": "starter-1",
+      "label": "Coaching Centre",
+      "items": [
+        {
+          "category": "Academic",
+          "name": "Mathematics foundations",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Academic",
+          "name": "Science foundations",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Exam preparation",
+          "name": "Exam preparation course",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Exam preparation",
+          "name": "Revision course",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-2",
+      "label": "Professional Training",
+      "items": [
+        {
+          "category": "Business",
+          "name": "Communication skills",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Business",
+          "name": "Leadership basics",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Career",
+          "name": "Interview preparation",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Career",
+          "name": "Resume workshop",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-3",
+      "label": "Technology Academy",
+      "items": [
+        {
+          "category": "Development",
+          "name": "Web development basics",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Development",
+          "name": "Python foundations",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Digital skills",
+          "name": "Data analytics basics",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Digital skills",
+          "name": "Digital marketing basics",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-4",
+      "label": "Creative Classes",
+      "items": [
+        {
+          "category": "Art",
+          "name": "Drawing foundations",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Art",
+          "name": "Painting workshop",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Creative skills",
+          "name": "Photography basics",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Creative skills",
+          "name": "Design foundations",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    },
+    {
+      "key": "starter-5",
+      "label": "Language School",
+      "items": [
+        {
+          "category": "Languages",
+          "name": "English foundations",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Languages",
+          "name": "Conversational English",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Practice",
+          "name": "Speaking workshop",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        },
+        {
+          "category": "Practice",
+          "name": "Writing workshop",
+          "description": "Sample content. Edit this description before publishing.",
+          "price": 25,
+          "duration": 30
+        }
+      ]
+    }
+  ]
+}

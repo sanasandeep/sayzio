@@ -11,9 +11,7 @@
 <a class="action" href="{{ route('user.links.blocks.editor', $link) }}">Add page blocks</a>
 <a class="action" href="{{ $link->getShortUrl() }}" target="_blank" rel="noopener">View directory</a>
 </section>
-<section><h2>Starter departments</h2><p>Add draft departments, then fill in your own contact details.</p>
-<form method="post" action="{{ route('user.links.directory.save', [$link, 'starter']) }}">@csrf
-<select name="starter"><option value="hotel">Hotel & lodge</option><option value="office">Office & campus</option><option value="company">Company</option></select><button>Add starter</button></form></section>
+@include('user.links.partials.business-starter-picker')
 <details><summary>Appearance and visitor instructions</summary>
 @php($s = $directory->settings ?? [])
 <form method="post" action="{{ route('user.links.directory.save', [$link, 'settings']) }}">@csrf

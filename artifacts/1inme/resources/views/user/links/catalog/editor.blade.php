@@ -19,7 +19,7 @@
 <label>Contact phone<input name="phone" value="{{ $s['phone'] ?? '' }}"></label><label>Contact email<input type="email" name="email" value="{{ $s['email'] ?? '' }}"></label></div>
 <label><input type="checkbox" name="inquiries_enabled" value="1" @checked($s['inquiries_enabled'] ?? true)> Accept inquiries</label><button>Save settings</button></form></details>
 <section><h2>Categories</h2>
-<form method="post" action="{{ route('user.links.catalog.save',[$link,'starter']) }}">@csrf<button class="ghost">Add suggested categories</button><small>Adds categories only; no invented listings or prices are published.</small></form>
+@include('user.links.partials.business-starter-picker')
 @foreach($catalog->categories as $category)
 <form method="post" action="{{ route('user.links.catalog.save',[$link,'category']) }}">@csrf<input type="hidden" name="id" value="{{ $category->id }}"><div class="fields"><label>Name<input name="name" value="{{ $category->name }}" required maxlength="150"></label><label>Order<input type="number" name="sort_order" min="0" value="{{ $category->sort_order }}" required></label></div><button>Save category</button></form>
 <form method="post" action="{{ route('user.links.catalog.save',[$link,'delete-category']) }}">@csrf<input type="hidden" name="id" value="{{ $category->id }}"><button class="danger">Delete category</button><small>Listings move to General.</small></form>@endforeach

@@ -273,6 +273,7 @@
                     {{-- Content & Links --}}
                     <div class="section-header pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Content &amp; Links</div>
                     <a href="{{ route('admin.links.index') }}" class="sidebar-link {{ request()->routeIs('admin.links.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-link"></i></div><span>All Links</span></a>
+                    <a href="{{ route('admin.business-starters.edit') }}" class="sidebar-link {{ request()->routeIs('admin.business-starters.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-store"></i></div><span>Business Starters</span></a>
                     <a href="{{ route('admin.templates.index') }}" class="sidebar-link {{ request()->routeIs('admin.templates.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-layer-group"></i></div><span>Templates</span></a>
                     <a href="{{ route('admin.bg-templates.index') }}" class="sidebar-link {{ request()->routeIs('admin.bg-templates.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-palette"></i></div><span>Background Templates</span></a>
                     <a href="{{ route('admin.bg-catalog.index', 'preset') }}" class="sidebar-link {{ request()->routeIs('admin.bg-catalog.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-swatchbook"></i></div><span>Background Library</span></a>

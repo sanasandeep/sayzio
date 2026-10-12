@@ -57,6 +57,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware([\App\Modules\Admin\Middleware\AdminAuth::class])->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('business-starters', [\App\Modules\Admin\Controllers\BusinessStarterController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('business-starters.edit');
+        Route::post('business-starters', [\App\Modules\Admin\Controllers\BusinessStarterController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('business-starters.update');
 
         // One-click auto-repair for edited-after-applied column drift surfaced by
         // the dashboard banner (adds + backfills the missing columns in place).
