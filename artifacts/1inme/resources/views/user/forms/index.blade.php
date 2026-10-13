@@ -34,13 +34,13 @@
             <input type="text" name="search" value="{{ request('search') }}" placeholder="Search forms by title or slug…"
                    class="theme-input w-full pl-9 text-sm">
         </div>
-        <select name="status" class="theme-input text-sm" onchange="this.form.submit()">
+        <select data-filter-multiple name="status" class="theme-input text-sm" onchange="this.form.submit()">
             <option value="">All statuses</option>
             <option value="active" @selected(request('status') === 'active')>Active</option>
             <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>
         </select>
         @if($projects->isNotEmpty())
-        <select name="project_id" class="theme-input text-sm" onchange="this.form.submit()">
+        <select data-filter-multiple name="project_id" class="theme-input text-sm" onchange="this.form.submit()">
             <option value="">All projects</option>
             @foreach($projects as $p)
                 <option value="{{ $p->id }}" @selected(request('project_id') == $p->id)>{{ $p->name }}</option>

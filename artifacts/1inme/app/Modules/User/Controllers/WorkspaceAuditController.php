@@ -76,11 +76,11 @@ class WorkspaceAuditController extends Controller
                   ->orWhere('ip', 'like', "%{$search}%");
             });
         }
-        if ($action !== '' && array_key_exists($action, SensitiveActionLogger::CATALOG)) {
-            $q->where('action', $action);
+        if ($values = \App\Support\FilterValues::get($request, 'action', array_keys(SensitiveActionLogger::CATALOG))) {
+            $q->whereIn('action', $values);
         }
-        if ($actor !== '' && ctype_digit($actor)) {
-            $q->where('actor_user_id', (int) $actor);
+        if ($values = \App\Support\FilterValues::ids($request, 'actor_id')) {
+            $q->whereIn('actor_user_id', $values);
         }
         if ($flagged === '1') {
             $q->whereNotNull('reported_unauthorized_at');

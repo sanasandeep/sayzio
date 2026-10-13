@@ -32,14 +32,14 @@
             <input type="text" name="q" value="{{ request('q') }}" placeholder="Search by file name…"
                    class="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
         </div>
-        <select name="provider" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm"
+        <select data-filter-multiple name="provider" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm"
                 onchange="this.form.submit()">
             <option value="">All providers</option>
             @foreach(CloudProviderApp::PROVIDERS as $p)
                 <option value="{{ $p }}" @selected(request('provider') === $p)>{{ CloudProviderApp::PROVIDER_LABELS[$p] }}</option>
             @endforeach
         </select>
-        <select name="owner" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm"
+        <select data-filter-multiple name="owner" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm"
                 onchange="this.form.submit()">
             <option value="">All teammates</option>
             @foreach($contributors as $u)

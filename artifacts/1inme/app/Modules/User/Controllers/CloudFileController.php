@@ -14,11 +14,11 @@ class CloudFileController extends Controller
     public function index(Request $request)
     {
         $q = CloudFile::query();
-        if ($p = $request->query('provider')) {
-            if (CloudProviderApp::isKnownProvider($p)) $q->where('provider', $p);
+        if ($values = array_values(array_filter(\App\Support\FilterValues::get($request, 'provider'), fn($v)=>CloudProviderApp::isKnownProvider($v)))) {
+            $q->whereIn('provider', $values);
         }
-        if ($owner = $request->query('owner')) {
-            $q->where('added_by_user_id', (int) $owner);
+        if ($values = \App\Support\FilterValues::ids($request, 'owner')) {
+            $q->whereIn('added_by_user_id', array_map('intval',$values));
         }
         if ($needle = trim((string) $request->query('q'))) {
             $q->where('name', 'like', '%' . $needle . '%');

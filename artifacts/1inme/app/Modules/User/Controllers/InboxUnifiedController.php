@@ -87,18 +87,20 @@ class InboxUnifiedController
 
         $visible = clone $q;
 
-        if ($filters['status']) {
-            if ($filters['status'] === 'all') {
-                // no-op — show every status
-            } else {
-                $q->where('status', $filters['status']);
-            }
+        $statuses = \App\Support\FilterValues::get($request, 'status', ['all','open','snoozed','archived']);
+        if (!$request->has('status_multi') && !$request->has('status')) $statuses = ['open'];
+        if ($statuses && !in_array('all', $statuses, true)) $q->whereIn('status', $statuses);
+        foreach (['channel' => array_keys(InboxThread::CHANNEL_LABELS), 'category' => array_keys(InboxThread::CATEGORY_LABELS)] as $key => $allowed) {
+            if ($values = \App\Support\FilterValues::get($request, $key, $allowed)) $q->whereIn($key, $values);
         }
-        if ($filters['channel'])  $q->where('channel', $filters['channel']);
-        if ($filters['category']) $q->where('category', $filters['category']);
-        if ($filters['assignee'] === 'me')        $q->where('assignee_user_id', auth()->id());
-        elseif ($filters['assignee'] === 'unassigned') $q->whereNull('assignee_user_id');
-        elseif (is_numeric($filters['assignee'])) $q->where('assignee_user_id', (int) $filters['assignee']);
+        if ($values = \App\Support\FilterValues::get($request, 'assignee')) {
+            $q->where(function ($assigned) use ($values) {
+                $ids = array_map('intval', array_filter($values, 'ctype_digit'));
+                if (in_array('me', $values, true)) $ids[] = auth()->id();
+                $assigned->whereIn('assignee_user_id', $ids);
+                if (in_array('unassigned', $values, true)) $assigned->orWhereNull('assignee_user_id');
+            });
+        }
         if ($filters['starred']) $q->where('is_starred', true);
         if ($filters['overdue']) $q->whereNotNull('sla_due_at')->where('sla_due_at', '<', now())->where('status', 'open');
         if ($filters['review'])  $q->awaitingReview();

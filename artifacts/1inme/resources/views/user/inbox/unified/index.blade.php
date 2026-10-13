@@ -30,96 +30,46 @@
         </div>
     @endif
 
-    {{-- Mobile: filters collapse behind a toggle so threads show first --}}
-    <button type="button" class="lg:hidden w-full mb-4 px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-between"
-            style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);"
-            @click="filtersOpen = !filtersOpen" :aria-expanded="filtersOpen" data-inbox-filters-toggle>
-        <span><i class="fas fa-sliders mr-2" style="color:#5c83ff;"></i>Filters &amp; search @if($filters['q'] || $filters['channel'] || $filters['category'] || $filters['assignee'] || $filters['starred'] || $filters['overdue'] || $filters['review'])<span class="inbox-unread">Active filters</span>@endif</span>
-        <i class="fas fa-chevron-down transition-transform" :class="filtersOpen ? 'rotate-180' : ''"></i>
-    </button>
-
     <div class="inbox-layout">
-        {{-- Filters sidebar --}}
-        <aside class="inbox-filters card-premium p-4 h-fit space-y-4"
-               :class="filtersOpen ? '' : 'hidden lg:block'">
-            <form method="GET" class="inbox-filter-form">
-                <h2 class="inbox-filter-title">Refine your inbox</h2>
-                <label for="inbox-search" class="inbox-field-label">Search</label>
-                @foreach(['status','channel','category'] as $key)
-                @if(!empty($filters[$key]))<input type="hidden" name="{{ $key }}" value="{{ $filters[$key] }}">@endif
-                @endforeach
-                <input id="inbox-search" type="search" name="q" value="{{ $filters['q'] }}" placeholder="Search threads…"
-                    class="w-full px-3 py-2 rounded-lg text-sm outline-none mb-3"
-                    style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
-
-                <div class="space-y-1 mb-3">
-                    @php $statuses = ['open' => 'fa-inbox', 'snoozed' => 'fa-clock', 'archived' => 'fa-box-archive', 'all' => 'fa-list']; @endphp
-                    @foreach($statuses as $val => $icon)
-                        @php $active = $filters['status'] === $val; @endphp
-                        <a href="?{{ http_build_query(array_merge(request()->except(['status','page','overdue']), ['status' => $val])) }}"
-                           class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs"
-                           style="{{ $active ? 'background: linear-gradient(135deg,#5c83ff,#2342c7); color:white;' : 'color: var(--text-secondary);' }}">
-                            <i class="fas {{ $icon }} w-4 text-center"></i> {{ ucfirst($val) }}
-                        </a>
-                    @endforeach
-                </div>
-
-                <div class="text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Channels</div>
-                <div class="space-y-1 mb-3">
-                    @foreach(\App\Modules\User\Models\InboxThread::CHANNEL_LABELS as $key => [$lbl, $icon, $color])
-                        @php $active = ($filters['channel'] ?? null) === $key; @endphp
-                        <a href="?{{ http_build_query(array_merge(request()->except(['channel','page']), $active ? [] : ['channel' => $key])) }}"
-                           class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs"
-                           style="{{ $active ? 'background: linear-gradient(135deg,#5c83ff,#2342c7); color:white;' : 'color: var(--text-secondary);' }}">
-                            <i class="{{ $icon }} w-4 text-center" style="color: {{ $active ? 'white' : ($color === '#000000' ? 'var(--text-primary)' : $color) }};"></i> {{ $lbl }}
-                        </a>
-                    @endforeach
-                </div>
-
-                <div class="text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Categories</div>
-                <div class="space-y-1 mb-3">
-                    @foreach(\App\Modules\User\Models\InboxThread::CATEGORY_LABELS as $key => [$lbl, $color])
-                        @php $active = ($filters['category'] ?? null) === $key; $count = $byCategory[$key] ?? 0; @endphp
-                        <a href="?{{ http_build_query(array_merge(request()->except(['category','page']), $active ? [] : ['category' => $key])) }}"
-                           class="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-xs"
-                           style="{{ $active ? 'background: linear-gradient(135deg,#5c83ff,#2342c7); color:white;' : 'color: var(--text-secondary);' }}">
-                            <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background: {{ $color }};"></span>{{ $lbl }}</span>
-                            <span class="text-[10px] opacity-70">{{ $count }}</span>
-                        </a>
-                    @endforeach
-                </div>
-
-                <div class="text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Assignee</div>
-                <select aria-label="Assigned to" name="assignee" onchange="this.form.submit()" class="w-full px-2 py-1.5 rounded-lg text-xs mb-3"
-                        style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
-                    <option value="">Anyone</option>
-                    <option value="me"        {{ $filters['assignee'] === 'me' ? 'selected' : '' }}>Just me</option>
-                    <option value="unassigned" {{ $filters['assignee'] === 'unassigned' ? 'selected' : '' }}>Unassigned</option>
-                    @foreach($teammates as $t)
-                        <option value="{{ $t['id'] }}" {{ (string) $filters['assignee'] === (string) $t['id'] ? 'selected' : '' }}>{{ $t['name'] }}</option>
+        <aside class="inbox-filters card-premium p-4">
+            <form method="GET" class="inbox-filter-form" data-list-filters data-search-placeholder="Search conversations…">
+                <input id="inbox-search" type="search" name="q" value="{{ $filters['q'] }}" placeholder="Search conversations…">
+                <input type="hidden" name="status" value="all">
+                <select name="status" aria-label="Status" data-filter-multiple data-filter-empty-value="all">
+                    <option value="all">All statuses</option>
+                    @foreach(['open','snoozed','archived'] as $status)
+                    <option value="{{ $status }}" @selected($filters['status'] === $status)>{{ ucfirst($status) }}</option>
                     @endforeach
                 </select>
-
-                <label class="flex items-center gap-2 text-xs mb-1" style="color: var(--text-secondary);">
-                    <input type="checkbox" name="starred" value="1" {{ $filters['starred'] ? 'checked' : '' }} onchange="this.form.submit()"> Starred only
-                </label>
-                <label class="flex items-center gap-2 text-xs mb-1" style="color: var(--text-secondary);">
-                    <input type="checkbox" name="overdue" value="1" {{ $filters['overdue'] ? 'checked' : '' }} onchange="this.form.submit()"> Past response deadline
-                </label>
-                <label class="flex items-center gap-2 text-xs mb-3" style="color: var(--text-secondary);">
-                    <input type="checkbox" name="review" value="1" {{ ($filters['review'] ?? false) ? 'checked' : '' }} onchange="this.form.submit()">
-                    <span><i class="fas fa-robot mr-1" style="color:#5c83ff;"></i>Awaiting AI review @if(($counts['review'] ?? 0) > 0)<span class="ml-1 text-[10px] opacity-70">({{ $counts['review'] }})</span>@endif</span>
-                </label>
-
-                <button class="w-full px-3 py-2 rounded-lg text-xs font-bold text-white" style="background: linear-gradient(135deg,#5c83ff,#2342c7);">Apply filters</button>
-                <a class="inbox-reset" href="{{ route('user.inbox.unified.index') }}">Reset filters</a>
-                <p class="inbox-help">Category counts cover open threads. Overdue means an open thread has passed its response deadline.</p>
+                <select name="channel" aria-label="Channels" data-filter-multiple>
+                    <option value="">All channels</option>
+                    @foreach(\App\Modules\User\Models\InboxThread::CHANNEL_LABELS as $key => [$label])
+                    <option value="{{ $key }}" @selected($filters['channel'] === $key)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <select name="category" aria-label="Categories" data-filter-multiple>
+                    <option value="">All categories</option>
+                    @foreach(\App\Modules\User\Models\InboxThread::CATEGORY_LABELS as $key => [$label])
+                    <option value="{{ $key }}" @selected($filters['category'] === $key)>{{ $label }} ({{ $byCategory[$key] ?? 0 }} open)</option>
+                    @endforeach
+                </select>
+                <select name="assignee" aria-label="Assigned to" data-filter-multiple>
+                    <option value="">Anyone</option>
+                    <option value="me" @selected($filters['assignee'] === 'me')>Just me</option>
+                    <option value="unassigned" @selected($filters['assignee'] === 'unassigned')>Unassigned</option>
+                    @foreach($teammates as $teammate)<option value="{{ $teammate['id'] }}" @selected((string)$filters['assignee'] === (string)$teammate['id'])>{{ $teammate['name'] }}</option>@endforeach
+                </select>
+                <label><input type="checkbox" name="starred" value="1" @checked($filters['starred'])> Starred only</label>
+                <label><input type="checkbox" name="overdue" value="1" @checked($filters['overdue'])> Past response deadline</label>
+                <label><input type="checkbox" name="review" value="1" @checked($filters['review'])> Awaiting AI review</label>
+                <button type="submit">Apply filters</button>
             </form>
+            <p class="inbox-help">Choose multiple channels, categories or people. Matches within one filter are combined; different filters narrow the results. Category counts cover open conversations.</p>
         </aside>
 
         {{-- Threads list --}}
         <div class="inbox-results">
-            <div class="inbox-results-head"><div><h2>{{ ucfirst($filters['status'] ?: 'all') }} conversations <span>{{ number_format($threads->total()) }}</span></h2><p>Overdue first, then latest activity. Open a conversation to review and reply.</p>
+            <div class="inbox-results-head"><div><h2>{{ request()->has('status_multi') ? 'Matching' : ucfirst($filters['status'] ?: 'all') }} conversations <span>{{ number_format($threads->total()) }}</span></h2><p>Overdue first, then latest activity. Open a conversation to review and reply.</p>
             <p class="inbox-active-context">@if($filters['q'])Search: “{{ $filters['q'] }}” · @endif{{ $filters['channel'] ? (\App\Modules\User\Models\InboxThread::CHANNEL_LABELS[$filters['channel']][0] ?? $filters['channel']) : 'All channels' }} · {{ $filters['category'] ? ucfirst($filters['category']) : 'All categories' }}</p></div><span class="inbox-results-range">{{ $threads->firstItem() ?? 0 }}–{{ $threads->lastItem() ?? 0 }} of {{ number_format($threads->total()) }}</span></div>
             <form method="POST" action="{{ route('user.inbox.unified.bulk') }}" id="bulk-form">@csrf
                 @if($threads->isNotEmpty())<button type="button" class="inbox-select-page" @click="selected = selected.length === {{ $threads->count() }} ? [] : {{ json_encode($threads->pluck('id')->map(fn($id)=>(string)$id)->values()->all()) }}" x-text="selected.length === {{ $threads->count() }} ? 'Clear selection' : 'Select this page'">Select this page</button>@endif
@@ -203,7 +153,7 @@
     </div>
 </div>
 <style>
-.unified-inbox{min-width:0}.inbox-layout{display:grid;grid-template-columns:248px minmax(0,1fr);gap:20px;align-items:start}.inbox-filters{min-width:0}.inbox-filter-title{font-size:14px;font-weight:700;margin:0 0 16px}.inbox-field-label{display:block;font-size:12px;margin-bottom:6px;color:var(--text-muted)}.inbox-filter-form input[type=search]{min-width:0;width:100%}.inbox-filter-form a:focus-visible,.inbox-thread-content:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.inbox-reset{display:block;text-align:center;font-size:12px;padding:10px;color:var(--accent)}.inbox-help{font-size:11px;line-height:1.6;color:var(--text-muted);margin-top:8px}.inbox-results{min-width:0}.inbox-results-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px}.inbox-results-head h2{font-size:17px;font-weight:700}.inbox-results-head h2 span{font-size:12px;background:var(--bg-glass-input);border:1px solid var(--border-glass);padding:3px 8px;border-radius:20px;margin-left:6px}.inbox-results-head p{font-size:12px;color:var(--text-muted);margin-top:5px;line-height:1.5}.inbox-results-range{font-size:11px;color:var(--text-muted);white-space:nowrap;padding-top:4px}.inbox-thread-row{border-bottom:1px solid var(--border-glass);min-width:0}.inbox-thread-row:last-child{border-bottom:0}.inbox-thread-content{display:block;min-width:0}.inbox-sender{max-width:100%;overflow-wrap:anywhere}.inbox-thread-meta{font-size:10px;color:var(--text-muted);margin-top:6px;overflow-wrap:anywhere}.inbox-select-page{display:block;margin-bottom:12px;padding:8px 12px;border:1px solid var(--border-glass);border-radius:10px;color:var(--text-secondary);font-size:12px;background:var(--bg-card);cursor:pointer}.inbox-summary-label{font-weight:600;color:var(--accent)}.inbox-unread,.inbox-private{font-size:9px;border-radius:20px;padding:2px 6px;background:var(--bg-glass-input);color:var(--accent);font-weight:700}.inbox-thread-time{max-width:145px;line-height:1.6}.inbox-deadline{display:block;margin-top:6px;color:var(--text-muted);font-size:10px}.inbox-filter-form input:focus-visible,.inbox-filter-form select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.unified-inbox{min-width:0}.inbox-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}.inbox-filters{min-width:0}.inbox-filter-title{font-size:14px;font-weight:700;margin:0 0 16px}.inbox-field-label{display:block;font-size:12px;margin-bottom:6px;color:var(--text-muted)}.inbox-filter-form input[type=search]{min-width:0;width:100%}.inbox-filter-form a:focus-visible,.inbox-thread-content:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.inbox-reset{display:block;text-align:center;font-size:12px;padding:10px;color:var(--accent)}.inbox-help{font-size:11px;line-height:1.6;color:var(--text-muted);margin-top:8px}.inbox-results{min-width:0}.inbox-results-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px}.inbox-results-head h2{font-size:17px;font-weight:700}.inbox-results-head h2 span{font-size:12px;background:var(--bg-glass-input);border:1px solid var(--border-glass);padding:3px 8px;border-radius:20px;margin-left:6px}.inbox-results-head p{font-size:12px;color:var(--text-muted);margin-top:5px;line-height:1.5}.inbox-results-range{font-size:11px;color:var(--text-muted);white-space:nowrap;padding-top:4px}.inbox-thread-row{border-bottom:1px solid var(--border-glass);min-width:0}.inbox-thread-row:last-child{border-bottom:0}.inbox-thread-content{display:block;min-width:0}.inbox-sender{max-width:100%;overflow-wrap:anywhere}.inbox-thread-meta{font-size:10px;color:var(--text-muted);margin-top:6px;overflow-wrap:anywhere}.inbox-select-page{display:block;margin-bottom:12px;padding:8px 12px;border:1px solid var(--border-glass);border-radius:10px;color:var(--text-secondary);font-size:12px;background:var(--bg-card);cursor:pointer}.inbox-summary-label{font-weight:600;color:var(--accent)}.inbox-unread,.inbox-private{font-size:9px;border-radius:20px;padding:2px 6px;background:var(--bg-glass-input);color:var(--accent);font-weight:700}.inbox-thread-time{max-width:145px;line-height:1.6}.inbox-deadline{display:block;margin-top:6px;color:var(--text-muted);font-size:10px}.inbox-filter-form input:focus-visible,.inbox-filter-form select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(max-width:1023px){.inbox-layout{grid-template-columns:minmax(0,1fr)}.inbox-filters{width:100%}}@media(max-width:640px){.inbox-thread-row{display:grid!important;grid-template-columns:18px 32px minmax(0,1fr);gap:10px!important;padding:14px!important}.inbox-thread-row>div:first-of-type{width:32px;height:32px}.inbox-thread-time{grid-column:3;max-width:none;text-align:left;font-size:10px}.inbox-deadline{display:inline;margin-left:8px}.inbox-results-head{flex-direction:column;gap:6px}.inbox-thread-content>div:first-child{gap:5px}.inbox-sender{flex-basis:100%;white-space:normal}.inbox-filter-form .space-y-1{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.inbox-filter-form .space-y-1 a{min-width:0}.inbox-thread-meta{line-height:1.6}}
 </style>
 @endsection

@@ -29,7 +29,7 @@
 <script src="{{ asset('js/vendor/chart.umd.min.js') }}"></script>
 
 {{-- ===================== FILTERS ===================== --}}
-<form class="section-card mb-6" method="GET" action="{{ route('user.links.index') }}">
+<form data-list-filters data-date-filters class="section-card mb-6" method="GET" action="{{ route('user.links.index') }}">
     @foreach(Arr::except($q, ['from', 'to', 'bots', 'view', 'group']) as $k => $v)
         @if(is_array($v))
             @foreach($v as $vv)<input type="hidden" name="{{ $k }}[]" value="{{ $vv }}">@endforeach

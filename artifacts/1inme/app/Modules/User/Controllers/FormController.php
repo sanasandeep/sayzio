@@ -29,11 +29,11 @@ class FormController extends Controller
                   ->orWhere('slug', 'ilike', "%{$search}%");
             });
         }
-        if ($status = $request->get('status')) {
-            $query->where('is_active', $status === 'active');
+        if ($values = \App\Support\FilterValues::get($request, 'status', ['active','inactive'])) {
+            $query->whereIn('is_active', array_map(fn($v)=>$v === 'active', $values));
         }
-        if ($projectId = $request->get('project_id')) {
-            $query->where('project_id', $projectId);
+        if ($values = \App\Support\FilterValues::ids($request, 'project_id')) {
+            $query->whereIn('project_id', $values);
         }
 
         $forms = $query->latest()->paginate(20)->withQueryString();

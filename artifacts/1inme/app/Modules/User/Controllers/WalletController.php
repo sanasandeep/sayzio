@@ -79,10 +79,8 @@ class WalletController extends Controller
      */
     protected function applyLedgerFilters($query, Request $request)
     {
-        if ($t = $request->query('type')) {
-            if (in_array($t, \App\Modules\User\Models\WalletTransaction::TYPES, true)) {
-                $query->where('type', $t);
-            }
+        if ($values = \App\Support\FilterValues::get($request, 'type', \App\Modules\User\Models\WalletTransaction::TYPES)) {
+            $query->whereIn('type', $values);
         }
         if ($from = $request->query('from')) {
             $query->where('created_at', '>=', $from);

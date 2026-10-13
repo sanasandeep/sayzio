@@ -66,6 +66,20 @@ class InboxUnifiedPolishTest extends TestCase
         }$this->assertSame('open', $public->fresh()->status);
     }
 
+    public function test_multiple_channels_and_statuses_combine_without_exposing_private_threads(): void
+    {
+        [$u, $ws] = $this->setupInbox();
+        $this->thread($u, $ws, ['channel' => 'email', 'status' => 'open']);
+        $this->thread($u, $ws, ['channel' => 'form', 'status' => 'archived']);
+        $this->thread($u, $ws, ['channel' => 'email', 'status' => 'snoozed']);
+        $this->thread($u, $ws, ['channel' => 'email', 'is_private' => true]);
+        $viewer = User::factory()->create();
+        $this->actingAs($viewer);
+        $data = app(InboxUnifiedController::class)->index(Request::create('/', 'GET', ['status_multi' => ['open','archived'], 'channel_multi' => ['email','form']]))->getData();
+        $this->assertSame(2, $data['threads']->total());
+        $this->assertFalse($data['threads']->getCollection()->contains('is_private', true));
+    }
+
     public function test_search_filters_and_informative_rows_render(): void
     {
         [$u,$ws] = $this->setupInbox();
@@ -76,11 +90,11 @@ class InboxUnifiedPolishTest extends TestCase
         $source = file_get_contents(resource_path('views/user/inbox/unified/index.blade.php'));
         $source = str_replace(["@extends('user.layouts.app')", "@section('title', 'Inbox 2.0')", "@section('content')", '@endsection'], '', $source);
         $html = Blade::render($source, $data);
-        $this->assertStringContainsString('name="channel" value="email"', $html);
-        $this->assertStringContainsString('name="status" value="open"', $html);
+        $this->assertStringContainsString('name="channel" aria-label="Channels" data-filter-multiple', $html);
+        $this->assertStringContainsString('value="open" selected', $html);
         $this->assertStringContainsString('Response due', $html);
         $this->assertStringContainsString('Unassigned', $html);
-        $this->assertStringNotContainsString('data-list-filters',$html);
+        $this->assertStringContainsString('data-list-filters',$html);
         if (getenv('INBOX_UI_FIXTURE')) {
             file_put_contents('/tmp/inbox-fixture.html','<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/app.css"><style>:root{--bg-card:#fff;--text-primary:#182237;--text-secondary:#4a5570;--text-muted:#66718b;--text-faint:#6c778e;--border-glass:#e1e5ef;--bg-glass-input:#f4f6fb;--accent:#4167ee}body{padding:24px;background:#f7f8fc;font-family:system-ui}.card-premium{background:var(--bg-card);border:1px solid var(--border-glass);border-radius:20px}[x-cloak]{display:none!important}</style></head><body>'.$html.'<script src="/alpine.js" defer></script><script src="/list-design.js"></script></body></html>');
         }

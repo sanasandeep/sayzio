@@ -35,11 +35,11 @@ class QrCodeController extends Controller
         if ($search = $request->get('search')) {
             $query->where('name', 'ilike', "%{$search}%");
         }
-        if ($type = $request->get('type')) {
-            $query->where('type', $type);
+        if ($values = \App\Support\FilterValues::get($request, 'type')) {
+            $query->whereIn('type', $values);
         }
-        if ($projectId = $request->get('project_id')) {
-            $query->where('project_id', $projectId);
+        if ($values = \App\Support\FilterValues::ids($request, 'project_id')) {
+            $query->whereIn('project_id', $values);
         }
         $qrCodes = $query->latest()->paginate(20)->withQueryString();
         $projects = workspace_owner()->projects()->orderBy('name')->get();

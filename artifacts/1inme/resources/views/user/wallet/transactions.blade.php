@@ -35,7 +35,7 @@
     <form data-list-filters method="GET" class="flex flex-wrap items-end gap-3 p-4 rounded-xl border border-white/10 bg-white/[0.03]">
         <div>
             <label class="block text-xs text-white/50 mb-1">Type</label>
-            <select name="type" class="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+            <select data-filter-multiple name="type" class="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
                 <option value="">All</option>
                 @foreach(\App\Modules\User\Models\WalletTransaction::TYPES as $t)
                     <option value="{{ $t }}" {{ ($filters['type'] ?? '') === $t ? 'selected' : '' }}>{{ ucfirst($t) }}</option>

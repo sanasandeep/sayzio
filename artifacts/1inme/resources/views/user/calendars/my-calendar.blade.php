@@ -211,14 +211,14 @@
                 <input type="text" name="q" value="{{ $filters['q'] }}" placeholder="Search events…" class="{{ $inputClass }}">
             </div>
             <div>
-                <select name="source" class="{{ $inputClass }}">
+                <select data-filter-multiple name="source" class="{{ $inputClass }}">
                     <option value="all" @selected($filters['source'] === 'all')>All sources</option>
                     <option value="owned" @selected($filters['source'] === 'owned')>Owned by me</option>
                     <option value="followed" @selected($filters['source'] === 'followed')>Following</option>
                 </select>
             </div>
             <div>
-                <select name="calendar" class="{{ $inputClass }}" title="Filter by calendar">
+                <select data-filter-multiple name="calendar" class="{{ $inputClass }}" title="Filter by calendar">
                     <option value="">All calendars</option>
                     @foreach($calendars as $cal)
                         <option value="{{ $cal->id }}" @selected((string) ($filters['calendar'] ?? '') === (string) $cal->id)>{{ $cal->title }}</option>
@@ -260,12 +260,14 @@
             @foreach($calendars as $cal)
                 @php
                     $isOwned = $ownedIds->contains($cal->id);
-                    $isActive = (string) ($filters['calendar'] ?? '') === (string) $cal->id;
+                    $chosenCalendars = \App\Support\FilterValues::get(request(), 'calendar');
+                    $isActive = in_array((string) $cal->id, $chosenCalendars, true);
+                    $nextCalendars = $isActive ? array_values(array_diff($chosenCalendars, [(string) $cal->id])) : array_merge($chosenCalendars, [(string) $cal->id]);
                     $accent = $cal->accent_color ?: '#3d6bff';
                 @endphp
-                <a href="{{ $linkTo(['calendar' => $isActive ? null : $cal->id]) }}"
+                <a href="{{ $linkTo(['calendar' => null, 'calendar_multi' => $nextCalendars]) }}"
                    class="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border transition {{ $isActive ? 'border-blue-400/60 bg-blue-500/15 text-white' : 'border-white/10 text-white/60 hover:text-white hover:border-white/30' }}"
-                   title="{{ $isActive ? 'Clear this filter' : 'Show only this calendar' }}">
+                   title="{{ $isActive ? 'Clear this filter' : 'Add this calendar to the selection' }}">
                     <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background: {{ $accent }}"></span>
                     {{ $cal->title }}
                     <span class="text-white/30">{{ $cal->events_count }} · {{ $isOwned ? 'owned' : 'following' }}</span>
