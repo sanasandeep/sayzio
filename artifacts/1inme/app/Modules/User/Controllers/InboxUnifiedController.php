@@ -85,6 +85,8 @@ class InboxUnifiedController
             });
         }
 
+        $visible = clone $q;
+
         if ($filters['status']) {
             if ($filters['status'] === 'all') {
                 // no-op — show every status
@@ -111,19 +113,19 @@ class InboxUnifiedController
         }
 
         // Overdue first, then newest activity.
-        $threads = $q->orderByRaw("CASE WHEN sla_due_at IS NOT NULL AND sla_due_at < now() AND status = 'open' THEN 0 ELSE 1 END")
+        $threads = $q->with('assignee:id,name')->orderByRaw("CASE WHEN sla_due_at IS NOT NULL AND sla_due_at < now() AND status = 'open' THEN 0 ELSE 1 END")
             ->orderByDesc('last_message_at')
             ->paginate(25)
             ->appends($request->except('page'));
 
         $counts = [
-            'all'     => InboxThread::where('workspace_id', $ws->id)->count(),
-            'unread'  => InboxThread::where('workspace_id', $ws->id)->where('status', 'open')->where('is_read', false)->count(),
-            'overdue' => InboxThread::where('workspace_id', $ws->id)->where('status', 'open')
+            'all'     => (clone $visible)->count(),
+            'unread'  => (clone $visible)->where('status', 'open')->where('is_read', false)->count(),
+            'overdue' => (clone $visible)->where('status', 'open')
                             ->whereNotNull('sla_due_at')->where('sla_due_at', '<', now())->count(),
-            'review'  => InboxThread::where('workspace_id', $ws->id)->awaitingReview()->count(),
+            'review'  => (clone $visible)->awaitingReview()->count(),
         ];
-        $byCategory = InboxThread::where('workspace_id', $ws->id)
+        $byCategory = (clone $visible)
             ->where('status', 'open')
             ->selectRaw('category, count(*) as c')
             ->groupBy('category')->pluck('c', 'category')->all();
@@ -353,9 +355,16 @@ class InboxUnifiedController
         abort_unless(in_array($action, $valid, true), 422);
 
         $threads = InboxThread::where('workspace_id', $ws->id)->whereIn('id', $ids)->get();
+        // Authorize the entire selection before changing any records.
+        foreach ($threads as $t) {
+            $this->authorize($t);
+        }
         foreach ($threads as $t) {
             if ($action === 'archive')   $t->update(['status' => 'archived']);
-            if ($action === 'mark_read') $t->update(['is_read' => true, 'unread_count' => 0]);
+            if ($action === 'mark_read') {
+                $t->update(['is_read' => true, 'unread_count' => 0]);
+                $this->markSourceRead($t);
+            }
             if ($action === 'set_category') {
                 $cat = $request->input('category');
                 if (in_array($cat, InboxThread::CATEGORIES, true)) {
