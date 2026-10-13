@@ -127,13 +127,13 @@ class BlockReadonlyDemoWrites
 
     /** Interactive, non-persisting web routes a demo visitor may exercise. */
     public const ALLOWED_INTERACTIVE_ROUTE_NAMES = [
+        'user.ai.mind.estimate', // read-only estimate; no AI charge or saved plan
         'creator-profile.subscribe.preview-promo', // previews a promo-code discount
         'rm.public.quote',                          // restaurant estimated-bill quote
         'sb.public.quote',                          // service-booking price quote
         'user.ai.coach.suggest',                    // AI coach suggestions
         'user.ai.cost-estimate',                    // unified AI coin-cost estimate (read-only, no charge)
         'user.ai.marketing-strategist.estimate',    // AI credit-cost estimate
-        'user.ai.mind.think',                       // AI reasoning preview
         'user.billing.companies.emails.preview',    // renders an email-template preview
         'user.brand-kits.estimate',                 // AI credit-cost estimate
         'user.dashboard.ai.estimate',               // AI dashboard-designer credit-cost estimate (read-only, no charge)
@@ -166,6 +166,7 @@ class BlockReadonlyDemoWrites
      * rather than as missing/unclassified. Each entry notes what it writes.
      */
     public const ACKNOWLEDGED_NONALLOWED_ROUTE_NAMES = [
+        'user.ai.mind.think', // generates, charges coins and saves a private plan
         'user.links.audience.estimate',  // charges AI credits + persists result into links.settings
         'user.payouts.preview-complete', // writes creator_payment_connections (marks provider connected)
         'user.qr-codes.generate-art',    // charges coins for AI image gen against the shared demo wallet

@@ -1373,8 +1373,14 @@ Route::prefix('user')->name('user.')->group(function () {
             // own a feature-specific estimate route (persona, ask-coach, card
             // scan, QR art, voice, minds, resume import/cover-letter).
             Route::post('cost-estimate', [\App\Modules\User\Controllers\AI\AiCostEstimateController::class, 'estimate'])->middleware('throttle:60,1')->name('cost-estimate');
+            Route::post('mind/estimate', [\App\Modules\User\Controllers\AI\MindController::class, 'estimate'])->middleware(['workspace.can:create','throttle:30,1'])->name('mind.estimate');
+            Route::get('mind/records/{plan}/export', [\App\Modules\User\Controllers\AI\MindController::class, 'export'])->whereNumber('plan')->name('mind.export');
+            Route::delete('mind/records/{plan}', [\App\Modules\User\Controllers\AI\MindController::class, 'destroy'])->whereNumber('plan')->middleware('workspace.can:delete')->name('mind.destroy');
+            Route::post('mind/records/{plan}/form', [\App\Modules\User\Controllers\AI\MindController::class, 'createForm'])->whereNumber('plan')->middleware(['workspace.can:create', CheckPlanLimit::class.':forms'])->name('mind.form');
+            Route::post('mind/records/{plan}/page', [\App\Modules\User\Controllers\AI\MindController::class, 'createPage'])->whereNumber('plan')->middleware(['workspace.can:create', CheckPlanLimit::class.':links', CheckPlanLimit::class.':biolinks'])->name('mind.page');
+            Route::post('mind/records/{plan}/calendar', [\App\Modules\User\Controllers\AI\MindController::class, 'addCalendar'])->whereNumber('plan')->middleware(['workspace.can:edit','events.enabled'])->name('mind.calendar');
             Route::get ('mind',        [\App\Modules\User\Controllers\AI\MindController::class, 'show'])->name('mind.show');
-            Route::post('mind/think',  [\App\Modules\User\Controllers\AI\MindController::class, 'think'])->middleware('throttle:30,1')->name('mind.think');
+            Route::post('mind/think',  [\App\Modules\User\Controllers\AI\MindController::class, 'think'])->middleware('throttle:30,1')->middleware('workspace.can:create')->name('mind.think');
 
             Route::get ('persona',           [\App\Modules\User\Controllers\AI\PersonaController::class, 'show'])->name('persona.show');
             Route::post('persona/generate',  [\App\Modules\User\Controllers\AI\PersonaController::class, 'generate'])->middleware('throttle:30,1')->name('persona.generate');
