@@ -50,7 +50,7 @@ class ClubMembershipCardService {
                 elseif($key==='photo') $svg.='<rect x="'.$x.'" y="'.$y.'" width="'.$w.'" height="'.$h.'" rx="12" fill="'.$ink.'" opacity=".15"/><text x="'.($x+12).'" y="'.($y+50).'" font-size="40" fill="'.$ink.'">'.$escape(mb_substr($member->name,0,1)).'</text>';
             } elseif($key==='qr') {
                 $url=URL::signedRoute('user.links.memberships.pass',['link'=>$link->id,'member'=>$member->id]);
-                $qr=(string)\SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(300)->margin(2)->generate($url);
+                $qr=(string)\SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->encoding('UTF-8')->size(300)->margin(2)->generate($url);
                 $qr=preg_replace('/<\?xml.*?\?>/s','',$qr);
                 $qr=preg_replace('/^\s*<svg[^>]*>|<\/svg>\s*$/','',$qr);
                 $size=min($w,$h);$svg.='<g transform="translate('.$x.' '.$y.') scale('.($size/300).')">'.$qr.'</g>';
