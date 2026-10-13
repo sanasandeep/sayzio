@@ -28,7 +28,8 @@ protected $table = 'qr_codes';
 
     public function user()    { return $this->belongsTo(User::class); }
     public function project() { return $this->belongsTo(Project::class); }
-    public function link()    { return $this->belongsTo(Link::class); }
+    // A QR may move independently of its linked page; keep its destination across workspaces.
+    public function link()    { return $this->belongsTo(Link::class)->withoutGlobalScope('workspace'); }
 
     /**
      * Authoritative QR contents — link short URL when attached, otherwise the

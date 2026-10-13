@@ -170,7 +170,7 @@ class QrCodeCatalog
             'template' => $tpl, 'font' => $font, 'bg_color' => $bg, 'text_color' => $text,
         ];
 
-        return [
+        $presets = [
             [
                 'id' => 'classic', 'name' => 'Classic', 'tagline' => 'Print-ready black & white',
                 'design' => [
@@ -524,6 +524,33 @@ class QrCodeCatalog
                 ],
             ],
         ];
+        foreach ([
+            ['Bistro', '#7f1d1d', '#fff7ed', 'scan-me-bottom'],
+            ['Ocean Blue', '#075985', '#f0f9ff', 'none'],
+            ['Club Emerald', '#065f46', '#ecfdf5', 'scan-me-bottom'],
+            ['Terracotta', '#9a3412', '#fff7ed', 'none'],
+            ['Plum', '#701a75', '#fdf4ff', 'scan-me-bottom'],
+            ['Slate', '#334155', '#f8fafc', 'none'],
+            ['Indigo', '#3730a3', '#eef2ff', 'scan-me-bottom'],
+            ['Rose', '#9f1239', '#fff1f2', 'none'],
+            ['Teal', '#115e59', '#f0fdfa', 'scan-me-bottom'],
+            ['Coffee', '#78350f', '#fffbeb', 'none'],
+            ['Royal', '#1e3a8a', '#eff6ff', 'scan-me-bottom'],
+            ['Charcoal', '#18181b', '#fafafa', 'none'],
+        ] as [$name, $ink, $paper, $frameId]) {
+            $presets[] = [
+                'id' => 'palette-'.strtolower(str_replace(' ', '-', $name)),
+                'name' => $name, 'tagline' => 'Clear contrast · branded palette',
+                'design' => [
+                    'dot_style' => 'rounded', 'corner_square_style' => 'extra-rounded', 'corner_dot_style' => 'dot',
+                    'fg_color' => $ink, 'bg_color' => $paper, 'transparent_bg' => false,
+                    'corner_square_color' => $ink, 'corner_dot_color' => $ink,
+                    'gradient' => $off, 'eye_outer_gradient' => $off, 'eye_inner_gradient' => $off, 'bg_gradient' => $off,
+                    'frame' => $frame($frameId, $ink, '#ffffff'),
+                ],
+            ];
+        }
+        return $presets;
     }
 
     // -------------------- AI ARTISTIC QR STYLE PRESETS --------------------

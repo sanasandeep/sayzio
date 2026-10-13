@@ -50,7 +50,48 @@ class QrCodeController extends Controller
         $savedQrCap   = PlanLimit::normalize((int) $owner->getPlanFeature('max_qr_codes', -1));
         $savedQrCount = QrCodeModel::withoutGlobalScope('workspace')
             ->where('user_id', $owner->id)->count();
-        return view('user.qr-codes.index', compact('qrCodes', 'projects', 'types', 'savedQrCap', 'savedQrCount'));
+        $workspaces = (int) workspace_owner_id() === (int) $request->user()->id
+            ? \App\Modules\User\Models\Workspace::where('owner_user_id', $request->user()->id)->orderBy('name')->get()
+            : collect();
+        return view('user.qr-codes.index', compact('qrCodes', 'projects', 'types', 'savedQrCap', 'savedQrCount', 'workspaces'));
+    }
+
+    public function moveBulk(Request $request)
+    {
+        $data = $request->validate([
+            'qr_ids' => 'required|array|min:1|max:100',
+            'qr_ids.*' => 'required|integer|distinct',
+            'action' => 'required|in:folder,workspace',
+            'project_id' => 'nullable|integer',
+            'workspace_id' => 'required_if:action,workspace|nullable|integer',
+        ]);
+        $records = workspace_owner()->qrCodes()->whereIn('id', $data['qr_ids'])->get();
+        abort_unless($records->count() === count($data['qr_ids']), 403);
+        $changes = ['project_id' => null];
+        if ($data['action'] === 'workspace') {
+            $target = \App\Modules\User\Models\Workspace::where('owner_user_id', $request->user()->id)->findOrFail($data['workspace_id']);
+            abort_unless($records->every(fn($qr) => (int) $qr->user_id === (int) $request->user()->id), 403);
+            $changes = ['workspace_id' => $target->id];
+        } elseif (!empty($data['project_id'])) {
+            $folder = workspace_owner()->projects()->findOrFail($data['project_id']);
+            $changes['project_id'] = $folder->id;
+        }
+        $moved = \Illuminate\Support\Facades\DB::transaction(function () use ($records, $changes) {
+            $count = 0;
+            foreach ($records as $qr) {
+                $recordChanges = $changes;
+                if (isset($changes['workspace_id'])) {
+                    if ((int) $qr->workspace_id === (int) $changes['workspace_id']) continue;
+                    $recordChanges['project_id'] = null;
+                }
+                $qr->forceFill($recordChanges);
+                if (!$qr->isDirty()) continue;
+                $qr->save();
+                $count++;
+            }
+            return $count;
+        });
+        return back()->with('success', $moved.' QR codes moved.');
     }
 
     public function builder(Request $request, ?QrCodeModel $qrCode = null)
@@ -61,13 +102,13 @@ class QrCodeController extends Controller
         $types = QrCodeTypeRegistry::types();
         $projects = workspace_owner()->projects()->orderBy('name')->get();
         $links = workspace_owner()->links()->where('is_active', true)
-            ->orderBy('created_at', 'desc')->limit(200)
-            ->get(['id', 'alias', 'title']);
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'alias', 'title', 'type', 'favicon', 'settings']);
 
         // Deep-link prefill: link pages ("QR Code" actions) open the studio
         // in create mode pre-bound to that link (?link_id=N). Ownership is
         // enforced; the link is injected into the picker if it fell outside
-        // the recent-200 window or is inactive.
+        // the active picker or is inactive.
         $prefillLinkId = null;
         $prefillName   = null;
         if (!($qrCode && $qrCode->exists) && $request->filled('link_id')) {
@@ -77,7 +118,7 @@ class QrCodeController extends Controller
             $prefillLink = Link::withoutGlobalScope('workspace')
                 ->where('id', (int) $request->query('link_id'))
                 ->where('user_id', workspace_owner_id())
-                ->first(['id', 'alias', 'title']);
+                ->first(['id', 'alias', 'title', 'type', 'favicon', 'settings']);
             if ($prefillLink) {
                 $prefillLinkId = $prefillLink->id;
                 $prefillName   = 'QR — ' . ($prefillLink->title ?: $prefillLink->alias);
@@ -87,6 +128,14 @@ class QrCodeController extends Controller
             }
         }
 
+        if ($qrCode?->link_id && !$links->contains('id', $qrCode->link_id)) {
+            $boundLink = Link::withoutGlobalScope('workspace')->where('user_id', workspace_owner_id())->find($qrCode->link_id);
+            if ($boundLink) $links->prepend($boundLink);
+        }
+
+        $imageFiles = workspace_owner()->files()
+            ->where('mime_type', 'like', 'image/%')->latest()->get()
+            ->filter(fn($file) => $file->isScanClean());
         $defaultDesign = $this->defaultDesign();
         $presets       = QrCodeCatalog::presets();
 
@@ -111,7 +160,7 @@ class QrCodeController extends Controller
             ->where('user_id', $owner->id)->count();
 
         return view('user.qr-codes.builder', compact(
-            'qrCode', 'types', 'projects', 'links', 'defaultDesign', 'presets',
+            'qrCode', 'types', 'projects', 'links', 'imageFiles', 'defaultDesign', 'presets',
             'qrArtEnabled', 'qrArtAllowed', 'qrArtCost', 'qrArtBalance', 'qrArtPresets',
             'qrArtMonthlyAllowance', 'qrArtMonthlyRemaining', 'savedQrCap', 'savedQrCount',
             'prefillLinkId', 'prefillName'

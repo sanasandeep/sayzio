@@ -159,3 +159,43 @@ test("selecting a QR template applies to preview, highlight, and export state", 
   );
   expect(relevantErrors).toEqual([]);
 });
+
+test("QR galleries paginate and preview fits mobile through desktop", async ({ page }) => {
+  await page.goto("/user/qr-codes/create", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#qrTarget svg")).toBeVisible();
+  await expect(page.locator(".qr-template-card:visible")).toHaveCount(9);
+  const templates = page.locator('[x-data^="templatesPicker"]');
+  await templates.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(templates.getByText(/Page 2 of/)).toBeVisible();
+  await page.getByRole("searchbox", { name: "Search QR templates" }).fill("Sunset");
+  await expect(page.locator(".qr-template-card:visible")).toHaveCount(1);
+  await page.locator(".qr-template-card:visible").click();
+  for (const width of [1440, 1024, 768, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    const svg = await page.locator("#qrTarget svg").boundingBox();
+    const stage = await page.locator(".qr-preview-stage").boundingBox();
+    expect(svg!.x).toBeGreaterThanOrEqual(stage!.x);
+    expect(svg!.x + svg!.width).toBeLessThanOrEqual(stage!.x + stage!.width + 1);
+  }
+  await page.getByRole("button", { name: "Frames", exact: true }).click();
+  await expect(page.locator(".qr-frame-option:visible")).toHaveCount(12);
+  await expect(page.locator(".qr-frame-name").first()).toHaveText("No frame");
+  const clippedLabels = await page.evaluate(() => {
+    const failures: string[] = [];
+    for (const template of ["scan-me-bottom", "bubble-left", "bubble-right"]) {
+      const holder = document.createElement("div");
+      holder.innerHTML = (window as any).QrStudio.render({
+        data: "https://sayzio.app", modulePx: 10, margin: 3,
+        frame: { template, text: "W".repeat(60), font: "Inter", bg_color: "#14243a", text_color: "#ffffff" },
+      }).svg;
+      document.body.append(holder);
+      const svg = holder.querySelector("svg")!.getBoundingClientRect();
+      const text = holder.querySelector("text")!.getBoundingClientRect();
+      if (text.left < svg.left || text.right > svg.right || text.top < svg.top || text.bottom > svg.bottom) failures.push(template);
+      holder.remove();
+    }
+    return failures;
+  });
+  expect(clippedLabels).toEqual([]);
+
+});

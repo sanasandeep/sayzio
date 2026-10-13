@@ -1812,6 +1812,7 @@ Route::prefix('user')->name('user.')->group(function () {
 
         // QR Studio (full builder + library) — workspace links feature.
         Route::get   ('qr-codes',                    [QrCodeController::class, 'index'])    ->middleware('workspace.can:links.view')->name('qr-codes.index');
+        Route::post('qr-codes/move-bulk', [QrCodeController::class, 'moveBulk'])->middleware('workspace.can:links.edit')->name('qr-codes.move-bulk');
         Route::get   ('qr-codes/create',             [QrCodeController::class, 'create'])   ->middleware('workspace.can:links.create')->name('qr-codes.create');
         Route::post  ('qr-codes',                    [QrCodeController::class, 'store'])    ->middleware('workspace.can:links.create')->name('qr-codes.store');
         Route::get   ('qr-codes/{qrCode}/edit',      [QrCodeController::class, 'edit'])     ->middleware('workspace.can:links.edit')->name('qr-codes.edit');

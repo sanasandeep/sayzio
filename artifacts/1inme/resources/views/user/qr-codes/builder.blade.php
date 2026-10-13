@@ -79,9 +79,63 @@
     .qr-template-meta { display: flex; flex-direction: column; gap: 1px; }
     .qr-template-name { font-size: 12px; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
     .qr-template-tag { font-size: 10px; color: var(--text-muted); line-height: 1.2; }
+
+.qr-editor-shell{container-type:inline-size}
+.qr-editor-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:20px;align-items:start}
+.qr-editor-grid>*{min-width:0}
+.qr-source-column{grid-column:1}
+.qr-design-column{grid-column:1}
+.qr-preview-column{grid-column:2;grid-row:1 / span 2;position:sticky;top:92px}
+.qr-preview-column>.card-premium{position:static;padding:20px}
+#qrTarget{width:100%;max-width:100%;min-width:0}
+#qrTarget>svg,#qrTarget>img{display:block;width:100%;height:auto;max-width:100%}
+.qr-preview-stage{padding:12px;min-height:0!important}
+.qr-design-tabs{display:flex;flex-wrap:wrap;gap:4px}
+.qr-design-tabs .qr-tab{flex:1 1 75px;white-space:normal;min-height:44px;padding:10px 8px}
+.qr-gallery-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.qr-gallery-tools input{flex:1 1 160px;min-width:0;padding:10px;border:1px solid var(--border-glass);border-radius:10px;background:var(--bg-glass-input);color:var(--text-primary)}
+.qr-gallery-tools button{padding:8px 12px;border:1px solid var(--border-glass);border-radius:10px;color:var(--text-primary)}
+.qr-template-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.qr-template-card{min-width:0;text-align:left}
+.qr-link-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-height:400px;overflow:auto;padding:3px}
+.qr-link-tile{display:flex;gap:10px;align-items:flex-start;padding:12px;text-align:left;border:1px solid var(--border-glass);border-radius:14px;min-width:0;background:var(--bg-glass-input);color:var(--text-primary)}
+.qr-link-tile.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--c-primary-soft)}
+.qr-link-tile>span{min-width:0;overflow-wrap:anywhere}
+.qr-link-icon{width:36px;height:36px;flex:none;display:grid;place-items:center;border-radius:10px;background:var(--c-primary-soft);color:var(--accent)}
+.qr-link-icon img{width:24px;height:24px;object-fit:contain}
+.qr-link-tile strong,.qr-link-tile small{display:block}
+.qr-link-tile small{font-size:11px;color:var(--text-muted);margin-top:4px}
+.qr-frame-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.qr-frame-option{padding:8px;border:1px solid var(--border-glass);border-radius:12px;min-width:0;color:var(--text-primary);background:var(--bg-glass-input)}
+.qr-frame-option.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--c-primary-soft)}
+.qr-frame-option svg{width:100%;height:100%;object-fit:contain}
+.qr-frame-art{height:140px;display:flex;align-items:center;justify-content:center}
+.qr-frame-name{display:block;font-size:11px;margin-top:8px;overflow-wrap:anywhere}
+.qr-selected-image{max-width:100%;height:72px;object-fit:contain;border-radius:10px}
+.qr-file-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:240px;overflow:auto}
+.qr-file-gallery button{padding:6px;border:1px solid var(--border-glass);border-radius:10px;overflow-wrap:anywhere;color:var(--text-primary);font-size:11px}
+.qr-file-gallery img{width:100%;height:72px;object-fit:contain}
+.qr-editor-grid input,.qr-editor-grid select{max-width:100%;min-width:0}
+.qr-editor-grid .qr-section{min-width:0}
+
+@media(max-width:1100px){.qr-editor-grid{grid-template-columns:minmax(0,1fr) minmax(240px,320px)}
+.qr-template-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.qr-link-grid{grid-template-columns:1fr}
+.qr-frame-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media(max-width:767px){.qr-editor-grid{grid-template-columns:minmax(0,1fr)}
+.qr-preview-column{grid-column:1;grid-row:2;position:static}
+.qr-design-column{grid-row:3}
+.qr-preview-column>.card-premium{padding:16px}
+.qr-frame-art{height:120px}
+.qr-link-grid{grid-template-columns:1fr}
+}
+
+@container(max-width:700px){.qr-editor-grid{grid-template-columns:minmax(0,1fr)}.qr-preview-column{grid-column:1;grid-row:2;position:static}.qr-design-column{grid-row:3}.qr-template-grid,.qr-frame-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.qr-link-grid{grid-template-columns:1fr}}
 </style>
 
-<div class="max-w-[1500px] mx-auto" x-data="qrBuilder()" x-init="init()" x-cloak>
+<div class="qr-editor-shell max-w-[1500px] mx-auto" x-data="qrBuilder()" x-init="init()" x-cloak>
     <form method="POST" action="{{ $action }}" id="qrForm">
         @csrf
         @if($isEdit) @method('PUT') @endif
@@ -121,9 +175,9 @@
         <input type="hidden" name="payload_json" :value="JSON.stringify(payload || {})">
         <input type="hidden" name="design_json" :value="JSON.stringify(designForServer())">
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="qr-editor-grid">
             {{-- LEFT: type picker + content form --}}
-            <div class="lg:col-span-4 space-y-4">
+            <div class="qr-source-column space-y-4">
                 <div class="card-premium p-4">
                     <div class="flex items-center justify-between mb-3">
                         <h3 class="text-sm font-bold" style="color: var(--text-primary);">Source</h3>
@@ -153,14 +207,18 @@
                                 You don't have any active links. <a href="{{ route('user.links.create') }}" style="color: var(--accent);">Create one</a> first.
                             </div>
                         @else
-                            <select x-model.number="linkId" @change="resolveLinkPayload()"
-                                    class="w-full px-3 py-2 text-sm rounded-lg outline-none"
-                                    style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
-                                <option value="">Choose a link</option>
-                                @foreach($links as $link)
-                                    <option value="{{ $link->id }}">{{ $link->title ?: $link->alias }} (/{{ $link->alias }})</option>
-                                @endforeach
-                            </select>
+                            <input type="search" x-model="linkSearch" placeholder="Find a link by name, URL or type" aria-label="Find existing links" class="w-full mb-3 px-3 py-2 rounded-lg" style="background:var(--bg-glass-input);color:var(--text-primary);border:1px solid var(--border-glass)">
+                            <div class="qr-link-grid">
+                            @foreach($links as $link)
+                                @php $linkHue = abs(crc32($link->type)) % 360; $linkIcon = $link->favicon ?: ($link->settings['biolink']['favicons']['icon_512'] ?? $link->settings['biolink']['favicons']['apple_touch_icon'] ?? null); @endphp
+                                <button type="button" class="qr-link-tile" :class="Number(linkId) === {{ $link->id }} ? 'active' : ''" :aria-pressed="Number(linkId) === {{ $link->id }}" x-show="!linkSearch || @js(strtolower(($link->title ?: $link->alias).' '.$link->alias.' '.\App\Modules\User\Models\Link::typeLabel($link->type))).includes(linkSearch.toLowerCase())" @click="linkId={{ $link->id }}; resolveLinkPayload()">
+                                    <span class="qr-link-icon" style="background:hsl({{ $linkHue }} 75% 94%);color:hsl({{ $linkHue }} 65% 30%)">type,['restaurant_menu','store_menu']) ? 'background:#fff1db;color:#a15b0b' : (in_array($link->type,['community_club','calendar']) ? 'background:#dff7f0;color:#176552' : '') }}">
+                                        @if($linkIcon)<img src="{{ $linkIcon }}" alt="" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><i class="fas fa-link" hidden></i>@else<i class="fas fa-link"></i>@endif
+                                    </span>
+                                    <span><strong>{{ $link->title ?: $link->alias }}</strong><small>{{ url('/'.$link->alias) }}</small><small>{{ \App\Modules\User\Models\Link::typeLabel($link->type) }}</small></span>
+                                </button>
+                            @endforeach
+                            </div>
                             <p class="text-[11px] mt-2" style="color: var(--text-muted);">Scans count toward your link's analytics.</p>
                         @endif
                     </div>
@@ -168,10 +226,10 @@
             </div>
 
             {{-- CENTER: live preview --}}
-            <div class="lg:col-span-4">
+            <div class="qr-preview-column">
                 <div class="card-premium p-6 sticky top-4">
                     <h3 class="text-sm font-bold mb-3" style="color: var(--text-primary);">Live preview</h3>
-                    <div class="flex items-center justify-center rounded-lg p-4 min-h-[420px]" style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass);">
+                    <div class="qr-preview-stage flex items-center justify-center rounded-lg" style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass);">
                         <div id="qrTarget" class="w-full max-w-[380px]"></div>
                     </div>
                     <div class="mt-3 text-center text-[11px] break-all" style="color: var(--text-muted);">
@@ -205,10 +263,10 @@
                 </div>
             </div>
 
-            {{-- RIGHT: design panel with tabs --}}
-            <div class="lg:col-span-4 space-y-4">
+            {{-- Design controls stay beside the sticky preview --}}
+            <div class="qr-design-column space-y-4">
                 <div class="card-premium p-2">
-                    <div class="flex border-b" style="border-color: var(--border-glass);">
+                    <div class="qr-design-tabs border-b" style="border-color: var(--border-glass);">
                         @foreach(['templates'=>'Templates','shapes'=>'Shapes','colors'=>'Colors','logos'=>'Logos','frames'=>'Frames','more'=>'More','ai'=>'AI Artistic','export'=>'Export'] as $k => $lbl)
                             <button type="button" @click="tab = '{{ $k }}'"
                                     class="qr-tab" :class="tab === '{{ $k }}' ? 'active' : ''">{{ $lbl }}</button>
@@ -221,9 +279,11 @@
                         <p class="text-[11px]" style="color: var(--text-muted);">
                             Pick a ready-made look. Your content and uploaded logos stay as-is.
                         </p>
+                        <div class="qr-gallery-tools"><input type="search" x-model="search" @input="page=1;$nextTick(()=>renderThumbs())" placeholder="Search templates by name or style" aria-label="Search QR templates"><span class="text-xs" x-text="matching().length + ' templates'"></span></div>
+                        <p x-show="!matching().length" class="text-xs" style="color:var(--text-muted)">No matching templates. Try another name or style.</p>
                         <div class="qr-template-grid">
-                            <template x-for="preset in presets" :key="preset.id">
-                                <div class="qr-template-card"
+                            <template x-for="preset in visible()" :key="preset.id">
+                                <button type="button" class="qr-template-card" :aria-pressed="activeId === preset.id"
                                      :class="activeId === preset.id ? 'active' : ''"
                                      @click="apply(preset)">
                                     <div class="qr-template-thumb" :id="'qr-tpl-thumb-' + preset.id"></div>
@@ -231,9 +291,10 @@
                                         <span class="qr-template-name" x-text="preset.name"></span>
                                         <span class="qr-template-tag" x-text="preset.tagline"></span>
                                     </div>
-                                </div>
+                                </button>
                             </template>
                         </div>
+                        <div class="qr-gallery-tools"><button type="button" :disabled="page===1" @click="page--;$nextTick(()=>renderThumbs())">Previous</button><span x-text="'Page '+page+' of '+Math.max(1,Math.ceil(matching().length/9))"></span><button type="button" :disabled="page*9>=matching().length" @click="page++;$nextTick(()=>renderThumbs())">Next</button></div>
                     </div>
 
                     {{-- SHAPES tab --}}
@@ -251,10 +312,10 @@
                                            class="px-2 py-1 text-[11px] rounded outline-none w-28"
                                            style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
                                 </div>
-                                <div class="flex gap-1.5 overflow-x-auto mb-2 pb-1">
+                                <div class="flex flex-wrap gap-1.5 mb-2 pb-1">
                                     <template x-for="cat in cats" :key="cat">
                                         <button type="button" class="qr-cat-pill" :class="activeCat === cat ? 'active' : ''"
-                                                @click="activeCat = cat" x-text="cat"></button>
+                                                @click="activeCat = cat; page=1" x-text="cat"></button>
                                     </template>
                                 </div>
                                 <div class="qr-shape-scroll qr-shape-grid">
@@ -369,17 +430,22 @@
                                     </label>
                                 </div>
                                 <div class="space-y-2">
-                                    <input type="url" x-model="design.{{ $field }}.url" @input="render()" placeholder="https://… image URL"
+                                    <input type="url" x-model="design.{{ $field }}.url" @change="design.{{ $field }}.show=!!design.{{ $field }}.url; render()" placeholder="https://… image URL"
                                            class="w-full px-2 py-1.5 text-xs rounded outline-none" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
                                     <div class="flex items-center gap-2">
                                         <label class="px-2 py-1.5 text-[11px] rounded cursor-pointer" style="background: var(--bg-glass-hover); color: var(--text-primary); border: 1px solid var(--border-glass);">
                                             <i class="fas fa-upload"></i> Upload
                                             <input type="file" class="hidden" accept="image/*" @change="uploadLogo($event, '{{ $field }}')">
                                         </label>
+
                                         <button type="button" x-show="design.{{ $field }}.url"
                                                 @click="design.{{ $field }}.url = null; design.{{ $field }}.show = false; render()"
                                                 class="text-[11px]" style="color: var(--c-danger);"><i class="fas fa-times"></i> Remove</button>
                                     </div>
+                                    <img x-show="design.{{ $field }}.url" :src="design.{{ $field }}.url || ''" alt="Selected {{ strtolower($label) }}" class="qr-selected-image" x-on:error="$el.style.display='none'" @load="$el.style.display='block'">
+                                        <details x-data="{fileSearch: ''}"><summary class="text-xs cursor-pointer">Existing files</summary><input type="search" x-model="fileSearch" placeholder="Find an image by filename" aria-label="Find existing {{ strtolower($label) }}" class="w-full mt-2 px-2 py-2 rounded-lg"><div class="qr-file-gallery mt-2">
+                                            @forelse($imageFiles as $imageFile)<button x-show="!fileSearch || @js(strtolower($imageFile->original_name)).includes(fileSearch.toLowerCase())" type="button" @click="design.{{ $field }}.url=@js($imageFile->url); design.{{ $field }}.show=true; render()"><img src="{{ $imageFile->url }}" alt="" loading="lazy"><span>{{ $imageFile->original_name }}</span></button>@empty<p class="text-xs">No images in this workspace yet.</p>@endforelse
+                                        </div></details>
                                     <div class="grid grid-cols-2 gap-2 text-[11px]" style="color: var(--text-muted);">
                                         <label>Size <span class="font-mono" x-text="Math.round(design.{{ $field }}.size * 100) + '%'"></span>
                                             <input type="range" min="0.02" max="1" step="0.01" x-model.number="design.{{ $field }}.size" @input="render()" class="w-full"></label>
@@ -404,22 +470,22 @@
                     <div x-show="tab === 'frames'" x-cloak class="p-3 space-y-3"
                          x-data="framePicker({ groups: @js($catalog['frames']) })">
                         <div class="flex items-center justify-between mb-2">
-                            <input type="search" x-model="search" placeholder="Search frames…"
+                            <input type="search" x-model="search" @input="page=1" placeholder="Search frames…"
                                    class="px-2 py-1 text-[11px] rounded outline-none flex-1"
                                    style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
                         </div>
-                        <div class="flex gap-1.5 overflow-x-auto mb-2 pb-1">
+                        <div class="flex flex-wrap gap-1.5 mb-2 pb-1">
                             <template x-for="cat in cats" :key="cat">
                                 <button type="button" class="qr-cat-pill" :class="activeCat === cat ? 'active' : ''"
-                                        @click="activeCat = cat" x-text="cat"></button>
+                                        @click="activeCat = cat; page=1" x-text="cat"></button>
                             </template>
                         </div>
-                        <div class="qr-shape-scroll qr-shape-grid" style="grid-template-columns: repeat(3, 1fr);">
-                            <template x-for="id in filtered()" :key="id">
-                                <div class="qr-shape-card qr-frame-card" :class="design.frame.template === id ? 'active' : ''"
-                                     :title="id" @click="design.frame.template = id; render()" x-html="thumb(id)"></div>
+                        <div class="qr-frame-gallery">
+                            <template x-for="id in filtered().slice((page-1)*12,page*12)" :key="id">
+                                <button type="button" class="qr-frame-option" :class="design.frame.template === id ? 'active' : ''" :aria-pressed="design.frame.template === id" @click="design.frame.template = id; render()"><span class="qr-frame-art" x-html="thumb(id)"></span><span class="qr-frame-name" x-text="id === 'none' ? 'No frame' : id.replaceAll('-',' ')"></span></button>
                             </template>
                         </div>
+                        <div class="qr-gallery-tools"><button type="button" @click="page--" :disabled="page===1">Previous</button><span x-text="filtered().length+' frames · page '+page+' of '+Math.max(1,Math.ceil(filtered().length/12))"></span><button type="button" @click="page++" :disabled="page*12>=filtered().length">Next</button></div>
                         <div x-show="design.frame.template !== 'none'" class="space-y-2 pt-2 border-t" style="border-color: var(--border-glass);">
                             <input type="text" x-model="design.frame.text" @input="render()" maxlength="60" placeholder="Frame text"
                                    class="w-full px-2 py-1.5 text-xs rounded outline-none" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
@@ -746,7 +812,9 @@ function shapePicker({ kind, groups }) {
 }
 function templatesPicker({ presets }) {
     return {
-        presets,
+        presets, search: '', page: 1,
+        matching() { const q=this.search.toLowerCase(); return this.presets.filter(p=>(p.name+' '+p.tagline).toLowerCase().includes(q)); },
+        visible() { return this.matching().slice((this.page-1)*9,this.page*9); },
         get activeId() { return this.lastPresetId || null; },
         apply(preset) {
             if (typeof this.applyPreset === 'function') {
@@ -776,7 +844,7 @@ function templatesPicker({ presets }) {
             return {
                 data,
                 errorCorrection: 'M',
-                modulePx: 6,
+                modulePx: 10,
                 margin: 2,
                 dotShape: d.dot_style,
                 outerEyeShape: d.corner_square_style,
@@ -802,7 +870,7 @@ function templatesPicker({ presets }) {
 }
 function framePicker({ groups }) {
     return {
-        groups,
+        groups, page: 1,
         cats: ['All', ...Object.keys(groups)],
         activeCat: 'All',
         search: '',
@@ -810,9 +878,9 @@ function framePicker({ groups }) {
         filtered() {
             const list = this.activeCat === 'All' ? this.all() : (this.groups[this.activeCat] || []);
             const q = this.search.trim().toLowerCase();
-            return q ? list.filter(id => id.toLowerCase().includes(q)) : list;
+            return q ? list.filter(id => id.replaceAll('-', ' ').toLowerCase().includes(q.replaceAll('-', ' '))) : list;
         },
-        thumb(id) { return window.QrStudio ? window.QrStudio.thumbFrame(id) : ''; },
+        thumb(id) { if(!window.QrStudio)return ''; try { return window.QrStudio.render({data:'https://sayzio.app',modulePx:10,margin:3,fgColor:'#14243a',bgColor:'#ffffff',frame:{template:id,text:'SCAN ME',font:'Inter',bg_color:'#14243a',text_color:'#ffffff'}}).svg; } catch(e) {return window.QrStudio.thumbFrame(id);} },
     };
 }
 
@@ -821,6 +889,7 @@ function qrBuilder() {
         type: @js($currentType),
         useExistingLink: @js((bool) $linkId),
         linkId: @js($linkId),
+        linkSearch: '',
         payload: @js((object) $payload),
         design: @js($design),
         encoded: '',
@@ -882,6 +951,7 @@ function qrBuilder() {
         },
 
         async resolve() {
+            const sequence = this.resolveSequence = (this.resolveSequence || 0) + 1;
             try {
                 const fd = new FormData();
                 fd.append('type', this.type);
@@ -890,6 +960,7 @@ function qrBuilder() {
                 Object.entries(this.payload || {}).forEach(([k, v]) => fd.append(`payload[${k}]`, v ?? ''));
                 const r = await fetch(@js(route('user.qr-codes.resolve')), { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
                 const j = await r.json();
+                if (sequence !== this.resolveSequence) return;
                 this.encoded = j.encoded || '';
                 this.encodedPreview = this.encoded.length > 80 ? this.encoded.slice(0, 80) + '…' : this.encoded;
                 this.render();
@@ -899,6 +970,7 @@ function qrBuilder() {
         async resolveLinkPayload() { await this.resolve(); },
 
         render() {
+            const sequence = this.renderSequence = (this.renderSequence || 0) + 1;
             clearTimeout(this.renderTimer);
             this.renderTimer = setTimeout(async () => {
                 if (!window.QrStudio) return;
@@ -908,7 +980,7 @@ function qrBuilder() {
                 // with an explicit reliability caveat for artistic blending.
                 if (this.design.ai_art && this.design.ai_art.enabled && this.design.ai_art.image_url) {
                     const at = document.getElementById('qrTarget');
-                    if (at) at.innerHTML = '<img src="' + this.design.ai_art.image_url + '" alt="AI Artistic QR" class="w-full h-auto rounded-lg" />';
+                    if (at) { const image=document.createElement('img');image.src=this.design.ai_art.image_url;image.alt='AI Artistic QR';image.className='w-full h-auto rounded-lg';at.replaceChildren(image); }
                     try {
                         if (typeof window.QrStudio.analyzeScannability === 'function') {
                             const s = window.QrStudio.analyzeScannability(opts) || { score: 0, level: '', issues: [] };
@@ -922,6 +994,7 @@ function qrBuilder() {
                 // PNG export from it) is fully self-contained and won't taint
                 // the canvas with cross-origin pixels.
                 try { await window.QrStudio.preloadLogos(opts); } catch (e) {}
+                if (sequence !== this.renderSequence) return;
                 // Cache the QR matrix and only rebuild it when the inputs that
                 // actually change the bit pattern change (data + EC level).
                 // Decoration-only edits (shape, color, frame, logo, margin…)
@@ -1103,6 +1176,12 @@ function qrBuilder() {
 
         applyPreset(preset) {
             if (!preset || !preset.design) return;
+            const defaults = @js($defaultDesign);
+            ['dot_style','corner_square_style','corner_dot_style','fg_color','bg_color','transparent_bg','corner_square_color','corner_dot_color','gradient','eye_outer_gradient','eye_inner_gradient','bg_gradient','eyes_per_corner','eye_corners','qr_rotation','drop_shadow'].forEach(key => {
+                if (key in defaults) this.design[key] = JSON.parse(JSON.stringify(defaults[key]));
+            });
+            this.design.eyes_per_corner = false;
+            if (this.design.ai_art) this.design.ai_art.enabled = false;
             const PRESERVE = new Set(['logo_center','logo_background','logo_foreground']);
             Object.entries(preset.design).forEach(([k, v]) => {
                 if (PRESERVE.has(k)) return;
@@ -1118,6 +1197,7 @@ function qrBuilder() {
                     this.design[k] = v;
                 }
             });
+            this.seedCornersFromGlobal();
             this.lastPresetId = preset.id;
             this.render();
         },
