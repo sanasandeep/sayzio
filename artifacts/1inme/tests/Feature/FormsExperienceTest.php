@@ -264,6 +264,15 @@ class FormsExperienceTest extends TestCase
         }
     }
 
+    public function test_builder_preserves_quarter_and_three_quarter_grid_widths(): void
+    {
+        $f = $this->form($this->owner());
+        $fields = [['id' => 'short', 'type' => 'text', 'label' => 'Short', 'width' => 3], ['id' => 'wide', 'type' => 'text', 'label' => 'Wide', 'width' => 9]];
+        $this->put('/user/forms/'.$f->id.'/builder', ['title' => $f->title, 'fields' => $fields])->assertSessionHasNoErrors();
+        $this->assertSame([3, 9], array_column($f->fresh()->fields, 'width'));
+        $this->post('/user/forms/'.$f->id.'/preview', ['fields' => $fields])->assertOk()->assertSee('span 3', false)->assertSee('span 9', false);
+    }
+
     public function test_submission_exports_share_filters_and_preserve_nested_json(): void
     {
         $f = $this->form($this->owner());

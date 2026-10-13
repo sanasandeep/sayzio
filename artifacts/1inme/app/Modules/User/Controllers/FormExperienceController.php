@@ -90,7 +90,7 @@ class FormExperienceController extends Controller
     {
         $this->authorizeForm($form);
         // Reuse the production renderer and validation without persisting draft changes.
-        $data = $r->validate(['fields' => 'nullable|array|max:200', 'fields.*' => 'array', 'fields.*.id' => 'required|string|max:100', 'fields.*.type' => 'required|string', 'fields.*.label' => 'nullable|string|max:1000', 'fields.*.help' => 'nullable|string|max:2000', 'fields.*.placeholder' => 'nullable|string|max:1000', 'fields.*.options' => 'nullable|array|max:200', 'title' => 'nullable|string|max:200', 'description' => 'nullable|string|max:2000', 'design' => 'nullable|array']);
+        $data = $r->validate(['fields' => 'nullable|array|max:200', 'fields.*' => 'array', 'fields.*.id' => 'required|string|max:100', 'fields.*.type' => 'required|string', 'fields.*.width' => 'nullable|integer|in:3,4,6,8,9,12', 'fields.*.label' => 'nullable|string|max:1000', 'fields.*.help' => 'nullable|string|max:2000', 'fields.*.placeholder' => 'nullable|string|max:1000', 'fields.*.options' => 'nullable|array|max:200', 'title' => 'nullable|string|max:200', 'description' => 'nullable|string|max:2000', 'design' => 'nullable|array']);
         $draft = clone $form;
         if (isset($data['fields'])) {
             $allowed = array_keys(Form::fieldTypes());

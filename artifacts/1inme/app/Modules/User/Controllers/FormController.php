@@ -297,7 +297,7 @@ class FormController extends Controller
         ]);
 
         $allowedTypes = array_keys(Form::fieldTypes());
-        $allowedWidths = [4, 6, 8, 12]; // 1/3, 1/2, 2/3, full of a 12-col grid
+        $allowedWidths = [3, 4, 6, 8, 9, 12]; // 1/3, 1/2, 2/3, full of a 12-col grid
 
         $clean = [];
         foreach ((array) $request->input('fields', []) as $f) {
@@ -337,7 +337,7 @@ class FormController extends Controller
                 }
                 $row['image_options'] = $ios;
             }
-            // Width (4=1/3, 6=1/2, 8=2/3, 12=full)
+            // Width spans in a 12-column grid.
             $w = (int) ($f['width'] ?? 12);
             $row['width'] = in_array($w, $allowedWidths, true) ? $w : 12;
             // Options
