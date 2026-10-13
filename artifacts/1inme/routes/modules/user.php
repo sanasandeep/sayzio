@@ -867,6 +867,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::patch ('links/{link}/roadmap/items/{item}',   [\App\Modules\User\Controllers\RoadmapTriageController::class, 'update'])->middleware('workspace.can:links.edit')->name('roadmap.update');
         Route::delete('links/{link}/roadmap/items/{item}',   [\App\Modules\User\Controllers\RoadmapTriageController::class, 'destroy'])->middleware('workspace.can:links.edit')->name('roadmap.destroy');
         Route::post  ('links/{link}/roadmap/items/{item}/merge', [\App\Modules\User\Controllers\RoadmapTriageController::class, 'merge'])->middleware('workspace.can:links.edit')->name('roadmap.merge');
+        Route::post('links/{link}/performance-business', [\App\Modules\User\Controllers\PerformanceBusinessController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.performance-business.update');
         Route::post('links/{link}/performance-coach/settings', [LinkController::class, 'updatePerformanceCoachSettings'])->middleware('workspace.can:links.edit')->name('links.performance-coach.settings');
         Route::post('links/coach-undo', [LinkController::class, 'coachUndo'])->middleware('workspace.can:links.edit')->name('links.coach-undo');
         Route::delete('links/{link}/stats', [LinkController::class, 'resetStats'])->middleware('workspace.can:links.delete')->name('links.reset-stats');

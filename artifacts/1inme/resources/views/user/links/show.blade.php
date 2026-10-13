@@ -171,57 +171,14 @@
     @media(max-width:767px){.kpi-hero{min-height:180px}.kpi-hero-value{margin-top:48px}.kpi-hero .ov-count-art{width:105px;height:88px}.link-details{padding:20px}.link-details dl{grid-template-columns:1fr}.link-details-head{align-items:flex-start}}
     @media(prefers-reduced-motion:reduce){.kpi-hero,.kpi-hero .ov-count-art{transition:none}.kpi-hero:hover,.kpi-hero:hover .ov-count-art{transform:none}}
 
-    /* ============ Quick-stats strip (rest) ============ */
-    .kpi-strip {
-        background: var(--bg-card);
-        border: 1px solid var(--border-glass);
-        border-radius: 18px;
-        box-shadow: var(--card-shadow);
-        backdrop-filter: blur(20px);
-        padding: 6px 4px;
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0;
-    }
-    @media (min-width: 640px) { .kpi-strip { grid-template-columns: repeat(4, 1fr); } }
-    @media (min-width: 1024px) { .kpi-strip { grid-template-columns: repeat(8, 1fr); } }
-    .kpi-cell {
-        padding: 14px 14px;
-        border-right: 1px solid var(--border-subtle);
-        border-bottom: 1px solid var(--border-subtle);
-        display: flex; flex-direction: column; gap: 4px;
-    }
-    .kpi-cell:nth-child(2n) { border-right: none; }
-    @media (min-width: 640px) {
-        .kpi-cell { border-right: 1px solid var(--border-subtle); }
-        .kpi-cell:nth-child(2n) { border-right: 1px solid var(--border-subtle); }
-        .kpi-cell:nth-child(4n) { border-right: none; }
-        .kpi-cell:nth-last-child(-n+4) { border-bottom: none; }
-    }
-    @media (min-width: 1024px) {
-        .kpi-cell { border-bottom: none; border-right: 1px solid var(--border-subtle); }
-        .kpi-cell:nth-child(4n) { border-right: 1px solid var(--border-subtle); }
-        .kpi-cell:nth-child(8n) { border-right: none; }
-        .kpi-cell:last-child { border-right: none; }
-    }
-    .kpi-cell-head {
-        display: flex; align-items: center; gap: 6px;
-        font-size: 10px; font-weight: 600;
-        color: var(--text-muted);
-        text-transform: uppercase; letter-spacing: 0.04em;
-    }
-    .kpi-cell-head i {
-        font-size: 10px; color: var(--text-faint);
-        width: 14px; text-align: center;
-    }
-    .kpi-cell-value {
-        font-size: 18px; font-weight: 700;
-        color: var(--text-primary);
-        letter-spacing: -0.02em;
-    }
-    a.kpi-cell-link { text-decoration: none; transition: background 0.15s ease; }
-    a.kpi-cell-link:hover { background: var(--bg-glass); }
-    a.kpi-cell-link:hover .kpi-cell-head { color: var(--text-primary); }
+    /* Compact, independently coloured metrics; no zero-value engagement assumptions. */
+    .kpi-strip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;background:transparent;border:0;padding:0}
+    @media(min-width:700px){.kpi-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(min-width:1100px){.kpi-strip{grid-template-columns:repeat(5,minmax(0,1fr))}}
+    .kpi-cell{position:relative;overflow:hidden;min-height:128px;padding:16px;border-radius:18px;border:1px solid #ffffff25;display:flex;flex-direction:column;gap:6px;--ov-color:#3b82f6;--ov-tone:#123c85;background:radial-gradient(ellipse at 100% 0%,var(--ov-color),transparent 90%),var(--ov-tone);box-shadow:0 7px 18px color-mix(in srgb,var(--ov-tone) 15%,transparent);color:#fff;text-align:left}
+    .kpi-cell:nth-child(6n+2){--ov-color:#a376ef;--ov-tone:#512b89}.kpi-cell:nth-child(6n+3){--ov-color:#22b1a1;--ov-tone:#075953}.kpi-cell:nth-child(6n+4){--ov-color:#f5ab33;--ov-tone:#804210}.kpi-cell:nth-child(6n+5){--ov-color:#e95ca8;--ov-tone:#831843}.kpi-cell:nth-child(6n){--ov-color:#15b7d0;--ov-tone:#164e63}
+    .kpi-cell-head{font-size:11px;font-weight:600;color:#fff;max-width:calc(100% - 42px);line-height:1.4}.kpi-cell-head i{display:none}.kpi-cell-value{position:relative;font-size:28px;font-weight:750;color:#fff;letter-spacing:-.02em;margin-top:15px;line-height:1.1}.kpi-cell-note{color:#e8eeff;font-size:10px;position:relative}
+    .kpi-cell .ov-count-art{position:absolute;right:8px;top:16px;width:50px;height:46px;animation:metric-float 5s ease-in-out infinite}.kpi-cell:nth-child(2n) .ov-count-art{animation-delay:-2s}.kpi-cell:nth-child(3n) .ov-count-art{animation-delay:-3.5s}.kpi-cell-link{text-decoration:none;transition:transform .2s}.kpi-cell-link:hover{transform:translateY(-2px)}.kpi-cell-link:focus-visible{outline:3px solid var(--accent);outline-offset:3px}@keyframes metric-float{50%{transform:translateY(-4px) rotate(3deg)}}@media(prefers-reduced-motion:reduce){.kpi-cell .ov-count-art{animation:none}.kpi-cell-link{transition:none}}
 
     /* ============ Comparison Tile (used in Block-Level Clicks) ============ */
     .cmp-tile {
@@ -655,75 +612,10 @@
 </div>
 
 @include('user.links.partials.ai-growth', ['growthLink'=>$link])
-@include('user.links.partials.performance-coach')
+@include('user.links.partials.business-performance')
 
-{{-- ===================== SECONDARY METRICS (compact strip) ===================== --}}
-<div class="kpi-strip mb-6">
-    <div class="kpi-cell">
-        <div class="kpi-cell-head"><i class="fas fa-eye"></i> Page visits</div>
-        <div class="kpi-cell-value">{{ number_format($pageVisitsInRange) }}</div>
-    </div>
-    <div class="kpi-cell">
-        <div class="kpi-cell-head"><i class="fas fa-th-large"></i> Block clicks</div>
-        <div class="kpi-cell-value">{{ number_format($blockClicksInRange) }}</div>
-    </div>
-    @if($hasPollBlocks || $pollVotesInRange > 0)
-    <a href="#poll-engagement" class="kpi-cell kpi-cell-link"
-       title="Total poll responses across all poll blocks on this link in the selected date range. Click to jump to the per-poll breakdown.">
-        <div class="kpi-cell-head"><i class="fas fa-square-poll-vertical"></i> Poll votes</div>
-        <div class="kpi-cell-value">{{ number_format($pollVotesInRange) }}</div>
-    </a>
-    @endif
-    @if($link->type === 'text')
-    <div class="kpi-cell"
-         title="Times a visitor downloaded this text page as a .txt file. Same bot filtering as all other numbers.">
-        <div class="kpi-cell-head"><i class="fas fa-download"></i> Downloads</div>
-        <div class="kpi-cell-value">{{ number_format($txtDownloadsInRange) }}</div>
-    </div>
-    @if($txtRawInRange > 0)
-    <div class="kpi-cell"
-         title="Plain-text fetches of this page via its /raw URL (usually scripts or programmatic readers).">
-        <div class="kpi-cell-head"><i class="fas fa-code"></i> Raw fetches</div>
-        <div class="kpi-cell-value">{{ number_format($txtRawInRange) }}</div>
-    </div>
-    @endif
-    @endif
-    <div class="kpi-cell">
-        <div class="kpi-cell-head"><i class="fas fa-hourglass-half"></i> Engaged time</div>
-        <div class="kpi-cell-value">{{ _fmtSecs($totalEngagedSeconds) }}</div>
-    </div>
-    <div class="kpi-cell">
-        <div class="kpi-cell-head"><i class="fas fa-running"></i> Bounce rate</div>
-        <div class="kpi-cell-value">{{ $bounceRate }}%</div>
-    </div>
-    <div class="kpi-cell">
-        <div class="kpi-cell-head"><i class="fas fa-stopwatch"></i> Avg. time</div>
-        <div class="kpi-cell-value">{{ _fmtSecs($avgSessionSeconds) }}</div>
-    </div>
-    <div class="kpi-cell">
-        <div class="kpi-cell-head"><i class="fas fa-infinity"></i> All-time clicks</div>
-        <div class="kpi-cell-value">{{ number_format($link->total_clicks) }}</div>
-    </div>
-    <div class="kpi-cell">
-        <div class="kpi-cell-head"><i class="fas fa-users"></i> All-time unique</div>
-        <div class="kpi-cell-value">{{ number_format($link->unique_clicks) }}</div>
-    </div>
-    <div class="kpi-cell">
-        <div class="kpi-cell-head"><i class="fas fa-percentage"></i> Conversion</div>
-        <div class="kpi-cell-value">{{ $totalInRange > 0 ? round(($uniqueInRange / $totalInRange) * 100) : 0 }}%</div>
-    </div>
-    @if($botClicksInRange > 0)
-    <button type="button"
-       class="kpi-cell kpi-cell-link text-left"
-       onclick="(function(el){var p=document.getElementById('bot-breakdown-panel');if(!p)return;p.hidden=!p.hidden;el.setAttribute('aria-expanded', p.hidden ? 'false' : 'true');if(!p.hidden){p.scrollIntoView({behavior:'smooth',block:'nearest'});}})(this)"
-       aria-expanded="false"
-       aria-controls="bot-breakdown-panel"
-       title="We exclude obvious crawlers like Googlebot, AhrefsBot, headless Chrome, etc. from your totals so your numbers reflect real humans. Click to see which bots are hitting this link.">
-        <div class="kpi-cell-head"><i class="fas fa-robot"></i> Bot hits filtered</div>
-        <div class="kpi-cell-value">{{ number_format($botClicksInRange) }} <i class="fas fa-chevron-down text-[10px] ml-1" style="color: var(--text-faint);"></i></div>
-    </button>
-    @endif
-</div>
+{{-- ===================== SECONDARY METRICS (compact colour cards) ===================== --}}
+@include('user.links.partials.secondary-metrics')
 
 @if($botClicksInRange > 0)
 <div id="bot-breakdown-panel" hidden class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#64748b,#94a3b8); --sc-glow: rgba(100,116,139,0.30); --sc-color: #cbd5e1; --sc-border: rgba(100,116,139,0.30);">

@@ -2043,13 +2043,15 @@ class LinkController extends Controller
             'blockInventory'     => $blockInventory,
         ]);
 
+        $businessPerformance = \App\Modules\User\Services\IndustryPerformanceReport::build($link, $startDate, $endDate, ['visits'=>$pageVisitsInRange,'interactions'=>$blockClicksInRange]);
+
         // Full block inventory (every block on the biolink, including
         // zero-click ones in this window) for the per-block drill-down
         // — required so EVERY block is clickable, not just clicked ones.
         $blockSummaryAll = BlockAnalyticsAggregator::blockSummary($link, $startDate, $endDate);
 
         return view('user.links.show', compact(
-            'link', 'clicksOverTime', 'botClicksOverTime', 'topReferrers', 'clickHeat',
+            'link', 'businessPerformance', 'clicksOverTime', 'botClicksOverTime', 'topReferrers', 'clickHeat',
             'blockSummaryAll',
             'browserStats', 'osStats', 'countryStats', 'cityStats',
             'deviceStats', 'sourceStats', 'channelStats', 'languageStats', 'blockStats', 'utmStats',
