@@ -1000,6 +1000,9 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post  ('reviews/providers/{providerConn}/refresh', [\App\Modules\User\Controllers\ReviewsController::class, 'refreshProvider'])->whereNumber('providerConn')->middleware('workspace.can:links.edit')->name('links.reviews.providers.refresh');
         Route::delete('reviews/providers/{providerConn}', [\App\Modules\User\Controllers\ReviewsController::class, 'disconnectProvider'])->whereNumber('providerConn')->middleware('workspace.can:links.edit')->name('links.reviews.providers.disconnect');
 
+        Route::get('growth-insights', [\App\Modules\User\Controllers\AiGrowthController::class, 'state'])->middleware('workspace.can:links.view')->name('growth.state');
+        Route::post('growth-insights/estimate', [\App\Modules\User\Controllers\AiGrowthController::class, 'estimate'])->middleware(['workspace.can:links.edit','throttle:10,1'])->name('growth.estimate');
+        Route::post('growth-insights/generate', [\App\Modules\User\Controllers\AiGrowthController::class, 'generate'])->middleware(['workspace.can:links.edit','throttle:10,1'])->name('growth.generate');
         Route::post('links/{link}/ai-edit/estimate', [\App\Modules\User\Controllers\AiBlockEditorController::class, 'estimate'])->middleware(['workspace.can:links.edit', 'throttle:10,1'])->name('links.ai-edit.estimate');
         Route::post('links/{link}/ai-edit/generate', [\App\Modules\User\Controllers\AiBlockEditorController::class, 'generate'])->middleware(['workspace.can:links.edit', 'throttle:10,1'])->name('links.ai-edit.generate');
         Route::post('links/{link}/ai-edit/apply', [\App\Modules\User\Controllers\AiBlockEditorController::class, 'apply'])->middleware(['workspace.can:links.edit', 'throttle:10,1'])->name('links.ai-edit.apply');

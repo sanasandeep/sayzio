@@ -654,6 +654,7 @@
     @endforeach
 </div>
 
+@include('user.links.partials.ai-growth', ['growthLink'=>$link])
 @include('user.links.partials.performance-coach')
 
 {{-- ===================== SECONDARY METRICS (compact strip) ===================== --}}
