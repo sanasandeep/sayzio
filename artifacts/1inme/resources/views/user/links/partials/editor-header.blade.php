@@ -81,6 +81,9 @@
         </a>
         @endcanInWorkspace
         @endif
+        @if($link->type === 'community_club')
+        <a href="{{ route('user.links.memberships',$link) }}" class="editor-tab no-underline {{ $activeMainTab === 'members' ? 'is-active' : '' }}"><i class="fas fa-users text-[10px]"></i><span>Members</span></a>
+        @endif
         @if($link->type === 'conversational')
         <a href="{{ route('user.links.conversational.editor', $link) }}"
            class="editor-tab no-underline {{ $activeMainTab === 'conversational' ? 'is-active' : '' }}">

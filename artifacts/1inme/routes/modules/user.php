@@ -1256,6 +1256,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/business-starter', [\App\Modules\User\Controllers\BusinessStarterController::class, 'store'])->middleware('workspace.can:links.edit')->name('links.business-starter.store');
 
         // ── Service Booking (links.type = service_booking) ─────────────
+        Route::get('links/{link}/memberships', [\App\Modules\User\Controllers\ClubMembershipController::class, 'index'])->middleware('workspace.can:links.view')->name('links.memberships');
+        Route::post('links/{link}/memberships', [\App\Modules\User\Controllers\ClubMembershipController::class, 'save'])->middleware('workspace.can:links.edit')->name('links.memberships.save');
+        Route::post('links/{link}/memberships/settings', [\App\Modules\User\Controllers\ClubMembershipController::class, 'settings'])->middleware('workspace.can:links.edit')->name('links.memberships.settings');
+        Route::post('links/{link}/memberships/create-form', [\App\Modules\User\Controllers\ClubMembershipController::class, 'createForm'])->middleware(['workspace.can:links.edit','workspace.can:inbox.create', CheckPlanLimit::class . ':forms'])->name('links.memberships.create-form');
         Route::get('links/{link}/catalog', [\App\Modules\User\Controllers\ListingCatalogController::class, 'editor'])->middleware('workspace.can:links.view')->name('links.catalog.editor');
         Route::post('links/{link}/catalog/{action}', [\App\Modules\User\Controllers\ListingCatalogController::class, 'save'])->whereIn('action', ['settings','category','entry','delete-category','delete-entry','starter','inquiry','publish'])->middleware('workspace.can:links.edit')->name('links.catalog.save');
         Route::get('links/{link}/catalog/inquiries', [\App\Modules\User\Controllers\ListingCatalogController::class, 'inquiries'])->middleware('workspace.can:links.view')->name('links.catalog.inquiries');

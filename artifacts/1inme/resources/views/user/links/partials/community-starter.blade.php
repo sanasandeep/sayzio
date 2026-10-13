@@ -13,6 +13,9 @@
     @canInWorkspace('inbox.view')
     <a class="btn-ghost inline-block mb-3" href="{{ route('user.inbox.index') }}"><i class="fas fa-inbox mr-2"></i>{{ $isCause ? 'Volunteer requests' : 'Membership requests' }}</a>
     @endcanInWorkspace
+    @if(!$isCause)
+    <a class="btn-ghost inline-block mb-3" href="{{ route('user.links.memberships',$link) }}"><i class="fas fa-users mr-2"></i>Manage members</a>
+    @endif
     @include('user.links.partials.business-starter-picker', ['link'=>$link])
     <p class="text-xs mt-3" style="color:var(--text-dim)">Starters are hidden drafts. Edit each block below, replace sample links, then show the blocks you want visitors to see.</p>
     @if($isCause)
