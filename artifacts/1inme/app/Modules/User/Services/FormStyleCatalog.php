@@ -60,6 +60,14 @@ class FormStyleCatalog
             'stripe' => ['name' => 'Racing stripe', 'category' => 'Modern', 'surface' => 'stripe', 'accent' => '#047857', 'background' => '#f2f4f8', 'cardColor' => '#ffffff', 'text' => '#172033', 'inputStyle' => 'accent_bar'],
             'contour' => ['name' => 'Contour map', 'category' => 'Modern', 'surface' => 'contour', 'accent' => '#7c3aed', 'background' => '#f2f4f8', 'cardColor' => '#ffffff', 'text' => '#172033', 'inputStyle' => 'outline'],
             'accordion' => ['name' => 'Accordion paper', 'category' => 'Paper', 'surface' => 'accordion', 'accent' => '#c2410c', 'background' => '#f2f4f8', 'cardColor' => '#ffffff', 'text' => '#172033', 'inputStyle' => 'underline'],
+            'scallop' => ['name' => 'Scalloped stationery', 'category' => 'Paper', 'surface' => 'scallop', 'accent' => '#9333ea', 'background' => '#f1f5f9', 'cardColor' => '#ffffff', 'text' => '#172033', 'inputStyle' => 'outline'],
+            'woven' => ['name' => 'Woven bamboo', 'category' => 'Paper', 'surface' => 'woven', 'accent' => '#854d0e', 'background' => '#f1f5f9', 'cardColor' => '#ffffff', 'text' => '#172033', 'inputStyle' => 'outline'],
+            'spectrum' => ['name' => 'Spectrum border', 'category' => 'Glass', 'surface' => 'spectrum', 'accent' => '#7c3aed', 'background' => '#f1f5f9', 'cardColor' => '#ffffff', 'text' => '#172033', 'inputStyle' => 'outline'],
+            'duotone' => ['name' => 'Duotone split', 'category' => 'Modern', 'surface' => 'duotone', 'accent' => '#2563eb', 'background' => '#f1f5f9', 'cardColor' => '#ffffff', 'text' => '#172033', 'inputStyle' => 'outline'],
+            'emboss' => ['name' => 'Embossed paper', 'category' => 'Paper', 'surface' => 'emboss', 'accent' => '#475569', 'background' => '#f1f5f9', 'cardColor' => '#ffffff', 'text' => '#172033', 'inputStyle' => 'outline'],
+            'mosaic' => ['name' => 'Mosaic tiles', 'category' => 'Modern', 'surface' => 'mosaic', 'accent' => '#0f766e', 'background' => '#f1f5f9', 'cardColor' => '#ffffff', 'text' => '#172033', 'inputStyle' => 'outline'],
+            'sprinkles' => ['name' => 'Confetti studio', 'category' => 'Modern', 'surface' => 'sprinkles', 'accent' => '#be185d', 'background' => '#f1f5f9', 'cardColor' => '#ffffff', 'text' => '#172033', 'inputStyle' => 'outline'],
+            'film' => ['name' => 'Film strip', 'category' => 'Editorial', 'surface' => 'film', 'accent' => '#334155', 'background' => '#f1f5f9', 'cardColor' => '#ffffff', 'text' => '#172033', 'inputStyle' => 'outline'],
         ];
     }
 }

@@ -2,7 +2,7 @@
 @section('title', 'Design · ' . $form->title)
 
 @section('content')
-<link rel="stylesheet" href="{{ asset('css/forms-surfaces.css') }}">
+<link rel="stylesheet" href="{{ asset('css/forms-surfaces.css').'?v='.filemtime(public_path('css/forms-surfaces.css')) }}">
 <div class="forms-workspace"
      x-data="{
         styleTab:'controls',styleCategory:'All',surfaceStyle:@js($design['surface_style']??'clean'),labelStyle:@js($design['label_style']??'above'),characterBoxes:{{ !empty($design['character_boxes'])?'true':'false' }},
@@ -81,7 +81,7 @@
         {{-- Settings --}}
         <div class="lg:col-span-2 space-y-6">
     <div class="card-premium p-5">
-        <div class="flex flex-wrap gap-2 mb-4"><button type="button" class="form-chip" :style="styleTab==='controls'?'background:#365ce9;color:white':''" @click="styleTab='controls'">Design controls</button><button type="button" class="form-chip" :style="styleTab==='gallery'?'background:#365ce9;color:white':''" @click="styleTab='gallery'">Style gallery · 53 styles</button></div>
+        <div class="flex flex-wrap gap-2 mb-4"><button type="button" class="form-chip" :style="styleTab==='controls'?'background:#365ce9;color:white':''" @click="styleTab='controls'">Design controls</button><button type="button" class="form-chip" :style="styleTab==='gallery'?'background:#365ce9;color:white':''" @click="styleTab='gallery'">Style gallery · {{ count(\App\Modules\User\Services\FormStyleCatalog::all()) }} styles</button></div>
         <div x-show="styleTab==='gallery'" x-cloak>
         <h3 class="font-bold">Choose a complete visual style</h3><p class="text-sm my-3">Distinct surfaces, typography and input treatments. Refine every style using the controls below.</p>
         <div class="flex flex-wrap gap-2 mb-4">@foreach(['All','Modern','Glass','Paper','Editorial'] as $category)<button type="button" class="form-chip" @click="styleCategory=@js($category)" :style="styleCategory===@js($category)?'background:#365ce9;color:white':''">{{ $category }}</button>@endforeach</div>
@@ -183,6 +183,8 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Layout</label>
+                        <button type="button" @click="layout='oneq'" class="form-chip mb-2">➜ Guided slides · one question at a time</button>
+                        <p class="text-xs mb-2" style="color:var(--text-muted)">Choose Guided slides and save design. Set each question’s background in Build → Field options. Conditional questions require a standard layout.</p>
                         <select name="layout" x-model="layout" class="theme-input w-full text-sm">
                             <option value="grid">Grid · two columns</option><option value="grid3">Grid · three columns</option><option value="stacked">Stacked (one field per row)</option>
                             <option value="inline">Inline (compact)</option>
