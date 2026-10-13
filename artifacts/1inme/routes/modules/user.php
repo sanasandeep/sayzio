@@ -1256,6 +1256,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/business-starter', [\App\Modules\User\Controllers\BusinessStarterController::class, 'store'])->middleware('workspace.can:links.edit')->name('links.business-starter.store');
 
         // ── Service Booking (links.type = service_booking) ─────────────
+        Route::post('links/{link}/memberships/card-brand', [\App\Modules\User\Controllers\ClubMembershipController::class, 'brand'])->middleware('workspace.can:links.edit')->name('links.memberships.brand');
+        Route::post('links/{link}/memberships/card-asset', [\App\Modules\User\Controllers\ClubMembershipController::class, 'cardAsset'])->middleware('workspace.can:links.edit')->name('links.memberships.card-asset');
+        Route::get('links/{link}/memberships/scanner', [\App\Modules\User\Controllers\ClubMembershipController::class, 'scanner'])->middleware('workspace.can:links.view')->name('links.memberships.scanner');
+        Route::get('links/{link}/memberships/pass/{member}', [\App\Modules\User\Controllers\ClubMembershipController::class, 'pass'])->whereNumber('member')->middleware(['workspace.can:links.view','signed'])->name('links.memberships.pass');
         Route::post('links/{link}/memberships/import', [\App\Modules\User\Controllers\ClubMembershipController::class, 'import'])->middleware('workspace.can:links.edit')->name('links.memberships.import');
         Route::get('links/{link}/memberships/export', [\App\Modules\User\Controllers\ClubMembershipController::class, 'export'])->middleware('workspace.can:links.view')->name('links.memberships.export');
         Route::post('links/{link}/memberships/photo', [\App\Modules\User\Controllers\ClubMembershipController::class, 'photo'])->middleware('workspace.can:links.edit')->name('links.memberships.photo');
