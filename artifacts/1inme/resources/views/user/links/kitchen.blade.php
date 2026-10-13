@@ -26,16 +26,19 @@
     the last successful refresh, and goes amber the moment one fails.
 --}}
 @include('user.links.partials.menu-fullscreen')
-<div data-screen-panel class="w-full max-w-7xl mx-auto" x-data="kitchenBoard()" x-init="start()">
+<div data-screen-panel class="kb-screen" data-kitchen-board="true" x-data="kitchenBoard()" x-init="start()">
 
+    <div class="kb-editor-chrome">
     @include('user.links.partials.editor-header', [
         'link' => $link,
         'activeMainTab' => 'kitchen',
         'editorBack' => $ordersUrl,
     ])
+    </div>
     <div class="flex items-center justify-end gap-3 flex-wrap mb-4 text-sm" style="color:var(--text-muted)">
+        <strong style="margin-right:auto;color:var(--text-primary)">{{ $link->title ?: $link->alias }} · Kitchen</strong>
         <button type="button" class="btn-ghost" onclick="menuFullscreen(this)">Fullscreen / Exit</button>
-        <span><b x-text="board.open"></b> open</span>
+        <span><b x-text="board.counts.active"></b> active</span>
         <span x-show="board.oldest_wait">longest wait <b x-text="board.oldest_wait"></b></span>
         <button type="button" class="btn-ghost text-xs py-2" @click="live = !live">
             <i class="fas" :class="live ? 'fa-circle-pause' : 'fa-circle-play'"></i>
@@ -43,6 +46,10 @@
         </button>
     </div>
 
+    <div class="kb-tabs" role="group" aria-label="Order views">
+        <template x-for="v in ['active','cancelled','closed']" :key="v"><button type="button" :aria-pressed="view === v" :class="{'is-active':view===v}" :disabled="inFlight" @click="selectView(v)"><span x-text="v.charAt(0).toUpperCase()+v.slice(1)"></span> <b x-text="board.counts[v]"></b></button></template>
+    </div>
+    <div class="kb-workspace" :class="{'kb-history':view!=='active'}"><main>
     {{-- The free tables, said once and quietly.
 
          Sana, 2026-10-05: "it looks ugly and not clear". Four free tables
@@ -59,25 +66,25 @@
     <template x-if="board.groups.length === 0">
         <div class="glass rounded-2xl p-10 text-center">
             <i class="fas fa-mug-hot text-3xl text-white/15 mb-3"></i>
-            <p class="text-white/50 text-sm">Nothing waiting. Orders appear here the moment they come in.</p>
+            <p class="text-white/50 text-sm"><span x-text="view === 'active' ? 'Nothing waiting. New orders appear automatically.' : 'No ' + view + ' orders.'"></span></p>
         </div>
     </template>
 
     <div class="kb-grid">
         <template x-for="g in board.groups" :key="g.key">
-            <div class="kb-card" :class="'kb-' + g.heat">
-                <div class="kb-head">
+            <div class="kb-card" :class="view === 'active' ? 'kb-' + g.heat : 'kb-idle'">
+                <div class="kb-head" x-show="board.mode === 'tables' && view === 'active'">
                     <div class="kb-name" x-text="g.name"></div>
-                    <div class="kb-age" x-show="g.wait" x-text="g.wait"></div>
+                    <div class="kb-age" x-show="view === 'active' && g.wait" x-text="g.wait"></div>
                 </div>
 
-                <div class="kb-status" x-text="g.label"></div>
+
 
                 <template x-for="t in g.tickets" :key="t.id">
                     <div class="kb-ticket">
                         <div class="kb-ref">
-                            <span>#<span x-text="t.ref"></span></span>
-                            <span class="kb-tmin" x-text="t.wait"></span>
+                            <span class="kb-order-number"><small x-text="'Order · ' + t.label"></small> #<span x-text="t.ref"></span></span>
+                            <span class="kb-tmin" x-text="view === 'active' ? t.wait : new Date(t.placed).toLocaleString()"></span>
                         </div>
                         <p x-show="t.wanted_at" x-text="'Scheduled: ' + new Date(t.wanted_at).toLocaleString()"></p>
                         <p x-show="t.prepaid">Prepaid coupon serving</p>
@@ -87,7 +94,7 @@
                                 <li>
                                     <b x-text="l.qty"></b>
                                     <span x-text="l.name"></span>
-                                    <em x-show="l.note" x-text="l.note"></em>
+                                    <em x-show="l.options && l.options.length" x-text="optionText(l.options)"></em><em x-show="l.note" x-text="l.note"></em>
                                 </li>
                             </template>
                         </ul>
@@ -110,6 +117,8 @@
         </template>
     </div>
 
+    <p class="kb-history-hint" x-show="view !== 'active'">Most recent <span x-text="board.limit"></span> orders. <a href="{{ $ordersUrl }}">View all orders →</a></p>
+    </main><aside class="kb-summary" x-show="view === 'active'"><h2>Item totals</h2><p>Across active orders · ready quantities included</p><template x-for="item in board.summary" :key="item.key"><div class="kb-summary-row"><div><strong x-text="item.name"></strong><small x-show="item.options && item.options.length" x-text="optionText(item.options)"></small><small x-show="item.ready" x-text="item.ready + ' ready · ' + (item.qty-item.ready) + ' to prepare'"></small></div><b x-text="item.qty"></b></div></template><p x-show="!board.summary.length">No items waiting.</p></aside></div>
     <div class="kb-foot">
         <span :class="stale ? 'kb-stale' : ''">
             <i class="fas" :class="stale ? 'fa-triangle-exclamation' : 'fa-rotate'"></i>
@@ -123,6 +132,9 @@
 
 @push('styles')
 <style>
+    .kb-screen{width:100%;max-width:none}.kb-screen:fullscreen .kb-editor-chrome,.kb-screen.menu-screen-expanded .kb-editor-chrome{display:none}
+    .kb-workspace{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}.kb-workspace.kb-history{grid-template-columns:1fr}.kb-workspace main{min-width:0}.kb-summary{position:sticky;top:16px;background:var(--bg-card);border:1px solid var(--border-glass);border-radius:18px;padding:18px;max-height:80vh;overflow:auto}.kb-summary h2{font-size:20px;font-weight:750}.kb-summary p,.kb-history-hint{font-size:12px;color:var(--text-muted);margin:8px 0 16px}.kb-summary-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--border-glass)}.kb-summary-row div{flex:1;min-width:0;overflow-wrap:anywhere}.kb-summary-row small{display:block;color:var(--text-muted);font-size:12px}.kb-summary-row>b{font-size:28px;font-variant-numeric:tabular-nums}.kb-tabs{display:flex;gap:6px;margin-bottom:16px}.kb-tabs button{border:1px solid var(--border-glass);border-radius:999px;padding:7px 13px;font-size:12px;color:var(--text-muted)}.kb-tabs button.is-active{background:var(--accent,#4263ff);color:white}.kb-tabs b{margin-left:5px}.kb-order-number{font-size:27px;font-weight:800;color:var(--text-primary)}.kb-order-number small{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:600;color:var(--text-muted)}.kb-ref{align-items:center}.kb-workspace .kb-name{font-size:17px}.kb-workspace .kb-age{font-size:14px}
+    @media(max-width:900px){.kb-workspace{grid-template-columns:1fr}.kb-summary{position:static;max-height:none}}
     .kb-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -179,6 +191,7 @@
         white-space: nowrap;
     }
 
+    .kb-card>.kb-ticket:first-of-type{border-top:0;margin-top:0;padding-top:0}
     .kb-ticket {
         margin-top: 11px; padding-top: 11px;
         border-top: 1px solid var(--border-glass);
@@ -250,6 +263,7 @@
 function kitchenBoard() {
     return {
         board: @js($board),
+        view: @js($board['view']),
         live: true,
         stale: false,
         busy: null,
@@ -261,6 +275,8 @@ function kitchenBoard() {
         inFlight: false,
         lastStamp: Date.now(),
 
+        optionText(options) { return (options || []).map(o => typeof o === 'string' ? o : [o.group_name || o.group, o.choice_name || o.choice || o.name || o.label].filter(Boolean).join(': ')).filter(Boolean).join(', '); },
+        async selectView(view) { if(this.inFlight) return; this.view=view; await this.tick(true); this.view=this.board.view; },
         start() {
             setInterval(() => this.tick(), 10000);
             // The "updated 2m ago" clock has to move on its own, or a board
@@ -273,11 +289,12 @@ function kitchenBoard() {
             this.lastAt = mins < 1 ? 'just now' : mins + 'm ago';
         },
 
-        async tick() {
-            if (!this.live || this.inFlight || document.hidden) return;
+        async tick(force = false) {
+            if ((!force && (!this.live || document.hidden)) || this.inFlight) return;
             this.inFlight = true;
             try {
-                const res = await fetch(@js($pollUrl), {
+                const pollUrl = new URL(@js($pollUrl),window.location.origin); pollUrl.searchParams.set('view',this.view);
+                const res = await fetch(pollUrl, {
                     headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                 });
                 if (!res.ok) throw new Error('poll failed');
@@ -318,7 +335,7 @@ function kitchenBoard() {
                     // card here. Two people work this screen at once, and a
                     // board that trusts its own guess drifts from what the
                     // other one did.
-                    await this.tick();
+                    await this.tick(true);
                 }
             } catch (e) {
                 this.stale = true;

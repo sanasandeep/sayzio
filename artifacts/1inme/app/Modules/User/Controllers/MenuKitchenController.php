@@ -71,13 +71,14 @@ class MenuKitchenController extends Controller
 
     public function board(Request $request, Link $link, string $kind = 'restaurant')
     {
+        $request->validate(['view'=>'nullable|string|in:active,cancelled,closed']);
         [$menu, $model, $hasTables] = $this->resolve($link, $kind);
 
         return view('user.links.kitchen', [
             'link'      => $link,
             'menu'      => $menu,
             'kind'      => $kind,
-            'board'     => KitchenBoard::of($menu, $model, $hasTables),
+            'board'     => KitchenBoard::of($menu, $model, $hasTables, $request->input('view', 'active')),
             'pollUrl'   => route('user.links.'.$kind.'.kitchen.poll', $link),
             'statusUrl' => $kind === 'restaurant'
                 ? route('user.links.restaurant.orders.status', ['link' => $link, 'order' => '__ID__'])
@@ -90,6 +91,7 @@ class MenuKitchenController extends Controller
 
     public function poll(Request $request, Link $link, string $kind = 'restaurant'): JsonResponse
     {
+        $request->validate(['view'=>'nullable|string|in:active,cancelled,closed']);
         [$menu, $model, $hasTables] = $this->resolve($link, $kind);
 
         // Deliberately the WHOLE board rather than a delta since a cursor.
@@ -99,7 +101,7 @@ class MenuKitchenController extends Controller
         // order that was completed on somebody's phone has no "updated
         // since" row to send, so the ticket would sit on the wall forever.
         // Sending the whole board makes a stale ticket impossible.
-        $board = KitchenBoard::of($menu, $model, $hasTables);
+        $board = KitchenBoard::of($menu, $model, $hasTables, ($request->boolean('display') ? 'active' : $request->input('view', 'active')));
         if ($request->boolean('display')) {
             $tickets = collect($board['groups'])->flatMap(fn ($group) => $group['tickets'])
                 ->unique('id')->map(fn ($ticket) => collect($ticket)->only(['id', 'ref', 'status', 'placed'])->all())->values();

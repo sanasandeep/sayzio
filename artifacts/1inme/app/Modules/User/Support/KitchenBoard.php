@@ -38,8 +38,8 @@ use App\Modules\User\Models\RestaurantTable;
  * is the one the kitchen is late on, and showing the newest would hide it
  * behind a fresh green chip.
  *
- * Completed and cancelled orders leave the board entirely. A kitchen
- * screen is a list of work, and work that is done is not on it.
+ * Completed and cancelled orders leave the active board. Compact history
+ * views keep them accessible without adding them to item totals.
  */
 class KitchenBoard
 {
@@ -57,28 +57,45 @@ class KitchenBoard
      *     statuses: array, server_time: string
      * }
      */
-    public static function of($menu, string $model, bool $hasTables): array
+    public static function of($menu, string $model, bool $hasTables, string $view = 'active'): array
     {
         $prep = MenuHandoverTiming::resolve((array) $menu->settings)['prep_minutes'];
-        $orders = $model::with(['items', 'menu'])
+        $activeQuery = $model::with(['items', 'menu'])
             ->where('menu_id', $menu->id)
             ->whereIn('status', $model::OPEN_STATUSES)
-            ->where(fn ($q) => $q->whereNull('wanted_at')->orWhere('wanted_at', '<=', now()->addMinutes($prep))->orWhere('status', 'ready'))
-            // Oldest first: the kitchen's own order of work, and the one
-            // thing this board must never get backwards.
-            ->orderBy('created_at')
-            ->limit(self::MAX_TICKETS)
-            ->get();
+            ->where(fn ($q) => $q->whereNull('wanted_at')->orWhere('wanted_at', '<=', now()->addMinutes($prep))->orWhere('status', 'ready'));
+        $view = in_array($view, ['active','cancelled','closed'], true) ? $view : 'active';
+        $counts = $model::where('menu_id', $menu->id)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total','status');
+        $summary = [];
+        // Include all eligible active orders, even when the ticket display is capped.
+        (clone $activeQuery)->chunkById(200, function ($orders) use (&$summary) {
+            foreach ($orders as $order) foreach ($order->items as $item) {
+                $options = $item->options ?? [];
+                $key = json_encode([$item->item_id ?? $item->product_id, $item->name, $options]);
+                $summary[$key] ??= ['key'=>$key, 'name'=>$item->name, 'options'=>$options, 'qty'=>0, 'ready'=>0];
+                $summary[$key]['qty'] += (int)$item->quantity;
+                if ($order->status === 'ready') $summary[$key]['ready'] += (int)$item->quantity;
+            }
+        });
+        uasort($summary, fn($a,$b)=>strnatcasecmp($a['name'],$b['name']));
+        $query = $view === 'active' ? clone $activeQuery : $model::with(['items','menu'])->where('menu_id',$menu->id)->where('status',$view === 'closed' ? 'completed' : 'cancelled');
+        $orders = $view === 'active'
+            ? $query->orderBy('created_at')->limit(self::MAX_TICKETS)->get()
+            : $query->orderByDesc('updated_at')->orderByDesc('id')->limit(self::MAX_TICKETS)->get();
 
         $tickets = $orders->map(fn ($o) => self::ticket($o, $model))->all();
 
-        $groups = $hasTables
+        $groups = $hasTables && $view === 'active'
             ? self::byTable($menu, $tickets)
             : self::byOrder($tickets);
 
         $oldest = $tickets ? max(array_column($tickets, 'minutes')) : null;
 
         return [
+            'view' => $view,
+            'counts' => ['active'=>(clone $activeQuery)->count(),'cancelled'=>(int)($counts['cancelled']??0),'closed'=>(int)($counts['completed']??0)],
+            'summary' => array_values($summary),
+            'limit' => self::MAX_TICKETS,
             'mode'           => $hasTables ? 'tables' : 'orders',
             // Split for the screen rather than in it.
             //
@@ -95,7 +112,7 @@ class KitchenBoard
             )),
             'open'           => count($tickets),
             'oldest_minutes' => $oldest,
-            'oldest_wait'    => self::wait($oldest),
+            'oldest_wait'    => $view === 'active' ? self::wait($oldest) : null,
             'statuses'       => $model::STATUS_LABELS,
             'server_time'    => now()->toIso8601String(),
         ];
@@ -135,6 +152,7 @@ class KitchenBoard
                 'qty'  => (int) $i->quantity,
                 'name' => (string) $i->name,
                 'note' => $i->note ?? null,
+                'options' => $i->options ?? [],
             ])->all(),
             // The moves this ticket can actually make, from the model's own
             // transition map rather than a second copy of it on the screen.
