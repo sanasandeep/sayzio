@@ -63,6 +63,26 @@ class TheKitchenScreenShowsWhatIsWaitingTest extends TestCase
         app()->instance('workspace_owner', $this->owner);
     }
 
+    public function test_item_totals_combine_active_orders_and_history_stays_separate(): void
+    {
+        [$link,$menu,$item] = $this->restaurant();
+        $first=$this->order($link,$menu,$item,'new',5);
+        $second=$this->order($link,$menu,$item,'preparing',4);
+        $second->items()->first()->update(['quantity'=>3]);
+        RestaurantOrderItem::create(['order_id'=>$second->id,'name'=>'Idly','quantity'=>1,'unit_price'=>20,'line_total'=>20]);
+        $cancelled=$this->order($link,$menu,$item,'cancelled',10);
+        $closed=$this->order($link,$menu,$item,'completed',15);
+        $board=KitchenBoard::of($menu,RestaurantOrder::class,false);
+        $totals=collect($board['summary'])->keyBy('name');
+        $this->assertSame(5,$totals['Masala Dosa']['qty']);
+        $this->assertSame(1,$totals['Idly']['qty']);
+        $this->assertSame(['active'=>2,'cancelled'=>1,'closed'=>1],$board['counts']);
+        $this->assertSame([$cancelled->id],collect(KitchenBoard::of($menu,RestaurantOrder::class,false,'cancelled')['groups'])->flatMap(fn($g)=>$g['tickets'])->pluck('id')->all());
+        $this->assertSame([$closed->id],collect(KitchenBoard::of($menu,RestaurantOrder::class,false,'closed')['groups'])->flatMap(fn($g)=>$g['tickets'])->pluck('id')->all());
+        $second->update(['status'=>'ready']);
+        $this->assertSame(3,collect(KitchenBoard::of($menu,RestaurantOrder::class,false)['summary'])->keyBy('name')['Masala Dosa']['ready']);
+    }
+
     // ── Fixtures ──────────────────────────────────────────────────
 
     private function restaurant(): array
